@@ -8,7 +8,7 @@ no code paths touched. `feature.json:6` `review_sha: "b1d3925"` matches this rev
 **VERDICT: PASS.** No must_fix. One non-gating spec_violation (scope_creep), two low/info
 quality notes, one open process question (Q-E, already on the board).
 
-## Priority 1 — D-08 label fix, both halves (`check-state.sh:55-59` + 17 call sites)
+## Priority 1 — D-08 label fix, both halves (`check-state.py:55-59` + 17 call sites)
 
 **Built correctly. MF-1 is genuinely fixed.**
 
@@ -68,7 +68,7 @@ quality notes, one open process question (Q-E, already on the board).
 - Not literally "purely additive" in line terms: 61 insertions / 64 deletions — a rewrite of
   case 20, not an append. It **deletes** the two hand-mirrored helpers (`_ci_text`,
   `_inv27_text`) and their five `SurfaceReport`-constructed parity checks, replacing them with
-  `_parity_tree`/`_parity`, which run the **real** `check-state.sh` via `subprocess` against a
+  `_parity_tree`/`_parity`, which run the **real** `check-state.py` via `subprocess` against a
   built fixture tree and compare its `INV-27` lines to `layout_migration.scan()`+`render()`
   over the same tree — a genuine strengthening (no second mirror exists in the file after this
   commit, confirmed by reading the diff in full).
@@ -112,7 +112,7 @@ the plan's declared files, so a file appearing in `git diff` but named in no tas
 to it. There's no gate distinguishing "this Expertise write is a plan-scoped re-anchor" from
 "this Expertise write is an undisclosed doctrine change" — enforcement here is per-agent-write-
 permission (main-session-direct, DEC-174, broadly permitted inside `.harness/`), not per-
-artifact-lineage. The asymmetry showed up live in this very review: `bash-write-guard.sh`
+artifact-lineage. The asymmetry showed up live in this very review: `bash-write-guard.py`
 blocked my own routine `git show ... > /tmp/...` redirect at the tool route (a read-only
 agent, any write, anywhere) — a strict per-agent-route control — while a builder's 617-file
 cluster commit carried an edit to injected, cross-feature Expertise that no automated gate
@@ -121,7 +121,7 @@ examined at all.
 Two catch-options, offered as assessment for the operator, not a recommendation ranked between
 them: (a) extend `check-plan-routes.py` (or add a PR-time step) to reconcile the actual commit
 diff against the union of every task's declared `files:`, so an unrouted-but-permitted file at
-least surfaces; (b) scope `bash-write-guard.sh` so writes to `.harness/expertise/*.md` require
+least surfaces; (b) scope `bash-write-guard.py` so writes to `.harness/expertise/*.md` require
 either a distillation-dispatch marker or containment to a pre-existing entry's literal text (a
 "re-anchor shape" heuristic).
 

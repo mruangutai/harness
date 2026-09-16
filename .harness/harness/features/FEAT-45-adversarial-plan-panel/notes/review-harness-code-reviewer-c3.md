@@ -2,7 +2,7 @@
 
 Scope: `git diff main...d78f393` (merge-base `ba338d8`), 71 files, +7931/-152. HEAD (`877be4c`)
 confirmed to differ from `d78f393` only in `feature.json`'s `review_sha` line (`git diff d78f393 HEAD
---stat`). `validate-digest.py`, `test-validate-digest.py`, `check-state.sh` confirmed byte-identical
+--stat`). `validate-digest.py`, `test-validate-digest.py`, `check-state.py` confirmed byte-identical
 between the working tree and `git show d78f393:<path>` before citing any line number below.
 
 **Tool note, not a repo finding**: relative-path `read`/`grep` calls in this session resolved against
@@ -14,7 +14,7 @@ finding below, not a tooling coincidence — see the closing section.
 ## Stage 1 — spec compliance
 
 Read `BRIEF.md` (REQ-01..14, SC-01..17, constraints, approval) in full. Every file in the diff traces
-to a named requirement: `validate-digest.py`/`check-state.sh`/`panel_findings.py` changes are
+to a named requirement: `validate-digest.py`/`check-state.py`/`panel_findings.py` changes are
 REQ-05/06/07/08/10/11/13/14 machinery; `plan-panel.yaml` and the `plan.yaml` template additions are
 SC-01/02/03/14/15; `.omp/agents/harness-validator-lead.md` and `.claude/agents/harness-validator-lead.md`
 are the `spawns:` grant SC-15 asserts; `DECISIONS.md`/`DECISIONS-INDEX.md` additions are REQ-11/SC-09;
@@ -145,7 +145,7 @@ etc.) sits at or above the bar-4 production line. **No code-risk finding.**
 
 ## Other fail-open hunting
 
-Read `check-state.sh`'s new INV-32 block in full (lines 174-243) and `panel_findings.py` in full
+Read `check-state.py`'s new INV-32 block in full (lines 174-243) and `panel_findings.py` in full
 (61 lines). Both correctly require every `expected_readers` entry recorded as `ran` or `skipped` and
 reject an unrecorded one — matches SC-17, no new fail-open found. `panel_findings.py`'s 8-hex-char
 (32-bit) id is the pre-existing, carried-forward M4 advisory, unchanged at this pin — not re-derived.
@@ -153,7 +153,7 @@ reject an unrecorded one — matches SC-17, no new fail-open found. `panel_findi
 ## Test suite corroboration — independently re-run, not restated
 
 - `test-validate-digest.py` at this pin: **ALL PASSED** (fresh run, not trusted from the record).
-- `run-unit-tests.sh --kind unit` at this pin: 433 `^PASS |^FAIL ` lines, **0** `^FAIL `, **0**
+- `run-unit-tests.py --kind unit` at this pin: 433 `^PASS |^FAIL ` lines, **0** `^FAIL `, **0**
   `KIND-DRIFT` — matches the shared context's reported numbers exactly, confirmed by direct re-run.
 - Neither run exercises either new gap above: `_check_plan_feature_binding` only tests a feature WITH
   a recorded, *differing* branch (never the branch-absent case); `check_hook_feature_dir` only tests
@@ -163,7 +163,7 @@ reject an unrecorded one — matches SC-17, no new fail-open found. `panel_findi
 ## Carried-forward advisories — not re-derived, unchanged; noted only per dispatch
 
 M4 (32-bit id, asserted ratchet risk), M6 (goalcheck transcription ambiguity), M7 (withhold message
-lacks remedy), and `check-state.sh:199-206`'s unattributed-overrule audit-trail wart — all as given in
+lacks remedy), and `check-state.py:199-206`'s unattributed-overrule audit-trail wart — all as given in
 the shared context. No evidence found that any of them changed at this pin; none re-verified in depth
 this cycle per the dispatch's "do not re-derive" instruction.
 

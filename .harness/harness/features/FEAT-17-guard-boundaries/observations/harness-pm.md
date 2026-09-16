@@ -6,7 +6,7 @@
   side of a paired assertion as broken by rule R, run R over the OTHER side too before accepting the
   scoping — the reviewer scoped by the symptom it noticed, not by the rule it derived.
 - 2026-08-11: "import it at the same points X is already imported" is an unsafe instruction when the
-  existing sites have DIFFERENT failure semantics. check-domain.sh imports harness_yaml twice: once
+  existing sites have DIFFERENT failure semantics. check-domain.py imports harness_yaml twice: once
   under _run_domain (governed-only, safe to exit 2) and once in the shape phase (ungoverned, must
   absorb). A fail-closed instruction phrased by analogy would have blocked the main session.
 - 2026-08-11: the same defect class arrived a THIRD way in T-05 — FIX 2, cycle 1, and now the

@@ -77,5 +77,5 @@ cases `PASS`, ending `PASS test-feature-worktree.py`, exit 0.
 
 ## Not done here (by design)
 
-T-02 (`remove`), T-04 (`WORKTREE_REL_RE` cutover), and every `run-unit-tests.sh` registration
+T-02 (`remove`), T-04 (`WORKTREE_REL_RE` cutover), and every `run-unit-tests.py` registration
 (D-06 — no task before T-08 may invoke the runner). Nothing was staged or committed.

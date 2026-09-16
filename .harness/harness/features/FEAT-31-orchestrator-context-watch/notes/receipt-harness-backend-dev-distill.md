@@ -6,7 +6,7 @@ Applied 2 merges + 2 replacements + 2 drops + 2 adds to the craft file
 (`.harness/expertise/harness-backend-dev.md`), and 1 add to the repository-tier file
 (`.harness/harness/expertise/harness-backend-dev.md`). Both sections that were at cap (Patterns,
 Gotchas — 15/15 each) stayed at cap: each new entry displaced room freed by merging two existing
-entries that shared a root cause, never a bare append over cap. `check-expertise.sh` is clean on
+entries that shared a root cause, never a bare append over cap. `check-expertise.py` is clean on
 both my files (one pre-existing, unrelated ADVISORY on G-08, not introduced this run).
 
 ## Tool-shape correction, recorded because it cost real work
@@ -73,7 +73,7 @@ either (`diff` exit 0, both files).
   judged Candidate C weaker than the two accepted candidates and let it die per the skill's own rule
   ("nothing weaker, it dies").
 - Also considered and left out (own log, not strong enough to clear the six-spawns-from-now bar
-  given no free slot): T-01's `run-unit-tests.sh --kind unit` exit-1-from-an-unrelated-fixture
+  given no free slot): T-01's `run-unit-tests.py --kind unit` exit-1-from-an-unrelated-fixture
   observation (adjacent to existing G-04, not sufficiently distinct); T-08's grep-prefix-collision
   observation (too narrow/single-incident to generalize past what P-08/P-12 already cover).
 
@@ -88,7 +88,7 @@ mode (code fixed before tests were written at all, not a RED run that came back 
 tree), so it does not contradict P-06; it is the trigger P-13 used to cover, now folded into P-09.
 No `drop`/`replace` was needed on stale-entry grounds alone.
 
-## check-expertise.sh result (verbatim, whole directory)
+## check-expertise.py result (verbatim, whole directory)
 
 ```
 OK   .harness/expertise/harness-ai-dev.md
@@ -102,7 +102,7 @@ OK   .harness/expertise/harness-documentor.md
 OK   .harness/expertise/harness-eng-lead.md
 OK   .harness/expertise/harness-orchestrator.md
 ADVISORY .harness/expertise/harness-orchestrator.md:29: G-11 names '.claude/' — repository-layer candidate; rule on it (issue 340)
-ADVISORY .harness/expertise/harness-orchestrator.md:29: G-11 names 'check-domain.sh' — repository-layer candidate; rule on it (issue 340)
+ADVISORY .harness/expertise/harness-orchestrator.md:29: G-11 names 'check-domain.py' — repository-layer candidate; rule on it (issue 340)
 OK   .harness/expertise/harness-pm.md
 ADVISORY .harness/expertise/harness-pm.md:4: P-01 names '.harness/' — repository-layer candidate; rule on it (issue 340)
 OK   .harness/expertise/harness-product-lead.md

@@ -19,4 +19,4 @@
 
 - Exact applied operations: `[]`.
 - A preliminary `P-18` merge attempt supplied only an entry line, without the canonical `## Patterns` heading required by the merge input shape; it parsed as empty and did not change Expertise. Final judgment remains no displacement at the full Patterns cap.
-- Scoped check: `.agents/skills/harness/bin/check-expertise.sh .harness/expertise/harness-dev-ops.md` exited 0: `OK`; it emitted only the existing advisory that G-03 may be repository-layer. The repository Expertise file was unchanged, so its scoped check was not required.
+- Scoped check: `.agents/skills/harness/bin/check-expertise.py .harness/expertise/harness-dev-ops.md` exited 0: `OK`; it emitted only the existing advisory that G-03 may be repository-layer. The repository Expertise file was unchanged, so its scoped check was not required.

@@ -24,7 +24,7 @@ structural limit of stat-based detection. No finding.
 file loop, nothing wraps this call. `os.path.islink(path)` (:37) and the explicit
 `os.lstat(path)` (:38) are two separate syscalls; if the symlink is removed between them
 (e.g., by a test script's own cleanup of a scratch symlinked dir it created under the
-watched root — the exact watched root is `$BIN_DIR` itself per `run-unit-tests.sh:148`,
+watched root — the exact watched root is `$BIN_DIR` itself per `run-unit-tests.py:148`,
 shared by all 63 concurrently-run files), the second call raises `FileNotFoundError`
 uncaught, propagating out of `snapshot()` through `main()` — the entire pool run crashes,
 not just the one file. Reproduced deterministically by making `os.path.islink` unlink the

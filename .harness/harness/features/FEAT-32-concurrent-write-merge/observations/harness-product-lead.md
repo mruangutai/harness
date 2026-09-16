@@ -1,6 +1,6 @@
 # Observations — harness-product-lead — FEAT-32
 
-- 2026-08-22: I passed `model: opus` in my first pm dispatch and `dispatch-guard.sh` blocked it,
+- 2026-08-22: I passed `model: opus` in my first pm dispatch and `dispatch-guard.py` blocked it,
   citing DEC-152/155. My own preloaded rule forbids it. The pull was "this judgement is hard" —
   which is exactly the red-flag wording in `harness-zero-micro-management`. Cost: one blocked call,
   no spawn lost.
@@ -14,8 +14,8 @@
   handed it to pm. Lesson: a harm claim resting on an enforcer inside the feature's own build is a
   claim about unfinished code.
 - 2026-08-22: `grep 'dirty tree|halts the next'` over `bin/` hits only four files
-  (`feature-worktree.py`, `bash-write-guard.sh`, `test-bash-write-guard.py`, `merge-gitignore.sh`)
-  and NOT `check-state.sh`. The "dirty tree halts the next team run" phrase is repeated in
+  (`feature-worktree.py`, `bash-write-guard.py`, `test-bash-write-guard.py`, `merge-gitignore.py`)
+  and NOT `check-state.py`. The "dirty tree halts the next team run" phrase is repeated in
   `.gitignore` comments and T-11's intent as if it named one enforcer; it may name none centrally.
 - 2026-08-22: `Glob **/*.lock` over the whole worktree returns nothing, so a blanket `*.lock`
   rule cannot untrack an existing file today — the hazard the `gh-cost-*.jsonl` comment
@@ -26,7 +26,7 @@
   dispatch reaches the member only via a send-back. Front-load the leads into the prompt.
 - 2026-08-22: THE SECOND SURFACE nobody named. `.gitignore` is only this checkout. The rules the
   factory installs into every other repository live in
-  `.claude/skills/harness/templates/gitignore.snippet`, merged by `merge-gitignore.sh:35` (which
+  `.claude/skills/harness/templates/gitignore.snippet`, merged by `merge-gitignore.py:35` (which
   strips comments and matches whole lines with `grep -qxF`, :42). The snippet has 8 rules and no
   lock rule, so a repo-local `.gitignore` line closes this checkout and leaves every installed
   project with the same gap. Lesson: when a fix is a `.gitignore` rule about harness-produced

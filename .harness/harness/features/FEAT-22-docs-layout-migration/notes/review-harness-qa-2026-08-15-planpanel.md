@@ -3,7 +3,7 @@
 **BLUF: FAIL — a third, unfound member of the class exists.** `test-harness-yaml.py`'s
 `COLLECT_FIXTURE["harness-documentor"]` (`:81-96`) is an exact-list-equality assertion against
 `.harness/team-config.yaml`'s real, live grants, reached through `harness_yaml.manifest_domains()`
-— the module the file's own docstring says reconstructs `check-domain.sh`'s grant-collection logic
+— the module the file's own docstring says reconstructs `check-domain.py`'s grant-collection logic
 (`:105-126`). T-02 adds `.harness/*/docs/**` to `harness-documentor`'s grants; **MEASURED LIVE**
 (simulated team-config.yaml, real `manifest_domains()` call): the returned `mine` list gains that
 entry, breaking the fixture's exact-match assertion. This test runs in the **integration suite**.
@@ -50,7 +50,7 @@ Partition:
   `test-upgrade-config.py`, `test-validate-feature-json.py`. Grepped each for
   `docs/harness`, `harness_boundary`, `is_control_plane`, `classify`, `check-domain`,
   `bash-write-guard`, `check-plan-routes`, `HARNESS_CONTROL_PLANE`: zero hits in 14 of 15.
-  `test-merge-settings.py` hits `check-domain.sh`/`bash-write-guard.sh` (lines 33, 58, 66, 68, 76,
+  `test-merge-settings.py` hits `check-domain.py`/`bash-write-guard.py` (lines 33, 58, 66, 68, 76,
   115, 117) but only as string literals in a `hook_present()` detector over `settings.json` JSON —
   it never calls `classify`/`is_control_plane_target`/the hooks themselves, so no assertion's
   verdict is a function of `HARNESS_CONTROL_PLANE`'s contents. Rejected.
@@ -86,11 +86,11 @@ text.
 first pass of this sweep — a gap in the census the advisor caught. Run subsequently
 (`grep -nE 'harness_boundary|is_control_plane|classify\(|check-domain|bash-write-guard|check-plan-routes|HARNESS_CONTROL_PLANE'`
 over all six): four of six are clean. `test-harness-yaml.py` and `test-no-distribution.py` and
-`test-factory-config.py` hit the pattern on `check-domain.sh`/`check-plan-routes.py` MENTIONS —
+`test-factory-config.py` hit the pattern on `check-domain.py`/`check-plan-routes.py` MENTIONS —
 read each in place:
 - `test-no-distribution.py:76-77,101` — asserts `check-plan-routes.py` (the file) EXISTS on disk.
   Presence check, not a resolution call. Rejected.
-- `test-factory-config.py:144` — a comment describing `check-domain.sh`'s general refusal
+- `test-factory-config.py:144` — a comment describing `check-domain.py`'s general refusal
   behavior, not an assertion invoking it. Rejected.
 - `test-harness-yaml.py:28,356-363` — the `COLLECT_FIXTURE` mechanism itself (see BLUF): a real
   finding, but it is the grant-list/`manifest_domains()` family, not
@@ -121,10 +121,10 @@ assignment).
 
 **T-05's block**: `$B` is set at the very top (`B=.claude/skills/harness/bin`, line 2 of the
 block) before any use. All five files it references exist at the pin, as does
-`run-unit-tests.sh`. Ran the whole block against the unbuilt pin: it fails with `integration FAILs
+`run-unit-tests.py`. Ran the whole block against the unbuilt pin: it fails with `integration FAILs
 are not the one expected` — a controlled, named assertion failure, not a load/import/collection
 error. This is the expected state (nothing is built yet), **and it is also a real measurement**:
-running the block executes both `run-unit-tests.sh --kind unit` and `--kind integration` for real
+running the block executes both `run-unit-tests.py --kind unit` and `--kind integration` for real
 against the pin, and the failure text (`grep -cE '^FAIL test-' "$i"` != 1, i.e. it measured 0) means
 **both suites carry zero `FAIL` lines at `0f12f14` today** — independently corroborating T-01's
 stated pre-move baseline (0 FAIL in each, 15 PASS unit / 12 PASS integration).
@@ -194,7 +194,7 @@ DIGEST:
   coverage_gaps: []
   open_questions: []
   must_fix:
-    - { id: F-02, severity: high, area: "test-harness-yaml.py:81-96 COLLECT_FIXTURE['harness-documentor']", note: "Exact-list-equality assertion against the real .harness/team-config.yaml, reached through harness_yaml.manifest_domains() (the file's own docstring: reconstructs check-domain.sh:105-126's grant-collection logic). MEASURED LIVE by simulating T-02's team-config.yaml edit and calling manifest_domains(): the returned 'mine' list for harness-documentor gains '.harness/*/docs/**', breaking the fixture's exact match. Runs in the integration suite (run-unit-tests.sh:18). No task updates COLLECT_FIXTURE -- not T-02, not T-04 (which edits this same file for an unrelated path fix at :686 only), not T-05, not T-06. T-05's own verify would correctly block on the resulting second integration FAIL, but no task is assigned to fix the cause." }
+    - { id: F-02, severity: high, area: "test-harness-yaml.py:81-96 COLLECT_FIXTURE['harness-documentor']", note: "Exact-list-equality assertion against the real .harness/team-config.yaml, reached through harness_yaml.manifest_domains() (the file's own docstring: reconstructs check-domain.py:105-126's grant-collection logic). MEASURED LIVE by simulating T-02's team-config.yaml edit and calling manifest_domains(): the returned 'mine' list for harness-documentor gains '.harness/*/docs/**', breaking the fixture's exact match. Runs in the integration suite (run-unit-tests.py:18). No task updates COLLECT_FIXTURE -- not T-02, not T-04 (which edits this same file for an unrelated path fix at :686 only), not T-05, not T-06. T-05's own verify would correctly block on the resulting second integration FAIL, but no task is assigned to fix the cause." }
   findings:
     - { id: F-01, severity: low, area: T-01 RED STATES prose, note: "'eleven files plus test-gen-decisions-index.py' (plan.yaml:272-273) reads as naming a 12th file; test-gen-decisions-index.py is already one of T-04's six inside the eleven. Recoverable from context (it reds a second time for a different, later-clearing reason), not a build-blocking ambiguity." }
   census:
@@ -213,7 +213,7 @@ DIGEST:
     sed_T10_standalone_shape_matches: true
   hunt5b:
     all_figures_reproduced: true
-  baseline_corroboration: "run-unit-tests.sh executed for real via T-05's verify at the pin: 0 FAIL lines in both unit and integration, corroborating T-01's stated pre-move baseline."
+  baseline_corroboration: "run-unit-tests.py executed for real via T-05's verify at the pin: 0 FAIL lines in both unit and integration, corroborating T-01's stated pre-move baseline."
   files_touched: [/Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-22-docs-layout-migration/notes/review-harness-qa-2026-08-15-planpanel.md]
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-22-docs-layout-migration/notes/review-harness-qa-2026-08-15-planpanel.md

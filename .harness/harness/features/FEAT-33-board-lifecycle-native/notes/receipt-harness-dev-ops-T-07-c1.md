@@ -111,7 +111,7 @@ still passes with its original assertions.
 
 Task's exact `verify:` (`plan.yaml` T-07):
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind all
+.claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 Ran it TWICE. First run (before the mutation-testing pass below): exit 0, tail ends
 `PASS test-dispatch-guard.py` / `[exited with code 0]`. Second run, AFTER restoring the file to
@@ -127,7 +127,7 @@ restore: `ALL PASSED` — every existing check plus all thirteen new T-07 checks
 Only `.claude/skills/harness/bin/gh-sync.py` and `.claude/skills/harness/bin/test-gh-sync.py`
 touched (`git diff --stat`: 46 / 276 lines respectively). Confirmed via `git diff --stat` that
 `board_lifecycle.py`, `test-board-lifecycle.py`, `test-factory-integration.py` and
-`run-unit-tests.sh` (T-04's files) carry no diff from my work, and `DECISIONS.md`/
+`run-unit-tests.py` (T-04's files) carry no diff from my work, and `DECISIONS.md`/
 `DECISIONS-INDEX.md`/`plan.yaml` changes present in `git status` are T-09's/the orchestrator's,
 not mine — untouched by this task. No `## Approval` or `approval.status` edited. Nothing
 committed.

@@ -110,7 +110,7 @@ to `config`/`scaffolding`. Reporting the rejection rather than silently picking 
 
 ## Verify
 
-Command (verbatim from `plan.yaml`): `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+Command (verbatim from `plan.yaml`): `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Ran in background (full-repo suite), completed exit code 0. Tail of output (last 80 lines,
 piped through `tail -80` per my own invocation) shows unrelated suites (inflight-registry,
@@ -131,7 +131,7 @@ Touched only my three assigned files:
 `.claude/skills/harness/bin/board_lifecycle.py`,
 `.claude/skills/harness/bin/test-board-lifecycle.py`,
 `.claude/skills/harness/bin/test-factory-integration.py`.
-Did not touch `gh-sync.py`, `DECISIONS.md`/`DECISIONS-INDEX.md`, `check-state.sh`,
+Did not touch `gh-sync.py`, `DECISIONS.md`/`DECISIONS-INDEX.md`, `check-state.py`,
 `test-check-state.py`, `test-gh-sync.py`, or `plan.yaml` — those carry sibling tasks (T-16,
 T-19, main session) already in progress in this worktree; their presence in `git status` is
 not mine. No approval or `plan.yaml` field was touched. No commit was made.

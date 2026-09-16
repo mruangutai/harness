@@ -30,7 +30,7 @@ outside `__pycache__` in `bin/` today (`git ls-files` confirms), so this doesn't
 it is a written-decision-vs-code divergence, not a live defect. `should_fix`, not gating.
 
 Everything else Stage 1 checked is in agreement: `isolated_bin.py` matches T-01's exact shape;
-`run-unit-tests.sh`'s pool invocation matches T-06's mandated line verbatim
+`run-unit-tests.py`'s pool invocation matches T-06's mandated line verbatim
 (`--mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"`), `"${SCRIPTS[@]}"` is gone, both new
 files are registered in the correct arrays; DEC-211 (re-read in full at the pin,
 `DECISIONS.md:6563-6614`) carries every phrase T-05's verify greps for and its `mode`/`size`/`mtime`
@@ -96,7 +96,7 @@ snapshots is invisible to any metadata-based detector) — no new finding, now a
   (see above), not a fail-open regression.
 - **`isolated_bin.py`** — examined, nothing. Matches T-01's spec exactly: real `shutil.copytree`
   (never symlinked), source resolved from `os.path.realpath(__file__)`, single caller shape.
-- **`run-unit-tests.sh`** — examined, nothing new (unchanged by this delta; re-read in full at the
+- **`run-unit-tests.py`** — examined, nothing new (unchanged by this delta; re-read in full at the
   pin). Drift detector, kind cross-check, and the pool invocation all intact.
 - **`test-check-domain.py`** — examined. `run_schema`'s SITE A split into
   `_schema_case`/`_inject_schema_crash`/`_schema_copy_control`/`_schema_crash_control`/

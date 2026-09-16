@@ -31,14 +31,14 @@ OK T-03 granted to harness-dev-ops
 UNRESOLVED-GLOB T-04 .harness/features/*/feature.yaml
 DEVIATION T-04 .harness/features/FEAT-14-feature-json-schema/feature.yaml granted to harness-orchestrator but declared main-session-direct
 OK T-05 granted to harness-backend-dev, harness-dev-ops
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/check-domain.sh, .claude/skills/harness/bin/validate-digest.py, .claude/skills/harness/bin/test-check-state.py, .claude/skills/harness/bin/test-check-domain.py, .claude/skills/harness/bin/test-validate-digest.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/check-domain.py, .claude/skills/harness/bin/validate-digest.py, .claude/skills/harness/bin/test-check-state.py, .claude/skills/harness/bin/test-check-domain.py, .claude/skills/harness/bin/test-validate-digest.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-07: declared main-session-direct (.claude/skills/harness/templates/feature.json, .claude/skills/harness/templates/gitignore.snippet, .claude/skills/harness/templates/harness.json, .claude/skills/harness/templates/team-config.yaml, .claude/skills/harness/SKILL.md, .claude/skills/harness-team/SKILL.md, .claude/skills/harness-spec-driven/SKILL.md, .claude/agents/harness-orchestrator.md, .claude/commands/harness.md, .harness/team-config.yaml ungranted)
 UNRESOLVED-GLOB T-08 .harness/features/*/feature.yaml
 DEVIATION T-08 .harness/features/FEAT-14-feature-json-schema/feature.yaml granted to harness-orchestrator but declared main-session-direct
 OK T-09 granted to harness-documentor
 OK T-10 granted to harness-documentor
 OK T-11 granted to harness-backend-dev, harness-dev-ops
-DEVIATION T-12 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-12 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 0 violation(s) across 1 plan(s)
 ```
 
@@ -86,7 +86,7 @@ which YAML truncates or rejects. Both were in prose I had just written (`D-11`, 
 Expertise G-12's sibling and worth the reminder: a colon-space inside a plain scalar is a parse
 error, not a silent truncation, so it fails loud — but only if you actually reload the file.
 
-## 4. check-domain.sh --resolve, per new or changed literal path
+## 4. check-domain.py --resolve, per new or changed literal path
 
 ```
 .harness/features/FEAT-15-domain-product-base/feature.yaml     => harness-orchestrator
@@ -94,21 +94,21 @@ error, not a silent truncation, so it fails loud — but only if you actually re
 .harness/features/FEAT-17-guard-boundaries/feature.yaml        => harness-orchestrator
 .claude/skills/harness/bin/check-plan-routes.py                => harness-backend-dev harness-dev-ops
 .claude/skills/harness/bin/test-check-plan-routes.py           => harness-backend-dev harness-dev-ops
-.claude/skills/harness/bin/check-state.sh                      => harness-backend-dev harness-dev-ops
+.claude/skills/harness/bin/check-state.py                      => harness-backend-dev harness-dev-ops
 .claude/skills/harness/bin/test-check-state.py                 => harness-backend-dev harness-dev-ops
 ```
 
 Lanes locked accordingly: the three feature paths resolve to `harness-orchestrator`, which owns only
 its own feature dir, so the `lanes:` row keeps them `main-session-direct` (unchanged). T-11's two
 paths resolve to team and T-11 is `execution_mode: team`. T-12's two resolve to team **but
-`check-state.sh` is a DEC-174 carve-out**, so T-12 is `main-session-direct` with the carve-out named
+`check-state.py` is a DEC-174 carve-out**, so T-12 is `main-session-direct` with the carve-out named
 in `execution_reason` — same lane as T-06.
 
 ## 5. STEP ZERO — every reader of `status` / `phase`, and its disposition
 
 The dispatch's literal scan — `grep -rn 'phase\|status'` over `bin/`, `.claude/hooks/`,
 `.github/workflows/` — returns **183 lines**, and it is dominated by matches that carry none of this
-vocabulary: `gh auth status`, subprocess *exit status*, HTTP `"status":"422"`, and `check-domain.sh`'s
+vocabulary: `gh auth status`, subprocess *exit status*, HTTP `"status":"422"`, and `check-domain.py`'s
 own `_domain_phase` / *shape phase* flag. Pasted below verbatim is the **narrowed reader scan**, which
 is the one that answers the question — every declaration, read, path-join and fixture of a feature's
 `phase`/`status`, plus every hardcoded `feature.yaml`, with those four noise classes filtered out.
@@ -264,39 +264,39 @@ bin/gh-sync.py:528:    a closing action, not a recording one, so `feature.yaml` 
 bin/test-factory-claim.py:231:    blocker naming T-99, which feature.yaml never maps)."""
 bin/test-factory-claim.py:237:    write_yaml(os.path.join(demo, "feature.yaml"), {"factory": {"issues": {"T-01": 501}}})
 bin/test-factory-claim.py:246:    write_yaml(os.path.join(block, "feature.yaml"), {
-bin/check-state.sh:80:    return bool(m) and re.search(r"status:\s*approved", m.group(1), re.I) is not None
-bin/check-state.sh:148:for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
-bin/check-state.sh:154:    # and the house style on 45 lines of FEAT-03's feature.yaml — silently dropped the
-bin/check-state.sh:158:    # (feature.yaml:63-64) instead of fixing the parser. Same defect class as DEC-123
-bin/check-state.sh:166:        bad.append(f"{feat}/feature.yaml does not parse, so INV-6..8 and INV-12 "
-bin/check-state.sh:170:        bad.append(f"{feat}/feature.yaml is not a YAML mapping.")
-bin/check-state.sh:283:            warn.append(f"{feat}: run dir {rid} exists on disk but feature.yaml does not "
-bin/check-state.sh:434:# A feature whose phase: sits past a seam with no handoff note for the crossing lost the
-bin/check-state.sh:436:# Only enforced when the feature declares phase: at all, so pre-DEC-159 features stay quiet.
-bin/check-state.sh:437:PHASE_ORDER = ["plan", "build", "validate", "ship"]
-bin/check-state.sh:439:for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
-bin/check-state.sh:441:    # F-02: parsed, not regex-scanned. `^phase:\s*(\S+)` misses a quoted value and a
-bin/check-state.sh:447:        bad.append(f"{feat}/feature.yaml does not parse, so its phase invariants "
-bin/check-state.sh:450:    _phase = str(_doc.get("phase", "")).strip() if isinstance(_doc, dict) else ""
-bin/check-state.sh:451:    if _phase not in PHASE_ORDER:
-bin/check-state.sh:453:    idx = PHASE_ORDER.index(_phase)
-bin/check-state.sh:454:    for prev in PHASE_ORDER[:idx]:
-bin/check-state.sh:479:# --- INV-18 (DEC-160): a feature with run dirs but no feature.yaml is invisible to
-bin/check-state.sh:481:# Observed live: FEAT-03's plan phase ran to completion before feature.yaml existed.
-bin/check-state.sh:486:    if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.yaml")):
-bin/check-state.sh:487:        bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
-bin/check-state.sh:491:# --- INV-23 (DEC-150, mechanized — issue #132): the feature.yaml and STATE.md budgets,
-bin/check-state.sh:506:for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.yaml"))):
-bin/check-state.sh:510:        warn.append(f"INV-23 {feat}/feature.yaml is {len(fl)} lines — budget is 200. It is "
-bin/check-state.sh:514:        warn.append(f"INV-23 {feat}/feature.yaml has {nc} comment lines — budget is 20. "
-bin/check-state.sh:515:                    f"Narrative commentary does not belong in feature.yaml (DEC-150).")
-bin/check-state.sh:587:    # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
-bin/check-state.sh:588:    # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
-bin/check-state.sh:713:    for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
-bin/check-state.sh:726:            bad.append(f"{feat}/feature.yaml does not parse, so INV-21 cannot be "
-bin/check-state.sh:750:# A feature.yaml with no `factory` block contributes nothing and is not a violation.
-bin/check-state.sh:752:for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
-bin/check-state.sh:820:        # legal feature.yaml pass one invariant and hard-block on its twin (D-03).
+bin/check-state.py:80:    return bool(m) and re.search(r"status:\s*approved", m.group(1), re.I) is not None
+bin/check-state.py:148:for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+bin/check-state.py:154:    # and the house style on 45 lines of FEAT-03's feature.yaml — silently dropped the
+bin/check-state.py:158:    # (feature.yaml:63-64) instead of fixing the parser. Same defect class as DEC-123
+bin/check-state.py:166:        bad.append(f"{feat}/feature.yaml does not parse, so INV-6..8 and INV-12 "
+bin/check-state.py:170:        bad.append(f"{feat}/feature.yaml is not a YAML mapping.")
+bin/check-state.py:283:            warn.append(f"{feat}: run dir {rid} exists on disk but feature.yaml does not "
+bin/check-state.py:434:# A feature whose phase: sits past a seam with no handoff note for the crossing lost the
+bin/check-state.py:436:# Only enforced when the feature declares phase: at all, so pre-DEC-159 features stay quiet.
+bin/check-state.py:437:PHASE_ORDER = ["plan", "build", "validate", "ship"]
+bin/check-state.py:439:for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+bin/check-state.py:441:    # F-02: parsed, not regex-scanned. `^phase:\s*(\S+)` misses a quoted value and a
+bin/check-state.py:447:        bad.append(f"{feat}/feature.yaml does not parse, so its phase invariants "
+bin/check-state.py:450:    _phase = str(_doc.get("phase", "")).strip() if isinstance(_doc, dict) else ""
+bin/check-state.py:451:    if _phase not in PHASE_ORDER:
+bin/check-state.py:453:    idx = PHASE_ORDER.index(_phase)
+bin/check-state.py:454:    for prev in PHASE_ORDER[:idx]:
+bin/check-state.py:479:# --- INV-18 (DEC-160): a feature with run dirs but no feature.yaml is invisible to
+bin/check-state.py:481:# Observed live: FEAT-03's plan phase ran to completion before feature.yaml existed.
+bin/check-state.py:486:    if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.yaml")):
+bin/check-state.py:487:        bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
+bin/check-state.py:491:# --- INV-23 (DEC-150, mechanized — issue #132): the feature.yaml and STATE.md budgets,
+bin/check-state.py:506:for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.yaml"))):
+bin/check-state.py:510:        warn.append(f"INV-23 {feat}/feature.yaml is {len(fl)} lines — budget is 200. It is "
+bin/check-state.py:514:        warn.append(f"INV-23 {feat}/feature.yaml has {nc} comment lines — budget is 20. "
+bin/check-state.py:515:                    f"Narrative commentary does not belong in feature.yaml (DEC-150).")
+bin/check-state.py:587:    # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
+bin/check-state.py:588:    # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
+bin/check-state.py:713:    for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+bin/check-state.py:726:            bad.append(f"{feat}/feature.yaml does not parse, so INV-21 cannot be "
+bin/check-state.py:750:# A feature.yaml with no `factory` block contributes nothing and is not a violation.
+bin/check-state.py:752:for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+bin/check-state.py:820:        # legal feature.yaml pass one invariant and hard-block on its twin (D-03).
 bin/test-gh-sync.py:77:status: approved
 bin/test-gh-sync.py:95:    open(os.path.join(feat, "feature.yaml"), "w").write(
 bin/test-gh-sync.py:96:        f"feature_id: {feat_name}\nstatus: in_progress\n")
@@ -343,17 +343,17 @@ bin/test-gh-sync.py:769:    open(os.path.join(_d, "feature.yaml"), "w").write(_b
 bin/test-gh-sync.py:771:    _txt = open(os.path.join(_d, "feature.yaml")).read()
 bin/test-gh-sync.py:779:    check(f"finding 2: save_recorded round-trips a feature.yaml with a {_label}", _ok, _why)
 bin/validate-digest.py:173:    # in feature.yaml.
-bin/check-domain.sh:427:# does not name, and the one that explains its own evidence: the 226-line feature.yaml
-bin/check-domain.sh:429:# 400-line feature.yaml payload: exit 2 as `harness-orchestrator`, exit 0 with no
-bin/check-domain.sh:485:    # same 400-line feature.yaml measured exit 0 as `harness-orchestrator` and exit 2 as
-bin/check-domain.sh:684:# with ONE 400-line feature.yaml payload against its 200-line budget:
-bin/check-domain.sh:692:# own evidence: the 226-line feature.yaml it records was the MAIN SESSION's, so the tool
-bin/check-domain.sh:725:    ".harness/features/*/feature.yaml",
-bin/check-domain.sh:736:#   1. NO DEDUP. One over-budget feature.yaml, then five unrelated `ls` calls produced
-bin/check-domain.sh:799:# rule, which is what this gate is for: `feature.yaml` 200/20 and `CLAUDE.md` 80 are
-bin/check-domain.sh:855:            problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
-bin/check-domain.sh:860:                            f"belong in feature.yaml.")
-bin/check-domain.sh:967:        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
+bin/check-domain.py:427:# does not name, and the one that explains its own evidence: the 226-line feature.yaml
+bin/check-domain.py:429:# 400-line feature.yaml payload: exit 2 as `harness-orchestrator`, exit 0 with no
+bin/check-domain.py:485:    # same 400-line feature.yaml measured exit 0 as `harness-orchestrator` and exit 2 as
+bin/check-domain.py:684:# with ONE 400-line feature.yaml payload against its 200-line budget:
+bin/check-domain.py:692:# own evidence: the 226-line feature.yaml it records was the MAIN SESSION's, so the tool
+bin/check-domain.py:725:    ".harness/features/*/feature.yaml",
+bin/check-domain.py:736:#   1. NO DEDUP. One over-budget feature.yaml, then five unrelated `ls` calls produced
+bin/check-domain.py:799:# rule, which is what this gate is for: `feature.yaml` 200/20 and `CLAUDE.md` 80 are
+bin/check-domain.py:855:            problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
+bin/check-domain.py:860:                            f"belong in feature.yaml.")
+bin/check-domain.py:967:        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
 bin/check-plan-routes.py:238:# carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
 bin/check-plan-routes.py:386:SHIPPED_STATUSES = ("shipped", "abandoned")
 bin/check-plan-routes.py:392:    Reads `feature.yaml`'s `status:` with the real loader. An unreadable or absent
@@ -373,9 +373,9 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
 
 | Site | Disposition |
 |---|---|
-| `check-state.sh:437` `PHASE_ORDER`, `:450` phase read, `:451` `continue`, `:453-455` handoff path | **T-12** |
-| `check-state.sh:439` INV-17's `feature.yaml` glob | **T-06** (filename only), block otherwise T-12 |
-| `check-state.sh:148,486,506,713,752` globs | **T-06** (filename only) |
+| `check-state.py:437` `PHASE_ORDER`, `:450` phase read, `:451` `continue`, `:453-455` handoff path | **T-12** |
+| `check-state.py:439` INV-17's `feature.yaml` glob | **T-06** (filename only), block otherwise T-12 |
+| `check-state.py:148,486,506,713,752` globs | **T-06** (filename only) |
 | `check-plan-routes.py:386` `SHIPPED_STATUSES`, `:392-427` `_is_shipped` | **T-11** |
 | `check-plan-routes.py:410` `feature.yaml` path join | **T-05** (filename only) |
 | `test-check-plan-routes.py:828-838` status fixture loop, `:862-875` malformed-status cases | **T-11** |
@@ -388,7 +388,7 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
 | `test-check-state.py:44,169,192,251,280,310,352,591,704,868` fixture `feature.yaml` writes | **T-06** (filenames) / **T-12** (the two carrying `phase`) |
 | `test-harness-yaml-corpus.py:11-20` four `feature.yaml` citations | **T-05 item 6** — preserved verbatim as historical record, pinned at exactly 4 |
 | `test-validate-digest.py:753,773` `artifact:` fixture paths | **T-06 item 3** (rename; they are test inputs) |
-| `check-domain.sh:725` `_SWEEP_PATTERNS`, `:855-860` budget message | **T-06 item 2** |
+| `check-domain.py:725` `_SWEEP_PATTERNS`, `:855-860` budget message | **T-06 item 2** |
 | `factory_decompose.py:95,189,201`, `factory_claim.py:119` | **T-05 items 3-4** (filename only; neither reads status) |
 | `gh-sync.py:247, :338` hardcoded `feature.yaml` | **T-05** — see below |
 | `harness/SKILL.md:271-272` "Record your phase in `feature.yaml` `phase:`" | **T-07 item 3** (new) |
@@ -397,7 +397,7 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
 
 ### Deliberately untouched, with the reason
 
-- **`check-state.sh:599`** — `str(sdoc.get("status","")).strip() == "complete"`. This is
+- **`check-state.py:599`** — `str(sdoc.get("status","")).strip() == "complete"`. This is
   **`state.yaml`'s RUN status**, governed by `CHECKPOINT_KEYS` and DEC-154, which this feature puts
   out of scope. `complete` is also one of the old feature-file values (FEAT-10's), so any sweep for
   that literal lands here. Changing it breaks INV-15 and INV-16. **Named in T-12 item 4 so it is
@@ -405,11 +405,11 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
 - **`validate-digest.py:182-183`** and **`harness-orchestrator.md:69`** — the orchestrator DIGEST
   status enum. **D-13** rules it out of scope with a named reason. T-07 item 3 forbids touching line
   69 explicitly.
-- **`branch-create-gate.sh:45`** `g.get("status_field")` — this is `harness.json`'s GitHub board
+- **`branch-create-gate.py:45`** `g.get("status_field")` — this is `harness.json`'s GitHub board
   field *name*, not a feature's status value. Untouched.
 - **`factory_gh.py` / `test-factory-gh.py` / `test-factory-claim.py`** — every hit is `gh auth
   status`, an HTTP `"status":"422"`, or a subprocess exit status. Not this vocabulary.
-- **`check-domain.sh:450-494`** `_domain_phase`, `_run_domain` — the hook's own PRE/POST phase flag.
+- **`check-domain.py:450-494`** `_domain_phase`, `_run_domain` — the hook's own PRE/POST phase flag.
   Unrelated to a feature's lifecycle. Untouched.
 - **`test-factory-gh.py:173-183`** `"status": "Ready"` — already board-column shaped; these are
   GitHub Projects fixtures, not feature files. Untouched.
@@ -569,7 +569,7 @@ because four of the five are the same shape and it recurs.
    filename rename *and* T-12's content rewrite. Left as written, T-06's renamed glob would match
    nothing and the case would pass **vacuously** while T-06's own verify went green. **Fixed**: T-06
    gets an explicit carve-out for the fixture *filename* only; T-12 owns the content.
-5. **Line anchors into files an earlier task edits** — my own P-10. T-12 cited `check-state.sh`
+5. **Line anchors into files an earlier task edits** — my own P-10. T-12 cited `check-state.py`
    437/450/451/455, which T-06 shifts; T-11 cited 386/426/828, which T-05 shifts. **Fixed**: both
    tasks now anchor on content (`PHASE_ORDER = [`, `# --- INV-17 (DEC-159)`, `SHIPPED_STATUSES =`,
    `want_checked`) and open with an explicit anchor-on-content instruction.

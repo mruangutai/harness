@@ -105,7 +105,7 @@ applied that correctly.
 
 ### Q3 — DEC-19 dropped (`debug-mission.md` L21) — **CORRECT** on both counts
 
-DEC-19's body at `7ebfc9e` ("`check-domain.sh` is the one deliberate exception to files-only
+DEC-19's body at `7ebfc9e` ("`check-domain.py` is the one deliberate exception to files-only
 delivery") is about the domain-hook write-safety mechanism — it never discusses "approval bypasses"
 or a "second, lighter lane." T-14's own intent names this file as the pattern case, so the drop is
 literally the specified behavior. It is also the *better* outcome on the merits: DEC-19's two

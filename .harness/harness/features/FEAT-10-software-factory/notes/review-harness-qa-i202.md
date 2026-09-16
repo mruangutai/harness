@@ -14,13 +14,13 @@ vector — a planted marker propagates through regeneration and no gate objects.
 
 ## Part A — the five claims
 
-**1. `check-state.sh` reports no INV-10 — VERIFIED.**
-Ran `.claude/skills/harness/bin/check-state.sh`. Exit 1, with 3 VIOLATION lines, all under
+**1. `check-state.py` reports no INV-10 — VERIFIED.**
+Ran `.claude/skills/harness/bin/check-state.py`. Exit 1, with 3 VIOLATION lines, all under
 `FEAT-11-graphql-field-resolve/` and `FEAT-12-end-copy-distribution/` (unrelated in-flight flows,
 matching the expected caveat exactly). `grep -i "INV-10\|check-docs"` over the full output: zero
 matches. No error invoking the deleted `check-docs.sh`.
 
-**2. `run-unit-tests.sh` — 97/97, every suite PASS — VERIFIED, with one clarification.**
+**2. `run-unit-tests.py` — 97/97, every suite PASS — VERIFIED, with one clarification.**
 Exit 0, zero `FAIL` lines. **"97/97" is `test-factory-integration.py`'s own internal check count**
 (its last line reads `97/97 checks passed.`), not a grand total across all 22 suites — the runner
 itself never emits an aggregate total. Confirmed this is not a fresh coincidence:
@@ -51,19 +51,19 @@ marker syntax remains in `SPEC.md`, `BUILD.md`, `.claude/skills/harness/SKILL.md
 four.
 
 **5. `CLAUDE.md` within budget — VERIFIED.** `wc -l CLAUDE.md` = 73. Budget enforced independently
-of the deleted `check-docs.sh`, at `check-domain.sh:779-780` (`if len(lines) > 80: ... budget is 80
+of the deleted `check-docs.sh`, at `check-domain.py:779-780` (`if len(lines) > 80: ... budget is 80
 (DEC-181)`), under DEC-181's surviving budget half. Matches the commit's "73 of 80 lines" and
 confirms DEC-181 was correctly struck IN PART (not whole) — its entry at DECISIONS.md:5096
-explicitly records the budget half as standing and cites the same `check-domain.sh:779-780` line.
+explicitly records the budget half as standing and cites the same `check-domain.py:779-780` line.
 
 ## Additional checks run before the verdict (beyond the five claims)
 
-- **`check-state.sh`'s INV-10 removal hunk, read directly** (DEC-169 presence-beside-absence):
-  `git diff c4fea5d..835b297 -- .claude/skills/harness/bin/check-state.sh` shows the entire ~28-line
+- **`check-state.py`'s INV-10 removal hunk, read directly** (DEC-169 presence-beside-absence):
+  `git diff c4fea5d..835b297 -- .claude/skills/harness/bin/check-state.py` shows the entire ~28-line
   INV-10 block (the `docs`/`check-docs.sh` subprocess call and its three `bad.append` branches)
   replaced with a comment explaining the retirement. Nothing adjacent was removed with it.
 - **`check-docs` repo-wide** (`git grep -n -- 'check-docs' 835b297`): every remaining hit is either
-  the retirement comment in `check-state.sh`, an index row/refs-graph entry for the struck DEC-103,
+  the retirement comment in `check-state.py`, an index row/refs-graph entry for the struck DEC-103,
   or historical narrative inside `DECISIONS.md`'s own entries (DEC-108's incident record, DEC-181's
   history, etc.) — none of it is a live instruction to run a binary that no longer exists.
 - **`DEC-103`/`DEC-104` repo-wide** (`git grep -n -- 'DEC-103\|DEC-104' 835b297 -- .claude docs`):
@@ -132,7 +132,7 @@ before/after — confirmed).
   file).
 
 **M2/M3 verdict: this IS a real gap in the automated suite — a missing or spurious row in the
-committed index is currently invisible to `run-unit-tests.sh`.** But it is **pre-existing, not
+committed index is currently invisible to `run-unit-tests.py`.** But it is **pre-existing, not
 introduced by this diff**: I pulled the pre-change test at `c4fea5d` and it had exactly the same
 shape — regenerate into tmp, compare row *count* to `distinct`, never diff against `REAL_INDEX`
 content. The manual command in claim 3
@@ -151,14 +151,14 @@ main checkout confirmed clean before and after every mutant.
 Planted `<!-- ok-stale -->` on `DEC-01`'s row in `DECISIONS-INDEX.md` in a disposable worktree.
 
 - `gen-decisions-index.py --stdout` **faithfully propagated** the marker into the regenerated row.
-- `check-state.sh` run against the mutated tree: **silent** — no mention of `ok-stale` or `DEC-01`
+- `check-state.py` run against the mutated tree: **silent** — no mention of `ok-stale` or `DEC-01`
   anywhere in its output.
 - Full unit suite (`test-gen-decisions-index.py` and the rest): **zero FAIL lines** — nothing
   objects to a live, functionally meaningless `ok-stale` marker.
 
 **Confirmed, not opinion: this is a real revival vector.** With `check-docs.sh` deleted, nothing in
 the current gate set would ever flag a future author writing `<!-- ok-stale -->` into a decision —
-the generator preserves it silently forever, and every gate that ran (check-state.sh, the full
+the generator preserves it silently forever, and every gate that ran (check-state.py, the full
 unit suite) stayed green. This matches Part C's framing exactly: not "dead code that should have
 gone," but a mechanism that still fires and whose output nothing checks the meaning of.
 

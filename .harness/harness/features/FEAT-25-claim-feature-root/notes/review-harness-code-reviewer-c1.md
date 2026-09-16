@@ -32,7 +32,7 @@ calibration in the dispatch, that is advisory, not gating.
   requires.
 - SC-08 both clauses hold: `git diff --name-only d1ffd7f...8d7b273 -- .` (minus the feature's own
   bookkeeping dir) shows no forbidden file (`factory_config.py`, `fleet.yaml`, `harness.json`,
-  `gh_board.py`, `check-domain.sh`) and no added `load_board` reference — checked individually by
+  `gh_board.py`, `check-domain.py`) and no added `load_board` reference — checked individually by
   grep, all six sub-verdicts negative.
 - Re-ran all three suites myself at `8d7b273` (working tree, byte-identical to the pin for these
   six files): `test-factory-claim.py` exit 0, 120 ok-lines (114 baseline + 2 T-01 + 4 T-02);
@@ -86,7 +86,7 @@ neither is general: (1) T-03's `verify:` block in `plan.yaml` greps ok-line TEXT
 (`hasok "case 22: ..."`), which fails regardless of exit code if case 22 reddens; (2) the same
 verify's `k -ge 41` ok-line-count threshold would ALSO catch a case-18 regression, because a failed
 case prints `FAIL - ` instead of `ok   - `, decrementing the count independently of exit status. But
-`run-unit-tests.sh:59-66` — the actual CI/QA gate for `--kind unit` — routes purely on
+`run-unit-tests.py:59-66` — the actual CI/QA gate for `--kind unit` — routes purely on
 `python3 "$s"; status=$?`, with no line-count or text check at all. So the general CI gate has no
 backstop, and a future regression to any of case 18's three assertions (or the 3 in
 test-check-state.py) would go undetected there indefinitely. **Severity: med, advisory** — real,

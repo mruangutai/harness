@@ -7,8 +7,8 @@
 - Review SHA: `be27d99454352e581fdf7cbace20fb52d0f45133`; mode B; `in_scope: true` because the dispatch explicitly places the generated operator reading surface in this review.
 - Artifact inspected: `.harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/ship-review-c1.html` (13,026 bytes). It is a tracked object present at the review SHA, added on the feature range, not an uncommitted HTML edit. Its last path commit is `03c5903feecaac2a765b3ec54a9c18cddd022ca5`.
 - The only pre-review working-tree trace edit observed was `feature.json`, changing `review_sha` from `f494553...` to `be27d994...`; it was excluded from the pinned-content judgment. The HTML body itself still identifies `f494553...` as its reviewed pin, so it is the extant reading surface to audit, not evidence that its narrative was regenerated for c3.
-- The substantive feature delta is a behavioral test plus integration registration/configuration and the operator ruling. `merge-gitignore.sh` and the shared `render-brief.py` are unchanged from base `0fa8f336...` to the review SHA. BRIEF REQ-01–REQ-05 and SC-01–SC-06, and plan task `T-01`, specify behavioral coverage rather than a UI contract.
-- `T-01` carries the exact verify command `python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.sh --kind all`; it was inspected but not run under this UI-only dispatch.
+- The substantive feature delta is a behavioral test plus integration registration/configuration and the operator ruling. `merge-gitignore.py` and the shared `render-brief.py` are unchanged from base `0fa8f336...` to the review SHA. BRIEF REQ-01–REQ-05 and SC-01–SC-06, and plan task `T-01`, specify behavioral coverage rather than a UI contract.
+- `T-01` carries the exact verify command `python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.py --kind all`; it was inspected but not run under this UI-only dispatch.
 
 ## Source-level surface audit
 

@@ -62,7 +62,7 @@ After: `    decisions, _, headings = parse_decisions(text)`
 - `check-decision-anchors.py`: exit 0, "examined 20 anchor(s), 0 failed"
 - `check-decision-claims.py`: exit 0, "examined 11 claim(s), 0 failed"
 - `gen-decisions-index.py --stdout | diff - DECISIONS-INDEX.md`: exit 0, empty diff
-- `run-unit-tests.sh` (output captured to a shell variable, never piped to head/tail):
+- `run-unit-tests.py` (output captured to a shell variable, never piped to head/tail):
   runner exit `$?` captured immediately = 0; `grep -c '^FAIL'` = 0;
   `grep -c 'PASS'` = 1150; `grep -c '^KIND-DRIFT:'` = 0.
   No repair attempt needed — suite was green on first run after the edits.

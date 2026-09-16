@@ -8,7 +8,7 @@
   test itself. Matches my own P-01 pattern (governing constraint must live where the reader
   actually opens it) in the positive direction for once — worth remembering as a clean example
   the next time I'm asked to judge "is there one authority."
-- 2026-08-19: `inject-expertise.sh`'s repository-tier injection globs every `.harness/*/expertise/<agent>.md`
+- 2026-08-19: `inject-expertise.py`'s repository-tier injection globs every `.harness/*/expertise/<agent>.md`
   present and relies on a single prose sentence (the precedence line's segment caveat) for the
   agent to discount a labelled block from a repository it wasn't dispatched against. Confirmed via
   `notes/research-FEAT-27-expertise-tier.md:115-117` that this is a known, already-flagged gap

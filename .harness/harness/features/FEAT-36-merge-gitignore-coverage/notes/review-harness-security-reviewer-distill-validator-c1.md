@@ -6,7 +6,7 @@ BLUF: PASS. The original additive security-reviewer operation remains preserved 
 
 - Current state: the Expertise injected for this reassessment contains `O-09` verbatim: `WHEN self-scoping a test-only diff DO audit subprocess, environment, filesystem, and configuration effects before declaring no exploitable regression — tests can invoke production code, mutate inherited state, or change enforcement reachability.`
 - Original operation: `runs/distill-validator/digest.md` records the same operation as the security reviewer's one successfully applied additive op, with Outcomes changing `8->9`.
-- Prior check: `notes/review-harness-security-reviewer-distill-validator.md` records merge receipt `ADDED O-09`, followed by `.agents/skills/harness/bin/check-expertise.sh .harness/expertise/harness-security-reviewer.md` returning `OK`. Its pre-existing repository-layer advisory was explicitly non-failing.
+- Prior check: `notes/review-harness-security-reviewer-distill-validator.md` records merge receipt `ADDED O-09`, followed by `.agents/skills/harness/bin/check-expertise.py .harness/expertise/harness-security-reviewer.md` returning `OK`. Its pre-existing repository-layer advisory was explicitly non-failing.
 - Reassessment action: no Expertise file was written. Per the operator's rule, unchanged prior per-file evidence is cited rather than rerun; no project-wide validation ran.
 
 The entry remains a valid additive `Outcomes` rule under the recorded check. There is no security finding, must-fix, or open question for this close-out.

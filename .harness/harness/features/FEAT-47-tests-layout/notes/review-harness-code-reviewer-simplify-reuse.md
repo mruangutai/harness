@@ -2,7 +2,7 @@
 
 Scope: `origin/main..` diff in this worktree. Read-only, REUSE angle only (no correctness/style
 review; that is the code-review stage, separately). Not flaggable: DEC-213 and its D-01..D-19
-already settle the `suite_layout.py` / `run-unit-tests.sh` / `tests/manual/suite-census.py` split —
+already settle the `suite_layout.py` / `run-unit-tests.py` / `tests/manual/suite-census.py` split —
 `tests/unit/test-suite-layout.py`'s `SOLE_IMPLEMENTATION_EXEMPTIONS`/`sole_implementations()` sweep
 is a signed, tested boundary that names exactly those four sites as allowed to know the
 `tests/unit` + `tests/integration` discovery shape. Re-litigating that is noise, so it is not
@@ -44,7 +44,7 @@ differently from the other 59 files doing the exact same thing) or, in `test-omp
 entirely dead: nothing in the rest of the file imports from `bin/`, so both the aliased import and
 the `sys.path.insert` have zero observable effect.
 
-**Cost:** this feature's own review record for `run-unit-tests.sh` (`git diff` header comment)
+**Cost:** this feature's own review record for `run-unit-tests.py` (`git diff` header comment)
 demonstrates that `.claude/skills/harness/bin`'s location is exactly the kind of path that gets
 moved. A future move now has to be edited in up to 122 near-identical spots (two per file, times
 61) under two different spellings (`_anchor_bin` vs `BIN_DIR`), instead of one. The two spellings
@@ -69,7 +69,7 @@ one everywhere it isn't simply unused.
   vs. predicate-interface test), and the overlap between `suite-census.py`'s `tests()` glob and
   `suite_layout.py`'s internal glob is the explicitly reviewed, signed, and test-enforced exception
   (D-16, DEC-213) — not an oversight.
-- `run-unit-tests.sh`'s `SCRIPTS=(tests/unit/test-*.py …)` globs vs. `suite_layout.py`'s globs:
+- `run-unit-tests.py`'s `SCRIPTS=(tests/unit/test-*.py …)` globs vs. `suite_layout.py`'s globs:
   same shape, but this is the caller consuming the predicate's already-established directory
   contract, not a second implementation of the predicate itself — no finding.
 - `.harness/harness.json`, `.github/CODEOWNERS`, `.claude/skills/harness/bin/validate-digest.py`:

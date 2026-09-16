@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Feature execution state (feature.json)",
-  "description": "FEAT-14 D-01: ten top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10. There is no `status` property either, as of FEAT-41 T-07: the feature's station is recorded in plan.yaml's own top-level `status`, and ONE file records it. Because additionalProperties is false, a feature.json that still carries `status` is now a schema error rather than a tolerated duplicate — which is what makes the single record enforceable instead of merely documented.",
+  "description": "FEAT-14 D-01: ten top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10. There is no `status` property either, as of FEAT-41 T-07: the feature's station is recorded in plan.yaml's own top-level `status`, and ONE file records it. Because additionalProperties is false, a feature.json that still carries `status` is now a schema error rather than a tolerated duplicate — which is what makes the single record enforceable instead of merely documented. FEAT-59 adds four OPTIONAL top-level keys (`mission`, `judgements`, `rework`, `budget_decisions`) and three optional runs-entry keys (`started_at`, `ended_at`, `tokens`): the judgement and spend ledger the operator audits after the fact (SC-15, SC-18, SC-21). Every one is optional because every feature.json on disk predates them; each is written only by feature-record.py.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,20 +20,20 @@
     },
     "branch": {
       "type": "string",
-      "description": "The feature's branch name, or the literal string 'none' when unset — check-state.sh INV-6 already treats 'none' as unset via PLACEHOLDER_UNSET, so this stays a plain string rather than nullable. No demonstrated code reader."
+      "description": "The feature's branch name, or the literal string 'none' when unset — check-state.py INV-6 already treats 'none' as unset via PLACEHOLDER_UNSET, so this stays a plain string rather than nullable. No demonstrated code reader."
     },
     "pr": {
       "type": ["integer", "null"],
-      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.sh's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
+      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.py's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
     },
     "review_sha": {
       "type": "string",
-      "description": "Read by check-state.sh's val(\"review_sha\") check against PLACEHOLDER_UNSET. The literal string 'none' is a legal, unset value for the same reason as branch."
+      "description": "Read by check-state.py's val(\"review_sha\") check against PLACEHOLDER_UNSET. The literal string 'none' is a legal, unset value for the same reason as branch."
     },
     "cycles_used": {
       "type": "integer",
       "minimum": 0,
-      "description": "Read by check-state.sh's val(\"cycles_used\") check against the FAIL-run count."
+      "description": "Read by check-state.py's val(\"cycles_used\") check against the FAIL-run count."
     },
     "max_total_cycles": {
       "type": "integer",
@@ -42,7 +42,7 @@
     },
     "runs": {
       "type": "array",
-      "description": "Read by check-state.sh's per-run loop, entry.get(\"id\"/\"squad\"/\"verdict\").",
+      "description": "Read by check-state.py's per-run loop, entry.get(\"id\"/\"squad\"/\"verdict\").",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -51,20 +51,81 @@
           "id": { "type": "string", "description": "The run's identifier." },
           "squad": { "type": "string", "description": "The squad that executed the run." },
           "verdict": { "type": "string", "description": "The run's verdict." },
-          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.sh's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." },
-          "code_grade": { "type": "string", "enum": ["n_a"], "description": "BUG-1080. Present ONLY as `n_a`, declaring that this validator run graded a specification and no code, which is the plan-phase panel DEC-207 legalises. INV-6 then requires no pinned review_sha for it, because there is no commit to pin. ABSENCE MEANS THE RUN REVIEWED CODE and a pin IS required — the opposite default from `agent` above, and deliberately so: every entry already on disk predates this key and did review code, so a benign absence would retire INV-6 across the whole corpus. The enum is closed for the same reason; an unrecognised value must fail rather than exempt." }
+          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.py's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." },
+          "code_grade": { "type": "string", "enum": ["n_a"], "description": "BUG-1080. Present ONLY as `n_a`, declaring that this validator run graded a specification and no code, which is the plan-phase panel DEC-207 legalises. INV-6 then requires no pinned review_sha for it, because there is no commit to pin. ABSENCE MEANS THE RUN REVIEWED CODE and a pin IS required — the opposite default from `agent` above, and deliberately so: every entry already on disk predates this key and did review code, so a benign absence would retire INV-6 across the whole corpus. The enum is closed for the same reason; an unrecognised value must fail rather than exempt." },
+          "started_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant at which feature-record.py run-start appended this entry; read by feature-record.py spend, which sums ended_at minus started_at into the feature's wall-clock minutes (SC-18). ABSENCE MEANS THE ENTRY PREDATES FEAT-59 and is not an error; such an entry contributes zero minutes." },
+          "ended_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant at which feature-record.py run-end closed this entry; read by feature-record.py spend. ABSENCE MEANS THE RUN IS STILL OPEN, or predates FEAT-59 — both contribute zero minutes, never an estimate." },
+          "cycles_used": { "type": "integer", "minimum": 0, "description": "Send-backs this run's lead reported, written by feature-record.py run-end and used to adjust the top-level cycles_used total idempotently. ABSENCE MEANS the run is still open or predates per-run cycle attribution; existing top-level cycles remain an unattributed baseline." },
+          "tokens": { "type": ["integer", "null"], "minimum": 0, "description": "Tokens this run consumed, MEASURED by the caller from the OMP transcript on disk and passed to feature-record.py run-end, or null when no measurement was taken. Read by feature-record.py spend, which sums the integers and prints null when no run carries one (SC-18). Null is never 0 and is never estimated: a reader must be able to tell an unmeasured run from a free one. ABSENCE MEANS THE ENTRY PREDATES FEAT-59." }
         }
       }
     },
     "max_total_runs": {
       "type": "integer",
       "minimum": 1,
-      "description": "Read by check-state.sh's _as_budget(val(\"max_total_runs\")). Optional: SPEC 11.3 says it may be omitted to inherit harness.json's default."
+      "description": "Read by check-state.py's _as_budget(val(\"max_total_runs\")). Optional: SPEC 11.3 says it may be omitted to inherit harness.json's default."
+    },
+    "mission": {
+      "type": "string",
+      "enum": ["patch", "plan"],
+      "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.py, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21) and exempts a `patch` plan from INV-32's panel demand. `patch` writes a one-task plan.yaml in the intake run and then runs build → validate → ship with no pre-build panel; `plan` runs the one-run plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan and /harness-patch refuse to start on it."
+    },
+    "judgements": {
+      "type": "array",
+      "description": "The append-only ledger of every autonomous judgement the harness made on this feature, written by feature-record.py judgement and read by check-state.py (which refuses a mission change, re-gate or succession with no matching entry) and by the operator, who audits it after the fact instead of ruling in-flight (SC-21). ABSENCE MEANS NO JUDGEMENT HAS BEEN RECORDED, which for a feature run under FEAT-59 is itself what check-state.py flags.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "by", "kind", "decision", "reason"],
+        "properties": {
+          "at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant the judgement was recorded." },
+          "by": { "type": "string", "description": "The persona that judged, e.g. harness-orchestrator or harness-validator-lead." },
+          "kind": { "type": "string", "enum": ["mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject"], "description": "Which class of judgement this is: the five SC-21 names plus BUG-1716's amendment (an engineering lead's in-build change to a signed task's intent, files or verify — DEC-229) and FEAT-1714's reject (the orchestrator's first-run refusal of a wrong or superseded ticket, decision = superseding issue number or none), closed so an unrecognised class fails rather than slips past the operator's audit." },
+          "decision": { "type": "string", "description": "What was decided, in the vocabulary of its kind: patch|plan, substance|form|proportionality, the task ids re-gated, continue|downgrade|stop, or for an amendment the amended field as T-NN.intent|files|verify (D-05)." },
+          "reason": { "type": "string", "maxLength": 240, "description": "The one-line reason; capped so the ledger stays a ledger (DEC-150) and a reason that needs a paragraph goes in the run's digest instead." },
+          "overruled": { "const": true, "description": "Set by feature-record.py overrule-amendment when the operator rejects an amendment at ship (DEC-230). Only `true`, and only on a kind amendment entry: absent means the amendment stands; an overruled amendment is never removed, because the ledger is append-only." }
+        },
+        "if": { "properties": { "kind": { "const": "amendment" } } },
+        "else": { "not": { "required": ["overruled"] } }
+      }
+    },
+    "signed_task_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Written by plan-merge.py sign-approval, one entry per task: lowercase SHA-256 over canonical UTF-8 JSON of the task's intent, files and verify AS SIGNED (D-03, DEC-229). Never rewritten by a later amendment — check-state.py compares the live task text against these to tell a ledgered amendment from an unrecorded edit. ABSENCE MEANS THE PLAN WAS SIGNED BEFORE BUG-1716, or not yet.",
+      "patternProperties": {
+        "^T-[0-9]{2,}$": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "rework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rounds", "wall_clock_minutes", "decision"],
+      "description": "The operator's one rework ruling, recorded at signature by feature-record.py set-rework (SC-15): the orchestrator loops inside these bounds without asking. `wall_clock_minutes` is read by the OMP hook's SPEND advisory after build entry (SC-19). ABSENCE MEANS NO RULING WAS RECORDED — a feature signed before FEAT-59, or a patch mission that never reached one.",
+      "properties": {
+        "rounds": { "type": "integer", "minimum": 0, "description": "Rework rounds the orchestrator may run before returning awaiting_user." },
+        "wall_clock_minutes": { "type": "integer", "minimum": 0, "description": "Wall-clock budget for the validate/fix loop; exceeding it ADVISES and never refuses (DEC-198)." },
+        "decision": { "type": "string", "description": "Where the ruling is recorded, e.g. a plan.yaml approval.rulings reference or a DEC id." }
+      }
+    },
+    "budget_decisions": {
+      "type": "array",
+      "description": "One entry per raise of `max_total_cycles`, appended by feature-record.py raise-cycles alongside the raise itself, and read by check-state.py, which refuses a `max_total_cycles` above the template default with no matching entry (SC-15, DEC-157). ABSENCE MEANS THE BUDGET WAS NEVER RAISED, or was raised before FEAT-59.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "max_total_cycles", "decision"],
+        "properties": {
+          "at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant of the raise." },
+          "max_total_cycles": { "type": "integer", "minimum": 1, "description": "The value `max_total_cycles` was raised TO." },
+          "decision": { "type": "string", "description": "The recorded user decision the raise rests on, e.g. a DEC id or plan.yaml ruling reference." }
+        }
+      }
     },
     "github": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Read by gh-sync.py's load_recorded and by check-state.sh INV-21. Present only once a feature is mirrored to GitHub; no property inside is required.",
+      "description": "Read by gh-sync.py's load_recorded and by check-state.py INV-21. Present only once a feature is mirrored to GitHub; no property inside is required.",
       "properties": {
         "milestone": { "type": ["integer", "null"], "description": "The GitHub milestone number, or null." },
         "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
@@ -82,13 +143,28 @@
           "type": "array",
           "items": { "type": "integer" },
           "description": "The GitHub issue numbers this feature was planned from, mirrored from plan.yaml's top-level source_issues by gh-sync.py open. Read by gh-sync.py's `closes` renderer. Absent or empty is legal: a feature planned before this key existed carries none, and a feature can be planned from no ticket at all."
+        },
+        "typed": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "enum": ["created", "adopted"] },
+              { "const": true }
+            ]
+          },
+          "description": "Provenance of native GitHub Issue Type application, keyed by \"parent\" or a task id (D-20). \"created\" means Harness created the issue and has not yet applied its type; the promoted boolean true means Harness created it and applied the type; \"adopted\" means the number was adopted through --parent and Harness never created or types it. ABSENCE of an entry means provenance is UNKNOWN and is never typed - not on this run, not on any later one."
+        },
+        "build_entry": {
+          "type": "string",
+          "enum": ["opened", "recovery-required", "not-applicable", "recovered-terminal"],
+          "description": "The mirror Build DAG's own status, written by gh-sync.py. Five states, and absence is meaningful: \"opened\" - open completed with github.sync enabled and github.repo pinned; the milestone, the parent and every task sub-issue are recorded. \"recovery-required\" - sync was enabled and the repo pinned, but the run stopped on a temporary environmental no-go BEFORE any remote-mutating call; Build may proceed, but MERGE is refused until a re-run records opened. \"not-applicable\" - github.sync is false or absent, an approved no-mirror delivery mode that gates nothing; NOT reached when sync is enabled and github.repo is unpinned, which is a local configuration error that records nothing and blocks Build (D-09). \"recovered-terminal\" - written only by gh-sync.py recover-terminal for an already-merged feature whose mirror was never opened; milestone plus the parent and source issues only, never task sub-issues. ABSENT (the key is missing) - no Build entry ever completed: open never ran, or github.sync was enabled with github.repo unpinned, or the run failed after creating at least one remote object, or it exited on a caller or contract error; Build refuses."
         }
       }
     },
     "factory": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Read by factory_decompose.py's load_factory, factory_claim.py's issue_number, and check-state.sh INV-24. Present only once a feature is decomposed by the factory; no property inside is required.",
+      "description": "Read by factory_decompose.py's load_factory, factory_claim.py's issue_number, and check-state.py INV-24. Present only once a feature is decomposed by the factory; no property inside is required.",
       "properties": {
         "repo": { "type": ["string", "null"], "description": "The factory repo name, or null." },
         "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
@@ -102,6 +178,16 @@
             "parent": { "type": "array", "description": "Parent edges." },
             "blocked_by": { "type": "object", "description": "Blocking edges keyed by item." }
           }
+        },
+        "typed": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "enum": ["created", "adopted"] },
+              { "const": true }
+            ]
+          },
+          "description": "Provenance of native GitHub Issue Type application, keyed by \"parent\" or a task id (D-20). \"created\" means Harness created the issue and has not yet applied its type; the promoted boolean true means Harness created it and applied the type; \"adopted\" means the number was adopted through --parent and Harness never created or types it. ABSENCE of an entry means provenance is UNKNOWN and is never typed - not on this run, not on any later one."
         }
       }
     }

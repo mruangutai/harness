@@ -2,7 +2,7 @@
 
 ## Task
 T-05: playbook never-wait regression test. Files: `.claude/skills/harness/bin/test-orchestrator-playbook.py`
-(new), `.claude/skills/harness/bin/run-unit-tests.sh` (registered).
+(new), `.claude/skills/harness/bin/run-unit-tests.py` (registered).
 
 ## Occurrence counts measured (old = 569d417, new = current SKILL.md)
 
@@ -80,13 +80,13 @@ exit: 0
 ## Full verify string (verbatim, matches plan.yaml T-05 `verify:`)
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit && PLAYBOOK_PATH=$(mktemp) && \
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit && PLAYBOOK_PATH=$(mktemp) && \
   git show 569d417:.claude/skills/harness/SKILL.md > $PLAYBOOK_PATH && \
   ! PLAYBOOK_PATH=$PLAYBOOK_PATH python3 .claude/skills/harness/bin/test-orchestrator-playbook.py && \
   echo T-05-PASS
 ```
 
-`run-unit-tests.sh --kind unit` ran the full unit suite (drift detector, kind cross-check,
+`run-unit-tests.py --kind unit` ran the full unit suite (drift detector, kind cross-check,
 then every UNIT_SCRIPTS entry including the newly registered
 `test-orchestrator-playbook.py`) — all PASS, no MISCONFIGURED / KIND-DRIFT lines. The
 playbook test then ran against the 569d417 extract, printed the 9 FAIL lines shown above,
@@ -96,7 +96,7 @@ and exited 1, which the `!` negation turns into success for the `&&` chain.
 
 ## Registration
 
-`run-unit-tests.sh` `UNIT_SCRIPTS` (line 17) — correct array per plan: the test opens the
+`run-unit-tests.py` `UNIT_SCRIPTS` (line 17) — correct array per plan: the test opens the
 file with plain `open()`, no `subprocess` import, and no `.claude/skills/harness/bin/test-orchestrator-playbook.py`
 entry exists in `harness.json` `test_kinds.integration.detect`, satisfying the cross-check
 at lines 63-127. `harness.json` was not touched.

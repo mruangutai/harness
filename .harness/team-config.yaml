@@ -1,14 +1,13 @@
 # Harness team manifest — the org as DATA, not prose.
 #
 # Read by the orchestrator at every /harness entry, by each lead when delegating,
-# and by bin/check-domain.sh on every Write/Edit to decide what an agent may touch.
+# and by bin/check-domain.py on every Write/Edit to decide what an agent may touch.
 #
 # POLICY lives here (membership, consult-when routing, writable domains).
 # CAPABILITY lives in agent frontmatter (tools, model, color, hooks).
 # Nothing is declared twice.
 
 schema_version: 1
-cli_min_version: "2.1.217"        # floor for the spawn env vars (DEC-83)
 
 # The MAIN SESSION is the user channel and nothing else: it spawns orchestrators,
 # relays their questions to you, and writes `## Approval` and the cross-flow log.
@@ -21,7 +20,7 @@ main_session:
     # DEC-182 made plan.yaml the live plan format, so its signature needs a third grant in
     # this grammar. D-10 puts it here: DEC-120 gives the user channel to the main session
     # alone, so it is the only tier that can hold a signature the user actually gave.
-    # check-domain.sh READS this list — delete the line and the denial stops existing.
+    # check-domain.py READS this list — delete the line and the denial stops existing.
     #
     # THE ONLY WRITE ROUTE TO plan.yaml IS plan-merge.py, AND THE SHAPE GATE ENFORCES THAT
     # (FEAT-41 T-09, reversing DEC-182's absence). This grant is NOT that route and does not
@@ -29,7 +28,7 @@ main_session:
     # for every author, main session included, so what survives here is the approval_guard's
     # separate denial. The grant is kept because that guard reads this list — it is the reason
     # a governed agent's approval change is refused BY NAME rather than merely by the route.
-    # Signing itself is a verb now: plan-merge.py sign-approval, which plan-sign-gate.sh (T-08)
+    # Signing itself is a verb now: plan-merge.py sign-approval, which plan-sign-gate.py (T-08)
     # permits only when the payload carries no agent_type — the main session.
     - ".harness/*/features/*/plan.yaml approval:"
     - ".harness/logs/**"
@@ -116,6 +115,7 @@ teams:
           - { path: .harness/*/features/*/notes/research-*.md, upsert: true }   # the PATH carries the FEAT id (DEC-130)
           - { path: .harness/notes/research-*.md, upsert: true }            # project-scoped research only
           - { path: .harness/*/features/*/notes/uat-*.md, upsert: true }
+          - { path: .harness/*/features/*/notes/receipt-harness-pm-*.md, upsert: true }   # issue #46/#71: harness-handoff mandates a receipt path pm previously had no grant for
           - { path: .harness/glossary.md, upsert: true }                  # ubiquitous language (DEC-149)
           - { path: .harness/expertise/harness-pm.md, upsert: true }
           - { path: .harness/*/expertise/harness-pm.md, upsert: true }  # repository tier, 40-line budget

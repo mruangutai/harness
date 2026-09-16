@@ -26,7 +26,7 @@ does, and keeping those apart is why this role exists.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-ui-reviewer.md`, already in context. Track which components drift from the
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-ui-reviewer.md`, already in context. Track which components drift from the
 contract and which accessibility gaps recur.
 
 `Write` for exactly two paths: your report and your Expertise. **No `Edit`, no source path.**
@@ -104,7 +104,13 @@ DIGEST:
   severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: <n>
+  findings: [{ kind: substance|form|proportionality, scope: task|mission, severity: <sev>, reader: ui-reviewer, summary: "<one line>", why: "<optional>" }]
+                              # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
+                              # code; form = document/digest/record shape only, fixed in-run and
+                              # never re-gates; proportionality = more is planned than the change
+                              # needs, and REQUIRES scope: task (one task over-builds — trimmed at
+                              # apply, never a downgrade) or mission (the plan lane exceeds the
+                              # work — the only finding that downgrades, DEC-228). [] if none
   must_fix: [<item>]
   states_unspecified: [<state>]      # mode A
   contract_violations: [{ path: ..., actual: ..., specified: ... }]   # mode B
@@ -113,6 +119,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: .harness/notes/review-harness-ui-reviewer-<runid>.md
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-ui-reviewer-<runid>.md
 ```
 ````

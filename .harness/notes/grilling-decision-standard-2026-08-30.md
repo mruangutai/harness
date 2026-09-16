@@ -37,9 +37,9 @@ because a citation names one ruling rather than one of nine.
 | 9 | **The omnibus entries are fully split, and every affected durable citation is repointed** | 30 entries → 164 successors. Entry count 188 → 322. 331 citations across 84 files redirected to the successor each one actually meant |
 | 10 | **The FEAT-38 UAT pass does not exempt anything.** `DEC-138`, `DEC-174` and `DEC-181` are all in scope | That review asked only whether an entry reads as current truth. `DEC-181` is 100% prose, `DEC-138` carries 11 rulings, `DEC-174` carries 7 |
 | 11 | **Still one feature, phased** — reaffirmed after the true size was known | **Phase order corrected by ruling 17.** Capture the citation-precision baseline → standard → checker in warn mode → strike triage → 30 splits → author the 164 successors and the remaining 67 in clause form → repoint the live surfaces + family check → anchor verifier → re-run the citation-precision test → checker blocking, then the write-time hook |
-| 12 | **Sequential numbering — `DEC-206` … `DEC-369`.** The 30 parents are deleted, not kept as umbrellas | Needs no new convention. Sub-numbering would widen 6 regexes in `gen-decisions-index.py` and 1 in `check-expertise.sh`, and a prose `DEC-138.4` still matches `DEC-\d+`, tripping `DEC-205`'s own refs clause |
+| 12 | **Sequential numbering — `DEC-206` … `DEC-369`.** The 30 parents are deleted, not kept as umbrellas | Needs no new convention. Sub-numbering would widen 6 regexes in `gen-decisions-index.py` and 1 in `check-expertise.py`, and a prose `DEC-138.4` still matches `DEC-\d+`, tripping `DEC-205`'s own refs clause |
 | 13 | **Repoints get a split map, a mechanical family check, and 100% single-reader read-back** | Cross-family error is impossible from the map plus the diff; wrong-sibling is the residual and gets ruling 7's treatment. 331 reads on top of the rewrite read-backs |
-| 14 | **The anchor checker is wired standing AND run as a migration verifier** | `check-decision-anchors.py` ships in FEAT-38 and nothing invokes it — CI, `check-state.sh` and `settings.json` are all silent; only its *test* is registered. The split moves every line number in the file, so it is needed during the work, not just after |
+| 14 | **The anchor checker is wired standing AND run as a migration verifier** | `check-decision-anchors.py` ships in FEAT-38 and nothing invokes it — CI, `check-state.py` and `settings.json` are all silent; only its *test* is registered. The split moves every line number in the file, so it is needed during the work, not just after |
 | 15 | **CI step in `integration` now; write-time hook as the LAST phase** | 2.5 ms against a 114–258 s job, so the cost is the three-outcome wrapper, not the clock. A hook installed first would refuse the very rewrites that fix the file |
 | 16 | **Citation-precision test against a baseline drawn pre-migration** | Measures the destination's own sentence. ~20 durable sites; admitted-ruling count must fall to exactly 1. The baseline must be captured at `3331559` or it is unrecoverable |
 | 17 | **Split BEFORE rewrite** — triage, split, then author everything in clause form | Ruling 11's order had no legal intermediate state: a clause-form rewrite of `DEC-203` would stack 9 `Chose:` blocks under one number. Saves 30 read-backs |
@@ -131,7 +131,7 @@ Two things were measured rather than assumed:
   survives that clause's own logic — mechanical, zero judgement, inspects the file's shape rather
   than the world — but the rewrite must be explicit. Amendments are ended, so `DEC-23`, `DEC-158` and
   `DEC-205` are *rewritten*, not annotated.
-- **`harness-documentor` owns `DECISIONS.md`** (`check-domain.sh --resolve` exit 0). The 98 rewrites
+- **`harness-documentor` owns `DECISIONS.md`** (`check-domain.py --resolve` exit 0). The 98 rewrites
   and 30 splits are delegable; only the checker is `main-session-direct` under the `DEC-174` carve-out.
 - **FEAT-38 lands first.** It owns the shipped text of `DEC-205` and `DEC-181`.
 - **The repoint set is an explicit include-list of live surfaces, never a heuristic.** A
@@ -175,10 +175,10 @@ Two things were measured rather than assumed:
 - **Every current entry carries 0 or 1 `Chose:` blocks.** A one-ruling check keyed on `Chose:`
   count is mechanical today and passes all 90 clause-bearing entries, so it is redundant during the
   migration and load-bearing after it — exactly as the omnibus finding predicted.
-- `check-decision-anchors.py` is invoked by **nothing**. `run-unit-tests.sh` and `harness.json`
+- `check-decision-anchors.py` is invoked by **nothing**. `run-unit-tests.py` and `harness.json`
   register `test-check-decision-anchors.py`, the test. Issue #133's shape on `DEC-205`'s own clause.
 - `gen-decisions-index.py` is the only non-test parser of DEC ids (6 `DEC-\d+` regexes);
-  `check-expertise.sh` has one more.
+  `check-expertise.py` has one more.
 - Runtime: the form/prose/one-ruling check is **2.5 ms** over 188 entries; the anchor checker is
   **70 ms** (`examined 20 anchor(s), 0 failed`); the `integration` job runs **114–258 s**.
 - Branch protection requires exactly one context, `integration`, which is the job id — the job

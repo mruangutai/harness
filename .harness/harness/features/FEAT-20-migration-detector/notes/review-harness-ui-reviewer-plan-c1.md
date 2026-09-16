@@ -30,7 +30,7 @@ act, because "finish migrating this reader" and "revert this reader" are opposit
 line of text.
 
 **F-2 — agree.** Checked against the live house style rather than assuming it: every existing
-`bad.append` in `check-state.sh` ends with an action clause — `check-state.sh:1071-1073` ("start the
+`bad.append` in `check-state.py` ends with an action clause — `check-state.py:1071-1073` ("start the
 session from the main checkout..."), `:1077-1078` ("clear it with `git worktree prune`"),
 `:1083` ("Remove it with..."), `:1199-1202` ("run `gh-sync.py open` for it"). T-02's INV-27 spec
 (`plan.yaml:392-397`) has no remedy clause for either the MIXED or CANNOT_VERIFY entries. Confirmed

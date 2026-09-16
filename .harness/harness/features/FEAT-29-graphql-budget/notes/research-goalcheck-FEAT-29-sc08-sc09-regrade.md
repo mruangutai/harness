@@ -20,7 +20,7 @@ ruling on wording.
 `.harness/notes/grilling-graphql-cost-2026-08-10.md:13-22` — the 31-point bullet is struck in place
 and replaced with 506 points "on board 3 with 473 items, at commit `6bbd706`", the range quoted as
 490-506, and 608 recorded explicitly as a contaminated upper bound with the containment argument
-(`check-state.sh` CONTAINS the call). The date marker "STRUCK 2026-08-19 (#571)" is on `:17`. The
+(`check-state.py` CONTAINS the call). The date marker "STRUCK 2026-08-19 (#571)" is on `:17`. The
 companion strikes are at `:47` and `:61-64`, the latter recording the 31 as *unreconciled* rather
 than explained. Committed: `git show 4f2e5d0:.harness/notes/grilling-graphql-cost-2026-08-10.md`
 returns the corrected text.
@@ -48,7 +48,7 @@ list-by-nature grounds while stating it "keeps costing what it costs" — not a 
 **Limb 3, no bare corrected number without its condition: UNMET.**
 
 `.harness/harness/features/FEAT-29-graphql-budget/STATE.md:14` reads
-"**The result: `check-state.sh` costs 5 GraphQL points against a 506 baseline**, both differenced
+"**The result: `check-state.py` costs 5 GraphQL points against a 506 baseline**, both differenced
 across real runs." 506 is the corrected figure limb 1 installed. STATE.md carries no board number,
 no board item count and no commit sha for it anywhere in its 40 lines —
 `grep -n "board 3\|473\|474\|6bbd706" STATE.md` matches only `:15`, and that is `board_items: 4` for

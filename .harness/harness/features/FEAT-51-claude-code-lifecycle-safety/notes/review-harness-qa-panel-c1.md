@@ -21,8 +21,8 @@ of `test_kinds.ui/component/eval` has a `cmd` and none of the nine tasks' change
 
 | kind | cmd | exit | result | notes |
 |---|---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | **0** | satisfied | 519 `PASS` lines, 0 `FAIL` |
-| integration | `run-unit-tests.sh --kind integration` | **1** | satisfied (accepted) | 742 `PASS` lines, **7 FAIL** |
+| unit | `run-unit-tests.py --kind unit` | **0** | satisfied | 519 `PASS` lines, 0 `FAIL` |
+| integration | `run-unit-tests.py --kind integration` | **1** | satisfied (accepted) | 742 `PASS` lines, **7 FAIL** |
 
 Integration FAIL lines, verbatim:
 ```
@@ -52,9 +52,9 @@ in-tree mutation attempts — confirmed, not routed around). Each probe below na
 
 | SC | Mutation applied | Result |
 |---|---|---|
-| **SC-09** | Stripped the literal string `plan-sign-gate.sh` from every sentence in the DEC-210 region of `DECISIONS.md` (both occurrences: the enforcement-points sentence and the plan.yaml-route sentence) | `test_dec_210_entry_names_both_enforcement_points` → **FAIL** (`'plan-sign-gate.sh' not found in the DEC-210 region`). Sibling checks (`states_the_bash_write_route`, `index_row_names_...`) stayed green — the failure is scoped to the one clause mutated, matching SC-09's "each clause is its own assertion" claim. **Confirmed reddens.** |
+| **SC-09** | Stripped the literal string `plan-sign-gate.py` from every sentence in the DEC-210 region of `DECISIONS.md` (both occurrences: the enforcement-points sentence and the plan.yaml-route sentence) | `test_dec_210_entry_names_both_enforcement_points` → **FAIL** (`'plan-sign-gate.py' not found in the DEC-210 region`). Sibling checks (`states_the_bash_write_route`, `index_row_names_...`) stayed green — the failure is scoped to the one clause mutated, matching SC-09's "each clause is its own assertion" claim. **Confirmed reddens.** |
 | **SC-11** | `plan-sign-gate.py`'s `quarantines()`: replaced `if not _reg.orphan_write(...): return None` with `if True: return None` — orphan-write detection unconditionally bypassed, simulating "quarantine rule removed" | `test-plan-sign-gate.py`: 5 new FAILs, including all three refusal cases SC-11 names (`an orphan agent plan-merge apply on plan.yaml is quarantined`, `...set-task-station...`, `an orphan quarantine.py adopt...`) plus the negative control and the raising-fail-open case, each now returning exit 0 where a refusal was expected. **Confirmed reddens exactly as SC-11 states.** |
-| **SC-13** | (b)+(c) combined, the stronger mutant: in both `check-domain.sh`'s and `plan-sign-gate.py`'s quarantine-boundary `except` handler, replaced the `print(...stderr...); return`/`pass-through` body with a bare `except Exception: pass` / `return None` — same exit code, message dropped | `test-check-domain.py`: both `... fails OPEN at the check-domain.sh quarantine branch` cases → **FAIL** (rc stayed 0, `"boundary was not enforced"` absent from stderr). `test-plan-sign-gate.py`: both `...quarantine rule` fail-open cases → **FAIL** likewise, once the mutation was applied identically to **both** the `.claude/skills/harness/bin` and `.agents/skills/harness/bin` mirror copies (the test's own `BIN` resolves to the copy alongside itself, so a single-tree mutation under-tested the `_copybin`-based "unimportable" case — see gotcha below). **Confirmed reddens; exit-code-alone would have missed it, exactly as SC-13(b) states.** |
+| **SC-13** | (b)+(c) combined, the stronger mutant: in both `check-domain.py`'s and `plan-sign-gate.py`'s quarantine-boundary `except` handler, replaced the `print(...stderr...); return`/`pass-through` body with a bare `except Exception: pass` / `return None` — same exit code, message dropped | `test-check-domain.py`: both `... fails OPEN at the check-domain.py quarantine branch` cases → **FAIL** (rc stayed 0, `"boundary was not enforced"` absent from stderr). `test-plan-sign-gate.py`: both `...quarantine rule` fail-open cases → **FAIL** likewise, once the mutation was applied identically to **both** the `.claude/skills/harness/bin` and `.agents/skills/harness/bin` mirror copies (the test's own `BIN` resolves to the copy alongside itself, so a single-tree mutation under-tested the `_copybin`-based "unimportable" case — see gotcha below). **Confirmed reddens; exit-code-alone would have missed it, exactly as SC-13(b) states.** |
 | **SC-07** | `inflight_registry.py`'s `orphan_write`: replaced `has_compatibility_claim = any(claim.get("runtime") != "omp" for claim in feature_claims)` with `has_compatibility_claim = bool(feature_claims)` — the runtime carve-out removed | `test-check-domain.py`: `an omp-runtime writer is never quarantined` → **FAIL**. `test-plan-sign-gate.py`: `an omp-runtime writer is never quarantined on the Bash route` → **FAIL**. Both OMP surfaces reddened together, matching "removing the runtime condition... turns the OMP case red." **Confirmed.** |
 | **SC-02** | `validate-digest.py` `hook_mode()`: neutralised the `elif set(_awaiting) != _actual_children: _suspension_error = ...` branch to `elif False: _suspension_error = None`, applied to both mirror copies | `test-validate-digest.py`: **only** `a SUSPENDED return omitting a live child is refused` → **FAIL** (exit 0 instead of 2). The other four suspension cases (`live child accepted`, `claim stays live`, `no live child refused`, `member persona refused`) stayed green — those three are independently enforced (member-persona case rides the ordinary `VERDICT not in VERDICTS` path since `_kids` never populates for a non-lead/orchestrator agent; the no-live-child case short-circuits on `_kids` truthiness before reaching `_awaiting`). **Confirms SC-02's own claim that "a single whole-file search would be satisfied by the two easy ones" — the omitted-child clause is the one that needed its own targeted assertion, and it does have one.** |
 
@@ -74,7 +74,7 @@ t-10, `6db25ba2` t-08, `f260b5fb` t-05, `f5c33a49` t-06) — this repo's standin
 commit per task, so git history cannot show file-level write-order within a commit. Two commit
 messages give affirmative textual evidence of a real red-green cycle rather than tests written to
 match the code: `e47afa3f` ("test-quarantine.py 25/25 after a recorded 11-assertion RED") and
-`6db25ba2` ("I re-ran the discrimination myself... deleting plan-sign-gate.sh from the region reds
+`6db25ba2` ("I re-ran the discrimination myself... deleting plan-sign-gate.py from the region reds
 test 1 alone; splitting the joint plan.yaml/plan-merge.py sentence reds test 2 alone... removing the
 index row reds test 3, a case the squad did not probe"). No commit in range touches a production
 file without its paired test file changing in the same commit — no orphan production-only commit
@@ -83,7 +83,7 @@ found. **No test-first violation found; evidence for two of nine tasks is strong
 ## 5. Coverage bound
 
 Every production file touched in the diff has its paired test file touched in the same diff:
-`check-domain.sh`↔`test-check-domain.py`, `inflight_registry.py`↔`test-inflight-registry.py`,
+`check-domain.py`↔`test-check-domain.py`, `inflight_registry.py`↔`test-inflight-registry.py`,
 `plan-merge.py`↔`test-plan-merge.py`, `plan-sign-gate.py`/`.sh`↔`test-plan-sign-gate.py`,
 `quarantine.py`↔`test-quarantine.py`, `validate-digest.py`↔`test-validate-digest.py`. `harness.json`
 and `team-config.yaml` are config, not code — matrix owes them nothing beyond the manifest-DEVIATION
@@ -119,7 +119,7 @@ that would need a mutation per assertion, out of scope for this pass.
 - **Lead 3 (query-scoped expiry):** confirmed — `orphan_write`'s `mutator` calls `_expire_where(...,
   lambda claim: _matches(claim, feature=feature))`, `feature` threaded through from the call's own
   argument. Cross-feature sweep not possible from this call site.
-- **Lead 4 (duplicated refusal middle sentence):** confirmed present — `check-domain.sh`'s
+- **Lead 4 (duplicated refusal middle sentence):** confirmed present — `check-domain.py`'s
   `"{X} is canonical, but {agent} holds no live claim for {feature}. Its parent is gone and a
   replacement may already be writing."` and `plan-sign-gate.py`'s identical clause, character-for-
   character. Already reported by SIMPLIFY per dispatch; not elevated — genuinely a backlog-tier
@@ -130,7 +130,7 @@ that would need a mutation per assertion, out of scope for this pass.
   `_other = [("harness-qa", "other-session", "claude")]` — a live orphan claim for the fixture
   feature held by a different persona/session — confirmed by reading the fixture list at the top of
   the file, not a no-claim fixture. The negative control is meaningful, not vacuous.
-- **Lead 6 (plan.yaml ordering):** confirmed at source — `check-domain.sh` line 1529's own comment
+- **Lead 6 (plan.yaml ordering):** confirmed at source — `check-domain.py` line 1529's own comment
   ("THE plan.yaml ROUTE DENIAL, AND IT SITS AHEAD OF EVERY MODE SPLIT BELOW") and the code layout:
   the FEAT-41 route denial executes before the mode split that contains the quarantine branch. D-11
   ordering intact.

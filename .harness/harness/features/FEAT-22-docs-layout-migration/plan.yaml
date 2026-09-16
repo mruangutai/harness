@@ -10,7 +10,7 @@ approval:
 lanes:
   resolved_at: 0f12f14
   measurement: >-
-    Every row was MEASURED, not inferred. check-domain.sh --resolve was run on one representative
+    Every row was MEASURED, not inferred. check-domain.py --resolve was run on one representative
     path per row with the working tree at 0f12f14 (git rev-parse HEAD confirmed before and
     unchanged), and the verbatim answer is quoted in each resolve field. Leads hold no Bash
     (DEC-116), so pm took these measurements at plan time.
@@ -26,13 +26,13 @@ lanes:
       lane: main-session-direct
       resolve: NOBODY
       reason: "measured NOBODY: no agent may write the file that declares the grants."
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: >-
         DEC-174 carve-out named in CLAUDE.md, the state gate. One diagnostic prose line at :676
         names docs/harness/DECISIONS.md. The carve-out overrides the measured grant.
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: >-
@@ -49,7 +49,7 @@ lanes:
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: >-
-        Carve-out by content, ruled in FEAT-20: check-state.sh computes INV-27's verdict from this
+        Carve-out by content, ruled in FEAT-20: check-state.py computes INV-27's verdict from this
         module's return value. Carve-out overrides the measured grant.
     - surface: .claude/skills/harness/bin/factory_config.py
       lane: main-session-direct
@@ -207,7 +207,7 @@ tasks:
       then a section headed PRE-MOVE holding the VERBATIM stdout of both commands, each in its own
       fenced block, each followed by a line reading exit: <code>:
         python3 .claude/skills/harness/bin/layout_migration.py
-        bash .claude/skills/harness/bin/check-state.sh
+        python3 .claude/skills/harness/bin/check-state.py
 
       The detector must print features: CLEAN — evidence migrated, docs: CLEAN — evidence legacy,
       1 doc root(s), 7 reader file(s), and a summary of 2 surface(s) clean, 0 mixed, 0
@@ -215,8 +215,8 @@ tasks:
       and this plan's audits were taken against a different tree.
 
       ALSO CAPTURE BOTH SUITES, in a section headed SUITES, immediately after PRE-MOVE:
-        .claude/skills/harness/bin/run-unit-tests.sh --kind unit
-        .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+        .claude/skills/harness/bin/run-unit-tests.py --kind unit
+        .claude/skills/harness/bin/run-unit-tests.py --kind integration
       Record, for each, every line matching ^PASS test- or ^FAIL test- and the exit code. This is a
       VERBATIM CAPTURE, not a gate: record what you see, including any FAIL, and do not fix
       anything here. It exists because SC-07 and SC-08 are stated as after-the-move claims about
@@ -301,7 +301,7 @@ tasks:
       test "$n" = 0 || { echo "legacy still tracked: $n"; exit 1; }
       test "$m" = 5 || { echo "expected 5 tracked docs at destination, got $m"; exit 1; }
       git ls-files .harness/harness/docs | grep -q 'org\.html$' || { echo "org.html missing"; exit 1; }
-      bash .claude/skills/harness/bin/check-domain.sh --resolve .harness/harness/docs/SPEC.md \
+      python3 .claude/skills/harness/bin/check-domain.py --resolve .harness/harness/docs/SPEC.md \
         | grep -qx 'harness-documentor' || { echo "destination still ungranted"; exit 1; }
       echo OK
     intent: |
@@ -309,7 +309,7 @@ tasks:
 
       FIRST, add the docs grant to .harness/team-config.yaml. The harness-documentor role currently
       holds a grant on docs/** and nothing else that reaches the destination; measured at 0f12f14,
-      check-domain.sh --resolve .harness/harness/docs/SPEC.md returns NOBODY. Add, alongside the
+      check-domain.py --resolve .harness/harness/docs/SPEC.md returns NOBODY. Add, alongside the
       documentor's existing docs/** entry, an entry of the same form as the features grants already
       in the file:
         - { path: .harness/*/docs/**, upsert: true }
@@ -322,7 +322,7 @@ tasks:
       docs/** entry: it is what grants a PRODUCT checkout's own docs, and removing it would take
       the documentor's real job away.
 
-      Confirm with check-domain.sh --resolve before proceeding. If it still says NOBODY, stop.
+      Confirm with check-domain.py --resolve before proceeding. If it still says NOBODY, stop.
 
       SECOND, move the five tracked files with git mv, preserving rename detection:
         git mv docs/harness/SPEC.md            .harness/harness/docs/SPEC.md
@@ -560,7 +560,7 @@ tasks:
       entry-for-entry, and :185 asserts list(mine) == expected_mine — EXACT LIST EQUALITY, not a
       subset and not a set comparison. T-02 adds a ninth grant to the manifest, so mine gains an
       entry the fixture does not have and the assertion fails. The file runs in the INTEGRATION
-      suite (run-unit-tests.sh:18).
+      suite (run-unit-tests.py:18).
       ADD THE NINTH ENTRY, ".harness/*/docs/**", AS THE SECOND ELEMENT of that list — immediately
       after "docs/**" and before "README.md". The index is not free: the assertion compares order,
       and T-02 pins the manifest insertion to the same position, immediately after the
@@ -610,8 +610,8 @@ tasks:
       u=$(mktemp); i=$(mktemp)
       B=.claude/skills/harness/bin
       P='docs/harness|"docs", ?"harness"'
-      $B/run-unit-tests.sh --kind unit >"$u" 2>&1 || true
-      $B/run-unit-tests.sh --kind integration >"$i" 2>&1 || true
+      $B/run-unit-tests.py --kind unit >"$u" 2>&1 || true
+      $B/run-unit-tests.py --kind integration >"$i" 2>&1 || true
       grep -q '^PASS test-layout-migration\.py$' "$u" || { cat "$u"; exit 1; }
       for s in test-check-domain test-check-state; do
         grep -q "^PASS $s\.py$" "$i" || { echo "$s did not pass"; cat "$i"; exit 1; }
@@ -811,15 +811,15 @@ tasks:
       TWO STANDING CASES TO ADD, because two success criteria would otherwise rest on a shell
       command in this plan rather than on a test, which is not automated evidence at goal-check.
 
-      1. In test-check-domain.py (integration suite, run-unit-tests.sh:18), pin that
-         check-domain.sh --resolve .harness/harness/docs/SPEC.md names harness-documentor. This
+      1. In test-check-domain.py (integration suite, run-unit-tests.py:18), pin that
+         check-domain.py --resolve .harness/harness/docs/SPEC.md names harness-documentor. This
          also closes FEAT-21 ship-review row B-10 for the docs surface: it turns a pair someone
          measured once by hand into a case that runs on every push.
          THIS IS THE REPOINTED :789 CASE, NOT A SECOND ONE. :789 already fires --resolve against
          the LIVE tree for the docs path; once its subject moves it IS this pin. Do not add a
          duplicate case beside it. Give the repointed case a label containing harness/docs and
          rewrite its comment as instructed above.
-      2. In test-layout-migration.py (unit suite, run-unit-tests.sh:17), append a case that scans
+      2. In test-layout-migration.py (unit suite, run-unit-tests.py:17), append a case that scans
          the REAL repository root and asserts BOTH surfaces read CLEAN with evidence migrated, and
          that the doc-root count is non-zero. Case 1 already scans the real root and asserts
          non-zero feature-dir and reader-file counts, so the precedent and the helper both exist;
@@ -839,7 +839,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      Four surfaces resolve NOBODY, and check-state.sh and check-domain.sh are DEC-174 carve-outs
+      Four surfaces resolve NOBODY, and check-state.py and check-domain.py are DEC-174 carve-outs
       (D-03).
     depends_on: [T-04]
     status: done
@@ -848,15 +848,15 @@ tasks:
       - .claude/skills/harness-principles/SKILL.md
       - .claude/skills/harness/templates/plan.yaml
       - .claude/skills/harness/bin/check-plan-routes.py
-      - .claude/skills/harness/bin/check-state.sh
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-state.py
+      - .claude/skills/harness/bin/check-domain.py
       - .harness/notes/audit-decisions.py
     verify: |
       for f in CLAUDE.md .claude/skills/harness-principles/SKILL.md \
                .claude/skills/harness/templates/plan.yaml \
                .claude/skills/harness/bin/check-plan-routes.py \
-               .claude/skills/harness/bin/check-state.sh \
-               .claude/skills/harness/bin/check-domain.sh \
+               .claude/skills/harness/bin/check-state.py \
+               .claude/skills/harness/bin/check-domain.py \
                .harness/notes/audit-decisions.py; do
         if grep -qE 'docs/harness|"docs", ?"harness"' "$f"; then
           echo "legacy spelling survives in $f"; grep -nE 'docs/harness' "$f"; exit 1
@@ -873,7 +873,7 @@ tasks:
         docs/harness/SPEC.md, DECISIONS-INDEX.md, DECISIONS.md and BUILD.md, and the instruction to
         read the index before changing any harness doc. Take the literal new segment,
         .harness/harness/docs/, because CLAUDE.md addresses this repository specifically.
-        IT IS A PATH SUBSTITUTION, NOT A REFLOW. The file is 75 lines against check-state.sh's
+        IT IS A PATH SUBSTITUTION, NOT A REFLOW. The file is 75 lines against check-state.py's
         INV-23 budget of 80, so five lines of headroom; a reflow that adds six turns a green gate
         red for a reason unrelated to this feature. Substitute in place and add no lines.
       .claude/skills/harness-principles/SKILL.md  its pointer to docs/harness/DECISIONS.md as the
@@ -883,12 +883,12 @@ tasks:
       .claude/skills/harness/bin/check-plan-routes.py:44  a comment using docs/harness/SPEC.md as
         its worked example of a granted path. After T-03 that path is no longer granted, so the
         example must move or it teaches the opposite of the truth.
-      .claude/skills/harness/bin/check-state.sh:676  a diagnostic string ending "rationale belongs
+      .claude/skills/harness/bin/check-state.py:676  a diagnostic string ending "rationale belongs
         in docs/harness/DECISIONS.md." This file is a DEC-174 carve-out; the edit is one string and
         no logic changes, and it is folded here rather than deferred to unit 9 because a gate
         message pointing an operator at a directory that no longer exists is user-facing staleness
         that this feature creates.
-      .claude/skills/harness/bin/check-domain.sh:953  the same diagnostic string, same reasoning.
+      .claude/skills/harness/bin/check-domain.py:953  the same diagnostic string, same reasoning.
       .harness/notes/audit-decisions.py:15-16  the ONLY entry here that is not prose. Two
         MODULE-SCOPE reads execute the moment the file is imported or run:
           :15  pathlib.Path("docs/harness/DECISIONS.md").read_text(encoding="utf-8")
@@ -925,7 +925,7 @@ tasks:
           echo "stale path survives in $f"; grep -n 'docs/harness' "$f"; exit 1
         fi
       done
-      bash .claude/skills/harness/bin/check-expertise.sh || exit 1
+      python3 .claude/skills/harness/bin/check-expertise.py || exit 1
       echo OK
     intent: |
       Nothing is committed in this task. These two files are injected into every spawn of their
@@ -942,7 +942,7 @@ tasks:
 
       This is a PATH CORRECTION, not a distillation. Do not add entries, do not reorder sections,
       do not touch any entry that does not mention the path, and do not renumber. The caps are
-      unchanged, so check-expertise.sh must still report every file OK.
+      unchanged, so check-expertise.py must still report every file OK.
 
       Why this is a named task at all: FEAT-21 made this identical correction to
       .harness/expertise/harness-pm.md inside a cluster commit with NO task naming it, and two
@@ -1067,8 +1067,8 @@ tasks:
         || { cat "$d"; exit 1; }
       test "$rd" = 0 || { cat "$d"; exit 1; }
       B=.claude/skills/harness/bin
-      $B/run-unit-tests.sh --kind unit || { echo "unit suite red on the committed tree"; exit 1; }
-      $B/run-unit-tests.sh --kind integration || { echo "integration suite red on the committed tree"; exit 1; }
+      $B/run-unit-tests.py --kind unit || { echo "unit suite red on the committed tree"; exit 1; }
+      $B/run-unit-tests.py --kind integration || { echo "integration suite red on the committed tree"; exit 1; }
       c=$(mktemp); git show --name-only --format= HEAD >"$c"
       grep -q 'FEAT-22-docs-layout-migration' "$c" && { echo "the cluster commit swept the feature dir"; exit 1; }
       grep -qx '\.harness/harness/docs/SPEC\.md' "$c" || { echo "HEAD is not the cluster commit"; exit 1; }
@@ -1100,7 +1100,7 @@ tasks:
 
       THEN run the two gates and read them, do not merely exit on them:
         python3 .claude/skills/harness/bin/layout_migration.py
-        bash .claude/skills/harness/bin/check-state.sh
+        python3 .claude/skills/harness/bin/check-state.py
       The detector must print docs: CLEAN — evidence migrated AND features: CLEAN — evidence
       migrated, a summary of 2 surface(s) clean, 0 mixed, 0 cannot-verify, and a non-zero doc-root
       count, at exit 0. A non-zero doc-root count is one of the CI Layout gate's only two real
@@ -1108,16 +1108,16 @@ tasks:
       disagrees before changing anything: the detector names the file and its formset, and the
       answer is almost always a site T-03, T-04 or T-05 left behind.
 
-      Compare check-state.sh's note-line count against the PRE-MOVE capture in T-01's note rather
+      Compare check-state.py's note-line count against the PRE-MOVE capture in T-01's note rather
       than reading its exit code alone. A gate that has stopped discovering anything exits 0 too;
       FEAT-21 recorded both of its gates passing mid-cluster while examining nothing. READ
-      check-state.sh, do not gate on it: its verdict also moves with this feature's own approval and
+      check-state.py, do not gate on it: its verdict also moves with this feature's own approval and
       task statuses, so its mid-feature exit code is not a figure this plan can pin. The verify
       asserts the two suites, which are what SC-07 and SC-08 name.
 
       THEN run BOTH suites and require each to exit 0, before committing anything:
-        .claude/skills/harness/bin/run-unit-tests.sh --kind unit
-        .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+        .claude/skills/harness/bin/run-unit-tests.py --kind unit
+        .claude/skills/harness/bin/run-unit-tests.py --kind integration
       This is the only point in the feature where the whole suite is expected green: T-05 runs with
       test-gen-decisions-index.py FAILing on the stale committed index, and the regeneration above
       is what clears it. If either suite is red, the cluster does NOT get committed — find the
@@ -1296,7 +1296,7 @@ tasks:
 
       Then the VERBATIM stdout of both commands, each fenced, each followed by exit: <code>:
         python3 .claude/skills/harness/bin/layout_migration.py
-        bash .claude/skills/harness/bin/check-state.sh
+        python3 .claude/skills/harness/bin/check-state.py
 
       Then a short RECONCILIATION paragraph answering three questions in order, each with the
       command whose output settles it:
@@ -1305,7 +1305,7 @@ tasks:
         2. Is the tracked-file count under the legacy location 0, and 5 at the destination, org.html
            included? git ls-files answers both; use tracked files, never directory existence, since
            two untracked .DS_Store files keep the old directory on disk.
-        3. Did check-state.sh's note-line count move for any reason other than this feature? A gate
+        3. Did check-state.py's note-line count move for any reason other than this feature? A gate
            that stopped discovering anything also exits 0.
 
       If any answer is no, do NOT record the capture as clean. Record what you saw and stop.

@@ -21,7 +21,7 @@ Everything measured in the **FEAT-31 worktree at 7299669** unless stated otherwi
 
 ## The eight, enumerated and measured at 7299669 (D-4a)
 
-`INTEGRATION_SCRIPTS` in `run-unit-tests.sh` holds **12**; `test_kinds.integration.detect` names
+`INTEGRATION_SCRIPTS` in `run-unit-tests.py` holds **12**; `test_kinds.integration.detect` names
 **4** of them (`test-check-state.py`, `test-factory-integration.py`, `test-gh-sync.py`,
 `test-check-plan-routes.py`). The **8 absent**, each therefore classified `unit` by
 `unit.detect`'s catch-all `.claude/skills/harness/bin/test-*.py`:
@@ -35,7 +35,7 @@ T-11 appends **ten**: those eight + `test-context-watch-cli.py` (F-1's instance)
 
 **The T-05 interaction is resolved, not invented around.** `test-upgrade-config.py` is one of the
 eight and T-05 edits it, but T-05's agent is `harness-backend-dev` and
-`check-domain.sh --resolve .harness/harness.json` returns **`harness-dev-ops` alone** at 7299669.
+`check-domain.py --resolve .harness/harness.json` returns **`harness-dev-ops` alone** at 7299669.
 So T-05 gets a "DO NOT EDIT harness.json here, T-11 owns it" clause and T-07 gets the same plus
 `depends_on: [T-11]`. **The split is forced by the grant, not chosen** — putting `harness.json` on
 T-07 as F-1 literally instructed would make `check-plan-routes.py` report a DEVIATION.
@@ -49,7 +49,7 @@ T-10 (already explicit) are in scope; no other task creates or moves a test file
 
 ## D-4(b) — the check, and why it can go red on the *mismatch*
 
-T-12 puts the cross-check **inside `run-unit-tests.sh`** with a `--check-kinds` mode.
+T-12 puts the cross-check **inside `run-unit-tests.py`** with a `--check-kinds` mode.
 The rule is a **set comparison, not a classifier**: every `INTEGRATION_SCRIPTS` name must be an
 explicit literal path in `integration.detect`; no `UNIT_SCRIPTS` name may be. That deliberately
 avoids depending on Q-B's unwritten precedence rule.
@@ -80,11 +80,11 @@ fold makes a failed refactor indistinguishable from a failed empty-body check, a
 T-10's check is written **once**, into the single extracted site, instead of inside the loop and then
 moved.
 
-C-3 resolved **by structure**: the `for prev in SEAM_NOTES[_status]` loop (`check-state.sh:592`)
+C-3 resolved **by structure**: the `for prev in SEAM_NOTES[_status]` loop (`check-state.py:592`)
 keeps only the missing-note branch; the shape check moves out into one glob pass over
 `notes/handoff-*.md` marked `# INV-17 handoff shape pass, all stems (FEAT-31 T-14)`. One call site +
 a glob that finds seam-stem files too ⇒ **no file can be reported twice by construction**, not by a
-rule someone must remember. `SEAM_NOTES` (`check-state.sh:495`) unchanged; stems never derived (the
+rule someone must remember. `SEAM_NOTES` (`check-state.py:495`) unchanged; stems never derived (the
 comment at `:475-481`); `HANDOFF_HEADINGS` (`:509`) and the 60-line cap unchanged; failures stay
 `bad.append` VIOLATIONs. `HANDOFF_EXEMPT_LITERAL` (`:523`) and `_handoff_exempt` (`:525`) gate only
 the missing-note branch — case G asserts that.
@@ -104,8 +104,8 @@ rule. Recorded in T-10's intent as a re-assert-at-your-sha instruction, not a re
 
 ## C-6 applied
 
-`RE_HANDOFF` is at **`check-domain.sh:665`** in this worktree (`:706` is the main checkout, a
-different branch). `SEAM_NOTES` at **`check-state.sh:495`**. T-10's stale `6f651f1` line citations
+`RE_HANDOFF` is at **`check-domain.py:665`** in this worktree (`:706` is the main checkout, a
+different branch). `SEAM_NOTES` at **`check-state.py:495`**. T-10's stale `6f651f1` line citations
 (509 / 614 / 474) were rewritten symbol-first, with an explicit warning that T-14 moves the code so
 the numbers will not hold when T-10's doer arrives.
 
@@ -129,7 +129,7 @@ SC-10.
   (its output carries `DEVIATION T-12 … test-run-unit-tests-kinds.py`, a string unique to this
   feature). Advisory DEVIATIONs went 1 → 4 (T-10 at baseline; + T-12, T-14 new; T-10 retained) —
   all three are declared `main-session-direct` on granted paths, which is the intended DEC-174 shape.
-- `check-state.sh` → exit 1 with **9 violations, none for FEAT-31**; the only FEAT-31 line is the
+- `check-state.py` → exit 1 with **9 violations, none for FEAT-31**; the only FEAT-31 line is the
   expected `plan.yaml approval is pending — awaiting the user` note.
 - BRIEF diff: exactly `-2 / +4` lines, at lines 188-189 (old) → 188-191 (new). Listed below.
 
@@ -172,7 +172,7 @@ SC-14's `verify: automated      evidence: integration` line, SC-15 and `## Appro
   passed. A plan.yaml that "looks right" is not a plan.yaml that parses.
 - D-06 is **not** contradicted by D-19. Its stated basis is that an array append changes no gate
   rule; T-02 and T-07 stay `team` on exactly that basis. T-12 changes what the runner *rejects*,
-  which D-06 never covered. The `lanes:` row for `run-unit-tests.sh` now records both lanes by edit
+  which D-06 never covered. The `lanes:` row for `run-unit-tests.py` now records both lanes by edit
   kind.
 - `lanes.resolved_at` moved `6f651f1` → `7299669`: all 14 pre-existing rows were re-resolved with
-  `check-domain.sh --resolve` and every one was unchanged; 2 rows added.
+  `check-domain.py --resolve` and every one was unchanged; 2 rows added.

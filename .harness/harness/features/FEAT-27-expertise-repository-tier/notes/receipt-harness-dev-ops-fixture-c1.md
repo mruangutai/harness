@@ -24,12 +24,12 @@ touched. No other file was modified.
 ## Verify — both suites, full output scanned (not tailed)
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Exit: 0. `grep -c '^FAIL '` over the full captured output: **0**.
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 Exit: 0. `grep -c '^FAIL '` over the full captured output: **0**.
 `PASS test-harness-yaml.py` present. Final line: `106/106 checks passed. PASS

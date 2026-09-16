@@ -33,7 +33,7 @@ edge, not two remedies.
   test cases assert `createProjectV2` is *not* in any argv when the project exists.
 - **L2 — resolved without retyping and without touching the runner.** Verified at my own tier:
   `harness.json:40-49` requires `unit`+`integration` for `feature`; `integration.detect`
-  (`:119`) is `tests/integration/**` plus six explicit filenames; `run-unit-tests.sh:18` is a
+  (`:119`) is `tests/integration/**` plus six explicit filenames; `run-unit-tests.py:18` is a
   14-name array — both byte-identical in worktree and main. And the discriminating check the digests
   did not run: **`harness-qa-gate` SKILL.md line 60 — "Presence is not satisfied by an unrelated
   existing test."** So the gate genuinely FAILs, not merely under-covers. **New D-12:** integration
@@ -55,7 +55,7 @@ S1 (`grep -qi`, plain `grep -q` — also closes L7) · S2 (reconcile's exit code
 REASON, LABEL; audit keeps all five, so SC-09 is untouched) · S3 (`gh-sync.py:626-627`'s literal
 `"Building"` → `board["stations"]["building"]`, with a fixture whose building station is *not*
 "Building") · S4 (T-11 now owns SC-10's negative clause as a real `git diff --name-only` over the
-five enforcement paths, plus `check-state.sh`) · S5 (T-02 runs `check-state.sh` before **and**
+five enforcement paths, plus `check-state.py`) · S5 (T-02 runs `check-state.py` before **and**
 after and asserts the finding **set** identical, not both exit 0 — DEC-174 am.4's own idiom; also
 discharges SC-10's orphaned half) · S6 (`--kind all` on T-07/T-08 with the reason stated) ·
 S7/L5 (`.harness/harness.json` dropped from T-04's `files:`) · S8 (T-01's abandon path = a revert PR
@@ -74,7 +74,7 @@ by T-05's DECLARATION class).
 The 153s-vs-73s measurement is real and the cost is named in D-14 rather than hidden: `--kind all`
 exceeds the 60-second verify guideline by minutes, per task, per iteration. It is still the right
 trade — M1 spans both kinds, `harness.json:121` declares the integration cmd as exactly
-`run-unit-tests.sh --kind integration` so a per-script verify forks a second spelling of the
+`run-unit-tests.py --kind integration` so a per-script verify forks a second spelling of the
 authority, and a direct script call skips the `MISCONFIGURED` drift detector (`:41-55`) that is the
 only thing catching the unregistered new test file this plan adds. The reader's own convention
 caveat was the right instinct.
@@ -93,7 +93,7 @@ item 0, so "fifth primitive" still points at `project_workflows`.
 
 ## Corrected in the record
 
-The `run-unit-tests.sh` "positional KIND" claim appears in **neither** artifact, so nothing needed
+The `run-unit-tests.py` "positional KIND" claim appears in **neither** artifact, so nothing needed
 fixing there. Confirmed at `:23-27`: `--kind` is accepted, `all` is the default, and a bare
 positional exits 2.
 
@@ -111,7 +111,7 @@ types.
 `safe_load` clean · every `verify:` a literal `|` block, zero folded `>` scalars · every task carries
 `files`/`verify`/`traces`/`change_type`/`execution_mode`/`depends_on` · DAG acyclic, all `depends_on`
 resolve · `check-plan-routes.py` **exit 0, 0 violations** (the two T-11/T-12 DEVIATIONs are the
-pre-existing declared ones) · `check-state.sh` reports only the expected
+pre-existing declared ones) · `check-state.py` reports only the expected
 `BRIEF.md is NOT approved` and `plan.yaml approval is pending`, plus an orphaned run dir
 `2026-08-22-02-product` that `feature.json` does not record — **the orchestrator's to reconcile, not
 mine.**
@@ -119,13 +119,13 @@ mine.**
 ## Open for the tier above
 
 1. **Blocking — the operator's.** DEC-186 amend-to-four (bounded to `/harness-init`) or drop REQ-02.
-2. **Non-blocking.** T-04 still adds one line to `run-unit-tests.sh`'s `UNIT_SCRIPTS`, a contended
+2. **Non-blocking.** T-04 still adds one line to `run-unit-tests.py`'s `UNIT_SCRIPTS`, a contended
    file. The dispatch said not to plan an edit there; I read that as scoping to the L2 remedy (which
    it does — D-12 edits no array) and kept the registration, because the drift detector at `:41-55`
    makes an unregistered `test-*.py` exit 2 `MISCONFIGURED` and break **every** verify in the plan at
    once. Flagging rather than silently overriding. If the operator wants zero edits to that file,
    the only alternative is to fold every board-lifecycle test into an existing test script, and I
    would recommend against it.
-3. **Non-blocking, not mine.** `check-domain.sh --post` blocks on pre-existing violations in
+3. **Non-blocking, not mine.** `check-domain.py --post` blocks on pre-existing violations in
    `FEAT-31`'s `feature.json` (`undeclared key 'agent'` at `/runs/9`-`/runs/20`). Unrelated to this
    feature; it will obstruct anyone committing in that worktree.

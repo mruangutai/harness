@@ -37,7 +37,7 @@ line named neither — **a cost-claim enumeration has to be built from the claim
 spelling.** Corrected, with both figures and their conditions.
 
 The result, conditions stated once for this document: all figures below are board 3 unless named,
-measured in this repository, 2026-08-19 to 08-20. `check-state.sh` costs **5 points** (473 items,
+measured in this repository, 2026-08-19 to 08-20. `check-state.py` costs **5 points** (473 items,
 `8c2c24d`) against **506** before (486 items, `e1bcdc1`). Board 6, four items, both shapes at
 `8c2c24d`: **old 102, new 1**, item count identical on both sides. Orchestrator spend: **46 points**.
 

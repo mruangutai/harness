@@ -8,11 +8,11 @@ set or is defended load-bearing repetition. No dead references found.
 
 **Acts on:** D-10 (decisions count), REQ-09.
 
-D-10's body is "measured with check-domain.sh --resolve at 7ebfc9e", listing four already-true
+D-10's body is "measured with check-domain.py --resolve at 7ebfc9e", listing four already-true
 resolutions. Nothing was chosen among alternatives — it's an audit record that REQ-09 is
 already satisfied, which is exactly what `dec: none` on it already concedes. The `lanes:` block
 directly above already carries the identical methodology statement ("Every row below was
-produced by `check-domain.sh --resolve <path>` at this sha, not read off team-config.yaml"),
+produced by `check-domain.py --resolve <path>` at this sha, not read off team-config.yaml"),
 so D-10 duplicates that block's authority for a set of paths (`lanes:` covers only repo-source
 surfaces, D-10 covers per-feature `notes/` paths) that could just as easily be a second `lanes:`-
 style comment block rather than a numbered decision.
@@ -33,7 +33,7 @@ its own file and its own verify (T-07: does INV-32 exist and register; T-08: doe
 suite, including the failing-first proof, pass). This is exactly the test-first-discipline
 shape the assignment flagged as the likely reason — confirmed, leave split.
 
-**T-09/T-10 shared file (`run-unit-tests.sh`):** not a finding. Same agent
+**T-09/T-10 shared file (`run-unit-tests.py`):** not a finding. Same agent
 (`harness-dev-ops`), sequenced (T-10 depends on T-09 among others), and the two files being
 registered (`panel_findings.py`'s content-hash helper vs. `test-plan-panel.py`'s wiring
 assertions) are genuinely different subject matter, not an artificial split of one concern.
@@ -59,10 +59,10 @@ BRIEF success criterion (SC-13). There's no shared-constant mechanism across an 
 agent-definition file, a shell/python gate, and a decision log — each has to carry its own copy
 or the rule silently stops applying somewhere. No finding.
 
-**D-12 (run-unit-tests.sh not enforcement-path):** not redundant with T-09/T-10's intents.
-It's a DEC-174 lane classification — the actual answer to "does touching run-unit-tests.sh's
-UNIT_SCRIPTS array require main-session-direct treatment like check-state.sh does?" The `lanes:`
-rows confirm the answer it records (run-unit-tests.sh is `team`/`harness-dev-ops`, not a
+**D-12 (run-unit-tests.py not enforcement-path):** not redundant with T-09/T-10's intents.
+It's a DEC-174 lane classification — the actual answer to "does touching run-unit-tests.py's
+UNIT_SCRIPTS array require main-session-direct treatment like check-state.py does?" The `lanes:`
+rows confirm the answer it records (run-unit-tests.py is `team`/`harness-dev-ops`, not a
 DEC-174 carve-out) but D-12 is the one place that states *why*, which a DEC-174 reviewer would
 otherwise have to re-derive. Keep.
 

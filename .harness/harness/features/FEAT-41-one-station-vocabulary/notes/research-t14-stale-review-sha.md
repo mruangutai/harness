@@ -5,7 +5,7 @@ T-14 is appended; the plan carries 14 tasks and 12 decisions, `check-plan-routes
 
 ## The defect
 
-`check-state.sh` INV-6 (`.claude/skills/harness/bin/check-state.sh` circa :221-229, inside the
+`check-state.py` INV-6 (`.claude/skills/harness/bin/check-state.py` circa :221-229, inside the
 `feature.json` loop that opens at :177) tests only that `review_sha` is present and not a
 `harness_yaml.PLACEHOLDER_UNSET` value. A pin that resolves but no longer matches the reviewed text
 passes. Measured live on FEAT-41: `review_sha: e5afc19` against a `plan.yaml` last committed at
@@ -20,7 +20,7 @@ INV-6 asserts a pin exists; the new check asserts the pin is current. Different 
 INV-6 needs only `feature.json`, INV-32 needs a git work tree and a plan file — hence different
 silences. One number would put two fail-open surfaces behind one grep-able string, and six existing
 cases in `test-check-state.py` assert on INV-6's exact text. INV-32 is free: absent from
-`check-state.sh`, and `check-plan-routes.py`'s invariant-collision scan reports no other unbuilt
+`check-state.py`, and `check-plan-routes.py`'s invariant-collision scan reports no other unbuilt
 feature claiming it (checked at `ee66ae2`).
 
 No top-level `invariants:` key was added to `plan.yaml`. The merge tool refuses a differing
@@ -40,7 +40,7 @@ The path must be relative to `git rev-parse --show-toplevel`, not to `root`: `ro
 
 ## Placement
 
-`check-state.sh` is opened by T-02, T-04, T-06, T-07; `test-check-state.py` by T-02, T-04, T-06,
+`check-state.py` is opened by T-02, T-04, T-06, T-07; `test-check-state.py` by T-02, T-04, T-06,
 T-07, T-11. T-07 is the last on the script, T-11 the last on its test (it deletes a unit), so
 `depends_on: [T-07, T-11]` puts T-14 after every task that opens either file and collides with
 none. T-14 does not depend on T-13 and never names the pre-rename writer, so it is correct

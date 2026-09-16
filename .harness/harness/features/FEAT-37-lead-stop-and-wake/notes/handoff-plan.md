@@ -17,7 +17,7 @@ it and renumber nothing. Inputs: `plan.yaml`, `BRIEF.md`, this note.
 - `children_refusal_lines` keys on HAVING CHILDREN, not on `SINGLE_FLIGHT_AGENTS` — `inflight_registry.py:32`, `:263`; fired live on my return and on the lead's — verified-at 8fc87f8
 - REQ-08/SC-09 are MISATTRIBUTED to the operator in `plan.yaml:110`, `BRIEF.md:139`, `BRIEF.md:219`; the call was the orchestrator's — `notes/ship-review-2026-08-26-02-product.md` — verified-at 8fc87f8
 - SC-08 cannot be graded from this build: a spawned agent loads skills from the MAIN CHECKOUT — `DECISIONS.md:7023`, D-13 at `plan.yaml:113` — verified-at 8fc87f8
-- `check-state.sh` exits 0; its two VIOLATIONs are the expected unapproved-BRIEF halt and a FEAT-40 INV-26 finding that is not this feature's — verified-at 8fc87f8
+- `check-state.py` exits 0; its two VIOLATIONs are the expected unapproved-BRIEF halt and a FEAT-40 INV-26 finding that is not this feature's — verified-at 8fc87f8
 
 ## Dead ends
 

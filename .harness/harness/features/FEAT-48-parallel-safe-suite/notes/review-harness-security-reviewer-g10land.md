@@ -62,7 +62,7 @@ artifact: .harness/harness/features/FEAT-48-parallel-safe-suite/notes/review-har
 - Post-edit verification was content-based throughout: quoted line 28 in full, quoted the
   first ten words of each of the four previously-landed ops (`P-09`, `G-03`, `G-06`, `O-03`) as
   they now stand, and ran the id census by section rather than relying on any excluding hash.
-- `check-expertise.sh` returned `OK` with exit 0; the sole `ADVISORY` line is the pre-existing
+- `check-expertise.py` returned `OK` with exit 0; the sole `ADVISORY` line is the pre-existing
   `G-01`/`DEC-100` note named as a non-violation in the dispatch — untouched, as instructed.
 - No other entry, section, or file was modified. `P-09`, `G-03`, `G-06`, `O-03`, and all other
   ids/lines in this file are byte-for-byte as they stood before this change.

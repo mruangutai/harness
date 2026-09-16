@@ -39,6 +39,7 @@ import inflight_registry  # noqa: E402
 CLI = os.path.join(MODULE_DIR, "inflight_registry.py")
 
 ASSUMED_TTL_SECONDS = 3600
+ASSUMED_OMP_BACKSTOP_SECONDS = 86400
 
 RESULTS = []
 
@@ -487,7 +488,7 @@ def case_14_remedy_is_absolute():
         cmd,
     )
     # F5: `feature` is REQUIRED, not defaulted. Both production callers already passed one
-    # (dispatch-guard.sh, validate-digest.py), so the optional default only ever made the
+    # (dispatch-guard.py, validate-digest.py), so the optional default only ever made the
     # dangerous form — an agent-only release that can take a SIBLING feature's claim — the
     # easy one for the next caller to reach for.
     try:
@@ -1021,45 +1022,257 @@ def case_10_no_own_primitive():
     )
 
 
-def main():
-    case_1_claim_then_live_claim()
-    case_2_single_flight_and_parallel_asymmetry()
-    case_2b_live_children_by_dispatcher()
-    case_2c_live_children_expires_stale()
-    case_3_staleness_live_claim()
-    case_4_release()
-    case_5_is_single_flight()
-    case_6_refusal_lines()
-    case_6b_children_refusal_lines()
-    case_7_concurrency()
-    case_8_corrupt_registry()
-    case_9_release_all()
-    case_10_no_own_primitive()
-    case_11_ttl_shorter_than_cycle()
-    case_12_foreign_session_expired()
-    case_13_release_refuses_ambiguous()
-    case_14_remedy_is_absolute()
-    case_15_feature_scoped_single_flight()
-    case_16_omp_claim_lives_with_supervisor()
-    case_17_targeted_release_keeps_other_feature()
-    case_18_legacy_registry_migrates_on_write()
-    case_19_attach_and_release_by_runtime_identity()
-    case_20_reconcile_only_target_feature()
-    case_21_live_query_does_not_expire_another_feature()
-    case_22_recycled_supervisor_pid_is_not_alive()
-    case_23_verified_claim_never_ages_out()
-    case_24_unverifiable_claim_cannot_strand_forever()
-    case_25_stranded_child_does_not_hold_its_parent()
-    case_26_start_time_read_pins_the_c_locale()
-    case_27_non_finite_start_time_cannot_strand_the_registry()
-    case_28_featureless_claim_still_gets_a_remedy()
-    case_29_orphan_write()
-    case_30_own_claim_is_not_orphan_write()
-    case_31_no_live_claim_fails_open()
-    case_32_sessionless_claim_is_visible()
-    case_33_orphan_write_omp_runtime_is_never_orphaned()
-    case_34_children_refusal_names_suspension()
+def _linked_worktree(owner_root, name):
+    linked = os.path.realpath(os.path.join(tempfile.mkdtemp(), name))
+    os.makedirs(linked)
+    pointer = os.path.join(owner_root, ".git", "worktrees", name, "gitdir")
+    os.makedirs(os.path.dirname(pointer), exist_ok=True)
+    with open(pointer, "w", encoding="utf-8") as handle:
+        handle.write(os.path.join(linked, ".git"))
+    return linked
 
+
+def _feature_root_cli(owner_root, feature=None):
+    argv = [sys.executable, CLI, "feature-root", "--root", owner_root]
+    if feature:
+        argv += ["--feature", feature]
+    return subprocess.run(argv, capture_output=True, text=True)
+
+
+def _ambiguous_feature_root_case():
+    owner_root = tempfile.mkdtemp()
+    _linked_worktree(owner_root, "FEAT-90")
+    _linked_worktree(owner_root, "FEAT-90-alpha")
+    result = _feature_root_cli(owner_root, "FEAT-90-alpha-redo")
+    check("case35: feature-root CLI refuses an ambiguous worktree",
+          result.returncode == 1 and not result.stdout and "ambiguous" in result.stderr.lower()
+          and "FEAT-90" in result.stderr, result.stdout + result.stderr)
+
+
+def case_35_feature_root_cli():
+    owner_root = tempfile.mkdtemp()
+    linked = _linked_worktree(owner_root, "FEAT-90-alpha")
+    check("case35: feature-root uses linked checkout rather than owner root",
+          inflight_registry.feature_root(owner_root, "FEAT-90-alpha") == linked and linked != owner_root)
+    linked_run = _feature_root_cli(owner_root, "FEAT-90-alpha")
+    check("case35: feature-root CLI resolves linked worktree",
+          linked_run.returncode == 0 and linked_run.stdout.strip() == linked, linked_run.stdout + linked_run.stderr)
+    short_owner = tempfile.mkdtemp()
+    short_linked = _linked_worktree(short_owner, "FEAT-90")
+    short_run = _feature_root_cli(short_owner, "FEAT-90-alpha")
+    check("case35: feature-root accepts a short-form worktree basename",
+          short_run.returncode == 0 and short_run.stdout.strip() == short_linked, short_run.stdout + short_run.stderr)
+    fallback = _feature_root_cli(owner_root, "FEAT-91-beta")
+    check("case35: feature-root CLI falls back to owner root",
+          fallback.returncode == 0 and fallback.stdout.strip() == owner_root, fallback.stdout + fallback.stderr)
+    missing = _feature_root_cli(owner_root)
+    check("case35: feature-root requires --feature",
+          missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr, missing.stdout + missing.stderr)
+    _ambiguous_feature_root_case()
+
+
+def _bug1304_claim(agent, feature, started_at, runtime="claude",
+                   supervisor_pid=None, supervisor_started_at=None):
+    claim = {
+        "agent": agent,
+        "dispatcher": "harness-orchestrator",
+        "cwd": "/fixture",
+        "feature": feature,
+        "runtime": runtime,
+        "started_at": started_at,
+    }
+    if supervisor_pid is not None:
+        claim["supervisor_pid"] = supervisor_pid
+    if supervisor_started_at is not None:
+        claim["supervisor_started_at"] = supervisor_started_at
+    return claim
+
+
+def case_36_live_claims_read_only_and_binding_horizon():
+    agent = "harness-backend-dev"
+    now = 2_000_000
+    root = tempfile.mkdtemp()
+    newer = _bug1304_claim(agent, "FEAT-32-beta", now - 10)
+    older = _bug1304_claim(agent, "FEAT-31-alpha", now - 20)
+    _write_raw(root, {"schema_version": 2, "claims": [newer, older]})
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    before = open(path, "rb").read()
+    found = inflight_registry.live_claims(root, agent, now=now)
+    after = open(path, "rb").read()
+    check("case36: live_claims returns every matching claim oldest first",
+          [claim.get("feature") for claim in found] == ["FEAT-31-alpha", "FEAT-32-beta"],
+          found)
+    check("case36: live_claims is byte-for-byte read only", before == after)
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [
+        _bug1304_claim(agent, "FEAT-expired",
+                       now - ASSUMED_OMP_BACKSTOP_SECONDS - 1),
+    ]})
+    check("case36: compatibility claim past binding backstop is absent",
+          inflight_registry.live_claims(root, agent, now=now) == [])
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [
+        _bug1304_claim(agent, "FEAT-between", now - ASSUMED_TTL_SECONDS - 1),
+    ]})
+    found = inflight_registry.live_claims(root, agent, now=now)
+    check("case36: compatibility claim between TTL and backstop still binds",
+          [claim.get("feature") for claim in found] == ["FEAT-between"], found)
+
+    root = tempfile.mkdtemp()
+    check("case36: missing registry returns an empty list",
+          inflight_registry.live_claims(root, agent, now=now) == [])
+
+    pid = os.getpid()
+    started = inflight_registry._process_start_time(pid)
+    check("case36: test process identity is measurable", started is not None, started)
+    if started is not None:
+        root = tempfile.mkdtemp()
+        ancient = now - ASSUMED_OMP_BACKSTOP_SECONDS - 1
+        _write_raw(root, {"schema_version": 2, "claims": [
+            _bug1304_claim(agent, "FEAT-omp-old", ancient, runtime="omp",
+                           supervisor_pid=pid, supervisor_started_at=started),
+        ]})
+        found = inflight_registry.live_claims(root, agent, now=now)
+        check("case36: proven OMP identity binds past the backstop",
+              [claim.get("feature") for claim in found] == ["FEAT-omp-old"], found)
+
+
+def case_37_live_claims_refuses_unreadable_registry():
+    agent = "harness-backend-dev"
+    shapes = (
+        ("unparseable json", "{"),
+        ("json list", "[]"),
+        ("unsupported mapping", '{"schema_version": 99, "claims": []}'),
+    )
+    for label, payload in shapes:
+        root = tempfile.mkdtemp()
+        path = os.path.join(root, inflight_registry.REGISTRY_REL)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+        raised = None
+        try:
+            inflight_registry.live_claims(root, agent)
+        except inflight_registry.UnreadableRegistry as error:
+            raised = error
+        check(f"case37: {label} raises UnreadableRegistry naming its file",
+              raised is not None and path in str(raised), repr(raised))
+
+    missing = tempfile.mkdtemp()
+    check("case37: absent remains distinct from unreadable",
+          inflight_registry.live_claims(missing, agent) == [])
+
+
+def _bug1304_registry_features(root):
+    return [
+        claim.get("feature")
+        for claim in _read_raw(root).get("claims", [])
+        if isinstance(claim, dict)
+    ]
+
+
+def case_bug1304_retention():
+    agent = "harness-backend-dev"
+    feature = "BUG-1304-retained"
+    now = 3_000_000
+    expired = _bug1304_claim(agent, feature, now - ASSUMED_TTL_SECONDS - 1)
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    removed = inflight_registry.reconcile(root, now=now)
+    check("bug1304 retention: reconcile answer still reports dispatch expiry",
+          removed == 1, removed)
+    check("bug1304 retention: reconcile keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    children = inflight_registry.live_children(
+        root, "harness-orchestrator", now=now, feature=feature)
+    check("bug1304 retention: live_children answer excludes dispatch-expired claim",
+          children == [], children)
+    check("bug1304 retention: live_children keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    orphan = inflight_registry.orphan_write(
+        root, agent, feature, session=None, now=now)
+    check("bug1304 retention: orphan_write answer remains false",
+          orphan is False, orphan)
+    check("bug1304 retention: orphan_write keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    ancient = _bug1304_claim(
+        agent, feature, now - ASSUMED_OMP_BACKSTOP_SECONDS - 1)
+    _write_raw(root, {"schema_version": 2, "claims": [ancient]})
+    removed = inflight_registry.reconcile(root, now=now)
+    check("bug1304 retention: backstop-expired record is still reported removed",
+          removed == 1, removed)
+    check("bug1304 retention: backstop-expired record is pruned from disk",
+          feature not in _bug1304_registry_features(root))
+
+
+def case_bug1304_retention_admission():
+    agent = "harness-pm"
+    feature = "BUG-1304-retained-admission"
+    now = 4_000_000
+    old = _bug1304_claim(agent, feature, now - ASSUMED_TTL_SECONDS - 1)
+    old["claim_id"] = "retained-old"
+    _write_raw(
+        root := tempfile.mkdtemp(),
+        {"schema_version": 2, "claims": [old]},
+    )
+    receipt = inflight_registry.claim_with_receipt(
+        root, agent, "harness-product-lead", "/fixture/new",
+        now=now, feature=feature)
+    check("bug1304 admission: retained claim does not block fresh single-flight",
+          isinstance(receipt, dict), receipt)
+    check("bug1304 admission: old binding record and new claim both remain on disk",
+          len(_read_raw(root).get("claims", [])) == 2, _read_raw(root))
+    visible, expired = inflight_registry.live_claim(
+        root, agent, now=now, feature=feature)
+    check("bug1304 admission: dispatch answer exposes only the fresh claim",
+          visible is not None
+          and visible.get("claim_id") == receipt.get("claim_id")
+          and expired == 1,
+          (visible, expired))
+
+
+CASES = (
+    case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
+    case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
+    case_3_staleness_live_claim, case_4_release, case_5_is_single_flight,
+    case_6_refusal_lines, case_6b_children_refusal_lines, case_7_concurrency,
+    case_8_corrupt_registry, case_9_release_all, case_10_no_own_primitive,
+    case_11_ttl_shorter_than_cycle, case_12_foreign_session_expired,
+    case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
+    case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
+    case_17_targeted_release_keeps_other_feature, case_18_legacy_registry_migrates_on_write,
+    case_19_attach_and_release_by_runtime_identity, case_20_reconcile_only_target_feature,
+    case_21_live_query_does_not_expire_another_feature,
+    case_22_recycled_supervisor_pid_is_not_alive, case_23_verified_claim_never_ages_out,
+    case_24_unverifiable_claim_cannot_strand_forever,
+    case_25_stranded_child_does_not_hold_its_parent,
+    case_26_start_time_read_pins_the_c_locale,
+    case_27_non_finite_start_time_cannot_strand_the_registry,
+    case_28_featureless_claim_still_gets_a_remedy, case_29_orphan_write,
+    case_30_own_claim_is_not_orphan_write, case_31_no_live_claim_fails_open,
+    case_32_sessionless_claim_is_visible, case_33_orphan_write_omp_runtime_is_never_orphaned,
+    case_34_children_refusal_names_suspension, case_35_feature_root_cli,
+    case_36_live_claims_read_only_and_binding_horizon,
+    case_37_live_claims_refuses_unreadable_registry,
+    case_bug1304_retention,
+    case_bug1304_retention_admission,
+)
+
+
+def main():
+    for case in CASES:
+        case()
     failed = [r for r in RESULTS if not r[1]]
     if failed:
         print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")

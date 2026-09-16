@@ -92,7 +92,7 @@ requirement exactly (d1ffd7f baseline 40 + this one new case). Zero `FAIL` lines
 
 GREEN, exit 0, zero `FAIL` lines. In particular case **(x.3) an applicable clean tree -> NO INV-27
 line** passed — my STUB legacy fragment does not also match the row's migrated pattern (no
-`[both]` form-set introduced). No DEC-174 blocker encountered; `check-state.sh` was not touched.
+`[both]` form-set introduced). No DEC-174 blocker encountered; `check-state.py` was not touched.
 
 ## Verify block — final line and exit status
 
@@ -108,7 +108,7 @@ Exit status: 0.
 - `.harness/factory/fleet.yaml` — not in `git diff --name-only`. Unedited.
 - `.harness/harness.json` — not in `git diff --name-only`. Unedited.
 - `gh_board.py` — not in `git diff --name-only`. Unedited.
-- `check-domain.sh` — not in `git diff --name-only`. Unedited.
+- `check-domain.py` — not in `git diff --name-only`. Unedited.
 - `load_board` — `git diff -- layout_migration.py layout_fixtures.py test-layout-migration.py |
   grep load_board` → no output. Symbol appears in no line I added.
 

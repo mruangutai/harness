@@ -23,7 +23,7 @@ Run `/harness-ship FEAT-26-pr-linkage-recorded`. Before any orchestrator is spaw
 ## Dead ends
 - **Do not re-derive the four PR numbers from branch names.** That is what fails; the
   attribution is by PR title, and #4's title names neither feature it carries.
-- **Q5 is a FALSE PREMISE that reached this feature's dispatch:** "check-state.sh carries 19
+- **Q5 is a FALSE PREMISE that reached this feature's dispatch:** "check-state.py carries 19
   invariants, the new one is the twentieth". At `ada8e99` the run is INV-1..INV-27, INV-20 is
   taken, and INV-10 is retired and unreusable. pm used INV-28 correctly. A successor that
   trusts the dispatch text instead of the file will collide.
@@ -35,7 +35,7 @@ Run `/harness-ship FEAT-26-pr-linkage-recorded`. Before any orchestrator is spaw
 ## Working set
 - `.claude/skills/harness/bin/gh-sync.py` — the two writers in this one file disagree today;
   issue #289 is absorbed because the fix lands inside a function this feature already edits.
-- `.claude/skills/harness/bin/check-state.sh` and `test-check-state.py` — the new invariant.
+- `.claude/skills/harness/bin/check-state.py` and `test-check-state.py` — the new invariant.
 - `.claude/skills/harness/bin/feature-schema.json`, `templates/plan.yaml`, `harness/SKILL.md`.
 - Eleven historical `feature.json` files gain their `pr` value.
 - `.harness/harness/docs/DECISIONS.md` and a regenerated `DECISIONS-INDEX.md`.

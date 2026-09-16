@@ -4,7 +4,7 @@
 
 Craft file (`.harness/expertise/harness-dev-ops.md`): Patterns 15→15 (net: -1 merge, +1 add),
 Gotchas 14→14 (unchanged). Repository file (`.harness/harness/expertise/harness-dev-ops.md`):
-Patterns 1→1 (unchanged), Gotchas 5→5 (net: -1 drop stale, +1 add). `check-expertise.sh` on both
+Patterns 1→1 (unchanged), Gotchas 5→5 (net: -1 drop stale, +1 add). `check-expertise.py` on both
 targets: **exit 0**, one pre-existing advisory not introduced by this run.
 
 ## Staleness guard
@@ -18,9 +18,9 @@ Worktree vs main checkout: both `.harness/expertise/harness-dev-ops.md` and
 **Repository G-03 was falsified — measured, not assumed.** It claimed an unregistered
 `test-*.py` script is "invisible to [the drift detector], not caught by it." I created a scratch
 `test-zzz-scratch-probe.py` in `.claude/skills/harness/bin/` and ran
-`run-unit-tests.sh --check-kinds`: it printed `MISCONFIGURED: ... is not in run-unit-tests.sh's
+`run-unit-tests.py --check-kinds`: it printed `MISCONFIGURED: ... is not in run-unit-tests.py's
 explicit script list` and exited 2 — the opposite of the claim. Additionally, reading the current
-`run-unit-tests.sh`, the T-12 KIND-DRIFT cross-check (arrays vs `harness.json`'s
+`run-unit-tests.py`, the T-12 KIND-DRIFT cross-check (arrays vs `harness.json`'s
 `test_kinds.integration.detect`) now runs on every invocation, closing the other half of the class
 G-03 warned about. **Dropped G-03** — deleted (no drop op in the tool; done via direct Edit, see
 below). Scratch probe file was removed immediately after the measurement; confirmed via
@@ -98,16 +98,16 @@ fact about one file in one repository. Added as repository Gotcha G-06.
 | repo | Patterns | 1 | 1 |
 | repo | Gotchas | 5 | 5 |
 
-## check-expertise.sh — verbatim
+## check-expertise.py — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/
 OK   .harness/expertise/harness-dev-ops.md
 ADVISORY .harness/expertise/harness-dev-ops.md:20: G-03 names '.claude/' — repository-layer candidate; rule on it (issue 340)
 [... other agents' files, unrelated, not mine to fix ...]
 EXIT=0
 
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/harness/expertise/harness-dev-ops.md
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/harness/expertise/harness-dev-ops.md
 OK   .harness/harness/expertise/harness-dev-ops.md
 EXIT=0
 ```

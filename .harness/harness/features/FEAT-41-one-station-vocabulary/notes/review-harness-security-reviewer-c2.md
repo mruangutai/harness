@@ -5,7 +5,7 @@ a route cycle 1 did not try. H-01's symlink fix (`_route_candidates`) never chec
 `os.path.islink()` against a **hardlink** and computes each hop's relative target from the
 **string dirname of the path as typed**, not the real filesystem location — a hardlink alias,
 or a symlink reached through an intermediate symlinked *directory*, walks straight past it, PRE
-and POST, confirmed live with the real `check-domain.sh` subprocess and a real corrupted
+and POST, confirmed live with the real `check-domain.py` subprocess and a real corrupted
 `plan.yaml`. H-02's `as_bash_reads_it` closes the one continuation form F-03/H-02 named and
 nothing else — `plan-merge.py${IFS}sign-approval` (bash's classic filter-evasion idiom) evades
 the tokenizer entirely and, confirmed end-to-end against a real `plan-merge.py` fixture,
@@ -18,7 +18,7 @@ clean before and after — see §6).
 ## 1. H-01 — OPEN (regressed). New HIGH: hardlinks and directory-hop symlink chains bypass the
 route-candidate walk entirely, PRE and POST.
 
-Root cause, read at source (`check-domain.sh` `_route_candidates`, the `_MAX_HOPS=8` loop): it
+Root cause, read at source (`check-domain.py` `_route_candidates`, the `_MAX_HOPS=8` loop): it
 resolves ONE hop at a time via `os.path.islink(cur)` / `os.readlink(cur)` /
 `os.path.join(os.path.dirname(cur), target)`, where `cur` is always the **string form of the
 path as originally written**, walked hop-by-hop — never a real filesystem `realpath`-style
@@ -39,7 +39,7 @@ resolution. Two consequences, both measured live:
   candidate string that does not match `RE_PLAN_YAML` even though the real write lands on the
   real `plan.yaml`.
 
-Every case below ran against the real `.claude/skills/harness/bin/check-domain.sh` via
+Every case below ran against the real `.claude/skills/harness/bin/check-domain.py` via
 subprocess, `agent_type=harness-orchestrator` (the wildcard-domain persona F-04/H-01 were both
 about), fresh `tempfile.mkdtemp()` fixture root per case, decision-only unless noted. Script:
 `local://feat41_h01_probe.py` is not persisted anywhere durable — re-run instructions are in
@@ -70,10 +70,10 @@ about), fresh `tempfile.mkdtemp()` fixture root per case, decision-only unless n
 | 11 | Edit tool (not Write) through an ordinary 1-hop symlink route | PRE Edit | 2 | 2 | holds |
 
 **Does anything intercept link CREATION at all?** No. `ln`/`ln -s` do not appear anywhere in
-`bash-write-guard.sh`'s command classifier (`sed`/`perl -i`, `tee`, `mv`/`cp`, `rm`, `sponge`,
+`bash-write-guard.py`'s command classifier (`sed`/`perl -i`, `tee`, `mv`/`cp`, `rm`, `sponge`,
 `awk -i`, and a generic `>`/`>>` redirect scan are the entire set) — confirmed both by reading
 the source and, incidentally, by my own session: as `harness-security-reviewer` I am READ-ONLY
-under `bash-write-guard.sh`'s reviewer carve-out, and a Bash command containing `rm` in the same
+under `bash-write-guard.py`'s reviewer carve-out, and a Bash command containing `rm` in the same
 call was correctly denied outright, while an `ln -s`-only command (no `rm`) executed with no
 denial at all. This is consistent with the gate's own documented scope ("truly arbitrary shell
 remains unwinnable and is caught post-hoc, not pre") and is not itself a new finding — it is the
@@ -102,7 +102,7 @@ naive-separator filters). This is squarely the adjacency-testing gap the gate ex
 (the same class as bare `--` and the backslash-newline it already fixed), not the
 tool-name-obscured-by-a-variable class the docstring disclaims.
 
-Every gate row below fired the real `plan-sign-gate.sh` (decision-only, `agent_type` set) via
+Every gate row below fired the real `plan-sign-gate.py` (decision-only, `agent_type` set) via
 subprocess. Every row marked "actually-signed" additionally ran the exact command through **real
 bash** against a disposable, correctly-shaped `plan.yaml` fixture (`.harness/<repo>/features/
 <slug>/plan.yaml`, carrying a pre-existing `approval:` scaffold so `cmd_sign_approval`'s own
@@ -148,10 +148,10 @@ Reproduced cleanly at this pin, both ways:
 - **Synthetic fixture**: an agent granted domain ONLY over `FEAT-MINE-fixture` ran
   `plan-merge.py set-feature-station --file <FEAT-VICTIM-fixture>/plan.yaml --station done`
   directly — exit 0, no stderr, the victim's station flipped. The identical command, run as a
-  **Bash** tool call through `bash-write-guard.sh` with `agent_type=harness-backend-dev` and
+  **Bash** tool call through `bash-write-guard.py` with `agent_type=harness-backend-dev` and
   **zero** domain grant over the victim feature, also exited 0 with **zero findings** — the
   command isn't merely "in domain," it is **invisible to the domain classifier entirely**,
-  because `bash-write-guard.sh`'s command-pattern scanner has no entry for `plan-merge.py` CLI
+  because `bash-write-guard.py`'s command-pattern scanner has no entry for `plan-merge.py` CLI
   invocations at all (same absent-pattern class as the `ln`/`ln -s` gap in §1).
 - **Real repository history, not hypothetical**: commit `01051eb` ("finish the migration for
   FEAT-45") in THIS feature's own branch used exactly this mechanism —
@@ -197,12 +197,12 @@ I did not re-derive every one of the ~88 individually this cycle — see §5, un
   being a general "which checkout is this in" resolver rather than a worktree-specific one, but
   did not independently measure it. `[INFERENCE]`.
 - **Production Write-tool byte-level confirmation of the trailing-slash bypass** (§1, row
-  8-trailing). Confirmed at the `check-domain.sh` decision layer and at the raw-`open()` OS
+  8-trailing). Confirmed at the `check-domain.py` decision layer and at the raw-`open()` OS
   layer; not independently re-confirmed against the actual Claude Code/OMP Write tool binary the
   way cycle 1 confirmed the base symlink case. Given the settled base case (Write follows a
   symlink) and the measured OS-level write-through, I rate this reachable but flag the gap.
 - **Full line-by-line audit of `gh-sync.py` (545 lines changed), `board_lifecycle.py` (118),
-  `worktree_terminal.py` (302), `check-plan-routes.py` (152), `check-state.sh` (348)** beyond the
+  `worktree_terminal.py` (302), `check-plan-routes.py` (152), `check-state.py` (348)** beyond the
   injection/secrets/shell-metacharacter sweep in §4. Time-boxed toward the two named gates, which
   the dispatch marks as the point. No `subprocess` call in any of these uses `shell=True`; all
   use list-form argv (confirmed by grep, not by reading every call site).
@@ -247,14 +247,14 @@ DIGEST:
   severity_max: high
   findings: 4
   must_fix:
-    - "check-domain.sh _route_candidates: hardlink aliases of plan.yaml (os.path.islink is False for a hardlink) bypass the PRE and POST route denial entirely — confirmed live, real bytes corrupted in a disposable fixture (H-01, HIGH)."
-    - "check-domain.sh _route_candidates: a symlink reached through an intermediate SYMLINKED DIRECTORY component resolves against the as-typed string dirname, not the real physical location, and misses the route — confirmed live with both a hardlink and an all-symlink chain (H-01, HIGH)."
+    - "check-domain.py _route_candidates: hardlink aliases of plan.yaml (os.path.islink is False for a hardlink) bypass the PRE and POST route denial entirely — confirmed live, real bytes corrupted in a disposable fixture (H-01, HIGH)."
+    - "check-domain.py _route_candidates: a symlink reached through an intermediate SYMLINKED DIRECTORY component resolves against the as-typed string dirname, not the real physical location, and misses the route — confirmed live with both a hardlink and an all-symlink chain (H-01, HIGH)."
     - "plan-sign-gate.py denies()/as_bash_reads_it: ${IFS} (and ${IFS,}) word-splitting between plan-merge.py and sign-approval evades the tokenizer; confirmed end-to-end against a real plan-merge.py fixture — a forged approval: block actually lands, exit 0, no stderr from either gate (H-02, HIGH)."
-    - "check-domain.sh _route_candidates hop cap (_MAX_HOPS=8) fails OPEN on a chain longer than 8 hops — lower severity (a 1-hop symlink is already denied) but zero additional cost to an attacker via unguarded ln -s (H-01, secondary)."
+    - "check-domain.py _route_candidates hop cap (_MAX_HOPS=8) fails OPEN on a chain longer than 8 hops — lower severity (a 1-hop symlink is already denied) but zero additional cost to an attacker via unguarded ln -s (H-01, secondary)."
   threat_model:
-    - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.sh plan.yaml route denial", stride: "T", mitigated: false }
+    - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.py plan.yaml route denial", stride: "T", mitigated: false }
     - { boundary: "PreToolUse Bash -> plan-sign-gate.py sign-approval refusal", stride: "S", mitigated: false }
-    - { boundary: "PreToolUse Bash -> bash-write-guard.sh domain check on plan-merge.py CLI invocations (set-feature-station/set-task-station)", stride: "E", mitigated: false, precondition: "disclosed and operator-signed in BRIEF.md; not a gap this review adds to must_fix" }
+    - { boundary: "PreToolUse Bash -> bash-write-guard.py domain check on plan-merge.py CLI invocations (set-feature-station/set-task-station)", stride: "E", mitigated: false, precondition: "disclosed and operator-signed in BRIEF.md; not a gap this review adds to must_fix" }
     - { boundary: "PostToolUse Write/Edit sweep and Bash glob sweep -> vocabulary-only net", stride: "T", mitigated: false, precondition: "documented, unchanged residual: catches an illegal station word, never a well-formed forged approval" }
   open_questions:
     - { id: Q1, question: "Should plan-sign-gate.py's docstring framing ('a guardrail, NOT a security boundary') be revisited now that ${IFS} reaches real execution as easily as the already-HIGH -- and backslash-newline cases?", blocking: false }

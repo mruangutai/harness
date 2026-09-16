@@ -8,9 +8,9 @@ budget is exhausted a run dies with a raw `gh` error that names a rate limit but
 not what spent it, and not when it resets — so the operator's first move is to guess.
 
 Measurement (`notes/research-plan-product.md`, 2026-08-19, at `6bbd706`) attributes it. **One run of
-`.claude/skills/harness/bin/check-state.sh` costs 490-506 GraphQL points** (board 3, 473 items,
+`.claude/skills/harness/bin/check-state.py` costs 490-506 GraphQL points** (board 3, 473 items,
 commit `6bbd706`). This project's own CLAUDE.md says to run it before every commit, so a working
-session spends thousands of points on the state gate alone. The cost is INV-26 at `check-state.sh:1174`, which reads the entire 473-item board
+session spends thousands of points on the state gate alone. The cost is INV-26 at `check-state.py:1174`, which reads the entire 473-item board
 through `gh project item-list --limit 500`. A standalone sample of that call read 608 points on
 board 3, but the run that contains it measured 490-506, so 608 is a contaminated upper bound taken
 with another agent run in flight — the honest record is 490-506 per run. The same call against the
@@ -33,7 +33,7 @@ a raw `gh` error.
 
 ## Requirements
 
-- REQ-01: A full `check-state.sh` run costs a small, bounded number of GraphQL points, and INV-26
+- REQ-01: A full `check-state.py` run costs a small, bounded number of GraphQL points, and INV-26
   reports the same violations and non-violations it reports today.
 - REQ-02: An unstationed card and a card absent from the board remain distinguishable findings after
   the read is made cheaper.
@@ -59,7 +59,7 @@ a raw `gh` error.
 
 ## Success Criteria
 
-- SC-01: A `check-state.sh` run against the live board costs no more than 100 GraphQL points,
+- SC-01: A `check-state.py` run against the live board costs no more than 100 GraphQL points,
   measured by differencing `gh api rate_limit --jq .resources.graphql.used` across the run, with raw
   before and after values, the board's item count and the commit recorded. The same measurement,
   captured before the change lands, reads 490-506 — that is the red state, and it is captured
@@ -77,7 +77,7 @@ a raw `gh` error.
   on both sides, so the saving cannot be attributed to the board returning fewer items — it is the
   query shape. `notes/measurement-board6.md` is the record.
   verify: inspection
-- SC-04: `check-state.sh` emits the identical violation set before and after the change when run
+- SC-04: `check-state.py` emits the identical violation set before and after the change when run
   against the same tree, compared line by line, with any difference explained or the change rejected.
   verify: inspection
 - SC-05: **AMENDED 2026-08-19 with REQ-03.** With `HARNESS_GH_COST_LOG=1`, every harness `gh`
@@ -102,7 +102,7 @@ a raw `gh` error.
   it.
   verify: automated      evidence: unit
 - SC-08: The 2026-08-10 grilling note's 31-point figure is corrected in place with the measured
-  490-506 points per `check-state.sh` run and the condition it holds under (board 3, 473 items,
+  490-506 points per `check-state.py` run and the condition it holds under (board 3, 473 items,
   commit `6bbd706`, 2026-08-19), recording 608 only as the contaminated upper bound it is — a run
   that contains the call cannot cost less than the call. ~~No surviving document asserts that
   `project item-list` is cheap enough to ignore~~ **AMENDED 2026-08-20, operator ruling.** No
@@ -152,7 +152,7 @@ a raw `gh` error.
 
 - **The pre-change baseline must be captured before any code lands.** Once the read is cheap the
   red state is gone and SC-01 and SC-04 have nothing to grade against.
-- **`check-state.sh` is a DEC-174 carve-out.** Its edit is made directly by a human reading the
+- **`check-state.py` is a DEC-174 carve-out.** Its edit is made directly by a human reading the
   diff, never dispatched through a team run whose gates are the thing being changed. `gh_board.py`
   and `factory_gh.py` are not carve-out files and may be built by the team.
 - INV-26's detection behaviour is fixed. A station-filtered `--query` is not an acceptable fix: the

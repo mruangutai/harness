@@ -167,7 +167,7 @@ T-01 and T-02.
 **3. The two test files FEAT-45 added are correctly clean.** `test-panel-findings.py` and
 `test-plan-panel.py` report zero findings, and they were audited for the subprocess vector
 this note's Open section names: their only `subprocess.run` calls invoke `panel_findings.py id`
-and `check-domain.sh --resolve`, neither of which writes. They are not an eleventh site.
+and `check-domain.py --resolve`, neither of which writes. They are not an eleventh site.
 
 Discovery census at `ccf674a`: **58** files by T-03's walk rule in both the main checkout and
 this worktree (they converged on the rebase), against the verify block's floor of 50.

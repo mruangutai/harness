@@ -6,7 +6,7 @@ The headline exploit goal — get an approval signature onto disk as a governed 
 main session — **did not succeed against any payload I could construct**, including every attack
 shape named in the dispatch. D-10's two-limb Edit guard and the load-bearing
 `main_session.writes` record held. No governed agent can write or edit `.harness/team-config.yaml`
-itself (tested all 16 personas × Write/Edit). The registry-fuzzing surface (dispatch-guard.sh /
+itself (tested all 16 personas × Write/Edit). The registry-fuzzing surface (dispatch-guard.py /
 validate-digest.py / inflight_registry.py) fails open loudly on every corrupt input I fed it,
 matching its documented D-07/D-09 posture, with one real but low-severity gap: a poisoned
 `started_at` in the future creates a **permanent** single-flight block with no auto-heal. Two
@@ -16,9 +16,9 @@ rises to must-fix.
 ## 1. The approval-forgery attack (D-10, the headline)
 
 Built a live fixture harness (`_approval_root`/`_fire_edit`/`_fire_write`, mirroring
-`test-check-domain.py`'s T-14 fixtures) and ran the real `check-domain.sh` as `harness-pm` and
+`test-check-domain.py`'s T-14 fixtures) and ran the real `check-domain.py` as `harness-pm` and
 `harness-orchestrator`. Every payload below was **denied, exit 2**, with stderr naming the
-fragment (`check-domain.sh:508` `approval_guard`, `check-domain.sh:409` `_approval_entries`,
+fragment (`check-domain.py:508` `approval_guard`, `check-domain.py:409` `_approval_entries`,
 `:462` `_yaml_key_range`, `:475` `_heading_range`, `:552` Edit branch Limb A, `:611` Limb B):
 
 - Boundary-spanning `old_string` (starts in the blank line *before* `approval:`, ends inside
@@ -53,22 +53,22 @@ open_questions Q1.
 
 ## 2. Who may edit team-config.yaml (D-10's own residual)
 
-Ran `check-domain.sh --resolve .harness/team-config.yaml` → `NOBODY`. Then fired real Write **and**
+Ran `check-domain.py --resolve .harness/team-config.yaml` → `NOBODY`. Then fired real Write **and**
 Edit payloads at `.harness/team-config.yaml` as all 16 rostered personas
 (`harness-orchestrator` … `harness-validator-lead`) — **every one exits 2** with "may not write
-.harness/team-config.yaml" (`check-domain.sh` domain_check, not the approval_guard). No governed
+.harness/team-config.yaml" (`check-domain.py` domain_check, not the approval_guard). No governed
 agent can disarm the load-bearing record through the guarded Write/Edit path. The only remaining
 route is #627 (bash-write-guard's allow-by-omission for a `python3` CLI invocation), which is
 explicitly out of scope by D-08 and whose own destination refusal is the accepted mitigation — not
 re-filed.
 
-## 3. Registry fuzzing (dispatch-guard.sh / validate-digest.py / inflight_registry.py)
+## 3. Registry fuzzing (dispatch-guard.py / validate-digest.py / inflight_registry.py)
 
 Fed `.harness/.inflight-claims.json` truncated/corrupt JSON, a non-dict top level, a non-list
 claim value (string and dict), a non-numeric `started_at`, a directory at the registry path, an
 unwritable `.harness/` dir, a symlink at the registry path, a 5.8 MB / 100k-entry file, and a
-persona name containing backticks/shell metacharacters — through the **real** `dispatch-guard.sh`.
-Every case is caught by the try/except at `dispatch-guard.sh`'s claim block and **exits 0** with a
+persona name containing backticks/shell metacharacters — through the **real** `dispatch-guard.py`.
+Every case is caught by the try/except at `dispatch-guard.py`'s claim block and **exits 0** with a
 named-exception stderr line ("claim step failed (...) — passing through, the dispatch is NOT
 blocked"), matching D-07's fail-open-but-loud posture exactly. No shell/eval/format-string
 interpolation anywhere in these three files (grepped). Persona name with backticks lands inertly
@@ -78,7 +78,7 @@ regular file with the claim, and the symlinked-to file is untouched.
 
 **One real, low-severity gap:** `inflight_registry._expire` computes `now - started_at > TTL`, so
 a claim with `started_at` set far in the future (e.g. year 5138) never expires. Demonstrated:
-registry `{"harness-pm": [{"started_at": 99999999999.0, ...}]}` → `dispatch-guard.sh` exits **2**,
+registry `{"harness-pm": [{"started_at": 99999999999.0, ...}]}` → `dispatch-guard.py` exits **2**,
 "BLOCKED - single-flight (harness-pm)", indefinitely — every future `harness-pm` dispatch from
 that checkout is refused until an operator manually runs `release-all` (named in the refusal) or
 hand-edits the file. Since a persona's own claim-write already goes through this same code path
@@ -114,7 +114,7 @@ recovery command. See open_questions Q2.
 ## 5. Root-probe regression (the old `.harness`-directory bug)
 
 Grepped all eight in-scope files for a directory-based `.harness` existence check. Both
-`dispatch-guard.sh`'s and `validate-digest.py`'s root walks explicitly check
+`dispatch-guard.py`'s and `validate-digest.py`'s root walks explicitly check
 `os.path.isfile(.../.harness/team-config.yaml)` — the FILE, not the directory — each with an
 inline comment citing the prior $HOME-resolution defect by name. No regression.
 
@@ -123,7 +123,7 @@ inline comment citing the prior $HOME-resolution defect by name. No regression.
 Every new stderr/stdout line added by this diff was inspected. Refusal messages print loaded
 approval-mapping values (status/approved_by/date), glob strings, and file paths — no credentials,
 tokens, or unrelated file content. Absolute paths do include the local username as an incidental
-path segment; this is a pre-existing pattern in `check-domain.sh` (not introduced by this diff)
+path segment; this is a pre-existing pattern in `check-domain.py` (not introduced by this diff)
 and stays inside the acting agent's own session, never a shared artifact. Not a finding.
 
 ## Findings summary
@@ -153,7 +153,7 @@ None.
 
 ## Files read (no source edits made)
 
-`.claude/skills/harness/bin/check-domain.sh`, `dispatch-guard.sh`, `validate-digest.py`,
+`.claude/skills/harness/bin/check-domain.py`, `dispatch-guard.py`, `validate-digest.py`,
 `harness_merge.py`, `inflight_registry.py`, `plan-merge.py`, `.harness/team-config.yaml`,
 `.harness/harness.json`, `.gitignore` (no gitignore-relevant surface in this diff),
 `.harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml` (D-04, D-10),

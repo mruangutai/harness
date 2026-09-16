@@ -9,12 +9,12 @@ the fix delta.
 
 Full diff `1d3e5db..c745d3a` is 51 files (~41 substantive, ~10 receipts/notes — matches dispatch's
 expectation). The actual **fix delta** (c0's pin `d0ebbe6` → c1's pin `c745d3a`) is 14 files, of
-which **2 are code**: `check-state.sh`, `test-check-state.py`. Everything else in the 14 is
+which **2 are code**: `check-state.py`, `test-check-state.py`. Everything else in the 14 is
 STATE.md/feature.json bookkeeping and c0 review-note landing — no runtime surface.
 
 ## 1. The INV-32 allow-list — fail-closed under adversarial input, measured
 
-`check-state.sh:211-214` at the pin:
+`check-state.py:211-214` at the pin:
 ```python
 severity = str(item.get("severity", "")).strip().lower()
 disposition = str(item.get("disposition", "")).strip().lower()
@@ -77,7 +77,7 @@ directions claimed: literal `unrated`, absent key, explicit `None`.
 ## 2. M4 — 32-bit truncated finding id — unchanged, carried at med, still unrealized
 
 `panel_findings.py` is **byte-identical** between `d0ebbe6` and `c745d3a` (empty diff). `finding_id()`
-still returns `PF-` + `sha256(...)[:8]` (32 bits). `check-state.sh` treats the id as an opaque string
+still returns `PF-` + `sha256(...)[:8]` (32 bits). `check-state.py` treats the id as an opaque string
 throughout (`str(item.get("id","")).strip()`) — confirmed unchanged, no new consumer added.
 
 Checked the ordering-cost concern directly: searched the full worktree for any `plan.yaml` carrying a
@@ -110,12 +110,12 @@ VERDICT: PASS
 DIGEST:
   headline: "M1's fail-open gate is closed under adversarial input, not just omission — allow-list is structurally fail-closed, doctrine vocabulary census clean; M4 unchanged, med, unrealized (no live plan.yaml ruling exists to be broken)"
   in_scope: true
-  scope_reason: "Fix delta touches an operator-signature invariant gate (check-state.sh INV-32) whose input is a reader/transcriber-controlled field — self-scoped IN for adversarial-input fail-open/closed analysis, per the dispatch's explicit hunt."
+  scope_reason: "Fix delta touches an operator-signature invariant gate (check-state.py INV-32) whose input is a reader/transcriber-controlled field — self-scoped IN for adversarial-input fail-open/closed analysis, per the dispatch's explicit hunt."
   severity_max: med
   findings: 1
   must_fix: []
   threat_model:
-    - { boundary: "panel reader/transcriber severity self-report -> check-state.sh INV-32 allow-list", stride: T, mitigated: true }
+    - { boundary: "panel reader/transcriber severity self-report -> check-state.py INV-32 allow-list", stride: T, mitigated: true }
     - { boundary: "panel_findings.py digest[:8] (32-bit) -> INV-32 overrule id matching", stride: T, mitigated: false }
   open_questions: []
   files_touched: []

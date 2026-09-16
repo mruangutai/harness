@@ -236,7 +236,7 @@ the review flagged.
 
 ### D-07 — The resolver's flag is `--which-config`, not `--resolve`
 
-`check-domain.sh --resolve <path>` already exists and answers a **different** question in a
+`check-domain.py --resolve <path>` already exists and answers a **different** question in a
 **different** shape: which agent owns a path, as plain text including the literal `NOBODY`,
 re-derived by running it at `63b83c7`. A second `--resolve` answering "which config file applies",
 as JSON, on an adjacent tool is a homonym — and it is not hypothetical: D-01's own prose above
@@ -299,12 +299,12 @@ cheap moment. Every place that names it also names the tool with it: never a bar
 - SC-09: `.harness/README.md` names `products/` with its writer, so the layout record does not
   omit a directory the factory depends on.
   verify: inspection
-- SC-10: No invariant fires on the presence of `.harness/products/`, and `check-state.sh` passes
+- SC-10: No invariant fires on the presence of `.harness/products/`, and `check-state.py` passes
   on this repository after the change.
   verify: automated      evidence: integration
   (The `integration` evidence is `test-check-state.py`, which runs against fixture trees. A pass
-  on **this** repository is the pre-commit `check-state.sh` run and is cited separately.)
-- SC-11: The new resolver is registered in `run-unit-tests.sh`'s script arrays, so its tests
+  on **this** repository is the pre-commit `check-state.py` run and is cited separately.)
+- SC-11: The new resolver is registered in `run-unit-tests.py`'s script arrays, so its tests
   actually run rather than existing unread.
   verify: automated      evidence: unit
 - SC-12: The operator can point the factory at kaya and see, in one command's output, which
@@ -361,10 +361,10 @@ surface this feature could plausibly want.
 
 ## Constraints
 
-- **DEC-174** — `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` and
-  `check-state.sh` are never changed through a team run. Any task touching them is
+- **DEC-174** — `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
+  `check-state.py` are never changed through a team run. Any task touching them is
   `main-session-direct`.
-- **DEC-179** — routing is resolved at plan time by `check-domain.sh --resolve`. **Three** of this
+- **DEC-179** — routing is resolved at plan time by `check-domain.py --resolve`. **Three** of this
   feature's surfaces resolve to NOBODY and are declared main-session steps for that reason, which
   is distinct from the DEC-174 reason: `.harness/products/kaya-ai/harness.json` (T-02),
   `.claude/skills/harness-init/SKILL.md` (T-03) and `.claude/skills/harness-qa-gate/SKILL.md`

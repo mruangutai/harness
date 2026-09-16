@@ -42,7 +42,7 @@ clause is asserted nowhere is false: it is at `test-gh-cost-log.py:251-259`. Two
 the same wrong direction from control flow without checking the assertion set, because an escalation
 arriving with a defect already named makes the named defect feel like the question.
 
-**A red gate reading that was not a defect.** `check-expertise.sh` exited 1 on
+**A red gate reading that was not a defect.** `check-expertise.py` exited 1 on
 `harness-backend-dev.md` — a peer squad's file that was mid-write. Re-measured after all writers
 closed: both tiers exit 0, every file OK.
 

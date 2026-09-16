@@ -18,7 +18,7 @@ to their pre-session state.
 - `.claude/skills/harness/bin/feature-json-merge.py` (NEW) — thin CLI: `set-key`,
   `append-run`, `set-github`, mirroring `plan-merge.py`/`observations-merge.py`'s own split.
 - `.claude/skills/harness/bin/test-feature-json-merge.py` (NEW) — 23 checks, all green.
-- `.claude/skills/harness/bin/run-unit-tests.sh` — registered the new test in `UNIT_SCRIPTS`
+- `.claude/skills/harness/bin/run-unit-tests.py` — registered the new test in `UNIT_SCRIPTS`
   (dispatch's own instruction; also sidesteps touching `.harness/harness.json`'s
   `test_kinds.integration.detect`, which is `harness-dev-ops`'s domain, not mine).
 
@@ -141,7 +141,7 @@ Unmodified, `gh-sync.py` unmodified (reverted after the failed rewiring attempt 
 Exit 0, `ALL PASSED`. This is the ORIGINAL, untouched behaviour — not evidence the rewiring
 works, evidence the revert was clean.
 
-### `bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds` and `--kind unit`
+### `python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds` and `--kind unit`
 
 ```
 check-kinds: the script arrays and test_kinds.integration.detect agree.
@@ -151,7 +151,7 @@ Full `--kind unit` run: 27/27 scripts `PASS`, exit 0, including `PASS test-featu
 ## Files touched vs. deliberately not touched
 
 Touched: `feature_json_write.py` (new), `feature-json-merge.py` (new),
-`test-feature-json-merge.py` (new), `run-unit-tests.sh` (1-line `UNIT_SCRIPTS` addition).
+`test-feature-json-merge.py` (new), `run-unit-tests.py` (1-line `UNIT_SCRIPTS` addition).
 
 Deliberately not touched: `gh-sync.py`, `test-gh-sync.py` (both reverted to their pre-session
 state after the finding above), `feature_schema.py`, `feature-schema.json`,

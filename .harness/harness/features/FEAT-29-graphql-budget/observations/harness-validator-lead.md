@@ -9,7 +9,7 @@
   by run 06) is the same failure mode I then reproduced from the lead tier.
 
 - 2026-08-19: the qa gate's discovery step rests on `test_kinds.<kind>.detect`, and in this repo
-  those globs are a wrong model of what actually runs. `run-unit-tests.sh:17-18` is the real
+  those globs are a wrong model of what actually runs. `run-unit-tests.py:17-18` is the real
   authority: `UNIT_SCRIPTS` has 18 entries, `INTEGRATION_SCRIPTS` has 12. But
   `test_kinds.integration.detect` names only 4 of those 12 (`test-check-state.py`,
   `test-factory-integration.py`, `test-gh-sync.py`, `test-check-plan-routes.py`), while

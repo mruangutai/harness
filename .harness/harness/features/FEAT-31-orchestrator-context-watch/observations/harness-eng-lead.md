@@ -1,7 +1,7 @@
 # Observations — harness-eng-lead — FEAT-31
 
 - 2026-08-22: simplify-eng. Sent the four angle dispatches in one message and passed
-  `model: sonnet` on all four; `dispatch-guard.sh` blocked all four identically. This is
+  `model: sonnet` on all four; `dispatch-guard.py` blocked all four identically. This is
   exactly my own recorded G-16 (a habit error in a fan-out wave is multiplied by N, and a
   lesson recorded only in a log I never re-read mid-run will not prevent it). The Expertise
   entry existed, was in my context at spawn, and did not fire. The guard caught it, so the

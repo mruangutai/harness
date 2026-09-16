@@ -171,7 +171,7 @@ fix. The row's `migrated` pattern contains an unbalanced `)`, so it needs a trai
 `# balance: (` comment — the precedent is `layout_migration.py:89`, and the reason is
 `test-check-plan-routes.py` case_20's paren-depth line joiner (`layout_migration.py:81-86`).
 
-## Lane resolution — `check-domain.sh --resolve`, at `ada8e99`
+## Lane resolution — `check-domain.py --resolve`, at `ada8e99`
 
 All five surfaces returned `harness-backend-dev`. None is one of the four DEC-174 carve-out
 scripts, so every task dispatches normally.

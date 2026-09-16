@@ -19,20 +19,20 @@ undisclosed files.
   onto a tmp sandbox root — cannot escape the sandbox.
 - Checked every `subprocess.run` in both test files (17 call sites): all list-form argv, no
   `shell=True`, none pass `STUB`/`FLEET_TEXT` content as a command argument — fixture
-  strings are written to files, then `check-state.sh` is invoked separately against the
+  strings are written to files, then `check-state.py` is invoked separately against the
   sandbox and reads the files itself.
 - `FLEET_TEXT` contains `workspace_root: /tmp/harness-fixture-workspaces`. Traced the
   consumer: `layout_migration.py`'s only fleet read (`_declared_repos`, line ~145-152) pulls
   `fleet.get("repos")` and nothing else — `workspace_root` is never read by the detector or
-  by `check-state.sh`. It is schema filler required by the fleet YAML shape, matched as
+  by `check-state.py`. It is schema filler required by the fleet YAML shape, matched as
   inert text, never consumed as a write root by anything in this diff's surface.
 - **Confirmed: no path traversal, no shell injection, no live use of the `/tmp` value.**
 
-## Surface 2 — `check-state.sh` INV-27 wording + `layout_migration.py:blame()`
+## Surface 2 — `check-state.py` INV-27 wording + `layout_migration.py:blame()`
 - The diff extracts a duplicated blame computation (present twice pre-change: inline in
-  `render()` and inline in `check-state.sh`, issue #379) into one `blame(rep)` function
+  `render()` and inline in `check-state.py`, issue #379) into one `blame(rep)` function
   called from both sites. **This is a behavior change, not a pure relocation**: pre-change,
-  `check-state.sh`'s `unreadable`/`neither` finding text was filtered via `_tagged(_form)`
+  `check-state.py`'s `unreadable`/`neither` finding text was filtered via `_tagged(_form)`
   to readers matching that one form; post-change it renders `blame(rep)` whole (the diff's
   own comment: "No per-form filtering here"). Findings can now name more readers than
   before for the `unreadable`/`neither` cases specifically.
@@ -49,7 +49,7 @@ undisclosed files.
   repo-relative paths (e.g. `.harness/team-config.yaml`) — same literal class as Surface 1.
   Never an absolute path, never `root`, never an environment value.
 - **Pre-existing, unchanged by this diff, recorded per P-12 rather than omitted:** the
-  sibling `no-evidence` finding (`check-state.sh`, both base and pinned SHA, line
+  sibling `no-evidence` finding (`check-state.py`, both base and pinned SHA, line
   1304→1305 — identical text, only a line-number shift from the surrounding diff hunk)
   prints `f"no evidence of either shape under {root}"`, where `root` is an absolute
   filesystem path (home-dir-bearing at session entry). This is a real absolute-path

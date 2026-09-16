@@ -12,7 +12,7 @@ than accepting a report, because the confirming lead holds no shell.
 
 | Fix | State |
 |---|---|
-| Schema gate failed open (`check-domain.sh`) | **CLOSED** — `0b33188`, main session, DEC-174 carve-out |
+| Schema gate failed open (`check-domain.py`) | **CLOSED** — `0b33188`, main session, DEC-174 carve-out |
 | Gate had no standing test | **CLOSED** — same commit, four fixtures |
 | `gh-sync.py` could re-file GitHub issues | **CLOSED** — `1c5fd67`, ordinary fix cycle |
 | B-5 (reader convergence), B-14 (grep) | landed / answered |

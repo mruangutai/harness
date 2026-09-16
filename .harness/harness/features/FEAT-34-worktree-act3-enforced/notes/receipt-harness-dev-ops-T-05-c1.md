@@ -9,7 +9,7 @@ fixed, per scope.
 
 ## CLAUDE_PROJECT_DIR
 Unset in the shell before invocation (`echo "$CLAUDE_PROJECT_DIR"` printed empty). Since
-`run-unit-tests.sh:3` falls back to `$(pwd)`, an unset var with cwd = worktree root would have
+`run-unit-tests.py:3` falls back to `$(pwd)`, an unset var with cwd = worktree root would have
 resolved correctly on its own, but per the dispatch instructions I made it unambiguous and prefixed
 every invocation explicitly:
 `CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-34-worktree-act3-enforced`
@@ -18,13 +18,13 @@ every invocation explicitly:
 - `.harness/harness.json` `test_kinds.integration.detect`: 23 pipe-separated entries before
   (measured directly via `python3 -c` split-count) -> 25 after (22 literal script paths + 2 new +
   1 glob).
-- `run-unit-tests.sh` `INTEGRATION_SCRIPTS`: 22 entries before -> 24 after (grep-counted quoted
+- `run-unit-tests.py` `INTEGRATION_SCRIPTS`: 22 entries before -> 24 after (grep-counted quoted
   tokens in the array literal).
 - Matches the plan's stated before-counts exactly; no disagreement with the dispatch's numbers.
 
 ## 1. Mandated verify (verbatim command, actual output)
 ```
-bash .claude/skills/harness/bin/run-unit-tests.sh integration 2>&1 | grep -c "KIND-DRIFT\|MISCONFIGURED"
+python3 .claude/skills/harness/bin/run-unit-tests.py integration 2>&1 | grep -c "KIND-DRIFT\|MISCONFIGURED"
 ```
 Output: `0`
 
@@ -33,7 +33,7 @@ usage/exit-2 branch before either checker runs) — reported per contract, not t
 
 ## 2. `--check-kinds` (the real drift/cross-check evidence)
 ```
-$ CLAUDE_PROJECT_DIR=.../FEAT-34-worktree-act3-enforced bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+$ CLAUDE_PROJECT_DIR=.../FEAT-34-worktree-act3-enforced python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 exit: 0
 ```
@@ -67,9 +67,9 @@ All six fail with the same symptom: the hook under test returned
 expected fixture-specific message — i.e. this live session's own real inflight-registry claim
 (harness-dev-ops dispatched by harness-eng-lead, started 2026-08-24T22:22:56) appears to leak into
 what should be an isolated hook-test fixture. This is environmental/pre-existing, has nothing to
-do with `.harness/harness.json` or `run-unit-tests.sh`, and I did not touch
+do with `.harness/harness.json` or `run-unit-tests.py`, and I did not touch
 `test-validate-digest.py`. Not fixed — out of scope and not one of my two files.
 
 ## Files touched (exactly the two dispatched, plus this receipt)
 - `.harness/harness.json`
-- `.claude/skills/harness/bin/run-unit-tests.sh`
+- `.claude/skills/harness/bin/run-unit-tests.py`

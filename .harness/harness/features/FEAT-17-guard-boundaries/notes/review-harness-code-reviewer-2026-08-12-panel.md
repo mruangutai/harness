@@ -19,9 +19,9 @@ what the plan already covers.
 
 `git diff --name-only main...c6a28bd` (18 files, full list, for the "no UI surface" claim):
 ```
-.claude/skills/harness/bin/bash-write-guard.sh
-.claude/skills/harness/bin/check-domain.sh
-.claude/skills/harness/bin/check-state.sh
+.claude/skills/harness/bin/bash-write-guard.py
+.claude/skills/harness/bin/check-domain.py
+.claude/skills/harness/bin/check-state.py
 .claude/skills/harness/bin/harness_boundary.py
 .claude/skills/harness/bin/test-bash-write-guard.py
 .claude/skills/harness/bin/test-check-domain.py
@@ -46,10 +46,10 @@ question, not a finding (low confidence it's this feature's).
 
 ## Ranked findings
 
-### FINDING 1 — HIGH. `check-state.sh`'s INV-25 silently disables itself, and untested, exactly
+### FINDING 1 — HIGH. `check-state.py`'s INV-25 silently disables itself, and untested, exactly
 where REQ-07's promise matters most
 
-`check-state.sh:967-971` (at c6a28bd):
+`check-state.py:967-971` (at c6a28bd):
 ```python
 try:
     import harness_boundary as _hb
@@ -57,9 +57,9 @@ try:
 except Exception:
     _wt_seg = None
 ```
-Every check under INV-25 is gated at `check-state.sh:973`, `if _wt_seg:`. If the import fails,
+Every check under INV-25 is gated at `check-state.py:973`, `if _wt_seg:`. If the import fails,
 `_wt_seg` is `None` and the **entire INV-25 block is skipped — no `bad.append`, no `warn.append`,
-nothing printed.** Final exit is `sys.exit(1 if bad else 0)` (`check-state.sh:1079`): a run with an
+nothing printed.** Final exit is `sys.exit(1 if bad else 0)` (`check-state.py:1079`): a run with an
 existing out-of-place worktree, but a broken/missing `harness_boundary.py`, prints
 `"all state invariants hold."` and **exits 0.**
 
@@ -70,20 +70,20 @@ crash, it is a silent, deliberate `except Exception: pass`-shaped absorb with ze
 plainly: "An environment that already contains an out-of-place worktree reports it at session entry
 **rather than running half-governed**." A broken `harness_boundary.py` is exactly "half-governed" —
 by D-06/SC-10 it *also* takes both write guards down (they exit 2 loudly) — and in that same
-environment, `check-state.sh` reports clean.
+environment, `check-state.py` reports clean.
 
 **Concrete scenario.** `harness_boundary.py` is deleted, syntax-broken, or unreachable via PYTHONPATH
 (the same state SC-10 tests for the two guards). A pre-existing sibling worktree sits outside
-`.claude/worktrees/`. An operator or orchestrator runs `check-state.sh` at session entry, gets "all
+`.claude/worktrees/`. An operator or orchestrator runs `check-state.py` at session entry, gets "all
 state invariants hold," and proceeds believing the environment is clean while the write guards are
 simultaneously blocking every governed write with "module could not be imported." The one gate that
 should have surfaced *why* — an out-of-place worktree is present — says nothing.
 
 **Confirmed zero test coverage.** `test-check-state.py`'s `case_u` (SC-08's fixture) calls `run()`,
-which invokes the *real* `check-state.sh` against the real `bin/` directory — `harness_boundary.py`
+which invokes the *real* `check-state.py` against the real `bin/` directory — `harness_boundary.py`
 is always importable in every SC-08 case. SC-10's isolated-copy-missing-the-module fixture (BRIEF:
-"an isolated `bin/` copy carrying `check-domain.sh`, `bash-write-guard.sh` and `harness_yaml.py` but
-NOT `harness_boundary.py`") does not include `check-state.sh` at all. No test in this feature's SC
+"an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.py` and `harness_yaml.py` but
+NOT `harness_boundary.py`") does not include `check-state.py` at all. No test in this feature's SC
 list exercises this path.
 
 **This gates.** Realistic input (a broken shared module — the exact state this feature's own D-06
@@ -94,8 +94,8 @@ anticipates and tests for on the write-guard side), wrong outcome (the loudest g
 ### FINDING 2 — HIGH. D-07/DEC-193's "product paths keep exactly today's Bash-route behaviour" is
 false for two operand shapes the ruling didn't consider — verified by direct execution, not inference
 
-`bash-write-guard.sh:546` calls `harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")`
-**unconditionally, for every finding**, before the outside-repo `..` filter at `bash-write-guard.sh:565-566`
+`bash-write-guard.py:546` calls `harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")`
+**unconditionally, for every finding**, before the outside-repo `..` filter at `bash-write-guard.py:565-566`
 is ever reached (`if rel.startswith(".."): continue`). `classify()` (`harness_boundary.py:232`) calls
 `resolve_fleet()` **first thing**, unconditionally, at `harness_boundary.py:261`, and `resolve_fleet`
 (defined `:125`) `sys.exit(2)`s internally at `harness_boundary.py:166` if `.harness/factory/fleet.yaml`
@@ -111,8 +111,8 @@ out_of_place_worktree, so paths under workspace_root and a product name keep exa
 Bash-route behaviour."* DEC-193 repeats it: *"its outside-repo pass-through is preserved, narrowed to
 a filter on the verdict rather than removed."* Both are **true only for a genuine product-base path
 when `fleet.yaml` parses.** I verified the following before/after table by direct execution — `main`'s
-`bash-write-guard.sh` had no `harness_boundary` dependency at all and ran the `..` continue before any
-matching (`git show main:.claude/skills/harness/bin/bash-write-guard.sh:406-409`); at `c6a28bd` I
+`bash-write-guard.py` had no `harness_boundary` dependency at all and ran the `..` continue before any
+matching (`git show main:.claude/skills/harness/bin/bash-write-guard.py:406-409`); at `c6a28bd` I
 imported `harness_boundary` directly (working-tree copy, byte-identical to the SHA) against hand-built
 fixtures and called `classify()` with the exact arguments the guard passes:
 
@@ -159,7 +159,7 @@ any individual cell is beneficial. The fail-closed direction is additionally an 
 ### FINDING 3 — MED (structural, not proven live). `domain_check()` is invoked with no wrapping
 try/except; every governed exit path elsewhere in this file is deliberately shaped, this one is not
 
-`check-domain.sh:535`: `domain_check()` is called bare, no `try`/`except` around the call, even though
+`check-domain.py:535`: `domain_check()` is called bare, no `try`/`except` around the call, even though
 the function (`:392-525`) calls `harness_boundary.worktree_owner` (`:420`) and `harness_boundary.classify`
 (`:479`) — both post-import, unguarded call sites, exactly the shape A1's "sharper" question asks
 about ("an exception raised AFTER a successful import").
@@ -176,7 +176,7 @@ tried the specific candidates the dispatch named:
   paths are mutually exclusive within one invocation, so no double-import race).
 - `ValueError` from `os.path.commonpath`/`os.path.relpath` mixing incompatible paths — every
   `commonpath` call in `harness_boundary.py` is already wrapped in `except ValueError` (`:186`,
-  `:401`, and `check-state.sh:1013`); the unwrapped `relpath` calls in `classify()` only ever compare
+  `:401`, and `check-state.py:1013`); the unwrapped `relpath` calls in `classify()` only ever compare
   two `real()`-resolved absolute POSIX paths, which cannot raise `ValueError` for a drive mismatch on
   this platform.
 - `RecursionError`/infinite loop in `worktree_owner`'s upward directory walk — the loop has an explicit
@@ -192,8 +192,8 @@ its own.
 
 ### D-06 shape-phase exclusion — RE-VERIFIED, HOLDS
 
-Confirmed at `c6a28bd`, not taken on the plan's word: `check-domain.sh:631` (`_norm`'s worktree-strip
-regex, `re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)`) and `check-domain.sh:589` (`SWEEP_GLOBS`,
+Confirmed at `c6a28bd`, not taken on the plan's word: `check-domain.py:631` (`_norm`'s worktree-strip
+regex, `re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)`) and `check-domain.py:589` (`SWEEP_GLOBS`,
 `os.path.join(".claude", "worktrees", "*", _p)`) are both hardcoded literals — neither reads
 `harness_boundary.WORKTREES_SEGMENT` or any other attribute of the module. The shape phase carries
 zero import of `harness_boundary` anywhere in the file (only two lazy imports exist, both fail-closed,
@@ -202,9 +202,9 @@ factually correct at this SHA.
 
 ### D-06 import-site enumeration — RE-VERIFIED, HOLDS (3 sites, all fail-closed)
 
-- `check-domain.sh:167-176`, `--resolve` branch, import at `:168`, `except Exception` → `sys.exit(2)` at `:176`.
-- `check-domain.sh:349-358`, main hook path under `if _run_domain:`, import at `:350`, exit 2 at `:358`.
-- `bash-write-guard.sh:82-90`, import at `:83`, exit 2 at `:90`.
+- `check-domain.py:167-176`, `--resolve` branch, import at `:168`, `except Exception` → `sys.exit(2)` at `:176`.
+- `check-domain.py:349-358`, main hook path under `if _run_domain:`, import at `:350`, exit 2 at `:358`.
+- `bash-write-guard.py:82-90`, import at `:83`, exit 2 at `:90`.
 
 All three re-derived directly from the SHA (not the plan's stale `:493`/`:357`/`:73` citations, which
 have drifted as the panel dispatch itself warned).
@@ -223,8 +223,8 @@ preserves `52d8334`. All confirmed:
 
 ### A2 cross-check (secondary; security-reviewer leads) — no additional caller-side finding
 
-All three `worktree_owner()` call sites — `check-domain.sh:420` (root-side), the internal call inside
-`classify()` at `harness_boundary.py:271` (target-side, `_wt_owner`), and `bash-write-guard.sh:128`
+All three `worktree_owner()` call sites — `check-domain.py:420` (root-side), the internal call inside
+`classify()` at `harness_boundary.py:271` (target-side, `_wt_owner`), and `bash-write-guard.py:128`
 (root-side) — treat `None` uniformly as not-a-worktree (`if _wt_owner is not None and not _wt_owner[2]:`
 / `if _root_wt is not None and not _root_wt[2]:`). I found no caller-specific None-handling divergence
 a parser-side reading would miss; this is the same fail-open direction the security reviewer is
@@ -240,7 +240,7 @@ for the specific claims the panel dispatch asked about (D-06, D-07, D-09, SC-08/
 not run the full test suite (out of scope for this role — read-only, no Bash execution of the test
 files themselves beyond direct `harness_boundary` import against hand-built fixtures) and defer overall
 green/red status to qa's own run. No scope creep found in `harness_boundary.py`,
-`check-domain.sh`, or `bash-write-guard.sh` beyond what REQ-01..09 and D-01..09 call for.
+`check-domain.py`, or `bash-write-guard.py` beyond what REQ-01..09 and D-01..09 call for.
 `.harness/notes/grilling-central-product-config-2026-08-12.md` sits outside any per-feature `notes/`
 path and I could not trace it to a REQ/D in this feature's plan — flagged as an open question, not a
 finding, since I did not read it in full and it may legitimately belong to FEAT-16's concurrent edit

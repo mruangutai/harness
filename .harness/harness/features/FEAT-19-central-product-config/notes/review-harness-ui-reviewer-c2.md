@@ -89,7 +89,7 @@ blessed for the old 3c/malformed-JSON corrections. No objection.
 
 Grepped both files for `resolve`, `--resolve`, `--which-config`, `product_config`:
 - Every `--resolve` occurrence in `DESIGN.md` (lines 91, 93, 96, 99, 128, 129) is qualified as
-  `check-domain.sh`'s flag, contrasted against the resolver's own `--which-config`. No bare mention
+  `check-domain.py`'s flag, contrasted against the resolver's own `--which-config`. No bare mention
   of `--resolve` naming the new tool survives.
 - `plan.yaml:116`'s bare `product_config.py` is contrastive — "A module named product_config.py
   would sit outside that enumeration permanently" — explaining why the name must NOT be that, not a
@@ -122,5 +122,5 @@ checkable; row 6 is not, until the must_fix above lands.
   review time, not present in `63b83c7` as the dispatch's pin states (`git show
   63b83c7:.../DESIGN.md` errors "exists on disk, but not in 63b83c7"). This review read the files
   directly off disk. Recommend committing before signature so the artifact the operator signs has a
-  commit to anchor to — otherwise the signed contract has no fixed reference the way `check-domain.sh`
+  commit to anchor to — otherwise the signed contract has no fixed reference the way `check-domain.py`
   and `test-check-domain.py` citations do.

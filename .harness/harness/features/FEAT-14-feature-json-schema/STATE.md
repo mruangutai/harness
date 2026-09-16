@@ -62,7 +62,7 @@ after confirming `close-task` never calls `save_recorded` · removed all probe w
 
 An atomicity probe patched `json.dump` where the code calls `json.dumps`, so no crash was injected
 and I briefly read a normal write as a failure — the instrument was wrong, not the code. A PYTHONPATH
-shim lost to `check-domain.sh:96`, which prepends its own bin dir, so that probe proved nothing until
+shim lost to `check-domain.py:96`, which prepends its own bin dir, so that probe proved nothing until
 I redid it in a worktree. Both are why every claim above was re-measured.
 
 ### Deliberate non-actions
@@ -87,7 +87,7 @@ push, no PR, no merge.
   clause never executed before signature. Not a carve-out, so dispatchable.
 - Q6 non-blocking: B-21 — the `fix1` message predicates are decorative; the branch property they bind
   is real. Seventh instance of the assertion-that-cannot-fail class on this feature.
-- Q7 non-blocking: nobody exercised the **deployed hook wiring** — every `check-domain.sh` result
+- Q7 non-blocking: nobody exercised the **deployed hook wiring** — every `check-domain.py` result
   came from driving the script as a subprocess, which says nothing about whether `settings.json`
   still routes Write/Edit/Bash to it. Invisible to both reviewers by construction.
 - Q8 non-blocking: B-3, B-4, B-6..B-13, B-15, B-16 — twelve further residuals, strikeable by ID.

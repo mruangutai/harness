@@ -35,7 +35,7 @@ change is authorised.
 - T-06's `verify:` exits 1 solely on `post == ["0"]`; accepted as B-6, NOT fixed — mine, at pin.
 - SC-01..SC-10 all MET on evidence re-taken at the pin —
   `notes/research-FEAT-48-goalcheck-validate-c9.md` — pm's, not mine.
-- `check-state.sh`: **zero FEAT-48 violations**; the two VIOLATIONs are FEAT-51's, pre-existing and
+- `check-state.py`: **zero FEAT-48 violations**; the two VIOLATIONs are FEAT-51's, pre-existing and
   outside this feature. One FEAT-48 note, INV-22 — mine, verified-at the tip.
 
 ## Dead ends

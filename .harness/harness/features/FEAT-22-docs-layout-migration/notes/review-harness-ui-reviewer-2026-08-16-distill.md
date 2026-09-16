@@ -56,5 +56,5 @@ nothing there.
 
 ## Verification
 
-`bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-ui-reviewer.md` →
+`python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-ui-reviewer.md` →
 `OK   .harness/expertise/harness-ui-reviewer.md`, exit code **0**.

@@ -124,9 +124,9 @@ ground, then kaya-ai board 2.
   API exposes neither trigger nor action.
   verify: automated      evidence: unit
 - SC-10: Nothing already guarded is weakened: the full unit and integration suites pass, and
-  `check-state.sh` exits 0 on the harness checkout after the migration — with no edit to
-  `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` or `check-plan-routes.py` in this
-  feature's diff. **The list is FOUR files, not five.** `check-state.sh` left it because ruling 1
+  `check-state.py` exits 0 on the harness checkout after the migration — with no edit to
+  `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-plan-routes.py` in this
+  feature's diff. **The list is FOUR files, not five.** `check-state.py` left it because ruling 1
   of 2026-08-23 makes INV-26 fire on every done task whose sub-issue is deliberately still open;
   the one bounded widening that fixes it is SC-20's, performed by the operator's own hand under
   the DEC-174 carve-out. **The drop from five to four is not this plan's choice: the operator
@@ -193,7 +193,7 @@ ground, then kaya-ai board 2.
   sub-issue card reads the `review` or `building` column **only while that feature's own
   `feature.json` status is `Review`**, and still reports the same card as a violation once the
   status is `Done`. Both directions are asserted in `test-check-state.py`, the second fails against
-  an unconditional widening, and `check-state.sh`'s full finding list before and after the edit
+  an unconditional widening, and `check-state.py`'s full finding list before and after the edit
   differs by nothing except the INV-26 station findings the change removes.
   verify: automated      evidence: integration
 
@@ -212,9 +212,9 @@ ground, then kaya-ai board 2.
   anchor above (`:113`, `:127`, `:134`, `:141`, `:148`) still resolves.
 - **The `integration` kind is active but its `detect` is a closed filename list, and that dictated where
   the new tests go.** `test_kinds.integration.detect` (`harness.json:119`) is `tests/integration/**`
-  plus **22** explicit filenames, and `run-unit-tests.sh:18` `INTEGRATION_SCRIPTS` is a matching
+  plus **22** explicit filenames, and `run-unit-tests.py:18` `INTEGRATION_SCRIPTS` is a matching
   **22**-name array — **re-counted at `46ee87c`, where the earlier draft said six and fourteen; both
-  numbers were wrong and are corrected here.** `git diff origin/main -- run-unit-tests.sh` is empty
+  numbers were wrong and are corrected here.** `git diff origin/main -- run-unit-tests.py` is empty
   against `main` at `e3392fd`, so FEAT-31 has still landed nothing here. A new `test-board-lifecycle.py` therefore can **never** be selected as
   `integration`, and the qa gate does not accept an unrelated passing test as coverage
   (`harness-qa-gate` SKILL.md: *"Presence is not satisfied by an unrelated existing test"*). Every
@@ -277,7 +277,7 @@ so the two edits cannot be parallelised), and one thing worse than either: a boa
 that nobody checks the workflows on. The whole destination is *native-first*, and the native chain **is**
 those three workflows — a correct Status field with `Item closed` switched off produces a board that
 looks provisioned and moves nothing. The operator's ruling that detection lives at `/harness-init` and
-not in `check-state.sh` is untouched and not revisited.
+not in `check-state.py` is untouched and not revisited.
 
 **#674 (start-task drives a closed card backwards) is IN** — it is the single largest source of the
 wrong stations REQ-07 has to reconcile, and reconciling a board while the bug that dirtied it is still
@@ -440,7 +440,7 @@ different reason: the stations are written **explicitly**, by the act that cause
 falling out of a close.
 
 **The one consequence that lands on a gate — RULED on 2026-08-23, not outstanding.**
-INV-26 (`check-state.sh:1234`, re-derived at `46ee87c`) maps a task status of `done` to the `done`
+INV-26 (`check-state.py:1234`, re-derived at `46ee87c`) maps a task status of `done` to the `done`
 column and compares every recorded sub-issue's card against it. That has always agreed because
 `close-task` closed the ticket at commit and GitHub moved the card. With the ticket deliberately
 open, **every `done` task of every in-flight feature becomes an INV-26 violation** in the gate that
@@ -516,12 +516,12 @@ reading is SC-16's, which records `#700` CLOSED as `COMPLETED` at `46ee87c`.
 write without an agent choosing to: GitHub's own workflows, and a Claude Code hook. Hooks are the
 enforcement layer, which DEC-174 forbids this feature from executing, and a board read inside
 `PostToolUse Write|Edit` would fire on every edit in every session against a measured 490–506
-GraphQL points per board read — the waste the operator already refused for `check-state.sh`, an
+GraphQL points per board read — the waste the operator already refused for `check-state.py`, an
 order of magnitude worse. So the design folds each station write into a command that is **already
 mandatory at that moment**, so that forgetting the station requires forgetting the whole act:
 
 - **The phase transition is the moment, and `feature.json`'s own `status` is the record of it.** That
-  needs **no new vocabulary** — `check-state.sh:494` already declares the closed set
+  needs **no new vocabulary** — `check-state.py:494` already declares the closed set
   `Backlog | Plan | Ready | Building | Review | Done | Abandoned`, the schema already enforces it, and
   `gh-sync.py`'s `_record_status` already writes it at ship and abandon. Recording the status and
   performing that event's station writes become one act, so forgetting the cards requires forgetting
@@ -601,29 +601,29 @@ board. That is the one thing it copies from the factory lane.
 
 - **DEC-174 + am.1 + am.4 — the enforcement-layer carve-out.** The harness plans but does not execute
   changes to its own hooks, validators or gate scripts, and the list is non-exhaustive. This feature is
-  designed to need **one** edit to one of them, and exactly one: `check-state.sh`'s INV-26 indexes
-  only the `building`, `done` and `backlog` station keys (`_EXPECT` at `check-state.sh:1234` —
+  designed to need **one** edit to one of them, and exactly one: `check-state.py`'s INV-26 indexes
+  only the `building`, `done` and `backlog` station keys (`_EXPECT` at `check-state.py:1234` —
   re-derived at `46ee87c`, where the earlier `:1184-1185` anchor had MOVED), so the sixth *station
   key* is inert there. What is **not** inert is the operator's ruling of 2026-08-23: a `done` task
   with a deliberately open sub-issue fails INV-26's per-task comparison, so INV-26 is widened, once
-  and narrowly, by the operator's own hand (SC-20) — ruled 2026-08-23, ruling 4. Worth recording: `check-domain.sh --resolve`
-  grants `check-state.sh` to `harness-backend-dev` and `harness-dev-ops` while DEC-174 forbids
+  and narrowly, by the operator's own hand (SC-20) — ruled 2026-08-23, ruling 4. Worth recording: `check-domain.py --resolve`
+  grants `check-state.py` to `harness-backend-dev` and `harness-dev-ops` while DEC-174 forbids
   dispatching a change to it. The carve-out wins — no squad executes this edit.
 - **`mruangutai/harness` is deliberately ABSENT from `fleet.yaml`** (DEC-174 am.1) and is not added.
 - **Six paths in this feature have no dispatchable owner** and are declared
   `main-session-direct` in the plan: `.claude/skills/harness-init/SKILL.md`,
   `.claude/skills/harness/SKILL.md`, `.claude/commands/harness-plan.md`,
   `.claude/skills/harness/templates/harness.json` and kaya-ai's own `.harness/harness.json` all
-  resolve to NOBODY — every one re-derived with `check-domain.sh --resolve` at `46ee87c` — and a
+  resolve to NOBODY — every one re-derived with `check-domain.py --resolve` at `46ee87c` — and a
   generic file under this feature's `notes/` resolves to `harness-orchestrator`, which is not a task
-  executor. `check-state.sh` is the seventh main-session path and the only one that resolves to a
+  executor. `check-state.py` is the seventh main-session path and the only one that resolves to a
   real agent; DEC-174 overrides the grant.
 - **No hook is added, changed or registered.** DEC-174's carve-out forbids executing a change to the
   enforcement layer, and the only genuinely *caused* write available there — a `PostToolUse`
   `Write|Edit` hook firing a board read — costs a measured 490–506 GraphQL points per fire on board 3
   and would fire on every edit in every session. SC-10's untouched-file list is therefore **four,
-  not five**: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` and
-  `check-plan-routes.py` are untouched, and `check-state.sh` carries the single bounded INV-26
+  not five**: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
+  `check-plan-routes.py` are untouched, and `check-state.py` carries the single bounded INV-26
   widening ruling 1 forces (SC-20), performed by the operator and by nobody else.
 - **A cross-repo ordering cost, stated rather than discovered.** The one board validator in the tree
   tests the declared station keys for **exact set equality** (`factory_config.py:134`). So widening the
@@ -639,27 +639,27 @@ board. That is the one thing it copies from the factory lane.
   `origin/main..HEAD` is 9. FEAT-31 and FEAT-32 have **shipped** (both `feature.json` `Done`).
   **FEAT-26 has NOT** — what merged was its plan's *signature* (`2c0a33c`); its `feature.json`
   reads `Ready`, its `plan.yaml` is `approved 2026-08-23` and **all eight of its tasks are
-  `pending`**. Its `T-05` writes `check-state.sh` and `test-check-state.py` — the exact two files
+  `pending`**. Its `T-05` writes `check-state.py` and `test-check-state.py` — the exact two files
   `T-22` writes — its `T-02`/`T-03`/`T-04` write `gh-sync.py` and `test-gh-sync.py`, its `T-08`
   writes `DECISIONS.md` and the index, and its `T-07` writes `.claude/skills/harness/SKILL.md`.
   Nothing about that makes either plan wrong, and the two build in separate worktrees; **whichever
   builds second re-derives its line anchors by symbol** — `T-22`'s intent now says so explicitly.
   Which of the two builds first is a scheduling call, not a change to either plan.
-  `run-unit-tests.sh`, `check-state.sh`, `check-domain.sh`, `harness.json` and `DECISIONS.md` all have
+  `run-unit-tests.py`, `check-state.py`, `check-domain.py`, `harness.json` and `DECISIONS.md` all have
   other writers. **Measured at `46ee87c`:** `git diff --name-only origin/main...HEAD` returns only
   files under `features/FEAT-33-board-lifecycle-native/`, and the same command at `57e18ca` returns
   the same set, so none of those merges landed on a surface this plan reads in a way this branch has
   not already absorbed. **What the merge actually changed, measured `git diff --stat 46ee87c
   57e18ca`: `feature-worktree.py`, `test-feature-worktree.py`, `DECISIONS.md` and
   `DECISIONS-INDEX.md`, and nothing else** — no anchor in this plan points into the first two, and
-  `check-state.sh` and `test-check-state.py` were not touched at all, so every `T-22`, `D-24` and
+  `check-state.py` and `test-check-state.py` were not touched at all, so every `T-22`, `D-24` and
   `SC-20` anchor re-derived at `46ee87c` still resolves byte for byte at `57e18ca`. Every code
   anchor in `plan.yaml` and in this brief was re-resolved at `46ee87c`, and the ones that had MOVED
   are corrected: INV-26's
-  `_EXPECT` (`:1184` → `:1234`), `check-state.sh`'s `load_board` call (`:1147` → `:1197`),
+  `_EXPECT` (`:1184` → `:1234`), `check-state.py`'s `load_board` call (`:1147` → `:1197`),
   `factory_decompose.py`'s ready write (`:411` → `:414`), `_apply_parent_rule` (gh_board.py → 
   `gh-sync.py:177`), and the `integration` list counts (six/fourteen → 22/22). What this plan
-  still touches with another writer, and must rebase against: **one line of `run-unit-tests.sh`**
+  still touches with another writer, and must rebase against: **one line of `run-unit-tests.py`**
   (registering `test-board-lifecycle.py` in `UNIT_SCRIPTS`, which the drift detector at `:41-55` makes
   mandatory — an unregistered `test-*.py` exits 2 `MISCONFIGURED` and breaks every `verify:` in this
   plan at once), `DECISIONS.md`, and `harness.json` — but `harness.json` is now touched by **T-02

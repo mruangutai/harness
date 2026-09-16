@@ -16,8 +16,8 @@ and it excludes `#628` at `BRIEF.md:83`).
 **(1) Live children may finish read-only analysis; feature-artifact writes are quarantined until a
 resumed parent explicitly adopts — `complete`.** Predicate `orphan_write` (T-02, self-referential per
 D-03); `Write`/`Edit` route (T-03) and `Bash` route (T-07, the route `plan.yaml` actually travels —
-verified: `.claude/settings.json:19` registers `check-domain.sh` on `Write|Edit` only, `:28`/`:44`
-register `plan-sign-gate.sh` on `Bash`, at `ad93d43e`); artifact set fixed by D-05; sandbox by one
+verified: `.claude/settings.json:19` registers `check-domain.py` on `Write|Edit` only, `:28`/`:44`
+register `plan-sign-gate.py` on `Bash`, at `ad93d43e`); artifact set fixed by D-05; sandbox by one
 shared glob (D-06); adoption CLI by T-04 delegating to `plan-merge.py` (D-07). "Read-only analysis
 survives" is explicit: T-03 refuses no `Read`, `Grep` or `Bash`, and `notes/`, `observations/`, `runs/`
 stay writable (D-05, graded SC-05).
@@ -68,7 +68,7 @@ needing a `settings.json` entry (D-12); the sandbox is one `shared:` glob rather
 (D-06); the predicate needs only schema-2 data already recorded (D-03). Nothing the operator delegated
 is quietly settled in the other direction — D-04 and D-05 *narrow* the blast radius rather than widen
 it. One dead-but-harmless detail: T-03's guard tuple includes `NotebookEdit`, which the `Write|Edit`
-matcher never delivers; it mirrors the tuple already at `check-domain.sh:1647`.
+matcher never delivers; it mirrors the tuple already at `check-domain.py:1647`.
 
 ## 4. Intent the plan may have EXCEEDED
 

@@ -15,7 +15,7 @@ handing it to pm returns it unmet, FAILs the roll-up, and demands a fix cycle ro
   T-02..T-07, `e68ba00` T-08); `git log --oneline 4d00dbc..HEAD` shows exactly those three and nothing
   else rode in — verified-at e68ba00
 - **Every discriminating receipt was re-run by the orchestrator, not taken from a digest:**
-  `run-unit-tests.sh` exit 0 over three scripts; all four SC-06 payload/lookup absences clean in
+  `run-unit-tests.py` exit 0 over three scripts; all four SC-06 payload/lookup absences clean in
   `wayfind.py` while both carve-out list GETs still count **1** each; `parent_args|blocked_by_args` in
   `gh-sync.py` = **0**; `absorbed #12 #14 NOT closed` and `close-task closes exactly one issue` both
   present — verified-at e68ba00
@@ -50,4 +50,4 @@ handing it to pm returns it unmet, FAILs the roll-up, and demands a fix cycle ro
 - `.harness/features/FEAT-03-subissue-mirror/{STATE.md,feature.yaml}` and `BRIEF.md ## Success Criteria`
 - `runs/2026-07-31-12-validator/digest.md` (panel + qa receipts, F1..F4 backlog candidates with natures)
 - `notes/{qa-FEAT-03-c0.md,review-harness-code-reviewer-c0.md,review-harness-security-reviewer-c0.md}`
-- `.claude/skills/harness/bin/{gh-sync.py,gh_issues.py,test-gh-sync.py,run-unit-tests.sh}`
+- `.claude/skills/harness/bin/{gh-sync.py,gh_issues.py,test-gh-sync.py,run-unit-tests.py}`

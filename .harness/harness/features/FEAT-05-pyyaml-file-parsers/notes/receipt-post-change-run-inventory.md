@@ -6,12 +6,12 @@ needs both sides. This is the missing half, produced after F-02.
 
 ## Why SC-13 exists at all, restated because it is the subtle one
 
-SC-02 asks that `check-state.sh` still exits 0 with zero violations. **That is exactly what a
+SC-02 asks that `check-state.py` still exits 0 with zero violations. **That is exactly what a
 silently dropped run also produces.** Issue #11's defect was invisible precisely because the gate
 stayed green while INV-6/7/8 checked nothing. So only an inventory comparison distinguishes
 "nothing fired" from "nothing was checked".
 
-## Post-change inventory, parsed by the converted `check-state.sh` logic
+## Post-change inventory, parsed by the converted `check-state.py` logic
 
 | feature | runs parsed | runs declared | |
 |---|---|---|---|
@@ -37,7 +37,7 @@ itself added.
 
 ## SC-02, re-measured at the same state
 
-`check-state.sh` — **exit 0, 0 violations, 40 notes**, all INV-8 "run dir absent (pruned)". Matches
+`check-state.py` — **exit 0, 0 violations, 40 notes**, all INV-8 "run dir absent (pruned)". Matches
 the criterion's stated baseline shape. The note count differs from the baseline's 39 by exactly the
 one new FEAT-05 run, consistent with the inventory above.
 

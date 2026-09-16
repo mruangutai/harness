@@ -1,9 +1,9 @@
 # Receipt — harness-dev-ops — FEAT-23 distillation
 
-## check-expertise.sh — verbatim
+## check-expertise.py — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-dev-ops.md; echo "EXIT: $?"
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-dev-ops.md; echo "EXIT: $?"
 OK   .harness/expertise/harness-dev-ops.md
 EXIT: 0
 ```

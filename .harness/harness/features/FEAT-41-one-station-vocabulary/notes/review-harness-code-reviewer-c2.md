@@ -22,13 +22,13 @@ process-gap note (`_t09_case_fold`'s missing reason).
 
 ## Cycle 1 closures — CLOSED/OPEN, anchor, mutation result
 
-### H-01 (high) — check-domain.sh symlink route — **CLOSED, mutation-proven independently**
+### H-01 (high) — check-domain.py symlink route — **CLOSED, mutation-proven independently**
 
-Anchor: `check-domain.sh:1487` (`_MAX_HOPS = 8`), `:1490` (`_route_candidates`), `:1508`
+Anchor: `check-domain.py:1487` (`_MAX_HOPS = 8`), `:1490` (`_route_candidates`), `:1508`
 (`_plan_route`), `:1516` (`_reached_plan = ...`), PRE denial at `:1517`, POST at `:1570`
 (`_rel = next((c for c in _route_candidates(target) if has_shape_rules(c)), _norm(target))`).
 
-I built my own mutated copy of check-domain.sh reverting exactly the H-01 diff (both the PRE
+I built my own mutated copy of check-domain.py reverting exactly the H-01 diff (both the PRE
 condition and the POST `_rel` line), pointed at the real bin dir for its sibling imports, and ran
 it against a from-scratch `$TMPDIR` fixture (not `test-check-domain.py`, per the suite-ownership
 constraint):
@@ -76,7 +76,7 @@ cap's behaviour is pinned by code only, not by any test.
 - **Finding H-01-a (low, non-blocking):** the >8-hop fail-open is real but requires an attacker
   to already have write access to construct an 8+ level symlink chain under `.harness/` before
   any of these gates would matter — a materially harder precondition than the single-symlink
-  case H-01 closes. `check-domain.sh:1487-1506`. BLOCKS: no.
+  case H-01 closes. `check-domain.py:1487-1506`. BLOCKS: no.
 - **Finding H-01-b (med, non-blocking):** the hop-cap boundary (8 exactly, 9 exceeds) and the
   loop-termination guarantee are both unpinned by any test — a future edit to `_MAX_HOPS` (e.g.
   a well-meaning "raise the cap" or "lower it for performance") would not redden anything.
@@ -131,7 +131,7 @@ construct's reach, not as a new finding.
 
 ### MED — `_I` case-fold patterns — **PARTIALLY OPEN, not fully closed as claimed**
 
-Anchor: `check-domain.sh:1037` (`RE_STATE_YAML`), `:1045` (`RE_CLAUDE_MD`), `:1046`
+Anchor: `check-domain.py:1037` (`RE_STATE_YAML`), `:1045` (`RE_CLAUDE_MD`), `:1046`
 (`RE_STATE_MD`), `:1038` (`RE_FEATURE_JSON`), `:1083` (`SHAPE_PATTERNS`, six patterns total, all
 `_I`); `test-check-domain.py:2782` (`_t09_case_fold`, `_FOLD_ROWS` at `:2773`).
 
@@ -155,10 +155,10 @@ the closure commit's framing ("table-driven, one row per pattern") is not accura
 of 5, not 5 of 5.
 
 **Finding MED-1 (med, non-blocking on its own, but the cycle-1 MED is not fully discharged):**
-`check-domain.sh:1037,1045` — `RE_STATE_YAML` and `RE_CLAUDE_MD`'s `_I` flags remain
+`check-domain.py:1037,1045` — `RE_STATE_YAML` and `RE_CLAUDE_MD`'s `_I` flags remain
 unreachable-by-test dead coverage, confirmed by mutation (both silently sail through when
 disabled). CLAUDE.md is the file preloaded into every session, and its own comment block
-(`check-domain.sh:1394-1420`) singles it out as "the widest blast radius in the repo" — the case
+(`check-domain.py:1394-1420`) singles it out as "the widest blast radius in the repo" — the case
 for closing this gap is stronger for `RE_CLAUDE_MD` than for the three patterns that did get
 closed. BLOCKS: no (matches cycle 1's own med, non-blocking), but I do not concur this cycle-1
 item should read as fully CLOSED; it is **OPEN, 3/5 closed**.
@@ -291,7 +291,7 @@ I did not find a third instance of this pattern among the other ten plan-less di
 
 ### Cycle-0 F-09 / F5 traceability gap — re-checked, narrowed but not closed, and one new instance
 
-Re-running the sweep this cycle's diff touches: `check-domain.sh`, `plan-sign-gate.py`, and both
+Re-running the sweep this cycle's diff touches: `check-domain.py`, `plan-sign-gate.py`, and both
 their test files are all named in T-09's and T-08's `files:` lists (`plan.yaml:1051-1053`,
 `:979-982`) — **no scope creep on the H-01/H-02 fix commits.** The BUG-1055 feature.json edit and
 the newly-discovered BUG-1030 deletion (from `a8a8944`, in scope for this pin) are **not** named
@@ -349,9 +349,9 @@ sufficient to catch the specific regression named in the Dead End.
 
 ### INV-33 vs FEAT-45's INV-32 — no cross-match, unchanged from cycle 1
 
-`check-state.sh:264` (`# INV-32 BEGIN (FEAT-45 T-07)`) through roughly `:390`, and `:488`
+`check-state.py:264` (`# INV-32 BEGIN (FEAT-45 T-07)`) through roughly `:390`, and `:488`
 (`# INV-33: a pin that is STALE...`) through `:558` — disjoint, non-overlapping line ranges,
-re-confirmed by grep at this pin. Not touched by cycle-2's fix commits (neither `check-state.sh`
+re-confirmed by grep at this pin. Not touched by cycle-2's fix commits (neither `check-state.py`
 nor `test-check-state.py` appear in `707b547`/`5dc5374`/`542e888`/`39477a5`'s diffs). No sign of
 a shared fixture path or message collision. Cycle 1's finding stands, unchanged.
 
@@ -404,13 +404,13 @@ gap since the protocol requires a written answer per gated record.
 
 Built an end-to-end `$TMPDIR` probe (not a unit test) with a fixture whose only domain grant is
 `harness-frontend-dev: { path: frontend/**, upsert: true }` — nothing under
-`.harness/harness/features/FEAT-VICTIM/` — and fired the *actual* `bash-write-guard.sh` (the
+`.harness/harness/features/FEAT-VICTIM/` — and fired the *actual* `bash-write-guard.py` (the
 PreToolUse Bash hook) with the exact payload it would receive for:
 ```
 python3 .../plan-merge.py set-feature-station --file <victim's plan.yaml> --station done
 ```
-**`bash-write-guard.sh` returned exit 0, no stderr — did not see it as a write at all.** Read its
-detection logic directly (`bash-write-guard.sh:407-524`): the `findings` list is only ever
+**`bash-write-guard.py` returned exit 0, no stderr — did not see it as a write at all.** Read its
+detection logic directly (`bash-write-guard.py:407-524`): the `findings` list is only ever
 populated by `sed -i`/`perl -i`, `tee`, `mv`/`cp`, `rm`, `sponge`, `awk -i`, or a bare shell
 redirect — invoking an arbitrary program that performs its own internal file writes (like
 `plan-merge.py`) matches none of these, so `if not findings: sys.exit(0)` (`:644`) fires before
@@ -443,11 +443,11 @@ final disposition).
 | id | severity | file:line | BLOCKS |
 |---|---|---|---|
 | NEW-1 | **high** | `BUG-1030-stale-anchor-write-hazard/feature.json` (deleted in `a8a8944`) | **yes** |
-| carried-security | **high** | `bash-write-guard.sh:407-524,644`; `plan-merge.py` `set-feature-station`/`set-task-station` | **yes** |
-| MED-1 | med | `check-domain.sh:1037,1045` (`RE_STATE_YAML`, `RE_CLAUDE_MD`) | no |
-| H-01-b | med | `check-domain.sh:1487`; `test-check-domain.py:2684` | no |
+| carried-security | **high** | `bash-write-guard.py:407-524,644`; `plan-merge.py` `set-feature-station`/`set-task-station` | **yes** |
+| MED-1 | med | `check-domain.py:1037,1045` (`RE_STATE_YAML`, `RE_CLAUDE_MD`) | no |
+| H-01-b | med | `check-domain.py:1487`; `test-check-domain.py:2684` | no |
 | `_t09_case_fold` reason | med | `test-check-domain.py:2782` | no |
-| H-01-a | low | `check-domain.sh:1487-1506` | no |
+| H-01-a | low | `check-domain.py:1487-1506` | no |
 | H-02-a | low | `plan-sign-gate.py:116` | no |
 | `worktree_terminal` prefix match | low | `worktree_terminal.py:389` | no |
 | F-13 | low | `check-plan-routes.py:386` | no |
@@ -459,7 +459,7 @@ final disposition).
   pass on each other's fixture output) — I re-confirmed the blocks are disjoint by line range but
   did not attempt the cross-mutation myself; QA's cycle-2 note (`notes/qa-FEAT-41-c2.md:§10`)
   names this as still open too.
-- The full `check-state.sh`/`test-check-state.py` suite run — QA's exclusive lane; I read the
+- The full `check-state.py`/`test-check-state.py` suite run — QA's exclusive lane; I read the
   specific INV-32/33 sites rather than executing anything.
 - `worktree_terminal.py`'s `_hook_feature_dir`/`inflight_registry` mechanism (origin/main code,
   D-16's own framing scopes this to security).
@@ -486,7 +486,7 @@ DIGEST:
   findings: 10
   must_fix:
     - "BUG-1030-stale-anchor-write-hazard's non-terminal feature.json status (Review) was deleted by commit a8a8944 with no plan.yaml, no issue, no D-NN — its station is now recorded in zero files, inconsistent with BUG-1071/#1079's deliberate preservation of the identical shape"
-    - "plan-merge.py's set-feature-station/set-task-station verbs are reachable via an ordinary Bash call with no caller-identity or per-feature domain binding at any layer (check-domain.sh never sees Bash; bash-write-guard.sh's pattern list does not cover program invocations that write internally) — reproduced live: an unrelated agent's fixture flipped a victim feature's station to done, exit 0, plan.yaml genuinely rewritten"
+    - "plan-merge.py's set-feature-station/set-task-station verbs are reachable via an ordinary Bash call with no caller-identity or per-feature domain binding at any layer (check-domain.py never sees Bash; bash-write-guard.py's pattern list does not cover program invocations that write internally) — reproduced live: an unrelated agent's fixture flipped a victim feature's station to done, exit 0, plan.yaml genuinely rewritten"
   spec_violations:
     - { kind: omission, path: "BUG-1030-stale-anchor-write-hazard/feature.json", ref: "REQ-06 (station recorded in exactly one file — now recorded in zero)" }
     - { kind: omission, path: "plan-merge.py (set-feature-station, set-task-station)", ref: "REQ-05 (no decision authorizes the identity gap; D-07 covers sign-approval only)" }

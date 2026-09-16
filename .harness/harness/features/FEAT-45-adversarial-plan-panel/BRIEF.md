@@ -34,7 +34,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   allowlist at preflight and refused a `general-purpose` dispatch with `Cannot spawn
   'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead`, so a
   reader absent from `harness-validator-lead`'s list cannot answer anything. The MODEL half survives
-  lead dispatch, measured 2026-08-30: `dispatch-guard.sh:41-51` blocks a lead from **passing**
+  lead dispatch, measured 2026-08-30: `dispatch-guard.py:41-51` blocks a lead from **passing**
   `model:` in a dispatch — its own comment states the rule it enforces, that a member runs on the
   model pinned in its agent frontmatter and that pin is org design — and it does not strip the
   target's own pin; it exits 0, recording no claim, for any persona not prefixed `harness-`. So a
@@ -91,7 +91,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   the validator squad. The non-harness reader of SC-14 is the one permitted exception, and it is the
   point of the design rather than a leak in it.
   verify: automated      evidence: unit
-- SC-02: `check-domain.sh --resolve`, run over every rendered **non-empty** `outputs:` path of every
+- SC-02: `check-domain.py --resolve`, run over every rendered **non-empty** `outputs:` path of every
   panel step and over the goal-check note path the playbook names, reports the path granted to that
   step's own persona. Falsified by one step whose output path no grant covers, which is the measured
   hand-run failure (the goal-check was denied `notes/goalcheck-plan-*.md`). A step declaring
@@ -119,7 +119,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   check. Falsified if the check passes such a state.
   verify: automated      evidence: unit
 - SC-08: Every test file this feature adds is executed by the project's own runner invocation
-  (`run-unit-tests.sh --kind unit`), not only standalone. Falsified if the file exists and the runner
+  (`run-unit-tests.py --kind unit`), not only standalone. Falsified if the file exists and the runner
   never names it, which leaves the assertion permanently unrun.
   verify: automated      evidence: unit
 - SC-09: `git show <review_sha>:.harness/harness/docs/DECISIONS.md` carries one entry per REQ-11
@@ -245,8 +245,8 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
 
 - DEC-174 — the harness plans its own work but never EXECUTES changes to its own hooks, validators or
   gate scripts, and the list is non-exhaustive. Any REQ-10 or SC-04 machine check that lands in
-  `check-state.sh`, `validate-digest.py` or `check-domain.sh` is a `main-session-direct` task, decided
-  at plan time via DEC-179's `check-domain.sh --resolve`, never discovered mid-build.
+  `check-state.py`, `validate-digest.py` or `check-domain.py` is a `main-session-direct` task, decided
+  at plan time via DEC-179's `check-domain.py --resolve`, never discovered mid-build.
 - Measured by the eng squad (`notes/receipt-harness-dev-ops-arch-eng.md`): the only reader channel
   that mechanically exists is a **spawned non-harness subagent**; `Explore`, `fork`, `general-purpose`
   and `Plan` are platform built-ins with no agent-definition file in this repo, so none of them is a
@@ -270,19 +270,19 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   deliberately in this change (REQ-09).
 - `main_session.writes` in `.harness/team-config.yaml` is three approval paths plus
   `.harness/logs/**`. Whatever REQ-07's overrule record is, the main session must be granted the path
-  it lands on, and `check-domain.sh` reads that list.
+  it lands on, and `check-domain.py` reads that list.
 - Editing `.harness/harness/docs/DECISIONS.md` requires regenerating `DECISIONS-INDEX.md` in the same
   change; the index stores a per-row source line, so lengthening one entry shifts every later anchor.
 - The plan sequence is PROSE today, in `.claude/commands/harness-plan.md`'s `**Target state:**`
   bullet. That is the trigger site REQ-10 acts on, and nothing enforces its composition now.
 - `integration`'s `detect` in `.harness/harness.json` is an explicit file enumeration, and
-  `run-unit-tests.sh` names its scripts in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays. A new test
+  `run-unit-tests.py` names its scripts in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays. A new test
   file is invisible to both unless it is registered — SC-08.
 
 **Out of scope, settled by the operator in the grilling artifact:**
 
 - The `/harness-ship` review panel. It grades a diff against a pinned sha and already exists.
-- Fixing `check-domain.sh`'s fail-open approval guard. Same class of problem, a later feature.
+- Fixing `check-domain.py`'s fail-open approval guard. Same class of problem, a later feature.
 - Whether the wrapped-reader pattern generalizes to further outside models. Not sharp until there is
   a second candidate.
 - Re-litigating FEAT-38's own panel findings; a revision is in flight elsewhere.
@@ -306,7 +306,7 @@ date: 2026-08-30
 
 The independent-**model** claim in REQ-02 and REQ-05 is signed as restored. An earlier draft weakened
 it to independent-*context* on the finding that no `harness-` lead may select a model for what it
-spawns. That finding is true and the inference from it was false: `dispatch-guard.sh:41-51` blocks a
+spawns. That finding is true and the inference from it was false: `dispatch-guard.py:41-51` blocks a
 caller from **passing** `model:`, and never touches a dispatched agent's own frontmatter pin — the
 guard's own comment states that rule. The reader is therefore repinned from `general-purpose`, a
 platform built-in with no definition file and so no pin, to `fable-advisor`, whose definition carries

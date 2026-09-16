@@ -6,10 +6,10 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 457 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 581 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 457 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 581 }
   coverage_gaps:
-    - "test-omp-hooks.py is now wired into UNIT_SCRIPTS by this diff (run-unit-tests.sh changed) — cycle 0's 'TS suite has no standing execution path' gap is closed. Confirmed by diff and by the unit-kind run's exit 0 covering it."
+    - "test-omp-hooks.py is now wired into UNIT_SCRIPTS by this diff (run-unit-tests.py changed) — cycle 0's 'TS suite has no standing execution path' gap is closed. Confirmed by diff and by the unit-kind run's exit 0 covering it."
     - "e-probe: two of test-validate-feature-json.py's three scanned_count() call sites (lines 347, 383) are vacuous against a last-digit/substring-style regression, and will stay vacuous as long as their own fixtures produce a literal count of exactly 1 — only line 372 (the real-repo scan, currently 41 files) is sensitive to this class of bug, and only because 41 happens to end in the digit 1. This is not a defect introduced by the diff; it is inherent to comparing against a fixed literal '1' with tests whose real value is always exactly 1. Reported per O-03 as reasoned-plus-measured, not closed."
     - "scanned_count() silently returns None (never raises) for absent/empty/garbled stderr. Because one of its three call sites asserts count != 1, a sweep that crashes before printing any '— N file(s)' line makes that assertion vacuously PASS (None != 1) instead of failing loudly. Not exercised by any existing test."
   sc_evidence: []
@@ -62,7 +62,7 @@ Mutation reverted; scratch confirms 18/18 restored; `/tmp/qa-scratch-1030` delet
 
 Scratch: mirrored relative structure (`.omp/extensions/harness-hooks.ts` +
 `.claude/skills/harness/bin/omp-hooks.test.ts` + its two `.fixture.jsonl` files +
-`.agents/skills/harness/bin/check-domain.sh`, since `gatePath`/`gateRoot` resolve relative to the
+`.agents/skills/harness/bin/check-domain.py`, since `gatePath`/`gateRoot` resolve relative to the
 module's own file location) — bare copies without this mirroring gave a false environmental
 failure (`gatePath` test), caught and corrected before trusting the mutant result.
 
@@ -140,15 +140,15 @@ No `plan.yaml`/`BRIEF.md` exists for this feature (confirmed absent again this c
 inferred as `cross_module` per cycle 0 (Python core + two Python callers + one TS enforcement
 file), floor = `unit` + `integration`.
 
-- `unit`: `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` → **exit 0, 457 PASS lines, 0
+- `unit`: `.agents/skills/harness/bin/run-unit-tests.py --kind unit` → **exit 0, 457 PASS lines, 0
   FAIL**. `test-validate-feature-json.py` is in this run and passed cleanly — **cycle 0's
   environmental failure (41 real feature.json files vs. a fixture assuming zero) does NOT
   reproduce**, confirmed: `scanned_count()` now parses the integer instead of doing a substring
   check, so the real repo's 41-file scan no longer collides with the "1 file(s)" literal.
-- `integration`: `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` → **exit 0, 581
+- `integration`: `.agents/skills/harness/bin/run-unit-tests.py --kind integration` → **exit 0, 581
   PASS lines, 0 FAIL**.
 - TS unit suite (`test-omp-hooks.py` → `bun test omp-hooks.test.ts`, 51/51): this diff itself
-  added it to `UNIT_SCRIPTS` in `run-unit-tests.sh` (confirmed by `git diff` on that file), closing
+  added it to `UNIT_SCRIPTS` in `run-unit-tests.py` (confirmed by `git diff` on that file), closing
   cycle 0's "matched by detect glob but never executed" gap. It now runs as part of the `unit` kind
   above, not manually.
 

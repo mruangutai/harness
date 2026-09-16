@@ -8,12 +8,12 @@ error string.*
 ## The observation
 
 Earlier in this same session the main session appended a section to
-`FEAT-31-.../STATE.md`. `check-domain.sh --post` — registered on `PostToolUse` for `Write|Edit|Bash`
+`FEAT-31-.../STATE.md`. `check-domain.py --post` — registered on `PostToolUse` for `Write|Edit|Bash`
 in `.claude/settings.json`, the exact registration T-17 targets — exited 2. What arrived in the
 running agent's turn was this, in full:
 
     PostToolUse:Bash hook blocking error from command:
-    ".../check-domain.sh --post": check-domain: OVER BUDGET (already written) —
+    ".../check-domain.py --post": check-domain: OVER BUDGET (already written) —
     ...STATE.md: state-file shape (DEC-150).
       STATE.md is 132 lines — budget is 120. It holds no history: ## Current is replaced, never appended.
       illegal section(s) [...] — STATE.md is `## Current` + `## Open Questions` and nothing else (SPEC §2).
@@ -41,7 +41,7 @@ case undoing was correct. In post mode the write has ALREADY LANDED. An orchestr
 "you are over the context threshold" as a *blocking error* on a Write may reasonably conclude its
 write failed and either retry it (a duplicate) or revert it (a loss).
 
-`check-domain.sh` already anticipated exactly this and encodes the remedy at `:698-703`: the verb is
+`check-domain.py` already anticipated exactly this and encodes the remedy at `:698-703`: the verb is
 mode-dependent, and in post mode it is `OVER BUDGET (already written)` rather than `BLOCKED`,
 precisely "because in PRE the write is genuinely" stopped and in POST it is not.
 

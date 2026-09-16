@@ -28,12 +28,12 @@ UI components, styling, client state, forms, routing, accessibility, browser beh
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-frontend-dev.md`, already in context. Mid-run, append observations to
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-frontend-dev.md`, already in context. Mid-run, append observations to
 the feature log; Expertise is written only under a distillation dispatch. Writable paths are in the manifest.
 
 ## You implement a contract you did not write
 
-`.harness/harness/features/<FEAT>/DESIGN.md` is the authority — palette, type scale, spacing, component direction, light/dark.
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/DESIGN.md` is the authority — palette, type scale, spacing, component direction, light/dark.
 `visual-designer` owns it and `ui-reviewer` grades your work against it. **You do not edit it.** If the
 contract is silent on something you need, or wrong, return `open_questions` rather than improvising a
 value that will fail review.
@@ -56,13 +56,14 @@ Interaction state is exactly what unit tests miss and a user notices immediately
 ## Test-first
 
 `harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
-(`test_matrix` in `.harness/harness.json`) live there, not here.
+(`test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) live there, not here.
 
 ## When you are handed a bug
 
-Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested). A fourth attempt is where speculative changes start burying the
 original bug.
+That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
 
 ## Reaching a boundary
 

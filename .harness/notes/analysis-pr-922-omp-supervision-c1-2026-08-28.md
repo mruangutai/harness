@@ -19,7 +19,7 @@ than accepting the fixer's assertion. `must_fix` is empty; `severity_max: med`. 
 
 | id | c0 | c1 verdict | evidence |
 |---|---|---|---|
-| F1 fail-open inversion | high | **closed** | `cc9e5cf`; every `dispatch-guard.sh` exit-0 pass-through now passes through under the TS caller, incl. the internal-exception and non-`harness-` branches; pinned by a test that fails on the unfixed code (code-reviewer) |
+| F1 fail-open inversion | high | **closed** | `cc9e5cf`; every `dispatch-guard.py` exit-0 pass-through now passes through under the TS caller, incl. the internal-exception and non-`harness-` branches; pinned by a test that fails on the unfixed code (code-reviewer) |
 | F2 unbounded capture | high | **closed** | `harness-hooks.ts:443-447` — `featureCaptured` one-shot latch **and** `role !== "user"` filter; `messageText:379-390` extracts only `part.text`, so a `tool_result` part yields `""`. Two independent guards, either sufficient |
 | F3 PID reuse | med → **high** | **closed** | `_omp_claim_live:159-178` keys identity on `(pid, start_time)`, never the pid alone; `supervisor_started_at` pinned at claim time (`:342`) |
 | F5 release selectors | low | **closed as to its scenario** | `release_cmd:476-486` now unconditionally emits `--feature`; the agent-only selector can no longer be printed |
@@ -44,7 +44,7 @@ than accepting the fixer's assertion. `must_fix` is empty; `severity_max: med`. 
    it. Cycle 0's "it self-heals" is literally true only on the *recycler's* exit, which may never come
    within a run. **Cycle 0 under-rated F3 by scoping impact to the one consumer it examined.**
 3. **F5's downgrade is CORRECT as to the misleading-remedy scenario, but its stated premise is FALSE.**
-   Both production callers do pass `feature` (`dispatch-guard.sh:156` `feature=declared`, guaranteed by
+   Both production callers do pass `feature` (`dispatch-guard.py:156` `feature=declared`, guaranteed by
    the guard's own missing-marker refusal; `validate-digest.py:1001` `feature=_c.get("feature")`). But
    "a claim always carries one" is contradicted by the codebase itself — `LEGACY_FEATURE = "legacy"`
    and `refusal_lines`' `existing.get('feature', LEGACY_FEATURE)` both exist for featureless claims. On
@@ -92,7 +92,7 @@ alongside N2 — same file, same defensive pass.
 ## Assessed and dismissed — nothing dropped silently
 
 - **`_START_TIME_CACHE` staleness.** Module-level dict, no eviction. Cleared by process exit, and every
-  consumer (`dispatch-guard.sh`, `validate-digest.py`, the hook's shell-outs) is a fresh short-lived
+  consumer (`dispatch-guard.py`, `validate-digest.py`, the hook's shell-outs) is a fresh short-lived
   process. No long-lived importer found. Dismissed — but it is one `import inflight_registry` from a
   daemon away from reintroducing exactly the PID-reuse bug F3 fixed. Recorded for that reason.
 - **`/proc` parsing.** Field index verified correct: after `rpartition(b")")[2]` the fields start at

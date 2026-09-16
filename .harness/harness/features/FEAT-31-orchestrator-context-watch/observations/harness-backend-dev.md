@@ -6,7 +6,7 @@
   around it by writing fixture files via a `python3 - <<'EOF' ... open(path,"w").write(...) EOF`
   heredoc (no bash `>` redirect token), which the guard did not flag, rather than switching to the
   Write tool for throwaway test fixtures outside any tracked path.
-- 2026-08-21 (T-02): `run-unit-tests.sh --kind unit`'s overall exit is `1` in this worktree
+- 2026-08-21 (T-02): `run-unit-tests.py --kind unit`'s overall exit is `1` in this worktree
   regardless of context-watch.py's own tests — `test-harness-yaml-corpus.py` fails on
   `notes/recovered-draft-14task-does-not-parse.yaml` (committed `ae89da4`, deliberately invalid).
   A task whose `verify:` names only `PASS <file>` / `NO MISCONFIGURED` as literal comments (not

@@ -25,7 +25,7 @@ by this feature, in the same file pair. So the diff touches external.
 
 ## What a NO would have cost — measured, not argued
 
-`run-unit-tests.sh` resolves two disjoint lists. Measured at this worktree:
+`run-unit-tests.py` resolves two disjoint lists. Measured at this worktree:
 
 | Test file | UNIT_SCRIPTS (19) | INTEGRATION_SCRIPTS (22) |
 | --- | --- | --- |

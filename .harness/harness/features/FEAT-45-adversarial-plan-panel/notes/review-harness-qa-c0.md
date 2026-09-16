@@ -18,15 +18,15 @@ in `INTEGRATION_SCRIPTS`.
 
 | Kind | Required | cmd | Exit | Result |
 |---|---|---|---|---|
-| unit | yes | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | satisfied |
-| integration | no (extra, above floor) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | satisfied |
+| unit | yes | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | satisfied |
+| integration | no (extra, above floor) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | satisfied |
 | functional/component/ui/eval/typecheck | no | n/a to this diff (no browser/frontend/AI-behavior change_type present) | — | not applicable / soft skip |
 
 `matrix_ok: true`. No kind `missing` or `blocked`.
 
 ## 2. Discovery counts (re-derived, not trusted from the runner's exit code alone)
 
-Read `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays directly out of `run-unit-tests.sh` at the
+Read `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays directly out of `run-unit-tests.py` at the
 pinned tree: **29 unit + 27 integration = 56 total**, matching the claimed pre-panel baseline
 exactly (no shrinkage). Cross-checked against actual run output: unit run produced 429 `PASS `
 lines with `0 FAIL`; integration run produced 31 `PASS test-*.py` lines collapsing to 27 unique
@@ -109,7 +109,7 @@ Read every check in `test-plan-panel.py` (lines 108-292) and classified by what 
 exercises:
 
 - **Genuinely executes runtime behaviour (3 of 24):** the two `(2) ... resolves to persona ...`
-  checks (scope output + goalcheck path) each shell out to the real `check-domain.sh --resolve`
+  checks (scope output + goalcheck path) each shell out to the real `check-domain.py --resolve`
   and assert on its actual stdout/rc; `(8b)` `importlib`-loads the real
   `sync-agent-adapters.py` module and inspects its live `SPAWNS` dict — the structure the sync
   tooling itself consumes at bootstrap time.

@@ -24,7 +24,7 @@ native-correct. cycles_used 1 of 10. Terminus: signature, then a build phase.
 - Q1 (BLOCKING, operator): confirm the harness-first departure. T-01 lands kaya-ai's master
   config before the harness validator widens. Both reviewers independently verified no ordering
   is atomic, so the window is unavoidable, latent and loud; the rollback gap is now fixed.
-- Q2 (operator/main session): T-04 registers the new test file in run-unit-tests.sh UNIT_SCRIPTS,
+- Q2 (operator/main session): T-04 registers the new test file in run-unit-tests.py UNIT_SCRIPTS,
   which is mandatory because the drift detector runs over the union and exits 2 MISCONFIGURED on
   any unregistered test-*.py. FEAT-31 writes the same file and neither plan carries an ordering
   constraint against the other. Who sequences them?
@@ -35,6 +35,6 @@ native-correct. cycles_used 1 of 10. Terminus: signature, then a build phase.
 - Q5 (harness defect): no agent tier below the main session holds SendMessage or a wait
   primitive, so neither an orchestrator nor a lead can correct a running subordinate; every
   attempt becomes a competing sibling spawn.
-- Q6 (harness defect): check-state.sh:123 sends an unapproved BRIEF to `bad` (exit 1) while
+- Q6 (harness defect): check-state.py:123 sends an unapproved BRIEF to `bad` (exit 1) while
   :139/:154 send the identical plan-pending state to `warn`, so every plan phase awaiting
   signature exits 1 by construction.

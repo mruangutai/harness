@@ -16,9 +16,9 @@
    Gotchas G-04. The general form ("does a self-test that reads real state actually run in any
    gate") is craft-shaped, but craft Patterns and Gotchas are both already at their 15-entry cap
    and the merge tool has no way to shrink a full section (see finding below), so I recorded the
-   concrete, still-generalizable, actionable form instead: check `run-unit-tests.sh`'s two named
+   concrete, still-generalizable, actionable form instead: check `run-unit-tests.py`'s two named
    script arrays by exact name. Verified directly: `verify-context-watch-live.py` is absent from
-   both `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:17-18`, grepped).
+   both `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` (`run-unit-tests.py:17-18`, grepped).
 
 **Reviewer-disagreement candidate, standalone, REJECTED.** The literal "two correct sides, name
 which claim each answers" framing is not novel enough to buy a slot on its own: O-07 already
@@ -56,5 +56,5 @@ tool. Raised as `open_questions` below — this is a harness defect, not mine to
 | repo | Gotchas | 3/15 | 4/15 (+G-04) |
 | repo | all other sections | 0 | 0 |
 
-`check-expertise.sh` clean on both files after apply (exit 0). Craft file 45/150 lines, repo file
+`check-expertise.py` clean on both files after apply (exit 0). Craft file 45/150 lines, repo file
 9/40 lines — both well under budget.

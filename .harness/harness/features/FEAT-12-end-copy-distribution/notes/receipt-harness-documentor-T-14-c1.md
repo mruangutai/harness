@@ -1,7 +1,7 @@
 # Receipt — T-14 — strike DEC-12, strike DEC-113 in part
 
 **DEC-12 is gone from the record and DEC-113 keeps only its override ruling.** Verify exits 0
-(`STRUCK`), the index generator is clean, and `run-unit-tests.sh` is 0 with
+(`STRUCK`), the index generator is clean, and `run-unit-tests.py` is 0 with
 `PASS test-gen-decisions-index.py`. Nothing committed.
 
 ## What changed
@@ -51,7 +51,7 @@ The search covered `.claude/skills`, `.claude/commands`, `.claude/agents`, `CLAU
 |---|---|
 | T-14 `verify:` (run as one script from repo root) | **exit=0**, printed `STRUCK` |
 | `gen-decisions-index.py` | exit 0, silent, **no ORPHAN** — matches the SUPERSEDED note for 835b297 |
-| `run-unit-tests.sh` | exit 0, `PASS test-gen-decisions-index.py` |
+| `run-unit-tests.py` | exit 0, `PASS test-gen-decisions-index.py` |
 
 The `grep -q 'harness/teams'` assertion is green off the crew→team rename record later in
 DECISIONS.md, as the dispatch measured; nothing was written to satisfy it.

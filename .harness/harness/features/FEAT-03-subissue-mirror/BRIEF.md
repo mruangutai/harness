@@ -119,7 +119,7 @@ in `wayfind.py` and get **extracted**, not re-implemented.
 - SC-07: The `unit` gate actually exercises `gh-sync.py`: `test_kinds.unit.cmd` runs both bin test
   scripts, and `test_kinds.unit.detect` matches them (today it matches zero files in this repo).
   verify: inspection
-- SC-08: `check-state.sh` reports the missing-container invariant at warn level on a fixture with
+- SC-08: `check-state.py` reports the missing-container invariant at warn level on a fixture with
   `github.sync: true` plus recorded issues and no parent, and is silent when the parent is recorded;
   the overall exit code is unchanged in both cases.
   verify: automated      evidence: unit
@@ -131,7 +131,7 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   FEAT-03 — the three features with live `github.issues` maps — are not retrofitted, and nothing
   here could reach them (they live in another repo).
   verify: inspection
-- SC-11: `check-docs.sh` exits 0 and `check-state.sh` INV-10 is clean after the DECISIONS amendment
+- SC-11: `check-docs.sh` exits 0 and `check-state.py` INV-10 is clean after the DECISIONS amendment
   lands, with the reversal of DEC-138 am.1's "they close with it" recorded.
   verify: inspection
 - SC-12: A GitHub Issues sync step that fails for an environmental reason (sync off, repo unpinned, gh missing,
@@ -171,9 +171,9 @@ unconditionally does not satisfy this criterion. This is a
   `check-docs.sh` stays exit 0 throughout (observed exit 0 at `f929d44`, "no stale statements
   found"), and **the checker is silent about SC-13 by design.** What carries it instead: the named
   pre-ship step in `PLAN ## Preconditions and hand-offs` and SC-13's own grep, run at the ship gate.
-- **`check-state.sh` exits 1 in this repo for reasons unrelated to this feature** (observed at
+- **`check-state.py` exits 1 in this repo for reasons unrelated to this feature** (observed at
   `f929d44`: `BRIEF.md is NOT approved`, plus an orphaned run dir). No SC and no task verify may
-  assert `check-state.sh` exits 0; they assert on the specific invariant's line and on the exit code
+  assert `check-state.py` exits 0; they assert on the specific invariant's line and on the exit code
   being **unchanged from the pre-change baseline**.
 - No `functional` runner means the orchestrator's end-to-end sequence (open → close-task per commit →
   ship/abandon) is proven step-by-step, never as one flow.
@@ -201,7 +201,7 @@ unconditionally does not satisfy this criterion. This is a
 ## Out of scope
 
 - **Feature B, in full** — PLAN gaining `depends_on:` per task, `gh-sync.py` emitting native
-  `blocked_by` edges, ordering validation in `check-state.sh`, and the lead's DAG read from PLAN
+  `blocked_by` edges, ordering validation in `check-state.py`, and the lead's DAG read from PLAN
   instead of re-derived per run. It is sequenced as its own BRIEF, not abandoned. The razor, both
   halves, because they look alike and are not:
   - **Extracting** the `blocked_by` write helper from `wayfind.py` is **in** scope (the settled list

@@ -20,7 +20,7 @@ harness-eng-lead to harness-dev-ops (`plan.yaml#tasks/T-01`).
 ## Dead ends
 
 - Do not start T-01 or any build action while either approval remains pending — .harness/harness/features/FEAT-36-merge-gitignore-coverage/BRIEF.md#approval and .harness/harness/features/FEAT-36-merge-gitignore-coverage/plan.yaml#approval — UNVERIFIED
-- Do not edit merge-gitignore.sh unless the new behavioral test first proves a documented contract violation — .harness/harness/features/FEAT-36-merge-gitignore-coverage/plan.yaml#D-02 — UNVERIFIED
+- Do not edit merge-gitignore.py unless the new behavioral test first proves a documented contract violation — .harness/harness/features/FEAT-36-merge-gitignore-coverage/plan.yaml#D-02 — UNVERIFIED
 - Do not reopen empty simplify outcomes as invented work; route only new substantive evidence through product-lead and PM — .harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/plan-simplify-eng/digest.md — UNVERIFIED
 - Do not expand coverage to unrelated utilities or merge the eventual pull request — .harness/harness/features/FEAT-36-merge-gitignore-coverage/BRIEF.md#constraints — UNVERIFIED
 

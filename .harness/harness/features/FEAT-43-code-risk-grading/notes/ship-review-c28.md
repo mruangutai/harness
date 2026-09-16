@@ -56,7 +56,7 @@ dependencies in the same file were fixed with it; the scope call was reported an
 | Delta review (cycle 27) | **PASS** — hermeticity, discrimination and fixture inertness each proven |
 | Full independent panel (`17106762`) | **PASS**, `must_fix: []` |
 | Focused suites | five, all exit 0 |
-| `check-state.sh` | **exit 0** |
+| `check-state.py` | **exit 0** |
 | SC-11 UAT | **passed**, and see below |
 
 **The nicest result in this cycle answers a question I expected to have to argue.** Your SC-11 UAT
@@ -114,5 +114,5 @@ yours or the main session's. None has been done.
 ## State of the branch
 
 Nothing shipped. No PR merged, no deploy, no issue closed; the worktree stands. `review_sha` is
-`baa96b7ee1cfbc7fcbea8873692cc91751a0c171`, `check-state.sh` exits 0, the working tree is clean, and
+`baa96b7ee1cfbc7fcbea8873692cc91751a0c171`, `check-state.py` exits 0, the working tree is clean, and
 no source has moved past the pin.

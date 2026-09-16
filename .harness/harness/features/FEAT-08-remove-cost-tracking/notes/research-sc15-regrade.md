@@ -14,7 +14,7 @@ cycles, context, wall-clock) is a deliberate survivor and is not graded.
 ## Surfaces swept
 
 1. **All 12 files under `.harness/expertise/`** — the set injected per-owner by the `SubagentStart`
-   hook (`.claude/skills/harness/bin/inject-expertise.sh:49-51`).
+   hook (`.claude/skills/harness/bin/inject-expertise.py:49-51`).
 2. `.claude/agents/` (all agent definitions)
 3. `.claude/skills/` — repo copy only, `.claude/worktrees/` excluded (FEAT-09, concurrent)
 4. `.harness/team-config.yaml` — **zero hits on any token**
@@ -61,9 +61,9 @@ proposed backlog table. **No cost line.** Read directly, not inferred from token
 | Class | Ruling |
 |---|---|
 | Metaphorical cost/spend/budget prose (spawn, cycle, context, wall-clock) across expertise, agents, skills | Deliberate survivors. Over-removal is this feature's named dominant failure mode |
-| `$1`/`$2` in `bin/*.sh` (`deploy.sh:27-31`, `check-domain.sh:61`, `branch-create-gate.sh:55`) | Shell positionals — artifact of the `\$[0-9]` pattern in the wider first pass; absent from the uniform `.md`/`.yaml`/`.json` pass |
+| `$1`/`$2` in `bin/*.sh` (`deploy.sh:27-31`, `check-domain.py:61`, `branch-create-gate.py:55`) | Shell positionals — artifact of the `\$[0-9]` pattern in the wider first pass; absent from the uniform `.md`/`.yaml`/`.json` pass |
 | `cost:` duplicate-key YAML fixtures — `test-harness-yaml.py:383,418-419`, `test-harness-yaml-corpus.py:214-218`, `test-check-domain.py:203-212` | Preserved by SC-12 (`BRIEF.md:139-142`) |
-| `cost` as a *tolerated* key — `check-state.sh:335`, `check-domain.sh:308`, `gen-decisions-index.py:40`, `test-check-state.py:325-363` (asserts a `cost:` block is clean) | Hook/validator internals, not rule text an agent reads. Tolerating a key is not an instruction to emit one |
+| `cost` as a *tolerated* key — `check-state.py:335`, `check-domain.py:308`, `gen-decisions-index.py:40`, `test-check-state.py:325-363` (asserts a `cost:` block is clean) | Hook/validator internals, not rule text an agent reads. Tolerating a key is not an instruction to emit one |
 | `$49` in `test-render-brief.py:47,71-72` | Markdown-renderer fixture; content arbitrary. Not a rule surface |
 | `validate-digest.py:178` comment "the harness no longer meters money" | Removal marker |
 

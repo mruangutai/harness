@@ -18,7 +18,7 @@ append"): I removed exactly the two superseded lines (P-08, P-12 — nothing els
 byte-identical elsewhere) via a direct, immediately-re-read-first write to bring Patterns to
 13/15, then used the merge tool to ADD the two sharpened replacements under lock. This keeps the
 tool as the mechanism for every genuinely new addition and confines the manual step to the one
-operation (deletion) the tool cannot perform under any invocation. `check-expertise.sh` run
+operation (deletion) the tool cannot perform under any invocation. `check-expertise.py` run
 single-file afterward reports both files `OK`.
 
 ## Section counts
@@ -33,7 +33,7 @@ single-file afterward reports both files `OK`.
 
 Net Patterns composition: 13 entries carried untouched, P-08 and P-12 both replaced in place
 (new text, same id, re-appended at the tail of the section by the tool — id numbering is now
-non-sequential in file order; this is cosmetic, `check-expertise.sh` does not require sequential
+non-sequential in file order; this is cosmetic, `check-expertise.py` does not require sequential
 order).
 
 ## Accepted

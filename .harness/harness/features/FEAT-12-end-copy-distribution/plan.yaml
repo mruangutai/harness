@@ -29,46 +29,46 @@ lanes:
     - surface: .claude/skills/harness/bin/**
       lane: team
       agent: harness-backend-dev
-      reason: check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops at the resolved sha
+      reason: check-domain.py --resolve returns harness-backend-dev and harness-dev-ops at the resolved sha
     - surface: docs/**
       lane: team
       agent: harness-documentor
-      reason: check-domain.sh --resolve returns harness-documentor for docs/harness/SPEC.md, BUILD.md, DECISIONS.md and DECISIONS-INDEX.md
+      reason: check-domain.py --resolve returns harness-documentor for docs/harness/SPEC.md, BUILD.md, DECISIONS.md and DECISIONS-INDEX.md
     - surface: README.md
       lane: team
       agent: harness-documentor
-      reason: check-domain.sh --resolve returns harness-documentor
+      reason: check-domain.py --resolve returns harness-documentor
     - surface: .harness/README.md
       lane: team
       agent: harness-documentor
-      reason: check-domain.sh --resolve returns harness-documentor
+      reason: check-domain.py --resolve returns harness-documentor
     - surface: .claude/commands/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md, so DEC-179 makes it a declared main-session step
+      reason: check-domain.py --resolve returns NOBODY for .claude/commands/harness-deploy.md, so DEC-179 makes it a declared main-session step
     - surface: .claude/skills/harness-team/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY; rule skills are unowned by any lane
+      reason: check-domain.py --resolve returns NOBODY; rule skills are unowned by any lane
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY; rule skills are unowned by any lane
+      reason: check-domain.py --resolve returns NOBODY; rule skills are unowned by any lane
     - surface: .claude/skills/harness/templates/README.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the templates tree
+      reason: check-domain.py --resolve returns NOBODY for the templates tree
     - surface: .claude/skills/harness/templates/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the templates tree
+      reason: check-domain.py --resolve returns NOBODY for the templates tree
     - surface: .harness/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, measured at 835b297; no lane grants the file that declares the lanes
+      reason: check-domain.py --resolve returns NOBODY, measured at 835b297; no lane grants the file that declares the lanes
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY; precedent is FEAT-10 T-01, written main-session-direct on 2026-08-09
+      reason: check-domain.py --resolve returns NOBODY; precedent is FEAT-10 T-01, written main-session-direct on 2026-08-09
     - surface: /Users/molchairuangutai/GitHub/kaya-ai/**
       lane: main-session-direct
-      reason: outside CLAUDE_PROJECT_DIR, so check-domain.sh passes it through ungoverned and no team-config lane grants it; the work is a cross-repo destructive change gated on Q1, so it stays with the tier that has an operator channel
+      reason: outside CLAUDE_PROJECT_DIR, so check-domain.py passes it through ungoverned and no team-config lane grants it; the work is a cross-repo destructive change gated on Q1, so it stays with the tier that has an operator channel
     - surface: /Users/molchairuangutai/.harness/registry.json
       lane: main-session-direct
-      reason: outside CLAUDE_PROJECT_DIR, ungoverned by check-domain.sh, and no lane in team-config.yaml names a path under the home directory
+      reason: outside CLAUDE_PROJECT_DIR, ungoverned by check-domain.py, and no lane in team-config.yaml names a path under the home directory
 
 decisions:
   - id: D-01
@@ -98,12 +98,12 @@ decisions:
     choice: >-
       kaya-ai's committed .claude/settings.json loses EVERY harness registration, and there are
       EIGHT of them across FOUR hook events, not three PreToolUse hooks. Measured with json.load in
-      kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.sh; PreToolUse Bash
-      branch-create-gate.sh a second, duplicate time under a different variable spelling; PreToolUse
-      Bash bash-write-guard.sh; PreToolUse Write or Edit check-domain.sh; PreToolUse Task or Agent
-      dispatch-guard.sh; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
+      kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.py; PreToolUse Bash
+      branch-create-gate.py a second, duplicate time under a different variable spelling; PreToolUse
+      Bash bash-write-guard.py; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
+      dispatch-guard.py; SubagentStart on matcher harness-.* inject-expertise.py; SubagentStop on
       matcher harness-.* validate-digest.py --hook; PostToolUse Write or Edit or Bash
-      check-domain.sh --post. All eight go, in this feature rather than as a deferral.
+      check-domain.py --post. All eight go, in this feature rather than as a deferral.
     because: >-
       those paths live inside the skill tree D-01 deletes, so leaving them wired makes every Bash,
       Write, Task and subagent call in any kaya session - including the factory checkouts the fleet
@@ -120,7 +120,7 @@ decisions:
       DEC-188 is the governing rule and it says so directly: a decision the tree flatly contradicts
       is struck from the record and removed from every gate, not marked stale, not amended, not left
       standing with a marker beside it. DEC-188 also records what was already carried out under it -
-      bin/check-docs.sh deleted, the INV-10 block out of check-state.sh, and the 66 stale-wording
+      bin/check-docs.sh deleted, the INV-10 block out of check-state.py, and the 66 stale-wording
       markers and 14 escape comments gone from the live docs - so a marker task would write into a
       mechanism that no longer exists. Confirmed at 687fd3e of this repository: check-docs.sh is
       absent from the tree.
@@ -131,7 +131,7 @@ decisions:
     dec: none
   - id: D-05
     choice: A new unit test, test-no-distribution.py, carries the absence claims, and every absence assertion in it is paired with a presence assertion.
-    because: DEC-169 - an absence check proves only that the wrong words are gone, and a grep that was going to pass anyway proves nothing. It also has to be registered in run-unit-tests.sh UNIT_SCRIPTS in the same task, because the drift detector fails the whole run on an unregistered test file.
+    because: DEC-169 - an absence check proves only that the wrong words are gone, and a grep that was going to pass anyway proves nothing. It also has to be registered in run-unit-tests.py UNIT_SCRIPTS in the same task, because the drift detector fails the whole run on an unregistered test file.
     dec: DEC-169
   - id: D-06
     choice: >-
@@ -341,16 +341,16 @@ tasks:
       leave five registrations wired and then fail the verify. Measured with json.load in kaya on
       2026-08-10, the full set is:
 
-        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh
-        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh   (a SECOND,
+        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.py
+        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.py   (a SECOND,
                                        duplicate entry, spelled ${CLAUDE_PROJECT_DIR} where the
                                        first uses "$CLAUDE_PROJECT_DIR" - both go)
-        PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.sh
-        PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.sh
-        PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.sh
-        SubagentStart  harness-.*      .claude/skills/harness/bin/inject-expertise.sh
+        PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.py
+        PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.py
+        PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.py
+        SubagentStart  harness-.*      .claude/skills/harness/bin/inject-expertise.py
         SubagentStop   harness-.*      .claude/skills/harness/bin/validate-digest.py --hook
-        PostToolUse  Write or Edit or Bash  .claude/skills/harness/bin/check-domain.sh --post
+        PostToolUse  Write or Edit or Bash  .claude/skills/harness/bin/check-domain.py --post
 
       Do not treat this list as the definition of the set. The DEFINITION is the headline above -
       any hook whose command points inside .claude/skills/harness/ - and the list is what that
@@ -477,7 +477,7 @@ tasks:
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .harness/factory/fleet.yaml; precedent is FEAT-10 T-01
+    execution_reason: check-domain.py --resolve returns NOBODY for .harness/factory/fleet.yaml; precedent is FEAT-10 T-01
     depends_on: []
     status: done
     files:
@@ -514,7 +514,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/deploy.sh
     verify: |
-      test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
+      test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
     intent: |
       Delete the file .claude/skills/harness/bin/deploy.sh. It is 287 lines and it is the only
       writer of ~/.harness/registry.json and the only mechanism that copies harness skills, agents
@@ -524,7 +524,7 @@ tasks:
       any path containing deploy returns exactly deploy.sh and .claude/commands/harness-deploy.md.
       Do not spend time looking for deploy tests; there are none to delete.
 
-      run-unit-tests.sh and .github/workflows/tests.yml contain zero references to deploy, so no
+      run-unit-tests.py and .github/workflows/tests.yml contain zero references to deploy, so no
       runner registration changes here.
 
       Do not edit any other file in this task. The Python modules that mention deploy.sh in comments
@@ -538,7 +538,7 @@ tasks:
     traces: [REQ-01, REQ-07]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/commands/harness-deploy.md
     depends_on: []
     status: done
     files:
@@ -598,7 +598,7 @@ tasks:
       - .claude/skills/harness/bin/wayfind.py
       - .claude/skills/harness/bin/factory_config.py
     verify: |
-      test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
+      test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
     intent: |
       Remove every reference to deploy.sh, /harness-deploy and the deploy registry from these six
       modules. Two of the edits change behaviour and four are comments; do all six.
@@ -637,8 +637,8 @@ tasks:
         copies the skill directory any more, and the probe stays a docs path because the derived
         root must be a full checkout of this repository, which a bare skills tree is not.
 
-      Do not create or delete files in this task. Do not touch check-domain.sh, bash-write-guard.sh,
-      validate-digest.py or check-state.sh - DEC-174 puts all four outside a team run. There is no
+      Do not create or delete files in this task. Do not touch check-domain.py, bash-write-guard.py,
+      validate-digest.py or check-state.py - DEC-174 puts all four outside a team run. There is no
       fifth: check-docs.sh was deleted under issue 202 and DEC-188, it is absent from the tree at
       687fd3e, and it must not be recreated.
 
@@ -649,7 +649,7 @@ tasks:
     traces: [REQ-07]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY at 835b297 for all five files - .claude/skills/harness-team/SKILL.md, .claude/skills/harness-init/SKILL.md, .claude/skills/harness/templates/README.md, .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, each measured individually
+    execution_reason: check-domain.py --resolve returns NOBODY at 835b297 for all five files - .claude/skills/harness-team/SKILL.md, .claude/skills/harness-init/SKILL.md, .claude/skills/harness/templates/README.md, .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, each measured individually
     depends_on: []
     status: done
     files:
@@ -821,9 +821,9 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      python3 .claude/skills/harness/bin/test-no-distribution.py && .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/feat12-t13.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t13.log; grep -c '^FAIL \|MISCONFIGURED' /tmp/feat12-t13.log; exit $s
+      python3 .claude/skills/harness/bin/test-no-distribution.py && .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/feat12-t13.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t13.log; grep -c '^FAIL \|MISCONFIGURED' /tmp/feat12-t13.log; exit $s
     intent: |
       Write .claude/skills/harness/bin/test-no-distribution.py, following the structure of the
       existing test-*.py scripts in the same directory: no pytest, a main that runs numbered cases,
@@ -893,9 +893,9 @@ tasks:
         for a different feature's decisions and produced no output at all, so a whole-file diff here
         would fail for a reason that has nothing to do with FEAT-12.
 
-      Register the new file in run-unit-tests.sh by appending "test-no-distribution.py" to the
+      Register the new file in run-unit-tests.py by appending "test-no-distribution.py" to the
       UNIT_SCRIPTS array on line 17. This registration is mandatory and belongs in this same task:
-      run-unit-tests.sh has a drift detector that exits 2 on ANY test-*.py under bin/ that is not in
+      run-unit-tests.py has a drift detector that exits 2 on ANY test-*.py under bin/ that is not in
       one of the two arrays, which fails the whole run and reddens every other task's verify.
 
       Do not add the file to INTEGRATION_SCRIPTS as well; the drift detector scans the union, so one
@@ -927,7 +927,7 @@ tasks:
     intent: |
       Two decisions are falsified by this feature. Record that the way the operator now records it:
       by STRIKING the falsified ruling from the record, not by marking it. The stale-marker
-      mechanism and its checker were removed while this feature was being planned - check-state.sh
+      mechanism and its checker were removed while this feature was being planned - check-state.py
       around line 856 states the replacement rule in full, and DEC-103, DEC-104, DEC-83 and DEC-181
       were each deleted outright rather than annotated. Follow that precedent exactly.
 

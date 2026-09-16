@@ -2,14 +2,14 @@
 
 ## Verdict: FAIL — critical
 
-`gh-close-gate.sh` (the primary artifact, `.claude/skills/harness/bin/gh-close-gate.sh`) does not
+`gh-close-gate.py` (the primary artifact, `.claude/skills/harness/bin/gh-close-gate.py`) does not
 deliver the guarantee its own header comment, T-07's task intent, and SC-07's literal wording all
 claim. The regex it uses to spot `gh issue close` and `gh api ... state=closed` is anchored on a
 narrow set of boundary characters (`^ ; & | <space>`) immediately before the literal token `gh`.
 Any shell form that puts a different character there — a quote, a backslash, nothing at all because
 the token was assembled by substitution or indirection — reaches the real `gh` binary and closes the
 issue while the gate prints nothing and returns exit 0 (allow). All bypasses below were executed
-against the actual pinned-SHA script (`bash <(git show 3a548fe:.../gh-close-gate.sh)`), with a real
+against the actual pinned-SHA script (`bash <(git show 3a548fe:.../gh-close-gate.py)`), with a real
 `.harness/harness.json` (`github.sync: true`), not reasoned about.
 
 ## Finding 1 (critical, must-fix) — `gh issue close` detector: bypassed by ordinary quoting, `eval`, `bash -c`, absolute path, indirection, line continuation
@@ -81,7 +81,7 @@ mechanism.
 
 ## Hook registration (`.claude/settings.json`) — correct
 
-`PreToolUse` → matcher `Bash` → `[branch-create-gate.sh, bash-write-guard.sh, gh-close-gate.sh]`.
+`PreToolUse` → matcher `Bash` → `[branch-create-gate.py, bash-write-guard.py, gh-close-gate.py]`.
 Fires on every Bash call as intended; no secret/token literal anywhere in the diff.
 
 ## Priority 2 — argv construction (`gh_issues.py`, `gh-sync.py`) — clean
@@ -122,7 +122,7 @@ issues could miss an old leak, but that's not this diff's regression.
 
 ## Recommendation
 
-Both critical findings sit in `gh-close-gate.sh`, which is enforcement layer under DEC-174 — I am
+Both critical findings sit in `gh-close-gate.py`, which is enforcement layer under DEC-174 — I am
 reporting, not fixing, and not recommending a dispatched fix through the path being changed, per this
 review's own execution-route bound. The constraint any fix must satisfy: stop matching on a
 character-class boundary and instead **tokenize** the command the way the shell would (e.g. `shlex`

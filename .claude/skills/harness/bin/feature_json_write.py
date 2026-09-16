@@ -28,6 +28,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import factory_cli  # noqa: E402  (local import, after sys.path fix-up)
 import feature_schema  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
@@ -68,7 +69,9 @@ def parse_doc(base, display):
     if base is None:
         return None
     try:
-        doc = feature_schema.json.loads(base.decode("utf-8"))
+        doc = feature_schema.json.loads(base.decode("utf-8"),
+                                        object_pairs_hook=_reject_duplicate_keys,
+                                        parse_constant=_reject_nonfinite_constant)
     except (UnicodeDecodeError, ValueError) as e:
         raise harness_merge.MergeRefusal(
             SCHEMA_REFUSAL_CODE, [f"{display}: not valid JSON: {e}"]
@@ -79,6 +82,50 @@ def parse_doc(base, display):
             [f"{display}: parsed but is not a JSON mapping (got {type(doc).__name__})"],
         )
     return doc
+
+
+
+
+def _reject_nonfinite_constant(value):
+    """Refuse JSON's non-standard NaN and Infinity spellings."""
+    raise ValueError(f"non-finite JSON constant: {value}")
+
+
+def _reject_duplicate_keys(pairs):
+    """`object_pairs_hook` for `json.load`/`json.loads`: raise on a mapping key repeated at
+    ANY nesting depth, the same coverage harness_yaml.DuplicateKeyError already gives every
+    YAML reader in this tree. `json.load`'s own default behaviour for a repeated key is
+    silent last-wins -- switching feature.json's canonical reader from a YAML parser to the
+    stdlib json module would otherwise WEAKEN this exact strictness while the migration
+    claims to tighten it (BUG-285 property 3)."""
+    seen = set()
+    result = {}
+    for key, value in pairs:
+        if key in seen:
+            raise ValueError(f"duplicate key: {key!r}")
+        seen.add(key)
+        result[key] = value
+    return result
+
+
+
+def opt_int(value):
+    """A recorded issue/milestone number as int, or None for `none`/absent/junk -- moved
+    here from gh-sync.py's private `_opt_int` (BUG-285 property 7) so the one coercion
+    gh-sync.py's `load_recorded` needs at three call sites (milestone, parent, each `issues`
+    member) lives beside the reader it belongs to, instead of duplicated wherever it is
+    needed.
+
+    Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT -- and "absent"
+    here meant gh-sync believed nothing was recorded and would create a duplicate parent or
+    milestone. `bool` is excluded explicitly: it is an `int` subclass in Python, so
+    `parent: true` would otherwise become `1`."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    s = str(value).strip()
+    return int(s) if s.isdigit() else None
 
 
 def write_feature_json(path, transform, timeout=None, tail_regex=None):

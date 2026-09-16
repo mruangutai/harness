@@ -2,15 +2,15 @@
 
 - 2026-08-29 (plan draft): plan-merge.py REFUSES the create path when the proposal carries an
   `approval:` key (apply_merge step 3 / 7b, exit 8) — so the mandated write tool can never produce a
-  NEW plan.yaml that check-state.sh accepts, because the plan.yaml invariant requires an `approval:`
+  NEW plan.yaml that check-state.py accepts, because the plan.yaml invariant requires an `approval:`
   mapping. I created the file with Write instead. Raised as an open_question; it is a harness defect,
   not a workaround to keep.
 - 2026-08-29 (plan draft): `observations-merge.py … --entries -` cannot be fed by a heredoc —
-  `bash-write-guard.sh` classifies `<<'EOF'` as a redirect and BLOCKS the whole command whatever the
+  `bash-write-guard.py` classifies `<<'EOF'` as a redirect and BLOCKS the whole command whatever the
   target. There is no in-domain temp path to stage entries in either, so on a first append the only
   route is Write on the log itself.
 - 2026-08-29 (plan draft): `.agents/skills` is a SYMLINK to `.claude/skills` in this repo — one inode,
-  two spellings. A task listing both paths would be doing nothing twice; `check-domain.sh --resolve`
+  two spellings. A task listing both paths would be doing nothing twice; `check-domain.py --resolve`
   answers on the `.claude/...` spelling.
 - 2026-08-29 (plan draft): the ` :: <ruling>` tail of a DECISIONS-INDEX.md row is HAND-written by the
   entry's author; gen-decisions-index.py does not produce it. A verify that greps the index for a

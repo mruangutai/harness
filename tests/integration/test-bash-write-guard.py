@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for bash-write-guard.sh (DEC-151, Task #5).
+"""Tests for bash-write-guard.py (DEC-151, Task #5).
 
 WHY THIS EXISTS: the guard was added after a live bypass, so loosening its
 detection without a test proving it STILL BLOCKS the real bypass shapes is how a
@@ -24,13 +24,13 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
-GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.sh")
+GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.py")
 
 
 def _env(root, **kw):
     """The guard's environment for a fixture rooted at `root` — BOTH names, one value.
 
-    FEAT-42 T-11. bash-write-guard.sh resolves its root through
+    FEAT-42 T-11. bash-write-guard.py resolves its root through
     harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name. The
     reverted sha-3952814 copy this suite is diffed against reads HARNESS_PROJECT_DIR first
     and CLAUDE_PROJECT_DIR second. Setting both to the same value is the ONE spelling under
@@ -151,6 +151,24 @@ case("an unbalanced quote does not crash the hook",
      "echo it's fine <<EOF\nx\nEOF", 0, agent="harness-documentor")
 
 # ---------------- MUST BLOCK: the DEC-151 bypass shapes ----------------
+# Issue #1544: Python is a common write carrier, not an unparseable shell escape.
+# Pin both policy branches: reviewers are read-only everywhere, while a writing agent's
+# literal target still goes through the ordinary domain check. Read-mode `open` is the
+# negative control; recognizing the function name alone would block legitimate probes.
+case("reviewer cannot write through python open",
+     "python3 -c \"open('src/main.py', 'w').write('x')\"", 2,
+     agent="harness-code-reviewer")
+case("python open write to an out-of-domain path",
+     "python3 -c \"open('src/main.py', 'w').write('x')\"", 2)
+case("python open keyword target and mode still block",
+     "python3 -c \"open(file='src/main.py', mode='w').write('x')\"", 2)
+case("python open write to an in-domain path",
+     "python3 -c \"open('.harness/harness/features/F/runs/r-eng/a.md', 'w').write('x')\"",
+     0)
+case("python open without a write mode remains a read",
+     "python3 -c \"open('src/main.py').read()\"", 0)
+case("python heredoc open write cannot bypass extraction",
+     "python3 - <<'PY'\nopen('src/main.py', 'w').write('x')\nPY", 2)
 case("output redirect to an out-of-domain path", 'echo x > src/main.py', 2)
 case("append redirect to an out-of-domain path", 'echo x >> src/main.py', 2)
 case("QUOTED redirect target still blocks", 'echo x > "src/main.py"', 2)
@@ -237,6 +255,17 @@ def run_t14():
                 r.returncode == 2 and "duplicate key" in r.stderr,
                 f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
 
+    strict_payload = (
+        '{"agent_type":"","agent_type":"harness-backend-dev",'
+        '"tool_name":"Bash","tool_input":{"command":"echo hi > '
+        + os.path.join(root, "forbidden", "duplicate.json") + '"}}'
+    )
+    strict = subprocess.run(
+        [GUARD], input=strict_payload, capture_output=True, text=True, env=_env(root))
+    if strict.returncode != 0:
+        T14.append(("duplicate hook-payload keys are rejected before policy evaluation",
+                    False, f"exit {strict.returncode}: {strict.stderr.strip()[:160]}"))
+
     # DEC-151's carve-out is unchanged: an absent manifest still fails OPEN. Needs an
     # isolated copy, not merely an empty CLAUDE_PROJECT_DIR — root falls back to
     # _derived, so a guard running from the real bin/ finds the real manifest whatever
@@ -244,10 +273,10 @@ def run_t14():
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
-    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.sh"))
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
     payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
                "tool_input": {"command": f"echo hi > {os.path.join(iso, 'x.txt')}"}}
-    r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
+    r = subprocess.run([os.path.join(isobin, "bash-write-guard.py")],
                        input=json.dumps(payload), capture_output=True, text=True,
                        env=_env(iso))
     T14.append(("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
@@ -258,8 +287,8 @@ def run_t14():
     #
     # THE PRODUCT-SHAPED PATH IS BACK, AND SO IS THE AGREEMENT (FEAT-17 T-03). On
     # 2026-08-11 the allow half was moved off <root>/src/main.py because the surfaces
-    # genuinely disagreed there: FEAT-15 taught check-domain.sh that a product-shaped
-    # target inside the harness root is refused, and bash-write-guard.sh was out of that
+    # genuinely disagreed there: FEAT-15 taught check-domain.py that a product-shaped
+    # target inside the harness root is refused, and bash-write-guard.py was out of that
     # feature's scope, so Write exited 2 and Bash exited 0. Issue #261. That divergence
     # is closed — this guard now decides from harness_boundary.classify — so the case is
     # restored rather than left describing a split the code no longer has.
@@ -273,7 +302,7 @@ def run_t14():
         "          - { path: .harness/allowed/**, upsert: true }\n"
         "          - { path: src/**, upsert: true }")
     root = fixture(agree_manifest)
-    cd = os.path.join(HERE, "check-domain.sh")
+    cd = os.path.join(HERE, "check-domain.py")
     for rel, want in ((".harness/allowed/x.txt", 0), ("src/main.py", 2),
                       ("forbidden/x.txt", 2)):
         tgt = os.path.join(root, rel)
@@ -448,15 +477,18 @@ def run_worktree():
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
-    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.sh"))
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
     shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
+    shutil.copy(
+        os.path.join(HERE, "artifact_accessors.py"),
+        os.path.join(isobin, "artifact_accessors.py"))
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
         f.write(FIXTURE_MANIFEST)
     payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
                "tool_input": {"command": "echo hi > %s"
                               % os.path.join(iso, ".harness", "allowed", "x.txt")}}
-    r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
+    r = subprocess.run([os.path.join(isobin, "bash-write-guard.py")],
                        input=json.dumps(payload), capture_output=True, text=True,
                        env=_env(iso))
     wtb("a MISSING harness_boundary.py blocks the bash write and NAMES the module",
@@ -483,10 +515,10 @@ def run_worktree():
     m_tmp = tempfile.mkdtemp()
     m_bin = os.path.join(m_tmp, "bin")
     os.makedirs(m_bin)
-    for fn in ("check-domain.sh", "bash-write-guard.sh", "harness_boundary.py",
-               "harness_yaml.py"):
+    for fn in ("artifact_accessors.py", "check-domain.py", "bash-write-guard.py",
+               "harness_boundary.py", "harness_yaml.py", "run_identity.py"):
         shutil.copy(os.path.join(HERE, fn), os.path.join(m_bin, fn))
-    for fn in ("check-domain.sh", "bash-write-guard.sh"):
+    for fn in ("check-domain.py", "bash-write-guard.py"):
         os.chmod(os.path.join(m_bin, fn), 0o755)
 
     m_root = os.path.join(m_tmp, "root")
@@ -501,12 +533,12 @@ def run_worktree():
     def _both_routes():
         env = _env(m_wt,
                    PYTHONPATH=m_bin + os.pathsep + os.environ.get("PYTHONPATH", ""))
-        b = subprocess.run([os.path.join(m_bin, "bash-write-guard.sh")],
+        b = subprocess.run([os.path.join(m_bin, "bash-write-guard.py")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
                                              "tool_name": "Bash",
                                              "tool_input": {"command": f"echo hi > {m_target}"}}),
                            capture_output=True, text=True, env=env)
-        w = subprocess.run([os.path.join(m_bin, "check-domain.sh")],
+        w = subprocess.run([os.path.join(m_bin, "check-domain.py")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
                                              "tool_name": "Write",
                                              "tool_input": {"file_path": m_target,
@@ -653,7 +685,7 @@ def run_worktree_deep():
     A FINDING FIRST, because T-04's intent asks for something this route cannot do. It
     asks for a paired case where a granted path at depth is allowed and "a path that agent
     is not granted, at the same depth, is refused" — and in the same breath forbids
-    touching `bash-write-guard.sh:545`. That line is
+    touching `bash-write-guard.py:545`. That line is
     `if re.match(r"^\\.claude/worktrees/", rel): continue`: DEC-153's BLANKET allow for
     governed agents anywhere under the segment. So the refuse half is unreachable on this
     route by construction, and the intent is internally contradictory. The instruction not
@@ -691,7 +723,7 @@ def run_worktree_deep():
           "carve-out is blanket and depth-agnostic",
           r_un.returncode == 0,
           f"exit {r_un.returncode}: {r_un.stderr.strip()[:200]} — if this now refuses, "
-          f"bash-write-guard.sh:545 was narrowed and DEC-153 needs re-reading first")
+          f"bash-write-guard.py:545 was narrowed and DEC-153 needs re-reading first")
 
     # THE REFUSAL, where it is reachable: an out-of-place linked worktree of the same
     # root. Refused ahead of the DEC-153 continue, and the message names the location.
@@ -961,6 +993,343 @@ def run_feat50_checkout_binding():
 
 
 
+def bug1304_pre_change_guard(dest):
+    copied_bin = isolated_bin(dest)
+    guard = os.path.join(copied_bin, "bash-write-guard.py")
+    fixture_path = os.path.join(
+        TESTS_DIR, "fixtures", "prior-bash-write-guard.fixture")
+    shutil.copyfile(fixture_path, guard)
+    os.chmod(guard, 0o755)
+    return guard
+
+
+def _bug1304_bash_fire(root, command, agent, guard=GUARD):
+    payload = {
+        "agent_type": agent,
+        "tool_name": "Bash",
+        "tool_input": {"command": command},
+    }
+    return subprocess.run(
+        [guard], input=json.dumps(payload), capture_output=True,
+        text=True, env=_env(root),
+    )
+
+
+def bug1304_assert_pre_change_allows(results, name, root, command, agent, control_path):
+    isolated = tempfile.mkdtemp()
+    prior = bug1304_pre_change_guard(isolated)
+    allowed = _bug1304_bash_fire(root, command, agent, guard=prior)
+    stderr = allowed.stderr or ""
+    control = _bug1304_bash_fire(
+        root, f"echo controlled > {control_path}", agent, guard=prior)
+    results.append((
+        name + " is allowed by the frozen pre-change guard",
+        allowed.returncode == 0
+        and not any(marker in stderr for marker in (
+            "enforcement OFF", "was not enforced", "passing through"))
+        and control.returncode == 2,
+        f"allow={allowed.returncode} control={control.returncode} stderr={stderr[:160]!r}",
+    ))
+    shutil.rmtree(isolated, ignore_errors=True)
+
+
+def _bug1304_bash_fixture():
+    manifest = FIXTURE_MANIFEST.replace(
+        '          - { path: ".", read: true }',
+        '          - { path: .harness/expertise/**, upsert: true }\n'
+        '          - { path: ".", read: true }',
+    )
+    root = fixture(manifest)
+    first = os.path.join(root, ".claude", "worktrees", "FEAT-1304-A")
+    second = os.path.join(root, ".claude", "worktrees", "FEAT-1304-B")
+    _linked_worktree(first, root, "A", manifest)
+    _linked_worktree(second, root, "B", manifest)
+    return root, first, second
+
+
+def _bug1304_bash_expect(results, root, agent, name, command, want, contains=None):
+    response = _bug1304_bash_fire(root, command, agent)
+    text = response.stdout + response.stderr
+    ok = response.returncode == want and (contains is None or contains in text)
+    results.append((name, ok, f"exit={response.returncode} output={text[:180]!r}"))
+    return response
+
+
+def _bug1304_bash_context(agent, inflight_registry):
+    root, first, second = _bug1304_bash_fixture()
+    inflight_registry.claim(
+        first, agent, "harness-eng-lead", first,
+        feature="FEAT-1304-A-claim-guard")
+    control_path = os.path.join(
+        first, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    return {
+        "root": root, "first": first, "second": second,
+        "control": control_path, "agent": agent,
+    }
+
+
+def _bug1304_bash_main_routes(results, context):
+    root = context["root"]
+    first = context["first"]
+    agent = context["agent"]
+    main_path = os.path.join(root, ".harness", "allowed", "main.md")
+    sibling_path = os.path.join(context["second"], ".harness", "allowed", "sibling.md")
+    cases = (
+        ("relative main", "echo x > .harness/allowed/main.md"),
+        ("in-place sed", "sed -i '' 's/a/b/' .harness/allowed/main.md"),
+        ("absolute main", f"echo x > {main_path}"),
+        ("sibling", f"echo x > {sibling_path}"),
+    )
+    for label, command in cases:
+        _bug1304_bash_expect(
+            results, root, agent, f"{label} write is refused", command, 2, first)
+        bug1304_assert_pre_change_allows(
+            results, label, root, command, agent, context["control"])
+
+    own_path = os.path.join(first, ".harness", "allowed", "own.md")
+    _bug1304_bash_expect(
+        results, root, agent, "relative held-worktree redirect remains allowed",
+        f"echo x > {os.path.relpath(own_path, root)}", 0)
+    _bug1304_bash_expect(
+        results, root, agent, "absolute held-worktree redirect remains allowed",
+        f"echo x > {own_path}", 0)
+
+
+def _bug1304_bash_unbound_routes(results, context):
+    agent = context["agent"]
+    unbound = fixture(FIXTURE_MANIFEST)
+    response = _bug1304_bash_fire(
+        unbound, "echo x > .harness/allowed/main.md", agent)
+    results.append(("unbound main redirect remains allowed",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    scratch = os.path.join(tempfile.mkdtemp(), "scratch.md")
+    _bug1304_bash_expect(
+        results, context["root"], agent, "scratch redirect remains allowed",
+        f"echo x > {scratch}", 0)
+
+
+def _bug1304_bash_owner_claim(results, context, inflight_registry):
+    agent = context["agent"]
+    unmatched = fixture(FIXTURE_MANIFEST)
+    matching = os.path.join(unmatched, ".claude", "worktrees", "FEAT-1304-C")
+    _linked_worktree(matching, unmatched, "C", FIXTURE_MANIFEST)
+    inflight_registry.claim(
+        unmatched, agent, "harness-eng-lead", unmatched,
+        feature="FEAT-404-no-worktree")
+    command = "echo x > .harness/allowed/unmatched.md"
+    response = _bug1304_bash_fire(unmatched, command, agent)
+    results.append(("unresolved owner-root claim remains unbound",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    inflight_registry.claim(
+        unmatched, agent, "harness-eng-lead", unmatched,
+        feature="FEAT-1304-C-linked")
+    _bug1304_bash_expect(
+        results, unmatched, agent, "owner-root matching claim refuses main redirect",
+        command, 2, matching)
+    control = os.path.join(
+        matching, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "owner-root matching claim", unmatched, command, agent, control)
+
+
+def _bug1304_bash_multi_and_malformed(results, context, inflight_registry):
+    root = context["root"]
+    agent = context["agent"]
+    second = context["second"]
+    inflight_registry.claim(
+        second, agent, "harness-eng-lead", second,
+        feature="FEAT-1304-B-claim-guard")
+    _bug1304_bash_expect(
+        results, root, agent, "two claims allow redirect inside either held worktree",
+        f"echo x > {os.path.join(second, '.harness', 'allowed', 'own.md')}", 0)
+
+    malformed = os.path.join(root, ".claude", "worktrees", "broken")
+    os.makedirs(malformed, exist_ok=True)
+    with open(os.path.join(malformed, ".git"), "w", encoding="utf-8") as handle:
+        handle.write("not-a-pointer\n")
+    command = f"echo x > {os.path.join(malformed, '.harness', 'allowed', 'x.md')}"
+    _bug1304_bash_expect(
+        results, root, agent,
+        "malformed worktree pointer refuses with nonempty claim set",
+        command, 2, context["first"])
+    bug1304_assert_pre_change_allows(
+        results, "malformed checkout", root, command, agent, context["control"])
+
+
+def _bug1304_bash_ambiguous(results, context, inflight_registry):
+    agent = context["agent"]
+    ambiguous = fixture(FIXTURE_MANIFEST)
+    first = os.path.join(ambiguous, ".claude", "worktrees", "FEAT")
+    second = os.path.join(ambiguous, ".claude", "worktrees", "FEAT-X")
+    _linked_worktree(first, ambiguous, "AMB1", FIXTURE_MANIFEST)
+    _linked_worktree(second, ambiguous, "AMB2", FIXTURE_MANIFEST)
+    inflight_registry.claim(
+        ambiguous, agent, "harness-eng-lead", ambiguous,
+        feature="FEAT-X-ambiguous")
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, ambiguous, agent,
+        "ambiguous claim refuses and names candidates", command, 2, "FEAT, FEAT-X")
+    control = os.path.join(
+        first, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "ambiguous claim", ambiguous, command, agent, control)
+
+
+def _bug1304_bash_short_claim(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(FIXTURE_MANIFEST)
+    short = os.path.join(root, ".claude", "worktrees", "BUG-1304")
+    _linked_worktree(short, root, "SHORT", FIXTURE_MANIFEST)
+    inflight_registry.claim(
+        short, agent, "harness-eng-lead", short,
+        feature="BUG-1304-worktree-relative-path-guard")
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, root, agent, "short-form claim refuses main redirect", command, 2)
+    control = os.path.join(
+        short, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "short-form", root, command, agent, control)
+
+
+def _bug1304_bash_expertise(results, context):
+    root = context["root"]
+    agent = context["agent"]
+    expertise = os.path.join(root, ".harness", "expertise", f"{agent}.md")
+    route = (
+        "python3 .agents/skills/harness/bin/expertise-merge.py apply "
+        f"--file {expertise} --entries -")
+    _bug1304_bash_expect(
+        results, root, agent, "sanctioned expertise merge route remains allowed", route, 0)
+    redirect = f"echo x > {expertise}"
+    response = _bug1304_bash_expect(
+        results, root, agent,
+        "direct expertise redirect is refused with sanctioned advice",
+        redirect, 2, "expertise-merge.py")
+    results.extend((
+        ("expertise refusal does not advise writing in worktree",
+         "write it from a bound worktree" not in response.stderr, response.stderr[:180]),
+        ("expertise refusal never suggests the unavailable Write route",
+         "Write tool" not in response.stderr, response.stderr[:180]),
+    ))
+    bug1304_assert_pre_change_allows(
+        results, "expertise redirect", root, redirect, agent, context["control"])
+
+
+def _bug1304_bash_existing_guards(results, context):
+    root = context["root"]
+    first = context["first"]
+    agent = context["agent"]
+    _bug1304_bash_expect(
+        results, root, agent, "run digest guard remains ahead of claim rule",
+        f"echo x > {context['control']}", 2)
+    state_path = os.path.join(
+        first, ".harness", "harness", "features", "F", "runs", "r-eng", "state.yaml")
+    _bug1304_bash_expect(
+        results, root, agent, "run state guard remains ahead of claim rule",
+        f"echo x > {state_path}", 2)
+    missing = tempfile.mkdtemp()
+    response = _bug1304_bash_fire(
+        missing, f"echo x > {os.path.join(missing, 'inside.md')}", agent)
+    results.append(("missing manifest fail-open remains unchanged",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(
+        results, root, agent, "temporary path remains not-a-domain-question",
+        f"echo x > {os.path.join(tempfile.mkdtemp(), 'outside.md')}", 0)
+
+
+def _bug1304_bash_aged_claim(results, context, inflight_registry, time):
+    registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
+    data = json.load(open(registry, encoding="utf-8"))
+    data["claims"][0]["started_at"] = (
+        time.time() - inflight_registry.CLAIM_TTL_SECONDS - 5)
+    with open(registry, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, context["root"], context["agent"],
+        "aged compatibility claim still refuses", command, 2, context["first"])
+    bug1304_assert_pre_change_allows(
+        results, "aged claim", context["root"], command,
+        context["agent"], context["control"])
+
+
+def _bug1304_bash_unreadable(results, context, inflight_registry):
+    root, worktree, _ = _bug1304_bash_fixture()
+    agent = context["agent"]
+    inflight_registry.claim(
+        worktree, agent, "harness-eng-lead", worktree,
+        feature="FEAT-1304-A-unreadable")
+    registry = os.path.join(worktree, inflight_registry.REGISTRY_REL)
+    with open(registry, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, root, agent, "unreadable registry refuses and names file",
+        command, 2, registry)
+    control = os.path.join(
+        worktree, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "unreadable registry", root, command, agent, control)
+    with open(registry, "w", encoding="utf-8") as handle:
+        json.dump({"schema_version": 2, "claims": []}, handle)
+    response = _bug1304_bash_fire(root, command, agent)
+    results.append(("readable empty registry remains allowed",
+                    response.returncode == 0, f"exit={response.returncode}"))
+
+
+def _bug1304_bash_partial_registry(results, context, inflight_registry):
+    root, own, corrupt = _bug1304_bash_fixture()
+    agent = context["agent"]
+    inflight_registry.claim(
+        own, agent, "harness-eng-lead", own, feature="FEAT-1304-A-readable")
+    corrupt_registry = os.path.join(corrupt, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(corrupt_registry), exist_ok=True)
+    with open(corrupt_registry, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    own_command = f"echo x > {os.path.join(own, '.harness', 'allowed', 'inside.md')}"
+    response = _bug1304_bash_fire(root, own_command, agent)
+    results.append(("readable member allows despite unrelated unreadable registry",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, root, agent, "outside partial set refuses unreadable registry",
+        command, 2, corrupt_registry)
+    control = os.path.join(
+        own, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "partial unreadable", root, command, agent, control)
+
+
+def run_bug1304_claim_set():
+    """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
+    import inflight_registry
+    import time
+
+    results = []
+    context = _bug1304_bash_context("harness-backend-dev", inflight_registry)
+    _bug1304_bash_main_routes(results, context)
+    _bug1304_bash_unbound_routes(results, context)
+    _bug1304_bash_owner_claim(results, context, inflight_registry)
+    _bug1304_bash_multi_and_malformed(results, context, inflight_registry)
+    _bug1304_bash_ambiguous(results, context, inflight_registry)
+    _bug1304_bash_short_claim(results, context, inflight_registry)
+    _bug1304_bash_expertise(results, context)
+    _bug1304_bash_existing_guards(results, context)
+    _bug1304_bash_aged_claim(results, context, inflight_registry, time)
+    _bug1304_bash_unreadable(results, context, inflight_registry)
+    _bug1304_bash_partial_registry(results, context, inflight_registry)
+
+    failures = 0
+    for name, ok, detail in results:
+        print(("PASS " if ok else "FAIL "), "[bug1304]", name)
+        if not ok:
+            failures += 1
+            print("      " + detail)
+    return failures
+
+
 def main():
     fails = 0
     for name, cmd, want, agent in CASES:
@@ -983,11 +1352,12 @@ def main():
     fails += run_feat50_checkout_binding()
     fails += run_bug895_wrong_checkout()
     fails += run_bug1106_bash_route()
+    fails += run_bug1304_claim_set()
     return fails
 
 def run_bug895_wrong_checkout():
     """Issue #895 code review (PR #1188): the Bash route must refuse the SAME
-    wrong-checkout write check-domain.sh (Write/Edit route) already refuses — two
+    wrong-checkout write check-domain.py (Write/Edit route) already refuses — two
     surfaces disagreeing is a bypass by construction (DEC-151)."""
     root = os.path.join(tempfile.mkdtemp(), "root")
     os.makedirs(os.path.join(root, ".harness"))
@@ -1040,18 +1410,21 @@ def _run_artifact_fixture():
     root = fixture(RUN_ARTIFACT_MANIFEST)
     digest_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/digest.md"
     state_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/state.yaml"
+    identity_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/.run-identity.json"
     other_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/notes.txt"
     os.makedirs(os.path.dirname(os.path.join(root, digest_rel)), exist_ok=True)
-    return root, digest_rel, state_rel, other_rel
+    with open(os.path.join(root, identity_rel), "w") as marker:
+        marker.write("{}\n")
+    return root, digest_rel, state_rel, identity_rel, other_rel
 
 
 def run_bug1106_bash_route():
     """Issue #1106, gap (a) on the Bash route. Bash carries no complete incoming payload
     to compare against prior content, so content-based protection (issue #1058's digest
-    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.sh) is
+    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.py) is
     structurally impossible here — a route-only refusal is the weakest sufficient rule."""
     results = []
-    root, digest_rel, state_rel, other_rel = _run_artifact_fixture()
+    root, digest_rel, state_rel, identity_rel, other_rel = _run_artifact_fixture()
 
     r = fire(root, f"echo hi > {os.path.join(root, digest_rel)}")
     results.append(("bug1106 Bash route: a write to a run's digest.md is REFUSED",
@@ -1068,6 +1441,18 @@ def run_bug1106_bash_route():
         "bug1106 Bash route NEGATIVE CONTROL: an unrelated file in the same run "
         "directory is still ALLOWED — this is not a blanket run-dir Bash ban",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi > {os.path.join(root, identity_rel)}")
+    results.append((
+        "bug1305 Bash route: overwriting the write-once identity witness is refused",
+        r.returncode == 2 and "identity witness" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+
+    r = fire(root, f"rm {os.path.join(root, identity_rel)}")
+    results.append((
+        "bug1305 Bash route: removing the write-once identity witness is refused",
+        r.returncode == 2 and "identity witness" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
 
     r = fire(root, f"echo hi | tee {os.path.join(root, digest_rel)}")
     results.append((

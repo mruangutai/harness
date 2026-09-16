@@ -36,7 +36,7 @@ forced constraint; everything else here was a choice.
   `RE_CLAUDE_MD` (`^CLAUDE\.md$`) and the four state regexes match nothing. The conversion set is
   unchanged — both fixtures were already named — so the operator's cost is not larger.
 - **T-03's own sixteen in-worktree cases were also at risk, and no angle saw it.** The resolve path
-  at `check-domain.sh:212` matches `harness_boundary.WORKTREE_REL_RE`, which T-04 PART 2 replaces;
+  at `check-domain.py:212` matches `harness_boundary.WORKTREE_REL_RE`, which T-04 PART 2 replaces;
   T-03 builds its in-worktree half bare. This is why the fix touches T-03 as well as T-04, and it
   is the extra cost of shape 2 over shape 1: every worktree fixture now needs a pointer pair.
 - **The pointer PAIR, not a pointer.** `checkout_relative` reads the worktree-side `.git` file;
@@ -55,9 +55,9 @@ whole file to pass, so it is caught inside the task, by the operator, before lan
 ## Also applied
 
 - **A-2** — T-06 gains case 8, a drift detector asserting `expertise-merge.py`'s four caps equal the
-  `CAPS` mapping in `check-expertise.sh` (line 39, a file T-06 does not modify), the remedy
+  `CAPS` mapping in `check-expertise.py` (line 39, a file T-06 does not modify), the remedy
   `DECISIONS.md:5219-5225` recorded. `files:` unchanged.
-- **Q8, answered** — D-08's choice is now the suite baseline alone, with the `check-state.sh` clause
+- **Q8, answered** — D-08's choice is now the suite baseline alone, with the `check-state.py` clause
   relabelled as an operator-run ship-time sanity check, explicitly not part of SC-09 and owned by no
   task. No verify invented. The count-form reasoning is kept: it is the lesson, not the assertion.
   The suite half now also carries its re-observation at HEAD (269 PASS, 0 FAIL, exit 0).

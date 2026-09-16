@@ -90,6 +90,6 @@
   grep the tool for a dry-run path. Also: SC-01's prose froze the count at 169 while its operative
   clause said "counted at run time"; DEC-170 made the live count 170, so checking the literal would
   have produced a false FAIL. The operative clause governs; the stale literal is a report, not an edit.
-- 2026-08-02: `bash-write-guard.sh` blocked a read-only `python3 - <<'EOF'` heredoc, reading the
+- 2026-08-02: `bash-write-guard.py` blocked a read-only `python3 - <<'EOF'` heredoc, reading the
   in-script `if word_count > 30:` as a `redirect` target "30" outside my domain. Workaround was
   `python3 -c` with escaped `$` and backticks. Already on record as a harness defect.

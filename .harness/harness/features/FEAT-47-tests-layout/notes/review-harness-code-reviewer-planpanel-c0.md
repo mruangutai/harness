@@ -20,7 +20,7 @@ duplicate (`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`/drift-detector/KIND-CROSS-CHECK)
 greps repo-wide for the literal strings `UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS`, `check-kinds`
 (plan.yaml T-06 verify block). That only catches a *literal reintroduction of the old names*. Nothing
 in any task's `verify:` or intent scans for a *new*, differently-named reimplementation of the
-layout-violation logic (e.g. inline in `run-unit-tests.sh`, or a second `violations()`-shaped
+layout-violation logic (e.g. inline in `run-unit-tests.py`, or a second `violations()`-shaped
 function elsewhere). `tests/unit/test-suite-layout.py` (T-05 step 2) only exercises the behavior of
 `suite_layout.violations()` itself — it can't detect a duplicate living beside it. Concrete
 consequence: a future edit that adds a second, slightly different layout check (the exact failure
@@ -79,7 +79,7 @@ is measured-not-assumed counts.
   topological position (after T-07); this is consistent with D-09's explicit statement that the
   constraint lives in `depends_on`, not list order, so I did not file it as a finding.
 - T-07 (identify #1053 partner): its verify runs files directly with `python3`, never through
-  `run-unit-tests.sh` — correct, since the runner is explicitly unusable between T-02 and T-05 (stated
+  `run-unit-tests.py` — correct, since the runner is explicitly unusable between T-02 and T-05 (stated
   in T-02's and T-07's own intent) and T-07 doesn't depend on T-05.
 - File-count arithmetic: 36 (T-02) + 19 (T-03) + 1 probe (T-04) = 56, matches BRIEF's baseline; 10
   reassigned unit→integration files matches D-04's list exactly; unit 19+1(T-05)+1(T-07)=21 and

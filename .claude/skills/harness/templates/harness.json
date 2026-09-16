@@ -1,9 +1,10 @@
 {
-  "_template": "Canonical harness.json. /harness-init copies this to .harness/harness.json and dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md.",
+  "_template": "Canonical harness.json. harness-init instantiates this as the control plane's own .harness/harness.json. harness-add-repo instantiates a fleet member's own .harness/harness.json which must be committed to that repository's default branch - factory_config.product_config reads it from the remote there, with no disk fallback. dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md.",
   "schema_version": 2,
-  "cli_min_version": "2.1.217",
-  "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. check-state.sh is copied into every onboarded project, so this MUST be per-project: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
+  "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. This MUST be per-project because each repository's own harness.json is read from its own default branch: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
   "panel_era_start": null,
+  "_seam_era_start_note": "The date the graded phase seam (BUG-1723, INV-43) became available in THIS project. INV-43 does not grade a succession judgement recorded before it \u2014 the record cannot be re-recorded to satisfy a rule that did not exist when it was written (DEC-227) \u2014 and reports it as a note instead. null means the project never predated the seam.",
+  "seam_era_start": null,
   "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff.",
   "test_matrix": {
     "logic": {
@@ -56,10 +57,16 @@
       ]
     },
     "bugfix": {
-      "always": [
-        "unit"
-      ],
+      "always": [],
       "when": [
+        {
+          "kind": "unit",
+          "if": "touches_runtime_code"
+        },
+        {
+          "kind": "integration",
+          "if": "fix_confined_to_tests_and_contract_docs"
+        },
         {
           "kind": "__bug_class__",
           "if": "match_bug_class"
@@ -149,7 +156,13 @@
     "_max_total_runs_rationale": "INFORMATIONAL, NOT A GATE (issue #79). Cycles count REWORK only (DEC-157), so a first-pass run adds nothing and NOTHING bounded or even counted total runs \u2014 FEAT-03 ran 19 times against a 6-cycle count and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted it, so this is the only one left. Set to 20 from measured data: across nine features the range is 1-19 runs (median 14), so this is a tripwire for the runaway, NOT a critique of normal work \u2014 a long feature is fine if each run is efficient, resolves issues and advances the SCs. Crossing it emits a NOTE naming those three questions; it never stops a branch. NOTE THE KNOWN UNDER-COUNT: a main-session-direct segment is not a run and never appears in runs:, which on FEAT-07 hid eight of ten tasks, so the count is a FLOOR.",
     "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.json.",
     "orchestrator_context_warn_tokens": 200000,
-    "_orchestrator_context_warn_tokens_rationale": "INFORMATIONAL, NOT A GATE: the orchestrator context size at which the harness ADVISES rather than refuses, a context token count and not money."
+    "_orchestrator_context_warn_tokens_rationale": "INFORMATIONAL, NOT A GATE: the orchestrator context size at which the harness ADVISES rather than refuses, a context token count and not money.",
+    "plan_phase_warn_minutes": 90,
+    "rework_round_minutes": 45,
+    "_rework_round_minutes_rationale": "The per-round allowance `feature-record.py propose-rework` multiplies by the proposed rounds to give the operator a baseline `--rework minutes=M` at signature (FEAT-59 SC-15). A proposal, never a gate: the operator confirms or changes it, and the signed value is what the SPEND advisory measures against. 45 is a starting constant with no measured basis; once five shipped features carry `rework_rounds`, the median measured minutes per round replaces it.",
+    "_plan_phase_warn_minutes_rationale": "INFORMATIONAL, NOT A GATE (FEAT-59 SC-19): the wall-clock minutes a feature may spend before build entry, summed from feature.json runs[].started_at/ended_at, past which the OMP hook appends one SPEND advisory line to the orchestrator's wake; 90 is the BRIEF's plan-lane KPI target (patch lane: 30), and after build entry the per-feature rework.wall_clock_minutes ruling takes its place.",
+    "preload_warn_words": {"universal": 1900, "agent": 5500},
+    "_preload_warn_words_rationale": "INFORMATIONAL, NOT A GATE (FEAT-60 SC-08): words of SKILL.md text an agent preloads through autoloadSkills; `universal` bounds the set every agent carries, `agent` bounds any one agent. check-skill-weight.py measures, check-state.py NOTES an excess."
   },
   "gates": {
     "qa_gate": "blocking",
@@ -158,7 +171,7 @@
     "merge": "user_gated"
   },
   "github": {
-    "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE at /harness-init; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
+    "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE by harness-add-repo; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. For a fleet member this block is read from that repository's own harness.json at its default_branch, so pinning it in a checkout alone changes nothing. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
     "sync": false,
     "repo": null,
     "_board_note": "Project board for the station mirror (FEAT-18): owner, number, station_field, and stations — an ORDERED LIST of exactly the six lowercase names backlog, plan, ready, building, review, done. THE SIX ARE FIXED AND MAY NOT BE RENAMED, REORDERED OR EXTENDED (FEAT-41 T-01); factory_config.MANDATED_STATIONS is the mandate the declaration is checked against, so the list is a checksum rather than a place to choose names. The board's column names are DERIVED from the six by factory_config.station_column(), the one place a capitalised station name is produced, so store no capitals here. Extra columns you add to the board yourself are untouched by the harness. Everything resolves by name at runtime, never by a pinned id. null = this project has no board and no station is ever written. A board that is present but incomplete is a loud error naming the offending key, never a silently disabled feature.",

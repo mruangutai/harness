@@ -17,6 +17,6 @@
   move on a duplicate dispatch is to re-derive the baseline from `git show HEAD:<file>` (which
   proves the working-tree edit is the cause) and audit the landed prose against source, rather than
   either redoing it or trusting the prior receipt.
-- 2026-08-22 (T-19): `bash-write-guard.sh` rejected a `cat >> file <<'EOF'` heredoc, reporting the
+- 2026-08-22 (T-19): `bash-write-guard.py` rejected a `cat >> file <<'EOF'` heredoc, reporting the
   redirect target as `40` — a bare number from the heredoc body. Appending to a file I own must go
   through Read-then-Edit, not a shell redirect, whenever the content contains numerals.

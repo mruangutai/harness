@@ -29,11 +29,11 @@ No credentials, raw transcripts, absolute home paths, or machine-specific sessio
 Command:
 
 ```bash
-bash .claude/skills/harness/bin/run-unit-tests.sh && \
-  bash .claude/skills/harness/bin/check-state.sh
+python3 .claude/skills/harness/bin/run-unit-tests.py && \
+  python3 .claude/skills/harness/bin/check-state.py
 ```
 
-Observed result: exit `0`. The complete unit suite reported all checks passed. `check-state.sh` completed and emitted existing informational notes, including pruned run-directory references and historical state-file shape notes; it emitted no blocking exit.
+Observed result: exit `0`. The complete unit suite reported all checks passed. `check-state.py` completed and emitted existing informational notes, including pruned run-directory references and historical state-file shape notes; it emitted no blocking exit.
 
 The worktree was clean after all disposable probes were removed.
 
@@ -143,7 +143,7 @@ Desired post-port contract: malformed Harness digests are rejected at source, wi
 
 ### Dispatch override policy — SCHEMA-SIDE TODAY
 
-OMP exposed no per-dispatch model parameter. The attempted override was ignored rather than reaching the current Claude `dispatch-guard.sh`; the child used its agent default. Provider-neutral aliases must preserve the no-invocation-override contract without relying on a nonexistent field.
+OMP exposed no per-dispatch model parameter. The attempted override was ignored rather than reaching the current Claude `dispatch-guard.py`; the child used its agent default. Provider-neutral aliases must preserve the no-invocation-override contract without relying on a nonexistent field.
 
 ## Script-policy baseline
 
@@ -188,8 +188,8 @@ omp config get modelRoles
 omp config get task.maxRecursionDepth
 
 # Deterministic gates
-bash .claude/skills/harness/bin/run-unit-tests.sh
-bash .claude/skills/harness/bin/check-state.sh
+python3 .claude/skills/harness/bin/run-unit-tests.py
+python3 .claude/skills/harness/bin/check-state.py
 
 # Model-mediated discovery and lifecycle probes
 omp -p --no-session --model openai-codex/gpt-5.6-sol --auto-approve '<bounded probe prompt>'

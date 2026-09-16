@@ -27,7 +27,7 @@ No. Checked every new task's `files:` against its `execution_agent`:
 
 | task | execution_agent | files | in-lane? |
 |---|---|---|---|
-| T-24 | harness-backend-dev | `run-unit-tests.sh` | yes — matches T-19's (done) lane for the same file |
+| T-24 | harness-backend-dev | `run-unit-tests.py` | yes — matches T-19's (done) lane for the same file |
 | T-25 | harness-dev-ops | `.harness/harness.json` | yes — matches T-18's (done) lane for the same file |
 | T-26 | harness-backend-dev | `check-decision-claims.py`, `test-check-decision-claims.py` | yes — matches T-20's (done) lane for the same files |
 | T-27 | harness-documentor | `DECISIONS.md` | yes — matches T-21's (done) lane |
@@ -68,8 +68,8 @@ No task's `verify:` is more elaborate than the claim it defends — every clause
 ## Q4 — same fact asserted twice through different spellings
 
 ### F2 — the claims-test-absence assertion is independently spelled in four places, two of them "done" tasks
-- **Lines:** `.harness/harness.json` absence — T-18 (plan.yaml:1362-1369, `done`) and T-25 (plan.yaml:1799-1809). `run-unit-tests.sh` absence — T-19 (plan.yaml:1423, `done`) and T-24 (plan.yaml:1746).
-- **Problem:** T-18's rewritten verify and T-25's verify both independently re-derive and assert `test-check-decision-claims.py` (as a literal string) is absent from `.harness/harness.json`'s integration `detect`; T-19's rewritten verify and T-24's verify both independently assert the same literal string is absent from `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`. That is the same fact, twice per file, in four separately-maintained literal-string spellings. The duplication is deliberately explained in T-18/T-19's intent (the runner cross-checks both registration sides and exits 2 on disagreement, so the already-landed tasks need to keep re-asserting the absence at final state, not just at their own original landing) — it is not a defect in isolation.
+- **Lines:** `.harness/harness.json` absence — T-18 (plan.yaml:1362-1369, `done`) and T-25 (plan.yaml:1799-1809). `run-unit-tests.py` absence — T-19 (plan.yaml:1423, `done`) and T-24 (plan.yaml:1746).
+- **Problem:** T-18's rewritten verify and T-25's verify both independently re-derive and assert `test-check-decision-claims.py` (as a literal string) is absent from `.harness/harness.json`'s integration `detect`; T-19's rewritten verify and T-24's verify both independently assert the same literal string is absent from `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`. That is the same fact, twice per file, in four separately-maintained literal-string spellings. The duplication is deliberately explained in T-18/T-19's intent (the runner cross-checks both registration sides and exits 2 on disagreement, so the already-landed tasks need to keep re-asserting the absence at final state, not just at their own original landing) — it is not a defect in isolation.
 - **Concrete cost:** if the literal filename ever needs to change again (renamed, moved), an editor must find and update all four spellings in lockstep. The two "done" tasks are the likeliest to be missed, precisely because their status reads as already landed and closed.
 - **Recommendation:** advisory only. No fix is required before signature — removing either T-18/T-19's re-assertion or T-24/T-25's would weaken a gate the qa pass has already accepted (the apply-side rule in `harness-simplify` forbids exactly that trade). Cheapest mitigation, if pm wants one: have T-18 and T-19's verify comments cite T-24/T-25 by id (`# duplicate of T-24/T-25's absence check, kept as the cross-registration control`) so a future editor searching for the literal string finds all four sites from any one of them.
 

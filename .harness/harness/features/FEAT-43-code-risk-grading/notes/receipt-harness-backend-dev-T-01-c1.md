@@ -6,14 +6,14 @@
 
 ## Corrective edit
 
-`test-code-grade.py`'s match-case fixture now derives the signed ABC rule correctly: both cases count toward C, yielding C=2 and ABC=2.0. `code_grade.py` and `run-unit-tests.sh` were not changed.
+`test-code-grade.py`'s match-case fixture now derives the signed ABC rule correctly: both cases count toward C, yielding C=2 and ABC=2.0. `code_grade.py` and `run-unit-tests.py` were not changed.
 
 ## Required verification
 
 Invocation (verbatim):
 
 ```text
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Exit status: 0.

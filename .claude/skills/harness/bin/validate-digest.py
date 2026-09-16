@@ -29,6 +29,8 @@ import sys, re, os, json, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
+import artifact_accessors
+import amendment_contract
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
@@ -56,6 +58,9 @@ NULLABLE = {"branch", "blocked_on", "briefing",
             # did-nothing state: refusing a task, being unable to run, or scoping
             # out of a diff that has nothing for this role to judge.
             "suite", "matrix_ok", "severity_max", "contract", "surface", "risk",
+            # A visual design can truthfully have no prototype when the surface is
+            # not interactive; the documented contract spells that value `none`.
+            "prototype",
             # FEAT-07: a dev that refused or was blocked ran no verify command, and
             # `n/a` is its spelling (REQ-03). `task` is deliberately NOT here — its
             # `none` is a DECLARED answer, not a declined one, and NULLABLE would
@@ -190,8 +195,15 @@ SCHEMAS = {
     # happen". There is no fourth member — D-07 rejected the `no-task` spelling.
     "dev": {"tests_added": int, "suite": {"pass","fail"}, "blocked_on": str,
             "task": TASK_ID_RE, "task_verify": {"pass","fail"}},
-    "qa": {"suite": {"pass","fail"}, "failures": int, "coverage_gaps": list, "matrix_ok": bool},
-    "reviewer": {"severity_max": set(SEV), "findings": int, "must_fix": list},
+    # FEAT-59 SC-17: `fail_first` is the per-SC evidence that each test FAILED before
+    # the fix. Entry shape and the PASS pairing rule are `_fail_first_errors` and the
+    # qa block in `validate`; the field is a plain required list here.
+    "qa": {"suite": {"pass","fail"}, "failures": int, "coverage_gaps": list, "matrix_ok": bool,
+           "fail_first": list},
+    # FEAT-59 SC-06: `findings` was an INT count. A count routes nothing — the
+    # orchestrator needs to know whether a finding changes shipped code or only a
+    # document, so each entry is a mapping carrying `kind` (FINDING_KINDS below).
+    "reviewer": {"severity_max": set(SEV), "findings": list, "must_fix": list},
     "visual-designer": {"contract": {"written","updated"}, "mockups": list, "direction_choices": list},
     "documentor": {"docs_updated": list, "gaps": list},
     # `suite` was {"pass","fail","n/a"} here and {"pass","fail"} everywhere else —
@@ -201,12 +213,9 @@ SCHEMAS = {
     "dev-ops": {"change_type": {"config","scaffolding","infra","ci"},
                 "applied": list, "suite": {"pass","fail"},
                 "task": TASK_ID_RE, "task_verify": {"pass","fail"}},
-    # SPEC 10.4 in full. `sc_status` is pm's field (11.6) riding up as a passthrough,
-    # surfaced at team level so the orchestrator can read goal-check status without
-    # opening member entries; `[]` when this team ran no goal-check.
     "lead": {"team": str, "steps_run": int, "cycles_used": int,
              "members": list, "must_fix": list, "branch": str,
-             "escalations": list, "sc_status": list},
+             "escalations": list, "adequacy_notes": list},
     # The main session's schema for harness-orchestrator (reconciled with BUILD task
     # 14, not derived from SPEC — SPEC 10.3 defines a *briefing artifact*, not a
     # digest block, for the orchestrator). These are exactly the fields the main
@@ -223,10 +232,283 @@ SCHEMAS = {
     # `verify:` asserts that spelling appears nowhere in this file.
     "orchestrator": {"feature": str,
                       "status": {"in_progress", "in_review", "shipped", "blocked",
-                                 "awaiting_user"},
+                                 "awaiting_user", "rejected"},
                       "runs": list, "cycles_used": int,
                       "briefing": str},
 }
+
+# These fields are optional because they are carried by a lead only when the
+# member result being rolled up produced them. Putting them in SCHEMAS would make
+# them required under DEC-121; DEC-216 would then also require every lead output
+# block to claim fields such as matrix_ok even when no QA step ran.
+PASSTHROUGH = {
+    "lead": {
+        "sc_status": list,
+        "needs_approval": bool,
+        "severity_max": set(SEV),
+        "matrix_ok": bool,
+        "coverage_gaps": list,
+        # FEAT-59 SC-05/SC-06: a validator-lead hosting the plan panel carries the
+        # consolidated `findings` (kinded, see FINDING_KINDS) and the `readers` roster
+        # that `plan-merge.py record-panel --digest` reads — a run whose only work is
+        # to transcribe one into the other is exactly the zero-value run SC-05 removes.
+        "findings": list,
+        "readers": list,
+    },
+}
+
+# FEAT-59 SC-06: what a finding IS decides where it routes, so every entry says.
+#
+#   substance        would change shipped code. Re-gates only the tasks it names.
+#   form             document, digest or record shape only. Fixed in the same run;
+#                    NEVER triggers a re-read — BUG-285 spent 5 of 8 re-cycles here.
+#   proportionality  more is planned than the change needs. Carries `scope:`:
+#                      task     one task over-builds — pm trims it at apply, like a
+#                               substance finding against the plan text; never a downgrade
+#                      mission  the plan lane itself exceeds the work — routes to a
+#                               mission downgrade (SC-03) when no reader opposes
+#                    Without scope the route is undecidable: BUG-285-canonical-reader's
+#                    first FEAT-59 run summed four task-scope findings into a `patch`
+#                    downgrade of an eight-task enforcement-layer plan (DEC-228).
+#
+# EXACT, like every enum in this file: `substantive` is not `substance`. A finding
+# without a kind is undecidable — the orchestrator would have to read the artifact
+# to route it, which is the cold dispatch the kind exists to avoid.
+FINDING_KINDS = {"substance", "form", "proportionality"}
+PROPORTIONALITY_SCOPES = {"task", "mission"}
+
+# FEAT-59 SC-17: a `fail_first` entry binds evidence to ONE success criterion by id.
+# `fullmatch`, for the same reason as TASK_ID_RE. The placeholder `SC-NN` is rejected.
+SC_ID_RE = re.compile(r"SC-\d+")
+
+
+def _finding_kind_errors(findings):
+    """One error per `findings` entry that carries no legal `kind`, naming the entry
+    by index so a reviewer with twelve findings can find the one it forgot.
+
+    Entries are parsed with `parse_member_entry` — by KEY, never by matching `kind:`
+    as text anywhere in the entry (the F1 discipline the members roll-up learned): a
+    `summary: "the kind: substance label is missing"` must not satisfy this. A bare
+    string entry parses to `{}` and is reported as having no kind, which it hasn't.
+    """
+    err = []
+    kinds = sorted(FINDING_KINDS)
+    for i, item in enumerate(findings):
+        kind = parse_member_entry(str(item)).get("kind")
+        if kind is None:
+            err.append(f"findings[{i}] has no kind: — {str(item)[:60]!r}. Every finding "
+                       f"carries kind: one of {kinds}; without it the orchestrator "
+                       f"cannot tell a code defect from a document nit and cannot route.")
+        elif kind not in FINDING_KINDS:
+            err.append(f"findings[{i}] kind={kind!r} is not in {kinds}. substance = would "
+                       f"change shipped code; form = document/digest/record shape only, "
+                       f"fixed in-run and never re-gates; proportionality = more is planned "
+                       f"than the change needs, and says scope: task | mission.")
+        elif kind == "proportionality":
+            scope = parse_member_entry(str(item)).get("scope")
+            if scope not in PROPORTIONALITY_SCOPES:
+                err.append(f"findings[{i}] is proportionality with scope={scope!r}; it must say "
+                           f"scope: task (one task over-builds — pm trims it at apply, never "
+                           f"a downgrade) or scope: mission (the plan lane exceeds the work — "
+                           f"the only finding that can downgrade the mission, DEC-228).")
+    return err
+
+
+def _fail_first_entry_error(i, item):
+    """The error for ONE `fail_first` entry, or None when it is `{ sc: SC-NN, evidence: <text> }`.
+
+    `sc` binds the evidence to the criterion it discharges; `evidence` is the path of
+    the captured failing output or the receipt line that names it. A bare string is
+    neither — it names no SC — and an empty `evidence` is a claim, not a receipt.
+    """
+    fields = parse_member_entry(str(item))
+    sc = fields.get("sc")
+    if not isinstance(sc, str) or not SC_ID_RE.fullmatch(sc):
+        return (f"fail_first[{i}] sc={sc!r} is not an SC-NN id — {str(item)[:60]!r}. "
+                f"Each entry is {{ sc: SC-NN, evidence: <path or receipt line> }}.")
+    evidence = fields.get("evidence")
+    if not isinstance(evidence, str) or not evidence.strip():
+        return (f"fail_first[{i}] has no evidence: — {str(item)[:60]!r}. Name the "
+                f"captured failing output (a path) or the receipt line that shows "
+                f"the test FAILED before the fix.")
+    return None
+
+
+def _fail_first_errors(fail_first):
+    """One error per malformed `fail_first` entry, by index."""
+    errors = (_fail_first_entry_error(i, item) for i, item in enumerate(fail_first))
+    return [e for e in errors if e]
+
+# Persona-specific documented fields are keyed by the RAW agent type. Reviewer
+# personas normalize to one canonical schema, but their output modes are not
+# interchangeable (for example, `mode` is legal only on a UI review).
+DOCUMENTED_OPTIONAL = {
+    "harness-code-reviewer": {
+        "spec_violations": list,
+        "human_commits_in_scope": list,
+    },
+    "harness-security-reviewer": {
+        "in_scope": bool,
+        "scope_reason": str,
+        "threat_model": list,
+    },
+    "harness-ui-reviewer": {
+        "mode": {"A", "B"},
+        "in_scope": bool,
+        "states_unspecified": list,
+        "contract_violations": list,
+        "a11y": list,
+    },
+    "harness-qa": {
+        "kinds": list,
+        "sc_evidence": list,
+    },
+    "harness-documentor": {
+        "stale_found": list,
+    },
+    "harness-dev-ops": {
+        "test_kinds_written": list,
+    },
+    "harness-visual-designer": {
+        "needs_prototype": bool,
+        "why": str,
+        "prototype": str,
+    },
+    # BUG-1716 D-02: the engineering lead's in-build corrections to a signed task's HOW.
+    # Keyed to the RAW eng-lead type on purpose — a product or validator lead amends nothing,
+    # so on those the key stays undeclared and the closed-contract gate refuses it.
+    "harness-eng-lead": {
+        "amendments": list,
+    },
+    # FEAT-1714: the reject verdict's one mapping. Declared here so the closed-contract
+    # gate admits the key; `_reject_judgement_errors` grades its shape and binds it to
+    # `status: rejected` — present on any other status it is refused there.
+    "harness-orchestrator": {
+        "judgement": str,
+    },
+}
+
+
+def _parsed_members(value):
+    """A `files` value's members with inline `{ ... }` mappings parsed; parse_digest keeps them
+    as text, and the shared contract expects the shape plan-merge.py's YAML loader hands it."""
+    if not isinstance(value, list):
+        return value
+    return [parse_member_entry(m) if isinstance(m, str) and m.strip().startswith("{") else m
+            for m in value]
+
+
+def _amendment_mapping(raw):
+    """The parsed mapping for one `amendments` entry, or None. parse_digest keeps an inline
+    `{ ... }` as text and a block mapping as joined text; parse_member_entry reads both."""
+    entry = parse_member_entry(raw) if isinstance(raw, str) else None
+    if not entry:
+        return None
+    return {k: _parsed_members(v) if k in ("was", "now") else v for k, v in entry.items()}
+
+
+def _amendments_errors(seen):
+    """BUG-1716 SC-01: grade `amendments` when present — absent is legal, `[]` is legal, and
+    every list member must be a closed {task, field, was, now, reason} mapping. The rules are
+    amendment_contract's, shared with plan-merge.py record-amendments."""
+    if "amendments" not in seen:
+        return []
+    val = seen["amendments"]
+    if not isinstance(val, list):
+        return [f"amendments must be a LIST of {{{', '.join(amendment_contract.KEYS)}}} entries "
+                "([] when the run amended nothing)."]
+    err = []
+    for index, raw in enumerate(val):
+        entry = _amendment_mapping(raw)
+        if entry is None:
+            err.append(f"amendments[{index}] is not a mapping — each entry is exactly "
+                       f"{{{', '.join(amendment_contract.KEYS)}}}.")
+            continue
+        err.extend(amendment_contract.entry_errors(entry, index))
+    return err
+
+
+REJECT_JUDGEMENT_KEYS = ("kind", "superseded_by", "reason")
+
+
+def _reject_keys(j):
+    extra = sorted(set(j) - set(REJECT_JUDGEMENT_KEYS))
+    missing = [k for k in REJECT_JUDGEMENT_KEYS if k not in j]
+    out = []
+    if extra:
+        out.append(f"judgement carries {extra} — the reject mapping has exactly the keys "
+                   f"{list(REJECT_JUDGEMENT_KEYS)}; `by` and `at` are the ledger's to write.")
+    if missing:
+        out.append(f"judgement is missing {missing} — the reject mapping has exactly the keys "
+                   f"{list(REJECT_JUDGEMENT_KEYS)}.")
+    return out
+
+
+def _reject_kind(j):
+    if j.get("kind") == "reject":
+        return []
+    return [f"judgement kind={j.get('kind')!r} — on a rejected return the kind is `reject`, "
+            f"nothing else."]
+
+
+def _positive_int(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _reject_successor(j):
+    sup = j.get("superseded_by")
+    if "superseded_by" not in j or sup == "none" or _positive_int(sup):
+        return []
+    return [f"superseded_by={sup!r} — a positive issue number, or the literal `none` when the "
+            f"ticket should not be planned at all."]
+
+
+def _one_line(text, limit=240):
+    return (isinstance(text, str) and text.strip() and "\n" not in text.strip()
+            and len(text) <= limit)
+
+
+def _reject_reason(j):
+    if "reason" not in j or _one_line(j.get("reason")):
+        return []
+    return ["reason must be one non-empty line of at most 240 characters — the operator reads "
+            "it in the ledger and overrules from it (DEC-230)."]
+
+
+def _reject_cycles(seen):
+    cycles = seen.get("cycles_used")
+    if isinstance(cycles, int) and not isinstance(cycles, bool) and cycles == 0:
+        return []
+    return [f"cycles_used={cycles!r} on a rejected return — a reject happens at first-run "
+            f"intake before any gate; it costs zero cycles by definition."]
+
+
+def _reject_mapping(raw):
+    """parse_digest keeps a flow mapping as its raw `{ ... }` text; parse_member_entry is the
+    file's one reader of that shape. A block mapping does not arrive as a string at all,
+    which is right: the reject mapping is ONE line."""
+    if isinstance(raw, str) and raw.strip().startswith("{"):
+        return parse_member_entry(raw) or None
+    return None
+
+
+def _reject_judgement_errors(seen):
+    """FEAT-1714 SC-01: `status: rejected` carries exactly one `judgement` mapping —
+    {kind: reject, superseded_by: <positive int | none>, reason: <one line, ≤240>} — and
+    `cycles_used: 0`; the mapping on any other status is refused. This is the return that
+    says "this ticket is wrong, here is the right one" at first-run intake, at the cost of
+    one run and zero cycles (#1684, #1714)."""
+    if seen.get("status") != "rejected":
+        return (["judgement: is legal only with `status: rejected` — every other judgement "
+                 "goes to feature.json through feature-record.py, never the return."]
+                if "judgement" in seen else [])
+    judgement = _reject_mapping(seen.get("judgement"))
+    if judgement is None:
+        return ["status: rejected needs one inline `judgement:` mapping {kind: reject, "
+                "superseded_by: <issue number or none>, reason: <one line>} — a reject with no "
+                "recorded judgement is an unrecorded judgement (DEC-230)."]
+    return [msg for check in (_reject_keys, _reject_kind, _reject_successor, _reject_reason)
+            for msg in check(judgement)] + _reject_cycles(seen)
 
 
 def review_config_path(config_path=None):
@@ -694,9 +976,8 @@ def _load_test_kinds(root):
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path, encoding="utf-8") as handle:
-            doc = json.load(handle)
-    except (OSError, ValueError) as exc:
+        doc = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError as exc:
         return None, (_GRADE_PREFIX + f"{path} could not be read ({exc}), so this "
                       f"checkout's grade bars are unknown — repair harness.json "
                       f"and rerun.")
@@ -878,9 +1159,8 @@ def _read_review_sha(feature_dir):
     unpinned (DEC-121/INV-6 placeholder vocabulary)."""
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        with open(fj_path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError) as e:
+        doc = artifact_accessors.load_feature_json(fj_path)
+    except Exception as e:
         return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
                        f"could not be read ({e}), so the claim is not trusted.")
     sha = doc.get("review_sha") if isinstance(doc, dict) else None
@@ -904,9 +1184,8 @@ def _read_feature_branch(feature_dir):
     """
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        with open(fj_path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
+        doc = artifact_accessors.load_feature_json(fj_path)
+    except Exception:
         return None
     branch = doc.get("branch") if isinstance(doc, dict) else None
     if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
@@ -995,7 +1274,7 @@ def _resolve_plan_review_path(reviewed):
 
 def _pending_plan_status_error(plan_path):
     try:
-        plan = harness_yaml.load_file(plan_path)
+        plan = artifact_accessors.load_plan(plan_path)
     except Exception as exc:
         return f"reviewed plan target {plan_path!r} could not be read ({exc})."
     approval = plan.get("approval") if isinstance(plan, dict) else None
@@ -1011,9 +1290,8 @@ def _pinned_feature_review_error(feature_dir):
     if not os.path.exists(feature_json):
         return None
     try:
-        with open(feature_json, encoding="utf-8") as handle:
-            feature = json.load(handle)
-    except (OSError, ValueError) as exc:
+        feature = artifact_accessors.load_feature_json(feature_json)
+    except Exception as exc:
         return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
     review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
     if not isinstance(review_sha, str) \
@@ -1127,6 +1405,12 @@ def _missing_field_default_hint(field, allowed):
     if field == "code_grade":
         vals = sorted(a for a in allowed if isinstance(a, str))
         return f"one of {vals} — a single enum value, never a list"
+    if field == "fail_first":
+        # FEAT-59 SC-17. `[]` is REJECTED alongside PASS + matrix_ok: true, so the
+        # generic hint would route a qa agent into a second guaranteed rejection.
+        return ("one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: "
+                "automated` SC showing the test FAILED before the fix; `[]` only when "
+                "matrix_ok is n/a or the verdict is not PASS")
     return "`[]` if there are none"
 
 
@@ -1187,7 +1471,17 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # universal field like `files_touched` drifting to `files-touched` was reported
     # as merely missing rather than as the drift it is; fails closed either way, but
     # the wrong message.
-    all_fields = {**schema, **UNIVERSAL}
+    optional_fields = {
+        **PASSTHROUGH.get(persona, {}),
+        **DOCUMENTED_OPTIONAL.get(raw_persona, {}),
+    }
+    # Archived digest files are checked through the generic `lead` CLI persona,
+    # which cannot identify when they were produced. Keep those historical files
+    # readable without rewriting them; real lead returns arrive under their raw
+    # harness-*-lead type and still require adequacy_notes.
+    if raw_persona == "lead":
+        optional_fields["adequacy_notes"] = list
+    all_fields = {**schema, **UNIVERSAL, **optional_fields}
     for k in list(seen):
         for want in all_fields:
             if k != want and k.replace("-", "_").lower() == want:
@@ -1196,6 +1490,8 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
 
     for field, allowed in all_fields.items():
         if field not in seen:
+            if field in optional_fields:
+                continue
             # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
             # governed field is not required of it at all.
             if _unbound(field, seen):
@@ -1338,6 +1634,57 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                        + (" (write the literal `none` if genuinely inapplicable)."
                           if field in NULLABLE else "."))
 
+    # --- FEAT-59 SC-06: every finding carries a KIND (FINDING_KINDS). Generic over
+    # personas on purpose — `findings` is required of a reviewer and optional on a
+    # lead, and the closed key set below keeps it off everyone else — so one rule
+    # binds every digest that carries findings rather than one per persona that can
+    # drift. Guarded on `list`: a non-list already reported "must be a list" above.
+    findings = seen.get("findings")
+    if isinstance(findings, list):
+        err.extend(_finding_kind_errors(findings))
+
+    # --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass.
+    # `matrix_ok: true` says the tests PASS; `fail_first` is what says they ever
+    # FAILED, and a test that never failed constrains nothing (the Iron Law,
+    # harness-tdd-enforcement). Bound to the same triple #919 re-verifies —
+    # VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` (no gate ran) and every
+    # non-PASS verdict may truthfully carry `[]`. TYPE-STRICT on `True` for the
+    # reason GATE_FAIL_VALUES is: `1 == True` in Python and `matrix_ok: 1` is not a
+    # bool (already rejected above; not doubled here).
+    if persona == "qa":
+        fail_first = seen.get("fail_first")
+        if isinstance(fail_first, list):
+            err.extend(_fail_first_errors(fail_first))
+            matrix_ok = seen.get("matrix_ok")
+            if not fail_first and m and m.group(1) == "PASS" \
+                    and matrix_ok is True and isinstance(matrix_ok, bool):
+                err.append("fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
+                           "green suite with no fail-first evidence is not a pass. For each "
+                           "`verify: automated` SC name the test and the evidence it FAILED "
+                           "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
+                           "or return FAIL.")
+
+    # Generic `lead` is the archive-reader persona used by check-state for
+    # historical digest files; it cannot recover the producing raw persona or
+    # contract era. Current returns always carry harness-*-lead and are closed.
+    if raw_persona != "lead":
+        legal_fields = set(all_fields) | {"headline"}
+        if raw_persona == "harness-code-reviewer":
+            legal_fields.add("grade_2_reasons")
+        undeclared = sorted(set(seen) - legal_fields)
+        if undeclared:
+            names = ", ".join(repr(field) for field in undeclared)
+            err.append(
+                f"undeclared digest key(s): {names}. The digest contract is closed. "
+                "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
+                "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
+                "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
+                "a new required persona field belongs in SCHEMAS and must also be "
+                "documented under DEC-216. A per-dispatch answer is not a digest key: "
+                "put a PASS qualification in adequacy_notes or a per-step fact in the "
+                "run state steps evidence container."
+            )
+
     if raw_persona == "harness-code-reviewer":
         code_grade = seen.get("code_grade")
         reviewed = seen.get("reviewed")
@@ -1449,6 +1796,10 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     if isinstance(oq_val, int) and not isinstance(oq_val, bool):
         err.append("open_questions is a COUNT; it must be a list of structured items — "
                    "it is an active routing signal, not a tally.")
+    if raw_persona == "harness-eng-lead":
+        err.extend(_amendments_errors(seen))
+    if persona == "orchestrator":
+        err.extend(_reject_judgement_errors(seen))
     return err
 
 
@@ -1483,63 +1834,70 @@ def _hook_feature_dir(text, feature):
         return None
 
 
-def check_artifact_file(agent, text, payload):
-    """DEC-156: a lead's WRITTEN digest.md must carry the same §10.4 block.
-
-    The FEAT-02 (kaya-ai) audit found all 14 run digest.md files were narrative
-    markdown with no contract block — every in-message return had passed this
-    hook, so nothing ever looked at the durable copy, which is the one a
-    successor context actually reads. Validate the file at the return's
-    `artifact:` path with the same schema, while the lead is still alive to fix
-    it.
-
-    FAIL OPEN, LOUDLY when the file cannot be located or read: a hook whose cwd
-    drifts (worktrees, unset CLAUDE_PROJECT_DIR) must not block a legitimate
-    lead on our own resolution bug. check-state.sh INV-15 is the deterministic
-    backstop that runs from repo root and catches what this pass-through misses.
-    Blocking is for THEIR contract violation, never our lookup failure.
-    """
-    # Same tail-anchor discipline as validate(): the real return is LAST, so an
-    # echoed template's `artifact:` line must not win. Take the final match.
+def _durable_artifact_path(text):
     tail = text
     anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
     if anchors:
         tail = text[anchors[-1].start():]
-    m = None
-    for m in re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M):
-        pass
-    if not m:
-        return 0  # validate() already required artifact:; nothing to resolve here.
-    path = strip_comment(m.group(1)).strip("\"'")
-    if not path.endswith("digest.md"):
-        # The lead artifact contract is <run_dir>/digest.md; a differently-named
-        # artifact is INV-15's finding (it can see the run dir), not this hook's.
-        return 0
+    matches = list(re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M))
+    if not matches:
+        return None
+    path = strip_comment(matches[-1].group(1)).strip("\"'")
+    return path if path.endswith("digest.md") else None
 
-    # ONE ROOT, NOT A CANDIDATE WALK (FEAT-42 T-17). Relative lead artifacts belong
-    # to the feature checkout named by this SubagentStop payload. Unlike the PreToolUse
-    # domain route, this hook already consumes harness_feature to resolve feature state;
-    # using it here follows that established input rather than creating a route dependency.
+
+def _feature_artifact_root(owner_root, feature):
+    if not owner_root or not feature:
+        return None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import inflight_registry
+        return inflight_registry.feature_root(owner_root, feature)
+    except Exception:
+        return None
+
+
+def _script_checkout_root():
+    try:
+        return os.path.abspath(os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "../../../.."))
+    except (OSError, TypeError):
+        return None
+
+
+def _durable_artifact_candidates(path, payload):
     if os.path.isabs(path):
-        cands = [path]
-    else:
-        owner_root = _root_or_none()
-        base = owner_root
-        feature = payload.get("harness_feature")
-        if owner_root and feature:
-            try:
-                sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-                import inflight_registry
-                base = inflight_registry.feature_root(owner_root, feature)
-            except Exception:
-                base = owner_root
-        cands = [os.path.join(base or "", path)]
-    found = next((candidate for candidate in cands if os.path.isfile(candidate)), None)
-    if not found:
+        return [path]
+    owner_root = _root_or_none()
+    roots = (
+        _feature_artifact_root(owner_root, payload.get("harness_feature")),
+        owner_root,
+        _script_checkout_root(),
+    )
+    unique_roots = dict.fromkeys(root for root in roots if root)
+    return [os.path.join(root, path) for root in unique_roots]
+
+
+def _missing_durable_artifact(agent, path, candidates):
+    resolved = next(
+        (candidate for candidate in candidates
+         if os.path.isdir(os.path.dirname(candidate))),
+        None)
+    if not resolved:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
-              f"file-shape check skipped; check-state.sh INV-15 will audit it from repo root.",
+              "file-shape check skipped because no candidate run directory resolved.",
               file=sys.stderr)
         return 0
+    run_dir = os.path.dirname(resolved)
+    print(
+        f"check-digest: {agent}'s durable digest is missing from resolved run "
+        f"directory {run_dir}; a successor reads this file. Write it at "
+        f"{resolved}.",
+        file=sys.stderr)
+    return 2
+
+
+def _validate_durable_artifact(agent, found):
     try:
         ferrs = validate(agent, open(found, encoding="utf-8").read())
     except Exception as e:
@@ -1548,13 +1906,35 @@ def check_artifact_file(agent, text, payload):
         return 0
     if not ferrs:
         return 0
-    print(f"Your return is valid, but the digest FILE you wrote ({path}) does not carry the "
-          f"same contract block — and the file is what a successor context reads (DEC-156). "
-          f"Rewrite it as the §10.4 return (VERDICT / DIGEST / artifact), prose assessment "
-          f"below the block:", file=sys.stderr)
-    for e in ferrs:
-        print(f"  - {e}", file=sys.stderr)
+    print(
+        f"Your return is valid, but the digest FILE you wrote ({found}) in resolved run "
+        f"directory {os.path.dirname(found)} does not carry the same contract block — "
+        "and the file is what a successor context reads (DEC-156). Rewrite it as the "
+        "§10.4 return (VERDICT / DIGEST / artifact), prose assessment below the block:",
+        file=sys.stderr)
+    for error in ferrs:
+        print(f"  - {error}", file=sys.stderr)
     return 2
+
+
+def check_artifact_file(agent, text, payload):
+    """DEC-156: validate the durable digest.md a lead's return names.
+
+    Relative artifacts are resolved against the feature checkout first, then the
+    owner checkout, then this installed script's checkout. No-root lookup failure
+    remains loud and fail-open. Once a candidate run directory resolves, however,
+    an absent digest is the lead's contract violation and fails closed: the durable
+    file is what a successor reads. INV-15 is a later repository-entry check, not a
+    hook-delivery guarantee.
+    """
+    path = _durable_artifact_path(text)
+    if path is None:
+        return 0
+    candidates = _durable_artifact_candidates(path, payload)
+    found = next((candidate for candidate in candidates if os.path.isfile(candidate)), None)
+    if found is None:
+        return _missing_durable_artifact(agent, path, candidates)
+    return _validate_durable_artifact(agent, found)
 
 
 def _qa_claims_unconditional_pass(text):
@@ -1580,7 +1960,7 @@ def _resolve_run_unit_tests_bin(payload):
     A NAMED FEATURE MUST RESOLVE TO ITS OWN CHECKOUT, OR NOT AT ALL (code review of
     #1185). check_artifact_file's owner_root/feature_root pattern falls back to
     owner_root on any lookup failure, and that is safe THERE because a wrong root
-    means the specific run digest simply 404s, loudly. run-unit-tests.sh is a static,
+    means the specific run digest simply 404s, loudly. run-unit-tests.py is a static,
     always-present path: a wrong-root fallback here never 404s, it just silently
     re-runs the suite against the WRONG checkout and reports that mismatched result as
     though it verified the claim — reproducing #919's exact failure mode inside the
@@ -1607,19 +1987,42 @@ def _resolve_run_unit_tests_bin(payload):
     if not base:
         return None
     return os.path.join(base, ".claude", "skills", "harness", "bin",
-                        "run-unit-tests.sh")
+                        "run-unit-tests.py")
 
 
-def _reverify_suite(run_bin):
-    """Run `run_bin` and return its CompletedProcess, or None if it could not be run
-    at all (missing file, spawn failure, timeout) — every case is our gap, not theirs."""
+def _kind_of(raw):
+    entry = parse_member_entry(raw) if isinstance(raw, str) else None
+    return str((entry or {}).get("kind", "")).strip()
+
+
+def _claimed_kinds(text):
+    """The test kinds the qa return's `kinds:` names, in order, deduplicated — the matrix
+    the claim is about. Empty when the digest names none (the runner's default set then
+    governs)."""
+    kinds = [_kind_of(raw) for raw in parse_digest(text).get("kinds") or []]
+    return list(dict.fromkeys(k for k in kinds if k))
+
+
+def _reverify_suite(run_bin, kinds=()):
+    """Run the Python runner — with `sys.executable`, never a shell: run-unit-tests.py has
+    been a Python file since #1674 and bash reading it exited 2 on every honest PASS
+    (BUG-1756) — once per claimed kind (`--kind <k>`), or once bare when the claim names
+    none. Returns the first non-zero CompletedProcess, else the last one; None if it could
+    not be run at all (missing file, spawn failure, timeout) — every such case is our gap,
+    not theirs."""
     if not run_bin or not os.path.isfile(run_bin):
         return None
-    try:
-        return subprocess.run(["bash", run_bin], capture_output=True, text=True,
-                              timeout=1800)
-    except Exception:
-        return None
+    invocations = [["--kind", k] for k in kinds] or [[]]
+    result = None
+    for extra in invocations:
+        try:
+            result = subprocess.run([sys.executable, run_bin, *extra], capture_output=True,
+                                    text=True, timeout=1800)
+        except Exception:
+            return None
+        if result.returncode != 0:
+            return result
+    return result
 
 
 def check_qa_matrix_claim(agent, text, payload):
@@ -1639,7 +2042,7 @@ def check_qa_matrix_claim(agent, text, payload):
     claimed failure buys nothing this hook is positioned to check for free.
 
     FAIL OPEN, LOUDLY when the suite cannot be located or run at all (missing root,
-    missing script, a spawn OSError, a timeout) — check-domain.sh's precedent: a hook
+    missing script, a spawn OSError, a timeout) — check-domain.py's precedent: a hook
     whose own execution environment is broken must never be the reason a legitimate qa
     return is blocked. FAIL CLOSED when the suite DOES run and disagrees with the
     claim — that disagreement is exactly the gap #919 exists to close.
@@ -1647,7 +2050,7 @@ def check_qa_matrix_claim(agent, text, payload):
     if not _qa_claims_unconditional_pass(text):
         return 0
     run_bin = _resolve_run_unit_tests_bin(payload)
-    result = _reverify_suite(run_bin)
+    result = _reverify_suite(run_bin, _claimed_kinds(text))
     if result is None:
         print(f"check-digest: could not independently re-run the suite at {run_bin!r} "
               f"— {agent}'s matrix_ok: true / suite: pass claim was NOT verified; this "
@@ -1656,7 +2059,7 @@ def check_qa_matrix_claim(agent, text, payload):
     if result.returncode == 0:
         return 0
     print(f"{agent} reported VERDICT: PASS with suite: pass and matrix_ok: true, but "
-          f"an independent re-run of run-unit-tests.sh at this checkout exited "
+          f"an independent re-run of run-unit-tests.py at this checkout exited "
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
           f"it is genuinely green. Tail of the independent run:", file=sys.stderr)
@@ -1687,13 +2090,14 @@ def hook_mode():
     2. `stop_hook_active`. Set when we are already re-running because a stop hook
        blocked. Blocking again is an infinite loop with no operator escape.
     3. Our own failure — unreadable payload, unknown persona, an exception. We
-       fail OPEN and say so on stderr. check-domain.sh set this precedent for the
+       fail OPEN and say so on stderr. check-domain.py set this precedent for the
        same reason: a hook that blocks on its own bug wedges every agent in every
        project the moment a payload shape changes. Blocking is for THEIR contract
        violation, never ours.
     """
     try:
-        d = json.load(sys.stdin)
+        d = artifact_accessors.read_hook_payload(
+            sys.stdin.read(), "SubagentStop hook payload")
     except Exception as e:
         print(f"check-digest: unreadable hook payload ({e}) — passing through.", file=sys.stderr)
         return 0
@@ -1735,7 +2139,7 @@ def hook_mode():
     if _reg is not None:
         # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
         # the payload cwd. The old note here said cwd had to come first so this released from
-        # the same registry dispatch-guard.sh wrote to — but that guard now takes its root
+        # the same registry dispatch-guard.py wrote to — but that guard now takes its root
         # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
         # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
         # which is why it was never a root.
@@ -1868,7 +2272,7 @@ def hook_mode():
               f"blocking on our own gap.", file=sys.stderr)
         return 0
 
-    # Fail OPEN, LOUDLY on our own bug (check-domain.sh's precedent) — never crash
+    # Fail OPEN, LOUDLY on our own bug (check-domain.py's precedent) — never crash
     # to an ambiguous exit. Before this, any exception raised inside `validate()`
     # (e.g. the enum/list TypeError above, pre-fix) propagated uncaught, exited 1,
     # and — because only exit 2 blocks (DEC-100/DEC-122) — the digest shipped

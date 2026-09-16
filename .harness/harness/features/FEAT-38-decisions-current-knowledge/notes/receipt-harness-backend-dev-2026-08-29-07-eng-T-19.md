@@ -3,7 +3,7 @@
 ## Task
 
 Register `test-check-decision-anchors.py` and `test-check-decision-claims.py` (bare names) in
-`INTEGRATION_SCRIPTS` in `.claude/skills/harness/bin/run-unit-tests.sh`. T-18 (harness.json
+`INTEGRATION_SCRIPTS` in `.claude/skills/harness/bin/run-unit-tests.py`. T-18 (harness.json
 integration detect, 30 entries) had already landed.
 
 ## Change made
@@ -13,15 +13,15 @@ bare-name style, nothing else in the file touched.
 
 ## Environment defect encountered and recovered
 
-The FIRST edit attempt (via the edit tool, path `.claude/skills/harness/bin/run-unit-tests.sh`
+The FIRST edit attempt (via the edit tool, path `.claude/skills/harness/bin/run-unit-tests.py`
 relative to worktree cwd) landed in the MAIN checkout
-(`/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/run-unit-tests.sh`), confirmed by
+(`/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/run-unit-tests.py`), confirmed by
 `git -C <main> diff` showing the change and `git -C <worktree> diff` showing nothing — exactly the
 documented defect. Recovery: restored main via `git show HEAD:<path>` piped to a plain file copy
 (md5sum-verified identical to HEAD, never a git write command), confirmed
 `git -C <main> status --porcelain -- <path>` empty, then redid the edit with `python3` string-replace
 against the fully-qualified absolute worktree path
-(`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-38-decisions-current-knowledge/.claude/skills/harness/bin/run-unit-tests.sh`).
+(`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-38-decisions-current-knowledge/.claude/skills/harness/bin/run-unit-tests.py`).
 Confirmed after: `git -C <worktree> status --porcelain` shows the file modified,
 `git -C <main> status --porcelain -- <path>` shows nothing.
 
@@ -36,7 +36,7 @@ printf '%s\n' "$OUT" | grep -q 'KIND-DRIFT' && { echo 'KIND-DRIFT fired'; exit 1
 
 **This is a false positive, not a real KIND-DRIFT.** Grepped the captured output for the literal
 runtime drift message `^KIND-DRIFT:` (the format the runner's own cross-check prints to stderr on a
-real mismatch) — zero matches. The real drift check ran clean; `run-unit-tests.sh` proceeded to
+real mismatch) — zero matches. The real drift check ran clean; `run-unit-tests.py` proceeded to
 execute every script and printed hundreds of PASS lines, which could not happen had the actual
 KIND-DRIFT exit-2 path fired (it exits before running any test). The literal substring `KIND-DRIFT`
 that the naive `grep -q` matched instead comes from `test-run-unit-tests-kinds.py`'s OWN legitimate
@@ -72,7 +72,7 @@ No other script printed a FAIL line anywhere in the full output below (grepped `
 across all 1967 lines — 584 PASS lines total, exactly 4 FAIL lines, all four listed above). Nothing
 else to report upward from the suite body itself.
 
-## Complete verbatim runner output (1967 lines, `bash run-unit-tests.sh --kind integration 2>&1`)
+## Complete verbatim runner output (1967 lines, `python3 run-unit-tests.py --kind integration 2>&1`)
 
 ok    lead, block-style members + bare empty key
 ok    lead, fully inline lists
@@ -384,7 +384,7 @@ ok    ship: the milestone is still PATCHed closed
 ok    ship: prints the all-clear line when nothing was held and nothing failed
 ok    ship: prints NO HELD summary line when nothing was held
 ok    ship: prints NO FAILED line when nothing failed
-ok    ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.sh's worktree gate greps that literal and a healthy run must not trip it
+ok    ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.py's worktree gate greps that literal and a healthy run must not trip it
 ok    ship: records the terminal status
 ok    ship D-10: a task sub-issue reaches Done regardless of what sub_issues would say about it
 ok    ship D-10: ship makes NO sub_issues read for a task sub-issue - the depth-1 exemption is a saved call, not just a skipped branch
@@ -499,7 +499,7 @@ ok - case (m3): a decoy entry does not let a narrowed PostToolUse registration t
 ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
 ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
 ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
-ok - case (o): check-domain.sh, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated budget, key and heading
 ok - INV-28 warns on a Done feature whose pr is null
 ok - INV-28 is silent on a Done feature whose pr is an integer
 ok - INV-28 is silent on an Abandoned feature whose pr is null
@@ -656,7 +656,7 @@ ok - test_malformed_row_is_reported_not_silently_dropped
 ok - test_refs_graph_omits_ids_with_no_live_heading
 ok - test_preserves_hand_written_rulings_by_dec_number
 ok - test_strips_inline_ok_stale_marker_on_a_row
-FAIL - test_committed_index_matches_a_fresh_regeneration: generator exited 1 — the committed index cannot be reproduced: ORPHAN: DEC-19 'One shipped shell script, `check-domain.sh`, enforces per-agent `domain` path globs through a `PreToolUse` hook — the single deliberate exception to files-only delivery. — SUPERSEDED BY DEC-84 — SUPERSEDED BY DEC-85' has a ruling in the index but no live heading in .harness/harness/d
+FAIL - test_committed_index_matches_a_fresh_regeneration: generator exited 1 — the committed index cannot be reproduced: ORPHAN: DEC-19 'One shipped shell script, `check-domain.py`, enforces per-agent `domain` path globs through a `PreToolUse` hook — the single deliberate exception to files-only delivery. — SUPERSEDED BY DEC-84 — SUPERSEDED BY DEC-85' has a ruling in the index but no live heading in .harness/harness/d
 FAIL - test_committed_index_is_complete_and_within_budget: 3 row(s) in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-38-decisions-current-knowledge/.harness/harness/docs/DECISIONS-INDEX.md exceed the 30-word ruling cap — shorten the ruling after ' :: ' on each listed row: DEC-92 (36), DEC-102 (34), DEC-37 (33)
 ok - test_orphaned_ruling_is_reported_not_silently_dropped
 FAIL - test_root_resolves_through_harness_boundary_not_the_retired_variable (a): a markerless HARNESS_PROJECT_DIR override exited 1: harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpnxg4mhug' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/Users/
@@ -1430,7 +1430,7 @@ PASS  case2: P-01 present after both applies
 PASS  case2: P-02 present after both applies
 PASS  case2: P-03 present after both applies
 PASS  case2: P-04 present after both applies
-PASS  case2: check-expertise.sh still accepts the merged file
+PASS  case2: check-expertise.py still accepts the merged file
 PASS  case3: 20 concurrent trials admit only the union outcome or the lock outcome
 PASS  case4: divergent text exits 7
 PASS  case4: existing text appears in stdout
@@ -1453,11 +1453,11 @@ PASS  case9: a `..` escape carrying a legal tail is REFUSED — the match is on 
 PASS  case9: the project tier is ALLOWED — exit 0
 PASS  case9: the repository tier is ALLOWED — exit 0
 PASS  case8: CAPS mapping found in expertise-merge.py
-PASS  case8: CAPS mapping found in check-expertise.sh
-PASS  case8: Patterns cap agrees between expertise-merge.py and check-expertise.sh
-PASS  case8: Gotchas cap agrees between expertise-merge.py and check-expertise.sh
-PASS  case8: Outcomes cap agrees between expertise-merge.py and check-expertise.sh
-PASS  case8: Open cap agrees between expertise-merge.py and check-expertise.sh
+PASS  case8: CAPS mapping found in check-expertise.py
+PASS  case8: Patterns cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Gotchas cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Outcomes cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Open cap agrees between expertise-merge.py and check-expertise.py
 PASS  case10: a following apply exits 0 after the lock holder is SIGKILLed
 PASS  case10: the proposed entry is on disk after recovery
 PASS test-expertise-merge.py
@@ -2042,13 +2042,13 @@ ok - test_unreadable_target_exits_two_not_zero
 ok - test_checker_source_never_uses_shell_true
 PASS test-check-decision-claims.py
 
-## `git -C <worktree> diff -- .claude/skills/harness/bin/run-unit-tests.sh` (verbatim)
+## `git -C <worktree> diff -- .claude/skills/harness/bin/run-unit-tests.py` (verbatim)
 
 ```diff
-diff --git a/.claude/skills/harness/bin/run-unit-tests.sh b/.claude/skills/harness/bin/run-unit-tests.sh
+diff --git a/.claude/skills/harness/bin/run-unit-tests.py b/.claude/skills/harness/bin/run-unit-tests.py
 index 4d048cb..ec12b83 100755
---- a/.claude/skills/harness/bin/run-unit-tests.sh
-+++ b/.claude/skills/harness/bin/run-unit-tests.sh
+--- a/.claude/skills/harness/bin/run-unit-tests.py
++++ b/.claude/skills/harness/bin/run-unit-tests.py
 @@ -28,7 +28,7 @@ BIN_DIR=".claude/skills/harness/bin"
  # #160 records is one populated kind doing two jobs while test_kinds.integration sat null,
  # so INV-20 could never see the hole and the qa matrix could not tell the two apart.
@@ -2064,7 +2064,7 @@ Only the two array additions — nothing else in the file touched.
 
 ## Main checkout confirmation
 
-`git -C /Users/molchairuangutai/GitHub/harness status --porcelain -- .claude/skills/harness/bin/run-unit-tests.sh`
+`git -C /Users/molchairuangutai/GitHub/harness status --porcelain -- .claude/skills/harness/bin/run-unit-tests.py`
 prints nothing — main carries none of this change (verified after the mid-task recovery described
 above, and again at receipt time).
 

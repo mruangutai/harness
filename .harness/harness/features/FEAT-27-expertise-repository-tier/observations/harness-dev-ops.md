@@ -41,7 +41,7 @@
   deleted under DEC-171, so the fixture no longer proves equivalence to anything; it is a frozen
   snapshot that reddens on every legitimate manifest change. Left as-is per dispatch scope (a plan
   question, not mine to fix).
-- 2026-08-19: EFFICIENCY review, simplify segment. Timed `inject-expertise.sh` old (b4659cd) vs
+- 2026-08-19: EFFICIENCY review, simplify segment. Timed `inject-expertise.py` old (b4659cd) vs
   new (252fa72) head-to-head, 20 real invocations each, real payload: 59.3ms/run old, 56.0ms/run
   new — no measurable regression, the new glob/sort/cap_body-with-budget-arg loop is a rounding
   error against the ~50ms python3-spawn floor. The N×40 repository-tier bound the architecture

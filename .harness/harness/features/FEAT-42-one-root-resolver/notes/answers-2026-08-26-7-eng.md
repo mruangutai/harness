@@ -8,7 +8,7 @@ it is the operator's; where a question needs the operator, I say so and it trave
 
 The two statements describe the SAME suite under TWO states of `.harness/.inflight-claims.json`.
 
-- **Registry empty.** `run-unit-tests.sh --kind all` at a1658c2: `SUITE_EXIT=0`, **zero** `FAIL`
+- **Registry empty.** `run-unit-tests.py --kind all` at a1658c2: `SUITE_EXIT=0`, **zero** `FAIL`
   lines, 1013 result lines, 57 script verdicts. `test-validate-digest.py` reports `PASS` at output
   line 1482. I started that run with `cat .harness/.inflight-claims.json` showing `{}`, and the run
   reached `test-validate-digest.py` before my dispatch placed any claim.
@@ -32,13 +32,13 @@ V-9 is right:
 
 - `inflight_registry.py:251` — `def refusal_lines(agent, existing, release_cmd)`. The function does
   not choose the command; it receives it.
-- The only production caller is `dispatch-guard.sh:115`, which passes `reg.RELEASE_ALL_CMD`.
+- The only production caller is `dispatch-guard.py:115`, which passes `reg.RELEASE_ALL_CMD`.
 - T-06's `files:` are exactly `inflight_registry.py` and `test-inflight-registry.py`.
-  `dispatch-guard.sh` is untouched by T-06 and is on this run's LEAVE list.
+  `dispatch-guard.py` is untouched by T-06 and is on this run's LEAVE list.
 
 So after T-06 the refusal still prints `RELEASE_ALL_CMD`'s value and **`:168` stays GREEN**. Item
 5's "never what a refusal prints" describes the end state after T-18, which owns the swap — T-18's
-own verify greps `dispatch-guard.sh` for the constant and fails on any hit. The only assertion T-06
+own verify greps `dispatch-guard.py` for the constant and fails on any hit. The only assertion T-06
 breaks is `:170`, and V-1's two-line citation split greens it while satisfying T-06's own `#551`
 and `#628` grep clauses.
 
@@ -47,7 +47,7 @@ and `#628` grep clauses.
 - Delete `CLI_REL_PATH`. Add `release_cmd(root, agent)`.
 - **Keep `RELEASE_ALL_CMD` as a plain module literal**, and **keep `refusal_lines`' three-parameter
   signature.** V-9's warning is the sharpest thing in this file: a member that "helpfully" drops the
-  third parameter and builds the command inside the function makes `dispatch-guard.sh:115` pass
+  third parameter and builds the command inside the function makes `dispatch-guard.py:115` pass
   three arguments to a two-argument function. That `TypeError` is swallowed by the broad
   `except Exception` at `:124`, which prints "passing through, the dispatch is NOT blocked" and
   exits 0 — the single-flight guard fails OPEN, by a different route than the one V-2 found.

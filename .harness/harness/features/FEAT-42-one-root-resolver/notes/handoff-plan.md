@@ -25,7 +25,7 @@ SC-01. Everything else in the plan is verified and finished.
 - The lead's claim that backend-dev's writable domain cannot host the mutant — verified-at 3952814
   against `team-config.yaml:164-175`; `src/` does not exist in this repo.
 - UNVERIFIED: pm's claim that issue #869 carries the DEC-174 am.4 amendment. I never opened it.
-- UNVERIFIED: the lead's report of a `bash-write-guard.sh` false positive on an ASCII arrow in a
+- UNVERIFIED: the lead's report of a `bash-write-guard.py` false positive on an ASCII arrow in a
   heredoc body (Q7). Plausible and self-consistent, but I did not reproduce it.
 
 ## Dead ends

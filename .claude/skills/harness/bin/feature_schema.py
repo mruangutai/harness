@@ -2,7 +2,7 @@
 """feature_schema.py — the schema-checking module for a feature's execution
 state (feature.json), FEAT-14 D-03.
 
-Imported IN PROCESS by check-domain.sh (T-06) and by validate-feature-json.py
+Imported IN PROCESS by check-domain.py (T-06) and by validate-feature-json.py
 (this directory's thin CLI wrapper) — never spawned as a subprocess on the
 write-time path, so a schema violation can be attributed to the real file it
 came from rather than a temporary one, and the missing-dependency case is an
@@ -11,13 +11,13 @@ launch.
 
 `jsonschema` is imported at MODULE level, inside a try, with the result
 cached in JSONSCHEMA_AVAILABLE. Never import it inside a per-file function:
-check-domain.sh's post sweep calls the entry point once per candidate file,
+check-domain.py's post sweep calls the entry point once per candidate file,
 and a per-call import would pay the (measured) +42.6ms cost, and print the
 unavailability message, once per file instead of once per process.
 
 THE JSON PATH — problems_for_text(), and problems_for_file() on a `.json`
 path — DEPENDS ON STDLIB `json` AND `jsonschema` ONLY, NEVER PyYAML. This is
-deliberate, not an oversight: check-domain.sh's neighbouring `state.yaml`
+deliberate, not an oversight: check-domain.py's neighbouring `state.yaml`
 branch returns `[]` (a fail-open the operator ruled on, DEC-154) when PyYAML
 is absent, because state.yaml genuinely has no other way to be read. This
 module's JSON path has no PyYAML dependency to be absent in the first place,
@@ -29,6 +29,7 @@ never pulls PyYAML in at all (T-01 receipt records this placement).
 """
 import json
 import os
+import re
 import sys
 
 try:
@@ -72,7 +73,7 @@ def schema_path_for(for_path):
     """The schema that governs `for_path` — the one belonging to the CHECKOUT the file
     lives in, not the one beside this module.
 
-    ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.sh refused a
+    ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.py refused a
     legitimate write — `undeclared key 'source_issues' at /github` — because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's. The hook
     imports this module through CLAUDE_PROJECT_DIR, which resolves to the main checkout, so
@@ -85,7 +86,7 @@ def schema_path_for(for_path):
     key under it hits this.
 
     WALK UP FOR THE SCHEMA FILE ITSELF, never for the `.claude` directory — probing a
-    directory resolves $HOME in a global install, which is the defect dispatch-guard.sh's
+    directory resolves $HOME in a global install, which is the defect dispatch-guard.py's
     case_20 catches by name.
 
     Returns None when no checkout schema is found above `for_path`, and the caller then
@@ -145,7 +146,7 @@ def _pointer(path):
 # THE TENSION THIS RESOLVES. SC-07 requires BOTH that a NEW runs entry omitting
 # `agent` is refused at the write path, AND that every feature.json already on disk
 # still validates. A schema `required` satisfies the first and breaks the second:
-# check-domain.sh's post sweep reaches feature.json files a change never touched, so
+# check-domain.py's post sweep reaches feature.json files a change never touched, so
 # every Bash command in the repository would start exiting 2. No existing feature.json
 # is migrated (operator ruling, 2026-08-20), so absence must keep meaning "predates
 # the change" — which makes the rule POSITIONAL, not a schema requirement.
@@ -218,6 +219,88 @@ RUNS_AGENT_EXEMPT = {
     "FEAT-33-board-lifecycle-native": 4,
 }
 
+# Build-entry receipts were introduced by BUG-1309. Existing features cannot have one
+# retroactively without an explicit operator recovery. Generated at 71d4ba1f with:
+#   python3 -c "import glob,os;print(sorted(os.path.basename(p) for p in glob.glob('.harness/*/features/*')))"
+# When this file is vendored into another project at upgrade, regenerate this set THERE with the same command, from that project's feature directories.
+BUILD_ENTRY_ERA_EXEMPT = {
+    "BUG-1030-stale-anchor-write-hazard",
+    "BUG-1033-config-shape-matrix",
+    "BUG-1055-code-grade-absent-path",
+    "BUG-1071-inv32-era-guard",
+    "BUG-1080-inv6-plan-phase-runs",
+    "BUG-1081-code-grade-enforcement",
+    "BUG-1106-run-dir-route-guards",
+    "BUG-1124-run-dir-slug-overwrite",
+    "BUG-1128-plan-amend-verb",
+    "BUG-1157-approval-overrule",
+    "BUG-1187-locally-run-test-kind",
+    "BUG-1286-test-tree-enforcement",
+    "BUG-1302-suite-layout-fail-closed",
+    "BUG-1303-plan-code-review-digest",
+    "BUG-1304-worktree-relative-path-guard",
+    "BUG-1305-run-state-clobber",
+    "BUG-1306-agent-type-hermetic-tests",
+    "BUG-1308-expertise-replace-drop",
+    "BUG-1309-mirror-build-entry",
+    "BUG-613-expertise-near-budget",
+    "BUG-671-answers-provenance",
+    "BUG-720-plan-merge-yaml",
+    "BUG-981-fixture-secret-scrub",
+    "FEAT-01",
+    "FEAT-02",
+    "FEAT-03-subissue-mirror",
+    "FEAT-04-decisions-index",
+    "FEAT-05-pyyaml-file-parsers",
+    "FEAT-06-team-layer-inv6",
+    "FEAT-07-verify-teeth-batch-probe",
+    "FEAT-08-remove-cost-tracking",
+    "FEAT-09-plan-time-route-check",
+    "FEAT-10-software-factory",
+    "FEAT-11-graphql-field-resolve",
+    "FEAT-12-end-copy-distribution",
+    "FEAT-13-single-issue-board-lookup",
+    "FEAT-14-feature-json-schema",
+    "FEAT-15-domain-product-base",
+    "FEAT-16-factory-per-repo-board",
+    "FEAT-17-guard-boundaries",
+    "FEAT-18-board-truth",
+    "FEAT-19-central-product-config",
+    "FEAT-20-migration-detector",
+    "FEAT-21-features-layout-migration",
+    "FEAT-22-docs-layout-migration",
+    "FEAT-23-ship-flow-fixes",
+    "FEAT-24-config-responsibility-split",
+    "FEAT-25-claim-feature-root",
+    "FEAT-26-pr-linkage-recorded",
+    "FEAT-27-expertise-repository-tier",
+    "FEAT-28-ci-wiring-asserted",
+    "FEAT-29-graphql-budget",
+    "FEAT-30-worktree-per-feature",
+    "FEAT-31-orchestrator-context-watch",
+    "FEAT-32-concurrent-write-merge",
+    "FEAT-33-board-lifecycle-native",
+    "FEAT-34-worktree-act3-enforced",
+    "FEAT-35-orchestrator-stop-and-wake",
+    "FEAT-36-merge-gitignore-coverage",
+    "FEAT-37-lead-stop-and-wake",
+    "FEAT-38-decisions-current-knowledge",
+    "FEAT-40-harness-writes-done",
+    "FEAT-41-one-station-vocabulary",
+    "FEAT-42-one-root-resolver",
+    "FEAT-43-code-risk-grading",
+    "FEAT-44-omp-context-advisory",
+    "FEAT-45-adversarial-plan-panel",
+    "FEAT-47-tests-layout",
+    "FEAT-48-parallel-safe-suite",
+    "FEAT-50-run-artifact-integrity",
+    "FEAT-51-claude-code-lifecycle-safety",
+    "FEAT-52-factory-control-plane",
+    "FEAT-54-handoff-done-when",
+    "FEAT-55-issue-types-created-work",
+    "PR-922-omp-supervision",
+}
+
 _FEATURES_SEGMENT = "features"
 
 
@@ -238,10 +321,27 @@ def _feature_dir_name(display):
     return parts[i + 1] if i + 1 < len(parts) else None
 
 
+def recovery_command_for(feat_dir):
+    """The safe receipt command for a feature that has no Build-entry outcome."""
+    if os.path.basename(feat_dir.rstrip("/")) in BUILD_ENTRY_ERA_EXEMPT:
+        return "recover-terminal"
+    import artifact_accessors
+    try:
+        plan = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml"))
+    except Exception:
+        return "recover-terminal"
+    if plan.get("status") in {"review", "done"}:
+        return "recover-terminal"
+    if any(task.get("status") == "done" for task in plan.get("tasks") or []
+           if isinstance(task, dict)):
+        return "recover-terminal"
+    return "open"
+
+
 def _runs_agent_problems(doc, display):
     """Every runs entry at or past its feature's exempt count must carry a non-empty
     string `agent`. Runs ALONGSIDE the jsonschema validation, never inside it, and its
-    problems join the same returned list so check-domain.sh reports them through the
+    problems join the same returned list so check-domain.py reports them through the
     path it already has."""
     if not isinstance(doc, dict):
         return []
@@ -285,10 +385,97 @@ def _problems_for_doc(doc, display, for_path=None):
     return problems
 
 
+# ---------------------------------------------------------------------------
+# THE LINE BUDGET COUNTS THE JOURNAL, NOT THE LEDGER (FEAT-54 backlog B-4).
+#
+# The 300-line cap exists to stop feature.json becoming a narrative — DEC-150's "it is data
+# a script parses, not a journal". But `runs:` is exactly the data a script parses, and its
+# length is a function of how long the feature ran, not of anyone's prose. MEASURED on
+# FEAT-54's own record at `f1ae55f2`: 336 lines total, of which 294 are the 48-entry runs
+# array and 42 are everything else. The old cap therefore fired on the one part of the file
+# that is legitimately unbounded, and the only ways to satisfy it were to delete real history
+# or to raise a number that would be wrong again at 60 runs.
+#
+# Excluding the array keeps the cap's teeth where they bite: 42 lines of non-runs content has
+# a great deal of room before 300, so a feature.json growing comment keys, rationale strings
+# or an `escalations` narrative still trips exactly as before.
+FEATURE_JSON_LINE_BUDGET = 300
+
+
+_RUNS_KEY_RE = re.compile(r'"runs"\s*:\s*\[')
+
+
+def _string_end(text, index):
+    """Offset just past the JSON string opening at `index`."""
+    index += 1
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == '"':
+            return index + 1
+        index += 1
+    return index
+
+
+def _array_end(text, start):
+    """Offset just past the array opening at `start`, or None if it never closes."""
+    depth = 0
+    index = start
+    while index < len(text):
+        char = text[index]
+        if char == '"':
+            index = _string_end(text, index)
+            continue
+        if char in "[{":
+            depth += 1
+        elif char in "]}":
+            depth -= 1
+            if not depth:
+                return index + 1
+        index += 1
+    return None
+
+
+def _runs_span(text):
+    """(start, end) character offsets of the top-level `runs` array, or None.
+
+    Scans rather than re-serialising, because the budget is about the bytes ON DISK: a
+    round-trip through json.dumps would measure a formatting choice this function does not
+    make. Strings are skipped wholesale, so a `"runs":[` sequence inside any value — a run
+    id, a rationale string, a path — cannot be mistaken for the key.
+    """
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == '"':
+            match = _RUNS_KEY_RE.match(text, index)
+            if match is None:
+                index = _string_end(text, index)
+                continue
+            start = match.end() - 1
+            end = _array_end(text, start)
+            return None if end is None else (start, end)
+        index += 1
+    return None
+
+
+def journal_lines(text):
+    """Line count of a feature.json with its `runs` ledger removed.
+
+    A file with no `runs` key, or one this cannot locate, counts whole — the budget must
+    never be loosened by a parse it did not understand.
+    """
+    span = _runs_span(text)
+    if span is None:
+        return len(text.splitlines())
+    start, end = span
+    return len((text[:start] + text[end:]).splitlines())
+
 def problems_for_text(text, display, for_path=None):
     """Validate JSON document TEXT against the schema. Returns a list of
     stderr LINES, [] when clean. Never exits, never writes a temporary file
-    — this is the entry point check-domain.sh imports at T-06, and it is why
+    — this is the entry point check-domain.py imports at T-06, and it is why
     the module exists: a subprocess cannot be handed the real path, and its
     launch failure would escape as a non-blocking exit 1. `display` is the
     path to name IN THE MESSAGE, not a hint for how to parse `text` — this

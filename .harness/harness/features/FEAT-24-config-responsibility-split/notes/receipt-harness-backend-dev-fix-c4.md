@@ -94,7 +94,7 @@ Only `test-factory-decompose.py` is modified; `factory_decompose.py` is clean; n
 
 ## Full suite
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind all`, run last, on the restored tree.
+`.claude/skills/harness/bin/run-unit-tests.py --kind all`, run last, on the restored tree.
 
 Red set: **empty** (`grep -c "^FAIL"` on the captured output returned `0`). Exit code: `0`.
 Every listed test file reports `PASS`, including `test-factory-decompose.py`,

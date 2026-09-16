@@ -138,7 +138,7 @@ this session — see below) rather than resting on the structural argument alone
   string crosses into the orchestrator's context or an exported artifact through this feature.**
   Established at source, not inferred.
 - **Fail-open on enforcement.** This is the dispatch's sharpest question: the advisory block
-  (`harness-hooks.ts:793-815`) runs **before** `postDomain(...)` — the actual `check-domain.sh`
+  (`harness-hooks.ts:793-815`) runs **before** `postDomain(...)` — the actual `check-domain.py`
   post-write enforcement call — inside the same `tool_result` handler. If the advisory path threw
   unhandled, `postDomain()` would never run for that event, silently disabling the enforcement gate
   for that tool result (the same defect class as issue #556, which this file's own top-of-file
@@ -159,12 +159,12 @@ this session — see below) rather than resting on the structural argument alone
 
 `git diff` on `.claude/settings.json` shows exactly one hook command removed:
 `context-watch-hook.py` from the `PostToolUse` `Write|Edit|Bash` matcher's hook array. Every other
-registration is byte-identical pre/post: `SubagentStart` → `inject-expertise.sh`; `PreToolUse`
-`Write|Edit` → `check-domain.sh`; `PreToolUse` `Bash` → `branch-create-gate.sh`,
-`bash-write-guard.sh`, `gh-close-gate.sh`; `PreToolUse` `Task|Agent` → `dispatch-guard.sh`;
-`PostToolUse` `Write|Edit|Bash` → `check-domain.sh --post` (**retained, same array, same
+registration is byte-identical pre/post: `SubagentStart` → `inject-expertise.py`; `PreToolUse`
+`Write|Edit` → `check-domain.py`; `PreToolUse` `Bash` → `branch-create-gate.py`,
+`bash-write-guard.py`, `gh-close-gate.py`; `PreToolUse` `Task|Agent` → `dispatch-guard.py`;
+`PostToolUse` `Write|Edit|Bash` → `check-domain.py --post` (**retained, same array, same
 matcher**); `SubagentStop` → `validate-digest.py --hook`. The actual enforcement hook
-(`check-domain.sh --post`) that domain-policy enforcement depends on is untouched.
+(`check-domain.py --post`) that domain-policy enforcement depends on is untouched.
 
 Confirmed the removed hook was advisory-only pre-change: `git show
 7ebfc9e:.claude/skills/harness/bin/context-watch-hook.py` contains zero `sys.exit` calls — under

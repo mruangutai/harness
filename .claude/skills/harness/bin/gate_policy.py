@@ -1,5 +1,5 @@
 """Load and evaluate the configured harness gate policies."""
-import json
+import artifact_accessors
 
 
 GATE_VOCABULARIES = {
@@ -32,9 +32,8 @@ class QaResult(str):
 
 def _load_config(harness_json_path):
     try:
-        with open(harness_json_path, encoding="utf-8") as config_file:
-            return json.load(config_file)
-    except (OSError, json.JSONDecodeError) as error:
+        return artifact_accessors.load_harness_json(harness_json_path)
+    except artifact_accessors.ArtifactAccessError as error:
         raise GatePolicyError("config", harness_json_path) from error
 
 

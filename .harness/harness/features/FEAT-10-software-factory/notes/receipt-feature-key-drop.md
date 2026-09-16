@@ -102,7 +102,7 @@ gate_status:
     gate went from exit 1 to exit 0 on that write.'
   plan_approval: PASS — Mike Ruangutai, 2026-08-09
   qa_gate: 'PASS. RE-MEASURED BY ME at the settled tree immediately before the commit:
-    run-unit-tests.sh exit 0, 22 test files PASS, 0 FAIL. The 22 is FILE-level; a
+    run-unit-tests.py exit 0, 22 test files PASS, 0 FAIL. The 22 is FILE-level; a
     bare `grep -c "^PASS"` returns 85 by counting sub-case lines. CAVEATS: green is
     FILE-level not mutation-bound, and `functional` is EXCLUDED BY SIGNED DECISION
     (DEC-187), not satisfied.'
@@ -118,7 +118,7 @@ gate_status:
   ship_refresh: SKIPPED, MEASURED NOT ASSUMED. No codebase map exists — `find . -name
     INDEX.md` returns nothing and .harness/map/ is absent — so the union of files_touched
     intersects no map domain. Zero dispatches. It runs when a map first exists.
-  state: 'PASS — check-state.sh run BY ME pre-commit, AFTER every write: exit 0, ZERO
+  state: 'PASS — check-state.py run BY ME pre-commit, AFTER every write: exit 0, ZERO
     violations. The four carried VIOLATIONs (FEAT-04 x2, FEAT-07 x2, the DEC-156 lead-digest
     defect) are GONE, cleared by bf8f191. Only notes remain, including this feature''s
     expected INV-22.'
@@ -140,7 +140,7 @@ review_sha_note: 'RE-PINNED to the A1 commit under the operator''s Q4 ruling; no
   re-run, on the strength of the independently re-proved red. BASE DELIBERATELY UNMOVED
   at f9488a2 so every panel2 citation keeps its range. Two commits in that range are
   not this feature''s build: c5597be (the wayfinding door, unrelated) and bf8f191
-  (the operator''s check-state.sh hand-edit, which IS in scope — T-08 is a FEAT-10
+  (the operator''s check-state.py hand-edit, which IS in scope — T-08 is a FEAT-10
   task). 8bbb246, the old pin, survives only on wip-omp-and-feat10-mixed; deleting
   that branch kills every panel2 line citation.'
 runs_correction_note: panel-validator was recorded PASS and was WRONG (two of three

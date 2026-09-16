@@ -26,7 +26,7 @@ You own the **design contract** and decide when a feature needs a prototype befo
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-visual-designer.md`, already in context. Writable: `features/<FEAT>/DESIGN.md` — **in the feature's folder** (DEC-129) —
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-visual-designer.md`, already in context. Writable: `features/<FEAT>/DESIGN.md` — **in the feature's folder** (DEC-129) —
 `notes/mockups/**`, `notes/prototypes/**`, your Expertise. Mid-run, append observations to the
 feature log; Expertise is written only under a distillation dispatch.
 
@@ -38,7 +38,7 @@ Palette, type scale, spacing, component direction, light/dark. Concrete values, 
 number `frontend-dev` can implement and `ui-reviewer` can check. "Generous spacing" is not a contract;
 a scale is.
 
-Established during `/harness-init`'s design pass, then extended as features need it. `ui-reviewer`
+Established under `/harness-plan`, then extended as features need it. `ui-reviewer`
 mode A grades whether it is sound **before** anything is built.
 
 ## Job 2 — The interaction call
@@ -84,6 +84,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <.harness/harness/features/<FEAT>/DESIGN.md>
+artifact: <<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/DESIGN.md>
 ```
 ````

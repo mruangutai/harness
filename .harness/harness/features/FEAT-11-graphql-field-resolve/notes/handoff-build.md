@@ -24,7 +24,7 @@ them. T-01 is the only PLAN task and it is built.
   proof — empty `git diff --stat` run by me — verified-at 2ea9af3
 - qa's MF-1 was HALF WRONG: only `:407` asserted vacuously, not `:428` — the org message carries
   "owned", never "owner" — `feature.yaml mf1_correction` — verified-at 2ea9af3
-- The working tree is clean over `run-unit-tests.sh` and all four DEC-174 carve-out files, so
+- The working tree is clean over `run-unit-tests.py` and all four DEC-174 carve-out files, so
   FEAT-12 has landed nothing here — `git status --porcelain` — verified-at 2ea9af3
 
 ## Dead ends
@@ -35,7 +35,7 @@ them. T-01 is the only PLAN task and it is built.
   `.claude/skills/harness/bin/test-*.py` — `team-config.yaml:217-218` — verified-at 2ea9af3
 - Do NOT make any live `gh` call — board 6 and `harness-factory-smoke-a1` are retained fixtures
   whose item states an operator measurement depends on — source: the operator's signature ruling
-- Do NOT edit `run-unit-tests.sh` — peer feature FEAT-12 owns it and it is T-01's verify command —
+- Do NOT edit `run-unit-tests.py` — peer feature FEAT-12 owns it and it is T-01's verify command —
   `feature.yaml peer_feature_collision` — verified-at 2ea9af3
 
 ## Working set

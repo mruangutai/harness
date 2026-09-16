@@ -7,11 +7,11 @@ Both registrations were made correctly and are independently verified as correct
 because it also exercises `test-harness-yaml.py`, an already-registered integration script that
 fails on a pre-existing, out-of-scope defect: `feature-worktree.py` (T-01/T-02) carries an `except
 ImportError` guard not covered by that test's hardcoded allowed set. This was invisible before
-T-08 because D-06 forbade any earlier task from routing through `run-unit-tests.sh`.
+T-08 because D-06 forbade any earlier task from routing through `run-unit-tests.py`.
 
 ## The two edits
 
-1. `.claude/skills/harness/bin/run-unit-tests.sh` line 18 — appended `"test-feature-worktree.py"
+1. `.claude/skills/harness/bin/run-unit-tests.py` line 18 — appended `"test-feature-worktree.py"
    "test-expertise-merge.py"` to `INTEGRATION_SCRIPTS` (was 12 entries, now 14). Nothing else in
    the file touched.
 2. `.harness/harness.json` line 119 — appended
@@ -30,7 +30,7 @@ the guard). No line of the verify itself was altered.
 
 ```
 set -u
-out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1) || { echo "$out"; exit 1; }
 echo "$out" | grep -q '^PASS test-feature-worktree.py$' || { echo "$out"; exit 1; }
 echo "$out" | grep -q '^PASS test-expertise-merge.py$' || { echo "$out"; exit 1; }
 echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
@@ -71,7 +71,7 @@ not touch.
 
 ## Idempotence / drift-window check
 
-Before this change, `run-unit-tests.sh --kind integration` (and `--kind unit`) exited 2
+Before this change, `run-unit-tests.py --kind integration` (and `--kind unit`) exited 2
 MISCONFIGURED per D-06's expected window — confirmed via `git stash` (which does not touch
 untracked files, so `feature-worktree.py`/`test-feature-worktree.py`/`expertise-merge.py`/
 `test-expertise-merge.py` remained present but unregistered): `rc=2`, 0 PASS, 0 FAIL. That window
@@ -81,7 +81,7 @@ gap.
 ## Not fixed, and not mine to fix
 
 `test-harness-yaml.py`'s `allowed` set for guarded imports
-(`{harness_yaml.py, feature_schema.py, check-domain.sh}`) does not include `feature-worktree.py`,
+(`{harness_yaml.py, feature_schema.py, check-domain.py}`) does not include `feature-worktree.py`,
 which guards an import at line 50. Fixing this means editing either `feature-worktree.py` (not in
 my file list, and explicitly listed as finished/not-mine in the dispatch) or
 `test-harness-yaml.py` (not in my file list either). Raised as an open question rather than

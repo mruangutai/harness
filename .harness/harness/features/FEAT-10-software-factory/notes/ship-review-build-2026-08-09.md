@@ -68,7 +68,7 @@ There is no free option here. The code is not the problem in any of them.
 
 ### D-2 · T-08 — the task only you can land
 
-`T-08` adds an invariant to `check-state.sh`. It was withheld from every squad because a gate cannot
+`T-08` adds an invariant to `check-state.py`. It was withheld from every squad because a gate cannot
 vouch for a change to itself — that is the standing carve-out, and I honoured it.
 
 It is the **only** thing that can satisfy **SC-06** ("the state check fails when a feature records a
@@ -76,7 +76,7 @@ claimed issue in a repository the fleet file does not declare"). I confirmed by 
 appears nowhere in the codebase.
 
 **One timing detail you would not otherwise see.** The integration test runner uses a hardcoded file
-list, not the config — and that list **already contains** `check-state.sh`'s test. T-12's evidence
+list, not the config — and that list **already contains** `check-state.py`'s test. T-12's evidence
 therefore depends on that file. If T-08 lands *after* the fact, T-12's green becomes stale evidence
 for two criteria. T-08 depends only on T-01, which is done, so it can be landed at any time and
 sooner is strictly better.
@@ -106,7 +106,7 @@ signature anyway.
   records this as a double-write hazard producing two issues per task, and defers it to you.
   Creating a milestone, a parent issue and twelve sub-issues is not cheaply reversible, so I left it.
 - **Nothing is committed, and I recommend you commit by explicit pathspec if you do.** Two reasons.
-  First, `run-unit-tests.sh` is a file this feature changed *and* one that already carried unrelated
+  First, `run-unit-tests.py` is a file this feature changed *and* one that already carried unrelated
   uncommitted work, so its change cannot be isolated. Second — and I did not expect this — **two
   staged deletions appeared in the index during this session**
   (`.claude/commands/harness-grill.md`, `.claude/commands/harness-wayfind.md`). They are not this
@@ -215,7 +215,7 @@ Nothing here gates. **Anything you do not strike becomes an issue; anything not 
   That budget is informational and never stops work. My read: eleven tasks landed with zero rework,
   every run resolved something and advanced the criteria. The count is earning its place. It is also
   a floor — the two tasks you handle directly never appear in it.
-- **`check-state.sh` exits 1** with four violations. All four are old FEAT-04 and FEAT-07 digests,
+- **`check-state.py` exits 1** with four violations. All four are old FEAT-04 and FEAT-07 digests,
   untouched since early August, unrelated to this feature. I did not repair them: the validator
   behind them is enforcement-layer code under the same carve-out as T-08. Scoped to this feature's
   paths, the check is clean.

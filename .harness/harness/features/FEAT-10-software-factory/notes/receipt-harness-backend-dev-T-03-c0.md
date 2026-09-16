@@ -5,7 +5,7 @@
 `factory_gh.py` added: the single seam every factory tool talks to GitHub through (D-02, D-14).
 Test-first: `test-factory-gh.py` was written and run RED (`ModuleNotFoundError: No module named
 'factory_gh'`) before `factory_gh.py` existed, then implemented to GREEN. Registered in
-`run-unit-tests.sh`'s `UNIT_SCRIPTS` (append only — T-11's `test-factory-cli.py` entry left
+`run-unit-tests.py`'s `UNIT_SCRIPTS` (append only — T-11's `test-factory-cli.py` entry left
 untouched). `--kind unit` is green, 5/5 PASS, including `test-factory-cli.py` (T-11's, not mine).
 
 ## RED (captured before implementation)
@@ -31,7 +31,7 @@ None, calls `auth status`) and failure (raises GhError naming `gh auth login`).
 ## Verify — run verbatim, cross-checked against plan.yaml:388 (matches, no BLOCKED)
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t03.txt 2>&1; s=$?; grep -q "^PASS test-factory-gh.py$" /tmp/v-t03.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t03.txt 2>&1; s=$?; grep -q "^PASS test-factory-gh.py$" /tmp/v-t03.txt && [ "$s" -eq 0 ]
 ```
 
 Exit status of the compound command: `0`
@@ -246,5 +246,5 @@ mismatch propagates rather than surprising a later task.
 
 - `.claude/skills/harness/bin/factory_gh.py` (new)
 - `.claude/skills/harness/bin/test-factory-gh.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (appended `"test-factory-gh.py"` to
+- `.claude/skills/harness/bin/run-unit-tests.py` (appended `"test-factory-gh.py"` to
   `UNIT_SCRIPTS` only; no other line touched)

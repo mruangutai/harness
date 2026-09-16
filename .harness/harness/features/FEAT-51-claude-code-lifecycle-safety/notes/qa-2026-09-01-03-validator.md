@@ -1,6 +1,6 @@
 # QA Gate — FEAT-51 — 2026-09-01 run 03
 
-**VERDICT: FAIL.** `run-unit-tests.sh --kind integration` exits **1** with **9** `^FAIL ` lines at
+**VERDICT: FAIL.** `run-unit-tests.py --kind integration` exits **1** with **9** `^FAIL ` lines at
 this diff's HEAD (`6db25ba2`). Unit kind is clean. Root causes below are both attributable to files
 this diff touched; neither is a misconfiguration (both are named tests with real assertion diffs).
 
@@ -24,8 +24,8 @@ this diff touched; neither is a misconfiguration (both are named tests with real
 
 | kind | cmd | exit | `^FAIL ` | `^ok /^PASS ` | state |
 |---|---|---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | **0** | 948 ok / 519 PASS | **satisfied** |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | **1** | **9** | 1351 ok / 741 PASS | **FAIL** |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** | 948 ok / 519 PASS | **satisfied** |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | **1** | **9** | 1351 ok / 741 PASS | **FAIL** |
 
 Full logs: `/tmp/qa51/unit.log` (1532 lines), `/tmp/qa51/integration.log` (2339 lines). Captured `$?`
 into a variable immediately after each run (not read from a tail — the dispatch's warned hazard is
@@ -33,9 +33,9 @@ real: `unit.log:1501` reads `28/28 checks passed.` but the file continues to lin
 
 `--check-kinds`: **exit 0** — "the script arrays and test_kinds.integration.detect agree."
 `test-quarantine.py` registration confirmed in **both** surfaces with the `.claude/skills/harness/bin/`
-prefix `run-unit-tests.sh:115` actually uses: `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:31`) and
+prefix `run-unit-tests.py:115` actually uses: `INTEGRATION_SCRIPTS` (`run-unit-tests.py:31`) and
 `test_kinds.integration.detect` (`.harness/harness.json`, confirmed via direct parse). Note:
-`PREFIX` at `run-unit-tests.sh:115` is literally `.claude/skills/harness/bin/`, not `.agents/...` as
+`PREFIX` at `run-unit-tests.py:115` is literally `.claude/skills/harness/bin/`, not `.agents/...` as
 T-04's own `intent:` claimed — T-04's receipt (`receipt-harness-dev-ops-T-04-c1.md`) already caught
 and corrected this; re-confirmed here independently, not a new finding.
 
@@ -89,7 +89,7 @@ fixture, not the predicate in isolation.** `test-check-domain.py:149` `fire()` a
 `test-plan-sign-gate.py:462` `qgate()` both `subprocess.run` the real hook/gate script with a payload
 built against a throwaway root whose `.harness/.inflight-claims.json` is populated via
 `inflight_registry.claim_with_receipt` (real registry writes, not mocked). Confirmed passing:
-`an orphan canonical write is quarantined` (check-domain.sh) and
+`an orphan canonical write is quarantined` (check-domain.py) and
 `an orphan agent plan-merge apply on plan.yaml is quarantined` (plan-sign-gate.py). T-10 additionally
 covers the **union** the two authors could not see individually — both surfaces' fail-open (raising
 call, unimportable module) plus a negative control per surface, all 6 confirmed `ok` in the run

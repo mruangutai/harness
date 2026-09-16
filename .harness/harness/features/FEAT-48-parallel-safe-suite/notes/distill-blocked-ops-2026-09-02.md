@@ -10,7 +10,7 @@ held at its cap.
 
 **Verified by the orchestrator, id-by-id against the committed base:** 5 files, 17 entries changed,
 **zero ids added, zero removed**, entry counts unchanged (pm 40, security-reviewer 40,
-code-reviewer 40, ui-reviewer 38, validator-lead 40). `check-expertise.sh` exits 0 on both tiers.
+code-reviewer 40, ui-reviewer 38, validator-lead 40). `check-expertise.py` exits 0 on both tiers.
 
 **One op did not land on the first pass and was caught by that check.** `harness-security-reviewer`
 G-10 was reported applied while line 28 still carried its base text. The squad's proof — a hash over

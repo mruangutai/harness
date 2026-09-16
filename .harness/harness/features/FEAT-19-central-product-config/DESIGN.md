@@ -106,9 +106,9 @@ seven to be hit while this very feature is being built, and one of the two the p
 
 ## Contract 4 — `--which-config`, and the homonym it avoids
 
-`check-domain.sh --resolve <path>` already exists and answers a **different** question with a
+`check-domain.py --resolve <path>` already exists and answers a **different** question with a
 **different** output shape: which agent owns a path, in plain text, including the literal `NOBODY`
-(`check-domain.sh` line-marked `if [ "${1:-}" = "--resolve" ]`; cases (c) and (d) in
+(`check-domain.py` line-marked `if [ "${1:-}" = "--resolve" ]`; cases (c) and (d) in
 `test-check-domain.py` assert the literal `NOBODY` and a non-empty stdout at exit 0).
 
 The resolver's flag is therefore **`--which-config`, never `--resolve`** (D-07). The confusion this
@@ -144,5 +144,5 @@ document's tables as prose with a `$` in front of them, and could not be checked
 ## Open questions
 
 - **Q1 — RESOLVED by D-07.** Asked whether to rename the resolver's flag off `--resolve` to end the
-  homonym with `check-domain.sh --resolve`. The plan adopted `--which-config`; Contracts 4 and 5 are
+  homonym with `check-domain.py --resolve`. The plan adopted `--which-config`; Contracts 4 and 5 are
   written against that name. No open question remains.

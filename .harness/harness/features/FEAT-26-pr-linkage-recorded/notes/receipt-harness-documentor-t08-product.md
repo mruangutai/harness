@@ -46,7 +46,7 @@ number" because a row whose subject is "the number" cannot serve as an open-or-s
   is what "four operator-confirmed from the titles" refers to.
 - `feat/harness-native-foundation` carrying two merged pull requests (15 and 4) is
   confirmed in `_record_pr`'s docstring and by FEAT-02/FEAT-03 holding those numbers.
-- The new invariant is **INV-28** at warn level (`git diff` of `check-state.sh`), gated on
+- The new invariant is **INV-28** at warn level (`git diff` of `check-state.py`), gated on
   `github.sync` like INV-21. The plan's intent said "warn following INV-21's reason"; the
   number is INV-28, and the entry says so.
 - DEC-153 does keep "merge/PR/deploy user-gated" (`DECISIONS.md:3717` entry body), which
@@ -155,7 +155,7 @@ The `@6568` anchor still lands on the heading — the verify's own
 ## Scope
 `git diff -U0 --stat` for `.harness/harness/docs/`: `DECISIONS-INDEX.md` 1 insertion,
 `DECISIONS.md` 70 insertions — the whole entry as one added block, no other file in the
-docs tree touched. `plan.yaml`, `gh-sync.py`, `check-state.sh` and every `SKILL.md`
+docs tree touched. `plan.yaml`, `gh-sync.py`, `check-state.py` and every `SKILL.md`
 untouched. Nothing committed.
 
 ## Open questions carried forward

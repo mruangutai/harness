@@ -77,7 +77,7 @@ resolved:
 - 'ROUTING WALL, MEASURED. NO agent domain grants write on .claude/skills/harness/teams/**,
   .claude/skills/harness/SKILL.md or harness-team/SKILL.md; the only .claude grant
   is .claude/skills/harness/bin/** (dev-ops, backend-dev). DEC-174''s carve-out covers
-  check-state.sh and validate-digest.py, extended by the mission and D-05 to four
+  check-state.py and validate-digest.py, extended by the mission and D-05 to four
   bin/ test and runner scripts. RECURRENCE 7: harness-qa has NO writable test surface
   at all — tests/ and web/ do not exist and all 13 test scripts live in bin/, so the
   qa segment''s AUTHORING half is structurally unavailable'

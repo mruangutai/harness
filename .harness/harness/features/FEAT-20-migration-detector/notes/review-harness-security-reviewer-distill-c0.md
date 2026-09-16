@@ -5,7 +5,7 @@ observations log this feature) and three lead-relayed candidates plus one lead-f
 item, per the dispatch.
 
 **Send-back correction (this revision):** G-08 measured 51 words against the 50-word cap
-(`check-expertise.sh:112-114`, `WORD_CAP = 50` at line 37) — `text.split()` on the entry text after
+(`check-expertise.py:112-114`, `WORD_CAP = 50` at line 37) — `text.split()` on the entry text after
 the `- XX-NN: ` prefix, continuation lines joined with a single space. Condensed to exactly 50 words
 by removing one word ("even") from the clause "this review's finding, even at info severity" → "this
 review's finding, at info severity" — the rule is unchanged: a diff-introduced false safety claim is
@@ -100,7 +100,7 @@ DIGEST:
       section: Patterns
       target: P-13
       entry: "WHEN a diff adds one instance to a pre-existing exposure (e.g. one more shadowable name) without an obvious mechanism change DO diff the surrounding code against the pre-diff commit before dismissing as pre-existing — only a proven-unchanged mechanism, reachability, and affected-party set earns the dismissal."
-      why: "relay: this feature earned its 'pre-existing, not a regression' claim on check-state.sh's cwd-shadow issue by byte-diffing against 88b1182, not by inspection alone; sharpens P-12's recording rule with the earning step."
+      why: "relay: this feature earned its 'pre-existing, not a regression' claim on check-state.py's cwd-shadow issue by byte-diffing against 88b1182, not by inspection alone; sharpens P-12's recording rule with the earning step."
     - op: add
       section: Patterns
       target: P-14

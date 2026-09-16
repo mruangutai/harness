@@ -5,7 +5,7 @@ Verdict: PASS. File is format-clean; no pre-existing entry lost, altered, or rew
 ## 1. Directory gate
 
 ```
-$ .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+$ .claude/skills/harness/bin/check-expertise.py .harness/expertise/
 OK   .harness/expertise/harness-backend-dev.md
 OK   .harness/expertise/harness-code-reviewer.md
 OK   .harness/expertise/harness-dev-ops.md
@@ -30,7 +30,7 @@ the backlog. No edit made or proposed.
 ## 2. Single-file gate
 
 ```
-$ .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-validator-lead.md
+$ .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-validator-lead.md
 OK   .harness/expertise/harness-validator-lead.md
 EXIT:0
 ```

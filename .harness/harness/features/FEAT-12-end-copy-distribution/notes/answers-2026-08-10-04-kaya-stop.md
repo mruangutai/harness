@@ -23,8 +23,8 @@ That resolves the arithmetic the work order flagged: `BRIEF.md`'s "34" counts mo
 adding the two deletions gives the 36 tracked entries `git status` reports.
 
 **All 57 are `deploy.sh` artifacts. None was authored in kaya.** Contents: `harness.md`, thirteen
-`harness-*/SKILL.md` files, fourteen `bin/` scripts (including `check-domain.sh`, `check-state.sh`,
-`bash-write-guard.sh`, `validate-digest.py`), templates and team files. Kaya's own product code is
+`harness-*/SKILL.md` files, fourteen `bin/` scripts (including `check-domain.py`, `check-state.py`,
+`bash-write-guard.py`, `validate-digest.py`), templates and team files. Kaya's own product code is
 not involved.
 
 **Why the working tree shows them modified:** kaya last COMMITTED under those paths on **2026-08-02**

@@ -99,7 +99,7 @@ depends on a reader not "fixing" the code to match a plausible-sounding but wron
    - `python3 test-board-station.py` → all 13 PASS, exit 0.
    - Red-first claim reproduced in isolation (not by editing the shipped file): the pre-fix logic
      path for the 4301-digit case raises `ValueError` uncaught, matching "rc6=1."
-   - `bash run-unit-tests.sh --kind unit` → exit 0. `--kind integration` → exit 0.
+   - `python3 run-unit-tests.py --kind unit` → exit 0. `--kind integration` → exit 0.
    - T-02, T-03, T-05 `verify:` clauses read from `plan.yaml` via `yaml.safe_load` and executed
      **verbatim** with `bash -c <exact string>` (no manual retyping, no abbreviation) — all three
      print their GREEN sentinel and exit 0.
@@ -119,5 +119,5 @@ depends on a reader not "fixing" the code to match a plausible-sounding but wron
 ## Already ruled — not re-filed
 
 `ship-review-2026-08-17-13.md` B-1..B-26, `runs/2026-08-17-14-finalpass-validator/digest.md` Q1–Q6,
-`runs/2026-08-17-15-refix-validator/digest.md` Q1–Q6 (including the `check-domain.sh`/`Bash`
+`runs/2026-08-17-15-refix-validator/digest.md` Q1–Q6 (including the `check-domain.py`/`Bash`
 workaround, Q2) — all confirmed present in `notes/`, none re-raised here.

@@ -195,10 +195,10 @@ nobody wired its blocker is not independent, it is mis-wired.
 ## Done — and the hand-off
 
 Done when the frontier is empty and no fog remains: nothing left to decide before building. Then
-hand `/harness-plan` the **map path**. `## Decisions so far` is what pm authors REQs from,
-`## Out of scope` is what keeps the BRIEF's scope honest, and every ticket's `## Resolution` is
-there to zoom when pm needs the detail. pm still owns REQs, SCs and tasks — you removed the fog,
-not its job.
+hand `/harness-plan` the **map path**. `## Decisions so far` is what pm authors the perspectives
+from, `## Out of scope` is what keeps the BRIEF's scope honest, and every ticket's `## Resolution`
+is there to zoom when pm needs the detail. pm still owns the perspectives, SCs and tasks — you
+removed the fog, not its job.
 
 ## Red flags
 

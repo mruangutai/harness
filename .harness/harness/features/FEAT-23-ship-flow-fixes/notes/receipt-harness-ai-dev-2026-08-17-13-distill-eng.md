@@ -6,7 +6,7 @@
 `.harness/expertise/`, mine absent). Created it. Section counts before: file absent
 (0/0/0/0). After: **Patterns 2/15, Gotchas 1/15, Outcomes 0/10, Open 0/5.**
 
-`bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-ai-dev.md`:
+`python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-ai-dev.md`:
 
 ```
 OK   .harness/expertise/harness-ai-dev.md
@@ -64,7 +64,7 @@ identifiers per the distill skill's rule format (no `FEAT-NN`, `T-NN`, `DEC-NNN`
 
 ## Verification run
 
-Full unit suite (`.claude/skills/harness/bin/run-unit-tests.sh`): 106/106 checks passed,
+Full unit suite (`.claude/skills/harness/bin/run-unit-tests.py`): 106/106 checks passed,
 `PASS test-factory-integration.py` as the final line; all 16 scripts in the bucket exited 0
 (re-run in full to report `suite: pass` truthfully — no source was touched, only the new
 Expertise file and this receipt).

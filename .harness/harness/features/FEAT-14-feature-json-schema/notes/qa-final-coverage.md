@@ -7,7 +7,7 @@ Status: DRAFT (Phase 1 blind derivation, written before opening plan/hand-downs/
 - SC-01: unit — validate all 17 `feature.json` against schema; assert no key outside the 11; no `phase` key anywhere.
 - SC-02: unit — 3 distinct failing fixtures (top-level undeclared key, `runs[]` item undeclared key, `github`/`factory` sub-key undeclared), each asserting rejection AND that the message names the offending key.
 - SC-03: unit — 11 fixtures across 8 required + 3 optional keys, one fixture per key (not a count comparison); plus a `phase`-alongside-all-required-keys fixture rejected as undeclared.
-- SC-04: integration — `check-domain.sh` run in PreToolUse mode on a bad Write payload, exit 2 read directly (not inferred from source).
+- SC-04: integration — `check-domain.py` run in PreToolUse mode on a bad Write payload, exit 2 read directly (not inferred from source).
 - SC-05: integration — bad file written to disk, PostToolUse sweep run, exit 2 asserted (not exit 0), key named.
 - SC-06: unit — per-file (17) migration-table assertion: status enum byte-identical incl. case, `pr` int/null, no old status values / `phase` / string `"none"`; lowercase-value-rejected case.
 - SC-07: unit — import forced to fail, exit exactly 3, message names missing package + install command.
@@ -15,19 +15,19 @@ Status: DRAFT (Phase 1 blind derivation, written before opening plan/hand-downs/
 - SC-09: unit — `gh-sync.py`, `factory_claim.py`, `factory_decompose.py`, `check-plan-routes.py` existing suites pass + one new case per tool (4 total) reading a `feature.json` fixture.
 - SC-10: inspection — not this gate's evidence class (`not-provable-by-this-gate`).
 - SC-11: inspection — not this gate's evidence class (`not-provable-by-this-gate`).
-- SC-12: unit — `templates/feature.json` exists and validates against schema; `check-state.sh` INV-18 message and `harness/SKILL.md:23` both name it by filename.
+- SC-12: unit — `templates/feature.json` exists and validates against schema; `check-state.py` INV-18 message and `harness/SKILL.md:23` both name it by filename.
 - SC-13: integration — sweep for `feature.yaml` references, exactly two carve-outs (DECISIONS* records, test-harness-yaml-corpus.py docstring pinned to an exact occurrence count).
 - SC-14: integration — 3 new DECISIONS.md entries (jsonschema dependency, closed key set, phase/status collapse); DECISIONS-INDEX.md byte-for-byte match against `gen-decisions-index.py --stdout`.
 - SC-15: uat — out of gate scope (`not-provable-by-this-gate`).
 - SC-16: integration — checker-unavailable + otherwise-valid payload -> exit 2 (never exit 1), message names the real target path (never a temp file), sweep emits the unavailability message once, not per file.
 - SC-17: unit — check-plan-routes.py skips only on `status: Done`, `shipped`/`abandoned` literals absent, migrated-corpus count == 10 (0 is a failure, asserted non-zero), six board values + lowercase `done` each individually asserted for skip-or-check.
-- SC-18: integration — 7-case INV-17 matrix: (1) Review missing handoff-build fires named; (2) Done missing handoff-validate (non-exempt) fires; (3) FEAT-01/02 Done zero notes exempt -> no violation; (4) Plan status no notes -> no violation; (a) Done, all tasks main-session-direct, no notes -> no violation + exemption note naming suppressed stems; (b) squad-built Done missing handoff-validate.md still raises; (c) Done with no `execution_mode` key raises, and empty/absent `tasks:` raises (no vacuous pass over empty list). Plus: check-state.sh executable code (comments stripped) contains no `PHASE_ORDER`, no `phase`-key read, no case-sensitive `handoff-<Capitalized>.md` path construction.
+- SC-18: integration — 7-case INV-17 matrix: (1) Review missing handoff-build fires named; (2) Done missing handoff-validate (non-exempt) fires; (3) FEAT-01/02 Done zero notes exempt -> no violation; (4) Plan status no notes -> no violation; (a) Done, all tasks main-session-direct, no notes -> no violation + exemption note naming suppressed stems; (b) squad-built Done missing handoff-validate.md still raises; (c) Done with no `execution_mode` key raises, and empty/absent `tasks:` raises (no vacuous pass over empty list). Plus: check-state.py executable code (comments stripped) contains no `PHASE_ORDER`, no `phase`-key read, no case-sensitive `handoff-<Capitalized>.md` path construction.
 
 ## Named traps from BRIEF §Verification gaps (to re-check at HEAD, not just cite)
 
-1. New unit test files must be registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS` — the integration kind's `detect` globs only match `test-check-state.py` / `test-factory-integration.py`, so misregistration makes the file invisible to the matrix.
+1. New unit test files must be registered in `run-unit-tests.py`'s `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS` — the integration kind's `detect` globs only match `test-check-state.py` / `test-factory-integration.py`, so misregistration makes the file invisible to the matrix.
 2. The required CI job (`tests.yml`'s `integration` job) must itself run `--kind unit` (T-03) or SC-01/02/03/06/07/09/12/17 (all unit-evidence) have no mechanical runner on the branch-protected context.
-3. `check-state.sh` is expected red between T-06 and T-08 by construction (glob names `feature.json` while corpus still `feature.yaml`) — accepted, not a live concern at HEAD.
+3. `check-state.py` is expected red between T-06 and T-08 by construction (glob names `feature.json` while corpus still `feature.yaml`) — accepted, not a live concern at HEAD.
 
 ## functional / component / ui / eval / typecheck
 
@@ -46,9 +46,9 @@ plan-signing commit, so this is the correct range (not `3abaedd..HEAD`, which wo
 
 | check | result |
 |---|---|
-| `run-unit-tests.sh --kind unit` | rc 0, 12 scripts, 36/36 cases in `test-validate-feature-json.py` PASS |
-| `run-unit-tests.sh --kind integration` | rc 0, 12 scripts (incl. `test-check-domain.py`, `test-check-state.py` 58 `ok`/0 `FAIL`) |
-| `check-state.sh` | rc 0, **zero** VIOLATION lines, one INV-17 exemption note naming FEAT-15 |
+| `run-unit-tests.py --kind unit` | rc 0, 12 scripts, 36/36 cases in `test-validate-feature-json.py` PASS |
+| `run-unit-tests.py --kind integration` | rc 0, 12 scripts (incl. `test-check-domain.py`, `test-check-state.py` 58 `ok`/0 `FAIL`) |
+| `check-state.py` | rc 0, **zero** VIOLATION lines, one INV-17 exemption note naming FEAT-15 |
 | `check-plan-routes.py` | `0 violation(s) across 10 plan(s)`, rc 0 |
 | `gen-decisions-index.py --stdout` vs `DECISIONS-INDEX.md` | byte-for-byte, `diff` exit 0 |
 | `git status --porcelain` before any probe | **empty** |
@@ -57,19 +57,19 @@ All five match the lead's table. **git status baseline: empty (quoted above).**
 
 ### DEC-174 carve-out: direct invocation, not reasoning (constraint 1)
 
-**SC-04 — LIVE, MEASURED.** Ran `check-domain.sh` with `hook_event_name: PreToolUse`, `tool_name:
+**SC-04 — LIVE, MEASURED.** Ran `check-domain.py` with `hook_event_name: PreToolUse`, `tool_name:
 Write` against a fixture `.harness/features/FEAT-X/feature.json` carrying `invented_key`. Exit **2**.
 stderr: `undeclared key 'invented_key' at /` plus the redirection sentence. (First attempt exited 0 —
-`CLAUDE_PROJECT_DIR` without a `.harness/team-config.yaml` falls back to `check-domain.sh`'s own repo
+`CLAUDE_PROJECT_DIR` without a `.harness/team-config.yaml` falls back to `check-domain.py`'s own repo
 root, so the target path never matched `RE_FEATURE_JSON` relative to the wrong root. Fixed by writing
 a minimal manifest into the fixture; this is a real trap for anyone probing this hook cold, not a
 defect in the hook itself.)
 
-**SC-05 — LIVE, MEASURED.** Wrote a bad file to disk (`sneaky_key`), fired `check-domain.sh --post`
+**SC-05 — LIVE, MEASURED.** Wrote a bad file to disk (`sneaky_key`), fired `check-domain.py --post`
 with a `Bash` payload (no path in the payload — exercises the sweep). Exit 2, key named. Not exit 0.
 
 **SC-16 — LIVE, MEASURED, both halves.** (a) Otherwise-valid payload, `jsonschema` shadowed with a
-module that raises `ImportError` (placed via `PYTHONPATH`, ahead of site-packages — `check-domain.sh`'s
+module that raises `ImportError` (placed via `PYTHONPATH`, ahead of site-packages — `check-domain.py`'s
 own wrapper always prepends its own bin dir, so shadowing `feature_schema` itself is not reachable
 this way, but shadowing `jsonschema`, which is imported *inside* `feature_schema`, is). Exit 2, never
 0/1, message names the install command and the **real relative target path**
@@ -87,7 +87,7 @@ enforcement (an undeclared key on the Write route → exit 2; the checker-unavai
 today only by the three live probes above, run once, by me, outside any suite that will run again on
 the next PR. This falsifies the dispatch's own premise that these SCs' "assertions live in
 `test-check-domain.py`" — they do not. A future edit that broke or removed the schema-check branch in
-`check-domain.sh` (lines 866-922) would pass `--kind integration` clean. `coverage_gaps`, ranked above
+`check-domain.py` (lines 866-922) would pass `--kind integration` clean. `coverage_gaps`, ranked above
 G1 in `must_fix` below — G1 is two missing fixtures for schema behavior that already has some coverage
 elsewhere; this is the primary write-time enforcement path with none.
 
@@ -115,7 +115,7 @@ checkout — the guard correctly denied a direct `Edit` on `docs/harness/DECISIO
 SC-13-only script) is the actual mechanized sweep: `git grep -c feature\.yaml` over `.claude`,
 `.github`, `.harness/harness.json`, `.harness/team-config.yaml`, `docs/harness`, exempting
 `docs/harness/DECISIONS*` by prefix and five files by **pinned exact count**
-(`test-harness-yaml-corpus.py`:4, `check-domain.sh`:6, `test-check-domain.py`:1,
+(`test-harness-yaml-corpus.py`:4, `check-domain.py`:6, `test-check-domain.py`:1,
 `check-plan-routes.py`:1, `BUILD.md`:3) plus a dated-anchor-string check per pinned file. Replicated
 this logic read-only at HEAD: **OK**. In the same disposable worktree, injected one new
 `feature.yaml` reference into `.claude/skills/harness/SKILL.md` (a non-carve-out instructing file) —
@@ -129,7 +129,7 @@ sweep **went red**, naming the file and count. Restored via worktree removal.
 
 ### SC-08 — the discrepancy, resolved
 
-BRIEF line 421: "It is NOT 'exits 0' — it exits 1 today." At HEAD: `check-state.sh` exits **0**,
+BRIEF line 421: "It is NOT 'exits 0' — it exits 1 today." At HEAD: `check-state.py` exits **0**,
 **zero** VIOLATION lines. `notes/baseline-check-state.txt` is genuinely **0 bytes** (confirmed:
 `wc -c` = 0), matching the dispatch's flag, not an error.
 
@@ -137,14 +137,14 @@ BRIEF line 421: "It is NOT 'exits 0' — it exits 1 today." At HEAD: `check-stat
 written earlier in planning, before other concurrent work (or this feature's own T-04 precondition
 wait) cleared whatever pre-existing violations BRIEF's author had in view. The file is not evidence
 of a broken capture step — T-04's step 0 genuinely captured zero VIOLATION lines at the moment it
-ran, and `check-state.sh` still reports zero at HEAD. **SC-08's real bar — "the count may only fall,
+ran, and `check-state.py` still reports zero at HEAD. **SC-08's real bar — "the count may only fall,
 never rise" — is satisfied: 0 → 0.** Recommend BRIEF's line 421 be corrected in a future documentor
 pass; it is not a live defect, but it is a specific claim that is checkably wrong today.
 
 INV-18/21/22/23/INV-24(factory) fixtures in `test-check-state.py` (58 `ok`, 0 `FAIL`) — read
 directly, not inferred: real tempfile fixtures per invariant, not vacuous ones (e.g. INV-24 has 14
 distinct cases including null-repo, null-issue, self-collision, no-fleet-file). INV-17's plan-keyed
-exemption on FEAT-15 fires live: `check-state.sh`'s own stdout at HEAD carries the exemption note
+exemption on FEAT-15 fires live: `check-state.py`'s own stdout at HEAD carries the exemption note
 naming FEAT-15 and the three suppressed stems.
 
 ### SC-18 — seven-case matrix, verified against actual assertions (not labels, per P-01)
@@ -198,8 +198,8 @@ since fixing it means editing `tests.yml` outside this feature's scope.
 
 | kind | declared | actually ran | exit | honest for this diff? |
 |---|---|---|---|---|
-| unit | active, cmd set | `run-unit-tests.sh --kind unit`, 12 scripts | 0 | yes — `logic`/`cross_module` tasks (T-01, T-05) require it and it ran |
-| integration | active, cmd set | `run-unit-tests.sh --kind integration`, 12 scripts | 0 | yes — `cross_module`(T-05), `config`(T-03,T-04,T-08) via SC-04/05/08/13/14/16/18 all named `integration` and their assertions live in `test-check-state.py`/`test-check-domain.py`, both registered `INTEGRATION_SCRIPTS` (confirmed by reading `run-unit-tests.sh`, not the `harness.json` `detect` glob, which names only 2 of the 12 — the `detect` glob is NOT what the `cmd` actually runs, so it is not misleading in practice but is itself a latent trap if anyone starts trusting `detect` for kind membership) |
+| unit | active, cmd set | `run-unit-tests.py --kind unit`, 12 scripts | 0 | yes — `logic`/`cross_module` tasks (T-01, T-05) require it and it ran |
+| integration | active, cmd set | `run-unit-tests.py --kind integration`, 12 scripts | 0 | yes — `cross_module`(T-05), `config`(T-03,T-04,T-08) via SC-04/05/08/13/14/16/18 all named `integration` and their assertions live in `test-check-state.py`/`test-check-domain.py`, both registered `INTEGRATION_SCRIPTS` (confirmed by reading `run-unit-tests.py`, not the `harness.json` `detect` glob, which names only 2 of the 12 — the `detect` glob is NOT what the `cmd` actually runs, so it is not misleading in practice but is itself a latent trap if anyone starts trusting `detect` for kind membership) |
 | functional | excluded (DEC-187) | n/a | n/a | yes — no service API in this diff, matches the exclusion's stated reason |
 | component | unresolved, cmd null | not run | n/a | **not applicable** — diff touches no `.tsx`; soft skip, honest |
 | ui | unresolved, cmd null | not run | n/a | **not applicable** — no UI surface in this diff (confirmed: zero `.tsx`/`.jsx`/frontend paths in the 110-file diff); soft skip, honest |
@@ -220,15 +220,15 @@ No task is `ai_behavior`, `frontend`, `api`, `bugfix`, `feature`, or `scaffoldin
 | SC-01 | unit | **proves** | `test-validate-feature-json.py` fixture suite, 36 cases, all green; corpus spot-check (my own script) over all 17 `feature.json` — zero `phase`, zero non-schema keys |
 | SC-02 | unit | **partially proves** | top-level + `runs[]` + `github` sub-key fixtures present and green; `factory`/`factory.edges` sub-key rejection is correct but UNTESTED — G1, `coverage_gaps` |
 | SC-03 | unit | **proves** | 11 fixtures present (`accepted_all_eleven`, `accepted_only_required`, 3×`accepted_omitting_*`, 8× `rejected_omitting_required_*`, `rejected_phase_undeclared`), all green |
-| SC-04 | integration | **proves TODAY, but not as standing coverage** | live `check-domain.sh` invocation above, exit 2, key named. **No test in any suite exercises this** — see the schema-rejection gap above. `sc_evidence` cites my live probe in this artifact, not a test path |
+| SC-04 | integration | **proves TODAY, but not as standing coverage** | live `check-domain.py` invocation above, exit 2, key named. **No test in any suite exercises this** — see the schema-rejection gap above. `sc_evidence` cites my live probe in this artifact, not a test path |
 | SC-05 | integration | **proves TODAY, but not as standing coverage** | live POST-sweep invocation above, exit 2, key named. Same gap as SC-04 — no regression test |
 | SC-06 | unit | **proves** | fixture-level (shipped/lowercase-done/pr-string-none all rejected) + my own per-file corpus sweep, all 17 files clean against the migration table |
 | SC-07 | unit | **proves** | `cli_jsonschema_unavailable_exit_exactly_3`/`_not_0_or_1`/`_stderr_names_required` all green in the unit suite |
-| SC-08 | integration | **proves**, with the BRIEF-line-421 correction above | `check-state.sh` re-run, 0 violations, baseline 0 bytes, count did not rise; INV-18/21/22/23/24 fixtures real and green; INV-17 exemption note confirmed live for FEAT-15 |
+| SC-08 | integration | **proves**, with the BRIEF-line-421 correction above | `check-state.py` re-run, 0 violations, baseline 0 bytes, count did not rise; INV-18/21/22/23/24 fixtures real and green; INV-17 exemption note confirmed live for FEAT-15 |
 | SC-09 | unit | **proves** | grepped all four tools' test files directly: `test-gh-sync.py` (`write_feature_json`/`read_feature_json` helpers, used across its suite), `test-factory-claim.py:244-268` (an explicit eleven-key `feature.json` fixture read end to end by `issue_number`), `test-factory-decompose.py:219-288` (`make_feature` builds and reads `feature.json`), `test-check-plan-routes.py:839-916` (multiple `feature.json` fixture cases incl. the eight-required-key template case) — all four carry real new-format fixture coverage, all green in `--kind unit`/`--kind integration` |
 | SC-10 | inspection | not-provable-by-this-gate | operator spot-check, out of QA's evidence class |
 | SC-11 | inspection | not-provable-by-this-gate | schema-source inspection, out of QA's evidence class |
-| SC-12 | unit | **proves** | `templates/feature.json` exists, validates clean via `feature_schema.problems_for_file`; both instruction points (`harness/SKILL.md:24`, and `check-state.sh`'s INV-18 remediation message — confirmed by grep) name it by filename |
+| SC-12 | unit | **proves** | `templates/feature.json` exists, validates clean via `feature_schema.problems_for_file`; both instruction points (`harness/SKILL.md:24`, and `check-state.py`'s INV-18 remediation message — confirmed by grep) name it by filename |
 | SC-13 | integration | **proves** | replicated T-08's sweep read-only at HEAD (OK), then live mutation in a disposable worktree turned it red, restored. BRIEF's "exactly two carve-outs" is stale vs the plan's actual (sanctioned) five-file/prefix scheme — noted, not a defect |
 | SC-14 | integration | **proves the structural half; disproves the prose half** | byte-for-byte match confirmed at HEAD; live mutation shows the check is blind to ruling-prose corruption — the exact incident this run investigates. See finding above |
 | SC-15 | uat | not-provable-by-this-gate | operator read, out of QA's evidence class |
@@ -240,7 +240,7 @@ No task is `ai_behavior`, `frontend`, `api`, `bugfix`, `feature`, or `scaffoldin
 
 1. **`test-check-domain.py` has zero schema-rejection assertions for the feature.json write-time gate
    (D-03's core enforcement).** SC-04, SC-05 and SC-16 are true today only by my one-off live probes;
-   nothing mechanical protects them against a future regression in `check-domain.sh`'s schema branch
+   nothing mechanical protects them against a future regression in `check-domain.py`'s schema branch
    (lines 866-922). This is the highest-priority gap because it is the PRIMARY enforcement path this
    whole feature exists to add, not a secondary nesting level or a documentation string. Add fixtures
    analogous to `run_post`'s but WITHOUT the deliberate schema-clean padding: an undeclared-key payload

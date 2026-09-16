@@ -86,7 +86,7 @@ Fixture `/tmp/e2e/decisions.md`, 10 markers, run via
 (no preceding DEC heading): `git status` :: 'nothing': REFUSED: git subcommand 'status' is not in the read-only allowlist (cat-file, diff, grep, log, ls-files, rev-parse, show)
 (no preceding DEC heading): `git -C /tmp grep foo` :: 'nothing': REFUSED: git option '-C' before the subcommand is not allowed...
 (no preceding DEC heading): `grep -f /tmp/nonexistent` :: 'nothing': REFUSED: grep option '-f' reads from an argument file or a device instead of argv/stdin and is never allowed
-(no preceding DEC heading): `git grep -Otouch\ /tmp/p_f4 -e budget .claude/skills/harness/bin/check-domain.sh` :: 'nothing': REFUSED: git option '-Otouch /tmp/p_f4' opens a pager/program directly (-O/--open-files-in-pager) and is never allowed
+(no preceding DEC heading): `git grep -Otouch\ /tmp/p_f4 -e budget .claude/skills/harness/bin/check-domain.py` :: 'nothing': REFUSED: git option '-Otouch /tmp/p_f4' opens a pager/program directly (-O/--open-files-in-pager) and is never allowed
 examined 10 claim(s), 10 failed
 EXIT=1
 ```
@@ -118,10 +118,10 @@ T-20 VERIFY RC=0
 `ALLOWED_FIRST_TOKENS` marker matches again (Item A). Separately,
 `test-check-decision-anchors.py`: **8/8 `ok -`, exit 0.**
 
-## 3. `run-unit-tests.sh` (from worktree, captured to a variable, `grep`'d — never piped to head/tail)
+## 3. `run-unit-tests.py` (from worktree, captured to a variable, `grep`'d — never piped to head/tail)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh > /tmp/run-unit-tests.out 2>&1
+$ python3 .claude/skills/harness/bin/run-unit-tests.py > /tmp/run-unit-tests.out 2>&1
 RC=0
 $ grep -c '^FAIL' /tmp/run-unit-tests.out
 0

@@ -11,7 +11,7 @@ Verified directly (not just re-citing the qagate note):
   `.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py`
   — it does **not** glob-match `test-check-plan-routes.py` or `test-upgrade-config.py`.
 - `unit.detect` is the glob `.claude/skills/harness/bin/test-*.py`, which **does** match both files.
-- `run-unit-tests.sh:17,18`: `test-check-plan-routes.py` and `test-upgrade-config.py` are in
+- `run-unit-tests.py:17,18`: `test-check-plan-routes.py` and `test-upgrade-config.py` are in
   `INTEGRATION_SCRIPTS`, **not** in `UNIT_SCRIPTS`. `--kind unit` never executes either file.
 
 **Consequence, concretely:** a future gate that derives required kinds from a diff via `detect`
@@ -117,7 +117,7 @@ because a reader skimming only `matrix_ok: true` could over-credit it.
 
 | SC | Test | State |
 |---|---|---|
-| SC-01 | `run-unit-tests.sh` full run | satisfied |
+| SC-01 | `run-unit-tests.py` full run | satisfied |
 | SC-02 | `test-check-plan-routes.py::case_21` under `--kind integration` | satisfied (Probe 1 flags the *derivation path* to this command, not the result) |
 | SC-03 | `test-no-distribution.py::case3` (3 of its 4 assertions; the 4th is Probe 3's finding) | satisfied |
 | SC-07 | `test-no-distribution.py::case2`, mutation-proven | satisfied |

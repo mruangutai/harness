@@ -37,7 +37,7 @@ dropped the delivery. Every gate was green, because each task's `verify:` bound 
 mechanical form. A human reading the diff caught it. That is DEC-174's compensating control working
 exactly as designed, and it is also the control that has no backup.
 
-**Two gates spent the whole cluster passing while examining nothing.** Mid-build, `check-state.sh`
+**Two gates spent the whole cluster passing while examining nothing.** Mid-build, `check-state.py`
 exited 0 with zero findings and `check-plan-routes.py` reported `examined 0` — correct at the time,
 but nothing in the plan's verification chain would have noticed if they had stayed that way. I caught
 it by comparing the note-line count against a baseline captured before the move, not by reading an
@@ -46,7 +46,7 @@ exit code. When a change moves what a gate *discovers*, its exit code stops bein
 **And the last one was the parity test itself.** SC-10 asked for a test proving the CI rendering and
 the session-entry rendering agree. The test that shipped composed the session-entry side *itself*, in
 a helper its own comment called "mirrored" — so it proved the module against a copy of the gate.
-pm found it by mutation. The fix deletes the mirror and runs the real `check-state.sh` as a
+pm found it by mutation. The fix deletes the mirror and runs the real `check-state.py` as a
 subprocess. It is now proven in both directions: I killed the gate-side mutant, qa killed the
 `render()`-side one.
 
@@ -111,7 +111,7 @@ inspection.
 ## Memory: what the org learned
 
 Distillation ran for all three squads and **every member applied its own entries** — nothing was
-stranded. I ran `check-expertise.sh` myself afterwards: **13 of 13 files OK**, every one inside
+stranded. I ran `check-expertise.py` myself afterwards: **13 of 13 files OK**, every one inside
 budget.
 
 - **validator** — five files updated; the digest-skim contributed 9 of 24 accepted entries, so it
@@ -145,11 +145,11 @@ it.
 |---|---|---|
 | B-1 | enhancement | **Nothing stages two repository segments.** One fixture change to `test-check-state.py` and `test-check-plan-routes.py` closes this, pins D-08's delivery half, and adds the segment-level readability guard together. qa's recommendation and mine — the strongest row here. |
 | B-2 | bug | **D-08's delivery half is correct today and pinned by nothing.** Neutering `fpath()` leaves the suite at exit 0; code-reviewer adds that `test-check-state.py` carries a weakened assertion. The half that was previously missed is the half still untested. |
-| B-3 | bug | **`check-state.sh` has no zero-discovery guard.** `check-plan-routes.py` has one in CI; check-state is the higher-consequence gate — six invariants, the budgets and the station mirror all evaluate over its discovery set — and nothing bounds it. |
+| B-3 | bug | **`check-state.py` has no zero-discovery guard.** `check-plan-routes.py` has one in CI; check-state is the higher-consequence gate — six invariants, the budgets and the station mirror all evaluate over its discovery set — and nothing bounds it. |
 | B-4 | bug | **`check-plan-routes.py` has no segment-level readability guard.** A `chmod 000` segment directory silently vanishes from the scan; demonstrated live by code-reviewer. |
-| B-5 | chore | **`branch-create-gate.sh` hardcodes the segment.** It should derive it; a bare wildcard is wrong, because feature ids are coined per-BRIEF with no cross-repo uniqueness. |
+| B-5 | chore | **`branch-create-gate.py` hardcodes the segment.** It should derive it; a bare wildcard is wrong, because feature ids are coined per-BRIEF with no cross-repo uniqueness. |
 | B-6 | chore | **The gh-sync walk-up probes `team-config.yaml` where T-10's intent named `harness.json`.** The choice is right — it matches every other root probe — but no test discriminates, and it deserves a decision record. |
-| B-7 | bug | **`bash-write-guard.sh` blocks quoted redirect targets.** It masks quoted spans, so any `>"$tmp"` blocks, literal or variable. It blocked an **approved** plan `verify:` clause; every one had to be re-run from a script file. |
+| B-7 | bug | **`bash-write-guard.py` blocks quoted redirect targets.** It masks quoted spans, so any `>"$tmp"` blocks, literal or variable. It blocked an **approved** plan `verify:` clause; every one had to be re-run from a script file. |
 | B-8 | enhancement | **Nothing reconciles a landed diff against the plan's declared files.** `.harness/expertise/harness-pm.md` — injected into every pm spawn — was path-corrected inside a cluster commit with no task naming it. Benign this time and verified so; the gap is structural. Raised independently by two reviewers. |
 | B-9 | chore | **The `no-rows` comment points at the wrong file.** It credits `test-check-state.py`'s `case_x`; the real coverage is case 16 of `test-layout-migration.py`. Cosmetic now, misleading on the next edit. |
 | B-10 | chore | **Turn SC-06's manual `--resolve` pair into a standing test case** in `test-check-domain.py`. pm's suggestion. |
@@ -158,7 +158,7 @@ it.
 | B-13 | chore | **Three FEAT-20 review notes rode into `d033b9d`.** Untracked before this feature, harmless, recorded rather than repaired — rewriting a landed 617-file commit to drop three notes costs more than it saves. |
 | B-14 | enhancement | **Raise mutation coverage past six of 186 cases**, or accept explicitly that suite-green is a weak signal outside them. |
 
-| B-15 | bug | **`harness-distill` describes a check `check-expertise.sh` does not implement.** The doc says path-mentioning craft entries are flagged advisorily for a human; the checker has no advisory category and no such rule. The craft/repository split has no checker support. |
+| B-15 | bug | **`harness-distill` describes a check `check-expertise.py` does not implement.** The doc says path-mentioning craft entries are flagged advisorily for a human; the checker has no advisory category and no such rule. The craft/repository split has no checker support. |
 | B-16 | bug | **The repository Expertise layer is documented but unwritable.** `harness-distill` specifies `.harness/<repo>/expertise/<agent>.md` with a 40-line budget; no grant in `team-config.yaml` covers it. I ran the domain hook: that path resolves to **NOBODY** for every agent. The split shipped without its grant, and nothing exercised it, so nothing caught it. |
 | B-17 | chore | **Four of five validator-squad Expertise files now sit at Patterns 15/15.** Every future distillation for those roles is displacement-only. A cap raise, a periodic curation pass, or accepting it — worth deciding before the next feature closes. |
 

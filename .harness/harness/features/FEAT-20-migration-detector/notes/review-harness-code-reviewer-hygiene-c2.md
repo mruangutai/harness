@@ -11,15 +11,15 @@ hash to the same SHA-256 (`4621b6f3...f8312a6`). Byte-identical, not eyeballed.
 
 ## 2. Amendment 2 vs the post-M-1 code
 
-- **Every cause appends blame(), matching code.** `check-state.sh:1295-1319`'s `_cv_wording` now
+- **Every cause appends blame(), matching code.** `check-state.py:1295-1319`'s `_cv_wording` now
   computes `_named = ...blame(_srep)` and appends it unconditionally for every cause reached (the
   `unrecognised cause` branch at :1314-1316 returns first and correctly skips it — a defensive
   path, not a regression). `layout_migration.py:318-320`'s `render()` already called `blame()`
   unconditionally. Confirmed by **execution**, not inspection: constructed a tree with an
-  `undeclared-segment` on `features` plus a `check-state.sh`-reader forced to the `migrated`
+  `undeclared-segment` on `features` plus a `check-state.py`-reader forced to the `migrated`
   pattern. Both surfaces now agree —
-  `render()`: `"...undeclared segment: ...; .claude/skills/harness/bin/check-state.sh [migrated]"`
-  `check-state.sh` live run: `"...UNDECLARED segment: ... — .claude/skills/harness/bin/check-state.sh [migrated]"`
+  `render()`: `"...undeclared segment: ...; .claude/skills/harness/bin/check-state.py [migrated]"`
+  `check-state.py` live run: `"...UNDECLARED segment: ... — .claude/skills/harness/bin/check-state.py [migrated]"`
   — the exact divergence c1 reproduced with a synthetic `SurfaceReport` no longer reproduces on a
   real tree through the real script.
 - **The "reader-less causes" label is imprecise — flag, not block.** Amendment 2 calls
@@ -69,14 +69,14 @@ sentence.
 
 ## 5. No regression outside the claimed surface
 
-`a714bd0..6296149 --stat` touches exactly: `check-state.sh` (M-1), `test-check-state.py` (M-2, pure
+`a714bd0..6296149 --stat` touches exactly: `check-state.py` (M-1), `test-check-state.py` (M-2, pure
 deletion, -1148/+0), `DECISIONS.md`/`DECISIONS-INDEX.md` (M-3), `plan.yaml` (am.2 citation),
 `.harness/members/backend-dev/{FEAT-02-t01,t02}.md` (now actually **committed** deletions — resolves
 the prior FAIL digest's Q1), `.harness/logs/2026-08-14.md` (bookkeeping), and four review
 artifacts + observations. `6296149` itself is log-only (`git diff a094dac..6296149 --stat` = 1 file,
 `.harness/logs/2026-08-14.md`, +4/-0). No `[harness:human]` commits in `3c75aa6..6296149`
 (`git log --format='%H %ci %an'`, no `human` marker). `3c75aa6..6296149` net stat matches PR #385's
-scope: `check-state.sh`, `layout_fixtures.py` (new), `layout_migration.py`, `test-check-state.py`,
+scope: `check-state.py`, `layout_fixtures.py` (new), `layout_migration.py`, `test-check-state.py`,
 `test-layout-migration.py`, the two decision files, `plan.yaml`, log, member deletions, review
 artifacts.
 
@@ -111,7 +111,7 @@ surfaced because the fix commit was the natural place to close it and didn't.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "All three must-fix findings from the FAIL round are verified fixed by execution at 6296149: DEC-194's base body is byte-identical (SHA-256) to pre-#385, amendment 2 correctly describes the settled blame-on-every-cause behaviour and is empirically reproduced live (render() and check-state.sh now name the same reader on a constructed undeclared-segment+disagreeing-reader tree), and test-check-state.py's shadowed duplicate region is gone with zero top-level name collisions by exhaustive AST check and both unit suites green; one low-severity doc-precision note and one repeated (not new) coverage advisory remain."
+  headline: "All three must-fix findings from the FAIL round are verified fixed by execution at 6296149: DEC-194's base body is byte-identical (SHA-256) to pre-#385, amendment 2 correctly describes the settled blame-on-every-cause behaviour and is empirically reproduced live (render() and check-state.py now name the same reader on a constructed undeclared-segment+disagreeing-reader tree), and test-check-state.py's shadowed duplicate region is gone with zero top-level name collisions by exhaustive AST check and both unit suites green; one low-severity doc-precision note and one repeated (not new) coverage advisory remain."
   severity_max: low
   findings: 3
   must_fix: []

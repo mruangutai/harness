@@ -13,7 +13,7 @@ room in every section touched.
 - `notes/handoff-build.md`, `notes/ship-review-2026-08-31.md` (cross-cutting skim)
 - `notes/review-harness-code-reviewer-c0..c4.md`, `notes/review-harness-qa-c0..c4.md` — checked
   whether any reviewer/QA finding landed on backend-dev's own build-phase work. Confirmed from
-  `plan.yaml` that `panel_findings.py`/`check-state.sh`/`test-panel-findings.py` (T-09) were all
+  `plan.yaml` that `panel_findings.py`/`check-state.py`/`test-panel-findings.py` (T-09) were all
   `execution_agent: harness-dev-ops`, not backend-dev — the M1 fail-open severity finding and B-1
   width finding are dev-ops's code, not mine. No reviewer/QA finding attaches to backend-dev's
   build work this feature. Nothing additional to distill from those files.
@@ -95,6 +95,6 @@ No displacement occurred; no section was at cap when I wrote.
 
 ## Verification
 
-Neither `check-expertise.sh` nor any formatter/linter/test suite run, per dispatch constraints.
+Neither `check-expertise.py` nor any formatter/linter/test suite run, per dispatch constraints.
 `git status --porcelain` shows only the two Expertise files and this receipt changed (checked
 via the merge tool's own PRESERVED/ADDED output, not a whole-file diff).

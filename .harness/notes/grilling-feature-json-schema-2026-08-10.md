@@ -49,12 +49,12 @@ than a hard stop with nowhere to go.
   `github` (the mirror block), `tasks`, `mission`, `effort`, `briefing`, `phase`.
 - The migration mechanism for in-flight features, and whether a one-shot converter is worth writing
   for twelve files.
-- Whether `check-state.sh` INV-18 and `SKILL.md:23` are corrected by shipping the missing template,
+- Whether `check-state.py` INV-18 and `SKILL.md:23` are corrected by shipping the missing template,
   or by rewording, or both.
 
 ## Out of scope
 
-- **`state.yaml`.** It already has a closed key set (`check-state.sh:548` `CHECKPOINT_KEYS`,
+- **`state.yaml`.** It already has a closed key set (`check-state.py:548` `CHECKPOINT_KEYS`,
   reported at `:629`, DEC-154) and is not part of this change.
 - **Re-opening YAML versus JSON.** The operator decided JSON on 2026-08-09 and reaffirmed it here.
   The ticket records the cheaper alternative and why it lost; do not rediscover it.
@@ -82,7 +82,7 @@ Measured 2026-08-10 at `3569a20`.
 - `jsonschema` is **not installed** — `import jsonschema` raises at `3569a20`.
 - `.claude/skills/harness/bin/check-docs.sh` **does not exist**.
 - `.claude/skills/harness/templates/` contains **no** `feature.yaml` or `feature.json` template,
-  while `check-state.sh` INV-18 and `.claude/skills/harness/SKILL.md:23` both instruct the reader to
+  while `check-state.py` INV-18 and `.claude/skills/harness/SKILL.md:23` both instruct the reader to
   instantiate one from a template. Both instructions point at nothing.
 - SPEC §11.3 (`docs/harness/SPEC.md:1742`) is normative prose declaring ten keys, enforced only by a
   human noticing.

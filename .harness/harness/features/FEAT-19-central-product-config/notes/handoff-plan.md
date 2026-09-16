@@ -12,8 +12,8 @@ task's ordering follows `depends_on` in `plan.yaml`.
 
 - Route resolution is verified, not asserted: `check-plan-routes.py` exits 0, 7/7 routed, 0
   violations — I ran it myself, independently of pm — `.harness/features/FEAT-19-central-product-config/plan.yaml` — verified-at 63b83c7
-- No task touches `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` or
-  `check-state.sh`, so DEC-174's carve-out binds nothing here; D-08 keeps `harness_boundary.py`
+- No task touches `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or
+  `check-state.py`, so DEC-174's carve-out binds nothing here; D-08 keeps `harness_boundary.py`
   out of every task's `files:` deliberately — plan.yaml `tasks[].files` — verified-at 63b83c7
 - T-02, T-03, T-07 are `main-session-direct` because their targets are ungranted, not because of
   DEC-174 — `check-plan-routes.py` output — verified-at 63b83c7
@@ -24,13 +24,13 @@ task's ordering follows `depends_on` in `plan.yaml`.
   — `runs/2026-08-13-2-eng/review-architecture-confirm.md` — verified-at 63b83c7
 - Branch is `main`, not `feat/FEAT-18-board-truth`; all FEAT-19 artifacts are untracked and
   uncommitted — `git rev-parse --abbrev-ref HEAD` — verified-at 63b83c7
-- `check-state.sh` exits 1 solely on FEAT-19's unapproved BRIEF. That is the designed plan-phase
-  terminus, not a defect, and it clears on signature — `check-state.sh` output — verified-at 63b83c7
+- `check-state.py` exits 1 solely on FEAT-19's unapproved BRIEF. That is the designed plan-phase
+  terminus, not a defect, and it clears on signature — `check-state.py` output — verified-at 63b83c7
 
 ## Dead ends
 
 - Do not re-run grilling and do not re-derive the anchors again from `#206`'s body: its cited
-  `check-domain.sh:572-575` and `tests.yml:134-141` are both dead, and the four `[^/]+` regexes
+  `check-domain.py:572-575` and `tests.yml:134-141` are both dead, and the four `[^/]+` regexes
   no longer exist anywhere — `.harness/notes/grilling-central-product-config-2026-08-12.md` `## Fact refresh` — verified-at 63b83c7
 - Do not add `mruangutai/harness` to `fleet.yaml` to "finish" the migration — D-01 rules harness
   keeps its own project data local precisely because the entry turns exit 2 into NOBODY — plan.yaml D-01 — verified-at 63b83c7

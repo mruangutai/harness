@@ -4,7 +4,7 @@
 paragraph, no subheadings.** The two blocks cycle 1 scoped out (`### What the fixture caught that
 reading did not`, `### Safety properties, and why each exists`) are deleted, along with the
 `/harness-deploy` claim and the pre-rewrite live-risk measurement. Verify exits 0 (`STRUCK`),
-generator clean with no ORPHAN, `run-unit-tests.sh` exit 0 with `PASS test-gen-decisions-index.py`.
+generator clean with no ORPHAN, `run-unit-tests.py` exit 0 with `PASS test-gen-decisions-index.py`.
 Nothing committed, staged or pushed.
 
 **Scope note for a later goal-check: SC-08 governs, and it is wider than T-14's `intent:` in
@@ -56,7 +56,7 @@ Removing `### What the fixture caught that reading did not` deletes two genuinel
 lessons. Per the dispatch's hard constraint they were **not** preserved by moving them anywhere.
 
 - **`printf … | python3 - <<'PY'` silently discards the pipe.** Still alive: enacted in live code at
-  `.claude/skills/harness/bin/check-domain.sh:97` and `bash-write-guard.sh:35` (data via argv),
+  `.claude/skills/harness/bin/check-domain.py:97` and `bash-write-guard.py:35` (data via argv),
   covered by a live case at `.claude/skills/harness/bin/test-bash-write-guard.py:60`, and recorded at
   `.harness/features/FEAT-05-pyyaml-file-parsers/observations/harness-backend-dev.md:19`.
 - **`set -u` with `"${empty_array[@]}"` aborts on macOS bash 3.2.** Survives in **git history only**
@@ -87,7 +87,7 @@ before regenerating, no fix needed. Both expected generator effects **confirmed,
 |---|---|
 | T-14 `verify:` (cross-checked verbatim against `plan.yaml:915-924`, no mismatch) | **exit 0**, printed `STRUCK` |
 | `python3 .claude/skills/harness/bin/gen-decisions-index.py` | exit 0, **emitted changes** to `DECISIONS-INDEX.md`, **no ORPHAN** |
-| `bash .claude/skills/harness/bin/run-unit-tests.sh` | exit 0, `PASS test-gen-decisions-index.py` |
+| `python3 .claude/skills/harness/bin/run-unit-tests.py` | exit 0, `PASS test-gen-decisions-index.py` |
 | SC-08's DEC-12 clause, wider than the verify's four files | `git grep -nE 'DEC-12([^0-9]\|$)' -- docs/` → **0 hits** |
 
 `.claude/skills/harness/bin/check-docs.sh` does **not exist on this branch** (`git ls-files` returns

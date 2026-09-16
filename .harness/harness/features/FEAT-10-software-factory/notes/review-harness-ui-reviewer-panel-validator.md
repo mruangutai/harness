@@ -156,7 +156,7 @@ the exact shape of the false positive.
 
 Palette/type/spacing/dark-light: `n/a` (DESIGN.md's own ruling, not re-litigated). Station words
 `Ready`/`Building`/`Review`, including the accepted `Review`-as-imperative residual: not reopened.
-T-08/`check-state.sh`: withheld under DEC-174, not touched or cited beyond noting qa's BLOCKED
+T-08/`check-state.py`: withheld under DEC-174, not touched or cited beyond noting qa's BLOCKED
 verdict traces to it, which is qa's finding, not restated as mine.
 
 ## Dimension this role cannot verify from source

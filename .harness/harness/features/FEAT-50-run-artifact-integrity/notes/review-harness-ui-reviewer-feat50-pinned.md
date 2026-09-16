@@ -18,10 +18,10 @@ audited each against REQ-01/REQ-02/REQ-08/SC-18.
 ## Findings
 
 **REQ-08 / SC-18 (checkout-binding message names both target and worktree) — SATISFIED, both routes.**
-- `check-domain.sh:733-735` (`feature_checkout_guard`, Write route): `"{target_path} is a feature
+- `check-domain.py:733-735` (`feature_checkout_guard`, Write route): `"{target_path} is a feature
   artifact whose write belongs in worktree {expected}."` + `"Write this artifact in {expected}, not
   the main checkout."` — names both.
-- `bash-write-guard.sh:718-720` (`feature_checkout_guard`, Bash route, via `deny()`): `"{absolute_path}
+- `bash-write-guard.py:718-720` (`feature_checkout_guard`, Bash route, via `deny()`): `"{absolute_path}
   is a feature artifact whose write belongs in worktree {expected}. Write it there, not in the main
   checkout."` — names both.
 - `test-bash-write-guard.py:865-888` (`bash-feature-checkout-main`/`-short`) asserts both substrings
@@ -40,20 +40,20 @@ unvalidated path — validated and unvalidated pass-throughs are not merely word
 structurally distinguishable (silence vs. stated gap). Matches the BRIEF's REQ-02 language exactly
 ("stated in a form the dispatching tier can see").
 
-**Low, non-gating: bash-write-guard.sh's `feature_checkout_guard` denial carries a domain-flavored
-boilerplate that doesn't fit this checkout question.** `bash-write-guard.sh:647-651`'s shared `deny()`
+**Low, non-gating: bash-write-guard.py's `feature_checkout_guard` denial carries a domain-flavored
+boilerplate that doesn't fit this checkout question.** `bash-write-guard.py:647-651`'s shared `deny()`
 helper appends, after every reason: *"File changes go through the Write tool, where your domain is
 enforced... If the file should be yours, raise it as an open_question."* That coda answers a *domain*
 question (who may own this path) but `feature_checkout_guard` is a *checkout* question — the writing
 agent already owns the artifact; it just targeted the wrong worktree. Telling it to "raise it as an
 open_question" if "the file should be yours" is a non-sequitur here (the file already is theirs).
 This is not a new pattern introduced by this diff: `deny()` was already reused this way for the
-structurally identical `out_of_place_worktree` case before this change (base `bash-write-guard.sh:640-652`,
-unmodified by this diff). The new `feature_checkout_guard` call site (`bash-write-guard.sh:778`) just
+structurally identical `out_of_place_worktree` case before this change (base `bash-write-guard.py:640-652`,
+unmodified by this diff). The new `feature_checkout_guard` call site (`bash-write-guard.py:778`) just
 extends an existing convention to a new call, and the required content (target + worktree, SC-18) is
 present and correct regardless of the coda. Per P-11/G-11 (extending remedy scope into an established,
 untouched convention is not this review's call), I record this as a low/advisory note rather than a
-`must_fix`. Contrast: `check-domain.sh`'s sibling `feature_checkout_guard` (Write route) does **not**
+`must_fix`. Contrast: `check-domain.py`'s sibling `feature_checkout_guard` (Write route) does **not**
 carry this coda — its message is purpose-built and reads cleanly on its own.
 
 ## Not in scope / not found

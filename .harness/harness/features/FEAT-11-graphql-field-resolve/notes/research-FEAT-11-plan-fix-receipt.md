@@ -1,6 +1,6 @@
 # Receipt — FEAT-11 plan-fix — three plan-contract must_fix closed
 
-**Path note:** the dispatch asked for `notes/receipt-harness-pm-plan-fix.md`. `check-domain.sh`
+**Path note:** the dispatch asked for `notes/receipt-harness-pm-plan-fix.md`. `check-domain.py`
 BLOCKS that path for `harness-pm` — `receipt-*.md` is granted only to the five dev roles
 (`team-config.yaml:145,159,172,185,200`); pm's notes grant is `notes/research-*.md`. Not worked
 around. This file is the receipt, at the only path the guard permits.
@@ -136,7 +136,7 @@ that a legitimate unrelated edit reddening the clause is correct behaviour.
 **The new property the pin introduces, stated plainly:** a legitimate unrelated edit to any of the
 three sentinel files before T-01 builds will redden T-01's verify. What keeps that from happening is
 already recorded and already the lead's — `feature.yaml` `peer_feature_collision` has
-`overlap_files: none` for FEAT-12, with only `run-unit-tests.sh` shared. This is a note, not a new
+`overlap_files: none` for FEAT-12, with only `run-unit-tests.py` shared. This is a note, not a new
 question.
 
 ## 4. MF-2b — the freeze now has teeth, in rendered form
@@ -193,4 +193,4 @@ The bullet beginning "**The organization path is never exercised against a real 
 
 No edit to `DESIGN.md`, the grilling artifact, `feature.yaml`, or any DEC-174 file. Q1, Q2 and the
 SC-08 advisory (A-1) were not acted on and are not re-raised. No decision, REQ, SC or task added.
-`check-docs.sh` / `check-state.sh` not run — `feature.yaml` `gate_status` records both as the lead's.
+`check-docs.sh` / `check-state.py` not run — `feature.yaml` `gate_status` records both as the lead's.

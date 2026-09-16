@@ -11,7 +11,7 @@ Measured at `a29ad06` (grilling, `.harness/notes/grilling-guard-boundaries-2026-
 
 - **#261.** With `src/**` granted to `harness-backend-dev` and the target `<root>/src/main.py`, the
   Write route exits 2 and `echo hi > <root>/src/main.py` exits 0. An agent denied by one hook
-  succeeds by switching tools — the exact evasion `bash-write-guard.sh` was added to stop.
+  succeeds by switching tools — the exact evasion `bash-write-guard.py` was added to stop.
 - **#103, and only one half of it is still live.** A git worktree of this repository sitting outside
   `.claude/worktrees/` is outside the harness root and outside every workspace base, so it falls to
   the branch whose comment reads "not the repo, not deployed, not state" — true of `/tmp`, false of
@@ -86,10 +86,10 @@ SAME fixture, and names the mechanism that stands the fixture up. An allow-only 
 tell a working guard from an absent one, which is how #103 stayed open.
 
 **Why every in-root fixture path is under `.harness/`.** Inside the harness base a glob match is
-accepted only when the TARGET passes `is_control_plane_target` (`check-domain.sh:277-289`, applied
-unconditionally as the harness base's target-side test at `check-domain.sh:249-253`). That test
+accepted only when the TARGET passes `is_control_plane_target` (`check-domain.py:277-289`, applied
+unconditionally as the harness base's target-side test at `check-domain.py:249-253`). That test
 returns true for a first path segment of `.harness` or `.claude`, and otherwise only for the CLOSED
-four-entry `HARNESS_CONTROL_PLANE` list at `check-domain.sh:149-154`. So a grant of `allowed/**`
+four-entry `HARNESS_CONTROL_PLANE` list at `check-domain.py:149-154`. So a grant of `allowed/**`
 cannot permit `<root>/allowed/x.txt` — it exits 2 for the same reason SC-05 asserts
 `<root>/src/main.py` exits 2. Every paired allow below therefore grants `.harness/allowed/**` and
 targets a path under `.harness/allowed/`. The claims are unchanged; only the fixture path is.
@@ -151,7 +151,7 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   `<root>/.harness/allowed/x.txt` exits 0 on both.
   verify: automated      evidence: integration
 - SC-06: The rule has exactly one implementation, proved by mutation rather than by grep. Fixture:
-  an isolated `bin/` copy in a tempdir containing `check-domain.sh`, `bash-write-guard.sh`,
+  an isolated `bin/` copy in a tempdir containing `check-domain.py`, `bash-write-guard.py`,
   `harness_boundary.py` and `harness_yaml.py`, plus a root manifest and the hand-built pointer files;
   `CLAUDE_PROJECT_DIR` is pinned to `<root>/.claude/worktrees/wt`, which carries its own
   `.harness/team-config.yaml` granting `.harness/allowed/**`, so the mutation is observed through the
@@ -181,15 +181,15 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   refusal, same fixture: a write to `<root>/src/main.py` exits 2 despite the `src/**` grant, so the
   allow is not an allow-all.
   verify: automated      evidence: integration
-- SC-08: `check-state.sh` reports a pre-existing out-of-place worktree, fails on it, and never tells
+- SC-08: `check-state.py` reports a pre-existing out-of-place worktree, fails on it, and never tells
   a session to delete its own cwd. Fixture: `test-check-state.py` creates three temp repositories
   with `git init` and one commit each, run through the file's existing `run(tmp)` helper (which sets
-  `CLAUDE_PROJECT_DIR` to the directory given and runs `check-state.sh` there) — repo A with a
+  `CLAUDE_PROJECT_DIR` to the directory given and runs `check-state.py` there) — repo A with a
   worktree under `.claude/worktrees/wt`, repo B with a worktree at a sibling path outside it, repo C
   with two `git worktree add` entries — a sibling worktree that IS the run's own root and its only
   out-of-place entry, plus a legitimate one under the MAIN checkout's `.claude/worktrees/legit`.
   Every directory used as a run root carries the file's existing `make_fixture` scaffold, without
-  which `check-state.sh` exits 1 as not-onboarded before any invariant runs.
+  which `check-state.py` exits 1 as not-onboarded before any invariant runs.
   Forbidden: repo B's run prints an `INV-25` line naming the sibling path and exits non-zero, and
   repo C's run prints an `INV-25` line naming its own root path and exits non-zero — the severity is
   the same in both branches. Paired allow, same fixture: repo A prints no `INV-25` line.
@@ -234,7 +234,7 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   worktree is still listed in the after-capture, and `git tag --list` contains the recovery tag for
   the removed worktree's commit `52d8334`, which is not an ancestor of `main`.~~
 - SC-10: An unimportable shared module fails CLOSED rather than turning both guards off. Fixture:
-  an isolated `bin/` copy carrying `check-domain.sh`, `bash-write-guard.sh` and `harness_yaml.py`
+  an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.py` and `harness_yaml.py`
   but NOT `harness_boundary.py`, run against a root whose manifest is PRESENT. Forbidden: a governed
   write exits 2 on both routes, with a verdict naming the missing module. Paired allow, same
   isolated copy with the manifest ABSENT: the DEC-101 fail-open still prints `enforcement OFF` and
@@ -246,7 +246,7 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
 
 **In a PyYAML bootstrap-grant session the two routes diverge on the root-side check, and that is a
 chosen cost, not an oversight.** The Write route's check sits inside `domain_check`, which
-`check-domain.sh:676` calls under `if _run_domain and not _no_parser`, so with the parser missing it
+`check-domain.py:676` calls under `if _run_domain and not _no_parser`, so with the parser missing it
 does not run. The Bash route has no `domain_check`; its check sits ahead of that route's own
 `if _no_parser` exit and therefore still fires. Three reasons this is the right shape and not the
 fail-quiet defect it resembles:
@@ -266,23 +266,23 @@ symmetry would degrade a working route to the level of a deliberately weakened o
 
 REQ-05 puts one module — `.claude/skills/harness/bin/harness_boundary.py` — behind both write
 routes. If it cannot be imported, an unhandled `ImportError` prints a traceback and the process
-exits 1, and **exit 1 is non-blocking** (`check-domain.sh:14`): the write lands, the exit code looks
+exits 1, and **exit 1 is non-blocking** (`check-domain.py:14`): the write lands, the exit code looks
 benign, and enforcement is silently OFF on BOTH routes at once. That is the same failure direction
 as #103 itself, installed inside its own fix. CLAUDE.md's PyYAML bootstrap escape does not cover it
 — `require_or_bootstrap` runs only after `import harness_yaml` succeeds
-(`check-domain.sh:502-510`).
+(`check-domain.py:502-510`).
 
 So both governed-path import sites wrap the import and exit 2. Exit 2 is affordable here and cannot
 lock the repository out of repairing itself: the import site is already gated on `_run_domain`,
-which is `_governed and not _post` (`check-domain.sh:432`, `:450`, `:471`, `:493`), so the main
+which is `_governed and not _post` (`check-domain.py:432`, `:450`, `:471`, `:493`), so the main
 session never reaches it; `harness-dev-ops` is exempt before the equivalent point on the Bash route
-(`bash-write-guard.sh:54-59`); and all five `bin/` surfaces are `main-session-direct` under DEC-174.
+(`bash-write-guard.py:54-59`); and all five `bin/` surfaces are `main-session-direct` under DEC-174.
 SC-10 is what proves it.
 
 ## Verification gaps
 
 - `test-check-domain.py` and `test-bash-write-guard.py` match `harness.json`'s `unit` detect glob
-  (`.claude/skills/harness/bin/test-*.py`) but live in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`,
+  (`.claude/skills/harness/bin/test-*.py`) but live in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`,
   so `--kind unit` does NOT execute them. Every SC above marked `automated` — that is all of them
   except SC-09, which is `inspection` — therefore declares `evidence: integration`, whose command
   does run them. Nothing here rests on `--kind unit`. The
@@ -292,7 +292,7 @@ SC-10 is what proves it.
 
 ## Constraints
 
-- `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` and `check-state.sh` are DEC-174
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and `check-state.py` are DEC-174
   carve-out files. Every task touching any of them, and the new shared module the rule moves into,
   is `main-session-direct`: ordinary edits, tests run explicitly, a human reading the diff.
 - Ruling: an out-of-place worktree is a mistake, not a supported shape. It is REFUSED, never
@@ -301,7 +301,7 @@ SC-10 is what proves it.
   subprocess.
 - **Known-adjacent, deliberately not tasked.** Two findings sit next to this feature's surface and
   carry no task here; they go to the operator as backlog. (1) Both guard suites sit in
-  `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` despite matching the `unit` detect glob, so
+  `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` despite matching the `unit` detect glob, so
   `--kind unit` never runs them — the same gap the verification note below records. (2) A relative
   operand on the Bash route is resolved against the harness root rather than the agent's working
   directory. Neither is a regression this feature introduces and neither blocks any criterion above.

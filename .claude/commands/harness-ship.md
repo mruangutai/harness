@@ -1,6 +1,7 @@
+<!-- Generated from .omp/commands/harness-ship.md; do not edit. Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->
 # /harness-ship — build, validate, and bring a planned feature to the ship decision
 
-Read `.claude/commands/harness.md` and follow it with **mission: ship**. The differences:
+Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differences:
 
 - **Precondition, hard:** BRIEF *and* PLAN both `status: approved`. Anything less routes to
   `/harness-plan` — the orchestrator will refuse anyway (playbook step 1), so catch it here.
@@ -29,7 +30,8 @@ Read `.claude/commands/harness.md` and follow it with **mission: ship**. The dif
 
   **What it does NOT catch:** a build that starts current and drifts behind while it runs. This fires
   at the door, once, not mid-flight.
-- The orchestrator sequences the squads (build → qa gate → review panel → goal-check → docs) and
-  owns the fix cycles and both budgets.
+- The orchestrator sequences the phases (build → SIMPLIFY → one pinned `review_sha` → one `validate`
+  run holding qa, code, security, ui and pm's goal-check → `fix` rounds inside the signed rework
+  ruling → docs) and owns the cycle budget and the ledger.
 - **Terminus:** the CEO briefing, presented by you verbatim. The user decides ship / fix first /
   re-scope / stop. PR and merge follow their call — never automatically.

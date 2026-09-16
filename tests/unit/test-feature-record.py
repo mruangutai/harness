@@ -1,0 +1,927 @@
+#!/usr/bin/env python3
+"""feature-record.py and the FEAT-59 feature.json ledger keys (SC-15, SC-18, SC-19, SC-21).
+
+Every verb is exercised through the CLI as a subprocess, the way the orchestrator and the
+main session call it, and every written document is re-validated with feature_schema so a
+verb that writes a shape the schema rejects cannot pass here. The refusal cases assert the
+file is byte-identical afterwards: a refused write that still moved bytes is the incident
+feature_json_write exists to close.
+"""
+from pathlib import Path
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+BIN = ROOT / ".claude/skills/harness/bin"
+sys.path.insert(0, str(BIN))
+import feature_schema  # noqa: E402
+import feature_json_write  # noqa: E402
+
+CLI = BIN / "feature-record.py"
+# datetime.now(timezone.utc).isoformat(timespec="seconds") — the one shape this tool writes.
+ISO_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$")
+
+
+def base_doc(**overrides):
+    doc = {"feature_id": "FEAT-77-record", "branch": "none", "pr": None,
+           "review_sha": "none", "cycles_used": 0, "max_total_cycles": 5, "runs": []}
+    doc.update(overrides)
+    return doc
+
+
+class FeatureRecordCase(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="feature-record-test-"))
+        feat_dir = self.tmp / ".harness" / "features" / "FEAT-77-record"
+        feat_dir.mkdir(parents=True)
+        self.path = feat_dir / "feature.json"
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def write(self, doc):
+        self.path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+        return self.path.read_bytes()
+
+    def load(self):
+        return json.loads(self.path.read_text(encoding="utf-8"))
+
+    def run_cli(self, *args):
+        return subprocess.run([sys.executable, str(CLI), *args],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def assert_ok(self, result):
+        self.assertEqual(0, result.returncode, f"stdout={result.stdout!r} stderr={result.stderr!r}")
+
+    def assert_clean(self):
+        problems = feature_schema.problems_for_text(
+            self.path.read_text(encoding="utf-8"), str(self.path))
+        self.assertEqual([], problems)
+
+
+class RunStartEndTest(FeatureRecordCase):
+    def test_run_start_appends_a_pending_entry_stamped_started_at(self):
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
+                                    "--squad", "product", "--agent", "harness-product-lead"))
+        runs = self.load()["runs"]
+        self.assertEqual(1, len(runs))
+        entry = runs[0]
+        self.assertEqual({"id": "r1", "squad": "product", "agent": "harness-product-lead",
+                          "verdict": "PENDING"},
+                         {k: entry[k] for k in ("id", "squad", "agent", "verdict")})
+        self.assertRegex(entry["started_at"], ISO_UTC)
+        self.assertNotIn("ended_at", entry)
+        self.assertNotIn("tokens", entry)
+        self.assert_clean()
+
+    def test_run_start_refuses_a_duplicate_id_and_leaves_bytes_untouched(self):
+        before = self.write(base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "PASS",
+                                            "agent": "harness-product-lead"}]))
+        result = self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
+                              "--squad", "product", "--agent", "harness-product-lead")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("r1", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_stamps_verdict_ended_at_tokens_and_code_grade(self):
+        self.write(base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "PENDING",
+                                   "agent": "harness-product-lead",
+                                   "started_at": "2026-09-11T10:00:00+00:00"}]))
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                                    "--verdict", "PASS", "--cycles-used", "2",
+                                    "--tokens", "48213", "--code-grade", "n_a"))
+        doc = self.load()
+        entry = doc["runs"][0]
+        self.assertEqual("PASS", entry["verdict"])
+        self.assertEqual(2, entry["cycles_used"])
+        self.assertEqual(2, doc["cycles_used"])
+        self.assertEqual(48213, entry["tokens"])
+        self.assertEqual("n_a", entry["code_grade"])
+        self.assertEqual("2026-09-11T10:00:00+00:00", entry["started_at"])
+        self.assertRegex(entry["ended_at"], ISO_UTC)
+        self.assert_clean()
+
+    def test_run_end_without_tokens_records_null_never_a_guess(self):
+        """SC-18: tokens is measured by the caller or null. A run-end that carries no
+        figure must write null, so a reader can tell "unmeasured" from "zero"."""
+        self.write(base_doc(runs=[{"id": "r1", "squad": "eng", "verdict": "PENDING",
+                                   "agent": "harness-eng-lead",
+                                   "started_at": "2026-09-11T10:00:00+00:00"}]))
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
+                                    "--verdict", "FAIL", "--cycles-used", "0"))
+        entry = self.load()["runs"][0]
+        self.assertEqual(0, entry["cycles_used"])
+        self.assertIn("tokens", entry)
+        self.assertIsNone(entry["tokens"])
+        self.assertNotIn("code_grade", entry)
+        self.assert_clean()
+
+    def test_run_end_cycle_accounting_is_idempotent_and_preserves_legacy_baseline(self):
+        self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PENDING",
+             "agent": "harness-eng-lead"}]))
+        for reported, expected_total in ((2, 5), (2, 5), (1, 4)):
+            self.assert_ok(self.run_cli(
+                "run-end", "--file", str(self.path), "--id", "r1",
+                "--verdict", "PASS", "--cycles-used", str(reported)))
+            doc = self.load()
+            self.assertEqual(reported, doc["runs"][0]["cycles_used"])
+            self.assertEqual(expected_total, doc["cycles_used"])
+        self.assert_clean()
+
+    def test_run_end_refuses_cycle_attribution_above_feature_total(self):
+        before = self.write(base_doc(cycles_used=1, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2}]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1",
+            "--verdict", "PASS", "--cycles-used", "0")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("exceeds feature cycles_used", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_refuses_aggregate_cycle_attribution_above_feature_total(self):
+        before = self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2},
+            {"id": "r2", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2},
+        ]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1",
+            "--verdict", "PASS", "--cycles-used", "2")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("attributed cycles_used=4 exceeds feature cycles_used=3", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_requires_explicit_cycle_accounting(self):
+        before = self.write(base_doc(runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PENDING",
+             "agent": "harness-eng-lead"}]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1", "--verdict", "PASS")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("--cycles-used", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_refuses_an_unknown_id(self):
+        before = self.write(base_doc(runs=[{"id": "r1", "squad": "eng", "verdict": "PENDING",
+                                            "agent": "harness-eng-lead"}]))
+        result = self.run_cli("run-end", "--file", str(self.path), "--id", "r9",
+                              "--verdict", "PASS", "--cycles-used", "0")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("r9", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_missing_file_is_refused_not_created(self):
+        result = self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
+                              "--squad", "eng", "--agent", "harness-eng-lead")
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertFalse(self.path.exists())
+
+class StampTokensTest(FeatureRecordCase):
+    """`stamp-tokens` (BUG-1724): the HOST writes the measured figure onto the one open run,
+    so the orchestrator never transcribes it. Open = has started_at and no ended_at. Anything
+    other than exactly one open run is refused, naming the state, with bytes untouched."""
+
+    OPEN = {"id": "r2", "squad": "eng", "verdict": "PENDING", "agent": "harness-eng-lead",
+            "started_at": "2026-09-11T11:00:00+00:00"}
+    CLOSED = {"id": "r1", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead",
+              "started_at": "2026-09-11T10:00:00+00:00", "ended_at": "2026-09-11T10:30:00+00:00",
+              "tokens": 100}
+
+    def test_stamps_the_one_open_run_and_a_bare_run_end_preserves_it(self):
+        self.write(base_doc(runs=[dict(self.CLOSED), dict(self.OPEN)]))
+        self.assert_ok(self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "135888"))
+        runs = self.load()["runs"]
+        self.assertEqual(100, runs[0]["tokens"], "the closed run is untouched")
+        self.assertEqual(135888, runs[1]["tokens"])
+        self.assertNotIn("ended_at", runs[1], "stamping does not close the run")
+        # SC-01: the normal close carries no --tokens and must not null the stamped figure.
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
+                                    "--verdict", "PASS", "--cycles-used", "0"))
+        self.assertEqual(135888, self.load()["runs"][1]["tokens"])
+        self.assert_clean()
+
+    def test_refuses_when_no_run_is_open(self):
+        before = self.write(base_doc(runs=[dict(self.CLOSED)]))
+        result = self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "5")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("no run is open", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_refuses_when_more_than_one_run_is_open_naming_each(self):
+        second = dict(self.OPEN, id="r3")
+        before = self.write(base_doc(runs=[dict(self.OPEN), second]))
+        result = self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "5")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("r2", result.stderr)
+        self.assertIn("r3", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_a_run_started_without_a_timestamp_is_not_open(self):
+        """A pre-FEAT-59 entry with no started_at is not a run the host can be measuring."""
+        before = self.write(base_doc(runs=[{"id": "r0", "squad": "eng", "verdict": "PENDING",
+                                            "agent": "harness-eng-lead"}]))
+        result = self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "5")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_tokens_remains_the_explicit_override(self):
+        """SC-03: a host that reported nothing leaves the orchestrator `run-end --tokens N`."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
+                                    "--verdict", "PASS", "--cycles-used", "0", "--tokens", "42"))
+        self.assertEqual(42, self.load()["runs"][0]["tokens"])
+LEAD_DIGEST = """```yaml
+VERDICT: PASS
+DIGEST:
+  headline: "one task built"
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: T-01, persona: harness-backend-dev, verdict: PASS, headline: "done", files_touched: [] }
+  must_fix: []
+  files_touched: []
+  branch: none
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  adequacy_notes: []
+artifact: /tmp/x/digest.md
+```
+"""
+
+
+class CloseRunTest(FeatureRecordCase):
+    """`close-run` (BUG-1723 T-01, D-01): ONE command composes the existing authorities in
+    order — validate-digest, run-end, plan-merge set-task-station (paired --task/--station),
+    judgement (as harness-orchestrator), spend — retains any stage that completed, stops at
+    the FIRST refusal naming its stage, and on success prints ONE line carrying spend.
+    Measured on BUG-285-canonical-reader: ~11 orchestrator model calls per dispatch went to
+    exactly this sequence, each at ~125k context."""
+
+    OPEN = {"id": "r1", "squad": "eng", "verdict": "PENDING", "agent": "harness-eng-lead",
+            "started_at": "2026-09-11T10:00:00+00:00"}
+
+    def setUp(self):
+        super().setUp()
+        self.digest = self.path.parent / "digest.md"
+        self.digest.write_text(LEAD_DIGEST, encoding="utf-8")
+        self.plan = self.path.parent / "plan.yaml"
+        self.plan.write_text("schema: plan/1\nfeature: FEAT-77-record\napproval:\n  status: approved\n"
+                             "status: building\ntasks:\n  - id: T-01\n    title: t\n    status: building\n",
+                             encoding="utf-8")
+
+    def close(self, *extra):
+        return self.run_cli("close-run", "--file", str(self.path), "--id", "r1",
+                            "--digest", str(self.digest), "--verdict", "PASS",
+                            "--cycles-used", "0", *extra)
+
+    def test_success_closes_the_run_and_prints_one_line_with_spend(self):
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close()
+        self.assert_ok(result)
+        entry = self.load()["runs"][0]
+        self.assertEqual("PASS", entry["verdict"])
+        self.assertRegex(entry["ended_at"], ISO_UTC)
+        self.assertNotIn("--tokens", result.stdout)
+        lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
+        self.assertEqual(1, len(lines), result.stdout)
+        self.assertIn("r1", lines[0])
+        self.assertIn("spend", lines[0])
+        self.assert_clean()
+
+    def test_paired_task_station_and_judgement_land_in_one_act(self):
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--task", "T-01", "--station", "done",
+                            "--judgement", "kind=regate,decision=continue,reason=gate passed on retry",
+                            "--code-grade", "n_a")
+        self.assert_ok(result)
+        doc = self.load()
+        self.assertEqual("n_a", doc["runs"][0]["code_grade"])
+        j = doc["judgements"][-1]
+        self.assertEqual({"by": "harness-orchestrator", "kind": "regate", "decision": "continue",
+                          "reason": "gate passed on retry"},
+                         {k: j[k] for k in ("by", "kind", "decision", "reason")})
+        self.assertIn("status: done", self.plan.read_text(encoding="utf-8"))
+        line = result.stdout.strip()
+        self.assertIn("T-01", line)
+        self.assertIn("regate", line)
+        self.assert_clean()
+
+    def test_argument_shape_is_refused_before_any_stage_runs(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        for extra, needle in (
+            (("--task", "T-01"), "station"),
+            (("--station", "done"), "task"),
+            (("--code-grade", "pass"), "code-grade"),
+            (("--judgement", "kind=regate,decision=x"), "judgement"),
+            (("--judgement", "kind=bogus,decision=x,reason=y"), "judgement"),
+        ):
+            result = self.close(*extra)
+            self.assertEqual(2, result.returncode, f"{extra}: {result.stderr}")
+            self.assertIn(needle, result.stderr, f"{extra}: {result.stderr}")
+            self.assertEqual(before, self.path.read_bytes(), f"{extra} moved bytes")
+
+    def test_invalid_digest_stops_before_run_end(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        self.digest.write_text("no fenced block\n", encoding="utf-8")
+        result = self.close()
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("digest", result.stderr)
+        self.assertEqual(before, self.path.read_bytes(), "run-end must not have run")
+
+    def test_unknown_run_is_refused_naming_the_run_end_stage_with_no_later_stage(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.run_cli("close-run", "--file", str(self.path), "--id", "r9",
+                              "--digest", str(self.digest), "--verdict", "PASS",
+                              "--cycles-used", "0", "--task", "T-01", "--station", "done")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("r9", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+        self.assertIn("status: building", self.plan.read_text(encoding="utf-8"),
+                      "set-task-station must not have run")
+
+    def test_a_later_refusal_keeps_the_earlier_completed_stage(self):
+        """D-01: no rollback. run-end succeeds, set-task-station refuses an unknown task; the
+        run stays closed, the refusal names the station stage, and the judgement never runs."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--task", "T-99", "--station", "done",
+                            "--judgement", "kind=regate,decision=x,reason=y")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("station", result.stderr)
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertNotIn("judgements", doc, "the judgement stage was never invoked")
+
+    def test_judgement_stage_refusal_names_it_keeps_run_end_and_never_reaches_spend(self):
+        """SC-02 at the judgement stage: a reason over the ledger's 240-character cap is the
+        schema's refusal, propagated with the schema's own code; run-end's write stays, no
+        judgement lands, and the one-line success summary (which carries spend) is not printed."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--judgement", "kind=regate,decision=x,reason=" + "r" * 241)
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertIn("REFUSED at stage judgement", result.stderr)
+        self.assertIn("reason", result.stderr)
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertNotIn("judgements", doc, "the refused judgement must not have landed")
+        self.assertNotIn("spend=", result.stdout, "spend runs after judgement, never before")
+
+    def close_in_process_with_spend_refused(self):
+        """Run cmd_close_run IN PROCESS with `subprocess.run` patched so every stage runs for
+        real except the one whose argv is `spend`, which returns exit 3. Returns
+        (exit_code, stdout, stderr). Through `_close_run_stages`' real tuple, so a renamed or
+        reordered stage fails the caller."""
+        import argparse
+        import contextlib
+        import importlib.util
+        import io
+        from unittest import mock
+        spec = importlib.util.spec_from_file_location("feature_record_cli", CLI)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        real_run = subprocess.run
+
+        def run_or_refuse_spend(argv, **kw):
+            if "spend" in argv:
+                return subprocess.CompletedProcess(argv, 3, stdout="",
+                                                   stderr="REFUSED: ledger unreadable\n")
+            return real_run(argv, **kw)
+
+        args = argparse.Namespace(file=str(self.path), id="r1", digest=str(self.digest),
+                                  verdict="PASS", cycles_used=0, task=None, station=None,
+                                  judgement="kind=regate,decision=x,reason=y", code_grade=None)
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch("subprocess.run", side_effect=run_or_refuse_spend), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
+                self.assertRaises(SystemExit) as stop:
+            mod.cmd_close_run(args)
+        return stop.exception.code, out.getvalue(), err.getvalue()
+
+    def test_spend_stage_refusal_through_close_run_names_spend_keeps_earlier_writes(self):
+        """SC-02 at the spend stage, THROUGH close-run's public entry. A data-driven spend refusal
+        is unreachable after the earlier stages' validated writes, so the spend authority is
+        made to refuse at the subprocess seam. close-run must exit 3 naming `spend` as the
+        stage, keep run-end's and the judgement's writes, and print no success summary."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        code, out, err = self.close_in_process_with_spend_refused()
+        self.assertEqual(3, code)
+        self.assertIn("REFUSED at stage spend", err)
+        self.assertIn("ledger unreadable", err)
+        self.assertNotIn("CLOSED run", out, "no success summary after a refusal")
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertEqual("regate", doc["judgements"][-1]["kind"], "the judgement stage ran first")
+
+
+
+class JudgementTest(FeatureRecordCase):
+    def test_judgement_appends_in_order_with_all_five_keys(self):
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-orchestrator", "--kind", "mission",
+                                    "--decision", "patch",
+                                    "--reason", "known-cause bug, ~130 lines"))
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-validator-lead", "--kind", "finding_kind",
+                                    "--decision", "form", "--reason", "wording only"))
+        ledger = self.load()["judgements"]
+        self.assertEqual(["mission", "finding_kind"], [j["kind"] for j in ledger])
+        first = ledger[0]
+        self.assertEqual({"at", "by", "kind", "decision", "reason"}, set(first))
+        self.assertRegex(first["at"], ISO_UTC)
+        self.assertEqual("harness-orchestrator", first["by"])
+        self.assertEqual("patch", first["decision"])
+        self.assert_clean()
+
+    def test_judgement_refuses_an_unknown_kind(self):
+        before = self.write(base_doc())
+        result = self.run_cli("judgement", "--file", str(self.path), "--by", "x",
+                              "--kind", "vibe", "--decision", "d", "--reason", "r")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("vibe", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_judgement_accepts_reject_with_the_superseding_issue_as_decision(self):
+        """FEAT-1714: the reject verdict's ledger entry — kind reject, decision the
+        superseding issue number (or `none`), reason the digest's one line."""
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-orchestrator", "--kind", "reject",
+                                    "--decision", "1594",
+                                    "--reason", "#285 superseded by #1594 on 2026-09-10"))
+        j = self.load()["judgements"][-1]
+        self.assertEqual(("reject", "1594"), (j["kind"], j["decision"]))
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-orchestrator", "--kind", "reject",
+                                    "--decision", "none", "--reason", "already fixed on main"))
+        self.assertEqual("none", self.load()["judgements"][-1]["decision"])
+        self.assert_clean()
+
+    def test_judgement_refuses_a_reason_over_240_characters(self):
+        """The ledger holds one-line reasons (SC-21); the cap is the schema's, and the
+        refusal must propagate the schema code rather than be swallowed."""
+        before = self.write(base_doc())
+        result = self.run_cli("judgement", "--file", str(self.path), "--by", "x",
+                              "--kind", "regate", "--decision", "d", "--reason", "r" * 241)
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertIn("reason", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+
+AMEND_AT = "2026-09-15T12:00:00+00:00"
+
+
+def amendment(at=AMEND_AT, decision="T-02.intent", **extra):
+    entry = {"at": at, "by": "harness-eng-lead", "kind": "amendment",
+             "decision": decision, "reason": "the file was already split"}
+    entry.update(extra)
+    return entry
+
+
+class AmendmentTest(FeatureRecordCase):
+    """BUG-1716 T-03: the sixth kind, and the ship-time overrule route (D-05, DEC-230)."""
+
+    def test_judgement_accepts_the_amendment_kind_with_a_task_field_decision(self):
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-eng-lead", "--kind", "amendment",
+                                    "--decision", "T-02.files",
+                                    "--reason", "helper lives in plan_merge_core.py"))
+        entry = self.load()["judgements"][-1]
+        self.assertEqual(("amendment", "T-02.files"), (entry["kind"], entry["decision"]))
+        self.assertNotIn("overruled", entry)
+        self.assert_clean()
+
+    def test_overrule_selects_exactly_the_entry_at_that_timestamp(self):
+        other = "2026-09-15T12:05:00+00:00"
+        self.write(base_doc(judgements=[
+            amendment(), amendment(at=other, decision="T-02.verify"),
+            {"at": "2026-09-15T12:06:00+00:00", "by": "harness-orchestrator",
+             "kind": "continue", "decision": "continue", "reason": "r"}]))
+        result = self.run_cli("overrule-amendment", "--file", str(self.path), "--at", other)
+        self.assert_ok(result)
+        self.assertIn("T-02.verify", result.stdout)
+        ledger = self.load()["judgements"]
+        self.assertEqual([None, True, None], [j.get("overruled") for j in ledger])
+        self.assertEqual(["T-02.intent", "T-02.verify", "continue"], [j["decision"] for j in ledger])
+        self.assertEqual(amendment(at=other, decision="T-02.verify", overruled=True), ledger[1])
+        self.assert_clean()
+
+    def test_overrule_refuses_no_match_a_non_amendment_and_a_repeat_without_writing(self):
+        regate = {"at": "2026-09-15T12:06:00+00:00", "by": "harness-orchestrator",
+                  "kind": "regate", "decision": "T-01", "reason": "r"}
+        before = self.write(base_doc(judgements=[amendment(overruled=True), regate]))
+        for at, word in ((("2026-09-15T13:00:00+00:00"), "no"),
+                         ((regate["at"]), "amendment"),
+                         ((AMEND_AT), "already")):
+            result = self.run_cli("overrule-amendment", "--file", str(self.path), "--at", at)
+            self.assertEqual(2, result.returncode, (at, result.stdout, result.stderr))
+            self.assertIn(word, result.stderr)
+            self.assertEqual(before, self.path.read_bytes(), at)
+
+    def test_overrule_refuses_two_amendments_at_one_timestamp_without_writing(self):
+        before = self.write(base_doc(judgements=[amendment(), amendment(decision="T-02.verify")]))
+        result = self.run_cli("overrule-amendment", "--file", str(self.path), "--at", AMEND_AT)
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("2", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+
+class RulingsTest(FeatureRecordCase):
+    """set-rework and raise-cycles are the OPERATOR'S rulings (SC-15, DEC-157). `--decision`
+    names where the ruling is recorded, and this CLI refuses a record that is not a file
+    under the feature's own directory — a bare `DEC-300` or a path elsewhere in the tree is
+    a claim INV-39 would then accept on the strength of its own syntax."""
+
+    def setUp(self):
+        super().setUp()
+        (self.path.parent / "plan.yaml").write_text("approval:\n  status: approved\n",
+                                                    encoding="utf-8")
+        (self.path.parent / "notes").mkdir()
+        (self.path.parent / "notes" / "raise.md").write_text("raise to 8\n", encoding="utf-8")
+
+    def test_set_rework_writes_the_ruling(self):
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("set-rework", "--file", str(self.path), "--rounds", "3",
+                                    "--minutes", "120",
+                                    "--decision", "plan.yaml#approval.rulings[0]"))
+        self.assertEqual({"rounds": 3, "wall_clock_minutes": 120,
+                          "decision": "plan.yaml#approval.rulings[0]"},
+                         self.load()["rework"])
+        self.assert_clean()
+
+    def test_raise_cycles_moves_the_budget_and_appends_the_decision(self):
+        self.write(base_doc(max_total_cycles=5))
+        self.assert_ok(self.run_cli("raise-cycles", "--file", str(self.path), "--to", "8",
+                                    "--decision", "notes/raise.md"))
+        doc = self.load()
+        self.assertEqual(8, doc["max_total_cycles"])
+        self.assertEqual(1, len(doc["budget_decisions"]))
+        record = doc["budget_decisions"][0]
+        self.assertEqual({"at", "max_total_cycles", "decision"}, set(record))
+        self.assertEqual(8, record["max_total_cycles"])
+        self.assertEqual("notes/raise.md", record["decision"])
+        self.assertRegex(record["at"], ISO_UTC)
+        self.assert_clean()
+
+    def test_raise_cycles_accepts_an_absolute_decision_path_inside_the_feature_dir(self):
+        """The main session runs from the repo root, so a path it can copy-paste is absolute
+        or cwd-relative; either resolves, as long as the file is the feature's own."""
+        self.write(base_doc(max_total_cycles=5))
+        self.assert_ok(self.run_cli("raise-cycles", "--file", str(self.path), "--to", "8",
+                                    "--decision", str(self.path.parent / "notes" / "raise.md")))
+        self.assertEqual(8, self.load()["max_total_cycles"])
+
+    def test_raise_cycles_refuses_a_value_that_does_not_raise(self):
+        before = self.write(base_doc(max_total_cycles=5))
+        for to in ("5", "4"):
+            result = self.run_cli("raise-cycles", "--file", str(self.path), "--to", to,
+                                  "--decision", "notes/raise.md")
+            self.assertEqual(2, result.returncode, result.stderr)
+            self.assertIn("max_total_cycles", result.stderr)
+            self.assertIn("5", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_rulings_refuse_a_decision_that_is_not_a_file_under_the_feature_dir(self):
+        """Refused at exit 2, file untouched: a record that does not exist (`DEC-300`,
+        `notes/none.md`), one outside the feature directory (the checkout's own
+        harness.json, an absolute path elsewhere), and a directory rather than a file."""
+        outside = self.tmp / "elsewhere.md"
+        outside.write_text("not this feature's\n", encoding="utf-8")
+        (self.tmp / ".harness" / "harness.json").write_text("{}\n", encoding="utf-8")
+        before = self.write(base_doc(max_total_cycles=5))
+        for decision in ("DEC-300", "notes/none.md", "../../harness.json",
+                         str(outside), "notes"):
+            for verb, extra in (("raise-cycles", ["--to", "8"]),
+                                ("set-rework", ["--rounds", "2", "--minutes", "60"])):
+                result = self.run_cli(verb, "--file", str(self.path), *extra,
+                                      "--decision", decision)
+                self.assertEqual(2, result.returncode, (verb, decision, result.stderr))
+                self.assertIn("--decision", result.stderr, (verb, decision))
+                self.assertIn(str(self.path.parent), result.stderr, (verb, decision))
+        self.assertEqual(before, self.path.read_bytes())
+
+
+class SetMissionTest(FeatureRecordCase):
+    """set-mission writes `mission` AND its `kind: mission` judgement in one locked write
+    (SC-01, SC-21), so the ledger can never show a mission with no entry deciding it —
+    which is the state check-state.py INV-40 refuses."""
+
+    MISSION = ["--by", "harness-orchestrator", "--reason", "known-cause bug, ~130 lines"]
+
+    def test_set_mission_accepts_each_lane_and_refuses_others(self):
+        self.write(base_doc())
+        for mission in ("patch", "plan"):
+            self.assert_ok(self.run_cli("set-mission", "--file", str(self.path),
+                                        "--mission", mission, *self.MISSION))
+            self.assertEqual(mission, self.load()["mission"])
+            self.assert_clean()
+        before = self.path.read_bytes()
+        result = self.run_cli("set-mission", "--file", str(self.path), "--mission", "epic",
+                              *self.MISSION)
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_set_mission_appends_the_mission_judgement_deciding_the_new_mission(self):
+        self.write(base_doc(judgements=[
+            {"at": "2026-09-11T10:00:00+00:00", "by": "harness-pm", "kind": "mission",
+             "decision": "plan", "reason": "intake"}]))
+        self.assert_ok(self.run_cli("set-mission", "--file", str(self.path),
+                                    "--mission", "patch", *self.MISSION))
+        doc = self.load()
+        self.assertEqual("patch", doc["mission"])
+        self.assertEqual(2, len(doc["judgements"]))
+        last = doc["judgements"][-1]
+        self.assertEqual({"at", "by", "kind", "decision", "reason"}, set(last))
+        self.assertEqual(("mission", "patch", "harness-orchestrator",
+                          "known-cause bug, ~130 lines"),
+                         (last["kind"], last["decision"], last["by"], last["reason"]))
+        self.assertRegex(last["at"], ISO_UTC)
+        self.assert_clean()
+
+    def test_set_mission_refuses_without_by_or_reason(self):
+        before = self.write(base_doc())
+        for argv in (["--mission", "patch"],
+                     ["--mission", "patch", "--by", "harness-orchestrator"],
+                     ["--mission", "patch", "--reason", "r"]):
+            result = self.run_cli("set-mission", "--file", str(self.path), *argv)
+            self.assertEqual(2, result.returncode, (argv, result.stderr))
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_set_mission_refuses_a_reason_over_240_characters_unchanged(self):
+        """The judgement is written under the same schema as `judgement`, so its cap
+        holds here too and the mission is not written without its entry."""
+        before = self.write(base_doc())
+        result = self.run_cli("set-mission", "--file", str(self.path), "--mission", "patch",
+                              "--by", "harness-orchestrator", "--reason", "r" * 241)
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+
+class SpendTest(FeatureRecordCase):
+    RUNS = [
+        {"id": "r1", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead",
+         "started_at": "2026-09-11T10:00:00+00:00", "ended_at": "2026-09-11T10:45:30+00:00",
+         "tokens": 1000},
+        {"id": "r2", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead",
+         "started_at": "2026-09-11T11:00:00+00:00", "ended_at": "2026-09-11T12:30:00+00:00",
+         "tokens": 2500},
+        # Still running: contributes a run, no minutes, no tokens.
+        {"id": "r3", "squad": "eng", "verdict": "PENDING", "agent": "harness-eng-lead",
+         "started_at": "2026-09-11T12:31:00+00:00"},
+    ]
+
+    def spend(self):
+        result = self.run_cli("spend", "--file", str(self.path))
+        self.assert_ok(result)
+        return json.loads(result.stdout)
+
+    def test_spend_sums_whole_minutes_and_measured_tokens(self):
+        self.write(base_doc(runs=self.RUNS))
+        self.assertEqual({"runs": 3, "wall_clock_minutes": 135, "tokens": 3500, "phase": "plan",
+                          "rework_minutes": 0, "rework_rounds": 0},
+                         self.spend())
+
+    def test_spend_reports_build_once_build_entry_is_recorded(self):
+        self.write(base_doc(runs=self.RUNS, github={"build_entry": "opened"}))
+        self.assertEqual("build", self.spend()["phase"])
+
+    def test_spend_tokens_is_null_when_no_run_was_measured(self):
+        """Null, not 0: an unmeasured feature has no token figure, and printing 0 would be
+        the estimate SC-18 forbids."""
+        self.write(base_doc(runs=[{"id": "r1", "squad": "eng", "verdict": "PASS",
+                                   "agent": "harness-eng-lead"}]))
+        self.assertEqual({"runs": 1, "wall_clock_minutes": 0, "tokens": None, "phase": "plan",
+                          "rework_minutes": 0, "rework_rounds": 0},
+                         self.spend())
+
+    def test_spend_on_a_pre_feat59_ledger_is_all_zero_and_null(self):
+        self.write(base_doc())
+        self.assertEqual({"runs": 0, "wall_clock_minutes": 0, "tokens": None, "phase": "plan",
+                          "rework_minutes": 0, "rework_rounds": 0},
+                         self.spend())
+
+    # The rework window: the operator's `rework.wall_clock_minutes` is a budget for REWORK,
+    # so what is measured against it must start where rework can start — the first
+    # `validate-*` run — and never carry the plan and build phases in. Before this window
+    # existed, `wall_clock_minutes` (whole feature) stood in for it, and a 60-minute plan
+    # plus a 40-minute build ate 100 of a 120-minute ruling before the first fix round.
+    #
+    # THE IDS ARE THE CORPUS'S SHAPE, DATE-PREFIXED (`2026-09-11-05-validate-validator`: 181
+    # such against 1 bare `validate-validator` on disk). The first draft keyed the window on
+    # `startswith("validate-")`, so on every real ledger the window stayed shut and the
+    # build-phase SPEND advisory (SC-19) never fired. The `validate-` / `fix-` token is
+    # matched at the start or after a `-`, never inside a word: `postfix-eng` is not a fix.
+    REWORK_RUNS = [
+        {"id": "2026-09-11-01-plan-product", "squad": "product", "verdict": "PASS",
+         "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+         "ended_at": "2026-09-11T11:00:00+00:00", "tokens": 1000},
+        {"id": "2026-09-11-02-t01-eng", "squad": "eng", "verdict": "PASS",
+         "agent": "harness-eng-lead", "started_at": "2026-09-11T11:00:00+00:00",
+         "ended_at": "2026-09-11T11:40:00+00:00"},
+        {"id": "2026-09-11-05-validate-validator", "squad": "validator", "verdict": "FAIL",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T12:00:00+00:00",
+         "ended_at": "2026-09-11T12:30:00+00:00", "tokens": 4000},
+        {"id": "2026-09-11-06-fix-c1-validator", "squad": "validator", "verdict": "FAIL",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T12:30:00+00:00",
+         "ended_at": "2026-09-11T13:15:00+00:00"},
+        {"id": "2026-09-11-07-postfix-eng", "squad": "eng", "verdict": "PASS",
+         "agent": "harness-eng-lead", "started_at": "2026-09-11T13:15:00+00:00",
+         "ended_at": "2026-09-11T13:25:00+00:00"},
+        {"id": "2026-09-11-08-fix-c2-validator", "squad": "validator", "verdict": "PASS",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T13:25:00+00:00",
+         "ended_at": "2026-09-11T13:45:00+00:00"},
+    ]
+
+    def test_rework_minutes_start_at_the_first_validate_run_and_count_fix_rounds(self):
+        self.write(base_doc(runs=self.REWORK_RUNS, github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(205, spend["wall_clock_minutes"])   # 60+40+30+45+10+20, for the briefing
+        self.assertEqual(105, spend["rework_minutes"])       # validate 30 + fix 45 + 10 + fix 20
+        self.assertEqual(2, spend["rework_rounds"])          # the two fix-* runs, not postfix
+
+    def test_rework_window_opens_on_a_bare_validate_id_too(self):
+        """The one pre-date-prefix ledger shape on disk still counts: the token is matched
+        at the start of the id as well as after a `-`."""
+        runs = [dict(entry) for entry in self.REWORK_RUNS]
+        runs[2]["id"] = "validate-validator"
+        runs[3]["id"] = "fix-c1-validator"
+        self.write(base_doc(runs=runs, github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(105, spend["rework_minutes"])
+        self.assertEqual(2, spend["rework_rounds"])
+
+    def test_rework_window_is_zero_before_any_validate_run(self):
+        self.write(base_doc(runs=self.REWORK_RUNS[:2], github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(100, spend["wall_clock_minutes"])
+        self.assertEqual(0, spend["rework_minutes"])
+        self.assertEqual(0, spend["rework_rounds"])
+
+
+
+class ProposeReworkTest(FeatureRecordCase):
+    """`propose-rework`: the baseline the main session shows the operator at signature.
+    Deterministic from disk — the mission, the task count, and two harness.json budgets — so
+    the operator confirms or changes a number rather than inventing one (SC-15, SC-22)."""
+
+    def setUp(self):
+        super().setUp()
+        (self.tmp / ".harness").mkdir(exist_ok=True)
+        (self.tmp / ".harness" / "harness.json").write_text(json.dumps(
+            {"budgets": {"max_total_cycles": 4, "rework_round_minutes": 45}}), encoding="utf-8")
+
+    def plan(self, tasks):
+        body = "schema: plan/1\nfeature: FEAT-77-record\napproval:\n  status: pending\ntasks:\n"
+        for i in range(1, tasks + 1):
+            body += (f"  - id: T-{i:02d}\n    title: t{i}\n    traces: [SC-01]\n"
+                     f"    change_type: logic\n    execution_mode: main-session-direct\n"
+                     f"    execution_reason: fixture\n    depends_on: []\n    status: pending\n"
+                     f"    files: [fixture]\n    verify: 'true'\n    intent: fixture\n")
+        (self.path.parent / "plan.yaml").write_text(body, encoding="utf-8")
+
+    def propose(self):
+        result = self.run_cli("propose-rework", "--file", str(self.path))
+        self.assert_ok(result)
+        return json.loads(result.stdout)
+
+    def test_patch_is_one_round(self):
+        self.write(base_doc(mission="patch"))
+        self.plan(1)
+        self.assertEqual({"rounds": 1, "minutes": 45}, {k: self.propose()[k] for k in ("rounds", "minutes")})
+
+    def test_plan_rounds_scale_with_tasks_floor_two(self):
+        self.write(base_doc(mission="plan"))
+        for tasks, rounds in ((1, 2), (3, 2), (4, 2), (7, 3), (9, 3), (10, 4)):
+            self.plan(tasks)
+            self.assertEqual(rounds, self.propose()["rounds"], tasks)
+            self.assertEqual(rounds * 45, self.propose()["minutes"], tasks)
+
+    def test_rounds_never_exceed_max_total_cycles(self):
+        self.write(base_doc(mission="plan"))
+        self.plan(30)   # ceil(30/3) = 10, but harness.json caps cycles at 4
+        self.assertEqual(4, self.propose()["rounds"])
+
+    def test_basis_names_every_input(self):
+        self.write(base_doc(mission="plan"))
+        self.plan(7)
+        basis = self.propose()["basis"]
+        for token in ("7 tasks", "rework_round_minutes", "45", "plan"):
+            self.assertIn(token, basis)
+
+    def test_refuses_without_a_mission(self):
+        self.write(base_doc())
+        self.plan(3)
+        result = self.run_cli("propose-rework", "--file", str(self.path))
+        self.assertEqual(2, result.returncode)
+        self.assertIn("mission", result.stderr)
+
+class SchemaTest(unittest.TestCase):
+    """The schema half of the ledger: what feature_json_write refuses at every verb."""
+
+    def problems(self, doc):
+        return feature_schema.problems_for_text(json.dumps(doc), "sample.json")
+
+    def judgement(self, **overrides):
+        entry = {"at": "2026-09-11T10:00:00+00:00", "by": "harness-orchestrator",
+                 "kind": "mission", "decision": "patch", "reason": "small"}
+        entry.update(overrides)
+        return entry
+
+    def test_old_shape_without_any_new_key_is_still_valid(self):
+        self.assertEqual([], self.problems(base_doc(
+            runs=[{"id": "r1", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead"}])))
+
+    def test_full_new_shape_is_valid(self):
+        doc = base_doc(mission="plan", judgements=[self.judgement()],
+                       rework={"rounds": 2, "wall_clock_minutes": 60, "decision": "ruling-1"},
+                       budget_decisions=[{"at": "2026-09-11T10:00:00+00:00",
+                                          "max_total_cycles": 6, "decision": "DEC-1"}],
+                       runs=[{"id": "r1", "squad": "eng", "verdict": "PASS",
+                              "agent": "harness-eng-lead",
+                              "started_at": "2026-09-11T10:00:00+00:00",
+                              "ended_at": "2026-09-11T10:10:00+00:00", "tokens": None}])
+        self.assertEqual([], self.problems(doc))
+
+    def test_judgement_missing_any_of_the_five_keys_is_rejected(self):
+        for key in ("at", "by", "kind", "decision", "reason"):
+            entry = self.judgement()
+            del entry[key]
+            problems = self.problems(base_doc(judgements=[entry]))
+            self.assertTrue(problems and any(repr(key) in p for p in problems), (key, problems))
+
+    def test_judgement_unknown_kind_is_rejected(self):
+        problems = self.problems(base_doc(judgements=[self.judgement(kind="hunch")]))
+        self.assertTrue(problems and any("/judgements/0/kind" in p for p in problems), problems)
+
+    def test_judgement_reject_kind_is_accepted_by_the_strict_schema(self):
+        self.assertEqual([], self.problems(base_doc(judgements=[self.judgement(kind="reject")])))
+
+    def test_judgement_extra_key_is_rejected(self):
+        problems = self.problems(base_doc(judgements=[self.judgement(note="why")]))
+        self.assertTrue(problems and any("'note'" in p for p in problems), problems)
+
+    def test_judgement_at_must_be_an_iso_timestamp(self):
+        problems = self.problems(base_doc(judgements=[self.judgement(at="yesterday")]))
+        self.assertTrue(problems and any("/judgements/0/at" in p for p in problems), problems)
+
+    def test_amendment_kind_is_valid_and_overruled_true_only_on_it(self):
+        self.assertEqual([], self.problems(base_doc(judgements=[amendment()])))
+        self.assertEqual([], self.problems(base_doc(judgements=[amendment(overruled=True)])))
+        for bad in (base_doc(judgements=[amendment(overruled=False)]),
+                    base_doc(judgements=[self.judgement(overruled=True)]),
+                    base_doc(judgements=[self.judgement(kind="regate", overruled=True)])):
+            problems = self.problems(bad)
+            self.assertTrue(problems and any("overruled" in p for p in problems), problems)
+
+    def test_signed_task_hashes_is_a_t_nn_to_sha256_map(self):
+        good = {"T-01": "a" * 64, "T-12": "0123456789abcdef" * 4}
+        self.assertEqual([], self.problems(base_doc(signed_task_hashes=good)))
+        self.assertEqual([], self.problems(base_doc(signed_task_hashes={})))
+        for bad in ({"SC-01": "a" * 64}, {"T-01": "A" * 64}, {"T-01": "a" * 63},
+                    {"T-01": "g" * 64}, {"T-01": 1}, ["a" * 64]):
+            problems = self.problems(base_doc(signed_task_hashes=bad))
+            self.assertTrue(problems and any("signed_task_hashes" in p for p in problems),
+                            (bad, problems))
+
+    def test_mission_outside_the_two_lanes_is_rejected(self):
+        problems = self.problems(base_doc(mission="epic"))
+        self.assertTrue(problems and any("/mission" in p for p in problems), problems)
+
+    def test_rework_requires_all_three_keys(self):
+        for key in ("rounds", "wall_clock_minutes", "decision"):
+            rework = {"rounds": 1, "wall_clock_minutes": 30, "decision": "d"}
+            del rework[key]
+            problems = self.problems(base_doc(rework=rework))
+            self.assertTrue(problems and any(repr(key) in p for p in problems), (key, problems))
+
+    def test_budget_decision_below_one_cycle_is_rejected(self):
+        problems = self.problems(base_doc(budget_decisions=[
+            {"at": "2026-09-11T10:00:00+00:00", "max_total_cycles": 0, "decision": "d"}]))
+        self.assertTrue(problems and any("max_total_cycles" in p for p in problems), problems)
+
+    def test_run_tokens_negative_or_string_is_rejected_null_is_not(self):
+        def run(tokens):
+            return base_doc(runs=[{"id": "r1", "squad": "eng", "verdict": "PASS",
+                                   "agent": "harness-eng-lead", "tokens": tokens}])
+        self.assertEqual([], self.problems(run(None)))
+        self.assertEqual([], self.problems(run(0)))
+        for bad in (-1, "1200", 12.5):
+            problems = self.problems(run(bad))
+            self.assertTrue(problems and any("/runs/0/tokens" in p for p in problems),
+                            (bad, problems))
+
+
+if __name__ == "__main__":
+    unittest.main()

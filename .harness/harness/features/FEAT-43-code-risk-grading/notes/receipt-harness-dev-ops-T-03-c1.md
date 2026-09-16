@@ -11,7 +11,7 @@ PATH was set to `/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, which selecte
 Command (verbatim from `plan.yaml`):
 
 ```sh
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Exit status: `0`.
@@ -31,4 +31,4 @@ No failures were reported; the runner completed successfully in 171.32 seconds.
 
 The required literal `.claude/skills/harness/bin/test-code-grade-cli.py` remains in `test_kinds.integration.detect`, and `test-code-grade-cli.py` remains in `INTEGRATION_SCRIPTS`. The diff from the task baseline (`6e4a273`) shows the CLI registration as the T-03 addition and retains all existing runner registrations.
 
-`test-merge-gitignore.py` was pre-existing in `run-unit-tests.sh` and its literal was already present in `harness.json` at baseline `6e4a273`. Its current harness.json presence is preservation of an existing integration registration, not T-03 scope expansion; no unrelated registration was added to repair another task.
+`test-merge-gitignore.py` was pre-existing in `run-unit-tests.py` and its literal was already present in `harness.json` at baseline `6e4a273`. Its current harness.json presence is preservation of an existing integration registration, not T-03 scope expansion; no unrelated registration was added to repair another task.

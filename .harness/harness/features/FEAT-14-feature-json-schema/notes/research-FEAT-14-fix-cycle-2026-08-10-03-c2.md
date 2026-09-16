@@ -11,7 +11,7 @@ two commits back on this same branch). `git diff --stat 96d5d5c..HEAD -- .harnes
 **four files, all `notes/` additions under FEAT-12, 806 insertions, zero deletions** — no
 `feature.yaml`, `plan.yaml` or `BRIEF.md` differs between the operator's SHA and mine.
 
-- `check-state.sh` now reports **seven** VIOLATION lines, not four. Only FEAT-14's unapproved BRIEF
+- `check-state.py` now reports **seven** VIOLATION lines, not four. Only FEAT-14's unapproved BRIEF
   survives from the `06ae963` reading. FEAT-12's missing `handoff-plan.md` has cleared; FEAT-15 has
   gained four `STATE.md`-references-absent-task violations plus an unapproved BRIEF; the
   runs/-without-a-feature-file violation has moved from FEAT-15 to FEAT-13.
@@ -79,7 +79,7 @@ describes and was rewritten with it (P-08).
 
 - Both `verify:` bodies `compile()` clean.
 - T-04's receipt set-difference and T-08's em-dash keying were executed against live
-  `check-state.sh` output: 7 baseline keys, zero false novelty on self-comparison.
+  `check-state.py` output: 7 baseline keys, zero false novelty on self-comparison.
 - Read-only on FEAT-13 and FEAT-15 throughout; nothing written under either.
 
 ## Open

@@ -45,7 +45,7 @@ worktree, nothing is enforced at all. **Only the second is an enforcement gap.**
 remain confirmed at `a29ad06`:
 
 1. **#261 — the shell route.** With `src/**` granted, `<root>/src/main.py` is Write **2**, Bash
-   **0**. `bash-write-guard.sh` holds zero references to `fleet`, `workspace_root` or
+   **0**. `bash-write-guard.py` holds zero references to `fleet`, `workspace_root` or
    `factory_config` and carries its own worktree rule at `:405`. This is the DEC-151 failure shape
    and it is the sharpest thing in the feature.
 2. **#103's surviving half — writes INTO a stray worktree, and creating one.** Three payloads into
@@ -66,7 +66,7 @@ DEC-180, with the re-measurement above, so the next reader does not re-derive a 
   correct and untouched.
 - A stray worktree remains a MISTAKE, not a supported shape. `git worktree list` resolution stays
   declined.
-- `bash-write-guard.sh` still learns the boundary rule from the SAME source, never a fourth copy.
+- `bash-write-guard.py` still learns the boundary rule from the SAME source, never a fourth copy.
 - INV-25 remains a **FAILURE**, not a warning (operator, 2026-08-11). A warning is precisely what
   failed for #103 — INV-20 is a warn and warning is what let it sit.
 - One out-of-place worktree exists today (`…/scratchpad/r6`) and is **clean**, plus one prunable
@@ -95,7 +95,7 @@ Accepted on the argument the orchestrator verified rather than asserted: **the W
 target-side refusal is ALREADY parser-contingent** — it is wired into `classify`, and only
 `domain_check` calls `classify` — so siting the root-side check there is symmetric with what the
 plan had already accepted, not a new weakness singled out. Supporting: the bootstrap grant skips
-`domain_check` in the real checkout too (`check-domain.sh:675`, `if _run_domain and not
+`domain_check` in the real checkout too (`check-domain.py:675`, `if _run_domain and not
 _no_parser:`), so a stray-worktree session under the grant is no worse off than a sanctioned one.
 
 **Reversible at signature and only as a pair.** Restoring the module-level hoist restores SC-03's

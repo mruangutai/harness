@@ -104,7 +104,7 @@ strike deliberately.**
 | B-10 | chore | `BRIEF.md`'s `## Approval` block is byte-identical across `b86ce66a`, `e64e863e` and `993ac997`, so the approved SC-03 amendment carries no distinct re-signature act in the file. Only your hand can date it |
 | B-11 | chore | issue #1053's `## Scope` still reads "Folded into FEAT-47". Outside `plan.yaml`'s write authority; only you can edit an issue body. Whether #1053 closes on ship is also yours |
 | B-12 | enhancement | `BRIEF.md` BACKLOG-C — vendor the ten `ea6f51f` sites as committed fixtures so CI can re-check their literal source without a deep checkout. Recorded, not built, exactly as the amendment intended |
-| B-13 | harness defect | `bash-write-guard.sh` blocks **all** bash-level file writes including `/tmp` for the read-only `harness-ui-reviewer` persona, which had to drive its fixtures through `python3 -c` instead. Its verdicts stand; its probe surface was narrower than dispatched |
+| B-13 | harness defect | `bash-write-guard.py` blocks **all** bash-level file writes including `/tmp` for the read-only `harness-ui-reviewer` persona, which had to drive its fixtures through `python3 -c` instead. Its verdicts stand; its probe surface was narrower than dispatched |
 | B-14 | harness defect | carried from c8: `harness-qa` returned `severity_max: medium` where the contract enum is `med`, and `validate-digest.py` accepted it |
 | B-15 | chore | `test-run-pool.py` `case_cache_exclusion` pins only the `.pyc` leg, so a future narrowing of the `__pycache__` skip would pass it unchanged — a test-adequacy gap mirroring B-3 |
 

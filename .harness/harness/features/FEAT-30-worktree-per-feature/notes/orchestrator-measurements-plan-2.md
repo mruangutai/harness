@@ -12,8 +12,8 @@ more:
 
     harness_boundary.py:37    WORKTREE_REL_RE = compile(escape(WORKTREES_SEGMENT) + "/[^/]+/(.+)$")
     harness_boundary.py:310   the classify() verdict path        (Write and Bash routes)
-    check-domain.sh:212       the --resolve path                 (plan-time routing, check-plan-routes)
-    check-domain.sh:644       _norm(), an INLINE LITERAL COPY:
+    check-domain.py:212       the --resolve path                 (plan-time routing, check-plan-routes)
+    check-domain.py:644       _norm(), an INLINE LITERAL COPY:
                               re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
 
 Site 4 does not reference `WORKTREES_SEGMENT`. Its own docstring calls itself "The one path
@@ -30,7 +30,7 @@ budget), same repo-relative path, three locations, `CLAUDE_PROJECT_DIR` at the m
 
 The third case never reached the shape gate. `_norm` returned
 `WT1/.harness/harness/features/.../STATE.md`, which matches none of `RE_FEATURE_JSON`,
-`RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD`, `RE_CLAUDE_MD` (`check-domain.sh:984, 991, 1033` all
+`RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD`, `RE_CLAUDE_MD` (`check-domain.py:984, 991, 1033` all
 normalise through it). **The DEC-150 shape caps are already dark under the two-level layout, and
 the domain refusal is what hides it.**
 
@@ -55,7 +55,7 @@ SC-09 — so the task either preserves the mutation surface or replaces the proo
 
 ## M-11. One site that looks depth-coupled and is not — leave it alone
 
-`bash-write-guard.sh:545` is `re.match(r"^\.claude/worktrees/", rel)`, DEC-153's blanket allow for
+`bash-write-guard.py:545` is `re.match(r"^\.claude/worktrees/", rel)`, DEC-153's blanket allow for
 governed agents on the Bash route. Prefix only, no segment count, so it is already depth-agnostic and
 correct under the two-level layout. A REQ-08 task that "unifies" it into the new relativizer is
 touching a signed carve-out for no behavioural gain.

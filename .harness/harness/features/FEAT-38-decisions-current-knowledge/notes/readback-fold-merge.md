@@ -82,7 +82,7 @@ No anchor rot. DEC-205's one mechanical check is satisfied here and by
 
 The orchestrator's dispatch asserted that both `context-watch-hook.py` **and** `.claude/settings.json`
 are absent from this tree. **`.claude/settings.json` is present** and still registers a PostToolUse
-hook on the `Write|Edit|Bash` matcher — `check-domain.sh --post`, not the retired watchdog. Verified
+hook on the `Write|Edit|Bash` matcher — `check-domain.py --post`, not the retired watchdog. Verified
 directly: the file parses and carries six registrations. DEC-159's folded clause is scoped "No Claude
 hook is registered **for this** any more", so it is true as written; an unscoped fold would now be
 false, and the scoping was the documentor's own.

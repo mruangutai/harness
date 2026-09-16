@@ -39,7 +39,7 @@ I verified all three against `plan.yaml` myself before ruling.
    files** at sha `3952814`. Keep the no-file-list rule and the DEC-169 presence pairing exactly as
    they are.
 3. **The mutation proof** (`plan.yaml:505-512`) — **this is the one that matters most.** It currently
-   appends the mutant to `$B/gh-close-gate.sh` where `B=.claude/skills/harness/bin`, i.e. INSIDE the
+   appends the mutant to `$B/gh-close-gate.py` where `B=.claude/skills/harness/bin`, i.e. INSIDE the
    old scan root, so a narrow invariant and a widened one go red identically and the proof cannot
    discriminate the very widening it exists to prove. **Plant the mutant OUTSIDE
    `.claude/skills/harness/bin/`**, on a tracked non-test non-`.md` file, and keep the existing

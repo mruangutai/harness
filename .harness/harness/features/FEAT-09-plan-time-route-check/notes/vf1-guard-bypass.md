@@ -16,7 +16,7 @@ boundary of the whole org. It is not a cosmetic defect.
 
 ## The mechanism — read, then measured
 
-- `check-domain.sh:38` exports `HARNESS_RESOLVE_PATH` inside the `--resolve` branch.
+- `check-domain.py:38` exports `HARNESS_RESOLVE_PATH` inside the `--resolve` branch.
 - The `else` branch at `:39-41` — the hook path — **never unsets it**.
 - `:133-134` selects resolve mode on `os.environ.get(...) is not None`, so even an **empty string**
   qualifies.
@@ -56,7 +56,7 @@ vindicated rather than merely obeyed.
 
 ## The fix, as specified by the panel
 
-1. Add `unset HARNESS_RESOLVE_PATH` to the **else** branch at `check-domain.sh:39-41`.
+1. Add `unset HARNESS_RESOLVE_PATH` to the **else** branch at `check-domain.py:39-41`.
 2. **Do NOT restructure to branch on argv.** `:105` already consumes `sys.argv[2]` as `argv_agent`,
    so branching on argv touches the hook path's identity contract on a DEC-174 file, and would
    drift from the mechanism DEC-179 documents.
@@ -67,9 +67,9 @@ vindicated rather than merely obeyed.
 
 Measured, not inferred:
 
-- `check-domain.sh --resolve .claude/skills/harness/bin/check-domain.sh` returns
+- `check-domain.py --resolve .claude/skills/harness/bin/check-domain.py` returns
   `harness-backend-dev` and `harness-dev-ops`. **The manifest grants it.**
-- But **DEC-174** forbids dispatching a change to `check-domain.sh` through a team run whose gates
+- But **DEC-174** forbids dispatching a change to `check-domain.py` through a team run whose gates
   are the thing being changed. `PLAN.md` T-01 already carries
   `execution_mode: main-session-direct` for this exact file.
 - The domain hook separately **BLOCKS** `harness-orchestrator` from writing it.

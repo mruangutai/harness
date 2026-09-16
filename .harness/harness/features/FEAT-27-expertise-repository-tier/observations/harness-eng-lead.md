@@ -1,12 +1,12 @@
 # Observations — harness-eng-lead — FEAT-27-expertise-repository-tier
 
-- 2026-08-19: dispatch-guard.sh blocked my first T-02 spawn because I passed `model: sonnet`.
+- 2026-08-19: dispatch-guard.py blocked my first T-02 spawn because I passed `model: sonnet`.
   The block was correct (DEC-152/155) and cost one spawn attempt with zero member work. Worth
   noting the failure mode is silent in my own reasoning — I reached for the parameter without
   registering it as a decision. The guard, not my judgement, is what caught it.
 
 - 2026-08-19: T-02's twelve test cases assert the absence of "authoritative on conflict" and
-  "most specific" in the hook's EMITTED OUTPUT only. A comment inside inject-expertise.sh
+  "most specific" in the hook's EMITTED OUTPUT only. A comment inside inject-expertise.py
   retaining either phrase passes all twelve. I grepped the script directly on return: 0 hits
   for "authoritative on conflict" and 0 for "carries more weight"; one hit at :106 for "most
   specific", inside a comment, using the rationale intent 1b explicitly PERMITS ("the most
@@ -16,7 +16,7 @@
 
 - 2026-08-19: the precedence line's "emit exactly once" property is not pinned by the shape of
   the test alone. Case 1 asserts two substrings; case 2 counts one of them once. Both stay true
-  if the line is split across two printf calls. I read inject-expertise.sh:110 to confirm it is
+  if the line is split across two printf calls. I read inject-expertise.py:110 to confirm it is
   a single printf outside the per-segment loop. Substring assertions cannot see line structure.
 
 - 2026-08-19: spent both in-flight waits on reads rather than polling, and both paid. The
@@ -33,7 +33,7 @@
 
 - 2026-08-19: I hit my own P-14 while checking T-03's intent premise. Grepping
   harness-distill/SKILL.md for "advisory|scan|token" returned one irrelevant line and I nearly
-  reported the premise falsified. The skill spells it "advisorily" (:61-62: "check-expertise.sh
+  reported the premise falsified. The skill spells it "advisorily" (:61-62: "check-expertise.py
   flags such entries advisorily, for a human to rule on, and a flag is not a violation"), so
   the premise holds and T-03 closes a real doc-ahead-of-code gap. The near-miss is the point:
   I authored P-14 and still ran the one-spelling grep first.
@@ -45,7 +45,7 @@
   the code I review.
 
 - 2026-08-19: the FIX-01 dispatch reached me carrying "it reached me as exit 0" for a red
-  integration suite. I read run-unit-tests.sh:57-71 during the in-flight wait: it counts
+  integration suite. I read run-unit-tests.py:57-71 during the in-flight wait: it counts
   failures and `exit 1` when any script fails. So the runner is correct and the false green was
   pure narration — someone reported a status they never observed. Worth separating: a tool that
   lies needs a fix, a narrator that lies needs evidence discipline, and the remedy differs.
@@ -57,7 +57,7 @@
   It also caught that the manifest has 16 repository-tier grants while the fixture pins only 6.
 
 - 2026-08-19: harness_yaml.py:362's docstring carries the SAME stale "equivalent to
-  check-domain.sh's pre-change collect()" claim as the test docstring the dispatch flagged. The
+  check-domain.py's pre-change collect()" claim as the test docstring the dispatch flagged. The
   advisory finding was framed as a test-file issue and is actually a two-site issue. A finding
   scoped to the file where it was noticed under-reports its own blast radius.
 
@@ -66,7 +66,7 @@
   which is the more dangerous direction, since the orchestrator reads the DIGEST field and
   never opens the receipt.
 
-- 2026-08-19: dispatch-guard.sh has now blocked a `model:` parameter twice in FEAT-27, from two
+- 2026-08-19: dispatch-guard.py has now blocked a `model:` parameter twice in FEAT-27, from two
   DIFFERENT leads. Two of my own blocks are recorded above, so the org-level shape is not "one
   lead has a bad habit" — it is a rule the org keeps rediscovering at runtime rather than at
   authoring time. The parameter is available in the tool schema and forbidden only by a hook, so
@@ -75,7 +75,7 @@
 
 - 2026-08-19: on T-07 I verified the mutant's discriminating power from source BEFORE the member
   returned, and it changed what I would accept. `kaya` is a plain lowercase token, so the segment
-  filter at inject-expertise.sh:75-77 does NOT reject it — which is precisely why a dangling
+  filter at inject-expertise.py:75-77 does NOT reject it — which is precisely why a dangling
   symlink reddens where an unexpanded glob word cannot. Two independent assertions fail under the
   mutant: the "kaya" header printed at :114, and stderr, which takes three writes (head, wc, and
   the empty `$( )` making `[ "" -gt 40 ]` a bash integer error at :57-58). Deriving WHY a case can
@@ -97,7 +97,7 @@
 
 - 2026-08-19: two of four readers reported case counts that did not survive my own count
   ("14 base + 20 extra" vs my 9 `case()` registrations and 22 `record()` calls; "16 scripts" vs
-  run-unit-tests.sh:17's 17). Neither error changed a finding, which is exactly why it is
+  run-unit-tests.py:17's 17). Neither error changed a finding, which is exactly why it is
   dangerous — a wrong number attached to a correct conclusion is the form that propagates, because
   nothing about the conclusion invites re-checking the number.
 

@@ -33,13 +33,13 @@
 
   3. **No SC requires the clean-worktree measurement.** qa measured `test-factory-integration.py`
      PASS 106/106 in the DIRTY tree (`qa-c1.md:52-53`), so SC-03 is ownable by pm running that
-     script directly — expect `mine`, not `inherited`. The `run-unit-tests.sh --kind integration`
+     script directly — expect `mine`, not `inherited`. The `run-unit-tests.py --kind integration`
      exit code is a GATE concern for the orchestrator's ship decision, not an SC. If pm marks an SC
      unmet on gate-honesty grounds that is a category error and I catch it. I forbade worktrees, so
      pm is not to be dinged for inheriting the clean-pin gate result.
 
   4. **Clause (b)'s `load_board` verdict must be scoped to ADDED LINES of the graded diff.**
-     `load_board` is present in the repo — the panel found it in `check-state.sh`,
+     `load_board` is present in the repo — the panel found it in `check-state.py`,
      `board-station.py`, `test-factory-config.py`, `test-gh-sync.py`, `test-gh-board.py`. A
      repo-wide grep returns five legitimate hits and reads as a clause-(b) failure. Check the shape
      of pm's evidence string, not only its verdict.
@@ -55,6 +55,6 @@
   Requirements / Success Criteria / Verification gaps / Constraints / Approval. **No UAT section
   exists and no criterion names a UAT.** This is my own verification, not a passthrough of pm's.
 
-- 2026-08-19: `dispatch-guard.sh` blocked my first Agent call because I passed `model: opus`. The
+- 2026-08-19: `dispatch-guard.py` blocked my first Agent call because I passed `model: opus`. The
   guard is right (DEC-152/155) and the re-dispatch without it succeeded. Cost: one blocked call.
   Do not pass `model:` — not even to match a member's own pin.

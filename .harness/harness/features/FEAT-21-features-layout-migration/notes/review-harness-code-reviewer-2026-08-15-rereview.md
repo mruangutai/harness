@@ -3,7 +3,7 @@
 **PASS. must_fix: none. The must-fix delivery (D-08's label half) is proven correct and complete
 for the traded pattern; both `/simplify` refactors (`gh-sync.py` walk-up, `test-layout-migration.py`
 case 20) are semantically equivalent to what they replaced; the one comment-only change in
-`check-state.sh` is accurate; all four prior advisories are unchanged or fixed, none regressed; the
+`check-state.py` is accurate; all four prior advisories are unchanged or fixed, none regressed; the
 skip list's four declines are all defensible.** Everything below is advisory, ranked, none blocking.
 
 Ground-pin confirmed: `HEAD 4a98cc4`, branch `feat/FEAT-21-features-layout-migration` (not `main`).
@@ -29,7 +29,7 @@ feature-only label (the `"{feat}: ..."` colon-separated shape) was wrongly given
 claim is safe for the exact pattern D-08 traded on.
 
 **Residual, narrower gap — four bare-basename labels outside that pattern class, low/advisory,
-not part of the signed trade.** `check-state.sh:126, 609, 619, 638` mention a filename in prose
+not part of the signed trade.** `check-state.py:126, 609, 619, 638` mention a filename in prose
 (`"{feat} has STATE.md but no BRIEF.md"`, `"{feat}: ... notes/handoff-{prev}.md ..."` ×2, and
 `f"{os.path.basename(fdir)}: has runs/ but no feature.json — ... instantiate it from
 .../templates/feature.json"`) without ever qualifying the *directory* — a reader who wants to open
@@ -41,7 +41,7 @@ either (checked against `ea937b1`), so they are not a broken promise — D-08 ne
 but they're the same underlying ambiguity the fix exists to solve, just phrased differently.
 Advisory: worth folding into the same `fpath()` treatment on a later pass; does not block this ship.
 
-**`fpath`'s `?` fallback (`check-state.sh:59`) — unreachable on any tree the script can currently
+**`fpath`'s `?` fallback (`check-state.py:59`) — unreachable on any tree the script can currently
 discover, confirmed independently.** Every one of the script's 15 independent feature-discovery
 globs uses the shape `.harness/*/features/*`, the same shape `_feat_dirs` is built from — so any
 `feat` value the script ever binds already came from a directory `_feat_dirs` also matched. The
@@ -88,7 +88,7 @@ being silently ignored. No demonstrated failure scenario at HEAD (suite is green
 "unreadable" fixture case), and raising on cleanup failure is fail-loud, which this codebase
 generally prefers over fail-silent. Not filing as a finding.
 
-## C — `check-state.sh`'s comment-only change
+## C — `check-state.py`'s comment-only change
 
 Confirmed comment-only (`+1/-1` in the diff): `.harness/features/<FEAT>/...` →
 `.harness/<repo>/features/<FEAT>/...`. Terminology (`<repo>` for the migrated segment) matches
@@ -99,7 +99,7 @@ comment. States something true of the code beneath it: the glob it sits above is
 
 ## D — prior advisories, regression check only
 
-1. **`branch-create-gate.sh:77-78`, hardcoded literal `harness` segment — changed, and the change
+1. **`branch-create-gate.py:77-78`, hardcoded literal `harness` segment — changed, and the change
    is a real latent narrowing, but not news.** The literal moved from `.harness/features/${flow}*`
    (pre-migration: universally correct, since no per-repo segment existed yet) to
    `.harness/harness/features/${flow}*` (post-migration: correct only where the repo's own segment
@@ -169,10 +169,10 @@ that.
 
 | # | Finding | Severity | Blocks ship? |
 |---|---|---|---|
-| 1 | Four bare-basename labels (`check-state.sh:126,609,619,638`) outside D-08's traded pattern still don't resolve to an openable path | low | advisory only |
+| 1 | Four bare-basename labels (`check-state.py:126,609,619,638`) outside D-08's traded pattern still don't resolve to an openable path | low | advisory only |
 | 2 | `fpath()`'s `?` fallback is unreachable on any tree the script currently discovers | info | advisory only |
 | 3 | `_feat_dirs` dict-overwrite is unspecified under a MIXED layout, but `INV-27` already blocks that state first | info | advisory only, folded into B-1 |
-| 4 | `branch-create-gate.sh`'s hardcoded segment narrowed from universally-correct to repo-specific | low | advisory only, already tracked as B-5 |
+| 4 | `branch-create-gate.py`'s hardcoded segment narrowed from universally-correct to repo-specific | low | advisory only, already tracked as B-5 |
 | 5 | `check-plan-routes.py`'s segment-level readability guard gap was newly created by this range's migration | med | advisory only, already tracked as B-4, unchanged since precommit |
 | 6 | `gh-sync.py`/`plan.yaml` T-10 text vs. actual probe (`team-config.yaml`) still not reconciled | low | advisory only, already tracked as B-6 |
 
@@ -180,7 +180,7 @@ No must-fix. Stage 1 (spec compliance) holds: the D-08 label-half delivery is re
 scoped, no requirement is missing a corresponding change, no scope creep found. Stage 2 (quality):
 both `/simplify` refactors are semantically equivalent to what they replaced, verified by hand-trace
 and by running the actual test suites (not narrated) — `test-layout-migration.py`,
-`test-check-plan-routes.py`, `check-state.sh` itself, and all 26 `test-*.py` suites in
+`test-check-plan-routes.py`, `check-state.py` itself, and all 26 `test-*.py` suites in
 `.claude/skills/harness/bin/` all exit 0 at `4a98cc4`.
 
 ```yaml

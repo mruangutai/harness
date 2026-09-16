@@ -41,12 +41,12 @@ surface is reviewable, not an optional extra), I audited the two new checkers ag
   file(heading)/command/expected/actual in full. Summary line matches the anchor checker's shape:
   `examined N claim(s), M failed` (line 173).
 - **Consistency with siblings**: both new checkers use the same `<script-name>: <msg>` stderr prefix
-  for fatal/setup errors that existing `check-plan-routes.py` and `check-state.sh` already use
+  for fatal/setup errors that existing `check-plan-routes.py` and `check-state.py` already use
   (`check-plan-routes: {path} does not load: {e}`; `harness: no .harness/ — ...`), and the same
   `examined N X(s), M failed` summary shape `check-plan-routes.py` already prints
   (`{total_violations} violation(s) across {processed} plan(s)`, `examined {n} feature dir(s); ...`).
   No drift from house convention.
-- **`run-unit-tests.sh`**: diff here only appends the two new test module names to
+- **`run-unit-tests.py`**: diff here only appends the two new test module names to
   `INTEGRATION_SCRIPTS`; the PASS/FAIL message format itself is untouched by this diff — not a
   reviewable change.
 - **`gen-decisions-index.py` HEADER/usage string**: confirmed via targeted diff — neither the

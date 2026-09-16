@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""plan-sign-gate.sh — the PreToolUse Bash hook that refuses an agent's `sign-approval`.
+"""plan-sign-gate.py — the PreToolUse Bash hook that refuses an agent's `sign-approval`.
 
 FEAT-41 T-08, closing REQ-05. DEC-120 says the approval signature is the user's and is
 relayed by the main session alone. Until this gate that was prose: `plan-merge.py
@@ -26,7 +26,7 @@ import sys
 import tempfile
 
 BIN = _anchor_bin
-GATE = os.environ.get("PLAN_SIGN_GATE_BIN") or os.path.join(BIN, "plan-sign-gate.sh")
+GATE = os.environ.get("PLAN_SIGN_GATE_BIN") or os.path.join(BIN, "plan-sign-gate.py")
 
 fails = 0
 
@@ -43,7 +43,7 @@ def check(name, cond, detail=""):
 def _root():
     """A throwaway harness root.
 
-    THE team-config.yaml MARKER IS NOT OPTIONAL (FEAT-42 T-15). plan-sign-gate.sh resolves
+    THE team-config.yaml MARKER IS NOT OPTIONAL (FEAT-42 T-15). plan-sign-gate.py resolves
     through harness_boundary.resolve_root, which honours HARNESS_PROJECT_DIR only when
     .harness/team-config.yaml is readable underneath it. A fixture holding only harness.json
     silently falls back to the derived root — the LIVE checkout — and the case would then be
@@ -68,16 +68,23 @@ def gate(command, agent_type=None):
         payload["agent_type"] = agent_type
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = ROOT
-    r = subprocess.run(["bash", GATE], input=json.dumps(payload),
+    r = subprocess.run([GATE], input=json.dumps(payload),
                        capture_output=True, text=True, env=env)
     return r.returncode, (r.stderr or "")
+
+
+def gate_raw(payload):
+    env = dict(os.environ, HARNESS_PROJECT_DIR=ROOT)
+    result = subprocess.run(
+        [GATE], input=payload, capture_output=True, text=True, env=env)
+    return result.returncode, result.stderr or ""
 
 
 SIGN = "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml"
 
 # ---------------------------------------------------------------------------------------
 # THE MAIN SESSION IS EXEMPT BY THE MECHANISM, NOT BY A NAMED CARVE-OUT.
-# An absent `agent_type` IS the main session — check-domain.sh's approval_guard records the
+# An absent `agent_type` IS the main session — check-domain.py's approval_guard records the
 # same reasoning for the same reason, and a named branch would be a second carve-out to keep
 # in sync. This case is what makes the gate usable at all: the main session is the ONE
 # author that must be able to sign.
@@ -89,6 +96,13 @@ check("a payload with NO agent_type may sign — an absent agent_type is the mai
 rc, err = gate(SIGN, agent_type="")
 check("an EMPTY agent_type may sign too — empty and absent are the same author",
       rc == 0, f"rc={rc} stderr={err[:400]!r}")
+
+_duplicate_rc, _duplicate_err = gate_raw(
+    '{"agent_type":"","agent_type":"harness-orchestrator",'
+    '"tool_input":{"command":' + json.dumps(SIGN) + '}}')
+if _duplicate_rc != 0:
+    check("duplicate hook-payload keys are rejected before signature policy evaluation",
+          False, f"rc={_duplicate_rc} stderr={_duplicate_err[:400]!r}")
 
 # ---------------------------------------------------------------------------------------
 # THE DENIAL, AND ITS TEXT.
@@ -105,7 +119,7 @@ check("the refusal names awaiting_user, which is what the agent should return in
       "awaiting_user" in err, f"stderr={err[:400]!r}")
 
 # ---------------------------------------------------------------------------------------
-# THE FOUR EVASIONS THE PRECEDENT ALREADY MEASURED (gh-close-gate.sh's own comment lists
+# THE FOUR EVASIONS THE PRECEDENT ALREADY MEASURED (gh-close-gate.py's own comment lists
 # ten reaching a grep-based gate straight through). basename strips the path, shlex strips
 # the quoting and the backslash, and each token is re-scanned so eval and bash -c are READ.
 # ---------------------------------------------------------------------------------------
@@ -449,6 +463,73 @@ rc, err = gate(f"bash -c '{_TOOLPATH} sign-approval --file p.yaml --by A --date 
 check("HIGH-2: `bash -c` carrying a real signing call is still DENIED, via recursion",
       rc == 2, f"rc={rc} stderr={err[:300]!r}")
 
+# ---------------------------------------------------------------------------------------
+# FEAT-59 F6 (SEC-03), found by the independent review. THE OPERATOR'S RULINGS HAD NO GATE.
+#
+# `feature-record.py raise-cycles` moves `max_total_cycles` — the HARD bound INV-39 enforces
+# against the orchestrator's own fix loop — and `set-rework` writes the operator's one rework
+# ruling (SC-15). Both are the operator's word relayed by the main session (DEC-157), exactly as
+# the approval signature is, yet only sign-approval was in this gate: the party the ceiling
+# bounds could raise it with a syntactically valid record and INV-39 would pass. So the two
+# verbs join the main-session-only set, on the SAME scanners — tokens, recursion, raw-text
+# fallback and the indirection rule — rather than a second gate that would drift from this one.
+# ---------------------------------------------------------------------------------------
+_RECORD = "python3 .claude/skills/harness/bin/feature-record.py"
+_RAISE = f"{_RECORD} raise-cycles --file f.json --to 30 --decision notes/raise.md"
+_REWORK = f"{_RECORD} set-rework --file f.json --rounds 4 --minutes 240 --decision plan.yaml"
+
+for _verb, _cmd in (("raise-cycles", _RAISE), ("set-rework", _REWORK)):
+    rc, err = gate(_cmd)
+    check(f"F6: the main session (no agent_type) may run {_verb}",
+          rc == 0, f"rc={rc} stderr={err[:300]!r}")
+    rc, err = gate(_cmd, agent_type="harness-orchestrator")
+    check(f"F6: an agent invoking {_verb} is DENIED at exit 2",
+          rc == 2, f"rc={rc} stderr={err[:300]!r}")
+    check(f"F6: the {_verb} refusal names the verb LITERALLY and the rule (main session)",
+          _verb in err and "main session" in err and "awaiting_user" in err,
+          f"stderr={err[:400]!r}")
+    check(f"F6: the {_verb} refusal does NOT lead with sign-approval — one verb was refused, "
+          f"and the reader must not learn the wrong one",
+          "sign-approval" not in err.split("\n")[0], f"stderr={err[:400]!r}")
+    rc, err = gate(f"bash -c '{_cmd}'", agent_type="harness-pm")
+    check(f"F6: `bash -c` carrying {_verb} is DENIED via recursion",
+          rc == 2 and _verb in err, f"rc={rc} stderr={err[:300]!r}")
+    rc, err = gate(f"echo it's fine; {_RECORD} -- {_verb} --file f.json",
+                   agent_type="harness-pm")
+    check(f"F6: the TEXT fallback denies an unlexable line carrying `feature-record.py -- {_verb}`",
+          rc == 2 and _verb in err, f"rc={rc} stderr={err[:300]!r}")
+
+rc, err = gate(f"echo raise-cycles | xargs {_RECORD}", agent_type="harness-orchestrator")
+check("F6: feature-record.py through xargs is DENIED — the verb is undeterminable, the same "
+      "indirection rule as plan-merge.py",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROLS: THE GATE REFUSES TWO VERBS OF THIS TOOL, NOT THE TOOL. The orchestrator's
+# own ledger writes — the runs, its judgements, the mission with its judgement, the read-only
+# spend and propose-rework — are its legal routes and must stay open, or the ledger goes
+# unwritten by the one persona whose job it is to write it.
+for _open in ("run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator",
+              "run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100",
+              "judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 "
+              "--reason r",
+              "set-mission --file f.json --mission patch --by harness-orchestrator --reason r",
+              "spend --file f.json",
+              "propose-rework --file f.json"):
+    rc, err = gate(f"{_RECORD} {_open}", agent_type="harness-orchestrator")
+    check(f"F6 NEGATIVE CONTROL: `feature-record.py {_open.split()[0]}` is ALLOWED for an agent",
+          rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+rc, err = gate("grep -rn raise-cycles .claude/skills/harness/", agent_type="harness-orchestrator")
+check("F6 NEGATIVE CONTROL: the bare word raise-cycles without feature-record.py before it is "
+      "allowed",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+rc, err = gate(f"{_RECORD} judgement --file f.json --by o --kind continue --decision stop "
+               "--reason 'no raise-cycles without the operator'", agent_type="harness-orchestrator")
+check("F6 NEGATIVE CONTROL: a judgement whose --reason MENTIONS raise-cycles is allowed — "
+      "position, not substring",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
 
 sys.path.insert(0, BIN)
 import inflight_registry as _reg
@@ -474,7 +555,7 @@ def qgate(command, agent_type, session_id, root, gate_path=None):
     }
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     result = subprocess.run(
-        ["bash", gate_path or GATE], input=json.dumps(payload),
+        [gate_path or GATE], input=json.dumps(payload),
         capture_output=True, text=True, env=env,
     )
     return result.returncode, result.stderr
@@ -565,7 +646,7 @@ os.remove(os.path.join(_copybin, "inflight_registry.py"))
 _import_root = _qroot(_other)
 _rc, _err = qgate(
     _apply.format(root=_import_root), "harness-orchestrator", _session,
-    _import_root, gate_path=os.path.join(_copybin, "plan-sign-gate.sh"),
+    _import_root, gate_path=os.path.join(_copybin, "plan-sign-gate.py"),
 )
 check("an unimportable inflight_registry fails OPEN at the plan-sign-gate.py quarantine rule",
       _rc == 0 and "boundary was not enforced" in _err,

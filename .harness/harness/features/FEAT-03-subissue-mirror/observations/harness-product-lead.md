@@ -23,7 +23,7 @@
   Raised as an open question rather than worked around.
 
 - 2026-07-31: Two peer leads made claims about repo state I could not adjudicate without `Bash`
-  (validator-lead: `notes/handoff-build.md` absent, verified present by my glob; pm: `check-state.sh`
+  (validator-lead: `notes/handoff-build.md` absent, verified present by my glob; pm: `check-state.py`
   now exits 0, attributed to that file). Absent a clock and a git log, "stale" and "wrong" are
   indistinguishable from this tier — I named both possibilities and routed it to the pen-holder
   instead of picking one.

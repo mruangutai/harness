@@ -76,8 +76,8 @@ IMPROVEMENT-grade, not risk-bearing.
 
 ## 3. INV-32's stale-override match — string equality confirmed, no prefix risk
 
-`check-state.sh:184-206` (unchanged by this delta — confirmed via `git diff 302ae9d bdd5666`
-touching only `panel_findings.py`, its test, and `plan.yaml` text, not `check-state.sh`):
+`check-state.py:184-206` (unchanged by this delta — confirmed via `git diff 302ae9d bdd5666`
+touching only `panel_findings.py`, its test, and `plan.yaml` text, not `check-state.py`):
 
 - `finding_ids = {str(item.get("id","")).strip() for item in findings ...}` (line 185-188) — a
   Python `set` of exact strings (`.strip()` only, no `.lower()`, no slicing).

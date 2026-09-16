@@ -16,5 +16,5 @@
 - **Initial apply outcome:** green; no assertion was removed or weakened.
 - **Corrective fixes:** 0.
 - **Send-backs:** 1 (evidence-only receipt correction; no code change).
-- **Unit:** `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.sh --kind unit` exited 0 — **29/29 named scripts passed**.
-- **Integration:** `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.sh --kind integration` exited 0 in 255.28s — **28/28 named scripts passed**. The first invocation was externally cut off at 120 seconds; no test failure or code correction occurred before the completed reissue.
+- **Unit:** `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.py --kind unit` exited 0 — **29/29 named scripts passed**.
+- **Integration:** `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.py --kind integration` exited 0 in 255.28s — **28/28 named scripts passed**. The first invocation was externally cut off at 120 seconds; no test failure or code correction occurred before the completed reissue.

@@ -18,7 +18,7 @@ Both objects resolve: base `df63193f7ec9798d9660904e0e4e7c78d52358f5`; review pi
 10. `.claude/skills/harness/bin/code-grade.py`
 11. `.claude/skills/harness/bin/code_grade.py`
 12. `.claude/skills/harness/bin/gate_policy.py`
-13. `.claude/skills/harness/bin/run-unit-tests.sh`
+13. `.claude/skills/harness/bin/run-unit-tests.py`
 14. `.claude/skills/harness/bin/test-check-plan-routes.py`
 15. `.claude/skills/harness/bin/test-code-grade-cli.py`
 16. `.claude/skills/harness/bin/test-code-grade.py`

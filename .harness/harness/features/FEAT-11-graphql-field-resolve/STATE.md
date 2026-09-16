@@ -37,7 +37,7 @@ ruling protects); rule on SC-01's total clause; and strike whatever should not e
   complete its write on a call `gh` reported as failed. It is signed D-03 behaving exactly as
   written, so no engineering cycle can legitimately close it, and it does not violate SC-07. pm and
   I both recommend accepting it as a recorded residual rather than amending D-03.
-- Q3 (harness defect, operator only): `bash-write-guard.sh` reads the redirect target of
+- Q3 (harness defect, operator only): `bash-write-guard.py` reads the redirect target of
   `cp … 2>/dev/null` as the `cp` destination and blocks a legitimate in-domain write. A fail-closed
   hook with a false positive, and a DEC-174 carve-out file no agent may fix.
 - Q4 (backlog): the expertise format gate is red on `harness-documentor.md` (53 words against a

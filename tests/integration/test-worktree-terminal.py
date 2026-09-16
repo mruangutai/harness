@@ -369,7 +369,7 @@ def case_second_repo():
     """(g) SECOND REPOSITORY: a real second git repo, fleet-resolved (never the hard-coded
     "harness" literal), with its own default branch, its own Done feature landed on it and a
     real `git worktree add`. classify() is called directly on that repository's own root — the
-    same call shape post-merge-sweep.sh's contract (T-03) makes per repository — and must
+    same call shape post-merge-sweep.py's contract (T-03) makes per repository — and must
     classify that worktree terminal.
 
     Fleet resolution requires factory_config.FLEET_PATH, computed at IMPORT time from
@@ -679,7 +679,7 @@ def case_classify_all_fleet_unloadable():
     """(l) FLEET UNLOADABLE: overwrite the probe root's fleet.yaml with bytes load_fleet
     rejects. classify_all still returns the harness root's own records AND returns one
     repository-level unresolved record whose path is the fleet path — two assertions. RED PROOF:
-    a second, independent producer — a local stub that attempts factory_config.load_fleet(),
+    a second, independent producer — a local stub that attempts artifact_accessors.load_fleet(),
     catches the failure, and returns only the harness half's classify(root) records — is run in
     the SAME subprocess against the SAME unloadable fleet.yaml. It never emits a fleet-path
     record; the real classify_all does. Loop-back cycle 1 (T-02): the prior form compared the
@@ -696,7 +696,7 @@ def case_classify_all_fleet_unloadable():
             f.write("key: [unclosed\n  - broken: yaml: syntax\n")  # load_fleet must reject this
 
         # Second producer, same subprocess, same fixture: a DELIBERATELY WRONG stub that
-        # attempts factory_config.load_fleet(), catches the failure, and returns ONLY the
+        # attempts artifact_accessors.load_fleet(), catches the failure, and returns ONLY the
         # harness half's classify(root) records — no fleet-path record at all. Independent of
         # classify_all's own code path (it never calls classify_all), in the same spirit as
         # _stub_skip_both/_stub_reports_both above.
@@ -704,11 +704,11 @@ def case_classify_all_fleet_unloadable():
             "import json, sys\n"
             f"sys.path.insert(0, {BIN_DIR!r})\n"
             "import worktree_terminal as w\n"
-            "factory_config = w._import_factory_config()\n"
+            "import artifact_accessors\n"
             f"real = w.classify_all({probe_root!r})\n"
             f"stub = list(w.classify({probe_root!r}))\n"
             "try:\n"
-            "    factory_config.load_fleet()\n"
+            "    artifact_accessors.load_fleet()\n"
             "except Exception:\n"
             "    pass\n"  # swallowed: no fleet-path record appended, unlike classify_all
             "print(json.dumps({'real': real, 'stub': stub}))\n"
@@ -818,63 +818,114 @@ def case_classify_empty_repo_no_linked_worktrees():
     return results
 
 
+def _landed_station_records(tmp, stations):
+    """One committed feature per (id, plan station) with a linked worktree, classified; returns
+    {id: record-or-None}. The feature.json carries NO status — what the FEAT-41 T-07 migration
+    leaves behind — so only a reader repointed at plan.yaml can see the station. REALPATH
+    FALLBACK as every other case here: on macOS the tempdir is /var/... while git reports
+    /private/var/..., so a bare dict lookup misses for a reason unrelated to the test."""
+    import worktree_terminal as w
+    repo = _repo(os.path.join(tmp, "R"))
+    dests = {}
+    for feature_id, station in stations:
+        _commit_feature(repo, feature_id, {"feature_id": feature_id}, plan_station=station)
+        dests[feature_id] = _add_wt(repo, feature_id)
+    recs = {r["path"]: r for r in w.classify(repo)}
+    return {fid: recs.get(os.path.realpath(dest)) or recs.get(dest) for fid, dest in dests.items()}
+
+
 def case_plan_station_is_the_landed_authority():
     """FEAT-41 T-07: the landed station is read from plan.yaml, not from feature.json.
 
     THIS IS THE CASE THAT PROVES THE MIGRATION'S POSITIVE SIDE, and it is the reason T-07's
     verify cannot rest on its schema and absence assertions alone: every one of those goes
     GREEN on a HALF-APPLIED migration in which the status key is deleted and this reader still
-    expects it. Here the feature.json carries NO status at all — exactly what the migration
-    leaves behind — and the sibling plan.yaml records the lowercase station. An un-repointed
-    reader finds no status, matches nothing, and OMITS the worktree instead of calling it
-    terminal, which is the silent direction: a terminal worktree that never gets reclaimed.
-    """
+    expects it. An un-repointed reader finds no status, matches nothing, and OMITS the worktree
+    instead of calling it terminal, which is the silent direction: a terminal worktree that
+    never gets reclaimed. The `review` feature is the NEGATIVE CONTROL, and it is load-bearing:
+    without it "terminal" could be what this reader returns for ANY feature carrying a
+    plan.yaml. FEAT-1714 T-03: a landed `rejected` plan is terminal too — the feature will
+    never build, and its worktree is what INV-29 reclaims."""
+    with tempfile.TemporaryDirectory() as tmp:
+        got = _landed_station_records(tmp, [("FEAT-70-plan-done", "done"),
+                                            ("FEAT-71-plan-review", "review"),
+                                            ("FEAT-72-plan-rejected", "rejected")])
+    done, review, rejected = (got["FEAT-70-plan-done"] or {}, got["FEAT-71-plan-review"],
+                              got["FEAT-72-plan-rejected"] or {})
+    return [
+        ("T-07: plan.yaml station `done` -> terminal, with NO feature.json status present",
+         done.get("klass") == "terminal", f"got {done!r}"),
+        ("T-07: the reason names the lowercase station read from plan.yaml",
+         "done" in done.get("reason", ""), f"got {done.get('reason')!r}"),
+        ("T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely",
+         review is None, f"got {review!r}"),
+        ("FEAT-1714: plan.yaml station `rejected` -> terminal, reason naming the station",
+         rejected.get("klass") == "terminal" and "rejected" in rejected.get("reason", ""),
+         f"got {rejected!r}"),
+    ]
+
+
+def _commit_brief(repo, feature_id, approval_block, repo_segment="harness"):
+    """Commit ONLY a BRIEF.md for `feature_id` — no feature.json, no plan.yaml — which is what
+    a DEC-174 direct build lands. `approval_block` is the text under `## Approval`."""
+    rel = os.path.join(".harness", repo_segment, "features", feature_id, "BRIEF.md")
+    abs_path = os.path.join(repo, rel)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    with open(abs_path, "w") as f:
+        f.write(f"# BRIEF — {feature_id}\n\n## Constraints\n\n- Built direct under DEC-174.\n\n"
+                f"## Approval\n\n{approval_block}\n")
+    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+
+
+def case_direct_build_brief_is_terminal():
+    """A DEC-174 direct build writes no feature.json; its landed, signed BRIEF naming DEC-174 in
+    the approval `by:` line is its terminal record. Three shipped direct builds were reported
+    `unresolved` before this predicate existed. The controls are the two ways a brief must NOT
+    qualify: pending status, and DEC-174 mentioned only outside the approval block."""
     import worktree_terminal as w
 
     results = []
-
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
 
-        _commit_feature(repo, "FEAT-70-plan-done", {"feature_id": "FEAT-70-plan-done"},
-                        plan_station="done")
-        done_dest = _add_wt(repo, "FEAT-70-plan-done")
+        _commit_brief(repo, "FEAT-80-direct", "status: approved\ndate: 2026-09-13\n"
+                      "by: operator, main session (direct work under DEC-174)")
+        direct_dest = _add_wt(repo, "FEAT-80-direct")
 
-        # NEGATIVE CONTROL, and it is load-bearing: without it "terminal" could be what this
-        # reader returns for ANY feature carrying a plan.yaml, and the case above would pass
-        # on a repointing that read the plan but ignored the station in it.
-        _commit_feature(repo, "FEAT-71-plan-review", {"feature_id": "FEAT-71-plan-review"},
-                        plan_station="review")
-        review_dest = _add_wt(repo, "FEAT-71-plan-review")
+        _commit_brief(repo, "FEAT-81-pending-direct", "status: pending\n"
+                      "by: operator (direct work under DEC-174)")
+        pending_dest = _add_wt(repo, "FEAT-81-pending-direct")
+
+        # Signed, but DEC-174 appears only in Constraints — a normal-path feature whose
+        # feature.json is genuinely missing stays unresolved.
+        _commit_brief(repo, "FEAT-82-normal", "status: approved\ndate: 2026-09-13\nby: operator")
+        normal_dest = _add_wt(repo, "FEAT-82-normal")
 
         recs = {r["path"]: r for r in w.classify(repo)}
 
-        # REALPATH FALLBACK, as every other case in this file does: on macOS the tempdir is
-        # /var/... while git reports /private/var/..., so a bare dict lookup misses and the
-        # case fails for a reason that has nothing to do with what it tests.
         def get(dest):
             return recs.get(os.path.realpath(dest)) or recs.get(dest)
 
-        results.append((
-            "T-07: plan.yaml station `done` -> terminal, with NO feature.json status present",
-            (get(done_dest) or {}).get("klass") == "terminal",
-            f"got {get(done_dest)!r}"))
-        results.append((
-            "T-07: the reason names the lowercase station read from plan.yaml",
-            "done" in (get(done_dest) or {}).get("reason", ""),
-            f"got {(get(done_dest) or {}).get('reason')!r}"))
-        results.append((
-            "T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely",
-            get(review_dest) is None,
-            f"got {get(review_dest)!r}"))
-
+        results.append(("direct build: signed DEC-174 BRIEF with no feature.json -> terminal",
+                        (get(direct_dest) or {}).get("klass") == "terminal",
+                        f"got {get(direct_dest)!r}"))
+        results.append(("direct build: the reason names DEC-174",
+                        "DEC-174" in (get(direct_dest) or {}).get("reason", ""),
+                        f"got {(get(direct_dest) or {}).get('reason')!r}"))
+        results.append(("CONTROL: a pending DEC-174 BRIEF stays unresolved",
+                        (get(pending_dest) or {}).get("klass") == "unresolved",
+                        f"got {get(pending_dest)!r}"))
+        results.append(("CONTROL: DEC-174 outside the approval block does not qualify",
+                        (get(normal_dest) or {}).get("klass") == "unresolved",
+                        f"got {get(normal_dest)!r}"))
     return results
 
 
 def case_plan_station_scan_without_pyyaml():
     """FEAT-41 T-07: the station is still readable when PyYAML is NOT importable.
 
-    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.sh runs `python3 -I`, and
+    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.py runs `python3 -I`, and
     isolated mode ignores user site-packages — where PyYAML lives on a stock macOS install. This
     module read only JSON until T-07, so it had no third-party dependency; moving the station
     into plan.yaml gave the sweep one it could not satisfy, and EVERY worktree came back
@@ -937,6 +988,7 @@ def main():
         + case_classify_empty_repo_no_linked_worktrees()
         + case_plan_station_is_the_landed_authority()
         + case_plan_station_scan_without_pyyaml()
+        + case_direct_build_brief_is_terminal()
     )
     all_ok = True
     for name, ok, detail in results:

@@ -35,19 +35,19 @@ the plan's convention.
 
 **No.** Searched `.claude/skills/harness/bin/` for any existing bin/ auditor, argv-class sweep,
 or classification tool:
-- `bash-write-guard.sh` (`bash-write-guard.sh:1-42`) parses Bash *tool-call payloads* for
+- `bash-write-guard.py` (`bash-write-guard.py:1-42`) parses Bash *tool-call payloads* for
   in-place-editor/redirect patterns for domain enforcement — a different input class (agent
   commands, not this repo's own scripts) and a different question (write-target domain, not
   argv provenance).
-- `post-merge-sweep.sh` sweeps worktrees for post-merge repair actions — unrelated concern.
+- `post-merge-sweep.py` sweeps worktrees for post-merge repair actions — unrelated concern.
 - `test-no-distribution.py` sweeps for the deleted deploy mechanism — unrelated surface.
 No script anywhere under `bin/` classifies call sites by FIXED-LITERAL-ARGV vs
 TEXT-DERIVED-ARGV. T-29 is genuinely new.
 
 ## Q4 — Do new `verify:` blocks hand-roll checks existing scripts already perform?
 
-**T-25 vs `run-unit-tests.sh --check-kinds`: no duplication — the two check different halves.**
-`--check-kinds` (`run-unit-tests.sh:94-131` in the worktree) only cross-checks one direction:
+**T-25 vs `run-unit-tests.py --check-kinds`: no duplication — the two check different halves.**
+`--check-kinds` (`run-unit-tests.py:94-131` in the worktree) only cross-checks one direction:
 every `INTEGRATION_SCRIPTS` name must appear in `detect` (flags `KIND-DRIFT` if absent), and
 every `UNIT_SCRIPTS` name must be *absent* from `detect`. There is no rule flagging a `detect`
 entry with **no** array entry — T-24's own `intent:` (`plan.yaml:1758-1770`) states this
@@ -62,7 +62,7 @@ F-1 below.**
 ## Q5 — Does any `intent:` restate a procedure another task already owns?
 
 **Yes, one instance — see finding F-2 below** (T-25's intent re-derives T-24's ordering
-rationale, including independent line-number citations into `run-unit-tests.sh`).
+rationale, including independent line-number citations into `run-unit-tests.py`).
 
 ## Findings
 
@@ -95,13 +95,13 @@ findings:
   - id: F-2
     lines: "plan.yaml:1758-1770 (T-24 intent) vs plan.yaml:1821-1831 (T-25 intent)"
     problem: >-
-      Both intents independently derive and restate the same fact — that run-unit-tests.sh's
+      Both intents independently derive and restate the same fact — that run-unit-tests.py's
       KIND-DRIFT check is asymmetric, so T-24 must land before T-25 — each with its own
-      citation into run-unit-tests.sh's line numbers. T-24 cites lines 121-130 and separately
+      citation into run-unit-tests.py's line numbers. T-24 cites lines 121-130 and separately
       94-96; T-25 cites lines 121-125 for what is presented as the same rule. The two
       citations already disagree by five lines, which is the concrete symptom of the drift
       this creates: a task's `intent:` prose is never re-verified by any gate, so a citation
-      here can go stale silently the next time run-unit-tests.sh is edited, and nothing
+      here can go stale silently the next time run-unit-tests.py is edited, and nothing
       catches the two intents diverging further.
     recommendation: >-
       Backlog only. T-25's intent could point at T-24's intent for the asymmetry rationale

@@ -6,7 +6,7 @@ matters most is the trap in BOTH directions — an unhandled exception must exit
 the silent-looking exit 1 for "nothing to do"), while a deliberate sys.exit(1) or
 sys.exit(3) must pass through unchanged. A wrapper that got either direction wrong would
 still look plausible in isolation, so both are asserted here, in-process, with no
-subprocess spawned (run-unit-tests.sh classifies this as UNIT for exactly that reason).
+subprocess spawned (run-unit-tests.py classifies this as UNIT for exactly that reason).
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))

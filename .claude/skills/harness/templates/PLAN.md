@@ -1,12 +1,12 @@
 <!-- TEMPLATE — harness-pm owns this file, EXCEPT `## Approval`, which only the
-     orchestrator writes (SPEC 2.3). /harness-init does NOT create it: a plan is
-     written when there is something to plan. Replace every <angle-bracket>. -->
+     orchestrator writes (SPEC 2.3). /harness-plan creates the plan when there is
+     something to plan. Replace every <angle-bracket>. -->
 
 # PLAN — <milestone or feature set>
 
 ## Lanes
 
-<Resolve every task's lane HERE, against `.harness/team-config.yaml` at a named SHA —
+<Resolve every task's lane HERE, against `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` at a named SHA —
 never at build time. The Grant column cites the granting line, or records that nothing
 grants the surface, which is a legitimate answer and becomes a declared main-session step.>
 

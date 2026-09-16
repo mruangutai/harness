@@ -74,7 +74,7 @@ would be circular — so each names the thing instead of the number:
   nothing the sentence did not already assert.
 - `SPEC.md:45`: "That ruling came from an entry since struck under DEC-188 on unrelated grounds."
 - **No content lost.** INV-10's number retirement, which only DEC-104 recorded in docs, is carried
-  authoritatively in code at `check-state.sh:1785-1789` ("Do NOT reuse \"INV-10\"").
+  authoritatively in code at `check-state.py:1785-1789` ("Do NOT reuse \"INV-10\"").
 
 ### DEC-137 → rule stated directly, no citation. **The plan's successor does not carry the claim.**
 The plan named DEC-162, "whose glossary half carries it". It carries the *glossary*, not the map-tier

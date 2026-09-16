@@ -168,17 +168,17 @@ remedy; not itself a security finding.
 
 ## Not reviewed / explicitly out of scope here
 
-- `check-domain.sh` write-time schema enforcement, `feature_schema.py`,
-  `validate-feature-json.py` — DEC-174 carve-out (`check-domain.sh`) plus the parallel
+- `check-domain.py` write-time schema enforcement, `feature_schema.py`,
+  `validate-feature-json.py` — DEC-174 carve-out (`check-domain.py`) plus the parallel
   code reviewer's assigned surface. Observed only in passing: none of the three
   write-path tools call `feature_schema`/`validate-feature-json` before writing, so an
   eleven-key-schema violation written by `save_recorded`/`write_factory` is only caught
-  at commit time by `check-domain.sh`, not at the moment the tool writes. This matches
-  the feature's own description ("enforced at write time by check-domain.sh and in
+  at commit time by `check-domain.py`, not at the moment the tool writes. This matches
+  the feature's own description ("enforced at write time by check-domain.py and in
   CI") — by design, not a gap I'm flagging.
 - SC-04/SC-05/SC-16 automated-verification gap — already established by the qa gate,
   not re-reported.
-- `check-domain.sh:866-922` fail-closed behaviour, vacuous-check hunt — parallel code
+- `check-domain.py:866-922` fail-closed behaviour, vacuous-check hunt — parallel code
   reviewer's assigned surface.
 
 ## Test evidence (fixture suites only, per constraint 2 — no `gh`, no `--repo`, no live corpus mutation)

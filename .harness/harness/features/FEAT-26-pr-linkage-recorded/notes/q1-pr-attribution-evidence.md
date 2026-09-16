@@ -48,7 +48,7 @@ reading of two title strings, not a derivation** — which is precisely why Q1 n
 
 Narrowing SC-08 to the nineteen derivable features is available and is a real choice, not a
 constraint. It is not free: four `Done` features would keep `pr: null` permanently, and SC-07's new
-`check-state.sh` line names every `Done` feature with a null `pr`, so those four become standing
+`check-state.py` line names every `Done` feature with a null `pr`, so those four become standing
 gate noise unless a further change exempts them — a pm round to write, against a list nobody can
 ever shorten. **This is presented as an option, not as a decision anyone has taken.**
 

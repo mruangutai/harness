@@ -132,7 +132,7 @@ only thing that exercises it, and it is not preserved in the repo.
 
 - Only `.claude/skills/harness/bin/context-watch.py` was touched.
 - `test-context-watch.py`, `.claude/settings.json`, and
-  `run-unit-tests.sh` were not touched.
+  `run-unit-tests.py` were not touched.
 - `_build_row`'s signature, return shape, and behavior are unchanged
   (diffed mentally against the pre-edit read above; no edit was made to
   that function at all).

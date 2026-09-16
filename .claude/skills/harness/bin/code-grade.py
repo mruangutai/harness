@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import code_grade
+import artifact_accessors
 
 
 def _git_root(directory):
@@ -40,8 +41,8 @@ def _relative(root, path):
 
 
 def _load_test_kinds(root):
-    with (root / ".harness" / "harness.json").open(encoding="utf-8") as stream:
-        return json.load(stream)["test_kinds"]
+    return artifact_accessors.load_harness_json(
+        root / ".harness" / "harness.json")["test_kinds"]
 
 
 def _paths_report(root, paths, test_kinds):

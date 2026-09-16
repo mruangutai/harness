@@ -49,8 +49,8 @@ a whole-document truncate-and-rewrite. `save_recorded` is called up to 6+ times 
 run (once per milestone, per parent, per task issue create, per attach), each one a fresh crash
 window.
 
-**Blast radius, verified by reading `check-state.sh`**: a corrupted `feature.json` is *not* silently
-ignored — `check-state.sh:160-170`, `:541-544`, `:837-840` each catch the parse failure and report
+**Blast radius, verified by reading `check-state.py`**: a corrupted `feature.json` is *not* silently
+ignored — `check-state.py:160-170`, `:541-544`, `:837-840` each catch the parse failure and report
 it as a hard violation (INV-6/7/8/12/21/23 all cite "does not parse, so INV-N cannot be checked").
 So the gate fails closed and loudly, which is the right shape — but the underlying data is gone from
 the file itself; recovery is a `git restore` of the last committed good copy, not anything the
@@ -70,8 +70,8 @@ and says nothing about atomicity. The plan carried the property forward for one 
 it for the other in the same breath — that asymmetry, not just the code, is worth fixing at the
 plan level so it isn't dropped again.
 
-**Not a DEC-174 carve-out file** — `gh-sync.py` is not `check-domain.sh`/`bash-write-guard.sh`/
-`validate-digest.py`/`check-state.sh`, so the remedy is an ordinary fix cycle, not the main
+**Not a DEC-174 carve-out file** — `gh-sync.py` is not `check-domain.py`/`bash-write-guard.py`/
+`validate-digest.py`/`check-state.py`, so the remedy is an ordinary fix cycle, not the main
 session's. Minimum fix: mirror `write_factory`'s pattern exactly (`tempfile.mkstemp(dir=dirpath)` →
 write → `fsync` → `os.replace`).
 
@@ -159,15 +159,15 @@ unconfirmed.
   of), and no live corpus file was touched.
 - `git status --porcelain` before and after the probe: identical (two pre-existing untracked notes
   files from the pm/uat roles, unrelated to me).
-- No DEC-174 carve-out file (`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-  `check-state.sh`) was edited — I read `check-state.sh` and `check-domain.sh` only, to confirm
+- No DEC-174 carve-out file (`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
+  `check-state.py`) was edited — I read `check-state.py` and `check-domain.py` only, to confirm
   blast radius and gate coverage.
 - No `git worktree` was needed — the probe never touched a tracked file.
 
 ## Note on target path
 
 The dispatch named `.harness/features/FEAT-14-feature-json-schema/notes/review-security-panel.md`
-as this artifact's path. `bash-write-guard`/`check-domain.sh` deny that path for this role and name
+as this artifact's path. `bash-write-guard`/`check-domain.py` deny that path for this role and name
 the permitted pattern `notes/review-harness-security-reviewer-*.md`; this file is written there
 instead, per the handoff skill's own rule that a dispatch-named receipt path does not override the
 domain guard.

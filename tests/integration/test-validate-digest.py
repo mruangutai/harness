@@ -239,6 +239,304 @@ def run_reviewer_severity_enum_cases():
     print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
+def _skill_documented_block(lines):
+    digest_at = None
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith("DIGEST:"):
+            digest_at = index
+            break
+    if digest_at is None:
+        return None
+    open_at = None
+    for index in range(digest_at - 1, -1, -1):
+        if lines[index].strip().startswith("```"):
+            open_at = index
+            break
+    close_at = None
+    for index in range(digest_at + 1, len(lines)):
+        if lines[index].strip().startswith("```"):
+            close_at = index
+            break
+    if open_at is None or close_at is None:
+        return None
+    return "\n".join(lines[open_at + 1:close_at])
+
+
+def _agent_documented_block(lines):
+    output_at = None
+    for index, line in enumerate(lines):
+        if line.strip() == "## Output":
+            output_at = index
+            break
+    if output_at is None:
+        return None
+    end_at = len(lines)
+    for index in range(output_at + 1, len(lines)):
+        if re.match(r"^#{1,2}\s", lines[index]):
+            end_at = index
+            break
+    return "\n".join(lines[output_at:end_at])
+
+
+def documented_block(source_text, source_path):
+    """Return the documented DIGEST block for an agent or shared skill."""
+    lines = source_text.splitlines()
+    if source_path.endswith("SKILL.md"):
+        return _skill_documented_block(lines)
+    return _agent_documented_block(lines)
+
+
+def documented_contract_gaps(required_fields, documented_text):
+    """Required field names that do not begin a line in the documented block."""
+    return sorted(
+        field for field in required_fields
+        if not re.search(rf"^\s*{re.escape(field)}\s*:", documented_text, re.MULTILINE)
+    )
+
+
+CONTRACT_SOURCES = {
+    "harness-pm": [".omp/agents/harness-pm.md"],
+    "harness-qa": [".omp/agents/harness-qa.md"],
+    "harness-documentor": [".omp/agents/harness-documentor.md"],
+    "harness-dev-ops": [".omp/agents/harness-dev-ops.md"],
+    "harness-visual-designer": [".omp/agents/harness-visual-designer.md"],
+    "harness-code-reviewer": [".omp/agents/harness-code-reviewer.md"],
+    "harness-security-reviewer": [".omp/agents/harness-security-reviewer.md"],
+    "harness-ui-reviewer": [".omp/agents/harness-ui-reviewer.md"],
+    "harness-orchestrator": [".omp/agents/harness-orchestrator.md"],
+    "harness-frontend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-backend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-ai-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-data-engineer": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-product-lead": [".claude/skills/harness-team/SKILL.md"],
+    "harness-eng-lead": [".claude/skills/harness-team/SKILL.md"],
+    "harness-validator-lead": [".claude/skills/harness-team/SKILL.md"],
+}
+
+
+def documented_contract_results(roster, sources, required_by_persona, read_source):
+    """Grade each registry persona against only its mapped documented block."""
+    results = []
+    for persona in sorted(roster):
+        persona_sources = sources.get(persona)
+        if not persona_sources:
+            results.append((
+                False,
+                f"{persona}: present in validator registry but has no documented-contract source mapped",
+            ))
+            continue
+        for source_path in persona_sources:
+            source_text = read_source(source_path)
+            if source_text is None:
+                results.append((False, f"{persona}: documented-contract source absent: {source_path}"))
+                continue
+            block = documented_block(source_text, source_path)
+            if block is None:
+                results.append((
+                    False,
+                    f"{persona}: documented block could not be located: {source_path}",
+                ))
+                continue
+            gaps = documented_contract_gaps(required_by_persona[persona], block)
+            results.append((
+                not gaps,
+                f"{persona}: {source_path}"
+                + (f" missing fields: {', '.join(gaps)}" if gaps else ""),
+            ))
+    return results
+
+
+PRE_FIX_REVIEWER_BLOCK = """
+## Output
+
+````
+```yaml
+VERDICT: PASS | FAIL
+DIGEST:
+  headline: <one line>
+  severity_max: none|low|med|high|critical|n/a
+  findings: <n>
+  must_fix: [<item>]
+  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
+  reviewed: "base..<review_sha>"
+  human_commits_in_scope: [<sha>]
+  open_questions:
+  files_touched: [<paths>]
+  expertise_update: [<ops>]
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
+```
+````
+"""
+
+
+def _contract_source(path):
+    try:
+        with open(os.path.join(REPO_ROOT, path)) as source:
+            return source.read()
+    except FileNotFoundError:
+        return None
+
+
+def _report_contract_result(ok, line):
+    print(f"{'ok  ' if ok else 'FAIL'}  [documented contract] {line}")
+    return 0 if ok else 1
+
+
+def _required_contracts(validator, roster):
+    required = {
+        persona: set(validator.SCHEMAS[validator.norm(persona)])
+        for persona in roster
+    }
+    required["harness-code-reviewer"].update(("code_grade", "reviewed"))
+    return required
+
+
+def _derive_plan_mode_code_grade(validator):
+    """SC-03: the plan-mode `code_grade` value is not typed here — it is derived by
+    probing the validator's OWN plan-mode rule, `_pending_plan_review_error`
+    (validate-digest.py:1026-1032), across every member of `validator.CODE_GRADE_VALUES`
+    (validate-digest.py:616) and keeping whichever single member that rule does not
+    reject for its grade. Renaming the accepted grade in `CODE_GRADE_VALUES` changes
+    what this probe keeps, so the derived value tracks the validator instead of a
+    retyped literal.
+
+    Returns (grade, None) when exactly one member qualifies. Returns (None, reason)
+    when zero or more than one member qualifies, or when the probe itself raises —
+    never a silent default, never `None` masquerading as success.
+    """
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            config = os.path.join(td, "harness.json")
+            write_review_config(config, "advisory_unless_high")
+            feature_dir, plan_path, artifact, _digest = _plan_review_fixture(
+                os.path.join(td, "plan-mode-probe"))
+            qualifying = []
+            for grade in sorted(validator.CODE_GRADE_VALUES):
+                digest = reviewer_digest(
+                    grade, reviewed=f"plan:{plan_path}", artifact=artifact)
+                errors = _plan_review_errors(validator, config, feature_dir, digest)
+                if not any("code_grade must be" in error for error in errors):
+                    qualifying.append(grade)
+    except Exception as exc:
+        return None, f"probe raised {exc!r}"
+    if len(qualifying) != 1:
+        return None, (
+            f"expected exactly one qualifying member of CODE_GRADE_VALUES, "
+            f"found {qualifying!r}"
+        )
+    return qualifying[0], None
+
+
+def _reviewer_plan_mode_results(validator):
+    reviewer_sources = (
+        ".claude/agents/harness-code-reviewer.md",
+        ".omp/agents/harness-code-reviewer.md",
+        ".claude/skills/harness-code-review/SKILL.md",
+    )
+    reviewed_token = "reviewed: " + validator._PLAN_REVIEW_PREFIX
+    derived_grade, derive_error = _derive_plan_mode_code_grade(validator)
+    results = []
+    if derive_error:
+        results.append((
+            False,
+            f"plan-mode code_grade derivation from CODE_GRADE_VALUES failed: {derive_error}",
+        ))
+        return results
+    code_grade_line = re.compile(
+        rf"^\s*code_grade\s*:.*\b{re.escape(derived_grade)}\b", re.MULTILINE)
+    for source_path in reviewer_sources:
+        source_text = _contract_source(source_path) or ""
+        results.append((
+            reviewed_token in source_text,
+            f"{source_path} plan-mode token {reviewed_token!r}",
+        ))
+        results.append((
+            code_grade_line.search(source_text) is not None,
+            f"{source_path} plan-mode token 'code_grade: ... {derived_grade}'",
+        ))
+        if source_path.endswith("harness-code-reviewer.md"):
+            fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
+            results.append((
+                fragment in source_text,
+                f"{source_path} plan-mode token {fragment!r}",
+            ))
+    return results
+
+
+def _discrimination_ok():
+    pre_fix_gaps = documented_contract_gaps(("code_grade",), PRE_FIX_REVIEWER_BLOCK)
+    with_code_grade = PRE_FIX_REVIEWER_BLOCK.replace(
+        '  reviewed: "base..<review_sha>"',
+        '  code_grade: pass|fail|grade_2|n_a\n  reviewed: "base..<review_sha>"',
+    )
+    return (
+        pre_fix_gaps == ["code_grade"]
+        and documented_contract_gaps(("code_grade",), with_code_grade) == []
+    )
+
+
+def _synthetic_contract_results():
+    roster = ("unmapped", "empty", "absent", "unlocatable", "outside", "control")
+    sources = {
+        "empty": [],
+        "absent": ["absent.md"],
+        "unlocatable": ["unlocatable.md"],
+        "outside": ["outside.md"],
+        "control": ["control.md"],
+    }
+    required = {persona: {"needed"} for persona in roster}
+    source_text = {
+        "unlocatable.md": "needed: yes\n# No output section\n",
+        "outside.md": "needed: outside\n## Output\nother: value\n",
+        "control.md": "## Output\nneeded: yes\n",
+    }
+    return documented_contract_results(roster, sources, required, source_text.get)
+
+
+def _contains_line(lines, *terms):
+    return any(all(term in line for term in terms) for line in lines)
+
+
+def _completeness_ok(results):
+    failures = [line for ok, line in results if not ok]
+    controls = [line for ok, line in results if ok]
+    checks = (
+        _contains_line(failures, "unmapped", "no documented-contract source"),
+        _contains_line(failures, "empty", "no documented-contract source"),
+        _contains_line(failures, "absent.md", "absent"),
+        _contains_line(failures, "unlocatable.md", "could not be located"),
+        _contains_line(failures, "outside", "needed"),
+        controls == ["control: control.md"],
+    )
+    return all(checks)
+
+
+def _report_group_result(label, ok):
+    print(f"{'ok  ' if ok else 'FAIL'}  {label}")
+    return 0 if ok else 1
+
+
+def run_documented_contract_cases():
+    """Keep persona output instructions aligned with the validator's schema."""
+    spec = importlib.util.spec_from_file_location("_validator_contract_guard", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    roster = sorted(validator.ALIAS)
+    results = documented_contract_results(
+        roster, CONTRACT_SOURCES, _required_contracts(validator, roster), _contract_source)
+    results.extend(_reviewer_plan_mode_results(validator))
+    fails = sum(_report_contract_result(ok, line) for ok, line in results)
+    fails += _report_group_result(
+        "[documented contract discrimination] omitted field reported, present field accepted",
+        _discrimination_ok(),
+    )
+    fails += _report_group_result(
+        "[documented contract completeness] unmapped persona, absent source, "
+        "unlocatable block and out-of-block field each reported by name",
+        _completeness_ok(_synthetic_contract_results()),
+    )
+    return fails
+
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
 # (name, agent_type, last_assistant_message text or None, payload_overrides dict,
@@ -247,10 +545,16 @@ HOOK_CASES = []
 
 
 def case(name, persona, text, ok, mentions=None):
+    if persona in ("harness-product-lead", "harness-eng-lead",
+                   "harness-validator-lead", "lead") and "  adequacy_notes:" not in text:
+        text = text.replace("\nartifact:", "\n  adequacy_notes: []\nartifact:")
     CASES.append((name, persona, text.strip() + "\n", ok, mentions))
 
 
 def hook_case(name, agent_type, text, expect_exit, mentions=None, **overrides):
+    if agent_type in ("harness-product-lead", "harness-eng-lead",
+                      "harness-validator-lead", "lead") and "  adequacy_notes:" not in text:
+        text = text.replace("\nartifact:", "\n  adequacy_notes: []\nartifact:")
     payload = {"agent_type": agent_type, "last_assistant_message": text}
     payload.update(overrides)
     HOOK_CASES.append((name, payload, expect_exit, mentions))
@@ -273,9 +577,78 @@ DIGEST:
   escalations:
   expertise_update: []
   sc_status: []
+  adequacy_notes: []
 artifact: .harness/features/FEAT-01/runs/r1/digest.md
 """
 case("lead, block-style members + bare empty key", "harness-eng-lead", LEAD_BLOCK, True)
+
+
+# BUG-1716 T-02 (SC-01/SC-06, D-02): `amendments` — the eng-lead's optional list of in-build
+# corrections to a signed task's HOW. Each entry is exactly {task, field, was, now, reason};
+# task is T-NN, field is intent|files|verify, reason ≤240 one-liner, and was/now are strings
+# for intent/verify, lists of legal anchored plan file entries for files. Declared for
+# harness-eng-lead only: a product or validator lead amends nothing.
+def _amended(entries, persona="harness-eng-lead"):
+    return LEAD_BLOCK.replace("  adequacy_notes: []\n", f"  amendments: {entries}\n  adequacy_notes: []\n") \
+        if isinstance(entries, str) and entries.startswith("[") \
+        else LEAD_BLOCK.replace("  adequacy_notes: []\n", f"  amendments:\n{entries}  adequacy_notes: []\n")
+
+
+# The three BUG-285 T-03 recommendations, as the amendments they would have been (SC-06).
+BUG285_AMENDMENTS = """\
+    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "Keep the keyword-only text source; no second accessor and no exemption", reason: "the exemption would let a caller bypass the accessor the task exists to make canonical" }
+    - { task: T-03, field: verify, was: "parse_gh_json accepts objects only", now: "parse_gh_json accepts any JSON value", reason: "gh api returns arrays for list endpoints; an object-only reader refuses real output" }
+    - { task: T-03, field: files, was: [.claude/skills/harness/bin/check-domain.py#manifest_domains], now: [{ path: .claude/skills/harness/bin/check-domain.py, quote: "def manifest_domains(agent=None)" }], reason: "the symbol anchor moved to a content anchor once the signature gained agent=None" }
+"""
+case("amendments: the three BUG-285 recommendations are accepted eng-lead amendments",
+     "harness-eng-lead", _amended(BUG285_AMENDMENTS), True)
+case("amendments: absent is legal", "harness-eng-lead", LEAD_BLOCK, True)
+case("amendments: empty list is legal", "harness-eng-lead", _amended("[]"), True)
+case("amendments: inline mappings for all three fields",
+     "harness-eng-lead", _amended(
+         '[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }, '
+         '{ task: T-01, field: verify, was: "python3 x.py", now: "python3 y.py", reason: "r" }, '
+         '{ task: T-02, field: files, was: [a.py], now: [a.py#f, { path: b.py, quote: "q" }], reason: "r" }]'),
+     True)
+case("amendments: block mapping entry", "harness-eng-lead", _amended(
+    "    - task: T-04\n      field: intent\n      was: old text\n      now: new text\n      reason: shorter\n"), True)
+case("amendments: unknown key is refused naming index and key", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r", by: me }]'), False, "by")
+case("amendments: missing key is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", reason: "r" }]'), False, "now")
+# A scalar, not a block mapping: parse_digest reads a nested block mapping under a list-typed
+# key as `[]` (the same limit the members roll-up lives with), so the type gate is pinned on
+# the shape the parser CAN distinguish.
+case("amendments: not a list is refused", "harness-eng-lead",
+     LEAD_BLOCK.replace("  adequacy_notes: []\n", "  amendments: none\n  adequacy_notes: []\n"),
+     False, "amendments")
+case("amendments: entry that is not a mapping is refused", "harness-eng-lead",
+     _amended("[T-01.intent]"), False, "amendments[0]")
+case("amendments: SC id as task is refused", "harness-eng-lead",
+     _amended('[{ task: SC-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "task")
+case("amendments: decision id as task is refused", "harness-eng-lead",
+     _amended('[{ task: D-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "task")
+case("amendments: field outside intent/files/verify is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: title, was: "a", now: "b", reason: "r" }]'), False, "field")
+case("amendments: empty reason is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "" }]'), False, "reason")
+case("amendments: reason over 240 is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "' + "x" * 241 + '" }]'), False, "reason")
+case("amendments: intent with a list value is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: [a], now: "b", reason: "r" }]'), False, "was")
+case("amendments: files with a string value is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: files, was: [a.py], now: "b.py", reason: "r" }]'), False, "now")
+case("amendments: files with a line-number anchor is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: files, was: [a.py], now: [a.py:12], reason: "r" }]'), False, "now")
+case("amendments: files with a bad mapping entry is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: files, was: [a.py], now: [{ path: a.py, line: 3 }], reason: "r" }]'), False, "now")
+case("amendments: second entry's fault is reported at its index", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }, '
+              '{ task: T-02, field: intent, was: "a", now: "b" }]'), False, "amendments[1]")
+case("amendments: a product lead may not carry the field", "harness-product-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "amendments")
+case("amendments: a validator lead may not carry the field", "harness-validator-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "amendments")
 
 # Every list inline. Both styles are legal YAML and agents write both.
 #
@@ -361,7 +734,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two blocking findings
   severity_max: high
-  findings: 2
+  findings: [{ kind: substance, severity: high, reader: code-reviewer, summary: "fail-open branch in auth" }, { kind: substance, severity: high, reader: code-reviewer, summary: "unhandled rejection" }]
   must-fix: ["fail-open branch in auth"]
   files_touched: []
   open_questions: []
@@ -374,7 +747,7 @@ VERDICT: FAIL
 DIGEST:
   headline: one finding
   severity_max: medium
-  findings: 1
+  findings: [{ kind: substance, severity: med, reader: code-reviewer, summary: "off-by-one" }]
   must_fix: []
   files_touched: []
   open_questions: []
@@ -551,14 +924,14 @@ DIGEST:
 artifact: r/digest.md
 """, False, "no verdict")
 
-# A team step that never ran has no verdict to roll up. The plan-panel contract
+# A team step that never ran has no verdict to roll up. The plan team's contract
 # records the absence explicitly instead of manufacturing ESCALATE (which would
 # contaminate worst-wins) or PASS (which would claim work happened).
-case("a skipped member is explicit and excluded from worst-wins", "harness-validator-lead", """
+case("a skipped member is explicit and excluded from worst-wins", "harness-product-lead", """
 VERDICT: PASS
 DIGEST:
   headline: scope review passed; optional advisor was unavailable
-  team: plan-panel
+  team: plan
   steps_run: 1
   cycles_used: 0
   members:
@@ -574,11 +947,11 @@ DIGEST:
 artifact: r/digest.md
 """, True)
 
-case("all skipped members cannot support a lead verdict", "harness-validator-lead", """
+case("all skipped members cannot support a lead verdict", "harness-product-lead", """
 VERDICT: PASS
 DIGEST:
   headline: nobody ran
-  team: plan-panel
+  team: plan
   steps_run: 2
   cycles_used: 0
   members:
@@ -597,7 +970,7 @@ case("mandatory member cannot be laundered as skipped", "harness-validator-lead"
 VERDICT: PASS
 DIGEST:
   headline: qa was omitted
-  team: review
+  team: validate
   steps_run: 2
   cycles_used: 0
   members:
@@ -729,7 +1102,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two findings
   severity_max: [low, med]
-  findings: 2
+  findings: [{ kind: form, severity: low, reader: code-reviewer, summary: "a" }, { kind: substance, severity: med, reader: code-reviewer, summary: "b" }]
   must_fix: []
   files_touched: []
   open_questions: []
@@ -801,8 +1174,8 @@ _dec156_case("DEC-156: narrative digest.md with no contract block is exit 2",
              2, mentions="digest FILE")
 _dec156_case("DEC-156: digest.md carrying the same valid block is exit 0",
              LEAD_BLOCK, 0)
-_dec156_case("DEC-156: missing file fails OPEN with the INV-15 pointer, not a block",
-             None, 0, mentions="INV-15")
+_dec156_case("DEC-156: missing digest in a resolved run directory is refused",
+             None, 2, mentions="missing")
 _dec156_case("DEC-156: file check governs leads only — a dev's artifact is not read",
              "# notes, not a digest\n", 0, agent="harness-backend-dev", fname="notes.md")
 # The dev case needs a valid dev message, not a lead one — rebuild its payload.
@@ -810,7 +1183,7 @@ _n, _p, _e, _m = HOOK_CASES.pop()
 _p["last_assistant_message"] = (
     "VERDICT: PASS\nDIGEST:\n  headline: built\n  tests_added: 2\n  suite: pass\n"
     "  task: T-01\n  task_verify: pass\n"
-    "  blocked_on: none\n  branch: none\n  files_touched: []\n  open_questions: []\n"
+    "  blocked_on: none\n  files_touched: []\n  open_questions: []\n"
     "  expertise_update: []\nartifact: runs/r1/notes.md\n")
 HOOK_CASES.append((_n, _p, _e, _m))
 
@@ -868,7 +1241,7 @@ _dec156_worktree_case(
     LEAD_BLOCK, 0)
 _dec156_worktree_case(
     "dec156-worktree-nofeature: absent feature preserves fail-open fallback",
-    "# narrative digest, no contract block\n", 0, mentions="INV-15", feature=False)
+    "# narrative digest, no contract block\n", 0, mentions="not found", feature=False)
 
 
 # F6: absent agent_type key must be LOUD on stderr — distinguishable from a
@@ -1074,6 +1447,69 @@ DIGEST:
 artifact: .harness/features/FEAT-01/feature.json
 """, True)
 
+# FEAT-1714 T-01 (SC-01): `status: rejected` is a terminal return an orchestrator makes at
+# first-run intake — "this ticket is wrong, here is the right one" — and it carries exactly
+# one `judgement:` mapping {kind: reject, superseded_by: <positive int | none>, reason: <one
+# line, ≤240>} with `cycles_used: 0`. BUG-285 spent seven cycles amending a ticket its own
+# comments said was superseded, because no such return existed (#1684, #1714).
+def _reject_digest(judgement_yaml, cycles=0, status="rejected"):
+    return f"""
+VERDICT: PASS
+DIGEST:
+  headline: superseded by the canonical-reader ticket
+  feature: BUG-285-yaml-loader-pin
+  status: {status}
+  runs: [plan-product]
+  cycles_used: {cycles}
+  briefing: none
+{judgement_yaml}  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/features/BUG-285-yaml-loader-pin/feature.json
+"""
+
+
+case("rejected: reject judgement with a superseding issue is accepted", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"#285 superseded by #1594 on 2026-09-10\" }\n"),
+     True)
+case("rejected: superseded_by none (should not be planned) is accepted", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: none, reason: \"already fixed on main\" }\n"),
+     True)
+case("rejected: no judgement mapping is refused naming it", "harness-orchestrator",
+     _reject_digest(""), False, "judgement")
+case("rejected: kind other than reject is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: succession, superseded_by: 1594, reason: \"x\" }\n"),
+     False, "kind")
+case("rejected: superseded_by zero is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 0, reason: \"x\" }\n"),
+     False, "superseded_by")
+case("rejected: superseded_by negative is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: -3, reason: \"x\" }\n"),
+     False, "superseded_by")
+case("rejected: superseded_by boolean is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: true, reason: \"x\" }\n"),
+     False, "superseded_by")
+case("rejected: empty reason is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"\" }\n"),
+     False, "reason")
+case("rejected: reason over 240 characters is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"" + "x" * 241 + "\" }\n"),
+     False, "reason")
+case("rejected: multiline reason is refused", "harness-orchestrator",
+     _reject_digest("  judgement:\n    kind: reject\n    superseded_by: 1594\n    reason: |\n      one\n      two\n"),
+     False, "reason")
+case("rejected: a missing key is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, reason: \"x\" }\n"), False, "superseded_by")
+case("rejected: an extra key is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\", by: me }\n"),
+     False, "by")
+case("rejected: cycles_used must be integer zero", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\" }\n", cycles=1),
+     False, "cycles_used")
+case("a judgement mapping on any other status is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\" }\n", status="shipped"),
+     False, "judgement")
+
 
 
 # =====================================================================
@@ -1095,6 +1531,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   files_touched: []
   open_questions: []
   expertise_update: []
@@ -1145,6 +1582,7 @@ DIGEST:
   failures: 2
   coverage_gaps: ["refresh path"]
   matrix_ok: true
+  fail_first: []
   files_touched: []
   open_questions: []
   expertise_update: []
@@ -1634,6 +2072,93 @@ def run_hook_cases():
     return fails
 
 
+def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
+    msg = LEAD_BLOCK.replace(
+        "artifact: .harness/features/FEAT-01/runs/r1/digest.md",
+        f"artifact: {artifact}")
+    payload = {"agent_type": "harness-eng-lead", "last_assistant_message": msg}
+    if feature:
+        payload["harness_feature"] = "FEAT-X-thing"
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    if not feature:
+        env.pop("HARNESS_PROJECT_DIR", None)
+        env.pop("CLAUDE_PROJECT_DIR", None)
+    return subprocess.run(
+        [binary, "--hook"], input=json.dumps(payload), capture_output=True,
+        text=True, env=env)
+
+
+def _bug1305_artifact_expect(name, result, exit_code, mentions=()):
+    missing = [item for item in mentions if item.lower() not in result.stderr.lower()]
+    if result.returncode == exit_code and not missing:
+        print(f"ok    [bug1305-artifact] {name}")
+        return 0
+    print(f"FAIL  [bug1305-artifact] {name}")
+    print(f"      | expected exit {exit_code}, got {result.returncode}")
+    for item in missing:
+        print(f"      | stderr should mention {item!r}")
+    for line in result.stderr.strip().splitlines():
+        print(f"      | {line}")
+    return 1
+
+
+def _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire):
+    failures = 0
+    with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
+        digest.write("# narrative digest, no contract block\n")
+    failures += _bug1305_artifact_expect(
+        "located non-compliant digest is refused", fire(rel), 2, (run_dir, "digest"))
+    with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
+        digest.write(LEAD_BLOCK)
+    failures += _bug1305_artifact_expect("located compliant digest passes", fire(rel), 0)
+    os.unlink(os.path.join(worktree, rel))
+    failures += _bug1305_artifact_expect(
+        "existing run directory without digest is refused",
+        fire(rel), 2, (run_dir, "digest.md", "missing"))
+    return failures
+
+
+def _bug1305_other_artifact_cases(root, iso_root, fire):
+    copied_validate = os.path.join(isolated_bin(iso_root), "validate-digest.py")
+    failures = _bug1305_artifact_expect(
+        "unresolvable artifact lookup still fails open",
+        fire("runs/absent/digest.md", feature=False, binary=copied_validate),
+        0, ("not found from the hook's vantage",))
+    absolute = os.path.join(root, "absolute", "digest.md")
+    os.makedirs(os.path.dirname(absolute), exist_ok=True)
+    with open(absolute, "w", encoding="utf-8") as digest:
+        digest.write("# narrative digest, no contract block\n")
+    failures += _bug1305_artifact_expect(
+        "absolute artifact path is used verbatim", fire(absolute), 2,
+        (os.path.dirname(absolute), "digest"))
+    failures += _bug1305_artifact_expect(
+        "non-digest artifact remains outside this check", fire("runs/r1/notes.md"), 0)
+    return failures
+
+
+def run_bug1305_artifact_resolution_cases():
+    """BUG-1305 SC-04: distinguish lookup failure from a missing durable digest."""
+    failures = 0
+    root = tempfile.mkdtemp(prefix="vd-bug1305-")
+    iso_root = tempfile.mkdtemp(prefix="vd-bug1305-noroot-")
+    try:
+        os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
+            marker.write("agents: {}\n")
+        worktree = _linked_worktree_fixture(root, "FEAT-X")
+        rel = os.path.join("runs", "r1", "digest.md")
+        run_dir = os.path.dirname(os.path.join(worktree, rel))
+        os.makedirs(run_dir, exist_ok=True)
+        fire = lambda artifact, feature=True, binary=VALIDATE: _bug1305_artifact_fire(
+            artifact, root, feature, binary)
+        failures += _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire)
+        failures += _bug1305_other_artifact_cases(root, iso_root, fire)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(iso_root, ignore_errors=True)
+    return failures
+
+
 QA_UNCONDITIONAL_PASS = """
 VERDICT: PASS
 DIGEST:
@@ -1642,6 +2167,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -1650,11 +2176,16 @@ artifact: a.md
 
 
 def _bug919_stub_script(root, exit_code):
-    """A fast run-unit-tests.sh stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
-    minutes; this proves the wiring (which script ran, what its exit code did) instead."""
-    path = os.path.join(root, "stub-run-unit-tests-%d.sh" % exit_code)
+    """A fast run-unit-tests.py stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
+    minutes; this proves the wiring (which script ran, with which argv, what its exit
+    code did) instead. It is a PYTHON file, as the real runner has been since #1674
+    (BUG-1756): a spawn that hands it to bash cannot run it, so the agree case goes red
+    on the defect. Every invocation appends its argv to `<stub>.argv`, one line each."""
+    path = os.path.join(root, "stub-run-unit-tests-%d.py" % exit_code)
     with open(path, "w") as f:
-        f.write("#!/usr/bin/env bash\necho STUB_RAN\nexit %d\n" % exit_code)
+        f.write("#!/usr/bin/env python3\nimport sys\n"
+                "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
+                "print('STUB_RAN')\nsys.exit(%d)\n" % exit_code)
     os.chmod(path, 0o755)
     return path
 
@@ -1731,6 +2262,113 @@ def _bug919_red_case(red):
             ok, detail)
 
 
+QA_PASS_WITH_KINDS = QA_UNCONDITIONAL_PASS.replace(
+    "  matrix_ok: true\n",
+    "  matrix_ok: true\n"
+    "  kinds:\n"
+    "    - { kind: unit, state: satisfied, cmd: \"python3 x --kind unit\", named_tests: 40 }\n"
+    "    - { kind: integration, state: satisfied, cmd: \"python3 x --kind integration\", named_tests: 72 }\n")
+
+
+def _bug1756_argv(stub):
+    """The argv lines the Python stub recorded, one per invocation."""
+    try:
+        with open(stub + ".argv") as f:
+            return [l.rstrip("\n") for l in f if l.strip() or l == "\n"]
+    except FileNotFoundError:
+        return []
+
+
+def _bug1756_kinds_forwarded_case(green):
+    """SC-01: each claimed kind is one `--kind <k>` run of the Python runner, in order."""
+    r = _bug919_fire(green, text=QA_PASS_WITH_KINDS)
+    argv = _bug1756_argv(green)
+    ok = r.returncode == 0 and argv == ["--kind unit", "--kind integration"]
+    return ("BUG-1756 SC-01: a claim naming unit+integration runs the Python runner once per kind",
+            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+
+
+def _bug1756_first_failure_stops_case(tmp):
+    """SC-02: a runner that fails on the FIRST kind stops the rerun there — the second kind
+    never runs — and the refusal carries the runner's real tail."""
+    stub = os.path.join(tmp, "stub-fails-on-unit.py")
+    with open(stub, "w") as f:
+        f.write("#!/usr/bin/env python3\nimport sys\n"
+                "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
+                "print('UNIT_TAIL_LINE' if 'unit' in sys.argv else 'INTEGRATION_RAN')\n"
+                "sys.exit(1 if 'unit' in sys.argv else 0)\n")
+    os.chmod(stub, 0o755)
+    r = _bug919_fire(stub, text=QA_PASS_WITH_KINDS)
+    argv = _bug1756_argv(stub)
+    ok = (r.returncode == 2 and argv == ["--kind unit"] and "UNIT_TAIL_LINE" in r.stderr
+          and "INTEGRATION_RAN" not in r.stderr)
+    return ("BUG-1756 SC-02: the first failing kind stops the rerun and its real tail is reported",
+            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+
+
+def _bug1756_default_set_case(green):
+    """SC-03: a claim naming no kinds runs the runner once, bare, so its default set governs."""
+    r = _bug919_fire(green)
+    argv = _bug1756_argv(green)
+    ok = r.returncode == 0 and argv and argv[-1] == ""
+    return ("BUG-1756 SC-03: a claim naming no kinds runs the Python runner once with no --kind",
+            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+
+
+def _bug1756_in_process_reverify(green, raising):
+    """SC-04 at the exact seam: load the validator, make `subprocess.run` raise `raising`
+    when it is handed the runner, and call `check_qa_matrix_claim` directly. The directory
+    fixture the c0 review struck never reached `subprocess.run` (os.path.isfile refused it
+    first); this does. Returns (exit_code, stderr_text)."""
+    import importlib.util
+    import io
+    import contextlib
+    spec = importlib.util.spec_from_file_location("_bug1756_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    real_run = validator.subprocess.run
+
+    def run_or_raise(argv, **kw):
+        if len(argv) > 1 and argv[1] == green:
+            raise raising
+        return real_run(argv, **kw)
+
+    validator.subprocess.run = run_or_raise
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        try:
+            code = validator.check_qa_matrix_claim(
+                "harness-qa", QA_PASS_WITH_KINDS, {"harness_feature": None})
+        except Exception as exc:  # the fail-open contract broken: a crash, not a verdict
+            return None, f"{err.getvalue()}RAISED {type(exc).__name__}: {exc}"
+    return code, err.getvalue()
+
+
+def _bug1756_spawn_error_case(green):
+    """SC-04: an OSError raised BY the spawn (not by a missing file) fails OPEN with the
+    'could not independently re-run' line and exit 0, never a block or a traceback."""
+    os.environ["RUN_UNIT_TESTS_BIN"] = green
+    try:
+        code, err = _bug1756_in_process_reverify(green, OSError(8, "Exec format error"))
+    finally:
+        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    ok = code == 0 and "could not independently re-run" in err.lower()
+    return ("BUG-1756 SC-04: a spawn OSError fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
+
+
+def _bug1756_timeout_case(green):
+    """SC-04: a runner that exceeds the re-run timeout (subprocess.TimeoutExpired) fails
+    OPEN the same way — the gate never hangs the return and never blocks on its own gap."""
+    os.environ["RUN_UNIT_TESTS_BIN"] = green
+    try:
+        code, err = _bug1756_in_process_reverify(
+            green, subprocess.TimeoutExpired([sys.executable, green], 1800))
+    finally:
+        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    ok = code == 0 and "could not independently re-run" in err.lower()
+    return ("BUG-1756 SC-04: a re-run timeout fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
+
+
 def _report_bug919_results(cases):
     fails = 0
     for name, ok, detail in cases:
@@ -1748,6 +2386,7 @@ def run_bug919_qa_matrix_cases():
     true) is independently re-verified against a real run of the suite, rather than
     trusted on the strength of the self-report alone."""
     tmp = tempfile.mkdtemp(prefix="vd-bug919-")
+    os.makedirs(os.path.join(tmp, "k"))
     green = _bug919_stub_script(tmp, 0)
     red = _bug919_stub_script(tmp, 1)
     cases = [
@@ -1756,13 +2395,18 @@ def run_bug919_qa_matrix_cases():
         _bug919_non_pass_case(green),
         _bug919_missing_script_case(tmp),
         _bug919_red_case(red),
+        _bug1756_default_set_case(green),
+        _bug1756_kinds_forwarded_case(_bug919_stub_script(os.path.join(tmp, "k"), 0)),
+        _bug1756_first_failure_stops_case(tmp),
+        _bug1756_spawn_error_case(green),
+        _bug1756_timeout_case(green),
     ]
     return _report_bug919_results(cases)
 
 
 def run_bug919_resolve_fallback_case():
     """Code review of #1185, Finding 1 (high): a named feature whose worktree lookup
-    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.sh
+    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.py
     is a static, always-present path, so a wrong-root substitution here never 404s; it
     just silently re-runs the suite against the wrong checkout and reports that
     mismatched result as though it verified the claim."""
@@ -1900,6 +2544,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: n/a
+  fail_first: []
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -1919,7 +2564,7 @@ VERDICT: PASS
 DIGEST:
   headline: diff touches no user-facing surface; nothing to review
   severity_max: n/a
-  findings: 0
+  findings: []
   must_fix: []
   open_questions: []
   files_touched: []
@@ -1970,7 +2615,7 @@ VERDICT: PASS
 DIGEST:
   headline: reviewed
   severity_max: medium
-  findings: 1
+  findings: [{ kind: substance, severity: med, reader: ui-reviewer, summary: "focus ring lost" }]
   must_fix: []
   open_questions: []
   files_touched: []
@@ -2114,6 +2759,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2171,6 +2817,7 @@ DIGEST:
   failures: 1
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2185,6 +2832,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: false
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2231,7 +2879,7 @@ VERDICT: PASS
 DIGEST:
   headline: x
   severity_max: low
-  findings: 0
+  findings: []
   must_fix: []
   open_questions: []
   files_touched: []
@@ -2248,7 +2896,7 @@ VERDICT: PASS
 DIGEST:
   headline: x
   severity_max: low
-  findings: 0
+  findings: []
   must_fix: []
   reviewed: "HEAD..HEAD"
   open_questions: []
@@ -2273,6 +2921,198 @@ case("task_verify's missing-field hint names its real values, not the none wordi
 case("task's missing-field hint names a task id, not the list wording",
      "harness-backend-dev", _dev(task=None), False,
      ["task", "T-NN", "none", "!if there are none"])
+
+# =====================================================================
+# FEAT-59 SC-06 / C2 — every finding carries a KIND. `findings` was an INT count
+# (`findings: 2`), which told the routing layer how many and nothing about what
+# they were; BUG-285 measured 5 of 8 re-cycle triggers were about DOCUMENT FORM,
+# not code, and each one cost a cold three-layer dispatch. The kind is what lets
+# a `form` finding be fixed in-run without a re-read and a `substance` finding
+# re-gate only the tasks it names. A finding without one is undecidable and is
+# rejected at source.
+# =====================================================================
+
+def _ui_review(findings):
+    return f"""
+VERDICT: FAIL
+DIGEST:
+  headline: one blocking finding
+  severity_max: high
+  findings:
+{findings}
+  must_fix: ["fail-open branch in auth"]
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/ui-review.md
+"""
+
+
+case("FEAT-59 finding without kind is rejected, naming the entry and the enum",
+     "harness-ui-reviewer", _ui_review(
+         '    - { severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+     False, ["findings[0]", "kind", "substance", "form", "proportionality"])
+case("FEAT-59 finding with a kind outside the enum is rejected, naming the value",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: style, severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+     False, ["findings[0]", "style", "substance", "form", "proportionality"])
+# A near-miss must not be charitably normalised — the whole point of this validator.
+case("FEAT-59 kind: substantive (near-miss) is rejected, not normalised",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: substantive, severity: high, reader: ui-reviewer, summary: "x" }'),
+     False, ["findings[0]", "substantive"])
+case("FEAT-59 a bare-string finding has no kind and is rejected",
+     "harness-ui-reviewer", _ui_review('    - "fail-open branch in auth"'),
+     False, ["findings[0]", "kind"])
+# The index in the message is the SECOND entry when the first is fine.
+case("FEAT-59 the error names the offending entry's index, not the first",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: substance, severity: high, reader: ui-reviewer, summary: "a" }\n'
+         '    - { severity: low, reader: ui-reviewer, summary: "b" }'),
+     False, ["findings[1]", "!findings[0]"])
+# Each member of the enum is ACCEPTED — inline and block-mapping styles both.
+case("FEAT-59 kind: substance is accepted (inline entry)",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: substance, severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+     True)
+case("FEAT-59 kind: form is accepted (block-mapping entry)",
+     "harness-ui-reviewer", _ui_review(
+         '    - kind: form\n'
+         '      severity: high\n'
+         '      reader: ui-reviewer\n'
+         '      summary: "DESIGN.md table header drifted"'),
+     True)
+case("FEAT-59 kind: proportionality with scope: mission is accepted",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, scope: mission, severity: high, reader: ui-reviewer, '
+         'summary: "a plan for a five-line fix", why: "no design surface changes" }'),
+     True)
+case("DEC-228 kind: proportionality with scope: task is accepted",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, scope: task, severity: med, reader: ui-reviewer, '
+         'summary: "T-03 ships one-shot scaffolding as a durable flag" }'),
+     True)
+# The BUG-285-canonical-reader defect: four task-scope findings summed into a mission downgrade.
+# Without scope the route is undecidable, so a scope-less proportionality finding is refused.
+case("DEC-228 kind: proportionality without scope is rejected, naming both scopes",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, severity: high, reader: ui-reviewer, '
+         'summary: "a plan for a five-line fix" }'),
+     False, ["findings[0]", "scope", "task", "mission"])
+case("DEC-228 kind: proportionality with a scope outside task|mission is rejected",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, scope: whole, severity: high, reader: ui-reviewer, '
+         'summary: "a plan for a five-line fix" }'),
+     False, ["findings[0]", "whole"])
+# `findings: []` is the positive assertion "looked, found nothing" and stays legal.
+case("FEAT-59 findings: [] is accepted — an explicit empty list asserts you looked",
+     "harness-security-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: nothing security-relevant in the diff
+  severity_max: none
+  findings: []
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/sec.md
+""", True)
+# The pre-FEAT-59 spelling is a CONTRACT VIOLATION now, not a count.
+case("FEAT-59 findings as an INT count is rejected — it is a list of kinded entries",
+     "harness-security-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: nothing security-relevant in the diff
+  severity_max: none
+  findings: 0
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/sec.md
+""", False, ["findings", "list"])
+# A validator-lead digest may carry the consolidated panel findings and the readers
+# roster (PlanMerge's `record-panel --digest` reads both); the same kind rule binds.
+case("FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:",
+     "harness-validator-lead", LEAD_BLOCK.replace(
+         "\n  sc_status: []",
+         "\n  sc_status: []\n"
+         "  readers: [{ reader: scope, status: ran }, { reader: should-not-exist, status: skipped, persona: fable-advisor, reason: host refusal }]\n"
+         "  findings: [{ kind: substance, severity: high, reader: scope, summary: \"SC-03 has no task\" }]"),
+     True)
+case("FEAT-59 lead findings passthrough: an entry without kind is rejected",
+     "harness-validator-lead", LEAD_BLOCK.replace(
+         "\n  sc_status: []",
+         "\n  sc_status: []\n"
+         "  findings: [{ severity: high, reader: scope, summary: \"SC-03 has no task\" }]"),
+     False, ["findings[0]", "kind"])
+
+# =====================================================================
+# FEAT-59 SC-17 / C3 — qa PASS needs FAIL-FIRST evidence. A green suite proves the
+# tests pass; it does not prove they ever failed, and a test that never failed
+# constrains nothing (harness-tdd-enforcement's Iron Law, now enforced at the
+# digest). Per `verify: automated` SC the qa digest names the evidence that the
+# test FAILED before the fix. `matrix_ok: n/a` ran no gate and may carry `[]`.
+# =====================================================================
+
+def _qa(verdict="PASS", matrix_ok="true", fail_first="[]", suite="pass"):
+    return f"""
+VERDICT: {verdict}
+DIGEST:
+  headline: suite green
+  suite: {suite}
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: {matrix_ok}
+  fail_first: {fail_first}
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/qa.md
+"""
+
+
+FAIL_FIRST_ONE = ('[{ sc: SC-01, evidence: '
+                  '"notes/qa-r1/fail-first-SC-01.txt: 1 failed before 3f2a9c1" }]')
+
+case("FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED — a green suite "
+     "with no fail-first evidence is not a pass",
+     "harness-qa", _qa(), False, ["fail_first", "fail-first"])
+case("FEAT-59 qa PASS with populated fail_first is accepted",
+     "harness-qa", _qa(fail_first=FAIL_FIRST_ONE), True)
+case("FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted — no gate ran",
+     "harness-qa", _qa(verdict="BLOCKED", matrix_ok="n/a", suite="n/a"), True)
+case("FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS",
+     "harness-qa", _qa(verdict="FAIL", matrix_ok="false", fail_first="[]"), True)
+case("FEAT-59 qa omitting fail_first is rejected — every field is required",
+     "harness-qa", _qa().replace("  fail_first: []\n", ""), False, "fail_first")
+# The missing-field hint must not route the agent into the empty-list rejection.
+case("FEAT-59 fail_first's missing-field hint names the entry shape, not `[]`",
+     "harness-qa", _qa().replace("  fail_first: []\n", ""), False,
+     ["fail_first", "SC-NN", "evidence", "!if there are none"])
+# Entry shape: `{sc: SC-NN, evidence: <non-empty>}`. A bare string is not evidence
+# for any named SC; an SC without evidence is a claim, not a receipt.
+case("FEAT-59 fail_first entry without sc is rejected, naming the index",
+     "harness-qa", _qa(fail_first='[{ evidence: "x.txt" }]'), False,
+     ["fail_first[0]", "sc"])
+case("FEAT-59 fail_first entry with empty evidence is rejected, naming the index",
+     "harness-qa", _qa(fail_first='[{ sc: SC-01, evidence: "" }]'), False,
+     ["fail_first[0]", "evidence"])
+case("FEAT-59 fail_first bare-string entry is rejected",
+     "harness-qa", _qa(fail_first='["SC-01 failed first"]'), False, ["fail_first[0]"])
+case("FEAT-59 fail_first sc must be an SC-NN id",
+     "harness-qa", _qa(fail_first='[{ sc: T-01, evidence: "x.txt" }]'), False,
+     ["fail_first[0]", "SC-NN"])
+case("FEAT-59 fail_first block-mapping entries are accepted",
+     "harness-qa", _qa().replace(
+         "  fail_first: []",
+         "  fail_first:\n"
+         "    - sc: SC-01\n"
+         "      evidence: notes/qa-r1/fail-first-SC-01.txt\n"
+         "    - sc: SC-02\n"
+         "      evidence: \"receipt: 2 failed, 0 passed at 3f2a9c1~1\""),
+     True)
 
 
 # (11)(j2-ii) JOINT HINT FOLLOWABILITY. Not expressible as independent cases: the
@@ -2376,7 +3216,7 @@ def reviewer_digest(code_grade="pass", files="[]", must_fix="[]", severity_max="
 DIGEST:
   headline: reviewer result
   severity_max: {severity_max}
-  findings: 0
+  findings: []
   must_fix: {must_fix}
   code_grade: {code_grade}
   reviewed: "{reviewed}"
@@ -2392,6 +3232,14 @@ def _write_plan_approval(plan_path, status):
     with open(plan_path, "w") as handle:
         handle.write(
             f"schema: plan/1\nfeature: FEAT-PLAN\napproval:\n  status: {status}\n"
+            "tasks:\n"
+            "  - id: T-01\n"
+            "    title: fixture task\n"
+            "    change_type: test\n"
+            "    execution_mode: main-session-direct\n"
+            "    files: [fixture.py]\n"
+            "    verify: \"true\"\n"
+            "    intent: exercise plan review validation\n"
         )
 
 
@@ -2409,6 +3257,502 @@ def _plan_review_errors(validator, config, feature_dir, digest, branch_override=
     return validator.validate(
         "harness-code-reviewer", digest, config, feature_dir, branch_override
     )
+
+
+def _t01_digest(persona, extras):
+    """A minimal valid return for each persona that owns documented optionals."""
+    extra_lines = "\n".join(
+        f"  {key}: {json.dumps(value)}" for key, value in extras.items())
+    bodies = {
+        "harness-security-reviewer": """  severity_max: none
+  findings: []
+  must_fix: []""",
+        "harness-ui-reviewer": """  severity_max: none
+  findings: []
+  must_fix: []""",
+        "harness-qa": """  suite: pass
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]""",
+        "harness-documentor": """  docs_updated: []
+  gaps: []""",
+        "harness-dev-ops": """  change_type: config
+  applied: []
+  suite: pass
+  task: none""",
+        "harness-visual-designer": """  contract: written
+  mockups: []
+  direction_choices: []""",
+    }
+    return f"""VERDICT: PASS
+DIGEST:
+  headline: t01 contract probe
+{bodies[persona]}
+{extra_lines}
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+"""
+
+
+def _t01_code_reviewer_errors(validator, extras):
+    with tempfile.TemporaryDirectory() as td:
+        config = os.path.join(td, "harness.json")
+        write_review_config(config, "advisory_unless_high")
+        feature_dir, plan_path, artifact, _digest = _plan_review_fixture(td)
+        extra_lines = "\n".join(
+            f"  {key}: {json.dumps(value)}" for key, value in extras.items())
+        digest = reviewer_digest(
+            "n_a", reviewed=f"plan:{plan_path}", artifact=artifact).replace(
+                "  reviewed:", extra_lines + "\n  reviewed:")
+        return validator.validate(
+            "harness-code-reviewer", digest, config, feature_dir)
+
+
+def _t01_declared_fields(validator, raw_persona):
+    canonical = validator.norm(raw_persona)
+    declared = (
+        {"headline"}
+        | set(validator.UNIVERSAL)
+        | set(validator.SCHEMAS[canonical])
+        | set(validator.PASSTHROUGH.get(canonical, {}))
+        | set(validator.DOCUMENTED_OPTIONAL.get(raw_persona, {}))
+    )
+    if raw_persona == "harness-code-reviewer":
+        declared.update(("code_grade", "reviewed", "grade_2_reasons"))
+    return declared
+
+
+def _t01_reverse_contract_gaps(validator, raw_persona):
+    gaps = []
+    for source_path in CONTRACT_SOURCES[raw_persona]:
+        block = documented_block(_contract_source(source_path), source_path) or ""
+        documented = set(re.findall(
+            r"^  ([a-z][a-z0-9_]*):", block, re.MULTILINE))
+        for key in sorted(documented - _t01_declared_fields(validator, raw_persona)):
+            gaps.append(f"{raw_persona}: {key}: {source_path}")
+    return gaps
+
+
+def _load_validator(tag):
+    spec = importlib.util.spec_from_file_location(tag, VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    return validator
+
+
+def _t01_lead_option_failures(validator, field, value):
+    failures = []
+    present = _t04_with_fields(LEAD_BLOCK, {field: value})
+    errors = validator.validate("harness-eng-lead", present)
+    if errors:
+        failures.append(f"lead correct {field}: {errors}")
+    wrong = "sever" if field == "severity_max" else "wrong"
+    bad = _t04_with_fields(LEAD_BLOCK, {field: wrong})
+    if not any(field in error for error in
+               validator.validate("harness-eng-lead", bad)):
+        failures.append(f"lead wrong {field} accepted")
+    if validator.validate("harness-eng-lead", LEAD_BLOCK):
+        failures.append(f"lead omitted optional {field} rejected")
+    return failures
+
+
+def _t01_adequacy_failures(validator):
+    failures = []
+    missing = LEAD_BLOCK.replace("  adequacy_notes: []\n", "")
+    if not any("adequacy_notes" in error for error in
+               validator.validate("harness-eng-lead", missing)):
+        failures.append("lead omission of adequacy_notes accepted")
+    if validator.validate("harness-eng-lead", LEAD_BLOCK):
+        failures.append("lead adequacy_notes empty list rejected")
+    if validator.validate("lead", missing):
+        failures.append("archived generic lead digest lost historical readability")
+    return failures
+
+
+def _t01_documented_option_failures(validator, persona, field, value):
+    failures = []
+    correct = ({field: value})
+    run_errors = (_t01_code_reviewer_errors(validator, correct)
+                  if persona == "harness-code-reviewer"
+                  else validator.validate(persona, _t01_digest(persona, correct)))
+    if run_errors:
+        failures.append(f"{persona} correct {field}: {run_errors}")
+    wrong = "wrong" if isinstance(value, (bool, list)) else []
+    invalid = ({field: wrong})
+    bad_errors = (_t01_code_reviewer_errors(validator, invalid)
+                  if persona == "harness-code-reviewer"
+                  else validator.validate(persona, _t01_digest(persona, invalid)))
+    if not any(field in error for error in bad_errors):
+        failures.append(f"{persona} wrong {field} accepted")
+    return failures
+
+
+def _t01_reverse_failures(validator):
+    failures = [
+        "reverse contract " + gap
+        for persona in CONTRACT_SOURCES
+        for gap in _t01_reverse_contract_gaps(validator, persona)
+    ]
+    if not failures:
+        print("ok    [T-01] every documented key is declared")
+    removed = validator.DOCUMENTED_OPTIONAL["harness-documentor"].pop("stale_found")
+    try:
+        discriminated = _t01_reverse_contract_gaps(
+            validator, "harness-documentor")
+    finally:
+        validator.DOCUMENTED_OPTIONAL["harness-documentor"]["stale_found"] = removed
+    if not any("stale_found" in gap for gap in discriminated):
+        failures.append("reverse contract discrimination did not name stale_found")
+    return failures
+
+
+def _t01_lead_values():
+    return {
+        "sc_status": [], "needs_approval": False, "severity_max": "none",
+        "matrix_ok": True, "coverage_gaps": [],
+    }
+
+
+def _t01_documented_values():
+    return {
+        "harness-code-reviewer": {
+            "spec_violations": [], "human_commits_in_scope": []},
+        "harness-security-reviewer": {
+            "in_scope": True, "scope_reason": "security relevant", "threat_model": []},
+        "harness-ui-reviewer": {
+            "mode": "A", "in_scope": True, "states_unspecified": [],
+            "contract_violations": [], "a11y": []},
+        "harness-qa": {"kinds": [], "sc_evidence": []},
+        "harness-documentor": {"stale_found": []},
+        "harness-dev-ops": {"test_kinds_written": []},
+        "harness-visual-designer": {
+            "needs_prototype": False, "why": "not interactive", "prototype": "none"},
+    }
+
+
+def _t01_all_failures(validator, lead_values, documented):
+    failures = [
+        failure
+        for field, value in lead_values.items()
+        for failure in _t01_lead_option_failures(validator, field, value)
+    ]
+    failures.extend(_t01_adequacy_failures(validator))
+    failures.extend(
+        failure
+        for persona, fields in documented.items()
+        for field, value in fields.items()
+        for failure in _t01_documented_option_failures(
+            validator, persona, field, value)
+    )
+    failures.extend(_t01_reverse_failures(validator))
+    return failures
+
+
+def _t01_report(failures, lead_values, documented):
+    for failure in failures:
+        print("FAIL  [T-01] " + failure)
+    total = 1 + len(lead_values) * 3 + 3 + sum(
+        len(fields) * 2 for fields in documented.values()) + 2
+    print(f"\n{total - len(failures)}/{total} T-01 schema cases passed.")
+    return len(failures)
+
+
+def run_t01_schema_cases():
+    """T-01: optional typed fields and documentation agree in both directions."""
+    validator = _load_validator("_validator_t01")
+    missing_tables = [
+        name for name in ("PASSTHROUGH", "DOCUMENTED_OPTIONAL")
+        if not hasattr(validator, name)
+    ]
+    if missing_tables:
+        print("FAIL  [T-01] missing declarations: " + ", ".join(missing_tables))
+        return 1
+    lead_values = _t01_lead_values()
+    documented = _t01_documented_values()
+    failures = _t01_all_failures(validator, lead_values, documented)
+    return _t01_report(failures, lead_values, documented)
+
+
+def _t04_base_digest(persona):
+    canonical = {
+        "harness-frontend-dev": "harness-backend-dev",
+        "harness-ai-dev": "harness-backend-dev",
+        "harness-data-engineer": "harness-backend-dev",
+        "harness-product-lead": "harness-eng-lead",
+        "harness-validator-lead": "harness-eng-lead",
+    }.get(persona, persona)
+    if canonical == "harness-backend-dev":
+        return _dev()
+    if canonical == "harness-eng-lead":
+        return LEAD_BLOCK
+    if canonical == "harness-dev-ops":
+        return _t01_digest(canonical, {}).replace(
+            "  task: none", "  task: T-01")
+    if canonical in (
+            "harness-security-reviewer", "harness-ui-reviewer", "harness-qa",
+            "harness-documentor", "harness-visual-designer"):
+        return _t01_digest(canonical, {})
+    if canonical == "harness-pm":
+        return PM_OK
+    if canonical == "harness-orchestrator":
+        return """VERDICT: PASS
+DIGEST:
+  headline: build advanced
+  feature: FEAT-X
+  status: in_progress
+  runs: []
+  cycles_used: 0
+  briefing: none
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+"""
+    raise AssertionError(f"no T-04 base digest for {persona}")
+
+
+def _t04_sample(allowed):
+    if isinstance(allowed, set):
+        return "pass" if "pass" in allowed else sorted(allowed)[0]
+    if isinstance(allowed, re.Pattern):
+        return "T-01"
+    if allowed is list:
+        return []
+    if allowed is bool:
+        return True
+    if allowed is int:
+        return 0
+    if allowed is str:
+        return "value"
+    raise AssertionError(f"no sample for {allowed!r}")
+
+
+def _t04_with_fields(text, fields):
+    lines = "\n".join(
+        f"  {field}: {json.dumps(value)}" for field, value in fields.items())
+    return text.replace("\nartifact:", "\n" + lines + "\nartifact:")
+
+
+def _t04_canonical_failures(validator, probes):
+    failures = []
+    for canonical, persona in probes.items():
+        rogue = f"rogue_{canonical.replace('-', '_')}"
+        digest = _t04_with_fields(_t04_base_digest(persona), {rogue: 1})
+        errors = validator.validate(persona, digest)
+        if not any("undeclared digest key" in error for error in errors):
+            failures.append(f"{canonical}: one undeclared key was accepted")
+    return failures
+
+
+def _t04_documented_set_errors(validator, persona):
+    if persona == "harness-code-reviewer":
+        extras = {
+            field: _t04_sample(allowed)
+            for field, allowed in
+            validator.DOCUMENTED_OPTIONAL.get(persona, {}).items()
+        }
+        return _t01_code_reviewer_errors(validator, extras)
+    digest = _t04_base_digest(persona)
+    seen = validator.parse_digest(digest)
+    declared = {
+        **validator.SCHEMAS[validator.norm(persona)],
+        **validator.PASSTHROUGH.get(validator.norm(persona), {}),
+        **validator.DOCUMENTED_OPTIONAL.get(persona, {}),
+    }
+    source = CONTRACT_SOURCES[persona][0]
+    block = documented_block(_contract_source(source), source) or ""
+    documented = set(re.findall(
+        r"^  ([a-z][a-z0-9_]*):", block, re.MULTILINE))
+    extras = {
+        field: _t04_sample(declared[field])
+        for field in documented - set(seen)
+        if field in declared
+    }
+    return validator.validate(persona, _t04_with_fields(digest, extras))
+
+
+def _t04_documented_failures(validator):
+    failures = []
+    for persona in CONTRACT_SOURCES:
+        errors = _t04_documented_set_errors(validator, persona)
+        if errors:
+            failures.append(
+                f"{persona}: full documented field set rejected: {errors}")
+    return failures
+
+
+def _t04_three_key_failures(validator, digest):
+    errors = [
+        error for error in validator.validate("harness-eng-lead", digest)
+        if "undeclared digest key" in error
+    ]
+    if len(errors) != 1:
+        return [f"three undeclared keys produced {len(errors)} messages"]
+    message = errors[0]
+    tokens = (
+        "rogue_alpha", "rogue_beta", "rogue_gamma",
+        "digest contract is closed", "validate-digest.py", "PASSTHROUGH",
+        "DOCUMENTED_OPTIONAL", "SCHEMAS",
+    )
+    return [
+        f"three-key message omitted {token}"
+        for token in tokens if token not in message
+    ]
+
+
+def _t04_hook_failures(digest):
+    failures = []
+    base = {
+        "agent_type": "harness-eng-lead",
+        "last_assistant_message": digest,
+    }
+    rejected = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"], input=json.dumps(base),
+        capture_output=True, text=True, env=dict(os.environ))
+    if rejected.returncode != 2:
+        failures.append(f"hook returned {rejected.returncode}, not exit 2")
+    bypassed = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"],
+        input=json.dumps({**base, "stop_hook_active": True}),
+        capture_output=True, text=True, env=dict(os.environ))
+    if bypassed.returncode != 0:
+        failures.append(
+            f"stop_hook_active passthrough returned {bypassed.returncode}")
+    return failures
+
+
+def run_t04_unknown_key_cases():
+    """T-04: the digest key set is closed and one refusal is sufficient."""
+    validator = _load_validator("_validator_t04")
+    canonical_probes = {
+        "pm": "harness-pm", "dev": "harness-backend-dev",
+        "qa": "harness-qa", "reviewer": "harness-security-reviewer",
+        "visual-designer": "harness-visual-designer",
+        "documentor": "harness-documentor", "dev-ops": "harness-dev-ops",
+        "lead": "harness-eng-lead", "orchestrator": "harness-orchestrator",
+    }
+    three = _t04_with_fields(
+        LEAD_BLOCK, {"rogue_alpha": 1, "rogue_beta": 2, "rogue_gamma": 3})
+    failures = _t04_canonical_failures(validator, canonical_probes)
+    failures.extend(_t04_documented_failures(validator))
+    failures.extend(_t04_three_key_failures(validator, three))
+    failures.extend(_t04_hook_failures(three))
+    for failure in failures:
+        print("FAIL  [T-04] " + failure)
+    total = len(canonical_probes) + len(CONTRACT_SOURCES) + 9
+    print(f"\n{total - len(failures)}/{total} T-04 undeclared digest key cases passed.")
+    return len(failures)
+
+
+def _t08_fixture():
+    fixture_path = os.path.join(
+        FIXTURE_DIR, "pre-t04-validate-digest.py.fixture")
+    with open(fixture_path, encoding="utf-8") as handle:
+        source = handle.read()
+    failures = []
+    if "DOCUMENTED_OPTIONAL" not in source:
+        failures.append(
+            "pre-T-04 fixture does not contain T-01's DOCUMENTED_OPTIONAL")
+    if "undeclared digest key" in source:
+        failures.append("pre-T-04 fixture already contains T-04's rejection")
+    return source, failures
+
+
+def _t08_compare_payload(prior_path, persona, payload, env):
+    hook_payload = json.dumps({
+        "agent_type": persona, "last_assistant_message": payload,
+    })
+    prior = subprocess.run(
+        [sys.executable, prior_path, "--hook"], input=hook_payload,
+        capture_output=True, text=True, env=env)
+    current = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"], input=hook_payload,
+        capture_output=True, text=True, env=env)
+    failures = []
+    if prior.returncode != 0:
+        failures.append(
+            f"pre-change validator rejected {persona}: {prior.stderr.strip()}")
+    if current.returncode != 2 or "undeclared digest key" not in current.stderr:
+        failures.append(f"current validator did not reject {persona}'s probe")
+    return failures
+
+
+def _t08_revision_failures(source, payloads):
+    failures = []
+    # Sibling imports resolve through PYTHONPATH below, so keep the temporary
+    # prior-validator copy outside the live checkout.
+    with tempfile.TemporaryDirectory(prefix="t08-validator-") as td:
+        prior_path = os.path.join(td, "validate-digest.py")
+        with open(prior_path, "w", encoding="utf-8") as handle:
+            handle.write(source)
+        env = dict(os.environ)
+        current_path = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = os.path.dirname(VALIDATE) + (
+            os.pathsep + current_path if current_path else "")
+        for persona, payload in payloads:
+            failures.extend(
+                _t08_compare_payload(prior_path, persona, payload, env))
+    return failures
+
+
+def _t08_replay_failure(validator, field, value):
+    digest = _t04_with_fields(LEAD_BLOCK, {field: value})
+    if field == "adequacy_notes":
+        digest = LEAD_BLOCK.replace(
+            "  adequacy_notes: []",
+            "  adequacy_notes: [qualification recorded]")
+    errors = validator.validate("harness-eng-lead", digest)
+    return [f"declared lead field {field} was rejected: {errors}"] if errors else []
+
+
+def _t08_non_passthrough_failure(validator, field):
+    errors = validator.validate(
+        "harness-eng-lead", _t04_with_fields(LEAD_BLOCK, {field: []}))
+    if any("undeclared digest key" in error for error in errors):
+        return []
+    return [f"non-passthrough lead field {field} was accepted"]
+
+
+def run_t08_revision_proof():
+    """T-08: the strict rejection is new, while every declared lead field replays."""
+    source, failures = _t08_fixture()
+    payloads = [
+        ("harness-pm", _t04_with_fields(
+            PM_OK, {"rogue_revision_probe": True})),
+        ("harness-backend-dev", _t04_with_fields(
+            _t04_base_digest("harness-backend-dev"),
+            {"rogue_revision_probe": True})),
+        ("harness-documentor", _t04_with_fields(
+            _t04_base_digest("harness-documentor"),
+            {"rogue_revision_probe": True})),
+    ]
+    if not failures:
+        failures.extend(_t08_revision_failures(source, payloads))
+    validator = _load_validator("_validator_t08")
+    replay = {
+        "adequacy_notes": ["qualification recorded"], "sc_status": [],
+        "needs_approval": False, "severity_max": "none", "matrix_ok": True,
+        "coverage_gaps": [],
+    }
+    failures.extend(
+        failure
+        for field, value in replay.items()
+        for failure in _t08_replay_failure(validator, field, value)
+    )
+    failures.extend(
+        failure
+        for field in ("failures", "suite", "kinds")
+        for failure in _t08_non_passthrough_failure(validator, field)
+    )
+    for failure in failures:
+        print("FAIL  [T-08] " + failure)
+    if not failures:
+        print("ok    [T-08] pre-change validator accepts unknown keys while current rejects")
+    print(f"{10 - len(failures)}/10 T-08 revision and lead replay cases passed.")
+    return len(failures)
 
 
 def _check_plan_approval_states(
@@ -2494,7 +3838,10 @@ def check_prior_validator(td, guarded, failures):
     prior = subprocess.run(
         [sys.executable, os.path.join(prior_dir, "validate-digest.py"),
          "harness-code-reviewer"],
-        input=guarded, capture_output=True, text=True)
+        # FEAT-59 turned `findings` from an int count into a kinded list; the PRIOR
+        # revision's contract spelled the empty case `findings: 0`, and this control is
+        # about the review-policy rejection being new, not about the findings shape.
+        input=guarded.replace("findings: []", "findings: 0"), capture_output=True, text=True)
     if prior.returncode != 0:
         failures.append("previous validator must accept the gated digest")
 
@@ -3443,7 +4790,7 @@ def check_review_sha_binding_other_personas(validator, config, feature_dir, fail
 DIGEST:
   headline: ui pass
   severity_max: low
-  findings: 0
+  findings: []
   must_fix: []
   files_touched: []
   open_questions: []
@@ -3841,14 +5188,15 @@ def run_empty_red_case():
 
 
 def _dec156_owner_root_mutant(source):
-    function = source.find("def check_artifact_file(")
-    start = source.find("    if os.path.isabs(path):\n", function)
-    end = source.find("    found = next(", start)
-    if function < 0 or start < 0 or end <= start:
+    start = source.find("def _durable_artifact_candidates(")
+    end = source.find("\ndef _missing_durable_artifact(", start)
+    if start < 0 or end <= start:
         return None
-    old_join = ('    cands = ([path] if os.path.isabs(path) else '
-                '[os.path.join(_root_or_none() or "", path)])\n')
-    return source[:start] + old_join + source[end:]
+    old_candidates = (
+        "def _durable_artifact_candidates(path, payload):\n"
+        "    return ([path] if os.path.isabs(path) else "
+        "[os.path.join(_root_or_none() or \"\", path)])\n\n")
+    return source[:start] + old_candidates + source[end + 1:]
 
 
 def _dec156_red_is_green(real, old):
@@ -3889,19 +5237,101 @@ def run_dec156_worktree_red_case():
         shutil.rmtree(iso_root, ignore_errors=True)
 
 
+def _strict_validator_module():
+    spec = importlib.util.spec_from_file_location(
+        "_strict_validator_under_test", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    return validator
+
+
+def _duplicate_harness_config_failures(validator, td):
+    harness_json = os.path.join(td, ".harness", "harness.json")
+    os.makedirs(os.path.dirname(harness_json), exist_ok=True)
+    with open(harness_json, "w", encoding="utf-8") as handle:
+        handle.write(
+            '{"test_kinds": {"x": {}}, "test_kinds": {"x": {}}}')
+    kinds, error = validator._load_test_kinds(td)
+    if kinds is None and error and "duplicate key" in error:
+        return []
+    return ["duplicate harness.json keys were not refused"]
+
+
+def _duplicate_feature_json_failures(validator, td):
+    feature_dir = os.path.join(
+        td, ".harness", "harness", "features", "FEAT-STRICT")
+    os.makedirs(feature_dir, exist_ok=True)
+    with open(os.path.join(feature_dir, "feature.json"), "w",
+              encoding="utf-8") as handle:
+        handle.write(
+            '{"feature_id":"FEAT-STRICT","review_sha":"abc1234",'
+            '"review_sha":"abc1234","branch":"feat/strict",'
+            '"branch":"feat/strict"}')
+    review_sha, error = validator._read_review_sha(feature_dir)
+    pinned_error = validator._pinned_feature_review_error(feature_dir)
+    checks = (
+        (review_sha is None and error and "duplicate key" in error,
+         "duplicate feature.json keys did not refuse review_sha"),
+        (validator._read_feature_branch(feature_dir) is None,
+         "duplicate feature.json keys supplied a branch"),
+        (pinned_error and "duplicate key" in pinned_error,
+         "duplicate feature.json keys did not refuse plan review"),
+    )
+    return [message for ok, message in checks if not ok]
+
+
+def _duplicate_hook_payload_failures():
+    payload = (
+        '{"agent_type":"Explore","agent_type":"Explore",'
+        '"last_assistant_message":"not governed"}')
+    hook = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"], input=payload,
+        capture_output=True, text=True)
+    refused = (
+        hook.returncode == 0
+        and "duplicate key" in hook.stderr
+        and "unreadable hook payload" in hook.stderr
+    )
+    return [] if refused else [
+        "duplicate hook payload did not take the typed fail-open path"]
+
+
+def run_canonical_reader_strictness_cases():
+    """Strict artifact seams reject duplicate keys without changing legacy cases."""
+    validator = _strict_validator_module()
+    with tempfile.TemporaryDirectory() as td:
+        failures = _duplicate_harness_config_failures(validator, td)
+        failures.extend(_duplicate_feature_json_failures(validator, td))
+    failures.extend(_duplicate_hook_payload_failures())
+    if not failures:
+        return 0
+    for failure in failures:
+        print(f"FAIL  [canonical-reader audit] {failure}")
+    return 1
+
+
 def main():
-    fails = run_cli_cases()
-    fails += run_empty_red_case()
-    fails += run_dec156_worktree_red_case()
-    fails += run_bug919_qa_matrix_cases()
-    fails += run_bug919_resolve_fallback_case()
-    fails += run_joint_hint_case()
-    fails += run_code_grade_cases()
-    fails += run_hook_cases()
-    fails += run_t09()
-    fails += run_t51_suspension_cases()
-    fails += run_template_cases()
-    fails += run_reviewer_severity_enum_cases()
+    checks = (
+        run_canonical_reader_strictness_cases,
+        run_cli_cases,
+        run_empty_red_case,
+        run_dec156_worktree_red_case,
+        run_bug919_qa_matrix_cases,
+        run_bug919_resolve_fallback_case,
+        run_joint_hint_case,
+        run_code_grade_cases,
+        run_hook_cases,
+        run_bug1305_artifact_resolution_cases,
+        run_t09,
+        run_t51_suspension_cases,
+        run_template_cases,
+        run_reviewer_severity_enum_cases,
+        run_documented_contract_cases,
+        run_t01_schema_cases,
+        run_t04_unknown_key_cases,
+        run_t08_revision_proof,
+    )
+    fails = sum(check() for check in checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

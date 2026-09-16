@@ -34,7 +34,7 @@ only that none is code).
   contradiction` (:1180), `dev task: none + task_verify: n/a is accepted` (:1184), `qa matrix_ok:
   false + PASS is rejected` (:1208), `joint hint followability` (:1283) — this is the change
   exercising *this* diff, not a stand-in.
-- **Ran**: `.claude/skills/harness/bin/run-unit-tests.sh` from repo root (required per PLAN T-01
+- **Ran**: `.claude/skills/harness/bin/run-unit-tests.py` from repo root (required per PLAN T-01
   verify clause, issue #36 — script aborts elsewhere). Exit 0.
 - **Result**: `test-validate-digest.py` block reports `57/57 CLI cases passed`, `14/14 hook cases
   passed`, `2/2 template cases passed`, plus the new joint-hint case, all `ok`, ending `ALL PASSED` /
@@ -54,7 +54,7 @@ Not required by either `logic` or `docs` in `test_matrix`. All have `cmd: null` 
 new finding.**
 
 ## Full suite
-`run-unit-tests.sh` ran ALL project test scripts (test-validate-digest.py, test-gh-sync.py,
+`run-unit-tests.py` ran ALL project test scripts (test-validate-digest.py, test-gh-sync.py,
 test-check-state.py, test-check-expertise.py, test-gen-decisions-index.py, test-bash-write-guard.py,
 test-check-domain.py, test-render-brief.py, test-cost-report.py, test-harness-yaml.py,
 test-harness-yaml-corpus.py, test-upgrade-config.py, test-team-catalog.py). All reported `PASS` /

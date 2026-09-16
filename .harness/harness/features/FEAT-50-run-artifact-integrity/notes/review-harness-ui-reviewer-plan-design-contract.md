@@ -40,9 +40,9 @@ does not satisfy the digest contract, so it cannot be accepted. Fix these and re
    last_assistant_message (absent or null) — this is our gap, not {agent}'s; the return was NOT
    VALIDATED.`"*
 
-## #1057 — check-domain.sh feature-checkout binding (T-03/D-03/D-04)
+## #1057 — check-domain.py feature-checkout binding (T-03/D-03/D-04)
 
-Calibrated against the file's own documented incident at `check-domain.sh:1083-1087` (PR #152: a
+Calibrated against the file's own documented incident at `check-domain.py:1083-1087` (PR #152: a
 worktree-**stripped** path told an agent about the wrong checkout's file) and against
 `harness_boundary.classify` (`:440-482`), which returns `rel = os.path.relpath(abs_target, base)`
 — the **raw, unstripped** path — as `_verdict["rel"]`, always, regardless of which of the two
@@ -98,7 +98,7 @@ worktree**: DENY at exit 2."* But:
    case exercising a write into a **different registered feature's** worktree. Either closes the
    REQ-03/SC-03 gap; leaving it as-is ships a requirement its own criterion never checks.
 
-## #1058 — check-domain.sh digest-clobber guard (T-04/D-05/D-06, T-06 playbook)
+## #1058 — check-domain.py digest-clobber guard (T-04/D-05/D-06, T-06 playbook)
 
 Calibrated against `shape_problems()`'s established `_head()` convention (`:1083-1087`) and its
 `display` parameter, which — confirmed at both call sites (`:1503-1505` sweep, and the identical
@@ -120,7 +120,7 @@ class DEC-180/PR#152 already fixed generically; T-04 plugging into it inherits t
    "our gap vs. theirs" split exists for this defect.
 
 No finding beyond the two document items below (T-06's playbook edit is adequately scoped: names
-`check-domain.sh`, states the enforcement in one place, matches the actual prefix-preserving
+`check-domain.py`, states the enforcement in one place, matches the actual prefix-preserving
 mechanism rather than overclaiming "run dirs can never be reused").
 
 ## BRIEF.md as a document
@@ -138,24 +138,24 @@ conversation, signs by flipping `approval.status: approved` — and SC-12 fails 
 blocking question was answered. **Proposed addition**, appended to the end of the Open Ruling
 section: *"Record your choice by adding `approval.rulings: [{ id: INV-32, choice: a|b|c, note: <one
 line> }]` to this file's `approval:` block when you sign; SC-12 is graded by reading it there.
-Recording `c` here defers the remedy — `check-state.sh` will still exit 1 with these 32 rows
+Recording `c` here defers the remedy — `check-state.py` will still exit 1 with these 32 rows
 outstanding — and leaves (a) as its own future ticket; it is not the same as ruling (a) or (b)
 closed."*
 
 **F4 — `low`, non-gating.** The section opens "Constraint 4 of the stated intent requires
-`check-state.sh` to exit 0" — but BRIEF.md's own `## Constraints` section is unnumbered and
+`check-state.py` to exit 0" — but BRIEF.md's own `## Constraints` section is unnumbered and
 organized by DEC-id, not by the 1–6 numbered list "constraint 4" actually names (that list lives
 only in `notes/answers-2026-08-31-plan.md`). A reader working from BRIEF.md alone — meant to stand
 as the plan's own record — cannot locate what "Constraint 4" says without opening a second file.
 **Proposed replacement**, first sentence of the section: *"The operator's stated intent requires
-the three canonical commands — including `check-state.sh` — to exit 0
+the three canonical commands — including `check-state.py` — to exit 0
 (`notes/answers-2026-08-31-plan.md` constraint 4), and that cannot be reached by fixing these three
 issues."*
 
 **Does it make the recommendation and its cost explicit, or bury them?** (b)'s cost is explicit and
 strong ("falsifying 32 signed records... PRINCIPLES rule 15 forbids it... NOT recommended"). (a)'s
 cost is stated ("smallest change... main-session-direct") plus the closing sentence clarifies both
-(a) and (b) need a **new** task if chosen. (c)'s cost — that `check-state.sh` keeps exiting 1, i.e.
+(a) and (b) need a **new** task if chosen. (c)'s cost — that `check-state.py` keeps exiting 1, i.e.
 constraint 4 is **not actually met** under (c) — is not restated in this section but **is** stated
 earlier in the same document at SC-11's own text, which a top-to-bottom reader reaches first; I
 judge that adequate rather than buried, given document order, and file it as no finding.

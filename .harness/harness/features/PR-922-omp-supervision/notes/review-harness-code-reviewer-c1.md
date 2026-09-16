@@ -11,7 +11,7 @@ Source read from the pinned worktree only. Fix commits: `cc9e5cf` (F1, F2), `fee
 `harness-hooks.ts:546-548`: `parseClaimReceipt(result.stdout)` now only *adds* a receipt when one
 exists; an absent receipt is logged via `debug()` and the dispatch proceeds. The old
 `if (!receipt) { …rollback…; reason = "…no claim receipt…"; break; }` is gone. Re-measured every
-pass-through branch at source in `dispatch-guard.sh`: unreadable payload (`:32`), non-`harness-`
+pass-through branch at source in `dispatch-guard.py`: unreadable payload (`:32`), non-`harness-`
 agent_type (`:34-35`), non-harness dispatched persona (`:76-83`), no checkout root (`:138-141`),
 registry unavailable (`:114-116`), no valid OMP supervisor pid (`:144-146`), and the internal
 `except Exception` around the claim step (`:184-189`, `sys.exit(0)`) — all seven print no
@@ -71,7 +71,7 @@ consumer c0 never examined.
 
 **F5 — CLOSED, correctly downgraded, and the "unreachable" claim holds under independent check.**
 `release_cmd(root, agent, feature)` (`:476`) is now a required positional. Grepped every call site:
-`dispatch-guard.sh:156` and `validate-digest.py:1001` both already pass `feature=` explicitly. Beyond
+`dispatch-guard.py:156` and `validate-digest.py:1001` both already pass `feature=` explicitly. Beyond
 the fixer's own claim, I additionally verified the *value* can never be `None` even for a legacy
 claim: `_parse`'s migration path (`:74`) does `migrated.setdefault("feature", LEGACY_FEATURE)`, and
 `claim_with_receipt` always writes a `"feature"` key (`:329`, default `LEGACY_FEATURE`) — so
@@ -120,7 +120,7 @@ against proc(5)'s 1-based numbering by hand: `tail[0]` is field 3 (`state`), so 
 22 (`starttime`); correct, and the last-`)` split correctly survives a `comm` containing embedded
 parens, since it takes the LAST `)` in the whole line — after the true end of `comm`, wherever it
 falls. The module-level `_START_TIME_CACHE` lifetime: confirmed genuinely per-invocation — every
-consumer (`dispatch-guard.sh`, `validate-digest.py`, the extension's `spawnSync` calls in
+consumer (`dispatch-guard.py`, `validate-digest.py`, the extension's `spawnSync` calls in
 `harness-hooks.ts:184-193`) launches `inflight_registry.py`/its importer as a fresh `python3`
 subprocess per gate call; no production path imports it into a long-lived process, so a stale
 pid→start-time entry surviving a PID recycle across calls is not reachable. `ps` missing/slow: a
@@ -138,9 +138,9 @@ lets it override a provable identity match.
 - `bun test ./.claude/skills/harness/bin/omp-hooks.test.ts` → **24/24 pass, 0 fail** (matches claimed 20→24)
 - `python3 test-dispatch-guard.py` → **42/42 pass**
 - `python3 test-validate-digest.py` → **ALL PASSED** (24/24 T-09 cases + 2/2 template cases)
-- `bash run-unit-tests.sh` → **exit 0**, no `FAIL` lines in two independent full runs
+- `python3 run-unit-tests.py` → **exit 0**, no `FAIL` lines in two independent full runs
 - `python3 check-omp-port.py` → `OMP port surface: ok`, exit 0
-- `bash check-state.sh` → exit 0, only advisory `note` lines (pre-existing, unrelated to this PR)
+- `python3 check-state.py` → exit 0, only advisory `note` lines (pre-existing, unrelated to this PR)
 - `python3 sync-agent-adapters.py --check` → exit 0
 
 ## Open questions

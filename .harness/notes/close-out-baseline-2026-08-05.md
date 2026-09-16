@@ -53,7 +53,7 @@ That second measure is binary, has no variance, and is the one worth taking.
 
 ## Honest limit
 
-Nothing enforces either prediction. `check-docs.sh` checks wording, `run-unit-tests.sh` touches no
+Nothing enforces either prediction. `check-docs.sh` checks wording, `run-unit-tests.py` touches no
 file this change edited, and no hook or invariant inspects close-out shape. An orchestrator that
 spawns the report round anyway produces a green tree.
 

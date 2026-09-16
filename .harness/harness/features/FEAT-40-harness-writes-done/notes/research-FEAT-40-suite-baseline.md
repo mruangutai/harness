@@ -1,8 +1,8 @@
 # research — FEAT-40 — the red suite baseline, and three T-09 gaps
 
-**BLUF.** Five task verifies (`T-04`..`T-08`) open with `run-unit-tests.sh --kind all`, which exits 1
+**BLUF.** Five task verifies (`T-04`..`T-08`) open with `run-unit-tests.py --kind all`, which exits 1
 if any script fails. Six scripts fail at `cc84b29` in this worktree, all six in `UNIT_SCRIPTS`, none
-of this feature's making. The runner cannot select individual scripts (`run-unit-tests.sh:24-40`), so
+of this feature's making. The runner cannot select individual scripts (`run-unit-tests.py:24-40`), so
 those five tasks can never be marked done as written. The remedy is a new first task, **T-11**, that
 repairs exactly one script — the only failing one any later task edits — and records the rest as an
 enumerated, diagnosed baseline the five verifies compare against, plus one owned-script `PASS`
@@ -13,7 +13,7 @@ assertion per task so a green result still discriminates.
 Measured by me at `cc84b29` in
 `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-40-harness-writes-done`, with
 `HARNESS_PROJECT_DIR` set to that worktree. `UNIT_SCRIPTS` ran to completion: **18 PASS, 6 FAIL, 24
-total** — the array's full length (`run-unit-tests.sh:17`). Independently reproduced in the main
+total** — the array's full length (`run-unit-tests.py:17`). Independently reproduced in the main
 session's own `--kind unit` run at the same sha, same six names, same order.
 
 | script | failing cases | root cause, one line, as far as the output shows |
@@ -40,7 +40,7 @@ Both my `--kind all` run and the main session's `--kind integration` run were st
 earlier "20 PASS and SIX FAIL" is the same 26 scripts and stops at the same place — it was not
 truncated by a reader, the run had not got further. `T-11` step 1 exists to settle this.
 
-It is not a hang: `check-state.sh` children were still being forked at roughly one every 5–10
+It is not a hang: `check-state.py` children were still being forked at roughly one every 5–10
 seconds after 40 minutes (`ps` on pids 52814 and 24690), with system load ~1.9. `test-check-state.py`
 simply forks the whole state checker many times and each fork scans the repository. Run it alone.
 

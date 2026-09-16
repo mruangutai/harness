@@ -10,7 +10,7 @@ disposition of the backlog below.
 
 Since 2026-08-14 the harness has told sixteen agents that repository-specific knowledge belongs at
 `.harness/<repo>/expertise/<agent>.md`. Neither half of that was true. The spawn hook had no such
-read path (#484), and `check-domain.sh --resolve` answered **NOBODY** for every agent's
+read path (#484), and `check-domain.py --resolve` answered **NOBODY** for every agent's
 repository-tier path (#372), so no agent could write the file the rule told it to write. During
 FEAT-21 a distillation entry was returned unwritten for exactly that reason.
 
@@ -109,13 +109,13 @@ hand.
 | ID | Finding | Nature |
 |---|---|---|
 | B-1 | `DEC-27` is falsified on two clauses by this feature's own code and carries no strike record, which DEC-188 requires. Not fixed here because `DECISIONS.md` is uncommitted under another flow | bug |
-| B-2 | `check-state.sh:149`'s comment names an approval-reset rule neither `:133-139` nor `:150-154` implements — an amended-but-unsigned plan reports green. DEC-174 carve-out, human-only fix | bug |
-| B-3 | `check-expertise.sh` accepts segment names (`[^/]+`) that `inject-expertise.sh` silently drops (`[a-z0-9-]+`) — the checker signs `OK` on a file the hook will never inject | bug |
-| B-4 | `check-expertise.sh` crashes on a dangling `*.md` symlink and aborts the sweep, leaving later files unaudited under the same exit code as "violations found" | bug |
+| B-2 | `check-state.py:149`'s comment names an approval-reset rule neither `:133-139` nor `:150-154` implements — an amended-but-unsigned plan reports green. DEC-174 carve-out, human-only fix | bug |
+| B-3 | `check-expertise.py` accepts segment names (`[^/]+`) that `inject-expertise.py` silently drops (`[a-z0-9-]+`) — the checker signs `OK` on a file the hook will never inject | bug |
+| B-4 | `check-expertise.py` crashes on a dangling `*.md` symlink and aborts the sweep, leaving later files unaudited under the same exit code as "violations found" | bug |
 | B-5 | `cap_body`'s truncation notice is skipped exactly when truncation is silent — `wc -l` counts newlines, so a file with no trailing newline is undercounted | bug |
 | B-6 | The precedence line is emitted only when a repository block exists, so a global+project spawn now gets two un-arbitrated blocks and no precedence statement — narrows the architecture review's unconditional resolution | bug |
 | B-7 | SC-02 is pinned by nothing standing: T-01's `verify:` is one-shot and unregistered, and `test-check-domain.py` has zero repository-tier cases. Cheapest high-value fix | chore |
-| B-8 | The global-tier branch at `inject-expertise.sh:98-101` is unreachable by any fixture. One new fixture also de-vacuates B-9 and makes B-6 testable | chore |
+| B-8 | The global-tier branch at `inject-expertise.py:98-101` is unreachable by any fixture. One new fixture also de-vacuates B-9 and makes B-6 testable | chore |
 | B-9 | `case9a`'s ordering clause is vacuous — `all()` over an empty filtered list is True | chore |
 | B-10 | `case2`'s ordering assertion cannot fail: bash glob expansion already returns collation order | chore |
 | B-11 | `case12`'s four hostile `agent_type` values are vacuous — you declined this as Q5, recorded as agreed | chore |
@@ -124,18 +124,18 @@ hand.
 | B-14 | `harness.json` detect globs are wrong both ways — `integration` names 4 of 12 scripts, `unit` matches all 29. Fixing them would flip T-03's unit kind to "missing" and FAIL the blocking gate; fix globs and registration together | chore |
 | B-15 | `test-harness-yaml.py:186-187` and `harness_yaml.py:362` claim a "D-03 equivalence proof" against a `collect()` DEC-171 deleted, and claim coverage of every agent while pinning 6 of 16 | chore |
 | B-16 | `harness-curate/SKILL.md:34`'s checklist says 150 lines where the same file audits the repository tier at 40 — it misinforms the distiller in the step that does the editing | chore |
-| B-17 | `check-expertise.sh:62` cites a "CHANGE 1 note" that exists only in `plan.yaml` — a comment narrating the plan, not the code | chore |
+| B-17 | `check-expertise.py:62` cites a "CHANGE 1 note" that exists only in `plan.yaml` — a comment narrating the plan, not the code | chore |
 | B-18 | `test-inject-expertise.py` labels four project-tier fixtures `GLOBAL BODY`, making an untested path read as covered | chore |
 | B-19 | `test-check-expertise.py`'s `valid()` and `body_with_entry()` emit byte-identical skeletons | chore |
-| B-20 | The manual sort at `inject-expertise.sh:82-92` duplicates bash glob ordering and no assertion pins it | chore |
-| B-21 | `inject-expertise.sh:33`'s bare `$HOME` under `set -u` is the one hole in the hook's always-exit-0 contract (inherited, not this diff) | bug |
+| B-20 | The manual sort at `inject-expertise.py:82-92` duplicates bash glob ordering and no assertion pins it | chore |
+| B-21 | `inject-expertise.py:33`'s bare `$HOME` under `set -u` is the one hole in the hook's always-exit-0 contract (inherited, not this diff) | bug |
 | B-22 | SPEC uses two tier vocabularies for the same objects — a two-way craft/repository split and a three-way global/project/repository one. Both true, jointly confusing | chore |
 | B-23 | `.harness/README.md:27` names `feature.yaml`; all 29 features carry `feature.json` and none has ever carried the other | chore |
 | B-24 | Entry ids are renumbered in the destination on migration, which no criterion checks and which dents DEC-66's stable-reference rationale. A constraint reading, so yours | enhancement |
 | B-25 | D-01's residual: repository tiers multiply per-spawn context, worst case ~580 lines today, and neither the name regex nor the segment filter bounds the count. Signed, revisit at unit 7 | enhancement |
 | B-26 | Concurrent distillation runs race on the shared corpus — one squad's gate read another squad's mid-write file and reported a FAIL on an agent it never touched (#560 materialising) | bug |
 | B-27 | `SendMessage` is unavailable at the lead tier, so a lead cannot course-correct an in-flight member. Raised independently by three leads | bug |
-| B-28 | `dispatch-guard.sh` blocked a `model:` parameter **six times** across three different leads in this one feature. A rule its own readers break repeatedly is a rule-text problem | chore |
+| B-28 | `dispatch-guard.py` blocked a `model:` parameter **six times** across three different leads in this one feature. A rule its own readers break repeatedly is a rule-text problem | chore |
 | B-29 | Nothing asserts `review_sha` equals the branch tip (#487). It drifted here and was caught by a human, as on FEAT-25 | bug |
 | B-31 | The orchestrator playbook says the write-less reviewers' ops are returned for the orchestrator to apply. All three reviewers hold `Write` and both Expertise grants, and the orchestrator can write no file but its own — the instruction is false in both halves | bug |
 | B-32 | `harness-product-lead` holds no `Edit` on its own Expertise file, so a lead cannot self-distill; its six ops need another hand | bug |

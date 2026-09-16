@@ -78,7 +78,7 @@ one before, and none by the gates.
 | The feature's own grading gate | **exit 0** — 200 graded, zero blocking, 12 grade-2, no `.fixture` in the gated set |
 | The engine against its own bar | 53 functions, zero below grade 4 |
 | Focused suites | five, all exit 0; `test-validate-digest.py` also exit 0 in a depth-1 clone |
-| `check-state.sh` | **exit 0** |
+| `check-state.py` | **exit 0** |
 | Goal-check | **20 of 20** stands; SC-20 re-verified at this pin, the rest carried forward — the only source change is one test file and its suites are green |
 | SC-11 UAT | passed, operator-executed, unchanged |
 
@@ -127,5 +127,5 @@ single most reliable defect the harness has.
 ## State of the branch
 
 Nothing shipped. No PR merged, no deploy, no issue closed; the worktree stands. PR #978's lifecycle
-is yours. `review_sha` is `4adb2219954aa132b1e8450cdd9e571dbedba309`, `check-state.sh` exits 0, the
+is yours. `review_sha` is `4adb2219954aa132b1e8450cdd9e571dbedba309`, `check-state.py` exits 0, the
 working tree is clean, and no source has moved past the pin.

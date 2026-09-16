@@ -38,7 +38,7 @@ feature). SC-01 passes on the operator-accepted reading in D-18.
 
 ## Dead Ends
 
-- Do NOT resolve paths on ONE side only in check-domain.sh. Shape-matching the as-typed path stays (it is stronger for `./`, `..`, doubled slashes and absolute paths, all denied), but resolution must realpath the path AND the root or it lands in a different spelling namespace and silently matches nothing. This entry twice recorded a conclusion that was too narrow: first "do not re-fix F-04's realpath half" (which talked past the symlinked-FILE hole, H-01), then "do not rewrite the readlink walk as realpath" (which forbade the actual fix, C2-02). Resolution answers what a path BECOMES; inode identity answers whether two names are the SAME FILE; a hardlink needs the second
+- Do NOT resolve paths on ONE side only in check-domain.py. Shape-matching the as-typed path stays (it is stronger for `./`, `..`, doubled slashes and absolute paths, all denied), but resolution must realpath the path AND the root or it lands in a different spelling namespace and silently matches nothing. This entry twice recorded a conclusion that was too narrow: first "do not re-fix F-04's realpath half" (which talked past the symlinked-FILE hole, H-01), then "do not rewrite the readlink walk as realpath" (which forbade the actual fix, C2-02). Resolution answers what a path BECOMES; inode identity answers whether two names are the SAME FILE; a hardlink needs the second
 - Do NOT close SC-08 by editing SC-08, and do NOT delete BUG-1071's `feature.json.status` — it has no plan.yaml, so that key is the only record it is in review. Issue #1079
 - Do NOT reconcile `_record_station` and `_commit_terminal_station` to use the same words: written-nowhere and written-but-uncommitted have OPPOSITE correct answers, both asserted
 - Do NOT exempt `--date` from sign-approval's escaping; a type-aware exemption is a hole in the check that closes F-02
@@ -54,5 +54,5 @@ feature). SC-01 passes on the operator-accepted reading in D-18.
 - .harness/harness/features/FEAT-41-one-station-vocabulary/plan.yaml
 - .harness/harness/features/FEAT-41-one-station-vocabulary/BRIEF.md
 - .harness/logs/2026-08-31.md
-- .claude/skills/harness/bin/check-domain.sh
-- .claude/skills/harness/bin/check-state.sh
+- .claude/skills/harness/bin/check-domain.py
+- .claude/skills/harness/bin/check-state.py

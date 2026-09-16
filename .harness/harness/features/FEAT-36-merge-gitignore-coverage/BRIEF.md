@@ -4,14 +4,14 @@ Source issue: #814, a sub-issue of #594.
 
 ## Problem
 
-`merge-gitignore.sh` is the only shell utility in the canonical `bin/` directory without direct
+`merge-gitignore.py` is the only shell utility in the canonical `bin/` directory without direct
 executable behavioral coverage. Its documented contract protects a project's existing `.gitignore`
 and keeps Harness run artifacts from dirtying the project, but regressions in merge, check, rerun, or
 path-resolution behavior can currently reach users without a focused test naming the broken outcome.
 
 ## Goal
 
-Give `merge-gitignore.sh` executable behavioral coverage for every documented user-visible outcome,
+Give `merge-gitignore.py` executable behavioral coverage for every documented user-visible outcome,
 starting with tests and changing the production utility only if a new test first demonstrates that the
 current implementation violates that documented contract.
 
@@ -47,7 +47,7 @@ current implementation violates that documented contract.
   project, passes the project root explicitly, and proves only that project's `.gitignore` changes.
   verify: automated      evidence: integration
 - SC-06: At the reviewed commit, the new behavioral test is registered in the repository's integration
-  suite and `merge-gitignore.sh` is unchanged unless commit history first shows a new test failing
+  suite and `merge-gitignore.py` is unchanged unless commit history first shows a new test failing
   against the documented outcome that the production change corrects.
   verify: inspection
 
@@ -61,7 +61,7 @@ precedence over the catch-all `test-*.py` unit detector.
 
 - Tests are authored and run against the untouched utility first. Production changes are permitted
   only when a failing behavioral test proves a violation of REQ-01 through REQ-05; a passing first run
-  leaves `merge-gitignore.sh` unchanged.
+  leaves `merge-gitignore.py` unchanged.
 - The resulting tests and any conditional production fix remain provider-neutral. The OpenAI provider
   overlay used by agents in this cycle does not enter repository behavior, remove Anthropic support,
   or alter Claude Code compatibility.

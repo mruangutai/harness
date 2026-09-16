@@ -33,7 +33,7 @@
   explicit LEAVE list for the near-misses meant zero spawn time spent re-judging them.
 
 - 2026-08-05: A concurrent flow (FEAT-09-plan-time-route-check) has BRIEF.md and PLAN.md
-  but no feature.yaml and no STATE.md, so `check-state.sh` reports its unapproved BRIEF
+  but no feature.yaml and no STATE.md, so `check-state.py` reports its unapproved BRIEF
   alongside mine. Two flows in plan phase therefore make the shared gate read 2 VIOLATIONs
   when both are simply pending signature. The gate cannot distinguish "pending terminus"
   from "regression", so an orchestrator must state which its own violations are rather than
@@ -46,7 +46,7 @@
   tasks. Stating the rule is not enough; the lead re-deriving which files a live test reads
   is what caught it.
 
-- 2026-08-05 (ship successor): the handoff's `## Trust` line "check-state.sh zero
+- 2026-08-05 (ship successor): the handoff's `## Trust` line "check-state.py zero
   violations — verified-at ae2443d" was FALSE on arrival and TRUE forty minutes later, at
   the same SHA, with nothing of FEAT-08 changed between. A concurrent flow signed its BRIEF
   in the gap. So a repo-wide gate's verdict is not a property of the SHA at all, and a

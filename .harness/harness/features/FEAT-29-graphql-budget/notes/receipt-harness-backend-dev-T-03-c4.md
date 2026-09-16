@@ -56,9 +56,9 @@ passed`, exit 0. Same three new checks, all `PASS`.
 ## `verify:` cross-check
 
 `plan.yaml`'s T-03 `verify:` field, read via `yaml.safe_load`:
-`.claude/skills/harness/bin/run-unit-tests.sh --kind unit\n` — matches the dispatch verbatim.
+`.claude/skills/harness/bin/run-unit-tests.py --kind unit\n` — matches the dispatch verbatim.
 
-### `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+### `.claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Exit 0. 0 `FAIL` lines. 18 `PASS <script>` lines (script-level convention, unchanged count).
 `test-gh-cost-log.py` reported **35/35 checks passed** — up from 32/32 recorded at HEAD 3fbfd0a,
@@ -75,7 +75,7 @@ PASS  factory_gh.run_gh wrap site, FAILING: the recorded rc equals the real exit
 PASS test-gh-cost-log.py
 ```
 
-### `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` (additional, per dispatch)
+### `.claude/skills/harness/bin/run-unit-tests.py --kind integration` (additional, per dispatch)
 
 Exit 0. 0 `FAIL` lines. 12 `PASS <script>` lines, unchanged. `test-factory-integration.py`
 reported `106/106 checks passed.` — same count as before this cycle (no integration check was
@@ -103,6 +103,6 @@ Other working-tree modifications present (`plan.yaml`, `feature.json`, `CLAUDE.m
 
 ## Scope discipline
 
-Did not touch `check-state.sh`, `test-check-state.py`, `test-gh-sync.py`, `.harness/notes/**`, or
-`.harness/logs/**`. Made no live `gh` call. Did not run `check-state.sh`. Did not act on B-1, B-2,
+Did not touch `check-state.py`, `test-check-state.py`, `test-gh-sync.py`, `.harness/notes/**`, or
+`.harness/logs/**`. Made no live `gh` call. Did not run `check-state.py`. Did not act on B-1, B-2,
 B-3, or the `hasNextPage`/null-`endCursor` item at `factory_gh.py:359-363`.

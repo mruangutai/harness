@@ -26,8 +26,8 @@
 
 ## Dead ends
 
-- **Do not "resync" the two duplicate-key detectors.** `check-domain.sh` raises via the
-  loader, `check-state.sh` scans — same vocabulary, deliberately different mechanism (D-02).
+- **Do not "resync" the two duplicate-key detectors.** `check-domain.py` raises via the
+  loader, `check-state.py` scans — same vocabulary, deliberately different mechanism (D-02).
   The comment at the `ALLOWED` set says so; reverting it re-opens the fail-open.
 - **Do not move `import harness_yaml` to the top of either hook.** It is lazy on purpose so
   a missing module still reaches the absent-manifest fail-open. T-13 shipped that bug; a
@@ -40,10 +40,10 @@
 
 ## Working set
 
-- **Hooks:** `check-domain.sh`, `bash-write-guard.sh` — both parse the manifest via
+- **Hooks:** `check-domain.py`, `bash-write-guard.py` — both parse the manifest via
   `harness_yaml.manifest_domains()`; one shared walk, so they cannot diverge (D-03).
 - **Module:** `harness_yaml.py` — the only `try: import yaml` in the tree (D-12).
-- **Readers:** `check-state.sh` (closes issue #11), `gh-sync.py`, `upgrade-config.py`.
+- **Readers:** `check-state.py` (closes issue #11), `gh-sync.py`, `upgrade-config.py`.
 - **Gate:** `test-harness-yaml-corpus.py` — walks every `.harness/**/*.yaml`; its negative
   fixtures are load-bearing, an always-green validity gate is no gate.
 - **Receipts:** `receipt-main-session-hook-resolution-probe.md` (Q3/Q6),

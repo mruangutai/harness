@@ -13,7 +13,7 @@ The configured QA gate cannot discover or run either required suite: both active
 
 Before reading implementation, the brief required tests for hand-derived all-grade metric fixtures; bidirectional grade movement; changed-function set exactness; CLI fields/statuses/determinism/ungraded input/reason demand; skill-example and five-agent delivery conformance; gate-policy loading/evaluation; reviewer digest policy cutover; and owner-manifest route regression.
 
-The changed test files contain direct coverage for those behaviors: `test-code-grade.py:19-41,111-173,177-230,240-264`; `test-code-grade-cli.py:51-111`; `test-gate-policy.py`; `test-validate-digest.py:1636-1648,1708-1782`; and `test-check-plan-routes.py:1379-1453`. Registration is present in `run-unit-tests.sh:30-32`; `test-code-grade-cli.py` is also in the integration detect string (`harness.json:119`). No coverage assertion gap was found by behavioral inspection.
+The changed test files contain direct coverage for those behaviors: `test-code-grade.py:19-41,111-173,177-230,240-264`; `test-code-grade-cli.py:51-111`; `test-gate-policy.py`; `test-validate-digest.py:1636-1648,1708-1782`; and `test-check-plan-routes.py:1379-1453`. Registration is present in `run-unit-tests.py:30-32`; `test-code-grade-cli.py` is also in the integration detect string (`harness.json:119`). No coverage assertion gap was found by behavioral inspection.
 
 The brief's documented gaps reconcile as follows: SC-11 is `verify: uat`, not an `ai_behavior` diff, so the null `eval` runner is not gate-required; no component/UI/TypeScript surface changed; functional is explicitly excluded; coverage instrumentation is absent but is not a configured test kind. None relaxes unit or integration.
 
@@ -21,10 +21,10 @@ The brief's documented gaps reconcile as follows: SC-11 is `verify: uat`, not an
 
 | Kind | Configured command | Outcome | Discovery/state |
 |---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 2 | `run-unit-tests.sh: no harness root could be resolved from .../.agents/skills/harness/bin — refusing to run`; zero named tests discovered; **misconfigured** |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 2 | same pre-discovery root-resolution failure; zero named tests discovered; **misconfigured** |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 2 | `run-unit-tests.py: no harness root could be resolved from .../.agents/skills/harness/bin — refusing to run`; zero named tests discovered; **misconfigured** |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 2 | same pre-discovery root-resolution failure; zero named tests discovered; **misconfigured** |
 
-The configured path resolves physically to `.claude/skills/harness/bin/run-unit-tests.sh`, but the runner derives `_SELF_BIN` from the symlink-spelled invocation (`run-unit-tests.sh:10-14`) and rejects it. The fix target is the configured invocation/root-resolution contract, not feature assertions.
+The configured path resolves physically to `.claude/skills/harness/bin/run-unit-tests.py`, but the runner derives `_SELF_BIN` from the symlink-spelled invocation (`run-unit-tests.py:10-14`) and rejects it. The fix target is the configured invocation/root-resolution contract, not feature assertions.
 
 ## History and findings
 

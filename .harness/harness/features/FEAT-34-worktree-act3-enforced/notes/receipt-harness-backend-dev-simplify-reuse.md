@@ -9,10 +9,10 @@ fold later, and this pass is flag-only against a pinned SHA regardless.
 ## Finding 1 — `_repo_arg_for_segment` re-spelled verbatim
 
 `.claude/skills/harness/bin/worktree_terminal.py:107-130` and
-`.claude/skills/harness/bin/post-merge-sweep.sh:100-119` carry the identical algorithm
+`.claude/skills/harness/bin/post-merge-sweep.py:100-119` carry the identical algorithm
 (match `"harness"` literally, else load `fleet.yaml` and match an entry's trailing segment) —
 diffed byte-for-byte, only parameter names and docstrings differ, the body is identical.
-post-merge-sweep.sh's own docstring names the reason: `worktree_terminal.py`'s module
+post-merge-sweep.py's own docstring names the reason: `worktree_terminal.py`'s module
 docstring restricts its public surface to `CLASSES`, `classify`, `classify_all` (D-10), so the
 private, same-named helper is "not for import" and gets re-derived instead.
 
@@ -20,11 +20,11 @@ Cost: the fleet-matching rule (currently: `name.split("/", 1)[-1] == segment`) n
 call sites that must be edited in lockstep on any change to how a repo segment resolves to a
 `--repo` argument — e.g. if fleet entries ever gain aliases or a repo can appear at more than
 one segment. Nothing enforces the two stay identical; the module's own docstring is what
-created the second copy, not an oversight in post-merge-sweep.sh.
+created the second copy, not an oversight in post-merge-sweep.py.
 
 Alternative: promote `_repo_arg_for_segment` to worktree_terminal.py's public surface (it
 already takes `factory_config` as an explicit parameter, so it has no hidden coupling to the
-module's private import cache) and have post-merge-sweep.sh call
+module's private import cache) and have post-merge-sweep.py call
 `worktree_terminal.repo_arg_for_segment(segment, factory_config)`. D-10 named the public
 surface as `CLASSES`/`classify`/`classify_all` only — widening it is a plan-level call, not
 mine to make silently.
@@ -36,26 +36,26 @@ call: backlog row after ship
 
 Three independent copies of the same operation (run `git worktree list --porcelain` with a
 given cwd, split on blank lines, pull the `worktree <path>` line):
-- `.claude/skills/harness/bin/check-state.sh:1117` (INV-25, untouched by this diff)
+- `.claude/skills/harness/bin/check-state.py:1117` (INV-25, untouched by this diff)
 - `.claude/skills/harness/bin/worktree_terminal.py:56-70` (`_worktree_list_raw`/`_worktree_paths`, new, private)
-- `.claude/skills/harness/bin/post-merge-sweep.sh:65-97` (`_resolve_main_checkout_root`, new)
+- `.claude/skills/harness/bin/post-merge-sweep.py:65-97` (`_resolve_main_checkout_root`, new)
 
 The dispatch asked me to check the plan's claim that INV-29 replaces INV-25's enumeration
 rather than duplicating it. **That claim holds for INV-29 itself** — INV-29's own comment
-block at check-state.sh (~line 1191) states plainly "THE ENUMERATION IS NOT REPEATED HERE"
+block at check-state.py (~line 1191) states plainly "THE ENUMERATION IS NOT REPEATED HERE"
 and it is true: INV-29 calls `worktree_terminal.classify_all(root)` and never runs its own
 `git worktree list`. But INV-25, several hundred lines earlier in the same file
-(check-state.sh:1109-1189, entirely outside this diff's `+`/`-` hunks), still runs its own
+(check-state.py:1109-1189, entirely outside this diff's `+`/`-` hunks), still runs its own
 raw enumeration and its own blank-line parse — it was never migrated to call
 `worktree_terminal.classify`/`_worktree_paths`, so the "replaces" framing is true of INV-29's
 relationship to INV-25's *logic*, not of INV-25's own code, which still exists unchanged.
 worktree_terminal.py's own docstring at `_worktree_paths` even says it "reuses the exact
-parsing shape check-state.sh already uses at :1117-:1135 ... rather than a second parser" —
+parsing shape check-state.py already uses at :1117-:1135 ... rather than a second parser" —
 which describes cloning the shape, not eliminating the original.
 
-post-merge-sweep.sh's third copy exists because `worktree_terminal.classify()` deliberately
+post-merge-sweep.py's third copy exists because `worktree_terminal.classify()` deliberately
 skips porcelain index 0 (the main checkout) from its returned records, so a caller that needs
-the main checkout path itself — as post-merge-sweep.sh does, to resolve where a *landed*
+the main checkout path itself — as post-merge-sweep.py does, to resolve where a *landed*
 feature dir lives — cannot get it from the public `classify`/`classify_all` surface at all,
 and has no public helper to call instead.
 
@@ -64,12 +64,12 @@ always the main checkout) is asserted as a load-bearing invariant in comments in
 places, but is implemented three times. A change to git's porcelain format, or a bug in the
 blank-line split (e.g. a path containing a blank line, or `bare`/`detached` records handled
 differently), has to be fixed in three places, and nothing signals when one drifts from the
-other two — check-state.sh's own INV-25 is explicitly named in the brief as "already built,
+other two — check-state.py's own INV-25 is explicitly named in the brief as "already built,
 do not rebuild," so this file is the one most likely to go stale silently.
 
 Alternative: add a public `main_checkout_path(root)` to worktree_terminal.py — a thin wrapper
-around the existing private `_worktree_paths(root)[0]` — and have both check-state.sh's INV-25
-and post-merge-sweep.sh's `_resolve_main_checkout_root` call it instead of running their own
+around the existing private `_worktree_paths(root)[0]` — and have both check-state.py's INV-25
+and post-merge-sweep.py's `_resolve_main_checkout_root` call it instead of running their own
 subprocess. That reduces three implementations to one, consistent with D-02's own stated
 purpose ("one predicate the gate and the hook cross, so they can never disagree").
 
@@ -111,7 +111,7 @@ Alternative: a `worktree_test_fixtures.py` (or extend `layout_fixtures.py`'s own
 holding `repo()`, `commit_feature()`, `add_wt()`, `extract_resolved_root()`,
 `assert_resolved_root_in_fixture()`, `stub_gh()`, `sweep_env()` once, imported by all three
 suites — mirroring the exact pattern `layout_fixtures.py` already established and that
-`run-unit-tests.sh`'s own drift detector already knows to skip (non-`test-*.py` fixture
+`run-unit-tests.py`'s own drift detector already knows to skip (non-`test-*.py` fixture
 modules are excluded from the file-naming scan per layout_fixtures.py's own docstring).
 
 severity: med
@@ -153,7 +153,7 @@ call: backlog row after ship
 
 ## Not flagged
 
-- `check-state.sh`'s INV-30 imports `gh_board` (`_gb30`) purely as an import-liveness check
+- `check-state.py`'s INV-30 imports `gh_board` (`_gb30`) purely as an import-liveness check
   and never calls anything on it — this mirrors INV-25/INV-29's own established pattern of
   gating on "the module ships with this repo, so failing to import is a tree defect." Not a
   reuse issue; it is the established idiom applied consistently.

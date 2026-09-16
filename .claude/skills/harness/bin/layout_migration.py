@@ -39,7 +39,7 @@ comments QUOTE the HARNESS_CONTROL_PLANE entry character for character; unit 4
 rewrites them in its own commit, and the detector holding the file MIXED until then is
 the behaviour we want, not a false positive.
 
-DO NOT READ these files under any surface: gh-sync.py, branch-create-gate.sh,
+DO NOT READ these files under any surface: gh-sync.py, branch-create-gate.py,
 validate-feature-json.py, the gitignore snippet, and prose. Map
 #336 lands them anytime under unit 9, so reading them would redden a sanctioned state.
 The feature-claiming tool's features row landed with the unit that fixed its root
@@ -47,12 +47,12 @@ The feature-claiming tool's features row landed with the unit that fixed its roo
 """
 
 import glob
-import json
 import os
 import re
 import sys
 from collections import namedtuple
 
+import artifact_accessors
 import harness_yaml  # a missing PyYAML is a LOUD error (DEC-171); no fallback exists
 
 # THE SURFACES ARE A FIXED ENUM, declared INDEPENDENTLY of the reader table. Every
@@ -77,7 +77,7 @@ READER_TABLE = [
     Row("features", ".harness/team-config.yaml",
         r"\.harness/features/",
         r"\.harness/[^/ ]+/features/"),
-    Row("features", ".agents/skills/harness/bin/check-domain.sh",
+    Row("features", ".agents/skills/harness/bin/check-domain.py",
         r"\.harness/features/",
         r"\.harness/(\*|\[\^/\]\+)/features/"),
     # The trailing `# balance:` comments below are LOAD-BEARING for a meta-gate, not
@@ -89,10 +89,16 @@ READER_TABLE = [
     Row("features", ".agents/skills/harness/bin/check-plan-routes.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".agents/skills/harness/bin/factory_claim.py",
+    # factory_claim.py's own join was MOVED to factory_config.py:features_root in
+    # BUG-1290 T-03 (D-04): unlike FEAT-42's docs row above, which was REMOVED
+    # because after that change no file carried the path string at all, here the
+    # string moved wholesale to a successor file, so this row moves with it rather
+    # than being removed — the surface keeps five rows and factory_config.py stays
+    # under coupled-reader scrutiny for the rule it now owns.
+    Row("features", ".agents/skills/harness/bin/factory_config.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".agents/skills/harness/bin/check-state.sh",
+    Row("features", ".agents/skills/harness/bin/check-state.py",
         r'os\.path\.join\(H, "features"',  # balance: )
         r'os\.path\.join\(H, [^,)]+, "features"'),
     # factory_config.py's own docs-path row was removed here (FEAT-42 T-04): the root
@@ -112,10 +118,11 @@ READER_TABLE = [
 
 # The one positive control for applicability (D-04, amended post-review): a root
 # without this marker is not the harness CONTROL PLANE and the scan is NOT
-# APPLICABLE. The first marker was check-state.sh's own path — wrong, because
-# harness-init installs the whole bin/ into product repos, so every onboarded
-# product became "applicable" with no layout evidence and went cannot-verify
-# forever. The fleet declaration is the one file only the control plane carries:
+# APPLICABLE. The first marker was check-state.py's own path — wrong, because any copy or
+# worktree of the control plane carries every reader file, and only the control plane carries the fleet declaration.
+# Onboarding installs no bin/ into a product repository at all: that marker gave every
+# onboarded product "applicable" with no layout evidence and went cannot-verify forever.
+# The fleet declaration is the one file only the control plane carries:
 # products are DECLARED IN it, never holders OF it. It also feeds the
 # migrated-evidence scan below, so applicability and segment authority come from
 # the same fact. Case 1 scans the real root and demands non-zero counts — that
@@ -156,16 +163,16 @@ def _declared_segments(root):
     plus harness's own segment from harness.json github.repo when present. A parse
     failure raises — the fleet IS the applicability marker, so an unreadable fleet at
     an applicable root is a tree defect, reported loudly by the caller."""
-    fleet = harness_yaml.load_file(os.path.join(root, MARKER)) or {}
+    fleet = artifact_accessors.load_fleet(os.path.join(root, MARKER)) or {}
     segs = {str(r.get("name", "")).split("/", 1)[-1]
             for r in (fleet.get("repos") or []) if isinstance(r, dict) and r.get("name")}
     try:
-        hj = json.load(open(os.path.join(root, ".harness", "harness.json"),
-                            encoding="utf-8"))
+        hj = artifact_accessors.load_harness_json(
+            os.path.join(root, ".harness", "harness.json"))
         own = ((hj.get("github") or {}).get("repo") or "")
         if own:
             segs.add(own.split("/", 1)[-1])
-    except (OSError, ValueError):
+    except artifact_accessors.ArtifactAccessError:
         pass  # a product-shaped or minimal tree has no harness.json; the fleet rules
     return {s for s in segs if s}
 
@@ -216,7 +223,7 @@ def _reader_formset(root, row):
 
 def scan(root, table=None):
     """Judge every surface of the enum at `root`. Returns a Result; never prints,
-    never exits — check-state.sh composes INV-27's wording from this object and must
+    never exits — check-state.py composes INV-27's wording from this object and must
     not re-parse CLI text."""
     table = READER_TABLE if table is None else table
     validate_table(table)
@@ -269,7 +276,7 @@ def scan(root, table=None):
 
 def blame(rep):
     """THE ONE BLAME POLICY (issue #379): which readers a finding names, with their
-    form-set tags. Both call sites — render() below and check-state.sh's INV-27 —
+    form-set tags. Both call sites — render() below and check-state.py's INV-27 —
     compose from this, so CI and session entry can never name different readers for
     the same tree. A reader is blamed when its form-set is itself defective (both,
     neither, unreadable) or disagrees with a single evidence shape; on a MIXED
@@ -292,7 +299,7 @@ def blame_text(rep):
 
 def cause_text(rep, root):
     """The one wording per CANNOT_VERIFY cause, module-owned so render() and
-    check-state.sh's INV-27 cannot drift a clause apart (the cause table used to
+    check-state.py's INV-27 cannot drift a clause apart (the cause table used to
     live twice). An unrecognised cause returns a loud sentence rather than nothing."""
     if rep.cause == "unreadable":
         return "a coupled reader could not be read"

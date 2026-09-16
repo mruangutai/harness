@@ -23,7 +23,7 @@ once per feature and it is done.
   `advisory_unless_high` — `runs/qa-gate-validator/digest.md`, `runs/2026-08-14-1-validator/digest.md`
   — verified-at ea476fd
 - Close-out distillation: 38 ops over 12 files, net 269 → 293 entries, **no entry id lost**, measured
-  against `8cd251a` which predates every distillation write; `check-expertise.sh` exits 0 over all 13
+  against `8cd251a` which predates every distillation write; `check-expertise.py` exits 0 over all 13
   files — commit `072be78` — verified-at 1b7702b
 - The `2026-08-14-3-validator` run is recorded `BLOCKED` and that is honest, not a stuck feature: its
   work landed in full, and `validate-digest.py` binds `qa` to gate fields a distillation never runs,

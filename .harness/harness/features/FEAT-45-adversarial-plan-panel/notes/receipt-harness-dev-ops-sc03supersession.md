@@ -13,7 +13,7 @@ mutant, then reverted with zero footprint.
   skipped and counted as such, matching section 2/4b's existing convention. For each
   non-empty output template it renders cycle 0 and cycle 1, asserts the two rendered
   paths **differ** (the actual anti-clobber property — not token presence), and asserts
-  **both** resolve via `_resolve`/`check-domain.sh --resolve` to the step's own persona
+  **both** resolve via `_resolve`/`check-domain.py --resolve` to the step's own persona
   (via `_agrees`), catching a path that renders distinctly but resolves to nobody.
 - Check names all contain `overwrite`/`supersede` (literal substrings `overwrit`/`supersed`)
   so a future SC-03 grep hits them; previously zero matches existed for that grep.
@@ -35,9 +35,9 @@ cycle's record: c0 path differs from c1 path`, `(9) scope c0 output ... resolves
 persona code-reviewer (superseded-run record survives)`, `(9) scope c1 output ...
 resolves to persona code-reviewer (superseded-run record survives)`.
 
-### 2. `run-unit-tests.sh --kind unit`
+### 2. `run-unit-tests.py --kind unit`
 ```
-$ out=$(HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1); rc=$?
+$ out=$(HARNESS_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1); rc=$?
 $ printf '%s\n' "$out" | grep -c '^FAIL '
 0
 $ echo "runner_rc=$rc"
@@ -65,7 +65,7 @@ A **control run** in the same mirrored `/tmp` root, with the unmutated
 `(2) scope output ... resolves to persona code-reviewer`, `(2) the playbook's
 goal-check note path resolves to harness-pm`, and section 9's two per-cycle
 persona-resolution checks, all reporting `stdout='NOBODY'` — are therefore **not**
-caused by the mutation: `check-domain.sh --resolve` cannot resolve paths inside a
+caused by the mutation: `check-domain.py --resolve` cannot resolve paths inside a
 symlink-mirrored `/tmp` root (its harness/git-worktree detection), an artifact of this
 proof harness, not of the mutation or the code under test.
 

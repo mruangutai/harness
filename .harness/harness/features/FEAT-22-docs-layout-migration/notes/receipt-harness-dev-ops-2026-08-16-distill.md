@@ -59,7 +59,7 @@ no cap pressure (Gotchas at 7/15 before, room for more).
 
 ## Checker
 
-Ran verbatim: `bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/`
+Ran verbatim: `python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/`
 
 ```
 OK   .harness/expertise/harness-backend-dev.md

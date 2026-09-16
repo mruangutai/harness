@@ -1,0 +1,5 @@
+# Fix c2 — FEAT-1714 (validate c1 FAIL: QA-C1-01, QA-C1-02) — by Main, main-session-direct (DEC-174)
+
+- **QA-C1-01.** The first-sync case now asserts the PARSED plan two-sided (`status == "rejected"` AND `source_issues == [1714]`) and byte-for-byte that the plan equals its baseline with only `status: plan` → `status: rejected`; a final-station write that drops or rewrites `source_issues` fails both.
+- **QA-C1-02.** Sequence, not final state: `FAKE_GH_STATION_TRACE` stamps the plan's `status:` line onto every remote call it logs, and the numeric and first-sync success cases assert every remote write saw the pre-reject station (`building` / `plan`) — a station write moved ahead of any remote write shows on that call. `none` failure arm: the comment fails (`FAKE_GH_STATIONS_COMMENT_FAILS`) → exit 1 naming the step and the landed close, backlog and milestone NOT run (stderr + call log), station untouched — so a caller obeying "only after it exits 0" never writes `rejected`.
+- 22 reject checks green; `code-grade.py --base origin/main --head HEAD`: 0 FAIL. Matrix at HEAD: unit OK, integration OK.

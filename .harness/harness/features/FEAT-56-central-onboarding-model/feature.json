@@ -1,0 +1,385 @@
+{
+  "feature_id": "FEAT-56-central-onboarding-model",
+  "branch": "feat/FEAT-56-central-onboarding-model",
+  "pr": 1562,
+  "review_sha": "47a7ecd2c645864741b315fe77312780b08eb590",
+  "cycles_used": 20,
+  "max_total_cycles": 22,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-09-08-01-plan-advisor-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-audit-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-02-plan-draft-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-02-plan-goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-03-plan-fix1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-02-plan-panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-03-plan-fix2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-04-plan-fix3-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-01-t04-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-08-01-t02-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-08-t06fix-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-t07-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "2026-09-08-t03-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-08-05-qa-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-qa"
+    },
+    {
+      "id": "2026-09-08-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-08-03-review-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "fix-docs-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "2026-09-08-06-fix-code-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-08-07-goalcheck-ship-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-01-stalestrings-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "2026-09-08-uat-fix-main",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-orchestrator"
+    },
+    {
+      "id": "2026-09-08-uat-tracks-main",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-orchestrator"
+    },
+    {
+      "id": "2026-09-08-1-rescope-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "rescope-advisor-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-01-replan-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-goalcheck-c1-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-replanfix-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-08-plan-panel-c1-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-panelfix-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-09-01-opamend-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-09-goalcheck-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-09-floorguard-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-09-01-d13-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-09-t09-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "2026-09-09-t18-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "t16-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "t20-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "t14-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "2026-09-09-01-t17-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-qa"
+    },
+    {
+      "id": "fixpin-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "2026-09-09-01-d14-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "qa-c2-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-qa"
+    },
+    {
+      "id": "simplify-c2-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "review-c2-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-panelfix-c2-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "review-c3-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-doorguard-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "goalcheck-ship-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "renumber-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "2026-09-09-01-rehome-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "2026-09-09-01-deccite-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "2026-09-09-1-t03verify-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "d08fix-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    }
+  ],
+  "github": {
+    "milestone": 63,
+    "parent": 1508,
+    "attached": [
+      "T-04",
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-18",
+      "T-19",
+      "T-20"
+    ],
+    "issues": {
+      "T-01": 1510,
+      "T-02": 1511,
+      "T-03": 1512,
+      "T-04": 1509,
+      "T-05": 1513,
+      "T-06": 1514,
+      "T-07": 1515,
+      "T-08": 1516,
+      "T-09": 1528,
+      "T-10": 1529,
+      "T-11": 1530,
+      "T-12": 1531,
+      "T-13": 1532,
+      "T-14": 1533,
+      "T-15": 1534,
+      "T-16": 1535,
+      "T-17": 1536,
+      "T-18": 1537,
+      "T-19": 1538,
+      "T-20": 1539
+    },
+    "source_issues": [
+      206
+    ],
+    "build_entry": "opened"
+  }
+}

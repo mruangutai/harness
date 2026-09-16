@@ -42,6 +42,6 @@ cross-reference only (5870–5872). Stray `---` that arrived with the DEC-201 am
 
 ## Notes (reported, not edited)
 
-- DEC-159 line 3714–3718 still describes `check-domain.sh`'s handoff shape gate as `>40 lines`
+- DEC-159 line 3714–3718 still describes `check-domain.py`'s handoff shape gate as `>40 lines`
   while 3697 says the cap was raised to ~60 at DEC-160. Out of scope for this fold (un-amended
   remainder); flagged for whoever owns DEC-159's next pass.

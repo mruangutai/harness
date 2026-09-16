@@ -2,7 +2,7 @@
 
 Pinned range `d135364e..8e7f56dc`. `.claude`/`.github` are byte-identical to `b86ce66a` (measured by
 the dispatcher), so this review is of that build commit. Read-only: nothing here was fixed, nothing
-was run through `run-unit-tests.sh` or `run_pool.py`'s CLI over the live suite — that is qa's
+was run through `run-unit-tests.py` or `run_pool.py`'s CLI over the live suite — that is qa's
 instrument. Original probes below ran against copies of code loaded via `importlib` from system
 tempdirs, or against the shipped files directly with `read`/`grep`; nothing in the worktree was
 written. `code-grade.py` was run directly (a grading tool, not the suite runner) with
@@ -40,7 +40,7 @@ verified the code that produced it):
   (`:78-88`); each block prints `----- name (exit rc, Ns) -----` / captured output / `PASS`|`FAIL
   name` (`:83-87`, matches D-07 exactly); `pool: N workers, K files, Ts wall` and `slowest:` lines
   print unconditionally (`:96-98`); worker count follows D-06's rule exactly (`:12-25`).
-- **REQ-06** — PASS. Diffed `git show d135364e:…/run-unit-tests.sh` against the shipped file myself
+- **REQ-06** — PASS. Diffed `git show d135364e:…/run-unit-tests.py` against the shipped file myself
   (not trusting the intent text): drift detector, `--check-kinds`, unknown-kind exit 2, and the
   `PASS $s`/`FAIL $s` line shape are byte-identical up through the point the serial loop used to
   start; that loop (`for s in "${SCRIPTS[@]}"; do … done`, the only line containing
@@ -51,7 +51,7 @@ verified the code that produced it):
   narrow avenue to exit 2 that did not exist before — a malformed `HARNESS_TEST_WORKERS` in the
   caller's environment — is intentional per D-06 ("a typo … must not be invisible") and is declined
   as a finding: it is a configuration refusal, not a contract break, and the sole caller
-  (`run-unit-tests.sh`) never sets `--workers` or a bad env value itself.
+  (`run-unit-tests.py`) never sets `--workers` or a bad env value itself.
 - **REQ-07** — PASS. `test-run-pool.py`'s "completion order is not input order" case
   (`main()`, the `slow.py`/`parallel`/`serial` block) drives `--workers 4` against `--workers 1` and
   asserts `p_order != s_order and set(p_order) == set(s_order)`, matching SC-08 exactly.
@@ -192,7 +192,7 @@ answer (neither blocks on its own).
   code path is trivial and symmetric with the tested env-var path (`worker_count`, `:12-25`,
   single shared `if explicit <= 0: raise` guard covers both), and T-04's own build-time `verify:`
   block did exercise `--workers 3` at least once. Not gating.
-- The new avenue to exit 2 in `run-unit-tests.sh` via a malformed `HARNESS_TEST_WORKERS` — declined
+- The new avenue to exit 2 in `run-unit-tests.py` via a malformed `HARNESS_TEST_WORKERS` — declined
   above under REQ-06, restated here: a real behavior change, but an intentional and narrow one, and
   unreachable through the only caller in scope.
 - Root-directory-as-symlink for `--mutation-check DIR` itself: probed, confirmed correct (detects

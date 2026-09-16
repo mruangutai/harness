@@ -76,15 +76,15 @@ reverses ten features of growth in one pass and makes the next ten impossible.
   baseline/HEAD question the operator already closed by measurement and instructed us not to
   re-raise.**
 - **PRECONDITION — the `unit` suite must be green before T-03 lands, and it is.** Measured
-  2026-08-10: `run-unit-tests.sh --kind unit` exits **0**, 10 scripts PASS, 0 FAIL, 0 SKIP — run from
+  2026-08-10: `run-unit-tests.py --kind unit` exits **0**, 10 scripts PASS, 0 FAIL, 0 SKIP — run from
   a detached worktree at `96d5d5c` (main HEAD) with a clean tree, because the session's working tree
   carried uncommitted edits to the runner and to three of its test files and a working-tree green
   would not be the green CI evaluates. The `--kind unit` flag itself exists at `96d5d5c`
-  (`run-unit-tests.sh:23`), so MF-6 puts a flag on the required `integration` job that the committed
+  (`run-unit-tests.py:23`), so MF-6 puts a flag on the required `integration` job that the committed
   runner accepts. **This green is not a permanent property**: it is green for the suite as it stands
   *before* this feature's own tests exist, and T-01/T-02 add suites that need a real `jsonschema`.
   Re-check it immediately before T-03 lands; if it has gone red for a pre-existing reason, record
-  that as a baseline with its sha exactly as the `check-state.sh` baseline below is recorded, rather
+  that as a baseline with its sha exactly as the `check-state.py` baseline below is recorded, rather
   than landing a required check that is red on arrival.
 - **PRECONDITION — `jsonschema` must be importable on the build machine before T-06 lands. It IS,
   and this precondition is DISCHARGED.** `jsonschema` **4.26.0 is installed** to the user
@@ -107,7 +107,7 @@ reverses ten features of growth in one pass and makes the next ten impossible.
   file. That is the right version to check against, because the build waits for FEAT-12.
   `.harness/team-config.yaml` is byte-identical between `3569a20` and `06ae963`, so the plan's
   `lanes:` resolution is unaffected by the move.
-- **BASELINE — `check-state.sh` already exits 1 before this feature changes anything, and the
+- **BASELINE — `check-state.py` already exits 1 before this feature changes anything, and the
   baseline is CAPTURED at build time, not written here.** Two readings, both stated as history and
   neither binding: at `06ae963`, four violations (FEAT-13's BRIEF unapproved, FEAT-14's BRIEF
   unapproved, `FEAT-12: phase is 'build' but notes/handoff-plan.md is missing`, and
@@ -122,14 +122,14 @@ reverses ten features of growth in one pass and makes the next ten impossible.
   FEATURE-SPECIFIC, never wildcard: a new unapproved BRIEF appearing during the wait must read as
   NEW. Message text changes at T-06 (`no feature.yaml` becomes `no feature.json`, and INV-18 gains a
   template name), so both sides are keyed on the stem that survives the rename.
-- **DEC-174 carve-out is live.** `check-state.sh`, `check-domain.sh`, `bash-write-guard.sh` and
+- **DEC-174 carve-out is live.** `check-state.py`, `check-domain.py`, `bash-write-guard.py` and
   `validate-digest.py` are edited directly by the main session, never dispatched. This feature
-  touches **three** of the four — `check-state.sh`, `check-domain.sh` and `validate-digest.py`, all
-  in T-06; `bash-write-guard.sh` is untouched. Signing this does not widen the carve-out: DEC-174
+  touches **three** of the four — `check-state.py`, `check-domain.py` and `validate-digest.py`, all
+  in T-06; `bash-write-guard.py` is untouched. Signing this does not widen the carve-out: DEC-174
   already names all four. What is new is concentration — three enforcement scripts edited in one
   task, in one build.
 - **THE LANDING UNIT IS ONE PULL REQUEST.** Every task lands on one branch and merges as a single
-  PR. This is not a preference: `check-state.sh` is red by construction between T-06 and T-08, and
+  PR. This is not a preference: `check-state.py` is red by construction between T-06 and T-08, and
   the four repointed readers are red between T-05 and T-08. On one PR those windows exist only in
   the working tree and the required `integration` context is evaluated once, at the end. Landing
   incrementally would leave that required context red across both windows and the branch could not
@@ -137,7 +137,7 @@ reverses ten features of growth in one pass and makes the next ten impossible.
 - JSON over YAML was settled by the operator on 2026-08-09 and reaffirmed at grilling. Not reopened.
 - `jsonschema` over a hand-rolled stdlib checker was settled at grilling: a checker and a schema that
   can disagree is the two-copies drift this org keeps finding. Not reopened.
-- `state.yaml` is out of scope — it already has a closed key set (`check-state.sh` `CHECKPOINT_KEYS`,
+- `state.yaml` is out of scope — it already has a closed key set (`check-state.py` `CHECKPOINT_KEYS`,
   DEC-154).
 - `check-docs.sh` is named in issue #204 step 7. **It no longer exists** — struck under #202. It must
   not be planned.
@@ -152,17 +152,17 @@ census (`notes/research-FEAT-14-reader-census.md`) returns:
 
 **(a) keys with a CODE reader** — `key -> file:line -> the expression that consumes it`:
 
-- `runs[].id|squad|verdict` -> `bin/check-state.sh:184-190` -> `entry.get("id"/"squad"/"verdict")`
-- `review_sha` -> `bin/check-state.sh:195` -> `val("review_sha")` against `PLACEHOLDER_UNSET`
-- `cycles_used` -> `bin/check-state.sh:203` -> `val("cycles_used")` against the FAIL-run count
-- `max_total_runs` -> `bin/check-state.sh:249` -> `_as_budget(val("max_total_runs"))`
-- `phase` -> `bin/check-state.sh:450` -> `str(_doc.get("phase",""))` — **this reader is DELETED, not
+- `runs[].id|squad|verdict` -> `bin/check-state.py:184-190` -> `entry.get("id"/"squad"/"verdict")`
+- `review_sha` -> `bin/check-state.py:195` -> `val("review_sha")` against `PLACEHOLDER_UNSET`
+- `cycles_used` -> `bin/check-state.py:203` -> `val("cycles_used")` against the FAIL-run count
+- `max_total_runs` -> `bin/check-state.py:249` -> `_as_budget(val("max_total_runs"))`
+- `phase` -> `bin/check-state.py:450` -> `str(_doc.get("phase",""))` — **this reader is DELETED, not
   repointed**: `phase` collapses into `status` and T-12 rebuilds INV-17 around the six values
 - `status` -> `bin/check-plan-routes.py:427` -> `str(doc.get("status","")).split()[0] in SHIPPED_STATUSES`
-- `github` -> `bin/gh-sync.py:247-260` and `bin/check-state.sh:729-737` -> `load_recorded`'s
+- `github` -> `bin/gh-sync.py:247-260` and `bin/check-state.py:729-737` -> `load_recorded`'s
   `milestone/parent/parent_origin/attached/issues`; INV-21's `gblk.get("issues"/"parent")`
 - `factory` -> `bin/factory_decompose.py:94-138`, `bin/factory_claim.py:116-131`,
-  `bin/check-state.sh:758-798` -> `doc.get("factory")` then `repo/parent/parent_origin/issues/items/edges`
+  `bin/check-state.py:758-798` -> `doc.get("factory")` then `repo/parent/parent_origin/issues/items/edges`
 
 **(b) keys kept only because a SKILL.md/SPEC.md line instructs an agent to consume them: EMPTY.**
 Every prose site naming a field names one of the ten (`harness/SKILL.md:15,23,26,61,271`,
@@ -238,7 +238,7 @@ two differ on duplicate top-level keys; all loaded clean under both) — plus th
   **Verdict: `pr` is `integer or null`** and the migration rewrites `none` to `null` — JSON has a
   native null and the placeholder string was a YAML-era workaround.
 - `branch` (`none` in 3) and `review_sha` (`none` in 3) stay `type: string` with the literal `none`
-  permitted: `check-state.sh` INV-6 already treats `none` as unset via `PLACEHOLDER_UNSET`, and
+  permitted: `check-state.py` INV-6 already treats `none` as unset via `PLACEHOLDER_UNSET`, and
   changing those two to null would alter a gate script's input for no gain.
 - **`runs[]` required keys — censused, and they pass.** All **150** run entries across the corpus at
   `06ae963` carry all three of `id`, `squad`, `verdict`; zero entries are missing any, and zero
@@ -255,7 +255,7 @@ something else — so neither is left to CI to discover.
   Measured: at `a29ad06` the checker reports **0 violations across 12 plans**; with the tuple emptied
   — the exact state T-04 leaves it in — it reports **35 violations across 16 plans**. That window
   opens at T-04 and closes at T-11, inside one PR.
-- **`check-state.sh`'s INV-17 goes DARK if `phase` is simply deleted.** `PHASE_ORDER` is read at
+- **`check-state.py`'s INV-17 goes DARK if `phase` is simply deleted.** `PHASE_ORDER` is read at
   line 437, `phase` at 450, and line 451 is `if _phase not in PHASE_ORDER: continue`. With `phase`
   gone, `_phase` is `""` on all 17 features, never in `PHASE_ORDER`, so the loop `continue`s on every
   one: **the invariant stops firing entirely and nothing reddens.** A gate that examines nothing
@@ -296,24 +296,24 @@ Three candidates, and "loud failure" means something different in each:
 
 | Where | What "loud" means there | Verdict |
 |---|---|---|
-| `bash-write-guard.sh` (PreToolUse) | the write is denied before it lands | **rejected** — it guards Bash-route writes, not the Write tool the orchestrator actually uses, and DEC-171 am.1's fail-closed shape would put schema logic behind a bootstrap escape |
-| `check-state.sh` | a pre-commit sweep reddens after the bad write is already on disk | **rejected as the primary point** — detection after the fact, and it is fully inside the DEC-174 carve-out |
-| `check-domain.sh`'s existing write-payload path + a new `bin/validate-feature-json.py` in the required `integration` CI job | the write is denied at the moment it is attempted, and a bypass is caught red on the PR | **recommended** |
+| `bash-write-guard.py` (PreToolUse) | the write is denied before it lands | **rejected** — it guards Bash-route writes, not the Write tool the orchestrator actually uses, and DEC-171 am.1's fail-closed shape would put schema logic behind a bootstrap escape |
+| `check-state.py` | a pre-commit sweep reddens after the bad write is already on disk | **rejected as the primary point** — detection after the fact, and it is fully inside the DEC-174 carve-out |
+| `check-domain.py`'s existing write-payload path + a new `bin/validate-feature-json.py` in the required `integration` CI job | the write is denied at the moment it is attempted, and a bypass is caught red on the PR | **recommended** |
 
-The recommendation exploits something already built: `check-domain.sh:506` (`SWEEP_GLOBS`) and
+The recommendation exploits something already built: `check-domain.py:506` (`SWEEP_GLOBS`) and
 `:636` already inspect `.harness/features/*/feature.yaml` **write payloads** for the 200-line budget.
 One validator implementation lives in `bin/feature_schema.py`, an importable module in the house's
 existing shape (`harness_yaml.py`, `gh_issues.py`, `factory_*.py` are modules; `gh-sync.py`,
 `check-plan-routes.py` are CLIs), with a thin `bin/validate-feature-json.py` wrapper for the CLI
-callers — CI, the migration tasks and the corpus sweep. `check-domain.sh` already exports
+callers — CI, the migration tasks and the corpus sweep. `check-domain.py` already exports
 `PYTHONPATH` and imports `harness_yaml` in-process, so the carve-out edit is an **import and a
-call**, not a subprocess: no per-write interpreter launch (the 104.7 ms `check-domain.sh:92`
+call**, not a subprocess: no per-write interpreter launch (the 104.7 ms `check-domain.py:92`
 measured and T-13 removed), no temporary file, and the unavailable-checker case is an ordinary
 `except ImportError` branch rather than a subprocess that failed to launch. Three enforcement layers
 is scope creep; the operator signs one boundary.
 
 **Fail-closed here has NO bootstrap escape, and that is deliberate rather than an omission.**
-`check-domain.sh`'s bootstrap grant (`harness_yaml.require_or_bootstrap`) is reached only inside
+`check-domain.py`'s bootstrap grant (`harness_yaml.require_or_bootstrap`) is reached only inside
 `if _run_domain:` — a governed `harness-*` agent, PRE mode. The shape phase, which is where this
 check lives, runs for **every** writer including the main session (the no-`agent_type` carve-out is a
 flag, `_governed`, not an exit — it used to be a bare `sys.exit(0)` and that silently disabled the
@@ -324,7 +324,7 @@ where the escape exists because the gate cannot read its own manifest without it
 depends on **stdlib `json` plus `jsonschema` only, never PyYAML**, so the user-ruled `_no_parser`
 fail-open on the `state.yaml` branch does not apply to it and must not be copied onto it.
 
-**What "at the moment of the write" can actually mean, per route.** `check-domain.sh` already runs
+**What "at the moment of the write" can actually mean, per route.** `check-domain.py` already runs
 in two modes (its own header, measured under issue #132): `PreToolUse` on the **Write** route
 measures the payload and BLOCKS with exit 2 — the only mode that can prevent; `PostToolUse` on
 **Write, Edit and Bash** reads what landed on disk and exits 2, whose stderr reaches the agent —
@@ -343,7 +343,7 @@ so it breaches at ~38.
 
 ## The missing template — fixed by both
 
-`check-state.sh:487` (INV-18) and `.claude/skills/harness/SKILL.md:23` both instruct instantiation
+`check-state.py:487` (INV-18) and `.claude/skills/harness/SKILL.md:23` both instruct instantiation
 from a template that does not exist. This ships `templates/feature.json` **and** rewords both
 instructions to name the file, because shipping the template alone leaves two instructions whose
 target a reader still has to guess at.
@@ -397,7 +397,7 @@ call because its citations ARE the evidence, not an illustration of it.
   undeclared key.
   verify: automated        evidence: unit
 - SC-04: On the **Write** route, a payload carrying an invented key on a feature's execution-state
-  path is DENIED before it lands — demonstrated by running `check-domain.sh` in `PreToolUse` mode on
+  path is DENIED before it lands — demonstrated by running `check-domain.py` in `PreToolUse` mode on
   that payload and reading exit 2, not by reading the source.
   verify: automated        evidence: integration
 - SC-05: On the **Edit** and **Bash** routes, where no payload can be inspected, the same invented
@@ -416,7 +416,7 @@ call because its citations ARE the evidence, not an illustration of it.
   naming the missing package and the install command; it never exits 0 and never prints a skip.
   Demonstrated by running it with the import forced to fail.
   verify: automated        evidence: unit
-- SC-08: `check-state.sh` over the converted corpus reports **no violation outside the baseline
+- SC-08: `check-state.py` over the converted corpus reports **no violation outside the baseline
   captured by T-04 before the migration's first write** — the count may only fall, never rise, and no
   new violation text appears. It is NOT "exits 0": it exits 1 today for reasons this feature does not cause.
   Additionally its INV-18, INV-21, INV-22, INV-23 and factory invariants still fire on a
@@ -442,7 +442,7 @@ call because its citations ARE the evidence, not an illustration of it.
   the rejection message for an undeclared key names a destination from the redirection table.
   verify: inspection
 - SC-12: `.claude/skills/harness/templates/feature.json` exists and itself validates against the
-  schema, and both instructions that point at a template (`check-state.sh` INV-18 message and
+  schema, and both instructions that point at a template (`check-state.py` INV-18 message and
   `harness/SKILL.md:23`) name it by filename.
   verify: automated        evidence: unit
 - SC-13: No reference to `feature.yaml` survives anywhere the harness reads or **instructs** from —
@@ -464,7 +464,7 @@ call because its citations ARE the evidence, not an illustration of it.
   verify: uat
 - SC-16: **A checker that cannot run DENIES.** With the schema checker unavailable in the
   environment, an otherwise-VALID execution-state payload on the Write route yields **exit 2** from
-  `check-domain.sh` in `PreToolUse` mode — not exit 1, which is non-blocking and would let the write
+  `check-domain.py` in `PreToolUse` mode — not exit 1, which is non-blocking and would let the write
   land — and the message names the **real target path**, never a temporary file. Demonstrated by
   running the hook with the import forced to fail and reading the exit code, not by reading the
   source. A sweep over many files emits the unavailability message once, not once per file.
@@ -493,9 +493,9 @@ call because its citations ARE the evidence, not an illustration of it.
   (c) a `Done` feature whose plan carries **no `execution_mode` key at all**, and one whose `tasks:`
   list is **empty or absent**, each RAISE — the exemption is keyed on the plan's declared modes,
   never on the notes' absence, and "every task is main-session-direct" must not pass vacuously over
-  an empty list. **No assertion here is "check-state.sh exits 0"** — a dead
+  an empty list. **No assertion here is "check-state.py exits 0"** — a dead
   invariant produces exactly that exit, so a clean exit is not evidence here. Additionally
-  `check-state.sh`'s **executable code** — comments stripped — contains no `PHASE_ORDER`, no read of
+  `check-state.py`'s **executable code** — comments stripped — contains no `PHASE_ORDER`, no read of
   a `phase` key, and builds no `handoff-<Capitalized>.md` path, which would pass on a
   case-insensitive filesystem and fail on Linux CI. **Comments may name all three**: the task
   requires a comment recording what replaced `PHASE_ORDER` and why the stems are decoupled, so a
@@ -507,11 +507,11 @@ call because its citations ARE the evidence, not an illustration of it.
 - `functional`, `component`, `ui`, `eval` and `typecheck` have `cmd: null` in
   `.harness/harness.json` — no runner. **No SC above rests on any of them**, and this feature
   touches none of those surfaces (no UI, no LLM behaviour, no database path). No gap applies.
-- New test files must be registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS` array, not
+- New test files must be registered in `run-unit-tests.py`'s `UNIT_SCRIPTS` array, not
   `INTEGRATION_SCRIPTS`: the `integration` kind's `detect` globs name only `test-check-state.py` and
   `test-factory-integration.py`, so a new file registered there would match no detect glob and the
   qa gate would see it as covering nothing. SC-04, SC-05, SC-08, SC-13, SC-14, SC-16 and SC-18 name
-  `integration` because the command that proves them is `run-unit-tests.sh --kind integration`,
+  `integration` because the command that proves them is `run-unit-tests.py --kind integration`,
   which is what the required CI job runs; their assertions live in `test-check-state.py` and
   `test-check-domain.py`, both listed in the runner's `INTEGRATION_SCRIPTS`.
 - **The required CI job does not run the new unit suite as it stands, and T-03 fixes that.**
@@ -522,10 +522,10 @@ call because its citations ARE the evidence, not an illustration of it.
   context is that job's id) and amends the standing comment in `tests.yml` that says the unit kind
   "would have caught none of the defects that motivated this" — true when written, false once
   REQ-06's proof lives there.
-- **`check-state.sh` is red between T-06 and T-08 by construction** — the globs name `feature.json`
+- **`check-state.py` is red between T-06 and T-08 by construction** — the globs name `feature.json`
   while the corpus is still `feature.yaml`, so INV-18 fires for every feature still on YAML. That
   window is accepted and stated in T-06; the branch is not committed until T-08 returns
-  `check-state.sh` to its captured pre-migration baseline. Nothing else in this feature relies on `check-state.sh` in between.
+  `check-state.py` to its captured pre-migration baseline. Nothing else in this feature relies on `check-state.py` in between.
 
 ## Approval
 

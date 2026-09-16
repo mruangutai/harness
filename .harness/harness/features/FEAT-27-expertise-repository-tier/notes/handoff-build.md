@@ -22,7 +22,7 @@ from.
 - Both suites are green: `--kind unit` exit 0 / 137 PASS, `--kind integration` exit 0 / 90 PASS, zero `FAIL` lines — I ran both myself with exit status captured in a variable — verified-at 252fa72
 - SIMPLIFY ran as four independent read-only angles and applied NOTHING, so the tree is unchanged by it and the pin is not invalidated — `runs/simplify-eng/digest.md` — verified-at 252fa72
 - Six assertions in this repo cannot redden, and one handed-down seventh was refuted on evidence — `runs/qa-final-validator/digest.md` `adequacy_notes` — verified-at 252fa72
-- T-07's `case13` is mutation-proven: 18/19 against a guard-removed copy, `case13` the sole FAIL, and `inject-expertise.sh` byte-identical afterwards — I checked the restore with `git diff` — verified-at 252fa72
+- T-07's `case13` is mutation-proven: 18/19 against a guard-removed copy, `case13` the sole FAIL, and `inject-expertise.py` byte-identical afterwards — I checked the restore with `git diff` — verified-at 252fa72
 - `plan.yaml`'s approval block predates T-07 joining the task set; the artifact cannot evidence its own amendment — `plan.yaml` `approval:` — UNVERIFIED, operator only
 
 ## Dead ends
@@ -31,7 +31,7 @@ from.
 - Do not treat the six could-not-fail assertions as `must_fix` — every one sits outside every SC's text, and pm already ruled that class neither a delivery gap nor a blocker — `notes/research-FEAT-27-e1-coverage-gaps.md` — verified-at 252fa72
 - Do not edit `DECISIONS.md` or `DECISIONS-INDEX.md` to strike DEC-27 — both carry another flow's uncommitted DEC-174 amendment and editing them collides with live work — `git status --porcelain` — verified-at 252fa72
 - Do not commit Expertise output to this branch — it falls outside every task's `files:` list except T-04's migration, and repeats FEAT-25's B-18 — source: operator instruction at dispatch
-- Do not run `check-state.sh` as a progress poll — INV-26 reads every board card at ~500 GraphQL points per invocation — source: operator, FEAT-29's measurement
+- Do not run `check-state.py` as a progress poll — INV-26 reads every board card at ~500 GraphQL points per invocation — source: operator, FEAT-29's measurement
 
 ## Working set
 

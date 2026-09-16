@@ -2,12 +2,12 @@
 
 - 2026-08-05: The do-not-touch list I was handed for the concurrent feature (12 paths) was
   derived from the OTHER feature's grilling artifact, not from its PLAN. It was incomplete:
-  `run-unit-tests.sh` is edited by FEAT-08 T-05 (`FEAT-08/PLAN.md:243, :250-252`) and appears on
+  `run-unit-tests.py` is edited by FEAT-08 T-05 (`FEAT-08/PLAN.md:243, :250-252`) and appears on
   no list. My lead found it by opening the peer feature's PLAN.md directly. Lesson shape: with two
   features in flight, the collision surface is the peer's PLAN `files:` union, not the grilling
   artifact's prose — the artifact predates the plan by definition.
 
-- 2026-08-05: `run-unit-tests.sh:6` is a single-line array that nearly every task's `verify:` in
+- 2026-08-05: `run-unit-tests.py:6` is a single-line array that nearly every task's `verify:` in
   both plans rides on as a whole-suite check. A one-line shared file with N writers and a drift
   detector that `exit 2`s is a maximally bad collision surface: the failure is not local to the
   colliding task, it reddens every other task in both features.
@@ -17,7 +17,7 @@
   key — here `harness-orchestrator` depth 1 and `orchestrator` depth 0. Reporting the delta as an
   upper bound with the contamination named beat inventing an attribution.
 
-- 2026-08-05: `check-state.sh` INV-5 scans STATE.md for any `\bT-\d+\b` and compares against THIS
+- 2026-08-05: `check-state.py` INV-5 scans STATE.md for any `\bT-\d+\b` and compares against THIS
   feature's PLAN task ids. Writing "FEAT-08 T-05" in an open question produced a real VIOLATION on
   a factually correct sentence. Refer to a peer feature's tasks by description, never by id.
 
@@ -65,7 +65,7 @@
   unparseable input, which read exactly like a broken guard. Build hook payloads as FILES and pipe
   them in. When a probe contradicts a suite that just passed, suspect the probe first.
 
-- 2026-08-05 (commit phase): `bash-write-guard.sh` denies a shell redirect to ANY path outside the
+- 2026-08-05 (commit phase): `bash-write-guard.py` denies a shell redirect to ANY path outside the
   agent's domain, including a session scratchpad. That is correct and not a bug — the fix is to
   restructure the work so no file is written (pipe the tool's stdout straight into the consuming
   process), never to hunt for a writable location.
@@ -79,7 +79,7 @@
 
 - 2026-08-05 (parked): THE 200-LINE `feature.yaml` CAP IS NOT MECHANICALLY ENFORCED HERE. A
   205-line write succeeded; none of the six registered hooks implements a state-file shape gate and
-  `check-state.sh` has no such check. Prior expertise says these caps are PreToolUse BLOCKs, which
+  `check-state.py` has no such check. Prior expertise says these caps are PreToolUse BLOCKs, which
   is wrong for this tree and would have led me to trust the tool instead of counting. Count the
   lines yourself after every state write.
 

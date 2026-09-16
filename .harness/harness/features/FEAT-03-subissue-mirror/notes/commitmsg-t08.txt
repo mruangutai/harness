@@ -30,7 +30,7 @@ present turns `check-docs.sh` red and gates every `/harness` entry on an
 edit no agent may make. So the checker stays exit 0 and is silent about
 that gap by design — the amendment names it as a main-session pre-ship
 step instead. Observed after the edit: `check-docs.sh` exit 0, "no stale
-statements found"; `check-state.sh` exit 0 with no INV-10 line.
+statements found"; `check-state.py` exit 0 with no INV-10 line.
 
 T-08 of 8, and the last task of the build phase.
 Plan: .harness/features/FEAT-03-subissue-mirror/PLAN.md

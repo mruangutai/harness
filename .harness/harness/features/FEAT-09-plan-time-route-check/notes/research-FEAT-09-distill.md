@@ -5,7 +5,7 @@
 **5 entries admitted, 2 candidates rejected, 0 displacements.** All three lead-relayed candidates
 survived judgment and were rephrased as rules; two of my own three observations were admitted, the
 third rejected as already covered by the rule layer. No section was at cap, so nothing was displaced.
-`check-expertise.sh` exits 0 — run from the worktree AND from main (the two copies are byte-identical,
+`check-expertise.py` exits 0 — run from the worktree AND from main (the two copies are byte-identical,
 `diff` exit 0), so the green is not a stale-validator artifact.
 
 Counts: Patterns 10 → 14 · Gotchas 7 → 8 · Outcomes 0 → 0 · Open 0 → 0. File 64 → 78 lines of 150.

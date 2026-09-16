@@ -43,7 +43,7 @@ plan carries an overrule. On acceptance, unstruck rows become backlog issues; an
   finding. Cycle 10 of 10 is preserved on the operator's instruction
 - Do NOT treat SC-11, SC-12 or SC-16 as failures. Each names operator judgement or a live
   `/harness-plan` in its own text; one live run settles all three plus the F5 confirmation together
-- Do NOT read `check-state.sh` green as a precondition. It stays red on recorded retroactive
+- Do NOT read `check-state.py` green as a precondition. It stays red on recorded retroactive
   repository violations unrelated to this feature, including FEAT-38's missing handoff
 - Do NOT reuse an existing run dir for a new cycle. The cycle-2 panel did and destroyed the cycle-0
   lead digest permanently; that is backlog row B-6

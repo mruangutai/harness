@@ -106,7 +106,7 @@ but should be tightened.
 
 ## Unit gate
 
-`run-unit-tests.sh` (no args → `all`, both UNIT_SCRIPTS and INTEGRATION_SCRIPTS, 44 files) at the pin:
+`run-unit-tests.py` (no args → `all`, both UNIT_SCRIPTS and INTEGRATION_SCRIPTS, 44 files) at the pin:
 **exit 0**, `EXIT_STATUS=0` printed by the runner. `test-orchestrator-playbook.py` ran (confirmed
 inside the suite and independently standalone): `ALL PASS`, exit 0, all 9 cases green against the
 on-disk file (byte-identical to the pin — worktree `HEAD` = `a2a373b`, `git status` shows `SKILL.md`

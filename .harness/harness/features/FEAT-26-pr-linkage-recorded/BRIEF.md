@@ -81,7 +81,7 @@ anything on GitHub.
   order, and emits nothing at exit 0 when the list is absent or empty. It never posts anything to
   GitHub.
   verify: automated      evidence: integration
-- SC-07: A `Done` feature with a null `pr` produces its own named line from `check-state.sh`, and a
+- SC-07: A `Done` feature with a null `pr` produces its own named line from `check-state.py`, and a
   `Done` feature with an integer `pr` produces none. The fixture proves the line can appear before
   it proves it can be absent.
   verify: automated      evidence: integration
@@ -92,7 +92,7 @@ anything on GitHub.
   Features still in flight when this plan was written are deliberately outside the assertion:
   another orchestrator owns them and their state moves under this feature.
   verify: inspection
-- SC-09: A run of `check-state.sh` on the shipped tree reports no line from the new invariant
+- SC-09: A run of `check-state.py` on the shipped tree reports no line from the new invariant
   naming any of the features this plan enumerates.
   verify: inspection
 - SC-10: This feature's own plan records #492 as its source ticket, its own `feature.json` carries
@@ -107,7 +107,7 @@ anything on GitHub.
 
 None. Both kinds these criteria rest on — `unit` and `integration` — are `status: active` with a
 real `cmd` in `.harness/harness.json` `test_kinds`, and all three test files this feature touches
-are already registered in `run-unit-tests.sh`'s explicit lists. No surface here is covered only by
+are already registered in `run-unit-tests.py`'s explicit lists. No surface here is covered only by
 a `cmd: null` kind.
 
 ## Constraints
@@ -125,7 +125,7 @@ a `cmd: null` kind.
 - **`feature-schema.json` is closed** (`additionalProperties: false` at every level, DEC-191), so the
   new key is a schema edit and ships fixtures that pass **and** fixtures that fail — issue #288
   recorded an assertion with no failing fixture, and that is not repeated here.
-- **`check-state.sh` is a DEC-174 carve-out.** Any task touching it is executed by hand by the
+- **`check-state.py` is a DEC-174 carve-out.** Any task touching it is executed by hand by the
   operator, never dispatched.
 - **`gh_board.py` and `load_board` are read-only here.** `gh-sync.py:139` imports and calls them, and
   that surface belongs to #493. No task changes them, their signature or their behaviour, and no

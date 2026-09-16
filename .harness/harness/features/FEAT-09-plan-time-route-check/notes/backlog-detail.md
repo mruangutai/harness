@@ -34,7 +34,7 @@ so the false-positive rate against the tree's other live PLANs is **unmeasured**
 
 ## B-5 — a stale source anchor, and it is not the builder's
 
-`check-plan-routes.py:16` and `test-check-plan-routes.py:142` cite `check-domain.sh:190-197` for
+`check-plan-routes.py:16` and `test-check-plan-routes.py:142` cite `check-domain.py:190-197` for
 the prefix-comparison bug; the real record is at `:61-69`. **`PLAN.md:210` carries the same wrong
 anchor** — the approved plan is the origin, so this is a planning defect, not a build defect.
 
@@ -50,11 +50,11 @@ With no argv, `check-plan-routes.py` globs relative to CWD, so from a non-repo-r
 **becomes blocking if B-8 lands**, because an invariant that silently checks nothing is worse than
 no invariant.
 
-## B-8 — promote the route checker to a `check-state.sh` invariant?
+## B-8 — promote the route checker to a `check-state.py` invariant?
 
 Open design question, carried from the plan phase.
 
-## B-9 — the checker copies `check-state.sh`'s task-block regex (D-08)
+## B-9 — the checker copies `check-state.py`'s task-block regex (D-08)
 
 Two copies of one regex. Consolidate, or accept the duplication deliberately?
 
@@ -68,7 +68,7 @@ Code reviewer's MED finding, unresolved.
 
 ## B-12 — INV-17 shape-checks a handoff note too late
 
-The handoff cap **is** enforced at write time. What `check-state.sh` INV-17 adds is a re-check
+The handoff cap **is** enforced at write time. What `check-state.py` INV-17 adds is a re-check
 only once `phase:` moves **past** the seam — so a note that reached disk over-cap sits unflagged
 for the whole phase it describes, which is exactly when a successor reads it. `handoff-build.md`
 was 63 lines against a 60 cap and surfaced only when the phase advanced.

@@ -130,11 +130,11 @@ Cross-checked against `plan.yaml` T-04's `verify:` field directly (`python3 -c "
 — matches the dispatch's string verbatim:
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Captured exit status into a variable, counted `^FAIL ` lines separately
-(`run-unit-tests.sh:51-54` can exit 2 with MISCONFIGURED before any test runs, printing no `FAIL`
+(`run-unit-tests.py:51-54` can exit 2 with MISCONFIGURED before any test runs, printing no `FAIL`
 line — exit status is the only thing that catches that):
 
 ```
@@ -148,7 +148,7 @@ test-factory-gh.py`. `task_verify: pass`.
 ## No live `gh` call
 
 All runs drove `factory_gh.subprocess.run` through the recorder fake, per the hard constraint. No
-`gh` binary invoked, `check-state.sh` not run, `gh_cost_log.py`/`test-gh-cost-log.py` not created.
+`gh` binary invoked, `check-state.py` not run, `gh_cost_log.py`/`test-gh-cost-log.py` not created.
 
 ## Assertion integrity
 

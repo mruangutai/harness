@@ -12,7 +12,7 @@ met with named, discriminating evidence. **SC-05 is unmet as declared**: its sec
 live working tree (`CLAUDE_PROJECT_DIR or os.getcwd()`), not the pin, so a dirty read path would
 have made every check-(1)..(10) row evidence for something other than the pinned diff. It is clean.
 
-`.claude/skills/harness/bin/run-unit-tests.sh` → **exit 0**, 13 scripts, output saved and cited by
+`.claude/skills/harness/bin/run-unit-tests.py` → **exit 0**, 13 scripts, output saved and cited by
 line below as `unit.txt:N`.
 
 ## The SC-05 ruling — UNMET as declared
@@ -36,9 +36,9 @@ conjunct, in the feature chartered to remove checks that appear to exist and do 
 
 The boundary is **asserted vs. not asserted at all**, and SC-02 is the contrast that sharpens it:
 its second conjunct ("both consumers read the definition from there") is covered by a use-site read
-in each consumer — `check-state.sh:160` and `validate-digest.py:477`, both `in
+in each consumer — `check-state.py:160` and `validate-digest.py:477`, both `in
 harness_yaml.PLACEHOLDER_UNSET` against the single definition at `harness_yaml.py:302` — plus
-behavioral corroboration, since `test-check-state.py` case (h) can only pass if `check-state.sh`
+behavioral corroboration, since `test-check-state.py` case (h) can only pass if `check-state.py`
 resolves the constant, the literal having been removed from that file. SC-05's count conjunct has
 no assertion of any strength.
 
@@ -57,7 +57,7 @@ A literal before/after diff makes SC-03 *look* violated: two lines appear that a
 discriminating check settles it in the other direction:
 
 ```
-git show 635ef14:…/check-state.sh  →  run over the CURRENT tree
+git show 635ef14:…/check-state.py  →  run over the CURRENT tree
 diff  old-code-on-current-tree  new-code-on-current-tree   →  IDENTICAL (no output)
 ```
 
@@ -75,12 +75,12 @@ Independently re-derived, not relayed. `.harness/team-config.yaml`'s only releva
 
 | Task | Surface | Stated reason | Actually applied | Match |
 |---|---|---|---|---|
-| T-01 | `check-state.sh`, `validate-digest.py`, `test-check-state.py`, `harness_yaml.py` | carve-out | domain **is** granted (`bin/**`); DEC-174+D-05 binds | yes |
+| T-01 | `check-state.py`, `validate-digest.py`, `test-check-state.py`, `harness_yaml.py` | carve-out | domain **is** granted (`bin/**`); DEC-174+D-05 binds | yes |
 | T-02 | `teams/review.yaml` | domain-ungranted | no grant on `teams/**` | yes |
 | T-04 | `teams/build.yaml` | domain-ungranted | no grant | yes |
 | T-05 | `test-harness-yaml-corpus.py` | carve-out | `bin/**` granted; mission extension binds | yes |
 | T-06 | `harness/SKILL.md` | domain-ungranted | no grant; not one of CLAUDE.md's five | yes |
-| T-07 | `test-team-catalog.py`, `run-unit-tests.sh` | carve-out | `bin/**` granted; D-05 binds | yes |
+| T-07 | `test-team-catalog.py`, `run-unit-tests.py` | carve-out | `bin/**` granted; D-05 binds | yes |
 | T-08 | `docs/**` | squad-dispatched | granted at `:116` | yes |
 | T-09 | `harness-team/SKILL.md` | domain-ungranted | no grant | yes |
 | T-10 | `teams/gate-probe.yaml` | domain-ungranted | no grant | yes |

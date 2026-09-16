@@ -35,7 +35,7 @@ scanning /Users/molchairuangutai/GitHub/harness/.harness/features/*/{plan.yaml,P
 OK T-01 granted to harness-backend-dev, harness-dev-ops
 OK T-02: declared main-session-direct (.claude/skills/harness/templates/harness.json ungranted)
 OK T-03 granted to harness-backend-dev, harness-dev-ops
-DEVIATION T-04 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-04 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-05 granted to harness-backend-dev, harness-dev-ops
 OK T-06: declared main-session-direct (.claude/skills/harness/SKILL.md ungranted)
 0 violation(s) across 1 plan(s)

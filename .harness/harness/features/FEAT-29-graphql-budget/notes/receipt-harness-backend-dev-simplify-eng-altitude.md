@@ -69,7 +69,7 @@ Scope: `git diff bee6234..8c7d7bc` (feat/FEAT-29-graphql-budget, HEAD `8c7d7bc`)
 ## Hard-bound confirmations
 
 - Read-only: no source file edited.
-- No live `gh` call made; `check-state.sh` not run; suite not run with `HARNESS_GH_COST_LOG=1`.
+- No live `gh` call made; `check-state.py` not run; suite not run with `HARNESS_GH_COST_LOG=1`.
 - `.harness/logs/gh-cost-2026-08-19.jsonl` confirmed byte-identical: `wc -c` → 39504.
 - No test-file finding raised; both cited T-03 receipts (`-c3.md`, `-c4.md`) were read before
   scanning test files, per the dispatch's requirement, though this angle produced no test-file

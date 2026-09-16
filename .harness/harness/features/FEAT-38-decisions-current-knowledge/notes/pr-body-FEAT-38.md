@@ -29,7 +29,7 @@ Three conflicts, resolved and independently graded:
   retired and deleted `test-context-watch-cli.py` and `test-context-watch-hook.py`; a union would
   have resurrected two registrations naming absent files. 29 → **27**, every concrete entry
   confirmed present on disk.
-- **`run-unit-tests.sh`** — the same shape; `--check-kinds` agrees with `harness.json`.
+- **`run-unit-tests.py`** — the same shape; `--check-kinds` agrees with `harness.json`.
 - **`DECISIONS-INDEX.md`** — generated, so **regenerated rather than hand-merged**. Proved by the
   committed file being byte-identical to a fresh generation. 188 rows, 188 live headings, zero
   orphans. FEAT-44 changed zero index rulings.

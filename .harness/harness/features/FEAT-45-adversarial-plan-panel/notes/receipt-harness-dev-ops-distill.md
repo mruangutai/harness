@@ -3,7 +3,7 @@
 ## BLUF
 
 Applied one craft Gotcha (G-17, severity-gate fail-open via deny-list normalization) and three
-repository Gotchas (G-08 hardcoded team count, G-09 `check-domain.sh --resolve` in symlink-mirrored
+repository Gotchas (G-08 hardcoded team count, G-09 `check-domain.py --resolve` in symlink-mirrored
 roots, G-10 post-merge KIND-DRIFT). Rejected two of the three relayed candidates (C2 as literally
 stated, C3 for tooling reasons) with reasons below. Ruled on the standing G-03 advisory: **kept
 craft, not moved.** Both files applied via `expertise-merge.py apply`, exit 0, no conflicts, no
@@ -41,12 +41,12 @@ expertise_update:
   - op: add
     section: Gotchas
     file: .harness/harness/expertise/harness-dev-ops.md
-    entry: "G-09: WHEN a RED proof needs a symlink-mirrored `/tmp` root because the domain guard denies an in-place mutation DO expect `check-domain.sh --resolve` to fail resolving paths inside it (its harness/git-worktree detection) — run an unmutated control there first and count only mutant-minus-control as a real, mutation-caused failure."
-    why: "sc03supersession receipt: 4 of 28 checks reddened in the unmutated control inside a symlink-mirrored /tmp root, all `check-domain.sh --resolve` calls returning NOBODY — an artifact of that repo tool's own worktree detection, not the mutation. Only mutant-minus-control isolated the two real reds."
+    entry: "G-09: WHEN a RED proof needs a symlink-mirrored `/tmp` root because the domain guard denies an in-place mutation DO expect `check-domain.py --resolve` to fail resolving paths inside it (its harness/git-worktree detection) — run an unmutated control there first and count only mutant-minus-control as a real, mutation-caused failure."
+    why: "sc03supersession receipt: 4 of 28 checks reddened in the unmutated control inside a symlink-mirrored /tmp root, all `check-domain.py --resolve` calls returning NOBODY — an artifact of that repo tool's own worktree detection, not the mutation. Only mutant-minus-control isolated the two real reds."
   - op: add
     section: Gotchas
     file: .harness/harness/expertise/harness-dev-ops.md
-    entry: "G-10: WHEN `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays are touched by a merge from `main` DO run `--check-kinds` (or `--kind unit`) immediately after — a merge can resurrect a registration for a file `main` already deleted, which the KIND-DRIFT detector rejects with exit 2 before any test collects, even though every script still passes standalone."
+    entry: "G-10: WHEN `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays are touched by a merge from `main` DO run `--check-kinds` (or `--kind unit`) immediately after — a merge can resurrect a registration for a file `main` already deleted, which the KIND-DRIFT detector rejects with exit 2 before any test collects, even though every script still passes standalone."
     why: "f4-gate-revival receipt fixed three dangling registrations (test-context-watch*.py) that main had deleted but this branch's merge reintroduced; qa-c2 independently caught the same break live as a BLOCKED matrix (exit 2, 2x KIND-DRIFT, zero tests collected). Names this repo's specific runner and drift mechanism."
 ```
 
@@ -70,7 +70,7 @@ risk-classification gate using a deny-list default can have this shape. Not stal
 **C2 — REJECTED as literally stated; distilled instead as G-08's sibling G-10, corrected.** The
 candidate claims "the runner exited BEFORE collecting anything — exit 0, zero `^FAIL ` lines, and
 zero tests actually run." That is not what happened: `review-harness-qa-c2.md` measured the actual
-failure live — `run-unit-tests.sh --kind unit` (and `--kind integration`, and `--check-kinds`)
+failure live — `run-unit-tests.py --kind unit` (and `--kind integration`, and `--check-kinds`)
 **exits 2**, printing two `KIND-DRIFT:` lines, before any test collection — a loud, blocking
 failure, not a silent exit-0 pass. My own `f4-gate-revival` receipt fixed the same three dangling
 registrations but never itself characterized the pre-fix exit code; the "exit 0, zero FAIL" framing
@@ -94,7 +94,7 @@ in `harness-distill` but not implemented), not folded into Expertise as a workar
 
 Read `.harness/expertise/harness-dev-ops.md:20` (pre-edit) — "avoid `declare -A`... this machine's
 default bash is 3.2.57... See the drift-detector's nested-loop membership check in
-`.claude/skills/harness/bin/run-unit-tests.sh` for the working pattern." **Ruling: kept craft, not
+`.claude/skills/harness/bin/run-unit-tests.py` for the working pattern." **Ruling: kept craft, not
 moved.** The load-bearing fact (`declare -A` errors on macOS's stock bash 3.2.57) is true of any
 machine with that shell, not particular to this repository; the cited file is a pointer to a working
 exemplar (explicitly permitted by the distill skill), not the thing the rule turns on. No edit made.

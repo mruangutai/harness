@@ -118,7 +118,7 @@ annotated in the files.
 | Full independent panel | **PASS**, `must_fix: []`, `severity_max: med` — 3 reviewers + QA, none from earlier cycles |
 | Targeted delta review of the late fixes | **PASS**, `must_fix: []` |
 | Test matrix (the project's only blocking gate) | **PASS** — unit 29/29, integration 32/32 |
-| `check-state.sh` | **exit 0** |
+| `check-state.py` | **exit 0** |
 | Canonical repository suite | 957 results, **one** failing suite — not ours, see below |
 | SIMPLIFY, four angles | empty pass, nothing warranted applying |
 | Goal-check | **19 of 20 criteria met**, none `not_met`, SC-11 unproven |
@@ -182,7 +182,7 @@ Unstruck rows become backlog issues on acceptance. **Anything not listed here di
 | B17 | bug | **harness**: a member ran `git checkout -- <file>` despite an explicit prohibition, silently reverting a completed refactor. It self-detected and redid the work. The prohibition is prose with no mechanical guard behind it |
 | B18 | bug | **harness**: the file-reading tool served stale cached contents to both delta-review members, contradicting `bash` reads of the same paths. A tool that silently serves stale content can invalidate any review's evidence |
 | B19 | chore | vocabulary ruling needed: `none` means "nothing found" and is not a drop-in for `info` as a *finding* label. Either drop the `info` rung or keep it as a finding label while stating `severity_max` bottoms at `none` |
-| B20 | bug | **harness**: two lead digests were written without the required contract block, one outside the feature directory, and one declared PASS over its own member's FAIL. `check-state.sh` caught them, but only after the fact and only for me to fix by hand |
+| B20 | bug | **harness**: two lead digests were written without the required contract block, one outside the feature directory, and one declared PASS over its own member's FAIL. `check-state.py` caught them, but only after the fact and only for me to fix by hand |
 
 ## The decisions — three, and they are all yours
 

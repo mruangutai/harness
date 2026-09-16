@@ -14,16 +14,16 @@ channel unnamed, and the BRIEF's prerequisite probe settled *identity* (`session
 ## The answer, and it is already in production here
 
 `PostToolUse` + exit 2. The tool has already run, so nothing is blocked, and the hook's stderr reaches
-the agent. `check-domain.sh` states both halves in its own comments and has shipped on that basis:
+the agent. `check-domain.py` states both halves in its own comments and has shipped on that basis:
 
-- `check-domain.sh:571-573` — the mode table: PostToolUse on Write, Edit and Bash reads what landed on
+- `check-domain.py:571-573` — the mode table: PostToolUse on Write, Edit and Bash reads what landed on
   disk and exits 2, "whose stderr reaches the agent. Detection, not prevention".
-- `check-domain.sh:648-653` — a review finding recorded in place: "In POST it already LANDED — exit 2
+- `check-domain.py:648-653` — a review finding recorded in place: "In POST it already LANDED — exit 2
   there only carries stderr back to the agent". The consequence drawn there is that the message must
   not say BLOCKED, because the write did happen; `VERB` is set to
   `OVER BUDGET (already written)` in post mode for exactly that reason.
 
-`settings.json` already registers `check-domain.sh --post` on `PostToolUse` for `Write|Edit|Bash`, so
+`settings.json` already registers `check-domain.py --post` on `PostToolUse` for `Write|Edit|Bash`, so
 this is an in-service path in this repository, not an inference from documentation.
 
 ## What follows for the plan
@@ -32,7 +32,7 @@ this is an in-service path in this repository, not an inference from documentati
   stderr. That satisfies "in its own context" and "advises, does not refuse" simultaneously, with no
   new mechanism.
 - The registration in `.claude/settings.json` is still `main-session-direct` — that path resolves to
-  NOBODY under `check-domain.sh --resolve`, and DEC-174 puts the cutover in the operator's hands
+  NOBODY under `check-domain.py --resolve`, and DEC-174 puts the cutover in the operator's hands
   regardless.
 - The warning's wording carries the same obligation `VERB` records: it must not claim anything was
   stopped. It states the current size, the threshold and the nearest seam, and the orchestrator decides.
@@ -102,16 +102,16 @@ coincidence and the test goes green against the defect it exists to catch.
 
 # Finding 4 — the BRIEF names three enforcement surfaces; there are at least four
 
-Resolved 2026-08-21 with check-domain.sh --resolve from the FEAT-31 worktree root.
+Resolved 2026-08-21 with check-domain.py --resolve from the FEAT-31 worktree root.
 
 | surface | resolves to | lane | named in BRIEF |
 |---|---|---|---|
-| .claude/skills/harness/bin/check-domain.sh | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
+| .claude/skills/harness/bin/check-domain.py | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
 | .claude/settings.json | NOBODY | main-session-direct, forced | yes |
-| .claude/skills/harness/bin/check-state.sh | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
+| .claude/skills/harness/bin/check-state.py | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
 | .claude/skills/harness/bin/test-check-state.py | backend-dev, dev-ops | main-session-direct, DEC-174 am.4 | no |
 | .claude/skills/harness/templates/harness.json | NOBODY | main-session-direct, forced | NO |
-| .claude/skills/harness/bin/run-unit-tests.sh | backend-dev, dev-ops | judgement call | no |
+| .claude/skills/harness/bin/run-unit-tests.py | backend-dev, dev-ops | judgement call | no |
 
 **The template is the one that was missed.** REQ-03 puts the threshold in .harness/harness.json, which
 resolves to harness-dev-ops and is team-writable. Its TEMPLATE resolves to NOBODY, and under DEC-160 the

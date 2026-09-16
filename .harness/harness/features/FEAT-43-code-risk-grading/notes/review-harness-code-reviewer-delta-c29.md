@@ -187,7 +187,7 @@ non-goal ("main's own content" / prior review waves), not source.
 
 ## What I did NOT cover
 
-- The full `run-unit-tests.sh --kind unit` wrapper (ran the test module directly instead — same
+- The full `run-unit-tests.py --kind unit` wrapper (ran the test module directly instead — same
   cases, same result) or any canonical suite beyond it — explicit non-goal.
 - The eight already-closed FEAT-43 defects, and `main`'s own content (feature.json / note-file
   changes in this diff) — explicit non-goals.

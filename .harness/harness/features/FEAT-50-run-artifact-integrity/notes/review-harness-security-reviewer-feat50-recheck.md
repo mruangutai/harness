@@ -12,9 +12,9 @@ non-blocking open question — the dispatch sha is corrupted/mistyped, not a res
 
 ## Finding 1 (HIGH, security) — CLOSED
 
-Fix: `bash-write-guard.sh:785` adds `feature_checkout_guard(rel, ap)` under the `shared` branch
+Fix: `bash-write-guard.py:785` adds `feature_checkout_guard(rel, ap)` under the `shared` branch
 (previously only the `allow`/`not_a_domain_question` branch called it, confirmed absent at
-`dca2d3d:bash-write-guard.sh:783-789`).
+`dca2d3d:bash-write-guard.py:783-789`).
 
 Independent fixture (`/tmp/feat50sec/repro1.py`, not the shipped test): a fresh temp checkout with
 `shared: [{path: .harness/*/features/*/BRIEF.md}]`, `harness-documentor` with `domain: []`, and a
@@ -22,14 +22,14 @@ real linked worktree (`.git/worktrees/<id>/gitdir` + worktree-side `.git` pointe
 `FEAT-SECCHK-thing`, targeting the MAIN-checkout `BRIEF.md`.
 
 ```
-bash-write-guard.sh (Bash route)  exit=2  "...is a feature artifact whose write belongs in worktree .../.claude/worktrees/FEAT-SECCHK-thing..."
-check-domain.sh (Write route)     exit=2  "...is a feature artifact whose write belongs in worktree..."
+bash-write-guard.py (Bash route)  exit=2  "...is a feature artifact whose write belongs in worktree .../.claude/worktrees/FEAT-SECCHK-thing..."
+check-domain.py (Write route)     exit=2  "...is a feature artifact whose write belongs in worktree..."
 ```
 
 Both routes now agree (2/2), closing the exact divergence in the finding.
 
 **Mutation, scoped to only the shared-branch call** (not the shipped test's both-calls mutant): copied
-`bash-write-guard.sh`, deleted only
+`bash-write-guard.py`, deleted only
 ```
         if verdict["outcome"] == "shared":
             feature_checkout_guard(rel, ap)
@@ -40,7 +40,7 @@ Both routes now agree (2/2), closing the exact divergence in the finding.
 ```
 Re-fired the identical shared-outcome payload against the mutant:
 ```
-MUTANT bash-write-guard.sh exit=0   (real script: exit=2)
+MUTANT bash-write-guard.py exit=0   (real script: exit=2)
 ```
 The mutant alone reproduces the pre-fix bypass (write allowed) while the real script refuses —
 proving the added line, and only that line, is what closes it. Shipped regression test
@@ -49,7 +49,7 @@ proving the added line, and only that line, is what closes it. Shipped regressio
 
 ## Finding 3 (MED, security) — CLOSED, and confirmed NOT a blanket deny
 
-Fix: `check-domain.sh:1142-1155` — `prior = None` by default; `FileNotFoundError` only sets
+Fix: `check-domain.py:1142-1155` — `prior = None` by default; `FileNotFoundError` only sets
 `prior = ""` when `os.path.lexists` is also false (i.e. genuinely absent, not a broken symlink); any
 other `OSError` (`PermissionError`, `IsADirectoryError`) leaves `prior = None`; `prior is None` denies.
 
@@ -94,16 +94,16 @@ finding, not touched by `dca2d3d..HEAD`) still grades FAIL at cyc 8/ABC 51 — o
 
 ## Task 3 — outcome-branch sweep (the defect class finding 1 belongs to)
 
-**`bash-write-guard.sh`** (`verdict["outcome"]`):
+**`bash-write-guard.py`** (`verdict["outcome"]`):
 
-| outcome | reached only when write is allowed to land? | `feature_checkout_guard` runs? | agrees with `check-domain.sh`? |
+| outcome | reached only when write is allowed to land? | `feature_checkout_guard` runs? | agrees with `check-domain.py`? |
 |---|---|---|---|
 | `out_of_place_worktree` (+ unparsed) | no — `deny()` exits 2 unconditionally | n/a (already refused) | yes, same shape refusal |
 | `allow` / `not_a_domain_question` | yes | **yes** (pre-existing, `:781`) | yes |
 | `shared` | yes | **yes** (this fix, `:785`) | yes |
 | final fallthrough (target outside domain) | no — `deny()` exits 2 | n/a (already refused) | yes |
 
-**`check-domain.sh`** (`_verdict["outcome"]`):
+**`check-domain.py`** (`_verdict["outcome"]`):
 
 | outcome | write lands? | `feature_checkout_guard` runs? |
 |---|---|---|
@@ -125,10 +125,10 @@ as new.
 Only two hunks change production code in this cycle (verified via `git diff --stat`; the rest is test
 refactor + already-reviewed doc/plan/BRIEF files unchanged since `dca2d3d`):
 
-- `bash-write-guard.sh:785` — one added line, no new `except`/fallback/silent return. Calls a
+- `bash-write-guard.py:785` — one added line, no new `except`/fallback/silent return. Calls a
   pre-existing `feature_checkout_guard` whose own `except Exception: return` absorb-on-bug behavior was
   already in scope of the prior review cycle, not new here.
-- `check-domain.sh:1140-1158` — new `except FileNotFoundError` / `except OSError: pass` pair, audited
+- `check-domain.py:1140-1158` — new `except FileNotFoundError` / `except OSError: pass` pair, audited
   above (task 1/finding 3 table): every OSError variant other than a proven-absent path now denies;
   no new silent-allow path introduced.
 

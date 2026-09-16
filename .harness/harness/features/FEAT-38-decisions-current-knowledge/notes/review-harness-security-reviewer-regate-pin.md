@@ -13,7 +13,7 @@ unsupported by measurement — flagged below, substance unaffected.
    pin). The two branch-only entries `test-context-watch-cli.py`/`test-context-watch-hook.py`
    (correctly excluded from pin) confirmed **absent** from the tree via `git cat-file -e`. Resolution
    is set-correct.
-2. **`.claude/skills/harness/bin/run-unit-tests.sh`** — CLEAN. Parsed `UNIT_SCRIPTS`(26) /
+2. **`.claude/skills/harness/bin/run-unit-tests.py`** — CLEAN. Parsed `UNIT_SCRIPTS`(26) /
    `INTEGRATION_SCRIPTS`(26) bash arrays at pin; `INTEGRATION_SCRIPTS` basenames == harness.json's
    `detect` list minus the `tests/integration/**` glob, exact set equality (`∆=∅` both directions) —
    `--check-kinds` genuinely agrees with harness.json, as claimed. Fail-open audit of the full script
@@ -52,8 +52,8 @@ unsupported by measurement — flagged below, substance unaffected.
   asserted absent: `context-watch.py`, `context-watch-hook.py` — both confirmed absent via
   `git cat-file -e`.
 - Read `.claude/settings.json` at the pin directly: the six real hook registrations
-  (`check-domain.sh` Pre+Post, `bash-write-guard.sh`, `branch-create-gate.sh`, `gh-close-gate.sh`,
-  `dispatch-guard.sh`, `validate-digest.py`) are untouched by this fold and outside the diff's blast
+  (`check-domain.py` Pre+Post, `bash-write-guard.py`, `branch-create-gate.py`, `gh-close-gate.py`,
+  `dispatch-guard.py`, `validate-digest.py`) are untouched by this fold and outside the diff's blast
   radius — the enforcement surface is unaffected by anything in DEC-159/198/201.
 - No new supersession, capability grant, or auth-relevant clause introduced by the fold text.
 
@@ -85,13 +85,13 @@ VERDICT: PASS
 DIGEST:
   headline: "All four in-scope files verified clean at identity level; no control weakened, no credentials; one contract count (28) unsupported by measurement but substance confirmed true"
   in_scope: true
-  scope_reason: "Delta is a merge-conflict resolution touching the project's sole blocking test gate (harness.json/run-unit-tests.sh) plus governance docs — gate integrity is a security property even with no classic injection surface"
+  scope_reason: "Delta is a merge-conflict resolution touching the project's sole blocking test gate (harness.json/run-unit-tests.py) plus governance docs — gate integrity is a security property even with no classic injection surface"
   severity_max: info
   findings: 0
   must_fix: []
   threat_model:
-    - { boundary: "test-gate config (harness.json detect / run-unit-tests.sh arrays) — silent narrowing of what CI discovers", stride: T, mitigated: true }
-    - { boundary: "run-unit-tests.sh loop — fail-open on script error/crash", stride: D, mitigated: true }
+    - { boundary: "test-gate config (harness.json detect / run-unit-tests.py arrays) — silent narrowing of what CI discovers", stride: T, mitigated: true }
+    - { boundary: "run-unit-tests.py loop — fail-open on script error/crash", stride: D, mitigated: true }
     - { boundary: "DECISIONS-INDEX.md — stale/hand-edited generated file diverging from source", stride: T, mitigated: true }
     - { boundary: "DEC-159/198/201 fold — relaxing or misdescribing an enforcement mechanism", stride: I, mitigated: true }
   open_questions: []

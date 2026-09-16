@@ -5,7 +5,7 @@
 ## What I read
 
 `.claude/skills/harness/bin/context-watch.py` (full 779-line diff, new file), `context-watch-hook.py`,
-`verify-context-watch-live.py`, `feature_schema.py`'s new `RUNS_AGENT_EXEMPT` block, `run-unit-tests.sh`'s
+`verify-context-watch-live.py`, `feature_schema.py`'s new `RUNS_AGENT_EXEMPT` block, `run-unit-tests.py`'s
 kind-drift addition, and the `DECISIONS.md`/`DECISIONS-INDEX.md` diffs for DEC-159's amendment and the new
 DEC-198 entry.
 
@@ -16,7 +16,7 @@ DEC-198 entry.
   rather than present-fact ones. Checked against `plan.yaml` and `DECISIONS-INDEX.md`: every cited id
   resolves to a real, still-live decision or task, and each comment states a present constraint
   ("keep it deep and narrow (D-24)") rather than a changelog entry. This matches the codebase's
-  existing citation convention elsewhere (`DECISIONS.md`, `check-state.sh`). Not a finding.
+  existing citation convention elsewhere (`DECISIONS.md`, `check-state.py`). Not a finding.
 - **The two-line `at_or_above_threshold = False; at_or_above_threshold = ...` seams** in `format_rows`
   and `warn_for_agent` — explicitly named as deliberate mutant anchors in the dispatch. Skipped.
 - **Duplicated directory-walk logic** between `discover_orchestrator_rows` and
@@ -28,7 +28,7 @@ DEC-198 entry.
   second opinion (no import from context-watch.py, by design, to avoid comparing a function to
   itself). Anchoring semantics, not redundancy.
 - **`feature_schema.py`'s `RUNS_AGENT_EXEMPT` map** — D-23, already settled, not re-litigated.
-- **`run-unit-tests.sh`'s inline Python kind-drift heredoc** — verbose but load-bearing (T-12,
+- **`run-unit-tests.py`'s inline Python kind-drift heredoc** — verbose but load-bearing (T-12,
   flag-only per dispatch); no simpler equivalent found that preserves the "set comparison with no
   glob classifier" property the comments say was deliberately chosen.
 - **DEC-198 / DEC-159 amendment prose** — dense but not duplicative; each paragraph states a distinct

@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1563 INV-35 multiline quoted scalar</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1563-inv-35-multiline-quoted-scalar">Ship review — BUG-1563 INV-35 multiline quoted scalar</h1>
+<h2 id="decision">Decision</h2>
+<p><strong>Recommend ship.</strong> The immutable review target <code>9fd79689e24353ac81689bb5227b8aa752e536ea</code> passes all five independent validation readers. The original matrix blocker V-01 is resolved rather than waived, the final simplify pass has no actionable finding, and every signed success criterion is met.</p>
+<h2 id="definition-of-done">Definition of done</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed outcome</th><th>Verdict</th><th>Criteria and evidence</th></tr></thead><tbody><tr><td>Operator</td><td>Valid multiline quoted YAML scalars may contain issue references without an INV-35 false positive, while genuinely unquoted issue references remain findings.</td><td>Met</td><td>SC-01. <code>runs/validate-validator-final/digest.md</code>: focused integration and unit commands both pass the multiline single-quote, multiline double-quote, and unquoted <code>#217</code> control; fail-first reproduces both old false positives.</td></tr><tr><td>Code maintainer</td><td>Focused integration and unit-kind behavioral coverage distinguishes multiline quoted content from genuinely unquoted <code>#&lt;digit&gt;</code> values.</td><td>Met</td><td>SC-02 and SC-03. <code>runs/validate-validator-final/digest.md</code>: configured unit kind passes 39 scripts, configured integration kind passes 72 scripts, and both include the focused BUG-1563 tests.</td></tr></tbody></table></div>
+<h2 id="what-ships">What ships</h2>
+<ul><li>INV-35 now maintains quote state across physical lines for single- and double-quoted YAML scalars.</li><li>Unquoted <code>notes: close out #217</code> still produces the expected finding.</li><li>The integration regression covers both quoted cases and the unquoted control.</li><li>A focused unit-kind test invokes the real checker and closes the hard matrix requirement.</li><li>The final cleanup skips two unused continuation-line string scans without changing behavior.</li></ul>
+<h2 id="validation">Validation</h2>
+<ul><li>Code review: PASS after spec compliance, with no substantive quality finding.</li><li>Security review: PASS; no exploitable input-validation regression.</li><li>QA: PASS; V-01 resolved, unit and integration matrix kinds green, canonical checker green, and fail-first evidence accepted.</li><li>UI review: PASS by legitimate self-scope; no rendered surface changed.</li><li>Goalcheck: PASS for both signed perspectives and SC-01 through SC-03.</li><li>UAT: not required; the BRIEF contains only automated verification and the change has no user-facing UI flow.</li></ul>
+<h2 id="run-history">Run history</h2>
+<ul><li><code>runs/plan-product/digest.md</code> — initial bounded patch plan PASS.</li><li><code>runs/simplify-eng/digest.md</code> — initial two-file simplify PASS.</li><li><code>runs/validate-validator/digest.md</code> — FAIL solely on missing unit-kind matrix coverage V-01.</li><li><code>runs/plan-upgrade-product/digest.md</code> — minimum T-02 plan amendment PASS and signed by the operator.</li><li><code>runs/simplify-eng-final/digest.md</code> — FAIL on EFF-01, an in-scope redundant-scan cleanup.</li><li><code>runs/simplify-eng-confirm/digest.md</code> — EFF-01 resolved; all four simplify angles PASS.</li><li><code>runs/validate-validator-final/digest.md</code> — final pinned validation PASS with no findings.</li></ul>
+<p>No report round was spawned. This briefing was assembled directly from every run digest listed above and the feature ledger.</p>
+<h2 id="escalations-and-spend">Escalations and spend</h2>
+<ul><li>Resolved escalation: V-01 required scope beyond the original two-file patch. The operator authorized the minimum plan upgrade, preserved DEC-174 main-session-direct routing, and declined any matrix waiver.</li><li>Resolved simplify finding: EFF-01 was applied main-session-direct and independently confirmed.</li><li>Open questions: none.</li><li>Spend: 7 recorded runs, 92 wall-clock minutes, 70 rework minutes, 3 of 10 feature cycles used, and 10 recorded orchestrator judgements. The run count is proportionate to one scope upgrade, one cleanup regate, and a final independent validation.</li></ul>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Reassess whether the hard bugfix matrix should require duplicated unit- and integration-kind behavior proof for executable shell checkers. The duplication is intentional and non-gating here; changing it requires a fleet policy decision, not a BUG-1563 code change.</td></tr></tbody></table></div>
+<p>If B-1 is not struck before ship acceptance, it becomes a backlog issue. Everything else not listed here is intentionally closed with this feature.</p><p class='derived'>Derived from <code>ship-review-validate-validator-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -16,13 +16,13 @@
   is: run the verify's own predicate against the unfixed file and require a failure.
 
 - 2026-08-14 (cycle 1): The tempting fix for the multi-repo key collision — segment-qualify
-  `check-state.sh`'s dict keys — is a trap I only saw by reading every derivation site. Ten sites
+  `check-state.py`'s dict keys — is a trap I only saw by reading every derivation site. Ten sites
   use `os.path.basename(os.path.dirname(p))`; one uses `os.path.basename(_fp)` and its next line is
   `plan_docs.get(_feat)`. Qualify one shape and not the other and the station-mirror loop `continue`s
   past every feature at exit 0. I deferred the keying and fixed only the label. Counting call sites
   was not enough; the shapes had to be compared.
 
-- 2026-08-14 (cycle 1): `check-domain.sh --resolve` on a lane row's representative path is a
+- 2026-08-14 (cycle 1): `check-domain.py --resolve` on a lane row's representative path is a
   10-second measurement and it changed nothing in my rows — but it converted `resolved_at: 62fef85`
   from an inference into a measurement, and it surfaced that a measured grant and the declared lane
   legitimately disagree wherever DEC-174's carve-out overrides. The row now records both, so a later
@@ -54,10 +54,10 @@
 
 - 2026-08-14 (goal-check): SC-10 asked a parity test to redden when EITHER of two renderings changes
   alone, and it only reddens on one side. Case 20 in `test-layout-migration.py` compares
-  `layout_migration.render()` against a helper that MIRRORS `check-state.sh`'s INV-27 composition
+  `layout_migration.render()` against a helper that MIRRORS `check-state.py`'s INV-27 composition
   rather than executing it — a copy cannot detect drift in the thing it copies. Two mutations settled
   it in five minutes: dropping the last blamed reader on the module side reddened 4 assertions; the
-  same drop inside `check-state.sh` left case 20 at 0 FAIL. A parity criterion needs one side to be
+  same drop inside `check-state.py` left case 20 at 0 FAIL. A parity criterion needs one side to be
   the REAL artifact, or the composition needs a single owner both call sites import.
 
 - 2026-08-14 (goal-check): My first mutation was ill-chosen and read as "the test is fine" — I
@@ -67,7 +67,7 @@
   Aim the mutant at the fixture the case actually builds.
 
 - 2026-08-15 (goal-check cycle 2, SC-10 alone): "Reddens if EITHER rendering changes alone" is only
-  answerable once you know which side consumes which function. `check-state.sh:1313-1323` calls
+  answerable once you know which side consumes which function. `check-state.py:1313-1323` calls
   `blame_text`/`cause_text` and assembles its own line; it never calls `render()`. That asymmetry is
   what makes both directions mutable at all — a module-level mutation moves BOTH sides together and
   stays green, which would have read as a blind spot if I had only mutated the shared owner. Read the
@@ -84,7 +84,7 @@
   test-check-state.py` -> no hits). A comment naming its own compensating coverage is a claim to grep,
   not a mitigation to accept — even when the comment is honest about the gap existing.
 
-- 2026-08-15 (cycle 2): `bash-write-guard.sh` blocked a plan's own approved `verify:` on `>"$u"`,
+- 2026-08-15 (cycle 2): `bash-write-guard.py` blocked a plan's own approved `verify:` on `>"$u"`,
   reporting target "xx". My first diagnosis — "the variable was not resolved" — was wrong, and I only
   caught it because I greped the guard before filing it. `mask_quoted` (:155-179) blanks the contents
   of EVERY quoted span to `x`s on purpose, so any QUOTED redirect target blocks, literal or variable.

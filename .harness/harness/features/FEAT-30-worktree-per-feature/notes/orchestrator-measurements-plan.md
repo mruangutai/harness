@@ -23,7 +23,7 @@ rooted in the main checkout IS the failing shape, and it is the shape this featu
 ## The one I got wrong, and the correction
 
 **M-2. A DIRECT `git worktree add` into a served repository's own checkout is refused.**
-On stdin to `bash-write-guard.sh`:
+On stdin to `bash-write-guard.py`:
 
     git worktree add <workspace_root>/kaya-ai/.claude/worktrees/kaya-ai/FEAT-30 <branch>
       harness-backend-dev   exit 2
@@ -67,7 +67,7 @@ S-2 of a staged send-back and could have bought an unnecessary enforcement-layer
 **M-3. Refuse-on-dirty is already git's behaviour; the gap is the force flag.**
 `git worktree remove` on a tree holding one untracked file: exit **128**, message
 `contains modified or untracked files, use --force to delete it`. The same removal with `--force`
-passes `bash-write-guard.sh` at exit **0** — its git parser handles `worktree add|move` only. SC-07 is
+passes `bash-write-guard.py` at exit **0** — its git parser handles `worktree add|move` only. SC-07 is
 therefore a small addition to that parser plus a rule, not a dirty-tree detector.
 
 ## Corroborations
@@ -92,12 +92,12 @@ is refused as "a RELATIVE destination" although it resolves to a legal absolute 
 of my own commands. This is the same mechanism M-2c rests on.
 
 **M-9. Baseline for SC-09**, both suites at eeabc59: `--kind unit` and `--kind integration` each pass
-with zero FAIL or ERROR lines. `check-state.sh` reports exactly two VIOLATIONs, both unapproved
+with zero FAIL or ERROR lines. `check-state.py` reports exactly two VIOLATIONs, both unapproved
 BRIEFs in the paused FEAT-26 and FEAT-28 flows, neither belonging to this feature. State the sha AND
 the condition when citing this: two violations later is not FEAT-30 regressing, and zero later is not
 an improvement — it means those flows moved.
 
-## Lane facts I resolved (`check-domain.sh --resolve`, this checkout)
+## Lane facts I resolved (`check-domain.py --resolve`, this checkout)
 
     .claude/skills/harness/bin/**            -> harness-backend-dev harness-dev-ops
     .harness/harness.json                    -> harness-dev-ops

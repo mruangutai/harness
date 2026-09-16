@@ -48,13 +48,13 @@ unbroken on single physical lines.
 
 - `python3 .claude/skills/harness/bin/gen-decisions-index.py` — run **unconditionally** after the
   body edit. Exit 0.
-- `bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds` — **exit 0**
+- `python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds` — **exit 0**
   ("the script arrays and test_kinds.integration.detect agree").
 
 ## Facts verified at source, not assumed
 
 - `.claude/settings.json` PostToolUse carries matcher `Write|Edit|Bash` with
-  `context-watch-hook.py` as the second hook, alongside `check-domain.sh --post`.
+  `context-watch-hook.py` as the second hook, alongside `check-domain.py --post`.
 - `orchestrator_context_warn_tokens` is at `.harness/harness.json:169` (200000), rationale marked
   INFORMATIONAL, NOT A GATE.
 - The advisory wording quoted in the entry is verbatim from `context-watch.py:411,536`
@@ -69,7 +69,7 @@ No other decision entry (DEC-198 untouched), no new entry, no skill, no `plan.ya
 `feature.json`. The pre-existing dirty edits to `plan.yaml`, `feature.json` and
 `observations/harness-pm.md` were present at spawn and are left exactly as found.
 
-## check-state.sh — exit 1, and none of it is mine
+## check-state.py — exit 1, and none of it is mine
 
 Run before reporting, per CLAUDE.md. Three VIOLATIONs, all outside this task's surface — nothing
 about `DECISIONS.md` or `DECISIONS-INDEX.md`:
@@ -100,7 +100,7 @@ falsified clause **1**, `mid-flight` **0**, `context-size` **0**, `context-watch
 `turn-count` 1, `STRUCK|am.N` 0. The verify block therefore genuinely fails at HEAD on four counts,
 so the working-tree state is caused by this task's edit and by nothing else. Working tree now:
 1 / 1 / **0** / 2 / 1 / 1 / 2 / 0; `test-gen-decisions-index.py` exit 0 (9 ok);
-`run-unit-tests.sh --check-kinds` exit 0. `git diff -U1` shows **one** hunk on `DECISIONS.md`, so
+`run-unit-tests.py --check-kinds` exit 0. `git diff -U1` shows **one** hunk on `DECISIONS.md`, so
 no neighbouring entry was touched.
 
 **Every factual claim in the new prose checked against source:**
@@ -120,7 +120,7 @@ anchor is unchanged. Rows DEC-160 onward shifted by +18 lines. No row's hand-wri
 ` :: ` changed, and none needed to — DEC-159's ruling text stays true after this edit.
 
 **Out of scope, flagged not fixed — DEC-159 contradicts the enforced cap.** The Enforcement
-paragraph still says a handoff note is denied at more than 40 lines, but `check-domain.sh:949-952`
+paragraph still says a handoff note is denied at more than 40 lines, but `check-domain.py:949-952`
 denies at **60**, and DEC-159's own handoff paragraph already says "~60-line cap (raised from 40 at
 DEC-160)". The entry contradicts itself and the code. Pre-existing at HEAD, unrelated to SC-09, and
 correcting a second clause is not T-19's grant — routing it is the orchestrator's call.

@@ -5,14 +5,14 @@ Scope: `git -C .claude/worktrees/harness/FEAT-45-adversarial-plan-panel diff 1d3
 ## Examined
 
 - `panel_findings.py` (identity: `normalize_summary`, `finding_id`, CLI `id` subcommand)
-- `check-state.sh`'s INV-32 branch (lines ~174-238)
+- `check-state.py`'s INV-32 branch (lines ~174-238)
 - `test-panel-findings.py` (all 6 cases + CLI harness)
 - `test-plan-panel.py` (all 8 numbered assertion groups)
 - `test-check-state.py`'s INV-32 addition (`_inv32_plan`, `_inv32_run`, `case_inv32`, incl. the
   inv32-red mutation)
 - `test-team-catalog.py` (pre-existing, unchanged by this diff — read as the reuse baseline)
 - `test-harness-yaml-corpus.py`'s diff (`TEAMS_EXPECTED` 2→3, comment rewrite)
-- `sync-agent-adapters.py`'s `SPAWNS` addition and `run-unit-tests.sh`'s `UNIT_SCRIPTS` append
+- `sync-agent-adapters.py`'s `SPAWNS` addition and `run-unit-tests.py`'s `UNIT_SCRIPTS` append
 - `plan-panel.yaml`, `.omp/agents/harness-validator-lead.md`, `.claude/agents/harness-validator-lead.md`
 - `harness-spec-driven/SKILL.md`'s panel-transcription passage
 - grepped the whole worktree for `hashlib|sha256\(` and for a second `\s+`/`.lower()`/`.strip()`
@@ -55,11 +55,11 @@ Scope: `git -C .claude/worktrees/harness/FEAT-45-adversarial-plan-panel diff 1d3
 computed." Grepped the whole worktree for a second sha256/hashing of a finding summary and for a
 second `\s+`-collapse/`.lower()`/`.strip()` normalization:
 
-- `check-state.sh`'s INV-32 branch never recomputes an id — it only reads `item.get("id")` and
+- `check-state.py`'s INV-32 branch never recomputes an id — it only reads `item.get("id")` and
   `ruling.get("finding")` as opaque strings and compares them against the recorded finding-id set.
   No re-implementation.
 - `test-check-state.py`'s `_inv32_plan`/`case_inv32` fixtures use a literal `fid = "PF-deadbeef"`
-  string, never re-derived from `finding_id()` — but since `check-state.sh` treats ids as opaque,
+  string, never re-derived from `finding_id()` — but since `check-state.py` treats ids as opaque,
   this is a fixture value, not a second identity rule, and does not qualify as reuse drift.
 - `harness-spec-driven/SKILL.md` and both `harness-validator-lead.md` copies explicitly delegate
   id computation to the CLI ("Compute every id with `python3 …/panel_findings.py id --reader <r>
@@ -70,7 +70,7 @@ second `\s+`-collapse/`.lower()`/`.strip()` normalization:
   a directory-tree file-hasher for an unrelated purpose (detecting incidental file drift during a
   decompose run), pre-dating this feature and untouched by it.
 
-`sync-agent-adapters.py`'s `SPAWNS["harness-validator-lead"]` addition and `run-unit-tests.sh`'s
+`sync-agent-adapters.py`'s `SPAWNS["harness-validator-lead"]` addition and `run-unit-tests.py`'s
 `UNIT_SCRIPTS` append both extend pre-existing lists in place, using the pre-existing convention
 (no new enumeration mechanism introduced). `test-harness-yaml-corpus.py`'s `TEAMS_EXPECTED`
 2→3 change is a constant bump with rationale, not a new fixture. None of these are findings.

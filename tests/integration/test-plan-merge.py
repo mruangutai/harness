@@ -24,6 +24,7 @@ import sys
 import tempfile
 
 import yaml
+import artifact_accessors
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -31,6 +32,14 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
 TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
+
+# This suite shells out to plan-merge.py, whose cmd_sign_approval reads HARNESS_AGENT_TYPE
+# from the process environment at .claude/skills/harness/bin/plan-merge.py line 1188 and
+# exits 10 for any non-empty value; a Harness agent's own shell carries that variable, so
+# without this pop 13 checks across six cases fail for the agent and pass for a human.
+# Popping once here covers run_apply, run_verb, and any raw subprocess.run or Popen a future
+# case writes, with no per-call-site rule.
+os.environ.pop("HARNESS_AGENT_TYPE", None)
 
 RESULTS = []
 
@@ -138,7 +147,9 @@ def run_verb(*argv, env=None):
     """Any verb, argv passed through verbatim — so a case can assert on argument handling
     itself rather than only on a well-formed invocation. `env=None` inherits this process's own
     environment (os.environ default); a case that must control HARNESS_AGENT_TYPE passes an
-    explicit mapping so the ambient test-runner environment can never leak a false pass."""
+    explicit mapping so the ambient test-runner environment can never leak a false pass. The
+    ambient HARNESS_AGENT_TYPE is already removed at module import, so env=None is hermetic on
+    its own and an explicit mapping is needed only when a case wants a specific identity."""
     return subprocess.run([sys.executable, CLI, *argv], capture_output=True, text=True, env=env)
 
 
@@ -354,33 +365,41 @@ def case_concurrency_real(trials=20):
 
 
 def case_conflict():
-    """Case 5 — CONFLICT: a proposal carrying T-03 with a different title exits 7, prints the
-    id and both values, and leaves the file byte identical to before."""
+    """Case 5 — WAS THE CONFLICT CASE (exit 7 on a changed value), NOW ITS INVERSE (FEAT-59
+    SC-08). `apply` refusing any changed field on an existing id is what drove FEAT-54's 23
+    pre-build runs: every plan revision needed an `amend --show` / `--expect-sha256` round trip
+    per field. A proposal item whose id already exists now REPLACES the fields it names, keeps
+    the fields it omits, and logs each replacement on stdout. Deletion stays `delete-items`."""
     _root, path = fixture_root()
     full = ids(1, 5)
-    original = write(path, render_plan(full))
+    write(path, render_plan(full))
 
     proposal = os.path.join(_root, "proposal.yaml")
-    write(proposal, render_plan(full, titles={"T-03": "A completely different title"}))
+    # T-03 carries a changed title and a NEW field; `status` is omitted and must survive.
+    write(proposal, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-03\n    title: A completely different title\n    notes: added\n")
 
     r = run_apply(path, proposal)
-    check("case5: conflict exits 7", r.returncode == 7, r.stdout + r.stderr)
-    check("case5: stdout names the id", "T-03" in (r.stdout + r.stderr), r.stdout + r.stderr)
-    check(
-        "case5: stdout carries both values",
-        "Task T-03" in (r.stdout + r.stderr) and "A completely different title" in (r.stdout + r.stderr),
-        r.stdout + r.stderr,
-    )
     after = open(path, encoding="utf-8").read()
-    check("case5: file is byte identical to before", after == original, repr((original, after)))
-    # harness_merge's flock lock (D-02) is DELIBERATELY never removed — unlike
-    # expertise-merge.py's O_EXCL create-and-delete scheme — so its mere presence proves
-    # nothing about a refusal's cleanup. What DOES matter: no stray mkstemp() tempfile is
-    # left behind in plan.yaml's directory (locked_update removes its tmpfile on any
-    # exception, MergeRefusal included).
-    plan_dir = os.path.dirname(path)
-    stray = [n for n in os.listdir(plan_dir) if n not in ("plan.yaml", "plan.yaml.lock")]
-    check("case5: no stray tempfile left behind after the refusal", not stray, stray)
+    loaded = yaml.safe_load(after)
+    t03 = next(t for t in loaded["tasks"] if t["id"] == "T-03")
+    check("case5: a changed field on an existing id exits 0", r.returncode == 0,
+          f"rc={r.returncode} {r.stdout + r.stderr}")
+    check("case5: the named field is replaced", t03.get("title") == "A completely different title",
+          repr(t03))
+    check("case5: the new field is added", t03.get("notes") == "added", repr(t03))
+    check("case5: the omitted field is kept", t03.get("status") == "pending", repr(t03))
+    check("case5: stdout logs the replacement per field with both values",
+          "REPLACED T-03.title" in r.stdout and "Task T-03" in r.stdout
+          and "A completely different title" in r.stdout and "T-03.notes" in r.stdout,
+          r.stdout)
+    # Every OTHER item is byte-identical: the replacement is a splice, not a re-render.
+    for tid in ("T-01", "T-02", "T-04", "T-05"):
+        check(f"case5: {tid} is byte-identical after the replace", task_block(tid) in after, after)
+    check("case5: the approval block is untouched (base was pending)", DEFAULT_APPROVAL in after,
+          after)
+    check("case5: the task count is unchanged — replace never adds an item",
+          len(loaded["tasks"]) == 5, repr([t["id"] for t in loaded["tasks"]]))
 
 
 def case_idempotence():
@@ -772,7 +791,7 @@ def case_set_panel_replaces_mapping_and_validates_shape():
             "last_run": "runs/c5-validator",
             "cycle": 5,
             "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
-            "findings": [{"id": "PF-1", "severity": "low", "disposition": "open"}],
+            "findings": [{"id": "PF-1", "severity": "low", "kind": "form", "disposition": "open"}],
         }
         write(plan, original + yaml.safe_dump({"panel": panel_one}, sort_keys=False))
         value_file = os.path.join(root, "panel.yaml")
@@ -846,16 +865,21 @@ def case_illegal_station_exit_4():
                 r = run_verb(verb, "--file", plan, *extra, "--station", bad)
                 check(f"{verb} exits 4 on the illegal station {bad!r}", r.returncode == 4,
                       f"rc={r.returncode} {r.stderr!r}")
-                check(f"{verb}'s exit-4 line lists the legal stations for {bad!r}",
+                check(f"{verb}'s exit-4 line lists the legal stations for {bad!r}, rejected included",
                       all(st in r.stderr for st in
-                          ("backlog", "plan", "ready", "building", "review", "done")),
+                          ("backlog", "plan", "ready", "building", "review", "done", "abandoned",
+                           "rejected")),
                       r.stderr)
                 check(f"{verb} writes nothing when {bad!r} is refused", read(plan) == before)
-        # TERMINAL_MARKER is legal for both verbs even though it is NOT a board station.
-        r = run_verb("set-task-station", "--file", plan, "--task", "T-01",
-                     "--station", "abandoned")
-        check("set-task-station ACCEPTS abandoned, the terminal marker", r.returncode == 0,
-              f"rc={r.returncode} {r.stderr!r}")
+        # Every TERMINAL_STATIONS name is legal for both verbs even though none is a board station.
+        for station in ("abandoned", "rejected"):
+            r = run_verb("set-task-station", "--file", plan, "--task", "T-01", "--station", station)
+            check(f"set-task-station ACCEPTS {station}, a terminal station", r.returncode == 0,
+                  f"rc={r.returncode} {r.stderr!r}")
+            r = run_verb("set-feature-station", "--file", plan, "--station", station)
+            check(f"set-feature-station ACCEPTS {station} (FEAT-1714 T-03: reject's one station write)",
+                  r.returncode == 0 and yaml.safe_load(read(plan)).get("status") == station,
+                  f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -888,6 +912,114 @@ def case_sign_approval():
               after.split("tasks:")[1].count("status: pending") == 2, after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+def case_sign_approval_preserves_existing_rulings():
+    """A re-signature must write approval.date outside pre-existing ruling records."""
+    root, plan = fixture_root()
+    try:
+        approval = (
+            "approval:\n"
+            "  status: pending\n"
+            "  rulings:\n"
+            "    - finding: PF-existing\n"
+            "      who: Operator\n"
+            "      date: '2026-09-01'\n"
+            "      reason: accepted earlier\n"
+        )
+        write(plan, render_plan(ids(1, 2), approval=approval))
+        result = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                          "--date", "2026-09-04")
+        signed = yaml.safe_load(read(plan))["approval"]
+        check("re-signing a ruled plan exits 0", result.returncode == 0,
+              f"rc={result.returncode} {result.stderr!r}")
+        check("re-signing a ruled plan writes the requested approval date",
+              signed.get("date") == "2026-09-04", repr(signed))
+        check("re-signing a ruled plan preserves its existing ruling",
+              signed.get("rulings") == [{
+                  "finding": "PF-existing", "who": "Operator", "date": "2026-09-01",
+                  "reason": "accepted earlier",
+              }], repr(signed))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1157_sign_approval_records_validated_overrules():
+    """#1157: the sole approval writer must also write the risk acceptance INV-32 reads.
+
+    Grade-2 reason: success and every refusal share one exact fixture and byte-identity baseline;
+    splitting them would obscure that all invalid inputs leave the same plan untouched. The bug is
+    the missing route: argparse rejected --overrule before validation or approval.rulings writes.
+    """
+    root, plan = fixture_root()
+    try:
+        panel = (
+            "panel:\n"
+            "  last_run: panel-validator\n"
+            "  cycle: 0\n"
+            "  findings:\n"
+            "    - id: PF-deadbeef\n"
+            "      severity: high\n"
+            "      disposition: open\n"
+            "    - id: PF-cafebabe\n"
+            "      severity: critical\n"
+            "      disposition: open\n"
+            "  readers: []\n\n"
+        )
+        write(plan, render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n"))
+        r = run_verb(
+            "sign-approval", "--file", plan, "--by", "Operator: One",
+            "--date", "2026-09-02",
+            "--overrule", "PF-deadbeef:accepted for launch",
+            "--overrule", "PF-cafebabe:risk owner: operator",
+        )
+        after = read(plan)
+        approval = (yaml.safe_load(after) or {}).get("approval")
+        check("1157: sign-approval accepts repeatable --overrule", r.returncode == 0,
+              f"rc={r.returncode} stderr={r.stderr!r}")
+        check("1157: each ruling records finding, attribution, date, and full reason",
+              approval and approval.get("rulings") == [
+                  {"finding": "PF-deadbeef", "who": "Operator: One",
+                   "date": "2026-09-02", "reason": "accepted for launch"},
+                  {"finding": "PF-cafebabe", "who": "Operator: One",
+                   "date": "2026-09-02", "reason": "risk owner: operator"},
+              ], repr(approval))
+
+        before_refusal = write(
+            plan, render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n")
+        )
+        unknown = run_verb(
+            "sign-approval", "--file", plan, "--by", "operator", "--date", "2026-09-02",
+            "--overrule", "PF-unknown:accepted",
+        )
+        check("1157: an overrule for a non-current finding is refused without writing",
+              unknown.returncode != 0 and read(plan) == before_refusal, unknown.stderr)
+
+        empty_reason = run_verb(
+            "sign-approval", "--file", plan, "--by", "operator", "--date", "2026-09-02",
+            "--overrule", "PF-deadbeef:",
+        )
+        check("1157: an empty overrule reason is refused without writing",
+              empty_reason.returncode != 0 and read(plan) == before_refusal,
+              empty_reason.stderr)
+
+        invalid_date = run_verb(
+            "sign-approval", "--file", plan, "--by", "operator", "--date", "September 2",
+            "--overrule", "PF-deadbeef:accepted",
+        )
+        check("1157: a risk acceptance with an invalid date is refused without writing",
+              invalid_date.returncode != 0 and read(plan) == before_refusal,
+              invalid_date.stderr)
+
+        missing_who = run_verb(
+            "sign-approval", "--file", plan, "--by", "", "--date", "2026-09-02",
+            "--overrule", "PF-deadbeef:accepted",
+        )
+        check("1157: an unattributed risk acceptance is refused without writing",
+              missing_who.returncode != 0 and read(plan) == before_refusal,
+              missing_who.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 
 def case_sign_approval_inserts_absent_mapping():
     """A new plan has no approval key until the operator signs it.
@@ -1043,7 +1175,7 @@ def case_1103_sign_approval_negative_control_absent_is_main_session():
     """NEGATIVE CONTROL for the case above: an ABSENT HARNESS_AGENT_TYPE is the main session,
     the same exemption plan-sign-gate.py's own hook already uses (`if not (payload.get
     ("agent_type") or ""): sys.exit(0)`), and one this whole codebase applies consistently
-    (dispatch-guard.sh, bash-write-guard.sh, check-domain.sh, validate-digest.py). Refusing on
+    (dispatch-guard.py, bash-write-guard.py, check-domain.py, validate-digest.py). Refusing on
     absence here would refuse the main session's own legitimate signature — a stricter check
     that is provably wrong, not merely untested."""
     root, plan = fixture_root()
@@ -1144,20 +1276,6 @@ def case_add_tasks_alias():
         check("add-tasks adds the new task", "T-03" in read(plan), read(plan))
         check("add-tasks reports through the same ADDED/APPLIED contract as apply",
               "ADDED T-03" in r.stdout and "APPLIED" in r.stdout, r.stdout)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
-
-
-def case_apply_still_refuses_a_changed_value():
-    """apply's exit 7 must survive the arrival of four sibling verbs."""
-    root, plan = fixture_root()
-    try:
-        write(plan, render_plan(ids(1, 2)))
-        prop = os.path.join(os.path.dirname(plan), "proposal.yaml")
-        write(prop, render_plan(ids(1, 2), titles={"T-02": "a DIFFERENT title"}))
-        r = run_apply(plan, prop)
-        check("apply still exits 7 on a changed task value after the new verbs exist",
-              r.returncode == 7, f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -1945,6 +2063,2034 @@ def case_amend_duplicate_id_is_refused():
 
 
 
+# ---------------------------------------------------------------------------
+# BUG-201 — a `depends_on` entry naming a task absent from the plan must not
+# survive `apply`. `_verify_spliced` already refuses any merge that turns a
+# LEGAL base plan into an ILLEGAL one (exit 5, "ILLEGAL PLAN"); this proves
+# that guard covers a dangling depends_on edge specifically, once
+# harness_yaml.validate_plan_doc knows to check it (T-03). Until T-03 lands
+# the apply below SUCCEEDS where it must refuse, so case (a) is the RED half.
+# ---------------------------------------------------------------------------
+
+
+def _bug201_base_plan():
+    """A LEGAL plan per artifact_accessors.load_plan: schema, feature, plan status, approval
+    status pending, and two COMPLETE tasks (every REQUIRED_TASK_FIELDS field) with no
+    dangling depends_on edge — T-02 depends on T-01, which is present.
+
+    Asserting load_plan accepts this BEFORE the refusal case is what makes the refusal mean
+    something: plan-merge only refuses a merge that makes a LEGAL plan illegal
+    (plan-merge.py's `_verify_spliced`), so a base that was already illegal would prove
+    nothing about the merge."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "status: plan\n"
+        "approval:\n"
+        "  status: pending\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: first task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [a.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: done\n"
+        "    depends_on: []\n"
+        "  - id: T-02\n"
+        "    title: second task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [b.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: done\n"
+        "    depends_on: [T-01]\n"
+    )
+
+
+def _bug201_proposal(depends_on_target):
+    """A proposal adding one complete task T-03, depending on `depends_on_target` only —
+    the single variable between case (a)'s refusal and case (b)'s paired allow. No
+    `approval:` key, so the merge takes the exit-0 no-approval-key path case 10b already
+    covers rather than exercising a second, unrelated refusal."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "tasks:\n"
+        "  - id: T-03\n"
+        "    title: third task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [c.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: pending\n"
+        f"    depends_on: [{depends_on_target}]\n"
+    )
+
+
+def case_bug201_apply_refuses_dangling_depends_on():
+    """BUG-201. A `depends_on` entry naming a task absent from the same plan must not
+    survive `apply` as a signable, dangling GitHub `blocked_by` edge.
+
+    a and b use INDEPENDENT fixtures (case 10's own pattern), not one plan.yaml mutated
+    twice: (a) is expected to be REFUSED before T-03 lands, but isn't yet (that is the RED),
+    so a shared fixture would leave T-03 already present with depends_on: [T-99] and turn
+    (b)'s apply into an unrelated CONFLICT rather than a clean paired allow.
+
+    a. THE REFUSAL. T-03's proposal names depends_on: [T-99], and T-99 is nowhere in the
+       plan. Exit 5, ILLEGAL PLAN and T-99 both named in the combined output, and the base
+       file byte-identical to before the call — a refusal that still wrote a partial splice
+       would be worse than no refusal at all.
+    b. THE PAIRED ALLOW. Same proposal, depends_on: [T-01] instead — a real task id, against
+       its own fresh copy of the same base. Exit 0, T-03 lands. Without this half, a
+       plan-merge that refused every apply would pass (a) vacuously.
+    """
+
+    root_a, plan_a = fixture_root(prefix="plan-merge-test-bug201a-")
+    try:
+        base = write(plan_a, _bug201_base_plan())
+        loads_clean = True
+        try:
+            artifact_accessors.load_plan(plan_a)
+        except Exception:
+            loads_clean = False
+        check("bug201: the fixture base is a LEGAL plan (artifact_accessors.load_plan accepts it)",
+              loads_clean, "load_plan raised on the fixture base — this case would prove nothing")
+
+        proposal_a = os.path.join(root_a, "proposal-dangling.yaml")
+        write(proposal_a, _bug201_proposal("T-99"))
+        r_a = run_apply(plan_a, proposal_a)
+        out_a = r_a.stdout + r_a.stderr
+        check("bug201a: apply refuses a dangling depends_on with exit 5",
+              r_a.returncode == 5, f"rc={r_a.returncode} out={out_a}")
+        check("bug201a: refusal names ILLEGAL PLAN", "ILLEGAL PLAN" in out_a, out_a)
+        check("bug201a: refusal names the dangling id T-99", "T-99" in out_a, out_a)
+        after_a = read(plan_a)
+        check("bug201a: base file is byte identical to before the refused apply",
+              after_a == base, repr((base, after_a)))
+    finally:
+        shutil.rmtree(root_a, ignore_errors=True)
+
+    root_b, plan_b = fixture_root(prefix="plan-merge-test-bug201b-")
+    try:
+        write(plan_b, _bug201_base_plan())
+        proposal_b = os.path.join(root_b, "proposal-allowed.yaml")
+        write(proposal_b, _bug201_proposal("T-01"))
+        r_b = run_apply(plan_b, proposal_b)
+        check("bug201b: the paired apply naming a real dependency exits 0",
+              r_b.returncode == 0, f"rc={r_b.returncode} out={r_b.stdout + r_b.stderr}")
+        after_b = read(plan_b)
+        check("bug201b: T-03 is present after the allowed apply", "- id: T-03\n" in after_b, after_b)
+    finally:
+        shutil.rmtree(root_b, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# `delete-items` — the verb the add-only property left missing.
+#
+# EVERY REFUSAL CASE ALSO ASSERTS THE FILE IS BYTE-IDENTICAL AFTERWARDS. A refusal that had
+# already half-written its deletion would be worse than no refusal, and `locked_update`'s
+# promise — a raised MergeRefusal writes nothing — is only a promise until something checks it
+# on this path too.
+# ---------------------------------------------------------------------------
+
+_DELETE_CHUNKS = (
+    ("preamble", "# a preamble comment that belongs to the document\n"),
+    ("head", "schema: plan/1\nfeature: FEAT-99-fixture\n\n"
+             "approval:\n  status: pending\n"
+             "  # a trailing comment inside the approval block\n\n"
+             "tasks:\n"),
+    ("T-01", "  - id: T-01\n    title: first\n    verify: |\n      run it\n    status: ready\n"),
+    ("note", "  # a document NOTE between two items, belonging to neither\n"),
+    ("T-02", "  - id: T-02\n    title: second\n    status: ready\n"),
+    ("T-03", "  - id: T-03\n    title: third\n    status: ready\n"),
+    ("gap", "\n"),
+    ("decisions", "decisions:\n"),
+    ("D-01", "  - id: D-01\n    choice: keep this one\n"),
+    ("D-02", "  - id: D-02\n    choice: drop this one\n"),
+    ("D-02-gap", "\n"),
+    ("tail", "panel:\n  cycle: 1\n"),
+)
+
+
+def _delete_plan(without=()):
+    """The delete fixture, or the same fixture with named chunks omitted.
+
+    THE EXPECTATION IS DERIVED BY OMITTING CHUNKS, never by re-rendering. That is what turns
+    "every surviving line is byte-identical" into an assertion: a dumper round trip would
+    reformat the whole plan, drop every comment, and still `safe_load` equal to this.
+    """
+    return "".join(text for name, text in _DELETE_CHUNKS if name not in without)
+
+
+def case_delete_items_removes_whole_items_and_leaves_every_other_byte_identical():
+    """THE GREEN PATH: two items, from two different lists, in one call.
+
+    T-01 is the FIRST task and D-02 is the LAST decision, deliberately. An item's text range
+    runs from its own dash line to the NEXT dash line, and the last item's to the end of the
+    key's block — so those raw bounds would take the document `# NOTE` between T-01 and T-02
+    with T-01. The `# NOTE` is the document's and must survive; the blank line D-02 carries is
+    D-02's own separator and must go with it, or five consecutive deletions leave five blank
+    lines behind. The byte-identity check is what proves both.
+
+    A MUTANT THAT REDDENS THIS: rendering the result through `yaml.safe_dump` instead of
+    filtering lines. It loads identically and every comment, the blank lines and the `verify: |`
+    form are gone.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _delete_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--decision", "D-02",
+                     "--reason", "the operator ruled lever 6 out of scope")
+        after = read(plan)
+        check("delete: a two-list multi-item delete exits 0", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:400]!r}")
+        check("delete: the receipt names every id that went",
+              "DELETED tasks:T-01" in r.stdout and "DELETED decisions:D-02" in r.stdout,
+              r.stdout)
+        check("delete: the receipt states the reason",
+              "reason: the operator ruled lever 6 out of scope" in r.stdout, r.stdout)
+        check("delete: and the reason is NOT written into the plan",
+              "out of scope" not in after, after)
+        check("delete: EVERY surviving byte is identical (chunk-derived expectation)",
+              after == _delete_plan(without=("T-01", "D-02", "D-02-gap")), repr(after))
+        check("delete: the document NOTE after the deleted first task survives",
+              "# a document NOTE" in after, after)
+        check("delete: the blank line the deleted last decision carried goes with it",
+              "choice: keep this one\npanel:\n" in after, repr(after))
+        loaded = yaml.safe_load(after)
+        check("delete: the survivors are exactly the items not named",
+              [t["id"] for t in loaded["tasks"]] == ["T-02", "T-03"]
+              and [d["id"] for d in loaded["decisions"]] == ["D-01"], repr(loaded))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _delete_block_plan():
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+            "  - id: T-01\n    title: first\n    verify: |\n"
+            "      run it\n"
+            "      # a shell comment that is CONTENT of the block body\n"
+            "  # a document NOTE that is not\n"
+            "  - id: T-02\n    title: second\n    status: ready\n")
+
+
+def case_delete_items_boundary_splits_block_content_from_document_comments():
+    """THE TWO-SIDED BOUNDARY, which is where a delete goes wrong quietly.
+
+    Inside a `|` body a `#` line is CONTENT — a shell comment in a verify script, `_trim_tail`'s
+    own measured lesson — so it goes WITH the item. Between two items a `#` line is DOCUMENT, so
+    it stays. BOTH wrong answers leave a file that loads and passes the schema: one orphans a
+    fragment of the deleted task's verify script inside `tasks:`, the other silently deletes a
+    note nobody asked to lose.
+
+    MUTANTS THAT REDDEN THIS: returning the raw dash-to-dash `end` from `_item_delete_end` (the
+    NOTE disappears), or trimming trailing comments without the block-scalar floor (the shell
+    comment survives as orphaned text).
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _delete_block_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01",
+                     "--reason", "the task is out of scope")
+        after = read(plan)
+        check("delete: deleting a task whose last line is a block-body comment exits 0",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:400]!r}")
+        check("delete: the `#` line inside the `|` body went with the item",
+              "a shell comment" not in after, after)
+        check("delete: the `#` line between the items did not",
+              "# a document NOTE that is not" in after, after)
+        check("delete: and nothing else moved",
+              after == ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                        "  # a document NOTE that is not\n"
+                        "  - id: T-02\n    title: second\n    status: ready\n"), repr(after))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_leaves_no_blank_line_residue():
+    """MEASURED ON FEAT-57's REAL plan.yaml, which is why this case exists at all.
+
+    Its tasks are separated by a blank line after a `|` body, and the ten items the operator
+    ruled out of scope are consecutive. Treating those blanks as the DOCUMENT's — the rule
+    every other splice in this file follows, because a REPLACEMENT leaves them where they were
+    — left four blank lines stranded at end of file and made `git diff` report insertions on a
+    pure deletion. An item owns the whitespace that follows it, so N consecutive deletions
+    leave N-1 separators and no residue.
+
+    A MUTANT THAT REDDENS THIS: `return _before_trailing_comments(lines[:end], floor)` — the
+    rule this case was written to retire.
+    """
+    root, plan = fixture_root()
+    try:
+        head = "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+        item = "  - id: {0}\n    intent: |\n      do {0}\n\n"
+        write(plan, head + "".join(item.format(t) for t in ("T-01", "T-02", "T-03"))
+              + "  - id: T-04\n    intent: |\n      do T-04\n")
+        r = run_verb("delete-items", "--file", plan, "--task", "T-02", "--task", "T-03",
+                     "--reason", "two consecutive blank-separated items go")
+        after = read(plan)
+        check("delete: two consecutive blank-separated items delete cleanly",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:400]!r}")
+        check("delete: exactly one separator survives, with no blank-line residue",
+              after == head + item.format("T-01")
+              + "  - id: T-04\n    intent: |\n      do T-04\n", repr(after))
+        check("delete: and the blank INSIDE no body was disturbed",
+              [t["id"] for t in yaml.safe_load(after)["tasks"]] == ["T-01", "T-04"],
+              repr(after))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_an_absent_id_and_writes_nothing_at_all():
+    """A TYPO'D ID IS NEVER A NO-OP (exit 3), and the whole call is refused, not the bad half.
+
+    A caller who mistyped one of ten ids and was told the deletion happened would then believe
+    a scope removal that never occurred — which is why T-01 below, a perfectly valid target
+    named in the SAME call, must still be present afterwards.
+
+    The ids listed are SCOPED to the list the miss was in, the precedent `_task_status_line`
+    set: offering decision ids for a `--task` miss invites a retry that fails for an unrelated
+    reason.
+
+    A MUTANT THAT REDDENS THIS: skipping unknown ids instead of raising — the tempting
+    "idempotent delete" that reports success for a command that did nothing.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _delete_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--task", "T-99",
+                     "--reason", "one of these ids is a typo")
+        out = r.stdout + r.stderr
+        check("delete: an absent id is refused with exit 3", r.returncode == 3,
+              f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: the refusal names the id that is not there", "T-99" in out, out)
+        check("delete: and lists the ids that are, scoped to that list",
+              "T-01, T-02, T-03" in out and "D-01" not in out, out)
+        check("delete: the valid id named in the same call is NOT deleted",
+              read(plan) == before, "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_its_own_bad_command_line():
+    """THE THREE ARGV REFUSALS, all exit 2 and all before the lock is ever taken.
+
+    a. THE SAME ID TWICE. De-duplicating silently would swallow the likelier explanation —
+       that one of the other ids the caller typed is wrong.
+    b. NO --task AND NO --decision. A delete naming nothing is a write with no subject;
+       reporting success for it teaches the caller that a mistyped flag worked.
+    c. AN EMPTY --reason. The reason is never written into the plan, so an empty one defeats
+       the only two things it is for: naming why in a refusal, and stopping a reflex delete.
+
+    MUTANTS: `set(...)`-ing the requested ids, dropping the empty-`requested` guard, or making
+    `--reason` optional / accepting whitespace.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _delete_plan())
+        repeated = run_verb("delete-items", "--file", plan, "--task", "T-01", "--task", "T-01",
+                            "--reason", "twice")
+        check("delete: the same id twice is refused with exit 2", repeated.returncode == 2,
+              f"rc={repeated.returncode} out={(repeated.stdout + repeated.stderr)[:300]!r}")
+        check("delete: naming the id that was repeated",
+              "T-01" in repeated.stdout + repeated.stderr, repeated.stderr)
+        nothing = run_verb("delete-items", "--file", plan, "--reason", "nothing named")
+        check("delete: no --task and no --decision is refused with exit 2",
+              nothing.returncode == 2, f"rc={nothing.returncode} {nothing.stderr[:200]!r}")
+        blank = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "   ")
+        check("delete: an empty --reason is refused with exit 2", blank.returncode == 2,
+              f"rc={blank.returncode} {blank.stderr[:200]!r}")
+        check("delete: none of the three refusals touched the file", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _delete_dangling_plan(legal=True):
+    """T-01, T-02 depending on T-01, T-03 independent — legal, or the same shape with the
+    required task fields stripped so the plan schema already refuses it.
+
+    THE ILLEGAL VARIANT IS THE POINT OF THIS CASE. `harness_yaml` refuses a plan whose
+    `depends_on` names an absent task (#201), and delete-items holds its result to the schema —
+    but only DO NO HARM, so a base that was already illegal skips that check entirely. That is
+    most plans a scope removal runs against, and it is exactly where the schema cannot be the
+    net.
+    """
+    if not legal:
+        return ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                "  - id: T-01\n    title: first\n"
+                "  - id: T-02\n    title: second\n    depends_on: [T-01]\n")
+    body = ""
+    for tid, dep in (("T-01", "[]"), ("T-02", "[T-01]"), ("T-03", "[]")):
+        body += (f"  - id: {tid}\n    title: task {tid}\n    change_type: logic\n"
+                 f"    execution_mode: main-session-direct\n    files: [{tid}.py]\n"
+                 f"    verify: run it\n    intent: do it\n    status: done\n"
+                 f"    depends_on: {dep}\n")
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\nstatus: plan\n"
+            "approval:\n  status: pending\ntasks:\n" + body)
+
+
+def case_delete_items_refuses_a_dangling_depends_on():
+    """THE REFUSAL A WRONG IMPLEMENTATION STILL PASSES EVERY OTHER CHECK ON (#201's class).
+
+    Deleting T-01 while T-02 still says `depends_on: [T-01]` leaves a file that loads, splices
+    cleanly, and reports exactly the id it was asked to remove. Only the graph is broken.
+
+    a. LEGAL BASE. Exit 4, and the refusal names the edge `T-02 depends_on T-01` — which the
+       schema's own complaint cannot do, because it fires on the finished document rather than
+       on the request.
+    b. ALREADY-ILLEGAL BASE — the half that matters. Do-no-harm skips the schema check when the
+       base was not legal to begin with, so here the explicit check is the ONLY thing between
+       the caller and a dangling edge. Dropping that check leaves (a) refusing via the schema
+       and turns THIS into a silent exit-0 write.
+    c. THE PAIRED ALLOW. Deleting T-01 AND T-02 together exits 0: the edge does not survive, so
+       there is nothing dangling. Without this half, a verb that refused every delete naming a
+       dependency would pass (a) and (b) vacuously.
+    """
+    import harness_yaml
+
+    root_a, plan_a = fixture_root(prefix="plan-merge-test-del-a-")
+    try:
+        before = write(plan_a, _delete_dangling_plan())
+        legal = True
+        try:
+            artifact_accessors.load_plan(plan_a)
+        except Exception:  # noqa: BLE001
+            legal = False
+        check("delete-dangling: the fixture base IS a legal plan (or (a) proves nothing)",
+              legal, "load_plan raised on the legal fixture")
+        r = run_verb("delete-items", "--file", plan_a, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete-dangling a: a delete that would dangle an edge is refused with exit 4",
+              r.returncode == 4, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete-dangling a: and the refusal names the edge, not just the id",
+              "T-02 depends_on T-01" in out, out)
+        check("delete-dangling a: the plan is byte-identical after the refusal",
+              read(plan_a) == before, "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root_a, ignore_errors=True)
+
+    root_b, plan_b = fixture_root(prefix="plan-merge-test-del-b-")
+    try:
+        before = write(plan_b, _delete_dangling_plan(legal=False))
+        already_illegal = False
+        try:
+            artifact_accessors.load_plan(plan_b)
+        except harness_yaml.PlanSchemaError:
+            already_illegal = True
+        check("delete-dangling b: the fixture base is ALREADY schema-illegal, so do-no-harm "
+              "skips the schema check (or (b) proves nothing)",
+              already_illegal, "the fixture is schema-legal: this case would not isolate the "
+                               "explicit check")
+        r = run_verb("delete-items", "--file", plan_b, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete-dangling b: the edge is refused even where the schema cannot see it",
+              r.returncode == 4, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete-dangling b: naming the edge", "T-02 depends_on T-01" in out, out)
+        check("delete-dangling b: and nothing was written", read(plan_b) == before,
+              "a dangling depends_on was written at exit 0" if r.returncode == 0
+              else "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root_b, ignore_errors=True)
+
+    root_c, plan_c = fixture_root(prefix="plan-merge-test-del-c-")
+    try:
+        write(plan_c, _delete_dangling_plan())
+        r = run_verb("delete-items", "--file", plan_c, "--task", "T-01", "--task", "T-02",
+                     "--reason", "both ends of the edge are out of scope")
+        check("delete-dangling c: deleting BOTH ends of the edge in one call exits 0",
+              r.returncode == 0, f"rc={r.returncode} out={(r.stdout + r.stderr)[:300]!r}")
+        survivors = yaml.safe_load(read(plan_c))["tasks"]
+        check("delete-dangling c: and only the independent task is left",
+              [t["id"] for t in survivors] == ["T-03"], repr(survivors))
+    finally:
+        shutil.rmtree(root_c, ignore_errors=True)
+
+
+def case_delete_items_refuses_a_duplicate_id_in_the_plan():
+    """`_sole_item`'s rule, applied to deletion: two items carrying one id cannot be told apart,
+    so binding to the first match is a guess about which one the operator meant.
+
+    A MUTANT THAT REDDENS THIS: taking `hits[0]` instead of requiring exactly one.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                             "  - id: T-01\n    title: first\n    status: ready\n"
+                             "  - id: T-01\n    title: also first\n    status: ready\n")
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete: an id carried twice by the plan is refused, not resolved to the first",
+              r.returncode != 0 and "2 time(s)" in out, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: and the ambiguous plan is unchanged", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_a_deletion_that_breaks_the_schema():
+    """DO NO HARM, from the other direction: the base is legal, so the RESULT must be too.
+
+    Deleting the only task empties `tasks:`, and the schema requires an emptied plan to SAY it
+    is a station-only record. The verb cannot write that marker — `apply` was stopped from
+    minting it (HIGH-1) — so the honest answer is a refusal.
+
+    A MUTANT THAT REDDENS THIS: dropping the `_schema_error` block from `_deleted_bytes`.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _schema_valid_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete: a deletion that makes a legal plan illegal is refused with exit 5",
+              r.returncode == 5 and "ILLEGAL PLAN" in out, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: and the legal plan survives byte-identical", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_an_unparseable_base():
+    """`amend`'s panel-V4 lesson: a base that does not parse must refuse CLEANLY and say which
+    document is at fault, rather than crash or blame its own splice.
+
+    A MUTANT THAT REDDENS THIS: parsing the base outside the try, or after the splice.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                             "  - id: T-01\n    title: 'unterminated\n")
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete: an unparseable base is refused with exit 5",
+              r.returncode == 5, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: and the refusal blames the plan on disk, not the splice",
+              "does not parse" in out, out)
+        check("delete: leaving the broken file exactly as it was", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_inherits_the_destination_and_lock_refusals():
+    """delete-items is not a second write route: same destination guard, same lock.
+
+    THE LOCK REFUSAL IS OBSERVED, NOT ASSERTED ABOUT. The test process holds an exclusive flock
+    on the plan's own lock file and then runs the verb, so exit 6 comes from the real retry
+    budget. It costs harness_merge.LOCK_TIMEOUT_SECONDS of wall clock once, which is what a
+    guarantee nobody has to take on faith costs.
+
+    A MUTANT THAT REDDENS THIS: writing the file directly instead of through
+    `harness_merge.locked_update` — the tempting simplification, and the one that reintroduces
+    #628.
+    """
+    import fcntl
+
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _delete_plan())
+        outside = os.path.join(root, "not-a-plan.yaml")
+        write(outside, _delete_plan())
+        stray = run_verb("delete-items", "--file", outside, "--task", "T-01",
+                         "--reason", "wrong destination")
+        check("delete: a --file that is not a plan.yaml under features/ is refused with exit 9",
+              stray.returncode == 9, f"rc={stray.returncode} {stray.stderr[:200]!r}")
+
+        held = os.open(plan + ".lock", os.O_CREAT | os.O_RDWR)
+        try:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            locked = run_verb("delete-items", "--file", plan, "--task", "T-01",
+                              "--reason", "the lock is held elsewhere")
+        finally:
+            os.close(held)
+        out = locked.stdout + locked.stderr
+        check("delete: an unacquirable lock is refused with exit 6",
+              locked.returncode == 6, f"rc={locked.returncode} out={out[:300]!r}")
+        check("delete: naming the lock it could not take", "LOCKED" in out, out)
+        check("delete: and the plan is untouched while another writer holds the lock",
+              read(plan) == before, "the plan changed while the lock was held elsewhere")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_verify_catches_a_boundary_error_that_still_parses():
+    """THE CHECK NO CORRECT IMPLEMENTATION CAN TRIGGER, TESTED DIRECTLY — the F2 remedy.
+
+    A range one line long merges the next item's `- id:` line into the deleted one; a range one
+    line short leaves an orphaned field on the neighbour. Both results LOAD, both pass the
+    schema, and an id-only check sees neither. So `_verify_deletion` is handed a document with
+    exactly that damage and must refuse it, its negative control proves it is not refusing
+    everything, and the wiring is asserted at the source level and labelled for what it is.
+
+    MUTANTS: comparing ids instead of whole items (the missing-field half goes green), or
+    deleting the call from `_deleted_bytes` (the reachability check goes red).
+    """
+    mod = _load_pm()
+    base_doc = yaml.safe_load(_delete_plan())
+    requested = [("tasks", "T-01")]
+
+    lost_a_field = _delete_plan(without=("T-01",)).replace("    title: second\n", "")
+    raised = None
+    try:
+        mod._verify_deletion(lost_a_field.encode("utf-8"), base_doc, requested)
+    except mod.harness_merge.MergeRefusal as exc:
+        raised = exc
+    check("delete-verify: a survivor that quietly lost a field is refused with exit 5",
+          raised is not None and raised.code == 5, f"raised={raised!r}")
+    check("delete-verify: and the refusal says the ids matched, so it was a boundary error",
+          raised is not None and any("boundary" in line for line in raised.lines),
+          f"lines={getattr(raised, 'lines', None)!r}")
+
+    took_two = _delete_plan(without=("T-01", "T-02"))
+    raised_two = None
+    try:
+        mod._verify_deletion(took_two.encode("utf-8"), base_doc, requested)
+    except mod.harness_merge.MergeRefusal as exc:
+        raised_two = exc
+    check("delete-verify: a splice that took an item nobody named is refused, naming both id "
+          "lists",
+          raised_two is not None and any("T-02" in line for line in raised_two.lines),
+          f"raised={raised_two!r}")
+
+    accepted = None
+    try:
+        accepted = mod._verify_deletion(
+            _delete_plan(without=("T-01",)).encode("utf-8"), base_doc, requested)
+    except mod.harness_merge.MergeRefusal as exc:
+        accepted = exc
+    check("delete-verify: the CORRECT deletion is accepted (or this case refuses everything)",
+          isinstance(accepted, dict), f"got={accepted!r}")
+
+    src = read(CLI)
+    check("delete-verify: and the check is WIRED IN (reachability, not behaviour)",
+          "_verify_deletion(spliced, base_doc, requested)" in src,
+          "the verification call site is gone: the guarantee is unreachable")
+
+
+# ---------------------------------------------------------------------------
+# FEAT-59 Proportional flow — SC-05, SC-07, SC-08.
+#
+# Measured on FEAT-54 (BRIEF ## Problem): 23 runs before production code, driven by this
+# tool's own write mechanics — `apply` refused any changed field, `lanes:` had no write route,
+# `set-panel` re-wrapped every finding, and pm spent whole runs transcribing a lead digest into
+# `panel:` by hand. Each case below names the mechanic it retires.
+# ---------------------------------------------------------------------------
+
+
+def _digest_md(readers, findings, prose="Some prose before the return.\n\n"):
+    """A validator-lead return as it lands on disk: prose, then the fenced yaml block."""
+    block = {"VERDICT": "PASS",
+             "DIGEST": {"headline": "panel ran", "readers": readers, "findings": findings,
+                        "open_questions": []},
+             "artifact": "runs/c1-validator/digest.md"}
+    return prose + "```yaml\n" + yaml.safe_dump(block, sort_keys=False) + "```\n"
+
+
+def _pf(reader, summary):
+    import panel_findings
+    return panel_findings.finding_id(reader, summary)
+
+
+_READERS = [{"reader": "scope", "status": "ran", "persona": "harness-code-reviewer"},
+            {"reader": "should-not-exist", "status": "skipped", "persona": "fable-advisor",
+             "reason": "host refused the persona"}]
+
+
+def case_f59_record_panel_writes_from_a_lead_digest():
+    """SC-05: `record-panel` writes `panel:` FROM the lead digest, so no run exists whose only
+    work is to copy one file into another. Ids are the content hash panel_findings.py computes,
+    disposition defaults to open, and readers are transcribed skipped-with-reason as given."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        run_dir = os.path.join(root, "runs", "2026-09-11-c1-validator")
+        os.makedirs(run_dir)
+        digest = os.path.join(run_dir, "digest.md")
+        findings = [
+            {"kind": "substance", "severity": "high", "reader": "scope",
+             "summary": "T-02 traces no SC"},
+            {"kind": "form", "severity": "low", "reader": "should-not-exist",
+             "summary": "D-01 restates  DEC-100", "why": "duplication"},
+        ]
+        write(digest, _digest_md(_READERS, findings))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        after = read(plan)
+        panel = yaml.safe_load(after).get("panel") or {}
+        check("record-panel exits 0 on a well-formed lead digest", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("record-panel writes cycle and last_run (the run directory) from the call",
+              isinstance(panel, dict) and panel.get("cycle") == 1
+              and panel.get("last_run") == "2026-09-11-c1-validator", repr(panel))
+        check("record-panel transcribes every reader, skipped ones with persona and reason",
+              panel.get("readers") == _READERS, repr(panel))
+        got = panel.get("findings") or []
+        want = [
+            {"id": _pf("scope", "T-02 traces no SC"), "severity": "high", "reader": "scope",
+             "kind": "substance", "summary": "T-02 traces no SC", "disposition": "open"},
+            {"id": _pf("should-not-exist", "D-01 restates  DEC-100"), "severity": "low",
+             "reader": "should-not-exist", "kind": "form", "summary": "D-01 restates  DEC-100",
+             "disposition": "open"},
+        ]
+        check("record-panel writes id (content hash), severity, reader, kind, summary and an "
+              "open disposition per finding", got == want, f"got={got!r}\nwant={want!r}")
+        check("record-panel leaves tasks and approval byte-identical",
+              DEFAULT_APPROVAL in after and all(task_block(t) in after for t in ids(1, 2)), after)
+        check("record-panel puts panel: BEFORE tasks:, where the template has it",
+              "panel:" in after and after.index("panel:") < after.index("tasks:"), after)
+        check("record-panel's receipt names the cycle", "PANEL cycle 1" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+_CARRIED_FINDING = (
+    "    - id: {fid}\n"
+    "      severity: med\n"
+    "      reader: scope\n"
+    "      kind: substance\n"
+    "      summary: \"T-01 has no verify\"   # quoted on purpose, with a comment\n"
+    "      disposition: resolved\n"
+    "      resolved_by: T-02\n"
+)
+
+
+def _panel_base(fid):
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n\n" + DEFAULT_APPROVAL + "\n"
+            "panel:\n  last_run: 2026-09-10-c0-validator\n  cycle: 0\n"
+            "  readers:\n    - reader: scope\n      status: ran\n"
+            "  findings:\n" + _CARRIED_FINDING.format(fid=fid)
+            + "tasks:\n" + task_block("T-01") + task_block("T-02"))
+
+
+def case_f59_record_panel_carries_existing_findings_byte_for_byte():
+    """SC-05 + SC-08 byte identity. A finding the digest reports again — or does not mention —
+    keeps ITS OWN BYTES and disposition: the quoted summary, the trailing comment, `resolved`
+    and `resolved_by` all survive. Only new findings are appended; approval.rulings and INV-32
+    key on these ids, so a re-render or a drop would silently stale an operator's ruling."""
+    root, plan = fixture_root()
+    try:
+        fid = _pf("scope", "T-01 has no verify")
+        write(plan, _panel_base(fid))
+        digest = os.path.join(root, "digest.md")
+        findings = [
+            {"kind": "substance", "severity": "high", "reader": "scope",
+             "summary": "t-01   HAS no verify"},          # same identity after normalisation
+            {"kind": "proportionality", "scope": "mission", "severity": "info", "reader": "scope",
+             "summary": "this is a patch, not a plan"},
+        ]
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}], findings))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "2026-09-11-c1-validator")
+        after = read(plan)
+        panel = yaml.safe_load(after).get("panel") or {"findings": [{}, {}], "readers": []}
+        check("record-panel (carry) exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("the carried finding's lines are byte-identical, comment and quoting included",
+              _CARRIED_FINDING.format(fid=fid) in after, after)
+        check("the carried finding keeps disposition resolved and resolved_by",
+              panel["findings"][0].get("disposition") == "resolved"
+              and panel["findings"][0].get("resolved_by") == "T-02", repr(panel["findings"]))
+        check("the new finding is appended after the carried one with disposition open",
+              len(panel["findings"]) == 2
+              and panel["findings"][1]["id"] == _pf("scope", "this is a patch, not a plan")
+              and panel["findings"][1]["kind"] == "proportionality"
+              and panel["findings"][1]["scope"] == "mission"
+              and panel["findings"][1]["disposition"] == "open", repr(panel["findings"]))
+        check("cycle, last_run and readers are replaced",
+              panel.get("cycle") == 1 and panel.get("last_run") == "2026-09-11-c1-validator"
+              and panel["readers"] == [{"reader": "scope", "status": "ran"}], repr(panel))
+        check("record-panel (carry) leaves tasks byte-identical",
+              all(task_block(t) in after for t in ids(1, 2)), after)
+        check("record-panel's receipt says which ids were carried and which added",
+              f"CARRIED {fid}" in r.stdout
+              and f"ADDED {_pf('scope', 'this is a patch, not a plan')}" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_record_panel_refuses_a_finding_without_kind():
+    """C2: a finding with no `kind`, or a kind outside substance|form|proportionality, is a
+    contract violation — refused before the lock, naming the index, file byte-identical. A
+    skipped reader without persona and reason is the same class of refusal."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"severity": "high", "reader": "scope", "summary": "no kind"}]))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a finding without kind (exit 5) and names it",
+              r.returncode == 5 and "kind" in r.stderr and "findings[0]" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "style", "severity": "high", "reader": "scope",
+                                   "summary": "bad kind"}]))
+        r2 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a kind outside the enum", r2.returncode == 5 and "style" in r2.stderr,
+              f"rc={r2.returncode} {r2.stderr!r}")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "proportionality", "severity": "med", "reader": "scope",
+                                   "summary": "no scope"}]))
+        r2b = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a proportionality finding without scope (DEC-228)",
+              r2b.returncode == 5 and "scope" in r2b.stderr and "findings[0]" in r2b.stderr,
+              f"rc={r2b.returncode} {r2b.stderr!r}")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "proportionality", "scope": "whole", "severity": "med",
+                                   "reader": "scope", "summary": "bad scope"}]))
+        r2c = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a proportionality scope outside task|mission",
+              r2c.returncode == 5 and "whole" in r2c.stderr, f"rc={r2c.returncode} {r2c.stderr!r}")
+        write(digest, _digest_md([{"reader": "should-not-exist", "status": "skipped"}], []))
+        r3 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a skipped reader without persona and reason",
+              r3.returncode == 5 and "readers[0]" in r3.stderr, f"rc={r3.returncode} {r3.stderr!r}")
+        write(digest, "no fenced block here\n")
+        r4 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a digest with no DIGEST block", r4.returncode == 5,
+              f"rc={r4.returncode} {r4.stderr!r}")
+        check("every record-panel refusal leaves the plan byte-identical", read(plan) == before)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _check_root():
+    """A checkout root `check --root` can resolve against: a manifest granting one control-plane
+    surface to harness-backend-dev, a file with a symbol and a quotable line under it, a plan
+    under the features layout, and a sibling BRIEF carrying SC-01 and SC-02."""
+    root = tempfile.mkdtemp(prefix="plan-merge-check-")
+    os.makedirs(os.path.join(root, ".harness"))
+    write(os.path.join(root, ".harness", "team-config.yaml"),
+          "schema_version: 1\nteams:\n  - name: eng\n    members:\n"
+          "      - name: harness-backend-dev\n        domain:\n"
+          "          - { path: .claude/skills/harness/bin/**, upsert: true }\n")
+    os.makedirs(os.path.join(root, ".claude", "skills", "harness", "bin"))
+    write(os.path.join(root, ".claude", "skills", "harness", "bin", "a.py"),
+          "import os\n\n\ndef foo():\n    return 1\n\n\nclass Bar:\n    pass\n")
+    feat = os.path.join(root, ".harness", "harness", "features", "FEAT-99-fixture")
+    os.makedirs(feat)
+    write(os.path.join(feat, "BRIEF.md"),
+          "# BRIEF\n\n## Done when — by perspective\n\n**operator** — it works.\n\n"
+          "## Success criteria\n\n- SC-01 (operator): a\n- SC-02 (operator): b\n")
+    return root, os.path.join(feat, "plan.yaml")
+
+
+def _check_task(tid, files_yaml, agent="harness-backend-dev", mode="team", traces="[SC-01]"):
+    agent_line = f"    execution_agent: {agent}\n" if agent else ""
+    return (f"  - id: {tid}\n    title: t\n    change_type: logic\n"
+            f"    execution_mode: {mode}\n{agent_line}    traces: {traces}\n"
+            f"    files:\n{files_yaml}    verify: run it\n    intent: do it\n")
+
+
+def case_f59_check_passes_on_every_anchor_form():
+    """SC-07: `check` resolves a `path#symbol` (def/class prefix scan), a `{path, quote}`
+    (verbatim line content), a bare existing path, a bare NEW path in an existing directory,
+    the execution_agent route via check-domain's resolver, and every traces id against the
+    sibling BRIEF — and exits 0 when all of them resolve."""
+    root, plan = _check_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01",
+                                  "      - .claude/skills/harness/bin/a.py#foo\n"
+                                  "      - .claude/skills/harness/bin/a.py#Bar\n"
+                                  "      - { path: .claude/skills/harness/bin/a.py, quote: \"return 1\" }\n"
+                                  "      - .claude/skills/harness/bin/a.py\n"
+                                  "      - .claude/skills/harness/bin/new_module.py\n",
+                                  traces="[SC-01, SC-02]")
+                    + _check_task("T-02", "      - .harness/team-config.yaml\n", agent=None,
+                                  mode="main-session-direct", traces="[SC-02]"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        check("check exits 0 when every anchor, route and trace resolves", r.returncode == 0,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+        check("check's receipt says how many anchors it resolved", "CHECK" in r.stdout and "T-01" in r.stdout,
+              r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_check_lists_each_failure_on_its_own_line():
+    """Every failure class on its own line, exit 1: a missing symbol, a quote not found, a path
+    whose directory does not exist, an execution_agent the manifest does not grant the path to,
+    a team task with no execution_agent, and a traces id absent from the BRIEF."""
+    root, plan = _check_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01",
+                                  "      - .claude/skills/harness/bin/a.py#nope\n"
+                                  "      - { path: .claude/skills/harness/bin/a.py, quote: \"return 2\" }\n"
+                                  "      - nowhere/at/all.py\n",
+                                  traces="[SC-01, SC-09]")
+                    + _check_task("T-02", "      - .claude/skills/harness/bin/a.py\n",
+                                  agent="harness-frontend-dev")
+                    + _check_task("T-03", "      - .claude/skills/harness/bin/a.py\n", agent=None))
+        r = run_verb("check", "--file", plan, "--root", root)
+        lines = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL")]
+        check("check exits 1 when anything fails to resolve", r.returncode == 1,
+              f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+        def one(*needles):
+            hits = [ln for ln in lines if all(n in ln for n in needles)]
+            return len(hits) == 1
+        check("check: missing symbol on its own line", one("T-01", "a.py#nope"), r.stdout)
+        check("check: quote not found on its own line", one("T-01", "return 2"), r.stdout)
+        check("check: path in a missing directory on its own line",
+              one("T-01", "files:", "nowhere/at/all.py"), r.stdout)
+        check("check: the same ungranted path is ALSO a route failure, on its own line",
+              one("T-01", "execution_agent", "nowhere/at/all.py", "NOBODY"), r.stdout)
+        check("check: trace id absent from the BRIEF on its own line", one("T-01", "SC-09"), r.stdout)
+        check("check: SC-01 present in the BRIEF is NOT reported", not any("SC-01" in ln for ln in lines),
+              r.stdout)
+        check("check: ungranted execution_agent on its own line, naming who IS granted",
+              one("T-02", "harness-frontend-dev", "harness-backend-dev"), r.stdout)
+        check("check: team task without execution_agent on its own line", one("T-03", "execution_agent"),
+              r.stdout)
+        check("check: exactly these seven failures, nothing else", len(lines) == 7, r.stdout)
+        # BRIEF absent: the traces cannot be checked at all, and that is a failure, not a pass.
+        os.remove(os.path.join(os.path.dirname(plan), "BRIEF.md"))
+        r2 = run_verb("check", "--file", plan, "--root", root)
+        check("check: an absent sibling BRIEF fails every trace loudly", r2.returncode == 1
+              and "BRIEF.md" in r2.stdout, f"rc={r2.returncode} {r2.stdout!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+def case_bug1725_check_names_files_shared_by_tasks():
+    """BUG-1725 (#1713 Finding 3): five of BUG-285-canonical-reader's ten cycles were one task's
+    gate tripping on another task's half-built tree, because the plan layered tasks over shared
+    files and nothing said so at draft. `check` now prints ONE `OVERLAP <path>: T-a, T-b` line
+    per normalized path named by two or more tasks — every anchor form reduces to its path — and
+    the line is ADVISORY: it never changes the exit code in either direction."""
+    root, plan = _check_root()
+    try:
+        # T-01 names a.py three ways; T-02 names it once more; T-03 names only new_module.py,
+        # which T-01 also names. The BRIEF has SC-01 and SC-02, so traces resolve.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01",
+                                  "      - .claude/skills/harness/bin/a.py#foo\n"
+                                  "      - { path: .claude/skills/harness/bin/a.py, quote: \"return 1\" }\n"
+                                  "      - .claude/skills/harness/bin/a.py\n"
+                                  "      - .claude/skills/harness/bin/new_module.py\n")
+                    + _check_task("T-02", "      - .claude/skills/harness/bin/a.py#Bar\n", traces="[SC-02]")
+                    + _check_task("T-03", "      - .claude/skills/harness/bin/new_module.py\n"
+                                          "      - .claude/skills/harness/bin/only_here.py\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        overlaps = [ln for ln in r.stdout.splitlines() if ln.startswith("OVERLAP")]
+        check("check: an otherwise valid plan with shared files still exits 0 (SC-02)",
+              r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+        check("check: exactly one OVERLAP line per shared path — two here, not one per anchor (SC-01)",
+              len(overlaps) == 2, r.stdout)
+        check("check: a.py named three ways by T-01 and once by T-02 is ONE line naming both, once each",
+              "OVERLAP .claude/skills/harness/bin/a.py: T-01, T-02" in overlaps, r.stdout)
+        check("check: new_module.py shared by T-01 and T-03",
+              "OVERLAP .claude/skills/harness/bin/new_module.py: T-01, T-03" in overlaps, r.stdout)
+        check("check: a file one task names is never an overlap",
+              not any("only_here.py" in ln for ln in overlaps), r.stdout)
+        # A plan whose only repetition is INSIDE one task has no overlap at all.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01",
+                                  "      - .claude/skills/harness/bin/a.py#foo\n"
+                                  "      - .claude/skills/harness/bin/a.py\n"))
+        r1 = run_verb("check", "--file", plan, "--root", root)
+        check("check: repeated anchors confined to one task print no OVERLAP",
+              r1.returncode == 0 and "OVERLAP" not in r1.stdout, r1.stdout)
+        # Overlap beside a real failure: the failure still exits 1, and the overlap is still shown.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01", "      - .claude/skills/harness/bin/a.py\n", traces="[SC-09]")
+                    + _check_task("T-02", "      - .claude/skills/harness/bin/a.py\n"))
+        r2 = run_verb("check", "--file", plan, "--root", root)
+        check("check: an existing failure keeps its exit 1 when overlap is also present",
+              r2.returncode == 1 and "FAIL T-01 traces: SC-09" in r2.stdout, f"rc={r2.returncode} {r2.stdout!r}")
+        check("check: the overlap is still reported beside the failure",
+              "OVERLAP .claude/skills/harness/bin/a.py: T-01, T-02" in r2.stdout, r2.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
+def case_f59_line_number_anchor_is_refused_at_write():
+    """C4: `path:NN` is refused at WRITE with exit 2 naming the entry — by apply (creating and
+    merging), add-tasks, and amend — because a line number is the one anchor that cannot
+    survive `main` moving. Each refusal writes nothing."""
+    root, plan = fixture_root()
+    try:
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-01\n    title: t\n    files:\n      - src/a.py:42\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("apply refuses a line-number anchor when creating a plan (exit 2, names the entry)",
+              r.returncode == 2 and "src/a.py:42" in r.stderr and "T-01" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("and creates nothing", not os.path.exists(plan))
+
+        before = write(plan, render_plan(ids(1, 2)))
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-03\n    title: t\n    files: [lib/b.py:7]\n")
+        for verb in ("apply", "add-tasks"):
+            r = run_verb(verb, "--file", plan, "--proposal", prop)
+            check(f"{verb} refuses a line-number anchor on an existing plan (exit 2, names the entry)",
+                  r.returncode == 2 and "lib/b.py:7" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("the plan is byte-identical after both refusals", read(plan) == before)
+
+        write(plan, _schema_valid_plan())
+        before = read(plan)
+        shown = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                         "--field", "files", "--show", "--yaml-value")
+        sha = next((ln.split(":", 1)[1].strip() for ln in shown.stdout.splitlines()
+                    if ln.startswith("sha256:")), None)
+        value = os.path.join(root, "files.yaml")
+        write(value, "- a.py\n- c.py:12\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field", "files",
+                     "--expect-sha256", sha or "x", "--value-file", value, "--yaml-value")
+        check("amend refuses a line-number anchor in files (exit 2, names the entry)",
+              r.returncode == 2 and "c.py:12" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("amend's refusal leaves the plan byte-identical", read(plan) == before)
+        # The legal forms are NOT refused: a symbol anchor and a quote mapping both land.
+        write(value, "- a.py#main\n- { path: a.py, quote: \"import os\" }\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field", "files",
+                     "--expect-sha256", sha or "x", "--value-file", value, "--yaml-value")
+        check("amend accepts path#symbol and {path, quote} anchors", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_set_lanes_writes_and_validates():
+    """SC-08: `lanes:` gets a write route. FEAT-54 had none, so the lane table could only be
+    written by the hand edit T-09 denies. Same shape as set-panel: replace the top-level
+    mapping, validate before the lock, refuse and write nothing on a malformed value."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        value = os.path.join(root, "lanes.yaml")
+        lanes = {"resolved_at": "abc123", "rows": [
+            {"surface": ".claude/skills/harness/bin/**", "lane": "team", "agent": "harness-backend-dev"},
+            {"surface": ".claude/skills/harness/bin/check-domain.py", "lane": "main-session-direct",
+             "reason": "DEC-174 carve-out"}]}
+        write(value, yaml.safe_dump(lanes, sort_keys=False))
+        r = run_verb("set-lanes", "--file", plan, "--value-file", value)
+        after = read(plan)
+        check("set-lanes exits 0 on a well-formed lanes mapping", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("set-lanes writes the mapping verbatim", yaml.safe_load(after).get("lanes") == lanes, after)
+        check("set-lanes leaves tasks and approval byte-identical",
+              DEFAULT_APPROVAL in after and all(task_block(t) in after for t in ids(1, 2)), after)
+        lanes2 = dict(lanes, resolved_at="def456")
+        write(value, yaml.safe_dump(lanes2, sort_keys=False))
+        r2 = run_verb("set-lanes", "--file", plan, "--value-file", value)
+        after2 = read(plan)
+        check("set-lanes REPLACES an existing mapping rather than adding a second key",
+              r2.returncode == 0 and yaml.safe_load(after2).get("lanes") == lanes2
+              and after2.count("lanes:") == 1, after2)
+        before_refusal = after2
+        write(value, yaml.safe_dump({"resolved_at": "x"}, sort_keys=False))
+        r3 = run_verb("set-lanes", "--file", plan, "--value-file", value)
+        check("set-lanes refuses a mapping without rows, naming the key",
+              r3.returncode == 5 and "rows" in r3.stderr, f"rc={r3.returncode} {r3.stderr!r}")
+        write(value, yaml.safe_dump({"resolved_at": "x", "rows": [{"surface": "a", "lane": "bus"}]},
+                                    sort_keys=False))
+        r4 = run_verb("set-lanes", "--file", plan, "--value-file", value)
+        check("set-lanes refuses a row whose lane is not team|main-session-direct",
+              r4.returncode == 5 and "bus" in r4.stderr, f"rc={r4.returncode} {r4.stderr!r}")
+        check("set-lanes refusals leave the plan byte-identical", read(plan) == before_refusal)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+SET_KEY_PLAN = ("schema: plan/1\nfeature: FEAT-99-fixture\n\n"
+                "# planned from\nsource_issues: [285]\n\n"
+                "# approval header comment\n" + APPROVED_APPROVAL + "\n"
+                "tasks:\n" + task_block("T-01"))
+
+
+def set_key(plan, value_path, key, value_text):
+    write(value_path, value_text)
+    return run_verb("set-key", "--file", plan, "--key", key, "--value-file", value_path)
+
+
+def case_1683_set_key_writes_any_top_level_key():
+    """#1683: write coverage is per document, not per key. BUG-285 could not correct
+    `source_issues` by any route; `set-lanes` had fixed the previous instance for one key only.
+    `set-key` replaces or inserts any top-level key and keeps the bytes of everything else —
+    the comment that introduces the NEXT key included."""
+    root, plan = fixture_root()
+    try:
+        write(plan, SET_KEY_PLAN)
+        value = os.path.join(root, "value.yaml")
+        r = set_key(plan, value, "source_issues", "[285, 1594]\n")
+        after = read(plan)
+        check("set-key replaces an existing scalar-list key", r.returncode == 0
+              and yaml.safe_load(after)["source_issues"] == [285, 1594],
+              f"rc={r.returncode} {r.stderr!r} {after}")
+        check("set-key keeps the comment introducing the next key, the approval bytes and the "
+              "tasks", "# approval header comment\n" + APPROVED_APPROVAL in after
+              and task_block("T-01") in after and after.count("source_issues:") == 1, after)
+        r = set_key(plan, value, "notes_ref", "notes/research-BUG-285.md\n")
+        after = read(plan)
+        check("set-key inserts an absent key before tasks: and it reloads",
+              r.returncode == 0 and yaml.safe_load(after)["notes_ref"] == "notes/research-BUG-285.md"
+              and after.index("notes_ref:") < after.index("tasks:"), f"rc={r.returncode} {after}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1683_set_key_refuses_owned_keys_by_name():
+    """#1683 with #1675: the general verb cannot become the fifth way to step around a rule.
+    The keys another verb owns are refused naming that verb — writing `tasks:` whole would keep
+    a signature the task set no longer has — a keyed validator still runs, and a key name the
+    indexer could not find again is refused before the lock. Every refusal writes nothing."""
+    root, plan = fixture_root()
+    try:
+        write(plan, SET_KEY_PLAN)
+        value = os.path.join(root, "value.yaml")
+        r = set_key(plan, value, "lanes",
+                    yaml.safe_dump({"resolved_at": "x", "rows": [{"surface": "a", "lane": "bus"}]}))
+        check("set-key runs the lanes validator rather than bypassing it",
+              r.returncode == 5 and "bus" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        for key, route in (("approval", "sign-approval"), ("tasks", "delete-items"),
+                           ("decisions", "amend"), ("status", "set-feature-station")):
+            r = set_key(plan, value, key, "{}\n")
+            check(f"set-key refuses {key} (exit 2) and names its route",
+                  r.returncode == 2 and route in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        r = set_key(plan, value, "bad key", "1\n")
+        check("set-key refuses a key name the indexer could not find again",
+              r.returncode == 2 and "bad key" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("set-key refusals leave the plan byte-identical", read(plan) == SET_KEY_PLAN)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_set_panel_keeps_an_untouched_finding_byte_identical():
+    """SC-08: `set-panel` used to re-render the whole mapping through yaml.safe_dump, so every
+    call re-wrapped every finding and a review diff could not tell a carried finding from a
+    changed one. Now a finding whose id AND content are unchanged keeps its bytes; only the
+    changed entries are spliced, the way set-task-station splices one line."""
+    root, plan = fixture_root()
+    try:
+        fid = _pf("scope", "T-01 has no verify")
+        write(plan, _panel_base(fid))
+        base_panel = yaml.safe_load(read(plan))["panel"]
+        new_finding = {"id": "PF-new", "severity": "low", "reader": "scope", "kind": "form",
+                       "summary": "wording", "disposition": "open"}
+        panel = {"last_run": "2026-09-11-c1-validator", "cycle": 1,
+                 "readers": [{"reader": "scope", "status": "ran"},
+                             {"reader": "goalcheck", "status": "ran"}],
+                 "findings": [dict(base_panel["findings"][0]), new_finding]}
+        value = os.path.join(root, "panel.yaml")
+        write(value, yaml.safe_dump(panel, sort_keys=False))
+        r = run_verb("set-panel", "--file", plan, "--value-file", value)
+        after = read(plan)
+        check("set-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("set-panel reloads as the value supplied", yaml.safe_load(after)["panel"] == panel, after)
+        check("set-panel keeps the unchanged finding's bytes — quoting and comment included",
+              _CARRIED_FINDING.format(fid=fid) in after, after)
+        check("set-panel writes the new finding", "PF-new" in after, after)
+        # Now CHANGE the carried finding's severity: its bytes may change, nothing else's may.
+        panel["findings"][0]["severity"] = "high"
+        write(value, yaml.safe_dump(panel, sort_keys=False))
+        r2 = run_verb("set-panel", "--file", plan, "--value-file", value)
+        after2 = read(plan)
+        check("set-panel replaces a finding whose content changed",
+              r2.returncode == 0 and yaml.safe_load(after2)["panel"] == panel, after2)
+        check("and the changed finding is no longer byte-identical to its old form",
+              _CARRIED_FINDING.format(fid=fid) not in after2, after2)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _approved_plan():
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n"
+            "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+            "tasks:\n" + task_block("T-01") + task_block("T-02")
+            + "decisions:\n" + decision_block("D-01"))
+
+
+def _approval_of(plan):
+    return yaml.safe_load(read(plan)).get("approval") or {}
+
+
+def case_f59_approval_auto_reset_on_every_task_changing_verb():
+    """SC-08 / C4, narrowed by BUG-1716 D-04: a verb that ADDS or DELETES a task on an
+    APPROVED plan rewrites approval.status to pending and records reset_at + reset_reason
+    (<verb> <ids>); replacing a field on an existing task does not. Only sign-approval writes
+    approved. One fixture per verb."""
+    def assert_reset(label, plan, verb, ids_text):
+        a = _approval_of(plan)
+        check(f"{label}: approval.status is pending after {verb}", a.get("status") == "pending", repr(a))
+        check(f"{label}: approval.reset_at is an ISO instant",
+              isinstance(a.get("reset_at"), str) and "T" in a["reset_at"], repr(a))
+        check(f"{label}: approval.reset_reason names the verb and the ids",
+              a.get("reset_reason") == f"{verb} {ids_text}", repr(a))
+        check(f"{label}: the signer and date are kept, so the operator can see what was voided",
+              a.get("approved_by") == "X" and str(a.get("date")) == "2026-01-01", repr(a))
+
+    root, plan = fixture_root()
+    try:
+        write(plan, _approved_plan())
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-03"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("reset/apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        assert_reset("reset/apply", plan, "apply", "T-03")
+        check("reset/apply: the receipt says approval was reset", "APPROVAL-RESET" in r.stdout, r.stdout)
+
+        write(plan, _approved_plan())
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    + task_block("T-03") + task_block("T-04"))
+        r = run_verb("add-tasks", "--file", plan, "--proposal", prop)
+        check("reset/add-tasks exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        assert_reset("reset/add-tasks", plan, "add-tasks", "T-03, T-04")
+
+        # BUG-1716 D-04: replacing a field on an EXISTING task keeps the signature — the signed
+        # text is hashed at signature and an unledgered change is INV-40's to refuse.
+        write(plan, _approved_plan())
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-02\n    title: changed\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("reset/apply-replace exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("reset/apply-replace: a replaced field on an existing task keeps approved (D-04)",
+              _approval_of(plan).get("status") == "approved" and "APPROVAL-RESET" not in r.stdout,
+              repr(_approval_of(plan)) + r.stdout)
+
+        write(plan, _approved_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-02", "--reason", "scope cut")
+        check("reset/delete-items exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        assert_reset("reset/delete-items", plan, "delete-items", "T-02")
+
+        write(plan, _approved_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        value = os.path.join(root, "title.txt")
+        write(value, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field", "title",
+                     "--expect-sha256", sha or "x", "--value-file", value)
+        check("reset/amend exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("reset/amend: amending a field on an existing task keeps approved (D-04)",
+              _approval_of(plan).get("status") == "approved" and "APPROVAL-RESET" not in r.stdout,
+              repr(_approval_of(plan)) + r.stdout)
+
+        # And sign-approval clears the reset record when the operator signs again.
+        write(plan, _approved_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-02", "--reason", "scope cut")
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-02-02")
+        a = _approval_of(plan)
+        check("re-signing writes approved and drops reset_at/reset_reason",
+              r.returncode == 0 and a.get("status") == "approved" and "reset_at" not in a
+              and "reset_reason" not in a, f"rc={r.returncode} {a!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone():
+    """The negative controls: a PENDING plan gains no reset fields (nothing to void), a change
+    to a DECISION does not touch approval (the contract is the task set), and an idempotent
+    apply that changes nothing leaves an approved signature standing."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))          # pending
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-03"))
+        run_verb("apply", "--file", plan, "--proposal", prop)
+        check("a pending plan's approval bytes are untouched by apply", DEFAULT_APPROVAL in read(plan),
+              read(plan))
+        _ = before
+
+        write(plan, _approved_plan())
+        sha, _ = _sha_of(plan, "decisions", "D-01", "choice")
+        value = os.path.join(root, "choice.txt")
+        write(value, "a different choice\n")
+        r = run_verb("amend", "--file", plan, "--key", "decisions", "--id", "D-01", "--field", "choice",
+                     "--expect-sha256", sha or "x", "--value-file", value)
+        check("amending a decision leaves approval approved",
+              r.returncode == 0 and _approval_of(plan).get("status") == "approved"
+              and "reset_at" not in _approval_of(plan), f"rc={r.returncode} {_approval_of(plan)!r}")
+        r = run_verb("delete-items", "--file", plan, "--decision", "D-01", "--reason", "gone")
+        check("deleting a decision leaves approval approved",
+              r.returncode == 0 and _approval_of(plan).get("status") == "approved",
+              f"rc={r.returncode} {_approval_of(plan)!r}")
+
+        write(plan, _approved_plan())
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-01"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("an apply that changes nothing leaves approval approved",
+              r.returncode == 0 and _approval_of(plan).get("status") == "approved",
+              f"rc={r.returncode} {_approval_of(plan)!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def revoke(plan, reason, by="mru", env=None):
+    return run_verb("revoke-approval", "--file", plan, "--by", by, "--reason", reason, env=env)
+
+
+def _is_revoked(approval, reason):
+    return (approval.get("status") == "pending" and "reset_at" in approval
+            and approval.get("reset_reason") == reason)
+
+
+def _outside_approval(text):
+    """The plan text minus the approval mapping: the head up to `approval:` and `tasks:` on."""
+    return text[:text.index("approval:\n")], text[text.index("tasks:\n"):]
+
+
+def case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word():
+    """#1675: a signature withdrawn WITHOUT a task-set change was unrepresentable — the only
+    way to stop claiming a stale signature was a new one. `revoke-approval` writes the same
+    record the automatic reset writes (pending, reset_at, reset_reason naming the operator and
+    why), keeps signer and date so the voided signature stays visible, touches nothing else,
+    and a fresh signature supersedes it."""
+    root, plan = fixture_root()
+    try:
+        ruling = "  rulings:\n    - finding: PF-1\n      who: X\n  # kept with the signature\n"
+        before = write(plan, _approved_plan().replace("tasks:\n", ruling + "tasks:\n", 1))
+        r = revoke(plan, "  scope amended:  four tasks under a one-task signature ")
+        approval = _approval_of(plan)
+        after = read(plan)
+        check("revoke-approval flips approved -> pending with the reset record", r.returncode == 0
+              and _is_revoked(approval, "revoke-approval mru: scope amended: four tasks under a "
+                                        "one-task signature"),
+              f"rc={r.returncode} {r.stderr!r} {approval!r}")
+        check("revoke-approval keeps the voided signer and date, the rulings, and every other byte",
+              approval.get("approved_by") == "X" and str(approval.get("date")) == "2026-01-01"
+              and ruling in after and _outside_approval(after) == _outside_approval(before), after)
+        r = run_verb("sign-approval", "--file", plan, "--by", "mru", "--date", "2026-09-16")
+        approval = _approval_of(plan)
+        check("a fresh signature supersedes a revocation's reset record", r.returncode == 0
+              and approval.get("status") == "approved" and "reset_at" not in approval,
+              f"rc={r.returncode} {approval!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1675_revoke_approval_refuses_nothing_to_revoke_and_governed_agents():
+    """Revoking nothing is a mistaken command, not a no-op; a reason is the record's point;
+    and the signature's downward verb is the main session's alone, exactly as its upward one
+    is. Every refusal writes nothing."""
+    root, plan = fixture_root()
+    try:
+        pending = write(plan, render_plan(ids(1, 2)))
+        r = revoke(plan, "again")
+        check("revoke-approval refuses a plan that is not approved (exit 5, names the status)",
+              r.returncode == 5 and "'pending'" in r.stderr and read(plan) == pending,
+              f"rc={r.returncode} {r.stderr!r}")
+        write(plan, _approved_plan())
+        r = revoke(plan, "   ")
+        check("revoke-approval refuses an empty reason (exit 2)", r.returncode == 2
+              and "reason" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        r = revoke(plan, "x", by="pm", env=dict(os.environ, HARNESS_AGENT_TYPE="harness-pm"))
+        check("revoke-approval refuses a governed agent (exit 10), as sign-approval does",
+              r.returncode == 10 and "harness-pm" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("every refusal leaves the plan byte-identical", read(plan) == _approved_plan())
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_sign_approval_rework_writes_feature_json():
+    """SC-15 / C1: at signature the operator records ONE rework ruling. `sign-approval
+    --rework rounds=N,minutes=M --decision PATH` sets `rework` on the sibling feature.json
+    through feature_json_write, THEN writes approval (review F4: a ruling without a signature
+    is harmless; a signature without its ruling is the half-state SC-15 exists to prevent). An
+    absent feature.json is refused (exit 2, naming the path) BEFORE anything is written;
+    --rework without --decision is exit 2."""
+    import json
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        fj = os.path.join(os.path.dirname(plan), "feature.json")
+        before = read(plan)
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        check("sign-approval --rework refuses when the sibling feature.json is absent (exit 2)",
+              r.returncode == 2 and fj in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("and writes no signature in that case", read(plan) == before)
+
+        write(fj, json.dumps({"feature_id": "FEAT-99-fixture", "branch": "feat/x",
+                              "max_total_cycles": 10, "cycles_used": 0, "runs": []}, indent=2) + "\n")
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90")
+        check("sign-approval --rework without --decision is exit 2", r.returncode == 2,
+              f"rc={r.returncode} {r.stderr!r}")
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=two,minutes=90", "--decision", "notes/ruling.md")
+        check("sign-approval --rework with a non-integer is exit 2", r.returncode == 2,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("no signature was written by the refused calls", read(plan) == before)
+
+        # Review F6 parity: --decision must be an existing FILE under the feature dir, the same
+        # rule feature-record.py's raise-cycles/set-rework enforce — a ruling that names no
+        # record is a number nobody can audit.
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        check("sign-approval --rework refuses a --decision that is not a file under the feature dir",
+              r.returncode == 2 and "notes/ruling.md" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("and writes neither signature nor ruling", read(plan) == before
+              and "rework" not in json.loads(read(fj)), read(fj))
+        os.makedirs(os.path.join(os.path.dirname(plan), "notes"), exist_ok=True)
+        write(os.path.join(os.path.dirname(plan), "notes", "ruling.md"), "# ruling\n")
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        doc = json.loads(read(fj))
+        check("sign-approval --rework exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("the approval is signed", _approval_of(plan).get("status") == "approved",
+              repr(_approval_of(plan)))
+        check("feature.json carries the rework ruling per C1",
+              doc.get("rework") == {"rounds": 2, "wall_clock_minutes": 90, "decision": "notes/ruling.md"},
+              repr(doc))
+        check("the other feature.json keys are untouched",
+              doc.get("feature_id") == "FEAT-99-fixture" and doc.get("runs") == [], repr(doc))
+        check("the receipt records the ruling", "REWORK" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# FEAT-59 independent review (PR #1678) — the findings, each with the scenario it named.
+# ---------------------------------------------------------------------------
+
+
+def _approved_with(approval_text):
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n" + approval_text
+            + "tasks:\n" + task_block("T-01"))
+
+
+def case_f59_review_f3_approval_reset_is_verified_not_reported():
+    """REVIEW F3. `_reset_approval_lines` matched `^  status:\\s*approved\\b` — a fixed indent
+    and an unquoted value — and `_maybe_reset_approval` reported `reset=True` whether or not
+    that line was found. Proven: a base with `status: "approved"` or a four-space approval
+    body printed APPROVAL-RESET, exited 0, and reloaded as approved — SC-08's negative half.
+    Now the key is found by name at the mapping's own indent, and the splice is VERIFIED: the
+    result must reload as pending or the whole change is refused with the signature verifier's
+    exit 5 and nothing written."""
+    root, plan = fixture_root()
+    try:
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-02"))
+
+        write(plan, _approved_with('approval:\n  status: "approved"\n  approved_by: X\n'
+                                   '  date: 2026-01-01\n'))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        a = _approval_of(plan)
+        check("f3/quoted: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f3/quoted: a quoted \"approved\" reloads as pending with the reset record",
+              a.get("status") == "pending" and a.get("reset_reason") == "apply T-02", repr(a))
+        check("f3/quoted: the receipt says APPROVAL-RESET only because it landed",
+              "APPROVAL-RESET" in r.stdout, r.stdout)
+
+        write(plan, _approved_with("approval:\n    status: approved\n    approved_by: X\n"
+                                   "    date: 2026-01-01\n"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        a, after = _approval_of(plan), read(plan)
+        check("f3/indent4: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f3/indent4: a four-space approval body reloads as pending with the reset record",
+              a.get("status") == "pending" and a.get("reset_reason") == "apply T-02", repr(a))
+        check("f3/indent4: the reset lines are written at the body's own indent",
+              "    status: pending\n" in after and "    reset_reason: apply T-02\n" in after
+              and "\n  status:" not in after, after)
+
+        before = write(plan, _approved_with(
+            "approval: {status: approved, approved_by: X, date: 2026-01-01}\n"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("f3/flow: a shape the splice cannot reset is REFUSED with the signature "
+              "verifier's exit 5", r.returncode == 5 and "pending" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("f3/flow: nothing is written — the plan is byte-identical", read(plan) == before,
+              read(plan))
+        check("f3/flow: no APPROVAL-RESET receipt over a standing signature",
+              "APPROVAL-RESET" not in r.stdout and "ADDED" not in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_review_f4_rework_is_recorded_before_the_signature():
+    """REVIEW F4. `cmd_sign_approval` signed the plan and THEN called `_record_rework`, so a
+    feature.json refusal past the existence check — invalid JSON, a schema regression, a lock
+    timeout — left the plan approved with no ruling recorded and a non-zero exit: the half-state
+    SC-15 exists to prevent. The ruling is recorded first; a ruling without a signature is
+    harmless and the plan is simply re-signed, which the refusal now says."""
+    import json
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))                       # pending
+        fj = os.path.join(os.path.dirname(plan), "feature.json")
+        os.makedirs(os.path.join(os.path.dirname(plan), "notes"), exist_ok=True)
+        write(os.path.join(os.path.dirname(plan), "notes", "ruling.md"), "# ruling\n")
+        write(fj, "{not json\n")
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        check("f4: a feature.json refusal propagates feature_json_write's exit 11",
+              r.returncode == 11, f"rc={r.returncode} {r.stderr!r}")
+        check("f4: and leaves approval pending — the plan is byte-identical",
+              read(plan) == before and _approval_of(plan).get("status") == "pending", read(plan))
+        check("f4: no SIGNED receipt for a signature that was not written",
+              "SIGNED" not in r.stdout, r.stdout)
+
+        write(fj, json.dumps({"feature_id": "FEAT-99-fixture", "branch": "feat/x",
+                              "max_total_cycles": 10, "cycles_used": 0, "runs": []}, indent=2) + "\n")
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks: [\n")      # will not parse
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        doc = json.loads(read(fj))
+        check("f4: a plan refusal after the ruling was recorded still refuses (exit 5)",
+              r.returncode == 5, f"rc={r.returncode} {r.stderr!r}")
+        check("f4: the ruling stands in feature.json",
+              doc.get("rework") == {"rounds": 2, "wall_clock_minutes": 90,
+                                    "decision": "notes/ruling.md"}, repr(doc))
+        check("f4: the refusal says the ruling was recorded and the plan is re-signed",
+              fj in r.stderr and "re-run" in r.stderr.lower(), r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_review_f7_apply_never_writes_a_task_status():
+    """REVIEW F7. `_replace_fields` excluded only `id`, so a pm proposal re-applied after build
+    entry — still carrying the `status: pending` it was drafted with — rolled T-01 back from
+    `building` and, because that counted as a changed task, voided the signature mid-build.
+    A task's station is set-task-station's (and gh-sync's) alone: a proposal's `status` on an
+    EXISTING task is ignored with a printed IGNORED line, never replaced, and a status-only
+    difference is not a task change."""
+    root, plan = fixture_root()
+    try:
+        building = ("schema: plan/1\nfeature: FEAT-99-fixture\n"
+                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+                    "tasks:\n  - id: T-01\n    title: Task T-01\n    status: building\n")
+        write(plan, building)
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-01"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        doc = yaml.safe_load(read(plan))
+        check("f7/status-only: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f7/status-only: T-01 keeps its station", doc["tasks"][0]["status"] == "building",
+              repr(doc["tasks"]))
+        check("f7/status-only: the signature stands — a status-only difference is not a "
+              "task change", doc["approval"].get("status") == "approved"
+              and "reset_at" not in doc["approval"], repr(doc["approval"]))
+        check("f7/status-only: the receipt prints IGNORED, not REPLACED or APPROVAL-RESET",
+              "IGNORED T-01.status" in r.stdout and "REPLACED" not in r.stdout
+              and "APPROVAL-RESET" not in r.stdout, r.stdout)
+        check("f7/status-only: every other byte is identical", read(plan) == building, read(plan))
+
+        write(plan, building)
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-01\n    title: renamed\n    status: pending\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        doc = yaml.safe_load(read(plan))
+        check("f7/mixed: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f7/mixed: the title is replaced and the station is kept",
+              doc["tasks"][0]["title"] == "renamed" and doc["tasks"][0]["status"] == "building",
+              repr(doc["tasks"]))
+        check("f7/mixed: a replaced field on an existing task keeps the signature (BUG-1716 D-04)",
+              doc["approval"].get("status") == "approved", repr(doc["approval"]))
+        check("f7/mixed: REPLACED names the title and IGNORED names the status",
+              "REPLACED T-01.title" in r.stdout and "IGNORED T-01.status" in r.stdout
+              and "REPLACED T-01.status" not in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_review_f8_record_panel_opens_every_new_finding():
+    """REVIEW F8 (security SEC-04). `_digest_finding` took `disposition` from the digest, so a
+    lead could land a new high substance finding pre-resolved and INV-32 would only warn. A
+    NEW finding is appended open regardless of what the digest says — resolution is set-panel
+    and ruling territory; a carried finding keeps its base disposition, whatever the digest
+    says about it."""
+    root, plan = fixture_root()
+    try:
+        fid = _pf("scope", "T-01 has no verify")
+        write(plan, _panel_base(fid))                                     # carried: resolved
+        digest = os.path.join(root, "digest.md")
+        findings = [
+            {"kind": "substance", "severity": "high", "reader": "scope",
+             "summary": "T-01 has no verify", "disposition": "open"},     # carried, base wins
+            {"kind": "substance", "severity": "high", "reader": "scope",
+             "summary": "T-02 ships without a test", "disposition": "resolved"},
+            {"kind": "form", "severity": "low", "reader": "scope",
+             "summary": "D-01 restates DEC-100", "disposition": "not-a-disposition"},
+        ]
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}], findings))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "2026-09-11-c1-validator")
+        got = (yaml.safe_load(read(plan)).get("panel") or {}).get("findings") or []
+        by_id = {f.get("id"): f for f in got}
+        check("f8: record-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f8: a new finding the digest calls resolved is written open",
+              by_id.get(_pf("scope", "T-02 ships without a test"), {}).get("disposition") == "open",
+              repr(got))
+        check("f8: a new finding with a nonsense disposition is written open, not refused",
+              by_id.get(_pf("scope", "D-01 restates DEC-100"), {}).get("disposition") == "open",
+              repr(got))
+        check("f8: the carried finding keeps its base disposition against the digest's open",
+              by_id.get(fid, {}).get("disposition") == "resolved"
+              and by_id.get(fid, {}).get("resolved_by") == "T-02", repr(got))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _finding_text(fid, summary, tail=""):
+    return (f"    - id: {fid}\n      severity: med\n      reader: scope\n      kind: substance\n"
+            f"      summary: {summary}\n      disposition: open\n" + tail)
+
+
+def _comment_panel_base(findings_text):
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n\n" + DEFAULT_APPROVAL + "\n"
+            "panel:\n  last_run: 2026-09-10-c0-validator\n  cycle: 0\n"
+            "  readers:\n    - reader: scope\n      status: ran\n"
+            "  findings:\n" + findings_text
+            + "  # unrated is gating-equivalent to high, so omitted judgment fails closed.\n\n"
+            "tasks:\n" + task_block("T-01"))
+
+
+def case_f59_review_f10_panel_splice_keeps_a_comment_with_the_finding_it_followed():
+    """REVIEW F10. `_findings_by_id` bounded each carried finding at `_item_delete_end`, before
+    its trailing comment, and `_findings_lines` emitted only those ranges — so the template's
+    own `# resolved_by: T-NN` note under the last finding was re-emitted AFTER the appended one,
+    and a comment BETWEEN two findings was dropped altogether. A finding is carried through its
+    full dash-to-dash range: the comment stays with the finding it followed, and the block-level
+    comment at the sub-key indent stays after the whole list."""
+    root, plan = fixture_root()
+    try:
+        note = "      # resolved_by: T-NN            # present only when resolved\n"
+        fid1, fid2 = _pf("scope", "T-01 has no verify"), _pf("scope", "T-02 has no verify")
+        new_id = _pf("scope", "new one")
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "form", "severity": "low", "reader": "scope",
+                                   "summary": "new one"}]))
+
+        one = _finding_text(fid1, "T-01 has no verify", note)
+        write(plan, _comment_panel_base(one))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "r1")
+        after = read(plan)
+        check("f10/last: record-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f10/last: the carried finding and its trailing note are one contiguous run of "
+              "bytes, and the new finding follows the note",
+              one in after and after.index(one) + len(one) == after.index(f"    - id: {new_id}\n"),
+              after)
+        check("f10/last: the block-level comment stays after the whole list, before tasks:",
+              after.index(f"    - id: {new_id}\n") < after.index("  # unrated is gating")
+              < after.index("\ntasks:\n"), after)
+        check("f10/last: the panel reloads with both findings",
+              [f["id"] for f in yaml.safe_load(after)["panel"]["findings"]] == [fid1, new_id], after)
+
+        two = (_finding_text(fid1, "T-01 has no verify", "      # a note about the first\n")
+               + _finding_text(fid2, "T-02 has no verify"))
+        write(plan, _comment_panel_base(two))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "r1")
+        after = read(plan)
+        check("f10/between: record-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f10/between: a comment between two carried findings is kept, in place",
+              two in after, after)
+        check("f10/between: the panel reloads with all three findings",
+              [f["id"] for f in yaml.safe_load(after)["panel"]["findings"]]
+              == [fid1, fid2, new_id], after)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# BUG-1716 T-04 — signed task hashes at signature (D-03) and `record-amendments` (D-04/D-05).
+# ---------------------------------------------------------------------------
+
+import hashlib
+import json as _json
+
+_AMEND_PLAN = (
+    "schema: plan/1\nfeature: FEAT-99-fixture\n"
+    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+    "  # kept byte for byte\n"
+    "tasks:\n"
+    "  - id: T-01\n    title: keep\n    status: pending\n"
+    "    intent: untouched\n    files: [a.py]\n    verify: python3 a.py\n"
+    "  - id: T-03\n    title: canonical reader\n    status: building\n"
+    "    intent: Add a second text accessor with a compatibility exemption\n"
+    "    files:\n      - .claude/skills/harness/bin/check-domain.py#manifest_domains\n"
+    "    verify: |\n      parse_gh_json accepts objects only\n"
+    "decisions:\n  - id: D-01\n    choice: keep me\n"
+)
+
+_BUG285_DIGEST = """
+prose before
+
+```yaml
+VERDICT: PASS
+DIGEST:
+  headline: T-03 built with three amendments
+  amendments:
+    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "Keep the keyword-only text source; no second accessor and no exemption", reason: "the exemption would bypass the accessor the task makes canonical" }
+    - task: T-03
+      field: verify
+      was: "parse_gh_json accepts objects only\\n"
+      now: "parse_gh_json accepts any JSON value\\n"
+      reason: gh api returns arrays for list endpoints
+    - { task: T-03, field: files, was: [.claude/skills/harness/bin/check-domain.py#manifest_domains], now: [{ path: .claude/skills/harness/bin/check-domain.py, quote: "def manifest_domains(agent=None)" }], reason: "the symbol anchor became a content anchor" }
+artifact: x
+```
+"""
+
+
+def _digest_with(amendments_yaml):
+    return "```yaml\nVERDICT: PASS\nDIGEST:\n  headline: h\n" + amendments_yaml + "artifact: x\n```\n"
+
+
+def _feature_doc(**extra):
+    doc = {"feature_id": "FEAT-99-fixture", "branch": "feat/x", "pr": None, "review_sha": "none",
+           "max_total_cycles": 10, "cycles_used": 0, "runs": []}
+    doc.update(extra)
+    return doc
+
+
+def _amend_fixture(plan_text=_AMEND_PLAN, feature=True):
+    root, plan = fixture_root()
+    write(plan, plan_text)
+    fj = os.path.join(os.path.dirname(plan), "feature.json")
+    if feature:
+        write(fj, _json.dumps(_feature_doc(), indent=2) + "\n")
+    return root, plan, fj
+
+
+def _canonical_hash(task):
+    doc = {k: task.get(k) for k in ("files", "intent", "verify")}
+    return hashlib.sha256(_json.dumps(doc, sort_keys=True, separators=(",", ":"),
+                                      ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def _record(plan, digest_text, root):
+    digest = os.path.join(root, "digest.md")
+    write(digest, digest_text)
+    return run_verb("record-amendments", "--file", plan, "--digest", digest)
+
+
+_PENDING_PLAN = _AMEND_PLAN.replace("status: approved", "status: pending")
+_REFLOWED_PLAN = _PENDING_PLAN.replace(
+    "    intent: untouched\n    files: [a.py]\n    verify: python3 a.py\n",
+    "    verify: 'python3 a.py'\n    files:\n      - a.py\n    intent: \"untouched\"\n")
+
+
+def _sign(plan):
+    return run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-15")
+
+
+def _hashes(fj):
+    return _json.loads(read(fj)).get("signed_task_hashes")
+
+
+def case_b1716_sign_writes_canonical_task_hashes():
+    """D-03: sign-approval writes one lowercase sha256 per task over the canonical JSON of
+    {files, intent, verify} to feature.json."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
+    try:
+        r = _sign(plan)
+        hashes = _hashes(fj)
+        check("b1716/sign: exits 0 and prints HASHED", r.returncode == 0 and "HASHED 2" in r.stdout,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        tasks = yaml.safe_load(read(plan))["tasks"]
+        check("b1716/sign: one hash per task, sha256 of the canonical JSON",
+              hashes == {t["id"]: _canonical_hash(t) for t in tasks}, repr(hashes))
+        check("b1716/sign: hashes are 64 lowercase hex characters",
+              all(len(h) == 64 and h == h.lower() for h in (hashes or {}).values()), repr(hashes))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_sign_hashes_value_not_presentation():
+    """D-03: quoting, key order and list form hash identically; a changed value changes only
+    that task's hash."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
+    try:
+        _sign(plan)
+        hashes = _hashes(fj) or {}
+        write(plan, _REFLOWED_PLAN)
+        r = _sign(plan)
+        check("b1716/sign: a reflowed plan (quoting, order, list form) hashes identically",
+              r.returncode == 0 and _hashes(fj) == hashes, repr(_hashes(fj)))
+        write(plan, _REFLOWED_PLAN.replace("untouched", "touched"))
+        _sign(plan)
+        h2 = _hashes(fj) or {}
+        check("b1716/sign: a changed value changes that task's hash",
+              h2 and h2.get("T-01") != hashes.get("T-01"), repr(h2))
+        check("b1716/sign: the other task's hash is unchanged",
+              h2.get("T-03") == hashes.get("T-03"), repr(h2))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_refused_signature_writes_no_hashes():
+    """A refused signature (unparseable plan) leaves feature.json byte-identical."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN + "tasks: [\n")
+    try:
+        before = read(fj)
+        r = _sign(plan)
+        check("b1716/sign: a refused signature leaves feature.json byte-identical",
+              r.returncode != 0 and read(fj) == before, f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _bug285_applied():
+    """A signed fixture with the BUG-285 three recorded: (root, plan, fj, run, plan_before)."""
+    root, plan, fj = _amend_fixture()
+    run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-01-01")
+    before = read(plan)
+    return root, plan, fj, _record(plan, _BUG285_DIGEST, root), before
+
+
+def _t03(plan):
+    return {t["id"]: t for t in yaml.safe_load(read(plan))["tasks"]}["T-03"]
+
+
+def case_b1716_record_amendments_splices_the_bug285_three():
+    """SC-06: the three BUG-285 T-03 recommendations land in ONE invocation — no proposal, no
+    task dispatch — each field carrying the digest's `now`, the `|` body keeping its form."""
+    root, plan, fj, r, _ = _bug285_applied()
+    try:
+        t3, after = _t03(plan), read(plan)
+        check("b1716/285: exits 0 naming each target", r.returncode == 0
+              and r.stdout.count("AMENDED T-03.") == 3, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("b1716/285: intent carries the digest's now",
+              t3["intent"] == "Keep the keyword-only text source; no second accessor and no exemption", repr(t3))
+        check("b1716/285: verify carries the digest's now",
+              t3["verify"] == "parse_gh_json accepts any JSON value\n", repr(t3))
+        check("b1716/285: files carries the digest's now",
+              t3["files"] == [{"path": ".claude/skills/harness/bin/check-domain.py",
+                               "quote": "def manifest_domains(agent=None)"}], repr(t3))
+        check("b1716/285: the `|` verify body keeps its block form",
+              "    verify: |\n      parse_gh_json accepts any JSON value\n" in after, after)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_touches_only_the_named_fields():
+    """Approval, the preamble comment, T-01, decisions, and T-03's own title/status are
+    byte-identical after the splice."""
+    root, plan, fj, _, before = _bug285_applied()
+    try:
+        after, t3 = read(plan), _t03(plan)
+        head = before.split("tasks:\n", 1)[0]
+        check("b1716/285: approval and the preamble are byte-identical, comment included",
+              after.startswith(head) and "  # kept byte for byte\n" in after, after)
+        check("b1716/285: T-01 is byte-identical",
+              "  - id: T-01\n    title: keep\n    status: pending\n    intent: untouched\n"
+              "    files: [a.py]\n    verify: python3 a.py\n" in after, after)
+        check("b1716/285: decisions are byte-identical",
+              after.endswith("decisions:\n  - id: D-01\n    choice: keep me\n"), after)
+        check("b1716/285: T-03's title and status are untouched",
+              t3["title"] == "canonical reader" and t3["status"] == "building", repr(t3))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+_BUG285_DECISIONS = ("T-03.intent", "T-03.verify", "T-03.files")
+
+
+def case_b1716_record_amendments_ledgers_three_judgements():
+    """Three `amendment` judgements by the orchestrator land in digest order with the digest's
+    reasons and distinct increasing `at`s."""
+    root, plan, fj, _, _ = _bug285_applied()
+    try:
+        js = _json.loads(read(fj)).get("judgements") or []
+        check("b1716/285: three amendment judgements in digest order, by the orchestrator",
+              [(j["kind"], j["by"], j["decision"]) for j in js]
+              == [("amendment", "harness-orchestrator", d) for d in _BUG285_DECISIONS], repr(js))
+        check("b1716/285: reasons are the digest's",
+              [j["reason"] for j in js][1:2] == ["gh api returns arrays for list endpoints"], repr(js))
+        ats = [j["at"] for j in js]
+        check("b1716/285: every `at` is distinct and increasing",
+              len(set(ats)) == 3 and ats == sorted(ats), repr(ats))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_keeps_the_ledger_valid_and_signed():
+    """The amendment never re-signs — signed_task_hashes are the signature's — and the
+    record still validates against feature-schema.json."""
+    root, plan, fj, _, _ = _bug285_applied()
+    try:
+        fdoc = _json.loads(read(fj))
+        expected = {t["id"]: _canonical_hash(t) for t in yaml.safe_load(_AMEND_PLAN)["tasks"]}
+        check("b1716/285: signed_task_hashes are not revised by the amendment",
+              fdoc.get("signed_task_hashes") == expected, repr(fdoc.get("signed_task_hashes")))
+        check("b1716/285: the ledger still validates",
+              not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_rerun_is_refused():
+    """A rerun of the same digest is refused (exit 6): the field now equals `now`, not `was`;
+    neither file changes."""
+    root, plan, fj, _, _ = _bug285_applied()
+    try:
+        plan_bytes, fj_bytes = read(plan), read(fj)
+        r = _record(plan, _BUG285_DIGEST, root)
+        check("b1716/285: a rerun is refused (exit 6) naming the already-applied state",
+              r.returncode == 6 and "already equals `now`" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("b1716/285: the rerun writes nothing to either file",
+              read(plan) == plan_bytes and read(fj) == fj_bytes)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_refusals_are_byte_identical():
+    """Every validation refusal — before the lock — leaves plan.yaml and feature.json untouched."""
+    root, plan, fj = _amend_fixture()
+    try:
+        plan_bytes, fj_bytes = read(plan), read(fj)
+        ok_intent = ('    - { task: T-03, field: intent, was: "Add a second text accessor with a '
+                     'compatibility exemption", now: "n", reason: "r" }\n')
+        cases = (
+            ("no amendments", "  amendments: []\n", 2, "no amendments"),
+            ("absent amendments", "", 2, "no amendments"),
+            ("not a mapping", "  amendments: [T-03.intent]\n", 5, "not a mapping"),
+            ("extra key", '  amendments:\n    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r", by: me }\n', 5, "['by']"),
+            ("missing key", '  amendments:\n    - { task: T-03, field: intent, was: "x", reason: "r" }\n', 5, "missing ['now']"),
+            ("SC id", '  amendments:\n    - { task: SC-01, field: intent, was: "x", now: "n", reason: "r" }\n', 5, "SC-01"),
+            ("decision id", '  amendments:\n    - { task: D-01, field: intent, was: "keep me", now: "n", reason: "r" }\n', 5, "D-01"),
+            ("bad field", '  amendments:\n    - { task: T-03, field: title, was: "canonical reader", now: "n", reason: "r" }\n', 5, "field='title'"),
+            ("empty reason", '  amendments:\n    - { task: T-03, field: intent, was: "x", now: "n", reason: "" }\n', 5, "reason"),
+            ("long reason", '  amendments:\n    - { task: T-03, field: intent, was: "x", now: "n", reason: "' + "x" * 241 + '" }\n', 5, "reason"),
+            ("intent as list", '  amendments:\n    - { task: T-03, field: intent, was: [x], now: "n", reason: "r" }\n', 5, "was"),
+            ("files as string", '  amendments:\n    - { task: T-03, field: files, was: [a.py], now: "b.py", reason: "r" }\n', 5, "now"),
+            ("line anchor", '  amendments:\n    - { task: T-03, field: files, was: [a.py], now: [a.py:12], reason: "r" }\n', 5, "line-number"),
+            ("absent task", '  amendments:\n    - { task: T-09, field: intent, was: "x", now: "n", reason: "r" }\n', 3, "T-09"),
+            ("stale was", '  amendments:\n    - { task: T-03, field: intent, was: "something else", now: "n", reason: "r" }\n', 6, "does not equal"),
+            ("duplicate target", "  amendments:\n" + ok_intent + ok_intent, 5, "amended twice"),
+            ("second entry stale", "  amendments:\n" + ok_intent + '    - { task: T-01, field: verify, was: "wrong", now: "n", reason: "r" }\n', 6, "T-01.verify"),
+        )
+        for label, amendments, code, needle in cases:
+            r = _record(plan, _digest_with(amendments), root)
+            check(f"b1716/refuse/{label}: exit {code} naming the fault",
+                  r.returncode == code and needle in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+            check(f"b1716/refuse/{label}: both files byte-identical",
+                  read(plan) == plan_bytes and read(fj) == fj_bytes)
+        # No ledger: refused before the plan is touched.
+        os.remove(fj)
+        r = _record(plan, _digest_with("  amendments:\n" + ok_intent), root)
+        check("b1716/refuse/no feature.json: exit 2 naming the ledger path",
+              r.returncode == 2 and fj in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("b1716/refuse/no feature.json: the plan is byte-identical", read(plan) == plan_bytes)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+_T01_AMENDMENT = '  amendments:\n    - { task: T-01, field: intent, was: untouched, now: amended, reason: "r" }\n'
+_TWO_ENTRY_AMENDMENTS = (
+    _T01_AMENDMENT
+    + '    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r" }\n')
+
+
+def _approved(plan):
+    return _approval_of(plan).get("status") == "approved"
+
+
+def case_b1716_approval_survives_record_amendments_and_amend():
+    """D-04: replacing text on an existing task — by record-amendments or by `amend` — keeps
+    the signature, bytes and all."""
+    root, plan, fj = _amend_fixture()
+    try:
+        approval = read(plan).split("tasks:\n", 1)[0]
+        r = _record(plan, _digest_with(_T01_AMENDMENT), root)
+        check("b1716/approval: record-amendments exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("b1716/approval: the approved block survives byte for byte",
+              read(plan).startswith(approval) and _approved(plan), read(plan))
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        value = os.path.join(root, "title.txt")
+        write(value, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field", "title",
+                     "--expect-sha256", sha or "x", "--value-file", value)
+        check("b1716/approval: amend on an existing task no longer resets the signature",
+              r.returncode == 0 and _approved(plan) and "APPROVAL-RESET" not in r.stdout,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_approval_resets_only_on_task_set_change():
+    """D-04: `apply` replacing a field on an existing task keeps the signature; adding a task
+    still resets it to pending with the reason recorded."""
+    root, plan, fj = _amend_fixture()
+    try:
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n  - id: T-01\n    title: again\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("b1716/approval: apply replacing a field on an existing task keeps the signature",
+              r.returncode == 0 and _approved(plan) and "APPROVAL-RESET" not in r.stdout,
+              f"rc={r.returncode} {r.stdout!r}")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-07"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("b1716/approval: adding a task still resets approval to pending",
+              r.returncode == 0 and _approval_of(plan).get("status") == "pending"
+              and _approval_of(plan).get("reset_reason") == "apply T-07", repr(_approval_of(plan)))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _record_with_ledger_locked(plan, fj, root, amendments):
+    """Run record-amendments while another writer holds feature.json's lock."""
+    import fcntl
+    holder = open(fj + ".lock", "w")
+    fcntl.flock(holder, fcntl.LOCK_EX)
+    try:
+        return _record(plan, _digest_with(amendments), root)
+    finally:
+        fcntl.flock(holder, fcntl.LOCK_UN)
+        holder.close()
+
+
+def case_b1716_record_amendments_is_all_or_nothing():
+    """A refusal under the plan lock — here the ledger's own lock held by another writer, so
+    the judgement write refuses LOCKED — leaves the plan untouched: a multi-entry digest lands
+    every entry or none, across both files. The plan is spliced first and restored on the
+    ledger's refusal (validate c0 V-01), so a judgement never outlives its splice."""
+    root, plan, fj = _amend_fixture()
+    try:
+        plan_bytes, fj_bytes = read(plan), read(fj)
+        r = _record_with_ledger_locked(plan, fj, root, _TWO_ENTRY_AMENDMENTS)
+        check("b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED",
+              r.returncode != 0 and "LOCKED" in r.stderr, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("b1716/atomic: the refusal says the plan splice was restored",
+              "restored byte for byte" in r.stderr, r.stderr)
+        check("b1716/atomic: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
+              read(plan))
+        r = _record(plan, _digest_with(_TWO_ENTRY_AMENDMENTS), root)
+        doc = yaml.safe_load(read(plan))
+        check("b1716/atomic: released, the same two-entry digest lands both entries",
+              r.returncode == 0 and [t["intent"] for t in doc["tasks"]] == ["amended", "n"]
+              and len(_json.loads(read(fj))["judgements"]) == 2, f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error():
+    """validate c1 V-01: the restore is not only for a MergeRefusal. An ORDINARY OSError from
+    the ledger write — here `feature.json.lock` unopenable (mode 000), so `acquire`'s os.open
+    raises PermissionError after the plan was already spliced — exits nonzero naming the error
+    and leaves BOTH files byte-identical."""
+    if os.geteuid() == 0:
+        return  # root ignores mode bits; the arm cannot be built
+    root, plan, fj = _amend_fixture()
+    try:
+        plan_bytes, fj_bytes = read(plan), read(fj)
+        lock = fj + ".lock"
+        write(lock, "")
+        os.chmod(lock, 0)
+        try:
+            r = _record(plan, _digest_with(_TWO_ENTRY_AMENDMENTS), root)
+        finally:
+            os.chmod(lock, 0o644)
+        check("b1716/io: a PermissionError on the ledger write exits nonzero naming it",
+              r.returncode != 0 and "PermissionError" in r.stderr and "Traceback" not in r.stderr,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("b1716/io: the refusal says the plan splice was restored",
+              "restored byte for byte" in r.stderr, r.stderr)
+        check("b1716/io: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
+              read(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -1974,6 +4120,8 @@ CASES = (
     case_amend_structured_list_field,
     case_illegal_station_exit_4,
     case_sign_approval,
+    case_sign_approval_preserves_existing_rulings,
+    case_1157_sign_approval_records_validated_overrules,
     case_sign_approval_inserts_absent_mapping,
     case_f02_sign_approval_cannot_write_an_unparseable_signature,
     case_f02_verify_signature_duplicate_key_is_caught_before_comparison,
@@ -2002,10 +4150,55 @@ CASES = (
     case_1103_sign_approval_refuses_a_governed_agent,
     case_1103_sign_approval_negative_control_absent_is_main_session,
     case_add_tasks_alias,
-    case_apply_still_refuses_a_changed_value,
     case_amend_f1_all_four_block_forms_round_trip,
     case_amend_f1_non_text_field_is_refused,
     case_amend_f2_under_lock_hash_is_pinned,
+    case_bug201_apply_refuses_dangling_depends_on,
+    case_delete_items_removes_whole_items_and_leaves_every_other_byte_identical,
+    case_delete_items_boundary_splits_block_content_from_document_comments,
+    case_delete_items_leaves_no_blank_line_residue,
+    case_delete_items_refuses_an_absent_id_and_writes_nothing_at_all,
+    case_delete_items_refuses_its_own_bad_command_line,
+    case_delete_items_refuses_a_dangling_depends_on,
+    case_delete_items_refuses_a_duplicate_id_in_the_plan,
+    case_delete_items_refuses_a_deletion_that_breaks_the_schema,
+    case_delete_items_refuses_an_unparseable_base,
+    case_delete_items_inherits_the_destination_and_lock_refusals,
+    case_delete_items_verify_catches_a_boundary_error_that_still_parses,
+    case_f59_record_panel_writes_from_a_lead_digest,
+    case_f59_record_panel_carries_existing_findings_byte_for_byte,
+    case_f59_record_panel_refuses_a_finding_without_kind,
+    case_f59_check_passes_on_every_anchor_form,
+    case_f59_check_lists_each_failure_on_its_own_line,
+    case_bug1725_check_names_files_shared_by_tasks,
+    case_f59_line_number_anchor_is_refused_at_write,
+    case_f59_set_lanes_writes_and_validates,
+    case_1683_set_key_writes_any_top_level_key,
+    case_1683_set_key_refuses_owned_keys_by_name,
+    case_f59_set_panel_keeps_an_untouched_finding_byte_identical,
+    case_f59_approval_auto_reset_on_every_task_changing_verb,
+    case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone,
+    case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word,
+    case_1675_revoke_approval_refuses_nothing_to_revoke_and_governed_agents,
+    case_f59_sign_approval_rework_writes_feature_json,
+    case_f59_review_f3_approval_reset_is_verified_not_reported,
+    case_f59_review_f4_rework_is_recorded_before_the_signature,
+    case_f59_review_f7_apply_never_writes_a_task_status,
+    case_f59_review_f8_record_panel_opens_every_new_finding,
+    case_f59_review_f10_panel_splice_keeps_a_comment_with_the_finding_it_followed,
+    case_b1716_sign_writes_canonical_task_hashes,
+    case_b1716_sign_hashes_value_not_presentation,
+    case_b1716_refused_signature_writes_no_hashes,
+    case_b1716_record_amendments_splices_the_bug285_three,
+    case_b1716_record_amendments_touches_only_the_named_fields,
+    case_b1716_record_amendments_ledgers_three_judgements,
+    case_b1716_record_amendments_keeps_the_ledger_valid_and_signed,
+    case_b1716_record_amendments_rerun_is_refused,
+    case_b1716_record_amendments_refusals_are_byte_identical,
+    case_b1716_approval_survives_record_amendments_and_amend,
+    case_b1716_approval_resets_only_on_task_set_change,
+    case_b1716_record_amendments_is_all_or_nothing,
+    case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
 )
 
 

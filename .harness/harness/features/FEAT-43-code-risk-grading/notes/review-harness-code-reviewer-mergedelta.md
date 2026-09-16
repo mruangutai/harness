@@ -15,17 +15,17 @@ combination checks all pass.
 `.claude/skills/harness/bin/test-*.py` covers `test-code-grade.py`/`test-gate-policy.py`, and
 neither name appears in `integration.detect`'s explicit list (verified by direct grep).
 
-**(b) `run-unit-tests.sh` `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`.** No `context-watch` entries in
-either array (`run-unit-tests.sh:30-31`, raw read). `test-code-grade.py` and `test-gate-policy.py`
+**(b) `run-unit-tests.py` `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`.** No `context-watch` entries in
+either array (`run-unit-tests.py:30-31`, raw read). `test-code-grade.py` and `test-gate-policy.py`
 sit in `UNIT_SCRIPTS`; `test-code-grade-cli.py` sits in `INTEGRATION_SCRIPTS`.
 
 **Subtle half — kind-drift check, run directly, not adopted:**
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --check-kinds
+$ .agents/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 EXIT STATUS: 0
 ```
-This is the script's own built-in comparator (`run-unit-tests.sh:82-131`): every
+This is the script's own built-in comparator (`run-unit-tests.py:82-131`): every
 `INTEGRATION_SCRIPTS` name must appear as the literal path in `integration.detect`, and no
 `UNIT_SCRIPTS` name may appear there. Exit 0 over the merged config proves every FEAT-43 test is
 registered in the kind whose detect glob actually matches it — matrix coverage is not silently
@@ -130,7 +130,7 @@ EXIT STATUS: 0
 `detect` globs are the ones verified intact and drift-free above. SC-17's per-surface bar
 (production vs. test) resolves through this same path — intact.
 
-**(d) Reachability sweep.** Main also rewrote `dispatch-guard.sh` (+96/−, mostly rewrite),
+**(d) Reachability sweep.** Main also rewrote `dispatch-guard.py` (+96/−, mostly rewrite),
 `inflight_registry.py` (728-line diff), and added `check-omp-port.py` (+22). Grepped FEAT-43's own
 untouched source set (`code_grade.py`, `code-grade.py`, `gate_policy.py`, `test-code-grade.py`,
 `test-code-grade-cli.py`, `test-gate-policy.py`, `check-plan-routes.py`,
@@ -151,7 +151,7 @@ Confirmed: zero diff, all eleven paths byte-identical.
 ## What I did NOT cover
 
 - Main's own content was **not** re-reviewed on its merits — the #551 registry rework in
-  `inflight_registry.py`/`dispatch-guard.sh`/`check-omp-port.py`, the OMP identity threading in
+  `inflight_registry.py`/`dispatch-guard.py`/`check-omp-port.py`, the OMP identity threading in
   `validate-digest.py`'s `hook_mode()`, and the `blocking: true` frontmatter additions are main's
   own already-reviewed work. I traced their *reachability* into FEAT-43's surfaces only.
 - The eight already-closed FEAT-43 defects were not re-opened.

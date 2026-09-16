@@ -4,7 +4,7 @@ One consolidated set (DEC-176). Nothing else is open.
 
 ## Q5 — THE HOOK IS NOT ENFORCEMENT LAYER. THE INVARIANT IS.
 
-**Ruling: the `post-merge` hook is `team`. `check-state.sh`'s invariant and its test are
+**Ruling: the `post-merge` hook is `team`. `check-state.py`'s invariant and its test are
 `main-session-direct`.**
 
 **The reason is DEC-174's own stated test**, in the table at `DECISIONS.md:4709`: *"the artifact
@@ -12,7 +12,7 @@ under change is the artifact doing the checking."* A `post-merge` hook checks no
 after the merge has already happened and performs two writes — record the terminal status, remove
 the checkout. **It cannot refuse anything.**
 
-That is the same functional test amendment 4 applied when it added `dispatch-guard.sh`
+That is the same functional test amendment 4 applied when it added `dispatch-guard.py`
 (`DECISIONS.md:4887`): it joined *"on the evidence that it refuses dispatches — it declined a
 `harness-orchestrator` dispatch over a `model` parameter on 2026-08-21."* A sweep that ACTS fails
 that test.
@@ -44,7 +44,7 @@ $ git config --get core.hooksPath
 every clone but this one.
 
 **The fix has two halves and REQ-09/SC-08 get tasks for both:**
-1. A **tracked** hooks directory in the repository. Resolve its path with `check-domain.sh --resolve`
+1. A **tracked** hooks directory in the repository. Resolve its path with `check-domain.py --resolve`
    at HEAD and lane it by the result — do not assume. pm measured `.githooks/`, `.claude/hooks/` and
    `.claude/skills/harness/hooks/` all resolving NOBODY, which means the choice is a design decision
    and its own `D-NN`, not a lookup.
@@ -58,7 +58,7 @@ both additions, one re-signature.
 
 ## Q3 — NOT A DEADLOCK. A BACKLOG ROW.
 
-Your reproduction stands: `check-state.sh` VIOLATES on a missing `approval:` block and no agent may
+Your reproduction stands: `check-state.py` VIOLATES on a missing `approval:` block and no agent may
 write one. But `.claude/skills/harness/templates/plan.yaml:30-35` already ships that block at
 `status: pending`, and FEAT-19's plan carries exactly it. **The create path is to instantiate from the
 template**, which this file did not. A procedural miss with a clean route.

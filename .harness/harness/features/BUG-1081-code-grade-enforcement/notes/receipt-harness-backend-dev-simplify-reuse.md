@@ -54,7 +54,7 @@ list came back clean — recorded below with the evidence, not just asserted.
 - **`_is_test_path` in `code_grade.py`**: grepped the full `bin/` tree for a second
   "is this a test path" spelling outside `code_grade.py`'s own `_is_test_path` and
   `code-grade.py`'s `_load_test_kinds` (which only loads the policy, doesn't match a
-  path against it). No third spelling found; `check-expertise.sh`'s `classify_tier` and
+  path against it). No third spelling found; `check-expertise.py`'s `classify_tier` and
   `worktree_terminal.classify`/`harness_boundary.classify` are unrelated domain
   classifiers that happen to share the word "classify".
 - **Test fixture duplication** (`test-validate-digest.py`'s `_git_quiet`/

@@ -72,7 +72,7 @@ pin. `feature_dir is None` = refused.
 **Not reachable from a digest, in production.** Grepped every production call site of
 `validate(..., feature_dir=...)` in `.claude/skills/harness/bin/`:
 
-- `check-state.sh` (line ~1077, via the cached `_vd_mod.validate("lead", ...)`): **no
+- `check-state.py` (line ~1077, via the cached `_vd_mod.validate("lead", ...)`): **no
   `feature_dir` argument at all** — falls to `None`, i.e. the digest-derived,
   now-contained path.
 - `validate-digest.py`'s own `hook_mode()` (line ~1710): `feature_dir=_hook_feature_dir(text,

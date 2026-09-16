@@ -73,7 +73,7 @@ Restored and re-verified against that hash after each.
 
 Command (verbatim from plan.yaml T-01):
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Result: exit 0. `grep -c "^FAIL "` across the full run output: `0`. `grep -c "^PASS "`: `138`
 scripts. `test-factory-gh.py` line: `182/182 checks passed.` / `PASS test-factory-gh.py`.

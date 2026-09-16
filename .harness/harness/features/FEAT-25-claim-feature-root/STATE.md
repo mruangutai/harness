@@ -32,7 +32,7 @@ text is untouched.
 
 Close-out done. Ship-refresh SKIPPED with cause: no `INDEX.md` exists anywhere in the repo, so there
 is no codebase map to intersect. Distillation ran for all three squads; I applied the write-less
-tier's ops myself (three reviewers, two leads) and my own single op. `check-expertise.sh` exits 0
+tier's ops myself (three reviewers, two leads) and my own single op. `check-expertise.py` exits 0
 across all 15 files with per-section counts held — no wipe.
 
 Budgets: `cycles_used: 4` of 10, `len(runs): 14` of 20 — both under. The 4th cycle bought nothing: I
@@ -45,7 +45,7 @@ Post-briefing: the redundant distillation pass (`2026-08-19-7-distill2-validator
 briefing was written. Its ops are reconciled, not applied blind — `harness-code-reviewer`'s two are
 DROPPED (both lessons already on disk as G-15/O-05, and its Gotchas is at 15/15 so an add would be a
 cap violation), `harness-validator-lead`'s two are APPLIED (distinct, and room existed). Every count
-re-grepped rather than trusted; `check-expertise.sh` exits 0 across all 15 files. That pass also
+re-grepped rather than trusted; `check-expertise.py` exits 0 across all 15 files. That pass also
 exposed a real hazard, now backlog row B-19: nothing serialises Expertise writes against an open
 distillation run, and caps are computed from a spawn-time snapshot. The six graded source files are
 byte-identical to `review_sha` — nothing about the ship recommendation, the SCs or the gate moved.

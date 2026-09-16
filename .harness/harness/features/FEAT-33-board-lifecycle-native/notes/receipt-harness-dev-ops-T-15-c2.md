@@ -146,13 +146,13 @@ python3 .claude/skills/harness/bin/test-board-lifecycle.py   # all checks passed
 ```
 Confirmed identical both times (two separate RED/GREEN cycles, one per commit of the fix).
 
-## Verify: `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+## Verify: `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Command, independently re-extracted from `plan.yaml`'s T-15 `verify:` field
 (`.harness/harness/features/FEAT-33-board-lifecycle-native/plan.yaml:1355-1356`), byte-identical
 to what was run:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind all
+.claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 Full run (33 scripts, 2808 output lines), background-notified `completed (exit code 0)`. Zero

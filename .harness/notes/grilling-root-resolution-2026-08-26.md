@@ -36,7 +36,7 @@ reasoning, retracted, and re-closed on evidence — the retraction is kept below
 - ~~How the HOOK sites learn the agent's checkout.~~ **Answered, but narrower than #742
   suggests.** Two of eight already resolve the root from payload `cwd`. Every hook payload
   carries `agent_id`, which is the input a correct answer would use. #742's dispatch field fixes
-  `dispatch-guard.sh` and reaches no other hook.
+  `dispatch-guard.py` and reaches no other hook.
 - ~~Whether `install_root()` should return a non-joinable handle.~~ **CLOSED: there is no
   `install_root()`.** One function already returns both roots from one call —
   `harness_boundary.worktree_owner(path)`. Measured below. (This item was closed once on
@@ -75,7 +75,7 @@ enforcement layer on an undocumented surface.**
 
 ### Why claims landed in two different registries
 
-`dispatch-guard.sh:83` resolves from the DISPATCHING agent's working directory. Two claims, same
+`dispatch-guard.py:83` resolves from the DISPATCHING agent's working directory. Two claims, same
 session, same mechanism:
 
 | Claim | Dispatcher | Recorded cwd |
@@ -103,23 +103,23 @@ worktree copy: /Users/.../worktrees/harness/FEAT-37-lead-stop-and-wake
 
 ### The sixteen sites split 7 hooks / 9 scripts
 
-Hooks (always run MAIN's copy): `bash-write-guard.sh`, `branch-create-gate.sh`,
-`check-domain.sh`, `context-watch-hook.py`, `dispatch-guard.sh`, `gh-close-gate.sh`,
-`inject-expertise.sh`, `validate-digest.py`.
+Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.py`,
+`check-domain.py`, `context-watch-hook.py`, `dispatch-guard.py`, `gh-close-gate.py`,
+`inject-expertise.py`, `validate-digest.py`.
 
 Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`,
-`check-state.sh`, `factory_config.py`, `gen-decisions-index.py`, `harness_yaml.py`,
-`inflight_registry.py`, `run-unit-tests.sh`, `validate-feature-json.py`, `wayfind.py`.
+`check-state.py`, `factory_config.py`, `gen-decisions-index.py`, `harness_yaml.py`,
+`inflight_registry.py`, `run-unit-tests.py`, `validate-feature-json.py`, `wayfind.py`.
 
 ### One function is deliverable — none of these is really bash
 
 Every `.sh` site already runs `python3`, and **four already import a shared harness module**:
-`bash-write-guard.sh`, `check-domain.sh`, `check-state.sh`, `post-merge-sweep.sh`. The precedent
+`bash-write-guard.py`, `check-domain.py`, `check-state.py`, `post-merge-sweep.py`. The precedent
 for a shared import exists; it was simply not used for this.
 
 ### The problem has already been hit and patched privately
 
-`check-domain.sh:885-890`, verbatim: *"a live agent worktree held 38 files matching these globs
+`check-domain.py:885-890`, verbatim: *"a live agent worktree held 38 files matching these globs
 and the sweep reached NONE of them, because the globs are joined to `root` and a worktree is a
 separate checkout underneath it."* It fixed this for itself with its own
 `harness_boundary.linked_worktrees` enumeration. **One site solved the shared problem privately;
@@ -133,9 +133,9 @@ the other fifteen got no benefit.** That is the copy/paste the operator ruled ag
 - **`.claude/settings.json` CAN set environment variables session-wide, and already does** —
   `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` enforces the four-tier org. But the value is fixed
   at session start, so it cannot vary per agent.
-- **`inject-expertise.sh` can inject `additionalContext`** into every `harness-*` spawn. That is
+- **`inject-expertise.py` can inject `additionalContext`** into every `harness-*` spawn. That is
   machine-generated prose, not a mechanism.
-- **`dispatch-guard.sh` receives `tool_input`** — the dispatch prompt itself — and blocks with
+- **`dispatch-guard.py` receives `tool_input`** — the dispatch prompt itself — and blocks with
   `sys.exit(2)`. It is exempt for the main session (`:38`).
 - **`feature-worktree.py path --repo <r> --id <i>`** already turns a feature id into an absolute
   worktree path, with no inference.
@@ -158,22 +158,22 @@ the calling agent stands, even though the hook process itself runs the main chec
 
 | Hook | Resolves root from payload `cwd`? |
 | --- | --- |
-| `dispatch-guard.sh` | **yes** — `:83`, then walks up to `.harness/team-config.yaml` |
+| `dispatch-guard.py` | **yes** — `:83`, then walks up to `.harness/team-config.yaml` |
 | `validate-digest.py` | **yes** — `:872`, same walk, cwd first |
 | `context-watch-hook.py` | reads `cwd` at `:58`, but passes it to `warn_for_agent` — not root resolution |
-| `bash-write-guard.sh` | no — env chain only |
-| `branch-create-gate.sh` | no |
-| `check-domain.sh` | no |
-| `gh-close-gate.sh` | no |
-| `inject-expertise.sh` | no |
+| `bash-write-guard.py` | no — env chain only |
+| `branch-create-gate.py` | no |
+| `check-domain.py` | no |
+| `gh-close-gate.py` | no |
+| `inject-expertise.py` | no |
 
 **Two sites solved the shared problem privately and rolled their own walk.** That is the same
-shape as `check-domain.sh`'s `linked_worktrees` patch: a real answer, unshared.
+shape as `check-domain.py`'s `linked_worktrees` patch: a real answer, unshared.
 
 ### But payload `cwd` is the wrong input, and #742 already ruled the right one
 
 `cwd` reports where the calling agent *stands*. Nothing *sets* where an agent stands — the Agent
-tool has no `cwd` parameter, `cd` does not persist between Bash calls, and `bash-write-guard.sh`
+tool has no `cwd` parameter, `cd` does not persist between Bash calls, and `bash-write-guard.py`
 refuses it. So `cwd` stays inherited from the spawning session and varies by accident.
 
 **#742 (2026-08-23) carries the ruling**: every governed dispatch opens with a machine-readable
@@ -203,12 +203,12 @@ session_id, tool_input, tool_name, tool_use_id, transcript_path
 `tool_input` on a Bash payload is the COMMAND — `gh-close-gate.py:25` reads
 `tool_input["command"]`. On a Write payload it is the file path and content. **The
 `HARNESS-FEATURE:` line lives in `tool_input.prompt` of the DISPATCH payload only, which is a
-different tool call at a different moment.** So #742's field is visible to `dispatch-guard.sh`
+different tool call at a different moment.** So #742's field is visible to `dispatch-guard.py`
 and to nothing else. Seven hooks and nine scripts never see it.
 
 **A join is possible but unbuilt, and it is three hops.** `agent_id` IS on every hook payload,
 and the sidecar `{session_id}/subagents/agent-{agent_id}.jsonl` records the `toolUseId` that
-spawned the agent. `dispatch-guard.sh` holds `tool_use_id` at the dispatch. So a later hook could
+spawned the agent. `dispatch-guard.py` holds `tool_use_id` at the dispatch. So a later hook could
 read its own `agent_id`, read the sidecar, and join back to the recorded feature. That is a real
 route. It is not built, it rests on an undocumented sidecar format, and it is not what #742 ruled.
 
@@ -231,10 +231,10 @@ earlier cut of this file said it did.
 
 `inflight_registry.py:32` — `SINGLE_FLIGHT_AGENTS = ("harness-pm",)`. Only `harness-pm` is ever
 refused; every other persona is recorded and waved through. Of the six collisions, **every `pm`
-was dispatched by a `harness-orchestrator`, which `dispatch-guard.sh` already governs.** The gate
+was dispatched by a `harness-orchestrator`, which `dispatch-guard.py` already governs.** The gate
 saw all six and refused none, because the claims landed in different registries. The main session
 dispatched orchestrators and leads — neither is single-flight, so a claim there would never have
-been refused. The exemption at `dispatch-guard.sh:38` is not the defect. `cwd` is.
+been refused. The exemption at `dispatch-guard.py:38` is not the defect. `cwd` is.
 
 ### THE SINGLE SOURCE OF TRUTH: `harness_boundary.worktree_owner(path)`
 
@@ -333,24 +333,24 @@ one file, `test-gh-close-gate.py:41`.
 The earlier retraction left them with no decided input. They have one: **the target of the
 operation**, passed to the same function.
 
-- `check-domain.sh` (Write/Edit) — `tool_input.file_path`. Its own header already says the named
+- `check-domain.py` (Write/Edit) — `tool_input.file_path`. Its own header already says the named
   route works: *"The named-target route already handled this via `_norm`; the sweep did not."*
-- `bash-write-guard.sh` — the paths it already parses out of the command.
+- `bash-write-guard.py` — the paths it already parses out of the command.
 - `validate-digest.py` — the digest path.
-- The four with NO target — `check-domain.sh --post` (a blind sweep), `inject-expertise.sh`,
-  `branch-create-gate.sh`, `gh-close-gate.sh` — pass `__file__` and take `owner_root`.
+- The four with NO target — `check-domain.py --post` (a blind sweep), `inject-expertise.py`,
+  `branch-create-gate.py`, `gh-close-gate.py` — pass `__file__` and take `owner_root`.
 
 **Measured that this is safe for the target-less four:** expertise files are byte-identical across
 all seven worktrees (`diff -rq` returns nothing), and `harness.json`'s `github` block reads
 `sync=True repo=mruangutai/harness` in all eight checkouts. The sweep additionally needs
-`linked_worktrees(owner_root)`, which `check-domain.sh` already has and no other site can reach.
+`linked_worktrees(owner_root)`, which `check-domain.py` already has and no other site can reach.
 
 ## What this grilling hands over
 
 **Two pieces. #742's ruling is one of them and is not sufficient on its own.**
 
 1. `HARNESS-FEATURE: <flow-id>` becomes mandatory on every governed dispatch (#742). This fixes
-   `dispatch-guard.sh`, which is where every measured collision landed. It fixes nothing else,
+   `dispatch-guard.py`, which is where every measured collision landed. It fixes nothing else,
    because no other payload carries the dispatch prompt.
 2. **`harness_boundary.worktree_owner(path)` becomes the ONE root resolver**, gaining the probed
    `HARNESS_PROJECT_DIR` override from `factory_config.py:44-56`. Callers pass the target they
@@ -358,12 +358,12 @@ all seven worktrees (`diff -rq` returns nothing), and `harness.json`'s `github` 
    `owner_root`. `factory_config.harness_root()` becomes a thin caller of it.
 3. All sixteen sites import it. The chain `${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}`
    is deleted, and so is every private re-derivation.
-4. **Payload `cwd` is deleted as a root input.** `dispatch-guard.sh:83` and
+4. **Payload `cwd` is deleted as a root input.** `dispatch-guard.py:83` and
    `validate-digest.py:872` both read it today, and it is accidental — it is the SPAWNING
    session's directory, not the agent's assignment. The path being operated on replaces it.
 5. `#866`'s three adjacent defects ride along, because they live in the same two files.
 
-**Constraint:** `dispatch-guard.sh` and `inflight_registry.py` are inside DEC-174's enumeration.
+**Constraint:** `dispatch-guard.py` and `inflight_registry.py` are inside DEC-174's enumeration.
 The main session executes this directly. It must not be built while another feature's build is
 live — changing the dispatch gate hits every in-flight agent mid-run.
 

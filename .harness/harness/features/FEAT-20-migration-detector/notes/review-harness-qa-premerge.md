@@ -24,7 +24,7 @@ commits — session log, map hand-off, handoff supersede, state closes, ship rev
 distillation, operator ruling x2, panel commit, orchestrator observations).
 
 None of the 8 reviewable source files (`layout_migration.py`, `test-layout-migration.py`,
-`check-state.sh`, `test-check-state.py`, `run-unit-tests.sh`, `tests.yml`, `DECISIONS.md`,
+`check-state.py`, `test-check-state.py`, `run-unit-tests.py`, `tests.yml`, `DECISIONS.md`,
 `DECISIONS-INDEX.md`) appear in the delta. Every changed path is one of:
 - 12 `.harness/expertise/*.md` — the close-out distillation writes (matches
   `072be78 close-out: twelve Expertise files sharpened`)
@@ -73,11 +73,11 @@ Isolated worktree: `git worktree add .../qa-feat20-premerge 045dcd9`, removed af
 `git worktree remove --force`, verified gone via `git worktree list` (not readback of file content —
 the worktree entry itself is absent post-removal).
 
-- **unit** — `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`. Exit 0.
+- **unit** — `.claude/skills/harness/bin/run-unit-tests.py --kind unit`. Exit 0.
   `PASS test-layout-migration.py` with all 18 named cases (1–18) present and asserting content
   (exit code + named surface/reader/tag), matching the case set already anchored to SC-01..SC-15 in
   the earlier gate note. State: **satisfied**.
-- **integration** — `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`. Exit 0.
+- **integration** — `.claude/skills/harness/bin/run-unit-tests.py --kind integration`. Exit 0.
   `PASS test-check-state.py`, with all five INV-27 cases present and passing: (x.1) mixed → names
   reader+tag+remedy, (x.2) unjudgeable → CANNOT VERIFY, (x.3) applicable clean → no INV-27 line,
   (x.4) no marker → no INV-27 line, (x.5) unimportable module → CANNOT RUN, exit 1. State:
@@ -96,7 +96,7 @@ here since it recurred verbatim on this pass, not because it is new.
 
 ## Non-findings
 
-- `check-domain.sh --post` OVER BUDGET noise on worktree creation, about `FEAT-02` and
+- `check-domain.py --post` OVER BUDGET noise on worktree creation, about `FEAT-02` and
   `FEAT-05-pyyaml-file-parsers` STATE.md shape — pre-existing, unrelated to this diff, already ruled
   a non-finding in `review-harness-qa-c0.md`. Not re-filed.
 - A second, unrelated worktree (`.../scratchpad/pr376`, detached at `045dcd9`) was present before and
@@ -129,8 +129,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 18 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 5 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 18 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 5 }
   coverage_gaps: []
   sc_evidence: []
   open_questions:

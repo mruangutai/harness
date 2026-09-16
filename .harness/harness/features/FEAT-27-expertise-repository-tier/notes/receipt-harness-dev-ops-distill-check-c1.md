@@ -2,7 +2,7 @@
 
 ## Job 1 — format gate, verbatim output
 
-### `.claude/skills/harness/bin/check-expertise.sh .harness/expertise/`
+### `.claude/skills/harness/bin/check-expertise.py .harness/expertise/`
 
 ```
 OK   .harness/expertise/harness-ai-dev.md
@@ -16,7 +16,7 @@ OK   .harness/expertise/harness-documentor.md
 OK   .harness/expertise/harness-eng-lead.md
 OK   .harness/expertise/harness-orchestrator.md
 ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names '.claude/' — repository-layer candidate; rule on it (issue 340)
-ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names 'check-domain.sh' — repository-layer candidate; rule on it (issue 340)
+ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names 'check-domain.py' — repository-layer candidate; rule on it (issue 340)
 FAIL .harness/expertise/harness-pm.md
   - line 33: P-10 is 57 words — cap is 50; a rule, not a story
 ADVISORY .harness/expertise/harness-pm.md:4: P-01 names '.harness/' — repository-layer candidate; rule on it (issue 340)
@@ -34,7 +34,7 @@ Advisory line count observed: **6** (backend-dev G-08 x1, dev-ops G-03 x1, orche
 
 A genuine `FAIL` is present: `harness-pm.md` line 33, P-10 is 57 words against a 50-word cap. This is a real violation, not advisory. It belongs to `harness-pm`, not `harness-dev-ops` — flagged here as the discrepancy this run was spawned to surface, no fix applied (out of scope, not mine to touch).
 
-### `.claude/skills/harness/bin/check-expertise.sh .harness/harness/expertise/`
+### `.claude/skills/harness/bin/check-expertise.py .harness/harness/expertise/`
 
 ```
 OK   .harness/harness/expertise/harness-ai-dev.md
@@ -106,10 +106,10 @@ that parent commit and grepped for it now:
   **`.harness/harness/expertise/harness-backend-dev.md:6` as G-01**, verbatim. **Migrated, not
   lost.**
 
-- **dev-ops G-01** (parent text: "Nothing invokes check-state.sh automatically — it is manual-only,
+- **dev-ops G-01** (parent text: "Nothing invokes check-state.py automatically — it is manual-only,
   so a green session is not evidence it ran. (This gotcha used to also cover check-docs.sh's
   exec-bit fail-open; that script and INV-10 were struck under DEC-188.)") — grep
-  `"Nothing invokes check-state.sh automatically"` finds it only in
+  `"Nothing invokes check-state.py automatically"` finds it only in
   **`.harness/harness/expertise/harness-dev-ops.md`**, verbatim, as its repository-tier G-01.
   **Migrated, not lost.**
 

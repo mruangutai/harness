@@ -24,20 +24,20 @@ lanes:
       agent: harness-documentor
     - surface: .claude/skills/harness-simplify/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at b7ae135; no persona is granted any path under .claude/skills
+      reason: check-domain.py --resolve returned NOBODY at b7ae135; no persona is granted any path under .claude/skills
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at b7ae135
+      reason: check-domain.py --resolve returned NOBODY at b7ae135
     - surface: .claude/commands/harness-plan.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at b7ae135
+      reason: check-domain.py --resolve returned NOBODY at b7ae135
     - surface: .claude/skills/harness/bin/board-station.py
       lane: team
       agent: harness-backend-dev
     - surface: .claude/skills/harness/bin/test-board-station.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
   resolved_but_not_written:
@@ -84,7 +84,7 @@ decisions:
       harness-pm applies them to its own draft before the signature; no eng seat edits plan.yaml or
       BRIEF.md.
     because: >-
-      check-domain.sh --resolve at b7ae135 returns harness-pm alone for plan.yaml and BRIEF.md, so
+      check-domain.py --resolve at b7ae135 returns harness-pm alone for plan.yaml and BRIEF.md, so
       an eng applier would be denied mid-run. This is forced by the domain guard, not chosen.
     dec: DEC-195
   - id: D-04
@@ -154,7 +154,7 @@ tasks:
          top-level status key to the exact string Done.
       2. cmd_abandon, after it has closed the sub-issues, the milestone and the parent, sets
          feature.json's top-level status key to the exact string Abandoned.
-      3. Both spellings are exact and case-sensitive. INV-26's terminal exemption in check-state.sh
+      3. Both spellings are exact and case-sensitive. INV-26's terminal exemption in check-state.py
          and the parent rule at gh-sync.py:172 both compare against Done and Abandoned literally,
          and DEC-192 makes that case sensitivity deliberate. Do not lowercase, alias or translate.
       4. Neither write happens on a path that exits early — and the way to guarantee that is
@@ -215,7 +215,7 @@ tasks:
       the real key set.
 
       Do not register a new file anywhere: test-gh-sync.py already exists and is already listed in
-      the integration bucket of run-unit-tests.sh.
+      the integration bucket of run-unit-tests.py.
 
       RED-RUN EVIDENCE this task must reproduce and then invert: at b7ae135 both new assertions were
       observed to fail, with gh-sync exiting 0 and the status still reading Review. The receipt is
@@ -227,7 +227,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for .claude/skills/harness-simplify/SKILL.md at
+      check-domain.py --resolve returned NOBODY for .claude/skills/harness-simplify/SKILL.md at
       b7ae135; no persona is granted any path under .claude/skills, so a dispatched write would be
       refused mid-run.
     depends_on: []
@@ -336,7 +336,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for both .claude/skills/harness/SKILL.md and
+      check-domain.py --resolve returned NOBODY for both .claude/skills/harness/SKILL.md and
       .claude/commands/harness-plan.md at b7ae135.
     depends_on: [T-02]
     status: done
@@ -425,7 +425,7 @@ tasks:
 
       State on that bullet that the plan-surface pass is FLAG-ONLY: the findings return to
       harness-pm, which applies them to its own draft before the signature. This is not a style
-      choice — check-domain.sh grants plan.yaml and BRIEF.md to harness-pm alone, so any other seat
+      choice — check-domain.py grants plan.yaml and BRIEF.md to harness-pm alone, so any other seat
       applying them would be refused mid-run (D-03). And it is the entire point of moving the pass
       earlier: on FEAT-22 the pass ran after the signature and not one finding could be applied.
 
@@ -513,7 +513,7 @@ tasks:
           mechanical. Measured at b7ae135: no script in the tree validates the roster, so the cost
           of a seventeenth agent is doctrinal, not CI breakage. Record this so a future scan does
           not re-suggest it.
-        - That the plan-surface pass is flag-only because check-domain.sh grants plan.yaml and
+        - That the plan-surface pass is flag-only because check-domain.py grants plan.yaml and
           BRIEF.md to harness-pm alone. This is forced by the guard, not chosen.
         - References to DEC-107, DEC-86, DEC-118 and DEC-174 in the body, so the generator picks
           them up as refs on the index row.
@@ -588,13 +588,13 @@ tasks:
     files:
       - .claude/skills/harness/bin/board-station.py
       - .claude/skills/harness/bin/test-board-station.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       B=.claude/skills/harness/bin/board-station.py
       T=.claude/skills/harness/bin/test-board-station.py
-      R=.claude/skills/harness/bin/run-unit-tests.sh
+      R=.claude/skills/harness/bin/run-unit-tests.py
       test -f "$B" || { echo "T-05: $B does not exist"; exit 1; }
-      grep -qF "test-board-station.py" "$R" || { echo "T-05: the new test file is not registered in run-unit-tests.sh; the drift detector fails the WHOLE run and would redden every other task"; exit 1; }
+      grep -qF "test-board-station.py" "$R" || { echo "T-05: the new test file is not registered in run-unit-tests.py; the drift detector fails the WHOLE run and would redden every other task"; exit 1; }
       out=$(python3 "$T" 2>&1); rc=$?
       say() { printf '%s\n' "$out"; }
       say | grep -qF "PASS  board-station moves the named issue to the named station" || { echo "T-05: the station-write case did not pass or did not run"; exit 1; }
@@ -669,7 +669,7 @@ tasks:
          Assemble the path into a variable FIRST and test the variable on the next statement, which
          is exactly how load_config escapes the same case at gh-sync.py:122-123, observed at b7ae135.
          The reason this must be stated here rather than left to the gate: test-check-plan-routes.py
-         is in INTEGRATION_SCRIPTS (run-unit-tests.sh:18), so this task's --kind unit conjunct will
+         is in INTEGRATION_SCRIPTS (run-unit-tests.py:18), so this task's --kind unit conjunct will
          not execute it and the task can report green with the violation in the tree, surfacing later
          as a qa-matrix fix cycle.
       5. On the configured path, call gh_board.set_station(board, repo, issue_number, station) and on
@@ -727,8 +727,8 @@ tasks:
       only the exit code would pass on a tool that writes nothing.
 
       REGISTER THE FILE IN THE SAME TASK. Add "test-board-station.py" to the UNIT_SCRIPTS array in
-      .claude/skills/harness/bin/run-unit-tests.sh. Two reasons, both measured, and the bucket is not
-      a free choice: run-unit-tests.sh carries a drift detector over the UNION of both arrays that
+      .claude/skills/harness/bin/run-unit-tests.py. Two reasons, both measured, and the bucket is not
+      a free choice: run-unit-tests.py carries a drift detector over the UNION of both arrays that
       exits 2 with MISCONFIGURED on any unregistered test-*.py, failing the whole run and reddening
       every other task's verify; and test_kinds.integration.detect in harness.json is an EXPLICIT
       four-file allowlist while test_kinds.unit.detect carries the glob
@@ -741,7 +741,7 @@ tasks:
       RED-RUN EVIDENCE this task must invert, with the receipt at
       .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-453-station.md:
       conjunct 1 observed red on the pre-change tree; the registration conjunct observed red against
-      the real run-unit-tests.sh; the drift detector proved by mutation, exit 0 unmutated and exit 2
+      the real run-unit-tests.py; the drift detector proved by mutation, exit 0 unmutated and exit 2
       MISCONFIGURED with one on-disk test file unlisted; and the label conjuncts proved to pass on a
       green suite and to redden both when a case FAILs and when a case is silently deleted. The
       three labels added later, with the revised clause re-run in full, are receipted separately at
@@ -754,7 +754,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for .claude/commands/harness-plan.md at b7ae135.
+      check-domain.py --resolve returned NOBODY for .claude/commands/harness-plan.md at b7ae135.
     depends_on: [T-03, T-05]
     status: done
     files:

@@ -1,12 +1,12 @@
-# FEAT-29 T-07 — check-state.sh GraphQL cost AFTER the cutover
+# FEAT-29 T-07 — check-state.py GraphQL cost AFTER the cutover
 
 Measured by the main session directly (DEC-174 carve-out), 2026-08-19, with no agent run in
 flight. The counter is `gh api rate_limit --jq .resources.graphql.used`, which costs 0 points
 and so does not contaminate the figure it reports.
 
-**No edit was made to `check-state.sh`.** T-02 replaced the whole-board `item-list` scan inside
+**No edit was made to `check-state.py`.** T-02 replaced the whole-board `item-list` scan inside
 `gh_board.board_stations` with the targeted cost-1 query, and INV-26 calls that function. The
-block at `check-state.sh:1130-1176` needed no change; `grep -nE "project_items|item-list"` over
+block at `check-state.py:1130-1176` needed no change; `grep -nE "project_items|item-list"` over
 the file returns nothing. This task is therefore a measurement, not a diff.
 
 before: 0
@@ -130,7 +130,7 @@ Procedure, executed here:
 1. `plan.yaml` copied aside.
 2. Every `status: pending` flipped to `done` — **2 substitutions**, T-07 and T-09 — so
    `derive_station` yields Review against a board that does not.
-3. `check-state.sh` run, output captured. Gate exit 1.
+3. `check-state.py` run, output captured. Gate exit 1.
 4. `plan.yaml` restored from the copy, and the restore PROVEN: `cmp -s` **exit 0**, byte-identical.
 
 Result:

@@ -31,7 +31,7 @@ feature-record file, which is prior-feature narrative, not code that resolves a 
   nothing on disk (same shape as the sanctioned `test-validate-feature-json.py` FEAT-99-x survivor),
   just not itself named on the "already ruled" list. Advisory only — harmless.
 
-`check-state.sh:51`'s comment ("`.harness/features/<FEAT>/{BRIEF,PLAN}.md`") is stale relative to the
+`check-state.py:51`'s comment ("`.harness/features/<FEAT>/{BRIEF,PLAN}.md`") is stale relative to the
 migrated code three lines below it, but T-05's verify only binds the code pattern, not comments, and
 this is the same "narrative, true as written" class T-04's four comments were explicitly exempted
 under — not filing it as a new finding, noting it for completeness.
@@ -41,7 +41,7 @@ own note:
 - P1 `os.path.join(...,"..",...,"..",...)`: all hits are 4-level bin→repo-root climbs (unrelated to
   the features segment; they resolve `REPO_ROOT`, stable regardless of feature layout) — no finding.
 - P2 `os.path.join(X, ".harness", ...)`: `factory_config.harness_root()`'s use, `check-plan-routes.py`'s
-  manifest probe, `check-state.sh`'s 14 migrated joins, `gh-sync.py`'s new walk-up, `validate-feature-json.py`'s
+  manifest probe, `check-state.py`'s 14 migrated joins, `gh-sync.py`'s new walk-up, `validate-feature-json.py`'s
   migrated glob, `layout_migration.py`/`layout_fixtures.py` (the detector itself) — all correct.
 - P3 comma-joined tuples naming `"features"`: **one hit, `factory_claim.py:43`**
   (`FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "features")`) — legacy
@@ -79,8 +79,8 @@ name travelled to the new location. Nothing remains at the old path.
 ## JOB 3 — suite confirmation + adequacy
 
 **Confirmation run** (once, not eleven investigations):
-- `run-unit-tests.sh --kind unit`: exit **0**, **97 PASS**, 0 FAIL.
-- `run-unit-tests.sh --kind integration`: exit **0**, **89 PASS**, 0 FAIL. Named suites present and
+- `run-unit-tests.py --kind unit`: exit **0**, **97 PASS**, 0 FAIL.
+- `run-unit-tests.py --kind integration`: exit **0**, **89 PASS**, 0 FAIL. Named suites present and
   green: `test-check-state.py`, `test-check-plan-routes.py`, `test-gh-sync.py`,
   `test-validate-digest.py`, `test-check-domain.py`, `test-bash-write-guard.py`,
   `test-harness-yaml.py`, `test-factory-integration.py`.
@@ -101,7 +101,7 @@ restored green. None of the three plan-cited assertions is vacuous.
 
 ## SC evidence
 
-- SC-01/SC-03/SC-04: `run-unit-tests.sh --kind unit`/`--kind integration` exit 0, PASS counts above.
+- SC-01/SC-03/SC-04: `run-unit-tests.py --kind unit`/`--kind integration` exit 0, PASS counts above.
 - SC-05: `find .harness -maxdepth 1 -iname 'features'` — empty; `.harness/features` absent (Job 2).
 - SC-13: `test-gh-sync.py::migrated_depth`, `test-validate-feature-json.py::case_migrated_depth_discovery_scans_the_segment_layout` — both PASS in the live suite and both mutation-proven above.
 - SC-14: `test-check-plan-routes.py::case_22a_unreadable_feature_dir_exits_2`'s added conjunct, `test-validate-feature-json.py::case_migrated_depth`'s conjunct 2 — both mutation-proven above; the third message (the CI workflow error string) is form-checked only, per the plan's own scoping, not by a suite — unmeasured by design, not a gap.

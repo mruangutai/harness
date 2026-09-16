@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The ONE implementation of the harness board's station rule (FEAT-18, T-02).
 
-Two consumers follow: `gh-sync.py` writes stations, `check-state.sh`'s INV-26 compares them.
+Two consumers follow: `gh-sync.py` writes stations, `check-state.py`'s INV-26 compares them.
 Two copies of this logic is precisely the drift this feature exists to remove, so everything
 about "which station is this at, and what should it be" lives here and nowhere else.
 
@@ -16,9 +16,9 @@ from here: its callers exit non-zero, and this module's callers must not (D-02 �
 is loud on stderr and the run continues).
 """
 
-import json
 import os
 
+import artifact_accessors
 import factory_config
 import factory_gh
 
@@ -51,12 +51,12 @@ def load_board(root):
     `github` not a mapping, the whole file not a mapping, and the file absent or unparseable.
     The last is arguably correct: a project with no `harness.json` genuinely has no board.
 
-    EXACTLY ONE unusable shape RAISES `factory_config.FleetError` naming the harness.json path
-    and the offending key: a `github` block that IS a mapping and carries no `board` key
+    EXACTLY ONE unusable shape RAISES `artifact_accessors.FleetError` naming the harness.json
+    path and the offending key: a `github` block that IS a mapping and carries no `board` key
     (indistinguishable from a typo — never treated the same as an explicit null). A `board`
     present but not a mapping, or carrying any field `factory_config.validate_board` rejects
-    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to catch this must import
-    `factory_config` and catch `factory_config.FleetError`.
+    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to
+    catch this must catch `artifact_accessors.FleetError`.
 
     Field validation itself — including the digit-string-to-int coercion for `number` — is
     delegated ENTIRELY to `factory_config.validate_board`, the one board validator in the tree
@@ -66,9 +66,8 @@ def load_board(root):
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path) as f:
-            cfg = json.load(f)
-    except (OSError, ValueError):
+        cfg = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError:
         return None
     if not isinstance(cfg, dict):
         return None
@@ -76,7 +75,7 @@ def load_board(root):
     if not isinstance(github, dict):
         return None
     if "board" not in github:
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             "board key missing", "github.board", f"declare github.board in {path}",
         )
     board = github["board"]
@@ -95,7 +94,7 @@ def derive_station(plan_doc):
     THE `board` PARAMETER IS GONE. Its only two uses were the two `board["stations"][...]`
     indexings this function no longer performs, and a parameter the body never reads would
     contradict this docstring's own claim that `plan.yaml` is the sole input. Both call sites —
-    check-state.sh's INV-26 and board_lifecycle — drop the argument. The station names are
+    check-state.py's INV-26 and board_lifecycle — drop the argument. The station names are
     spelled here as the lowercase literals they now are; the board's COLUMN name is derived
     later, once, by factory_config.station_column, and only when a value is actually written.
 
@@ -143,12 +142,12 @@ def project(plan_doc, rec):
 
     - Each task sub-issue gets its own task's station, VERBATIM AND WITH NO EXCEPTION. A task at
       the ready station projects to the ready station. The old ready-to-backlog exception —
-      carried from check-state.sh's `_EXPECT` comment on the grounds that `gh-sync open` lands
+      carried from check-state.py's `_EXPECT` comment on the grounds that `gh-sync open` lands
       every sub-issue in backlog — is DELETED by D-11. T-10's one-time board pass settles the
       consequence.
 
     - THE PARENT'S RULE IS TERMINAL FIRST, and this ordering is load-bearing. When the feature's
-      top-level station is `done` or the TERMINAL_MARKER, that wins outright and derive_station
+      top-level station is `done` or one of TERMINAL_STATIONS, that wins outright and derive_station
       is NOT consulted. MEASURED at 8f8a6a3 against live board 3 on 2026-08-25: every shipped
       feature has all tasks done, so derive_station returns `review` for all of them, and
       derive-first would project 22 of the 23 parent cards to Review while they sit correctly at
@@ -156,7 +155,7 @@ def project(plan_doc, rec):
       count zero. DEC-203 says the harness writes Done at ship; derive_station is an in-flight
       review detector and was never meant to outrank a recorded terminal station.
 
-    - A CARD WHOSE STATION IS THE TERMINAL_MARKER IS ABSENT FROM THE MAPPING, never placed. D-05
+    - A CARD WHOSE STATION IS ONE OF TERMINAL_STATIONS IS ABSENT FROM THE MAPPING, never placed. D-05
       says the marker names no column and never reaches the board; this is where that becomes
       true rather than merely stated. Without this clause FEAT-28 — abandoned, with its card at
       Done — becomes a write of a column that does not exist.
@@ -172,7 +171,7 @@ def project(plan_doc, rec):
 
     Pure: no I/O, no gh binary, unit-testable.
     """
-    legal = frozenset(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER}
+    legal = frozenset(factory_config.MANDATED_STATIONS) | frozenset(factory_config.TERMINAL_STATIONS)
     placed = _task_cards(plan_doc, rec, legal)
 
     parent_station = _parent_station(plan_doc, legal)
@@ -222,7 +221,7 @@ def _task_card(task_id, number, by_id, legal):
 
     None covers two different routes to the same outcome, deliberately: the plan has no such
     task (a stale record, which is gh-sync's business rather than a vocabulary miss), or the
-    task is at the TERMINAL_MARKER, which DEC-203 gives no board column at all.
+    task is at a TERMINAL_STATIONS name, which DEC-203 gives no board column at all.
 
     An illegal station RAISES rather than returning None, because that is the one case the
     operator has to act on. Extracted from `_task_cards` (FEAT-41 F-05).
@@ -233,12 +232,12 @@ def _task_card(task_id, number, by_id, legal):
     if station not in legal:
         # NAMES THE TASK ID AND THE VALUE. `value` is what the operator can act on, so it
         # carries both — a station alone would not say which task to go fix.
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             f"task {task_id} station not in the vocabulary",
             f"{task_id}={station}",
             _station_remedy(f"set-task-station --task {task_id} "),
         )
-    if station == factory_config.TERMINAL_MARKER:
+    if station in factory_config.TERMINAL_STATIONS:
         return None
     return number, station
 
@@ -261,18 +260,18 @@ def _task_cards(plan_doc, rec, legal):
 def _parent_station(plan_doc, legal):
     """The parent's station, TERMINAL FIRST — or None, meaning no write.
 
-    Returns None for the TERMINAL_MARKER as well as for no-verdict, because both mean the same
+    Returns None for every TERMINAL_STATIONS name as well as for no-verdict, because both mean the same
     thing to the caller: place no card. They reach it by different routes and that is why the
     marker is tested BEFORE derive_station rather than filtered out afterwards.
     """
     top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
     if top is not None and top not in legal:
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             "the feature's top-level station is not in the vocabulary",
             str(top),
             _station_remedy(),
         )
-    if top == factory_config.TERMINAL_MARKER:
+    if top in factory_config.TERMINAL_STATIONS:
         return None
     if top == "done":
         return "done"
@@ -342,6 +341,30 @@ def board_stations(board, repo):
         if pair is not None:
             out[pair[0]] = pair[1]
     return out
+
+
+def board_stations_for(board, repo, numbers):
+    """`board_stations`, restricted to the issue numbers a caller already knows it needs.
+
+    Same output vocabulary, same lowercasing, same absent-vs-None distinction — so
+    `read_station` reads either map without knowing which produced it. What differs is the
+    cost: this asks GitHub about `numbers`, while `board_stations` downloads every card the
+    board has ever held and filters client-side (issue #1541).
+
+    Use this wherever the numbers are known. `board_stations` stays for the one caller that
+    genuinely needs the whole board — `board_lifecycle`'s closed-issue sweep, which asks the
+    inverse question.
+
+    An empty `numbers` makes NO call and returns an empty map — a caller with nothing to check
+    must not pay for a board read to discover that. The guard lives in `issue_stations`, where
+    the requests are actually issued, and NOT a second time here: a duplicate was written, and
+    deleting it changed no test, which is how it was found. One guard, at the loop it protects.
+    """
+    raw = factory_gh.issue_stations(
+        repo, board["number"], board["station_field"], numbers,
+    )
+    return {num: (station.lower() if isinstance(station, str) else station)
+            for num, station in raw.items()}
 
 
 def read_station(stations, issue_number):

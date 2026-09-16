@@ -143,7 +143,7 @@ keeps the wake it was addressed to from being dropped.
   keeps `isError: true`, carries the post-write check line, and carries **no** advisory line.
   AMENDED 2026-08-29, signed by the user. As first written this criterion required a result carrying
   both a block reason and the advisory line, which the code cannot produce: the advisory fires only
-  on the `task` wake and a `task` result never reaches `check-domain.sh`. A correct T-03 would have
+  on the `task` wake and a `task` result never reaches `check-domain.py`. A correct T-03 would have
   failed its own goal-check. The invariant the criterion protects is unchanged — the advisory must
   neither clobber nor invent `isError` — and is now stated over states that exist.
   verify: automated      evidence: unit
@@ -154,7 +154,7 @@ keeps the wake it was addressed to from being dropped.
   verify: automated      evidence: unit
 - SC-07: All seven retired artifacts are absent from `git ls-files` at `review_sha`, no
   `context-watch` reference survives in `.claude/settings.json`, `.harness/harness.json`,
-  `run-unit-tests.sh` or the playbook, `run-unit-tests.sh --check-kinds` exits 0, and the unit and
+  `run-unit-tests.py` or the playbook, `run-unit-tests.py --check-kinds` exits 0, and the unit and
   integration suites are green.
   verify: automated      evidence: integration
 - SC-08: Read at `git show <review_sha>:.claude/skills/harness/SKILL.md`, step 5 describes the disk
@@ -222,8 +222,8 @@ keeps the wake it was addressed to from being dropped.
 - Out of scope, closed by the grilling: provider accounting quirks, an external watchdog, DEC-198
   threshold calibration, and fixing the wording-assertion test class beyond
   `test-orchestrator-playbook.py` case 4.
-- Not to be rebuilt (#923 §5): the handoff note contract, `check-domain.sh`'s `RE_HANDOFF` shape
-  gate, `check-state.sh` INV-17 seam enforcement, and the successor protocol all already exist and
+- Not to be rebuilt (#923 §5): the handoff note contract, `check-domain.py`'s `RE_HANDOFF` shape
+  gate, `check-state.py` INV-17 seam enforcement, and the successor protocol all already exist and
   are host-neutral. Only the measurement source changes. And no independent verifier is to be
   written: the new reader performs no arithmetic, so there is nothing to second-guess.
 

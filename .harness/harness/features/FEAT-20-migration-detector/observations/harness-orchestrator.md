@@ -8,7 +8,7 @@
   verify clauses cannot be executed as written by the agent that must execute them is a real friction
   the plan phase never sees, because the plan phase does not run them.
 
-- 2026-08-14: Setting `feature.json` `status: Review` made `check-state.sh` fail INV-17 —
+- 2026-08-14: Setting `feature.json` `status: Review` made `check-state.py` fail INV-17 —
   `notes/handoff-build.md` was missing because I crossed the build seam inside a single session and
   therefore never felt like I was handing off. The gate is right: the seam is defined by the phase
   transition, not by whether the context changed. Write the handoff at the transition even when you
@@ -34,7 +34,7 @@
 - 2026-08-14: The review panel converted my qa segment's general residual ("no mutation proof exists")
   into two *named* surviving mutations, one of which it executed live. I verified R-1's central
   premise at source before letting it travel up — four `if/elif` branches on `_srep.cause` in
-  `check-state.sh:1302-1318` with no trailing `else` — and it held. A named mutation is worth an order
+  `check-state.py:1302-1318` with no trailing `else` — and it held. A named mutation is worth an order
   of magnitude more to the operator than the general observation, and the cost of confirming it was
   one `sed`.
 

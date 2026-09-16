@@ -16,10 +16,10 @@ lanes:
       lane: main-session-direct
       reason: >
         DEC-174 policy carve-out, NOT absence of a grant. The glob IS granted, to
-        harness-backend-dev and harness-dev-ops, and check-domain.sh --resolve returns both
+        harness-backend-dev and harness-dev-ops, and check-domain.py --resolve returns both
         seats for every path this plan names. AGENTS.md:8 names hooks, validators, gate
         scripts or their tests; every file here is one of those, and the invariant T-03 adds
-        becomes a gate that run-unit-tests.sh enforces. check-plan-routes.py therefore
+        becomes a gate that run-unit-tests.py enforces. check-plan-routes.py therefore
         reports DEVIATION by design on these tasks, at zero violations.
     - surface: .harness/harness.json
       lane: main-session-direct
@@ -38,7 +38,7 @@ decisions:
       The crashing-checker probe gets its broken feature_schema.py from a private COPY of the
       bin directory in a tempdir, not from a tempdir placed first on the child PYTHONPATH.
     because: >
-      check-domain.sh runs sys.path.insert(0, _bin_dir) inside its heredoc — at line 125 as a DATED,
+      check-domain.py runs sys.path.insert(0, _bin_dir) inside its heredoc — at line 125 as a DATED,
       NON-BINDING anchor at 2a5cbada on 2026-09-01, whose durable identifier is that insert call
       itself — so the real bin directory wins over PYTHONPATH and the note's PYTHONPATH direction
       cannot reach this consumer. Measured cost of the copy at ccf674a: 44ms for 117 files.
@@ -78,7 +78,7 @@ decisions:
     dec: none
   - id: D-05
     choice: >
-      Scheduling lives in a Python module, run_pool.py, invoked once by run-unit-tests.sh;
+      Scheduling lives in a Python module, run_pool.py, invoked once by run-unit-tests.py;
       bash keeps kind selection, the drift detector and the kind cross-check.
     because: >
       worker pools, per-file output capture and exit aggregation are not testable in bash at
@@ -115,7 +115,7 @@ decisions:
   - id: D-09
     choice: >
       FEAT-48 ships WHOLE and BEFORE FEAT-47. All six tasks are built, verified and merged
-      against today's array-driven run-unit-tests.sh. No task waits on FEAT-47, and no file
+      against today's array-driven run-unit-tests.py. No task waits on FEAT-47, and no file
       this feature writes is placed at a path FEAT-47 has not created yet.
     because: >
       the injection hazard is live today and corrupts every parallel measurement including
@@ -123,7 +123,7 @@ decisions:
       FEAT-47 either, which is what the earlier draft of this decision had wrong: D-05 puts
       scheduling in run_pool.py, invoked once by bash which keeps kind selection, so the pool
       receives a list of script paths and never sees how they were discovered. It replaces
-      the serial for loop — at run-unit-tests.sh:147-157 as a DATED, NON-BINDING anchor at
+      the serial for loop — at run-unit-tests.py:147-157 as a DATED, NON-BINDING anchor at
       2a5cbada on 2026-09-01, whose durable identifier is that it is the only line in that script
       containing "${SCRIPTS[@]}" — with a single invocation line, which is
       an ordinary edit for FEAT-47's later rewrite of that script to carry forward. Whether it
@@ -243,7 +243,7 @@ decisions:
       at or below DIR before the first child starts and again after the last child exits —
       tracked and UNTRACKED alike, by walking DIR rather than asking git, and excluding
       __pycache__ directories and *.pyc — then fails the run naming, relative to DIR, every
-      path that changed, vanished or appeared. run-unit-tests.sh passes
+      path that changed, vanished or appeared. run-unit-tests.py passes
       --mutation-check "$BIN_DIR", the shared code directory, and never the repository root;
       T-06's verify asserts that exact argument and T-04's asserts the check's behaviour.
     because: >
@@ -275,7 +275,7 @@ decisions:
       tree. The two checks together are not complete and no criterion here claims they are. WHY DIR IS
       bin/ AND NOT THE ROOT. The root-wide set the first draft specified is unusable in this factory,
       and not marginally: agents write .harness/harness/features/** — plans, notes, runs, observations —
-      continuously while suites run, and run-unit-tests.sh is invoked BY those agents on the same
+      continuously while suites run, and run-unit-tests.py is invoked BY those agents on the same
       machine. Operator measurement, 2026-08-31: 1,904 tracked files under that tree modified in three
       hours across the live worktrees. A root-wide snapshot therefore reddens a passing suite whenever a
       sibling agent writes a note — a new flake class introduced by the fix for a flake. bin/ is the
@@ -303,7 +303,7 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-check-domain.py is the test of check-domain.sh, the PreToolUse
+      DEC-174 carve-out. test-check-domain.py is the test of check-domain.py, the PreToolUse
       hook that decides every agent write, and AGENTS.md:8 names a gate's test verbatim.
     depends_on: []
     status: done
@@ -366,7 +366,7 @@ tasks:
       absent at d5c23a0 and arrived on the rebase with FEAT-50.
 
       WHY PYTHONPATH IS NOT THE ANSWER for either, despite what the research note proposes.
-      check-domain.sh exports PYTHONPATH with its own directory first (line 102) and then its
+      check-domain.py exports PYTHONPATH with its own directory first (line 102) and then its
       heredoc runs sys.path.insert(0, _bin_dir) with _bin_dir taken from argv (line 125). Both
       entries are the real bin directory, so a tempdir on PYTHONPATH loses. The child must therefore
       run a hook whose OWN directory is private.
@@ -377,7 +377,7 @@ tasks:
 
            def isolated_bin(dest_root):
                """Copy the live bin directory to <dest_root>/.claude/skills/harness/bin and
-               return that path. The copy is a real copy, never symlinks: check-domain.sh
+               return that path. The copy is a real copy, never symlinks: check-domain.py
                derives its root with cd/pwd on dirname(BASH_SOURCE), so a symlinked script
                would resolve back into the live tree and defeat the isolation."""
 
@@ -424,9 +424,9 @@ tasks:
 
       3. SITE B, in the same isolated_bin shape. _feat50_mutant_between currently takes (start, end)
          and returns a path in HERE. Give it the destination instead — _feat50_mutant_between(start,
-         end, iso) returning os.path.join(iso, "check-domain.sh") — and have each caller build its
+         end, iso) returning os.path.join(iso, "check-domain.py") — and have each caller build its
          own iso = isolated_bin(tempfile.mkdtemp()) from the fixture root it already has, exactly as
-         step 2a does. Write the mutated source over the COPY's check-domain.sh, keeping
+         step 2a does. Write the mutated source over the COPY's check-domain.py, keeping
          os.chmod(path, os.stat(HOOK).st_mode) so the executable bit is right. HOOK stays the LIVE
          hook for the stat and for the source read: reading is not the hazard.
 
@@ -452,7 +452,7 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-check-state.py is the test of check-state.sh, a gate script CI runs
+      DEC-174 carve-out. test-check-state.py is the test of check-state.py, a gate script CI runs
       as a required step; test-feature-worktree.py is edited in the same change because the
       invariant T-03 adds cannot land green while any site in either file remains.
     depends_on: [T-01]
@@ -586,14 +586,14 @@ tasks:
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. This file becomes a gate: run-unit-tests.sh, which the tests workflow
+      DEC-174 carve-out. This file becomes a gate: run-unit-tests.py, which the tests workflow
       runs as a required step, is what enforces it, and the same task edits that runner's
       script list.
     depends_on: [T-01, T-02]
     status: done
     files:
       - .claude/skills/harness/bin/test-suite-independence.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 - <<'PY'
       import os, subprocess, sys, tempfile
@@ -793,7 +793,7 @@ tasks:
           code 2 and names the directory it started from. This is the case that reddens if someone
           later reintroduces a depth-counting root, because arithmetic cannot refuse.
 
-      REGISTRATION. Add "test-suite-independence.py" to UNIT_SCRIPTS in run-unit-tests.sh. Do NOT add
+      REGISTRATION. Add "test-suite-independence.py" to UNIT_SCRIPTS in run-unit-tests.py. Do NOT add
       it to INTEGRATION_SCRIPTS and do NOT add it to test_kinds.integration.detect in
       .harness/harness.json: the KIND CROSS-CHECK fails if a UNIT_SCRIPTS name appears in that detect
       string, and the unit detect glob already matches .claude/skills/harness/bin/test-*.py. Leaving
@@ -823,7 +823,7 @@ tasks:
       two tasks land are the eight D-10 records, in four files. Do not treat that as a target; run
       the scan. The two test files FEAT-45 added, test-panel-findings.py and test-plan-panel.py,
       reported ZERO at ccf674a and were audited for the subprocess vector too — their only subprocess
-      calls invoke panel_findings.py id and check-domain.sh --resolve, neither of which writes.
+      calls invoke panel_findings.py id and check-domain.py --resolve, neither of which writes.
 
       Write the file and run it BEFORE T-01 and T-02 are on this branch if you can; if they are
       already landed, the verify block's git show path is the same proof and is the one that ships.
@@ -834,7 +834,7 @@ tasks:
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. run_pool.py becomes the execution half of run-unit-tests.sh, the gate
+      DEC-174 carve-out. run_pool.py becomes the execution half of run-unit-tests.py, the gate
       script the tests workflow runs as a required step and CODEOWNERS pins, and
       test-run-pool.py is that gate's test.
     depends_on: [T-03]
@@ -842,7 +842,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/run_pool.py
       - .claude/skills/harness/bin/test-run-pool.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       python3 - <<'PY'
@@ -866,7 +866,7 @@ tasks:
       cl, ed, nw = [run("--mutation-check", w, "--", *ok, *x)
                     for x in ([], ["edit.py"], ["new.py"])]
       emp = run("--mutation-check", tempfile.mkdtemp(), "--", *ok)
-      ck = sh("bash", B + "/run-unit-tests.sh", "--check-kinds")
+      ck = sh("bash", B + "/run-unit-tests.py", "--check-kinds")
       suite = sh(sys.executable, B + "/test-run-pool.py")
       print("exit", r.returncode, "att", att, "fails", fails, "clean", cl.returncode, mut(cl),
             "edit", ed.returncode, mut(ed), "new", nw.returncode, mut(nw), "empty",
@@ -880,13 +880,13 @@ tasks:
                      and suite.returncode == 0) else 1)
       PY
     intent: |
-      SEQUENCING (D-09): this task builds against TODAY's tree. run-unit-tests.sh still carries
+      SEQUENCING (D-09): this task builds against TODAY's tree. run-unit-tests.py still carries
       UNIT_SCRIPTS and INTEGRATION_SCRIPTS, and both new files go in
       .claude/skills/harness/bin/ beside the runner. Nothing here waits on FEAT-47: the pool
       receives a list of script paths on argv and never sees how they were discovered, so
       FEAT-47's later directory-driven rewrite carries the single invocation line forward
       without touching run_pool.py. Do not branch on FEAT-47's layout, and do not resolve
-      paths at build time; if run-unit-tests.sh does not look like the file this task
+      paths at build time; if run-unit-tests.py does not look like the file this task
       describes, return BLOCKED rather than guessing.
 
       WHAT TO BUILD.
@@ -943,7 +943,7 @@ tasks:
          that measured nothing: if DIR does not exist, is not a directory, or the pre-run walk
          finds zero files, exit 2 and say so — never report clean, which would be a check that
          passed because it looked at nothing. Without the flag there is no snapshot at all;
-         T-06's verify asserts run-unit-tests.sh always passes it, and passes "$BIN_DIR"
+         T-06's verify asserts run-unit-tests.py always passes it, and passes "$BIN_DIR"
          specifically, so neither the off state nor a root-wide watched set is reachable from
          CI.
 
@@ -992,10 +992,10 @@ tasks:
               reddens on the interpreter's own byte-code caching every real run.
 
       3. REGISTRATION, IN THIS TASK AND NOT THE NEXT ONE. Add "test-run-pool.py" to
-         INTEGRATION_SCRIPTS in run-unit-tests.sh AND add the explicit path
+         INTEGRATION_SCRIPTS in run-unit-tests.py AND add the explicit path
          .claude/skills/harness/bin/test-run-pool.py to test_kinds.integration.detect in
          .harness/harness.json. Change nothing else in either file — the serial loop is T-06's.
-         WHY HERE: run-unit-tests.sh's drift detector — at run-unit-tests.sh:60-74 as a DATED,
+         WHY HERE: run-unit-tests.py's drift detector — at run-unit-tests.py:60-74 as a DATED,
          NON-BINDING anchor at 2a5cbada on 2026-09-01, in a file this task edits, so re-derive it;
          its durable identifier is the comment line "Drift detector:" — exits 2
          MISCONFIGURED for any test-*.py under bin/ that is in neither script array, and the
@@ -1023,31 +1023,31 @@ tasks:
 
 
   - id: T-06
-    title: Wire the pool into run-unit-tests.sh and record the measurements no runner can take
+    title: Wire the pool into run-unit-tests.py and record the measurements no runner can take
     traces: [REQ-03, REQ-05, REQ-06]
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. run-unit-tests.sh is the gate script the tests workflow runs as a
+      DEC-174 carve-out. run-unit-tests.py is the gate script the tests workflow runs as a
       required step and CODEOWNERS pins, and this task also writes the measurements note the
       three inspection criteria rest on.
     depends_on: [T-04]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md
     verify: |
       python3 - <<'PY'
       import os, re, subprocess, sys
       b = ".claude/skills/harness/bin/"
-      sh = open(b + "run-unit-tests.sh").read()
+      sh = open(b + "run-unit-tests.py").read()
       inv = [l for l in sh.splitlines()
              if "run_pool.py" in l and not l.strip().startswith("#")]
       serial = '"${SCRIPTS[@]}"' in sh
-      ck = subprocess.run(["bash", b + "run-unit-tests.sh", "--check-kinds"],
+      ck = subprocess.run(["bash", b + "run-unit-tests.py", "--check-kinds"],
                           capture_output=True, text=True)
       ran = [l for l in ck.stdout.splitlines() if l.startswith(("PASS", "FAIL"))]
-      bad = subprocess.run(["bash", b + "run-unit-tests.sh", "--kind", "nope"],
+      bad = subprocess.run(["bash", b + "run-unit-tests.py", "--kind", "nope"],
                            capture_output=True, text=True)
       n = (".harness/harness/features/FEAT-48-parallel-safe-suite/notes/"
            "measurements-parallel-suite.md")
@@ -1070,7 +1070,7 @@ tasks:
                      and "PASS test-suite-independence.py" in t) else 1)
       PY
     intent: |
-      1. run-unit-tests.sh — replace the serial for loop, and NOTHING else. The DURABLE IDENTIFIER
+      1. run-unit-tests.py — replace the serial for loop, and NOTHING else. The DURABLE IDENTIFIER
          of that loop is that it is the only line in the script containing "${SCRIPTS[@]}"; its
          position is 147-157 as a DATED, NON-BINDING anchor at 2a5cbada on 2026-09-01, and this task
          edits that file, so re-derive it rather than trusting the numbers. The root resolution,
@@ -1267,7 +1267,7 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-bash-write-guard.py is the test of bash-write-guard.sh, a
+      DEC-174 carve-out. test-bash-write-guard.py is the test of bash-write-guard.py, a
       registered PreToolUse gate script, and AGENTS.md:8 names a gate's test verbatim.
     depends_on: [T-02]
     status: abandoned
@@ -1414,7 +1414,7 @@ panel:
       \ and the census re-verification at 047f6914 confirms the derived-scope design\
       \ absorbed a real rebase without a single plan edit \u2014 a 60th test file,\
       \ a 193rd decision and a new zero-write test file falsified zero sentences"
-    pointer: plan.yaml:472-473; run-unit-tests.sh:148; test-quarantine.py:93
+    pointer: plan.yaml:472-473; run-unit-tests.py:148; test-quarantine.py:93
     disposition: open
   - id: PF-e69c81bad62702c3e661936347e706c4
     reader: goalcheck
@@ -1422,7 +1422,7 @@ panel:
     summary: 'No criterion would fail if issue #1053''s own symptom persisted; SC-05''s
       ten runs are declared non-probative by the BRIEF and nothing asserts test-gh-sync.py
       passes N consecutive 8-worker runs'
-    pointer: BRIEF.md:127-131; run-unit-tests.sh:31; plan.yaml:262-272
+    pointer: BRIEF.md:127-131; run-unit-tests.py:31; plan.yaml:262-272
     disposition: open
   - id: PF-e2842b1b847c003d6ef308c31b0f40b2
     reader: code-reviewer
@@ -1502,7 +1502,7 @@ panel:
     reader: code-reviewer
     severity: low
     summary: T-02's declared files understates its actual touch scope because it will
-      also edit test-bash-write-guard.py; signable, since check-domain.sh authorizes
+      also edit test-bash-write-guard.py; signable, since check-domain.py authorizes
       by lane glob and not by files, but a build-cycle reviewer diffing only files
       could misflag the edit as scope creep
     pointer: plan.yaml:461-462; :533 (T-02 intent)

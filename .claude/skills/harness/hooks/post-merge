@@ -2,7 +2,7 @@
 # post-merge — FEAT-34 T-11. A SHIM AND NOTHING ELSE.
 #
 # THE WHOLE CONTENT OF THIS FILE IS A PATH. That is deliberate (D-08): the sweep body lives in
-# post-merge-sweep.sh, where a real test can reach it, and SC-14 is the assertion that the path
+# post-merge-sweep.py, where a real test can reach it, and SC-14 is the assertion that the path
 # here is real. A shim pointing at a file that does not exist satisfies SC-08 in full — it
 # resolves and it is executable — and would leave the automation dead. Never move sweep logic
 # into this file; there would then be two implementations of one rule and no test on this one.
@@ -20,7 +20,7 @@
 _here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
 _root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
 
-_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.sh"
+_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.py"
 
 # EXIT 0 WHEN THE SWEEP IS MISSING, AND SAY SO ONCE. A post-merge hook that exits non-zero makes
 # git print an error after a merge that SUCCEEDED, which reads as a broken pull. A missing sweep

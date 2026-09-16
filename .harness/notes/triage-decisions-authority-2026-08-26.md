@@ -39,7 +39,7 @@ abolishes. Subsume-in-place erases the visible difference between "amended" and 
 That cost is recoverable only from git.
 
 **C-3. DEC-159 contradicts itself on the handoff cap** (#678). `:4061` says ~60 raised from 40;
-`:4079-4080` says denied above 40. Code settles it: `check-domain.sh:1258` caps at 60.
+`:4079-4080` says denied above 40. Code settles it: `check-domain.py:1258` caps at 60.
 Eighteen lines apart, in one entry. `:4079-4080` is false.
 
 **C-4. DEC-159 asserts a `phase:` field DEC-192/DEC-203 deleted.** NEW, unfiled. `:4052-4053`
@@ -50,7 +50,7 @@ vs `:6110` "The `phase` field is deleted", and `SKILL.md:243` says so live.
 `feature.yaml` appears **47 times** across the file. Which are live rules is the real question.
 
 **C-6. DEC-181 states a budget and a code citation that are both false.** `:5409-5410` cites
-`check-domain.sh:779-780`, which is an unrelated comment block. `:5416` says
+`check-domain.py:779-780`, which is an unrelated comment block. `:5416` says
 "feature.yaml 200/20"; code says `feature.json` 300.
 
 **C-7. The worktree layout falsifies DEC-193** (#626) — `:6151-6153` spells one segment; disk
@@ -137,7 +137,7 @@ VERIFIED: **DEC-186 and DEC-192 are cited inside eight live files under `bin/` p
 `.github/workflows/tests.yml`** — while `DECISIONS.md:5915` says a struck decision is "removed
 from every gate". They are struck and they are in the gates. Nobody has ruled on that.
 
-`check-state.sh:918` carries a live invariant literally named `INV-24 (DEC-186)`.
+`check-state.py:918` carries a live invariant literally named `INV-24 (DEC-186)`.
 
 `test-gen-decisions-index.py:133` uses **DEC-104's body as a test fixture**. Deleting the entry
 may break the test, not merely orphan a citation.
@@ -177,7 +177,7 @@ the struck entry under a new number, i.e. deletion in name only.
 3. **Delete DEC-140.** One entry, zero external citations — the cheapest possible test of steps
    1 and 2 together.
 4. **Repoint DEC-186/192/196 to DEC-203 (21 live occurrences), then delete.** Fold #844 in as
-   its first item. Settle #748 at the same time. `check-state.sh:918`'s `INV-24 (DEC-186)` needs
+   its first item. Settle #748 at the same time. `check-state.py:918`'s `INV-24 (DEC-186)` needs
    a decision, not a find-and-replace.
 5. **Execute #615: fold amendments in place. Budget for 38, not 25.** Mechanical ones first,
    DEC-138's eight and DEC-196's four last. Delete the two dead amendments. Fix the duplicate
@@ -194,7 +194,7 @@ exists).
 
 **FEAT-38 IS #615 and FEAT-39 IS #439.** Both exist, both stalled, neither has a BRIEF or a
 plan. FEAT-38 `STATE.md:10-12`: plan run 1 returned BLOCKED without spawning pm —
-`dispatch-guard.sh` refused under single-flight on an orphaned `harness-pm` claim. FEAT-39
+`dispatch-guard.py` refused under single-flight on an orphaned `harness-pm` claim. FEAT-39
 same cause, verdict ESCALATE. Neither has a feature dir in the main checkout.
 
 **Four product-lead runs have now died the same death**, all on `harness-pm` single-flight

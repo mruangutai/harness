@@ -25,7 +25,7 @@ nine — and it is the one task with no member review during the build.
   verified-at 4091b36
 - `.claude/hooks/` DOES NOT EXIST in this repo, which is why D-06's old preload grep proved nothing
   — `ls -d .claude/hooks` fails — verified-at 4091b36
-- `run-unit-tests.sh` exits 0 — I ran it, not cited — verified-at 4091b36
+- `run-unit-tests.py` exits 0 — I ran it, not cited — verified-at 4091b36
 - Three fail-value rows are ACCEPTED today and are what T-01 closes: `dev suite:fail`,
   `qa suite:fail`, `qa matrix_ok:false`, each with `VERDICT: PASS` — verified-at 3bfedc9, code
   unchanged since

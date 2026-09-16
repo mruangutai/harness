@@ -4,7 +4,7 @@ Mode B. Pinned SHA `8bbb246022d660492b14fcb9bafec7729b0ba23d`, diff only (53 fil
 `b89c00a` not opened). Contract: `.claude/skills/harness/bin/factory_cli.py:10-16` (module
 docstring) + `.harness/features/FEAT-10-software-factory/DESIGN.md` C-3 (`## C-3`, lines
 147-207ish). Surface audited: stdout/stderr/exit code of the seven factory tools, plus
-`check-state.sh:858-908` (INV-24) per explicit dispatch instruction.
+`check-state.py:858-908` (INV-24) per explicit dispatch instruction.
 
 **No rendered surface exists here** — everything below is source-level (argv, `print`, `sys.exit`,
 exception construction). That is a strength for this review, not a gap: the whole surface is text
@@ -74,12 +74,12 @@ stderr shown above. Nothing in the tree has measured this until this review.
 
 ---
 
-## New finding 2 (low, advisory) — `check-state.sh` INV-24: three of four messages lack the
+## New finding 2 (low, advisory) — `check-state.py` INV-24: three of four messages lack the
 remediation step the file's own convention establishes elsewhere
 
-INV-24 (`check-state.sh:858-908`, never reviewed before this pin) is judged here on the dispatch's
+INV-24 (`check-state.py:858-908`, never reviewed before this pin) is judged here on the dispatch's
 own bar: name the violation, name the values, say what to do. Its own file sets a real precedent
-for the third part — `check-state.sh:143` ("Run /harness-init."), `:312-314` ("Set it in
+for the third part — `check-state.py:143` ("Run /harness-init."), `:312-314` ("Set it in
 .harness/harness.json (default 20)."), `:920-921` ("Pin the repo... or turn sync off.") all end
 with an instruction. Three of INV-24's four `bad.append` messages do not:
 
@@ -94,7 +94,7 @@ with an instruction. Three of INV-24's four `bad.append` messages do not:
 
 The fourth (`:890-892`, repo not declared) is fine — it lists the fleet's valid names, which
 functions as the instruction. This is not a C-3 violation (`## C-3` explicitly binds "the five
-tools with a command line," and `check-state.sh` is not one of them) — it is an internal-
+tools with a command line," and `check-state.py` is not one of them) — it is an internal-
 consistency gap in never-reviewed code, judged against the standard the file itself sets.
 
 ---

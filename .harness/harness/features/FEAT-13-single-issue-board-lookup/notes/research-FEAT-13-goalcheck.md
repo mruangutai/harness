@@ -7,7 +7,7 @@ at source. It is unproven, which routes to qa, not to a fix cycle.
 
 Evidence collected at `d4951c2` from the worktree
 `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-13-single-issue-board-lookup`.
-Both configured runners re-run by me there: `run-unit-tests.sh --kind unit` exit 0, 10/10 scripts
+Both configured runners re-run by me there: `run-unit-tests.py --kind unit` exit 0, 10/10 scripts
 PASS; `--kind integration` exit 0, `test-factory-integration.py` 97/97. No `gh` call was made.
 The integration runner reaches no live `gh`: every `base_env(...)` call site
 (`test-factory-integration.py:389,428,497,533,591,625,649`) passes `gh_bin=<stub>`, and `base_env`

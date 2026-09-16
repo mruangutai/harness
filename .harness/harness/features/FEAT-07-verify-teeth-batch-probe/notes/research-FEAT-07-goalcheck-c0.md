@@ -1,6 +1,6 @@
 # Goal-check — FEAT-07 · review_sha `70b0ed3`
 
-> **Path note.** The dispatch named `notes/goalcheck-harness-pm-c0.md`; `check-domain.sh` BLOCKED it
+> **Path note.** The dispatch named `notes/goalcheck-harness-pm-c0.md`; `check-domain.py` BLOCKED it
 > (`harness-pm` is granted `notes/research-FEAT-*.md`, not `notes/goalcheck-*.md`). Written here
 > instead. Raised as Q1 — the grant, not the hook, is what would have to change.
 
@@ -11,7 +11,7 @@ markdown rule surfaces split between the main session and `harness-documentor` (
 Method split re-derived from each criterion's own `verify:` line: **11 automated/unit + 7 inspection**,
 matching BRIEF `## Verification gaps`.
 
-Suite at `70b0ed3`: `run-unit-tests.sh` exit 0 — `60/60 CLI cases passed`, joint-hint case `ok`,
+Suite at `70b0ed3`: `run-unit-tests.py` exit 0 — `60/60 CLI cases passed`, joint-hint case `ok`,
 `14/14 hook`, `2/2 template`, `PASS test-validate-digest.py` (captured to file, not tailed).
 
 ## Gaps 1-3 — all in `.claude/skills/harness/bin/test-validate-digest.py` (one lane)

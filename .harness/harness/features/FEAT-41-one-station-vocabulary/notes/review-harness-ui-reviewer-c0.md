@@ -19,7 +19,7 @@ So: zero rendered UI surface, measured.
 
 ## 2. D-12 ruling — explicit
 **The re-fire condition DID trigger** on operator-facing output: this build introduces a brand
-new agent refusal (`plan-sign-gate.py`/`.sh`), a new write DENIAL (`check-domain.sh`'s plan.yaml
+new agent refusal (`plan-sign-gate.py`/`.sh`), a new write DENIAL (`check-domain.py`'s plan.yaml
 route-deny), new VIOLATION/note lines (INV-32, the plan.yaml station-vocabulary sweep, the
 SEAM_NOTES self-check), and a repo-wide vocabulary rename touching every existing message that
 used to print `Done`/`Building`/etc. That is squarely "operator-facing output" under D-12's own
@@ -39,8 +39,8 @@ text, no colour-only encoding, no rendering.
 | Site | Names offending value | Names file/target | States the REASON | Sanctioned route given | Verdict |
 |---|---|---|---|---|---|
 | `plan-sign-gate.py` `sign-approval` refusal | yes (`sign-approval` literal) | n/a (verb-scoped) | yes — DEC-120, whose signature it is | yes, full command + other 4 open verbs | **meets SC-07 bar** |
-| `check-domain.sh` plan.yaml write DENIAL (PRE, exit 2) | n/a (route-level) | yes, `_show(target)` | yes — single-writer + pre-validation rationale | yes, all 4 `plan-merge.py` verb invocations verbatim | **meets the bar** — this is PB-07's disclosed *test* gap, not a message defect; see below |
-| `check-domain.sh` plan.yaml vocabulary VIOLATION (POST sweep) | yes | yes, via `_head()` → `display or rel` | states what's illegal, not "why" (fine — it's a value check, not a route refusal) | yes — `plan-merge.py set-task-station`/`set-feature-station` | pass |
+| `check-domain.py` plan.yaml write DENIAL (PRE, exit 2) | n/a (route-level) | yes, `_show(target)` | yes — single-writer + pre-validation rationale | yes, all 4 `plan-merge.py` verb invocations verbatim | **meets the bar** — this is PB-07's disclosed *test* gap, not a message defect; see below |
+| `check-domain.py` plan.yaml vocabulary VIOLATION (POST sweep) | yes | yes, via `_head()` → `display or rel` | states what's illegal, not "why" (fine — it's a value check, not a route refusal) | yes — `plan-merge.py set-task-station`/`set-feature-station` | pass |
 | `check-plan-routes.py` new top-level `status` VIOLATION (`process_plan_yaml:384-387`) | yes | **no** — no path, no feature id, nothing | n/a (value check) | no explicit remedy verb named | **low, non-blocking** — see below |
 | `plan-merge.py` illegal-station refusal (exit 4) | yes | via `resolved` printed elsewhere in the same run | n/a | implicit (legal list given) | pass |
 | `plan-merge.py` unknown-task refusal (exit 3) | yes | yes, `resolved` path + ids present | n/a | pass |
@@ -60,9 +60,9 @@ fails. Non-blocking; the missing-path shape is a pre-existing file-wide conventi
 extended rather than a regression it introduced (repo Expertise P-11).
 
 ### PB-07 spot-check (disclosed gap, not re-discovered as new)
-BRIEF.md records PB-07: no success criterion asserts the check-domain.sh plan.yaml DENIAL states
+BRIEF.md records PB-07: no success criterion asserts the check-domain.py plan.yaml DENIAL states
 the *reason*, for both an agent-present and agent-absent payload. I read the actual denial
-(`check-domain.sh:1444-1471`) directly: it **does** state the reason in prose ("plan.yaml has
+(`check-domain.py:1444-1471`) directly: it **does** state the reason in prose ("plan.yaml has
 exactly ONE writer ... because every station value must be validated ... An editor write cannot
 do that, so this is not a shape violation to be measured"), and the surrounding code confirms
 the check is in the SHAPE region (not the domain-guard region), so it fires identically whether
@@ -80,7 +80,7 @@ meanings stay visually distinct rather than re-creating the confusion this featu
 remove.
 
 ## 5. Severity vs. consequence
-Checked every new/changed `check-state.sh` finding for `bad` (VIOLATION) vs `warn` (note)
+Checked every new/changed `check-state.py` finding for `bad` (VIOLATION) vs `warn` (note)
 placement: INV-32 (stale pin — a false claim), the new plan.yaml station-outside-vocabulary loud
 check (A-03, replacing a silent skip), and the SEAM_NOTES/STATUS_ORDER drift self-check (would
 otherwise KeyError) are all correctly VIOLATION-level — each represents a real, silent-failure-
@@ -104,7 +104,7 @@ DIGEST:
   must_fix: []
   states_unspecified: []
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-plan-routes.py:384-387", actual: "VIOLATION top-level status finding carries no path/feature/task identifier", specified: "D-12 operator-facing output should be actionable; sibling check-domain.sh denial names the file via _head()" }
+    - { path: ".claude/skills/harness/bin/check-plan-routes.py:384-387", actual: "VIOLATION top-level status finding carries no path/feature/task identifier", specified: "D-12 operator-facing output should be actionable; sibling check-domain.py denial names the file via _head()" }
   a11y: ["not applicable — pure stderr/stdout text surfaces, no colour-only encoding, no rendering"]
   open_questions:
     - { id: Q1, question: "D-12's re-fire condition has no enforcement mechanism (no DESIGN.md was produced or required before this build shipped new operator-facing CLI text); should the harness gate on this, or is a post-hoc reviewer pass the intended discharge?", blocking: false }

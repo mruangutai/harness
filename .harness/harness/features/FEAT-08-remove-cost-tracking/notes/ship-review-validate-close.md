@@ -177,7 +177,7 @@ survivors become issues.
 | # | Item | Nature |
 |---|---|---|
 | B-1 | **The deployed global rules are stale** — they still instruct every lead to run the deleted meter and to write a `cost:` key. Four agents hit it this feature; one earlier run complied, so the placeholder is sitting in a run dir on disk right now. `/harness-deploy` must run after merge, and **before** the queued preload-trimming batch | chore, near-term |
-| B-2 | **`check-domain.sh:308` carries `cost` in an allowlist with no explanatory comment**, unlike its sibling which explains the same entry. FEAT-09 is live on that file; the next editor removes it as cleanup and all 67 historical runs become violations | bug, urgent — collides with in-flight work |
+| B-2 | **`check-domain.py:308` carries `cost` in an allowlist with no explanatory comment**, unlike its sibling which explains the same entry. FEAT-09 is live on that file; the next editor removes it as cleanup and all 67 historical runs become violations | bug, urgent — collides with in-flight work |
 | B-3 | **The rule surfaces injected at every spawn are outside the standing removal sweep.** Expertise files were never searched by any criterion here, and the highest-blast-radius finding of the feature was exactly that miss | enhancement |
 | B-4 | **`.claude/commands/**` is in no agent's domain.** Deliberate, like `.claude/agents/**`, or an oversight? Nothing records which | chore |
 | B-5 | **Three comments justify themselves with "this task's `verify:`"** — a justification that stops existing the moment this merges. The code reviewer ruled it low and corrected the site list to three; low is not absent, and it rots on merge | chore |
@@ -185,9 +185,9 @@ survivors become issues.
 | B-7 | **A send-back gives the returning member a fresh context**, so questions it raised in its own prior return are unrecoverable to it. Raised independently twice | bug |
 | B-8 | **The task regex cannot tell a task *definition* from a *reference* to one**, so amending a task by heading trips the state checker on a correct amendment | bug |
 | B-9 | **Nothing detects divergence between a live config and its template.** The unit suite exited 0 on a half-stripped pair. Raised twice from the engineering lane | bug |
-| B-10 | **`check-expertise.sh` silently ignores any line it does not recognise.** Caught live, not hypothesised: a lead's write leaked two stray lines that matched no rule, and the checker would have reported OK on a file that is then injected into that agent at every spawn | bug |
-| B-11 | **`check-expertise.sh` does not enforce the entry shape**, only section names, word cap and file budget. One accepted entry this feature is past-tense narrative and passes | enhancement |
-| B-12 | **`bash-write-guard.sh` over-blocks.** It denies `cp` and redirects into the *session scratchpad*, not just repo paths, and reads a bare `>50` inside quoted prose as a redirect to a file named `50` | bug |
+| B-10 | **`check-expertise.py` silently ignores any line it does not recognise.** Caught live, not hypothesised: a lead's write leaked two stray lines that matched no rule, and the checker would have reported OK on a file that is then injected into that agent at every spawn | bug |
+| B-11 | **`check-expertise.py` does not enforce the entry shape**, only section names, word cap and file budget. One accepted entry this feature is past-tense narrative and passes | enhancement |
+| B-12 | **`bash-write-guard.py` over-blocks.** It denies `cp` and redirects into the *session scratchpad*, not just repo paths, and reads a bare `>50` inside quoted prose as a redirect to a file named `50` | bug |
 | B-13 | **A `grep -v` allow-list clause exits 1 while printing nothing.** Correct as written, since the clause is defined on output — but any wrapper treating non-zero as failure reads a green clause as red | chore |
 | B-14 | **No `verify:` clause can prove that text a task promised to leave verbatim did not move.** Every clause in this feature is an absence or a count check; the guarantee was discharged by reading the diff | enhancement |
 | B-15 | **An `expertise_update` receipt is never checked against the file it claims to describe** — and the digest is all the tier above reads. Two agents returned abbreviated entry text this feature | enhancement |

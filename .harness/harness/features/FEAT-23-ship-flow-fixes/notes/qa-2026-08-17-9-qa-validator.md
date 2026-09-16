@@ -64,11 +64,11 @@ change_type distribution: 4 docs (T-02, T-03, T-04, T-06), 1 bugfix (T-01), 1 fe
 `docs.always: []`; `bugfix.always: ["unit"]`; `feature.always: ["unit", "integration"]`. **unit and
 integration are both required; nothing else is.**
 
-- **unit** — `satisfied`. `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`, exit 0.
+- **unit** — `satisfied`. `.claude/skills/harness/bin/run-unit-tests.py --kind unit`, exit 0.
   16 scripts, every one `PASS`, including `test-board-station.py` (8/8 `PASS`, T-05's own suite,
-  routed here per `UNIT_SCRIPTS` registration in `run-unit-tests.sh`, matching the unit `detect`
+  routed here per `UNIT_SCRIPTS` registration in `run-unit-tests.py`, matching the unit `detect`
   glob).
-- **integration** — `satisfied`. `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`,
+- **integration** — `satisfied`. `.claude/skills/harness/bin/run-unit-tests.py --kind integration`,
   exit 0. 12 scripts, every one `PASS`, including `test-gh-sync.py` (T-01's own suite: run directly,
   103 `ok` lines, `ALL PASSED`, rc=0 — the two new labelled cases `ship records feature.json status
   Done` and `abandon records feature.json status Abandoned` both `ok`, plus the three pre-existing

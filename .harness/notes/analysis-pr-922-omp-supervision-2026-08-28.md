@@ -17,8 +17,8 @@ Both high findings are in the same file and same function; one focused pass fixe
 ## Ranked findings
 
 **F1 · high · must_fix · code-reviewer (verified at source by lead)**
-The OMP caller inverts `dispatch-guard.sh`'s fail-open contract into fail-closed.
-The guard's every pass-through exits 0 *without* printing a claim receipt — `dispatch-guard.sh:34`
+The OMP caller inverts `dispatch-guard.py`'s fail-open contract into fail-closed.
+The guard's every pass-through exits 0 *without* printing a claim receipt — `dispatch-guard.py:34`
 (unreadable payload, "passing through"), `:38` (non-harness agent), `:72`, `:112`, `:138`, `:145`,
 `:187` (internal exception, "not blocked"). `harness-hooks.ts:~522-527` treats *no receipt* as a hard
 block: `reason = "…returned no claim receipt; the task was not started."`
@@ -103,7 +103,7 @@ conflicting, or late marker. Every test that could fail on these mocks the seam 
 5. **F5** — an ownership token is a registry-schema change; bundle with F3.
 
 **Routing constraint (DEC-174):** every remedy above edits an enforcement-layer file
-(`harness-hooks.ts`, `inflight_registry.py`, `dispatch-guard.sh`). These must not be executed by a
+(`harness-hooks.ts`, `inflight_registry.py`, `dispatch-guard.py`). These must not be executed by a
 harness agent fix loop — the fix is main-session/human-executed.
 
 ## Open questions

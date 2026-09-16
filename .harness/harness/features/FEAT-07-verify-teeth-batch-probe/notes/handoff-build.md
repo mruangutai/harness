@@ -18,7 +18,7 @@ exist.
 
 - All ten tasks are committed, `0a34989`..`29b612e`, and I re-ran EVERY task's `verify:` clause at
   my own tier rather than routing on the reports — all green — verified-at 29b612e
-- `run-unit-tests.sh` exit 0 and `check-docs.sh` exit 0 over 180 files — I ran both — verified-at 29b612e
+- `run-unit-tests.py` exit 0 and `check-docs.sh` exit 0 over 180 files — I ran both — verified-at 29b612e
 - SC-11 holds by inspection: `git log main..HEAD` over the validator and its fixtures returns
   exactly ONE commit, `d6fa0a8`, containing both files — verified-at 29b612e
 - DEC-175's nine `validate-digest.py` line anchors all resolve correctly, and the file was NOT

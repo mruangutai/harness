@@ -30,7 +30,7 @@
   the clause's first conjunct (`test -f`) exits before any later conjunct is reached. I ran T-02's
   clause with `S=` rewritten to a tempdir across three fixture states (complete / paraphrased /
   case-flipped). A red run on the real tree proves nothing about a conjunct it never reaches.
-- 2026-08-17: `bash-write-guard.sh` masks quoted spans wholesale, so a python heredoc containing
+- 2026-08-17: `bash-write-guard.py` masks quoted spans wholesale, so a python heredoc containing
   `quiet>=4` is rejected as a redirect to a file named `=4:`. Rewriting the comparison as
   `quiet not in range(0,4)` passed. Any `>`/`>=` inside an inline script trips it, not just shell
   redirects.
@@ -51,20 +51,20 @@
   are in direct tension, and the window between them is a guaranteed VIOLATION.** The playbook says
   record `done` in `plan.yaml` FIRST, then run `close-task`, and separately that `close-task` runs
   when the `[harness:t-NN]` commit is recorded. Doing it literally — plan write, commit, close-task
-  — puts `check-state.sh` inside the window where the plan says `done` and the board still says
+  — puts `check-state.py` inside the window where the plan says `done` and the board still says
   `Building`, and INV-26 fires: "plan says done, so the card should read Done — the board reads
   Building." Exit 1. Resolution that satisfies both rules: plan write → `close-task` → `check-state`
   → commit. The load-bearing constraint is only that the PLAN carries the new status before the
   subcommand runs, because the parent station is derived from it; git has no part in that
   derivation, so moving the commit to last costs nothing. I lost a cycle treating the violation as
   a real defect before reading which of the two orderings was actually forced.
-- 2026-08-17: `check-state.sh` prints ~30 `note` lines from OTHER features on every run, and the one
+- 2026-08-17: `check-state.py` prints ~30 `note` lines from OTHER features on every run, and the one
   `VIOLATION` line for mine was invisible in the tail. `grep -v "^  note "` reduced it to a single
   line. Reading the tail of a repo-wide checker is how a violation about your own feature gets
   missed; filter to severity first, then grep your feature id.
 - 2026-08-17: a lane row naming an `execution_agent` is doing real work, not restating
   `consult-when`. Every file in T-01 and T-05 sits under `.claude/skills/harness/bin/` and
-  `check-domain.sh --resolve` returns TWO owners for all four — `harness-backend-dev` AND
+  `check-domain.py --resolve` returns TWO owners for all four — `harness-backend-dev` AND
   `harness-dev-ops`. Routing by `consult-when` alone is a coin flip there. Telling the lead that the
   PLAN picked the persona, and to attribute the pick, is cheaper than letting it rediscover the
   ambiguity mid-run.

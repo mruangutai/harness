@@ -58,7 +58,7 @@ REQ-10 as signed is met by the class being "swept and its members named with a r
 — remediation beyond check-decision-claims.py is explicitly OUT of scope, and the brief names
 `test_kinds.<kind>.cmd` as a live candidate. So if T-29's TEXT-DERIVED-ARGV set comes back
 non-empty (plausible: something executes that cmd string; under bin/ I found only readers —
-check-state.sh validates it, upgrade-config.py preserves it — but the executor may sit outside
+check-state.py validates it, upgrade-config.py preserves it — but the executor may sit outside
 bin/, which T-29's enumeration never reaches), the feature meets the signed brief while missing
 the operator's recorded destination sentence. Concrete failure scenario: ship review quotes the
 grilling Destination against a non-empty audit finding and bounces a feature that did exactly
@@ -125,7 +125,7 @@ the test case to price it against.
 
 ## Finding 6 — sequencing vs the fail-open approval guard: finish FEAT-38 first, guard next
 
-The measured defect is real and given: check-domain.sh's approval guard is fail-open inside
+The measured defect is real and given: check-domain.py's approval guard is fail-open inside
 every worktree, so "an agent may not write the approval signature" has been convention, not
 enforcement [given by the review contract; not independently re-derived here]. Two reasons
 finishing FEAT-38 first is still right:

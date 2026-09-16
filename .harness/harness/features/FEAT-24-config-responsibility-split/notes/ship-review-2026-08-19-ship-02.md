@@ -118,10 +118,10 @@ and `notes/research-FEAT-24-goalcheck.md`. Ship-refresh was **skipped**: there i
 | B-17 | Two leads escalated believing `max_total_runs` is a hard gate; it is informational, and the doctrine is not reaching leads | chore |
 | B-18 | `test-factory-land.py`'s `review` fixture has the non-discriminating shape SC-02's `ready` had | chore |
 | B-19 | `plan.yaml:657-658`'s T-03 prose is stale after the `ready` fixture moved to `Promoted` | chore |
-| B-20 | Reported by security, DEC-174 flag-only and unverified: `bash-write-guard.sh` blocks `cp`/`rm` for a read-only role but not an equivalent `python3 shutil` write | bug |
+| B-20 | Reported by security, DEC-174 flag-only and unverified: `bash-write-guard.py` blocks `cp`/`rm` for a read-only role but not an equivalent `python3 shutil` write | bug |
 | B-21 | `validate_board` does not bind `board.owner` to the repository's own owner or a fleet allow-list | enhancement |
-| B-22 | **The orchestrator cannot apply handed-up Expertise ops.** The playbook says write-less members return ops and the orchestrator applies them verbatim; `check-domain.sh --resolve` grants every `.harness/expertise/<agent>.md` to that agent ALONE. Ten ops from three reviewers and two leads are unappliable by anyone who received them | bug |
-| B-23 | Write-less reviewers cannot run `check-expertise.sh` — the guard blocks even a scratch write — so the one role that must hand ops up unapplied is the one that cannot validate them | bug |
+| B-22 | **The orchestrator cannot apply handed-up Expertise ops.** The playbook says write-less members return ops and the orchestrator applies them verbatim; `check-domain.py --resolve` grants every `.harness/expertise/<agent>.md` to that agent ALONE. Ten ops from three reviewers and two leads are unappliable by anyone who received them | bug |
+| B-23 | Write-less reviewers cannot run `check-expertise.py` — the guard blocks even a scratch write — so the one role that must hand ops up unapplied is the one that cannot validate them | bug |
 | B-24 | The repository-tier Expertise path the distill skill describes is granted to nobody and does not exist; several durable repo-specific facts were judged, written nowhere, and reported | chore |
 | B-25 | pm returned `expertise_full`: a durable uncovered rule was dropped on the Gotchas cap alone, not on merit. Raise that file's cap or record the loss as a cap decision | chore |
 | B-26 | Two of four validator-squad members have never written an observations log, so their distillations reconstruct craft from review artifacts written for another purpose | chore |
@@ -129,7 +129,7 @@ and `notes/research-FEAT-24-goalcheck.md`. Ship-refresh was **skipped**: there i
 ## Also yours, and not FEAT-24's
 
 The paused `FEAT-25`, `FEAT-26` and `FEAT-27` directories account for every remaining
-`check-state.sh` violation. **FEAT-24 itself reports zero.** I have not touched them.
+`check-state.py` violation. **FEAT-24 itself reports zero.** I have not touched them.
 
 ## What ships
 

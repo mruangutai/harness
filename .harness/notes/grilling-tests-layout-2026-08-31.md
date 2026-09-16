@@ -58,7 +58,7 @@ answers so the record shows what was fog at grilling time and what closed it.
 - ~~Whether `bin/fixtures/` and `feature-schema.json` are production or test support.~~
   **Resolved.** `bin/fixtures/` is test support with two consumers, both integration →
   `tests/integration/fixtures/`. `feature-schema.json` is production —
-  `feature_schema.py:45` reads it at runtime and `check-domain.sh:1170` names it in a
+  `feature_schema.py:45` reads it at runtime and `check-domain.py:1170` names it in a
   write denial. Residue stated at signature: `layout_fixtures.py` is test support that
   stays in `bin/`, so the guard is name-shaped, not purpose-shaped.
 
@@ -107,7 +107,7 @@ Measured at `ba338d8` unless noted.
   "~18 depth climbs" figure below understates it; each moved file needs an anchor edit.
 - **~18 tests derive repo root from their own depth** (four-level climb from `bin/`);
   16 use a literal four-level `..` chain. All shift with the move.
-- **CI is unaffected.** `tests.yml` invokes `run-unit-tests.sh --kind unit|integration`,
+- **CI is unaffected.** `tests.yml` invokes `run-unit-tests.py --kind unit|integration`,
   never paths. It installs bun and system python3 plus pyyaml/jsonschema, and references
   **no `secrets.*`**.
 - `.agents/skills` is a **symlink** to `.claude/skills` (same inode), so a repo-root
@@ -121,7 +121,7 @@ Measured at `ba338d8` unless noted.
   "the skill ships with its tests" no longer argues for `bin/`.
 - **Execution is main-session-direct.** AGENTS.md's DEC-174 carve-out: harness may plan
   its own enforcement-layer work but must not execute it through the enforcement path
-  being changed. This touches `harness_boundary.py`, `run-unit-tests.sh`, `team-config.yaml`
+  being changed. This touches `harness_boundary.py`, `run-unit-tests.py`, `team-config.yaml`
   and `harness.json`.
 
 ## For pm

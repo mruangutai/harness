@@ -4,13 +4,13 @@
 
 This supersedes the prior version of this artifact, which graded DESIGN.md as a pre-build contract
 (Mode A) at base commit `cc84b29` and filed a `must_fix` claiming `plan.yaml` had no task touching
-`post-merge-sweep.sh` and DESIGN.md permitted shipping the terminal write with no downstream gate.
+`post-merge-sweep.py` and DESIGN.md permitted shipping the terminal write with no downstream gate.
 **That claim is refuted at the pinned SHA, verified directly:**
 
-- `plan.yaml:324` lists `.claude/skills/harness/bin/post-merge-sweep.sh` in T-04's `files:` block;
+- `plan.yaml:324` lists `.claude/skills/harness/bin/post-merge-sweep.py` in T-04's `files:` block;
   `plan.yaml:430` is step 7b, "TEACH THE SWEEP TO READ THE FAILED LINE"; `plan.yaml:332`'s verify
-  greps `grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.sh`.
-- `post-merge-sweep.sh:206` (pinned SHA): `if "gh-sync: FAILED" in combined:` declines the worktree
+  greps `grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.py`.
+- `post-merge-sweep.py:206` (pinned SHA): `if "gh-sync: FAILED" in combined:` declines the worktree
   removal and prints the reason. The machine reader Q1 asked for exists and is wired.
 
 The prior `must_fix` is withdrawn. This is a re-grade in Mode B against the implemented strings.
@@ -28,7 +28,7 @@ greps `ERROR - ` and the pattern already existed pre-feature for non-write read 
 
 ## Self-scope
 
-IN. Batch CLI text surface, explicitly handed down by the dispatch (`gh-sync.py`, `gh-close-gate.sh`),
+IN. Batch CLI text surface, explicitly handed down by the dispatch (`gh-sync.py`, `gh-close-gate.py`),
 consistent with this repo's established scope (repository Expertise P-01): no rendered UI, the
 markdown/CLI-message surface is what this role audits here.
 
@@ -63,11 +63,11 @@ resolved-by-implementation rather than merely inferable. `low`, non-gating.
 
 ### 3. Contract 4 refusal text — character-identical, one text, runnable
 
-`gh-close-gate.sh:49-56` (`REASON` heredoc) reproduces DESIGN.md's quoted block
+`gh-close-gate.py:49-56` (`REASON` heredoc) reproduces DESIGN.md's quoted block
 (DESIGN.md:134-140) verbatim, line for line, including "do nothing here", the em dash, and the
 untracked-issue closing sentence. **One text used for both denials**: both call sites (`:73` for
 `gh issue close`, `:81` for `gh api ... state=closed`) call `deny "$REASON"` — the same variable,
-confirmed by direct read, not by the file's own comment claiming it (`gh-close-gate.sh:47-48`
+confirmed by direct read, not by the file's own comment claiming it (`gh-close-gate.py:47-48`
 narrates "ONE refusal text... used verbatim for BOTH denials"; the code at `:72-82` bears it out).
 The printed `abandon` command —
 `python3 .claude/skills/harness/bin/gh-sync.py abandon <feature-dir> --reason-file <path> --yes` —
@@ -101,8 +101,8 @@ the post-hoc audit, which its own adjacent comment (`gh-sync.py:1317-1319`) expl
 a failed write." This does not match DESIGN.md's stated definition of the token.
 
 **Judgment: real but non-gating.** Two mitigants, both measured, not assumed:
-- No downstream machine reader greps `ERROR - `. `post-merge-sweep.sh`'s gate (the only consumer
-  checked in this review) greps only `gh-sync: SKIP` and `gh-sync: FAILED` (`post-merge-sweep.sh:192,
+- No downstream machine reader greps `ERROR - `. `post-merge-sweep.py`'s gate (the only consumer
+  checked in this review) greps only `gh-sync: SKIP` and `gh-sync: FAILED` (`post-merge-sweep.py:192,
   206`) — the audit's `ERROR - ` line cannot trip worktree-removal behavior.
 - The token was already broader than DESIGN.md's narrow table description before this feature: other
   pre-existing `ERROR - ` lines (`gh-sync.py:856` guard-read failure, `:1208` board-read failure,

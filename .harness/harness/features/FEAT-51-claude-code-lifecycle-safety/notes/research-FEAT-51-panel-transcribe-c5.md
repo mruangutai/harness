@@ -35,7 +35,7 @@ summary and consequence-bearing wording are the digest's. Nothing about VL-1 was
 a reader's finding, or relabelled.
 
 `readers:` therefore has exactly two entries, matching the two steps that ran. No `goalcheck` entry
-was invented to satisfy `check-state.sh` INV-32, which expects three — see Q1.
+was invented to satisfy `check-state.py` INV-32, which expects three — see Q1.
 
 ## Verbatim-ness — one deliberate encoding choice
 
@@ -79,7 +79,7 @@ questions (Q1 on F-1's two remedies, Q2 on the F-2 spike) are unchanged and stil
 
 ## Open questions
 
-- **Q1 (non-blocking)** — `check-state.sh` INV-32 (`:396-417`) expects three `readers:` entries; the
+- **Q1 (non-blocking)** — `check-state.py` INV-32 (`:396-417`) expects three `readers:` entries; the
   cycle-5 panel ran two. The gate and `teams/plan-panel.yaml` disagree. No entry was invented to
   silence it; the record is honest and the gate is wrong about this run.
 - **Q2 (non-blocking)** — the template's `reader` enum (`templates/plan.yaml:70,77`) is a comment

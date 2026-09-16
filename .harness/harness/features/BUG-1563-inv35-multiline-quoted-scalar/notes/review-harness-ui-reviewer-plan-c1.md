@@ -1,0 +1,1 @@
+PASS — The amended BRIEF.md and plan.yaml add only focused unit-kind coverage for the non-UI `check-state.sh` behavior, so DESIGN.md is not needed and no high-fidelity prototype is required because no user-facing surface or interaction is introduced or changed.

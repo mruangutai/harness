@@ -41,13 +41,13 @@ Individually confirmed:
   checked in addition to the verify's own grep, since the verify clause only matches double
   quotes — see item 6).
 - Non-reader survey (`wayfind.py`, `layout_migration.py`, `check-plan-routes.py`,
-  `branch-create-gate.sh`): all four positive-control greps matched (`def `/`#!/`), all four
+  `branch-create-gate.py`): all four positive-control greps matched (`def `/`#!/`), all four
   negative greps for `board_for|load_board|station_field|stations|["board"]` returned zero hits.
 
-## 3. `bin/check-state.sh` observed state — NOT fixed, as instructed
+## 3. `bin/check-state.py` observed state — NOT fixed, as instructed
 
 ```
-$ bash .claude/skills/harness/bin/check-state.sh
+$ python3 .claude/skills/harness/bin/check-state.py
 Traceback (most recent call last):
   File "<stdin>", line 1156, in <module>
 TypeError: derive_station() missing 1 required positional argument: 'board'
@@ -56,7 +56,7 @@ $ echo $?
 ```
 
 Exit 1, three lines total (traceback + exit marker), effectively no invariant report — exactly the
-shape the dispatch predicted (item 2's arity change hits `check-state.sh:1180`'s unwrapped call).
+shape the dispatch predicted (item 2's arity change hits `check-state.py:1180`'s unwrapped call).
 Not touched. T-05 (main-session-direct) repairs the call site.
 
 ## 4. Per-case ledger — `test-gh-board.py`

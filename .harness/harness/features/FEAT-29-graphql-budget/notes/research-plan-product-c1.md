@@ -28,7 +28,7 @@ Both returned 4 items, `totalCount: 4`.
 from *size*. At 4 items the old read still costs 102, so the dominant term is the field selection —
 `item-list` pulls the whole `fieldValues` connection per item — not the node count. 102 → 1 on an
 unchanged board is the falsifier SC-03 needed. Caveat kept explicit: 102 on 4 items and ~490-506 per
-`check-state.sh` run on 473 items are not the same call path (the run does more than one thing), so
+`check-state.py` run on 473 items are not the same call path (the run does more than one thing), so
 these numbers bound the shape claim, not the total-saving claim, which stays with T-06/T-07.
 
 ## What changed, defect by defect

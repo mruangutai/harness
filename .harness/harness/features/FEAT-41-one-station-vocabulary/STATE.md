@@ -11,7 +11,7 @@
 - THE REVISION IS APPLIED AND BOTH GATES ARE GREEN. plan.yaml carries 13 tasks — T-01..T-11,
   T-14, T-15 — with the two struck ids gap-noted and nothing renumbered. `check-plan-routes.py` exits
   0, "0 violation(s) across 1 plan(s)", and prints exactly one ordinary team line for the whole
-  plan: `OK T-15 granted to harness-documentor`. `check-state.sh` exits 0 with zero violations.
+  plan: `OK T-15 granted to harness-documentor`. `check-state.py` exits 0 with zero violations.
 - WHAT LANDED, all at 15394e5: the rename task struck with SC-05 and SC-12, its basename
   absent from both artifacts (D-01 records the reversal). T-07 names and rekeys SEAM_NOTES in the
   same edit as STATUS_ORDER and runs SC-02's own measurement. T-15 added on the documentor lane
@@ -22,7 +22,7 @@
   test-factory-config.py at 112/112 and the `_STATION_KEYS` absence grep clean, and turning
   `github.board.stations` from a mapping into a list broke every consumer that subscripts it by
   name — `board_lifecycle._declared_stations` raises `TypeError: list indices must be integers`,
-  check-state.sh tracebacks out of INV-26. Reverted by the main session at 33e716c; T-01 is back
+  check-state.py tracebacks out of INV-26. Reverted by the main session at 33e716c; T-01 is back
   to `status: pending` and its code is out of the tree. The verify could not see it because it
   exercised factory_config in ISOLATION. Filed as #1033.
 - THE #1033 AUDIT IS COMPLETE AND MEASURED, NOT GUESSED. FIVE tasks change the shape of a value a

@@ -27,7 +27,7 @@ Full exact red-run output: `artifact://26`.
 Invocation (verbatim; with `/opt/homebrew/bin` prepended to `PATH` so `python3` resolved to Python 3.14.5):
 
 ```text
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Exit status: 0.
@@ -69,4 +69,4 @@ Full exact final green-run output: `artifact://29`.
 
 ## Registration confirmation
 
-`run-unit-tests.sh` `UNIT_SCRIPTS` contains both `test-code-grade.py` (T-01) and the appended `test-gate-policy.py` (T-07). `INTEGRATION_SCRIPTS` remains unchanged and contains neither registration.
+`run-unit-tests.py` `UNIT_SCRIPTS` contains both `test-code-grade.py` (T-01) and the appended `test-gate-policy.py` (T-07). `INTEGRATION_SCRIPTS` remains unchanged and contains neither registration.

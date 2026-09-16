@@ -1,11 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DEFAULT_CONTEXT_WARN_TOKENS,
+  DEFAULT_PLAN_PHASE_WARN_MINUTES,
   contextAdvisoryText,
   detectHarnessAgent,
+  featureJsonPath,
   gatePath,
   extractEditPaths,
   normalizeYieldInput,
@@ -13,7 +16,10 @@ import {
   readContextAnchor,
   registerHarnessHooks,
   resolveContextWarnTokens,
+  resolvePlanPhaseWarnMinutes,
   resolveSessionFile,
+  spendAdvisoryFor,
+  spendAdvisoryText,
   yieldContractText,
 } from "../../.omp/extensions/harness-hooks.ts";
 
@@ -103,17 +109,17 @@ describe("yieldContractText", () => {
 // cases assert the path is a function of THIS MODULE's location and of nothing else.
 describe("gatePath", () => {
   test("resolves under the repository that ships this extension", () => {
-    const p = gatePath("check-domain.sh");
-    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.sh")).toBe(true);
+    const p = gatePath("check-domain.py");
+    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.py")).toBe(true);
     expect(existsSync(p)).toBe(true);
   });
 
   test("is byte-identical whatever the process working directory is", () => {
     const before = process.cwd();
-    const first = gatePath("check-domain.sh");
+    const first = gatePath("check-domain.py");
     try {
       process.chdir(tmpdir());
-      expect(gatePath("check-domain.sh")).toBe(first);
+      expect(gatePath("check-domain.py")).toBe(first);
     } finally {
       process.chdir(before);
     }
@@ -122,8 +128,8 @@ describe("gatePath", () => {
   // THE PAIRED HALF. Without it the two cases above are satisfied by a gatePath that
   // returns a constant: this one proves the script name still reaches the result.
   test("the script name still selects the file", () => {
-    expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.sh"));
-    expect(gatePath("bash-write-guard.sh").endsWith("bash-write-guard.sh")).toBe(true);
+    expect(gatePath("bash-write-guard.py")).not.toBe(gatePath("check-domain.py"));
+    expect(gatePath("bash-write-guard.py").endsWith("bash-write-guard.py")).toBe(true);
   });
 });
 
@@ -145,12 +151,20 @@ describe("OMP task lifecycle adapter", () => {
       payload: Record<string, unknown>,
     ) => {
       calls.push({ script, args, payload });
-      if (script === "inject-expertise.sh") return { blocked: false, stdout: "" };
-      if (script === "dispatch-guard.sh") {
+      if (script === "inject-expertise.py") return {
+        blocked: false,
+        stdout: JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: "SubagentStart",
+            additionalContext: "injected expertise",
+          },
+        }),
+      };
+      if (script === "dispatch-guard.py") {
         const task = (payload.tool_input as Record<string, unknown>).task;
         if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
         // The guard's FAIL-OPEN shape: exit 0, nothing on stdout. Seven branches of
-        // dispatch-guard.sh return exactly this (:34, :38, :72, :112, :138, :145, :187).
+        // dispatch-guard.py return exactly this (:34, :38, :72, :112, :138, :145, :187).
         // Absent from this fixture, no test could execute the pass-through path and F1
         // was invisible to a green suite.
         if (task === "passthrough") return { blocked: false, stdout: "" };
@@ -180,7 +194,7 @@ describe("OMP task lifecycle adapter", () => {
           ? { blocked: true, reason: "children live", stdout: "" }
           : { blocked: false, stdout: "" };
       }
-      if (script === "plan-sign-gate.sh") {
+      if (script === "plan-sign-gate.py") {
         const command = ((payload.tool_input as Record<string, unknown> | undefined)?.command as string) || "";
         if (command.includes("sign-approval")) {
           return { blocked: true, reason: "plan-sign-gate: refused", stdout: "" };
@@ -208,6 +222,19 @@ describe("OMP task lifecycle adapter", () => {
       },
     }, ctx);
   }
+
+  test("injects context through the native Python hook", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = {
+      cwd: "/repo",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
+    const result = await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
+    }, ctx);
+    expect(calls.some((call) => call.script === "inject-expertise.py")).toBe(true);
+    expect(result?.message?.content).toBe("injected expertise");
+  });
 
   test("normalizes batch and flat task calls", () => {
     expect(normalizeTaskDispatches({
@@ -275,31 +302,34 @@ describe("OMP task lifecycle adapter", () => {
       input: { command: "gh issue close 12" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
     const scripts = calls.map((call) => call.script);
-    expect(scripts.indexOf("gh-close-gate.sh")).toBeGreaterThan(-1);
-    expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.sh"));
-    expect(scripts.indexOf("branch-create-gate.sh")).toBeLessThan(scripts.indexOf("bash-write-guard.sh"));
+    expect(scripts.indexOf("gh-close-gate.py")).toBeGreaterThan(-1);
+    expect(scripts.indexOf("gh-close-gate.py")).toBeLessThan(scripts.indexOf("branch-create-gate.py"));
+    expect(scripts.indexOf("branch-create-gate.py")).toBeLessThan(scripts.indexOf("bash-write-guard.py"));
+    expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("bash-write-guard.py"));
+    expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.py"));
+
   });
 
-  // BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120 — only the main session signs an approval) is
+  // BUG-1132: plan-sign-gate.py (REQ-05/DEC-120 — only the main session signs an approval) is
   // wired into `.claude/settings.json` for native Claude Code but was never added to this bash
   // gate list, so a `plan-merge.py sign-approval` Bash call under OMP reached NEITHER a deny
   // NOR even an invocation of the script. This asserts both: the gate runs on every bash call,
   // and its `blocked` decision is honoured rather than swallowed.
-  test("BUG-1132: plan-sign-gate.sh runs on a Bash call and its refusal blocks the tool call", async () => {
+  test("BUG-1132: plan-sign-gate.py runs on a Bash call and its refusal blocks the tool call", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by x --date 2026-09-01" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
-    expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
+    expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     expect(result).toEqual({ block: true, reason: "plan-sign-gate: refused" });
   });
 
   // NEGATIVE CONTROL: an ordinary Bash call with no `sign-approval` in it must still run the
   // gate (proving the wiring is unconditional, not scoped by a prior positive result) and must
   // NOT be blocked by it.
-  test("BUG-1132 negative control: plan-sign-gate.sh runs but does not block an ordinary Bash call",
+  test("BUG-1132 negative control: plan-sign-gate.py runs but does not block an ordinary Bash call",
        async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
@@ -307,7 +337,7 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "bash",
       input: { command: "git status --porcelain" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
-    expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
+    expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     // Not blocked. #1103 also merges HARNESS_AGENT_TYPE into every allowed bash call's env
     // (asserted on its own below), so this no longer stays `undefined` — it now carries a
     // revised input, and the thing this negative control must still prove is `block` absent.
@@ -315,7 +345,7 @@ describe("OMP task lifecycle adapter", () => {
   });
 
   // #1103: cmd_sign_approval now checks its own caller's identity rather than relying solely
-  // on plan-sign-gate.sh's text-parsing denylist (BUG-1132's own commit). That check reads
+  // on plan-sign-gate.py's text-parsing denylist (BUG-1132's own commit). That check reads
   // HARNESS_AGENT_TYPE from its own process environment — this proves the OMP host is the one
   // actually setting it, from the SAME `currentAgent` the hook payload already carries, and
   // that it MERGES into any env the caller's own command already specified rather than
@@ -500,7 +530,7 @@ describe("OMP task lifecycle adapter", () => {
   // feature.json that gh-sync.py had rewritten between the read and the write,
   // and nothing refused it.
   //
-  // postDomain hands an `edit` result to check-domain.sh --post via
+  // postDomain hands an `edit` result to check-domain.py --post via
   // extractEditPaths(...).map(...). An empty array yields ZERO runner calls and
   // no diagnostic of any kind, because no process is ever spawned. Until these
   // cases the suite drove `task` eight times and `edit` NOT ONCE: a regression
@@ -521,10 +551,10 @@ describe("OMP task lifecycle adapter", () => {
 
   const postPaths = (calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }>) =>
     calls
-      .filter((call) => call.script === "check-domain.sh" && call.args.includes("--post"))
+      .filter((call) => call.script === "check-domain.py" && call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path);
 
-  test("a hashline edit reaches check-domain.sh --post carrying the edited path", async () => {
+  test("a hashline edit reaches check-domain.py --post carrying the edited path", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     // The exact file and tag shape of the 2026-08-30 corruption.
@@ -534,10 +564,10 @@ describe("OMP task lifecycle adapter", () => {
       editCtx,
     );
     const post = calls.filter((call) =>
-      call.script === "check-domain.sh" && call.args.includes("--post"));
+      call.script === "check-domain.py" && call.args.includes("--post"));
     expect(post.length).toBe(1);
     expect((post[0].payload as any).tool_input).toEqual({ file_path: path });
-    // Named `Edit`, not `edit`: check-domain.sh matches the Claude-shaped name.
+    // Named `Edit`, not `edit`: check-domain.py matches the Claude-shaped name.
     expect((post[0].payload as any).tool_name).toBe("Edit");
   });
 
@@ -598,14 +628,14 @@ describe("OMP task lifecycle adapter", () => {
   // merely going unreported. Every case above filters on `--post`, so by
   // construction none of them touched this route: neutering it changed nothing.
   // -------------------------------------------------------------------------
-  test("a hashline edit is gated BEFORE it lands - check-domain.sh with no --post", async () => {
+  test("a hashline edit is gated BEFORE it lands - check-domain.py with no --post", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
     const blocked = await handlers.get("tool_call")?.(
       editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
     const pre = calls.filter((call) =>
-      call.script === "check-domain.sh" && !call.args.includes("--post"));
+      call.script === "check-domain.py" && !call.args.includes("--post"));
     expect(pre.length).toBe(1);
     expect((pre[0].payload as any).tool_input).toEqual({ file_path: path });
     expect((pre[0].payload as any).tool_name).toBe("Edit");
@@ -620,7 +650,7 @@ describe("OMP task lifecycle adapter", () => {
       editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
       editCtx);
     expect(calls
-      .filter((call) => call.script === "check-domain.sh" && !call.args.includes("--post"))
+      .filter((call) => call.script === "check-domain.py" && !call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path))
       .toEqual(["a/one.json", "b/two.yaml"]);
   });
@@ -635,7 +665,7 @@ describe("OMP task lifecycle adapter", () => {
     // -- it would refuse every edit whose payload shape the extractor cannot read
     // -- so it is recorded as an open decision, not taken silently here. The S2
     // notice on the RESULT is what tells the operator both checks were skipped.
-    expect(calls.filter((call) => call.script === "check-domain.sh")).toEqual([]);
+    expect(calls.filter((call) => call.script === "check-domain.py")).toEqual([]);
     expect(blocked).toBeUndefined();
   });
 });
@@ -764,7 +794,7 @@ describe("context advisory injection", () => {
     const handlers = new Map<string, Function>();
     const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
     const runner = (_cwd: string, script: string) => {
-      if (script === "check-domain.sh" && opts.blockReason) {
+      if (script === "check-domain.py" && opts.blockReason) {
         return { blocked: true, reason: opts.blockReason, stdout: "" };
       }
       return { blocked: false, stdout: "" };
@@ -911,5 +941,343 @@ describe("context advisory injection", () => {
     const result = await handlers.get("tool_result")?.(taskResult(content), ctx);
     expect(result).toBeUndefined();
     expect(content).toEqual([{ type: "text", text: "lead digest" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FEAT-59 SC-19 — the SPEND advisory on the orchestrator's wake.
+//
+// The same wake path as the context advisory, the same voice, the same promise:
+// it ADVISES and never refuses. The figure is what `feature-record.py spend`
+// measures from feature.json — these cases spawn the REAL script through the
+// fake runner, so the JSON contract between the two halves is what is tested,
+// not a stub of it. Only `inflight_registry.py feature-root` is faked, to point
+// the hook at a temp checkout.
+// ---------------------------------------------------------------------------
+
+describe("spendAdvisoryFor", () => {
+  const spend = (minutes: number, phase: "plan" | "build", rework = 0) =>
+    ({ runs: 3, wall_clock_minutes: minutes, tokens: null, phase, rework_minutes: rework, rework_rounds: 0 });
+
+  test("plan phase compares against plan_phase_warn_minutes, strictly greater", () => {
+    expect(spendAdvisoryFor(spend(91, "plan"), undefined, 90)).toContain("budgets.plan_phase_warn_minutes = 90");
+    expect(spendAdvisoryFor(spend(90, "plan"), undefined, 90)).toBeUndefined();
+    expect(spendAdvisoryFor(spend(91, "plan"), 10, 90)).toContain("plan phase");
+  });
+
+  test("build phase compares the REWORK WINDOW against the ruling, never the whole feature", () => {
+    // 100 whole-feature minutes (plan + build) with 0 rework: under a 60-minute ruling,
+    // silent — the ruling is a budget for rework, and none has happened.
+    expect(spendAdvisoryFor(spend(100, "build", 0), 60, 90)).toBeUndefined();
+    // 61 rework minutes: the line names the window's figure, not the whole.
+    const line = spendAdvisoryFor(spend(161, "build", 61), 60, 90);
+    expect(line).toContain("rework.wall_clock_minutes = 60");
+    expect(line).toContain("build phase");
+    expect(line).toContain("61 wall-clock minutes");
+    expect(line).toContain("1.02x");
+    expect(spendAdvisoryFor(spend(160, "build", 60), 60, 90)).toBeUndefined();
+    // No ruling recorded: nothing to measure against, so nothing is said.
+    expect(spendAdvisoryFor(spend(500, "build", 400), undefined, 90)).toBeUndefined();
+  });
+
+  test("names the measured tokens when a run carried one", () => {
+    expect(spendAdvisoryText(135, 48213, "plan", "budgets.plan_phase_warn_minutes", 90))
+      .toContain("48213 tokens");
+    expect(spendAdvisoryText(135, null, "plan", "budgets.plan_phase_warn_minutes", 90))
+      .not.toContain("tokens");
+    expect(spendAdvisoryText(135, null, "plan", "budgets.plan_phase_warn_minutes", 90))
+      .toContain("ADVISES and never refuses (DEC-198)");
+  });
+});
+
+describe("resolvePlanPhaseWarnMinutes", () => {
+  function rootWith(budgets: Record<string, unknown> | undefined) {
+    const root = mkdtempSync(join(tmpdir(), "feat59-cfg-"));
+    mkdirSync(join(root, ".harness"));
+    writeFileSync(join(root, ".harness", "harness.json"),
+      JSON.stringify(budgets === undefined ? {} : { budgets }));
+    return root;
+  }
+
+  test("reads the configured value", () => {
+    expect(resolvePlanPhaseWarnMinutes(rootWith({ plan_phase_warn_minutes: 30 }))).toBe(30);
+  });
+
+  test("falls back to the declared default when the key is absent", () => {
+    expect(resolvePlanPhaseWarnMinutes(rootWith({}))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+    expect(resolvePlanPhaseWarnMinutes(rootWith(undefined))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+    expect(resolvePlanPhaseWarnMinutes("/nonexistent")).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+  });
+
+  test("the shipped configuration carries the default", () => {
+    // 90 in both harness.json files; the hook resolves from gateRoot(), so the
+    // wake tests below rely on this figure being the one on disk.
+    expect(resolvePlanPhaseWarnMinutes(join(import.meta.dir, "..", ".."))).toBe(90);
+  });
+});
+
+describe("featureJsonPath", () => {
+  test("finds the repo-tier layout and the flat layout, and nothing when absent", () => {
+    const root = mkdtempSync(join(tmpdir(), "feat59-layout-"));
+    expect(featureJsonPath(root, "FEAT-99-x")).toBeUndefined();
+    mkdirSync(join(root, ".harness", "harness", "features", "FEAT-99-x"), { recursive: true });
+    expect(featureJsonPath(root, "FEAT-99-x")).toBeUndefined();
+    writeFileSync(join(root, ".harness", "harness", "features", "FEAT-99-x", "feature.json"), "{}");
+    expect(featureJsonPath(root, "FEAT-99-x"))
+      .toBe(join(root, ".harness", "harness", "features", "FEAT-99-x", "feature.json"));
+    const flat = mkdtempSync(join(tmpdir(), "feat59-flat-"));
+    mkdirSync(join(flat, ".harness", "features", "FEAT-99-x"), { recursive: true });
+    writeFileSync(join(flat, ".harness", "features", "FEAT-99-x", "feature.json"), "{}");
+    expect(featureJsonPath(flat, "FEAT-99-x"))
+      .toBe(join(flat, ".harness", "features", "FEAT-99-x", "feature.json"));
+  });
+});
+
+describe("spend advisory injection", () => {
+  const FEATURE = "FEAT-99-spend";
+
+  function runsSpanning(minutes: number, id = "r1") {
+    const start = new Date("2026-09-11T10:00:00Z");
+    const end = new Date(start.getTime() + minutes * 60_000);
+    const iso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "+00:00");
+    return [{ id, squad: "product", verdict: "PASS", agent: "harness-product-lead",
+      started_at: iso(start), ended_at: iso(end), tokens: 48213 }];
+  }
+
+  function checkout(doc: Record<string, unknown> | undefined) {
+    const root = mkdtempSync(join(tmpdir(), "feat59-wake-"));
+    const dir = join(root, ".harness", "harness", "features", FEATURE);
+    mkdirSync(dir, { recursive: true });
+    if (doc) {
+      writeFileSync(join(dir, "feature.json"), JSON.stringify({
+        feature_id: FEATURE, branch: "none", pr: null, review_sha: "none",
+        cycles_used: 0, max_total_cycles: 10, ...doc,
+      }, null, 2) + "\n");
+    }
+    return root;
+  }
+
+  function wakeFixture(root: string) {
+    const handlers = new Map<string, Function>();
+    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const calls: Array<{ script: string; args: string[] }> = [];
+    const runner = (_cwd: string, script: string, args: string[]) => {
+      calls.push({ script, args });
+      if (script === "inflight_registry.py" && args[0] === "feature-root") {
+        return { blocked: false, stdout: `${root}\n` };
+      }
+      if (script === "feature-record.py") {
+        // THE REAL SCRIPT, through the real gate path: the parse of its stdout
+        // is the contract under test.
+        const proc = spawnSync("python3", [gatePath(script), ...args], { encoding: "utf8" });
+        return { blocked: false, stdout: proc.stdout || "", reason: proc.stderr || undefined };
+      }
+      return { blocked: false, stdout: "" };
+    };
+    registerHarnessHooks(pi, runner);
+    const ctx = {
+      cwd: root,
+      sessionManager: { getSessionId: () => "own-session", getSessionFile: () => ANCHORED_FIXTURE },
+    };
+    return { handlers, ctx, calls };
+  }
+
+  async function asOrchestratorOn(handlers: Map<string, Function>, ctx: unknown) {
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-orchestrator", `HARNESS-FEATURE: ${FEATURE}`],
+    }, ctx);
+  }
+
+  const wake = () => ({ toolName: "task", toolCallId: "call-1", input: {},
+    content: [{ type: "text", text: "lead digest" }] });
+
+  // Narrows the handler's return at the boundary once; every read below is checked.
+  function patched(result: unknown): { texts: string[]; hasIsError: boolean } {
+    if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
+      throw new Error(`expected a patched tool result, got ${JSON.stringify(result)}`);
+    }
+    const texts = result.content.map((part: unknown) =>
+      part && typeof part === "object" && "text" in part && typeof part.text === "string" ? part.text : "");
+    return { texts, hasIsError: "isError" in result };
+  }
+
+  test("over the plan budget: one SPEND line naming spend, budget and phase; isError absent", async () => {
+    const { handlers, ctx } = wakeFixture(checkout({ runs: runsSpanning(135) }));
+    await asOrchestratorOn(handlers, ctx);
+    const result = await handlers.get("tool_result")?.(wake(), ctx);
+    const line = patched(result).texts.at(-1) ?? "";
+    expect(line.startsWith("SPEND: ")).toBe(true);
+    expect(line).toContain("135 wall-clock minutes");
+    expect(line).toContain("48213 tokens");
+    expect(line).toContain("plan phase");
+    expect(line).toContain("budgets.plan_phase_warn_minutes = 90");
+    expect(line).toContain("1.50x");
+    expect(line).toContain("ADVISES and never refuses (DEC-198)");
+    expect(patched(result).hasIsError).toBe(false);
+    // Exactly ONE advisory line was appended to the one content part.
+    expect(patched(result).texts.length).toBe(2);
+  });
+
+  test("under the plan budget: nothing is appended", async () => {
+    const { handlers, ctx, calls } = wakeFixture(checkout({ runs: runsSpanning(30) }));
+    await asOrchestratorOn(handlers, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+    // The measurement WAS taken — silence is a judgement on the figure, not a skipped read.
+    expect(calls.some((call) => call.script === "feature-record.py" && call.args[0] === "spend")).toBe(true);
+  });
+
+  test("after build entry: the rework ruling is the budget, measured over the rework window", async () => {
+    // 135 minutes of runs, all of them plan/build — no validate-* run yet, so the
+    // rework window is empty and a 60-minute ruling is not exceeded. Silence.
+    const quiet = wakeFixture(checkout({
+      runs: runsSpanning(135),
+      github: { build_entry: "opened" },
+      rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
+    }));
+    await asOrchestratorOn(quiet.handlers, quiet.ctx);
+    expect(await quiet.handlers.get("tool_result")?.(wake(), quiet.ctx)).toBeUndefined();
+    // The same 135 minutes inside a validate run IS rework, and the ruling is exceeded. The id
+    // is the corpus's date-prefixed run-dir shape: a bare `validate-validator` would pass
+    // against the `startswith` window that never opened on any real ledger.
+    const { handlers, ctx } = wakeFixture(checkout({
+      runs: runsSpanning(135, "2026-09-11-05-validate-validator"),
+      github: { build_entry: "opened" },
+      rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
+    }));
+    await asOrchestratorOn(handlers, ctx);
+    const line = patched(await handlers.get("tool_result")?.(wake(), ctx)).texts.at(-1) ?? "";
+    expect(line).toContain("build phase");
+    expect(line).toContain("rework.wall_clock_minutes = 60");
+    expect(line).toContain("135 wall-clock minutes");
+  });
+  test("after build entry with no rework ruling: nothing, even far past the plan budget", async () => {
+    const { handlers, ctx } = wakeFixture(checkout({
+      runs: runsSpanning(500), github: { build_entry: "opened" },
+    }));
+    await asOrchestratorOn(handlers, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+  });
+
+  test("missing feature.json: nothing is appended and spend is never asked", async () => {
+    const { handlers, ctx, calls } = wakeFixture(checkout(undefined));
+    await asOrchestratorOn(handlers, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+    expect(calls.some((call) => call.script === "feature-record.py")).toBe(false);
+  });
+
+  test("a lead on the same feature is not advised", async () => {
+    const { handlers, ctx, calls } = wakeFixture(checkout({ runs: runsSpanning(135) }));
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead", `HARNESS-FEATURE: ${FEATURE}`],
+    }, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+    expect(calls.some((call) => call.script === "feature-record.py")).toBe(false);
+  });
+});
+
+// BUG-1724 (DEC-227): the HOST stamps the figure it measured onto the open run, on the
+// same wake that reads spend, so the orchestrator never transcribes it. Measured on
+// BUG-285-canonical-reader: 19/19 task results carried `details.results[i].tokens`,
+// 0/26 `run-end` calls passed it. The real feature-record.py runs through the gate path,
+// so what is asserted is the file on disk, not a recorded argv.
+describe("host-stamped tokens", () => {
+  const FEATURE = "FEAT-99-stamp";
+
+  function openRun(id = "r1") {
+    return [{ id, squad: "eng", verdict: "PENDING", agent: "harness-eng-lead",
+      started_at: "2026-09-11T10:00:00+00:00" }];
+  }
+
+  function checkout(runs: unknown[]) {
+    const root = mkdtempSync(join(tmpdir(), "bug1724-"));
+    const dir = join(root, ".harness", "harness", "features", FEATURE);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "feature.json"), JSON.stringify({
+      feature_id: FEATURE, branch: "none", pr: null, review_sha: "none",
+      cycles_used: 0, max_total_cycles: 10, runs,
+    }, null, 2) + "\n");
+    return { root, featureJson: join(dir, "feature.json") };
+  }
+
+  function fixture(root: string) {
+    const handlers = new Map<string, Function>();
+    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const calls: Array<{ script: string; args: string[] }> = [];
+    const runner = (_cwd: string, script: string, args: string[]) => {
+      calls.push({ script, args });
+      if (script === "inflight_registry.py" && args[0] === "feature-root") {
+        return { blocked: false, stdout: `${root}\n` };
+      }
+      if (script === "feature-record.py") {
+        const proc = spawnSync("python3", [gatePath(script), ...args], { encoding: "utf8" });
+        return { blocked: false, stdout: proc.stdout || "", reason: proc.stderr || undefined };
+      }
+      return { blocked: false, stdout: "" };
+    };
+    registerHarnessHooks(pi, runner);
+    const ctx = {
+      cwd: root,
+      sessionManager: { getSessionId: () => "own-session", getSessionFile: () => ANCHORED_FIXTURE },
+    };
+    return { handlers, ctx, calls };
+  }
+
+  async function asOrchestratorOn(handlers: Map<string, Function>, ctx: unknown) {
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-orchestrator", `HARNESS-FEATURE: ${FEATURE}`],
+    }, ctx);
+  }
+
+  const wakeWith = (details: unknown) => ({ toolName: "task", toolCallId: "call-1", input: {},
+    details, content: [{ type: "text", text: "lead digest" }] });
+
+  const tokensOf = (featureJson: string, index = 0) =>
+    JSON.parse(readFileSync(featureJson, "utf8")).runs[index].tokens;
+
+  test("sums every result's integer tokens and stamps the open run BEFORE spend is read", async () => {
+    const { root, featureJson } = checkout(openRun());
+    const { handlers, ctx, calls } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    await handlers.get("tool_result")?.(wakeWith({
+      results: [{ index: 0, exitCode: 0, tokens: 135888 }, { index: 1, exitCode: 0, tokens: 68447 }],
+    }), ctx);
+    expect(tokensOf(featureJson)).toBe(204335);
+    const verbs = calls.filter((c) => c.script === "feature-record.py").map((c) => c.args[0]);
+    expect(verbs.indexOf("stamp-tokens")).toBeGreaterThanOrEqual(0);
+    expect(verbs.indexOf("stamp-tokens")).toBeLessThan(verbs.indexOf("spend"));
+    expect(verbs.filter((v) => v === "stamp-tokens").length).toBe(1);
+  });
+
+  test("no result carries a figure: nothing is stamped and the run stays unmeasured (DEC-210)", async () => {
+    const { root, featureJson } = checkout(openRun());
+    const { handlers, ctx, calls } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    await handlers.get("tool_result")?.(wakeWith({ results: [{ index: 0, exitCode: 0 }] }), ctx);
+    expect(JSON.parse(readFileSync(featureJson, "utf8")).runs[0]).not.toHaveProperty("tokens");
+    expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "stamp-tokens")).toBe(false);
+    // A bare run-end then records null: the host reported nothing, and nothing was invented.
+    spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
+      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0"], { encoding: "utf8" });
+    expect(tokensOf(featureJson)).toBeNull();
+  });
+
+  test("a non-integer or negative figure is not a figure", async () => {
+    const { root, featureJson } = checkout(openRun());
+    const { handlers, ctx } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    await handlers.get("tool_result")?.(wakeWith({
+      results: [{ index: 0, tokens: "135888" }, { index: 1, tokens: -5 }, { index: 2, tokens: 12.5 }],
+    }), ctx);
+    expect(JSON.parse(readFileSync(featureJson, "utf8")).runs[0]).not.toHaveProperty("tokens");
+  });
+
+  test("a refused stamp (two open runs) never costs the wake: the advisory path still runs", async () => {
+    const { root, featureJson } = checkout([...openRun("r1"), ...openRun("r2")]);
+    const { handlers, ctx, calls } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    const result = await handlers.get("tool_result")?.(wakeWith({ results: [{ index: 0, tokens: 7 }] }), ctx);
+    expect(JSON.parse(readFileSync(featureJson, "utf8")).runs.every((r: any) => !("tokens" in r))).toBe(true);
+    expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "spend")).toBe(true);
+    expect(result === undefined || !("isError" in result)).toBe(true);
   });
 });

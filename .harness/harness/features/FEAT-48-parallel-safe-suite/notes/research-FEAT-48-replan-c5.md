@@ -105,7 +105,7 @@ ea6f51f`), explicitly dated + marked non-binding with its durable identifier nam
 D-09 `:147-157`, T-04 `:60-74`, T-01's blanket sentence, T-03's blanket sentence), or structural
 (`four-levels-up`). Every numeral likewise: 58→59 dated, 190/DEC-207→192/DEC-209 dated, "four
 sites" removed from D-11 and T-04, "the ten"/"thirteen" removed from T-03. Re-derived at
-`2a5cbada` myself: 59 test files, 192 headings last DEC-209, `run-unit-tests.sh` loop at 147-157,
+`2a5cbada` myself: 59 test files, 192 headings last DEC-209, `run-unit-tests.py` loop at 147-157,
 `harness_boundary.py` resolvers at 44/53/84. The `test-check-domain.py` false-positive anchors
 (`:1772`, `:1778`) had **already drifted two lines** against the ccf674a figure they cite — which
 is why T-03's blanket sentence names them as illustration.

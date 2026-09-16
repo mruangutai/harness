@@ -17,18 +17,18 @@ residual is argument-content, not command-injection.
 | # | Site | Provenance | Argv shape | Exposure |
 |---|---|---|---|---|
 | 1 | `board_lifecycle.py:1003` `_ensure_abandoned_label` | `harness.json` `github.repo` via `_own_repo`/`_resolve_board`; CLI override validated against fleet.yaml's known-repo list at `_resolve_board:314` before use | `[gh_bin, "label", "create", ..., "--repo", repo_name, ...]` | real but low — value is config-derived and, on the override path, allowlist-checked before reaching argv |
-| 2 | `check-plan-routes.py:74` `resolve_agents` | `plan.yaml` task `files:` entries | `[CHECK_DOMAIN, "--resolve", path]` — becomes `HARNESS_RESOLVE_PATH` **env var**, never re-parsed as argv (`check-domain.sh:71`) | read-only route lookup, no execution downstream |
-| 3 | `check-state.sh:1633` INV-30 | `harness.json` `github.repo`, **no shape validation before use** (unlike `wayfind.py`/`gh-sync.py`, which check the value contains `/`) | `%s`-formatted into a REST **path string**: `"repos/%s/milestones?..." % _repo30`, still one list argv element | see finding F-1 below — worst-shaped of the 11 |
+| 2 | `check-plan-routes.py:74` `resolve_agents` | `plan.yaml` task `files:` entries | `[CHECK_DOMAIN, "--resolve", path]` — becomes `HARNESS_RESOLVE_PATH` **env var**, never re-parsed as argv (`check-domain.py:71`) | read-only route lookup, no execution downstream |
+| 3 | `check-state.py:1633` INV-30 | `harness.json` `github.repo`, **no shape validation before use** (unlike `wayfind.py`/`gh-sync.py`, which check the value contains `/`) | `%s`-formatted into a REST **path string**: `"repos/%s/milestones?..." % _repo30`, still one list argv element | see finding F-1 below — worst-shaped of the 11 |
 | 4 | `factory_workspace.py:103,129,130` | `fleet.yaml` `default_branch` | `["checkout", default_branch]`, `f"origin/{default_branch}"` | operator-config only |
 | 5 | `feature-worktree.py:125,289` | `fleet.yaml` `default_branch` | `["worktree","add","-b",branch,dest,default_branch]`, `f"{default_branch}:{rel}"` | operator-config only |
 | 6 | `gh-sync.py:775,789` (current line numbers 773/790) | `BRIEF.md`/`plan.yaml` prose (`brief['phrase']`,`brief['problem']`,`brief['goal']`,`task['title']`,`task['body']`) | `["issue","create","--repo",repo,"--title",title,"--body",body,...]` | see finding F-2 — closest in shape to the deleted mechanism, but this file's diff here is **comment-only** (DEC-number fixes), pre-existing and out of FEAT-38's scope |
 | 7 | `inflight_registry.py:159` | registry JSON `supervisor_pid` | `["ps","-o","lstart=","-p",str(pid)]` | narrow — `pid` is int/positive-validated at `:131` before use, matches the row's own note |
-| 8 | `post-merge-sweep.sh:215` | `fleet.yaml` repo name, or literal `"harness"` | `["python3",...,"feature-worktree.py","remove","--repo",repo_arg,"--id",wt_id]` | operator-config only |
-| 9 | `test-check-state.py:2620-2655` | `check-state.sh`'s own stdout (backticked command), `shlex.split` then executed | `[sys.executable] + shlex.split(...)` | test-only, guarded by a resolver probe that refuses unless the resolved root is the fixture (`:2644`) — matches the row's "mitigated but not eliminated" framing exactly |
+| 8 | `post-merge-sweep.py:215` | `fleet.yaml` repo name, or literal `"harness"` | `["python3",...,"feature-worktree.py","remove","--repo",repo_arg,"--id",wt_id]` | operator-config only |
+| 9 | `test-check-state.py:2620-2655` | `check-state.py`'s own stdout (backticked command), `shlex.split` then executed | `[sys.executable] + shlex.split(...)` | test-only, guarded by a resolver probe that refuses unless the resolved root is the fixture (`:2644`) — matches the row's "mitigated but not eliminated" framing exactly |
 | 10 | `wayfind.py:66,83,170` | `harness.json` `github.repo`, via `cfg()` | `[ghi.gh_bin()] + args`, `[...,"-R",repo,"--body-file","-"]` (body itself travels on **stdin**, not argv) | operator-config only |
 | 11 | `worktree_terminal.py:150,160` | `fleet.yaml` `default_branch` (via `feature-worktree.py`'s own `resolve_repo`) | `["ls-tree","--name-only",f"{default_branch}:{features_rel}"]`, `["rev-parse",f"{default_branch}:{rel}"]` | operator-config only |
 
-**F-1 (severity: low)** — `check-state.sh:1633` is the one row of the 11 that embeds the
+**F-1 (severity: low)** — `check-state.py:1633` is the one row of the 11 that embeds the
 config-derived value into a **formatted URL-path string** rather than binding it as a discrete
 flag value, and it is the only one of the config-repo sites with **no shape check** at the read site
 (contrast `wayfind.py:cfg()`'s truthy check and `gh-sync.py:201`'s `/`-required check, both cited by
@@ -71,7 +71,7 @@ are incomplete and one is mismatched:
    values land as flag *values* not flag names, `BRIEF.md` is approval-gated. Estimate: low
    severity, but the highest-value backlog item of the eleven because it is genuinely
    free-text-shaped, not slug-shaped.
-2. **`check-state.sh:1633`** (F-1): switch the `%s`-into-URL-path pattern to a bound `gh api`
+2. **`check-state.py:1633`** (F-1): switch the `%s`-into-URL-path pattern to a bound `gh api`
    template placeholder (`gh api repos/{owner}/{repo}/milestones...` uses its own `-f`/`{}`
    substitution) or add the same `/`-shape check `wayfind.py`/`gh-sync.py` already apply to
    `github.repo` before formatting it into a path. Severity: low, no escalation path, defense in
@@ -95,10 +95,10 @@ under `.claude/skills/harness/bin/` at the pin for `test_kinds` and for `"cmd"`/
 substrings (Python string search, not shell grep), and separately checked `.github/workflows/tests.yml`
 and the `.claude`/`.github` hook surfaces:
 
-- **`run-unit-tests.sh:108`** reads only `test_kinds.integration.detect` (a pipe-separated glob),
+- **`run-unit-tests.py:108`** reads only `test_kinds.integration.detect` (a pipe-separated glob),
   set-compares it against its own two literal bash arrays, and runs only what those arrays name
   (`python3 "$BIN_DIR/$s"`, `:149`). Nothing parsed from `detect` reaches argv.
-- **`check-state.sh`** reads `cj` (parsed `harness.json`) for `test_kinds`-scoped INV checks; zero
+- **`check-state.py`** reads `cj` (parsed `harness.json`) for `test_kinds`-scoped INV checks; zero
   hits for `"cmd"`/`'cmd'`/`.cmd` anywhere in the file.
 - **`upgrade-config.py:209-211`** is the only script that reads `test_kinds.*.cmd` at all, and only
   to format it into a preserved-value diagnostic string (`f"test_kinds.{k}.cmd = {v.get('cmd')!r}"`)
@@ -138,25 +138,25 @@ question, correctly not gated here.
   **zero** `check-decision-claims` references, and **zero** `ALLOWED_FIRST_TOKENS`/
   `ALLOWED_GIT_SUBCOMMANDS` self-references (the grilling note's own pre-flight fact — verified
   independently, not taken on trust).
-- `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` bash arrays: no
+- `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` bash arrays: no
   `test-check-decision-claims.py` entry in either. `.harness/harness.json`'s `test_kinds.integration.detect`
   gained exactly one entry (`test-check-decision-anchors.py`) and lost none — consistent with T-25's
   scope.
 - **No surviving path found** by which `DECISIONS.md` text, or any other parsed document, reaches a
-  subprocess argv, `eval`, or a shell — directly, via the index generator, via `run-unit-tests.sh`,
+  subprocess argv, `eval`, or a shell — directly, via the index generator, via `run-unit-tests.py`,
   via a hook, or via CI.
 
 ## 3. Sweep of the shared file set — explicit verdict per area
 
 | Area | Verdict | What I measured |
 |---|---|---|
-| `run-unit-tests.sh` (T-24, array entry) | **Nothing to report.** | Confirmed no claims-test entry remains in either bash array; `detect` string is set-compared only, never executed (re-derived above). |
+| `run-unit-tests.py` (T-24, array entry) | **Nothing to report.** | Confirmed no claims-test entry remains in either bash array; `detect` string is set-compared only, never executed (re-derived above). |
 | `check-decision-claims.py` + test (T-24, deleted) | **Deletion verified complete** (§2). | Accepted, signed cost per Contract 3 — not re-reported as a gap. |
 | `gen-decisions-index.py` (T-06/T-10 + SIMPLIFY) | **Nothing to report.** | Read the full 311-line file at the pin: pure regex text transform over `DECISIONS.md` (heading/ref/tag extraction), writes only to the fixed literal `INDEX_PATH` or stdout. No `subprocess`/`eval`/`os.system`/`shell=` anywhere — it is correctly absent from the 70-file candidate enumeration. The diff (`164` lines changed) removes the amendment/supersession regex machinery (`AMEND_HEADING_RE`, `SUPERSESSION_VERB_RE`, `compute_amendments`) to match DECISIONS.md's new no-amendment shape; no new parsing surface introduced. |
 | `check-decision-anchors.py` + test (RETAINED, frozen) | **Frozen and verified byte-identical to `99bb52c`** — sha256 `adb9a648cf…` and `7a4e0ba1af…`, both match the dispatch's pinned hashes exactly (measured, not assumed). Per Contract 2, not re-reviewed for content or re-reported for its stale docstring reference. |
 | `.harness/harness.json` (T-25, one `detect` entry) | **Nothing to report.** | Diff is exactly the one array-append shown above; `test_kinds.*.cmd` re-derived independently in §"decisive case" — no executor. |
 | `board_lifecycle.py` (earlier tasks) | **Nothing to report.** | 6-line diff is entirely comment text (`DEC-186`→`DEC-203` renumbering after the fold). The `_ensure_abandoned_label` argv site (row 1) is unchanged behavior; `repo_name` is allowlist-checked on the override path before reaching argv. |
-| `check-domain.sh` (earlier tasks) | **Nothing to report.** | 1-line diff is a comment fix (`DEC-171 am.1`→`DEC-171`). No behavioral change; `--resolve <path>` binds the path to an env var, never re-parsed as argv, so no argument-injection surface. |
+| `check-domain.py` (earlier tasks) | **Nothing to report.** | 1-line diff is a comment fix (`DEC-171 am.1`→`DEC-171`). No behavioral change; `--resolve <path>` binds the path to an env var, never re-parsed as argv, so no argument-injection surface. |
 | `.github/workflows/tests.yml` (earlier tasks) | **Nothing to report.** | 2-line diff is comment-only (`DEC-171 am.1`→`DEC-171`, `DEC-192`→`DEC-203`). Trigger config (`pull_request` + `push`, never `pull_request_target`) is unchanged and safe; pre-existing, not this feature's surface. |
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md` (T-27/T-28, fold) | **Nothing to report** beyond §2's marker sweep. | Scanned the full rewritten text for secret-shaped strings (AWS keys, `api_key=`/`secret=`/`password=` patterns, GitHub PATs, PEM private-key headers) — zero hits. Also ran the same four patterns across the **entire** `7ebfc9eb..635cd3ba` diff (1.5 MB) per my own Expertise P-14 — zero hits. |
 
@@ -183,7 +183,7 @@ privilege was introduced by this feature.
 
 ## Summary
 
-No must-fix findings. `severity_max` is `low` (F-1, the `check-state.sh` URL-path formatting gap —
+No must-fix findings. `severity_max` is `low` (F-1, the `check-state.py` URL-path formatting gap —
 defense-in-depth only, requires an actor already privileged to write `harness.json`). Everything else
 is `info` or a correctly-accepted, signed cost. The class-sweep commissioned by this feature (T-29)
 did its job: it found a genuinely non-empty `TEXT-DERIVED-ARGV` residual, every row of my eleven is

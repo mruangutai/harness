@@ -28,10 +28,10 @@ half-migrated.
 
 | Gate | Result |
 |---|---|
-| `check-state.sh` | exit 0 |
+| `check-state.py` | exit 0 |
 | `check-plan-routes.py` | `0 violation(s) across 8 plan(s)` |
-| `run-unit-tests.sh --kind unit` | 75 PASS, 0 FAIL |
-| `run-unit-tests.sh --kind integration` | 80 PASS, 0 FAIL |
+| `run-unit-tests.py --kind unit` | 75 PASS, 0 FAIL |
+| `run-unit-tests.py --kind integration` | 80 PASS, 0 FAIL |
 | qa gate (blocking) | `matrix_ok: true` |
 | review panel | `severity_max: med`, `must_fix: []` — below the `high` bar, no fix cycle owed |
 
@@ -73,11 +73,11 @@ re-signature, not a record correction, so both are left standing for the operato
 onboarding sentence, `SPEC.md:415`'s table row, and — the one that mattered —
 `factory_config.py`'s error message told a blocked operator to add three fields when
 `_validate_board` requires four and checks the missing one first. Following it could not succeed,
-and `check-domain.sh` fails closed meanwhile, so the symptom was every agent write blocked.
+and `check-domain.py` fails closed meanwhile, so the symptom was every agent write blocked.
 
 **Eight backlog items** are recorded in the handoff, including one that closes only with a fixture
 that fails pre-change, and two harness defects: a write that landed on a path resolving to `NOBODY`
-and could not be reproduced, and `bash-write-guard.sh` parsing command *text* so a `$VAR` redirect
+and could not be reproduced, and `bash-write-guard.py` parsing command *text* so a `$VAR` redirect
 is denied while the identical literal path is allowed.
 
 ## The mirror

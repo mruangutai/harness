@@ -83,7 +83,7 @@ touch code, no re-verification cycle needed beyond re-reading the table.
   so a provenance entry corrupted to e.g. `"removed": ["unit"]` (nonsensical but structurally valid)
   would stay green — low impact, since nothing else in the repo consumes `removed` mechanically either
   (it is a human-audit field per DEC-187's note).
-- **Registration**: `test-config-shape-matrix.py` is in `run-unit-tests.sh`'s `UNIT_SCRIPTS` array (not
+- **Registration**: `test-config-shape-matrix.py` is in `run-unit-tests.py`'s `UNIT_SCRIPTS` array (not
   `INTEGRATION_SCRIPTS`), matching the file's own docstring claim ("nothing here forks a subprocess, so
   this is a UNIT-kind test") and the `unit` kind's `detect` glob.
 - **code_grade**: ran `code-grade.py --base $(git merge-base main HEAD) --head HEAD` directly (merge-base

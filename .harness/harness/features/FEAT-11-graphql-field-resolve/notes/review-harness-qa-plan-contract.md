@@ -21,7 +21,7 @@ SHA check confirms the tree hasn't moved):
 
 | # | Clause | Baseline today | Target | Vacuous? |
 |---|---|---|---|---|
-| 1 | `run-unit-tests.sh --kind unit` | n/a | green | no |
+| 1 | `run-unit-tests.py --kind unit` | n/a | green | no |
 | 2 | `test-factory-integration.py` direct | n/a | green | no |
 | 3 | quoted `"field-list"` in integration test = 0 | 1 | 0 | no, discriminates 1→0 |
 | 4 | quoted `"project", "view"` in integration test = 0 | 1 | 0 | no |
@@ -154,7 +154,7 @@ D-04's freeze rests entirely on human review of the diff, not on any automated c
 "match_bug_class"}]` verbatim. `__bug_class__` is a **judgment placeholder that resolves to no
 concrete `test_kinds` entry** (confirmed via DECISIONS.md ~line 5447: "a predicate placeholder that
 exists in no `test_kinds` and can therefore never resolve" mechanically — it is qa's judgment call
-at gate time, not an automatic binding). `run-unit-tests.sh:17-18` confirms
+at gate time, not an automatic binding). `run-unit-tests.py:17-18` confirms
 `test-factory-integration.py` is in `INTEGRATION_SCRIPTS`, absent from `UNIT_SCRIPTS`; `--kind
 unit` does not run it.
 

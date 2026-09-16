@@ -12,7 +12,7 @@ refusal costs a spawn and loses the work.
 
 | # | Task | Surface | Why layer 0 | Unblocked by |
 |---|---|---|---|---|
-| 1 | **T-01** | `.harness/team-config.yaml` | `check-domain.sh --resolve` prints `NOBODY`, and the file is the enforcement data `check-domain.sh` itself reads | nothing |
+| 1 | **T-01** | `.harness/team-config.yaml` | `check-domain.py --resolve` prints `NOBODY`, and the file is the enforcement data `check-domain.py` itself reads | nothing |
 | 2 | **T-04** | 6 craft + 6 repository Expertise files | granted to six different owners; three of them (a lead, a reviewer, the orchestrator) are not dispatchable task executors — D-03 | T-01, T-03 |
 | 3 | **T-06** | `harness-distill/SKILL.md`, `harness-curate/SKILL.md` | under `.claude/` only `skills/harness/bin/**` is granted to anyone | T-03, T-04 |
 
@@ -83,7 +83,7 @@ PY
 2. **T-04: do not reword any entry, in either direction.** The eleven are moved verbatim including
    continuation lines. A reworded entry cannot be checked against the anchors the verify uses, and
    rewording is a distillation act this plan does not authorise. Likewise **do not renumber the craft
-   files** — a numbering gap is correct, `check-expertise.sh` requires the id prefix and not
+   files** — a numbering gap is correct, `check-expertise.py` requires the id prefix and not
    contiguity, and DEC-66 makes the ids stable references.
 
 3. **T-06's `374`-entry figure is a historical measurement and is correct as written.** The tree now

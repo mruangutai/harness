@@ -25,7 +25,7 @@ board 2's lost signal; and the claim queue as settled.
   unconditional); `factory_claim.py:302` ready-station poll; `factory_decompose.py:414` ready write and
   `:393` "The parent is NEVER added"; `derive_station` returns building / review / None
   (`gh_board.py:88`); INV-26's `_EXPECT` — cited **by symbol**, because it sits at
-  `check-state.sh:1275` here, not the `:1234` the plan and D-24 cite.
+  `check-state.py:1275` here, not the `:1234` the plan and D-24 cite.
 - The board-3 measurement (539 items, zero Review, zero Ready, `f5f5185`), the 490–506 GraphQL points,
   the `SKILL.md:191` hole and FEAT-32's 9-of-17 are quoted from
   `notes/research-FEAT-33-station-writers.md`; no board read was performed.
@@ -37,8 +37,8 @@ board 2's lost signal; and the claim queue as settled.
 1. **The plan's `verify:` for T-19 is wrong at this SHA.** It says
    `gen-decisions-index.py --check`; there is no `--check` and the script exits **2** printing so.
    The real check is the `--stdout | diff` pipe, which I ran.
-2. **INV-26's widening (T-22) has not landed.** `check-state.sh` is unmodified in this worktree
-   (`git status`, and `git log -- check-state.sh` tops out at `5135ed6`), and `_EXPECT` still maps
+2. **INV-26's widening (T-22) has not landed.** `check-state.py` is unmodified in this worktree
+   (`git status`, and `git log -- check-state.py` tops out at `5135ed6`), and `_EXPECT` still maps
    `done` to the done station. The amendment records the widening on ruling 4's warrant, which is
    recorded; the code change is still `status: building`. If T-22 is abandoned, amendment 4's INV-26
    paragraph becomes false and needs an amendment of its own — not an edit.

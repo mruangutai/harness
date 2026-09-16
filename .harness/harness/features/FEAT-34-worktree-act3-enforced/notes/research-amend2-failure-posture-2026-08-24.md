@@ -33,8 +33,8 @@ criterion's job.
 - Evidence command is T-02's `verify:`, cross-checked against `plan.yaml`: it is exactly
   `python3 .claude/skills/harness/bin/test-worktree-terminal.py`. **No mismatch.**
 - `evidence: integration` is live: `harness.json` `test_kinds.integration.cmd` is
-  `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` (non-null), its `detect` list
-  names `.claude/skills/harness/bin/test-worktree-terminal.py`, and `run-unit-tests.sh:18`
+  `.claude/skills/harness/bin/run-unit-tests.py --kind integration` (non-null), its `detect` list
+  names `.claude/skills/harness/bin/test-worktree-terminal.py`, and `run-unit-tests.py:18`
   `INTEGRATION_SCRIPTS` contains the same basename. The kind reaches the file on both routes.
   `component`, `ui`, `eval`, `typecheck` and `functional` remain `cmd: null` and are not used.
 

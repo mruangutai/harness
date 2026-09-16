@@ -28,7 +28,7 @@ amendment_a5:
     em dash at HEAD - decoded values are equal, so A-5 asserts decoded equality and
     names the byte difference as a tolerance. My empty-diff suggestion over runs/
     paths is VACUOUS, 0 tracked paths at ae2443d. The third was the lead's own cycle-0
-    sign-off of a draft that had silently dropped check-state.sh and SKILL.md from
+    sign-off of a draft that had silently dropped check-state.py and SKILL.md from
     SC-05; the lead sent it back and clause 2 returns as SC-05 (c).
 baseline:
   answers: none
@@ -46,7 +46,7 @@ baseline:
     created by a SIGNED amendment is not rework, which is DEC-157's distinction.
 cost_usd: 370.53 at 3503d1d — final measurable figure; T-03 deleted the meter
 gate_status:
-  distillation: PASS — 12 Expertise files, all check-expertise.sh clean, re-run by
+  distillation: PASS — 12 Expertise files, all check-expertise.py clean, re-run by
     me
   docs: PASS — check-docs.sh re-run by me, exit 0, 45 patterns across 212 files
   goal_check: FAIL — 13 met; SC-05 and SC-06 amended by A-5, awaiting re-signature
@@ -55,7 +55,7 @@ gate_status:
   review: FAIL — 3 must_fix at med; MF-2 and MF-3 FIXED, MF-1 FIXED main-session-direct
   security: PASS — reviewer declared IN SCOPE and executed both suites; 0 findings
   ship_refresh: NOT_RUN — .harness/codebase/ does not exist, decided at ship
-  state: PASS — check-state.sh re-run by me, exit 0, zero violations
+  state: PASS — check-state.py re-run by me, exit 0, zero violations
   uat: NOT_REQUIRED — BRIEF states no uat criterion
   ui: PASS — reviewer LOOKED and declined with a file-extension census; DESIGN.md
     absent
@@ -137,7 +137,7 @@ sc_status:
   method: automated
   verdict: met
 - 8 note lines: null
-  evidence: check-state.sh exit 0
+  evidence: check-state.py exit 0
   id: SC-03
   method: automated
   verdict: met
@@ -222,7 +222,7 @@ verified_by_me:
     is how I checked.
   mf1: 'FIXED main-session-direct at :18 and :83. Two cost mentions remain at :47
     and :80 and STAY - plain English about a trade-off, neither instructing anyone
-    to produce a figure. Not an agent write: check-domain.sh BLOCKED documentor, orchestrator,
+    to produce a figure. Not an agent write: check-domain.py BLOCKED documentor, orchestrator,
     dev-ops and pm on that path.'
   numbers: 21 commits and 33 files in ae2443d..942505e — measured, not relayed
   t10: All five verify clauses re-run at 942505e - compound sweep leaves one hit carrying

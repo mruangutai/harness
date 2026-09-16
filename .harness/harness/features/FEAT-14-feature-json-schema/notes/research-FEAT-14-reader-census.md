@@ -14,14 +14,14 @@ modified and `bin/deploy.sh` deleted). No cited reader below is in a file FEAT-1
 
 | key | reader | expression that consumes it |
 |---|---|---|
-| `runs[].id`, `.squad`, `.verdict` | `bin/check-state.sh:184-190` | `entry.get("id"/"squad"/"verdict")` into the INV-6/7/8 run tuples |
-| `review_sha` | `bin/check-state.sh:195` | `val("review_sha")` vs `PLACEHOLDER_UNSET` |
-| `cycles_used` | `bin/check-state.sh:203` | `val("cycles_used")` vs the FAIL-run count |
-| `max_total_runs` | `bin/check-state.sh:249` | `_as_budget(val("max_total_runs"))` (INV-22) |
-| `phase` | `bin/check-state.sh:450` | `str(_doc.get("phase",""))` for the phase invariants |
+| `runs[].id`, `.squad`, `.verdict` | `bin/check-state.py:184-190` | `entry.get("id"/"squad"/"verdict")` into the INV-6/7/8 run tuples |
+| `review_sha` | `bin/check-state.py:195` | `val("review_sha")` vs `PLACEHOLDER_UNSET` |
+| `cycles_used` | `bin/check-state.py:203` | `val("cycles_used")` vs the FAIL-run count |
+| `max_total_runs` | `bin/check-state.py:249` | `_as_budget(val("max_total_runs"))` (INV-22) |
+| `phase` | `bin/check-state.py:450` | `str(_doc.get("phase",""))` for the phase invariants |
 | `status` | `bin/check-plan-routes.py:427` | `str(doc.get("status","")).split()[0] in SHIPPED_STATUSES` |
-| `github` | `bin/gh-sync.py:247-260`; `bin/check-state.sh:729-737` | `load_recorded` returns `milestone/parent/parent_origin/attached/issues`; INV-21 reads `gblk.get("issues"/"parent")` |
-| `factory` | `bin/factory_decompose.py:94-138`; `bin/factory_claim.py:116-131`; `bin/check-state.sh:758-798` | `doc.get("factory")` then `repo/parent/parent_origin/issues/items/edges` |
+| `github` | `bin/gh-sync.py:247-260`; `bin/check-state.py:729-737` | `load_recorded` returns `milestone/parent/parent_origin/attached/issues`; INV-21 reads `gblk.get("issues"/"parent")` |
+| `factory` | `bin/factory_decompose.py:94-138`; `bin/factory_claim.py:116-131`; `bin/check-state.py:758-798` | `doc.get("factory")` then `repo/parent/parent_origin/issues/items/edges` |
 
 `factory` is **read and written by code but present in zero feature.yaml files today** — the
 factory tooling writes it on first decompose. Omitting it from the schema would make the factory's
@@ -66,15 +66,15 @@ including FEAT-14's own.
 ## Line budgets after conversion
 
 Reduced to the twelve keys and dumped as `json.dumps(indent=2)`: worst case is FEAT-10 at
-**173 lines** (32 runs), against check-domain.sh's 200-line budget for this path
-(`check-domain.sh:506` SWEEP_GLOBS, message at `:636`). Roughly 5 JSON lines per run entry, so
+**173 lines** (32 runs), against check-domain.py's 200-line budget for this path
+(`check-domain.py:506` SWEEP_GLOBS, message at `:636`). Roughly 5 JSON lines per run entry, so
 FEAT-10 breaches at ~38 runs. The 20-comment-line half of that budget becomes unreachable — JSON
 has no comments.
 
 ## Template and dependency facts
 
 - `.claude/skills/harness/templates/` at `3569a20` has no `feature.yaml`/`feature.json`, while
-  `check-state.sh:487` (INV-18) and `.claude/skills/harness/SKILL.md:23` both instruct
+  `check-state.py:487` (INV-18) and `.claude/skills/harness/SKILL.md:23` both instruct
   instantiation from it. Both instructions point at nothing.
 - There is **no `requirements.txt` and no `pyproject.toml`** in this repo. PyYAML is declared in
   `.claude/skills/harness-init/SKILL.md:48-55` and installed at

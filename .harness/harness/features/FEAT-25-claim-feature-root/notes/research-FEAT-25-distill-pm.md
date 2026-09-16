@@ -1,7 +1,7 @@
 # Distillation pass — harness-pm — FEAT-25
 
 **Two candidates accepted by displacement, one rejected. Counts unchanged: 15/15/6/0 before and
-after; `check-expertise.sh` exits 0.** No repository-tier file created — neither entry turns on a
+after; `check-expertise.py` exits 0.** No repository-tier file created — neither entry turns on a
 fact true of this repository alone.
 
 ## Ops applied to `.harness/expertise/harness-pm.md`
@@ -66,5 +66,5 @@ I concur with each filtering reason and resurrect none.
 | Outcomes | 10 | 6 | 6 |
 | Open | 5 | 0 | 0 |
 
-`.claude/skills/harness/bin/check-expertise.sh .harness/expertise/` → exit 0, all 15 files OK, no
+`.claude/skills/harness/bin/check-expertise.py .harness/expertise/` → exit 0, all 15 files OK, no
 advisory flag on `harness-pm.md`. Nothing committed or staged.

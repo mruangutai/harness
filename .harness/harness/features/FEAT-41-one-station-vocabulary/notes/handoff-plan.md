@@ -28,7 +28,7 @@ Then re-parse, run check-plan-routes.py, commit, and return for signature.
 - Removing the ready/Backlog exception costs ZERO card moves; board 3 holds 656 cards, 211 are task sub-issues, 0 at Backlog — pm measured, and it OVERTURNS the operator's assumed cost
 - The migration is 7 features and 55 task lines, not 28; my independent count agreed with pm exactly — verified by both of us separately
 - The three strikes use the in-place form at DECISIONS.md:3228 and :4436 — pm read :3228, I read the same shape near :3200
-- F-1 is well founded: check-domain.sh circa 1161-1167 says deny() appends ROUTING speaking about STATE.md — verified by me
+- F-1 is well founded: check-domain.py circa 1161-1167 says deny() appends ROUTING speaking about STATE.md — verified by me
 - Nothing is signed; BRIEF.md:174 pending — verified by me, so SC edits need no operator ruling
 - T-06's parent rule would have projected 22 of 23 parent cards to Review while they sit at Done, now fixed by rule — pm's finding, I did NOT re-check | UNVERIFIED
 - Issue 223 absent from board 3, and FEAT-28's Done card for an abandoned feature — pm's claims | UNVERIFIED

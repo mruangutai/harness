@@ -16,7 +16,7 @@ git diff --stat 8fc87f8..4e652f9      # exactly as the dispatch specified
 full FEAT-37 replan-and-rebuild plus FEAT-42's plan/build/validate history, not the 9-file set the
 dispatch narrates (SKILL.md, `inflight_registry.py`, a shell test runner, two test files, three docs,
 one backlog note). I can locate that 9-file set as a plausible subset —
-`.claude/skills/harness-team/SKILL.md`, `inflight_registry.py`, `run-unit-tests.sh`,
+`.claude/skills/harness-team/SKILL.md`, `inflight_registry.py`, `run-unit-tests.py`,
 `test-inflight-registry.py` (+ one more test file), `DECISIONS-INDEX.md` + `DECISIONS.md` + `SPEC.md`,
 and `.harness/notes/backlog-orchestrator-inoculation-2026-08-27.md` — but the literal command given
 does not isolate it. **Flagging the mismatch below as a non-blocking open question**; it does not

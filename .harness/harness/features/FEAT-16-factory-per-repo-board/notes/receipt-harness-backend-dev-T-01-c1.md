@@ -54,7 +54,7 @@ in `test-factory-config.py` standalone, and the full unit suite below.
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Verbatim stdout+stderr (captured to a file, exit code appended as the last line — no lines
@@ -803,5 +803,5 @@ no `FAIL <script>` line appears anywhere in the output above.
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched.
-- `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` not touched.
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` not touched.
 - Top-level board remains OPTIONAL, never rejected (that is T-08's).

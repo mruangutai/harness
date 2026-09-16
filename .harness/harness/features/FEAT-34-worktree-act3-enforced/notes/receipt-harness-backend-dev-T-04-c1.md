@@ -4,7 +4,7 @@
 
 Added `case_cwd_outside_repo()` (case (h)) to `test-post-merge-sweep.py`: the sweep invoked with
 cwd OUTSIDE the repository still finds the repository and sweeps it. Written and run RED against
-the UNFIXED `post-merge-sweep.sh` first (verbatim failing output below), then T-03's fix applied,
+the UNFIXED `post-merge-sweep.py` first (verbatim failing output below), then T-03's fix applied,
 then the full suite re-run GREEN. Every existing case (a)-(g) was reworked around a new
 fixture-local-bin-dir mechanism so that, once T-03's fix lands (root derived from the sweep
 script's own on-disk location, not cwd), no case is capable of resolving root to — and therefore
@@ -12,7 +12,7 @@ acting on — the real harness checkout.
 
 ## THE HAZARD, and how it was closed
 
-Before this rework every case ran the REAL `post-merge-sweep.sh` at its real absolute path
+Before this rework every case ran the REAL `post-merge-sweep.py` at its real absolute path
 (`SWEEP`), with only `cwd` pointed at a throwaway fixture. That worked only because the OLD
 `_resolve_repo_root()` derived root from cwd. Once root is derived from the script's own location
 instead, every one of those cases would resolve root as THIS repository, and non-dry-run cases
@@ -24,12 +24,12 @@ Fix: `_install_fixture_bin(fixture_root)` gives each fixture its own REAL
 file the real bin dir carries (`worktree_terminal.py`, `factory_config.py`, `gh-sync.py`,
 `feature-worktree.py`, and everything else under `BIN_DIR` — enumerated via `os.listdir(BIN_DIR)`
 filtered to files, not guessed). Every case now invokes the fixture-local
-`post-merge-sweep.sh` (itself a symlink) instead of the module-level `SWEEP` constant.
+`post-merge-sweep.py` (itself a symlink) instead of the module-level `SWEEP` constant.
 `_install_hook` and `_mutated_copy` were updated the same way — hooks exec the fixture-local
 sweep; mutated copies are written INTO the fixture's own bin dir (no more `BIN_DIR` hardcoding
 needed, since the mutated copy's unmodified `BIN_DIR=...` line now resolves correctly on its own).
 
-**Mandatory safety belt — how it's proven, not just arranged.** `post-merge-sweep.sh`'s `main()`
+**Mandatory safety belt — how it's proven, not just arranged.** `post-merge-sweep.py`'s `main()`
 now prints `post-merge-sweep: resolved repository root: {root}` before acting on any record (T-03
 change). Every case in this file calls `_assert_resolved_root_in_fixture(results, label, output,
 fixture_root)`, which reads that printed line back out of the sweep's own output and asserts
@@ -45,7 +45,7 @@ not `stdout`, of the `git merge` subprocess.
 ## Order of work — RED first, verbatim
 
 1. Wrote `case_cwd_outside_repo()` plus the full fixture-local-bin-dir rework (all of the above)
-   in `test-post-merge-sweep.py`, with `post-merge-sweep.sh` still UNCHANGED (unfixed,
+   in `test-post-merge-sweep.py`, with `post-merge-sweep.py` still UNCHANGED (unfixed,
    `_resolve_repo_root()` still cwd-based via `git worktree list --porcelain`).
 
 2. Ran, invocation:
@@ -73,7 +73,7 @@ not `stdout`, of the `git merge` subprocess.
    sweep`, printed verbatim by the unfixed script, and the fixture's terminal worktree left
    standing with no `gh` call ever reaching the milestone.
 
-3. Applied T-03's fix to `post-merge-sweep.sh` (see the T-03 receipt) — nothing in this file
+3. Applied T-03's fix to `post-merge-sweep.py` (see the T-03 receipt) — nothing in this file
    touched between steps 2 and 3.
 
 4. Re-ran the same command. All cases, including (h)'s three assertions, now PASS. Full output
@@ -147,17 +147,17 @@ Cross-checked verbatim against `plan.yaml` T-04's `verify:` block — identical 
 - `python3 .claude/skills/harness/bin/test-worktree-terminal.py` — exit `0`, 34/34 PASS
   (`grep -c "^PASS"` on the same run = 34; last line `T02_EXIT=0`). Unaffected by this dispatch's
   scope — run to confirm no regression.
-- `.claude/skills/harness/bin/run-unit-tests.sh --check-kinds` — output
+- `.claude/skills/harness/bin/run-unit-tests.py --check-kinds` — output
   `check-kinds: the script arrays and test_kinds.integration.detect agree.`, exit `0`. No
   KIND-DRIFT, no MISCONFIGURED.
-- `.claude/skills/harness/bin/check-state.sh` — exit `0`. Output contains only `note`-severity
+- `.claude/skills/harness/bin/check-state.py` — exit `0`. Output contains only `note`-severity
   lines (pre-existing, unrelated to this dispatch — stale run references, STATE.md budget/section
   notes on other features); `grep -iE "violation"` over the full captured output, excluding `note`
   lines, returned zero matches. Zero violations.
 
 ## Files touched
 
-- `.claude/skills/harness/bin/post-merge-sweep.sh`
+- `.claude/skills/harness/bin/post-merge-sweep.py`
 - `.claude/skills/harness/bin/test-post-merge-sweep.py`
 
 `git diff --stat` on these two paths only: `2 files changed, 229 insertions(+), 52 deletions(-)`.

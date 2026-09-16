@@ -5,7 +5,7 @@
 - `.claude/skills/harness/bin/quarantine.py` (new) — stdlib-only `list|adopt|discard` CLI.
 - `.claude/skills/harness/bin/test-quarantine.py` (new) — 25 checks across the 7 required
   behaviours plus one bonus (empty `list`), all PASS.
-- `.claude/skills/harness/bin/run-unit-tests.sh` — `test-quarantine.py` appended to
+- `.claude/skills/harness/bin/run-unit-tests.py` — `test-quarantine.py` appended to
   `INTEGRATION_SCRIPTS` (1-line diff).
 - `.harness/harness.json` — `.claude/skills/harness/bin/test-quarantine.py` appended to
   `test_kinds.integration.detect` (1-line diff).
@@ -18,8 +18,8 @@ tree via `shutil.rmtree` (never a shell), refusing anything that does not resolv
 
 ## PREFIX spelling correction — verified as instructed
 
-The plan's `intent:` for T-04 claims the KIND CROSS-CHECK in `run-unit-tests.sh` uses the
-`.agents` spelling as its `PREFIX`. That is stale. At worktree HEAD, `run-unit-tests.sh`
+The plan's `intent:` for T-04 claims the KIND CROSS-CHECK in `run-unit-tests.py` uses the
+`.agents` spelling as its `PREFIX`. That is stale. At worktree HEAD, `run-unit-tests.py`
 lines 97–132 (the `KINDCHECK` heredoc) set:
 
 ```python
@@ -143,12 +143,12 @@ EXIT:0
 
 ```
 python3 .agents/skills/harness/bin/test-quarantine.py &&
-.agents/skills/harness/bin/run-unit-tests.sh --kind unit
+.agents/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 **Part 1** (`test-quarantine.py` alone): exit **0**, 25/25 PASS (shown above).
 
-**Part 2** (`run-unit-tests.sh --kind unit`): exit **1**. `^FAIL ` line count: **4**, all four
+**Part 2** (`run-unit-tests.py --kind unit`): exit **1**. `^FAIL ` line count: **4**, all four
 in scripts and code this task does not own and is explicitly forbidden from touching
 (`inflight_registry.py`, `test-lead-stop-and-wake.py`, `validate-digest.py`'s T-51
 suspension-case grading):
@@ -161,7 +161,7 @@ FAIL test-code-grade.py
 ```
 
 **These four failures are PRE-EXISTING and unrelated to T-04**, confirmed by `git stash -u`
-of every file this task touched (`run-unit-tests.sh`, `harness.json`, `quarantine.py`,
+of every file this task touched (`run-unit-tests.py`, `harness.json`, `quarantine.py`,
 `test-quarantine.py`) and re-running `--kind unit` against the bare worktree HEAD: identical
 4 failures, identical messages, same exit 1. `git status` on the four implicated files
 (`inflight_registry.py`, `validate-digest.py`, `test-lead-stop-and-wake.py`,
@@ -169,7 +169,7 @@ of every file this task touched (`run-unit-tests.sh`, `harness.json`, `quarantin
 which itself advanced twice more during this dispatch (`741804ad` → `72ec341d` → `a033793a`)
 from other lanes' concurrent commits (`t-03 quarantine orphan canonical writes`, `t-07 guard
 orphan Bash mutations`, `t-10 test quarantine fail-open paths` — a different "quarantine"
-mechanism than this task's CLI, touching `check-domain.sh`/`team-config.yaml`/
+mechanism than this task's CLI, touching `check-domain.py`/`team-config.yaml`/
 `test-check-domain.py`/`test-plan-sign-gate.py`, none of which this task's diff overlaps).
 
 **Combined verify command exit status: 1** (the `&&` chain stops clean at part 1's exit 0,
@@ -179,7 +179,7 @@ separate numbers, reported separately as instructed.
 ## Registered kinds
 
 `test-quarantine.py: python3 .claude/skills/harness/bin/test-quarantine.py` (via
-`run-unit-tests.sh --kind integration`).
+`run-unit-tests.py --kind integration`).
 
 ## Open question for the routing tier
 

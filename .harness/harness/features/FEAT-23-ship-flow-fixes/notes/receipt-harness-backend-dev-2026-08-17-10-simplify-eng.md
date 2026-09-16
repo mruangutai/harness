@@ -44,7 +44,7 @@ text only.
 
 ## Suite results
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0, **16/16 scripts PASS**:
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0, **16/16 scripts PASS**:
 ```
 PASS test-harness-yaml-corpus.py
 PASS test-render-brief.py
@@ -64,7 +64,7 @@ PASS test-layout-migration.py
 PASS test-board-station.py
 ```
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0, **12/12 scripts PASS**:
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0, **12/12 scripts PASS**:
 ```
 PASS test-validate-digest.py
 PASS test-gh-sync.py

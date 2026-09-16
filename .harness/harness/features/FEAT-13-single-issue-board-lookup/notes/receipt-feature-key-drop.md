@@ -40,7 +40,7 @@ expertise_collision: 'THE ONE THING THAT NEEDS THE OPERATOR, and it is not a FEA
   files, uncommitted, in the main checkout - its distill receipts are on disk there
   and its modified set GREW during my run, which is how I know it is live rather than
   stale. Two features are writing one shared memory in two checkouts with no lineage
-  check anywhere: check-expertise.sh validates FORMAT, not lineage, so a wipe passes
+  check anywhere: check-expertise.py validates FORMAT, not lineage, so a wipe passes
   it cleanly. Both eng-lead and product-lead independently hit this and both returned
   it blocking. MY RESOLUTION, conservative on purpose: I committed only the three
   files FEAT-13 alone touched - product-lead, ui-reviewer, validator-lead - and did
@@ -127,7 +127,7 @@ what_fix01_closed: 'Three properties asserted in PROSE and enforced ZERO times. 
 worktree_reason: 'THE DISPATCH PREMISE WAS FALSE. It said the branch was created,
   checked out and signed; it exists and is signed, but the main checkout sits on chore/203-end-copy-distribution,
   FEAT-12 mid-build, and checking out would have pulled a live flow''s tree from under
-  it. The worktree path is the DEC-143 shape - check-domain.sh strips a single-segment
+  it. The worktree path is the DEC-143 shape - check-domain.py strips a single-segment
   .claude/worktrees/<name>/ prefix and matches identical globs, so no grant widens.
   A worktree OUTSIDE the project root hits the commonpath escape and the hook RETURNS
   WITHOUT ENFORCING: a silent fail-open, worse than a block. THE TRAP IS LIVE - pm''s

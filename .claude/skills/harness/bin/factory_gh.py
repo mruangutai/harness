@@ -23,9 +23,11 @@ import json
 import os
 import subprocess
 
+import artifact_accessors
 import factory_cli
 import gh_cost_log
 import gh_issues
+import gh_issue_types
 
 _LABEL_COLOR = "5319e7"
 
@@ -167,7 +169,7 @@ def run_gh(args, json_out=False):
         raise GhError(args, r.returncode, r.stdout, r.stderr,
                       _what_from_argv(args), _value_from_argv(args), next_step)
     if json_out:
-        return json.loads(r.stdout)
+        return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
     return r.stdout.strip()
 
 
@@ -209,6 +211,25 @@ def create_issue(repo, title, body, labels):
             "output did not contain a /issues/<n> URL",
         )
     return int(tail[1].strip())
+
+
+def detect_issue_types(repo):
+    """Detect whether `repo` supports native GitHub Issue Types (T-08). NEVER raises: an
+    undetectable capability - the query itself failing - is compatibility mode, not a tool
+    failure, so the caller falls back to the label vocabulary instead of aborting."""
+    try:
+        output = run_gh(gh_issue_types.capability_query_args(repo))
+    except GhError as e:
+        return gh_issue_types.classify_capability(e.status or 1, e.stdout or e.stderr or "")
+    return gh_issue_types.classify_capability(0, output)
+
+
+def apply_issue_type(repo, number, type_id):
+    """Apply `type_id` (a node id from detect_issue_types' declared mapping) to issue
+    `number`. Propagates GhError exactly as create_issue does - a failed type-apply must be
+    visible, and the caller's receipt ordering is what makes it recoverable."""
+    node_id = run_gh(gh_issue_types.node_id_args(repo, number)).strip()
+    run_gh(gh_issue_types.apply_type_args(node_id, type_id))
 
 
 def issue_view(repo, number, fields):
@@ -371,6 +392,109 @@ def project_item_stations(owner, number, field_name):
     return items_out
 
 
+# The BY-ISSUE station read (issue #1541). `project_item_stations` above reads the WHOLE board,
+# and every caller but one already knows the issue numbers it cares about, so the whole-board
+# read made cost scale with lifetime board history instead of with work in flight.
+#
+# MEASURED 2026-09-09, board 3: 918 items, `items(first: 100)` is at GitHub's ceiling, so the
+# read took 10 SEQUENTIAL `gh` processes at ~0.8-1.1s each — 11.25s of check-state.py's 14.3s,
+# paid on every pre-commit run, against 14 non-terminal features carrying zero mirrored issues.
+# The board had 474 items three weeks earlier: this is a cost that grows with history, because a
+# card stays on the board after its issue closes.
+#
+# The old comment at _STATION_QUERY says "the driver is this SELECTION, not the node count".
+# That is true of the GraphQL POINT budget and false of wall clock, where the driver is page
+# count times process spawn. Both costs are real; this function is the one that fixes latency.
+#
+# `projectItems(first: 20)`: an issue sits on few boards, and `hasNextPage` REFUSES rather than
+# silently missing the board we were asked about — the same posture as the truncation guard above.
+_ISSUE_STATION_ALIAS = """  i%(num)d: issue(number: %(num)d) {
+    number
+    projectItems(first: 20) {
+      pageInfo { hasNextPage }
+      nodes {
+        project { number }
+        fieldValueByName(name: $field) {
+          ... on ProjectV2ItemFieldSingleSelectValue { name }
+        }
+      }
+    }
+  }"""
+
+# One request per this many issues. GitHub caps a GraphQL document's complexity, not its alias
+# count, and 50 aliases at 20 project items each stays far inside it. The batch exists so the
+# call count grows with in-flight work and does so 50x more slowly than the issue count.
+ISSUE_STATION_BATCH = 50
+
+
+def issue_stations(repo, project_number, field_name, numbers):
+    """Return {issue number: station or None} for those `numbers` that are ON `project_number`.
+
+    The by-issue counterpart of `project_item_stations`, and deliberately the same output
+    vocabulary as `gh_board.board_stations` consumes:
+
+    - a number ABSENT from the result is not on that board;
+    - a number present with None is on the board with no value for `field_name`.
+
+    Those are two different findings and neither is a default (D-02). An issue that does not
+    exist, or that GraphQL resolves to null, is absent — not an error: a feature can record an
+    issue number whose card was never added, and the caller reports that as its own finding.
+
+    NO NETWORK CALL IS MADE FOR AN EMPTY `numbers`. That is not an optimisation detail, it is
+    the invariant issue #1541 turns on: a checkout with nothing in flight pays nothing.
+
+    Raises GhError, never returns a partial, when `repository` resolves null (a bad repo name
+    must fail loudly rather than report every card missing) or when an issue is on more project
+    boards than one page holds.
+    """
+    if "/" not in repo:
+        raise GhError(["api", "graphql"], None, "", "",
+                      "issue stations unreadable", repo,
+                      "repo must be owner/name")
+    owner, name = repo.split("/", 1)
+    wanted = sorted({int(n) for n in numbers})
+    out = {}
+    for start in range(0, len(wanted), ISSUE_STATION_BATCH):
+        chunk = wanted[start:start + ISSUE_STATION_BATCH]
+        aliases = "\n".join(_ISSUE_STATION_ALIAS % {"num": n} for n in chunk)
+        query = ("query($owner: String!, $name: String!, $field: String!) {\n"
+                 "  repository(owner: $owner, name: $name) {\n"
+                 + aliases + "\n  }\n}\n")
+        argv = ["api", "graphql",
+                "-F", "owner=" + owner,
+                "-F", "name=" + name,
+                "-F", "field=" + field_name,
+                "-f", "query=" + query]
+        env = run_gh(argv, json_out=True)
+        data = env.get("data") if isinstance(env, dict) else None
+        repository = data.get("repository") if isinstance(data, dict) else None
+        if repository is None:
+            raise GhError(argv, None, "", "",
+                          "issue stations unreadable",
+                          f"{repo}: repository is null",
+                          "check the repository name — a null here would otherwise read as "
+                          "every card being off the board")
+        for num in chunk:
+            node = repository.get("i%d" % num)
+            if node is None:
+                continue
+            items = node.get("projectItems") or {}
+            if (items.get("pageInfo") or {}).get("hasNextPage"):
+                raise GhError(argv, None, "", "",
+                              "issue project items truncated",
+                              f"{repo}#{num}",
+                              "the issue is on more boards than one page holds, so the "
+                              "board under check may not have been read")
+            for item in items.get("nodes") or []:
+                if (item.get("project") or {}).get("number") != project_number:
+                    continue
+                field_value = item.get("fieldValueByName")
+                out[num] = (field_value["name"]
+                            if field_value and "name" in field_value else None)
+                break
+    return out
+
+
 # The single named-field query, cost 1, replacing the two calls it used to take (D-01):
 # `gh project field-list` (102 GraphQL points, fetches every field) and `gh project view`
 # (2 points, only for the node id). The inline fragment on ProjectV2Owner is what lets one
@@ -417,8 +541,9 @@ def _project_field_resolve(owner, number, field):
         parsed = None
         if e.stdout:
             try:
-                parsed = json.loads(e.stdout)
-            except ValueError:
+                parsed = artifact_accessors.parse_gh_json(
+                    e.stdout, "GitHub project field response")
+            except artifact_accessors.ArtifactAccessError:
                 parsed = None
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
@@ -518,8 +643,9 @@ def project_resolve(owner, number):
         parsed = None
         if e.stdout:
             try:
-                parsed = json.loads(e.stdout)
-            except ValueError:
+                parsed = artifact_accessors.parse_gh_json(
+                    e.stdout, "GitHub project response")
+            except artifact_accessors.ArtifactAccessError:
                 parsed = None
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
@@ -802,8 +928,9 @@ def issue_board_item_id(repo, number, board_number):
         parsed = None
         if e.stdout:
             try:
-                parsed = json.loads(e.stdout)
-            except ValueError:
+                parsed = artifact_accessors.parse_gh_json(
+                    e.stdout, "GitHub issue board response")
+            except artifact_accessors.ArtifactAccessError:
                 parsed = None
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed

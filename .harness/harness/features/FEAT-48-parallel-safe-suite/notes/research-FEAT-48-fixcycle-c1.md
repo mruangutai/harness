@@ -16,11 +16,11 @@ does not cover. One finding of my own: T-06's old serial-loop assertion was **un
 |---|---|---|
 | G-01 | **FIXED (FEAT-48 half)** | `BRIEF.md:169-184` no longer predicts FEAT-47's behaviour. It claims only what FEAT-48 controls — the two files *require* no edit to their logic — and names the narrower truth: `test-suite-independence.py` anchors its `harness_boundary` import on its own directory, so the move **does** require an edit to that import. It records that FEAT-47's T-03 text was stale as read on 2026-08-31 and that the correction is FEAT-47's. Mirrored at `plan.yaml` D-09 (`:112-118`) and T-03 intent (`:445-450`). FEAT-47's pm confirmed by IRC it has removed its restatements of D-11 and cites D-11 by reference |
 | G-02 | **DISMISSED, no edit** | The lead's instruction stands: a hand-typed note passes T-06's shape gate, tightening the regexes buys nothing, and only a reader catches fabrication. Already disclosed in two places — `plan.yaml` T-06 intent and `BRIEF.md` `## Verification gaps` — so the gap is on the record where the user signs. What the fix cycle *did* add there is a required `tree condition:` line, which is a different gap (VL-02), not this one |
-| G-03 | **FIXED** | Registration moved into the task that creates the file. T-04 now edits `run-unit-tests.sh` and `.harness/harness.json` (`plan.yaml:561-565`), its verify asserts `--check-kinds` exits 0, and its intent step 3 (`:713-725`) records why. T-06 no longer registers anything and dropped `harness.json` from `files:`. `change_type` on T-04 becomes `cross_module`. Verified live: `on: push: branches:[main]` plus bare `pull_request:` at `.github/workflows/tests.yml:19-22`, so this was a live red build, not a window |
+| G-03 | **FIXED** | Registration moved into the task that creates the file. T-04 now edits `run-unit-tests.py` and `.harness/harness.json` (`plan.yaml:561-565`), its verify asserts `--check-kinds` exits 0, and its intent step 3 (`:713-725`) records why. T-06 no longer registers anything and dropped `harness.json` from `files:`. `change_type` on T-04 becomes `cross_module`. Verified live: `on: push: branches:[main]` plus bare `pull_request:` at `.github/workflows/tests.yml:19-22`, so this was a live red build, not a window |
 | VL-02 | **FIXED** | `D-11`'s watched set narrowed (below), and the operating condition is now stated in the decision rather than mis-framed as an operator slip. T-06 must record `tree condition: <...>`, parsed by its verify; `SC-05` requires it and fails without it |
 | reader's `D-11` overclaim | **FIXED** | The sentence "against every vector including the two the scan is blind to" is gone. `D-11`'s `because` now carries an explicit *what it covers / what it does not* paragraph: vector-agnostic inside DIR, **blind outside it**, where T-03's static scan with its two known holes is the only enforcement — and it says the two together are not complete |
 | reader's SC-08 note | **DISMISSED, no edit** | Both readers named it and declined to file it; agreed, and their reason is already recorded in the c1 note |
-| **PM-01 (mine, new)** | **FIXED** | T-06's verify required `not loop` where `loop` was every line starting `for s in`. Line 64 of `run-unit-tests.sh` is `for s in "${ALL_SCRIPTS[@]}"` — the drift detector, which the same intent says must stay — so the block **could never pass**. Replaced with `'"${SCRIPTS[@]}"' not in sh`: line 148 is that string's only occurrence and the new invocation spells `"${SCRIPTS[@]/#/$BIN_DIR/}"`. The intent now warns the next author off the old idiom |
+| **PM-01 (mine, new)** | **FIXED** | T-06's verify required `not loop` where `loop` was every line starting `for s in`. Line 64 of `run-unit-tests.py` is `for s in "${ALL_SCRIPTS[@]}"` — the drift detector, which the same intent says must stay — so the block **could never pass**. Replaced with `'"${SCRIPTS[@]}"' not in sh`: line 148 is that string's only occurrence and the new invocation spells `"${SCRIPTS[@]/#/$BIN_DIR/}"`. The intent now warns the next author off the old idiom |
 
 ## D-11's new mechanism, and the evidence for it
 
@@ -43,13 +43,13 @@ makes it red:
 
 Why `$BIN_DIR` and not ROOT: agents write `.harness/harness/features/**` continuously while suites
 run (operator measurement: 1,904 tracked files modified in three hours across the live worktrees),
-and `run-unit-tests.sh` is invoked *by* those agents. `bin/` is the shared code every test imports
+and `run-unit-tests.py` is invoked *by* those agents. `bin/` is the shared code every test imports
 from, both observed hazard sites are in it, and no agent writes it during a run. The accepted
 residual: an edit to a file in `bin/` during a run trips it — rarer, and not a false alarm in the
 same sense, since the suite's own code changed underneath it.
 
 `SC-10` was rewritten to grade this and can still fail: seven named failure modes, including the new
-creating-fixture leg, the `__pycache__` false-positive leg, and *"`run-unit-tests.sh` invokes the pool
+creating-fixture leg, the `__pycache__` false-positive leg, and *"`run-unit-tests.py` invokes the pool
 with any argument other than `"$BIN_DIR"`"* — so a later revert to root-wide is a red gate.
 
 ## The unevaluable item, now pinned

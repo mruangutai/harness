@@ -27,7 +27,7 @@ then wrote `plan-merge.py` to GREEN. The restart is real, not narrated after the
 
 Ran the task's `verify:` string verbatim (matches the plan's T-03 `verify:` word for word — no
 mismatch). One accepted substitution, per the dispatch: the plan's literal
-`cp -R "$S" "$T/bin"` line is denied by `bash-write-guard.sh` (resolves `$T` unexpanded, reads it
+`cp -R "$S" "$T/bin"` line is denied by `bash-write-guard.py` (resolves `$T` unexpanded, reads it
 as an out-of-domain target). Replaced that one line with
 `python3 -c "shutil.copytree(sys.argv[1], sys.argv[2])" "$S" "$T/bin"` into the same
 `mktemp -d` location — no other line changed. Full `verify:` (with that substitution) exited 0,
@@ -97,8 +97,8 @@ simply deleting the assertion. Documented inline in the test file.
 ## `--check-kinds`
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
-MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.sh's explicit script list
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.py's explicit script list
 EXIT_CODE=2
 ```
 

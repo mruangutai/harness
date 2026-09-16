@@ -22,7 +22,7 @@ git merge-base HEAD <base>              # this is base
 Record it:
 
 ```
-.harness/harness/features/<FEAT>/review_sha     # contains the SHA and the timestamp
+<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/review_sha     # contains the SHA and the timestamp
 ```
 
 Every subsequent step diffs `base..<review_sha>`. **Never `..HEAD`.** If a `review_sha` already exists
@@ -38,7 +38,7 @@ git status --porcelain
 | Found | Action |
 |---|---|
 | `[harness:human]` commits since the last pin | **Report them explicitly** and treat the paths they touch as unreviewed. They do not inherit any earlier pass |
-| Uncommitted changes outside `.harness/**` | **Stop.** Report the dirty tree and ask the user to commit (with `[harness:human]`) or stash. Reviewing a tree that does not match any commit produces a meaningless verdict |
+| Uncommitted changes outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** Report the dirty tree and ask the user to commit (with `[harness:human]`) or stash. Reviewing a tree that does not match any commit produces a meaningless verdict |
 | Unattributed commits that look manual | Report as a finding — attribution is what makes recovery and review scope derivable |
 
 The invariant: **a hand edit is never silently in scope.** Shipping on a green review that never saw the
@@ -49,7 +49,7 @@ user's change is worse than halting.
 **Ordered first deliberately** — wrong-thing-built-well is the costlier failure, and finding it
 second wastes the quality pass.
 
-Read `.harness/harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
+Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md`. For each perspective under `## Done when — by perspective` and each `SC-NN`:
 
 - Is it delivered by this diff, or explicitly out of scope for this change?
 - For `verify: automated` criteria — does the named test kind actually exercise it? (`harness-qa-gate`
@@ -57,7 +57,7 @@ Read `.harness/harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC
 - For `verify: inspection` criteria — **this is where you verify them.** Cite `file:line`.
 - For `verify: uat` criteria — note them as pending the user, not as met.
 
-Also flag **scope leakage**: work in the diff that no REQ asked for. Unrequested changes are a finding
+Also flag **scope leakage**: work in the diff that no SC asked for. Unrequested changes are a finding
 even when they are improvements.
 
 ### 4. Stage two — code quality
@@ -67,6 +67,11 @@ Only after stage one. Judge against the codebase's existing conventions, not an 
 Look for: correctness bugs, unhandled errors, silent failure paths, missing input validation, dropped
 async rejections, off-by-one and boundary conditions, resource leaks, dead code left behind,
 copy-paste divergence, and comments that no longer match the code.
+
+For every absence assertion, name the presence assertion beside it; for every criterion that
+claims to exclude a wrong implementation, name the mutant and flip it. The canonical rule and its
+evidence: `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness-code-review/SKILL.md § Absence, subject and mutant (DEC-169,
+issue #979)` — read it before judging any added or changed assertion.
 
 **Do not** report formatting a linter would catch, or restyle to personal preference.
 
@@ -88,13 +93,13 @@ Human edits       1 commit — [harness:human] fix filter import.
                   Touches web/src/filter.ts. Not covered by any earlier
                   review; included in this one.
 
-Spec compliance   REQ-01 delivered. REQ-02 NOT delivered — filter state
-                  is not persisted, so it won't survive a reload.
+Spec compliance   SC-01 delivered. SC-04 NOT delivered — filter state
+                  is not persisted, so the end user's "survives a reload" does not hold.
                   SC-03 verified: no PII on the filter path (filter.ts:22-40).
                   SC-02 pending your UAT.
 
 Must fix
-  1. REQ-02 unimplemented — no persistence for filter state.
+  1. SC-04 unimplemented — no persistence for filter state.
   2. filter.ts:31 — unhandled rejection if the author list fetch fails;
      the control renders empty with no error, so a network blip looks
      like "no authors".

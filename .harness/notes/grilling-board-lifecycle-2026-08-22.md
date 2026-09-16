@@ -16,8 +16,8 @@ the harness uses it rather than reimplementing it.
 - **Four things this effort owns.** Creating the board and its Status field when a repo joins the
   fleet; repairing the station map and adding an `Abandoned` station; native closing end to end; and
   migrating the two existing projects, **harness first as the proving ground, then kaya-ai**.
-- **Board workflow detection belongs at `/harness-init`, once — NOT in `check-state.sh`.** Operator's
-  ruling, with the reason: `check-state.sh` runs at every `/harness*` door and before every commit, so
+- **Board workflow detection belongs at `/harness-init`, once — NOT in `check-state.py`.** Operator's
+  ruling, with the reason: `check-state.py` runs at every `/harness*` door and before every commit, so
   a network call there fires dozens of times per build, which is the waste FEAT-29 exists to remove. A
   workflow being switched off later is a real risk and a near-zero one, so a one-time configuration
   check belongs at the one-time configuration step. **Accepted cost, stated rather than discovered:
@@ -146,7 +146,7 @@ is not settled here.** It is the first question of the migration half.
 orchestrator is instructed to run, in prose, in a markdown table. Nine of FEAT-32's seventeen tasks
 are `main-session-direct`, forbidden to the orchestrator by DEC-174, and NOTHING instructs the main
 session to move their cards. All five of the ones built on 2026-08-22 sat at `Backlog` while
-`plan.yaml` said `done`; `check-state.sh` INV-26 caught it only after the fact. A station write that
+`plan.yaml` said `done`; `check-state.py` INV-26 caught it only after the fact. A station write that
 depends on an agent remembering a table row is not a mechanism.
 
 ### The `Ready` conflict is SETTLED: one meaning, both boards

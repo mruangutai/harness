@@ -27,7 +27,7 @@ Attribution is measured: the test passes at `6d6d1ce` (origin/main), passes at `
 feature), and fails **only** at the merge `1d292c2`, which unions FEAT-43's and FEAT-44's feature
 directories, 40 → 41. The file's own source is byte-identical at all three commits.
 
-Affected gate: `run-unit-tests.sh --kind unit` — red at the merged head, green at both parents.
+Affected gate: `run-unit-tests.py --kind unit` — red at the merged head, green at both parents.
 
 ## Scope
 

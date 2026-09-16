@@ -246,7 +246,7 @@ and `runs/validate-delta-c23-validator/digest.md` were not re-examined (T-02 thr
 SC-05/07/08/09/12/13/14/16/17/19/20, the CLI, `gate_policy.py`, `validate-digest.py`'s wiring, the
 glossary, and the skill's worked examples) — I relied on their prior `met` verdicts, since this
 delta's diff does not touch any of those files. I did not re-run the canonical/project-wide test
-suite or `check-state.sh` (excluded by the assignment; the orchestrator runs those). SC-11's UAT is
+suite or `check-state.py` (excluded by the assignment; the orchestrator runs those). SC-11's UAT is
 untouched (`verify: uat`, explicitly out of scope, and the operator's Q9 ruling records it as not
 yet judged). I did not review the two housekeeping commits (`ea61b5e`, `f3b31d8`) beyond confirming
 via `git show --stat` that they touch no source — their content (feature bookkeeping, STATE.md,

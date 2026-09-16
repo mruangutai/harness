@@ -36,7 +36,7 @@ PLAN says insert "BEFORE the enum branch at `:485`" — read literally that plac
 *inside* the placeholder branch it must sit outside of, where `suite: fail` (a non-placeholder string)
 never enters, making the new gate dead code for the string-valued fields. **It is not silent**: T-01's
 own clauses (ii) and (iii) in `verify:` would then stay at exit 0 instead of flipping to exit 1, so
-`run-unit-tests.sh` and the task's own verify block catch it before the diff is signed off — this is
+`run-unit-tests.py` and the task's own verify block catch it before the diff is signed off — this is
 why it does not block signature. Fix in PLAN.md: state the insertion point as "immediately after the
 `continue` at `:485`, before `if isinstance(allowed, set):` at `:486`" — not "before `:485`".
 
@@ -144,7 +144,7 @@ affects any command below).
   `'pass'=='fail'→False` — matches D-05's claim exactly.
 - Existing `matrix_ok: n/a` + PASS fixture (`:964/972`) enters the `NULLABLE` branch (val is `str`)
   and `continue`s before the new gate — no double-report.
-- `run-unit-tests.sh:6` `SCRIPTS` array: `"test-validate-digest.py"` is first. Confirmed.
+- `run-unit-tests.py:6` `SCRIPTS` array: `"test-validate-digest.py"` is first. Confirmed.
 - T-01(ii): dev digest `suite: fail`+`task_verify: pass`+`PASS` → `harness-backend-dev` →
   `digest ok`, **exit 0**. T-01(iii): qa digest `matrix_ok: false`+`PASS` → `harness-qa` →
   `digest ok`, **exit 0**. Both match PLAN's receipt exactly.
@@ -162,7 +162,7 @@ affects any command below).
   exit 1. Matches.
 - T-10 (`harness-qa.md`, `harness-verification-rules/SKILL.md`): `VERDICT: PASS is rejected` count 1
   in each; paired fail-value regex exit 1 in each. Matches.
-- `run-unit-tests.sh` (full suite): green, includes `test-harness-yaml-corpus.py`,
+- `run-unit-tests.py` (full suite): green, includes `test-harness-yaml-corpus.py`,
   `test-upgrade-config.py`, `test-team-catalog.py` (last checks in the run) all passing.
 - §C: `git show 3bfedc9:docs/harness/DECISIONS-INDEX.md` vs `gen-decisions-index.py --stdout` (run
   against unmodified `DECISIONS.md`) — content-stripped diff clean, `@NNNN`-inclusive diff exit 1 (57

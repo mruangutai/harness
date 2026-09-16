@@ -12,26 +12,26 @@ file was read directly from the working tree, verified byte-identical to the pin
 Verified at source, not accepted from the BRIEF/plan text alone:
 
 - **REQ-02/REQ-05 independent-MODEL claim — TRUE, mechanism verified, not merely independent
-  CONTEXT.** `dispatch-guard.sh:33-35` blocks a **harness-prefixed caller** from passing `model:`
-  (exit 2) but never touches the target's own frontmatter; `dispatch-guard.sh:56-65` separately
+  CONTEXT.** `dispatch-guard.py:33-35` blocks a **harness-prefixed caller** from passing `model:`
+  (exit 2) but never touches the target's own frontmatter; `dispatch-guard.py:56-65` separately
   exits 0 with no claim recorded whenever the **dispatched** persona is not `harness-`-prefixed.
   `plan-panel.yaml`'s `should-not-exist` step carries no `model:` key, so a dispatch built from it
   runs `fable-advisor` on its own frontmatter pin (`model: anthropic/claude-fable-5`, per D-14,
   unread in this repo — outside scope, correctly). Mechanism present in both the team file and
   `.omp/agents/harness-validator-lead.md`'s `spawns:` (confirmed) — real, not aspirational.
-- **REQ-14/SC-17 absent-persona skip — TRUE, warn not fail, verified live.** `check-state.sh:227-237`:
+- **REQ-14/SC-17 absent-persona skip — TRUE, warn not fail, verified live.** `check-state.py:227-237`:
   a reader whose `status` isn't `ran`/`skipped` is a hard `bad.append` (blocks); a `skipped` reader
   missing persona/reason is also `bad`; a **complete** skip record goes to `warn.append` only —
   never blocks. Ran `test-check-state.py` live: `ok - INV-32 plan panel fixtures, including
   inv32-red`, and its case 8 (`reader-skipped`) asserts no `VIOLATION` line for the skip. Confirmed.
-- **DEC-206 "unrated fails closed" — the executable branch exists** (`check-state.sh:214`,
+- **DEC-206 "unrated fails closed" — the executable branch exists** (`check-state.py:214`,
   `severity in {"high", "critical", "unrated"}`) and both `.omp/` and `.claude/` copies of
   `harness-validator-lead.md` carry "Transcribe `unrated` unchanged and treat it as
   gating-equivalent to high" — not prose-only. **But see Stage 2 finding 1: the branch does not
   actually deliver the "omitted severity fails closed" half DEC-206 also promises.**
 - **INV-32 discovery-vs-clean distinction — TRUE, and demonstrably not vacuous.** `expected_readers
   = {"should-not-exist", "scope", "goalcheck"}` is a fixed 3-name enumeration checked per-name
-  (`check-state.sh:222-237`), so an empty `readers:` list cannot pass — it fails all three as
+  (`check-state.py:222-237`), so an empty `readers:` list cannot pass — it fails all three as
   "never ran." `test-check-state.py`'s case 7 (`reader-missing`) pins exactly this, and case
   `inv32-red` (D-13's marker-anchored mutant) proves the no-panel and reader-missing assertions
   are falsifiable: ran it live, `ok`. Genuinely non-vacuous.
@@ -50,7 +50,7 @@ Verified at source, not accepted from the BRIEF/plan text alone:
 - **SC-06 roster stays at 16/16**, verified by direct count (`find .omp/agents -maxdepth 1 -name
   'harness-*.md' | wc -l` → 16, same for `.claude/agents`) and by `test-plan-panel.py` case 5, live.
 - **SC-08 registration:** `test-panel-findings.py` and `test-plan-panel.py` are both in
-  `run-unit-tests.sh`'s `UNIT_SCRIPTS` (confirmed via `:raw` read, not the truncated display); ran
+  `run-unit-tests.py`'s `UNIT_SCRIPTS` (confirmed via `:raw` read, not the truncated display); ran
   both live, 9/9 and 24/24. Neither name appears in `harness.json`'s `integration.detect` explicit
   list, so the KIND-DRIFT self-check stays clean. `D-15`'s `TEAMS_EXPECTED = 3` bump is present and
   correctly commented as the FEAT-06 SC-05 point-in-time exception, not a re-signature.
@@ -72,14 +72,14 @@ distinguishing it from `high`.
 
 ## Stage 2 — code quality
 
-**Finding 1 — `must_fix`, `high`, fail-open.** `check-state.sh:212`: `severity =
+**Finding 1 — `must_fix`, `high`, fail-open.** `check-state.py:212`: `severity =
 str(item.get("severity", "")).strip().lower()`. `disposition`'s sibling default
-(`check-state.sh:213`) correctly fails **closed** — an omitted/malformed disposition stays
+(`check-state.py:213`) correctly fails **closed** — an omitted/malformed disposition stays
 `!= "resolved"` and still gates. `severity`'s default does the opposite: a finding whose `severity`
 key is **absent entirely**, or present with YAML `null` (a bare `severity:` with no value — both
 legal YAML pm or the lead could plausibly emit during transcription), evaluates to `""` or
 `"none"` — **neither is in `{"high", "critical", "unrated"}`**, so
-`check-state.sh:214`'s gate does not fire and the finding sails through unrated *and*
+`check-state.py:214`'s gate does not fire and the finding sails through unrated *and*
 un-vetted, with no operator ruling required. This directly contradicts DEC-206's stated guarantee,
 `.harness/harness/docs/DECISIONS.md:7441`: *"An omitted severity fails closed... A reader that
 declines to rate, or **a normalization that loses a rating**, therefore withholds rather than
@@ -125,7 +125,7 @@ the mutant block are separable without touching that rationale.
 two readers (`should-not-exist`, `scope`) — the third expected reader, `goalcheck`, is pm's own
 product-segment work, done under a different orchestrator dispatch entirely. Neither doctrine file
 states in so many words that pm must also write a `reader: goalcheck, status: ran` entry for its own
-step. `check-state.sh:216-229` hard-requires all three by name (`bad`, not `warn`), so if a first
+step. `check-state.py:216-229` hard-requires all three by name (`bad`, not `warn`), so if a first
 implementer reads "transcribe the validator lead's digest" narrowly, every live plan blocks at
 signature until fixed. Failure direction is fail-**closed** (annoying, not dangerous), and the
 template's own enum comment (`templates/plan.yaml:59`, `reader: should-not-exist | scope |
@@ -134,7 +134,7 @@ noting it because SC-16's first live `/harness-plan` is exactly where this would
 
 No other fail-open branches found in `panel_findings.py` (identity hashing only, no gating logic),
 `sync-agent-adapters.py` (7-line additive diff, dead code path per its own comment, confirmed by
-diff), `run-unit-tests.sh` (registration only, confirmed both new files present via `:raw` read),
+diff), `run-unit-tests.py` (registration only, confirmed both new files present via `:raw` read),
 or `test-harness-yaml-corpus.py` (comment + constant change matches D-15 exactly). `panel_findings.py`
 CLI hard-fails (exit 2) on empty reader / whitespace-only summary — correctly fail-closed.
 
@@ -147,11 +147,11 @@ proxy and the 9/16 author-reported mutants were not independently re-derived.
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: "check-state.sh's INV-32 fails OPEN on a missing/null severity (only the literal string 'unrated' gates, contradicting DEC-206), test-check-state.py shipped without T-08's own mandated unrated regression case, and case_inv32 is a grade-1 function against a grade-3 test-code bar (cyclomatic 28, ABC 95.1)."
+  headline: "check-state.py's INV-32 fails OPEN on a missing/null severity (only the literal string 'unrated' gates, contradicting DEC-206), test-check-state.py shipped without T-08's own mandated unrated regression case, and case_inv32 is a grade-1 function against a grade-3 test-code bar (cyclomatic 28, ABC 95.1)."
   severity_max: high
   findings: 3
   must_fix:
-    - "check-state.sh:212-214 — a panel finding with an absent or null `severity` key does not gate (only the literal string 'unrated' does), contradicting DEC-206's 'omitted severity fails closed' compensating control. Add it to the gating set (or invert to an allow-list) plus a fixture."
+    - "check-state.py:212-214 — a panel finding with an absent or null `severity` key does not gate (only the literal string 'unrated' does), contradicting DEC-206's 'omitted severity fails closed' compensating control. Add it to the gating set (or invert to an allow-list) plus a fixture."
     - "plan.yaml:991-993 (T-08 intent) required an assertion pinning severity: unrated as gating-equivalent to high inside test-check-state.py's high-open case; test-check-state.py contains zero occurrences of 'unrated' — the task shipped without its own stated deliverable, and T-08's verify block never checks for it either."
     - "test-check-state.py:2982 case_inv32 is GRADE 1 (cyclomatic 28, cognitive 14, ABC 95.1) against the grade-3 test-code bar; code-grade.py exits 1. Split the nine fixture directions into named helpers."
   spec_violations:

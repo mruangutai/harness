@@ -32,7 +32,7 @@ lanes:
     - surface: .claude/skills/harness/bin/gate_policy.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
     - surface: .harness/harness.json
@@ -43,10 +43,10 @@ lanes:
       agent: harness-pm
     - surface: .claude/skills/harness-code-risk-grading/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
+      reason: check-domain.py --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
     - surface: .claude/skills/harness-code-review/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, measured at 6e4a273
+      reason: check-domain.py --resolve returns NOBODY, measured at 6e4a273
     - surface: .omp/agents/**
       lane: main-session-direct
       reason: deliberately unowned by team-config.yaml ruling; the org's constitution is not an agent's to change
@@ -122,9 +122,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/code_grade.py
       - .claude/skills/harness/bin/test-code-grade.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Write a new module code_grade.py exposing a pure, importable API, and a test file
       test-code-grade.py that pins its counting rules. Test-first: write the fixture assertions and
@@ -180,7 +180,7 @@ tasks:
       an early return with a nested if; merge two sequential loops into one nested loop; add a third
       condition to an if; inline a helper call back into the caller.
 
-      Register test-code-grade.py in the UNIT_SCRIPTS array of run-unit-tests.sh. Do not add it to
+      Register test-code-grade.py in the UNIT_SCRIPTS array of run-unit-tests.py. Do not add it to
       test_kinds.integration.detect in harness.json; the runner's kind cross-check rejects a
       UNIT_SCRIPTS name that appears there, and unit.detect already globs bin/test-*.py.
 
@@ -199,7 +199,7 @@ tasks:
       - .claude/skills/harness/bin/code_grade.py
       - .claude/skills/harness/bin/test-code-grade.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Extend code_grade.py with gated_set(repo_root, base_ref, head_ref) returning two lists:
       gated and informational. Add its tests to test-code-grade.py, test-first.
@@ -248,10 +248,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/code-grade.py
       - .claude/skills/harness/bin/test-code-grade-cli.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Write the executable code-grade.py that drives the code_grade module, and its forking test file
       test-code-grade-cli.py. Test-first.
@@ -300,7 +300,7 @@ tasks:
       different working directories. Assert REASON REQUIRED appears naming the grade-2 function, and
       assert it is absent entirely from a run whose gated set has no grade-2 function.
 
-      Register test-code-grade-cli.py in the INTEGRATION_SCRIPTS array of run-unit-tests.sh AND add
+      Register test-code-grade-cli.py in the INTEGRATION_SCRIPTS array of run-unit-tests.py AND add
       the literal path .claude/skills/harness/bin/test-code-grade-cli.py to the pipe-separated
       test_kinds.integration.detect string in harness.json. The runner's kind cross-check fails if you
       do only one of the two.
@@ -310,7 +310,7 @@ tasks:
     traces: [REQ-01, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
+    execution_reason: check-domain.py --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
     depends_on: [T-01]
     status: done
     files:
@@ -393,7 +393,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-code-grade.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Add two groups of cases to test-code-grade.py.
 
@@ -426,9 +426,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/gate_policy.py
       - .claude/skills/harness/bin/test-gate-policy.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       No script in this repository reads the gates block of .harness/harness.json at all. Its four
       keys - qa_gate, review, uat and merge - are honoured only by agents reading configuration as
@@ -464,7 +464,7 @@ tasks:
       must_fix with severity_max med - this is the pair that proves a clean report cannot pass a
       review on its own.
 
-      Register test-gate-policy.py in the UNIT_SCRIPTS array of run-unit-tests.sh and do not add it to
+      Register test-gate-policy.py in the UNIT_SCRIPTS array of run-unit-tests.py and do not add it to
       test_kinds.integration.detect.
 
   - id: T-08
@@ -481,7 +481,7 @@ tasks:
       - .claude/skills/harness/bin/test-validate-digest.py
       - .omp/agents/harness-code-reviewer.md
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       This is the step that turns a computed grade into a gating finding. It runs last, after the
       skill exists and after all five specialists load it, because a gate on a bar nobody was taught
@@ -535,7 +535,7 @@ tasks:
       file, and assert THAT run accepts it.
 
       Prove the cutover changed only what it was meant to: run check-plan-routes.py and
-      run-unit-tests.sh --kind all before and after the validate-digest.py edit and show the violation
+      run-unit-tests.py --kind all before and after the validate-digest.py edit and show the violation
       set is identical apart from the new cases.
 
   - id: T-09
@@ -550,11 +550,11 @@ tasks:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/test-check-plan-routes.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       The defect, measured 2026-08-27. check-plan-routes.py printed OK for a task route minutes before
       every write on that route was denied. The mechanism: the write hook is registered in
-      settings.json as CLAUDE_PROJECT_DIR joined to .claude/skills/harness/bin/check-domain.sh, so at
+      settings.json as CLAUDE_PROJECT_DIR joined to .claude/skills/harness/bin/check-domain.py, so at
       hook time it resolves the OWNER checkout's .harness/team-config.yaml. check-plan-routes.py run
       from inside a feature worktree with CLAUDE_PROJECT_DIR unset falls back to the root derived from
       its own file location, which is the WORKTREE, and reads the BRANCH's team-config.yaml. The two
@@ -564,7 +564,7 @@ tasks:
       The fix. Before resolving any route, determine the manifest the hook will consult: take the
       resolved root, ask harness_boundary.worktree_owner for its owner checkout, and use the owner's
       .harness/team-config.yaml. When that owner differs from the branch checkout, invoke the
-      check-domain.sh script in the owner checkout — the same resolver script the live hook invokes —
+      check-domain.py script in the owner checkout — the same resolver script the live hook invokes —
       rather than setting the retired HARNESS_PROJECT_DIR override. Print one line naming the absolute
       manifest path actually used, on every run, so the answer is never silently about a different tree.
 

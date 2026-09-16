@@ -44,6 +44,24 @@ The overlays map `deep`, `strong`, `standard`, and `review` to concrete models. 
 Use the same Harness instruction under either overlay. Only the concrete models selected by the
 overlay change.
 
+A feature runs one proportional flow (DEC-225, DEC-226, DEC-228):
+
+```text
+grilling  → mission judgement (patch | plan, one-line reason, operator confirms or overrides)
+          → patch: one product run writes a ≤120-line BRIEF and a one-task plan.yaml
+            plan:  one product-lead run — draft → {scope ∥ should-not-exist ∥ design} → apply → goalcheck
+          → ONE signature: plan (+ prototype) + the rework ruling  rework: {rounds, wall_clock_minutes}
+          → build (eng-lead)
+          → validate (validator-lead: qa ∥ code ∥ security ∥ ui ∥ goalcheck over one review_sha)
+          → fix rounds inside the ruling, without asking
+          → ship
+```
+
+Every autonomous judgement on the way — mission, finding kind, re-gate, continue, succession — is a
+`judgements[]` entry in `feature.json` with a one-line reason; the operator audits it after the fact
+(DEC-230). Spend is measured per run and advisory (DEC-227). `feature-record.py` writes the ledger;
+`plan-merge.py` writes the plan.
+
 ```text
 main session
   → one phase-scoped harness-orchestrator
@@ -169,13 +187,13 @@ Run:
 
 ```bash
 # Complete suite
-bash .agents/skills/harness/bin/run-unit-tests.sh
+python3 .agents/skills/harness/bin/run-unit-tests.py
 
 # Provider-neutral surface and adapter drift
 python3 .agents/skills/harness/bin/check-omp-port.py
 
 # Project invariants
-bash .agents/skills/harness/bin/check-state.sh
+python3 .agents/skills/harness/bin/check-state.py
 ```
 
 To change a role, edit `.omp/agents/<name>.md`, then regenerate and check Claude compatibility:
@@ -189,4 +207,4 @@ To add a skill, create `.claude/skills/harness-<name>/SKILL.md` and add its name
 
 ## Factory repositories
 
-The Harness repository holds the organization and skills. Product repositories hold their own `.harness/` state. Add a repository to `.harness/factory/fleet.yaml`; the factory materializes its checkout under the declared `workspace_root`, and `/harness-init` creates that repository's state.
+The Harness repository holds the organization and skills. Onboarding is two skills, neither of them a command (DEC-222): the `harness-init` skill configures a fresh Harness checkout — prerequisites, hooks, this clone's `.harness/` — and carries `--upgrade`; the `harness-add-repo` skill registers a repository into that configured control plane. Registration lands the repository's `harness.json` on its own default branch — the only file the harness puts in a product repository — then adds it to `.harness/factory/fleet.yaml`, then creates its central tree under `<control-plane>/.harness/<segment>/`, in that order (DEC-221). The factory materializes its checkout under the declared `workspace_root`. Its first `BRIEF.md`, that BRIEF's approval and any design pass are `/harness-plan`'s work.

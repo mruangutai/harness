@@ -7,7 +7,7 @@ whose short form `7505b87` matches the dispatch and whose subject is "fix: close
 findings" — the expected fix commit. Treated as the intended pin; a typo in the dispatch, not a
 tree mismatch.
 
-`git diff --stat dca2d3d..HEAD`: 5 files — `bash-write-guard.sh` (+1), `check-domain.sh` (+9/-2),
+`git diff --stat dca2d3d..HEAD`: 5 files — `bash-write-guard.py` (+1), `check-domain.py` (+9/-2),
 `test-bash-write-guard.py` (156 changed lines, refactor), `test-check-domain.py` (279 changed
 lines, refactor), `feature.json` (review_sha repin only). No other file in the reviewed set
 (`harness_boundary.py`, `inflight_registry.py`, `validate-digest.py`,
@@ -18,9 +18,9 @@ lines, refactor), `feature.json` (review_sha repin only). No other file in the r
 ## Verdict per prior finding
 
 **Finding 1 [HIGH, security] — CLOSED.**
-`bash-write-guard.sh:785` now calls `feature_checkout_guard(rel, ap)` on the `"shared"` outcome
+`bash-write-guard.py:785` now calls `feature_checkout_guard(rel, ap)` on the `"shared"` outcome
 branch (it already ran on `"allow"/"not_a_domain_question"` at line 781, pre-existing since
-dca2d3d — confirmed via `git show dca2d3d:bash-write-guard.sh:770-795`). Direct evidence, not
+dca2d3d — confirmed via `git show dca2d3d:bash-write-guard.py:770-795`). Direct evidence, not
 inference: `test-bash-write-guard.py`'s `run_feat50_checkout_binding` gained a new
 `bash-feature-checkout-shared` case (absent at dca2d3d — confirmed via
 `git show dca2d3d:test-bash-write-guard.py | grep FEAT50_SHARED_MANIFEST` returning nothing)
@@ -61,7 +61,7 @@ grade-1 helper).
 No case name present at dca2d3d is missing at HEAD in either function.
 
 **Finding 3 [MED, security] — CLOSED.**
-`check-domain.sh:1143-1156`: `prior = None` before the read; `FileNotFoundError` sets
+`check-domain.py:1143-1156`: `prior = None` before the read; `FileNotFoundError` sets
 `prior = ""` only when `os.path.lexists(absolute_path)` is also false (genuine absence — a
 dangling-symlink `FileNotFoundError` leaves `prior` at `None`); the generic `except OSError: pass`
 (permission errors, `IsADirectoryError`, etc.) also leaves `prior` at `None`; `if prior is None:`
@@ -78,8 +78,8 @@ lines total).
 
 | Hunk | Answers | Breaks a prior MET item? | Scope leakage? |
 |---|---|---|---|
-| `bash-write-guard.sh:785` (+1 line) | Finding 1 / REQ-08 (route-complete checkout binding across both write surfaces — the `"shared"` branch was the uncompleted route) | No — re-ran SC-18/19 commands (below), still green | No |
-| `check-domain.sh:1143-1156` (+9/-2) | Finding 3 / REQ-04 (digest-clobber guard's "preserve recorded content" guarantee, now closed against unreadable-not-absent) | No — re-ran SC-05/06 (via SC-03..06 command), still green | No |
+| `bash-write-guard.py:785` (+1 line) | Finding 1 / REQ-08 (route-complete checkout binding across both write surfaces — the `"shared"` branch was the uncompleted route) | No — re-ran SC-18/19 commands (below), still green | No |
+| `check-domain.py:1143-1156` (+9/-2) | Finding 3 / REQ-04 (digest-clobber guard's "preserve recorded content" guarantee, now closed against unreadable-not-absent) | No — re-ran SC-05/06 (via SC-03..06 command), still green | No |
 | `test-bash-write-guard.py` (refactor, 156 lines) | Finding 2 (code_grade) + adds direct coverage for Finding 1 (`bash-feature-checkout-shared`) | No — full suite green, case superset confirmed | No |
 | `test-check-domain.py` (refactor, 279 lines) | Finding 2 (code_grade) + adds direct coverage for Finding 3 (`digest-unreadable`) | No — full suite green, case superset confirmed | No |
 | `feature.json` (review_sha repin, 1 line) | Process bookkeeping (repin to dca2d3d ahead of this fix commit, per the standard repin→fix cycle; commit `b3895ff "chore: repin FEAT-50 review source"`) | N/A | No — not a REQ/SC-scoped change, expected repin artifact |
@@ -108,11 +108,11 @@ All eight re-run. All pass at HEAD. Nothing previously MET went red.
 
 ## Non-gating findings 4 and 5 — unchanged by this delta
 
-Confirmed via `git diff dca2d3d..HEAD -- bash-write-guard.sh check-domain.sh | grep 'def feature_checkout_guard'`
+Confirmed via `git diff dca2d3d..HEAD -- bash-write-guard.py check-domain.py | grep 'def feature_checkout_guard'`
 returning no hits — neither `feature_checkout_guard` function body (the `AmbiguousWorktree`/
 blanket-`except Exception` absorber pair, finding 4) nor its duplication across the two files
 (finding 5) was touched. Finding 1's fix added a *second call site* to the existing function in
-`bash-write-guard.sh`; it did not add a second implementation, and does not aggravate or resolve
+`bash-write-guard.py`; it did not add a second implementation, and does not aggravate or resolve
 either note. Both remain open exactly as previously recorded, `should_fix`, non-gating.
 
 ## Verdict rationale

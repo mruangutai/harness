@@ -235,7 +235,7 @@ def case_accepted_runs_item_code_grade_n_a():
 
 
 def case_rejected_runs_item_code_grade_other_value():
-    """The enum is CLOSED, and it agrees with check-state.sh's exact-match test: a
+    """The enum is CLOSED, and it agrees with check-state.py's exact-match test: a
     document must never be schema-invalid and gate-exempt at once, in either direction.
     `graded` is rejected here and fires INV-6 there.
 
@@ -255,7 +255,7 @@ def case_rejected_runs_item_code_grade_other_value():
 
 def case_rejected_runs_item_code_grade_case_variant():
     """`N_A` is the exact divergence the panel asked about (Q2): it must fail BOTH layers,
-    since check-state.sh no longer case-folds. Non-vacuous for the same reason as above."""
+    since check-state.py no longer case-folds. Non-vacuous for the same reason as above."""
     doc = full_doc()
     doc["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS",
                     "agent": "harness-validator-lead", "code_grade": "N_A"}]
@@ -515,6 +515,91 @@ def case_accepted_github_block_without_source_issues():
     problems = clean(doc)
     check("accepted_github_block_without_source_issues", problems == [], problems)
 
+# ---------------------------------------------------------------------------
+# BUG-1716 T-03 — signed_task_hashes (D-03) and the amendment judgement's
+# conditional `overruled` (D-05). Standalone fixtures: the strict schema is
+# what plan-merge.py and check-state.py will read these through, so the
+# boundary is pinned here, not only in feature-record's own unit suite.
+
+def _amendment(**extra):
+    entry = {"at": "2026-09-15T12:00:00+00:00", "by": "harness-eng-lead",
+             "kind": "amendment", "decision": "T-02.intent", "reason": "split"}
+    entry.update(extra)
+    return entry
+
+
+def case_accepted_signed_task_hashes_and_amendment_judgement():
+    doc = full_doc()
+    doc["signed_task_hashes"] = {"T-01": "0" * 64, "T-02": "abcdef0123456789" * 4}
+    doc["judgements"] = [_amendment(), _amendment(decision="T-02.files", overruled=True)]
+    problems = clean(doc)
+    check("accepted_signed_task_hashes_and_amendment_judgement", problems == [], problems)
+
+
+def case_rejected_signed_task_hash_shapes():
+    for label, bad in (("sc_key", {"SC-01": "0" * 64}), ("uppercase", {"T-01": "A" * 64}),
+                       ("short", {"T-01": "0" * 63}), ("list", ["0" * 64])):
+        doc = full_doc()
+        doc["signed_task_hashes"] = bad
+        problems = clean(doc)
+        check(f"rejected_signed_task_hash_{label}",
+              any("signed_task_hashes" in p for p in problems), problems)
+
+
+def case_rejected_overruled_outside_a_live_amendment():
+    for label, entry in (("false", _amendment(overruled=False)),
+                         ("regate", _amendment(kind="regate", decision="T-01", overruled=True))):
+        doc = full_doc()
+        doc["judgements"] = [entry]
+        problems = clean(doc)
+        check(f"rejected_overruled_{label}", any("overruled" in p for p in problems), problems)
+
+
+
+# ---------------------------------------------------------------------------
+# BUG-1309 T-01 — github.build_entry, the root of the mirror-build DAG. The
+# enum is CLOSED (additionalProperties false at the github level too), so a
+# neighbouring misspelling must be refused the same way an unrelated
+# undeclared sibling already is above.
+# ---------------------------------------------------------------------------
+
+
+def case_accepted_github_build_entry_each_legal_value():
+    for value in ("opened", "recovery-required", "not-applicable", "recovered-terminal"):
+        doc = full_doc()
+        doc["github"]["build_entry"] = value
+        problems = clean(doc)
+        check(f"accepted_github_build_entry_{value}", problems == [], problems)
+
+
+def case_rejected_github_build_entry_illegal_value():
+    for value in ("opened ", "reopened"):
+        doc = full_doc()
+        doc["github"]["build_entry"] = value
+        problems = clean(doc)
+        # The message must NAME the enum, not merely reject the value — a
+        # bare "problems != []" cannot tell a rejected enum from a rejection
+        # for some unrelated reason.
+        named = any("is not one of" in p and "recovered-terminal" in p for p in problems)
+        check(f"rejected_github_build_entry_illegal_value_{value!r}",
+              problems != [] and named, problems)
+
+
+def case_rejected_github_build_entry_hyphen_misspelling():
+    doc = full_doc()
+    doc["github"]["build-entry"] = "opened"
+    problems = clean(doc)
+    named = any("'build-entry'" in p for p in problems)
+    redirected = any(REDIRECT_SENTENCE in p for p in problems)
+    check("rejected_github_build_entry_hyphen_misspelling",
+          problems != [] and named and redirected, problems)
+
+
+def case_accepted_github_block_without_build_entry():
+    doc = full_doc()
+    doc["github"].pop("build_entry", None)
+    problems = clean(doc)
+    check("accepted_github_block_without_build_entry", problems == [], problems)
 
 # ---------------------------------------------------------------------------
 # SC-07's positional agent rule (FEAT-31 T-15). Read D-23.
@@ -666,7 +751,7 @@ def _tree_with_schema(root, extra_github_key=None):
 def case_749_schema_comes_from_the_written_tree():
     """(#749) THE SCHEMA MUST COME FROM THE TREE THE FILE LIVES IN, NOT FROM THIS MODULE.
 
-    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.sh --post` refused a
+    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.py --post` refused a
     legitimate write -- `undeclared key 'source_issues' at /github' -- because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's, and the hook
     imports this module from CLAUDE_PROJECT_DIR, the main checkout.
@@ -722,48 +807,66 @@ def case_749_falls_back_when_no_tree_schema_exists():
               any("never_declared_anywhere" in p for p in probs), repr(probs[:2]))
 
 
-def main():
-    case_accepted_all_ten_keys()
-    case_accepted_only_seven_required_keys()
-    case_accepted_omitting_one_optional_key()
-    case_rejected_omitting_one_required_key()
-    case_rejected_every_station_spelling_as_status()
-    case_rejected_phase_is_gone()
-    case_rejected_undeclared_top_level_key()
-    case_rejected_undeclared_runs_item_key()
-    case_accepted_runs_item_code_grade_n_a()
-    case_rejected_runs_item_code_grade_other_value()
-    case_rejected_runs_item_code_grade_case_variant()
-    case_rejected_undeclared_github_sub_key()
-    case_rejected_prose_key_reproducing_real_rot()
-    case_rejected_status_shipped()
-    case_rejected_pr_string_none()
-    case_cli_clean_file_exit_0()
-    case_749_schema_comes_from_the_written_tree()
-    case_749_guard_still_rejects_a_truly_undeclared_key()
-    case_749_falls_back_when_no_tree_schema_exists()
-    case_cli_invalid_file_exit_1()
-    case_cli_jsonschema_unavailable_exit_3()
-    case_json_extension_rejects_yaml_content_yaml_extension_accepts_it()
-    case_problems_for_text_names_real_display_path_in_every_line()
-    case_problems_for_text_jsonschema_forced_unavailable()
-    case_migrated_depth_discovery_scans_the_segment_layout()
-    case_root_resolves_through_harness_boundary_not_the_retired_variable()
+# THE CASE LIST IS DATA, NOT CONTROL FLOW: a flat sequence of calls graded 1 (ABC 48) and
+# every added case made it worse; as a tuple it grades 5 and a new case costs one row.
+CASES = (
+    case_accepted_all_ten_keys,
+    case_accepted_only_seven_required_keys,
+    case_accepted_omitting_one_optional_key,
+    case_rejected_omitting_one_required_key,
+    case_rejected_every_station_spelling_as_status,
+    case_rejected_phase_is_gone,
+    case_rejected_undeclared_top_level_key,
+    case_rejected_undeclared_runs_item_key,
+    case_accepted_runs_item_code_grade_n_a,
+    case_rejected_runs_item_code_grade_other_value,
+    case_rejected_runs_item_code_grade_case_variant,
+    case_rejected_undeclared_github_sub_key,
+    case_rejected_prose_key_reproducing_real_rot,
+    case_rejected_status_shipped,
+    case_rejected_pr_string_none,
+    case_cli_clean_file_exit_0,
+    case_749_schema_comes_from_the_written_tree,
+    case_749_guard_still_rejects_a_truly_undeclared_key,
+    case_749_falls_back_when_no_tree_schema_exists,
+    case_cli_invalid_file_exit_1,
+    case_cli_jsonschema_unavailable_exit_3,
+    case_json_extension_rejects_yaml_content_yaml_extension_accepts_it,
+    case_problems_for_text_names_real_display_path_in_every_line,
+    case_problems_for_text_jsonschema_forced_unavailable,
+    case_migrated_depth_discovery_scans_the_segment_layout,
+    case_root_resolves_through_harness_boundary_not_the_retired_variable,
 
     # FEAT-26 T-01 — github.source_issues
-    case_accepted_source_issues_list_of_integers()
-    case_rejected_source_issues_non_integer()
-    case_rejected_source_issues_quoted_number()
-    case_rejected_undeclared_sibling_of_source_issues()
-    case_accepted_github_block_without_source_issues()
+    case_accepted_source_issues_list_of_integers,
+    case_rejected_source_issues_non_integer,
+    case_rejected_source_issues_quoted_number,
+    case_rejected_undeclared_sibling_of_source_issues,
+    case_accepted_github_block_without_source_issues,
+
+    # BUG-1716 T-03 — signed_task_hashes and the amendment judgement
+    case_accepted_signed_task_hashes_and_amendment_judgement,
+    case_rejected_signed_task_hash_shapes,
+    case_rejected_overruled_outside_a_live_amendment,
+
+    # BUG-1309 T-01 — github.build_entry
+    case_accepted_github_build_entry_each_legal_value,
+    case_rejected_github_build_entry_illegal_value,
+    case_rejected_github_build_entry_hyphen_misspelling,
+    case_accepted_github_block_without_build_entry,
 
     # FEAT-31 T-15 — SC-07's positional agent rule.
-    case_t15_refused_when_absent_from_map()
-    case_t15_existing_entries_still_validate()
-    case_t15_boundary()
-    case_t15_accepted_with_the_field()
-    case_t15_red()
+    case_t15_refused_when_absent_from_map,
+    case_t15_existing_entries_still_validate,
+    case_t15_boundary,
+    case_t15_accepted_with_the_field,
+    case_t15_red,
+)
 
+
+def main():
+    for case in CASES:
+        case()
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
         sys.exit(1)

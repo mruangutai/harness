@@ -18,18 +18,18 @@ guard in this pass — total went from 122 to 123.
 
 - `.claude/skills/harness/bin/factory_decompose.py` (new)
 - `.claude/skills/harness/bin/test-factory-decompose.py` (new, 122 checks)
-- `.claude/skills/harness/bin/run-unit-tests.sh` — appended `"test-factory-decompose.py"` to
+- `.claude/skills/harness/bin/run-unit-tests.py` — appended `"test-factory-decompose.py"` to
   `UNIT_SCRIPTS` at line 58, list is otherwise unchanged (8 entries now, was 7)
 
 ## Verify — cross-checked verbatim against plan.yaml:557-558, matches the dispatch exactly
 
 Invocation (exactly as quoted):
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]
 ```
 
 Observed result: the compound command's exit status is **0** (the `grep -q ... && [ "$s" -eq 0 ]`
-chain succeeded). `$s` (run-unit-tests.sh's own exit status) was **0**. Verbatim tail of
+chain succeeded). `$s` (run-unit-tests.py's own exit status) was **0**. Verbatim tail of
 `/tmp/v-t04.txt`:
 ```
 ok    (C-3b) payload carries the expected keys

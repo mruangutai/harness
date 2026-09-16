@@ -11,7 +11,7 @@ support the conclusion.
 
 **Measured by the main session:**
 
-- `dispatch-guard.sh:41-51` blocks a lead from **passing** `model:` in a dispatch. Its own comment
+- `dispatch-guard.py:41-51` blocks a lead from **passing** `model:` in a dispatch. Its own comment
   states the rule it is enforcing: *"A member runs on the model pinned in its agent frontmatter —
   that pin is org design."* The guard does not strip an agent's own pin.
 - `~/.omp/agent/agents/fable-advisor.md` frontmatter carries `model: anthropic/claude-fable-5`.

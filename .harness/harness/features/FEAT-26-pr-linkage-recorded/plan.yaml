@@ -27,7 +27,7 @@ lanes:
     - surface: .harness/harness/docs/DECISIONS.md
       lane: team
       agent: harness-documentor
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered gate script the harness never executes changes to
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -35,10 +35,10 @@ lanes:
       reason: the carve-out script's own fixture, kept in the same hand so red-first is provable
     - surface: .claude/skills/harness/templates/plan.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the templates directory
+      reason: check-domain.py --resolve returns NOBODY for the templates directory
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the playbook
+      reason: check-domain.py --resolve returns NOBODY for the playbook
     - surface: .harness/harness/features/*/feature.json
       lane: main-session-direct
       reason: resolves to harness-orchestrator alone, which is not a task-executing lane
@@ -167,7 +167,7 @@ tasks:
       five pass. The two accepting cases must fail against the unmodified schema, which is the
       proof that they are not vacuous.
 
-      Change nothing in gh-sync.py, check-state.sh or any feature.json in this task.
+      Change nothing in gh-sync.py, check-state.py or any feature.json in this task.
 
   - id: T-02
     title: Mirror plan.yaml source_issues into feature.json, threaded so no later save erases it
@@ -399,12 +399,12 @@ tasks:
     traces: [REQ-04]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh is a gate script the harness never
+    execution_reason: DEC-174 carve-out - check-state.py is a gate script the harness never
       executes changes to, and its fixture is kept in the same hand so red-first is provable
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       out=$(python3 .claude/skills/harness/bin/test-check-state.py 2>&1) || { printf '%s\n' "$out"; exit 1; }
@@ -418,7 +418,7 @@ tasks:
     intent: |
       Make a missing pull request number visible instead of silent, at warn level.
 
-      In .claude/skills/harness/bin/check-state.sh add a new invariant block, numbered INV-28
+      In .claude/skills/harness/bin/check-state.py add a new invariant block, numbered INV-28
       (INV-27 is the highest in the file today). Model it on the INV-21 block - the per-feature
       glob loop over the feature.json files, its parse guard, and its warn-level append - and
       place it after INV-24's block so the file's blocks stay in a readable order.
@@ -445,7 +445,7 @@ tasks:
 
       Warn, never violation: the GitHub mirror never gates a flow (INV-21's own recorded reason),
       and pull request linkage is bookkeeping rather than correctness. Do not change any existing
-      invariant, do not renumber anything, and do not change check-state.sh's exit behaviour.
+      invariant, do not renumber anything, and do not change check-state.py's exit behaviour.
 
       In .claude/skills/harness/bin/test-check-state.py add six cases in the file's existing
       style. That suite prints `ok - <label>` per passing case and carries its verdict in the
@@ -465,7 +465,7 @@ tasks:
       so a pass proves the gate rather than an empty tree.
 
       RED FIRST, and this one is the operator's own hands: write the six cases first, run
-      test-check-state.py against the unmodified check-state.sh, and record which of them fail
+      test-check-state.py against the unmodified check-state.py, and record which of them fail
       there - the cases asserting a warn APPEARS must fail, and a silence case may pass early
       against a file that has no INV-28 at all, which is not evidence of anything. Then add the
       block and confirm all six pass. This task is executed
@@ -567,7 +567,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both the templates directory
+    execution_reason: check-domain.py --resolve returns NOBODY for both the templates directory
       and the playbook
     depends_on: [T-03, T-04]
     status: done

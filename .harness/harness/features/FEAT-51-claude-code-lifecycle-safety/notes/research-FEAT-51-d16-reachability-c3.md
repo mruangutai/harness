@@ -84,7 +84,7 @@ directs the DEC-209 entry to name adopt *and* discard, and widening `SC-09` woul
 
 The dispatch says the main checkout is at `ad93d43e`. It is at **`a7569463`** (the FEAT-41 ship merge);
 `ad93d43e` is an ancestor. `git diff --stat ad93d43e a7569463` over `plan-sign-gate.py`,
-`plan-sign-gate.sh`, `test-plan-sign-gate.py` and `inflight_registry.py` is **empty**, so every anchor
+`plan-sign-gate.py`, `test-plan-sign-gate.py` and `inflight_registry.py` is **empty**, so every anchor
 `T-09` cites holds at both shas. `T-09`'s `intent:` records this rather than asserting a sha it was
 not measured at. Anchors re-measured at source: `_basename` `:224`, `denies` `:256`, the `SEP` skip
 `:291`, the recursion `:299`, the decision foot `:304`, `ROOT` `:35`, `agent_type` read `:73`
@@ -104,7 +104,7 @@ absent `approval:` mapping (still absent — correct, and `sign-approval` was no
 - **Q1 (non-blocking, pre-existing):** the plan carries no `approval:` mapping and `sign-approval`
   refuses such a plan (`plan-merge.py:879`). A FEAT-41 harness defect, already carried to the
   operator; out of scope here.
-- **Q2 (non-blocking):** `lanes.rows` names no row for `plan-sign-gate.py`, `plan-sign-gate.sh`,
+- **Q2 (non-blocking):** `lanes.rows` names no row for `plan-sign-gate.py`, `plan-sign-gate.py`,
   `test-plan-sign-gate.py` or `test-gen-decisions-index.py`, so `T-07`, `T-08` and `T-09` run against
   surfaces the block does not list. `check-plan-routes.py` still exits 0 (it resolves against the live
   manifest, not the block), so nothing gates on it. `lanes:` was a declared non-goal; flagging, not

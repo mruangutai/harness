@@ -1,15 +1,15 @@
 # EFFICIENCY receipt — simplify-eng, HEAD = 9a30ea5
 
 BLUF: one real (small) finding — INV-28 adds a fourth independent full walk-and-parse of
-every `feature.json` in `check-state.sh`, on top of three that already existed pre-diff.
+every `feature.json` in `check-state.py`, on top of three that already existed pre-diff.
 Measured cost is ~8ms per run on 33 files, dwarfed by the script's own ~10s `gh auth
 status` network call that runs regardless. `gh-sync.py`'s new work (`parse_source_issues`,
 `_record_pr`, `cmd_closes`) adds no repeated I/O and no new subprocess on any non-one-shot
 path. Nothing here rises above `later-feature`.
 
-## Finding 1 — check-state.sh: a 4th independent glob+parse loop over feature.json (fold-in-later)
+## Finding 1 — check-state.py: a 4th independent glob+parse loop over feature.json (fold-in-later)
 
-- **File/line (HEAD):** `.claude/skills/harness/bin/check-state.sh:1063` (`for fy in
+- **File/line (HEAD):** `.claude/skills/harness/bin/check-state.py:1063` (`for fy in
   glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):` inside the new INV-28
   block, `:1043-1084`).
 - **Summary:** INV-28 walks and re-parses every `feature.json` independently. This is the
@@ -19,12 +19,12 @@ path. Nothing here rises above `later-feature`.
   existing shape, not a new one.
 - **Measured cost:** isolated the glob+`harness_yaml.load_file` loop against this
   checkout's real `.harness/` tree (33 `feature.json` files, confirmed via `find`):
-  3 runs averaged **0.0082s** per full walk-and-parse. Full `check-state.sh` at HEAD vs
+  3 runs averaged **0.0082s** per full walk-and-parse. Full `check-state.py` at HEAD vs
   HEAD~1 (5-8 runs each, same tree, both via `env CLAUDE_PROJECT_DIR=<worktree> bash
   <script>`): HEAD real times `9.91/10.04/11.62/12.25/11.06/10.34/12.54/11.29`s (avg
   ≈11.1s), HEAD~1 `10.98/10.65/9.53/10.15/10.78`s (avg ≈10.4s). The two distributions
   overlap; the ~0.7s "delta" is inside the noise of the network-bound `gh auth status`
-  call at `check-state.sh:1251` (pre-existing, unrelated to this diff, and itself the
+  call at `check-state.py:1251` (pre-existing, unrelated to this diff, and itself the
   reason both distributions are 10s+ rather than sub-second). The real, attributable cost
   of INV-28's own loop is the isolated **8ms** figure, not the noisy full-script delta.
 - **Alternative:** none needed at this size. If a 7th or 8th invariant adds another full
@@ -50,7 +50,7 @@ path. Nothing here rises above `later-feature`.
   empirically rather than by trusting the comment.
 - **No finding here.** An empty return is the honest result, not a gap in the search.
 
-## Finding 3 — check-state.sh timing across HEAD/HEAD~1: the boundary-step full-suite runs are NOT waste
+## Finding 3 — check-state.py timing across HEAD/HEAD~1: the boundary-step full-suite runs are NOT waste
 
 Not flagged. The commit message's "Full suite --kind all: 45 PASS, 0 FAIL" and the
 per-task `VERIFY-OK` runs are exactly the evidence a ship-boundary step exists to produce

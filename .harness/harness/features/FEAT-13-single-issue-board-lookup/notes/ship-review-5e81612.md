@@ -68,7 +68,7 @@ detects the collision.**
 `.harness/expertise/` is shared across features, not feature-scoped. FEAT-12 is mid-close in the main
 checkout with **six of those files modified and uncommitted**, and its write set **grew while my run
 was in flight** — which is how I know it is live rather than stale. FEAT-13 modified nine.
-`check-expertise.sh` validates **format, not lineage**, so a file that silently loses another
+`check-expertise.py` validates **format, not lineage**, so a file that silently loses another
 feature's rules passes it cleanly. Two leads hit this independently and both returned it blocking.
 
 **What I did.** I committed only the files FEAT-13 alone touched. The six contested ones are left
@@ -158,12 +158,12 @@ Anything not listed here dies silently, so this is everything that survived coll
 
 | ID | Nature | Item |
 |---|---|---|
-| B-1 | bug | **Shared Expertise has no concurrency or lineage protection.** Two features distilling at once into `.harness/expertise/` can silently revert each other; `check-expertise.sh` checks format, not lineage. Rank this first — it silently destroys the factory's memory. |
+| B-1 | bug | **Shared Expertise has no concurrency or lineage protection.** Two features distilling at once into `.harness/expertise/` can silently revert each other; `check-expertise.py` checks format, not lineage. Rank this first — it silently destroys the factory's memory. |
 | B-2 | bug | `plan.yaml:368` tells a future reader to assert `argv[:2] == ["project", "item-list"]`, which can never match — `run_gh` prepends the `gh` binary. `:367` is already correct and the shipped tests are right. pm recommends **no amendment** (editing a signed artifact makes it stop being what was approved); record the idiom instead. |
 | B-3 | chore | The grilling note this feature's BRIEF and plan cite as binding is **not reachable from the feature branch** — it lives only on `chore/203-end-copy-distribution`. A reviewer on this branch cannot open a document the approved plan calls binding. |
-| B-4 | bug | `bash-write-guard.sh` does not expand shell variables when extracting a `cp` target, so `cp … "$SCRATCH/x"` is denied even though the resolved destination is outside the repo and would pass the guard's own carve-out. Literal absolute paths work. (DEC-174 carve-out file — yours alone.) |
+| B-4 | bug | `bash-write-guard.py` does not expand shell variables when extracting a `cp` target, so `cp … "$SCRATCH/x"` is denied even though the resolved destination is outside the repo and would pass the guard's own carve-out. Literal absolute paths work. (DEC-174 carve-out file — yours alone.) |
 | B-5 | bug | `validate-digest.py` keys the `suite: n/a` exemption by **persona** when the discriminator that matters is the task's `change_type`. A backend-dev on a `docs` task cannot say "no tests applied" the way a dev-ops on the identical task can. (DEC-174 carve-out file.) |
-| B-6 | bug | `harness-documentor.md` fails `check-expertise.sh` — one entry is 53 words against a 50-word cap — which makes the **whole directory** check exit 1. Pre-existing, not this feature's. |
+| B-6 | bug | `harness-documentor.md` fails `check-expertise.py` — one entry is 53 words against a 50-word cap — which makes the **whole directory** check exit 1. Pre-existing, not this feature's. |
 | B-7 | chore | `test-factory-claim.py:336` is a bare `json.loads(out)` with no guard. Under exactly the total-outage regression the fix cycle now catches, it raises uncaught and kills the rest of the script. |
 | B-8 | enhancement | No `--issue` case asserts that a **fresh open issue claims successfully**. I deliberately excluded it from the fix cycle to keep it tight; four existing assertions already redden on an always-refuse. |
 | B-9 | chore | A fixture named `ITEM-CLOSED` and a label reading "resume with a closed issue" still read as instantiating a closed issue, which they do not. A corrective comment is in place. Cosmetic. |

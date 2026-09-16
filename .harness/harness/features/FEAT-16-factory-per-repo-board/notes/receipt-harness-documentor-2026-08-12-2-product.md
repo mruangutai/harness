@@ -16,7 +16,7 @@ After (`docs/harness/SPEC.md:426-432`):
 > **Onboarding a repository is one edit, but not a small one:** add a `- name: <owner>/<repo>` entry
 > under `repos:` in `.harness/factory/fleet.yaml` carrying its `default_branch` **and its own `board:`
 > block — `owner`, `number`, `station_field` and `stations`, all four required**. An entry missing any
-> of them makes `load_fleet` raise, and because `check-domain.sh` then fails CLOSED the symptom is not
+> of them makes `load_fleet` raise, and because `check-domain.py` then fails CLOSED the symptom is not
 > a failed onboarding but every agent write in this repository BLOCKED
 > (`.claude/skills/harness/bin/harness_boundary.py:158`). The first factory run against it
 > clones it under `workspace_root`; nothing is installed into it.
@@ -30,8 +30,8 @@ Four fields verified in the implementation, not taken from the dispatch:
 
 Fail-CLOSED consequence verified at `harness_boundary.py:139-165` — `resolve_fleet` catches any
 `load_fleet` exception and prints `BLOCKED — the fleet declaration does not load`;
-`check-domain.sh:196` calls it directly. Corrected after a full sweep: `git grep -n "resolve_fleet("
--- .claude` returns two call sites, `check-domain.sh:196` and `harness_boundary.py:261` (the shared
+`check-domain.py:196` calls it directly. Corrected after a full sweep: `git grep -n "resolve_fleet("
+-- .claude` returns two call sites, `check-domain.py:196` and `harness_boundary.py:261` (the shared
 classifier, which the module comment at `:257-260` says runs for EVERY governed write). So the
 BLOCKED symptom is not narrower than the SPEC sentence claims — it is if anything broader. I do not
 claim to have traced every caller of that classifier.

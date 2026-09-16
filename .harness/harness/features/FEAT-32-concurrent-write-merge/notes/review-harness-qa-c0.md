@@ -12,7 +12,7 @@ finding by one suite.
 
 ## JOB 1 — the gate, re-run myself
 
-- `CLAUDE_PROJECT_DIR=$PWD .claude/skills/harness/bin/run-unit-tests.sh --kind unit`: **exit 0**,
+- `CLAUDE_PROJECT_DIR=$PWD .claude/skills/harness/bin/run-unit-tests.py --kind unit`: **exit 0**,
   187 lines matching `^PASS `, 0 `FAIL`.
 - `--kind integration`: **exit 0**, 481 lines matching `^PASS `, 0 `FAIL`, 3 `ERROR` (all inside
   case names, matching BRIEF SC-14's stated baseline shape).
@@ -97,7 +97,7 @@ T-08's intent (plan.yaml:1228) lists five new cases: 6 (refusal), 7 (allow), 8 (
 `main()` at line 250-257. T-08's own `verify:` block doesn't check for their presence either (it only
 asserts cases 1-5's markers survived and the `SINGLE_FLIGHT_AGENTS=()` red proof). The stale-claim
 guarantee (SC-09) IS tested, but only at the library level (`test-inflight-registry.py` case 3) —
-never at the hook level, so `dispatch-guard.sh`'s own stale-claim stderr line and its "library
+never at the hook level, so `dispatch-guard.py`'s own stale-claim stderr line and its "library
 missing" fail-open path (a distinct fail-open branch T-08's intent explicitly names) are unverified.
 
 ## JOB 3 — the fixture trap, audited on both files
@@ -110,8 +110,8 @@ FEAT-31 T-15 hit this exact trap with this exact fixture." I read every one of t
 (2429-2603): all fire against `_approval_root()` (built from `APPROVAL_MANIFEST`), none against the
 bare `FIXTURE_MANIFEST` while claiming a pm/orchestrator identity. No repeat of the trap here.
 
-`test-dispatch-guard.py`'s new cases (6-8) don't use `check-domain.sh`'s grant system at all —
-`dispatch-guard.sh` is a different hook with no domain-manifest dependency — so the fixture-trap
+`test-dispatch-guard.py`'s new cases (6-8) don't use `check-domain.py`'s grant system at all —
+`dispatch-guard.py` is a different hook with no domain-manifest dependency — so the fixture-trap
 shape doesn't apply to it. No finding.
 
 ## JOB 4 — test isolation, swept
@@ -151,8 +151,8 @@ gap.
 **Mutation-probed** (ran the actual plan-embedded verify script, or my own probe, and watched red/green):
 `harness_merge.py`/test-harness-merge.py (T-02), `plan-merge.py`/test-plan-merge.py (T-03),
 `observations-merge.py`/test-observations-merge.py (T-04), `expertise-merge.py`/test-expertise-merge.py
-(T-05), `inflight_registry.py`/test-inflight-registry.py (T-06), `dispatch-guard.sh`/test-dispatch-guard.py
-(T-07/T-08), `check-domain.sh`/test-check-domain.py (T-14), `validate-digest.py`/test-validate-digest.py
+(T-05), `inflight_registry.py`/test-inflight-registry.py (T-06), `dispatch-guard.py`/test-dispatch-guard.py
+(T-07/T-08), `check-domain.py`/test-check-domain.py (T-14), `validate-digest.py`/test-validate-digest.py
 (T-09, my own probe — the demonstration above).
 
 **Read only, not independently mutated beyond what's above:** the full body of `test-check-domain.py`'s
@@ -205,11 +205,11 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 187 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 481 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 187 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 481 }
   coverage_gaps:
     - "REQ-12 / SC-19: validate-digest.py's D-09 claim-release-and-children-refusal mechanism (lines 860-918) has no test anywhere in the repo — test-validate-digest.py was never touched by this feature (git diff 12c66b3..5107efb is empty for that file), and test-inflight-registry.py only tests the library in isolation, never validate-digest.py's wiring of it."
-    - "SC-09 (stale-claim recovery) is tested only at the library level (test-inflight-registry.py case 3); dispatch-guard.sh's own stale-claim stderr line and 'library missing' fail-open path (T-08 intent cases 9 and 10) are unwritten."
+    - "SC-09 (stale-claim recovery) is tested only at the library level (test-inflight-registry.py case 3); dispatch-guard.py's own stale-claim stderr line and 'library missing' fail-open path (T-08 intent cases 9 and 10) are unwritten."
   sc_evidence:
     - { id: SC-01, test: ".claude/skills/harness/bin/test-plan-merge.py case 1/case 2" }
     - { id: SC-02, test: ".claude/skills/harness/bin/test-plan-merge.py case 4" }
@@ -222,7 +222,7 @@ DIGEST:
     - { id: SC-09, test: ".claude/skills/harness/bin/test-inflight-registry.py case 3 (library level only)" }
     - { id: SC-10, test: ".claude/skills/harness/bin/test-harness-merge.py case 4, test-expertise-merge.py case 10" }
     - { id: SC-11, test: "each *-merge.py suite + test-inflight-registry.py case 10" }
-    - { id: SC-14, test: "run-unit-tests.sh --kind unit / --kind integration, re-run live" }
+    - { id: SC-14, test: "run-unit-tests.py --kind unit / --kind integration, re-run live" }
     - { id: SC-17, test: ".claude/skills/harness/bin/test-check-domain.py T14 cases 1,3,4" }
     - { id: SC-19, test: "MISSING — no test exists for this criterion" }
     - { id: SC-20, test: ".claude/skills/harness/bin/test-check-domain.py T14 cases 9,10,11" }

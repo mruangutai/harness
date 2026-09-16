@@ -123,7 +123,7 @@ No file was staged or committed. No production behaviour changed in the final st
 ## Final suite state (verbatim final summary lines)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh
+$ python3 .claude/skills/harness/bin/run-unit-tests.py
 ...
 13/13 checks passed.        PASS test-harness-yaml-corpus.py
 15/15 checks passed.        PASS test-render-brief.py
@@ -139,8 +139,8 @@ $ bash .claude/skills/harness/bin/run-unit-tests.sh
 97/97 checks passed.        PASS test-factory-integration.py  <- was 93/93 (+4)
 ```
 
-`run-unit-tests.sh --kind unit` → still **10/10** registered unit-script files PASS.
-`run-unit-tests.sh --kind integration` → still **14/14** registered integration-script files
+`run-unit-tests.py --kind unit` → still **10/10** registered unit-script files PASS.
+`run-unit-tests.py --kind integration` → still **14/14** registered integration-script files
 PASS, including `test-factory-integration.py`.
 
 **What moved and by how much, stated exactly per the dispatch's demand:** the FILE-level gate

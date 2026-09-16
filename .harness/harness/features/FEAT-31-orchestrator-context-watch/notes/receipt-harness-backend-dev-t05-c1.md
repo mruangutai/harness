@@ -70,7 +70,7 @@ detail) in the mutant run above.
 
 ## Kind-drift check (hard constraint 2)
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds` →
+`python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds` →
 `check-kinds: the script arrays and test_kinds.integration.detect agree.`
 exit 0. No new `bin/test-*.py` file was added — `test-upgrade-config.py` was
 already registered — so no array/kind edit was needed or made.

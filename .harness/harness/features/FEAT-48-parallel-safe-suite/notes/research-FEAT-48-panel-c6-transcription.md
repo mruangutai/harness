@@ -86,7 +86,7 @@ panel keys: ['cycle', 'findings', 'history', 'last_run', 'readers', 'reviewed_at
 approval.status: pending
 ```
 
-INV-32 (`check-state.sh:455-527`) is satisfiable by inspection: `last_run` non-empty, `findings`
+INV-32 (`check-state.py:455-527`) is satisfiable by inspection: `last_run` non-empty, `findings`
 a list, all three reader ids present with `status: ran`, every finding carrying
 `id`/`severity`/`disposition`, and **no severity outside `{info, low, med}`** — so no
 open-and-un-overruled finding becomes a hard violation when `approval.status` flips.
@@ -184,13 +184,13 @@ findings:
     reader: should-not-exist
     severity: info
     summary: "Standing question answered: nothing in this plan should not be built, and the census re-verification at 047f6914 confirms the derived-scope design absorbed a real rebase without a single plan edit — a 60th test file, a 193rd decision and a new zero-write test file falsified zero sentences"
-    pointer: "plan.yaml:472-473; run-unit-tests.sh:148; test-quarantine.py:93"
+    pointer: "plan.yaml:472-473; run-unit-tests.py:148; test-quarantine.py:93"
     disposition: open
   - id: PF-e69c81bad62702c3e661936347e706c4
     reader: goalcheck
     severity: med
     summary: "No criterion would fail if issue #1053's own symptom persisted; SC-05's ten runs are declared non-probative by the BRIEF and nothing asserts test-gh-sync.py passes N consecutive 8-worker runs"
-    pointer: "BRIEF.md:127-131; run-unit-tests.sh:31; plan.yaml:262-272"
+    pointer: "BRIEF.md:127-131; run-unit-tests.py:31; plan.yaml:262-272"
     disposition: open
   - id: PF-e2842b1b847c003d6ef308c31b0f40b2
     reader: code-reviewer
@@ -251,7 +251,7 @@ findings:
   - id: PF-6e5e4d2b22b169d401d2bdcbab2425c1
     reader: code-reviewer
     severity: low
-    summary: "T-02's declared files understates its actual touch scope because it will also edit test-bash-write-guard.py; signable, since check-domain.sh authorizes by lane glob and not by files, but a build-cycle reviewer diffing only files could misflag the edit as scope creep"
+    summary: "T-02's declared files understates its actual touch scope because it will also edit test-bash-write-guard.py; signable, since check-domain.py authorizes by lane glob and not by files, but a build-cycle reviewer diffing only files could misflag the edit as scope creep"
     pointer: "plan.yaml:461-462; :533 (T-02 intent)"
     disposition: open
   - id: PF-3e841eea447e4dcb511236d5eb9fda8d

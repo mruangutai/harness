@@ -49,8 +49,8 @@ const proc = spawnSync(join(cwd, BIN, script), args, { cwd, ... });
 `BIN` is the **relative** string `".agents/skills/harness/bin"` (`:5`). So the gate script's own
 executable is selected by joining it onto a caller-supplied path. I verified this myself rather than
 relaying it: eleven call sites (`:179`, `:186`, `:198`, `:205`, `:212`, `:263`, `:317`, `:318`,
-`:325`, `:357`) covering six distinct gates — `check-domain.sh`, `inject-expertise.sh`,
-`branch-create-gate.sh`, `bash-write-guard.sh` and `validate-digest.py`. All of them trace back to
+`:325`, `:357`) covering six distinct gates — `check-domain.py`, `inject-expertise.py`,
+`branch-create-gate.py`, `bash-write-guard.py` and `validate-digest.py`. All of them trace back to
 `ctx.cwd`.
 
 **Why this is the feature's own defect and not an unrelated one.** Issue #556, which this branch
@@ -93,13 +93,13 @@ found it.
 | --- | --- |
 | **All 11 success criteria MET** | goal-check, `sc_status` full and PASS |
 | SC-01: zero occurrences of the retired name | **I re-derived it**: 0 across 0 files over 1669 tracked files. Discriminating — 21 across 17 at `3952814` |
-| SC-04: seven deleted resolvers gone | **I checked each symbol separately**, not one global grep. All 0 in executable code; both survivors intact (`harness_boundary.py:515`, `post-merge-sweep.sh:64`) |
+| SC-04: seven deleted resolvers gone | **I checked each symbol separately**, not one global grep. All 0 in executable code; both survivors intact (`harness_boundary.py:515`, `post-merge-sweep.py:64`) |
 | SC-05: byte-identical verdicts across the cutover | The real two-sha proof, taken this run: 43 paths, 43 lines each side, 0-line diff — with a **positive control** that moved 17 of 43 lines when mutated. QA had reported the #556 cwd proof against it by mistake; I routed the re-derivation to pm and it now holds |
 | SC-10: red-before-green for four resolver functions | Met on its wording, and settled beyond it: a mutation probe killed **6 of 6** mutants with named failures. The receipts are misleading; the coverage is real |
 | QA gate (the project's only blocking gate) | PASS. Suite exit 0, 3139 case verdicts, zero failures |
 | #556 closed | Same command from repo root and from `bin/` gives a byte-identical verdict set; 203 lines each side, one differing line — the `#556` case going FAIL → `ok` |
 | No DEC-174 lane breach in squad-tagged work | The one TEAM-tagged commit (`98bd4b3`) touches no enforcement file |
-| Tree state | Zero **source** files dirty at the pinned sha; HEAD is the pin. `check-state.sh` was exit 0 / zero violations until the goal-check digest landed and is now exit 1 on that one bookkeeping violation — see "One red gate" below |
+| Tree state | Zero **source** files dirty at the pinned sha; HEAD is the pin. `check-state.py` was exit 0 / zero violations until the goal-check digest landed and is now exit 1 on that one bookkeeping violation — see "One red gate" below |
 
 ## Where the record is weaker than it looks
 
@@ -144,15 +144,15 @@ silently.**
 | B-4 | `test-check-plan-routes.py:1133-1136` keeps a live gate exemption alive on a defect that is fixed | bug |
 | B-5 | `validate-digest.py` releases a returning agent's claim before refusing the return; fired twice this run | bug |
 | B-6 | `test-validate-digest.py` is non-hermetic while any dispatch is in flight | bug |
-| B-7 | `bash-write-guard.sh` parses an angle bracket or ASCII arrow in prose as a redirect and refuses | bug |
-| B-8 | `bash-write-guard.sh` denies an agent Bash writes to its own dispatched scratchpad | bug |
+| B-7 | `bash-write-guard.py` parses an angle bracket or ASCII arrow in prose as a redirect and refuses | bug |
+| B-8 | `bash-write-guard.py` denies an agent Bash writes to its own dispatched scratchpad | bug |
 | B-9 | `change_type: test` exists in plans and in no taxonomy that grades it | bug |
 | B-10 | `gh_cost_log.py` reads `FACTORY_GH` not `GH_SYNC_GH`, breaking `test-gh-sync.py`'s offline guarantee | bug |
 | B-11 | `gh-sync.py` has `start-task` and no per-task finish command | bug |
 | B-12 | Path-shape authorisation cannot see WHICH checkout, so a write lands in the wrong tree unrefused | bug |
 | B-13 | Dispatched run-dir slugs a persona cannot write — third recurrence; fix the slug derivation | bug |
-| B-14 | `dispatch-guard.sh:105` and `harness-zero-micro-management/SKILL.md:30` hardcode this feature id as the copy-paste exemplar; a lead copying it is admitted and silently routed to the wrong checkout | bug |
-| B-25 | The lead digest contract cannot represent an honest send-back: a lead that records cycle 1 FAIL and cycle 2 PASS is forced to a team FAIL, so `check-state.sh` is RED on the goal-check digest at this sha | bug |
+| B-14 | `dispatch-guard.py:105` and `harness-zero-micro-management/SKILL.md:30` hardcode this feature id as the copy-paste exemplar; a lead copying it is admitted and silently routed to the wrong checkout | bug |
+| B-25 | The lead digest contract cannot represent an honest send-back: a lead that records cycle 1 FAIL and cycle 2 PASS is forced to a team FAIL, so `check-state.py` is RED on the goal-check digest at this sha | bug |
 | B-15 | `e51b814` mixes team-lane tags with enforcement-file edits; add a commit-tag-vs-files-touched check | chore |
 | B-16 | `STATE.md`'s "1040 verdict lines" does not reconcile with the measured 3139 | chore |
 | B-17 | Eng digest Q6 (standalone failures) does not reproduce at `9d12e3a`; confirm closed rather than masked | chore |
@@ -160,7 +160,7 @@ silently.**
 | B-19 | DEC-174 am.4 enumerates the enforcement layer by filename and nothing checks the list | chore |
 | B-20 | SC-04's standing invariant covers six of seven deleted definitions; `wayfind.root` is caught by nothing | enhancement |
 | B-21 | SC-01 greps the surviving name, so it is blind to the retired one; 8 of 12 docs findings are invisible to it | enhancement |
-| B-22 | `check-domain.sh` resolves a relative `file_path` against the cwd; needs a decision, not a guess | enhancement |
+| B-22 | `check-domain.py` resolves a relative `file_path` against the cwd; needs a decision, not a guess | enhancement |
 | B-23 | Ten further stale-narration doc sites from the sweep | enhancement |
 | B-24 | `.harness/expertise/harness-dev-ops.md:30` teaches the retired chain as craft, injected every spawn | enhancement |
 
@@ -174,13 +174,13 @@ silently.**
    amendment; the rule may.
 3. **Who lands `harness-brief/SKILL.md`?** It carries the docs sweep's highest-harm defect and
    resolves to `NOBODY` under the domain gate.
-4. **Should `check-domain.sh` refuse a relative `file_path` rather than pick a base?** The panel and
+4. **Should `check-domain.py` refuse a relative `file_path` rather than pick a base?** The panel and
    the security reviewer reached this independently: refusing is not the guess the note declined to
    make. Leaving it as-is is defensible; refusing is better.
 
 ## One red gate, and why I did not clear it
 
-`check-state.sh` exits 1 at this sha on exactly one violation, and it is bookkeeping, not a
+`check-state.py` exits 1 at this sha on exactly one violation, and it is bookkeeping, not a
 deliverable: `runs/2026-08-27-3-goalcheck-product/digest.md` "does not satisfy the lead digest
 contract". The reason is `validate-digest.py`'s rule that a team verdict must equal its worst member
 verdict. The goal-check lead honestly recorded **both** cycles — `goal-check-c1` FAIL, `goal-check-c2`

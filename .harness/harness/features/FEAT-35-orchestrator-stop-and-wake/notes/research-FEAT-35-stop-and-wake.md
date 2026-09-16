@@ -31,7 +31,7 @@ cwd, not the agent's. Slug narrowing finds nothing and reads as "no row".
 
 ## 2. CORRECTION — branch `chore/744-never-wait-for-a-lead` removes NOTHING
 
-The grilling note records "142 lines removed across `check-domain.sh`, `feature_schema.py` and
+The grilling note records "142 lines removed across `check-domain.py`, `feature_schema.py` and
 `test-validate-feature-json.py`". Measured: `git show --stat f5194d2` is
 **`1 file changed, 5 insertions(+)`**, SKILL.md only. Its merge-base with `main` is `3df18d3`;
 `main` is now `569d417` (PR #750, the feature-schema fix). A two-dot `git diff main..branch`
@@ -40,7 +40,7 @@ insertions. **The branch is clean;** the ruling turns on other grounds (plan D-0
 
 ## 3. CORRECTION — execution mode is main-session-direct, not a squad run
 
-`check-domain.sh --resolve .claude/skills/harness/SKILL.md` -> `NOBODY` at `569d417`.
+`check-domain.py --resolve .claude/skills/harness/SKILL.md` -> `NOBODY` at `569d417`.
 `check-plan-routes.py:363` makes every task touching it a VIOLATION unless it declares
 `main-session-direct`. DEC-174 am.4 permits the WORK (the playbook is not on the enumerated
 enforcement layer); the domain grant decides the LANE, and they are independent questions.
@@ -68,5 +68,5 @@ is killed at ~600s, stop-and-wake does not fix the death — it only removes the
 `test_kinds.eval` has `cmd: null`, and the three playbook tasks are `change_type: ai_behavior`
 (the matrix requires `eval`), so that requirement soft-skips. Nothing can execute a markdown
 playbook, so the text assertions in T-05 plus SC-05's real run are what actually carry conformance.
-A new `bin/test-*.py` must be registered in `run-unit-tests.sh`'s explicit script list or its drift
+A new `bin/test-*.py` must be registered in `run-unit-tests.py`'s explicit script list or its drift
 detector exits 2 for the whole suite — which is why T-05 is one task over two files.

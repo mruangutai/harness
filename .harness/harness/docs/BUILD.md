@@ -41,12 +41,12 @@ what "missing" does depends on the CLI version (below).
     "SubagentStart": [
       { "matcher": "harness-.*",
         "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] }
     ],
     "PreToolUse": [
       { "matcher": "Write|Edit",
         "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] }
     ],
     "SubagentStop": [
       { "matcher": "harness-.*",
@@ -85,7 +85,8 @@ matcher, so one registration each serves the whole roster.
 > page prose says "by default, a subagent can't spawn subagents of its own", which describes the
 > 2.1.217–218 band only; `env-vars` is authoritative and says the default is 3.
 
-**Version bands — the behavior changed three times, so the CLI version must be pinned:**
+**Version bands — the nesting default changed three times across CLI versions, which is why the
+depth is set explicitly rather than inferred from the version in play:**
 
 | CLI version | Nesting default | Configurable |
 |---|---|---|
@@ -93,21 +94,23 @@ matcher, so one registration each serves the whole roster.
 | 2.1.217 – 2.1.218 | **1** (off) | yes |
 | **≥ 2.1.219** | **3** (on) | yes |
 
-**Pin the harness at CLI ≥ 2.1.217**, which is the floor for all three spawn env vars, and set the depth
-explicitly to `3` in every project. Setting it explicitly is correct in *all* bands — relying on the
-default means the org silently reshapes the next time it moves.
+**CLI ≥ 2.1.217 is the floor for all three spawn env vars** — a compatibility fact to check against
+the bands above, declared nowhere in config — and set the depth explicitly to `3` in every project.
+Setting it explicitly is correct in *all* bands — relying on the default means the org silently
+reshapes the next time it moves.
 
 **Belt-and-suspenders, and the actually-reliable mechanism:** "members are always leaves" is enforced
 independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the
 setting; the depth cap is defence in depth, not the primary control.
 
-**`/harness-init` must write all five entries, and the state-consistency check must verify them** — a
-silent degradation to flat, to memoryless agents, to delegating members, or to unvalidated digests is
-exactly the failure class this design tries to avoid.
+**`harness-init` must write all five entries in this control-plane clone, and the
+state-consistency check must verify them there** — a silent degradation to flat, to memoryless
+agents, to delegating members, or to unvalidated digests is exactly the failure class this design
+tries to avoid.
 
 ### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
-`check-domain.sh` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
+`check-domain.py` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
 Expertise allowed · shared paths allowed with a warning. Two details the source plan had wrong, and
 getting either wrong makes the hook fail open:
 
@@ -150,7 +153,7 @@ guardrail** (DEC-85).
 
 
 **`delete: false` is deleted from the design.** It never existed as a field and nothing implemented
-it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.sh`, or it
+it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.py`, or it
 does not exist.
 
 ### Resolved without a spike — nested spawning (was the hard prerequisite)
@@ -186,9 +189,9 @@ the time of writing; the live list is authoritative if the two disagree.
 | # | Task | Status |
 |---|---|---|
 | 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
-| 2 | settings.json prerequisites + `inject-expertise.sh` | **done** (DEC-101) |
+| 2 | settings.json prerequisites + `inject-expertise.py` | **done** (DEC-101) |
 | 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out (cost-report.py removed — DEC-178) |
-| 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
+| 4 | `bin/check-state.py` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
 | 5 | DIGEST schema validator | **done** (DEC-101) |
 | 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
@@ -217,7 +220,7 @@ All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimat
 
 | Metric | Baseline (old rules) | Target signal (new rules) | How to measure |
 |---|---|---|---|
-| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.sh .harness/expertise/` |
+| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.py .harness/expertise/` |
 | Expertise corpus size | 1,422 lines / 23,145 words at peak; worst file 383 lines | ≤150 lines/file by physics; corpus roughly flat per feature | `wc -lw .harness/expertise/*.md` |
 | Per-spawn injection tax | worst file ~7k tokens, uncapped, growing | ≤150 lines hard-capped, truncation warning never seen | grep the warning string in spawn contexts |
 | Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` (cost-report.py removed — DEC-178) |
@@ -371,9 +374,18 @@ fixtures. D5 and D4 ride along inside the real flow's prompts.
 **Self-contained: everything needed to build this without prior conversation.** The spec below is what
 was built; the Done-when block at the end records how each criterion was verified.
 
+**Present state (DEC-222): onboarding is two skills, and this section is the record of what task 12
+delivered, not a description of today's split.** `harness-init` configures a harness checkout — the
+prerequisites, this clone's `.harness/`, its `team-config.yaml` and its own `harness.json` — and it
+keeps `--upgrade`. `harness-add-repo` registers a repository into an already-configured control
+plane: that repository's own `harness.json` on its `default_branch`, its `fleet.yaml` entry, then
+its central per-segment tree. The first `BRIEF.md`, its approval and any design pass are
+`/harness-plan`'s, so the division-of-labour table and the interview steps below name `/harness-init`
+for jobs `harness-add-repo` now owns.
+
 ### What it is
 
-The onboarding interview, run **inside a target project**. It absorbs the deleted `bootstrap` team
+The onboarding interview, run **in the control-plane clone** (DEC-221). It absorbs the deleted `bootstrap` team
 (DEC-14). Delivered as a **flat skill** at `.claude/skills/harness-init/SKILL.md` — *not* a command,
 because commands do not distribute (DEC-06), and *not* nested, because a project skill is exactly one
 level under `.claude/skills/` (DEC-100).
@@ -385,12 +397,15 @@ It must run in the **main session**: only that tier can call `AskUserQuestion` (
 | Operation | Does | Touches project state? |
 |---|---|---|
 | the factory's workspace step | clones the repository the fleet declares into `workspace_root` (`bin/factory_workspace.py`) | **no** — it creates the checkout and writes no project artifact inside it |
-| **`/harness-init`** | writes every project artifact | yes, once |
+| **`/harness-init`** | writes this control plane's own artifacts, and lands the one product-resident file — that repository's `.harness/harness.json` | **one file only**, on that repository's default branch |
 
 Onboarding is a fleet entry plus init: adding `- name: <owner>/<repo>` to
 `.harness/factory/fleet.yaml` is what makes a repository reachable, and `/harness-init` is what
-writes its `.harness/` state. Nothing is copied into the repository, which is what keeps the
-first half dumb and safe.
+writes the control plane's own `.harness/` state. Exactly one file is copied into the repository —
+its own `.harness/harness.json`, and it must land on that repository's default branch (the
+`default_branch` its fleet entry declares), because the factory reads a member's config from that
+ref remotely and never from a checkout on disk (DEC-221). Nothing else is copied into the
+repository, which is what keeps the first half dumb and safe.
 
 ### What it writes — six artifacts
 
@@ -402,10 +417,10 @@ first half dumb and safe.
   "hooks": {
     "SubagentStart": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] } ],
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] } ],
     "PreToolUse": [ { "matcher": "Write|Edit",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] } ],
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] } ],
     "SubagentStop": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook" }] } ]
@@ -419,7 +434,7 @@ first half dumb and safe.
 - **Merge, do not clobber.** Target projects have their own hooks — kaya-ai has five. Preserve them.
 
 **2. `.harness/harness.json`** — `test_matrix`, `test_kinds`, `gates`, `log_retention_days` (30),
-`commit_attribution`, `dirty_tree_whitelist`, `schema_version`, `cli_min_version: "2.1.217"`.
+`commit_attribution`, `dirty_tree_whitelist`, `schema_version`.
 
 **3. `.harness/team-config.yaml`** — from template, with `domain` globs seeded from detection, plus the
 `shared:` set and both team `conventions:`.
@@ -427,7 +442,7 @@ first half dumb and safe.
 **4. `.harness/features/<FEAT>/BRIEF.md`** — a **draft**, then the user's approval written into it.
 
 > **Corrected 2026-07-26.** An earlier version of this line said "init never marks it approved," which
-> contradicts interview step 3 below *and* the first Done-when: `check-state.sh` reports
+> contradicts interview step 3 below *and* the first Done-when: `check-state.py` reports
 > `BRIEF.md is NOT approved — halt` on a pending brief, so an init that leaves one has not onboarded
 > the project (verified against a fixture: exit 1 pending, exit 0 approved). The real rule is that init
 > never **self**-approves. It asks with `AskUserQuestion` and writes what the user answered.
@@ -481,7 +496,7 @@ not found" with no explanation.
 
 ### Step 1 is a hard gate
 
-If `merge-settings.py` or `merge-gitignore.sh` cannot run, **init stops there.** Observed in testing
+If `merge-settings.py` or `merge-gitignore.py` cannot run, **init stops there.** Observed in testing
 (DEC-112): with the scripts denied, a run hand-replicated the `.gitignore` half, skipped the settings
 half, and continued to step 5 — producing a finished-looking project with **no domain enforcement**. A
 half-installed init does not announce itself, which makes it worse than a refused one.
@@ -492,7 +507,7 @@ The fixture was built to be adversarial: a pre-existing `.claude/settings.json` 
 own hooks on three events plus `permissions` and an `env` key, an existing `.gitignore` (one of whose
 entries the harness snippet also contains), and a split `web/` + `api/` source layout.
 
-- ✅ **`bin/check-state.sh` passes in a freshly-initialised project** (all settings entries, INV-9).
+- ✅ **`bin/check-state.py` passes in a freshly-initialised project** (all settings entries, INV-9).
   Exit 0. It exits **1** first on a pending brief — which is what forced the approval question above.
 - ✅ **A spawned harness agent is blocked from an out-of-domain write in that project.** `exit 2`, the
   full permitted-paths message reached the agent, and the file was absent from disk. The in-domain write
@@ -584,7 +599,10 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
    stale rate table is detected rather than silent. **DEC-178 has since removed the meter**, its
    budgets and the briefing cost line: the per-agent attribution it produced was an estimate that
    never changed a decision, and the machinery to keep it honest cost more than the number was worth.
-2. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
+   **DEC-227 records the measurement that replaced it**: per-run `started_at`/`ended_at`/`tokens` in
+   `feature.json`, summed into every orchestrator return and one advisory line — a signal, never a
+   gate.
+2. `bin/check-state.py` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE).
 3. A **DIGEST schema validator** (~40 lines) routing drift into the existing
@@ -672,7 +690,7 @@ data required.
 These fixes are real and all three reviews want them — but each touches sections that may be deleted
 outright, so doing them now risks polishing text that will not survive:
 
-1. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
+1. `bin/check-state.py` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE). Scope depends on how many duties the orchestrator still has.
 2. A **DIGEST schema validator** (~40 lines) routing drift into the existing
@@ -684,9 +702,12 @@ outright, so doing them now risks polishing text that will not survive:
    triggers nothing, forever, while being injected into every spawn; and the **global tier gets a
    human-gated writer or is deleted** (§5.6 names the risk and assigns no mechanism, and it is
    uncommitted, so it has no PR-review audit channel either).
-4. **Cost accounting as a first-class axis:** tokens and spawns logged per run in `state.yaml`,
-   per-team budgets beside `max_cycles`, a cost line in the CEO briefing, cheaper model tiers as the
-   doer/reviewer default.
+4. ~~**Cost accounting as a first-class axis**~~ **DONE, narrower than asked (DEC-227).** Wall-clock
+   and tokens are recorded per run in `feature.json` `runs[]` (`started_at`, `ended_at`, `tokens` —
+   measured or `null`, never estimated), summed by `feature-record.py spend` into every orchestrator
+   return, with one `SPEND:` advisory at `budgets.plan_phase_warn_minutes` and the signed
+   `rework.wall_clock_minutes`. No dollar figure, no per-team budget, no gate. Cheaper model tiers as
+   the doer/reviewer default remain a provider-overlay question.
 5. **Re-examine DEC-68 and DEC-71 against the numbers.** Single-purpose curation spawns and mandatory
    lead intermediation (minimum 3 spawns for a one-line tweak) are the two things every review expects
    the measurements to kill.
@@ -776,8 +797,8 @@ Beyond "build personas + assemble them." Prune freely.
 | 14 | ~~the distribution command~~ | **Struck — done by deletion.** It shipped under DEC-113, scoped to distribution only; the copy mechanism behind it is deleted and the factory checks a repository out instead. See the detail block below. |
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
-| 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
-| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** |
+| 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.py`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
+| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** Amended by DEC-221: the manifest and the `BRIEF.md` are the control plane's, and the only artifact that lands in a product repository is its own `harness.json`, on that repository's default branch. |
 | 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
@@ -786,8 +807,8 @@ Beyond "build personas + assemble them." Prune freely.
 and the four that do exist must be converted from bare `.md` files into skills. `rules/mental-model.md`
 is **renamed to `expertise`** (DEC-80).
 
-**Net-new scripts** (`bin/`): `check-domain.sh` (domain enforcement, stdin JSON + `exit 2`) and
-`inject-expertise.sh` (the `SubagentStart` hook).
+**Net-new scripts** (`bin/`): `check-domain.py` (domain enforcement, stdin JSON + `exit 2`) and
+`inject-expertise.py` (the `SubagentStart` hook).
 
 **Net-new artifacts:** `.harness/expertise/<agent>.md` per agent with stable entry IDs (SPEC §5.2),
 `.harness/features/<FEAT>/notes/uat.md`, `.harness/notes/prototypes/<FEAT>/`.
@@ -838,7 +859,7 @@ The repo has **none**, yet the commit policy depends on ignoring `.harness/featu
 Without it, run dirs dirty the working tree — and the git-failure-mode rule halts a team with
 `BLOCKED` on a dirty tree, so **the harness's own artifacts would deadlock the next run.** Add the
 rule here and to the onboarding template `templates/gitignore.snippet`, which `/harness-init` merges
-into the target repository via `bin/merge-gitignore.sh`. Reconcile the dirty-tree
+into the target repository via `bin/merge-gitignore.py`. Reconcile the dirty-tree
 halt with a **whitelist**: harness-owned paths and in-progress staged work do not count as dirty.
 
 ### Detail: #16 — `.harness/README.md`
@@ -939,13 +960,14 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/agents/harness-{frontend,backend,ai}-dev.md`, `harness-data-engineer.md`, `harness-dev-ops.md` | **new** — 5 eng specialists |
 | `.claude/agents/harness-{pm,qa,documentor,visual-designer,ui-reviewer}.md` | **new** — product/validator agents |
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
-| `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
+| `.claude/skills/harness/bin/check-domain.py` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
 | `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
-| `.claude/skills/harness-init/SKILL.md` | **done** — `/harness-init` project scaffolder. **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
-| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
+| `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-222). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
+| `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-222): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |
+| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.py`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |
-| `.claude/skills/harness/bin/inject-expertise.sh` | **new** — `SubagentStart` hook that injects an agent's Expertise |
+| `.claude/skills/harness/bin/inject-expertise.py` | **new** — `SubagentStart` hook that injects an agent's Expertise |
 | `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` + `PreToolUse` + `SubagentStop` | **new** — **all four required**, none on by default, and each degrades silently if absent (§ Step 0a; DEC-111, DEC-122) |
 | `.claude/agents/harness-{code,security}-reviewer.md` | rewrite — de-GSD'd + three-part return (`ceo-reviewer` and `eng-reviewer` are **deleted**) |
 | `.claude/skills/harness/rules/*.md` | rewrite — retarget injection prose to personas |

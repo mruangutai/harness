@@ -17,7 +17,7 @@ distillation stays inline"* — that governs the ORCHESTRATOR's dispatch procedu
 `harness/SKILL.md`, which still runs every ship and is still inline. What moved is the MEMBER's
 write-rules, which fire once per agent per feature. Different tier, different frequency.
 
-You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
+You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
 "distill"** — at feature close, under a curation note, or via `/harness-curate`. Then:
 
 1. Read your observations log(s) and your current Expertise (already in context).
@@ -29,8 +29,8 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    scratch file, then run:
 
    ```
-   python3 .agents/skills/harness/bin/expertise-merge.py apply \
-     --file .harness/expertise/<your-agent-name>.md --entries <your scratch file>
+   python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/expertise-merge.py apply \
+     --file <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md --entries <your scratch file>
    ```
 
    A **whole-file write** to an Expertise file is what loses another run's entries (DEC-125), and
@@ -47,7 +47,7 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    | 9 | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
 
    Report the ops in your DIGEST's `expertise_update` as the receipt.
-4. Run `.agents/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
+4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <file>` and fix every violation before
    returning. Report per-section entry counts before and after.
 
 ## The entry format — rules, not stories
@@ -61,8 +61,8 @@ Your Expertise is split by **what the knowledge is about**, not by what you were
 
 | Layer | Holds | Lives at | Budget |
 |---|---|---|---|
-| **Craft** | how you work, true wherever you work | `.harness/expertise/<agent>.md` | 150 lines |
-| **Repository** | what is true of ONE repository | `.harness/<repo>/expertise/<agent>.md` | 40 lines |
+| **Craft** | how you work, true wherever you work | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<agent>.md` | 150 lines |
+| **Repository** | what is true of ONE repository | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<agent>.md` | 40 lines |
 
 **The default is craft, and the test is one question: could this entry be true and useful in a
 repository you have never seen?** If yes, it is craft. It is repository-layer only when it turns on
@@ -79,7 +79,7 @@ still qualify without the `WHEN/DO` shape. They were previously written beside c
 no longer are.
 
 **The failure this prevents:** a role that learns one repository's answers and carries them to the
-next one. A craft entry mentioning a path as an *example* is still craft — `check-expertise.sh`
+next one. A craft entry mentioning a path as an *example* is still craft — `check-expertise.py`
 flags such entries **advisorily**, for a human to rule on, and a flag is not a violation.
 
 A **recipe** (setup steps, config values, field names) rots with the code — it qualifies only as a
@@ -87,6 +87,13 @@ pointer to a living in-repo exemplar, never as inlined values recalled from an o
 
 An entry citing more than one incident is a distillation smell: keep the rule, drop the cases.
 A `merge` result is **no longer than the longer input**; instance lists are banned.
+
+**When a distillation touches a SKILL.md — an Expertise entry promoted into a rule skill, or a
+skill edited to carry what a run learned — the three-part rule for skill text applies (DEC-158,
+FEAT-60):** *if a gate refuses on it, name the gate; if a decision holds it, point; if one seam
+needs it, reference it.* A skill carries the rule, one clause of why, and a pointer — never the
+gate's field list, the decision's evidence, or a procedure preloaded on every wake.
+`check-skill-weight.py` measures the preload and `check-state.py` notes an excess.
 
 ```markdown
 # Expertise — <your-agent-name>
@@ -102,25 +109,46 @@ A `merge` result is **no longer than the longer input**; instance lists are bann
 ## Open (max 5)
 ```
 
-These four section names are the only legal ones in **both** layers, and `check-expertise.sh`
+These four section names are the only legal ones in **both** layers, and `check-expertise.py`
 enforces all of it. The spawn hook hard-truncates at the budget, so an over-budget file silently
 loses its tail — the budget is physics, not advice. **Craft is 150 lines; the repository layer is
 40.** The repository budget is deliberately small: the measured worst case is 4 entries in one file,
 and both layers are injected at every spawn, so a generous second budget would double a per-spawn
 cost DEC-105 already treats as expensive.
 
-Updates are **ops**, each naming its target:
+Updates are **ops**. The vocabulary is exactly `add | replace | merge | drop`. Every op requires
+both `target` and `section`: `target` names the entry ID, `section` names one of the four sections,
+and resolution never leaves that section. There is no whole-file lookup and no omitted section.
 
 ```yaml
 expertise_update:
   - op: replace              # add | replace | merge | drop
-    target: P-01             # the exact existing entry ID; omit only for `add`
+    target: P-01
     section: Patterns
     entry: "WHEN running migrations DO run the seed script first — they fail on a clean DB."
     why: "three observations this feature, same root cause"
 ```
 
-An op naming a nonexistent target is a contract violation — it is rejected, not guessed at.
+`merge` is an authoring outcome, not a mechanism op. Express it as a replace on the surviving id
+plus a drop of the absorbed id; the tool refuses an `op: merge`. Apply the JSON form of the
+`expertise_update` list with:
+
+```bash
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
+```
+
+The operation refuses without writing:
+
+- `7 CONFLICT`
+- `8 CAP EXCEEDED`
+- `9 not an Expertise file`
+- `10 MISSING TARGET`
+- `11 AMBIGUOUS TARGET`
+- `12 MALFORMED OPS`
+
+A missing target is a contract violation: it is rejected, not guessed at. A target is ambiguous
+only when its ID appears more than once in its section, or two ops in one proposal name the same
+section and ID. Add-only proposals may still use `apply --entries`, unchanged.
 
 At a section cap during distillation, condense until you are under it — distillation IS the
 curation step, so the old flag-and-stop rule does not apply to you here. If you genuinely cannot

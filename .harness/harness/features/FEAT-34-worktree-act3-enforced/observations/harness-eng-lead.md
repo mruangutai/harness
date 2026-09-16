@@ -1,6 +1,6 @@
 # Observations — harness-eng-lead — FEAT-34-worktree-act3-enforced
 
-- 2026-08-24: I passed `model: sonnet` on the first backend-dev dispatch and `dispatch-guard.sh`
+- 2026-08-24: I passed `model: sonnet` on the first backend-dev dispatch and `dispatch-guard.py`
   blocked it (DEC-152/155). My own G-16 names this exact habit error. The guard caught what my
   Expertise had already told me to catch — the lesson is not "add a rule", it is that a rule I
   hold does not fire unless I audit the call's parameters before sending.

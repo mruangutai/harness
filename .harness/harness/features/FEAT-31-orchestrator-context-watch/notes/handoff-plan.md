@@ -28,7 +28,7 @@ adopted a Q-A default that is overrulable in one read).
   T-10's empty-body rule, so T-14's widened glob adds zero violations. 10 of the 69 sit
   EXACTLY on 60, no headroom — verified-at 7299669
 - `.harness/harness.json` resolves to `harness-dev-ops` alone, which is why T-11 owns it and
-  T-05/T-07 carry do-not-edit clauses — `check-domain.sh --resolve` — verified-at 7299669
+  T-05/T-07 carry do-not-edit clauses — `check-domain.py --resolve` — verified-at 7299669
 - DEC-174 am.4 anchors: category rule `DECISIONS.md:4851-4854`, library/cutover analogy
   `:4856-4859`; `:4861` is "Not a strike" — verified-at 7299669
 - **T-01 and T-08 `verify:` CANNOT FAIL.** T-01's expected slug sits in a `#` comment while the
@@ -39,14 +39,14 @@ adopted a Q-A default that is overrulable in one read).
 ## Dead ends
 
 - Two writers on plan.yaml. 14 tasks became 1 in 63 seconds; plan.yaml is deliberately absent
-  from check-domain's `SHAPE_PATTERNS` — `check-domain.sh:670` — verified-at 7299669
+  from check-domain's `SHAPE_PATTERNS` — `check-domain.py:670` — verified-at 7299669
 - Writing any file through Bash. The guard resolves the UNEXPANDED token, so `cat >> "$F/x"` is
   refused while the same literal path succeeds, and a `>` in heredoc prose reads as a redirect —
   both reproduced this run — verified-at 7299669
 - Folding A-2 into T-10. Rejected in D-20: a fold makes a failed refactor indistinguishable from
   a failed empty-body check — verified-at 7299669
 - Deriving handoff stems from status values, or touching `SEAM_NOTES`. A-2 forbids both; the
-  comment near `check-state.sh:495` records that deriving goes dark on Linux CI — verified-at 7299669
+  comment near `check-state.py:495` records that deriving goes dark on Linux CI — verified-at 7299669
 - A `test-*.py` name for SC-01's live half. The detector loops `"$BIN_DIR"/test-*.py`, and the
   skip-loudly variant is a green required step that verified nothing — `tests.yml:78,84` —
   verified-at 7299669

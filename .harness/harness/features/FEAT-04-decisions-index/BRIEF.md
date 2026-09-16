@@ -142,7 +142,7 @@ and `check-docs.sh` keeps harvesting stale markers from it. Scope is that one fi
   exactly the per-ruling length rule the signed sentence said was deliberately *not* being added, so
   the old rationale is now false, not merely narrower. Measured at `ce2cd17`: 82 of 169 rows exceed
   the cap (max 165 words), so this is remedial work on the shipped index, not a no-op tightening.
-- SC-12: `.claude/skills/harness/bin/run-unit-tests.sh` exits 0, prints
+- SC-12: `.claude/skills/harness/bin/run-unit-tests.py` exits 0, prints
   `PASS test-gen-decisions-index.py`, and prints no `MISCONFIGURED` line — the generator's tests are
   registered in the explicit script list rather than tripping the drift detector.
   verify: automated      evidence: unit
@@ -158,7 +158,7 @@ feature reads it off `cost-report.py` and compares. The same run is the trigger 
 ## Verification gaps — DEC-163
 
 Read from `.harness/harness.json`: only `test_kinds.unit` has a `cmd`
-(`.claude/skills/harness/bin/run-unit-tests.sh`). `functional`, `integration`, `component`, `ui`,
+(`.claude/skills/harness/bin/run-unit-tests.py`). `functional`, `integration`, `component`, `ui`,
 `eval` and `typecheck` are all `cmd: null`, so an SC resting on them would resolve to a soft skip and
 could never be met. Every `automated` SC above therefore pins to `unit`.
 

@@ -113,7 +113,7 @@ cannot fail.
   set is identical before and after. This feature's design is deliberately shaped to that split —
   one library written by a squad, two hook cutovers by the operator's own hand.
 - **DEC-179.** Routing is resolved at plan time by delegating every literal
-  `files:` path to `check-domain.sh --resolve`. Every path in `plan.yaml` was resolved at HEAD
+  `files:` path to `check-domain.py --resolve`. Every path in `plan.yaml` was resolved at HEAD
   `c32f332` before its lane was assigned.
 - **DEC-90 no longer bounds anything: it is STRUCK, and not by this feature.** It stated the
   single-operator scope boundary and claimed there is no lock anywhere. **FEAT-30 falsified it** —
@@ -121,12 +121,12 @@ cannot fail.
   DEC-188, merged as `16b30c6`. Its index row carries the strike record and `SPEC.md` §15.1 is
   rewritten. Nothing in this feature re-opens it, and no task may re-litigate it. Listed here because
   three planning rounds treated it as a live constraint on this work; it never was.
-- **`plan.yaml` is absent from `check-domain.sh`'s `SHAPE_PATTERNS`** (verified at
-  `check-domain.sh`'s `SHAPE_PATTERNS`, `:727` at `c32f332`: the tuple holds `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`,
+- **`plan.yaml` is absent from `check-domain.py`'s `SHAPE_PATTERNS`** (verified at
+  `check-domain.py`'s `SHAPE_PATTERNS`, `:727` at `c32f332`: the tuple holds `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`,
   `RE_STATE_MD`, `RE_CLAUDE_MD` and nothing else), and so is the observation log. Adding either
   changes nothing — #628's 191-line file parsed cleanly. A shape gate is not the fix and is not
   proposed.
-- **A new test file must be registered or the runner refuses to run.** `run-unit-tests.sh` runs a
+- **A new test file must be registered or the runner refuses to run.** `run-unit-tests.py` runs a
   drift detector over the union of its two arrays and exits 2 MISCONFIGURED on any unregistered
   `test-*.py` in `bin/`, and `harness.json` `test_kinds.integration.detect` is an explicit
   pipe-separated list, so a file absent from it is invisible to the kind even once the runner runs
@@ -144,7 +144,7 @@ every CLI this feature adds:
 
 Two consequences, both accepted rather than designed around. First, a merge tool can guarantee
 **no loss** and **no mis-targeted destination**; it cannot guarantee **authorship**. Second, the
-CLI route is reachable at all only because `bash-write-guard.sh` is allow-by-omission (#627): it
+CLI route is reachable at all only because `bash-write-guard.py` is allow-by-omission (#627): it
 finds no write pattern in a `python3 … .py --file …` command and exits 0 at its `if not findings`
 guard, before the `agent in REVIEWERS` read-only denial and before the `for name, paths in findings`
 domain walk. Named by symbol and not by line: the three anchors cited through earlier planning
@@ -169,7 +169,7 @@ file class it owns.
   whole new one. That closes #551 occurrence 2's mechanism without any wait, any sleep and any
   "it did not happen again".
 - The **cause** of #551 occurrence 1: a second spawn of a singleton persona dispatched into a live
-  one. Refused at `dispatch-guard.sh`, the `PreToolUse Task|Agent` hook, against a claim registry.
+  one. Refused at `dispatch-guard.py`, the `PreToolUse Task|Agent` hook, against a claim registry.
 - Rewiring `expertise-merge.py` onto the shared core, so there is one dialect and not two, and so
   the Expertise file class inherits the stale-lock fix.
 - **The reporting half of #551, as far as it can go.** A lead or the orchestrator returning while a
@@ -195,7 +195,7 @@ file class it owns.
   re-returns the same premature digest a second time ships it, because `stop_hook_active` passes the
   second return through unconditionally. And an orphaned child of an interrupted parent (DEC-131) has
   no parent left to refuse, so neither mechanism reaches it. **#551 narrows; it does not close.**
-- **#627 — `bash-write-guard.sh`'s allow-by-omission default.** Out. Its fix is a change to a named
+- **#627 — `bash-write-guard.py`'s allow-by-omission default.** Out. Its fix is a change to a named
   enforcement-layer gate whose real cost is designing a **rule rather than a list** for extracting
   each tool's destination argument, and it is orthogonal to the merge class: nothing in #627 makes a
   second writer non-destructive, and nothing in this feature makes #627 worse in kind. It does make
@@ -217,11 +217,11 @@ file class it owns.
 
 FEAT-31 is claimed disjoint. Checked at `feat/FEAT-31-orchestrator-context-watch` tip `7299669`:
 its ten tasks touch `context-watch.py`, `test-context-watch.py`, `test-context-watch-cli.py`,
-`upgrade-config.py`, `test-upgrade-config.py`, `check-state.sh`, `test-check-state.py`,
-`.claude/skills/harness/templates/harness.json`, plus `run-unit-tests.sh`, `.harness/harness.json`,
+`upgrade-config.py`, `test-upgrade-config.py`, `check-state.py`, `test-check-state.py`,
+`.claude/skills/harness/templates/harness.json`, plus `run-unit-tests.py`, `.harness/harness.json`,
 `DECISIONS.md` and `DECISIONS-INDEX.md`. **Logically disjoint: true** — no file whose behaviour
 this feature changes appears there. **Textually disjoint: false** — the last four are shared
-registration and record surfaces, so both features append to `run-unit-tests.sh`'s
+registration and record surfaces, so both features append to `run-unit-tests.py`'s
 `INTEGRATION_SCRIPTS`, to `harness.json`'s `integration.detect` list, and to the decisions record.
 Whichever lands second rebases those four; each is an append, none is a rewrite.
 
@@ -240,7 +240,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   `SubagentStop` half of that risk is already discharged: `validate-digest.py` selects a
   persona-specific schema from the returning agent's own name and a live orchestrator return was
   rejected against the `orchestrator` schema, which is only reachable when `agent_type` is present.
-- **Every `verify:` in this plan pins its own checkout.** `run-unit-tests.sh` begins
+- **Every `verify:` in this plan pins its own checkout.** `run-unit-tests.py` begins
   `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"`, so a verify run with that variable pointing at another
   checkout measures the wrong tree and reports zero matched lines. Each of the 15 `verify:` blocks
   therefore opens with `cd "$(git rev-parse --show-toplevel)"` and exports `CLAUDE_PROJECT_DIR="$PWD"`
@@ -282,7 +282,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   It can go red: an allow-nothing tool fails the allow half, and a string-matching tool that never
   resolves the path fails the `..` case.
   verify: automated      evidence: integration
-- SC-06: With a live claim for `harness-pm` on disk for this checkout, `dispatch-guard.sh` fed a
+- SC-06: With a live claim for `harness-pm` on disk for this checkout, `dispatch-guard.py` fed a
   `PreToolUse Task` payload naming `harness-pm` as the dispatched persona exits 2 and its stderr
   carries the refusal marker, the claim's recorded start time and the literal command that clears
   it; with no claim on disk the same payload exits 0. It can go red: the refusal is identified by
@@ -290,7 +290,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   fails the assertion; and with `SINGLE_FLIGHT_AGENTS` mutated to an empty tuple by name in a copy
   of the tree, the refuse half must FAIL while the allow half still passes.
   verify: automated      evidence: integration
-- SC-07: `dispatch-guard.sh`'s pre-existing refusal set is unchanged by the cutover. Its
+- SC-07: `dispatch-guard.py`'s pre-existing refusal set is unchanged by the cutover. Its
   `model:`-parameter behaviour is captured as a test **before** the claim check is added — the
   script has no test today — and that test passes byte-for-byte unchanged afterwards, covering the
   refusal, the main-session pass-through, the non-harness pass-through and the unreadable-payload
@@ -352,7 +352,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   **Every observation of the runner, before and after, exports `CLAUDE_PROJECT_DIR` to the checkout
   being measured** — the runner `cd`s to that variable, so an unpinned run measures another tree.
   **Baseline RE-OBSERVED at `62f861c`, BRIEF pending, before any work** (superseding the `5d9b428`
-  observation, which FEAT-30's two added runner files had made stale): `run-unit-tests.sh --kind unit`
+  observation, which FEAT-30's two added runner files had made stale): `run-unit-tests.py --kind unit`
   exited 0 with **179** lines matching `^PASS |^FAIL |ERROR`, **zero** beginning `FAIL`, and **zero**
   containing `ERROR`; `--kind integration` exited 0 with **221** such lines, **zero** beginning `FAIL`,
   and **three** containing `ERROR`. (Unit is unchanged from `5d9b428`; integration moved from 93 to 221
@@ -379,7 +379,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
 - SC-16: **WITHDRAWN, not unmet.** It asked the operator to be shown, at approval, that this plan
   contradicted a live DEC-90. DEC-90 was struck on 2026-08-21 under DEC-188 (`16b30c6`), falsified by
   FEAT-30 rather than by this feature, so the criterion has no subject left. No task depended on it.
-- SC-17: An agent cannot change a plan's approval block and the main session can. `check-domain.sh`
+- SC-17: An agent cannot change a plan's approval block and the main session can. `check-domain.py`
   denies a `harness-pm` and a `harness-orchestrator` Write or Edit that changes `plan.yaml`'s
   `approval:` mapping, allows one that leaves it loaded-equal, and allows the same change from a
   payload carrying no `agent_type` — the main session. It can go red: both directions are asserted
@@ -404,12 +404,12 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   name rather than by count.
   verify: automated      evidence: integration
 - SC-20: The exclusion is enforced **by reading the record**, and it therefore covers all three forms
-  the record names. `check-domain.sh` sources its denial from `team-config.yaml`'s
+  the record names. `check-domain.py` sources its denial from `team-config.yaml`'s
   `main_session.writes`, so a `harness-pm` Write that changes a `BRIEF.md`'s or a `PLAN.md`'s
   `## Approval` section body is DENIED — a case that FAILS at `62f861c`, where `team-config.yaml:89`
   and `:90` grant pm those files whole and the words `except ## Approval` beside them are a comment —
   while a write changing only another section is ALLOWED. A `grep -n main_session
-  .claude/skills/harness/bin/check-domain.sh` returns **zero** at `62f861c`; a non-zero result is part
+  .claude/skills/harness/bin/check-domain.py` returns **zero** at `62f861c`; a non-zero result is part
   of the deliverable, and a hardcoded `plan.yaml`-only pattern is a DEFECT against this criterion. It
   can go red three independent ways, all inside T-14's own suite: the `BRIEF.md` and `PLAN.md` cases
   assert both directions; a fixture whose `main_session.writes` DROPS the `plan.yaml approval:` entry
@@ -419,7 +419,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   the denial, and only that stderr line and T-14's own test notice.
   verify: automated      evidence: integration
 - SC-21: The signature is protected at TWO layers, and the second one survives a reformatting that
-  defeats the first. Layer 1 is the enforcement of who may sign: `check-domain.sh` denies a governed
+  defeats the first. Layer 1 is the enforcement of who may sign: `check-domain.py` denies a governed
   agent's `Edit` of `plan.yaml`'s `approval:` mapping in each of the three payload shapes that reach
   it — a line-aligned edit of the two-space `status:` line, an `old_string` that begins mid-line and
   so contains no two-space line start at all, and a `replace_all` sweep of the bare text
@@ -429,7 +429,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   nothing, when the proposal's `approval:` mapping loads differently from the base's, and ALLOWS a
   proposal whose approval differs only in whitespace or comments. Each payload shape is asserted
   individually, never by a count or a single grep over the set. It can go red two independent ways:
-  with `check-domain.sh`'s named guard literal mutated to `False` in a copy of the tree the three
+  with `check-domain.py`'s named guard literal mutated to `False` in a copy of the tree the three
   deny shapes must FAIL, and with `plan-merge.py`'s `APPROVAL_REFUSAL` mutated to `False` the refusal
   case must FAIL — asserted as the file being byte-identical and the proposal's task being ABSENT,
   because the byte carry-forward of layer 2's sibling property would otherwise make a result-only

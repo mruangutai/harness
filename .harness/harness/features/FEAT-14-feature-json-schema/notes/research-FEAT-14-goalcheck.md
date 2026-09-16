@@ -16,7 +16,7 @@ legwork myself and it is recorded below.
 
 SC-04, SC-05 and SC-16 rest entirely on one-off live probes recorded in
 `notes/qa-final-coverage.md` §Phase 2. `test-check-domain.py` carries **zero** schema-rejection
-fixtures. The remedy lands in `check-domain.sh`'s test file, a DEC-174 carve-out surface, so it is
+fixtures. The remedy lands in `check-domain.py`'s test file, a DEC-174 carve-out surface, so it is
 the main session's — **not a fix cycle's**. I confirmed the classification and did not touch it.
 
 The sharpest thing in qa's artifact is not the gap but the reason nobody saw it: BRIEF
@@ -124,7 +124,7 @@ abandoned" survives as English in the new sentence and a fast reader could take 
   comment says one of them is, which is worse than silence. **Owner: the main session, as a
   standalone `tests.yml` item, not this feature.** One test asserting both steps present and
   unneutered closes both halves at once; it is the cheapest item in this whole report.
-- **Q3 — operator-owed BRIEF corrections, three now, not two.** Line 421 (`check-state.sh` "exits 1
+- **Q3 — operator-owed BRIEF corrections, three now, not two.** Line 421 (`check-state.py` "exits 1
   today" — it exits 0 at HEAD with a zero-byte T-04 baseline); SC-13 lines 448-454 ("exactly two
   carve-outs" — five apply under R-01); and **SC-10's parenthetical** ("FEAT-11, 20 keys" — 22, and
   not the maximum). I did not edit `BRIEF.md`.

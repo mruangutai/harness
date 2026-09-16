@@ -13,7 +13,7 @@ both still fail-closed, both still non-corrupting. `PASS`.
 
 In scope: items 1–6 as assigned (splice integrity, CAS, identity-check branch derivation,
 `--value-file` structural injection, path/symlink handling, secrets). **Out of scope, and why:**
-`check-state.sh` and the mutation-suite claims are QA's per the dispatch's own constraint
+`check-state.py` and the mutation-suite claims are QA's per the dispatch's own constraint
 ("other members run only targeted probes"); N2 (test tautology)/N4 (code grades)/N5 (schema
 branch coverage) are code-reviewer/QA lenses, not mine — though my live probes incidentally
 produced behavioral evidence that `_verify_amend` is NOT a no-op (see item 3), which QA's

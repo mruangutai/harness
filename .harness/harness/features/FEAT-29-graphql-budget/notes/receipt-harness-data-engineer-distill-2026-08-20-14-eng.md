@@ -82,8 +82,8 @@ appear only as examples the reshaping deliberately stripped.
 
 ## Gate
 
-`.claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-data-engineer.md` → `OK`
-`.claude/skills/harness/bin/check-expertise.sh .harness/harness/expertise/harness-data-engineer.md` → `OK` (unchanged file, re-run for completeness)
+`.claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-data-engineer.md` → `OK`
+`.claude/skills/harness/bin/check-expertise.py .harness/harness/expertise/harness-data-engineer.md` → `OK` (unchanged file, re-run for completeness)
 
 ## Open questions
 

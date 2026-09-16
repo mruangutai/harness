@@ -34,5 +34,5 @@ Exact owner operations: `[]`. Because no operation was accepted, `expertise-merg
 
 ## Check evidence
 
-- `.harness/expertise/harness-documentor.md`: `check-expertise.sh` skipped as required because the file was unchanged.
+- `.harness/expertise/harness-documentor.md`: `check-expertise.py` skipped as required because the file was unchanged.
 - Touched files: `.harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-documentor-distill-product.md` only.

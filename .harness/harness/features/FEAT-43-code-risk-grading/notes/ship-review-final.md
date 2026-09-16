@@ -72,7 +72,7 @@ argument for running the later stages even when the earlier ones are clean.
 | Full independent panel (`17106762`) | **PASS**, `must_fix: []` |
 | Three delta reviews (`6752597`, `e12d53b1`, `cd8dae47`) | **PASS**, `must_fix: []`, severity ending at **low** |
 | Test matrix — the project's only blocking gate | **PASS** |
-| `check-state.sh` | **exit 0** |
+| `check-state.py` | **exit 0** |
 | Canonical repository suite | 957 results, **one** failing suite — not ours |
 | SC-11 UAT | **passed**, operator-executed, recorded at this pin |
 
@@ -158,4 +158,4 @@ If you would rather strike rows first, strike them by ID and the rest become iss
 
 Nothing shipped. No PR, no merge, no deploy, no issue closed; the worktree stands. `review_sha` is
 `cd8dae476607704fd3d2b874150aae9f814292d2`, parent issue #924 and all ten sub-issues are at Review,
-the working tree is clean, `check-state.sh` exits 0, and no source has moved past the pin.
+the working tree is clean, `check-state.py` exits 0, and no source has moved past the pin.

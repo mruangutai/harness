@@ -21,7 +21,7 @@ cwd
 
 Every gate script sets `PYTHONPATH="$_selfdir"` and then imports `harness_boundary`. So a
 `harness_boundary.py` sitting in the governed agent's working directory was the resolver the
-gate consulted. Measured end to end against `check-domain.sh` at `7179095`:
+gate consulted. Measured end to end against `check-domain.py` at `7179095`:
 
 | cwd | verdict |
 | --- | --- |
@@ -34,7 +34,7 @@ shadowing reaches the standard library: a `json.py` in the cwd is imported by ev
 
 ## The fix
 
-`python3 -P` on all 19 python launches across the ten gate scripts in `bin/`. Nine of them import `harness_boundary`; `check-expertise.sh` runs python without it and is patched for the stdlib half of the same shadowing. `-P` removes the
+`python3 -P` on all 19 python launches across the ten gate scripts in `bin/`. Nine of them import `harness_boundary`; `check-expertise.py` runs python without it and is patched for the stdlib half of the same shadowing. `-P` removes the
 invoking directory from `sys.path` at the interpreter, so nothing later in a script can put
 it back — the guarantee is not code a future edit can delete.
 
@@ -65,12 +65,12 @@ Three test pairs, each with its paired half so a guard that refuses everything c
   next gate script added without the flag.
 
 All three verified load-bearing by mutation: `-P` stripped from a copy of the two hooks turns
-both hook pairs red while their controls stay green; `-P` stripped from `check-expertise.sh`
+both hook pairs red while their controls stay green; `-P` stripped from `check-expertise.py`
 turns case 7 red.
 
 ## Still open
 
-`check-domain.sh` resolves a relative `file_path` against the cwd rather than the root
+`check-domain.py` resolves a relative `file_path` against the cwd rather than the root
 (`os.path.abspath` at lines 970 and 1000). Not reachable from Claude Code, which sends
 absolute paths, and not fixed here — there is no decision saying which base a relative target
 should take, and guessing in an enforcement gate is worse than the current state. Raised for

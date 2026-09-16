@@ -16,8 +16,8 @@
 > | SC-11 | NOT MET | not_met | unchanged — `uat`, awaiting the operator's own run |
 
 Graded against the working tree at `e8a6058` + fix cycle c1 (uncommitted). Suite and gate re-run by
-me, not read off a report: `run-unit-tests.sh` exit **0**, `grep -c '^FAIL'` = **0**,
-`test-board-lifecycle.py` PASS (line 1248 of the captured log); `check-state.sh` exit **0**,
+me, not read off a report: `run-unit-tests.py` exit **0**, `grep -c '^FAIL'` = **0**,
+`test-board-lifecycle.py` PASS (line 1248 of the captured log); `check-state.py` exit **0**,
 `grep -c '^  VIOLATION'` = **0** (condition: FEAT-34's BRIEF signature is uncommitted — the 0 depends
 on it).
 
@@ -61,7 +61,7 @@ on it).
 | SC-07 | sole `project_single_select_extend` call site passes `existing + missing` (`board_lifecycle.py:579`); `test-board-lifecycle.py:379-392` zero mutations + "nothing to do" + second run |
 | SC-08 | `test-board-lifecycle.py:420-427` no argv carries `Abandoned` on a fixture that DOES mutate; `Abandoned` appears nowhere as an option source; DEC-192 unstruck (index row 210, no strike record) |
 | SC-09 | `test-board-lifecycle.py:629-656` MISSING for a renamed workflow, disabled reported, header names detection-by-name once |
-| SC-10 | suite + gate above; `git diff --name-only origin/main...HEAD` names none of the four DEC-174 files, only `check-state.sh` (SC-20's sanctioned edit) |
+| SC-10 | suite + gate above; `git diff --name-only origin/main...HEAD` names none of the four DEC-174 files, only `check-state.py` (SC-20's sanctioned edit) |
 | SC-12 | `git show e8a6058:DECISIONS.md:6448-6478` — DEC-196 am.3, reverses am.1's clause, explains why it is not a strike; index row 214 at the same sha |
 | SC-13 | `test-gh-sync.py:1571-1636` — exact ITEM sets per status: Ready = 3 subs only, Review = parent + subs, Plan/Done/Abandoned = no `item-edit`. RED: no `status` subcommand at all on `origin/main` |
 | SC-14 | `test-gh-sync.py:1637-1654` zero-sub-issue Ready writes nothing, no parent fallback; the only `stations["ready"]` write in the diff loops over `rec["issues"]` (`gh-sync.py:930-940`) |
@@ -70,7 +70,7 @@ on it).
 | SC-17 | `test-gh-sync.py:546-551` exact argv `--title FEAT-05-export-fix — T-01 — …`, same U+2014 as the parent title (`gh-sync.py:746`). RED: `origin/main:gh-sync.py:738` writes `f"{task['id']} — …"` |
 | SC-18 | `test-board-lifecycle.py:1033-1053` (title derived from the milestone, exact argv), `:1055-1067` (no milestone → REFUSED, named, no rename call), `:1101-1112` (already correct → skipped, no call); derivation is milestone-only (`board_lifecycle.py:901-905`) |
 | SC-19 | `retitle-harness.md` — 218 renamed, 0 refused, second run `0 to rename`, 436 points. See the ruling below |
-| SC-20 | `check-state.sh:1357-1359` accept-set widening guarded on `feature.json` status Review; `test-check-state.py:1619-1654` v.T22a–d, both sides of the bound |
+| SC-20 | `check-state.py:1357-1359` accept-set widening guarded on `feature.json` status Review; `test-check-state.py:1619-1654` v.T22a–d, both sides of the bound |
 
 ## SC-19's number: drift, not a miss
 
@@ -97,19 +97,19 @@ renamed titles — stated in the report), and the points are recorded (436) but 
    by nothing except the INV-26 station findings the change removes" is satisfied by a comparison in
    which nothing was removed either. The bound itself is real (v.T22c/d), but the mutation claim
    "the second fails against an unconditional widening" I could only **derive by reading**
-   `check-state.sh:1357-1359` against the fixture, not run: the write guard denies me a scratch copy
+   `check-state.py:1357-1359` against the fixture, not run: the write guard denies me a scratch copy
    of the script to mutate, correctly.
 
 ## Smaller record defects, none of them gaps in proof
 
 - **Evidence-kind mislabel on three SCs.** SC-13, SC-14 and SC-17 declare `evidence: unit`, and
-  their assertions live in `test-gh-sync.py`, which `run-unit-tests.sh:18` registers as
+  their assertions live in `test-gh-sync.py`, which `run-unit-tests.py:18` registers as
   **integration**. Assertions exist and run; the label is wrong.
 - **SC-20's "once the status is Done" clause is untestable and the test says so** — the terminal
   exemption `continue`s before the per-task comparison, so no status-Done fixture can produce an
   INV-26 station finding. The author substituted status Building (v.T22c) and documented the
   substitution rather than hiding it. The criterion's sentence contains a factual error about
-  `check-state.sh`; the bound it exists to protect is asserted.
+  `check-state.py`; the bound it exists to protect is asserted.
 - **No finding class reports an EXTRA board column.** `audit` reports declared-values-missing, never
   board-values-undeclared, so a hand-added `Abandoned` column on a live board would be invisible.
   SC-08 is met (no code path can write one), but the live direction has no detector.
@@ -350,7 +350,7 @@ re-read — no live GitHub call was made.
    that ruling was reversed by the later one to add the cards, and the verify was never updated.
    `T-11`'s own intent (steps 5 and 6, "confirm zero findings", "a line reading 0 findings") now
    matches reality while its verify does not.
-2. It asserts `test "$(check-state.sh | grep -c '^  VIOLATION')" = 1`. **Measured at `8dfee3b`: the
+2. It asserts `test "$(check-state.py | grep -c '^  VIOLATION')" = 1`. **Measured at `8dfee3b`: the
    count is 0.** The comment pins the 1 to FEAT-34's unsigned BRIEF; that BRIEF landed at `3df18d3`.
    So this clause reddens because the defect it was pinned to was FIXED — an equality assertion on a
    transient defect count fails in both directions, and the improving direction is the one nobody
@@ -380,7 +380,7 @@ Appended, not rewritten (PRINCIPLES rule 15).
 passing. The clauses now are: the ARCHIVED capture carries exactly 2 `STATUS:` findings naming `#25`
 and `#47` (immutable committed evidence that `audit` detects a real finding on a real board); the
 LIVE capture's last line reads `0 finding(s)` and it carries zero `STATUS:` lines (the delivered
-outcome); the DEC-174 four-file diff is empty; and `check-state.sh` reports ZERO violations, with the
+outcome); the DEC-174 four-file diff is empty; and `check-state.py` reports ZERO violations, with the
 narrower "no violation names FEAT-33" kept beside it. **The `= 1` equality is deleted, not
 renumbered.** Both capture filenames are named in the block and the archived one is labelled
 ARCHIVED, because the one-word difference is what misled a reader once already.
@@ -394,7 +394,7 @@ discriminating rather than assumed — three mutants, each exit 1:
 | LIVE repointed at the ARCHIVED capture | exit 1 |
 | `grep '^  VIOLATION'` -> `grep '^  note'` (a prefix that IS present) | exit 1 |
 
-The third is the one that matters most: it proves the `check-state.sh` pipeline actually runs and its
+The third is the one that matters most: it proves the `check-state.py` pipeline actually runs and its
 output is really captured, so the two `test -z` clauses are not passing vacuously.
 
 `T-11`'s `status` is untouched. The task is done; the verify was wrong, not the work.
@@ -436,7 +436,7 @@ ship gate to confirm, not as verdicts I am entitled to close.
 
 **`rulings-2026-08-23.md:109` was checked and is NOT falsified.** Its "both still assert" describes
 the pre-fix state inside a rulings record, and ruling 5's fix did land: `D-17`'s `because` and
-`T-13`'s step 6 both now read that `T-22` edits `check-state.sh` under the D-24 carve-out.
+`T-13`'s step 6 both now read that `T-22` edits `check-state.py` under the D-24 carve-out.
 
 ---
 

@@ -1,7 +1,7 @@
 # Grilling — merge-gitignore behavioral coverage — 2026-08-24
 
 ## Destination
-A fully traceable Harness cycle adds executable behavioral coverage for `merge-gitignore.sh`, produces a stacked pull request, and stops at user-controlled merge. Every model-backed Harness agent in this cycle resolves through the OpenAI provider overlay; the resulting repository change remains provider-neutral.
+A fully traceable Harness cycle adds executable behavioral coverage for `merge-gitignore.py`, produces a stacked pull request, and stops at user-controlled merge. Every model-backed Harness agent in this cycle resolves through the OpenAI provider overlay; the resulting repository change remains provider-neutral.
 
 ## Settled
 - Should the cycle be test-only? → Start test-first and change production only when a failing test proves a documented contract violation.
@@ -15,12 +15,12 @@ A fully traceable Harness cycle adds executable behavioral coverage for `merge-g
 
 ## Out of scope
 - Expanding coverage to unrelated `bin/` utilities.
-- Changing documented `merge-gitignore.sh` behavior without a failing behavioral test.
+- Changing documented `merge-gitignore.py` behavior without a failing behavioral test.
 - Provider-specific production logic.
 - Merging the resulting pull request.
 
 ## Facts I verified (so pm does not re-derive them)
-- `merge-gitignore.sh` documents append-without-overwrite, whole-line rule matching, partial merge, `--check`, cwd-independent snippet lookup, and idempotence — source inspection at OMP-port SHA `0fa8f336e55dc57bca09a9f7df0524a35195ee7e`.
-- The canonical `bin/` directory contains 83 Python files, 9 shell scripts, and 45 registered Python test programs; `merge-gitignore.sh` is the only shell script with no direct `test-*.py` reference — measured in the OMP-port worktree on 2026-08-24.
+- `merge-gitignore.py` documents append-without-overwrite, whole-line rule matching, partial merge, `--check`, cwd-independent snippet lookup, and idempotence — source inspection at OMP-port SHA `0fa8f336e55dc57bca09a9f7df0524a35195ee7e`.
+- The canonical `bin/` directory contains 83 Python files, 9 shell scripts, and 45 registered Python test programs; `merge-gitignore.py` is the only shell script with no direct `test-*.py` reference — measured in the OMP-port worktree on 2026-08-24.
 - GitHub issue #594 broadly covers host-neutral utilities but does not explicitly identify this missing behavioral test — issue body inspected on 2026-08-24.
 - GitHub issue #814 was created for this work and linked as a sub-issue of #594.

@@ -3,7 +3,7 @@
 ## BLUF
 
 `.harness/expertise/harness-backend-dev.md` distilled: 4 ops (3 add, 1 replace), none
-displacing (no section at cap). `check-expertise.sh` reports `OK` for this file specifically;
+displacing (no section at cap). `check-expertise.py` reports `OK` for this file specifically;
 the directory-wide invocation exits 1 for reasons entirely outside this domain (see Gate below).
 
 ## Sources read
@@ -73,10 +73,10 @@ rather than merely asserted.
 
 `wc -l .harness/expertise/harness-backend-dev.md`: 54 → 64, well under the 150-line budget.
 
-## `check-expertise.sh` — verbatim invocation and output
+## `check-expertise.py` — verbatim invocation and output
 
 ```
-$ .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+$ .claude/skills/harness/bin/check-expertise.py .harness/expertise/
 OK   .harness/expertise/harness-backend-dev.md
 OK   .harness/expertise/harness-code-reviewer.md
 OK   .harness/expertise/harness-dev-ops.md
@@ -132,14 +132,14 @@ expertise_update:
 
 ## Open questions
 
-- **Q1 (non-blocking):** `check-expertise.sh .harness/expertise/` cannot exit clean from inside
+- **Q1 (non-blocking):** `check-expertise.py .harness/expertise/` cannot exit clean from inside
   this domain alone — `harness-documentor.md` and `harness-ui-reviewer.md` (at the time this run
   started) carry unrelated word-cap violations. Not fixed here; not my domain.
 - **Q2 (non-blocking):** `harness-digest-dev`'s schema documents `suite: n/a` as legal when no
   tests ran, but `validate-digest.py` rejects `suite: n/a` + `VERDICT: PASS` unconditionally for
   the `dev` persona (which `harness-backend-dev` normalizes to), with no exemption for
   `task: none` (a distillation dispatch touching no production code). I reported `suite: pass`
-  meaning the applicable gate for this task type — `check-expertise.sh` — passed for my file, not
+  meaning the applicable gate for this task type — `check-expertise.py` — passed for my file, not
   that a code test suite ran. Confirmed by running the validator against both spellings: `n/a` +
   `PASS` is rejected, `pass` + `PASS` is accepted. Flagging as a harness schema gap, not deciding
   it myself.

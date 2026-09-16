@@ -119,8 +119,8 @@ $ python3 .claude/skills/harness/bin/test-factory-gh.py            → 82/82 che
 $ python3 .claude/skills/harness/bin/test-factory-claim.py         → 77/77 checks passed. exit=0
 $ python3 .claude/skills/harness/bin/test-factory-config.py        → 56/56 checks passed. exit=0
 $ python3 .claude/skills/harness/bin/test-factory-integration.py   → 97/97 checks passed. exit=0
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit         → exit=0, 10/10 files PASS, 0 FAIL
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration  → exit=0, 14/14 files PASS, 0 FAIL
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit         → exit=0, 10/10 files PASS, 0 FAIL
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration  → exit=0, 14/14 files PASS, 0 FAIL
 $ .claude/skills/harness/bin/check-docs.sh                         → exit=0, run AFTER this receipt
                                                                        existed on disk (re-run per
                                                                        harness-handoff: the gate scans
@@ -153,8 +153,8 @@ receipt was written to disk (see note above) rather than trusted from the earlie
 
 ## Scope respected
 
-- No edit to `check-state.sh`, `check-docs.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-  `check-domain.sh`.
+- No edit to `check-state.py`, `check-docs.sh`, `bash-write-guard.py`, `validate-digest.py`,
+  `check-domain.py`.
 - No edit to any SC-13 / SC-18 / SC-19 assertion in `test-factory-claim.py`,
   `test-factory-config.py`, or `test-factory-integration.py` — only additions.
 - `project_field_set`'s signature is unchanged; grepped all three callers

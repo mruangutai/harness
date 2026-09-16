@@ -24,7 +24,7 @@
   scope means new REQ coverage and a new SC, not just a new task.
 - 2026-08-04 (goal-check): SC-03 read as VIOLATED on a literal before/after diff — two non-INV-6
   lines appeared vs `notes/before-check-state-635ef14.txt`. The diff could not separate a code
-  effect from a tree effect. Running the PRE-change `check-state.sh` (from `git show 635ef14:`)
+  effect from a tree effect. Running the PRE-change `check-state.py` (from `git show 635ef14:`)
   over the CURRENT tree and diffing against the post-change run on the same tree came back
   byte-identical, which settles it: tree state, not code. One of the two new lines was the
   goal-check's own run dir. When a before/after capture spans time as well as a change, hold one
@@ -39,7 +39,7 @@
   (mtime 14:37); a verify command I had executed at exit 0 became exit 1 mid-run. Re-executing the
   anchor command at FINAL state — not trusting the earlier receipt — is what caught it. A plan
   amendment reads a moving target unless the code is committed first.
-- 2026-08-04 (amend): `run-unit-tests.sh` 0, `check-state.sh` 0 and `check-docs.sh` 0 all ran green
+- 2026-08-04 (amend): `run-unit-tests.py` 0, `check-state.py` 0 and `check-docs.sh` 0 all ran green
   AFTER the `filter:` key was deleted from `build.yaml`. No gate reads team-file field content
   beyond what `test-team-catalog.py`'s ten checks name, so an approved EMF-2 fix was removed
   silently — the same unguarded-copy class this feature exists to close.

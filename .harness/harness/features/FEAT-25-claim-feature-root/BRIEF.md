@@ -90,7 +90,7 @@ The correct root is decided on the record, so unit 7 inherits an answer rather t
   clause, because a file the plan never declared is exactly what it exists to detect;
   (b) each of the six members of the canonical forbidden set in `## Constraints` is checked
   **individually and named in the finding** — `factory_config.py`, `.harness/factory/fleet.yaml`,
-  `.harness/harness.json`, `gh_board.py` and `check-domain.sh` each absent from the diffed path
+  `.harness/harness.json`, `gh_board.py` and `check-domain.py` each absent from the diffed path
   list, and `load_board` absent from every added line of the diff. Six separate verdicts, never one
   file-global search, which the conforming five would satisfy alone.
   verify: inspection
@@ -107,7 +107,7 @@ The correct root is decided on the record, so unit 7 inherits an answer rather t
 
 - **The forbidden set — canonical, stated once here and referenced everywhere else.** Five files:
   `factory_config.py`, `.harness/factory/fleet.yaml`, `.harness/harness.json`, `gh_board.py`,
-  `check-domain.sh`. Plus one symbol: `load_board`, which no call site this feature adds may
+  `check-domain.py`. Plus one symbol: `load_board`, which no call site this feature adds may
   reference. SC-08 grades against this list and adds nothing to it.
 - No new `factory_config.py` API. `factory_config.py` is FEAT-24's T-02 surface, and general
   per-repository resolution is unit 7's (#495). The fix consumes an existing function or a literal.

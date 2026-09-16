@@ -14,7 +14,7 @@ can move until your tasks land.
 **Your two blockers are cleared.** T-16 and T-18 are done and I verified both myself rather than
 taking the lead's word: `.claude/settings.json` is zero-diff so D-24 holds, and `harness.json`
 changed in exactly one key. **T-17 is unblocked, and T-07 has already made its edit to
-`run-unit-tests.sh`, so that file is settled — append only when you get there.**
+`run-unit-tests.py`, so that file is settled — append only when you get there.**
 
 ## What was wrong, and why every gate missed it
 
@@ -56,7 +56,7 @@ half is discharged.** Unit 76 of 76, integration 10 of 10, both exit 0, zero MIS
 
 ## Corrections to things on the record
 
-- **The `bash-write-guard.sh` heredoc hazard is false.** I tested it: a read-only `python3` heredoc
+- **The `bash-write-guard.py` heredoc hazard is false.** I tested it: a read-only `python3` heredoc
   containing `>` and `>=` runs clean. The lead caught this by reading the source rather than
   complying with my brief. The real defect is narrower — `sed -i` with a shell-*variable* target is
   refused as out-of-domain. Two mechanisms, conflated.
@@ -85,10 +85,10 @@ everything that survived.
 | B-3 | `_safe_listdir` swallows `OSError`, so an unreadable *directory* silently drops its subtree; REQ-07 covers sidecars and transcripts, not directories | bug |
 | B-4 | Any `verify:` floor expressed as an absolute case count is vacuous — T-16's `-ge 22` was satisfied at 29 before T-16 wrote a line. Make floors deltas against a measured pre-task count | chore |
 | B-5 | The footer's second full corpus read is ~49% of wall clock (0.80s vs 0.41s). Sub-second today; the fix is to have `_build_row` return its measured sizes | enhancement |
-| B-6 | `bash-write-guard.sh` refuses `sed -i` whose target is a shell variable, even when the expansion is in-domain | bug |
+| B-6 | `bash-write-guard.py` refuses `sed -i` whose target is a shell variable, even when the expansion is in-domain | bug |
 | B-7 | Eight lines of `DECISIONS.md` anchor rot in plan citations — content correct, pointers 8 lines stale; `lanes.resolved_at` also stale | chore |
 | B-8 | `BRIEF.md:247` cites DEC-90 as a live constraint; DEC-90 is STRUCK | chore |
-| B-9 | `BRIEF.md:231-237` says SC-07 changes `check-domain.sh`'s write route; the tree contradicts it | chore |
+| B-9 | `BRIEF.md:231-237` says SC-07 changes `check-domain.py`'s write route; the tree contradicts it | chore |
 | B-10 | Corpus check for the ` ##`-truncates-a-YAML-scalar shape in other plans — it cost D-21 299 invisible characters | chore |
 | B-11 | DEC-197 has no implementation; its own index row says so, and T-18's correctness partly rests on it | chore |
 | B-12 | Two board cards (T-01 #642, T-02 #643) read Building while the issues are closed and the plan says done; `close-task` re-run twice did not move them | chore |

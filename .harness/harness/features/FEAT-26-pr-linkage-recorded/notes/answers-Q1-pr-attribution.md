@@ -16,7 +16,7 @@ about SC-08 was invented.
 - The operator WAS asked, and answered. The answer was one of four options put to them.
 - The SC-08 narrowing WAS genuinely offered, as the second of those four options — *"Narrow SC-08 to
   the 19 derivable features"*, with its cost stated (four `Done` features keep `pr: null`, and
-  SC-07's new `check-state.sh` line then names them on every run unless a second change exempts
+  SC-07's new `check-state.py` line then names them on every run unless a second change exempts
   them). It was declined by the operator choosing the first option instead.
 - A third option (confirm three of four, leave FEAT-01 null) and a fourth (show both PR diffs first)
   were also on the table and also not chosen.

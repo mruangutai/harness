@@ -29,11 +29,11 @@ APIs, services, business logic, auth, background jobs, server-side integration.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-backend-dev.md` is already in your context — how this codebase's service
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-backend-dev.md` is already in your context — how this codebase's service
 layer actually behaves, which integrations are flaky, what the error conventions are. Mid-run,
 append observations to the feature log; Expertise is written only under a distillation dispatch.
 
-Writable paths are in `.harness/team-config.yaml`. Read anything.
+Writable paths are in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`. Read anything.
 
 ## Convention: Supabase
 
@@ -52,13 +52,14 @@ Then write the test for the miss.
 ## Test-first
 
 `harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
-(`test_matrix` in `.harness/harness.json`) live there, not here.
+(`test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) live there, not here.
 
 ## When you are handed a bug
 
-Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested). A fourth attempt is where speculative changes start burying the
 original bug.
+That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
 
 ## Reaching a boundary
 

@@ -93,7 +93,7 @@ Do not mutate a shared source file. The child process is the only one that needs
 broken checker, so give it a broken one privately.
 
 **CORRECTED 2026-08-31, after pm checked it.** This note first proposed a tempdir placed first
-on the child's `PYTHONPATH`. That cannot work: `check-domain.sh:125` runs
+on the child's `PYTHONPATH`. That cannot work: `check-domain.py:125` runs
 `sys.path.insert(0, _bin_dir)` inside its heredoc, and the comment at `:97` states outright that
 this puts the real bin directory *ahead of* `PYTHONPATH`. A shim behind `sys.path[0]` is never
 reached. The working substitute is a **private copy of the bin directory** with the faulty module

@@ -1,0 +1,56 @@
+schema: plan/1
+feature: BUG-1756-qa-reverify-bash
+approval:
+  date: '2026-09-16'
+  approved_by: mruangutai
+  status: approved
+status: done
+source_issues: [1756]
+lanes:
+  resolved_at: af1c1d88a7e81010fd4902b2144b5cd5eb67f9ef
+  rows:
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 reserves gate changes for direct execution
+    - surface: tests/integration/test-validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 reserves each gate test for direct execution
+decisions: []
+tasks:
+  - id: T-01
+    title: Run qa matrix re-verification with Python
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves gate surfaces and their tests for direct execution
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/validate-digest.py
+    - tests/integration/test-validate-digest.py
+    - path: .omp/agents/harness-orchestrator.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/agents/harness-product-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/agents/harness-validator-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/agents/harness-eng-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/skills/harness-zero-micro-management/SKILL.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/commands/harness.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>'
+    - path: .claude/agents/harness-orchestrator.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/agents/harness-product-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/agents/harness-validator-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/agents/harness-eng-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/commands/harness.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>'
+    verify: |
+      python3 tests/integration/test-validate-digest.py
+    intent: |
+      Update _reverify_suite so it launches run-unit-tests.py with sys.executable rather than bash. For every unit or integration kind named by the qa claim's evidence, run the Python runner with --kind and that kind; stop at the first non-zero result and preserve its real output tail for the existing disagreement report. When no evidence kinds are named, run the Python runner without --kind so its default set executes. Preserve the existing contract in check_qa_matrix_claim: a completed non-zero rerun refuses the qa PASS with exit 2, while a missing runner, spawn error, or timeout prints could not independently re-run and returns 0. In tests/integration/test-validate-digest.py, replace the shell runner stub with a Python stub that exits with the requested code and records argv, so the pre-fix bash launch fails, then assert named-kind forwarding and the no-kind default invocation as observable behavior. Keep the digest interface, schema, and enforcement boundary unchanged. Do not add review_sha-based re-verification or change INV-43 or BUG-1723 seam grading.

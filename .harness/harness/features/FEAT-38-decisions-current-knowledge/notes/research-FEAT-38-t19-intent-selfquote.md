@@ -39,7 +39,7 @@ Method: `safe_load` the plan, then read every intent line matching
 | T-25 | none. "both halves ... then runs `--check-kinds`" matches |
 | T-27 | none. "first clause is a positive control - exactly 11 markers at 48bbe7e" matches `-eq 11` |
 | T-28 | none. "asserts that clause POSITIVELY" matches the two `grep -qF` clauses; the diff-against-generator claim matches |
-| T-29 | none. The quoted enumeration command matches `P=`/`git grep -lE "$P"`; "floor of 60 is the positive control" matches `-ge 60`; "requires the string test_kinds" matches `grep -qF 'test_kinds'`. Its quotation of the config value `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` re-derived against `.harness/harness.json` `test_kinds.integration.cmd` — verbatim match |
+| T-29 | none. The quoted enumeration command matches `P=`/`git grep -lE "$P"`; "floor of 60 is the positive control" matches `-ge 60`; "requires the string test_kinds" matches `grep -qF 'test_kinds'`. Its quotation of the config value `.agents/skills/harness/bin/run-unit-tests.py --kind integration` re-derived against `.harness/harness.json` `test_kinds.integration.cmd` — verbatim match |
 
 ## Out of scope, observed, not edited
 

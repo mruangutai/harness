@@ -25,8 +25,8 @@ Documentation is **communication**, not coverage. A complete doc nobody can foll
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-documentor.md`, already in context. Writable: `docs/**`, `README.md`,
-`.harness/README.md`, your Expertise. Mid-run, append observations to the feature log; Expertise
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-documentor.md`, already in context. Writable: `docs/**`, `README.md`,
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/README.md`, your Expertise. Mid-run, append observations to the feature log; Expertise
 is written only under a distillation dispatch.
 
 ## How to write
@@ -62,6 +62,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <.harness/notes/<doc-or-path-written>>
+artifact: <<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/<doc-or-path-written>>
 ```
 ````

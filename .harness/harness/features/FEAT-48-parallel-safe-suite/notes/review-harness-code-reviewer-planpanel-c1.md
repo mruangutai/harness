@@ -75,7 +75,7 @@ reading of the fenced verbatim blocks catches fabrication.
 **G-03** [severity: **low**] — anchor: `plan.yaml:503` (T-04 files) vs `plan.yaml:659,` step 2 of
 T-06 intent (`:737-742`, registration). `test-run-pool.py` is created by T-04 but registered into
 `INTEGRATION_SCRIPTS` / `test_kinds.integration.detect` only in T-06, the very next task in
-sequence. `run-unit-tests.sh`'s own drift detector (`run-unit-tests.sh:60-74`) exits 2
+sequence. `run-unit-tests.py`'s own drift detector (`run-unit-tests.py:60-74`) exits 2
 `MISCONFIGURED` for any `test-*.py` in `bin/` absent from both arrays. If CI re-runs on the
 intermediate commit after T-04 lands but before T-06 does (a common GitHub Actions default: rerun
 on every push to an open PR), that intermediate state is red. T-03's own file
@@ -116,7 +116,7 @@ consistency gap, not a blocker.
   index drifts. Produced by T-05's verify block. Clean.
 - **SC-10**: reddens if the mutating fixture exits 0, no `MUTATED` line names the path, the
   subprocess-vector fixture is missed, a non-checkout directory reports clean, or
-  `run-unit-tests.sh` invokes the pool without `--mutation-check`. Direct-write and non-checkout
+  `run-unit-tests.py` invokes the pool without `--mutation-check`. Direct-write and non-checkout
   cases are reconstructed at T-04's plan level; the subprocess-vector leg lives in
   `test-run-pool.py` case (g) only — but the mechanism (a before/after snapshot of on-disk
   size/mtime) is vector-agnostic by construction, so this is a belt-and-suspenders redundancy

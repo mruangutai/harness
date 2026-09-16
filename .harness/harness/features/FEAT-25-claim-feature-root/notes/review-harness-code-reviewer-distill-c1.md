@@ -9,7 +9,7 @@ zero hits, confirmed by the dispatcher). No Patterns displacement made — room 
 Patterns 15/15 (FULL, untouched) · Gotchas 14/15 (room for exactly 1) · Outcomes 4/10 (room) ·
 Open 0/5.
 
-## check-expertise.sh output (before any op — nothing applied this run)
+## check-expertise.py output (before any op — nothing applied this run)
 
 ```
 OK   .harness/expertise/harness-ai-dev.md

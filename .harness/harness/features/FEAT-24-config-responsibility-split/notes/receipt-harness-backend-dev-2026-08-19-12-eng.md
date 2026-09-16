@@ -121,7 +121,7 @@ run turned on a path, file, decision or invariant specific to exactly one reposi
 was routed to a repository-tier file, and none was created (none exists here; the domain manifest
 names no such path for this agent).
 
-## `check-expertise.sh` — raw final output
+## `check-expertise.py` — raw final output
 
 ```
 OK   /Users/molchairuangutai/GitHub/harness/.harness/expertise/harness-backend-dev.md

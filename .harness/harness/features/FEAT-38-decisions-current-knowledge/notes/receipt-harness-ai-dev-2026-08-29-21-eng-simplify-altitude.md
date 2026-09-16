@@ -59,7 +59,7 @@ argv, `check-decision-anchors.py:111`). All four are consistent today. Real but 
 risk: if that checker is ever touched by later work, all four citations need synchronized updates
 and nothing forces that (**ALT-1**, `briefing-row`).
 
-**Drift-check ordering rule** (asymmetry of `run-unit-tests.sh`'s KIND-DRIFT check) is independently
+**Drift-check ordering rule** (asymmetry of `run-unit-tests.py`'s KIND-DRIFT check) is independently
 re-derived in T-24 (1758–1770, ~12 lines) and T-25 (1821–1825, ~5 lines) rather than stated once and
 referenced. Bounded risk: these are one-time migration task intents that become historical the
 moment T-24/T-25 land, unlike a living document rule — so drift exposure is short-lived. Not folded

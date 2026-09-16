@@ -8,8 +8,8 @@ notes on BRIEF.md and PLAN.md are the authority and this file only summarises th
 - **Q1 `cost-report.py`** — STAYS IN SCOPE. It parses no YAML, but it hand-rolls YAML manipulation
   with a regex, which is the defect class. Its REQ-01 characterisation is corrected, not its scope.
 - **Q2 SC-03 count** — criterion stands, count corrected. Judge SC-03 against the census, never the
-  parenthetical. 7 of 17 calls in `check-state.sh` legitimately survive, six parsing markdown.
-- **Q3 SC-02 baseline** — stale. Re-baseline `check-state.sh` at build open; the BRIEF that made it
+  parenthetical. 7 of 17 calls in `check-state.py` legitimately survive, six parsing markdown.
+- **Q3 SC-02 baseline** — stale. Re-baseline `check-state.py` at build open; the BRIEF that made it
   exit 1 is now signed.
 
 ## Q7 — ROUTING WALL: main-session steps, `team-config.yaml` NOT widened

@@ -40,7 +40,7 @@ is loud, not silent.
   failed writes loud-but-non-blocking it is what carries the guarantee. Cost accepted: it asks
   GitHub on every session start, and stays quiet rather than blocking when GitHub is unreachable —
   INV-25's precedent for an absent tool.
-- **DELETE `branch-create-gate.sh`'s dormant board-flip block**, and never add its four config keys.
+- **DELETE `branch-create-gate.py`'s dormant board-flip block**, and never add its four config keys.
   → One place moves cards. The block only ever moved one card, at branch time, and could not move it
   back; the derived parent covers that case. It is in git history if the derivation misses something.
 - **The `building` status arrives WITH the enum.** → `pending | building | done`, validated in
@@ -73,7 +73,7 @@ ever moved to `Done` was moved by GitHub's own `Item closed` workflow reacting t
 the harness. So `Backlog` is where issues land, `Done` comes free, and `Building` and `Review` are
 written by nothing.
 
-**`branch-create-gate.sh` holds the ONLY station-writing code in the harness board path, and it has
+**`branch-create-gate.py` holds the ONLY station-writing code in the harness board path, and it has
 never executed.** Lines ~103-110 look up the issue's project item and flip its status field on branch
 creation. It is gated on four config keys, and four of six are missing from `harness.json`:
 

@@ -47,13 +47,13 @@ mirror-write rule, applied here — this is a STATION WRITE failure, not an unus
 declaration, and the two exit differently on purpose). `factory_gh.preflight()` is never
 called — its callers exit non-zero, and this tool's callers must not.
 """
-import json
 import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import artifact_accessors  # noqa: E402
 import factory_config  # noqa: E402
 import gh_board  # noqa: E402
 
@@ -119,9 +119,8 @@ def main(argv):
         out("no .harness/harness.json — nothing written")
         return 0
     try:
-        with open(harness_json_path, encoding="utf-8") as f:
-            cfg = json.load(f)
-    except (OSError, ValueError):
+        cfg = artifact_accessors.load_harness_json(harness_json_path)
+    except artifact_accessors.ArtifactAccessError:
         out("harness.json is unreadable — nothing written")
         return 0
     if not isinstance(cfg, dict):
@@ -142,7 +141,7 @@ def main(argv):
 
     try:
         board = gh_board.load_board(root)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         # An unusable board declaration is a caller-mistake-class refusal (D-01, D-07),
         # not an environmental precondition — str(exc) is printed VERBATIM, not composed,
         # because it already carries the offending key and the next step from

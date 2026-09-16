@@ -29,7 +29,7 @@ sweep's boundary, and the T-04-to-T-11 window on `gh-sync.py:851`. Neither block
 - **T-04 is `depends_on: [T-01, T-03]`** — I chose the edge because the corrected comment cites
   DEC-203 by name, and confirmed it acyclic (`T-03` is `depends_on: []`).
 - **`#818`-`#830`: I re-derived BOTH halves live.** All thirteen read CLOSED and sit at `Review`.
-- `check-plan-routes.py` 0 violations; `check-state.sh` leaves ONE FEAT-40 violation, BRIEF
+- `check-plan-routes.py` 0 violations; `check-state.py` leaves ONE FEAT-40 violation, BRIEF
   unapproved — both run by me after every edit.
 - **`cycles_used` is 6, and I took the higher reading each time** rather than the flattering one.
 

@@ -1,7 +1,7 @@
 # QA confirm-falsifiability — FEAT-14, review_sha 1c5fd67 (HEAD 12e3fa2)
 
 ## Step 0 — binding
-HEAD = `12e3fa2`. `.claude/skills/harness/bin/{gh-sync.py,test-gh-sync.py,check-domain.sh,test-check-domain.py}`
+HEAD = `12e3fa2`. `.claude/skills/harness/bin/{gh-sync.py,test-gh-sync.py,check-domain.py,test-check-domain.py}`
 all clean. `git diff 1c5fd67..12e3fa2 --stat` touches only `feature.json` (the pin bump) — pin-only,
 confirmed. Every result below is measured against the pinned tree.
 
@@ -43,7 +43,7 @@ test that can fail on it. Measured by mutation, not reasoned.
   `fix1 *` (`fix1 B row2` zero-byte, `fix1 B row2 (a_list)`, `fix1 B row2 (a_scalar)`,
   `fix1 B row4 (github=a_string)`, `fix1 B row4 (github=a_list)`, `fix1 A: a failed save_recorded
   leaves feature.json byte-identical`). Zero others. **Matches the expectation exactly.**
-- **Pre-fix `check-domain.sh` (`8dc5650`, parent of `0b33188`) + HEAD's `test-check-domain.py`:**
+- **Pre-fix `check-domain.py` (`8dc5650`, parent of `0b33188`) + HEAD's `test-check-domain.py`:**
   exactly **1 failure** — `schema/a CRASHING schema module DENIES the write rather than letting it
   through` (`wanted exit 2, got 1` — fail-open reproduced). Zero others. **Matches the expectation
   exactly.**
@@ -54,11 +54,11 @@ Both corroborated as reported.
 
 - **Genuine crash, not a stub.** The fixture physically patches `feature_schema.py` on disk (injects
   `raise ValueError("injected: checker is broken")` into `problems_for_text`) and invokes
-  `check-domain.sh` as a real subprocess via `fire()`, then restores byte-identically and **asserts**
+  `check-domain.py` as a real subprocess via `fire()`, then restores byte-identically and **asserts**
   the restore (`test-check-domain.py:1441-1445`). Not simulated.
 - **Exit code is asserted** — `case(..., r.returncode, 2, ...)` at `:1434-1437` — the load-bearing
   signal per the dispatch (1 vs 2).
-- **The crash-vs-import-message distinction is unpinned.** `check-domain.sh:894-916` separates
+- **The crash-vs-import-message distinction is unpinned.** `check-domain.py:894-916` separates
   `"feature_schema is not importable"` (ImportError branch) from `"feature_schema CRASHED"` (any
   other exception) specifically so a reader isn't sent chasing PYTHONPATH for a fault that isn't
   there. `test-check-domain.py` has **no fixture that makes `feature_schema` itself unimportable** —
@@ -69,7 +69,7 @@ Both corroborated as reported.
   (`test-check-domain.py:104-108`), which hardcodes `tool_name: "Write"`. Neither an Edit payload nor
   the Bash `PostToolUse` sweep is exercised for the schema check specifically — `shape_problems` (the
   shared function containing the schema gate) is reached from a single shared loop
-  (`check-domain.sh:1201-1203`), so it is *plausible* both routes reach the same code, but nothing in
+  (`check-domain.py:1201-1203`), so it is *plausible* both routes reach the same code, but nothing in
   this suite demonstrates it for the schema branch. Two of three routes are unbound for HIGH-1's own
   fix.
 
@@ -79,9 +79,9 @@ Both corroborated as reported.
 
 | Gate | Result | Load-bearing for either HIGH? |
 |---|---|---|
-| `run-unit-tests.sh` (default `--kind all`) | **0** — last line `PASS test-factory-integration.py`, all suites green | Partial — it runs `test-gh-sync.py` and `test-check-domain.py` in-place at HEAD, so it confirms the fixes don't regress anything else, but it is the same green already interrogated by mutation above — it does not, by itself, prove either HIGH's new assertion discriminates (that needed the worktree mutants) |
+| `run-unit-tests.py` (default `--kind all`) | **0** — last line `PASS test-factory-integration.py`, all suites green | Partial — it runs `test-gh-sync.py` and `test-check-domain.py` in-place at HEAD, so it confirms the fixes don't regress anything else, but it is the same green already interrogated by mutation above — it does not, by itself, prove either HIGH's new assertion discriminates (that needed the worktree mutants) |
 | `validate-digest.py` over the feature's 19 run digests (persona `lead` — the files derive from `-eng`/`-product`/`-validator` suffixes, all map to `lead`) | **0** for all 19 | Not load-bearing for either HIGH — digest schema conformance, orthogonal to the fix |
-| `check-state.sh` | **0** (all findings are `note`-level, none `FAIL`) | Not load-bearing for either HIGH — general corpus hygiene, one `note` names an orphaned `confirm-validator` run dir on this feature but that's bookkeeping, not the fix |
+| `check-state.py` | **0** (all findings are `note`-level, none `FAIL`) | Not load-bearing for either HIGH — general corpus hygiene, one `note` names an orphaned `confirm-validator` run dir on this feature but that's bookkeeping, not the fix |
 | `check-plan-routes.py` | **0**, `0 violation(s) across 10 plan(s)` | Not load-bearing for either HIGH — grant/route drift across all plans, unrelated to the schema/gh-sync fixes |
 
 ## Tree state

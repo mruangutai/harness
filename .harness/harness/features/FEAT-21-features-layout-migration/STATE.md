@@ -27,12 +27,12 @@ THE LAST TWO GATES BOTH CAME BACK CLEAN AT A CORRECT PIN. The panel reviewed the
 complete on both halves of the signed trade, and the SC-10 parity case is SOUND rather than merely
 passing — qa killed the `render()`-side mutant to complement the gate-side one I killed. pm
 re-verified SC-10 met and answered the reading I asked for: the criterion quantifies over inputs, not
-over the module's cause enum, so no `check-state.sh` hook is needed and the carve-out question never
+over the module's cause enum, so no `check-state.py` hook is needed and the carve-out question never
 opens. `no-rows` turned out to be covered by case 16 all along; the test's own comment pointed at the
 wrong file, which is a briefing row.
 
 DISTILLATION IS DONE FOR ALL THREE SQUADS and every member applied its own entries — nothing was
-stranded with me. I ran `check-expertise.sh` myself: 13 of 13 OK, all inside budget. My dispatch had
+stranded with me. I ran `check-expertise.py` myself: 13 of 13 OK, all inside budget. My dispatch had
 told eng-lead to hand me its ops; I ran the domain hook rather than trusting the playbook's wording,
 found `.harness/expertise/harness-eng-lead.md` resolves to eng-lead and nobody else, and sent it back
 to self-apply. My own file is distilled too — three patterns displaced by stronger ones.

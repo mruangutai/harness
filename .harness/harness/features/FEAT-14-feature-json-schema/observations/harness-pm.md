@@ -1,7 +1,7 @@
 # Observations — harness-pm — FEAT-14
 
 - 2026-08-10 (send-back cycle 1): making a previously-OPTIONAL key REQUIRED can arm an invariant
-  that was disarmed by that key's ABSENCE. `check-state.sh` INV-17 line 451
+  that was disarmed by that key's ABSENCE. `check-state.py` INV-17 line 451
   (`if _phase not in PHASE_ORDER: continue`) kept FEAT-01/FEAT-02 quiet only because they carried no
   `phase`. D-02's backfill would have demanded six handoff notes that cannot honestly be written.
   Found by reading the reader's guard clause, not by censusing values — the value census (all four

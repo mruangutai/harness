@@ -1,7 +1,7 @@
 # Root cause — domain lead loops instead of ending its turn (FEAT-37 t-01)
 
 **Write-path note:** the named deliverable `notes/root-cause-lead-loop.md` was DENIED by
-`check-domain.sh`: `harness-backend-dev may not write .../notes/root-cause-lead-loop.md`. Permitted
+`check-domain.py`: `harness-backend-dev may not write .../notes/root-cause-lead-loop.md`. Permitted
 paths for this agent are `.claude/skills/harness/bin/**`, `.harness/codebase/api-surface.md`,
 `.harness/codebase/domains/**`, `.harness/*/features/*/notes/receipt-harness-backend-dev-*.md`,
 `.harness/expertise/harness-backend-dev.md`, `.harness/*/expertise/harness-backend-dev.md`,
@@ -86,7 +86,7 @@ Sidecar: `~/.claude/projects/-Users-molchairuangutai-GitHub-harness/e69cbdc1-835
 ## Open questions
 
 - Whether `harness-team/SKILL.md`'s current manifest gap (owned by nobody, per the operator's own
-  pre-check and confirmed here by the `check-domain.sh` denial above) is itself a defect to fix
+  pre-check and confirmed here by the `check-domain.py` denial above) is itself a defect to fix
   alongside the sentence, or whether the fix should land through a different, owned file. Plan-level
   decision, not a diagnosis this run can settle.
 - Whether the `Agent` tool's built-in description text (candidate 3) is itself editable, or whether

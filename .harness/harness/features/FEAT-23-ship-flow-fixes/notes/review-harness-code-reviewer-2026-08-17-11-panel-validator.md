@@ -113,7 +113,7 @@ item — recorded here as corroboration per the dispatch's own instruction, not 
 
 No SC verdict table built (pm's goal-check owns that against this pin). Every task's files were read
 against BRIEF requirements and plan.yaml decisions before any quality judgement was formed; no
-scope-creep or omission found. `run-unit-tests.sh --kind unit` re-run independently at the pin: all
+scope-creep or omission found. `run-unit-tests.py --kind unit` re-run independently at the pin: all
 16 scripts green including `test-board-station.py` (8/8), corroborating rather than re-litigating the
 qa gate.
 

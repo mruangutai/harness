@@ -401,7 +401,7 @@ view of board state makes it fire; that is the same trigger as prototype flip co
   from the board-add recorder, one `blocked_by` call per `depends_on` entry with T-12's six asserted,
   and a re-run drawing zero duplicate edges.
 - **Q6 (non-blocking, harness owner):** a harness defect, not a design question. My dispatch
-  instructed me to write a receipt under this feature's `notes/`, and `check-domain.sh` blocked it —
+  instructed me to write a receipt under this feature's `notes/`, and `check-domain.py` blocked it —
   `harness-visual-designer`'s permitted set is `DESIGN.md`, `notes/mockups/**`,
   `notes/prototypes/**`, the expertise file and the observations log, with no receipt path.
   `harness-handoff`'s default receipt rule and this role's domain in `team-config.yaml` disagree. I

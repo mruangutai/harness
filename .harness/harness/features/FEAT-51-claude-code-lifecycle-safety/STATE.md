@@ -89,6 +89,6 @@ Feature-close distillation remains after shipment.
   seeded file rather than leave a completed run reading `status: running`. — harness-orchestrator
 - RESIDUAL: `#551`'s orchestrator-inferring-verdicts-from-disk consequence is now the only unclosed
   one and no decision entry owns closing it. Backlog B-19. — harness-documentor
-- PRE-EXISTING, unrelated and still red: `check-state.sh` INV-29 on
+- PRE-EXISTING, unrelated and still red: `check-state.py` INV-29 on
   `.claude/worktrees/harness/BUG-1129-validate-handoff-sweep`, another effort's dirty terminal
   worktree. Untouched. Backlog B-12. — harness-orchestrator

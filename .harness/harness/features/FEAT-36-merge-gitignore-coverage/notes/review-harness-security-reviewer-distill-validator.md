@@ -35,7 +35,7 @@ Merge receipt: `ADDED O-09`; `APPLIED .harness/expertise/harness-security-review
 Changed file only:
 
 ```text
-$ .agents/skills/harness/bin/check-expertise.sh .harness/expertise/harness-security-reviewer.md
+$ .agents/skills/harness/bin/check-expertise.py .harness/expertise/harness-security-reviewer.md
 OK   .harness/expertise/harness-security-reviewer.md
 ADVISORY .harness/expertise/harness-security-reviewer.md:19: G-01 names 'DEC-100' — repository-layer candidate; rule on it (issue 340)
 ```

@@ -20,7 +20,7 @@
   `harness-product-lead.md` (6: Patterns 3, Gotchas 2, Outcomes 1) and `harness-validator-lead.md`
   (3: Patterns 2, Open 1) **did not exist at all** and now do. **Nothing was dropped and nothing was
   re-adjudicated** — each lead applied its own recorded judgments verbatim, assigning ids only.
-  `check-expertise.sh .harness/expertise/` is **OK on all 11 files, exit 0**, run by me, including the
+  `check-expertise.py .harness/expertise/` is **OK on all 11 files, exit 0**, run by me, including the
   title rule added at `99dd80a` after every one of those leads' runs.
   **The defect this repaired was mine.** My close-out dispatch told the leads not to self-apply, reading
   my own G-01 too widely: the domain hook blocks the ORCHESTRATOR from writing another agent's Expertise

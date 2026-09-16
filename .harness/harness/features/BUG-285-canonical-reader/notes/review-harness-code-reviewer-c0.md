@@ -1,0 +1,15 @@
+# Code review — BUG-285-canonical-reader — c0
+
+**FAIL.** Stage 1 fails SC-01/T-01 because the permanent AST audit blanket-accepts every parse candidate inside `artifact_accessors.py`; therefore an unclassified new raw parser at the canonical module sails through with exit 0. Per the two-stage protocol, Stage 2 was not performed.
+
+- **Pinned range:** base `8c3143bd5668ce11186a2a1f8dbe784ff9639d88`; review `da8932a065137bcfbdb85fc2489b5bdd01936a6f`.
+- **Stage 1 — FAIL:** SC-01 requires a deterministic classification row for every live raw parse and an audit that names any bypass. `_candidate_is_public_accessor` returns true solely from the file path, and `_candidate_is_accounted` consequently suppresses the missing-row finding (`.claude/skills/harness/bin/check-plan-routes.py:1284-1308`).
+- **Stage 2 — NOT RUN:** prohibited after Stage 1 failure. Mechanical Python risk grading over the pinned range is `grade_2`: no high records; `tests/integration/test-check-omp-port.py:71 case_live_tree_passes` is a coherent live-tree integration assertion, and `tests/integration/test-validate-digest.py:4993 run_canonical_reader_strictness_cases` is a cohesive table-driven strictness scenario aggregator. Both are test-only grade-2 records and require no production refactor for this review.
+- **Inspection SC-06:** semantic and mechanical task boundaries are explicitly separated by D-04 and T-03/T-04, but the stage-one gate prevents an overall compliance pass.
+- **Confirmed non-findings:** the pinned tree contains 69 classified Python files and 162 rows (120 canonical, 42 exempt); the AST detector has a positive executable parse fixture and ignores prose; live audit tests assert non-zero discovery inputs plus zero unresolved/duplicate/missing/misrouted results; T-07 removed both `canonical-reader-enforcement-baselines.json` and the `--verify-enforcement-bytes` mode; T-09 deleted `sh-to-py-differential.py`; canonical reader/error definitions exist only in `artifact_accessors.py`. These do not cure the blanket accessor-file fail-open.
+
+## Ranked finding
+
+1. **High · substance · T-01 · main-session-direct** — `.claude/skills/harness/bin/check-plan-routes.py:1284-1308`. **Scenario:** a maintainer adds `json.load(...)`, `yaml.safe_load(...)`, or another detected raw parse anywhere in `artifact_accessors.py` without adding a classification row or exemption. The scanner discovers it, but `_candidate_is_public_accessor` marks it accounted merely because of its file, so `audit_canonical_readers` can return zero findings and exit 0. This defeats the permanent bypass guard at the exact canonical ownership seam and violates SC-01/D-02/D-03. **Remedy:** remove the file-wide accounting shortcut; require every accessor-module candidate to match a checked-in classification identity (including explicit module-internal exemptions or relocated implementation rows), and add a mutant test that injects an unclassified raw accessor-module call and proves the audit fails.
+
+Open questions: none.

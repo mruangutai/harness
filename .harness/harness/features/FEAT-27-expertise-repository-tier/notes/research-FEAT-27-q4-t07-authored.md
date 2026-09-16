@@ -21,7 +21,7 @@ traceback". Empty stderr is clean today and dirty under the mutant — it is the
 
 ## Why it targets the guard's unspecified duty
 
-`inject-expertise.sh:75-77` (`case "$segment" in ''|*[!a-z0-9-]*) continue ;;`) independently rejects
+`inject-expertise.py:75-77` (`case "$segment" in ''|*[!a-z0-9-]*) continue ;;`) independently rejects
 an unexpanded glob word, which is the only duty the guard's own comment claims. That half is
 double-covered and cannot redden — the measured result behind the operator's constraint. The
 uncovered duty is **present but unreadable**, and case13 asserts only that.
@@ -50,5 +50,5 @@ grades `not_met`. Never ship an assertion that cannot fail.
 ## Open items
 
 - SC-11's `verify: automated` rests on `unit`, which has a live runner — no verification gap added.
-- `inject-expertise.sh` is deliberately **not** in T-07's `files:`: the guard is already shipped and
+- `inject-expertise.py` is deliberately **not** in T-07's `files:`: the guard is already shipped and
   correct, and touching the script under test would make the task's own mutant proof circular.

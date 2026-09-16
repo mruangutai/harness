@@ -68,8 +68,8 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
 
 - **Case 1 — am.N fold into bare DEC-N**: 15 sites (`harness_yaml.py`, `test-harness-yaml-corpus.py`,
   `upgrade-config.py`, `factory_decompose.py`, `test-dispatch-guard.py`, `test-no-distribution.py`,
-  `plan-merge.py`, `test-check-state.py`, `test-team-catalog.py`, `check-state.sh`,
-  `check-domain.sh`, `gh-sync.py` x4). Every fold checked against DEC-171/DEC-138/DEC-174's
+  `plan-merge.py`, `test-check-state.py`, `test-team-catalog.py`, `check-state.py`,
+  `check-domain.py`, `gh-sync.py` x4). Every fold checked against DEC-171/DEC-138/DEC-174's
   current (post-fold) body for continued truth.
 - **Case 2 — successor swap**: 21 sites. DEC-137→DEC-162 (1), DEC-186→DEC-203 (7, including the
   two INV-24 identifier renames), DEC-192→DEC-203 (13).
@@ -77,7 +77,7 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
   (`gh-sync.py:34` "unenforced write path around a guarded surface"; `test-validate-digest.py:315`
   and `validate-digest.py:722` — dropped from a `DEC-19/DEC-110/DEC-119` / `DEC-19 / DEC-110 /
   DEC-119` list, leaving the still-valid DEC-110/DEC-119 citations, since the pattern is already
-  spelled out in the surrounding prose; `check-state.sh:6` and `validate-digest.py:872` —
+  spelled out in the surrounding prose; `check-state.py:6` and `validate-digest.py:872` —
   restated as standalone prose since each already carries its own in-line explanation).
 - **Special rewrite — historical narrative → current arrangement**: 1 site
   (`test-gen-decisions-index.py`), per the dispatch's explicit instruction: dropped the DEC-104/
@@ -91,7 +91,7 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
 
 ## INV-24 rename
 
-Renamed the identifier in both `check-state.sh:943` (`# --- INV-24 (DEC-186):` →
+Renamed the identifier in both `check-state.py:943` (`# --- INV-24 (DEC-186):` →
 `# --- INV-24 (DEC-203):`) and `test-check-state.py:995` (`"""INV-24 (DEC-186):` →
 `"""INV-24 (DEC-203):`) in the same batch. Invariant NUMBER (`INV-24`) unchanged; only the
 parenthetical citation changed. The actual runtime match in `test-check-state.py`'s `case_s`
@@ -105,17 +105,17 @@ $ python3 .claude/skills/harness/bin/test-check-state.py
 Exit status: **0**. Census: **145 `ok`, 0 `FAIL`** (full suite, all cases including the 14
 `INV-24` cases in `case_s`, all passing).
 
-## check-domain.sh anchor line
+## check-domain.py anchor line
 
 `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))`
 
 - Before edit: line **1335** (grepped)
 - After edit: line **1335** (grepped, unchanged)
 
-My only edit to `check-domain.sh` was at line 775 (`DEC-171 am.1's logic` → `DEC-171's logic`),
+My only edit to `check-domain.py` was at line 775 (`DEC-171 am.1's logic` → `DEC-171's logic`),
 a single-line in-place rewrite with no line added or removed (`git diff --stat`: `1 file
 changed, 1 insertion(+), 1 deletion(-)`), so nothing above line 1335 shifted. The DECISIONS.md
-anchor `check-domain.sh:1335` remains correct.
+anchor `check-domain.py:1335` remains correct.
 
 ## Scope
 

@@ -1,6 +1,6 @@
 # Goal-check — FEAT-22 · pinned e26e628 · 10 met, 2 unmet
 
-> Path note: the dispatch named `notes/goalcheck-FEAT-22-e26e628.md`; `check-domain.sh` denies that
+> Path note: the dispatch named `notes/goalcheck-FEAT-22-e26e628.md`; `check-domain.py` denies that
 > path to harness-pm. Written to an owned `notes/research-FEAT-22-*.md` path instead, per the rule
 > that a dispatch does not override the guard. Grant gap raised as an open question.
 
@@ -20,7 +20,7 @@ commits, 32 files.
 | SC-04 | met | inspection | one commit `e6e74c8`, 5× R098–R100 renames; **`git ls-tree -r e6e74c8 -- docs/harness/` returns 0 entries** — the tree clause, not just the rename list |
 | SC-05 | met | automated/integration | `test-check-domain.py:795-802` live `--resolve .harness/harness/docs/SPEC.md` → `harness-documentor` |
 | SC-06 | met | automated/integration | qa DIGEST: regeneration-identity test green; header literal `.harness/harness/docs/DECISIONS.md` at `gen-decisions-index.py:76` |
-| SC-07 | met | automated/unit | qa DIGEST: `run-unit-tests.sh --kind unit` exit 0, 15/15, 707 sub-assertions |
+| SC-07 | met | automated/unit | qa DIGEST: `run-unit-tests.py --kind unit` exit 0, 15/15, 707 sub-assertions |
 | SC-08 | met | automated/integration | qa DIGEST: `--kind integration` exit 0, 12/12, 652+ sub-assertions |
 | SC-09 | **met, with a labelling defect** | automated/unit | see §1 |
 | SC-10 | **unmet** | inspection | see §2 |

@@ -13,7 +13,7 @@ harness-documentor. There is no build squad for T-01..T-06.
 
 - Both plan gates re-run against the RE-SCOPED plan: `check-plan-routes.py <plan>` reports 0
   violations across 1 plan (DEVIATION T-01..T-06, OK T-07), and all 11 unique literal `files:` paths
-  (15 entries) resolve under check-domain.sh --resolve, each matching its declared lane. T-01..T-05
+  (15 entries) resolve under check-domain.py --resolve, each matching its declared lane. T-01..T-05
   resolve to harness-backend-dev/dev-ops but are correctly main-session-direct as DEC-174 carve-outs
   — verified-at a29ad06
 - DEVIATION does not increment the violation counter (check-plan-routes.py:352-357) — verified-at

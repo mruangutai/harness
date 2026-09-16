@@ -293,7 +293,7 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
 
 **What BLOCKS**
 
-- **DEC-179 blocks a squad route on the two playbooks.** `check-domain.sh --resolve` returns
+- **DEC-179 blocks a squad route on the two playbooks.** `check-domain.py --resolve` returns
   **NOBODY** at `8fc87f8` for `.claude/skills/harness-team/SKILL.md` and
   `.claude/skills/harness/SKILL.md`, so tasks touching them are `main-session-direct`.
 - **DEC-158 bounds the rule skill:** the rule, one clause of why, a pointer. The measurement lives in
@@ -336,7 +336,7 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
   anyway, as this plan's own evidence discipline: a gate's behaviour is downstream of that diff, and
   `check-plan-routes.py` reads domain grants and nothing else, so it prints `OK T-04` regardless.
 - **`test_kinds.unit` supplies the runner**: its `detect` glob already matches
-  `.claude/skills/harness/bin/test-*.py`, and `run-unit-tests.sh`'s `UNIT_SCRIPTS` array is where a
+  `.claude/skills/harness/bin/test-*.py`, and `run-unit-tests.py`'s `UNIT_SCRIPTS` array is where a
   new file is registered — its drift detector fails the suite on any `test-*.py` in neither array.
 - **`gen-decisions-index.py` supplies the index check**; the hand-written half of a row survives
   regeneration verbatim.
@@ -352,7 +352,7 @@ feature builds any of them.
 - **`plan-merge.py` has no supersede mode.** It unions by `id`, which is right for two pm spawns and
   wrong for a strike: removing a task from a plan cannot be expressed as a proposal, so the edit has
   to bypass the tool. This BRIEF's own strike was applied that way.
-- **`notes/root-cause-*.md` is in no member's domain.** `check-domain.sh --resolve` on such a path
+- **`notes/root-cause-*.md` is in no member's domain.** `check-domain.py --resolve` on such a path
   returns `harness-orchestrator` alone at `8fc87f8` (re-run, same result), so a diagnosing member
   cannot write the artifact its own diagnosis produces.
 - **Engineer DIGESTs are landing without `files_touched`**, which the handoff contract requires as an

@@ -3,7 +3,7 @@
 ## BLUF
 
 `cmd_open`'s task-issue title now carries the feature id, matching the parent title's
-convention. GREEN. `run-unit-tests.sh --kind all` exits 0 with `test-gh-sync.py` passing
+convention. GREEN. `run-unit-tests.py --kind all` exits 0 with `test-gh-sync.py` passing
 (185 ok / 0 fail).
 
 ## The change
@@ -62,7 +62,7 @@ defect the task describes. Restored `gh-sync.py` from a `cp` taken before the re
 `diff -q` against the pre-revert copy reported no difference (byte-identical). Re-ran green:
 185 ok, 0 FAIL, `ALL PASSED`.
 
-## Verify — `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+## Verify — `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Ran to completion, exit code 0. `test-gh-sync.py` line in the aggregate log: `PASS
 test-gh-sync.py`. No `FAIL` lines anywhere in the 2748-line output except literal test-name

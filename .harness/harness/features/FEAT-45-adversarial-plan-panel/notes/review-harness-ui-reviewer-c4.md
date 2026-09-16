@@ -19,15 +19,15 @@ Pin: `bdd566679377eb5a55d1092064fe444e86d2f49f`. Scope: the B-1 delta
 
 ## In-lane surface named by dispatch: INV-32 operator output
 
-The id now appears in `check-state.sh`'s INV-32 messages (`INV-32: {feat} finding {fid} is ...`,
-`STALE OVERRIDE {fid}`, ruling-attribution lines) — built at `check-state.sh:182-241` and printed
-at `check-state.sh:1868-1869`:
+The id now appears in `check-state.py`'s INV-32 messages (`INV-32: {feat} finding {fid} is ...`,
+`STALE OVERRIDE {fid}`, ruling-attribution lines) — built at `check-state.py:182-241` and printed
+at `check-state.py:1868-1869`:
 ```
 for m in bad:  print(f"  VIOLATION  {m}")
 for m in warn: print(f"  note       {m}")
 ```
 
-**1. Readability — fine, with evidence.** Every `fid` interpolation (`check-state.sh:200,202,209,219`)
+**1. Readability — fine, with evidence.** Every `fid` interpolation (`check-state.py:200,202,209,219`)
 is a plain f-string, no width formatting, no column alignment keyed to id length — the `  VIOLATION  `
 / `  note       ` prefixes are fixed-width regardless of message length, so a longer id doesn't skew
 alignment with neighboring lines; it just makes that one line longer. Reproduced a real id and built
@@ -42,7 +42,7 @@ normal widths, same as several pre-existing INV-26/INV-27 messages in this file 
 
 **2. Truncation search — ran, found none.** Grepped every file that references the id mechanism at
 all (`grep -rl "PF-\|finding_id\|panel_findings"` across `.claude/skills/harness/bin/*.py` and
-`*.sh`): only `panel_findings.py`, `check-state.sh`, `test-panel-findings.py`, `test-check-state.py`
+`*.sh`): only `panel_findings.py`, `check-state.py`, `test-panel-findings.py`, `test-check-state.py`
 touch it — no renderer, no `gh_board.py`, no ship-review generator is in the id's path. Then searched
 those + the full bin/ tree for truncation idioms — `[:8]`, `[:11]`, `[:32]`, `[:35]`, `cut -c`,
 `.ljust(`, `.rjust(`, `.center(`, `textwrap`, `…`, `...` — **zero hits** outside the intentional

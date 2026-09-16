@@ -28,19 +28,19 @@ P-03/P-05 (markdown is a medium this role audits, not a guarantee any given mark
 The dozen Expertise files and `.harness/harness/docs/SPEC.md` are prose about agent memory tiers and
 budgets — same non-UI classification.
 
-## The one surface worth a real look — inject-expertise.sh's precedence text
+## The one surface worth a real look — inject-expertise.py's precedence text
 
-Dispatch named the hook's emitted header/precedence line and `check-expertise.sh`'s advisory
+Dispatch named the hook's emitted header/precedence line and `check-expertise.py`'s advisory
 output as an adjacent surface worth auditing for legibility/consistency/truthfulness even absent a
 rendered UI (P-06). I read both scripts' diffs and both files' test suites end to end.
 
-**`check-expertise.sh`'s new ADVISORY line** (`ADVISORY {path}:{lno}: {label} names '{tok}' —
+**`check-expertise.py`'s new ADVISORY line** (`ADVISORY {path}:{lno}: {label} names '{tok}' —
 repository-layer candidate; rule on it (issue 340)`) is legible, consistently formatted against the
 existing `FAIL`/`OK` prefixes, truthful about its own non-blocking nature (never appended to
 `problems`, never flips exit code — verified in the diff), and matches its own header comment.
 No finding here.
 
-**`inject-expertise.sh`'s header/precedence text has a real, if narrow, completeness gap.**
+**`inject-expertise.py`'s header/precedence text has a real, if narrow, completeness gap.**
 Before this diff, the project-tier header itself stated the precedence rule unconditionally:
 `"this codebase (project tier, authoritative on conflict)"` — present on every spawn that had a
 project-tier file, regardless of what else was present. This diff (per plan.yaml's T-02/SC-10 and
@@ -49,7 +49,7 @@ precedence statement into a new line: `"Expertise precedence: repository over pr
 global, by specificity. A repository block whose segment is not the one you were dispatched
 against is not authoritative for your work — read the segment name."` — **but that line is only
 emitted when at least one repository-tier block is present** (`if [ "${#sorted_idx[@]}" -gt 0 ]`,
-`inject-expertise.sh` post-diff, in the repository-tier block).
+`inject-expertise.py` post-diff, in the repository-tier block).
 
 Consequence: an agent whose spawn carries **both** a global-tier file (`~/.harness/expertise/<agent>.md`)
 and a project-tier file (`.harness/expertise/<agent>.md`), but no repository-tier file, now receives

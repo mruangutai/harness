@@ -52,7 +52,7 @@ pending:
   scan target, documented nowhere an agent writing one would see it. check-docs.sh
   prints the pattern on TWO physical lines (:143 and :144), so escaping one occurrence
   is not enough
-- HARNESS DEFECT — bash-write-guard.sh reads `>` and `<` inside an unquoted heredoc
+- HARNESS DEFECT — bash-write-guard.py reads `>` and `<` inside an unquoted heredoc
   body, and operands across a compound `;` line, as shell redirects. The 3a989a0 fix
   does not cover these
 - HARNESS DEFECT — a member whose deliverable is a verification receipt has no writable

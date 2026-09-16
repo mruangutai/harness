@@ -12,11 +12,11 @@ build phase never discovers routing again.
 - **Enforcement is MECHANICAL, not prose.** A checker runs every PLAN task's `files:` through domain
   resolution and fails on a task that resolves to neither a granted agent nor a declared
   main-session step.
-- **ONE matcher, reused — not duplicated.** `check-domain.sh` gains a resolve mode (shape:
+- **ONE matcher, reused — not duplicated.** `check-domain.py` gains a resolve mode (shape:
   `--resolve <path>` answering *which agent may write this, or nobody*), and the plan-time checker
   calls it. The alternative of extracting the matcher into a shared module was considered and
   rejected: it rewrites the guard rather than adding a mode to it, for the same outcome.
-- **DEC-174 therefore applies to the `check-domain.sh` half** — direct execution, tests run
+- **DEC-174 therefore applies to the `check-domain.py` half** — direct execution, tests run
   explicitly, a human reading the diff, never a team run. Same shape as FEAT-07's T-01.
 - **Prose-only was rejected**, and for the reason the user gave on FEAT-07's #19: it is the
   "relied on being pointed at" pattern DEC-125 names. pm produced the artifact twice unprompted,
@@ -27,8 +27,8 @@ build phase never discovers routing again.
 ## Not yet specified
 
 - Whether the checker is a new script, a mode of an existing one, or an invariant inside
-  `check-state.sh`. It depends on when it must fire — at PLAN write, at the approval gate, or on
-  every `check-state.sh` sweep — and that timing question is not yet sharp.
+  `check-state.py`. It depends on when it must fire — at PLAN write, at the approval gate, or on
+  every `check-state.py` sweep — and that timing question is not yet sharp.
 - What a task with a glob in `files:` (`docs/**`) should resolve to when the glob spans two agents'
   domains. Nobody has hit it; the shape of the answer cannot be stated.
 - Whether the `## Lanes` table stays a human-readable artifact once the check is mechanical, or
@@ -59,16 +59,16 @@ All at `ae2443d`.
   lane → the `team-config.yaml` line that grants it, plus per-task `execution_mode:` with a reason.
 - **`templates/PLAN.md:10` already carries the adjacent rule** — a deviation from a `team-config.yaml`
   convention must appear in `## Decisions`. What is missing is the *resolution*, not the disclosure.
-- **The matcher is INLINE in `check-domain.sh:215`, `def matches(path, pat)`**, with deliberately
+- **The matcher is INLINE in `check-domain.py:215`, `def matches(path, pat)`**, with deliberately
   custom semantics: its comment at `:193` records that `fnmatch` is wrong here because its `*`
   matches `/`, so `web/*/x` would match too much. Any second implementation is a drift risk of
   exactly the DEC-126 kind.
-- **Domain resolution needs `check-domain.sh` only** — the grants live in `team-config.yaml` and are
+- **Domain resolution needs `check-domain.py` only** — the grants live in `team-config.yaml` and are
   read there.
 - **THE COLLISION CHECK THAT PUT #20 IN THIS SLOT.** FEAT-08 (#58) touches `harness/SKILL.md`,
   `harness-team/SKILL.md`, `harness-orchestrator.md`, `teams/*.yaml`, `harness.json`,
-  `check-state.sh`, `validate-digest.py`, `cost-report.py` and `docs/**`. #20 touches
-  `check-domain.sh`, `templates/PLAN.md`, `harness-spec-driven/SKILL.md`, `harness-pm.md` and a new
+  `check-state.py`, `validate-digest.py`, `cost-report.py` and `docs/**`. #20 touches
+  `check-domain.py`, `templates/PLAN.md`, `harness-spec-driven/SKILL.md`, `harness-pm.md` and a new
   checker. **The intersection is empty.** Rows 8/9/10 do NOT have this property — row 8's first
   required rider is *"move the ORCHESTRATOR-ONLY `cost-report.py` paragraph or INV-11's metering
   instruction is lost"*, and FEAT-08 deletes both `cost-report.py` and INV-11, so the two plans
@@ -77,5 +77,5 @@ All at `ae2443d`.
   "ROUTING WALL, third recurrence" — dev-ops granted neither `.gitignore` nor `templates/**` nor
   `harness-init/SKILL.md`. FEAT-04 T-09/T-10 and FEAT-03 Q13 are the same wall. It cost a real
   ESCALATE at FEAT-04 run 10, $16, with the lead attributing it to its own dispatch error.
-- **Gates green at `ae2443d`:** `run-unit-tests.sh` exit 0, `check-docs.sh` exit 0,
-  `check-state.sh` zero violations.
+- **Gates green at `ae2443d`:** `run-unit-tests.py` exit 0, `check-docs.sh` exit 0,
+  `check-state.py` zero violations.

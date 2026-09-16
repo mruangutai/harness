@@ -1,7 +1,7 @@
 # Observations — harness-validator-lead — FEAT-20-migration-detector
 
 - 2026-08-14: Review panel run `2026-08-14-1-validator`, four reviewers dispatched in one wave at
-  `ea476fd`. Seeding `state.yaml` was BLOCKED: `check-domain.sh` rejected top-level keys `cycle` and
+  `ea476fd`. Seeding `state.yaml` was BLOCKED: `check-domain.py` rejected top-level keys `cycle` and
   `diff_base` as non-checkpoint (DEC-154), even though both values are a bare integer and a bare
   SHA. The allowlist is closed by NAME, not by value shape — `review_sha` passed, `diff_base` did
   not. Moved both into per-step `note:` strings.
@@ -11,19 +11,19 @@
   - CI: `.github/workflows/tests.yml:233` ends the Layout gate step with `exit "$rc"`, `rc` being
     the detector's own code, so exit 2 fails the step. Lines 204-229 fail CLOSED on a missing
     summary line, a missing `examined` line, and any of the three zero counts.
-  - Session entry: `check-state.sh:1266-1318` imports `layout_migration` in-process, appends a
+  - Session entry: `check-state.py:1266-1318` imports `layout_migration` in-process, appends a
     CANNOT RUN violation on import failure (`:1270`) and on a raising scan (`:1280`), and composes
     findings from the structured result — it never re-parses CLI text and never reads an exit code.
   Both hold. The seam is closed at `ea476fd`.
 
 - 2026-08-14: The latent fail-open I found at that seam, which is a REGRESSION-PINNING gap rather
   than a live defect (P-08 — "the code does X" and "something holds it to X" are different claims).
-  `check-state.sh:1302-1318` dispatches on `_srep.cause` through a four-branch `if/elif` chain with
+  `check-state.py:1302-1318` dispatches on `_srep.cause` through a four-branch `if/elif` chain with
   NO trailing `else`. `layout_migration.scan` (`:197-207`) sets exactly one of `no-rows`,
   `unreadable`, `neither`, `no-evidence` at every CANNOT_VERIFY construction site, so the chain is
   exhaustive TODAY and nothing falls through. But a fifth cause added by units 3-7 — or one branch
   deleted — makes that surface append NOTHING to `bad`, while the module still returns exit 2 that
-  the session-entry call site never reads. Result: `check-state.sh` reports a clean tree over a
+  the session-entry call site never reads. Result: `check-state.py` reports a clean tree over a
   surface the detector could not verify. Issue #148's shape at the call site, not in the verdict
   logic the feature hardened. [FIXED — see the 2026-08-14 entry under the detector-hygiene pass.]
 
@@ -31,7 +31,7 @@
   reasoning (Evidence rule). `test-check-state.py` carries exactly five INV-27 cases, x.1-x.5
   (`:1647-1714`). Only ONE renders a cause: x.2 (`:1670`) asserts `"CANNOT VERIFY"` and
   `"[neither]"`. NOTHING exercises `unreadable`, `no-evidence` or `no-rows` at this call site. The
-  NAMEABLE SURVIVING MUTATION: delete `elif _srep.cause == "no-rows":` at `check-state.sh:1316-1318`
+  NAMEABLE SURVIVING MUTATION: delete `elif _srep.cause == "no-rows":` at `check-state.py:1316-1318`
   (or `unreadable` at `:1303`, or `no-evidence` at `:1313`). Unit case 16 still passes — it tests
   the MODULE's exit 2, not the invariant's rendering. All five x.N cases still pass. NOT gated: the
   code is correct at `ea476fd`, the operator signed the no-mutation-proof class as non-blocking, and
@@ -75,7 +75,7 @@
 ## Pre-merge pass, run `2026-08-14-4-validator` @ `045dcd9`
 
 - 2026-08-14: DISPATCH-GUARD BLOCKED MY OWN WAVE. I passed `model: sonnet` on all four Agent calls
-  and `dispatch-guard.sh` rejected every one, citing DEC-152/155 — a model pin is org design, not a
+  and `dispatch-guard.py` rejected every one, citing DEC-152/155 — a model pin is org design, not a
   dispatch option. The guard was right and cost one wave of latency, nothing else. I had no reason
   to set it; I added it reflexively while composing four prompts at once. Re-dispatched verbatim
   minus the parameter and all four launched.
@@ -97,8 +97,8 @@
 - 2026-08-14: SEAM IN THE PRIOR PANEL'S OWN COVERAGE (P-06, applied to a panel rather than to code).
   `review-harness-code-reviewer-c0.md`'s headline claims "spec compliance clean across all 8 files",
   but its Stage 1 enumerates SEVEN: `layout_migration.py`, `test-layout-migration.py`,
-  `check-state.sh`, `test-check-state.py`, `tests.yml`, `DECISIONS.md`, `DECISIONS-INDEX.md`.
-  `run-unit-tests.sh` — the registration file that decides whether the new test file runs at all,
+  `check-state.py`, `test-check-state.py`, `tests.yml`, `DECISIONS.md`, `DECISIONS-INDEX.md`.
+  `run-unit-tests.py` — the registration file that decides whether the new test file runs at all,
   i.e. this feature's own subject — is absent, confirmed by grep over the whole notes directory.
   It is NOT uncovered in the panel's union: security described it (`review-harness-security-reviewer-c0.md:88`,
   "one-line array addition (test registration)") and qa executed through it with both registration
@@ -113,7 +113,7 @@
   defines 17 top-level names TWICE — `case_m`(528/1662) … `case_x`(1585/2719). Python binds the
   last, so the executing `case_x` is the one WITHOUT the `layout_fixtures` import: the #382
   consolidation the commit is named for never took effect in this file. 84 `ok`, exit 0. No gate in
-  the repo detects a shadowed duplicate definition — `run-unit-tests.sh`'s drift detector checks
+  the repo detects a shadowed duplicate definition — `run-unit-tests.py`'s drift detector checks
   file REGISTRATION, never in-file redefinition.
 
 - 2026-08-14: THE ORIENTATION SUMMARY WAS RIGHT ABOUT THE DEFECT AND WRONG ABOUT THE REMEDY, and
@@ -163,7 +163,7 @@
   three cause-wordings were byte-unchanged by the diff. code-reviewer independently constructed a
   `SurfaceReport(cause="undeclared-segment")` and observed `blame()` return non-empty, filing it as a
   CODE divergence. Put together they are one high finding: `render()` (`layout_migration.py:318-320`)
-  composes blame for EVERY `CANNOT_VERIFY` cause while `check-state.sh:_cv_wording` (`:1295-1312`)
+  composes blame for EVERY `CANNOT_VERIFY` cause while `check-state.py:_cv_wording` (`:1295-1312`)
   calls it in only two of five lambdas, so CI and session entry still name different readers — the
   exact claim #379 says it closed. THE LESSON: a doc-wording advisory of mine and a code finding of a
   member can be the same defect seen from two ends, and the merge upgrades both. I nearly filed mine
@@ -187,7 +187,7 @@
   maintainer will act on.
 
 - 2026-08-14: #367 IS FIXED and the dispatch's accepted-residual list is stale on it.
-  `check-state.sh:1313-1316` is now a closed cause table with a loud `unrecognised cause` fallback,
+  `check-state.py:1313-1316` is now a closed cause table with a loud `unrecognised cause` fallback,
   replacing the else-less `if/elif` chain I filed at `ea476fd`. Worth checking a handed-down residual
   list against source before briefing a panel to ignore its items — briefing a reviewer past a FIXED
   defect costs nothing, but briefing it past a defect that has MOVED costs the finding.
@@ -218,7 +218,7 @@
 
 - 2026-08-14: RAISING THE REPRODUCTION BAR BETWEEN ROUNDS PAID. c1 proved M-1 with a synthetic
   `SurfaceReport`; I asked for the same probe again and code-reviewer instead built a real tree and
-  ran the real `check-state.sh`, showing both sites naming `check-state.sh [migrated]`. "The
+  ran the real `check-state.py`, showing both sites naming `check-state.py [migrated]`. "The
   function returns the same list" and "the gate an operator runs prints the same readers" are
   different claims, and only the second is what the merge decision needs. Similarly, M-3's
   restoration went from my line-level comparison against the c1 diff's recorded `-` lines to
@@ -237,7 +237,7 @@
 - 2026-08-14: PANEL CALIBRATION, c2. ui refused the comfortable answer: a fix landed adjacent to its
   c1 med, and it executed both paths, found the `neither`-cause string byte-identical, and returned
   PRESERVED with a concrete one-line alternative — then improved that alternative on its second look
-  by finding the sibling MIXED branch at `check-state.sh:1328-1329` already uses `"; readers {_rd}"`,
+  by finding the sibling MIXED branch at `check-state.py:1328-1329` already uses `"; readers {_rd}"`,
   which turns "invented wording" into "the file's own convention". Its artifact and digest disagree
   on a file count (14 vs 16), so I cited no count. The `files_touched: []` defect MOVED rather than
   went away — security fixed it after three rounds, code-reviewer committed it this round.

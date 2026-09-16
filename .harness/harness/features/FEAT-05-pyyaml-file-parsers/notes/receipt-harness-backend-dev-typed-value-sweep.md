@@ -23,17 +23,17 @@ of this receipt predated — which is exactly why F-05 caught it at 10 rows agai
 
 | # | file:line | value | use | handling |
 |---|---|---|---|---|
-| 1 | `check-state.sh:128-129` | any scalar via `val(k)` | identifier / comparison | `str(v)` at the boundary, `None` preserved |
-| 2 | `check-state.sh:143` | `entry["id"]` | **path component** — joined into `runs/<id>` | `str(...).strip()` |
-| 3 | `check-state.sh:144` | `entry["squad"]` | identifier, compared to `"validator"` | `str(...).strip()` |
-| 4 | `check-state.sh:145` | `entry["verdict"]` | identifier, `.upper()`-compared to `"FAIL"` | `str(...).strip()` |
-| 5 | `check-state.sh:151` | `cycles_used` | **numeric** | `val()` yields str, `.isdigit()` then `int()` — count stays numeric (D-08) |
-| 6 | `check-state.sh:280` (F-02) | `phase` | enum, indexed into `PHASE_ORDER` | `str(...).strip()`, `isinstance` guard |
-| 7 | `check-state.sh:344` (F-02) | `status` | enum, compared to `"complete"` | `str(...).strip()` — the quoted-value fail-open |
-| 8 | `check-state.sh:348` (F-02) | `cost` | **presence only**, never a number | `"cost" not in sdoc` — no coercion needed |
-| 9 | `check-state.sh:359-364` (F-02) | top-level keys | dict-key comparison vs `CHECKPOINT_KEYS` | `str(k)` both sides |
-| 10 | `check-state.sh:367` (F-02) | `host` | identifier, membership in `LEADS` | `str(...).strip()` |
-| 11 | `check-state.sh:471-475` (F-02) | `github.issues` | mapping presence | `isinstance` guards, no scalar use |
+| 1 | `check-state.py:128-129` | any scalar via `val(k)` | identifier / comparison | `str(v)` at the boundary, `None` preserved |
+| 2 | `check-state.py:143` | `entry["id"]` | **path component** — joined into `runs/<id>` | `str(...).strip()` |
+| 3 | `check-state.py:144` | `entry["squad"]` | identifier, compared to `"validator"` | `str(...).strip()` |
+| 4 | `check-state.py:145` | `entry["verdict"]` | identifier, `.upper()`-compared to `"FAIL"` | `str(...).strip()` |
+| 5 | `check-state.py:151` | `cycles_used` | **numeric** | `val()` yields str, `.isdigit()` then `int()` — count stays numeric (D-08) |
+| 6 | `check-state.py:280` (F-02) | `phase` | enum, indexed into `PHASE_ORDER` | `str(...).strip()`, `isinstance` guard |
+| 7 | `check-state.py:344` (F-02) | `status` | enum, compared to `"complete"` | `str(...).strip()` — the quoted-value fail-open |
+| 8 | `check-state.py:348` (F-02) | `cost` | **presence only**, never a number | `"cost" not in sdoc` — no coercion needed |
+| 9 | `check-state.py:359-364` (F-02) | top-level keys | dict-key comparison vs `CHECKPOINT_KEYS` | `str(k)` both sides |
+| 10 | `check-state.py:367` (F-02) | `host` | identifier, membership in `LEADS` | `str(...).strip()` |
+| 11 | `check-state.py:471-475` (F-02) | `github.issues` | mapping presence | `isinstance` guards, no scalar use |
 | 12 | `gh-sync.py:220` → `_opt_int` | `milestone`, `parent` | **numeric ids** | `_opt_int` excludes `bool` explicitly — an `int` subclass, so `parent: true` would become `1` |
 | 13 | `gh-sync.py` `issues` loop | `T-NN` keys | dict keys, regex-matched | `str(k).strip()` before `re.fullmatch` |
 | 14 | `gh-sync.py` `attached` | list entries | identifiers | `str(x).strip()`, list-or-CSV tolerated |
@@ -50,9 +50,9 @@ wrong number.
 
 | # | file:line | value | use | handling |
 |---|---|---|---|---|
-| 17 | `check-domain.sh:134` → `:212,:215` | every glob from `manifest_domains` | **regex source** — reaches `re.escape`/`re.compile` | `str()` at the SOURCE, `harness_yaml.py:130,142` |
-| 18 | `bash-write-guard.sh:287` → `:318-319` | same | same, via its own `glob_to_re` | same source coercion |
-| 19 | `check-domain.sh:306` → `:315-316` | top-level keys of a parsed `state.yaml` | **dict-key comparison** vs `ALLOWED` | `str(k)` on BOTH sides |
+| 17 | `check-domain.py:134` → `:212,:215` | every glob from `manifest_domains` | **regex source** — reaches `re.escape`/`re.compile` | `str()` at the SOURCE, `harness_yaml.py:130,142` |
+| 18 | `bash-write-guard.py:287` → `:318-319` | same | same, via its own `glob_to_re` | same source coercion |
+| 19 | `check-domain.py:306` → `:315-316` | top-level keys of a parsed `state.yaml` | **dict-key comparison** vs `ALLOWED` | `str(k)` on BOTH sides |
 
 **19 consumer sites, all classified.** The count is the complete output of
 `grep -n 'harness_yaml\.\(load_str\|load_file\|manifest_domains\)'` over `bin/`, expanded to
@@ -74,7 +74,7 @@ silently off — a fail-open produced by a crash.
 
 ### Regression 2 — a YAML-truthy top-level key vs `ALLOWED`
 
-`check-domain.sh:315-316`. YAML 1.1 resolves `on`, `off`, `yes`, `no`, `true`, `false` to booleans
+`check-domain.py:315-316`. YAML 1.1 resolves `on`, `off`, `yes`, `no`, `true`, `false` to booleans
 and `01` to an int, so a parsed key is **not necessarily a string**. Verified:
 
 ```
@@ -107,7 +107,7 @@ Quote the key to keep it a string.
 
 ## Verification
 
-- `run-unit-tests.sh` exit 0, 12 suites (T-04's mandated `test-upgrade-config.py` now exists — it
+- `run-unit-tests.py` exit 0, 12 suites (T-04's mandated `test-upgrade-config.py` now exists — it
   never did, which is how F-03's NameError shipped).
 - The T-17 assertion is discriminating in both directions, shown above.
 - No consumer of a parsed value anywhere in `bin/` is left un-classified: 19 rows, recounted at the

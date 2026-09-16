@@ -2,8 +2,8 @@
      frontend-dev implements against it and ui-reviewer audits against it, so an
      unstated value is one each of them will invent differently.
 
-     Established by init's design pass; skip the file entirely for a project
-     with no user-facing surface (harness-init has the why). -->
+     Established by /harness-plan; skip the file entirely for a project
+     with no user-facing surface. -->
 
 # DESIGN — <project name>
 

@@ -12,10 +12,10 @@ $ git status --porcelain
 (empty)
 
 $ git diff --stat 340e18a..9da3986
- .claude/skills/harness/bin/check-state.sh          |  88 +++++--
+ .claude/skills/harness/bin/check-state.py          |  88 +++++--
  .claude/skills/harness/bin/gh-sync.py              |   7 +-
  .claude/skills/harness/bin/harness_yaml.py         |  35 ++-
- .claude/skills/harness/bin/run-unit-tests.sh       |   2 +-
+ .claude/skills/harness/bin/run-unit-tests.py       |   2 +-
  .claude/skills/harness/bin/test-check-domain.py    |  26 ++
  .claude/skills/harness/bin/test-gh-sync.py         |  44 ++++
  .claude/skills/harness/bin/test-upgrade-config.py  | 157 +++++++++++
@@ -119,9 +119,9 @@ file. D-08's `str()` coercion in `upgrade-config.py` (which the task explicitly 
 **zero** test coverage. This is a matrix-floor gap on the exact task whose absent test file
 caused F-03 to ship broken in the first place.
 
-**5. Registration — the cycle-0 gate hole.** `run-unit-tests.sh:6`'s `SCRIPTS` array lists
+**5. Registration — the cycle-0 gate hole.** `run-unit-tests.py:6`'s `SCRIPTS` array lists
 `"test-upgrade-config.py"` as its 12th entry (confirmed by grep). A live full run
-(`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh`) reports **12 suites**,
+(`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py`) reports **12 suites**,
 all `PASS`, exit 0. Separately verified the runner's behavior when a `SCRIPTS`-listed script is
 absent from disk, using a disposable simulation (not editing the real `bin/`): `python3` fails
 to open the missing file, `status=$?` is non-zero, the wrapper prints `FAIL <script>` and the
@@ -180,8 +180,8 @@ behavior. Cycle 0's RELAYED/UNVERIFIED status is resolved to verified-true.
 |---|---|---|
 | `test-upgrade-config.py` (new, 157 lines) | 6 cases | Tests 1–2: **yes**, NameError, exact site, at `340e18a`. Test 6: legitimate spec assertion, holds everywhere for a real reason. Tests 3, 4, 5: **no, at any baseline** — assertions too weak to see their named defects even against the true pre-conversion (`37a8a66`) script; additionally vacuous against `340e18a`'s crash. |
 | `test-gh-sync.py` +44 (T-06C block) | 2 cases | Case 1: **yes**, verified RED against true pre-conversion (`60b266c`-era) script. Case 2: not a regression test (pre-existing code already correct) but a legitimate spec-compliance assertion. |
-| `test-check-domain.py` +26 (F-01 block) | 2 cases (bad-UTF-8 manifest, manifest-as-directory) | **Yes, both.** Ran current tests against `340e18a`'s `check-domain.sh` in a disposable `git worktree add /tmp/feat05-c0-qa 340e18a` (removed after; empty `git status --porcelain` before removal). Both FAIL with exit 1 + Python traceback — the exact "crashes non-blocking, fail-open" defect F-01 names — and both PASS at HEAD (exit 2, blocked). Not explicitly assigned to me, but the dispatch asked for every test in the range; included. |
-| `run-unit-tests.sh` (2-line diff) | adds `"test-upgrade-config.py"` to `SCRIPTS` | Not a test — registration fix, verified above (12 suites; loud-fail-on-missing confirmed via simulation). |
+| `test-check-domain.py` +26 (F-01 block) | 2 cases (bad-UTF-8 manifest, manifest-as-directory) | **Yes, both.** Ran current tests against `340e18a`'s `check-domain.py` in a disposable `git worktree add /tmp/feat05-c0-qa 340e18a` (removed after; empty `git status --porcelain` before removal). Both FAIL with exit 1 + Python traceback — the exact "crashes non-blocking, fail-open" defect F-01 names — and both PASS at HEAD (exit 2, blocked). Not explicitly assigned to me, but the dispatch asked for every test in the range; included. |
+| `run-unit-tests.py` (2-line diff) | adds `"test-upgrade-config.py"` to `SCRIPTS` | Not a test — registration fix, verified above (12 suites; loud-fail-on-missing confirmed via simulation). |
 | `harness_yaml.py` (+35) | production fix (F-01), not a test | Out of scope for test-discrimination, but the two `test-check-domain.py` F-01 cases exercise it and do discriminate (above). |
 
 ## Q3 spot-check — **CLOSED**
@@ -217,7 +217,7 @@ DIGEST:
   failures: 0
   matrix_ok: false
   kinds:
-    - { kind: unit, state: satisfied, cmd: "CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh", named_tests: 12 }
+    - { kind: unit, state: satisfied, cmd: "CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py", named_tests: 12 }
   coverage_gaps:
     - "upgrade-config.py: T-04's three PLAN-mandated tests (real-manifest name diff, schema_version int-type assertion, D-08 all-digit-name str coercion) were never written"
     - "test-upgrade-config.py tests 3-5: assertions too weak to discriminate their named defects at any baseline (quoted-schema_version, name-harvesting, malformed-manifest cases)"

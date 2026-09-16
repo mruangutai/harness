@@ -5,7 +5,7 @@
 PASS. All three task `verify:` blocks GREEN, both required gate kinds (`unit`, `integration`)
 satisfied for FEAT-25's own tests, matrix floor met, SC-08 both clauses clean, SC-07 set-diff
 shows zero deletions/weakenings and exactly the one authorised rename. The blocking gate command
-(`run-unit-tests.sh --kind integration`) is GREEN at the graded commit `8d7b273` in a clean
+(`run-unit-tests.py --kind integration`) is GREEN at the graded commit `8d7b273` in a clean
 worktree (`test-gen-decisions-index.py` PASS there); its exit 1 in the **working tree** is
 uncommitted `DECISIONS.md` drift outside the graded diff and outside qa's writable domain — not a
 FEAT-25 defect.
@@ -40,16 +40,16 @@ Phase 2 (post-code) coverage matches this list closely — no gap found beyond w
 ## Step 1 — matrix reading (confirmed, not overturned)
 
 Bug class = path-resolution defect. SC-03 declares `evidence: integration`.
-`test-factory-integration.py` is in `test_kinds.integration.detect` AND in `run-unit-tests.sh`'s
+`test-factory-integration.py` is in `test_kinds.integration.detect` AND in `run-unit-tests.py`'s
 `INTEGRATION_SCRIPTS`, and is **absent** from the `--kind unit` run's script list (confirmed —
 grepped the full unit-run transcript, it never appears). So under `--kind unit` alone SC-03's
 declared evidence never executes. `match_bug_class` → `integration`, required. Union across
 T-01(bugfix)/T-02(bugfix)/T-03(logic) = `{unit, integration}`.
 
 Gate commands:
-- `run-unit-tests.sh --kind unit` → exit 0. `test-factory-claim.py` PASS (120/120),
+- `run-unit-tests.py --kind unit` → exit 0. `test-factory-claim.py` PASS (120/120),
   `test-layout-migration.py` PASS incl. `case 22` (41/41 `ok   - ` lines).
-- `run-unit-tests.sh --kind integration` → **exit 1**. `test-factory-integration.py` itself PASS
+- `run-unit-tests.py --kind integration` → **exit 1**. `test-factory-integration.py` itself PASS
   (106/106). The nonzero exit is `test-gen-decisions-index.py`'s
   `test_committed_index_matches_a_fresh_regeneration`, which fails because the working tree's
   `.harness/harness/docs/DECISIONS.md` (held dirt, uncommitted, explicitly not mine to touch)
@@ -60,7 +60,7 @@ Gate commands:
   reproducible, not a fluke of the combined run.
 
 **matrix_ok: true** for FEAT-25's own required kinds — `unit` satisfied, `integration` satisfied.
-**Resolved, not left open**: re-ran `run-unit-tests.sh --kind integration` in a clean detached
+**Resolved, not left open**: re-ran `run-unit-tests.py --kind integration` in a clean detached
 worktree at `8d7b273` (the graded commit) — **exit 0**, every script including
 `test-gen-decisions-index.py` PASS. This proves the working-tree exit 1 is solely a property of
 uncommitted `DECISIONS.md` drift (held dirt), not of the commit SC-08 grades. Reported as a
@@ -178,7 +178,7 @@ main tree** (ran against a `git show`'d snapshot in scratch):
 qa's domain) disagrees with a fresh regeneration on DEC-196's `refs:` list. Confirmed via
 `git diff --stat d1ffd7f...HEAD -- .harness/harness/docs/DECISIONS.md` (empty) that this file is
 not part of FEAT-25's graded diff. **Confirmed at the graded commit**: `git worktree add --detach
-.claude/worktrees/qa-head 8d7b273`, ran `run-unit-tests.sh --kind integration` there — exit 0,
+.claude/worktrees/qa-head 8d7b273`, ran `run-unit-tests.py --kind integration` there — exit 0,
 `test-gen-decisions-index.py` PASS, `test-factory-integration.py` PASS; worktree removed after
 (`git worktree list` shows only the main checkout). The blocking gate is green on the commit it is
 supposed to grade. The orchestrator should not route this to FEAT-25 remediation — it needs

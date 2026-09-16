@@ -25,5 +25,5 @@
 - 2026-08-12: My P-06 (verify a panel's central premise before it costs a cycle) paid off in the
   opposite direction this time — both high/med findings were REAL and reading them at source made
   the relay stronger, not cheaper. F-B was actually WORSE than the operator's hypothesis: they asked
-  whether a fourth import route exits 1 instead of 2, and check-state.sh exits 0 while printing
+  whether a fourth import route exits 1 instead of 2, and check-state.py exits 0 while printing
   "all state invariants hold". Verifying let me say that upgrade in my own voice.

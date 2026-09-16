@@ -47,10 +47,10 @@ Two reasons, and the second is the general one.
 
 ## Open questions
 
-- Q1: `check-state.sh` reports a third violation the dispatch did not name —
+- Q1: `check-state.py` reports a third violation the dispatch did not name —
   `FEAT-26 status is 'Review' but notes/handoff-build.md is missing` (DEC-159). Pre-existing: the
   status change is in the uncommitted tree and is not this run's.
-- Q2: `PostToolUse check-domain.sh` resolves through `CLAUDE_PROJECT_DIR` (the main repo) and so
+- Q2: `PostToolUse check-domain.py` resolves through `CLAUDE_PROJECT_DIR` (the main repo) and so
   validated a **worktree** `feature.json` against **main's stale** `feature-schema.json`, refusing
   `github.source_issues` as undeclared. The worktree's schema declares it
   (`bin/feature-schema.json` `properties.github`). A worktree write can be denied by a schema the

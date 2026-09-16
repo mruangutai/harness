@@ -25,7 +25,7 @@ sufficient. No D-NN amendment.
 
 **Accepted. File nothing.**
 
-Panel2's qa agent edited `check-state.sh` in a throwaway worktree, then restored it and
+Panel2's qa agent edited `check-state.py` in a throwaway worktree, then restored it and
 verified the tree clean, and it disclosed this itself. Nothing reached the tree. The
 operator accepts the disclosure and closes the question.
 
@@ -46,10 +46,10 @@ clean up. The main session raises it at the ship decision, not now.
 
 ## Two things the main session owns, so you do not duplicate them
 
-- `bf8f191 [harness:human]` — the `check-state.sh` fixes, committed directly under the
+- `bf8f191 [harness:human]` — the `check-state.py` fixes, committed directly under the
   DEC-174 carve-out while your segment ran. Two crash fixes, four INV-24 defects, and
   INV-15 now imports `validate-digest.py` once instead of forking 103 times. Your
-  observation that `check-state.sh` exits 0 with zero violations is that commit's effect.
-  Do not touch `check-state.sh` or `test-check-state.py`.
+  observation that `check-state.py` exits 0 with zero violations is that commit's effect.
+  Do not touch `check-state.py` or `test-check-state.py`.
 - Issues #203 and #204, both filed and on the board, both blocked on FEAT-10 shipping.
   Neither is your work.

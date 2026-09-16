@@ -10,7 +10,7 @@ main checkout's stale 3396-line copy was never read).
 ## Scope measurement
 
 `git diff --stat 9f2a0702 a2fb6c0b` touches exactly the three files the dispatch names:
-`check-state.sh` (+28/-3), `feature-schema.json` (+3/-1), `test-check-state.py`
+`check-state.py` (+28/-3), `feature-schema.json` (+3/-1), `test-check-state.py`
 (+132/-1). Extension census on `git diff --name-only` against
 `html|css|scss|tsx|jsx|vue|svelte|less`: **zero matches** — no rendered UI. No
 `DESIGN.md` exists anywhere under this feature's directory; `notes/` holds only
@@ -21,7 +21,7 @@ diagnostic.
 
 ## The candidate message
 
-`check-state.sh:457-460` (verified live in the diffed file):
+`check-state.py:457-460` (verified live in the diffed file):
 
 > `{feat}: a validator run reviewed code but review_sha is not pinned — reviewers would
 > diff HEAD (the GAP-7 failure).`
@@ -38,7 +38,7 @@ The message gives no pointer to that key at all.
 
 **This is not a hypothetical gap — it is the identical shape BUG-1071's panel raised
 against INV-32's `panel_era_start` message, and this same file now demonstrates the
-opposite of what it teaches.** `check-state.sh:286-297` (the INV-32 no-panel-result
+opposite of what it teaches.** `check-state.py:286-297` (the INV-32 no-panel-result
 message, unchanged by this diff) carries an explicit comment on exactly this point:
 *"WITHOUT this sentence its cause is invisible... Naming the key here is what makes the
 residual self-diagnosing rather than merely reversible"* — and its message text follows

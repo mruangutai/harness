@@ -54,7 +54,7 @@ For each of the 34 modified tracked harness files, compared against this reposit
   success for all six:
   `.claude/commands/harness.md`, `.claude/skills/harness-handoff/SKILL.md`,
   `.claude/skills/harness-wayfinding/SKILL.md`, `.claude/skills/harness/SKILL.md`,
-  `.claude/skills/harness/bin/check-state.sh`, `.claude/skills/harness/bin/check-docs.sh`.
+  `.claude/skills/harness/bin/check-state.py`, `.claude/skills/harness/bin/check-docs.sh`.
 
 So the drift is reproducible from this repository in full. `check-docs.sh` is additionally a file
 this repo deleted under #202, so kaya's copy is a stale copy of a struck script.
@@ -81,17 +81,17 @@ Parsed with `json.load`. Every registration whose command points inside the dele
 
 | Event | Matcher | Script |
 |---|---|---|
-| `PreToolUse` | `Bash` | `branch-create-gate.sh` |
-| `PreToolUse` | `Bash` | `branch-create-gate.sh` **(a second, duplicate entry — different `$VAR` spelling)** |
-| `PreToolUse` | `Bash` | `bash-write-guard.sh` |
-| `PreToolUse` | `Write\|Edit` | `check-domain.sh` |
-| `PreToolUse` | `Task\|Agent` | `dispatch-guard.sh` |
-| `SubagentStart` | `harness-.*` | `inject-expertise.sh` |
+| `PreToolUse` | `Bash` | `branch-create-gate.py` |
+| `PreToolUse` | `Bash` | `branch-create-gate.py` **(a second, duplicate entry — different `$VAR` spelling)** |
+| `PreToolUse` | `Bash` | `bash-write-guard.py` |
+| `PreToolUse` | `Write\|Edit` | `check-domain.py` |
+| `PreToolUse` | `Task\|Agent` | `dispatch-guard.py` |
+| `SubagentStart` | `harness-.*` | `inject-expertise.py` |
 | `SubagentStop` | `harness-.*` | `validate-digest.py --hook` |
-| `PostToolUse` | `Write\|Edit\|Bash` | `check-domain.sh --post` |
+| `PostToolUse` | `Write\|Edit\|Bash` | `check-domain.py --post` |
 
 `D-02` and `T-03` name **three** `PreToolUse` hooks. Four registrations —
-`dispatch-guard.sh`, `inject-expertise.sh`, `validate-digest.py`, `check-domain.sh --post` — plus
+`dispatch-guard.py`, `inject-expertise.py`, `validate-digest.py`, `check-domain.py --post` — plus
 the duplicate are outside the enumerated list.
 
 T-03's *headline* instruction ("any hook whose command points inside the skill tree") and its verify

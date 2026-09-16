@@ -27,7 +27,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-validate-feature-json.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
       reason: not in DEC-174's enumeration and the domain guard grants it; see D-07
@@ -40,10 +40,10 @@ lanes:
     - surface: .harness/harness/docs/DECISIONS-INDEX.md
       lane: team
       agent: harness-documentor
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer, a registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer, the state gate
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -78,7 +78,7 @@ decisions:
       that themselves lack agent_id, and requires agent_id on every runs entry whose id is
       not in that set. Prior content unavailable (untracked file, no git) means the set is
       empty and agent_id is required on every entry.
-    because: check-domain.sh validates the whole proposed document, so a blanket required
+    because: check-domain.py validates the whole proposed document, so a blanket required
       breaks the no-migration ruling and a blanket optional lets the first new entry omit it.
       HEAD rather than the on-disk file, because on the PostToolUse route disk already holds
       the NEW content, which would grandfather every entry and make that route toothless.
@@ -116,7 +116,7 @@ decisions:
       hookSpecificOutput.additionalContext and systemMessage, and rate-limits itself to one
       warning per crossing per agent using a stamp file under the system temp directory.
     because: Task|Agent is the decision point where a relay is actually cheap, is already the
-      registered seam for dispatch-guard.sh, and costs one transcript read per dispatch rather
+      registered seam for dispatch-guard.py, and costs one transcript read per dispatch rather
       than one per tool call. Exit 0 because the operator ruled the warning advises and never
       refuses. Both channels because this repository has verified additionalContext delivery
       only on SubagentStart, never on PreToolUse, so systemMessage is the fallback that at
@@ -124,9 +124,9 @@ decisions:
     dec: DEC-174
 
   - id: D-07
-    choice: Registering a new test file in run-unit-tests.sh's UNIT_SCRIPTS or
+    choice: Registering a new test file in run-unit-tests.py's UNIT_SCRIPTS or
       INTEGRATION_SCRIPTS array is TEAM lane, not enforcement layer.
-    because: It is absent from DEC-174's enumeration and check-domain.sh --resolve grants it
+    because: It is absent from DEC-174's enumeration and check-domain.py --resolve grants it
       to harness-backend-dev and harness-dev-ops; it selects which tests run and asserts no
       test file is unregistered, but it decides no policy. Overrule this in one read if the
       drift detector counts as a gate.
@@ -138,13 +138,13 @@ decisions:
       and the 60-line cap, while SEAM_NOTES keeps governing which notes are REQUIRED. The
       shape check moves out of the SEAM_NOTES loop so a required note is reported once.
     because: The criterion as written is already true by silence and cannot go red.
-      check-state.sh:593 is the only place a handoff path is constructed and it only builds
+      check-state.py:593 is the only place a handoff path is constructed and it only builds
       paths for stems in SEAM_NOTES[status], so notes/handoff-anything-else.md is never
-      opened, never demanded and never rejected. Verified separately that check-domain.sh
-      already shape-gates any stem at write, RE_HANDOFF at check-domain.sh:665 matching
+      opened, never demanded and never rejected. Verified separately that check-domain.py
+      already shape-gates any stem at write, RE_HANDOFF at check-domain.py:665 matching
       handoff-[a-z0-9-]+.md with no stem whitelist, so acceptance of a mid-phase stem exists
       at both gates today. The real gap the glob closes is a note that never passed through a
-      Write or Edit route, which check-domain.sh cannot see. Verified safe: all 68 handoff
+      Write or Edit route, which check-domain.py cannot see. Verified safe: all 68 handoff
       notes currently on disk pass the four-heading and 60-line shape, so the widening adds
       zero findings to the current tree.
     dec: DEC-159
@@ -152,7 +152,7 @@ decisions:
   - id: D-09
     choice: A mid-phase handoff is notes/handoff-mid-<phase-stem>.md, for example
       handoff-mid-build.md. Latest supersedes; a second crossing inside one phase overwrites.
-    because: It matches check-domain.sh's RE_HANDOFF character class, can never collide with
+    because: It matches check-domain.py's RE_HANDOFF character class, can never collide with
       the plan, build or validate stems SEAM_NOTES demands, and names the phase it interrupted
       so a successor knows what it inherited.
     dec: DEC-159
@@ -161,7 +161,7 @@ decisions:
     choice: Every must-go-red proof uses a named mutation seam rather than an exit status.
       For Python, the test loads context-watch.py through importlib.util.spec_from_file_location
       and rebinds one named module attribute, asserting first that the rebind changed the
-      value the function returns. For check-state.sh, the test copies the script and
+      value the function returns. For check-state.py, the test copies the script and
       harness_yaml.py into a temp bin directory, deletes the one line carrying a named
       literal, asserts the literal is present in the original and absent in the copy, and runs
       the copy through the existing CHECK_STATE_BIN environment override.
@@ -360,7 +360,7 @@ tasks:
       load-bearing, so no caller may re-implement the comparison.
 
       nearest_seam(row) -> str. Read the feature's .harness/harness/features/<feature>/feature.json
-      status and map it through the same station vocabulary check-state.sh uses: Plan and
+      status and map it through the same station vocabulary check-state.py uses: Plan and
       Ready return "plan", Building returns "build", Review returns "validate", Done and
       Abandoned and Backlog return "none". When the feature is unknown or its feature.json is
       absent or unreadable, return the literal string
@@ -402,13 +402,13 @@ tasks:
     status: pending
     files:
       - .claude/skills/harness/bin/test-context-watch.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create .claude/skills/harness/bin/test-context-watch.py and append its filename to the
-      UNIT_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.sh. Change nothing else
-      in run-unit-tests.sh. The drift detector at its lines 17-51 fails the whole suite if a
+      UNIT_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.py. Change nothing else
+      in run-unit-tests.py. The drift detector at its lines 17-51 fails the whole suite if a
       test-*.py under bin/ is in neither array, so the registration is not optional.
 
       Follow the reporting shape the other test-*.py files in that directory use: a report
@@ -532,29 +532,29 @@ tasks:
       what makes a single non-conforming entry visible among conformers.
 
       WHY HEAD AND NOT THE FILE ON DISK, stated so nobody simplifies it away: on
-      check-domain.sh's PostToolUse route the file on disk already holds the NEW content, so
+      check-domain.py's PostToolUse route the file on disk already holds the NEW content, so
       a disk-prior comparison would grandfather every entry and that route would enforce
       nothing. Keying on the ids that lack the field in HEAD also means stripping agent_id
       from an entry that had it is caught, because that id is not in the legacy set.
 
   - id: T-06
-    title: Pass the absolute target path from check-domain.sh into the schema module
+    title: Pass the absolute target path from check-domain.py into the schema module
     traces: [REQ-04]
     change_type: api
     execution_mode: main-session-direct
-    execution_reason: DEC-174 names check-domain.sh enforcement layer; it is a registered
+    execution_reason: DEC-174 names check-domain.py enforcement layer; it is a registered
       PreToolUse and PostToolUse gate script, so the harness plans this cutover and the
       operator's hands execute it. A DEVIATION line from check-plan-routes.py is expected
       here, because the path is granted to harness-backend-dev and harness-dev-ops.
     depends_on: [T-05]
     status: pending
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-domain.py
-      grep -c 'target_path=' .claude/skills/harness/bin/check-domain.sh
+      grep -c 'target_path=' .claude/skills/harness/bin/check-domain.py
     intent: |
-      In .claude/skills/harness/bin/check-domain.sh, make the absolute path of the file being
+      In .claude/skills/harness/bin/check-domain.py, make the absolute path of the file being
       checked available to the schema module, so T-05's diff-scoped rule can find the prior
       committed content.
 
@@ -588,10 +588,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-validate-feature-json.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Extend .claude/skills/harness/bin/test-validate-feature-json.py, which is already
-      registered in run-unit-tests.sh UNIT_SCRIPTS, with cases for the diff-scoped agent_id
+      registered in run-unit-tests.py UNIT_SCRIPTS, with cases for the diff-scoped agent_id
       rule. Do not create a new test file. Follow the reporting shape already in that file.
 
       Build a real throwaway git repository under tempfile.mkdtemp() for each case: git init,
@@ -689,7 +689,7 @@ tasks:
     traces: [REQ-08]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: .claude/settings.json resolves to NOBODY under check-domain.sh
+    execution_reason: .claude/settings.json resolves to NOBODY under check-domain.py
       --resolve and is the hook registration surface itself, which DEC-174 reserves to the
       operator's hands.
     depends_on: [T-08]
@@ -697,11 +697,11 @@ tasks:
     files:
       - .claude/settings.json
     verify: |
-      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];e=[x for x in h if x['matcher']=='Task|Agent'];assert len(e)==1,h;c=[k['command'] for k in e[0]['hooks']];assert any('dispatch-guard.sh' in x for x in c),c;assert any('context-watch.py --hook' in x for x in c),c;print('registered alongside dispatch-guard')"
-      .claude/skills/harness/bin/check-state.sh
+      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];e=[x for x in h if x['matcher']=='Task|Agent'];assert len(e)==1,h;c=[k['command'] for k in e[0]['hooks']];assert any('dispatch-guard.py' in x for x in c),c;assert any('context-watch.py --hook' in x for x in c),c;print('registered alongside dispatch-guard')"
+      .claude/skills/harness/bin/check-state.py
     intent: |
       In .claude/settings.json, add one hook command to the EXISTING PreToolUse entry whose
-      matcher is exactly "Task|Agent" -- the entry that already registers dispatch-guard.sh.
+      matcher is exactly "Task|Agent" -- the entry that already registers dispatch-guard.py.
       Append to that entry's hooks array, do not create a second entry with the same matcher.
       The new element is:
         {"type": "command",
@@ -718,7 +718,7 @@ tasks:
       SubagentStop blocks, do not reorder the existing PreToolUse entries, and do not add
       anything to merge-settings.py -- D-14 rules that the hook does not propagate to product
       checkouts, and merge-settings.py --check only asserts its own specs are present, never
-      that no extra hook exists. After the edit, check-state.sh INV-9 must still pass: it
+      that no extra hook exists. After the edit, check-state.py INV-9 must still pass: it
       asserts specific hooks are registered and does not object to an additional one.
 
   - id: T-10
@@ -726,20 +726,20 @@ tasks:
     traces: [REQ-09]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 names check-state.sh enforcement layer and INV-17's seam table
+    execution_reason: DEC-174 names check-state.py enforcement layer and INV-17's seam table
       lives in it, so the harness plans this cutover and the operator's hands execute it. A
       DEVIATION line from check-plan-routes.py is expected, because the path is granted to
       harness-backend-dev and harness-dev-ops.
     depends_on: []
     status: pending
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
-      grep -c 'handoff-\*\.md' .claude/skills/harness/bin/check-state.sh
-      .claude/skills/harness/bin/check-state.sh
+      grep -c 'handoff-\*\.md' .claude/skills/harness/bin/check-state.py
+      .claude/skills/harness/bin/check-state.py
     intent: |
-      In .claude/skills/harness/bin/check-state.sh, restructure INV-17 (currently lines
+      In .claude/skills/harness/bin/check-state.py, restructure INV-17 (currently lines
       462-628) so that the SHAPE check runs over every handoff note found and the SEAM_NOTES
       table keeps deciding which notes are REQUIRED. Two separate questions, today conflated.
 
@@ -766,7 +766,7 @@ tasks:
       What this changes and what it deliberately does not. It does NOT make a mid-phase stem
       acceptable -- that was already true and is why the criterion needed changing: line 593
       is the only place a handoff path is constructed, so notes/handoff-mid-build.md was
-      never opened, never demanded and never rejected, and check-domain.sh's RE_HANDOFF at
+      never opened, never demanded and never rejected, and check-domain.py's RE_HANDOFF at
       line 665 already shape-gates any handoff-[a-z0-9-]+.md at write time. What it DOES
       change is that a malformed note the write-time gate never saw -- one arriving through a
       git checkout, a merge, or a route other than Write and Edit -- is now reported by the
@@ -788,7 +788,7 @@ tasks:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Add cases to .claude/skills/harness/bin/test-check-state.py proving the widened INV-17
       is load-bearing. Follow the fixture and reporting conventions already in that file; the
@@ -831,7 +831,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness/SKILL.md resolves to NOBODY under
-      check-domain.sh --resolve; it is the orchestrator's preloaded rule text and no team
+      check-domain.py --resolve; it is the orchestrator's preloaded rule text and no team
       lane may write it.
     depends_on: [T-10]
     status: pending
@@ -840,7 +840,7 @@ tasks:
     verify: |
       grep -c 'handoff-mid-' .claude/skills/harness/SKILL.md
       grep -c 'orchestrator_context_tokens' .claude/skills/harness/SKILL.md
-      .claude/skills/harness/bin/check-state.sh
+      .claude/skills/harness/bin/check-state.py
     intent: |
       In .claude/skills/harness/SKILL.md, extend the seam section around lines 320-338 so an
       orchestrator that receives the context warning knows exactly what to do. Edit in place;
@@ -861,7 +861,7 @@ tasks:
       says to record the phase in feature.json phase:, and that field does not exist --
       DEC-192 collapsed phase and status into one status field. Change it to name status.
 
-      Do not restate INV-17's mechanics and do not describe check-domain.sh's write-time
+      Do not restate INV-17's mechanics and do not describe check-domain.py's write-time
       shape gate: both already have one home. Keep the file's total length change under
       twelve lines.
 
@@ -875,13 +875,13 @@ tasks:
     status: pending
     files:
       - .claude/skills/harness/bin/test-context-watch-integration.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Create .claude/skills/harness/bin/test-context-watch-integration.py, append its filename
-      to the INTEGRATION_SCRIPTS array in run-unit-tests.sh, and append its path to
+      to the INTEGRATION_SCRIPTS array in run-unit-tests.py, and append its path to
       test_kinds.integration.detect in .harness/harness.json, which is an explicit
       pipe-separated file list. Change nothing else in either file. Every fixture is built
       under tempfile.mkdtemp() and every root is passed explicitly. NOTHING in this file may

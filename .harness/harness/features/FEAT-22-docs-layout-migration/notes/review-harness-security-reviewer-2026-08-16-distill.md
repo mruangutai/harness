@@ -13,7 +13,7 @@ a hot log might have caught that a cold skim cannot is *why* I reasoned the way 
 **C-1 — accepted, as Gotchas (not Patterns).** The lead's correction is real: I classified the
 over-grant remedy's routing by the file where the *defect* lives (`team-config.yaml`, data) rather
 than by the file the *remedy I actually stated* — segment-aware enforcement — would change
-(`check-domain.sh`/`harness_boundary.py`, a DEC-174 carve-out). Placed in Gotchas rather than
+(`check-domain.py`/`harness_boundary.py`, a DEC-174 carve-out). Placed in Gotchas rather than
 Patterns because it's shaped as a trap adjacent to G-10 (state remedy as constraint, not direction)
 — same neighborhood, different axis (who owns the remedy vs. how to word it). Gotchas had headroom
 (11/15), so no displacement needed. New entry: G-12.
@@ -47,7 +47,7 @@ P-01 is repository-shaped (names `.claude/skills/harness/bin/*.{py,sh}`, `bin/fa
 moving. No grant exists for `.harness/harness/expertise/harness-security-reviewer.md`; the lead or
 an agent holding that grant should relocate it.
 
-## check-expertise.sh
+## check-expertise.py
 
 First run: `FAIL` — G-12 (62 words) and O-04 (58 words) both over the 50-word cap. Trimmed both;
 second run: `OK`.

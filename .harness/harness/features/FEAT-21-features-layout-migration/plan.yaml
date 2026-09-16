@@ -10,7 +10,7 @@ approval:
 lanes:
   resolved_at: 62fef85
   measurement: >-
-    Every row below was MEASURED, not inferred: check-domain.sh --resolve was run on one
+    Every row below was MEASURED, not inferred: check-domain.py --resolve was run on one
     representative path per row with the working tree at 62fef85 (git rev-parse HEAD confirmed
     before and unchanged), and the verbatim answer is quoted in each row's resolve field. The eng
     review could not take these measurements because leads hold no Bash (Read, Glob, Grep, Agent
@@ -20,22 +20,22 @@ lanes:
       lane: main-session-direct
       resolve: NOBODY
       reason: "measured NOBODY: no agent may write the file that declares the grants."
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script. The measured grant is overridden by the carve-out, which is why the measurement does not settle the lane on its own."
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "DEC-174 carve-out named in CLAUDE.md - the state gate. Carve-out overrides the measured grant."
     - surface: .claude/skills/harness/bin/check-plan-routes.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "Carve-out by content on the FEAT-20 precedent: it shells out to check-domain.sh --resolve and is the CI plan-route gate, so its own green cannot vouch for it. Carve-out overrides the measured grant."
+      reason: "Carve-out by content on the FEAT-20 precedent: it shells out to check-domain.py --resolve and is the CI plan-route gate, so its own green cannot vouch for it. Carve-out overrides the measured grant."
     - surface: .claude/skills/harness/bin/layout_migration.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "Carve-out by content, ruled in FEAT-20: check-state.sh computes INV-27's verdict from this module's return value. Carve-out overrides the measured grant."
+      reason: "Carve-out by content, ruled in FEAT-20: check-state.py computes INV-27's verdict from this module's return value. Carve-out overrides the measured grant."
     - surface: .claude/skills/harness/bin/test-layout-migration.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -43,11 +43,11 @@ lanes:
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "co-changes with check-state.sh, in the same diff a human reads. Measured on this path as the representative for every test-*.py row below, all of which share the bin/** grant."
+      reason: "co-changes with check-state.py, in the same diff a human reads. Measured on this path as the representative for every test-*.py row below, all of which share the bin/** grant."
     - surface: .claude/skills/harness/bin/test-check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "co-changes with check-domain.sh, in the same diff a human reads"
+      reason: "co-changes with check-domain.py, in the same diff a human reads"
     - surface: .claude/skills/harness/bin/test-check-plan-routes.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -55,7 +55,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-bash-write-guard.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "asserts the live grants through bash-write-guard.sh, itself a DEC-174 carve-out"
+      reason: "asserts the live grants through bash-write-guard.py, itself a DEC-174 carve-out"
     - surface: .claude/skills/harness/bin/test-harness-yaml.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -76,7 +76,7 @@ lanes:
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "pulled forward from unit 9 per D-07; it is the CI backstop for an unregistered write-time gate and would tick green over zero files after the move."
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "a registered gate script that hard-denies branch creation post-move; edited in the same human-read diff as the move. Carve-out by content overrides the measured grant."
@@ -128,7 +128,7 @@ decisions:
     choice: >-
       The atomic commit is WIDER than the five-item cluster issue 344 named. It also carries the
       test suites pinned to the old path, the guard-enforced instruction paths in agents, skills,
-      team definitions and the harness command, branch-create-gate.sh, this repository's own
+      team definitions and the harness command, branch-create-gate.py, this repository's own
       .gitignore, the three path-depth resolvers pulled forward by D-07 - test-factory-cli.py,
       gh-sync.py and validate-feature-json.py - and the one CI comment that describes the sweep
       D-07 pulls forward, in .github/workflows/tests.yml. In task terms, stated identically
@@ -138,7 +138,7 @@ decisions:
       Each of those is enforced by the same grants or globs that move, or resolves a feature path by
       arithmetic over the same depth. Leave the suites and the landed commit is red; leave the
       instruction paths and every doer's own bookkeeping write is denied at the next dispatch; leave
-      branch-create-gate.sh and no branch can be created for any feature; leave .gitignore and every
+      branch-create-gate.py and no branch can be created for any feature; leave .gitignore and every
       run directory becomes untracked, which halts a team run on a dirty tree; leave
       test-factory-cli.py and the unit suite dies on import; leave gh-sync.py and every GitHub
       mirror command succeeds while doing nothing; leave validate-feature-json.py and the CI schema
@@ -187,7 +187,7 @@ decisions:
     choice: >-
       gh-sync.py's root derivation and validate-feature-json.py's discovery glob are PULLED FORWARD
       out of unit 9 into this atomic commit, alongside test-factory-cli.py's module-scope plan read.
-      The rest of unit 9 - factory_claim.py, templates/gitignore.snippet, merge-gitignore.sh and
+      The rest of unit 9 - factory_claim.py, templates/gitignore.snippet, merge-gitignore.py and
       informational prose - stays in unit 9 and is untouched here, with ONE named exception: the
       comment in .github/workflows/tests.yml that describes what the pulled-forward
       validate-feature-json.py sweep globs. That comment is informational prose by form, but it
@@ -197,7 +197,7 @@ decisions:
     because: >-
       Map 336 files the first two under unit 9 "anytime", which is a DEPENDENCY-ORDER claim rather
       than a prohibition, and this plan already applied the override test once when it pulled
-      branch-create-gate.sh forward for hard-blocking post-move. That test selects for LOUD, but the
+      branch-create-gate.py forward for hard-blocking post-move. That test selects for LOUD, but the
       BRIEF's own severity ordering says SILENT is worse, and both of these are silent. Measured at
       62fef85 - gh-sync.py:729 derives root as feat_dir/../../.., which post-move resolves to
       <repo>/.harness, load_config finds no harness.json and takes skip(), documented at gh-sync.py
@@ -210,7 +210,7 @@ decisions:
       module scope and is in UNIT_SCRIPTS, so post-move the whole unit suite dies on import and
       T-09's own suite check fails. The cost is diff size, not correctness - measured at 62fef85,
       none of the three is a row in layout_migration.READER_TABLE (lines 74-101, whose four features
-      rows are team-config.yaml, check-domain.sh, check-plan-routes.py and check-state.sh), so the
+      rows are team-config.yaml, check-domain.py, check-plan-routes.py and check-state.py), so the
       detector reads none of them either way and none reddens it at any commit. Two of the three,
       gh-sync.py and validate-feature-json.py, are ADDITIONALLY on the module's explicit
       DO-NOT-READ list at lines 42-44; test-factory-cli.py is NOT on that list and does not need to
@@ -218,7 +218,7 @@ decisions:
     dec: none
   - id: D-08
     choice: >-
-      check-state.sh's feature dictionaries KEEP keying on the bare directory basename. Only the
+      check-state.py's feature dictionaries KEEP keying on the bare directory basename. Only the
       finding LABEL gains its repository segment, built from the discovered path rather than from
       the key. The key-collision defect proper is deferred to unit 5 or unit 8.
     because: >-
@@ -226,7 +226,7 @@ decisions:
       collapse last-write-wins - and DEC-133 coins ids per-BRIEF with no cross-repo uniqueness rule
       while every onboarded repo starts at FEAT-01, so the collision is likely rather than exotic.
       It cannot fire at this feature's landed commit, because one repository exists. Qualifying the
-      KEY is the tempting fix and is the one measured hazard here - check-state.sh derives the
+      KEY is the tempting fix and is the one measured hazard here - check-state.py derives the
       feature name in two different shapes, os.path.basename(os.path.dirname(p)) at ten sites and
       os.path.basename(_fp) at the station-mirror site whose lookup is plan_docs.get(_feat). Qualify
       one shape and not the other and every station-mirror check silently continues past every
@@ -248,13 +248,13 @@ tasks:
       - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
       u=$(mktemp); ru=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >"$u" 2>&1 || ru=$?
       grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "the layout suite did not run"; cat "$u"; exit 1; }
       grep -qi 'parity' "$u" || { echo "no parity case ran"; cat "$u"; exit 1; }
       exit "$ru"
     intent: |
       Close issue 387. Nothing today asserts that layout_migration.render (the CI rendering) and the
-      INV-27 rendering consumed by check-state.sh name the same reader set and the same cause for
+      INV-27 rendering consumed by check-state.py name the same reader set and the same cause for
       the same input. That seam produced two divergences on 2026-08-14 and the fix that followed
       changed the policy without adding a test, so a third divergence would be equally silent.
 
@@ -278,9 +278,9 @@ tasks:
       edited. Run and save the verbatim output of both, together with git rev-parse HEAD, to a
       scratch file T-09 will read:
         python3 .claude/skills/harness/bin/layout_migration.py
-        bash .claude/skills/harness/bin/check-state.sh
+        python3 .claude/skills/harness/bin/check-state.py
       The detector must print features: CLEAN with evidence legacy, docs: CLEAN with evidence legacy,
-      and a summary of 0 mixed, 0 cannot-verify; check-state.sh must exit 0 emitting no INV-27 line at
+      and a summary of 0 mixed, 0 cannot-verify; check-state.py must exit 0 emitting no INV-27 line at
       all. If either is not true, STOP: the base has drifted and this plan's audits were taken against
       a different tree.
 
@@ -289,7 +289,7 @@ tasks:
     traces: [REQ-02, REQ-04]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: "check-domain.sh --resolve answers NOBODY at 62fef85"
+    execution_reason: "check-domain.py --resolve answers NOBODY at 62fef85"
     depends_on: [T-01]
     status: done
     files:
@@ -336,7 +336,7 @@ tasks:
       Leave .claude/skills/harness/templates/team-config.yaml alone (D-05).
 
   - id: T-03
-    title: Move check-domain.sh's sweep globs and its four shape regexes onto a repository segment
+    title: Move check-domain.py's sweep globs and its four shape regexes onto a repository segment
     traces: [REQ-02]
     change_type: logic
     execution_mode: main-session-direct
@@ -344,12 +344,12 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       set -e
       python3 - <<'PY'
       import re, sys
-      p = '.claude/skills/harness/bin/check-domain.sh'
+      p = '.claude/skills/harness/bin/check-domain.py'
       t = open(p, encoding='utf-8').read()
       bad = [l for l in t.splitlines() if re.search(r'\.harness/features/', l)]
       if bad:
@@ -360,15 +360,15 @@ tasks:
           print('expected 4 migrated shape regexes'); sys.exit(1)
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/check-domain.sh
+      python3 -m py_compile .claude/skills/harness/bin/check-domain.py
     intent: |
-      Rewrite the eight stale sites in check-domain.sh onto a wildcard repository segment (D-01).
+      Rewrite the eight stale sites in check-domain.py onto a wildcard repository segment (D-01).
 
       THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file has legacy pattern
       \.harness/features/ and migrated pattern \.harness/(\*|\[\^/\]\+)/features/ - it accepts
       either the glob spelling or the regex spelling, because this file carries both. At 62fef85:
-        git grep -c '\.harness/features/' 62fef85 -- .../check-domain.sh  ->  8
-        git grep -c 'features'           62fef85 -- .../check-domain.sh  ->  8
+        git grep -c '\.harness/features/' 62fef85 -- .../check-domain.py  ->  8
+        git grep -c 'features'           62fef85 -- .../check-domain.py  ->  8
       The broader pattern adds nothing: there is no prose occurrence in this file, and all eight
       sites are code. They are, by content rather than by line number:
 
@@ -398,7 +398,7 @@ tasks:
     traces: [REQ-02]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "carve-out by content - it is the CI plan-route gate and shells out to check-domain.sh --resolve"
+    execution_reason: "carve-out by content - it is the CI plan-route gate and shells out to check-domain.py --resolve"
     depends_on: [T-01]
     status: done
     files:
@@ -489,7 +489,7 @@ tasks:
       counters must count feature directories again.
 
   - id: T-05
-    title: Move check-state.sh's fifteen feature-discovery sites onto a repository segment
+    title: Move check-state.py's fifteen feature-discovery sites onto a repository segment
     traces: [REQ-02]
     change_type: logic
     execution_mode: main-session-direct
@@ -497,12 +497,12 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
       set -e
       python3 - <<'PY'
       import re, sys
-      p = '.claude/skills/harness/bin/check-state.sh'
+      p = '.claude/skills/harness/bin/check-state.py'
       t = open(p, encoding='utf-8').read()
       bad = re.findall(r'.*os\.path\.join\(H, "features".*', t)
       if bad:
@@ -511,9 +511,9 @@ tasks:
           print('migrated discovery form absent'); sys.exit(1)
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/check-state.sh
+      python3 -m py_compile .claude/skills/harness/bin/check-state.py
     intent: |
-      Rewrite every feature-discovery site in check-state.sh so it finds features under a repository
+      Rewrite every feature-discovery site in check-state.py so it finds features under a repository
       segment. This is the highest-value silent failure in the repository: if these sites stop
       matching, INV-8, INV-12, INV-15, INV-17, INV-18 and INV-26, the budgets and the station mirror
       all evaluate over an empty set and the gate that session entry runs reports a healthy tree.
@@ -521,8 +521,8 @@ tasks:
       THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file has legacy pattern
       os\.path\.join\(H, "features" and migrated pattern os\.path\.join\(H, [^,)]+, "features" . At
       62fef85:
-        git grep -c 'os\.path\.join(H, "features"' 62fef85 -- .../check-state.sh  ->  15
-        git grep -c 'join(H,'                      62fef85 -- .../check-state.sh  ->  23
+        git grep -c 'os\.path\.join(H, "features"' 62fef85 -- .../check-state.py  ->  15
+        git grep -c 'join(H,'                      62fef85 -- .../check-state.py  ->  23
       The broader pattern adds exactly eight lines, and every one of them joins a SIBLING of
       features - harness.json three times, codebase four times, factory/fleet.yaml once. None is a
       features site and none moves in this unit. So the narrow pattern names every stale site, all
@@ -634,7 +634,7 @@ tasks:
       Per file, what to do and why:
 
         test-check-state.py - its fixture builder writes feature directories at
-        .harness/features/FEAT-TEST/ , and check-state.sh now discovers under a segment, so every
+        .harness/features/FEAT-TEST/ , and check-state.py now discovers under a segment, so every
         case would evaluate over an empty set and assert findings that no longer appear. Give the
         fixture builder a repository segment - one segment name, used consistently - so the fixtures
         sit at .harness/<seg>/features/FEAT-TEST/ . Change the builder, not each call site, wherever
@@ -689,7 +689,7 @@ tasks:
         opens a REAL feature's plan.yaml, joined as os.path.join(_HERE, "..", "..", "..", "..",
         ".harness", "features", "FEAT-10-software-factory", "plan.yaml"), and reads it as an
         independent source of truth for a dash codepoint. It is in UNIT_SCRIPTS in
-        run-unit-tests.sh, so after the move the import raises FileNotFoundError, the whole unit
+        run-unit-tests.py, so after the move the import raises FileNotFoundError, the whole unit
         suite dies, and T-09's own suite check fails. Insert the literal harness segment: ".harness",
         "harness", "features", "FEAT-10-software-factory". The literal, not the wildcard - this is a
         concrete file path being opened, which is D-01's prose side. Change nothing else in the file;
@@ -712,7 +712,7 @@ tasks:
         untouched and say so in the receipt; if any case requires the path to resolve or to be
         granted, move that one.
 
-      Do NOT touch test-factory-claim.py, test-factory-integration.py or merge-gitignore.sh. Map 336
+      Do NOT touch test-factory-claim.py, test-factory-integration.py or merge-gitignore.py. Map 336
       places them in unit 9, landing anytime, and the detector deliberately does not read them -
       editing them here would redden a state the sequence sanctions or grow scope the review cannot
       hold. The verify allows their literals to survive. validate-feature-json.py and
@@ -730,7 +730,7 @@ tasks:
     traces: [REQ-04]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: "every file here resolves to NOBODY, and branch-create-gate.sh is a gate script edited in the same human-read diff"
+    execution_reason: "every file here resolves to NOBODY, and branch-create-gate.py is a gate script edited in the same human-read diff"
     depends_on: [T-02]
     status: done
     files:
@@ -753,7 +753,7 @@ tasks:
       - .claude/skills/harness/references/missions.md
       - .claude/skills/harness/teams/build.yaml
       - .claude/skills/harness/teams/review.yaml
-      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .claude/skills/harness/bin/branch-create-gate.py
       - .gitignore
     verify: |
       set -e
@@ -769,10 +769,10 @@ tasks:
           'positive control failed: the receipt instruction names no migrated path'
       gi = open('.gitignore').read()
       assert '.harness/features/*/runs/**' not in gi and '/features/*/runs/**' in gi, 'ignore rule not moved'
-      assert '.harness/features/' not in open('.claude/skills/harness/bin/branch-create-gate.sh').read()
+      assert '.harness/features/' not in open('.claude/skills/harness/bin/branch-create-gate.py').read()
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/branch-create-gate.sh
+      python3 -m py_compile .claude/skills/harness/bin/branch-create-gate.py
     intent: |
       After the move, an agent following its own written instructions must still be able to do its
       bookkeeping, and a branch must still be creatable for a feature. Three groups.
@@ -787,7 +787,7 @@ tasks:
       DO NOT TOUCH harness-init/SKILL.md or anything under harness/templates/ : both describe a path
       inside the tree being ONBOARDED, which does not move in this unit (D-05).
 
-      GROUP 2 - branch-create-gate.sh. Its flow check lists "$root/.harness/features/${flow}"* and
+      GROUP 2 - branch-create-gate.py. Its flow check lists "$root/.harness/features/${flow}"* and
       DENIES branch creation when nothing matches, so after the move no branch could be created at
       all - the rare LOUD one in issue 344's survey. Point the lookup under the repository segment,
       keep the deny path intact and keep its message naming the path actually searched. Map 336 files
@@ -956,7 +956,7 @@ tasks:
       beneath it, KEEPS EXIT 0 on zero matches - deliberately, so a legitimate zero-feature checkout
       is not a failure. After the move that glob matches nothing here, and the CI step "Validate every
       feature's execution state" - which the workflow's own comment names as the backstop for a
-      session where check-domain.sh's write-time gate is not registered at all - becomes a green tick
+      session where check-domain.py's write-time gate is not registered at all - becomes a green tick
       over zero files. Give the glob a wildcard repository segment: .harness/*/features/*/feature.* .
 
       Three further sites in the same file must move with it, or the fix repeats the defect T-04
@@ -1064,13 +1064,13 @@ tasks:
       grep -qxF 'docs: CLEAN — evidence legacy' "$o"
       grep -qF '0 mixed, 0 cannot-verify' "$o"
       s=$(mktemp); sc=0
-      bash .claude/skills/harness/bin/check-state.sh >"$s" 2>&1 || sc=$?
+      python3 .claude/skills/harness/bin/check-state.py >"$s" 2>&1 || sc=$?
       if grep -q 'INV-27' "$s"; then echo "INV-27 finding present"; cat "$s"; exit 1; fi
       test "$sc" = 0
       u=$(mktemp); ru=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >"$u" 2>&1 || ru=$?
       i=$(mktemp); ri=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >"$i" 2>&1 || ri=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration >"$i" 2>&1 || ri=$?
       grep -c '^PASS ' "$u"; grep -c '^PASS ' "$i"
       grep -q '^PASS test-check-state\.py$' "$i" || { cat "$i"; exit 1; }
       grep -q '^PASS test-check-plan-routes\.py$' "$i" || { cat "$i"; exit 1; }
@@ -1090,7 +1090,7 @@ tasks:
         features: CLEAN - evidence legacy
         docs: CLEAN - evidence legacy
         layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
-      with check-state.sh exiting 0 and emitting no INV-27 line. If T-01's capture is missing or does
+      with check-state.py exiting 0 and emitting no INV-27 line. If T-01's capture is missing or does
       not read that way, STOP and report it rather than reconstructing it from memory.
 
       AFTER the move, with T-02 through T-08 and T-10 applied in the working tree, run both again. The

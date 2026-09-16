@@ -2,7 +2,7 @@
 
 BLUF: `audit` is built and wired into `board_lifecycle.py`, all five finding classes are covered
 by their own case with its own fixture, the exit-code matrix (0/1/4) is observed and mutation-red-
-proved, and the forking integration case (K) proves the process exit status. `run-unit-tests.sh
+proved, and the forking integration case (K) proves the process exit status. `run-unit-tests.py
 --kind all` is still finishing at the time this receipt is written (see below); every script this
 task touches passes standalone.
 
@@ -82,7 +82,7 @@ restored file.
   see the file for exact counts.)
 - `python3 test-factory-integration.py` → `122/122 checks passed.`
 
-## `verify: .claude/skills/harness/bin/run-unit-tests.sh --kind all`
+## `verify: .claude/skills/harness/bin/run-unit-tests.py --kind all`
 Ran to completion (`echo "EXIT:$?"` → `0`, confirmed by the background-task notification).
 2,612-line log, `grep -n "FAIL\b\|MISCONFIGURED\|Traceback"` finds only benign substring matches
 that are part of PASSING check names (e.g. `ok FAIL over an escalating member is rejected` — a

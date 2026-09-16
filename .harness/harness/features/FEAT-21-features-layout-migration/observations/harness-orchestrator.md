@@ -40,7 +40,7 @@
   the only write tool I hold, so "surgical" has to mean read-lines / assert / replace-one / write.
 
 - 2026-08-14: `check-plan-routes.py` printed T-07's OK line naming 20 files where the task declares
-  21 — `.claude/skills/harness/bin/branch-create-gate.sh` is absent from the listing. Nothing in
+  21 — `.claude/skills/harness/bin/branch-create-gate.py` is absent from the listing. Nothing in
   this feature turns on it (DEVIATION vs OK is informational; the gate reported 0 violations either
   way), but a checker that silently drops a file from its own per-task report is the shape where a
   real finding would go unprinted. Worth a look when the route checker is next touched.
@@ -57,7 +57,7 @@
   layer that governs the agent executing it, work out WHEN your own access changes before deciding
   the turn cadence, because the plan-before-subcommand rule can become unsatisfiable mid-cluster.
 
-- 2026-08-14: `bash-write-guard.sh` refused a plan `verify:` clause I ran verbatim. The clause
+- 2026-08-14: `bash-write-guard.py` refused a plan `verify:` clause I ran verbatim. The clause
   captures suite output with `>"$u"` where `$u` is a `mktemp` path; the guard cannot resolve shell
   variables and reported the target as the literal `xx`, then blocked it as an out-of-domain write.
   The report was WRONG, not merely conservative — there was no out-of-domain target at all. Any
@@ -73,7 +73,7 @@
   a successor reading disk sees eight tasks stuck at `building` with nothing explaining why.
 
 - 2026-08-14: The most valuable thing I did all feature was notice what the plan's own verify chain
-  could NOT detect. Mid-cluster, check-state.sh exited 0 while emitting zero notes and
+  could NOT detect. Mid-cluster, check-state.py exited 0 while emitting zero notes and
   check-plan-routes reported `examined 0`; T-09's verify greps only for the absence of an INV-27 line
   and tests exit 0, and it invokes the route checker with an explicit path, which never calls
   discover_plans(). Both gates would have shipped blind and green. The check that caught it was

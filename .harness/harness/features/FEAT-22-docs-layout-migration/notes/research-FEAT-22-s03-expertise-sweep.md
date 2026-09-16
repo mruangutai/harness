@@ -1,13 +1,13 @@
 # S-03 — Expertise sweep and state gate, measured
 
 **BLUF.** All 13 Expertise files pass the sweep (`OK`, exit 0) — no product-squad file is flagged.
-`bin/check-state.sh` as written in the dispatch does not exist (exit 127); the real gate is
-`.claude/skills/harness/bin/check-state.sh`, which exits **0** with 47 `note` lines and zero
+`bin/check-state.py` as written in the dispatch does not exist (exit 127); the real gate is
+`.claude/skills/harness/bin/check-state.py`, which exits **0** with 47 `note` lines and zero
 `FAIL`/`ERROR` lines. `status: skipped` + `verdict: none` on a step is **not flagged, and not
-because it is an approved enum** — check-state.sh validates only state.yaml's *top-level* key set
+because it is an approved enum** — check-state.py validates only state.yaml's *top-level* key set
 (INV-16, lines 694–780). Nothing anywhere validates per-step `status`/`verdict` values.
 
-## 1. `bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/`
+## 1. `python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/`
 
 Exit **0**. Full stdout:
 
@@ -31,9 +31,9 @@ OK   .harness/expertise/harness-visual-designer.md
 
 ## 2. The state gate
 
-`bash bin/check-state.sh` → `bash: bin/check-state.sh: No such file or directory`, exit **127**.
-There is no `bin/` at the repo root (`find . -name check-state.sh` returns exactly one hit).
-Ran the real path instead: `bash .claude/skills/harness/bin/check-state.sh` → exit **0**.
+`python3 bin/check-state.py` → `bash: bin/check-state.py: No such file or directory`, exit **127**.
+There is no `bin/` at the repo root (`find . -name check-state.py` returns exactly one hit).
+Ran the real path instead: `python3 .claude/skills/harness/bin/check-state.py` → exit **0**.
 
 Output is 47 lines, every one prefixed `note`. Full text is in this run's transcript; the shape:
 
@@ -58,7 +58,7 @@ The file is
 step `S-04-documentor-distill`: `status: skipped`, `verdict: none`.
 
 - **Not flagged.** Exit 0, and no note names that file.
-- **Why:** INV-16 (check-state.sh:694–780) checks the *top-level* key whitelist and mapping-ness
+- **Why:** INV-16 (check-state.py:694–780) checks the *top-level* key whitelist and mapping-ness
   only. `steps:` is on the whitelist; its contents are never descended into. Per-step `status` and
   `verdict` values are unvalidated by any checker in `.claude/skills/harness/bin/`.
 - **Precedent is broad, so it is at minimum conventional:** `status: skipped` appears in run

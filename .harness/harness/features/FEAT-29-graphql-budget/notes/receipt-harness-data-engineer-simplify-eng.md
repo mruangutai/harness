@@ -12,7 +12,7 @@ not re-flagged per the dispatch's own instruction not to re-litigate settled fin
 ## Scope covered
 
 `git diff bee6234..8c7d7bc` — read in full: `factory_gh.py`, `gh_board.py`, `gh_cost_log.py`
-(new), `gh-sync.py` (wrap only), `run-unit-tests.sh`, `test-factory-gh.py`, `test-gh-board.py`,
+(new), `gh-sync.py` (wrap only), `run-unit-tests.py`, `test-factory-gh.py`, `test-gh-board.py`,
 `test-gh-cost-log.py` (new), `test-check-state.py` (carve-out, read only).
 
 ## Checks performed (P-04 — enumerate a zero so it reads as coverage, not silence)
@@ -47,7 +47,7 @@ not re-flagged per the dispatch's own instruction not to re-litigate settled fin
    file (`import re as _re` at line 372, `import re as _re_query` at line 893, both pre-existing)
    — not new complexity, it is REUSE of the file's own established pattern. Not flagged.
 8. **Log-integrity confirmation (hard bound 4)** — `.harness/logs/gh-cost-2026-08-19.jsonl` is
-   39504 bytes, unchanged. No `gh` call made, no suite run, no `check-state.sh` run.
+   39504 bytes, unchanged. No `gh` call made, no suite run, no `check-state.py` run.
 
 ## Not flagged (already settled, per dispatch)
 
@@ -68,8 +68,8 @@ n/a — this is a read-only review dispatch, not a PLAN task. No `verify:` comma
 
 ## Suite run (for `suite:` field — no PLAN task means no `verify:`, but a real result is owed)
 
-Ran `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` after finishing the review (no
+Ran `.claude/skills/harness/bin/run-unit-tests.py --kind unit` after finishing the review (no
 `HARNESS_GH_COST_LOG` set, default OFF). Exit 0, 175 `PASS` lines, 0 `FAIL` lines,
 `test-gh-cost-log.py` reported `35/35 checks passed`. `.harness/logs/gh-cost-2026-08-19.jsonl`
 confirmed byte-identical before and after (39504 bytes) — the default-OFF held, no live `gh`
-call was made, `check-state.sh` was not run.
+call was made, `check-state.py` was not run.

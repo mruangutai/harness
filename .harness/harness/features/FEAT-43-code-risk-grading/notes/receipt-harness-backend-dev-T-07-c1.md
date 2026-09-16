@@ -11,14 +11,14 @@ Runtime selection: PATH was set to `/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/s
 Invocation (verbatim):
 
 ```text
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Exit status: 0.
 
 ## Registration confirmation
 
-Confirmed from `.claude/skills/harness/bin/run-unit-tests.sh`: `UNIT_SCRIPTS` contains both `test-code-grade.py` and `test-gate-policy.py`; `INTEGRATION_SCRIPTS` contains neither.
+Confirmed from `.claude/skills/harness/bin/run-unit-tests.py`: `UNIT_SCRIPTS` contains both `test-code-grade.py` and `test-gate-policy.py`; `INTEGRATION_SCRIPTS` contains neither.
 
 ## Full verbatim observed output
 

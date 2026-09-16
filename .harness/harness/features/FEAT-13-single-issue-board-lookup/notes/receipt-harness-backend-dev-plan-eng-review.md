@@ -128,7 +128,7 @@ precedes it, not that 5a is first."
    `test-factory-claim.py:87-90`). The "per site" phrasing catches a one-of-three-sites-left-on-
    `project_items` defect (the zero-count half discriminates cleanly). It does **not** catch an
    argument mis-wire, because the stated assertion is a call count — see F6. All five files are
-   registered in `run-unit-tests.sh:17-18` (`UNIT_SCRIPTS` for the four unit files,
+   registered in `run-unit-tests.py:17-18` (`UNIT_SCRIPTS` for the four unit files,
    `INTEGRATION_SCRIPTS` for `test-factory-integration.py`).
 4. `test_matrix.cross_module.always == ["unit", "integration"]` (`harness.json`), confirming D-06.
    The D-02 exit-code derivation is correct — see F4. The synthetic `raw_items` row

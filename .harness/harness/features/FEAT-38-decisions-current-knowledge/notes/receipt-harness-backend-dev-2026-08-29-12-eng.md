@@ -44,12 +44,12 @@ exit: 1
 RED confirmed: exactly 1 failure, attributable to the planted line (live authority currently has 20 clean anchors; the copy has 21, 1 failing).
 
 ## Mutation proof — claims (temp-copy method)
-Live authority's first claim marker: `<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh :: CRAFT_LINE_BUDGET = 150 -->`.
+Live authority's first claim marker: `<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.py :: CRAFT_LINE_BUDGET = 150 -->`.
 Copied `DECISIONS.md` to a tempdir, mutated ONLY the expected substring to `CRAFT_LINE_BUDGET = 999999` (command unchanged, so it still runs and still returns real stdout that no longer contains the new expected text). Ran the checker on the copy with `cwd=<WT>` (required — the claim commands are repo-relative):
 
 ```
 $ cd <WT> && python3 <WT>/.claude/skills/harness/bin/check-decision-claims.py --file <tmp>/decisions-copy.md
-DEC-145 — Expertise v2: observations mid-run, Expertise only at distillation: `grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh` :: 'CRAFT_LINE_BUDGET = 999999': expected substring 'CRAFT_LINE_BUDGET = 999999' not found in stdout: 'CRAFT_LINE_BUDGET = 150\n'
+DEC-145 — Expertise v2: observations mid-run, Expertise only at distillation: `grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.py` :: 'CRAFT_LINE_BUDGET = 999999': expected substring 'CRAFT_LINE_BUDGET = 999999' not found in stdout: 'CRAFT_LINE_BUDGET = 150\n'
 examined 11 claim(s), 1 failed
 exit: 1
 ```
@@ -68,9 +68,9 @@ $ python3 <WT>/.claude/skills/harness/bin/test-check-decision-claims.py | grep l
 ok - test_live_authority_claims_all_hold
 ```
 
-## `run-unit-tests.sh` — measured, not the stated baseline
+## `run-unit-tests.py` — measured, not the stated baseline
 ```
-$ out=$(bash <WT>/.claude/skills/harness/bin/run-unit-tests.sh 2>&1); echo $?
+$ out=$(python3 <WT>/.claude/skills/harness/bin/run-unit-tests.py 2>&1); echo $?
 exit: 0
 $ echo "$out" | grep -c '^FAIL'
 0
@@ -184,9 +184,9 @@ ok - test_live_authority_claims_all_hold
 exit: 0
 ```
 
-### `run-unit-tests.sh` — no override, measured
+### `run-unit-tests.py` — no override, measured
 ```
-$ out=$(bash <WT>/.claude/skills/harness/bin/run-unit-tests.sh 2>&1); echo $?
+$ out=$(python3 <WT>/.claude/skills/harness/bin/run-unit-tests.py 2>&1); echo $?
 exit: 0
 $ echo "$out" | grep -c '^FAIL'
 0
@@ -204,6 +204,6 @@ Empty. Neither file was touched.
 - Both live-authority cases observed RED on `examined == 0`, FAIL line quoted verbatim above — yes.
 - Both observed green again with no override — yes.
 - No assertion weakened; test files unmodified (no defect exposed) — yes.
-- `run-unit-tests.sh` exit 0, 0 FAIL — yes, measured above.
+- `run-unit-tests.py` exit 0, 0 FAIL — yes, measured above.
 - `DECISIONS.md`/`DECISIONS-INDEX.md` diffstat empty — yes, stated explicitly.
 - Nothing committed — yes.

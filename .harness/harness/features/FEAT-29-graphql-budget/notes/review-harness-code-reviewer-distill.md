@@ -48,7 +48,7 @@ re-litigated per dispatch terms.
 Repository file untouched — none of the three candidates turn on a path, decision or invariant
 specific to this checkout; all are general review-methodology rules.
 
-## check-expertise.sh
+## check-expertise.py
 
-`.claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-code-reviewer.md` → `OK`
+`.claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-code-reviewer.md` → `OK`
 (one round of trimming: O-08 and O-09 were initially 53/52 words, cut to 39/41).

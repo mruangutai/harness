@@ -21,10 +21,10 @@ it is the only human-latency task and it is now `depends_on: []`.**
 - pm's measurements were taken at `ada8e99`, which **is** HEAD — `git log --oneline -1`. The
   earlier "which SHA" question is closed, not merely labelled — verified-at ada8e99
 - T-05, T-07, T-08, T-09 are `execution_mode: main-session-direct` and must be executed by hand;
-  T-05 is `check-state.sh`, a DEC-174 carve-out — `plan.yaml`, route-checker output — verified-at ada8e99
-- **T-04 and T-05 must land in ONE commit.** `check-state.sh` is a single python heredoc from
+  T-05 is `check-state.py`, a DEC-174 carve-out — `plan.yaml`, route-checker output — verified-at ada8e99
+- **T-04 and T-05 must land in ONE commit.** `check-state.py` is a single python heredoc from
   `:24` to `:1343`, so T-04's `derive_station` arity change makes it exit 1 with every invariant
-  unreported until T-05 lands — `plan.yaml:733-751`, `check-state.sh:24,1180,1343,636` — verified-at ada8e99
+  unreported until T-05 lands — `plan.yaml:733-751`, `check-state.py:24,1180,1343,636` — verified-at ada8e99
 - kaya's config is readable with no clone: `gh api repos/mruangutai/kaya-ai/contents/.harness/harness.json`
   returns it; its stale keys nest under `github.*` and include `project_number`, which #493 never
   names — verified-at ada8e99

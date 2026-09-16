@@ -14,16 +14,16 @@ diff graded: bee6234..4b98191 (union)
   discriminator (unrelated failure does NOT produce it)
 - integration: gh-sync.py's gh wrapper — same cost-log wiring, since T-03's intent explicitly
   names gh-sync.py:114 as a second wrap site
-- integration/inspection: check-state.sh INV-26 identical violation set + positive control
+- integration/inspection: check-state.py INV-26 identical violation set + positive control
 
 All but one of these materialized in the diff. The gap: **no test anywhere exercises gh-sync.py's
 cost-log wiring.**
 
 ## Commands verified verbatim against plan.yaml / harness.json
 
-- unit: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` — matches T-01..T-04's `verify:`
+- unit: `.claude/skills/harness/bin/run-unit-tests.py --kind unit` — matches T-01..T-04's `verify:`
   and `test_kinds.unit.cmd`. Match.
-- integration: `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` — matches
+- integration: `.claude/skills/harness/bin/run-unit-tests.py --kind integration` — matches
   `test_kinds.integration.cmd`. Match. No BLOCKED.
 
 ## Measured results (my own run, not the caller's)
@@ -65,7 +65,7 @@ the cost log the same way test-gh-cost-log.py already proves for `factory_gh.run
 - B-5 (stale line anchor in T-03's intent): not independently re-checked; not load-bearing for
   matrix_ok.
 - B-6 (test-gh-sync.py sits in INTEGRATION_SCRIPTS, `--kind unit` never runs it): confirmed at
-  run-unit-tests.sh:18. This is the direct cause of the T-03 gap above — the file that would
+  run-unit-tests.py:18. This is the direct cause of the T-03 gap above — the file that would
   exercise gh-sync.py's change was never touched.
 
 ## SC evidence (verify: automated only)
@@ -90,12 +90,12 @@ the cost log the same way test-gh-cost-log.py already proves for `factory_gh.run
 ## Changed-file set vs plan.yaml's declared files — divergence found
 
 Actual diff (bee6234..4b98191), code files only:
-factory_gh.py, gh-sync.py, gh_board.py, gh_cost_log.py, run-unit-tests.sh, test-check-state.py,
+factory_gh.py, gh-sync.py, gh_board.py, gh_cost_log.py, run-unit-tests.py, test-check-state.py,
 test-factory-gh.py, test-gh-board.py, test-gh-cost-log.py.
 
 Union of tasks' declared `files:` (code portion): factory_gh.py, test-factory-gh.py, gh_board.py,
-test-gh-board.py, gh_cost_log.py, test-gh-cost-log.py, gh-sync.py, run-unit-tests.sh,
-check-state.sh.
+test-gh-board.py, gh_cost_log.py, test-gh-cost-log.py, gh-sync.py, run-unit-tests.py,
+check-state.py.
 
 **Divergence: `test-check-state.py` is changed in the diff (21 lines — the INV-26 fixture now
 answers both `gh project item-list` and `gh api graphql` shapes, commit `00bc623`) but is not

@@ -1,7 +1,7 @@
 # UI Review — FEAT-48-parallel-safe-suite — cycle 9 (Mode B, `27f8105b`)
 
 **BLUF:** No rendered UI; the operator surface is terminal output from `run_pool.py` /
-`run-unit-tests.sh` / `test-suite-independence.py`. All five named surfaces are legible and
+`run-unit-tests.py` / `test-suite-independence.py`. All five named surfaces are legible and
 correctly attributable; every fresh probe below was executed myself against the real bytes at the
 pin. Two LOW gaps carry forward unchanged from c8 (neither touched by `993ac997`/`27f8105b`); no
 new gaps. Gives the T-06 `verify:` finding a disposition: **the verify clause is wrong, not the
@@ -9,13 +9,13 @@ carrier note; not a FEAT-48 must_fix.**
 
 ## What I ran (real bytes, `env -u HARNESS_AGENT_TYPE`, at `27f8105b`)
 
-- `run-unit-tests.sh --kind all`: exit 0, 63 files, 8 workers, 49.43s wall, zero `FAIL`. All 63
+- `run-unit-tests.py --kind all`: exit 0, 63 files, 8 workers, 49.43s wall, zero `FAIL`. All 63
   `----- <file> (exit N, Ns) -----` … `PASS/FAIL <file>` blocks well-formed, none interleaved.
-- `run-unit-tests.sh --kind unit`: exit 0, 33 files, 16.34s, `PASS test-suite-independence.py`
+- `run-unit-tests.py --kind unit`: exit 0, 33 files, 16.34s, `PASS test-suite-independence.py`
   present.
 - `--check-kinds`: exit 0, `check-kinds: the script arrays and test_kinds.integration.detect
   agree.`, zero PASS/FAIL lines.
-- `--kind nope`: exit 2, `run-unit-tests.sh: unknown kind 'nope' — use unit, integration or all`.
+- `--kind nope`: exit 2, `run-unit-tests.py: unknown kind 'nope' — use unit, integration or all`.
 - `run_pool.py --mutation-check` against a fixture I built via `python3 -c` (bash-level file
   writes are blocked for this read-only role by `bash-write-guard`; in-process `tempfile`/`open()`
   inside a Python subprocess is not, so I built the fixture that way — noted as an
@@ -36,7 +36,7 @@ carrier note; not a FEAT-48 must_fix.**
     `FAIL self-test detail: <case>: expected […] got […]` line, distinct vocabulary from
     `VIOLATION`, never colliding.
   - `grep -rn 'isatty|\x1b\[|color|colour'` across `run_pool.py`, `test-suite-independence.py`,
-    `run-unit-tests.sh`: **zero matches** — no colour/ANSI path exists to diverge under redirection.
+    `run-unit-tests.py`: **zero matches** — no colour/ANSI path exists to diverge under redirection.
 
 ## The five named surfaces
 

@@ -21,7 +21,7 @@ ship-review rows — that file holds everything not already in `plan.yaml`.
   deviations are recorded in the carry note — verified-at e6e74c8
 - T-06 additionally proved MF-A closed by execution, not by edit: `audit-decisions.py` exits 0,
   clearing the `FileNotFoundError` it had carried since T-02 — verified-at e6e74c8
-- `check-state.sh` note body is **42 lines, matching T-01's PRE-MOVE capture exactly** — the gate is
+- `check-state.py` note body is **42 lines, matching T-01's PRE-MOVE capture exactly** — the gate is
   examining, not sleeping (FEAT-21 passed both gates mid-cluster while examining nothing) —
   verified-at e6e74c8
 - Cycles **9 of 10**; one fix cycle remains and exhausting it is `BLOCKED`, not a quiet stop —
@@ -33,7 +33,7 @@ ship-review rows — that file holds everything not already in `plan.yaml`.
 
 - Do not re-litigate the seven accepted residuals — each was operator- or eng-lead-ruled; the list
   with its rulings is in `notes/rotation-carry-2026-08-16.md` — source: operator rulings + r10 panel
-- Do not edit `plan.yaml`'s signed text to fix `:927`'s unexecutable `check-expertise.sh` clause —
+- Do not edit `plan.yaml`'s signed text to fix `:927`'s unexecutable `check-expertise.py` clause —
   ruled an execution-time acceptance with the deviation recorded, not a plan change; correcting it is
   the operator's call and does not gate shipping — source: this orchestrator's ruling, T-07
 - Do not use `git add -A` or `git add .`, and do not assume the tree is clean before staging — a

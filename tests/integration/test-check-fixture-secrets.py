@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for check-fixture-secrets.sh (issue #981).
+"""Tests for check-fixture-secrets.py (issue #981).
 
 FEAT-44's T-01 ran an inline scrub sweep, once, in a task's verify: block, with two
 blind spots that shipped invisibly: the secret pattern could not match an Anthropic
@@ -29,7 +29,7 @@ HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
 GUARD = os.environ.get("CHECK_FIXTURE_SECRETS_BIN") or os.path.join(
-    HERE, "check-fixture-secrets.sh")
+    HERE, "check-fixture-secrets.py")
 
 RESULTS = []
 
@@ -146,15 +146,15 @@ def run_positive_control_red_proof():
     cannot match any of its own control values."""
     with open(GUARD, encoding="utf-8") as f:
         source = f.read()
-    anchor = ("SECRET_PATTERN='credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|"
-             "(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}|"
-             "(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'")
+    anchor = ("SECRET_PATTERN_TEXT = r'credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|"
+              "(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}|"
+              "(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'")
     if anchor not in source:
         check("positive-control-red", False,
               "INCONCLUSIVE: SECRET_PATTERN anchor not found by its source text")
         return
     broken = source.replace(
-        anchor, "SECRET_PATTERN='this-pattern-matches-nothing-real-xyz123'", 1)
+        anchor, "SECRET_PATTERN_TEXT = r'this-pattern-matches-nothing-real-xyz123'", 1)
     if broken == source:
         check("positive-control-red", False, "INCONCLUSIVE: mutant is byte-identical")
         return

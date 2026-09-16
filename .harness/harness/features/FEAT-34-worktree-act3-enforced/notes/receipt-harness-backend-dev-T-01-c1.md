@@ -63,7 +63,7 @@ The dispatch specified `receipt-harness-harness-backend-dev-T-01-c1.md` and call
 manifest (`.harness/team-config.yaml:177` permits
 `.harness/*/features/*/notes/receipt-harness-backend-dev-*.md` — my agent name once, not
 duplicated). The write guard refused the dispatch's literal path
-(`check-domain.sh: BLOCKED — harness-backend-dev may not write
+(`check-domain.py: BLOCKED — harness-backend-dev may not write
 .../notes/receipt-harness-harness-backend-dev-T-01-c1.md`). I followed the guard rather than
 working around it and wrote to the manifest-permitted path instead. Flagged in `open_questions`.
 
@@ -157,6 +157,6 @@ against real worktrees above; `FEAT-33`/`FEAT-35` correctly resolved to `main` a
 - `.claude/skills/harness/bin/test-worktree-terminal.py` (new — T-01's own RED/GREEN suite; see
   TDD provenance note above)
 
-No other files were written. `check-state.sh` and `test-check-state.py` were read only, never
+No other files were written. `check-state.py` and `test-check-state.py` were read only, never
 edited, per the DEC-174 carve-out named in the dispatch. Tree left dirty; no `git add`, `commit`,
 `worktree remove`, or `gh` command was run.

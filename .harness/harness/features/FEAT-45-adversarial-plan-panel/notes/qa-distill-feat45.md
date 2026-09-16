@@ -29,14 +29,14 @@ python3 .agents/skills/harness/bin/expertise-merge.py apply \
 stdout: `ADDED G-05` / `PRESERVED G-01..G-04` / `APPLIED .harness/harness/expertise/harness-qa.md`, exit 0.
 
 New repository-tier entry:
-> G-05: WHEN a feature branch's later merge-from-main reintroduces run-unit-tests.sh's
+> G-05: WHEN a feature branch's later merge-from-main reintroduces run-unit-tests.py's
 > UNIT_SCRIPTS/INTEGRATION_SCRIPTS entries for files main already deleted DO expect the
 > KIND-DRIFT union check to exit 2 for `--kind unit`, `--kind integration`, AND `--check-kinds`
 > alike — it scans the combined array before any kind dispatch, so no single kind avoids it.
 
 Source: `review-harness-qa-c2.md` — a stale merge reintroduced three dead
 `test-context-watch*` array entries, breaking the canonical gate entry point for every kind at
-once. Repository-specific (names this repo's own `run-unit-tests.sh` mechanism).
+once. Repository-specific (names this repo's own `run-unit-tests.py` mechanism).
 
 ## Mechanical limitation — empirically confirmed, not just read from source
 

@@ -6,7 +6,7 @@
   covering test exists, so the stale glob DOES feed the step-4 presence check. The ruling still
   holds, but the correct footing is `:96` ("a runner that silently matched nothing has told you the
   glob is wrong") keyed on the RUNNER's discovery, plus `:73` defining `satisfied` as "at least one
-  named test ran, none failed" — named tests, not globs. `run-unit-tests.sh --kind integration`
+  named test ran, none failed" — named tests, not globs. `run-unit-tests.py --kind integration`
   discovers and runs `test-check-expertise.py`, so neither the FAIL at `:74` nor the BLOCKED at
   `:76`/`:96` fires. Lesson: when a dispatch hands me a ruling to relay, re-derive its mechanism
   before passing it down, because the member inherits my error and cannot see past it.
@@ -14,7 +14,7 @@
 - 2026-08-19: I passed qa a leading hypothesis that `agent_type: "harness-*"` would, with the
   `^harness-[a-z0-9-]+$` regex removed, glob-match a real repository-tier file and therefore bind
   the validation against regression. It is FALSE and I measured it at source:
-  `inject-expertise.sh:68` is `for f in "$root"/.harness/*/expertise/"$agent.md"`, where
+  `inject-expertise.py:68` is `for f in "$root"/.harness/*/expertise/"$agent.md"`, where
   `"$agent.md"` is a QUOTED expansion — bash pathname expansion does not treat characters from a
   quoted portion as glob-active, so the value's `*` stays literal and looks for a file named
   `harness-*.md`. Case 12's temp root writes `harness-qa.md` (`test-inject-expertise.py:292`), not
@@ -33,7 +33,7 @@
 
 - 2026-08-19: Both of qa's coverage gaps have the same shape and it is worth naming as a class:
   the shipped code is CORRECT and nothing holds it there. The `[ -r ]` guard in
-  `inject-expertise.sh`'s glob loop correctly skips an unreadable repository-tier file, but no
+  `inject-expertise.py`'s glob loop correctly skips an unreadable repository-tier file, but no
   fixture builds that file, so a mutant removing the guard survives 18/18. Intent 1c's
   `^harness-[a-z0-9-]+$` suffix rule correctly rejects hostile agent names, but every value case 12
   tries is vacuous, so a mutant removing the regex also survives. "Verified correct at source" and

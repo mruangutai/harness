@@ -1,4 +1,4 @@
-invocation: .claude/skills/harness/bin/check-state.sh
+invocation: .claude/skills/harness/bin/check-state.py
 HEAD: 635ef147e9a003fbea6745443311fafb1d5f1970
   note       FEAT-05-pyyaml-file-parsers: run 2026-08-02-01-product is referenced but its dir is absent (pruned, or never created).
   note       FEAT-05-pyyaml-file-parsers: run 2026-08-02-02-eng is referenced but its dir is absent (pruned, or never created).
@@ -13,7 +13,7 @@ exit: 0
 
 invocation: python3 .claude/skills/harness/bin/test-check-state.py
 HEAD: 635ef147e9a003fbea6745443311fafb1d5f1970
-check-state.sh: UNMODIFIED at this point (steps 2-4 not yet applied)
+check-state.py: UNMODIFIED at this point (steps 2-4 not yet applied)
 
 ok - case (a): INV-21 note appears when parent is unrecorded
 ok - case (b): no INV-21 note when parent is recorded

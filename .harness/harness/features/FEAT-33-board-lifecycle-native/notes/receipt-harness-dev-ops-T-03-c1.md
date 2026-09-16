@@ -80,7 +80,7 @@ broken import/dispatch) reddened all three of its checks including the exit-0 as
 
 ## Verify
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind all` — run twice independently (each several
+`.claude/skills/harness/bin/run-unit-tests.py --kind all` — run twice independently (each several
 minutes, backgrounded). Both exited 0. `grep -c '^FAIL\b\|MISCONFIGURED'` on both full logs is 0.
 Logs: `/tmp/verify-t03.log`, `/tmp/verify-t03-2.log` (scratch, not committed).
 
@@ -91,7 +91,7 @@ Logs: `/tmp/verify-t03.log`, `/tmp/verify-t03-2.log` (scratch, not committed).
   start (backlog/plan/ready/building/review/done), per the plan's ordering instruction.
 - `_project_field_resolve`'s four-conditions-one-class behaviour is untouched — grepped and
   byte-diffed before/after this task; only new callers were added around it.
-- Did not edit `run-unit-tests.sh`, `harness.json`, or add `test-factory-integration.py` to any
+- Did not edit `run-unit-tests.py`, `harness.json`, or add `test-factory-integration.py` to any
   list, per D-12.
 - Two pre-existing uncommitted changes were found in the working tree at task start
   (`.claude/skills/harness/templates/harness.json` and this feature's own `plan.yaml`, marking a

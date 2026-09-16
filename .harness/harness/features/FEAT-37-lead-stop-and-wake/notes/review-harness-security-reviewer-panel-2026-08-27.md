@@ -22,7 +22,7 @@ the base precisely because the note must appear as an *addition* in the reviewed
 ```
 .claude/skills/harness-team/SKILL.md
 .claude/skills/harness/bin/inflight_registry.py
-.claude/skills/harness/bin/run-unit-tests.sh
+.claude/skills/harness/bin/run-unit-tests.py
 .claude/skills/harness/bin/test-inflight-registry.py
 .claude/skills/harness/bin/test-lead-stop-and-wake.py
 .harness/harness/docs/DECISIONS-INDEX.md
@@ -91,7 +91,7 @@ VERDICT: PASS
 DIGEST:
   headline: "No security surface — prose/rule-text + docstring wording fix + one static test-list entry + a stdlib-only test file; base-sha in the dispatch was wrong (141-file range pulled in an unrelated merge), corrected to 766d7b6..4e652f9 which reproduces the stated 9 files exactly"
   in_scope: false
-  scope_reason: "9-file diff (verified against corrected base 766d7b6): governance/decision prose (SPEC.md, DECISIONS.md), pure line-anchor churn (DECISIONS-INDEX.md), a playbook markdown edit (SKILL.md), a 4-line docstring wording fix in inflight_registry.py, one hardcoded string appended to a bash array (run-unit-tests.sh), two test files (one wording-assertion tweak, one new stdlib-only fixture-based test), and a backlog note already settled per dispatch. No input, output-to-interpret, credential, or cross-user data path touched."
+  scope_reason: "9-file diff (verified against corrected base 766d7b6): governance/decision prose (SPEC.md, DECISIONS.md), pure line-anchor churn (DECISIONS-INDEX.md), a playbook markdown edit (SKILL.md), a 4-line docstring wording fix in inflight_registry.py, one hardcoded string appended to a bash array (run-unit-tests.py), two test files (one wording-assertion tweak, one new stdlib-only fixture-based test), and a backlog note already settled per dispatch. No input, output-to-interpret, credential, or cross-user data path touched."
   severity_max: n/a
   findings: 0
   must_fix: []

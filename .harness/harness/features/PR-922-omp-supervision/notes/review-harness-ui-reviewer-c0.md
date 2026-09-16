@@ -40,8 +40,8 @@ contract governs any file in this diff.
 
 ## Remaining 12 .py / 10 .sh / 2 .ts / 1 .yml files
 
-Claim registry (`inflight_registry.py`), gate/hook scripts (`dispatch-guard.sh`,
-`check-domain.sh`, etc.), OMP hook extension (`harness-hooks.ts`), OMP config
+Claim registry (`inflight_registry.py`), gate/hook scripts (`dispatch-guard.py`,
+`check-domain.py`, etc.), OMP hook extension (`harness-hooks.ts`), OMP config
 (`config.yml`) — all backend/CLI/enforcement-layer code with no rendered or user-facing visual
 surface. Not in this role's remit even loosely (no error-message/CLI-output contract was handed
 down in this dispatch, unlike prior features where such a carve-out was explicit).

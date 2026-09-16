@@ -2,7 +2,7 @@
 
 > **Path note.** The dispatch named
 > `.harness/features/FEAT-06-team-layer-inv6/notes/design-pass-visual-designer.md` as my artifact.
-> `check-domain.sh` BLOCKED it: `team-config.yaml:104-110` grants me `DESIGN.md`,
+> `check-domain.py` BLOCKED it: `team-config.yaml:104-110` grants me `DESIGN.md`,
 > `notes/mockups/**`, `notes/prototypes/**`, my Expertise and this observations log — and nothing
 > else under `notes/`. `DESIGN.md` is explicitly forbidden by the dispatch and would assert a
 > contract that does not exist. So the ruling lives here, the only durable path that is mine.
@@ -19,9 +19,9 @@ Nothing in this feature is operated by a person. The ui-reviewer segment can be 
 
 Every `files:` entry in PLAN.md's nine tasks is one of: a YAML data file read by an agent
 (`teams/review.yaml`, `teams/gate-probe.yaml`, new `teams/build.yaml`), a shell invariant
-(`bin/check-state.sh`), a Python constant and its two consumers (`bin/harness_yaml.py`,
+(`bin/check-state.py`), a Python constant and its two consumers (`bin/harness_yaml.py`,
 `bin/validate-digest.py`), gate tests and the runner (`bin/test-check-state.py`,
-`bin/test-harness-yaml-corpus.py`, new `bin/test-team-catalog.py`, `bin/run-unit-tests.sh`),
+`bin/test-harness-yaml-corpus.py`, new `bin/test-team-catalog.py`, `bin/run-unit-tests.py`),
 agent-preloaded markdown (`harness/SKILL.md`, `harness-team/SKILL.md`), and one docs row
 (`docs/harness/SPEC.md` §13). No screen, no control, no flow.
 

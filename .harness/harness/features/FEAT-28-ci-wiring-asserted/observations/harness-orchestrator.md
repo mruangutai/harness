@@ -9,7 +9,7 @@
   at the Write hook. The playbook instruction is stale against the schema. Raised as an
   open_question in the return, not fixed here (`.claude/skills/` is not my domain).
 
-- 2026-08-19: `bash-write-guard.sh` blocks heredoc redirects (`cat > path <<EOF`) even for paths
+- 2026-08-19: `bash-write-guard.py` blocks heredoc redirects (`cat > path <<EOF`) even for paths
   INSIDE my domain — the guard reported the target as "xxxxxxxxxxxxxxx" and routed me to the Write
   tool. So instantiating a feature dir is: `mkdir -p` via Bash (allowed), then one Write call per
   file. Batching the whole instantiation into a single heredoc script fails as a unit.
@@ -23,7 +23,7 @@
 
 - 2026-08-19: Measuring the design tension BEFORE dispatching pm changed the shape of the question.
   The user framed three routes for where a new CI assertion registers; one grep of
-  `run-unit-tests.sh` line 18 showed `test-check-plan-routes.py` and `test-check-domain.py` are
+  `run-unit-tests.py` line 18 showed `test-check-plan-routes.py` and `test-check-domain.py` are
   ALREADY in `INTEGRATION_SCRIPTS`, and `git diff` showed FEAT-27 touches only the `UNIT_SCRIPTS`
   line. That turned "which route" from speculative into priced, and the dispatch carried the
   measurement instead of asking pm to re-derive it. Cost: two Bash calls.
@@ -38,7 +38,7 @@
   there, rather than trusting either digest's account of what it wrote.
 
 - 2026-08-19: The write ban and the domain resolver answer DIFFERENT questions, and I conflated
-  them in a dispatch. `check-domain.sh --resolve .github/workflows/tests.yml` returning
+  them in a dispatch. `check-domain.py --resolve .github/workflows/tests.yml` returning
   `harness-dev-ops` says the file is OWNED and therefore dispatchable in principle; it says
   nothing about whether THIS run may write it. A task-level "write only inside the feature dir"
   constraint still binds. I had told pm to red-prove an assertion by a "restored-and-byte-verified

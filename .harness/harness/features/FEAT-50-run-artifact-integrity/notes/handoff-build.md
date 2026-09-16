@@ -22,20 +22,20 @@ those seven files. Before T-08 can record `done`, pm must amend one token in its
   ran the heredoc verbatim from the worktree root — verified-at 5ae9274
 - `'OTHER-thing'` satisfies that assertion — `worktree_for_feature` → `None`, `feature_root` → `d`
   — direct probe — verified-at 5ae9274
-- `check-domain.sh` hook mode exits 2 for `harness-orchestrator` on all seven main-session-direct
-  files; `bash-write-guard.sh` refused `cp` on `validate-digest.py` — ran both — verified-at 5ae9274
+- `check-domain.py` hook mode exits 2 for `harness-orchestrator` on all seven main-session-direct
+  files; `bash-write-guard.py` refused `cp` on `validate-digest.py` — ran both — verified-at 5ae9274
 - T-01 and T-02 pass their plan `verify:` verbatim at exit 0 and `test-validate-digest.py` is
   ALL PASSED, `empty-red` green, mutant removed — ran all three — verified-at 5ae9274
 - The eng lead's `runs/t08-eng/digest.md` satisfies DEC-156 — `validate-digest.py harness-eng-lead`
   exit 0, `digest ok` — verified-at 5ae9274
 - HEAD is unmoved at 5ae9274 and NOTHING is committed — `git status --porcelain` — verified-at 5ae9274
-- The dirty-file SET is NOT stable: the main session began editing `check-domain.sh` and
-  `bash-write-guard.sh` while this note was being written, so re-measure it yourself rather
+- The dirty-file SET is NOT stable: the main session began editing `check-domain.py` and
+  `bash-write-guard.py` while this note was being written, so re-measure it yourself rather
   than trusting any count — `git status --porcelain`, 2026-08-31 — UNVERIFIED beyond that moment
 - **UNVERIFIED**: the full unit and integration matrix after T-08. The only baseline is a
-  `run-unit-tests.sh` exit 0 captured while T-01 was mid-apply, so it is not a clean pre-image.
+  `run-unit-tests.py` exit 0 captured while T-01 was mid-apply, so it is not a clean pre-image.
   Re-run both suites once the main session's tasks land.
-- **UNVERIFIED**: `check-state.sh` at any point in this phase. SC-11 is ungraded.
+- **UNVERIFIED**: `check-state.py` at any point in this phase. SC-11 is ungraded.
 
 ## Dead ends
 

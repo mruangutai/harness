@@ -97,13 +97,13 @@ protocol). **F-3's fix introduced nothing new at high or critical.**
    `plan.yaml`) holds in both gates, read at the pin, not from memory:**
    - `plan-sign-gate.py` tail: `if denies(cmd): ...; sys.exit(2)` runs and can exit **before**
      `quarantine = quarantines(cmd, ...)` is even computed — textual ordering, not inference.
-   - `check-domain.sh`: the FEAT-41 plan.yaml-exclusive-writer block (`if not _post and _tool
+   - `check-domain.py`: the FEAT-41 plan.yaml-exclusive-writer block (`if not _post and _tool
      in (...) and _reached_plan: ... sys.exit(2)`) sits immediately **before** the FEAT-51
      quarantine-redirect block that also matches `plan.yaml`'s basename. Since the first block
      unconditionally denies every editor Write/Edit/NotebookEdit reaching `plan.yaml`
      (orphaned or not), the second block's `plan.yaml` case is provably unreachable via editor
      tools — the quarantine redirect for `plan.yaml` can only ever be exercised through
-     `check-domain.sh`'s Bash-command path, never the editor route. This is the same shape as
+     `check-domain.py`'s Bash-command path, never the editor route. This is the same shape as
      the failing-panel pin, unchanged by either fix.
 
 Corroborating, not owned by me: `test-quarantine.py` at the pin — 35/35 PASS including

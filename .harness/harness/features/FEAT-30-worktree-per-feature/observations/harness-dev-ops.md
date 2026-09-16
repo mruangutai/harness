@@ -44,7 +44,7 @@
   but it surfaced a pre-existing, out-of-scope regression: `test-harness-yaml.py`'s
   `test_exactly_one_guarded_import_in_the_tree` fails because `feature-worktree.py` (T-01/T-02,
   untracked, not in my file list) has an `except ImportError` guard at line 50 that is not in that
-  test's hardcoded `allowed` set (`{harness_yaml.py, feature_schema.py, check-domain.sh}`). D-06's
+  test's hardcoded `allowed` set (`{harness_yaml.py, feature_schema.py, check-domain.py}`). D-06's
   ordering rule means no task before T-08 ever ran the full integration kind, so this was invisible
   until now — confirmed independent of my two edits by running `test-harness-yaml.py` standalone
   both before and after them, same FAIL either way. Reported as `open_questions`, not fixed —

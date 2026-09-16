@@ -60,7 +60,7 @@ remaining script that builds a command line from document or config text.
 - **`DECISIONS.md:6290` is self-referential** — it asserts `ALLOWED_FIRST_TOKENS = {"git", "grep"}`,
   the constant the deletion removes. It must be deleted, not translated.
 - **Blast radius outside the feature dir is 5 tracked files** — `check-decision-claims.py`,
-  `test-check-decision-claims.py`, `run-unit-tests.sh`, `.harness/harness.json`, `DECISIONS.md`
+  `test-check-decision-claims.py`, `run-unit-tests.py`, `.harness/harness.json`, `DECISIONS.md`
   (`git grep -ln check-decision-claims 48bbe7e`, feature-dir notes excluded).
 - **The anchor checker is not in the same risk class** — `check-decision-anchors.py:111` builds a
   literal `["git", "ls-files"]` argv; no document text reaches any subprocess.
@@ -72,7 +72,7 @@ remaining script that builds a command line from document or config text.
   command can check records that command and its expected…") and SC-09 ("The claim checker runs every
   claim marker…"), plus `plan.yaml` D-10, T-03, T-18, T-19, T-20, T-21. `plan.yaml` currently reads
   `approval.status: approved`, so re-approval is required.
-- **`check-state.sh` exits 1 at the worktree** with four violations: FEAT-38 status `Review` with
+- **`check-state.py` exits 1 at the worktree** with four violations: FEAT-38 status `Review` with
   `notes/handoff-build.md` missing (DEC-159), and three `runs/**` digests failing the lead digest
   contract (DEC-156). The digests are gitignored and die with the worktree; the handoff gap is a real
   record hole from the blocked ship.

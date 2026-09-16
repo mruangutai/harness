@@ -4,7 +4,7 @@
 
 PASS. Every harness-performed `gh issue close` now carries `--reason completed`; abandon adds a
 new `abandoned` (`b60205`) label to every sub-issue and to a created parent it closes, never to
-an adopted one. Verify (`.claude/skills/harness/bin/run-unit-tests.sh --kind all`) exits 0, zero
+an adopted one. Verify (`.claude/skills/harness/bin/run-unit-tests.py --kind all`) exits 0, zero
 `FAIL` lines, `PASS test-gh-sync.py` present in the log.
 
 ## `--reason` value, both terminal paths
@@ -73,7 +73,7 @@ using the task's own before/after boundary rather than a hand-crafted single-lin
 
 ## Verify
 
-Command (verbatim from plan.yaml T-08): `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+Command (verbatim from plan.yaml T-08): `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Result: exit 0. 0 lines matching `^FAIL`. `PASS test-gh-sync.py` present. Full unit + integration
 run (includes `test-board-lifecycle.py` / `test-factory-integration.py`, T-05's sibling files —

@@ -6,8 +6,8 @@ review_sha: dca2d3dabc5c1a3c3d7dab19f6d674b5d94ede78 · base: 9f2a0702bda6de929d
 
 ## Phase 1 (pre-code) expected coverage, derived from BRIEF REQ/SC alone
 - validate-digest.py: empty/whitespace refused+named; absent/null passed-through with stderr note; red-provable.
-- check-domain.sh: main-checkout write refused naming checkout, worktree write allowed, no-worktree-registered allowed, short-flow-id prefix refused; digest-clobber prevented pre-Write only; red-provable for both.
-- bash-write-guard.sh: same checkout binding on the Bash route, short-flow-id clause, red-provable.
+- check-domain.py: main-checkout write refused naming checkout, worktree write allowed, no-worktree-registered allowed, short-flow-id prefix refused; digest-clobber prevented pre-Write only; red-provable for both.
+- bash-write-guard.py: same checkout binding on the Bash route, short-flow-id clause, red-provable.
 - harness_boundary.worktree_for_feature: exact/prefix/no-match/hyphen-boundary/ambiguous, pre-change-red.
 - inflight_registry.feature_root: cutover to worktree_for_feature, contract-preserving + short-form widening.
 - validate-digest.py DEC-156: lead digest located+shape-checked in the lead's own worktree, root≠checkout fixture, no-feature fallback preserved, red-provable.
@@ -33,8 +33,8 @@ entry), so the floor is `unit` only. `docs.always: []`. `component/ui/eval/typec
 and `functional: excluded` (DEC-187) are correctly out of scope, per the brief's own disclosure.
 
 Every changed production file has a corresponding test change in the pinned diff:
-- `check-domain.sh` ↔ `test-check-domain.py` (+149)
-- `bash-write-guard.sh` ↔ `test-bash-write-guard.py` (+94/-Δ)
+- `check-domain.py` ↔ `test-check-domain.py` (+149)
+- `bash-write-guard.py` ↔ `test-bash-write-guard.py` (+94/-Δ)
 - `validate-digest.py` ↔ `test-validate-digest.py` (+229)
 - `harness_boundary.py` (new) ↔ `test-harness-boundary.py` (new)
 - `inflight_registry.py` (Δ8 lines, `feature_root`) ↔ **no change to its own `test-inflight-registry.py`**,
@@ -55,10 +55,10 @@ Every changed production file has a corresponding test change in the pinned diff
 | SC-01/02 | `test-validate-digest.py` green; `empty-red` present (`:2957`), registered (`:3038`), byte-identical guard present (`:2967`) |
 | SC-03/04 | `test-check-domain.py` green; case `"feature-checkout-main short prefix"` (`:2727`) is the fourth (short-flow-id) clause; `feature-checkout-red` present (`:2775`), registered, byte-identical guard shared via `mutant_between` (`:2759-2760`) |
 | SC-05/06 | `digest-clobber`/`digest-append`/"PRE-Write-only" cases (`:2797-2817`) all green in fixture inside registered worktree (confirmed `_linked_worktree`-style root); `digest-clobber-red` (`:2825`) registered, shares the same byte-identical `mutant_between` guard |
-| SC-07 | `test-check-domain.py` green (worktree-strip cases intact); `check-domain.sh --resolve` not independently rerun here — covered by SC-13's own DEVIATION-line output which lists the same script/agent pairing, consistent |
+| SC-07 | `test-check-domain.py` green (worktree-strip cases intact); `check-domain.py --resolve` not independently rerun here — covered by SC-13's own DEVIATION-line output which lists the same script/agent pairing, consistent |
 | SC-08/09 | out of my 5 assigned suites; reported ground truth (canonical suites exited 0) covers `test-check-state.py`/`test-run-unit-tests-kinds.py` — not independently rerun per task constraints |
 | SC-10 | reported ground truth, not rerun (constraint) |
-| SC-11 | reported ground truth (`check-state.sh` exit 0) per dispatch; brief's own text (Verification gaps) discloses this was previously an external blocker, now reported met |
+| SC-11 | reported ground truth (`check-state.py` exit 0) per dispatch; brief's own text (Verification gaps) discloses this was previously an external blocker, now reported met |
 | SC-12 | inspection-only; not in my scope (no test to name) |
 | SC-13 | ran directly: `0 violation(s) across 1 plan(s)`, exit 0, 9 `DEVIATION` lines (T-01,02,03,04,05,09,10,11,12) — matches brief's stated count exactly |
 | SC-14 | ran directly: `gen-decisions-index.py --stdout` diffs clean; heading grep count = 1 |
@@ -111,9 +111,9 @@ No defined-but-unregistered case found among the seven named. All ran green in t
    `test-bash-write-guard.py:905`'s `changed != source`), which rules out vacuous-pass-by-identical-
    mutant, but does not close the disclosed limit itself.
 3. **Not rerun per task constraint**: `test-check-state.py`, `test-run-unit-tests-kinds.py`,
-   `check-state.sh`, and both full `run-unit-tests.sh --kind {unit,integration}` invocations (SC-08,
+   `check-state.py`, and both full `run-unit-tests.py --kind {unit,integration}` invocations (SC-08,
    SC-09, SC-10, SC-11's exit-0 clause) — accepted as reported ground truth (exit 0) per the
-   dispatch, not independently measured by me. Note: `check-state.sh` was inadvertently run once by
+   dispatch, not independently measured by me. Note: `check-state.py` was inadvertently run once by
    me while probing SC-11's own evidence formula; it exited 0 with zero `FEAT-50` violation rows,
    consistent with the reported ground truth — recorded here for the record, not as new
    verification, since the dispatch asked me not to rerun it.

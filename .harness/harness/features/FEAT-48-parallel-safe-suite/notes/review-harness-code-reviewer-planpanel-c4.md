@@ -92,8 +92,8 @@ concurrent write is an established, not hypothetical, effect of this exact code 
 
 ## Item 3/4 — did the rebase invalidate other path-specific assertions?
 
-- **`check-state.sh`**: plan.yaml makes no line-specific claim about this file (only the
-  general "test-check-state.py is the test of check-state.sh" sentence, `:332`). Nothing to
+- **`check-state.py`**: plan.yaml makes no line-specific claim about this file (only the
+  general "test-check-state.py is the test of check-state.py" sentence, `:332`). Nothing to
   invalidate.
 - **`plan-merge.py` / `test-plan-merge.py`**: `grep -c "plan-merge" plan.yaml` → **0**. **The
   plan asserts nothing about this file** — explicit ruling, not silence. I checked the

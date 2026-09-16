@@ -36,8 +36,8 @@ Ruling on it myself, as directed, and correcting the designer's supporting claim
   markdown contract restating wording rules would still be a second authority for one string (the
   REQ-05 defect shape applied to prose) — but it does mean the wording is not yet checkable everywhere
   the designer implied it was. The remedy is a criterion, not a design contract.
-- **Existing convention already governs the shape.** Confirmed by grep: `check-domain.sh` and
-  `bash-write-guard.sh` both follow one actionable-rejection pattern (`check-domain.sh:641`,
+- **Existing convention already governs the shape.** Confirmed by grep: `check-domain.py` and
+  `bash-write-guard.py` both follow one actionable-rejection pattern (`check-domain.py:641`,
   `ACTIONABLE REJECTION (DEC-100b)`) — name what's refused, name what may be written instead. The new
   verdicts extend an existing convention rather than inventing one that would need a fresh contract.
 
@@ -57,7 +57,7 @@ intent, not a `DESIGN.md`. Kept advisory per this run's dispatch and because no 
 content precision — but it is the one item I'd want the plan owner to see before signature.
 
 A-02 (undeterminable-destination wording) and A-03 (em dash vs hyphen, confirmed at `plan.yaml:202,286`
-against runtime convention at `check-domain.sh:219,268,660` and `bash-write-guard.sh:324,353,364`) are
+against runtime convention at `check-domain.py:219,268,660` and `bash-write-guard.py:324,353,364`) are
 minor, correctly non-blocking.
 
 ## 4. Explicitly out of scope for this feature

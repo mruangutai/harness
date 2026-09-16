@@ -3,18 +3,18 @@
 BLUF: BRIEF.md and plan.yaml are written and both end `pending`. **Cycle 2 (send-back): eleven
 tasks, nine decisions, eleven success criteria** — DESIGN.md C-3's CLI contract is now implemented
 by a task, and Q3 is ruled. Every gate that can pass with an unsigned brief passes;
-`check-state.sh` exits 1 on exactly one violation, the missing signature, which only the user can
+`check-state.py` exits 1 on exactly one violation, the missing signature, which only the user can
 clear. Cycle-1 observations were taken at `914b6fd`; cycle-2 re-verification is in §9 below and
 was run after every edit.
 
 Filename note: the dispatch asked for `notes/receipt-harness-pm-plan-product.md`.
-`check-domain.sh` BLOCKED that write — harness-pm's grants under `notes/` are
+`check-domain.py` BLOCKED that write — harness-pm's grants under `notes/` are
 `research-*.md` and `uat-*.md` only. Written here instead rather than worked around.
 
-## 1. check-state.sh
+## 1. check-state.py
 
 ```
-$ bash .claude/skills/harness/bin/check-state.sh
+$ python3 .claude/skills/harness/bin/check-state.py
 check-state EXIT:1
   VIOLATION  FEAT-10-software-factory/BRIEF.md is NOT approved — halt that flow and surface to the user.
 ```
@@ -55,7 +55,7 @@ check-plan-routes EXIT:0
 ```
 
 One informational line, expected and correct:
-`DEVIATION T-08 check-state.sh, test-check-state.py granted to harness-backend-dev, harness-dev-ops
+`DEVIATION T-08 check-state.py, test-check-state.py granted to harness-backend-dev, harness-dev-ops
 but declared main-session-direct` — that is the DEC-174 carve-out being taken deliberately.
 
 ## 5. Every task verify:, run in this tree
@@ -72,7 +72,7 @@ All ten were executed by loading `plan.yaml` and running each `verify:` string v
 
 Ten of ten fail before the work exists, which is the point: each one is discriminating. Three
 drafts were rejected during this run because they passed at `914b6fd` and would therefore have
-proved nothing — the bare `run-unit-tests.sh --kind unit` for T-02 through T-07 (exit 0 today,
+proved nothing — the bare `run-unit-tests.py --kind unit` for T-02 through T-07 (exit 0 today,
 `10/10 checks passed`), the bare `--kind integration` for T-08 (exit 0 today, `ALL PASS`), and the
 index-diff plus check-docs pair for T-09 (exit 0 today). Each was replaced with a clause naming
 the artifact the task creates. The runner output is redirected to a file and grepped rather than
@@ -118,10 +118,10 @@ nothing in the plan depends on the answer.
 ## 7. Routing resolved by running the guard, not by reading the config
 
 ```
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve <path>
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve <path>
 .claude/skills/harness/bin/factory_gh.py      -> harness-backend-dev, harness-dev-ops
-.claude/skills/harness/bin/run-unit-tests.sh  -> harness-backend-dev, harness-dev-ops
-.claude/skills/harness/bin/check-state.sh     -> harness-backend-dev, harness-dev-ops
+.claude/skills/harness/bin/run-unit-tests.py  -> harness-backend-dev, harness-dev-ops
+.claude/skills/harness/bin/check-state.py     -> harness-backend-dev, harness-dev-ops
 .harness/factory/fleet.yaml                   -> NOBODY
 docs/harness/DECISIONS.md                     -> harness-documentor
 docs/harness/DECISIONS-INDEX.md               -> harness-documentor
@@ -216,8 +216,8 @@ the same misconfiguration that justifies T-10 for `integration` would have silen
 ```
 $ python3 -c "... test_kinds['unit'] ..."
 unit        detect= tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py|.claude/skills/harness/bin/test-*.py
-            cmd= run-unit-tests.sh --kind unit        hits: 16
-integration detect= tests/integration/**              cmd= run-unit-tests.sh --kind integration   hits: 0
+            cmd= run-unit-tests.py --kind unit        hits: 16
+integration detect= tests/integration/**              cmd= run-unit-tests.py --kind integration   hits: 0
 ```
 
 `unit` already matches every `bin/test-*.py`, so it needs no widening. Checked rather than assumed.
@@ -225,7 +225,7 @@ integration detect= tests/integration/**              cmd= run-unit-tests.sh --k
 ### Re-verification after the cycle-2 edits
 
 ```
-$ bash .claude/skills/harness/bin/check-state.sh                       EXIT:1
+$ python3 .claude/skills/harness/bin/check-state.py                       EXIT:1
   VIOLATION  FEAT-10-software-factory/BRIEF.md is NOT approved — halt that flow and surface to the user.
   (the ONLY violation; every other line is a note, unchanged from cycle 1)
 
@@ -255,4 +255,4 @@ T-11's, which is new):
 
 Eleven of eleven fail before the work exists, which is the point: each is discriminating. T-11's
 fails because `test-factory-cli.py` does not exist, so the `PASS test-factory-cli.py` grep finds
-nothing — a bare `run-unit-tests.sh --kind unit` exits 0 today and would have proved nothing.
+nothing — a bare `run-unit-tests.py --kind unit` exits 0 today and would have proved nothing.

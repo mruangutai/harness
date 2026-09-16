@@ -77,7 +77,7 @@ to one shared **implementation**, not to identical verdicts.
 3. **The PyYAML bootstrap-grant divergence** — third bullet, named as chosen in the 2026-08-11
    re-scope, with the mechanism quoted as the condition `if _run_domain and not _no_parser` rather
    than a plan-time line number, and closing "The Bash route is deliberately not weakened to match".
-4. **The `--resolve` note** — its own paragraph immediately after that list: "`check-domain.sh
+4. **The `--resolve` note** — its own paragraph immediately after that list: "`check-domain.py
    --resolve` answers from inside an out-of-place worktree even though the hook now refuses writes
    there", with INV-25 named as the loud signal.
 
@@ -100,13 +100,13 @@ wider than the evidence."** states, in one place:
 
 ## Line numbers deliberately not copied from the intent
 
-The intent cites `check-domain.sh line 676` for the `domain_check` gate. At HEAD that call is
-`if _run_domain and not _no_parser:` at `check-domain.sh:534`; line 676 is inside an unrelated
+The intent cites `check-domain.py line 676` for the `domain_check` gate. At HEAD that call is
+`if _run_domain and not _no_parser:` at `check-domain.py:534`; line 676 is inside an unrelated
 docstring. The entry states the quoted condition and the mechanism instead of the integer, so the
 claim is true and stays true. Re-verified at HEAD for the entry's other present-tense claims:
 `harness_boundary.classify` and `worktree_owner` exist (`harness_boundary.py:232`, `:359`); the Bash
-route's root-side check is at `bash-write-guard.sh:128`, ahead of its `if _no_parser` exit at `:490`;
-the `--resolve` branch exits at `check-domain.sh:255`, before `_governed` is computed at `:271`.
+route's root-side check is at `bash-write-guard.py:128`, ahead of its `if _no_parser` exit at `:490`;
+the `--resolve` branch exits at `check-domain.py:255`, before `_governed` is computed at `:271`.
 
 ## Open
 

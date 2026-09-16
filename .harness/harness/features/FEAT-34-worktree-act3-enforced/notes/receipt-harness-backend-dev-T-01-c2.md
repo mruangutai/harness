@@ -3,7 +3,7 @@
 ## What changed
 
 `.claude/skills/harness/bin/worktree_terminal.py` gained `classify_all(root)` (D-10), the
-second entry point check-state.sh's INV-29 calls. `classify(root)` — the per-repository
+second entry point check-state.py's INV-29 calls. `classify(root)` — the per-repository
 predicate — is untouched behaviourally: `CLASSES`, its six-key record shape, and every
 classification branch are unchanged. Verbatim cross-check against `plan.yaml`'s T-01 intent
 (both the algorithm section and the `SECOND ENTRY POINT, D-10` section, `plan.yaml:125-185`
@@ -70,7 +70,7 @@ feedback (#551) as inaccurate — `n/a` is reserved for "no gate ran at all", an
 ## Not done / explicitly out of scope
 
 - `test-worktree-terminal.py` not edited (T-02's file, read-only here).
-- `check-state.sh` not edited or invoked to call `classify_all` (main-session-direct, D-02/D-09).
+- `check-state.py` not edited or invoked to call `classify_all` (main-session-direct, D-02/D-09).
 - No TDD cycle run for `classify_all` in this task: the plan's own T-01/T-02 split
   (documented in `test-worktree-terminal.py`'s own TDD-provenance note, and unchanged by D-10)
   puts implementation in T-01 and test authorship in T-02, with T-01 explicitly barred from

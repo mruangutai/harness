@@ -170,8 +170,8 @@ tasks:
     requirements: [REQ-04]
     success_criteria: [SC-06]
     verify: |
-      .agents/skills/harness/bin/run-unit-tests.sh --kind unit
-      .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+      .agents/skills/harness/bin/run-unit-tests.py --kind unit
+      .agents/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Test-first, add one public importable classification seam over `gated_set()` and make
       code-grade.py consume it. The seam receives the parsed active `test_kinds` policy explicitly;
@@ -205,7 +205,7 @@ tasks:
     requirements: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     success_criteria: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08, SC-10, SC-11]
     verify: |
-      .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+      .agents/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Before any T-02 test or production edit, the operator-facing main session runs `/compact`.
       T-02 does not begin in the planning session's accumulated context.

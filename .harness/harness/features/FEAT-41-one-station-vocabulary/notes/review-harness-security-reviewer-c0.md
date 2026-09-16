@@ -1,7 +1,7 @@
 # Security review — FEAT-41-one-station-vocabulary — c0
 
 **BLUF: FAIL.** Both gates named in the dispatch have real bypasses. The critical one is not in
-`plan-sign-gate` at all — it is `check-domain.sh`'s plan.yaml route denial, which matches the
+`plan-sign-gate` at all — it is `check-domain.py`'s plan.yaml route denial, which matches the
 write target by **case-sensitive filename text**. On this workstation's filesystem (macOS/APFS,
 case-insensitive by default) a governed agent whose domain covers the feature directory can write
 a byte-identical clone of `plan.yaml` under a differently-cased name and land the bytes in the
@@ -10,9 +10,9 @@ D-07/DEC-120 threat model in one call, no shell tricks required.
 
 ## Findings, by severity
 
-### 1. CRITICAL — `check-domain.sh`'s plan.yaml route denial is case-sensitive; `harness-orchestrator`'s wildcard domain reaches the real file through a differently-cased name. Blocks ship.
+### 1. CRITICAL — `check-domain.py`'s plan.yaml route denial is case-sensitive; `harness-orchestrator`'s wildcard domain reaches the real file through a differently-cased name. Blocks ship.
 
-`check-domain.sh:1044` — `RE_PLAN_YAML = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$")`,
+`check-domain.py:1044` — `RE_PLAN_YAML = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$")`,
 matched at `:1444` against `_norm(target)`. The regex has no `re.IGNORECASE` and no path
 canonicalization beyond `os.path.abspath`/`os.path.relpath` (`_norm`, `:984`) — it never calls
 `realpath` or normalizes case. `harness-orchestrator`'s domain grant is
@@ -42,14 +42,14 @@ domain-allow path and is *also* apparently keyed off the exact filename, since n
 at all for the cased variants) ever sees it. `plan-merge.py`'s lock, station-vocabulary validation
 and `_verify_spliced` splice-integrity check are never invoked — this is a raw filesystem write.
 The post-Bash sweep (SC-06) does not help either: it only fires after a **Bash** call with no
-`file_path` in `tool_input` (`check-domain.sh:~1499`, the `else:` branch); a `Write` call takes the
+`file_path` in `tool_input` (`check-domain.py:~1499`, the `else:` branch); a `Write` call takes the
 narrower `elif target:` branch that checks only the literal written path, so a same-session
 corruption via `Write` is never subsequently globbed and re-validated. And even if it were, SC-06
 only checks station values against the vocabulary — it does not check signature authenticity, so a
 forged-but-vocabulary-legal `approval:` block would pass it silently regardless.
 
 **Scope note:** the underlying weakness (case-sensitive, non-canonicalized path matching in
-`check-domain.sh`'s shape gate) is pre-existing and applies to all five `SHAPE_PATTERNS`, not
+`check-domain.py`'s shape gate) is pre-existing and applies to all five `SHAPE_PATTERNS`, not
 introduced by this diff. What FEAT-41 changes is the **consequence**: T-09 is the first time this
 exact mechanism is asked to protect a user's signature rather than a line-count budget, and it is
 not equal to that job. Portability note: this specific reproduction depends on a case-insensitive
@@ -116,7 +116,7 @@ one failure mode; it does not generalize to "interpreter dies → block."
 
 This is the exact "fail-open crash" class `DECISIONS.md:2654` already records fixing once in this
 repo, in `validate-digest.py` — that fix's own lesson was "wrap the one call that could actually
-raise in `try/except`... fail OPEN, LOUDLY, matching `check-domain.sh`'s precedent" for a
+raise in `try/except`... fail OPEN, LOUDLY, matching `check-domain.py`'s precedent" for a
 *non-security* validator. For a gate whose stated whole job is refusal (`plan-sign-gate.py`'s own
 docstring: "REFUSING IS THE POINT"), the correct application of that lesson is fail **closed** on
 internal error (force `exit 2`), and this file does neither consistently: it fails open on JSON-

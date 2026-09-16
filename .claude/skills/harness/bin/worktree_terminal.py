@@ -1,20 +1,22 @@
 """worktree_terminal.py — the shared eligibility predicate over standing worktrees (FEAT-34 T-01).
 
-A library with NO SIDE EFFECTS and NO ARGV HANDLING. It is imported by check-state.sh's INV-29
-and by post-merge-sweep.sh; nothing else may duplicate this logic (D-02) — one predicate the gate
+A library with NO SIDE EFFECTS and NO ARGV HANDLING. It is imported by check-state.py's INV-29
+and by post-merge-sweep.py; nothing else may duplicate this logic (D-02) — one predicate the gate
 and the hook cross, so they can never disagree about what is eligible.
 
 Public surface, and nothing wider: `CLASSES`, `classify(root)` and `classify_all(root)` (D-10).
 `classify` covers ONE repository at `root`; `classify_all` is the cross-repository entry point
-check-state.sh's INV-29 calls — it returns `classify(root)` for the harness checkout plus
+check-state.py's INV-29 calls — it returns `classify(root)` for the harness checkout plus
 `classify(owner_root)` for every repository declared in fleet.yaml. Everything else here is
 implementation detail that stays private.
 """
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
+import artifact_accessors
 
 CLASSES = ("terminal", "exempt_absent", "unresolved")
 
@@ -72,7 +74,7 @@ def _worktree_list_raw(root):
 
 def _worktree_paths(root):
     """Enumerate worktrees of the repository at `root`. Reuses the exact parsing shape
-    check-state.sh already uses at :1117-:1135 — blank-line separated porcelain records,
+    check-state.py already uses at :1117-:1135 — blank-line separated porcelain records,
     `worktree <path>` opens each — rather than a second parser."""
     ok, stdout = _worktree_list_raw(root)
     if not ok:
@@ -119,7 +121,7 @@ def _repo_arg_for_segment(repo_segment, factory_config):
     if repo_segment == "harness":
         return "harness"
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     except Exception:
         return None
     for entry in fleet.get("repos", []):
@@ -188,10 +190,9 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     if err is not None:
         return None, err
     try:
-        data = json.loads(text)
+        data = artifact_accessors.load_feature_json(
+            text=text, context=f"{default_branch}:{feature_json_rel}")
     except Exception:
-        return None, "unparseable"
-    if not isinstance(data, dict):
         return None, "unparseable"
     return data, None
 
@@ -208,7 +209,7 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     can raise its own exception type — is the part a reader needs to see at the call site.
 
     THE PyYAML-ABSENT FALLBACK IS NOT DEFENSIVE PADDING; IT IS A MEASURED REGRESSION FIX.
-    post-merge-sweep.sh runs `python3 -I`, and isolated mode deliberately ignores user
+    post-merge-sweep.py runs `python3 -I`, and isolated mode deliberately ignores user
     site-packages — where PyYAML is installed on a stock macOS setup. This module read only JSON
     until T-07 and so had NO third-party dependency; moving the station into plan.yaml gave the
     sweep one it cannot satisfy. Measured: every worktree classified "unresolved: landed plan.yaml
@@ -350,23 +351,50 @@ def _resolve_landed(path, dirty, hb, factory_config, feature_worktree_mod):
     return (owner_root, repo_segment, default_branch, features_rel, resolved_id), None
 
 
-def _landed_station_record(path, dirty, resolved):
-    """The record for a worktree whose landed directory resolved, or None when it is omitted.
+def _is_direct_build_brief(text):
+    """True when a landed BRIEF's approval block is signed AND names DEC-174.
 
-    None means the lookup succeeded and the landed station is simply not terminal — that
-    worktree is live work and belongs in nobody's report.
+    Read by KEY inside `## Approval`, never by grepping the whole file: a brief whose
+    Constraints mention DEC-174 in passing must not qualify, and neither must a pending one.
     """
-    owner_root, repo_segment, default_branch, features_rel, resolved_id = resolved
+    block = text.split("## Approval", 1)
+    if len(block) < 2:
+        return False
+    approval = block[1].split("\n## ", 1)[0]
+    signed = re.search(r"^status:\s*approved\s*$", approval, re.M) is not None
+    direct = re.search(r"^by:.*DEC-174", approval, re.M) is not None
+    return signed and direct
 
+
+def _landed_direct_build(owner_root, default_branch, features_rel, resolved_id):
+    """True when the landed feature directory is a DEC-174 direct build: no feature.json (there
+    is no orchestrator to write one) and a signed BRIEF whose approval names DEC-174.
+
+    A direct build's landing IS its terminal state — the brief reaches the default branch only
+    in the merge that ships the work. Three shipped direct builds (FEAT-59, FEAT-60, the
+    DEC-228 fix) were reported "unresolved" before this predicate existed. The caller takes
+    this path only for a MISSING feature.json; an unparseable one stays unresolved.
+    """
+    brief_rel = os.path.join(features_rel, resolved_id, "BRIEF.md")
+    text, err = _landed_blob_text(owner_root, default_branch, brief_rel)
+    return err is None and _is_direct_build_brief(text)
+
+
+def _landed_classification(resolved):
+    """(klass, reason) for a worktree whose landed directory resolved, or None when the landed
+    station is simply not terminal — live work that belongs in nobody's report."""
+    owner_root, _repo_segment, default_branch, features_rel, resolved_id = resolved
     feature_json_rel = os.path.join(features_rel, resolved_id, "feature.json")
     _data, err = _read_landed_feature_json(owner_root, default_branch, feature_json_rel)
+    if err == "missing" and _landed_direct_build(owner_root, default_branch, features_rel,
+                                                 resolved_id):
+        return "terminal", f"landed BRIEF is a signed DEC-174 direct build on {default_branch}"
     if err is not None:
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
-            "reason": f"landed feature.json for {resolved_id} is {err}",
-            "repo": repo_segment,
-        }
+        return "unresolved", f"landed feature.json for {resolved_id} is {err}"
+    return _landed_plan_classification(owner_root, default_branch, features_rel, resolved_id)
 
+
+def _landed_plan_classification(owner_root, default_branch, features_rel, resolved_id):
     # THE STATION COMES FROM THE LANDED plan.yaml (FEAT-41 T-07), read at the SAME ref by
     # the same blob helper. The feature.json read above stays: it is what decides
     # "unresolved" for a missing or unparseable landed record, and that classification is
@@ -379,20 +407,25 @@ def _landed_station_record(path, dirty, resolved):
     plan_rel = os.path.join(features_rel, resolved_id, "plan.yaml")
     plan_doc, plan_err = _read_landed_plan_yaml(owner_root, default_branch, plan_rel)
     if plan_err is not None:
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
-            "reason": f"landed plan.yaml for {resolved_id} is {plan_err}",
-            "repo": repo_segment,
-        }
-
+        return "unresolved", f"landed plan.yaml for {resolved_id} is {plan_err}"
     station = str((plan_doc or {}).get("status", "")).split()
-    if (station[0] if station else "") == "done":
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-            "reason": f"landed station is done on {default_branch}",
-            "repo": repo_segment,
-        }
+    landed = station[0] if station else ""
+    # `done` and every TERMINAL_STATIONS name are terminal on the default branch (FEAT-1714
+    # T-03): a rejected or abandoned feature whose record has landed will never build, so its
+    # worktree is exactly what INV-29 exists to reclaim.
+    if landed == "done" or landed in _import_factory_config().TERMINAL_STATIONS:
+        return "terminal", f"landed station is {landed} on {default_branch}"
     return None
+
+
+def _landed_station_record(path, dirty, resolved):
+    """The record for a worktree whose landed directory resolved, or None when it is omitted."""
+    classified = _landed_classification(resolved)
+    if classified is None:
+        return None
+    klass, reason = classified
+    return {"path": path, "feature_id": resolved[4], "klass": klass, "dirty": dirty,
+            "reason": reason, "repo": resolved[1]}
 
 
 def classify(root):
@@ -406,7 +439,7 @@ def classify(root):
 
     # The first porcelain entry is always the main checkout, even when `root` is itself a
     # linked worktree — a repository with no linked worktrees returns itself, so the
-    # derivation is total (check-state.sh:1138-1143, INV-25's precedent). Skipping it by
+    # derivation is total (check-state.py:1138-1143, INV-25's precedent). Skipping it by
     # comparing realpath(path) against realpath(root) is WRONG when root IS a linked
     # worktree: the main checkout still appears in the porcelain output and would never be
     # skipped, so it would be misclassified as an unresolved linked worktree instead. Index
@@ -434,7 +467,7 @@ def classify_all(root):
     give it: classify runs ONE `git worktree list` with cwd=root, and feature-worktree.py's
     dest_for joins WORKTREES_SEGMENT only to a resolved owner_root, so a served repository's
     worktrees live inside a DIFFERENT git repository that a git worktree list in the harness
-    checkout can never report. classify_all is the only function check-state.sh's INV-29 calls.
+    checkout can never report. classify_all is the only function check-state.py's INV-29 calls.
 
     Returns classify(root) for the harness checkout, plus classify(owner_root) for every
     repository declared in fleet.yaml, one combined list sorted by path. See the module
@@ -454,7 +487,7 @@ def classify_all(root):
     records = list(classify(root))
 
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     except Exception as exc:
         records.append({
             "path": factory_config.FLEET_PATH, "feature_id": None, "klass": "unresolved",

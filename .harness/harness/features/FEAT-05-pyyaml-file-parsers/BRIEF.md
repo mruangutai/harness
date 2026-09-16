@@ -3,14 +3,14 @@
 ## Problem
 
 Six harness scripts read `.yaml` state with hand-rolled regex, and a regex encodes one serialization
-of a format that has many. Issue #11 is the live instance: `check-state.sh:109`'s run parser requires
+of a format that has many. Issue #11 is the live instance: `check-state.py:109`'s run parser requires
 `\s*\n` after the `id:` and `squad:` captures, so a trailing `#` comment — legal YAML, and the house
 style elsewhere in the same file — makes the match fail and drops the **entire run** from `runs`. That
 silently fails open on INV-6, INV-7 and INV-8 at once, exit 0, no message. It has not fired only
 because those two lines happen to carry no comments today; one author who hit the class wrote a
 warning into the data file (`FEAT-03-subissue-mirror/feature.yaml:63-64`) rather than fix the parser.
 The same defect class is documented five more times in `validate-digest.py:247-272` and twice in
-`check-state.sh:105-107`. The scripts whose whole job is catching fail-open bugs are themselves a
+`check-state.py:105-107`. The scripts whose whole job is catching fail-open bugs are themselves a
 recurring source of them.
 
 ## Goal
@@ -26,8 +26,8 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
 
 ## Requirements
 
-- REQ-01: Every `.yaml` read in `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`,
-  `check-domain.sh` and `bash-write-guard.sh` gets its values from a real YAML parser, and no
+- REQ-01: Every `.yaml` read in `check-state.py`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`,
+  `check-domain.py` and `bash-write-guard.py` gets its values from a real YAML parser, and no
   hand-rolled YAML key/value regex is left behind in those scripts.
 - REQ-02: A run entry whose `id:` or `squad:` line carries a trailing `#` comment is read correctly and
   its invariants are evaluated, instead of the run vanishing from `runs`.
@@ -65,7 +65,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   PyYAML must be importable by the hooks' `python3` before the converted hooks land.
 - **Out of scope, hard:** `validate-digest.py` and the DIGEST fence (Feature 2); issue #10 (a
   `change_type` vocabulary gap, same file, different defect); and the non-YAML regex in
-  `check-state.sh` — the `CHECKPOINT_KEYS` whitelist at `:279` and the `T-\d+` markdown scan at `:89`.
+  `check-state.py` — the `CHECKPOINT_KEYS` whitelist at `:279` and the `T-\d+` markdown scan at `:89`.
 - Budget: `per_feature_usd` 120, unraised. Cost is reported, not gated (DEC-134).
 
 ## Success Criteria
@@ -74,12 +74,12 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   comment both appear in `runs` and have INV-6/INV-7/INV-8 evaluated against them; the identical
   fixture is shown to drop the run and exit 0 on the pre-change parser.
   verify: automated        evidence: unit
-- SC-02: `.claude/skills/harness/bin/check-state.sh` run against this repo's real `.harness/` exits 0
+- SC-02: `.claude/skills/harness/bin/check-state.py` run against this repo's real `.harness/` exits 0
   with zero violations after the conversion, matching the pre-change baseline (exit 0, zero violations,
   output is INV-8 notes about pruned run dirs only).
   verify: inspection
 - SC-03: Each of the six named scripts reaches PyYAML on every one of its `.yaml` read paths, and the
-  only regex calls remaining in `check-state.sh` are the two out-of-scope non-YAML ones
+  only regex calls remaining in `check-state.py` are the two out-of-scope non-YAML ones
   (`CHECKPOINT_KEYS` at `:279`, the `T-\d+` markdown scan at `:89`). Reviewer cites each remaining
   regex call in the six files by `file:line` and classifies it.
   verify: inspection
@@ -88,12 +88,12 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   availability. (The absence half of SC-03; both are required, per DEC-169.)
   verify: inspection
 - SC-05: Invoked exactly as the PreToolUse hook is invoked — subprocess, inherited PATH, bare `python3`,
-  no venv activation and no `PYTHONPATH` override — `check-domain.sh` **allows** a manifest-permitted
+  no venv activation and no `PYTHONPATH` override — `check-domain.py` **allows** a manifest-permitted
   write **and blocks** a manifest-forbidden write in that same invocation context. Both outcomes are
   required: either one alone is also produced by a bootstrap-escape allow-all or a fail-closed
   block-all, and only a real parse of the manifest produces the pair.
   verify: automated        evidence: unit
-- SC-06: The same paired assertion holds for `bash-write-guard.sh`: a permitted `bash`-issued write is
+- SC-06: The same paired assertion holds for `bash-write-guard.py`: a permitted `bash`-issued write is
   allowed and a forbidden one is blocked, in the hook's own invocation context.
   verify: automated        evidence: unit
 - SC-07: `harness-init`'s step-1 HARD GATE carries a seventh prerequisite that checks the PyYAML import
@@ -109,7 +109,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   permitting it. The escape expires; the steady state is closed.
   verify: uat
 - SC-10: No consumer of a parsed value assumes `str`. Named regressions: a `cycles_used` that parses as
-  an `int` does not raise at the `.isdigit()` call (`check-state.sh:120`), and a run id that is exactly
+  an `int` does not raise at the `.isdigit()` call (`check-state.py:120`), and a run id that is exactly
   a date-shaped scalar (`2026-07-31`) still joins to its run directory as a string rather than a
   `datetime.date`.
   verify: automated        evidence: unit
@@ -117,11 +117,11 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   names. (Issue #12 is filed as unverified — this criterion is falsifiable whether or not the defect is
   real.)
   verify: inspection
-- SC-12: `.claude/skills/harness/bin/run-unit-tests.sh` exits 0, with at least the pre-change baseline
+- SC-12: `.claude/skills/harness/bin/run-unit-tests.py` exits 0, with at least the pre-change baseline
   of 9 test files reporting `PASS`, 0 reporting `FAIL`, and 0 `skip` lines — measured on this branch
   before any conversion work.
   verify: automated        evidence: unit
-- SC-13: The set of runs the converted `check-state.sh` builds from this repo's real `.harness/` is
+- SC-13: The set of runs the converted `check-state.py` builds from this repo's real `.harness/` is
   identical — same count, same ids — to the set the pre-change parser builds from the same tree. SC-02
   cannot show this: exit 0 with zero violations is exactly what a silently dropped run produces today,
   so only the inventory comparison distinguishes "nothing fired" from "nothing was checked". Reviewer
@@ -173,7 +173,7 @@ criterion presupposes any of these answers.
   `import yaml` directly. SC-03/SC-04 are worded to hold either way.
 - **Architecture, for eng-lead:** how the two hooks detect "same session" for the one-time bootstrap
   escape. SC-08 and SC-09 name only the observable behaviour, never a mechanism.
-- **Plan-level:** whether `check-state.sh` correctly gets **no** bootstrap escape while the hooks do. On
+- **Plan-level:** whether `check-state.py` correctly gets **no** bootstrap escape while the hooks do. On
   a PyYAML-less machine that makes the `/harness` door refuse to open while writes are still permitted
   for one session, so the recovery path runs outside the harness. That may be intended; it is currently
   unstated, and it is the PLAN run's call.
@@ -195,11 +195,11 @@ note: |
   characterisation is corrected, its scope is not.
 
   Q2 — SC-03's parenthetical undercounts the surviving regex calls. 7 of the 17 in
-  `check-state.sh` legitimately remain, six of them parsing MARKDOWN, not YAML. The criterion
+  `check-state.py` legitimately remain, six of them parsing MARKDOWN, not YAML. The criterion
   stands; its count is corrected. A reviewer must judge SC-03 against the census, not the
   parenthetical.
 
-  Q3 — SC-02's exit-0 baseline is stale: `check-state.sh` exits 1 TODAY, on this feature's own
+  Q3 — SC-02's exit-0 baseline is stale: `check-state.py` exits 1 TODAY, on this feature's own
   unsigned BRIEF. That is now signed, so re-baseline at build open rather than trusting the
   recorded value.
 
@@ -243,7 +243,7 @@ conversion.
 
 **SC-14 (new).** `verify: unit`. A test under `.claude/skills/harness/bin/` walks every
 `.harness/**/*.yaml`, calls `yaml.safe_load` on each, and fails naming file, line and column for any
-that does not load. It is listed in `run-unit-tests.sh`'s `SCRIPTS` array — otherwise it gates
+that does not load. It is listed in `run-unit-tests.py`'s `SCRIPTS` array — otherwise it gates
 nothing, which was issue #5's exact failure mode. Proof it is a real gate: it must be shown RED
 against a deliberately malformed fixture, then GREEN on the repaired corpus.
 

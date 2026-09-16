@@ -29,7 +29,7 @@ owns the reconciliation**:
 | **A — add `feature-worktree.py` to the allowed set** | Edits a file in no task's `files:`. One line. |
 | **B — drop the guard from `feature-worktree.py`** | In scope (T-01's own file), breaks no test, but departs from a signed instruction: an unguarded import exits 1 with a traceback, not `exit 2`. |
 
-**My recommendation: A.** Three reasons, each checked. `check-domain.sh` is *already* in the allowed
+**My recommendation: A.** Three reasons, each checked. `check-domain.py` is *already* in the allowed
 set for guarding `import feature_schema` — a first-party sibling, exactly like `harness_boundary` — so
 "it is not an external dependency" does not distinguish this case from one already accepted. The test's
 own comment says assertion 2 *"MUST be a subset, never =="* precisely so new legitimate cases can land.
@@ -111,7 +111,7 @@ main checkout. Fixtures cannot give that.
 The lead flagged an unsettled contradiction: `cp -R … "$T/bin"`, the first line of five verify blocks
 including **T-03's, T-04's and T-05's**, was green for one spawn and denied for another. Both halves
 are true. The guard genuinely does not expand `$T` — it printed the literal `$T/bin` when it denied me.
-But `bash-write-guard.sh:49-57` exits early for **no `agent_type`** and for **`harness-dev-ops`**, so
+But `bash-write-guard.py:49-57` exits early for **no `agent_type`** and for **`harness-dev-ops`**, so
 some callers never reach that check. Four consistent data points: T-02's spawn was dev-ops (green),
 T-06's was backend-dev (denied), I am orchestrator (denied), and the operator carries no `agent_type`.
 
@@ -124,7 +124,7 @@ will run literally as written. No re-expression needed.
 
 `notes/layer0-segments-FEAT-30.md` is the work order: **T-03 → T-04 → T-05**, plus T-07 (any time) and
 T-09 (last). It carries the measured warnings, chiefly: a **fail-open window until T-04 lands** —
-`harness_boundary.py:37` and `check-domain.sh:644` both hard-code one path segment while the CLI writes
+`harness_boundary.py:37` and `check-domain.py:644` both hard-code one path segment while the CLI writes
 two, so **do not create a real feature worktree with the new CLI until T-04 lands**; T-04's line anchors
 re-verified live; a **positional** assertion in `harness/SKILL.md` T-09 can break by insertion alone;
 and start from my commit, not `49c528a`, since T-07's verify runs a T-06 file.

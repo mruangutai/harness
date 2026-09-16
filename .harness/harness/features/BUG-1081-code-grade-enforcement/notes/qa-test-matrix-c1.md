@@ -37,18 +37,18 @@ Recorded as **not applicable**, not a soft-skip guess.
 ## Suite runs — exact results, exit status captured in a variable, `^FAIL ` counted
 
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .agents/skills/harness/bin/run-unit-tests.py --kind unit
 exit=0   grep -c '^FAIL ' = 0
 tail confirms real completion: "PASS test-gate-policy.py" (last of 31 UNIT_SCRIPTS)
 
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .agents/skills/harness/bin/run-unit-tests.py --kind integration
 exit=0   grep -c '^FAIL ' = 0
 tail confirms real completion: "PASS test-check-decision-anchors.py" (last of 27
 INTEGRATION_SCRIPTS), includes "PASS test-code-grade-cli.py" and (from prior line) validate-digest
 suite output
 ```
 
-`test-code-grade.py` is registered in `UNIT_SCRIPTS` (run-unit-tests.sh:30); `test-code-grade-cli.py`
+`test-code-grade.py` is registered in `UNIT_SCRIPTS` (run-unit-tests.py:30); `test-code-grade-cli.py`
 and `test-validate-digest.py` are registered in `INTEGRATION_SCRIPTS` (line 31) — confirmed by
 reading the arrays directly, not inferred from the `detect` glob (P-14/G-03 class check). The
 KIND-DRIFT cross-check (script lines 76–140) ran on both invocations and passed (script would exit 2
@@ -58,8 +58,8 @@ otherwise), so the two files agree.
 
 | kind | state | evidence |
 |---|---|---|
-| unit | **satisfied** | `run-unit-tests.sh --kind unit`, exit 0, 0 FAIL, `test-code-grade.py` present and PASS |
-| integration | **satisfied** | `run-unit-tests.sh --kind integration`, exit 0, 0 FAIL, `test-code-grade-cli.py` and `test-validate-digest.py` present and PASS |
+| unit | **satisfied** | `run-unit-tests.py --kind unit`, exit 0, 0 FAIL, `test-code-grade.py` present and PASS |
+| integration | **satisfied** | `run-unit-tests.py --kind integration`, exit 0, 0 FAIL, `test-code-grade-cli.py` and `test-validate-digest.py` present and PASS |
 | functional | excluded (DEC-187) — not evaluated |
 | component/ui/eval/typecheck | **not applicable** — unresolved tooling, and the diff touches no surface any of them would cover |
 

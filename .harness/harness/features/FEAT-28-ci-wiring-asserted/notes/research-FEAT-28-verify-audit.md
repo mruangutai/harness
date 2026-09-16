@@ -9,7 +9,7 @@ timestamps.
 
 Verdict on the sibling's artifacts: **the design is sound and better than my own draft.** It caught
 a fourth false claim I missed (`tests.yml:116` "M IS ASSERTED" is false — `plans` is extracted and
-only echoed), and route A's rationale (no new bin file, so no `run-unit-tests.sh` edit, so no
+only echoed), and route A's rationale (no new bin file, so no `run-unit-tests.py` edit, so no
 collision with FEAT-27's in-flight edit to the adjacent array line) is measured and sound.
 `check-plan-routes.py` on `plan.yaml` exits 0, three tasks OK; `yaml.safe_load` parses it;
 `lanes.resolved_at: 8ad7d52` is substantively valid (`git diff --stat 8ad7d52 HEAD --
@@ -72,7 +72,7 @@ T-02 a verify that greps positively for each of the four replacement citations b
 
 Port each into `ci_wiring_violations` as one table row. Not a reason to switch routes.
 
-1. **`Unit suite` step present**, body contains `run-unit-tests.sh --kind unit`. This is #279's own
+1. **`Unit suite` step present**, body contains `run-unit-tests.py --kind unit`. This is #279's own
    headline surface — "the ONLY runner for eight of this project's success criteria" — and nothing
    this plan builds notices its deletion.
 2. **`continue-on-error` absent or falsy on every step.** The silent vector: a step carrying it

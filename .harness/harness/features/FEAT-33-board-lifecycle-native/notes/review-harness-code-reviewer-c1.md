@@ -98,7 +98,7 @@ diff read, not an execution, already settles.
 the SC-08 no-"Abandoned"-substring case both still PASS, unaffected by the new linkage guard sitting
 upstream of them. `audit`/`reconcile`'s exit-4 `GhError` cases still PASS. Both #783 cross-repo
 self-skip regression guards (audit + reconcile) still PASS. SC-20/INV-26 is untouched — no
-`check-state.sh` change appears anywhere in `git diff e8a6058 --stat`.
+`check-state.py` change appears anywhere in `git diff e8a6058 --stat`.
 
 ## New findings (non-blocking)
 
@@ -117,7 +117,7 @@ Neither is a `must_fix`: both are real but bounded, and the code review protocol
   transition and `.harness/harness/features/FEAT-34-worktree-act3-enforced/BRIEF.md`'s approval
   stamp are both in the working tree but unrelated to `board_lifecycle.py` — orchestration
   bookkeeping and a different feature's approval, not this fix cycle's surface.
-- QA's c0 note (`review-harness-qa-c0.md`) raised a live `check-state.sh` INV-17 finding (missing
+- QA's c0 note (`review-harness-qa-c0.md`) raised a live `check-state.py` INV-17 finding (missing
   `notes/handoff-build.md`) against this feature's own `feature.json` state. Not something my three
   c0 findings named, not something this fix cycle addressed, and not board-lifecycle code — belongs
   to the orchestrator/build-lead, not to this review.

@@ -8,10 +8,10 @@ neither form") but the blame list behind a **bare** `" — "` reads as if it con
 same clause, so a `[both]`-tagged reader inside the list reads as **contradiction-adjacent** — nothing
 in the rendered text signalled "this list is a separate field, broader than the clause."
 
-The implemented remedy — `check-state.sh:1305-1308`, `_suffix = f"; readers: {_named}" if _named else
+The implemented remedy — `check-state.py:1305-1308`, `_suffix = f"; readers: {_named}" if _named else
 ""` — is exactly what I proposed in c2 (labelled join, matching the sibling `MIXED` branch's
 convention). Rendered and run through the real code path (`layout_migration.blame`/`blame_text`,
-`check-state.sh`'s composition, constructed `SurfaceReport`s — see below): the list now sits behind an
+`check-state.py`'s composition, constructed `SurfaceReport`s — see below): the list now sits behind an
 explicit `"; readers: "` label, structurally demarcated from the cause clause rather than trailing it
 via a bare dash. That demarcation is what removes the misreading: a reader no longer has to infer
 whether `[both]` is being offered as an *instance of* "matches neither form" — the label states it is
@@ -32,7 +32,7 @@ as a finding to act on.
 ## All five causes + the c1/c2 test cases, rendered through both real code paths
 
 Constructed `SurfaceReport`s, executed `layout_migration.cause_text`/`blame_text`/`render()` and
-`check-state.sh:1300-1308`'s literal composition directly (imported and run, not re-typed).
+`check-state.py:1300-1308`'s literal composition directly (imported and run, not re-typed).
 
 `render()`'s per-surface line (`layout_migration.py`, the tool's own CLI output):
 
@@ -46,7 +46,7 @@ undeclared-segment: features: CANNOT_VERIFY — evidence legacy+migrated; eviden
 mixed (for asymmetry, below): docs: MIXED — evidence legacy+migrated; readers: path/a.py [legacy], path/b.py [migrated]
 ```
 
-`check-state.sh`'s INV-27 composition (session-entry text, the surface operators actually read):
+`check-state.py`'s INV-27 composition (session-entry text, the surface operators actually read):
 
 ```
 unreadable:
@@ -91,15 +91,15 @@ reader list is computed before the cause branch is chosen, so a real tree can co
 segment with a `both`/`neither`/`unreadable` reader simultaneously; this is not a synthetic-only case.
 Recorded as advisory-closed, not re-filed.
 
-## Asymmetry — MIXED (no colon) vs CANNOT_VERIFY (colon) in `check-state.sh`, vs `render()`
+## Asymmetry — MIXED (no colon) vs CANNOT_VERIFY (colon) in `check-state.py`, vs `render()`
 
 Measured, not assumed (see the two rendered blocks above, `mixed` rows):
 
 - `render()`'s per-surface line uses **one** shape for both verdicts: `"; readers: " + named` (colon)
   — for MIXED *and* CANNOT_VERIFY alike (single code path, no per-verdict branch on the join string).
-- `check-state.sh`'s own CANNOT_VERIFY composition matches that shape exactly (`"; readers: "`,
+- `check-state.py`'s own CANNOT_VERIFY composition matches that shape exactly (`"; readers: "`,
   colon).
-- `check-state.sh`'s own MIXED composition is the **one outlier**: `f"readers {blame_text}"` — no
+- `check-state.py`'s own MIXED composition is the **one outlier**: `f"readers {blame_text}"` — no
   colon, one space.
 
 So this is a **two-way** asymmetry with a single outlier, not the three-way split the dispatch
@@ -107,7 +107,7 @@ description suggested — `render()` does not introduce a third shape; it agrees
 form. **Judged: legible, not gating.** Both forms unambiguously introduce a labelled reader list;
 neither creates a misreading the way the bare dash did. It is cosmetic drift between two call sites in
 the same file, visible only if an operator reads a MIXED line and a CANNOT_VERIFY line from the same
-`check-state.sh` run side by side and notices the punctuation differs — plausible, but the meaning
+`check-state.py` run side by side and notices the punctuation differs — plausible, but the meaning
 never changes. Recorded as advisory, non-gating: "consistent enough" is the honest read here.
 
 ## DESIGN.md-governed surface — measured census
@@ -116,7 +116,7 @@ never changes. Recorded as advisory, non-gating: "consistent enough" is the hone
 below one-for-one):
 
 ```
-.claude/skills/harness/bin/check-state.sh
+.claude/skills/harness/bin/check-state.py
 .claude/skills/harness/bin/layout_fixtures.py
 .claude/skills/harness/bin/layout_migration.py
 .claude/skills/harness/bin/test-check-state.py
@@ -146,7 +146,7 @@ note, and the colon-shape drift), both recorded as advisory/non-gating — `seve
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "Both my c1 med and c2 low are RESOLVED by the implemented labelled-separator remedy ('; readers: ' at check-state.sh:1305-1308): the neither+[both] misreading is gone (list now demarcated as a distinct field, not a clause continuation) and undeclared-segment's double em-dash is down to one dash plus one label. Two advisory, non-gating findings remain: the label says WHO is blamed, not WHY a disagreeing tag appears (blame()'s deliberate M-1 policy, blessed by this delta's own DECISIONS.md amendment), and check-state.sh's MIXED branch omits the colon that render() and check-state.sh's own CANNOT_VERIFY both use. Zero DESIGN.md-governed surfaces in this delta (12 files, measured, all .sh/.py/.md/.yaml)."
+  headline: "Both my c1 med and c2 low are RESOLVED by the implemented labelled-separator remedy ('; readers: ' at check-state.py:1305-1308): the neither+[both] misreading is gone (list now demarcated as a distinct field, not a clause continuation) and undeclared-segment's double em-dash is down to one dash plus one label. Two advisory, non-gating findings remain: the label says WHO is blamed, not WHY a disagreeing tag appears (blame()'s deliberate M-1 policy, blessed by this delta's own DECISIONS.md amendment), and check-state.py's MIXED branch omits the colon that render() and check-state.py's own CANNOT_VERIFY both use. Zero DESIGN.md-governed surfaces in this delta (12 files, measured, all .sh/.py/.md/.yaml)."
   mode: B
   in_scope: true
   severity_max: low

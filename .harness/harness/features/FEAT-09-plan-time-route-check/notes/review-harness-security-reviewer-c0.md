@@ -1,13 +1,13 @@
-# Security review — FEAT-09 (check-domain.sh --resolve) — cycle 0
+# Security review — FEAT-09 (check-domain.py --resolve) — cycle 0
 
 Diff: `git diff 47ed11f..4918d06` (14 files, verified `git merge-base main HEAD` = `47ed11f`).
-In scope: this diff adds `--resolve` to the authorization guard `check-domain.sh` and a
+In scope: this diff adds `--resolve` to the authorization guard `check-domain.py` and a
 consumer `check-plan-routes.py` that shells out to it. Both are on the write-authorization
 trust boundary. Reviewed against the T1–T8 threat model plus the ordinary OWASP lens.
 
 ## Finding 1 — env-var mode confusion can disable the whole domain guard (MED)
 
-`check-domain.sh:36-41` (new in this diff — the pre-change script was unconditionally
+`check-domain.py:36-41` (new in this diff — the pre-change script was unconditionally
 `payload=$(cat)`):
 
 ```bash
@@ -27,13 +27,13 @@ directly (fixture, no source edits):
 
 ```
 $ echo '{"agent_type":"harness-documentor","tool_name":"Write",
-         "tool_input":{"file_path":".claude/skills/harness/bin/check-domain.sh","content":"x"}}' \
-  | HARNESS_RESOLVE_PATH=anything ./check-domain.sh
+         "tool_input":{"file_path":".claude/skills/harness/bin/check-domain.py","content":"x"}}' \
+  | HARNESS_RESOLVE_PATH=anything ./check-domain.py
 NOBODY
 exit=0
 ```
 
-harness-documentor has no domain grant on `check-domain.sh` (that path is
+harness-documentor has no domain grant on `check-domain.py` (that path is
 harness-backend-dev/harness-dev-ops only, `team-config.yaml:155,197`) — without the
 stray env var this same payload correctly exits 2 (confirmed via
 `test-check-domain.py` case (g), which passes with a clean environment). With the var
@@ -96,7 +96,7 @@ The BRIEF's specific worry — a shared-only path reading as ROUTED — does not
 ## T4 — shell-out injection: not found
 
 `check-plan-routes.py:52-57` uses list-argv `subprocess.run([CHECK_DOMAIN, "--resolve",
-path], ...)`, no shell. `check-domain.sh` takes `$2` as an opaque literal (no re-parsing,
+path], ...)`, no shell. `check-domain.py` takes `$2` as an opaque literal (no re-parsing,
 no `getopt`), so a leading `-`, backticks, `; cmd`, or `$()` in a `files:` entry cannot
 inject. Verified directly against the guard: `--resolve '; touch /tmp/PWNED; echo x'` and
 `--resolve '`touch /tmp/PWNED2`'` both printed `NOBODY`, exit 0, and created no files.

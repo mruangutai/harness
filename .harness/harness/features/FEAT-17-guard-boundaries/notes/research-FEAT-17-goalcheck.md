@@ -24,9 +24,9 @@ No guard, test, plan or BRIEF file differs between the two commits, so every ver
 
 ## Run evidence (`evidence: integration`)
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration` — **runner exit 0**, all 12
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration` — **runner exit 0**, all 12
 `INTEGRATION_SCRIPTS` reported `PASS`. `--kind unit` would not have executed any of the three
-(`run-unit-tests.sh:17-18`). The three suites executed, by their own summary lines:
+(`run-unit-tests.py:17-18`). The three suites executed, by their own summary lines:
 `test-check-domain.py` — `8/8 worktree-boundary cases passed`, plus `30/30 post-mode`, `14/14 hook`;
 `test-bash-write-guard.py` — `22/22 worktree-boundary cases passed`;
 `test-check-state.py` — `PASS`, with cases `(u.1)`–`(u.6)` each printed `ok`.
@@ -75,7 +75,7 @@ No guard, test, plan or BRIEF file differs between the two commits, so every ver
   own-root line names `.claude/worktrees` and does NOT say `git worktree remove` `(u.6)`. One
   substitution, and it is a strengthening: SC-08's "exits non-zero" is asserted as the line's
   `VIOLATION` prefix instead, because the fixture is red for other reasons and the exit code does not
-  discriminate. `check-state.sh:1079` (`sys.exit(1 if bad else 0)`) makes the prefix imply exit 1.
+  discriminate. `check-state.py:1079` (`sys.exit(1 if bad else 0)`) makes the prefix imply exit 1.
 - **SC-09 SUPERSEDED — see below.**
 - **SC-10 met.** Forbidden half on both routes, each naming the module:
   `test-check-domain.py:1573-1575`, `test-bash-write-guard.py:391-393`. Paired allow: with the module

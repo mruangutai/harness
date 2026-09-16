@@ -35,7 +35,7 @@ No report round was spawned. This briefing was assembled from:
 ## Continuation checkpoint
 
 After the approved T-09 correction, route T-06 through `harness-eng-lead` and run
-`.claude/skills/harness/bin/run-unit-tests.sh --kind unit` with `/opt/homebrew/bin` first on `PATH`.
+`.claude/skills/harness/bin/run-unit-tests.py --kind unit` with `/opt/homebrew/bin` first on `PATH`.
 Only after exit 0 mark T-06 done and return T-08 to the main session. T-08 depends on
 `[T-03, T-05, T-06, T-07]`, owns the review skill, digest validator and test, and canonical reviewer
 agent definition, and verifies with the signed integration command. Exact paths are in
@@ -45,7 +45,7 @@ agent definition, and verifies with the signed integration command. Exact paths 
 
 | ID | Nature | Residual finding |
 |---|---|---|
-| B-1 | bug | QA matrix unit/integration commands still name nonexistent `.agents/skills/.../run-unit-tests.sh`; correct before QA. |
+| B-1 | bug | QA matrix unit/integration commands still name nonexistent `.agents/skills/.../run-unit-tests.py`; correct before QA. |
 | B-2 | chore | Shared guidance still contains stale `.agents/skills` paths identified by planning. |
 | B-3 | bug | Route checking unions writers across task files without proving one execution agent owns every path. |
 | B-4 | chore | Investigate the older signed lane claim that disagrees with the current `.harness/harness.json` domain grant. |

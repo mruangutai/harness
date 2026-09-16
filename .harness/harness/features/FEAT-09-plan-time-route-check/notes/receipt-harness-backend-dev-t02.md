@@ -4,7 +4,7 @@
 
 `check-plan-routes.py` implemented per PLAN.md:167-233, TDD RED→GREEN, all three
 required receipts (a/b/c) and the full verify chain pass, verbatim output below.
-`run-unit-tests.sh:6` carries exactly one added element (`test-check-plan-routes.py`)
+`run-unit-tests.py:6` carries exactly one added element (`test-check-plan-routes.py`)
 appended to whatever FEAT-08 left there — re-read fresh immediately before writing,
 confirmed unchanged by a second read afterward.
 
@@ -21,7 +21,7 @@ themselves (not pre-written around them):
 2. `docs/harness/**` is granted to `harness-documentor`, so my first "ungranted path"
    fixture wasn't actually ungranted — replaced with a path outside every domain glob.
 3. `check-plan-routes.py` used `.startswith("SHARED ")` to parse an OUTPUT line from
-   check-domain.sh (not to match a filesystem path) — legitimate use, but the task's
+   check-domain.py (not to match a filesystem path) — legitimate use, but the task's
    receipt (b) demands zero `startswith` hits in this file regardless of purpose, so
    replaced with `re.match(r"^SHARED ", line)`.
 4. Case 17's original assertions (no VIOLATION line naming T-01, exit 0) pass
@@ -102,23 +102,23 @@ $ grep -n "startswith" .claude/skills/harness/bin/check-plan-routes.py
 (no output, exit 1)
 ```
 `startswith` was used once (checking a `SHARED ` output-line prefix from
-check-domain.sh's stdout, not path matching) and was replaced with
+check-domain.py's stdout, not path matching) and was replaced with
 `re.match(r"^SHARED ", line)` to bring this grep to zero as required (see TDD note 3).
 
 ## Receipt (c) — no test-cost-report.py, line 6 verbatim, one-element diff (unabridged)
 
 ```
-$ grep -n "test-cost-report.py" .claude/skills/harness/bin/run-unit-tests.sh
+$ grep -n "test-cost-report.py" .claude/skills/harness/bin/run-unit-tests.py
 (no output, exit 1)
 
-$ sed -n '6p' .claude/skills/harness/bin/run-unit-tests.sh
+$ sed -n '6p' .claude/skills/harness/bin/run-unit-tests.py
 SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-render-brief.py" "test-harness-yaml.py" "test-harness-yaml-corpus.py" "test-upgrade-config.py" "test-team-catalog.py" "test-check-plan-routes.py")
 
-$ git diff 47ed11f -- .claude/skills/harness/bin/run-unit-tests.sh
-diff --git a/.claude/skills/harness/bin/run-unit-tests.sh b/.claude/skills/harness/bin/run-unit-tests.sh
+$ git diff 47ed11f -- .claude/skills/harness/bin/run-unit-tests.py
+diff --git a/.claude/skills/harness/bin/run-unit-tests.py b/.claude/skills/harness/bin/run-unit-tests.py
 index 4933a68..f24a106 100755
---- a/.claude/skills/harness/bin/run-unit-tests.sh
-+++ b/.claude/skills/harness/bin/run-unit-tests.sh
+--- a/.claude/skills/harness/bin/run-unit-tests.py
++++ b/.claude/skills/harness/bin/run-unit-tests.py
 @@ -3,7 +3,7 @@ set -uo pipefail
  cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
@@ -138,7 +138,7 @@ of it (the `+` line adds only `"test-check-plan-routes.py"`).
 
 ```
 $ python3 .claude/skills/harness/bin/test-check-plan-routes.py && \
-  .claude/skills/harness/bin/run-unit-tests.sh && \
+  .claude/skills/harness/bin/run-unit-tests.py && \
   python3 .claude/skills/harness/bin/check-plan-routes.py .harness/features/FEAT-09-plan-time-route-check/PLAN.md
 ```
 
@@ -170,7 +170,7 @@ unrelated script under test.)
 
 Final plan check, full stdout:
 ```
-DEVIATION T-01 .claude/skills/harness/bin/check-domain.sh, .claude/skills/harness/bin/test-check-domain.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-01 .claude/skills/harness/bin/check-domain.py, .claude/skills/harness/bin/test-check-domain.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-02
 OK T-03: declared main-session-direct (.claude/skills/harness/templates/PLAN.md ungranted)
 OK T-04: declared main-session-direct (.claude/skills/harness-spec-driven/SKILL.md ungranted)
@@ -198,10 +198,10 @@ invoked from the wrong directory), `check-plan-routes.py` prints
 checked nothing. This is not a spec violation (D-01/verify never specify a non-empty
 default-glob requirement) and I did not change behaviour to address it, but it is a
 fail-open shape worth having on record for whoever wires this into pm's PLAN-write
-step or a future `check-state.sh` invariant (D-01's open question).
+step or a future `check-state.py` invariant (D-01's open question).
 
 ## Files touched
 
 - `.claude/skills/harness/bin/check-plan-routes.py` (new)
 - `.claude/skills/harness/bin/test-check-plan-routes.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one array element appended at line 6)
+- `.claude/skills/harness/bin/run-unit-tests.py` (one array element appended at line 6)

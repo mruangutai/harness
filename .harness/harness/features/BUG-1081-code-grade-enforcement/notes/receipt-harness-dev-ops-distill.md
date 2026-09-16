@@ -63,7 +63,7 @@ Outcomes 0/10, Open 0/5. AFTER: Patterns 15/15 (P-07, P-13 content replaced, sam
 9/15 (G-01,02,04,05,06,07,08,09,10), Outcomes 0/10, Open 0/5. AFTER: Patterns 1/15 (unchanged),
 Gotchas 11/15 (+G-11, +G-12), Outcomes 0/10, Open 0/5.
 
-`check-expertise.sh` NOT run (per contract — orchestrator runs it once over the whole corpus). No
+`check-expertise.py` NOT run (per contract — orchestrator runs it once over the whole corpus). No
 source file touched, no commit, no suite run.
 
 ## G-11 re-judgment (repair, appended post-hoc — original distillation above is unchanged)

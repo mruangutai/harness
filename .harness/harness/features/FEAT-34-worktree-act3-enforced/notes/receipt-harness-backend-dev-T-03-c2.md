@@ -2,7 +2,7 @@
 
 ## BLUF
 
-`root` in `post-merge-sweep.sh` used to answer two different questions with one value:
+`root` in `post-merge-sweep.py` used to answer two different questions with one value:
 "where do the bin scripts live" (BIN_DIR-derived, correct for locating `gh-sync.py`/
 `feature-worktree.py`) and "which checkout holds the landed feature dir" (wrong — that
 same value can BE a linked worktree carrying its own, possibly divergent, copy of the
@@ -11,13 +11,13 @@ T-03's mandated verify passes.
 
 ## What changed
 
-- `.claude/skills/harness/bin/post-merge-sweep.sh:65-92` (new function
+- `.claude/skills/harness/bin/post-merge-sweep.py:65-92` (new function
   `_resolve_main_checkout_root(root)`): runs `git worktree list --porcelain` with
   `cwd=root` — the BIN_DIR-derived root, **never `os.getcwd()`** — and returns porcelain
   index 0 (the main checkout). This is INV-25's own precedent
-  (`check-state.sh:1138-1143`) and the same index `worktree_terminal.classify` already
+  (`check-state.py:1138-1143`) and the same index `worktree_terminal.classify` already
   keys on (`worktree_terminal.py:194-203`) — one rule, two uses, no second rule invented.
-- `main()` (`post-merge-sweep.sh:~199-212`): resolves `main_checkout_root` right after
+- `main()` (`post-merge-sweep.py:~199-212`): resolves `main_checkout_root` right after
   `root`, prints it unconditionally (`"post-merge-sweep: resolved main checkout root:
   <path>"`), and returns 0 if it is `None` (same never-abort contract as
   `_resolve_repo_root`). `classify(root)` still receives the BIN_DIR-derived `root` —
@@ -25,9 +25,9 @@ T-03's mandated verify passes.
   0, classifies `root` itself as a genuine record when `root` is a linked worktree). Only
   `feat_dir` resolution needed splitting out.
 - `_handle_record(rec, root, cwd_real)` → `_handle_record(rec, main_checkout_root,
-  cwd_real)` (`post-merge-sweep.sh:~112`): the sole use of that parameter was
+  cwd_real)` (`post-merge-sweep.py:~112`): the sole use of that parameter was
   `feat_dir = os.path.join(root, ...)` — now reads `main_checkout_root`.
-- Comment at the old `post-merge-sweep.sh:121-123` (feat_dir derivation) rewritten to
+- Comment at the old `post-merge-sweep.py:121-123` (feat_dir derivation) rewritten to
   name `main_checkout_root` explicitly and point at the new function's docstring for the
   rationale, rather than asserting the (now false) claim that the BIN_DIR-derived `root`
   is "the MAIN checkout".
@@ -35,7 +35,7 @@ T-03's mandated verify passes.
 ## Verify (verbatim, cross-checked against `plan.yaml:384-385`)
 
 ```
-bash -n .claude/skills/harness/bin/post-merge-sweep.sh && bash .claude/skills/harness/bin/post-merge-sweep.sh --dry-run
+python3 -m py_compile .claude/skills/harness/bin/post-merge-sweep.py && python3 .claude/skills/harness/bin/post-merge-sweep.py --dry-run
 ```
 
 Output:
@@ -54,8 +54,8 @@ worktree; the main-checkout root is the actual `harness` checkout.
 | `python3 .claude/skills/harness/bin/test-post-merge-sweep.py` | **47 PASS**, exit 0 (was 41; see T-04 receipt) |
 | `python3 .claude/skills/harness/bin/test-hooks-install.py` | 29 PASS, exit 0 (unchanged) |
 | `python3 .claude/skills/harness/bin/test-worktree-terminal.py` | 34 PASS, exit 0 (unchanged) |
-| `.claude/skills/harness/bin/check-state.sh` | exit 0, zero `violation` lines (only pre-existing `note` lines, unrelated to this change) |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | exit 0, zero `^FAIL` lines, run twice independently for confirmation (2973-line and 2404-line full outputs) |
+| `.claude/skills/harness/bin/check-state.py` | exit 0, zero `violation` lines (only pre-existing `note` lines, unrelated to this change) |
+| `.claude/skills/harness/bin/run-unit-tests.py` | exit 0, zero `^FAIL` lines, run twice independently for confirmation (2973-line and 2404-line full outputs) |
 
 ## `classify(root)` — which value it receives, and why
 
@@ -71,7 +71,7 @@ only place that needed the second value.
 
 ## Open questions
 
-- None blocking. Advisory: today's `run-unit-tests.sh` also exercises
+- None blocking. Advisory: today's `run-unit-tests.py` also exercises
   `test-validate-digest.py` inside the same process tree as three concurrent full runs;
   one of the three interleaved runs showed a transient 8/14 hook-case failure in that
   file, not reproduced standalone (14/14) or in either of the other two full runs
@@ -80,4 +80,4 @@ only place that needed the second value.
 
 ## Files touched
 
-- `.claude/skills/harness/bin/post-merge-sweep.sh`
+- `.claude/skills/harness/bin/post-merge-sweep.py`

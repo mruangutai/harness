@@ -31,7 +31,7 @@ d = json.load(open('.harness/harness.json'))
 ig = [g.strip() for g in d['test_kinds']['integration']['detect'].split('|')]
 assert '.claude/skills/harness/bin/test-context-watch-hook.py' in ig, ig
 base = set(g.rsplit('/', 1)[-1] for g in ig)
-src = open('.claude/skills/harness/bin/run-unit-tests.sh').read()
+src = open('.claude/skills/harness/bin/run-unit-tests.py').read()
 ints = re.findall(r'\"([^\"]+)\"', re.search(r'INTEGRATION_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
 units = re.findall(r'\"([^\"]+)\"', re.search(r'UNIT_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
 miss = [n for n in ints if n not in base]
@@ -67,7 +67,7 @@ unit array 19 wrongly in detect 0 []
 
 Exit status: **0**.
 
-Note: `miss` is `[]` because at this moment `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` array does
+Note: `miss` is `[]` because at this moment `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` array does
 not yet list `test-context-watch-hook.py` — T-17 (which registers it there) had not landed in this
 checkout at the time this task ran. The task's own required assertion (line 1, `assert ... in ig`)
 is what flips from failing to passing; the set-balance re-check simply had nothing to unbalance yet.

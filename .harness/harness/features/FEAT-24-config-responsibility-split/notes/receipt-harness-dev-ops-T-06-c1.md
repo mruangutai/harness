@@ -27,7 +27,7 @@ lines on each individual failing clause) — the only line emitted was `T-06 GRE
 
 > The harness's own project board (FEAT-18). Three keys, resolved BY NAME at runtime so a wrong
 > value fails loudly; no project_id, field_id or option id is pinned, because
-> branch-create-gate.sh pinned exactly those and a wrong pinned id did nothing at all, silently.
+> branch-create-gate.py pinned exactly those and a wrong pinned id did nothing at all, silently.
 > Absent or incomplete = station writes are not attempted and INV-26 is vacuous. PLACEMENT IS
 > TEMPORARY: #206 moves github, test_matrix and test_kinds to the product, since harness.json
 > holds runtime metadata.
@@ -36,7 +36,7 @@ lines on each individual failing clause) — the only line emitted was `T-06 GRE
 
 > The harness's own project board (FEAT-18). Four keys, resolved BY NAME at runtime so a wrong
 > value fails loudly; no project_id, field_id or option id is pinned, because
-> branch-create-gate.sh pinned exactly those and a wrong pinned id did nothing at all, silently.
+> branch-create-gate.py pinned exactly those and a wrong pinned id did nothing at all, silently.
 > An absent or incomplete board declaration is now a loud error naming the offending key; only an
 > explicitly null board means this project has no board. PLACEMENT IS TEMPORARY: #206 moves
 > github, test_matrix and test_kinds to the product, since harness.json holds runtime metadata.

@@ -53,9 +53,9 @@
 ### Checked and ruled out (no finding)
 
 - **INV-28's `str(pdoc.get("status", "")).split()[:1] != ["Done"]` construct**
-  (`check-state.sh:1073`) is not new complexity: the identical pattern
+  (`check-state.py:1073`) is not new complexity: the identical pattern
   `str(_fj.get("status") or "").split()[:1] in (["Done"], ["Abandoned"])` already exists
-  at `check-state.sh:1295`, confirmed pre-existing via `git log -S` → introduced in
+  at `check-state.py:1295`, confirmed pre-existing via `git log -S` → introduced in
   `514aacd` (#352), well before `9a30ea5`. INV-28 reuses the file's own established
   status-comparison idiom rather than inventing a new one (matches expertise P-08/G-06).
 - **Task-id citations added to comments** (`(T-02, FEAT-26)`, `(T-03, FEAT-26)` etc. at

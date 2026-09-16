@@ -3,7 +3,7 @@
 ## VERDICT: FAIL
 
 `T-05` (a DEC-174 carve-out, `status: done` in `plan.yaml`) never got its own required test cases
-written. Its own `verify:` block fails at the first assertion. `SC-03` (check-state.sh half) and
+written. Its own `verify:` block fails at the first assertion. `SC-03` (check-state.py half) and
 `SC-12` have **zero automated evidence** in the tree, despite both being `verify: automated`.
 The full suite is green only because nothing exercises the missing behavior — this is exactly the
 fail-open-nothing-can-see defect class this feature exists to remove.
@@ -13,7 +13,7 @@ Separately: **the dispatch's "Gap 2" is stale — both halves (base64 line-wrapp
 `"-f" not in argv` assertion added alongside it. I mutation-proved the `-f` assertion reddens
 against the real historical defect shape (`-f ref=<branch>`, which forces `gh` to POST). No live
 smoke is warranted for Gap 2. Gap 1 (the `validate=True`/`validate=False` base64 fail-open) is
-real and remains open — I could not close it myself; `check-domain.sh` denies `harness-qa` write
+real and remains open — I could not close it myself; `check-domain.py` denies `harness-qa` write
 access to `test-factory-gh.py`.
 
 ## Branch tip vs pin
@@ -32,10 +32,10 @@ exist**:
 - `INV-26 expects the declared station for status: backlog/building/done` — absent, all three
 
 Also absent: the `INV-26 BEGINS` / `INV-26 ENDS` marker comments T-05 item 7 requires
-(`.claude/skills/harness/bin/check-state.sh` — `grep -c "BEGINS\|ENDS"` = 0), so even the verify's own
+(`.claude/skills/harness/bin/check-state.py` — `grep -c "BEGINS\|ENDS"` = 0), so even the verify's own
 positive-control slice can't run.
 
-`check-state.sh`'s **production code** looks correct on inspection (`:1123-1146`): `load_board` is
+`check-state.py`'s **production code** looks correct on inspection (`:1123-1146`): `load_board` is
 wrapped in `try/except FleetError`, appends one `bad` entry naming the invariant, and the block
 continues rather than aborting; `_EXPECT` (`:1180`) is built from the loaded board's `stations`, not
 literals. I did not find a way to prove this behaviour live without perturbing a tracked config file
@@ -47,13 +47,13 @@ were simply never written) and not a "kind" shortfall (`test-check-state.py` run
 `--kind integration`; the specific cases required by `SC-03`/`SC-12` just don't exist inside it).
 
 **`must_fix`**: add the five T-05 cases and the two marker comments to `test-check-state.py` /
-`check-state.sh`. Route to `harness-backend-dev`/main-session-direct per the DEC-174 carve-out that
+`check-state.py`. Route to `harness-backend-dev`/main-session-direct per the DEC-174 carve-out that
 already governs this file. `SC-03` and `SC-12` cannot be marked met until this lands.
 
 Everything else pre-ruled GREEN was re-confirmed live and holds: T-01, T-02, T-04 (I additionally
 ran T-04's verify myself — it passes in full, including the four non-reader positive controls and
 the gh-sync/board-station loud-exit cases), T-08, T-09, T-10, `gen-decisions-index.py --stdout`
-byte-identity, and the full suite (`run-unit-tests.sh --kind all` → `rc=0`, zero `FAIL` lines,
+byte-identity, and the full suite (`run-unit-tests.py --kind all` → `rc=0`, zero `FAIL` lines,
 1365 `ok` lines).
 
 ## Task 1 — detect table
@@ -64,7 +64,7 @@ byte-identity, and the full suite (`run-unit-tests.sh --kind all` → `rc=0`, ze
 match only `unit`'s glob (`.claude/skills/harness/bin/test-*.py`) and appear in **no** integration
 entry — confirmed.
 
-A second, systemic fact this exposed: `run-unit-tests.sh`'s real `INTEGRATION_SCRIPTS` array has
+A second, systemic fact this exposed: `run-unit-tests.py`'s real `INTEGRATION_SCRIPTS` array has
 **12** scripts, not 4 — it also runs `test-check-domain.py`, `test-bash-write-guard.py`,
 `test-check-expertise.py`, `test-gen-decisions-index.py`, `test-harness-yaml.py`,
 `test-upgrade-config.py`, `test-merge-settings.py`, `test-validate-digest.py` under `--kind
@@ -78,7 +78,7 @@ feature's defect — noted, not blocking.
 | cross_module | T-02 (`factory_config.py`) | **No** — `test-factory-config.py` matches only `unit` | **Yes** — same `test-factory-integration.py` path exercises `product_config`/`board_for`/`validate_board` |
 | cross_module | T-03 (5 test files) | Mixed — `test-factory-integration.py` and `test-check-domain.py` both run under integration (registration, not detect-glob) | **Yes** — T-03's own verify (pre-ruled GREEN) runs all five suites live |
 | cross_module | T-04 (`gh_board.py`, `gh-sync.py`, `board-station.py`) | `test-gh-sync.py` is named in detect **and** registered | **Yes** — confirmed live, full T-04 verify green |
-| cross_module | T-05 (`check-state.sh`) | `test-check-state.py` is named in detect **and** registered, kind executes it | **No** for the specific new behaviour — see finding above. The kind runs the file; the file lacks the assertions |
+| cross_module | T-05 (`check-state.py`) | `test-check-state.py` is named in detect **and** registered, kind executes it | **No** for the specific new behaviour — see finding above. The kind runs the file; the file lacks the assertions |
 
 So: for T-01 and T-02, (a) is false but (b) is true — real coverage exists, the detect list is just
 stale/incomplete for those two files. That is a config finding, not a kind shortfall — I am not
@@ -117,7 +117,7 @@ This confirms the dispatch's premise exactly: the existing case cannot discrimin
 **I attempted to add the discriminating case to `test-factory-gh.py`** (after `file_at_ref:
 undecodable content raises rather than returning empty`, ok-line: `file_at_ref: non-alphabet
 base64 raises rather than silently decoding under lax mode`) and **the write was denied by
-`check-domain.sh`**: `harness-qa` is not a granted writer for
+`check-domain.py`**: `harness-qa` is not a granted writer for
 `.claude/skills/harness/bin/test-factory-gh.py` in this repository's own manifest — only
 `.harness/*/features/*/notes/qa-*.md` and Expertise/observations paths are mine. This is the
 project's own DEC-189-style domain guard working as designed; per QA rules I do not work around it.
@@ -182,7 +182,7 @@ by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 |---|---|---|
 | SC-01 | `test-factory-config.py:316` `load_fleet rejects a repos entry carrying a board key` | met (T-02 green) |
 | SC-02 | per-key tally, 2/5 satisfy SC-02's own "fails if reverted to literal" bar: **building** — `test-gh-board.py:` `derive_station returns the declared building station` (board deliberately uses `Col-B`, so a reverted literal reddens it) ✓. **review** — same file, `Col-R` ✓. **ready** — `test-factory-decompose.py:412` `(2) both stations set to the fleet's ready option` asserts `== "Ready"`, but the fixture's own `ready` value is also literally `"Ready"` (`:196,224`), so a hardcoded `"Ready"` fallback would pass this case too — present but non-discriminating ✗ (does not meet SC-02's "fails if reverted" bar; same for `test-factory-land.py`'s review-station case, which uses `"Review"` against a fixture value of `"Review"`). **backlog** and **done** — resolved only inside T-05's missing INV-26 cases; no test exists ✗. **SC-02: 2/5 satisfied, 3/5 not** (`ready` non-discriminating, `backlog`/`done` absent) |
-| SC-03 | `test-gh-board.py` literal-grep (met, T-04 green) + T-05's marker-sliced grep on `check-state.sh` | **unmet for the check-state.sh half** — no positive-control slice exists (markers absent) |
+| SC-03 | `test-gh-board.py` literal-grep (met, T-04 green) + T-05's marker-sliced grep on `check-state.py` | **unmet for the check-state.py half** — no positive-control slice exists (markers absent) |
 | SC-04 | `test-gh-board.py` (8 `load_board` raise cases) + `test-factory-config.py` (8 `board_for` raise cases) | met (both T-02 and T-04 green, 16 cases confirmed) |
 | SC-05 | `test-factory-config.py`/`test-gh-board.py:90` null-board and absent-board cases | met |
 | SC-06 | `test-factory-config.py:526,560` no-checkout + no-fallback cases | met |
@@ -192,14 +192,14 @@ by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 | SC-10 | T-04's non-reader grep (4 files, positive-controlled) + `test-factory-config.py`/`test-gh-board.py`/`test-gh-sync.py` behavioural cases | met |
 | SC-11 | `gen-decisions-index.py --stdout` byte-identity (pre-ruled), T-10 verify (pre-ruled) | met |
 | SC-12 | T-05's `INV-26 reports a violation...` / `INV-26 completes the gate...` cases | **unmet — no test exists** |
-| SC-13 | `run-unit-tests.sh --kind all` (confirmed rc=0, 1365 ok, zero FAIL) + `git diff --diff-filter=D --name-only ada8e99..b0604c3` (empty — no file deleted) + `run-unit-tests.sh` itself absent from the diff (registration arrays unchanged) | met, both halves |
+| SC-13 | `run-unit-tests.py --kind all` (confirmed rc=0, 1365 ok, zero FAIL) + `git diff --diff-filter=D --name-only ada8e99..b0604c3` (empty — no file deleted) + `run-unit-tests.py` itself absent from the diff (registration arrays unchanged) | met, both halves |
 
 ## One more matrix note — T-05's unit kind is detected but never executed
 
 `test-check-state.py` matches `unit`'s detect glob (`.claude/skills/harness/bin/test-*.py`), so
 `matrix_ok` stays `true` on the "nothing detecting" trigger the dispatch defines. But
-`run-unit-tests.sh`'s `UNIT_SCRIPTS` array never lists it — it is registered only in
-`INTEGRATION_SCRIPTS` — so `--kind unit` executes nothing over `check-state.sh`. Detected, not
+`run-unit-tests.py`'s `UNIT_SCRIPTS` array never lists it — it is registered only in
+`INTEGRATION_SCRIPTS` — so `--kind unit` executes nothing over `check-state.py`. Detected, not
 executed (P-14). Not a `matrix_ok` violation under the dispatch's own definition, but worth saying
 out loud rather than leaving silent.
 
@@ -210,11 +210,11 @@ ok-line text verbatim (T-01 through T-10 all list literal strings), which struct
 most of the Phase-1-vs-Phase-2 gap for this feature — a prescriptive plan, not independent
 derivation on my part (O-05). From the BRIEF alone, the tests I'd have expected are exactly what
 the plan pins: one loud raise per malformed board shape at both entry points, one per-station-key
-proof that fails on a reverted literal, and a check-state.sh behavioural test proving INV-26
+proof that fails on a reverted literal, and a check-state.py behavioural test proving INV-26
 reports rather than aborts. **The last of those three is exactly what's missing** — `SC-03`'s
-check-state.sh half and `SC-12` have zero automated evidence, which is the one place Phase 1's
+check-state.py half and `SC-12` have zero automated evidence, which is the one place Phase 1's
 un-primed expectation and the actual tree diverge.
 
 ## Open questions
 
-- `{ id: Q1, question: "The dispatch instructed me to close Gap 1 myself ('these are yours to close or to rule out'), but check-domain.sh denies harness-qa write access to .claude/skills/harness/bin/test-factory-gh.py — only notes/observations/expertise paths are granted. The guard is correct per this repo's manifest; the dispatch's premise that I could write test files here was false. Should qa dispatches for this repo stop assuming test-file write access, or should the manifest grant qa a scoped test-file path?", blocking: false }`
+- `{ id: Q1, question: "The dispatch instructed me to close Gap 1 myself ('these are yours to close or to rule out'), but check-domain.py denies harness-qa write access to .claude/skills/harness/bin/test-factory-gh.py — only notes/observations/expertise paths are granted. The guard is correct per this repo's manifest; the dispatch's premise that I could write test files here was false. Should qa dispatches for this repo stop assuming test-file write access, or should the manifest grant qa a scoped test-file path?", blocking: false }`

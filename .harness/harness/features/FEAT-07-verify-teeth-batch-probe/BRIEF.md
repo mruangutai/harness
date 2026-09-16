@@ -200,7 +200,7 @@ claims success anyway is the fail-open the validator exists to prevent.
   paired with the two presence checks per DEC-169, not evidence on its own.)
   verify: inspection
 - SC-11: The validator change and its fixtures ship in ONE commit — there is no commit on the feature
-  branch at which `run-unit-tests.sh` fails because `validate-digest.py` and
+  branch at which `run-unit-tests.py` fails because `validate-digest.py` and
   `test-validate-digest.py` disagree about the field set.
   verify: inspection
 - SC-12: Three DECISIONS.md entries exist (the gated `task_verify` field, the signature-gate batching

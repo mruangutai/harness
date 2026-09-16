@@ -14,14 +14,14 @@
 
 ## Trust
 
-- The full suite: `run-unit-tests.sh --kind all` exits 0 with 1040 verdict lines and zero
+- The full suite: `run-unit-tests.py --kind all` exits 0 with 1040 verdict lines and zero
   failures, against 1013 and zero at the pre-feature baseline `a1658c2`.
 - The zero-occurrence invariant is real, not decorative. `test-no-distribution.py` case 6
   scans every tracked source file from `git ls-files`, and its mutation proof plants a chain
   line in `docs/invalid-states-audit.html` — outside `bin/` deliberately, so only the widened
   scan root can see it. The mutant is asserted on disk before the suite runs and the failure
   must name that file.
-- `check-state.sh` and `check-plan-routes.py` both report zero violations.
+- `check-state.py` and `check-plan-routes.py` both report zero violations.
 
 ## Dead ends
 

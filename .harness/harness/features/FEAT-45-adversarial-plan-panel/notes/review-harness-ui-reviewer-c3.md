@@ -60,8 +60,8 @@ it is not, by design — `BRIEF.md:164` and `SC-17` (`BRIEF.md:178-183`) both es
 `harness-code-reviewer`, `harness-security-reviewer`, `harness-ui-reviewer`) is documented as
 mandatory and must carry a verdict, never `skipped`. The restriction enforces the documented
 contract rather than narrowing past it. [Demonstrated: read BRIEF.md directly, not inferred.] I note
-for the code/security lens (not mine to rule on) that `check-state.sh`'s separate INV-32 check
-(`check-state.sh:230-241`, unchanged this diff) accepts `status: skipped` from **any** persona with
+for the code/security lens (not mine to rule on) that `check-state.py`'s separate INV-32 check
+(`check-state.py:230-241`, unchanged this diff) accepts `status: skipped` from **any** persona with
 persona+reason as a `warn`, not restricted to `fable-advisor` — that check operates on a different
 artifact (`plan.yaml`'s `panel.readers`, at plan-review time) than `_skipped_member_error` (the
 lead's own build-panel digest `members:` field), so this is not necessarily an inconsistency, but I
@@ -109,7 +109,7 @@ on total failure. [Demonstrated: read both functions directly.]
 message-text notes are almost certainly backlog).
 
 ## Open questions
-- Whether `check-state.sh` INV-32's persona-agnostic skip-acceptance (`plan.yaml` panel-reader
+- Whether `check-state.py` INV-32's persona-agnostic skip-acceptance (`plan.yaml` panel-reader
   records) and `validate-digest.py`'s `fable-advisor`-only skip restriction (lead digest `members:`
   records) are two intentionally-different schemas for two different moments in the workflow, or
   should converge — this is a cross-schema behavioral question for the code-reviewer/security-reviewer

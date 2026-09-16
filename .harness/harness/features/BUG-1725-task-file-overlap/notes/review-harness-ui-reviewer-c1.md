@@ -1,0 +1,1 @@
+PASS — T-01 pinned census at `b317f9a54f7f5f6570e0d36b1a46601357a02ec9` found only Python checker/test changes plus Markdown/YAML planning guidance (the requested `.agents/skills` paths resolve through the tracked `.agents/skills` symlink to `.claude/skills`), with 0 changed HTML/CSS/SCSS/TSX/JSX/Vue/Svelte/Less files and therefore no user-facing UI surface to audit.

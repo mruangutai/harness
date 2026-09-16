@@ -13,7 +13,7 @@ role's reduced scope on a no-rendered-UI diff in this repo). Reviewed **only** t
 strings and the stream they print in. Did not re-judge era logic, boundary correctness, or
 the four new test cases — other reviewers' ground, per cycle 0's own confinement.
 
-## The four strings (verified against `check-state.sh` diff 75daa3bb→6b65ecc)
+## The four strings (verified against `check-state.py` diff 75daa3bb→6b65ecc)
 
 1. **Key-absent VIOLATION** (~L216): *"INV-32: .harness/harness.json has no
    `panel_era_start`, so no panel era can be resolved. Run /harness-init --upgrade
@@ -74,7 +74,7 @@ confirmed this two ways:
 
 **Why this rates above cycle 0's F1 (LOW → this, MED):** the file has a documented,
 consistently-followed convention for exactly this situation. Its own comment at
-`check-state.sh:78-81` (D-08, FEAT-21 T-05) states the rule directly: *"a finding that
+`check-state.py:78-81` (D-08, FEAT-21 T-05) states the rule directly: *"a finding that
 names a PATH carries the DISCOVERED segment-qualified path, so a reader can open exactly
 what the label names."* Every other path-naming message in this file honours that via
 `fpath(feat, '<file>')` (10+ call sites grepped, e.g. `fpath(feat, 'plan.yaml')` at L107,
@@ -95,7 +95,7 @@ not a live functional defect, matching the shape (not the target) of cycle 0's F
 
 ## Scannability (cycle 0's volume note — reconfirmed live)
 
-Ran `check-state.sh` at HEAD: **32 `INV-32:` lines, 0 `VIOLATION` among them, 0 `bad`
+Ran `check-state.py` at HEAD: **32 `INV-32:` lines, 0 `VIOLATION` among them, 0 `bad`
 lines anywhere in output, exit 0.** All 32 are the pre-era note (FEAT-40 included, now
 correctly graded pre-era at its recovered 2026-08-25 signature rather than triggering the
 undated-approval branch) — independently confirms the author's claimed "32 INV-32 notes,

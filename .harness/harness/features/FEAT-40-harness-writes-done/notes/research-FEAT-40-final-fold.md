@@ -14,7 +14,7 @@ file was edited — only plan task bodies.
    (restated as "ship is the only writer of the done station, D-01") and the struck citation
    (`DEC-192` → **`DEC-203` by name**, with D-03 explicitly called insufficient as a durable
    pointer). States behaviour unchanged; ~2-3 lines.
-3. **T-08 intent gains the two `check-state.sh` corrections**, `(a)` `:1416` and `(b)` `:1479`, with
+3. **T-08 intent gains the two `check-state.py` corrections**, `(a)` `:1416` and `(b)` `:1479`, with
    the DEC-174 sole-home reason recorded. `(b)` is written as a rewrite (~5-8 lines) and carries the
    explicit hard constraint that **the accept set at `:1486-1489` is not to be narrowed, widened,
    reordered or touched** — the correction is to the justification comment only.
@@ -35,7 +35,7 @@ Sites of this class found in live code — **exactly four, all already accounted
 | `gh-sync.py:219-220` `_apply_parent_rule` | already fully specified as T-04 **Step 8b** (`plan.yaml:527`) — pre-existing, unchanged by me |
 | `gh-sync.py:851` `cmd_close_task` | **already fully specified as T-04 Step 8c** — see below |
 | `gh-sync.py:898` `cmd_status` | **new: T-04 Step 8d** |
-| `check-state.sh:1416`, `:1479` | **new: T-08** |
+| `check-state.py:1416`, `:1479` | **new: T-08** |
 
 ### `gh-sync.py:851` — the reference at `plan.yaml:537` is NOT stale
 
@@ -67,7 +67,7 @@ thirteen closed-at-Review sub-issues. Consistency does not require a change, so 
 | Gate | Exit | Result |
 | --- | --- | --- |
 | `check-plan-routes.py` | **0** | `0 violation(s) across 1 plan(s)`. The DEVIATION lines are advisory DEC-174 carve-out notes, pre-existing and unchanged |
-| `check-state.sh` | **1** | exactly one VIOLATION: `FEAT-40 BRIEF.md is NOT approved`. Nothing else |
+| `check-state.py` | **1** | exactly one VIOLATION: `FEAT-40 BRIEF.md is NOT approved`. Nothing else |
 | `harness_yaml.load_plan` | parsed | 11 tasks, 13 decisions, 0 dangling `depends_on`, 12/12 REQ traced |
 
 The pre-existing note `run dir 2026-08-25-07-product exists on disk but feature.json does not record
@@ -116,7 +116,7 @@ Scope again `.claude/skills/harness/bin/` and `.claude/skills/harness/hooks/`, c
 `never writes.{0,60}(Done|column)`, `no station`.
 
 Every hit resolves to one of the five known sites (`gh-sync.py:219`, `:851`, `:898`,
-`test-gh-sync.py:1615`, `check-state.sh:1416`/`:1479`) or to noise judged and excluded:
+`test-gh-sync.py:1615`, `check-state.py:1416`/`:1479`) or to noise judged and excluded:
 
 | Hit | Judgement |
 | --- | --- |
@@ -135,7 +135,7 @@ owns the reference doc separately.
 | Gate | Exit | Result |
 | --- | --- | --- |
 | `check-plan-routes.py` | **0** | `0 violation(s) across 1 plan(s)`; DEVIATION lines are the pre-existing advisory DEC-174 notes |
-| `check-state.sh` | **1** | exactly one VIOLATION: `FEAT-40 BRIEF.md is NOT approved` |
+| `check-state.py` | **1** | exactly one VIOLATION: `FEAT-40 BRIEF.md is NOT approved` |
 | `harness_yaml.load_plan` | parsed | 11 tasks, 13 decisions, 12/12 REQ traced, 0 dangling `depends_on`, `approval.status: pending` |
 
 HEAD unmoved at `4571bda`; nothing committed.

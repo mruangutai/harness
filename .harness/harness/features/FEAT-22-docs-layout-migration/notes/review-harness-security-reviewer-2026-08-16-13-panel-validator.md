@@ -14,7 +14,7 @@ surface. Audited accordingly.
 
 ## What I probed, with literal results
 
-**Grant reach (`check-domain.sh --resolve`, no stdin, all exit 0 unless noted):**
+**Grant reach (`check-domain.py --resolve`, no stdin, all exit 0 unless noted):**
 ```
 .harness/harness/docs/SPEC.md              -> harness-documentor   (intended)
 .harness/notes/docs/x.md                    -> harness-documentor   (unintended)
@@ -40,7 +40,7 @@ diff's own comment says this. The live risk is entirely in the `team-config.yaml
 
 **Blast-radius check — is a stray file under the ungranted-but-reachable segments read by
 anything:**
-- `inject-expertise.sh` (SubagentStart injector) reads `$root/.harness/expertise/$agent.md`
+- `inject-expertise.py` (SubagentStart injector) reads `$root/.harness/expertise/$agent.md`
   by **exact filename**, never a glob into subdirectories — a file at
   `.harness/expertise/docs/harness-eng-lead.md` is never picked up. Read-verified.
 - `factory_config._PROBE = os.path.join(".harness","harness","docs","SPEC.md")` is a **fixed
@@ -65,7 +65,7 @@ anything:**
   filename planted in `.harness/{notes,expertise,factory,logs,codebase}/docs/` is inert — nothing
   in this repo reads it.
 
-**Suites run (no redirects — my role is enforced read-only by `bash-write-guard.sh`, which
+**Suites run (no redirects — my role is enforced read-only by `bash-write-guard.py`, which
 correctly blocked a `>` redirect attempt with `harness-security-reviewer is READ-ONLY`; verified
 via `$(...)` capture instead):**
 - `python3 .claude/skills/harness/bin/test-check-domain.py` — 117 `ok`, 0 `FAIL`, exit 0.
@@ -105,7 +105,7 @@ own docs path. `team-config.yaml` is data/config, not one of the four DEC-174 ca
 this remedy is in the operator's or a build agent's hands, not routed to main session.
 
 ## Assessed and dismissed (checked, not skipped)
-- **Fail-open in the guards**: no logic in `check-domain.sh` or `check-state.sh` changed — both
+- **Fail-open in the guards**: no logic in `check-domain.py` or `check-state.py` changed — both
   diffs are single-line message-text literal updates (`docs/harness/DECISIONS.md` ->
   `.harness/harness/docs/DECISIONS.md`). Read in full; confirmed no branch, exit code, or
   control-flow touched. Nothing here routes to the operator under DEC-174 — there is no change to
@@ -127,7 +127,7 @@ this remedy is in the operator's or a build agent's hands, not routed to main se
   `test-no-distribution.py`, a regex *variable name* matching deploy-related literal strings
   (`harness-deploy`, `deploy.sh`, `harness-registry`, `registry.json`), pre-existing test logic,
   not a credential.
-- **Expertise-file poisoning**: `inject-expertise.sh` reads by exact filename only (see above) —
+- **Expertise-file poisoning**: `inject-expertise.py` reads by exact filename only (see above) —
   the two touched Expertise files (`harness-backend-dev.md`, `harness-documentor.md`) carry only
   literal path-string updates inside existing prose, no new content, no secrets.
 - **`org.html`**: 100%-similarity rename (0 diff lines against the pre-move file), no `<script>`
@@ -144,7 +144,7 @@ this remedy is in the operator's or a build agent's hands, not routed to main se
 
 ## Probe hygiene
 No working-tree writes. One redirect attempt (`>` into a scratch temp file) was correctly refused
-by `bash-write-guard.sh` for this read-only role — reported as evidence the guard enforces
+by `bash-write-guard.py` for this read-only role — reported as evidence the guard enforces
 read-only on this role, not worked around. All command-substitution (`$(...)`) captures used
 instead. The in-memory `layout_migration` probe monkeypatched `glob.glob` in a Python process and
 touched no file. `git status --porcelain` at the end shows only pre-existing untracked artifacts
@@ -161,12 +161,12 @@ DIGEST:
   findings: 1
   must_fix: []
   threat_model:
-    - { boundary: "team-config.yaml domain grant -> check-domain.sh/harness_boundary.py PreToolUse guard", stride: E, mitigated: false }
+    - { boundary: "team-config.yaml domain grant -> check-domain.py/harness_boundary.py PreToolUse guard", stride: E, mitigated: false }
     - { boundary: "harness_boundary.HARNESS_CONTROL_PLANE list -> is_control_plane_target", stride: T, mitigated: true }
     - { boundary: "factory_config._PROBE root resolution", stride: S, mitigated: true }
     - { boundary: "layout_migration._evidence() undeclared-segment classification", stride: T, mitigated: true }
-    - { boundary: "SubagentStart Expertise injection (inject-expertise.sh)", stride: I, mitigated: true }
-    - { boundary: "check-domain.sh / check-state.sh (DEC-174 carve-out)", stride: T, mitigated: true }
+    - { boundary: "SubagentStart Expertise injection (inject-expertise.py)", stride: I, mitigated: true }
+    - { boundary: "check-domain.py / check-state.py (DEC-174 carve-out)", stride: T, mitigated: true }
   open_questions: []
   files_touched: []
   expertise_update: []

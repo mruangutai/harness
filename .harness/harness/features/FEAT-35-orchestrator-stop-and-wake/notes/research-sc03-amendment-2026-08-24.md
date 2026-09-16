@@ -3,7 +3,7 @@
 **SC-03 now grades the reviewer's OWN `agentType`, and says out loud what it therefore does not
 cover.** One hunk in `BRIEF.md`; nothing else in the file changed.
 
-Filename note: the dispatch suggested `notes/sc03-amendment-2026-08-24.md`; `check-domain.sh` denies
+Filename note: the dispatch suggested `notes/sc03-amendment-2026-08-24.md`; `check-domain.py` denies
 that path for `harness-pm`, whose per-feature notes path is `notes/research-*.md`. The guard is
 right (#216) — this is that artifact.
 

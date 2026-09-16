@@ -7,7 +7,9 @@ appears to exist but does nothing** —
   INV-6                 fired only on an ABSENT `review_sha`, so the string `none`
                         read as a pinned SHA and an unpinned feature passed (#16).
   teams/review.yaml     omitted the qa step, so the project's only blocking gate ran
-                        three times only because a lead added it by hand (#8).
+                        three times only because a lead added it by hand (#8). FEAT-59
+                        renamed the team `validate` and added pm's goal-check to it;
+                        checks (1) and (9) read validate.yaml.
   teams/build.yaml      did not exist; every build composed its step list at dispatch (#9).
   harness/SKILL.md      contained ZERO occurrences of `qa` and `test_matrix` while
                         SPEC.md:1978 assigned the sequencing to the orchestrator (#24).
@@ -71,19 +73,22 @@ def read(path):
         return fh.read()
 
 
-# --- 1. review.yaml carries the qa step, gate-only ---------------------------
+# --- 1. validate.yaml carries the qa step, gate-only, beside the four other readers ---
+# FEAT-59 SC-13 folded the plan-time goal-check's twin into this team: pm grades the
+# diff per perspective in the same turn as the four reviewers, so the set is five.
+VALIDATE_STEPS = {"code", "qa", "security", "ui", "goalcheck"}
 try:
-    review = harness_yaml.load_file(os.path.join(TEAMS, "review.yaml"))
+    review = harness_yaml.load_file(os.path.join(TEAMS, "validate.yaml"))
     ids = {s["id"] for s in review["steps"]}
     qa = next((s for s in review["steps"] if s["id"] == "qa"), None)
-    ok = (ids == {"code", "qa", "security", "ui"}
+    ok = (ids == VALIDATE_STEPS
           and qa is not None and qa["persona"] == "qa" and qa["mutates_repo"] is False)
-    check("(1) review.yaml is {code, qa, security, ui} and qa is gate-only "
-          "(persona: qa, mutates_repo: false) — SC-04, MF-1", ok,
+    check("(1) validate.yaml is {code, qa, security, ui, goalcheck} and qa is gate-only "
+          "(persona: qa, mutates_repo: false) — SC-04, MF-1; FEAT-59 SC-13", ok,
           f"ids={sorted(ids)} qa={qa}")
 except Exception as e:
-    check("(1) review.yaml is {code, qa, security, ui} and qa is gate-only "
-          "(persona: qa, mutates_repo: false) — SC-04, MF-1", False, e)
+    check("(1) validate.yaml is {code, qa, security, ui, goalcheck} and qa is gate-only "
+          "(persona: qa, mutates_repo: false) — SC-04, MF-1; FEAT-59 SC-13", False, e)
 
 # --- 2. build.yaml exists and is the eng-lead's ------------------------------
 build = None
@@ -158,7 +163,7 @@ try:
             body = read(os.path.join(BIN, fn))
             hits += [f"{fn}:{i+1}" for i, l in enumerate(body.splitlines()) if needle in l]
     tok_ok = all("PLACEHOLDER_UNSET" in read(os.path.join(BIN, f))
-                 for f in ("check-state.sh", "validate-digest.py"))
+                 for f in ("check-state.py", "validate-digest.py"))
     check("(6) the placeholder literal occurs exactly once across bin/, and both "
           "consumers reference PLACEHOLDER_UNSET — SC-02",
           len(hits) == 1 and tok_ok,
@@ -171,7 +176,7 @@ except Exception as e:
 try:
     spec_lines = read(SPEC_MD).splitlines()
     row = next((l for l in spec_lines
-                if re.match(r"^\|\s*\*\*build\*\*\s*\|", l)), None)
+                if re.match(r"^\|\s*(?:★\s*)?\*\*build\*\*\s*\|", l)), None)
     if row is None:
         check("(7) SPEC §13 has a `build` row whose conducted-by cell matches "
               "build.yaml's lead — SC-10", False, "no §13 row for **build**")
@@ -209,7 +214,7 @@ except Exception as e:
           f"qa+validator+loop_back within {WINDOW} consecutive lines — SC-14, issue #24",
           False, e)
 
-# --- 9. SC-15 — three descriptions of the panel, one set --------------------
+# --- 9. SC-15 — three descriptions of the reader set, one set --------------
 def panel_set(row, label):
     """The panel group is the {...} group containing `∥`. Zero or several is a LOUD
     failure naming the row — a gate that guesses is what this feature exists to close."""
@@ -224,30 +229,30 @@ try:
     spec_lines = read(SPEC_MD).splitlines()
     ship_row = next(l for l in spec_lines if "**ship-feature**" in l and l.startswith("|"))
     rev_row = next(l for l in spec_lines
-                   if re.search(r"\|\s*★\s*\*\*review\*\*\s*\|", l))
+                   if re.search(r"\|\s*★\s*\*\*validate\*\*\s*\|", l))
     a = panel_set(ship_row, "SPEC ship-feature row")
-    b = panel_set(rev_row, "SPEC review row")
+    b = panel_set(rev_row, "SPEC validate row")
     c = {s["id"] for s in review["steps"]}
-    check("(9) the panel set agrees across SPEC's ship-feature row, SPEC's review row "
-          "and the shipped review.yaml — SC-15",
-          a == b == c, f"ship={sorted(a)} review_row={sorted(b)} review.yaml={sorted(c)}")
+    check("(9) the reader set agrees across SPEC's ship-feature row, SPEC's validate row "
+          "and the shipped validate.yaml — SC-15",
+          a == b == c, f"ship={sorted(a)} validate_row={sorted(b)} validate.yaml={sorted(c)}")
 except Exception as e:
-    check("(9) the panel set agrees across SPEC's ship-feature row, SPEC's review row "
-          "and the shipped review.yaml — SC-15", False, e)
+    check("(9) the reader set agrees across SPEC's ship-feature row, SPEC's validate row "
+          "and the shipped validate.yaml — SC-15", False, e)
 
 # --- 10. T-01's fixtures, registered durably --------------------------------
 # EMF-5's "eighth check": without this, a later edit could delete the red-first
 # fixtures and every other check in this file would still pass.
 try:
-    tcs = read(os.path.join(REPO, "tests", "integration", "test-check-state.py"))
+    tcs = read(os.path.join(REPO, "tests", "integration", "test-check-state-plans.py"))
     n_none = tcs.count("review_sha: none")
     n_sha = tcs.count("review_sha: 1ce886a")
-    check("(10) test-check-state.py still carries T-01's INV-6 fixtures "
+    check("(10) test-check-state-plans.py still carries T-01's INV-6 fixtures "
           "(`review_sha: none` >= 2, `review_sha: 1ce886a` >= 1) — SC-01",
           n_none >= 2 and n_sha >= 1,
           f"none={n_none} sha={n_sha}")
 except Exception as e:
-    check("(10) test-check-state.py still carries T-01's INV-6 fixtures "
+    check("(10) test-check-state-plans.py still carries T-01's INV-6 fixtures "
           "(`review_sha: none` >= 2, `review_sha: 1ce886a` >= 1) — SC-01", False, e)
 
 print(f"\n{ran - fails}/{ran} checks passed." if fails == 0 else f"\n{fails} of {ran} FAILING.")

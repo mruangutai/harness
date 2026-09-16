@@ -22,13 +22,13 @@ lanes:
     - surface: .claude/skills/harness/bin/test-check-domain.py
       lane: team
       agent: harness-backend-dev
-      reason: fixture-only edit, and check-domain.sh itself is never touched, so DEC-174 does not reach it
+      reason: fixture-only edit, and check-domain.py itself is never touched, so DEC-174 does not reach it
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for this path, so no agent may write it
+      reason: check-domain.py --resolve returns NOBODY for this path, so no agent may write it
     - surface: .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns harness-orchestrator for this path, but it is written
+      reason: check-domain.py --resolve returns harness-orchestrator for this path, but it is written
         in the same direct step as fleet.yaml, as the evidence pointer SC-03 cites
     - surface: docs/harness/DECISIONS.md
       lane: team
@@ -63,7 +63,7 @@ decisions:
     choice: The migration is three-phase and the order is fixed - T-01 makes the fleet-level block
       OPTIONAL and adds per-repo support, the readers migrate, T-07 rewrites fleet.yaml and board 2
       together, and only then does T-08 tighten to required-and-rejecting.
-    because: check-domain.sh calls load_fleet on every governed write and fails CLOSED on any
+    because: check-domain.py calls load_fleet on every governed write and fails CLOSED on any
       exception, and test-check-domain.py case (c) asserts exit 2 on a harness path, so a
       non-loading fleet refuses harness writes too. Both naive orderings brick the guard including
       the write that would fix it, and one task cannot land both halves because fleet.yaml resolves
@@ -73,7 +73,7 @@ decisions:
       alone cannot pair an old loader with a new fleet. What can is a MIXED invocation - a
       factory_config.py predating T-01 resolving a fleet path that lands on a post-T-07 fleet.yaml,
       whether by an explicit --fleet or by running the tool from one checkout against another's
-      tree. There load_fleet raises and check-domain.sh fails CLOSED on every governed write.
+      tree. There load_fleet raises and check-domain.py fails CLOSED on every governed write.
       CLAUDE.md's run-everything-from-the-worktree rule covers the mechanics; the recovery is to
       rebase that checkout past T-08, never to edit the fleet back.
     dec: DEC-174
@@ -95,16 +95,16 @@ decisions:
       only the operator can consent, so it is SC-06 with verify uat and no task at all.
     dec: DEC-179
   - id: D-05
-    choice: The repo-to-board pairing assertion lives in test-no-distribution.py, not check-state.sh.
-    because: check-state.sh is a DEC-174 carve-out file AND is granted to the same two agents, so
+    choice: The repo-to-board pairing assertion lives in test-no-distribution.py, not check-state.py.
+    because: check-state.py is a DEC-174 carve-out file AND is granted to the same two agents, so
       declaring a task on it main-session-direct emits a permanent DEVIATION line in a required CI
       check and the task cannot be done by the team at all. test-no-distribution.py already asserts
       fleet membership under DEC-174 am.1 and runs in UNIT_SCRIPTS, so SC-05 gets real unit evidence.
     dec: DEC-174
   - id: D-06
     choice: No task changes any of the four DEC-174 carve-out scripts, and none needs to.
-    because: re-measured at a29ad06, which is HEAD - check-domain.sh reads only workspace_root and repos[].name from
-      the loaded fleet and never reads board, and check-state.sh INV-24 reads the fleet with
+    because: re-measured at a29ad06, which is HEAD - check-domain.py reads only workspace_root and repos[].name from
+      the loaded fleet and never reads board, and check-state.py INV-24 reads the fleet with
       harness_yaml.load_file rather than load_fleet and reads only repos[].name. Only
       test-check-domain.py's good_repos fixture has to change, and that is a fixture, not a gate.
     dec: DEC-174
@@ -179,7 +179,7 @@ tasks:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       In factory_config.py, extract the existing board validation in load_fleet into a module-level
       helper, def _validate_board(board, where, path), that raises FleetError with the SAME message
@@ -257,7 +257,7 @@ tasks:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/test-factory-claim.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       factory_claim._main currently reads owner, board_number, station_field and stations once from
       fleet["board"], validates the three station options against that one board, and then either
@@ -353,7 +353,7 @@ tasks:
       - .claude/skills/harness/bin/factory_decompose.py
       - .claude/skills/harness/bin/test-factory-decompose.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       factory_decompose._main takes --repo as a required argument and already calls
       factory_config.repo_entry(fleet, args.repo) at step 1, so the repository is known before any
@@ -397,7 +397,7 @@ tasks:
       - .claude/skills/harness/bin/factory_land.py
       - .claude/skills/harness/bin/test-factory-land.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       factory_land._main takes --repo as a required argument and already resolves the repos entry
       before anything else. In step 5, replace the four reads of fleet["board"] - owner, number,
@@ -433,7 +433,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       test-factory-integration.py writes fleet declarations carrying a fleet-level board block and
       drives the tools end to end as real processes. Move each of those fleet fixtures to the new
@@ -478,10 +478,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       This task is FIXTURE-ONLY and is bounded by DEC-174. You must not edit
-      .claude/skills/harness/bin/check-domain.sh, and you must not change any assertion, any expected
+      .claude/skills/harness/bin/check-domain.py, and you must not change any assertion, any expected
       exit code, any case name or any explanatory comment in test-check-domain.py. The only edits
       permitted are to the fleet YAML strings the fixtures build.
 
@@ -529,7 +529,7 @@ tasks:
       test. The verdict and the exit code do not change; the reason does, and it changes to the
       correct one.
 
-      For context, and it is measured rather than assumed: check-domain.sh reads only workspace_root
+      For context, and it is measured rather than assumed: check-domain.py reads only workspace_root
       and repos[].name from the loaded fleet and never reads board, so the schema change reaches its
       fixtures and not its source.
 
@@ -539,7 +539,7 @@ tasks:
     traces: [REQ-01, REQ-04]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: .harness/factory/fleet.yaml resolves to NOBODY under check-domain.sh
+    execution_reason: .harness/factory/fleet.yaml resolves to NOBODY under check-domain.py
       --resolve, so no agent may write it and the task cannot take the team lane
     depends_on: [T-02, T-03, T-04, T-05, T-06, T-11]
     status: done
@@ -575,7 +575,7 @@ tasks:
       .harness/factory/fleet.yaml - it resolves that path itself, no --fleet argument, and it exits 2
       on a FleetError and 2 on anything else. It passes TODAY, before the change, which is exactly
       the point: it fails only if this task leaves the declaration unloadable, and a fleet.yaml that
-      does not load makes check-domain.sh fail CLOSED and blocks every governed agent write in the
+      does not load makes check-domain.py fail CLOSED and blocks every governed agent write in the
       repository, including T-08's. The board clauses cannot see that; only this one can.
 
       RUN THAT CLAUSE FROM THE SAME CHECKOUT WHOSE fleet.yaml STEP 3 REWRITES. With no --fleet
@@ -653,8 +653,8 @@ tasks:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit &&
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       This task is the LAST code task and it verifies BOTH suites, not one. Its change reaches
       test-check-domain.py and test-factory-integration.py, which run in the integration kind and
@@ -665,7 +665,7 @@ tasks:
       test_kinds, so no criterion could cite its output.
 
       This task closes the migration T-01 opened, and it is safe to run only after T-07 has rewritten
-      .harness/factory/fleet.yaml, because check-domain.sh calls load_fleet on every governed write
+      .harness/factory/fleet.yaml, because check-domain.py calls load_fleet on every governed write
       and fails CLOSED on any exception. Confirm before you start that .harness/factory/fleet.yaml
       has no top-level board key and that its kaya-ai entry carries its own board. If it still has
       one, STOP - tightening now blocks every agent write in the repository, including the write that
@@ -702,7 +702,7 @@ tasks:
       old loader with a new fleet. What can is a MIXED invocation - a factory_config.py predating
       T-01 resolving a fleet path that lands on a post-T-07 fleet.yaml, by an explicit --fleet or by
       running the tool from one checkout against another's tree. There load_fleet raises and
-      check-domain.sh fails CLOSED on every governed write. That is expected, not a defect -
+      check-domain.py fails CLOSED on every governed write. That is expected, not a defect -
       the recovery is to rebase that checkout past this task, never to edit the fleet back. Say so in
       your receipt so the next person to hit it does not diagnose it as a broken guard.
 
@@ -717,7 +717,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       This file already reads .harness/factory/fleet.yaml in case3 and asserts fleet membership under
       DEC-174 am.1. Add a NEW case function named case5 - case4 already exists and is taken - built
@@ -847,7 +847,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-factory-workspace.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       This file builds its fleet as a Python dict rather than as YAML text, writes it to a temporary
       path and passes --fleet to factory_workspace._main, which calls factory_config.load_fleet. The

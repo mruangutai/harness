@@ -56,10 +56,10 @@ working, and is why T-05's verify can never reach green today.
 
 ## What the edit must do — TWO parts, not one
 
-### Part A — `check-state.sh`: add the two markers (this is what the intent's item 7 asks)
+### Part A — `check-state.py`: add the two markers (this is what the intent's item 7 asks)
 
 A line containing `INV-26 BEGINS` immediately above the existing `# --- INV-26 (issue #277)` comment
-at `check-state.sh:1100`, and a line containing `INV-26 ENDS` immediately after the block's last
+at `check-state.py:1100`, and a line containing `INV-26 ENDS` immediately after the block's last
 statement. Without them the slice is empty and every literal-absence grep below proves nothing.
 
 ### Part B — `test-check-state.py`: the five ok-lines

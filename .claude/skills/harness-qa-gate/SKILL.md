@@ -22,7 +22,7 @@ git diff --stat <merge-base>..HEAD
 git diff <merge-base>..HEAD
 ```
 
-If `.harness/harness/features/<FEAT>/review_sha` exists, diff `base..<review_sha>` instead — reviewing a pinned
+If `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/review_sha` exists, diff `base..<review_sha>` instead — reviewing a pinned
 SHA, not a moving `HEAD`.
 
 ### 2. Classify each changed path
@@ -41,16 +41,16 @@ Assign **one** change type per logical change. Judge from the diff, not from a t
 | `config` / `scaffolding` / `docs` | build config, deps, generated scaffolding, documentation |
 
 **A `config` change that alters a value's SHAPE — a key's container type, required-ness, or
-structural nesting in `.harness/harness.json`/`fleet.yaml` or any config a gate script reads — is
+structural nesting in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` or `fleet.yaml`, or any config a gate script reads — is
 still `config`, but trips the `touches_config_shape` predicate (DEC-212).** Changing `stations` from
 a mapping to a list is shape; bumping `max_total_runs` from 20 to 25 is not. A shape change has a
 consumer blast radius no test scoped to the producing module can see — issue #1033 shipped exactly
-this, unit-green, while `check-state.sh`'s own INV-26 block and `board_lifecycle.py` threw a
+this, unit-green, while `check-state.py`'s own INV-26 block and `board_lifecycle.py` threw a
 `TypeError` against it.
 
 ### 3. Look up required kinds
 
-Read `test_matrix` and `test_kinds` from `.harness/harness.json`. If it is absent, **stop and say so** —
+Read `test_matrix` and `test_kinds` from `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. If it is absent, **stop and say so** —
 do not invent a matrix.
 
 The matrix is a **floor, not a ceiling**: you may add a requirement the diff clearly warrants. You may
@@ -106,7 +106,7 @@ The failure kind is the signal; the count is noise.
 A genuine `FAIL` looks different: a **named** test with an assertion diff — *expected X, received Y*.
 
 A misconfigured cmd returns `VERDICT: BLOCKED — test command misconfigured for kind '<kind>'`,
-naming the cmd, the error, and the fix location (`.harness/harness.json`) — the code is not the problem.
+naming the cmd, the error, and the fix location (`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) — the code is not the problem.
 
 **No test files matched, with exit 0, is also `BLOCKED`** — a runner that silently matched nothing has
 told you the glob is wrong, and passing on it is exactly the no-op'd hard gate this section exists to
@@ -120,6 +120,19 @@ command was misconfigured is worse than halting.
 Beyond presence: for each behavioral change, check that a test covers it. Where git history makes it
 visible, check the test was written **before** the implementation. Report violations as findings — they
 do not by themselves FAIL the gate.
+
+### 7. Collect fail-first evidence — this one gates
+
+For every SC marked `verify: automated`, name the test that discharges it **and the evidence that it
+failed before the fix**: the path of the captured failing run, or the receipt line that records it
+(`tests/unit/test-foo.py: 1 failed at 3f2a9c1~1`). Where the fix and its test landed in one commit,
+reproduce the red state in a worktree — revert the production change, run the test, capture the
+output, restore — and cite that capture.
+
+**A green suite with no fail-first evidence is `FAIL`, not `PASS` (FEAT-59 SC-17).** Passing proves
+the tests pass today; only a recorded red run proves they constrain anything. The digest carries this
+as `fail_first`, and `validate-digest.py` rejects `VERDICT: PASS` with `matrix_ok: true` and an empty
+`fail_first`. Only `matrix_ok: n/a` — no gate ran — may carry `[]` truthfully.
 
 ## Output
 
@@ -143,6 +156,13 @@ What's needed
 On success, `VERDICT: PASS`, and say which kinds ran and which were legitimately skipped — a PASS that
 hides three skips is misleading.
 
+The DIGEST block that travels with the verdict is specified in `harness-verification-rules`; the field
+this gate adds is:
+
+```yaml
+fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]   # one per `verify: automated` SC
+```
+
 ## Red flags
 
 | Thought | Reality |
@@ -157,3 +177,4 @@ hides three skips is misleading.
 | "This is a small change, the matrix is overkill" | The matrix is a floor. Size is not an exemption; `change_type` is |
 | "I'll infer change type from what they asked for" | Infer it from the diff. The diff is the ground truth |
 | "I can't run it in CI, so I'll skip that kind" | Check `test_kinds.<kind>.status` first. `locally_run` is not `not applicable` — it needs a recorded run, not silence |
+| "The suite is green and the tests exist, so PASS" | Green with no recorded red run is `FAIL`. `fail_first` names, per automated SC, the evidence the test failed before the fix |

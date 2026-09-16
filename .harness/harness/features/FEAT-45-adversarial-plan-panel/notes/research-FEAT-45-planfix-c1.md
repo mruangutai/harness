@@ -26,7 +26,7 @@ enumerated. So the load-bearing edit went into **T-06** (which already owns that
 | **A-01** blocking | id assignment struck from T-06's SHAPE list (replaced by an explicit `never IDENTITY:` line) and from T-02's closing comment; dedupe key made explicit (normalized summary + reader id) in both; D-05 `choice` now names pm-at-transcription as the single computer. T-06's `verify` greps `unrated`/`plan-panel`/`never CONTENT` — none touched the struck text |
 | **ALT-01** | T-02 return contract: top-level mapping has exactly one key, `findings`; mirrored in T-06's SHAPE line |
 | **SIMP-01** | D-10 struck, content folded into the `lanes:` comment; **ids not renumbered**, the D-10 gap is stated there |
-| **EFF-01** | eight false edges dropped; policy comment on `tasks:` names the only two that bought throughput (`T-02<-T-01`, `T-09<-T-05`); `T-10<-T-09` kept with a write-lock comment on `run-unit-tests.sh` `UNIT_SCRIPTS`; new `T-10<-T-11` is a content edge, so T-11 is placed before T-10 to keep file order topological |
+| **EFF-01** | eight false edges dropped; policy comment on `tasks:` names the only two that bought throughput (`T-02<-T-01`, `T-09<-T-05`); `T-10<-T-09` kept with a write-lock comment on `run-unit-tests.py` `UNIT_SCRIPTS`; new `T-10<-T-11` is a content edge, so T-11 is placed before T-10 to keep file order topological |
 | **UI-F1** (stale-override half only, per the lead's amendment) | T-07 check 4 must contain the literal words `reworded` and `asked again` in an explaining sentence; T-08 case 6 asserts those words, not only the id; T-08 verify token list extended |
 | **UI-F2** | BRIEF SC-11 now grades the zero-findings case explicitly: an empty `findings` list, reported as empty with the reader named, PASSES |
 
@@ -42,7 +42,7 @@ enumerated. So the load-bearing edit went into **T-06** (which already owns that
 
 ## Evidence
 
-- `check-domain.sh --resolve .claude/skills/harness/bin/sync-agent-adapters.py` → `harness-backend-dev
+- `check-domain.py --resolve .claude/skills/harness/bin/sync-agent-adapters.py` → `harness-backend-dev
   harness-dev-ops` (exit 0). `.omp/agents/**` and `.claude/agents/**` → `NOBODY`.
 - Nothing on disk validates a `spawns:` **entry**: `check-omp-port.py:95` requires only a list;
   `bootstrap_one():166-169` requires only that a non-empty list comes with the `task` tool. A

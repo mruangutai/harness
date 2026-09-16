@@ -28,15 +28,15 @@ shape (`answers-2026-08-31-plan.md:95`), already adjudicated in-scope at c0.
 | 1 | FEAT-50; FEAT-46 never created or referenced | `delivered` | zero `FEAT-46` in `BRIEF.md`, `plan.yaml`, `feature.json`, `STATE.md` |
 | 2 | No regression to FEAT-45's two fixes | `delivered` | REQ-05; SC-08 (INV-32 `case_inv32`, exit-status graded), SC-09 (zero-collection), SC-10 (both suites, `^FAIL ` counted separately from rc, floors 1463/1945 at `75daa3b`) |
 | 3 | Deterministic regression for ALL FOUR issues | `delivered` | #1056 → T-02 `empty-red`/SC-02 · #1057 → T-05 `feature-checkout-red`/SC-04 AND T-10 `bash-feature-checkout-red`/SC-19 · #1058 → T-05 `digest-clobber-red`/SC-06 · 4th → T-12 `dec156-worktree-red`/SC-21. Every mutant name is unique-per-process (D-07, c0 F-05 applied) |
-| 4 | Three canonical commands exit 0 | `delivered as a criterion, externally blocked as an outcome` | SC-10 pins the two suites; SC-11 requires `check-state.sh` exit 0 verbatim — form (c) refused as a weakening, per the ruling. See §3 and §5 |
-| 5 | Scope bounded, no unrelated docs/enforcement change | `delivered` | 12 tasks, 9 REQs, all traced; `check-state.sh` is in NO task's `files:` (asserted programmatically); T-07 APPENDS one entry and regenerates a generated index |
+| 4 | Three canonical commands exit 0 | `delivered as a criterion, externally blocked as an outcome` | SC-10 pins the two suites; SC-11 requires `check-state.py` exit 0 verbatim — form (c) refused as a weakening, per the ruling. See §3 and §5 |
+| 5 | Scope bounded, no unrelated docs/enforcement change | `delivered` | 12 tasks, 9 REQs, all traced; `check-state.py` is in NO task's `files:` (asserted programmatically); T-07 APPENDS one entry and regenerates a generated index |
 | 6 | Stop conditions respected | `delivered` | no destructive/history change, no backfill of any signed plan, no scope outside the four defects. c0's F-01 (`rulings: []` written into `approval:`) is corrected — the key is now absent |
 
 ## 3 — The four rulings
 
 **INV-32 `choice: d` — `carried, unweakened`.** SC-11 requires exit 0 (`test "$rc" -eq 0`), which
 is stated-intent constraint 4 as written; the FEAT-50 clause is kept ALONGSIDE it, not instead of
-it. No INV-32 work is planned: no task's `files:` names `check-state.sh`, the lane row is
+it. No INV-32 work is planned: no task's `files:` names `check-state.py`, the lane row is
 declared-but-unedited with that reason written in it, and D-08/D-09 record the ruling rather than
 a deferral. The external blocker is stated where a SIGNER sees it — `BRIEF.md`
 `## The INV-32 ruling, and the external blocker it creates`, plus the first `## Verification gaps`
@@ -44,11 +44,11 @@ bullet and SC-11 itself — not only in a note.
 
 **Both `high` findings — `fixed, not overruled`.** `approval.rulings` is absent and stays absent;
 `BRIEF.md` explains why writing it would make the signature itself falsify SC-11
-(`check-state.sh:189-204`). Each finding's CONSEQUENCE is closed, not merely mentioned:
+(`check-state.py:189-204`). Each finding's CONSEQUENCE is closed, not merely mentioned:
 
 - `PF-3d9ac1d0…` (Bash governed-write route) → REQ-08 · D-10 (one seam, both surfaces, plus the
   scope fence that REQ-04 is NOT extended) · T-09 narrows the allow-continue at
-  `bash-write-guard.sh:747`, names the loop's ROOT-relative `rel` at `:706` and fences the
+  `bash-write-guard.py:747`, names the loop's ROOT-relative `rel` at `:706` and fences the
   `rel.startswith("..")` continue at `:744` as out of scope · T-10's five cases including the
   short-form clause and `bash-feature-checkout-red` · SC-18/SC-19 · two `lanes:` rows.
   Binding, regression and reachability proof are all present and distinct.
@@ -85,7 +85,7 @@ not among the files this run modified).
 
 ## 5 — SC-11's FEAT-50 clause: ADJUDICATED **REACHABLE** — and now amended to say so
 
-Measured myself in this worktree: `check-state.sh` exits 1, 37 VIOLATION rows, five naming
+Measured myself in this worktree: `check-state.py` exits 1, 37 VIOLATION rows, five naming
 FEAT-50. The criterion said nothing about them. Each clears by a named act:
 
 1. `BRIEF.md is NOT approved` — the operator's signature (already gated by D-09).
@@ -124,7 +124,7 @@ operator's restored exit-0 clause is untouched. Nothing was weakened; disclosure
   no longer apply) and its two `high` entries still read `disposition: open` with no `resolved_by`.
   `harness-spec-driven` wants `resolved` + `resolved_by: T-NN`; that is the re-transcription
   dispatch's job, not this one's, and editing `panel:` was forbidden here.
-- File-level ordering is pinned for `check-domain.sh` (T-04 `depends_on: [T-03]`) but not for the
+- File-level ordering is pinned for `check-domain.py` (T-04 `depends_on: [T-03]`) but not for the
   two other shared files: T-01/T-11 both edit `validate-digest.py`, and T-02/T-12 both edit
   `test-validate-digest.py`, with no edge between the pairs. Harmless in a serial main-session
   lane and no verify breaks in either order — recorded so a later reader does not read the

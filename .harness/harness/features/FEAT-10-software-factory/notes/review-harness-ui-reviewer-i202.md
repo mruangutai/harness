@@ -28,7 +28,7 @@ written by concurrent flows and is not the object reviewed here.
    reader, so there is nothing in it that is now stale on this account.
 
 2. **DEC-181 (struck in part — surviving half is the 80-line `CLAUDE.md` budget, enforced at
-   `check-domain.sh:779-780`; struck half was "and enters the propagation checker's scan roots").**
+   `check-domain.py:779-780`; struck half was "and enters the propagation checker's scan roots").**
    One hit, in the footer: `Reference diagram · updated 2026-08-06 (through DEC-181) · generated
    from SPEC.md §2–§13 and team-config.yaml.` This is a dated attribution ("last decision folded
    into this diagram"), not content asserting what DEC-181 says. It doesn't mention scan roots or

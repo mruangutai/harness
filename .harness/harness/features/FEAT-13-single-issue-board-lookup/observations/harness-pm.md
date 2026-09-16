@@ -5,7 +5,7 @@
   working-tree copy and origin/main carry process_plan_yaml (main-cpr.py:299/375), and running it
   on FEAT-12's plan.yaml reported 14 tasks. Do not spend a second pass re-deriving this — the
   stale docstring is the only misleading part.
-- 2026-08-10: run-unit-tests.sh --kind integration takes 63s wall on this machine, over the 60s
+- 2026-08-10: run-unit-tests.py --kind integration takes 63s wall on this machine, over the 60s
   verify bar; test-factory-integration.py alone takes 6.2s and runs correctly from the repo root
   (Python puts the script's dir on sys.path). Name the single file in a verify, not the kind.
 - 2026-08-10: the dispatch named c633bbd as the checkout; HEAD had already moved to bbfc9bb (a

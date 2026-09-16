@@ -170,8 +170,8 @@ Read before signing. `test_kinds` in `.harness/harness.json` was checked entry b
 - The four angles are ported verbatim in substance from
   `notes/research-FEAT-23-simplify-angles-source.md`. No new angle is invented.
 - `.claude/skills/harness/bin/gh-sync.py` is **not** one of the four DEC-174 files, so it is ordinary
-  team work. Nothing in this feature touches `check-domain.sh`, `bash-write-guard.sh`,
-  `validate-digest.py` or `check-state.sh`.
+  team work. Nothing in this feature touches `check-domain.py`, `bash-write-guard.py`,
+  `validate-digest.py` or `check-state.py`.
 - INV-26's terminal exemption is case-sensitive on purpose (DEC-192): `Done` is not `done`. The
   status written must match the board's own column spelling exactly.
 - `derive_station()` returning `Review` when all tasks are done is deliberate and is not changed —

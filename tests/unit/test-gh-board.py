@@ -27,6 +27,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 
+import artifact_accessors  # noqa: E402
 import gh_board  # noqa: E402
 import factory_gh  # noqa: E402
 import factory_config  # noqa: E402
@@ -87,7 +88,7 @@ def raised_exc(root):
     """Call load_board(root), returning the raised FleetError, or None if it did not raise."""
     try:
         gh_board.load_board(root)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         return exc
     return None
 
@@ -205,7 +206,7 @@ for _statuses, _want in ((("done", "building", "done"), "building"),
           _got == _want and _got != factory_config.station_column(_want), _got)
 
 # The board parameter is GONE, not merely unused: a two-argument call must fail loudly rather
-# than be tolerated, or check-state.sh and board_lifecycle could keep passing a board forever.
+# than be tolerated, or check-state.py and board_lifecycle could keep passing a board forever.
 try:
     gh_board.derive_station(plan("done"), full_board())
     check("derive_station rejects a second board argument", False, "accepted two arguments")
@@ -282,6 +283,55 @@ with tempfile.TemporaryDirectory() as tmp:
     check("board_stations: item with content null does not crash and is not in output",
           isinstance(st, dict) and len(st) == 0, repr(st))
 
+# ---------------- board_stations_for (issue #1541) ----------------
+# The targeted counterpart. It must speak the SAME vocabulary as board_stations — lowercased
+# values, absent means off the board, None means on it with no value — because `read_station`
+# reads either map without knowing which produced it.
+
+with tempfile.TemporaryDirectory() as tmp:
+    fake_gh(tmp, json.dumps({"data": {"repository": {
+        "i326": {"number": 326, "projectItems": {"pageInfo": {"hasNextPage": False}, "nodes": [
+            {"project": {"number": 3}, "fieldValueByName": {"name": "Building"}}]}},
+        "i327": {"number": 327, "projectItems": {"pageInfo": {"hasNextPage": False}, "nodes": [
+            {"project": {"number": 3}, "fieldValueByName": None}]}},
+        "i328": None,
+    }}}))
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    try:
+        st = gh_board.board_stations_for(board, "mruangutai/harness", [326, 327, 328])
+    except Exception as exc:  # noqa: BLE001 — a mutation that raises IS the failure, caught here
+        st = f"<raised {exc!r}>"
+    # The same case boundary board_stations holds: the board answered "Building", and asserting
+    # the capitalised form is ABSENT is the half that catches a pass-through implementation.
+    check("board_stations_for: a board value is lowercased on read",
+          isinstance(st, dict) and st.get(326) == "building", repr(st))
+    check("board_stations_for: no capitalised station survives the read",
+          isinstance(st, dict)
+          and not any(isinstance(v, str) and v != v.lower() for v in st.values()), repr(st))
+    check("board_stations_for: on the board with no value is PRESENT with None",
+          isinstance(st, dict) and 327 in st and st[327] is None, repr(st))
+    check("board_stations_for: an issue that is not on the board is ABSENT, not None",
+          isinstance(st, dict) and 328 not in st, repr(st))
+    # read_station is the consumer both maps feed; proving it reads this one keeps the two
+    # producers interchangeable, which is the whole reason the vocabulary had to match.
+    check("board_stations_for: read_station tells its absent apart from its None",
+          isinstance(st, dict)
+          and gh_board.read_station(st, 327) == (None, "no station set")
+          and gh_board.read_station(st, 328) == (None, "not on the board"), repr(st))
+
+with tempfile.TemporaryDirectory() as tmp:
+    # A gh that EXITS 3 for any argv. If an empty number set reached the network at all, this
+    # would raise and the check below would redden — which is the only way to assert "no call"
+    # through a fake binary rather than an in-process recorder.
+    fake_gh_failing(tmp)
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    try:
+        st = gh_board.board_stations_for(board, "mruangutai/harness", [])
+    except Exception as exc:  # noqa: BLE001
+        st = f"<raised {exc!r}>"
+    check("board_stations_for: an empty number set touches no network and returns {}",
+          st == {}, repr(st))
+
 # ---------------- read_station ----------------
 
 # read_station is a pure lookup and never converts case; its inputs come from board_stations,
@@ -348,7 +398,7 @@ try:
         )
         check("set_station raises FleetError on a capitalised station and writes nothing",
               False, "did not raise")
-    except factory_config.FleetError:
+    except artifact_accessors.FleetError:
         check("set_station raises FleetError on a capitalised station and writes nothing",
               "value" not in _captured, _captured)
 finally:
@@ -384,7 +434,7 @@ check("project: each task card gets its own task's station",
       _p[11] == "building" and _p[12] == "ready" and _p[13] == "done", repr(_p))
 
 # --- THE DELETED EXCEPTION (D-11). A task at ready projects to READY, never to backlog. This
-# --- is the rule the old check-state.sh _EXPECT comment carried on the grounds that gh-sync
+# --- is the rule the old check-state.py _EXPECT comment carried on the grounds that gh-sync
 # --- open lands every sub-issue in backlog. It is gone, and T-10 settles the consequence.
 _p = gh_board.project(_plan("ready", "ready"), _rec(issues={"T-01": 21, "T-02": 22}))
 check("project: a ready task projects to ready, NOT to backlog",
@@ -397,13 +447,18 @@ _p = gh_board.project(_plan("done", "done", top="done"), _rec(issues={}, parent=
 check("project: a done top-level station beats derive_station's review (terminal first)",
       _p.get(99) == "done", repr(_p))
 
-# --- A TERMINAL_MARKER card is ABSENT, never placed. D-05 says the marker names no column;
+# --- A TERMINAL_STATIONS card is ABSENT, never placed. D-05 says the marker names no column;
 # --- this is where that becomes true. Without it FEAT-28 — abandoned, card at Done — becomes
 # --- a write of a column that does not exist.
-_p = gh_board.project(_plan("done", "done", top=factory_config.TERMINAL_MARKER),
+_p = gh_board.project(_plan("done", "done", top=factory_config.TERMINAL_STATIONS[0]),
                       _rec(issues={}, parent=98))
-check("project: a TERMINAL_MARKER feature places NO parent card",
+check("project: an abandoned (TERMINAL_STATIONS[0]) feature places NO parent card",
       98 not in _p, repr(_p))
+
+_p = gh_board.project(_plan("done", "done", top="rejected"),
+                      _rec(issues={}, parent=100))
+check("project: a rejected terminal feature places NO parent card",
+      100 not in _p, repr(_p))
 
 # --- the parent, when not terminal, takes derive_station ---
 _p = gh_board.project(_plan("done", "building"), _rec(issues={}, parent=97))
@@ -437,7 +492,7 @@ for _bad in ("pending", "Building", "shipped"):
     _raised = None
     try:
         gh_board.project(_plan(_bad), _rec(issues={"T-01": 31}))
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         _raised = str(exc)
     check(f"project: task station {_bad!r} raises FleetError naming the task and the value",
           _raised is not None and "T-01" in _raised and _bad in _raised, repr(_raised))

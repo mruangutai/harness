@@ -30,7 +30,7 @@ it with `bin/render-brief.py`. Do not spawn a report round; every run already wr
 - Do not re-run the panel or the goal-check — both PASSed and neither has an unresolved `must_fix` — `runs/panel-validator/digest.md`, `runs/goalcheck-product/digest.md` — verified-at 3cde944
 - Do not commit Expertise output to this branch — outside every task's `files:` list except T-04's migration, and it repeats FEAT-25's B-18 — source: operator instruction at dispatch
 - Do not fold ship-refresh and distillation into one lead prompt — hot routing corrupts a judgement that must be cold — source: playbook close-out, #80
-- Do not run `check-state.sh` as a progress poll — ~500 GraphQL points per invocation — source: operator, FEAT-29's measurement
+- Do not run `check-state.py` as a progress poll — ~500 GraphQL points per invocation — source: operator, FEAT-29's measurement
 
 ## Working set
 

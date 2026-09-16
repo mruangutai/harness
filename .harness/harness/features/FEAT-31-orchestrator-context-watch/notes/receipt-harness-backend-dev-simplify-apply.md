@@ -10,19 +10,19 @@ definition itself.
 
 ## Verification (all three, in the worktree)
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+`.claude/skills/harness/bin/run-unit-tests.py --kind unit`
 - exit code: 0
 - FAIL: 0, MISCONFIGURED: 0, KIND-DRIFT: 0 (verbatim grep for these tokens returns only `ok`-prefixed
   test *descriptions* about KIND-DRIFT detection behavior, not actual result lines from this run)
 - tail: `76 of 76 cases passed` / `PASS test-context-watch.py`
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind integration`
+`.claude/skills/harness/bin/run-unit-tests.py --kind integration`
 - exit code: 0
 - FAIL: 0, MISCONFIGURED: 0, KIND-DRIFT: 0 (same caveat: matches are `ok`-prefixed descriptions of
   test cases exercising the KIND-DRIFT detector, not real FAIL/MISCONFIGURED/KIND-DRIFT emissions)
 - tail: `23 of 23 cases passed` / `PASS test-run-unit-tests-kinds.py`
 
-`.claude/skills/harness/bin/run-unit-tests.sh --check-kinds`
+`.claude/skills/harness/bin/run-unit-tests.py --check-kinds`
 - exit code: 0
 - output: `check-kinds: the script arrays and test_kinds.integration.detect agree.`
 

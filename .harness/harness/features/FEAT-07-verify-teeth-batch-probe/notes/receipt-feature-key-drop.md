@@ -80,7 +80,7 @@ gate_status:
   uat: NOT_RUN — no uat criterion exists in BRIEF
   ui: SKIPPED — zero end-user surface, no DESIGN.md; O-01's rationale, same as the
     design pass
-  unit: PASS — run-unit-tests.sh 10/10 and check-docs.sh over 180 files, both re-run
+  unit: PASS — run-unit-tests.py 10/10 and check-docs.sh over 180 files, both re-run
     by me
 max_cost_usd: 550
 pending:

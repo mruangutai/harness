@@ -4,7 +4,7 @@
 
 ## Scope
 Diff base `3df18d3`..`bad32441dfc0`, 45 files. In scope: `gh-sync.py`'s new `_record_pr`/
-`cmd_closes`/`parse_source_issues`, `check-state.sh`'s INV-28 block, `feature-schema.json`'s
+`cmd_closes`/`parse_source_issues`, `check-state.py`'s INV-28 block, `feature-schema.json`'s
 new `pr` reader/`source_issues` field — these cross the untrusted-input boundary
 (`feature.json` is unsigned) into a subprocess call and into text an operator pastes into
 a PR body. Out of scope, checked and dismissed: 11 `feature.json` PR-number backfills
@@ -50,9 +50,9 @@ hostile string through `load_recorded` -> `cmd_closes` end-to-end, but the enfor
 structural (one filter, one call site), not test-coverage-dependent — recorded as an info
 note, not a gap.
 
-**4. Shell quoting in INV-28 (check-state.sh:1044-1082).** The entire block reading every
+**4. Shell quoting in INV-28 (check-state.py:1044-1082).** The entire block reading every
 `feature.json` and building the remedy line is Python, inside a **quoted** heredoc
-(`<<'PY'`, check-state.sh:24) invoked as `python3 - "$root"` — quoting the delimiter means
+(`<<'PY'`, check-state.py:24) invoked as `python3 - "$root"` — quoting the delimiter means
 bash performs zero expansion inside the body, so there is no bash variable interpolation
 of feature ids or paths at all, and no `eval`-shaped construct (grepped, zero hits). The
 "remedy command" string (`gh-sync.py record-pr {relpath}`) is composed as a Python
@@ -77,4 +77,4 @@ None at med/high/critical. No must_fix.
 - boundary: feature.json (unsigned, disk) -> `_record_pr`'s `gh` subprocess argv — mitigated: true (list-form argv, branch always a flag-value, never positional; repo is operator-config not feature.json)
 - boundary: feature.json (unsigned, disk) -> `cmd_closes`'s stdout (operator pastes into PR body) — mitigated: true (int-only filter enforced on the render path via shared `load_recorded` code, backed by a second, independent schema-validator check)
 - boundary: gh stdout/JSON (external, GitHub) -> `_record_pr`'s parse — mitigated: true (try/except, ambiguity and non-int guards, all degrade to no-write rather than crash or wrong write)
-- boundary: check-state.sh INV-28's feature-id/path interpolation -> shell — mitigated: true (pure Python inside a quoted heredoc; no shell expansion occurs)
+- boundary: check-state.py INV-28's feature-id/path interpolation -> shell — mitigated: true (pure Python inside a quoted heredoc; no shell expansion occurs)

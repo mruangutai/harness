@@ -2,7 +2,7 @@
 
 **BLUF.** All four jobs complete. `plan.yaml` is 18 tasks / 26 decisions, `safe_load` clean,
 `approval:` byte-identical (hash matches), `check-plan-routes.py` exit 0 / 0 violations,
-`check-domain.sh --post` exit 0. Every task with a recorded PASS still passes under the
+`check-domain.py --post` exit 0. Every task with a recorded PASS still passes under the
 strengthened assertions. **The operator must re-sign in my view** — the task set grew by four, three
 of them main-session-direct.
 
@@ -19,7 +19,7 @@ red unit suite no longer holds. Every number below was re-measured at `2cf792f`,
 | T-17 SC-13 cutover | main-session-direct | 4859-4862, 4864-4867 |
 | T-18 test_kinds | team, harness-dev-ops | grant-forced, D-18 |
 
-**SC-07 needs no `check-domain.sh` edit, which falsifies BRIEF.md:231-237.** `check-domain.sh:815`
+**SC-07 needs no `check-domain.py` edit, which falsifies BRIEF.md:231-237.** `check-domain.py:815`
 already calls `feature_schema.problems_for_text`, so the gate's rule table is
 `feature-schema.json` + `feature_schema.py`. That makes the module/cutover split **unavailable** here:
 the library write *is* the cutover. Said explicitly in T-15's `execution_reason` (D-23).
@@ -28,7 +28,7 @@ the library write *is* the cutover. Said explicitly in T-15's `execution_reason`
 Measured: 31 `feature.json`, **390 `runs` entries, keys exactly `id`/`squad`/`verdict`**. A schema
 `required` denies all 31 — and the POST sweep reaches untouched files, so every Bash command exits 2.
 Rejected with reasons: an on-disk **diff** (only the PRE `Write` route carries content —
-`check-domain.sh:1027-1034` — green-and-incapable-of-red on the other three); a **date-prefix cutoff**
+`check-domain.py:1027-1034` — green-and-incapable-of-red on the other three); a **date-prefix cutoff**
 (175 of 390 ids are not date-prefixed, and FEAT-31's own six are all non-date, so the rule would
 almost never fire); a **monotone suffix** (holed by exactly the one entry that matters). Chosen: a
 frozen exempt-**count** per feature, default 0, measured at land time.
@@ -59,8 +59,8 @@ none left. **`test-check-state.py` prints no summary line at all** — 90 `^ok` 
 T-14's comment named an output that does not exist. Floors: `test-context-watch.py` 15, `test-check-state.py`
 90, `test-upgrade-config.py` 9 (`9/9 cases passed.` — a different shape from `15 of 15 cases passed`,
 so patterns are per-file), `test-validate-feature-json.py` 43 `^PASS `, `test-check-domain.py` 167 `^ok`.
-`check-state.sh` handoff lines are **3, all `note`, 0 `VIOLATION`** — the old `0 at 7299669` is now
-false of the total, so the assertion is on the `  VIOLATION  ` prefix (`check-state.sh:1366`).
+`check-state.py` handoff lines are **3, all `note`, 0 `VIOLATION`** — the old `0 at 7299669` is now
+false of the total, so the assertion is on the `  VIOLATION  ` prefix (`check-state.py:1366`).
 
 **One assertion form I wrote and then rejected:** piping a test into `grep -q` swallows its exit
 status, so a suite reporting `13 of 15` and exiting 1 would pass. Every verdict line is left bare.
@@ -76,7 +76,7 @@ status, so a suite reporting `13 of 15` and exiting 1 would pass. Every verdict 
   opening phrase alongside the line range and name the sha.
 - **DEC-90 is STRUCK** (index line 109, 2026-08-21) but BRIEF.md cites it as a live `BLOCKS`
   constraint. Approved artifact, not mine.
-- `check-state.sh` exits non-zero on **one** unrelated violation: FEAT-26's unapproved BRIEF.md.
+- `check-state.py` exits non-zero on **one** unrelated violation: FEAT-26's unapproved BRIEF.md.
 
 ## Open for the operator
 

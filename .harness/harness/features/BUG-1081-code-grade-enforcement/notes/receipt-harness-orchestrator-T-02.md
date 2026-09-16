@@ -76,8 +76,8 @@ in `test-validate-digest.py`'s BUG-1081 section header (SC-10).
 
 | Suite | Command | Result |
 |---|---|---|
-| integration | `run-unit-tests.sh --kind integration` | exit 0, 0 `^FAIL ` lines, 588 `PASS` |
-| unit | `run-unit-tests.sh --kind unit` | exit 0, 0 `^FAIL ` lines |
+| integration | `run-unit-tests.py --kind integration` | exit 0, 0 `^FAIL ` lines, 588 `PASS` |
+| unit | `run-unit-tests.py --kind unit` | exit 0, 0 `^FAIL ` lines |
 | self-grading | `test-code-grade.py` | PASS — every new `validate-digest.py` function clears bar 4, and `SELF_GRADING_ALLOWLIST` has no stale entry |
 
 ## Mutation evidence

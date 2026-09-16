@@ -50,7 +50,7 @@ awaiting_user rather than sign, and that the main session runs the verb itself."
 This message is otherwise the stronger of the two: WHAT (the approval signature) and WHY (it's the
 user's, relayed by the main session alone) are fused into one clause, and WHAT-TO-DO-INSTEAD is
 explicit (return awaiting_user; main session runs it). Accuracy checks out against the described
-mechanism (`agent_type` absent = main session, matching check-domain.sh:512 per the plan's own
+mechanism (`agent_type` absent = main session, matching check-domain.py:512 per the plan's own
 citation). No malfunction-reading risk — it explains itself as a deliberate identity gate.
 
 **Concrete cost (why this is info, not a finding that gates):** the text never literally says
@@ -87,6 +87,6 @@ is internally consistent across every place exit codes 5, 7, 8, 9 are mentioned 
 surface.
 
 **One structural note, not a finding:** T-09 also denies Edit/Write with exit 2, and T-08 denies
-sign-approval with exit 2 — both in a *different* process (check-domain.sh / plan-sign-gate.py) from
+sign-approval with exit 2 — both in a *different* process (check-domain.py / plan-sign-gate.py) from
 plan-write.py's own exit space, so there is no cross-tool collision to check; exit codes are
 per-binary.

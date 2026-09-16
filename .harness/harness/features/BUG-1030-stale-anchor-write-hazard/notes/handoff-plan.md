@@ -4,7 +4,7 @@
 missing handoff and a seam that never existed read identically on disk (DEC-159).
 This began as a standalone engineering dispatch after a live incident, not from a
 `plan.yaml`. No `harness-pm` ran; no brief, success criteria or signature gate
-exist. The governing record was retrofitted once `dispatch-guard.sh` refused to
+exist. The governing record was retrofitted once `dispatch-guard.py` refused to
 spawn reviewers for an effort with no governed id.
 
 ## next

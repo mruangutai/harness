@@ -2,7 +2,7 @@
 
 ## Verdict
 
-PASS. `.claude/skills/harness/bin/run-unit-tests.sh --kind all` exits 0, zero real FAIL
+PASS. `.claude/skills/harness/bin/run-unit-tests.py --kind all` exits 0, zero real FAIL
 lines. All nine files named in T-02 ran and PASSed, including the three integration-kind
 ones (test-gh-sync.py, test-check-state.py, test-factory-integration.py).
 
@@ -21,7 +21,7 @@ board 3, 2026-08-22, case sensitive per DEC-192). `github.board._note` reworded 
 "Four keys, resolved BY NAME at runtime" to "Six keys — backlog, plan, ready, building,
 review, done — resolved BY NAME at runtime"; nothing else in that note changed.
 
-`gh_board.derive_station` and `check-state.sh` were not touched, per the plan.
+`gh_board.derive_station` and `check-state.py` were not touched, per the plan.
 
 ## Edit count per file
 
@@ -110,9 +110,9 @@ Also added: an assertion that `set(fc._STATION_KEYS)` equals the six lowercase f
 enum currently reads `["Backlog","Plan","Ready","Building","Review","Done","Abandoned"]`
 (feature-schema.json, `properties.status.enum`).
 
-## check-state.sh inertness proof
+## check-state.py inertness proof
 
-Ran `.claude/skills/harness/bin/check-state.sh` before any edit and after every edit in this
+Ran `.claude/skills/harness/bin/check-state.py` before any edit and after every edit in this
 task. Both runs: exit code 1, 442 lines. Sorted-and-hashed both captures:
 `md5(before) == md5(after) == e2efb254fe63ff8dec3c6efe586ee6a3`. `diff` between the sorted
 captures produced no output — **the two finding sets are identical**, not merely
@@ -123,7 +123,7 @@ exit-code-equal. Full captures saved at:
 ## Verify
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind all
+.claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 Exit code 0. Zero lines matching `^FAIL `. All 14 grep hits for the substring "FAIL" are
 `ok`-prefixed lines whose test *names* contain the word "FAIL" (e.g. "FAIL over an

@@ -6,14 +6,14 @@ Ground-pin confirmed: HEAD `ea937b17e132fdcc7780cbb5a65ab579eb57bb7d`, `.harness
 ## BLUF
 
 The move from `.harness/features/` to `.harness/harness/features/` is mechanically coherent across
-every grant and gate I could exercise, with **one real gap**: `branch-create-gate.sh` hardcodes the
+every grant and gate I could exercise, with **one real gap**: `branch-create-gate.py` hardcodes the
 literal segment `harness` instead of the wildcard/derived pattern every sibling gate adopted. It
 fails *closed* (denies), so it is not a security regression today, but it silently defeats this
 migration's own stated purpose (multi-repo hosting) the first time a second repo is onboarded, and
 the script already holds the data (`$REPO` = `mruangutai/harness`) to derive the segment correctly
 instead of hardcoding it. **Advisory, does not block T-09.**
 
-## A. Positive resolves — measured, `check-domain.sh --resolve`
+## A. Positive resolves — measured, `check-domain.py --resolve`
 
 | Path (new layout) | Verbatim answer | Expected |
 |---|---|---|
@@ -38,7 +38,7 @@ the orchestrator (which holds `.harness/*/features/**` for its own bookkeeping).
 
 ## C. Shape-sweep regexes (`RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD`)
 
-`git diff` for `check-domain.sh` is exactly the mechanical anchor-preserving rewrite:
+`git diff` for `check-domain.py` is exactly the mechanical anchor-preserving rewrite:
 `^\.harness/features/[^/]+/...` → `^\.harness/[^/]+/features/[^/]+/...` — `^`/`$` anchors intact,
 `[^/]+` used (never `.*`), one inserted segment, nothing else touched (34-line diff, verified in
 full). Isolated regex probes (positive/negative/traversal/extra-segment attempts) all matched
@@ -47,9 +47,9 @@ at execution level, not just by reading: `python3 .claude/skills/harness/bin/tes
 → **14/14 pass**, and its fixtures exercise these four routes at the literal new-layout shape
 (`.harness/harness/features/FEAT-X/...`, lines 224/383/1001/1404 of the test file).
 
-## D. `bash-write-guard.sh` and `branch-create-gate.sh`
+## D. `bash-write-guard.py` and `branch-create-gate.py`
 
-**`bash-write-guard.sh`** (unmodified in this diff — it delegates to `team-config.yaml` via
+**`bash-write-guard.py`** (unmodified in this diff — it delegates to `team-config.yaml` via
 `harness_boundary`/`harness_yaml`, which is why it needed no edit). Exercised live at the new
 layout:
 - ungranted write (reviewer role, any path) → `BLOCKED`, exit 2
@@ -57,16 +57,16 @@ layout:
 - legacy-shape write (`harness-pm` → old-layout `plan.yaml`) → `BLOCKED`, exit 2 (grants don't widen to accept both shapes, confirmed live)
 - out-of-domain product write → `BLOCKED`, exit 2
 
-**`branch-create-gate.sh`** — both the deny path (nonexistent flow) and the allow path (existing
+**`branch-create-gate.py`** — both the deny path (nonexistent flow) and the allow path (existing
 flow at new layout, `FEAT-18-board-truth`) proved via
 `python3 .claude/skills/harness/bin/test-branch-create-gate.py` → **8/8 pass**, including
 `ALLOW: a branch naming a flow that DOES exist on disk` and `DENY: a branch naming a flow that does
 not exist on disk`. Functionally correct **for this repo**.
 
-**Finding SEC-01 (low, advisory, does not block T-09):** `branch-create-gate.sh:77-78` hardcodes
+**Finding SEC-01 (low, advisory, does not block T-09):** `branch-create-gate.py:77-78` hardcodes
 the literal segment `harness` (`ls -d "$root/.harness/harness/features/${flow}"*`) rather than the
 wildcard/derived pattern every other touched enforcement path uses
-(`check-domain.sh`'s `[^/]+`, `check-state.sh`/`check-plan-routes.py`/`validate-feature-json.py`'s
+(`check-domain.py`'s `[^/]+`, `check-state.py`/`check-plan-routes.py`/`validate-feature-json.py`'s
 glob `*`, `.gitignore`'s `*`, every `team-config.yaml` grant's `*`). It happens to be correct today
 only because this repo's own segment name (derived elsewhere in the codebase from
 `harness.json`'s `github.repo`, per `layout_migration.py:144-161 _declared_segments`) is coincidentally
@@ -116,9 +116,9 @@ alongside the unit-7 multi-repo work; not worth blocking this commit over.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "Grants and gates moved coherently to the new layout; one hardcoded (not wildcarded) segment in branch-create-gate.sh is a latent multi-repo gap, fails closed, advisory only."
+  headline: "Grants and gates moved coherently to the new layout; one hardcoded (not wildcarded) segment in branch-create-gate.py is a latent multi-repo gap, fails closed, advisory only."
   in_scope: true
-  scope_reason: "Diff rewrites every write-grant and enforcement-path regex/glob in the authorization surface (team-config.yaml, check-domain.sh, check-state.sh, check-plan-routes.py, validate-feature-json.py, branch-create-gate.sh, .gitignore) — a PreToolUse gate's matching surface is exactly this role's domain."
+  scope_reason: "Diff rewrites every write-grant and enforcement-path regex/glob in the authorization surface (team-config.yaml, check-domain.py, check-state.py, check-plan-routes.py, validate-feature-json.py, branch-create-gate.py, .gitignore) — a PreToolUse gate's matching surface is exactly this role's domain."
   severity_max: low
   findings: 1
   must_fix: []
@@ -128,7 +128,7 @@ DIGEST:
     - { boundary: "branch creation -> work-tracking gate", stride: D, mitigated: false }
     - { boundary: "CI backstop -> schema/route enforcement", stride: T, mitigated: true }
   open_questions:
-    - { id: Q1, question: "Should branch-create-gate.sh's flow-existence check derive its segment from $REPO (${REPO##*/}) or a wildcard, ahead of unit-7's multi-repo work, rather than the literal 'harness' it carries today?", blocking: false }
+    - { id: Q1, question: "Should branch-create-gate.py's flow-existence check derive its segment from $REPO (${REPO##*/}) or a wildcard, ahead of unit-7's multi-repo work, rather than the literal 'harness' it carries today?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-21-features-layout-migration/notes/review-harness-security-reviewer-2026-08-14-precommit.md

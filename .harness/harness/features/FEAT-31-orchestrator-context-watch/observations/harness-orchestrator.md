@@ -2,7 +2,7 @@
 
 - 2026-08-21: verifying a "3 files are non-conforming" claim, I invented the conforming set from
   the name instead of reading it. I assumed `SEAM_NOTES` contained `ship` and measured 1 non-seam
-  handoff stem where the operator's answers file said 3. Reading `check-state.sh:495-508` showed the
+  handoff stem where the operator's answers file said 3. Reading `check-state.py:495-508` showed the
   values are exactly `["plan","build","validate"]` — `ship` is NOT a seam stem, so `handoff-ship.md`
   IS non-seam and the answers file was right. The failure mode: a plausible enum guessed from a
   domain word, producing a confident number that contradicted the operator. Read the literal.
@@ -14,7 +14,7 @@
   not by inference. Any receipt asserting a corpus size must name the checkout AND the sha, or a
   re-run looks like a failed receipt.
 
-- 2026-08-21: `bash-write-guard.sh` parses the UNEXPANDED text of a Bash command, so a `>` anywhere
+- 2026-08-21: `bash-write-guard.py` parses the UNEXPANDED text of a Bash command, so a `>` anywhere
   in a python3 heredoc is read as a shell redirect. `if len(hl) > 60:` was refused with
   "`redirect` targets 60:, outside your domain". Rewriting as `if len(hl) not in range(61)` ran
   fine. The guard is not wrong to be conservative, but it means analysis scripts passed through
@@ -97,7 +97,7 @@
 
 - 2026-08-21: the `phase` contradiction is now settled at the SCHEMA, which is a stronger reading
   than the earlier guard observation. `bin/feature-schema.json` is `additionalProperties: false`
-  with eleven declared properties and NO `phase` among them, so `check-domain.sh` rejecting the key
+  with eleven declared properties and NO `phase` among them, so `check-domain.py` rejecting the key
   is the schema working exactly as designed — the orchestrator playbook's "record your phase in
   feature.json `phase:`" is the side that is wrong, and no amount of retrying will land it. When a
   rule and a gate disagree, read the gate's DATA (the schema) rather than the gate's error text: the

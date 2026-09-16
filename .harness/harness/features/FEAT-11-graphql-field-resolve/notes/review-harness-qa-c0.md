@@ -26,8 +26,8 @@ in the MF-1 diff changes the change type or warrants a kind beyond it.
 
 | kind | cmd | state | result |
 |---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | satisfied | 10/10 scripts PASS; `test-factory-gh.py` **118/118** |
-| integration | `run-unit-tests.sh --kind integration` | satisfied | 12/12 scripts PASS; `test-factory-integration.py` **97/97** |
+| unit | `run-unit-tests.py --kind unit` | satisfied | 10/10 scripts PASS; `test-factory-gh.py` **118/118** |
+| integration | `run-unit-tests.py --kind integration` | satisfied | 12/12 scripts PASS; `test-factory-integration.py` **97/97** |
 
 `matrix_ok: true`. Denominator (P-04): 1/1 diffed tasks (T-01, carrying the MF-1 amendment) had a
 kind requirement; both required kinds ran and are green for it.
@@ -111,7 +111,7 @@ no new `check()` calls, no production-code branches added).
 
 ## Enforcement-layer defect encountered — not mine to fix
 
-`bash-write-guard.sh` mis-parsed `cp ... 2>/dev/null` — it treated the redirect target as if it were
+`bash-write-guard.py` mis-parsed `cp ... 2>/dev/null` — it treated the redirect target as if it were
 a `cp` destination and blocked the command as out-of-domain, even though the actual `cp` target was
 inside my own scratchpad. Worked around by dropping the `2>/dev/null` redirects; commands ran clean
 after. Raised as `open_questions` below per the harness-expertise rule (a harness bug belongs there,
@@ -119,7 +119,7 @@ not in Expertise, where a workaround would outlive the fix).
 
 ## What I did not do
 
-Did not touch `run-unit-tests.sh`, any DEC-174 carve-out file, or anything under `bin/` in place. The
+Did not touch `run-unit-tests.py`, any DEC-174 carve-out file, or anything under `bin/` in place. The
 one mutant proof ran against scratchpad copies only; `git status --porcelain -- .claude/skills/harness/bin/`
 confirmed empty after. No commit. Did not re-run the full Q1/Q2/Q3(a) analysis from the prior gate —
 none of it depends on code MF-1 touched (D-03 dead-branch logic, the fragment-boundary reachability

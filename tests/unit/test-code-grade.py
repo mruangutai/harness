@@ -257,7 +257,6 @@ SELF_GRADING_ALLOWLIST = {
     ("validate-digest.py", "bracket_depth"): 3,
     ("validate-digest.py", "parse_digest"): 1,
     ("validate-digest.py", "validate"): 1,
-    ("validate-digest.py", "check_artifact_file"): 2,
     ("validate-digest.py", "hook_mode"): 1,
 }
 
@@ -662,7 +661,7 @@ class Beta:
 
 def check_worked_examples():
     repo_root = Path(__file__).resolve().parents[2]
-    skill_path = repo_root / ".claude/skills/harness-code-risk-grading/SKILL.md"
+    skill_path = repo_root / ".claude/skills/harness/references/code-risk-examples.md"
     worked_examples = skill_path.read_text().split("## Worked examples\n", 1)[1]
     examples = re.findall(
         r"```python\n(.*?)```\nEXPECTED GRADE: ([1-5])",

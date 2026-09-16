@@ -34,7 +34,7 @@ build phase never discovers routing again.
 
 ## Success Criteria
 
-- SC-01: `check-domain.sh --resolve <path>` prints the complete, sorted set of agents whose domain
+- SC-01: `check-domain.py --resolve <path>` prints the complete, sorted set of agents whose domain
   grants write on that path — one name for a singly granted path, both names for
   `.claude/skills/harness/bin/**` which `team-config.yaml:155` and `:197` grant twice.
   verify: automated      evidence: unit
@@ -58,18 +58,18 @@ build phase never discovers routing again.
   does not silently pass; the reported plan's exit status is unchanged by the deferral.
   verify: automated      evidence: unit
 - SC-08: Exactly one path matcher exists, and `check-plan-routes.py` implements none of it. Four
-  clauses, each separately fixtured: (1) it invokes `check-domain.sh` for every path decision;
+  clauses, each separately fixtured: (1) it invokes `check-domain.py` for every path decision;
   (2) its source contains no `fnmatch`; (3) its source contains no glob-to-regex translation of its
   own; (4) it does no `startswith`/prefix comparison — proved behaviourally, not by grep: a path
   granted only through a mid-pattern wildcard (`.harness/features/*/runs/*-eng/**`,
   `team-config.yaml:278`) still resolves to its granting agent, where a prefix comparison on the
-  text before `/**` reports it ungranted. That is the exact bug `check-domain.sh:193` records.
+  text before `/**` reports it ungranted. That is the exact bug `check-domain.py:193` records.
   verify: automated      evidence: unit
 - SC-09: `templates/PLAN.md` carries a `## Lanes` section, an `execution_mode:` field on the task
   stanza, and both legal tokens named — so a planner reading only the template writes a routable
   plan.
   verify: automated      evidence: unit
-- SC-10: The whole unit suite passes with the new test file registered in `run-unit-tests.sh`, and
+- SC-10: The whole unit suite passes with the new test file registered in `run-unit-tests.py`, and
   the runner's drift detector accepts it rather than exiting 2 on an unlisted test.
   verify: automated      evidence: unit
 - SC-11: The plan-time route rule has exactly one home in the rule layer —
@@ -86,7 +86,7 @@ build phase never discovers routing again.
 
 - `functional`, `integration`, `component`, `ui`, `eval` and `typecheck` all carry `cmd: null` in
   `.harness/harness.json`. Every SC above rests on `unit`, whose runner exists
-  (`run-unit-tests.sh`) and whose `detect` glob `.claude/skills/harness/bin/test-*.py` matches the
+  (`run-unit-tests.py`) and whose `detect` glob `.claude/skills/harness/bin/test-*.py` matches the
   surface this feature changes — so no SC rests on a null kind.
 - What no runner proves: that a planning agent, given the new rule, actually runs the checker before
   handing a plan back. That is behaviour, not code. It rests on SC-11's inspection and on the next
@@ -94,18 +94,18 @@ build phase never discovers routing again.
 
 ## Constraints
 
-- **One matcher only.** `check-domain.sh`'s inline `matches()` (`:215`) has deliberately custom
+- **One matcher only.** `check-domain.py`'s inline `matches()` (`:215`) has deliberately custom
   semantics — its `:193` comment records that `fnmatch` is wrong here because `fnmatch`'s `*`
   matches `/`. A second implementation is the DEC-126 drift shape and is out.
 - **No agent's domain grants change.** This feature makes the existing grants legible at plan time;
   re-drawing them is a separate feature (grilling `## Out of scope`).
-- **DEC-174 carve-out applies to `check-domain.sh`.** It is a gate script: direct edit, tests run
+- **DEC-174 carve-out applies to `check-domain.py`.** It is a gate script: direct edit, tests run
   explicitly, a human reading the diff — never dispatched through a team run whose gates are the
   thing being changed.
 - **FEAT-08 (issue #58) is in flight and owns a disjoint file set.** No task here may write
   `harness/SKILL.md`, `harness-team/SKILL.md`, `harness-orchestrator.md`, `teams/*.yaml`,
-  `harness.json`, `check-state.sh`, `validate-digest.py`, `cost-report.py`, or anything under
-  `docs/harness/`. Consequences: the checker cannot become a `check-state.sh` invariant in this
+  `harness.json`, `check-state.py`, `validate-digest.py`, `cost-report.py`, or anything under
+  `docs/harness/`. Consequences: the checker cannot become a `check-state.py` invariant in this
   feature, and this feature ships without its `DECISIONS.md` entry (both raised as open questions).
 - Prose-only enforcement was rejected in grilling, for the DEC-125 "relied on being pointed at"
   reason. The rule text is necessary but is not the mechanism.

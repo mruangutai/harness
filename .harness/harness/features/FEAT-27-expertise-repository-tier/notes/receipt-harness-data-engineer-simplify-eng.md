@@ -1,14 +1,14 @@
 # Receipt — harness-data-engineer — simplify angle — FEAT-27
 
-**BLUF:** Two findings, both real, neither touches an assertion. (1) `inject-expertise.sh` carries
+**BLUF:** Two findings, both real, neither touches an assertion. (1) `inject-expertise.py` carries
 a manual sort step that duplicates ordering bash's own glob expansion already guarantees — confirmed
-empirically, not just by reading. (2) `check-expertise.sh` has a dead comment reference to a
+empirically, not just by reading. (2) `check-expertise.py` has a dead comment reference to a
 "CHANGE 1" label that doesn't exist in the file. Both are surgical, low-risk deletions/text fixes.
 No finding here weakens or removes a test assertion.
 
 ## Finding 1 — redundant sort duplicates glob's own ordering
 
-**File · lines:** `.claude/skills/harness/bin/inject-expertise.sh:82-90`
+**File · lines:** `.claude/skills/harness/bin/inject-expertise.py:82-90`
 
 ```bash
 sorted_idx=()
@@ -42,7 +42,7 @@ runs at all.
 
 **Alternative:** Delete the `sorted_idx` block (lines 82-90) and the loop below that consumes it;
 iterate `repo_segments`/`repo_files` directly in glob order, since that order is already the sorted
-one. One-line instruction: "drop the manual index-sort in `inject-expertise.sh` and iterate the
+one. One-line instruction: "drop the manual index-sort in `inject-expertise.py` and iterate the
 glob-populated arrays directly."
 
 **What would prove it safe:** Delete the block, iterate in glob order, and re-run
@@ -52,17 +52,17 @@ pre-sorted) so the test can no longer pass by accident either way.
 
 ## Finding 2 — dead reference to a nonexistent "CHANGE 1" comment
 
-**File · line:** `.claude/skills/harness/bin/check-expertise.sh:62`
+**File · line:** `.claude/skills/harness/bin/check-expertise.py:62`
 
 ```python
 def classify_tier(path):
     """Classify by the resolved absolute path, never the argument as typed —
     a bare-path invocation from a cwd under .harness/... must still resolve
-    to its true tier (see check-expertise.sh's CHANGE 1 note)."""
+    to its true tier (see check-expertise.py's CHANGE 1 note)."""
 ```
 
-**Summary:** The docstring points a reader at "check-expertise.sh's CHANGE 1 note" for more context.
-I grepped the file (`grep -n CHANGE check-expertise.sh`) — the only other `CHANGE` marker present is
+**Summary:** The docstring points a reader at "check-expertise.py's CHANGE 1 note" for more context.
+I grepped the file (`grep -n CHANGE check-expertise.py`) — the only other `CHANGE` marker present is
 `CHANGE 2` at line 150 (the advisory token-scan comment). There is no `CHANGE 1` anywhere in the
 file; the label narrates an earlier draft/review round of this diff rather than describing the
 present code, and now points nowhere.
@@ -71,22 +71,22 @@ present code, and now points nowhere.
 the reasoning from the surrounding code instead, and may reasonably suspect the file is missing a
 chunk of intended context (it isn't — the label is just a review-round artifact).
 
-**Alternative:** Replace `"(see check-expertise.sh's CHANGE 1 note)"` with the actual rationale
+**Alternative:** Replace `"(see check-expertise.py's CHANGE 1 note)"` with the actual rationale
 inline, or drop the parenthetical entirely — the preceding clause ("a bare-path invocation ... must
 still resolve to its true tier") already states the present fact on its own. One-line instruction:
-"delete the trailing `(see check-expertise.sh's CHANGE 1 note)` parenthetical at
-`check-expertise.sh:62`; the sentence stands without it."
+"delete the trailing `(see check-expertise.py's CHANGE 1 note)` parenthetical at
+`check-expertise.py:62`; the sentence stands without it."
 
-**What would prove it safe:** `grep -n CHANGE .claude/skills/harness/bin/check-expertise.sh` after
+**What would prove it safe:** `grep -n CHANGE .claude/skills/harness/bin/check-expertise.py` after
 the edit shows only the one remaining `CHANGE 2` marker (or none, if that label is cleaned too),
 confirming no comment points at a heading that isn't in the file.
 
 ## Not flagged (checked, judged fine)
 
-- `inject-expertise.sh`'s emit group (glob loop → segment filter → sort → emit block with the
+- `inject-expertise.py`'s emit group (glob loop → segment filter → sort → emit block with the
   precedence line and per-tier `cap_body` calls): still reads as one linear pipeline — gather,
   classify, present — despite five features landing together. No restructuring proposed.
-- `check-expertise.sh`'s tier classification (`classify_tier`) and the advisory token scan (lines
+- `check-expertise.py`'s tier classification (`classify_tier`) and the advisory token scan (lines
   ~150-157) are physically adjacent but functionally separable — the scan reads `tier` as a value
   the classifier already produced and gates on it once (`if tier == "craft"`), it does not reach
   back into classification logic. Reads as two things using one shared fact, not one tangled thing.

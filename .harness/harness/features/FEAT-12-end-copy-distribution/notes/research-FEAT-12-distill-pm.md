@@ -6,7 +6,7 @@ from my own observations log and notes; two come from the relayed candidates. Fo
 rejected — two relayed halves, two of my own — and seven items (four harness defects, three pending
 operator rulings) were routed to `open_questions` instead of Expertise, one Q entry each — seven.
 Each ruling travels separately because each needs a different operator decision.**
-`check-expertise.sh` → `OK`, exit 0. File is 101 lines of the 150 budget.
+`check-expertise.py` → `OK`, exit 0. File is 101 lines of the 150 budget.
 
 ## Counts
 

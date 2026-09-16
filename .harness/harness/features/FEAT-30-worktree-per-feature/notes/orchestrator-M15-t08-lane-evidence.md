@@ -4,9 +4,9 @@ The architecture review's S-B reader ruled T-08 correctly `team`-laned and said 
 Its conclusion may well be right, but two of its supporting claims do not survive checking, and both
 cut the same way — toward the operator's eye rather than away from it.
 
-## Correction 1. DEC-174 amendment 4 does not mention `run-unit-tests.sh` at all
+## Correction 1. DEC-174 amendment 4 does not mention `run-unit-tests.py` at all
 
-The receipt states that am.4 "discussed `run-unit-tests.sh` by name and did not add it to the
+The receipt states that am.4 "discussed `run-unit-tests.py` by name and did not add it to the
 enumerated five", and recommends an amendment recording that omission as **deliberate**.
 
 Measured: `awk` over the whole of amendment 4 returns **zero** occurrences of `run-unit-tests`. The
@@ -19,7 +19,7 @@ amendment, if one is written, says the question was **not reached** in am.4 and 
 ## Correction 2. DEC-174's own evidence paragraph lists it among the gates
 
 `DECISIONS.md:4662`, inside DEC-174's opening evidence: *"Every gate was green —
-`run-unit-tests.sh`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` — while:"*
+`run-unit-tests.py`, `check-docs.sh`, `check-state.py`, `gen-decisions-index.py --check` — while:"*
 and then the three failures self-hosting missed.
 
 So the entry that creates the carve-out names this script as one of the gates whose greenness proved
@@ -36,12 +36,12 @@ task gets."*
 
 - `required_pull_request_reviews` on `main` is **null** — one required context, `enforce_admins` on,
   **zero required reviewers**.
-- A CODEOWNERS file covering `/.github/` **and `run-unit-tests.sh`** is committed and **deliberately
+- A CODEOWNERS file covering `/.github/` **and `run-unit-tests.py`** is committed and **deliberately
   not enforced**, because `require_code_owner_reviews` would make every PR permanently unmergeable:
   sole collaborator, GitHub forbids self-approval, `enforce_admins: true` removes the bypass.
 - The repository's own history: **52 reviews, every one COMMENTED, none APPROVED.**
 
-A signed decision has already identified `run-unit-tests.sh` as a surface warranting owner review and
+A signed decision has already identified `run-unit-tests.py` as a surface warranting owner review and
 recorded that nothing requires one. So the mitigation the ruling leans on is the one control this
 repository provably lacks.
 

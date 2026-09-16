@@ -8,7 +8,7 @@ correctly. No `high` finding. One `low` documentation gap noted below.
 
 ## 1. Full-suite re-run — CONFIRMED, matches the prior qa note exactly
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind all` from worktree root:
+`.claude/skills/harness/bin/run-unit-tests.py --kind all` from worktree root:
 `EXIT:0`, `grep -c ^PASS` = 1117, `grep -c ^FAIL` = 0, `grep ^KIND-DRIFT:` = 0 lines. Full output
 captured to a file (never piped through `tail`) and searched with `grep`. Lines
 `PASS test-gen-decisions-index.py`, `PASS test-check-decision-anchors.py`,
@@ -28,7 +28,7 @@ captured to a file (never piped through `tail`) and searched with `grep`. Lines
 ## 3. Checker registration — CONFIRMED both places
 
 `test-check-decision-anchors.py` and `test-check-decision-claims.py` are literal members of BOTH
-`run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` array AND `harness.json`'s `integration.detect`
+`run-unit-tests.py`'s `INTEGRATION_SCRIPTS` array AND `harness.json`'s `integration.detect`
 pipe-list (grepped/parsed directly, not inferred). The runner's own set-comparison cross-check
 (`--check-kinds`) is part of the green run above — a mismatch would exit 2, not report FAIL.
 
@@ -102,5 +102,5 @@ No `high` finding. `matrix_ok: true`. `suite: pass`.
   `7ebfc9e`/pin/mutant copies, §4–§5.
 - SC-09 → `.claude/skills/harness/bin/check-decision-claims.py` run directly against pin/mutant
   copies, §5.
-- Registration (REQ-07/08 config half) → `run-unit-tests.sh:31` + `harness.json` `integration.detect`,
+- Registration (REQ-07/08 config half) → `run-unit-tests.py:31` + `harness.json` `integration.detect`,
   §3.

@@ -1,6 +1,6 @@
 # Observations — harness-pm — FEAT-32
 
-- 2026-08-21: `bash-write-guard.sh` denies a `sed -i` whose target is a shell VARIABLE — it printed
+- 2026-08-21: `bash-write-guard.py` denies a `sed -i` whose target is a shell VARIABLE — it printed
   "targets $P, outside your domain", i.e. it resolved the literal `$P`. Never pass a write target
   through a variable; either inline the absolute path or use the Edit tool. The Edit tool worked on
   the same file immediately after.
@@ -8,7 +8,7 @@
   the command carries no write pattern it recognises. That is #627 reproduced by accident while
   planning the feature that adds three more such CLIs. Recorded in the BRIEF as a stated bound, not
   designed around.
-- 2026-08-21: `run-unit-tests.sh --kind integration` prints three lines containing the word `ERROR`
+- 2026-08-21: `run-unit-tests.py --kind integration` prints three lines containing the word `ERROR`
   inside a test's own NAME (gh-sync expected-output cases). A baseline written as "zero ERROR lines"
   is therefore false at HEAD. Write the baseline as "no line BEGINNING `FAIL`, exit 0" instead.
 - 2026-08-21: `check-plan-routes.py <plan>` prints one line per task and a global summary; running
@@ -31,7 +31,7 @@
   The vacuum only appears via the two workarounds the same ruling forbids. Conclusion unchanged,
   premise wrong — re-derive even the measurement a ruling hands you as settled.
 - 2026-08-21: THREE line anchors cited through several planning rounds by three tiers had all drifted
-  by c32f332: `bash-write-guard.sh` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.sh`'s
+  by c32f332: `bash-write-guard.py` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.py`'s
   `SHAPE_PATTERNS` is `:727` not `:677`. Converted every one to a symbol reference. The pattern: the
   claim stays true while the pointer dies, so nothing ever fails.
 - 2026-08-21: "record the impossibility" was the wrong frame. The right move was to ask WHICH HARM
@@ -41,7 +41,7 @@
 - 2026-08-21: a plan-wide `verify:` fix that is self-locating beats one that hard-codes a path.
   `cd "$(git rev-parse --show-toplevel)"; export CLAUDE_PROJECT_DIR="$PWD"` at the head of all 13
   blocks is correct in the worktree AND on main; pinning the worktree path would have rotted at merge.
-- 2026-08-21: `bash-write-guard.sh` denied a `cat >> observations/harness-pm.md` heredoc from inside
+- 2026-08-21: `bash-write-guard.py` denied a `cat >> observations/harness-pm.md` heredoc from inside
   the feature directory — it resolves the RELATIVE path against `CLAUDE_PROJECT_DIR`, not the shell's
   cwd, so a legitimate in-domain append reads as out-of-domain. Append to a `notes/` or
   `observations/` file with the Write tool and an absolute path.
@@ -52,9 +52,9 @@
   use is a verify that fails on correct code. Scope the assertion to the lines carrying the defect
   (here: lines containing `except` and an approval fragment), and assert the REPLACEMENT is present
   per line, not just the old token absent file-wide.
-- 2026-08-21: A dispatch cited DEC-119 as check-domain.sh's fail-open-loudly precedent. `awk` over
+- 2026-08-21: A dispatch cited DEC-119 as check-domain.py's fail-open-loudly precedent. `awk` over
   `DECISIONS.md:2356-2408` for `fail.open|loud` returned zero lines; the real precedent is DEC-127
-  `@2805`, body `:2839`, plus the code's own comments at `check-domain.sh:798` and `:811`. A cited
+  `@2805`, body `:2839`, plus the code's own comments at `check-domain.py:798` and `:811`. A cited
   decision NUMBER is as rottable as a line anchor — grep the entry's body for the claim, not just the
   index row for the surface.
 

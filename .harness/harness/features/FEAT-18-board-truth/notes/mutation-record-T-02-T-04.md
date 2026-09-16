@@ -2,14 +2,14 @@
 
 ## What this note is
 
-T-02 (`gh_board.py` / `test-gh-board.py`) and T-04 (`check-state.sh` INV-26) ran
+T-02 (`gh_board.py` / `test-gh-board.py`) and T-04 (`check-state.py` INV-26) ran
 **main-session-direct** under the DEC-174 carve-out. That lane writes no receipt by design, so the
 mutation proofs run there left no artifact in this feature directory.
 
 The figures relayed through the build handoff were:
 
 - **T-02: 6 of 6 mutants killed** (`gh_board.py`, proved against `test-gh-board.py`)
-- **T-04: 5 of 5 mutants killed** (`check-state.sh` INV-26, proved against `test-check-state.py`)
+- **T-04: 5 of 5 mutants killed** (`check-state.py` INV-26, proved against `test-check-state.py`)
 
 ## Status of these figures: UNVERIFIED
 

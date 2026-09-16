@@ -2,7 +2,7 @@
 
 **BLUF:** T-09 built. `panel_findings.py` implements the content-hash identity, its test
 `test-panel-findings.py` was authored first and observed RED, then GREEN after the
-implementation, and it is registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS`. Plan's `verify:`
+implementation, and it is registered in `run-unit-tests.py`'s `UNIT_SCRIPTS`. Plan's `verify:`
 block ran verbatim from the worktree root and exited 0. Unit runner overall: 0 `^FAIL ` lines,
 exit 0. No commit made.
 
@@ -30,7 +30,7 @@ exit=0
 ## `verify:` block, byte-cross-checked against plan.yaml:995-1004, run from worktree root
 
 Exit code: **0**. Includes the full `test-panel-findings.py` run (9/9 pass) plus the
-`run-unit-tests.sh --kind unit` invocation (which also runs the unrelated existing suite,
+`run-unit-tests.py --kind unit` invocation (which also runs the unrelated existing suite,
 including a pre-existing `factory: decompose` stderr line from an unrelated test that is not
 part of T-09's files and asserts nothing about its own exit code) and the three id-equality/
 inequality/length checks. All passed.
@@ -38,7 +38,7 @@ inequality/length checks. All passed.
 ## Unit runner overall result (separate run, not tail-read)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/t09-unit.out 2>&1; st=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/t09-unit.out 2>&1; st=$?
 $ grep -c '^FAIL ' /tmp/t09-unit.out
 0
 $ echo "exit=$st"
@@ -51,7 +51,7 @@ exit=0
 
 ```
 $ git status --porcelain
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
  M .harness/harness/features/FEAT-45-adversarial-plan-panel/plan.yaml   <- pre-existing, not T-09's
 ?? .claude/skills/harness/bin/panel_findings.py
 ?? .claude/skills/harness/bin/test-panel-findings.py
@@ -71,7 +71,7 @@ was not touched by this run — it belongs to a status update outside T-09's fil
 - File modes match directory convention: `panel_findings.py` executable (755, matches
   `observations-merge.py`), `test-panel-findings.py` non-executable (644, matches
   `test-observations-merge.py`).
-- `run-unit-tests.sh` line 30: appended the literal string `"test-panel-findings.py"` to
+- `run-unit-tests.py` line 30: appended the literal string `"test-panel-findings.py"` to
   `UNIT_SCRIPTS`; no other line in that file changed. `harness.json` and `INTEGRATION_SCRIPTS`
   untouched, per non-goals.
 
@@ -145,7 +145,7 @@ $ ls .claude/skills/harness/bin/panel_findings*.py
 $ ls .claude/skills/harness/bin/test-panel-findings*.py
 .claude/skills/harness/bin/test-panel-findings.py
 $ git status --porcelain
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
  M .harness/harness/features/FEAT-45-adversarial-plan-panel/plan.yaml
 ?? .claude/skills/harness/bin/panel_findings.py
 ?? .claude/skills/harness/bin/test-panel-findings.py
@@ -169,7 +169,7 @@ verify_exit=0
 ### Unit runner overall, counted (final)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/t09-unit-c1.out 2>&1; st=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/t09-unit-c1.out 2>&1; st=$?
 $ grep -c '^FAIL ' /tmp/t09-unit-c1.out
 0
 $ echo "exit=$st"
@@ -184,4 +184,4 @@ $ git log --oneline -1
 ```
 
 HEAD unchanged from cycle 0. No `panel_findings.py`, `test-panel-findings.py`, or
-`run-unit-tests.sh` edit was made this cycle — every mutant lived and died in `/tmp`.
+`run-unit-tests.py` edit was made this cycle — every mutant lived and died in `/tmp`.

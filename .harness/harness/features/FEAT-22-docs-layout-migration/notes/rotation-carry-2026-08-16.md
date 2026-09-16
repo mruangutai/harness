@@ -37,7 +37,7 @@ T-10 and T-11 first (see `plan.yaml`), then, as orchestrator-sequenced squad seg
   enumeration. Post-move the sweep would have visited only an untracked `.DS_Store` and **every
   absence check would have gone vacuously green forever.** Caught only because the plan mandated a
   positive control. *A check that could not fail.*
-- T-07: `plan.yaml:927` calls `check-expertise.sh` with no argument; its usage gate exits 2 on empty
+- T-07: `plan.yaml:927` calls `check-expertise.py` with no argument; its usage gate exits 2 on empty
   argv, so that clause **cannot pass on any tree**. It survived ten plan revisions and four review
   rounds because no probe ever executed it. *A check that could not pass.*
 - **The joint lesson:** a green panel on a small delta cannot distinguish a clean delta from a

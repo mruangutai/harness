@@ -18,7 +18,7 @@ orchestrator, but the operator is committing from the main session, where no orc
   d7e8c66
 - `.claude/skills/harness/SKILL.md:50` reads `(DEC-201)`, so the citation now resolves — grepped —
   verified-at d7e8c66
-- T-05 landed: registered at `run-unit-tests.sh:17`, 9/9 green at HEAD, 9 named failures against the
+- T-05 landed: registered at `run-unit-tests.py:17`, 9/9 green at HEAD, 9 named failures against the
   `569d417` copy covering all eight assertions, `--kind unit` exits 0 — all re-run by the
   orchestrator — verified-at d7e8c66
 - SC-05 is MEASURED, superseding this note's seq-3 claim that it was unverified: the plan-phase

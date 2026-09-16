@@ -23,7 +23,7 @@ decision.
   four-of-eight binding, C4 missing remediation — re-read by me — verified-at b86565b
 - Eleven panel2 advisory findings survive UNDISPATCHED, plus panel1's F3 and F7 —
   `runs/panel2-validator/digest.md` — verified-at b86565b
-- panel2's `check-state.sh` line citations are anchored to a pin reachable only from
+- panel2's `check-state.py` line citations are anchored to a pin reachable only from
   `wip-omp-and-feat10-mixed` and will not match the file today —
   `runs/panel2-validator/digest.md` — UNVERIFIED
 - The A1 fix is verified against the STUB ONLY; the operator's live typo journey, the one thing

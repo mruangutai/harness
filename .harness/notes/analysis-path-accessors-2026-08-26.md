@@ -2,7 +2,7 @@
 
 Produced by the engineering squad (4 member runs, 3 cycles, 41 minutes) at `ee66ae2`.
 **Written to disk by the main session**: `.harness/notes/analysis-*.md` matches no `domain:`
-entry in `team-config.yaml`, so `check-domain.sh:828-834` refused every agent that tried. The
+entry in `team-config.yaml`, so `check-domain.py:828-834` refused every agent that tried. The
 lead's own domain (`:296-299`) is runs/expertise/observations only, and `:101` grants pm
 `.harness/notes/research-*.md` and nothing else under notes.
 
@@ -25,16 +25,16 @@ relayed as fact.
 | `factory_config.py:44` | `harness_root()` |
 | `harness_boundary.py:446` | `worktree_owner()` |
 | `wayfind.py:46` | `root()` |
-| `dispatch-guard.sh:75` | `_root_from()` |
-| `post-merge-sweep.sh:42` | `_resolve_repo_root()` |
-| `post-merge-sweep.sh:65` | `_resolve_main_checkout_root()` |
+| `dispatch-guard.py:75` | `_root_from()` |
+| `post-merge-sweep.py:42` | `_resolve_repo_root()` |
+| `post-merge-sweep.py:65` | `_resolve_main_checkout_root()` |
 
 ### THE CENSUS IS NOT EXHAUSTIVE, and the lead proved it itself
 
 Two more root resolvers exist that the AST expression **structurally cannot see**:
 
 - `harness_yaml.py:449` — `root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()`, inside `require_or_die()`. Missed because the join lives in `_marker_path`, not in this function's body.
-- `check-state.sh:22` — the shell chain, a module-level assignment, not a function.
+- `check-state.py:22` — the shell chain, a module-level assignment, not a function.
 
 **So it is 9+ resolvers, not 7.** Any "all call sites" claim rests on a detector that cannot
 spell two of them.
@@ -44,7 +44,7 @@ spell two of them.
 `context-watch.py:78, :164, :572`, `factory_claim.py:99`, `factory_config.py:334`,
 `feature-worktree.py:56`, `feature_schema.py:71`, `gh_cost_log.py:108` (out of scope),
 `harness_yaml.py:441`, `inflight_registry.py:52`, `layout_migration.py:194`,
-`worktree_terminal.py:38`, `board_lifecycle.py:451`, `wayfind.py:57`, `check-state.sh:58`.
+`worktree_terminal.py:38`, `board_lifecycle.py:451`, `wayfind.py:57`, `check-state.py:58`.
 
 ### C — NOT PATH ACCESSORS (58) — stay.
 
@@ -63,7 +63,7 @@ spell two of them.
 | `factory_config.py` | *"the only reader of a fleet member's own product configuration… always REMOTELY via `factory_gh.file_at_ref`"* | incl. `factory_gh` — **network, at module level** | 23 |
 | `wayfind.py` | — | — | 0 |
 
-`factory_config.py`'s 23 importers all inherit an eager network import, which `dispatch-guard.sh`
+`factory_config.py`'s 23 importers all inherit an eager network import, which `dispatch-guard.py`
 cannot afford running before every Bash call.
 
 **Caveat, stated rather than hidden:** `harness_boundary.resolve_fleet()` (`:209`) lazily imports
@@ -79,9 +79,9 @@ function* is not, and it carries no comment saying so.
 | `walk_up_for_probe(start, probe_relpath)` | Walking up from `start`, what is the nearest directory containing `probe_relpath`? |
 
 **Deletion test passes on all three.** The 4-up arithmetic is duplicated verbatim at
-`factory_config.py:44-50`, `context-watch.py:67-74`, `post-merge-sweep.sh:42-58`; the probe shape
+`factory_config.py:44-50`, `context-watch.py:67-74`, `post-merge-sweep.py:42-58`; the probe shape
 at `check-plan-routes.py:491-513` and `factory_config.py:44-58`; the walk at `wayfind.py:46-53`
-and `dispatch-guard.sh:75-88`.
+and `dispatch-guard.py:75-88`.
 
 An earlier draft's `harness_path(root, *segments)` was **DROPPED** — deleting it makes no
 complexity reappear.
@@ -100,9 +100,9 @@ accident.
 | `factory_config.py:44 harness_root()` | THIN-CALLER · 10 invocations, **0 need editing** · not barred · **the only row whose runtime behaviour changes** |
 | `harness_boundary.py:446 worktree_owner()` | **STAYS — bucket A was wrong.** It answers "which checkout owns this path" via a `.git`-pointer walk; it never touches env, derive, or probe |
 | `wayfind.py:46 root()` | THIN-CALLER · 1 site · not barred |
-| `dispatch-guard.sh:75` | THIN-CALLER · 1 site · **barred** (registered PreToolUse) |
-| `post-merge-sweep.sh:42` | THIN-CALLER · 1 site · **barred** (self-declared post-merge hook body) |
-| `post-merge-sweep.sh:65` | **STAYS — bucket A was wrong.** Asks git which linked worktree is main; its own docstring at `:71-72` insists the two never fuse |
+| `dispatch-guard.py:75` | THIN-CALLER · 1 site · **barred** (registered PreToolUse) |
+| `post-merge-sweep.py:42` | THIN-CALLER · 1 site · **barred** (self-declared post-merge hook body) |
+| `post-merge-sweep.py:65` | **STAYS — bucket A was wrong.** Asks git which linked worktree is main; its own docstring at `:71-72` insists the two never fuse |
 
 **Bucket B largely collapses, and this is the useful structural result.** 12 of the 15 STAY,
 because they already take `root` as an explicit parameter — `harness_yaml.py:441`,
@@ -146,9 +146,9 @@ guess.**
   (`FleetError` at `:66-71`) rather than today's warn-and-trust. Not a free ratification.
 - **Q3** — `.harness/notes/analysis-*.md` is in no agent's domain. One line at
   `team-config.yaml:101` would fix it: `- { path: .harness/notes/analysis-*.md, upsert: true }`.
-- **Q4** — is `post-merge-sweep.sh` inside DEC-174's execution bar? It is a self-declared
+- **Q4** — is `post-merge-sweep.py` inside DEC-174's execution bar? It is a self-declared
   post-merge hook body, absent from `.claude/settings.json`'s registered list.
-- **Q5** — `harness_yaml.py:449` and `check-state.sh:22` are the 8th and 9th resolvers. Fold in
+- **Q5** — `harness_yaml.py:449` and `check-state.py:22` are the 8th and 9th resolvers. Fold in
   or backlog?
 
 ## A HARNESS DEFECT the run surfaced
@@ -181,7 +181,7 @@ The probe is inconsistent today, and that IS the defect:
 | Site | Looks for |
 | --- | --- |
 | `check-plan-routes.py:498` | `.harness/team-config.yaml` |
-| `dispatch-guard.sh:89` | `.harness/team-config.yaml` |
+| `dispatch-guard.py:89` | `.harness/team-config.yaml` |
 | `factory_config.py:39` | `.harness/harness/docs/SPEC.md` |
 | `wayfind.py:51` | the `.harness` DIRECTORY — the known fail-open |
 
@@ -202,7 +202,7 @@ checkout with only the `scanning` line as a clue.
 ### The import-time risk, checked and cleared
 
 `factory_config.harness_root()` runs at MODULE IMPORT (`FLEET_PATH`, `:59`) for 23 importers,
-and `check-domain.sh:196` reaches it: `resolve_fleet` lazily imports `factory_config` inside a
+and `check-domain.py:196` reaches it: `resolve_fleet` lazily imports `factory_config` inside a
 `try`, whose `except` is `sys.exit(2)`. A strict raise there would BLOCK a governed write.
 
 **It cannot fire in that path.** `factory_config` resolves from its own `_BIN_DIR`, not from the
@@ -246,20 +246,20 @@ source of truth.
 | `dispatch-guard._root_from()` | `root_above(payload_path)` | 1 |
 | `post-merge-sweep._resolve_repo_root()` | `root_from_script(BIN_DIR)` | 1 |
 | `harness_yaml.py:449` | `resolve_root(_BIN_DIR)` | 1 |
-| `check-state.sh:22` | `resolve_root(_BIN_DIR)` | 1 |
+| `check-state.py:22` | `resolve_root(_BIN_DIR)` | 1 |
 | `harness_boundary.worktree_owner()` | — | **stays** |
 | `post-merge-sweep._resolve_main_checkout_root()` | — | **stays**, asks git, different question |
 
 **14 call-site edits. 7 definitions removed.**
 
-`dispatch-guard.sh` and `check-state.sh` are enforcement layer. Under DEC-174 the MAIN SESSION
+`dispatch-guard.py` and `check-state.py` are enforcement layer. Under DEC-174 the MAIN SESSION
 executes those directly, never the team.
 
 ## Still open — not ruled
 
 - **Q3** — `.harness/notes/analysis-*.md` is in no agent's domain, so no agent can write this
   kind of report. One line at `team-config.yaml:101` fixes it.
-- **Q4** — is `post-merge-sweep.sh` inside DEC-174's execution bar? Self-declared hook body,
+- **Q4** — is `post-merge-sweep.py` inside DEC-174's execution bar? Self-declared hook body,
   absent from `.claude/settings.json`'s registered list.
 - **Q6** — `validate-digest.py:148`/`:66` give an analysis-only dev persona no truthful `suite`
   value. It cost three of four report bodies and pushed two agents into fabricating `suite: pass`.

@@ -257,7 +257,7 @@ def test_strips_inline_ok_stale_marker_on_a_row():
     `<!-- ok-stale -->` survived regeneration byte-identical. That was correct while
     the propagation checker existed. DEC-188 struck the checker whole, and a live
     plant then proved the emitter was a revival vector — the marker propagated
-    through regeneration while check-state.sh and the whole unit suite stayed green.
+    through regeneration while check-state.py and the whole unit suite stayed green.
     Now the hand-written RULING must survive and the dead marker must not."""
     name = "test_strips_inline_ok_stale_marker_on_a_row"
     try:
@@ -910,7 +910,7 @@ def _dec_region(text, dec):
 
 
 def test_dec_210_entry_names_both_enforcement_points():
-    """T-08 (SC-09): a DEC-210 entry that omits the plan-sign-gate.sh half ships
+    """T-08 (SC-09): a DEC-210 entry that omits the plan-sign-gate.py half ships
     graded met unless something asserts its content. Guards the LIVE authority, not a
     fixture, and checks each clause separately so the clauses that hold never blind
     the check to the one that does not."""
@@ -923,13 +923,13 @@ def test_dec_210_entry_names_both_enforcement_points():
             print(f"FAIL - {name}: no '## {QUARANTINE_DEC}' heading found in {path}")
             return False
 
-        if "check-domain.sh" not in region:
-            print(f"FAIL - {name}: 'check-domain.sh' not found in the "
+        if "check-domain.py" not in region:
+            print(f"FAIL - {name}: 'check-domain.py' not found in the "
                   f"{QUARANTINE_DEC} region of {path}")
             return False
 
-        if "plan-sign-gate.sh" not in region:
-            print(f"FAIL - {name}: 'plan-sign-gate.sh' not found in the "
+        if "plan-sign-gate.py" not in region:
+            print(f"FAIL - {name}: 'plan-sign-gate.py' not found in the "
                   f"{QUARANTINE_DEC} region of {path}")
             return False
 

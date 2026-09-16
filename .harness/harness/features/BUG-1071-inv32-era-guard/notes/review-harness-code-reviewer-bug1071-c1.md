@@ -21,7 +21,7 @@ failure F2 was filed to end. **HIGH, one must_fix.**
 
 ## Stage 1 — spec compliance: PASS
 
-Diff is exactly `check-state.sh`, `test-check-state.py`, both `harness.json` copies, and the
+Diff is exactly `check-state.py`, `test-check-state.py`, both `harness.json` copies, and the
 FEAT-40 backfill — matches issue://1071 + cycle-0's F1/F2 + `handoff-plan.md`'s Working Set
 plus the two named remedies. No file outside that set is touched. `#1072`
 (`templates/team-config.yaml` parse failure) is filed separately and correctly left alone —
@@ -32,7 +32,7 @@ confirmed it still fails identically pre- and post-diff (`upgrade-config.py` pri
 
 ### F-A (HIGH, must_fix) — `/harness-init --upgrade` does not close F2 for a legacy project; it recreates it silently
 
-`check-state.sh:195-231` (era resolution) + `upgrade-config.py:187-207` (merge). Reproduced live
+`check-state.py:195-231` (era resolution) + `upgrade-config.py:187-207` (merge). Reproduced live
 with a from-scratch fixture (schema_version 1, no `panel_era_start`, one plan
 `approval.date: 2024-01-15`, no `panel:` block — a genuinely pre-panel historical approval):
 
@@ -54,7 +54,7 @@ The declared table's `null` row ("no pre-panel era; every approved plan graded")
 (`case_inv32_null_era_grades_everything`, `test-check-state.py:3247`). No test exercises the
 compound case: an *already-onboarded* project with real pre-panel history running the upgrade
 path. The one message that told the operator to also set a real date
-(`check-state.sh:216-219`) disappears the moment `--upgrade` runs, and the surviving per-plan
+(`check-state.py:216-219`) disappears the moment `--upgrade` runs, and the surviving per-plan
 message never mentions `panel_era_start` — an operator staring at 30 "no complete panel
 result" lines post-upgrade has nothing pointing them back at the one config key that would
 fix all of them. This is the exact failure mode F2 was filed to end
@@ -73,7 +73,7 @@ verifying them. `must_fix` no longer carries F-A.**
 ### F1 — undated approval now `bad`: no new hazard found (carry-forward, re-verified)
 
 Grepped every writer of `approval:` (`gh-sync.py:948-950`, `factory_decompose.py:342-344`
-read `status` only, never write it; `check-domain.sh:537` `approval_guard` only *denies*
+read `status` only, never write it; `check-domain.py:537` `approval_guard` only *denies*
 writes, never authors one). The only writer is the main session by hand, and
 `templates/plan.yaml:38-40` places `date:` directly under `status:` with no path to write one
 without the other via any script. Queried every `approval.status: approved` plan.yaml in the
@@ -105,7 +105,7 @@ implies was copied. Cosmetic overstatement of provenance; the value itself is co
   *null* branch as the comment claims, but the **outcome** is still fail-closed (grade
   everything, not exempt) — it reuses null's code path while landing on null's OUTCOME, which
   is the safe direction; no defect.
-- **fires exactly once**: hoisted read at `check-state.sh:195` is outside the
+- **fires exactly once**: hoisted read at `check-state.py:195` is outside the
   `for feat, doc in plan_docs.items()` loop (`:239`) — confirmed by definition-site reading,
   and empirically with a 2-plan fixture producing exactly 1 config-violation line.
 - **dependency order**: `read`, `H`, `json`, `re` all defined at lines 44/63/66, all before
@@ -123,7 +123,7 @@ instance of the class cycle 0 named.
 ### Verification run myself (not accepted from the author)
 
 - `python3 test-check-state.py`: **155 ok / 0 FAIL, exit 0** — exact match to claim.
-- `bash check-state.sh` (real tree): **exit 0, 0 VIOLATION, 32 INV-32 notes, 0 of them
+- `python3 check-state.py` (real tree): **exit 0, 0 VIOLATION, 32 INV-32 notes, 0 of them
   VIOLATION-tagged** (all 32 are `note`-level, i.e., all currently-graded/exempt correctly)
   — exact match to claim.
 - `code-grade.py --base 75daa3bb --head 6b65ecc`: 9 Python functions touched, 8 grade
@@ -139,7 +139,7 @@ Sent back to re-weigh F-A's severity against two in-band pointers I did not weig
 Verified both at source, plus a third found while checking them. My original artifact above
 is left unmodified; this section supersedes only F-A's rating and the DIGEST.
 
-**Pointer 1 — `check-state.sh:216-219`, the pre-upgrade key-absent VIOLATION.** Read the full
+**Pointer 1 — `check-state.py:216-219`, the pre-upgrade key-absent VIOLATION.** Read the full
 string (not a paraphrase): `"INV-32: .harness/harness.json has no `panel_era_start`, so no
 panel era can be resolved. Run /harness-init --upgrade (upgrade-config.py) to merge the key
 in, then set it to the date the adversarial panel became available here, or null if this
@@ -172,15 +172,15 @@ do it.
 
 **A fourth check, not asked for but load-bearing for the "wall of 30 lines" framing**: is the
 key-absent VIOLATION (pointer 1) actually separated in time from the per-plan wall, or do they
-co-occur? Read `check-state.sh:1966-1970`: both the era-resolution block and the per-plan loop
+co-occur? Read `check-state.py:1966-1970`: both the era-resolution block and the per-plan loop
 push into the *same* `bad` list, in execution order (era resolution at `:195-231` runs before
 the per-plan loop at `:239` in the same function), and `bad` is printed in append order as
-`VIOLATION` lines with a shared nonzero exit. So on the **first** `check-state.sh` run against
+`VIOLATION` lines with a shared nonzero exit. So on the **first** `check-state.py` run against
 an unupgraded legacy project — the state every such project is in until someone runs
 `--upgrade` — the two-step instruction line prints **immediately before** the wall of 30
 per-plan violations it explains, in the same invocation, not in some earlier run the operator
 might have missed. The "wall with nothing pointing back" scenario requires the operator to
-have run `--upgrade` (removing the config-shape line) *before* ever running `check-state.sh`
+have run `--upgrade` (removing the config-shape line) *before* ever running `check-state.py`
 against that project's real legacy plans at all — narrower than the original framing assumed,
 since for most already-onboarded projects the two messages arrive together on day one.
 
@@ -194,7 +194,7 @@ and who never opens `.harness/harness.json` despite it containing pointer 3. Tha
 is not impossible, but it now requires missing three independent, converging signals rather
 than one absent signal — nothing FORCES a value (correct, unchanged from cycle 1: no schema
 validation rejects `null` on a project with pre-existing approved plans), and the per-plan
-message genuinely never names `panel_era_start` (confirmed again at `check-state.sh:279`,
+message genuinely never names `panel_era_start` (confirmed again at `check-state.py:279`,
 unchanged). That residual is real and worth a follow-up (the per-plan message could name the
 key it depends on, or `--upgrade` could refuse to default-null when approved plans already
 predate the run), but it is no longer the "operator has nothing pointing them back" case my
@@ -221,7 +221,7 @@ follow-up, not a blocker on this feature. `must_fix` no longer contains F-A.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "CHANGED: F-A HIGH -> MED. Held cycle-1 was that no pointer exists back to panel_era_start; re-checked check-state.sh:216-219 and upgrade-config.py's added/print path plus a third pointer I found while verifying (_panel_era_start_note merges verbatim into the project's harness.json beside the null) — three converging in-band signals, two of which co-occur with the violation wall on the same run for the common already-onboarded case. A narrower residual (upgrade run for an unrelated reason, unread stdout, config file never reopened, per-plan message still silent on the key name) survives and is worth a should-fix follow-up, but is the unlikely case now, not the realistic one this repo's HIGH bar names."
+  headline: "CHANGED: F-A HIGH -> MED. Held cycle-1 was that no pointer exists back to panel_era_start; re-checked check-state.py:216-219 and upgrade-config.py's added/print path plus a third pointer I found while verifying (_panel_era_start_note merges verbatim into the project's harness.json beside the null) — three converging in-band signals, two of which co-occur with the violation wall on the same run for the common already-onboarded case. A narrower residual (upgrade run for an unrelated reason, unread stdout, config file never reopened, per-plan message still silent on the key name) survives and is worth a should-fix follow-up, but is the unlikely case now, not the realistic one this repo's HIGH bar names."
   stage1: PASS
   stage2: PASS
   severity_max: med
@@ -233,7 +233,7 @@ DIGEST:
   code_grade:
     - { qualname: "case_inv32_era_guard_is_load_bearing", path: ".claude/skills/harness/bin/test-check-state.py", line: 3196, result: grade_2, severity: med, driver: abc, reasoned: true }
   open_questions:
-    - { id: Q1, question: "Should-fix follow-up (non-blocking): the per-plan INV-32 'no complete panel result recorded' message (check-state.sh:279) never names panel_era_start, so an operator who reaches it without having read the upgrade-time stdout or reopened harness.json has no in-message pointer. Worth a small follow-up to name the key directly in that message.", blocking: false }
+    - { id: Q1, question: "Should-fix follow-up (non-blocking): the per-plan INV-32 'no complete panel result recorded' message (check-state.py:279) never names panel_era_start, so an operator who reaches it without having read the upgrade-time stdout or reopened harness.json has no in-message pointer. Worth a small follow-up to name the key directly in that message.", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/BUG-1071-inv32-era-guard/notes/review-harness-code-reviewer-bug1071-c1.md

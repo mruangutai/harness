@@ -24,7 +24,7 @@
   sentence that wraps across two lines, so it could never match and never fail. Only an
   **absence** assertion turns a line wrap into a false green; presence assertions break loudly.
   Grade the pattern's span against the matcher's unit.
-- `check-state.sh` emits one INV-28 line, naming `FEAT-24-config-responsibility-split` — a
+- `check-state.py` emits one INV-28 line, naming `FEAT-24-config-responsibility-split` — a
   `Done` feature with a null `pr`, outside this plan's twenty-three. REQ-04 working, not a
   regression.
 
@@ -59,7 +59,7 @@ main-session-direct dispatches are not runs, so the count is a floor.
 - Q4 (non-blocking, harness defect): FILED AS #670. Feature-id coinage collided twice and nothing
   detected it. The surviving pair is `FEAT-25-claim-feature-root` and
   `FEAT-27-expertise-repository-tier`.
-- Q5 (non-blocking, correction): "check-state.sh carries 19 invariants" is FALSE — INV-1..INV-27 run,
+- Q5 (non-blocking, correction): "check-state.py carries 19 invariants" is FALSE — INV-1..INV-27 run,
   INV-20 is taken, INV-10 is retired. pm used INV-28 correctly. Sibling orchestrators may carry the
   same false premise.
 - Q7 (non-blocking, operator): REQ-05 and SC-08 keep pre-amend counts ("eleven ... eleven",

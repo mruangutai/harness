@@ -19,7 +19,7 @@ have a runner. Neither mentions the CI job. So:
 - What changes is WHERE the live half runs: an agent runs it on demand, never `tests.yml`.
 
 **AND THERE IS A HARD CONSTRAINT THE PLAN MUST RESOLVE, not restate.**
-`.claude/skills/harness/bin/run-unit-tests.sh:40-51` is a drift detector: any `test-*.py` under
+`.claude/skills/harness/bin/run-unit-tests.py:40-51` is a drift detector: any `test-*.py` under
 `bin/` that appears in neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS` fails the ENTIRE suite with
 `MISCONFIGURED`, whichever `--kind` is being run. That closes both easy doors:
 
@@ -36,8 +36,8 @@ about, so a skip must be a named, printed outcome, not an early return.
 ## A-2 — SC-14 second half: APPROVED, option 1. INV-17 globs and shape-checks every handoff note.
 
 The criterion as written cannot go red, and this was verified at HEAD, not inferred:
-`check-state.sh:592-593` builds handoff paths ONLY by looping `SEAM_NOTES[status]`, so a note with
-any other stem is never opened; and `check-domain.sh:706`'s `RE_HANDOFF` already accepts
+`check-state.py:592-593` builds handoff paths ONLY by looping `SEAM_NOTES[status]`, so a note with
+any other stem is never opened; and `check-domain.py:706`'s `RE_HANDOFF` already accepts
 `handoff-[a-z0-9-]+\.md`, so writing a mid-phase note is already legal. Nothing to teach a seam
 table, nothing that could fail.
 
@@ -47,14 +47,14 @@ The approved behaviour, and it SPLITS one question into two that are welded toge
   EVERY file it finds — the four `HANDOFF_HEADINGS`, the 60-line cap, and T-10's new empty-body
   check.
 - `SEAM_NOTES` is UNCHANGED and still answers the separate question of which notes are REQUIRED.
-  Do not derive stems from status values; the comment at `check-state.sh:474` records that
+  Do not derive stems from status values; the comment at `check-state.py:474` records that
   deriving matches on a case-insensitive filesystem and goes dark on Linux CI.
 - A shape failure is a VIOLATION through the existing `bad.append` path at `:618`, not a warning.
   The "warn instead" variant was offered and rejected.
 
 MIGRATION COST IS ZERO, measured, and the plan should not re-derive it blindly — but it MUST
 re-assert it as a task receipt, because the gate's reach is retroactive by construction:
-`check-state.sh` sweeps every feature directory on every run, so these files are read the moment
+`check-state.py` sweeps every feature directory on every run, so these files are read the moment
 the glob lands. Measured at ddeebb5: 71 handoff notes; 3 carry non-seam stems —
 FEAT-09-plan-time-route-check/notes/handoff-ship.md (56 lines), FEAT-22-docs-layout-migration/
 notes/handoff-t09-rotation.md (50), FEAT-24-config-responsibility-split/notes/handoff-ship.md
@@ -67,7 +67,7 @@ Note for whoever writes it: the FEAT-01/FEAT-02 literal exemption and the all-ma
 exemption skip only the MISSING-note branch at `:594`. Once a file exists the shape check at
 `:614` runs regardless. The glob does not change that rule; it widens which files reach it.
 
-This lands in the SAME `check-state.sh` INV-17 block that T-10 already edits, and it is
+This lands in the SAME `check-state.py` INV-17 block that T-10 already edits, and it is
 enforcement-layer work under DEC-174 — so it is `main-session-direct`, like T-10. Fold it into
 T-10 or add a sibling task; say which and why. Its red proof follows T-10's rule: a mutant copy
 located by a marker comment, the mutation ASSERTED APPLIED before anything runs, and a COUNT of
@@ -89,10 +89,10 @@ Verified at ddeebb5 by classifying both filenames against `.harness/harness.json
 
 The cause: `test_kinds.unit.detect` includes the glob
 `.claude/skills/harness/bin/test-*.py`, which matches everything; `test_kinds.integration.detect`
-is an EXPLICIT filename list, and T-07 never adds itself to it. So `run-unit-tests.sh --kind
+is an EXPLICIT filename list, and T-07 never adds itself to it. So `run-unit-tests.py --kind
 integration` would run the file while the qa matrix reads it as a unit test.
 
-This is SILENT. `run-unit-tests.sh`'s drift detector reads its own two arrays and never reads
+This is SILENT. `run-unit-tests.py`'s drift detector reads its own two arrays and never reads
 `harness.json`, so nothing catches the disagreement.
 
 Fix: add `.harness/harness.json` to T-07's `files:` and its intent, appending the filename to
@@ -133,20 +133,20 @@ reaches it. The "skip loudly" alternative A-1 offered is the WEAKER door and sho
 green suite that verified nothing — this repository's most-filed defect shape.
 
 **C-2 — F-1 is EIGHT files, not one, and the operator has ruled on the class.** Eight of the
-twelve entries in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` are absent from
+twelve entries in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` are absent from
 `test_kinds.integration.detect`, so each classifies as `unit` via that kind's catch-all
 `.claude/skills/harness/bin/test-*.py`. `test-upgrade-config.py` is among the eight and T-05
 already edits it.
 
 RULING D-4: **fix all eight, AND add a check so the two lists cannot disagree silently again.**
 Not the instance, not the eight alone. The check is the point: today
-`run-unit-tests.sh`'s drift detector reads its own two arrays and NEVER reads `harness.json`, so a
+`run-unit-tests.py`'s drift detector reads its own two arrays and NEVER reads `harness.json`, so a
 mismatch between the arrays and `test_kinds` is invisible to every gate. Whatever form the check
 takes, it must be able to go RED — assert the mismatch is DETECTED, not that a command exited
 non-zero.
 
 **C-3 — A-2 carries a double-report risk the answers file did not name.** One loop at
-`check-state.sh:592` currently BOTH builds the required-note path AND shape-checks it. Adding a
+`check-state.py:592` currently BOTH builds the required-note path AND shape-checks it. Adding a
 glob pass without first moving the shape check out of that loop would report every seam-stem
 failure twice. Resolve it by ordering or by structure, and say which.
 
@@ -161,9 +161,9 @@ notes fails T-10's not-yet-existing empty-body rule: their `## Next` bodies hold
 non-blank lines. Nothing to migrate, nothing to raise.
 
 **C-6 — TWO CITATIONS IN THE RULINGS ABOVE ARE CHECKOUT-DEPENDENT, and one is wrong for your
-checkout.** `RE_HANDOFF` is at `check-domain.sh:665` in this worktree, not `:706`; `:706` is its
+checkout.** `RE_HANDOFF` is at `check-domain.py:665` in this worktree, not `:706`; `:706` is its
 line in the main checkout, which sits on a different branch. `SEAM_NOTES` is at
-`check-state.sh:495`. Prefer the symbol name over the line number where you can.
+`check-state.py:495`. Prefer the symbol name over the line number where you can.
 
 **C-7 — EVERY COUNT IN A RECEIPT MUST NAME ITS CHECKOUT OR SHA.** The handoff-note corpus is 71
 notes in the main checkout and 69 in this worktree. It reconciles exactly: FEAT-30's three notes,
@@ -177,9 +177,9 @@ Carry them forward in your return; do not resolve them yourself.
 
 - **Q-A: is `harness.json`'s `test_kinds` enforcement layer under DEC-174?** It is config CONSUMED
   BY gates rather than a hook or gate script, and DEC-174 am.4's list is non-exhaustive. This
-  decides D-4's `execution_mode`. `check-domain.sh --resolve` grants `.harness/harness.json` to
+  decides D-4's `execution_mode`. `check-domain.py --resolve` grants `.harness/harness.json` to
   `harness-dev-ops` and T-03 already edits it as `team`. The sibling question was raised for
-  `run-unit-tests.sh` in an earlier round and never answered.
+  `run-unit-tests.py` in an earlier round and never answered.
 - **Q-B: is "explicit list beats catch-all glob" written down anywhere?** Four files already sit in
   both `unit.detect` and `integration.detect` and are treated as integration, so precedent is
   clear — but the dead round could find it STATED nowhere, and there is no programmatic classifier.

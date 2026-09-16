@@ -4,7 +4,7 @@
 
 **Plan phase is COMPLETE. Nothing remains in it.** Plan and BRIEF are signed (Mike Ruangutai,
 2026-09-02, `85900e7f`), station is `ready`, the mirror is open, and FEAT-48 carries zero
-`check-state.sh` violations.
+`check-state.py` violations.
 
 The build phase begins with `harness-eng-lead` hosting the `build` team, task set **T-01 alone** —
 the DAG is a strict chain T-01 → T-02 → T-03 → T-04 → T-06 → T-05, so each dispatch is one task.
@@ -20,7 +20,7 @@ plan first, then the subcommand, or the parent write is a silent no-op.
 - Mirror open and correct: milestone #40, parent #1191, T-01..T-06 → #1192-#1197 all at `ready`,
   and `gh-sync: T-07 is abandoned — no sub-issue created` — the tool's own output —
   verified-at 99dab78a
-- Zero `check-state.sh` violations for FEAT-48 — full run — verified-at 99dab78a
+- Zero `check-state.py` violations for FEAT-48 — full run — verified-at 99dab78a
 - The rebase onto `d135364e` did NOT change `plan.yaml`: blob `9684cf17` before and after —
   `git rev-parse <sha>:<path>` on both sides — verified-at 99dab78a
 - **Two NEW live-tree mutation sites are in the tree**, `test-check-fixture-secrets.py:150` and

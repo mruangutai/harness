@@ -5,7 +5,7 @@ SC-19 number drift) and one live-board observation that is expected transient st
 
 ## Suite
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind all`, run to completion (not truncated by the
+`.claude/skills/harness/bin/run-unit-tests.py --kind all`, run to completion (not truncated by the
 120s foreground timeout — ran in background to full exit):
 
 - **46 of 46 scripts PASS, 0 FAIL, 0 MISCONFIGURED, exit 0.** Confirmed, matches the dispatch's
@@ -13,10 +13,10 @@ SC-19 number drift) and one live-board observation that is expected transient st
   "MISCONFIGURED/ImportError/Traceback/MODULE_NOT_FOUND" are all test *names* asserting the
   *absence* of a traceback (e.g. `run(): without FACTORY_DEBUG set, no traceback is printed`) —
   none are a real collection/import error.
-- `check-state.sh` exits 0. Live re-run right now shows exactly 1 VIOLATION, and it names
+- `check-state.py` exits 0. Live re-run right now shows exactly 1 VIOLATION, and it names
   FEAT-34's unsigned BRIEF.md — unrelated to this feature, matching migration-harness.md's and
   T-11's verify's exact claim (`grep -c '^  VIOLATION'` = 1, no line contains `FEAT-33`).
-- `test-board-lifecycle.py` is correctly registered in `run-unit-tests.sh:17` `UNIT_SCRIPTS` (the
+- `test-board-lifecycle.py` is correctly registered in `run-unit-tests.py:17` `UNIT_SCRIPTS` (the
   mandatory one-line edit T-04 calls out — an unregistered `test-*.py` would exit 2 MISCONFIGURED
   and was checked, not assumed).
 
@@ -52,7 +52,7 @@ Against `harness.json`'s `test_matrix` on the corrected counts:
 - SC-06/08: `test-factory-config.py:365-436` (six accepted, five/seven rejected); SC-08's actual discriminator is `test-board-lifecycle.py:390-401` ("no argv contains 'Abandoned'"), correctly NOT the seven-key rejection case (plan explicitly separates these)
 - SC-07: `test-board-lifecycle.py:362-363` ("nothing to do")
 - SC-09: `test-board-lifecycle.py:556-568`
-- SC-10: suite green (above) + `check-state.sh` exit 0 + four-file untouched list confirmed via `git diff --stat` against `gh_board.py`/`board-station.py` (both absent from diff, as required)
+- SC-10: suite green (above) + `check-state.py` exit 0 + four-file untouched list confirmed via `git diff --stat` against `gh_board.py`/`board-station.py` (both absent from diff, as required)
 - SC-11: **deliberately `not_met`** — `notes/migration-kaya-ai.md` is explicit that this is uat, operator-run
 - SC-12: `DECISIONS.md` DEC-196 am.3 declares `plan`; `DECISIONS-INDEX.md:214` reads `am.1-am.4`; `gen-decisions-index.py --stdout` diffed clean against the committed index (live-verified)
 - SC-13/14: `gh-sync.py:878-961` matches spec exactly (Ready→sub-issues only, never parent; Review→parent+sub-issues; Done/Abandoned/Plan write nothing); tests at `test-gh-sync.py:1596-1697` assert exact sets, not counts
@@ -60,7 +60,7 @@ Against `harness.json`'s `test_matrix` on the corrected counts:
 - SC-16: `test-board-lifecycle.py:592-670` — FEAT-32 (fixture), FEAT-08 (#85), FEAT-09 (#98) each its own assertion, plus three exemptions each individually asserted
 - SC-17/18: `test-gh-sync.py` title-generator assertions (T-16); backfill refusal/skip cases in `test-board-lifecycle.py` (T-17)
 - SC-19: `notes/retitle-harness.md` — **number drift, not a failure**: report shows 218 renamed (not the brief's estimated 188), 0 already-correct, 0 refused, second run "0 to rename", 436 GraphQL points logged. The 188 was a 2026-08-22 measurement; 30 more task tickets existed by 2026-08-23 execution (other in-flight features). Substance of SC-19 (report exists, zero refused, idempotent re-run, points logged) is met; the specific count is stale in the BRIEF, not wrong in the evidence.
-- SC-20: `check-state.sh:1354-1362` bounded exactly to `feature.json.status == "Review"`; both directions asserted in `test-check-state.py:1608-1653` (v.T22a-d)
+- SC-20: `check-state.py:1354-1362` bounded exactly to `feature.json.status == "Review"`; both directions asserted in `test-check-state.py:1608-1653` (v.T22a-d)
 
 ## Coverage gaps found (Phase 1 vs Phase 2 delta)
 
@@ -99,7 +99,7 @@ something the report tried to hide. This is a finding for the record, not a gate
 Confirmed live: T-09's `--check`-style clause was already corrected to the real
 `gen-decisions-index.py --stdout | diff` form and passes live. T-11/T-12/T-18's corrected verifies
 (replacing "grep this session's own report for a string" with live tool re-invocations) were
-spot-checked and pass live where check-state.sh and audit/retitle re-runs were safe to perform
+spot-checked and pass live where check-state.py and audit/retitle re-runs were safe to perform
 read-only. No new instance of the self-satisfying-grep defect was found beyond the six already
 disclosed and corrected in `plan.yaml`.
 
@@ -124,7 +124,7 @@ violation found in the sampled tasks.
 | SC-07 | `.claude/skills/harness/bin/test-board-lifecycle.py:362-363` |
 | SC-08 | `.claude/skills/harness/bin/test-board-lifecycle.py:390-401` |
 | SC-09 | `.claude/skills/harness/bin/test-board-lifecycle.py:556-568` |
-| SC-10 | suite run above + `check-state.sh` live exit 0 |
+| SC-10 | suite run above + `check-state.py` live exit 0 |
 | SC-11 | not_met (uat, operator-run) — `notes/migration-kaya-ai.md` |
 | SC-12 | `.harness/harness/docs/DECISIONS.md` DEC-196 am.3 + `DECISIONS-INDEX.md:214` (inspection) |
 | SC-13 | `.claude/skills/harness/bin/test-gh-sync.py:1596-1697` |

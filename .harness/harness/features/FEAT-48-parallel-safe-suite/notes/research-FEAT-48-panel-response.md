@@ -3,7 +3,7 @@
 ## BLUF
 
 `D-09` is rewritten: **FEAT-48 ships whole and first**, against today's array-driven
-`run-unit-tests.sh`. No task waits on FEAT-47, so VL-01's census deadlock and F-06's unenforceable
+`run-unit-tests.py`. No task waits on FEAT-47, so VL-01's census deadlock and F-06's unenforceable
 cross-feature edge both dissolve rather than being patched. **The `bin/test-*.py` list in the batch
 contract is UNCHANGED** — still exactly `test-suite-independence.py` and `test-run-pool.py`, plus the
 non-test helpers `isolated_bin.py` and `run_pool.py` which stay in `bin/`. The old T-04 is split:
@@ -53,7 +53,7 @@ run_pool: a tracked file changed while the suite ran — this violates REQ-01.
 
 Three design points that are the difference between a gate and a decoration:
 
-- **The flag is not optional in the one caller CI runs.** `run-unit-tests.sh` always passes it, and
+- **The flag is not optional in the one caller CI runs.** `run-unit-tests.py` always passes it, and
   T-06's verify asserts the flag is on that invocation line — otherwise "off" is a silent state.
 - **A non-checkout root exits 2**, never "clean". An empty snapshot that reports no findings is the
   #979 shape all over again.

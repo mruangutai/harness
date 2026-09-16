@@ -43,7 +43,7 @@ once FEAT-08 deletes both. The rider becomes a deletion instead of a relocation.
 - **#82** give a held orchestrator read-only work. Tiny, no evidence section in the review, no
   batch of its own; it rides with B because both touch the orchestrator playbook.
 
-**#79 touches `check-state.sh` — DEC-174 carve-out.** Direct execution, tests run explicitly, a
+**#79 touches `check-state.py` — DEC-174 carve-out.** Direct execution, tests run explicitly, a
 human reads the diff.
 
 ### C — the validation and close-out tier · #7, #21, #80
@@ -86,7 +86,7 @@ additive-line, byte-identical-revert technique both existing measurements used, 
 FEAT-07's probe-don't-infer rule now mandates. **Until that lands, any plan is a guess about a
 mechanism nobody has observed.** Only after the probe does D become plannable.
 
-`check-domain.sh` is DEC-174 carve-out.
+`check-domain.py` is DEC-174 carve-out.
 
 ## Sequencing summary
 

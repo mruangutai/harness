@@ -21,8 +21,8 @@ already substantively disclosed elsewhere in the record. Zero high+.
    (`WARNING - station committed nowhere` / `WARNING - station recorded but NOT committed`) —
    read both bodies at source, asymmetry is deliberate and correct: unwritten is unrecoverable,
    uncommitted is not. `test-gh-sync.py:3218-3245`'s `_GATE_LITERALS = re.findall(r'if "([^"]+)"
-   in combined:', open(post-merge-sweep.sh).read())` genuinely reads the literals out of the
-   sweep — I ran the regex myself against `post-merge-sweep.sh` and it yields exactly
+   in combined:', open(post-merge-sweep.py).read())` genuinely reads the literals out of the
+   sweep — I ran the regex myself against `post-merge-sweep.py` and it yields exactly
    `["gh-sync: SKIP", "gh-sync: FAILED"]` (lines 192, 206); the F-01 fixture drives both
    `_record_station` failure branches (unlink, garbled YAML) and asserts one of those literals
    appears. Not retyped, not vacuous.
@@ -60,7 +60,7 @@ already substantively disclosed elsewhere in the record. Zero high+.
    is empty (0 lines) — byte-identical, confirmed directly, not narrative. `plan.yaml:1707`
    T-18's `status: abandoned` (not `done`) — read at source.
 
-6. **T-14 → INV-33, no shadowing — correct.** `check-state.sh:264-387` is `# INV-32 BEGIN/END
+6. **T-14 → INV-33, no shadowing — correct.** `check-state.py:264-387` is `# INV-32 BEGIN/END
    (FEAT-45 T-07)`; `:488-558` is a separate, non-overlapping `# INV-33` block (FEAT-41 T-14).
    `test-check-state.py` carries disjoint helpers (`_inv32_*` vs `_inv33_*`/`case_inv33a/b/c`)
    with no shared fixture path between them. No duplicate id, no shadowing.
@@ -122,7 +122,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
   `None`/is omitted from the mapping, never guessed. `read_station`'s own docstring names
   exactly the "silence reads as proof" failure mode this feature exists to close, and its
   three-way `(station, reason)` return avoids it. No fail-open found here.
-- `check-state.sh` INV-26 (:1884): confirmed the `_want is None` branch is now `bad.append(...)`
+- `check-state.py` INV-26 (:1884): confirmed the `_want is None` branch is now `bad.append(...)`
   (loud violation), not the old `continue` — matches SC-13's requirement, read at the site.
 - `check-plan-routes.py` `_is_shipped` (:525): explicitly documented and structured to fail
   toward "examine" rather than "skip" on any unreadable/ambiguous input; the function's own
@@ -131,15 +131,15 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
   `_t09_spelling` (:2638) only exercises case-variant evasion (`Plan.yaml`, `PLAN.YAML`,
   `plan.YAML`) plus two negative controls; no case in `run_t09` drives `./`, `..`, doubled-slash,
   absolute-path, or a symlinked feature directory against `RE_PLAN_YAML` specifically, despite
-  the code comment (`check-domain.sh:1065-1078`) and commit message asserting all five are
+  the code comment (`check-domain.py:1065-1078`) and commit message asserting all five are
   "already denied." I checked the underlying mechanism myself: `_norm` (:984) resolves via
   `os.path.abspath` before the regex ever runs, which lexically collapses `.`/`..`/doubled-slash
   — sound. The symlinked-directory claim is also sound: the regex matches the path's *shape*
   (final component literally `plan.yaml`), so where an intermediate segment resolves is
   irrelevant to the match. The argument holds; it is simply untested for this specific pattern.
   Recommend a follow-up case in `_t09_spelling`, not a re-open of F-04.
-- `plan-sign-gate.sh`/`.py` wiring: confirmed registered under `PreToolUse` → `Bash` matcher in
-  `.claude/settings.json:31-46`, alongside `bash-write-guard.sh`/`gh-close-gate.sh` — not a
+- `plan-sign-gate.py`/`.py` wiring: confirmed registered under `PreToolUse` → `Bash` matcher in
+  `.claude/settings.json:31-46`, alongside `bash-write-guard.py`/`gh-close-gate.py` — not a
   guard that exists but never fires.
 - No new bare `except:`, unchecked `subprocess` returncode, or "absence of a word means
   success" instance found beyond the F-01 class already fixed, across the explicit file set.
@@ -149,7 +149,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
 - `worktree_terminal.py`'s `_hook_feature_dir`/`inflight_registry` mechanism itself — it lives
   in `origin/main`, confirmed byte-identical to this feature's copy, so it is out of this diff's
   code-quality scope; security reviewer's lens per D-16's own framing.
-- Full `check-state.sh`/`test-check-state.py` run — per this cycle's suite-serialization
+- Full `check-state.py`/`test-check-state.py` run — per this cycle's suite-serialization
   constraint, qa owns it exclusively; I read the specific INV-32/33 sites rather than executing
   the suite.
 

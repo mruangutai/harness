@@ -51,5 +51,5 @@ A bare `count == 3` passes all four. That is why it is forbidden and not used.
   the vocabulary entry would not fire. Zero such entries today; the number-independent shape is what
   R-02 prescribes, so no deviation was made.
 - The dispatch declares a standing red elsewhere (`check-plan-routes.py` 35 violations across 16
-  plans, `check-state.sh` exit 1); I did not observe those numbers and did not chase them. What I
+  plans, `check-state.py` exit 1); I did not observe those numbers and did not chase them. What I
   did observe: scoped to this plan the checker reports **0 violations**, T-09 `OK`.

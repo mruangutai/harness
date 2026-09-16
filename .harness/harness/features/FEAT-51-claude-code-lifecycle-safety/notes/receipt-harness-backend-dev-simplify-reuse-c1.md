@@ -2,7 +2,7 @@
 
 `quarantine.py` does everything T-04 specified — it imports `inflight_registry.CANONICAL_ARTIFACTS`
 and delegates `plan.yaml` adoption to `plan-merge.py apply`; no violation there. But the reverse
-direction the dispatch asked me to check independently turns up a real one: `check-domain.sh` and
+direction the dispatch asked me to check independently turns up a real one: `check-domain.py` and
 `plan-sign-gate.py` hand-write the *same four-clause refusal sentence* twice, verbatim except for
 the label prefix. I also found two more reuse gaps on my own pass: a hardcoded canonical-artifact
 tuple in `test-quarantine.py` that should import the constant it is testing against, and a
@@ -30,14 +30,14 @@ total, three writable, one report-only.
 `quarantine_rel` naming convention correctly, and does delegate plan.yaml adoption to
 plan-merge.py — verified at `quarantine.py:107-108`, `:117-140`.**
 
-## Lead 2 — check-domain.sh vs plan-sign-gate.py refusal messages: DUPLICATE, report-only
+## Lead 2 — check-domain.py vs plan-sign-gate.py refusal messages: DUPLICATE, report-only
 
 Both files, on the same orphan-write-to-canonical-artifact condition, hand-construct a message
 asserting the same four facts: (1) the path is canonical, (2) the agent holds no live claim for
 the feature, (3) the parent is gone and a replacement may be racing, (4) adoption is the resumed
 parent's exclusive act.
 
-- `check-domain.sh:1695-1702`:
+- `check-domain.py:1695-1702`:
   `f"check-domain: BLOCKED — {_show(target)} is canonical, but {agent} holds no live claim for "`
   `f"{_feature}. Its parent is gone and a replacement may already be writing.\n"`
   `f"  Write the completed result to {_quarantine} instead.\n"`
@@ -66,11 +66,11 @@ lines later for the quarantine refusal.
 
 **Alternative:** hoist the shared sentence into one function in `inflight_registry.py` (the
 module both callers already import), e.g. `orphan_refusal_reason(target_or_rel, agent, feature)`
-returning the canonical-but-no-claim clause, called from both `check-domain.sh` and
+returning the canonical-but-no-claim clause, called from both `check-domain.py` and
 `plan-sign-gate.py`; each site keeps its own label prefix and remedy line, which are the only
 parts that legitimately differ by tool surface.
 
-**`applicable: report-only`** — both `check-domain.sh` and `plan-sign-gate.py` are on the DEC-174
+**`applicable: report-only`** — both `check-domain.py` and `plan-sign-gate.py` are on the DEC-174
 no-edit list; this is filed for the record, not for this pass to apply.
 
 ## Additional findings (my own pass)
@@ -139,7 +139,7 @@ copy of the toggle.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: quarantine.py reuses inflight_registry/plan-merge.py correctly; check-domain.sh and plan-sign-gate.py hand-duplicate one refusal sentence, plus two test-file duplications found independently
+  headline: quarantine.py reuses inflight_registry/plan-merge.py correctly; check-domain.py and plan-sign-gate.py hand-duplicate one refusal sentence, plus two test-file duplications found independently
   findings_count: 4
   open_questions: []
   files_touched:

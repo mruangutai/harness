@@ -8,13 +8,13 @@ below (`diff <(git show 70fd441:<path>) <path>` empty in every case) — all lin
 Stage 1 (spec compliance against BRIEF.md/plan.yaml) precedes stage 2 throughout; findings below are
 labelled by half, not by stage, per this dispatch's requested split.
 
-## Half one — re-review of the SC-05 restructure (`check-state.sh` INV-32)
+## Half one — re-review of the SC-05 restructure (`check-state.py` INV-32)
 
-**The only functional change in `check-state.sh` between c1 (`c745d3a`) and c2 (`70fd441`) is the
-elif-chain at lines 214–219** (`git diff c745d3a 70fd441 -- check-state.sh`: 10 insertions / 6
+**The only functional change in `check-state.py` between c1 (`c745d3a`) and c2 (`70fd441`) is the
+elif-chain at lines 214–219** (`git diff c745d3a 70fd441 -- check-state.py`: 10 insertions / 6
 deletions, the rest is comment/DEC-number drift). Confirmed by diffing the two pins directly.
 
-At `70fd441`, `check-state.sh:211-219`:
+At `70fd441`, `check-state.py:211-219`:
 ```
 211        fid = str(item.get("id", "")).strip() or "<missing>"
 212        severity = str(item.get("severity", "")).strip().lower()
@@ -129,7 +129,7 @@ Run against a fixture with a real, unrelated `FEAT-OTHER` (`approval.status: pen
 `CLAUDE_PROJECT_DIR`/`HARNESS_PROJECT_DIR` set to the fixture root: **`RC 0`, stdout `digest ok`.**
 Any agent that needs a passing `harness-code-reviewer` binding check but never reviewed anything can
 pick literally any other still-pending, unsigned feature in the repo (this checkout currently has
-dozens — a `check-state.sh` dry run lists 30+ features "approved with no complete panel result
+dozens — a `check-state.py` dry run lists 30+ features "approved with no complete panel result
 recorded", and pre-signature-pending ones are the intended everyday case for this new path) and cite
 its coordinates. Nothing about the reviewer's actual branch, worktree, or dispatch is checked.
 **This is precisely the shape SEC-01 wave 3 closed for the code-SHA path — DEC-207's escape hatch

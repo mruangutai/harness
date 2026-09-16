@@ -2,7 +2,7 @@
 
 ## Verdict
 
-PASS. Fixture-only migration, bounded by DEC-174. `check-domain.sh` was not touched;
+PASS. Fixture-only migration, bounded by DEC-174. `check-domain.py` was not touched;
 no assertion, expected exit code, case name, or comment in `test-check-domain.py` was
 changed. Only the fleet YAML strings the fixtures build were edited.
 
@@ -60,7 +60,7 @@ future loader (per-repo board required, top-level board rejected), satisfying th
 ## Verify — run exactly as specified
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Exit code: 0. Full output captured; relevant summary lines (verbatim):
@@ -91,7 +91,7 @@ captured output.
 
 ## Out of bounds — confirmed untouched
 
-- `.claude/skills/harness/bin/check-domain.sh` — not edited (DEC-174 carve-out).
+- `.claude/skills/harness/bin/check-domain.py` — not edited (DEC-174 carve-out).
 - No assertion, expected exit code, case name, or explanatory comment changed in
   `test-check-domain.py` — diff is confined to the fleet-string literals.
 - `.harness/factory/fleet.yaml` — not touched (T-07's surface).

@@ -57,7 +57,7 @@ No displacement needed — neither section was at cap.
 
 - `wc -l` on the pre-write Expertise file: 55 lines, matched the injected copy in context exactly
   (P-01..P-06, G-01..G-05, two empty sections) — confirmed no truncation before read-modify-write.
-- `.claude/skills/harness/bin/check-expertise.sh` on the post-write file: `OK`.
+- `.claude/skills/harness/bin/check-expertise.py` on the post-write file: `OK`.
 
 ---
 
@@ -136,7 +136,7 @@ No displacement — Patterns was 8/15, still under cap at 9/15.
 - Pre-write `wc -l` on the on-disk Expertise file: 63 lines, matched the SubagentStart-injected copy
   in context exactly (P-01..P-08, G-01..G-05, two empty sections) — confirmed no drift since round 1
   before read-modify-write.
-- `.claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-security-reviewer.md`
+- `.claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-security-reviewer.md`
   on the post-write file: `OK`.
 - Did not touch `harness-documentor.md` or any other member's Expertise file, per the dispatch's
   explicit heads-up that its G-04 violation is a separate, out-of-scope defect.

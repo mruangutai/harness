@@ -209,7 +209,7 @@ produces.
 **This diagnosis is CONFIRMED by the lead independently** (per this cycle's dispatch): the plan's
 verify exclusion list being one case short is a PLAN defect, escalated upward by the lead; it is
 T-11's fix to make and not mine. Per constraints, I did not touch `DECISIONS-INDEX.md`,
-`run-unit-tests.sh`, `harness.json`, or attempt to weaken/relax
+`run-unit-tests.py`, `harness.json`, or attempt to weaken/relax
 `test_root_resolves_through_harness_boundary_not_the_retired_variable` to make it pass.
 
 ## Open questions — none (both resolved by the lead before this cycle)

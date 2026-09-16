@@ -17,10 +17,10 @@ check rather than assumed either way.
 |---|---|
 | **Write** | Shape gate runs. Over-budget file refused, exit 2, with routing advice. |
 | **Edit** | Gate never runs. Any size, any comment count, exit 0, silently. |
-| **Bash** (`python3 -c`, `cat >`, `sed -i`, …) | Gate never runs. `bash-write-guard.sh` checks the DOMAIN only — it has no shape logic at all. Exit 0. |
+| **Bash** (`python3 -c`, `cat >`, `sed -i`, …) | Gate never runs. `bash-write-guard.py` checks the DOMAIN only — it has no shape logic at all. Exit 0. |
 
 The agents most likely to use `Edit` are the ones doing incremental state updates — the exact bloat
-path. And `bash-write-guard.sh`'s own header states that unparseable commands pass by design
+path. And `bash-write-guard.py`'s own header states that unparseable commands pass by design
 (DEC-85/DEC-151): it converts casual bypass into deliberate obfuscation. That is a reasonable
 posture for the *domain* question and simply leaves the *shape* question unasked.
 
@@ -33,13 +33,13 @@ Payload files, 400 lines (double the cap), `agent_type: harness-orchestrator`, s
 Write -> exit 2   check-domain: BLOCKED — state-file shape (DEC-150).
                     feature.yaml is 400 lines — budget is 200.
 Edit  -> exit 0
-Bash  -> exit 0   (bash-write-guard.sh, no output)
+Bash  -> exit 0   (bash-write-guard.py, no output)
 ```
 
 ## The mechanism
 
 `settings.json` registers the hook for `Write|Edit`, so it **does fire** on Edit. But
-`check-domain.sh:376-377`:
+`check-domain.py:376-377`:
 
 ```python
 if (d.get("tool_name") or "") != "Write":
@@ -90,7 +90,7 @@ it. That is a genuine trade rather than a free win: 3 gives up prevention to gai
 whether a state file that is briefly over-budget matters is a judgment about what the budget is
 *for* — a context bound, which a post-check still enforces before the next reader loads it.
 
-`check-domain.sh` is a **DEC-174 carve-out**, so whichever option wins is a declared main-session
+`check-domain.py` is a **DEC-174 carve-out**, so whichever option wins is a declared main-session
 step, applied directly with the tests run explicitly and a human reading the diff.
 
 ## Immediate compliance

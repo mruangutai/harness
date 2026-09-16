@@ -40,7 +40,7 @@ config never resolves to a concrete kind (no `_matrix_provenance` entry for `bug
 project-specific bug-class kind exists in `test_kinds`) — treated as not-applicable, floor is `unit`
 only. `docs.always = []`.
 
-Both required buckets are exercised, using `run-unit-tests.sh`'s own `UNIT_SCRIPTS`/
+Both required buckets are exercised, using `run-unit-tests.py`'s own `UNIT_SCRIPTS`/
 `INTEGRATION_SCRIPTS` binding (verified by grep, not inferred):
 - **unit**: `test-harness-boundary.py` (binds `harness_boundary.py`, a changed file) — ran, `ALL
   PASS`.
@@ -48,7 +48,7 @@ Both required buckets are exercised, using `run-unit-tests.sh`'s own `UNIT_SCRIP
   `test-inflight-registry.py`, `test-run-unit-tests-kinds.py`, `test-check-state.py` — all changed
   or change-adjacent files, all ran green.
 
-`matrix_ok: true`. (Full multi-kind `run-unit-tests.sh` was NOT run, per the dispatch's stated
+`matrix_ok: true`. (Full multi-kind `run-unit-tests.py` was NOT run, per the dispatch's stated
 non-goal; the targeted scripts above are the binding evidence.)
 
 ## Item 3 — the five red/mutant cases: each genuinely constructs and diverges
@@ -60,7 +60,7 @@ observed `ok` in the live runs above.
   reverts the presence-vs-truthiness branch to `text = d.get(...) or ""`, fires both real and mutant
   over a whitespace-only `last_assistant_message`, asserts `real==2, mutant==0`. Genuine.
 - **`feature-checkout-red`** (`test-check-domain.py:2758-2771`) — deletes the
-  `feature_checkout_guard(_verdict["rel"], target)` call from a copied `check-domain.sh`, asserts
+  `feature_checkout_guard(_verdict["rel"], target)` call from a copied `check-domain.py`, asserts
   `refused==2` (real) vs `muted==0` (mutant), no traceback. Genuine.
 - **`digest-clobber-red`** (`test-check-domain.py:2832-2842`) — deletes the whole issue-#1058 guard
   block between its comment anchor and the next `RE_FEATURE_JSON` check, asserts `clobber==2` (real)
@@ -95,10 +95,10 @@ case-name set from each run:
 
 ## Finding closure, verified directly against source (not inferred from the suite alone)
 
-1. **[HIGH, security] shared-outcome checkout binding** — CLOSED. `bash-write-guard.sh:785` now
+1. **[HIGH, security] shared-outcome checkout binding** — CLOSED. `bash-write-guard.py:785` now
    calls `feature_checkout_guard(rel, ap)` inside the `outcome == "shared"` branch (verified by
-   direct `git diff dca2d3d..HEAD -- bash-write-guard.sh`: the sole change is this one added line).
-   `grep -n feature_checkout_guard bash-write-guard.sh` shows exactly two call sites (781 feature-
+   direct `git diff dca2d3d..HEAD -- bash-write-guard.py`: the sole change is this one added line).
+   `grep -n feature_checkout_guard bash-write-guard.py` shows exactly two call sites (781 feature-
    scoped, 785 shared), matching what `bash-feature-checkout-red`'s precondition requires.
 2. **[HIGH, code quality] `code_grade` FAIL on two aggregators** — CLOSED. Ran
    `code-grade.py --json` directly (bar is 3): `run_feat50_checkout_binding`
@@ -107,7 +107,7 @@ case-name set from each run:
    PASS** (cyc 1, ABC 20.0, was grade 1: cyc 17 / cog 14 / ABC 85.8). Both fixed by extracting the
    FEAT-50 blocks into named helper functions (`_feat50_*`), confirmed in the diff.
 3. **[MED, security] digest-clobber OSError-as-absent** — CLOSED.
-   `check-domain.sh:1140-1158` (`git diff dca2d3d..HEAD`): `prior` now starts `None`; a bare
+   `check-domain.py:1140-1158` (`git diff dca2d3d..HEAD`): `prior` now starts `None`; a bare
    `FileNotFoundError` still sets `prior = ""` (creating a file is still allowed) but any other
    `OSError` leaves `prior is None`, which now emits an explicit `_head(...)` denial ("run digest
    already exists but cannot be read safely; refusing a Write...") instead of silently permitting

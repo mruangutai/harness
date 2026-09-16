@@ -69,7 +69,7 @@ whoever re-signs the plan text.
   writable only under a distillation dispatch — flagged, not touched.
 - Prose sweep for the old convention across `CLAUDE.md`, `docs/`, `.claude/{skills,commands,agents}`,
   `.agents/`, `.harness/expertise`, `.harness/harness/docs/*.md`: no other statement of the mandate.
-  The two `append-only` hits found (`merge-gitignore.sh:65`, `SPEC.md:83` on `.harness/logs/`) are
+  The two `append-only` hits found (`merge-gitignore.py:65`, `SPEC.md:83` on `.harness/logs/`) are
   unrelated subjects.
 - My hunk adds 13 lines to the front matter, so every `@line` anchor in `DECISIONS-INDEX.md` shifts.
   Expected effect of this edit; T-11 owns regeneration.

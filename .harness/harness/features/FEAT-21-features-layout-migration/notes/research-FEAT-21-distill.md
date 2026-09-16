@@ -3,7 +3,7 @@
 **Six entries land, four by displacement; five candidates rejected with reasons. All six are CRAFT
 — no repository-layer file was created.** Craft file `.harness/expertise/harness-pm.md`:
 Patterns 15→15, Gotchas 15→15, Outcomes 0→2, Open 0→0. File 109 lines of the 150 budget.
-`check-expertise.sh` over `.harness/expertise/` exits 0.
+`check-expertise.py` over `.harness/expertise/` exits 0.
 
 ## Ops (the receipt)
 
@@ -63,7 +63,7 @@ fires for this role.
   with it as an instance.
 - Running each new verify against the unfixed tree — covered by P-01. `--resolve` on a lane row's
   representative path — covered by G-02.
-- `bash-write-guard.sh` blocking a plan's own quoted-redirect `verify:` — **not Expertise.** It is a
+- `bash-write-guard.py` blocking a plan's own quoted-redirect `verify:` — **not Expertise.** It is a
   harness design consequence needing the operator's ruling; a workaround recorded here would outlive
   the ruling. Stays an open question (raised in the SC-10 note's Q2).
 

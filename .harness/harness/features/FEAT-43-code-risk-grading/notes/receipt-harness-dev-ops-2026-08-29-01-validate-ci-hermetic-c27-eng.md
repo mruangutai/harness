@@ -163,7 +163,7 @@ worktree):
 $ python3 -P test-validate-digest.py    → exit 0  (ALL PASSED)
 $ python3 -P test-code-grade.py         → exit 0  (PASS test-code-grade)
 $ python3 test-code-grade-cli.py        → exit 0  (PASS test-code-grade-cli — run WITHOUT -P,
-                                                     matching run-unit-tests.sh; unrelated, unchanged)
+                                                     matching run-unit-tests.py; unrelated, unchanged)
 $ python3 -P test-gate-policy.py        → exit 0
 $ python3 -P test-check-plan-routes.py  → exit 0  (ALL PASS)
 ```

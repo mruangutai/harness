@@ -7,7 +7,7 @@ goal-check all ran and all returned. Nothing is dispatchable; four acts are the 
 
 BRIEFING IS WRITTEN AND RENDERED: notes/ship-review-2026-08-24-validate.md (+ .html).
 Four operator acts, and NONE is dispatchable to a squad. (1) Fix INV-29's `--id` derivation in
-check-state.sh AND add the group (f.3) message assertion in test-check-state.py — both files
+check-state.py AND add the group (f.3) message assertion in test-check-state.py — both files
 together, both DEC-174 main-session-direct. (2) Adopt SC-17 (paste-ready,
 notes/research-goal-check-2026-08-24.md). (3) Amend SC-06 plus a verification gap. (4) Rule on
 SC-08's disposition. THEN: re-run the suite, re-pin review_sha at the new commit, re-run the panel
@@ -21,8 +21,8 @@ against it. Do NOT reuse this pin after any commit.
   panel and goal-check graded is intact — `git status --porcelain -- .claude/` empty — verified-at 513c4a4
 - THE DEFECT IS REAL, all four links read by me at the pin, not inherited: worktree_terminal.py:248-251
   sets resolved_id to the LANDED name, :271-275 emits it as feature_id with path still SHORT;
-  check-state.sh:1326-1329 composes --id from feature_id; feature-worktree.py:56-59 joins it and
-  :207-214 exits 3; post-merge-sweep.sh:150 uses basename(path) — verified-at 513c4a4
+  check-state.py:1326-1329 composes --id from feature_id; feature-worktree.py:56-59 joins it and
+  :207-214 exits 3; post-merge-sweep.py:150 uses basename(path) — verified-at 513c4a4
 - T-10's verify cannot go red: the loop discards via `|| true` and the tail greps 3 skill files, not
   16 agents, then pipes to `wc -l` — plan.yaml:750 read by me — verified-at 513c4a4
 - BRIEF.md:246 and :359 read NOT YET RE-SIGNED against :449 — read by me — verified-at 513c4a4
@@ -35,7 +35,7 @@ against it. Do NOT reuse this pin after any commit.
 
 ## Dead ends
 
-- Do NOT dispatch the M1 fix to any squad — check-state.sh and test-check-state.py are DEC-174
+- Do NOT dispatch the M1 fix to any squad — check-state.py and test-check-state.py are DEC-174
   enforcement layer and main-session-direct; the guard denies a squad edit — verified-at 513c4a4
 - Do NOT fix SC-06 in code — no implementation can satisfy it; a squash-landed feature is invisible
   at hook-fire time and the completing commit never re-fires. Criterion change only — verified-at 513c4a4
@@ -45,7 +45,7 @@ against it. Do NOT reuse this pin after any commit.
   run and reverted byte-identically — verified-at 513c4a4
 - Do NOT cite 15.6s as the integration suite's cost — falsified; 235-236s sole-runner twice, cause
   unattributed — verified-at 513c4a4
-- Do NOT run two suites at once — concurrent run-unit-tests.sh produces transient failures that are
+- Do NOT run two suites at once — concurrent run-unit-tests.py produces transient failures that are
   indistinguishable from real ones — verified-at 513c4a4
 - Do NOT trust a carried residual's stated premise — Q6 arrived INVERTED; two more claims failed
   re-derivation this phase — verified-at 513c4a4
@@ -57,4 +57,4 @@ against it. Do NOT reuse this pin after any commit.
 - .harness/harness/features/FEAT-34-worktree-act3-enforced/runs/2026-08-24-04-validator/digest.md
 - .harness/harness/features/FEAT-34-worktree-act3-enforced/runs/2026-08-24-05-product/digest.md
 - .harness/harness/features/FEAT-34-worktree-act3-enforced/notes/research-goal-check-2026-08-24.md
-- .claude/skills/harness/bin/check-state.sh
+- .claude/skills/harness/bin/check-state.py

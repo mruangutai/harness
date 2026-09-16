@@ -101,7 +101,7 @@ AST shape that used to crash). `matrix_ok: true`.
 - Class-closure enumeration (all `visit_*` overrides re-audited for other unguarded optional
   fields) and the full-file line-by-line regression comparison — owned by `Feat43DeltaCrC28`
   (code review), not duplicated here beyond the scope diff in Item 5.
-- The canonical project-wide suite, any formatter/linter, `check-state.sh`, B26, B27 — explicitly
+- The canonical project-wide suite, any formatter/linter, `check-state.py`, B26, B27 — explicitly
   out of scope per the dispatch and the governing ruling.
 - Did not re-verify the eight previously-closed defects.
 - Did not audit files outside `.claude/skills/harness/bin/` for the same unguarded-optional-field

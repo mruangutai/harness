@@ -38,7 +38,7 @@ needs execute permission on `dir`). Both snapshot calls hit the identical failur
 **End-to-end reproduction, through the actual CLI, single test file, no pre-existing state, no
 timing:**
 ```python
-# one ordinary "test" the pool runs, exactly as run-unit-tests.sh invokes run_pool.py
+# one ordinary "test" the pool runs, exactly as run-unit-tests.py invokes run_pool.py
 import os
 d = ".../watched/.tmp_cache"
 os.makedirs(d)
@@ -60,8 +60,8 @@ confirms the general shape: `before == after == {}` for the whole subtree, versu
 needs the durable condition, not luck.
 
 **Reachability / privilege:** the actor is a test file the pool itself runs — the literal, only
-threat model REQ-01/SC-10 target. `run-unit-tests.sh` execs every test as a plain `python3`
-subprocess with no sandboxing, no uid change, no seccomp (read `run-unit-tests.sh` directly — the
+threat model REQ-01/SC-10 target. `run-unit-tests.py` execs every test as a plain `python3`
+subprocess with no sandboxing, no uid change, no seccomp (read `run-unit-tests.py` directly — the
 only isolation anywhere in this feature is `isolated_bin()`'s copy-to-tempdir, which the mutation
 check does not use). `os.chmod` on a directory the process just created is ordinary, unprivileged.
 No elevation, no race window, no size-matching, no mtime forgery — strictly easier to execute than
@@ -128,7 +128,7 @@ reader relying on this paragraph as the coverage boundary is misled on both coun
 | `test-suite-independence.py` | examined — fixture writer (`_fixture_findings:198-200`) only ever `ast.parse`s and writes text into the caller's own `tempfile.TemporaryDirectory()`; grepped whole file for `exec(`/`eval(`/`subprocess`/`os.system`/`__import__` — zero hits; fixture names are fixed literals, no traversal |
 | `test-check-domain.py` | examined — 993ac997's diff is a pure decomposition (`run_schema` split into `_schema_case`/`_inject_schema_crash`/`_schema_copy_control`/`_schema_crash_control`/`_schema_crash_cases`), byte-identical behavior; `isolated_bin()` usage unchanged |
 | `test-check-fixture-secrets.py` | examined — pure decomposition of `run_sk_ant_red_proof`, no behavior change; all key-shaped literals carry `synthetic`/`THIS-IS-A-SYNTHETIC-CONTROL-VALUE` markers, none real |
-| `run-unit-tests.sh` | examined — confirms §1's reachability: every test runs as a plain `python3` subprocess, no sandbox, no uid drop; argv/env wiring to `run_pool.py` unchanged from c8 |
+| `run-unit-tests.py` | examined — confirms §1's reachability: every test runs as a plain `python3` subprocess, no sandbox, no uid drop; argv/env wiring to `run_pool.py` unchanged from c8 |
 | `isolated_bin.py` | examined — unchanged since c7 (not touched by 993ac997/27f8105b); `dest_root` is always a fresh `tempfile.mkdtemp()` from test code, never external input; c7's finding (`symlinks=False`, `copy2`, no issue) still holds |
 | `plan.yaml` T-03 `ea6f51f` blob handling | examined (`plan.yaml:605-618`) — `names` is a fixed 3-item literal list, blobs written only under a fresh `tempfile.mkdtemp()`, no traversal, no symlink following, no cleanup of any real path (no `rmtree` at all here — minor hygiene leak of a small tempdir per run, not a security issue) |
 

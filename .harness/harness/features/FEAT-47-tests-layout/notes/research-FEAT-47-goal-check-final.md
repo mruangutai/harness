@@ -7,7 +7,7 @@ Delta graded: `43fd04b9..9a76e979`. Read-only; nothing edited but this file.
 
 **PASS. The single blocker is closed and nothing regressed.** REQ-07's residue —
 `.harness/harness/expertise/harness-pm.md` G-08 presenting the deleted KIND-DRIFT cross-check and
-the two script arrays as live `run-unit-tests.sh` gates — is rewritten to the directory invariant.
+the two script arrays as live `run-unit-tests.py` gates — is rewritten to the directory invariant.
 All ten SCs stay met on the prior session's re-derived evidence, which the delta cannot have
 falsified: the delta touches **no source and no test file**.
 
@@ -23,9 +23,9 @@ Every clause verified at the pinned sha against the shipped runner, not accepted
 
 | Claim | Evidence at `9a76e979` |
 |---|---|
-| directory selects the kind | `run-unit-tests.sh:25-27` — `SCRIPTS=(tests/unit/test-*.py)`, `(tests/integration/test-*.py)`, union for `all` |
-| `suite_layout.py` refuses bad shapes | `suite_layout.py:6` `def violations(root)`; called at `run-unit-tests.sh:31` |
-| runner exits 2 on any violation | `run-unit-tests.sh:32-39` — crash → `MISCONFIGURED: layout check crashed`, exit 2; non-empty output → one `MISCONFIGURED:` line per violation, exit 2 |
+| directory selects the kind | `run-unit-tests.py:25-27` — `SCRIPTS=(tests/unit/test-*.py)`, `(tests/integration/test-*.py)`, union for `all` |
+| `suite_layout.py` refuses bad shapes | `suite_layout.py:6` `def violations(root)`; called at `run-unit-tests.py:31` |
+| runner exits 2 on any violation | `run-unit-tests.py:32-39` — crash → `MISCONFIGURED: layout check crashed`, exit 2; non-empty output → one `MISCONFIGURED:` line per violation, exit 2 |
 
 No deleted mechanism survives the rewrite: `git grep -E
 'UNIT_SCRIPTS|INTEGRATION_SCRIPTS|check-kinds|KIND-DRIFT|script array'` over

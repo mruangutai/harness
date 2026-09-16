@@ -115,7 +115,7 @@ the mutated tempdir copy): all 76 cases `PASS`, ending `PASS test-feature-worktr
 
 ## Not done here (by design)
 
-`run-unit-tests.sh` was not invoked (D-06 — registration is T-08's). T-03/T-04/T-05/T-07/T-09 were
+`run-unit-tests.py` was not invoked (D-06 — registration is T-08's). T-03/T-04/T-05/T-07/T-09 were
 not touched (`execution_mode: main-session-direct`, DEC-174). `harness_boundary.py`,
-`check-domain.sh`, `bash-write-guard.sh`, and their test files were not touched. Nothing was staged
+`check-domain.py`, `bash-write-guard.py`, and their test files were not touched. Nothing was staged
 or committed.

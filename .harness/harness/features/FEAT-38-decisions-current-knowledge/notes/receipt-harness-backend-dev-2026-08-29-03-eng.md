@@ -105,7 +105,7 @@ The last three entries (feature.json, plan.yaml, grilling note) were already pre
 I also verified the main repo checkout at `/Users/molchairuangutai/GitHub/harness` (not the worktree) has zero diff on these two paths — an early edit attempt against a relative path landed there by mistake and was reverted with `git checkout --` before any worktree work began.
 
 ## Not touched (per explicit non-goals)
-`.harness/harness/docs/DECISIONS.md`, `.harness/harness/docs/DECISIONS-INDEX.md`, `run-unit-tests.sh`, `.harness/harness.json` — none opened for writing. `compute_amendments` retained in full (T-10/T-05/T-07 dependency preserved).
+`.harness/harness/docs/DECISIONS.md`, `.harness/harness/docs/DECISIONS-INDEX.md`, `run-unit-tests.py`, `.harness/harness.json` — none opened for writing. `compute_amendments` retained in full (T-10/T-05/T-07 dependency preserved).
 
 ---
 
@@ -231,5 +231,5 @@ $ git -C /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-3
 ```
 The two `M` generator/test-generator files and the `feature.json`/`plan.yaml`/grilling-note
 entries are pre-existing state from sibling task T-06 and earlier setup — not touched in this
-dispatch. `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md`, `run-unit-tests.sh` and
+dispatch. `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md`, `run-unit-tests.py` and
 `.harness/harness.json` were never opened for writing, per the explicit non-goals.

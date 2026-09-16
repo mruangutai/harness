@@ -24,11 +24,11 @@ You own security goals. Self-scoping: decide what in this diff has a security su
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-security-reviewer.md`, already in context. Track this codebase's trust
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-security-reviewer.md`, already in context. Track this codebase's trust
 boundaries and where untrusted input actually enters — rediscovering that every run is waste.
 
 `Write` for exactly two paths: your report
-`.harness/notes/review-harness-security-reviewer-<runid>.md` and your Expertise. **No `Edit`, no source
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md` and your Expertise. **No `Edit`, no source
 path.** `Bash` for `git diff`.
 
 ## Self-scope honestly, in both directions
@@ -93,13 +93,19 @@ DIGEST:
   severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: <n>
+  findings: [{ kind: substance|form|proportionality, scope: task|mission, severity: <sev>, reader: security-reviewer, summary: "<one line>", why: "<optional>" }]
+                              # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
+                              # code; form = document/digest/record shape only, fixed in-run and
+                              # never re-gates; proportionality = more is planned than the change
+                              # needs, and REQUIRES scope: task (one task over-builds — trimmed at
+                              # apply, never a downgrade) or mission (the plan lane exceeds the
+                              # work — the only finding that downgrades, DEC-228). [] if none
   must_fix: [<item>]
   threat_model: [{ boundary: ..., stride: T|I|E|..., mitigated: <bool> }]
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: .harness/notes/review-harness-security-reviewer-<runid>.md
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md
 ```
 ````

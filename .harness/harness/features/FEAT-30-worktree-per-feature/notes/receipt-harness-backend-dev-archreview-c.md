@@ -61,7 +61,7 @@ reappear, not abstractions:
 1. A fleet/non-fleet branch would have to be added inside a module whose docstring explicitly
    states the opposite design ("a repository the harness does not live in" —
    `factory_workspace.py:1`), reopening the exact case D-07 already refused to widen for
-   bash-write-guard.sh.
+   bash-write-guard.py.
 2. The lifecycle's own exit codes (2 bad-id, 3 destination-exists/not-a-worktree, 4 dirty-tree/git
    failure, 5 artifacts-not-landed) do not fit `factory_cli.py`'s fixed four-value contract
    (`factory_cli.py:10-13`, specifically `EXIT_RACE=3` already means "another agent owns the issue,"
@@ -83,9 +83,9 @@ does this, and nothing already treats harness as a non-fleet repo inside a facto
 
 Grepped for the literal `.claude/worktrees` and for `WORKTREES_SEGMENT` across `bin/*.py` and
 `bin/*.sh`. Existing sites that touch `WORKTREES_SEGMENT` (`harness_boundary.py:33,37,424,445-446`;
-`bash-write-guard.sh:432,441,450,465,473,562`; `check-domain.sh:433,499,603,644`) all compute a
+`bash-write-guard.py:432,441,450,465,473,562`; `check-domain.py:433,499,603,644`) all compute a
 **boundary/membership test** — "is this write inside the worktrees area" — never a create
-**destination** of the form `owner_root/segment/id`. `bash-write-guard.sh:465`'s `_legal` is the
+**destination** of the form `owner_root/segment/id`. `bash-write-guard.py:465`'s `_legal` is the
 closest, and it stops at `owner_root/WORKTREES_SEGMENT` (no id component), by design (D-07: this door
 "stays fleet-unaware and unchanged"). T-01's `dest_for(owner_root, segment, id)` is the **only** site
 in the repo that computes the full three-part creation destination. The derivation stays in exactly

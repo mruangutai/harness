@@ -10,7 +10,7 @@ The claimed fix (`python3 -P` on 19 launches) is correct and complete for the OR
 measured vulnerability — I re-derived all 19, found none missing, and confirmed empirically
 (not just by reading the note) that `-P` strips the cwd from `sys.path` under every invocation
 shape used here (heredoc, `-c`), that `PYTHONPATH` still resolves correctly alongside `-P`, and
-that the two by-path launches left un-flagged (`gh-close-gate.sh:79`, `run-unit-tests.sh:149`)
+that the two by-path launches left un-flagged (`gh-close-gate.py:79`, `run-unit-tests.py:149`)
 are genuinely safe — a script launched by path gets its own directory at `sys.path[0]`, even
 through a symlink. Python's own `harness_boundary.py` resolver (`resolve_root`/`root_above`/
 `root_from_script`) is not marker-plantable by an ordinary agent: `resolve_root`'s only
@@ -45,8 +45,8 @@ tracked per-event by the host, not a single session-start constant the way
 `${CLAUDE_PROJECT_DIR}` is for the Claude Code integration. If an agent under this host can
 influence its own tracked cwd between tool calls (plausible — that is why the field is threaded
 per-event rather than captured once), and can write a file anywhere permitted to it (the same
-precondition the original bug required), it can place its own `check-domain.sh` /
-`bash-write-guard.sh` / `validate-digest.py` at `<its-cwd>/.agents/skills/harness/bin/<name>` and
+precondition the original bug required), it can place its own `check-domain.py` /
+`bash-write-guard.py` / `validate-digest.py` at `<its-cwd>/.agents/skills/harness/bin/<name>` and
 `runPolicy` will execute THAT file wholesale as the gate — not shadow one imported module, as the
 Python bug did, but substitute the entire enforcement script. DEC-202 makes `.agents/skills` a
 link to the one authored `.claude/skills` tree, but only at the real project root; a decoy
@@ -71,13 +71,13 @@ own on-disk location (e.g. `import.meta.dirname`-relative arithmetic, the TS ana
 already-located script, exactly as `resolve_root` treats `HARNESS_PROJECT_DIR` as data, not as
 the module's own address.
 
-## Finding 2 (residual, med, not blocking) — `check-domain.sh`'s relative-path assumption is a
+## Finding 2 (residual, med, not blocking) — `check-domain.py`'s relative-path assumption is a
 convention, not an enforced boundary, and now spans two hosts
 
-`_show`/`_norm` (`check-domain.sh:970,1000`) resolve `file_path` with `os.path.abspath`, i.e.
+`_show`/`_norm` (`check-domain.py:970,1000`) resolve `file_path` with `os.path.abspath`, i.e.
 against the hook subprocess's OS cwd, deliberately left unfixed per the note ("not reachable
 from Claude Code, which sends absolute paths"). Re-derived rather than accepted: nothing in
-`check-domain.sh` asserts or rejects a relative `file_path` — the code silently accepts one and
+`check-domain.py` asserts or rejects a relative `file_path` — the code silently accepts one and
 resolves it against whatever cwd the hook process happens to have. That is an unenforced
 precondition on a module now consulted by (at least) two different host integrations
 (`.claude/settings.json` and `.omp/extensions/harness-hooks.ts`, DEC-202 explicitly making OMP
@@ -105,7 +105,7 @@ schema (issue #749's fix for legitimate per-worktree schema keys). Unlike `harne
 `resolve_root`, this walk has no MARKER-style single-file gate and does not stop at the resolved
 root — it is bounded only by the filesystem root. A schema-weakening file planted at any ancestor
 between the checkout and `/` that the agent can write to (paths outside the declared workspace
-are explicitly waved through by `check-domain.sh`'s own "not_a_domain_question" branch) would be
+are explicitly waved through by `check-domain.py`'s own "not_a_domain_question" branch) would be
 preferred over the real schema for every later `feature.json` write. This shares the exact shape
 of the marker-planting attack the dispatch asked about, on a different file, pre-dating and
 untouched by this feature. Flagging for the backlog, not this verdict.
@@ -113,24 +113,24 @@ untouched by this feature. Flagging for the backlog, not this verdict.
 ## What I verified positively (not just re-read)
 
 - All 19 `python3 -P` launches enumerated at `9d12e3a`; the two remaining by-path launches
-  (`gh-close-gate.sh:79`, `run-unit-tests.sh:149`) confirmed safe by direct empirical test: by-path
+  (`gh-close-gate.py:79`, `run-unit-tests.py:149`) confirmed safe by direct empirical test: by-path
   launch (relative, absolute, and through a symlink) puts the SCRIPT's own directory at
   `sys.path[0]`, never the invoking cwd; only `-c`/`-m`/`-` forms take the cwd, and every such
   form in `bin/*.sh` carries `-P`.
 - `-P` does not disable `PYTHONPATH` — confirmed empirically alongside a decoy module: `-P` only
   removes the auto-prepended unsafe entry (cwd / script dir / `''`), `PYTHONPATH` entries still
-  resolve at their normal position. This is why `check-state.sh:48`'s `PYTHONPATH=... python3 -P`
+  resolve at their normal position. This is why `check-state.py:48`'s `PYTHONPATH=... python3 -P`
   co-occurrence is correct, not a reintroduction.
 - No `sys.path.insert`, `os.environ[...] =`, or nested `subprocess`-launched `python3` in any
   production (non-test) file under `bin/` reintroduces a cwd-derived path; every `sys.path.insert`
   site anchors on `__file__`/`BASH_SOURCE`, never `os.getcwd()` or a bare relative default that
-  can fire in practice (`dispatch-guard.sh`'s `os.environ.get(...) or "."` fallback is dead code —
+  can fire in practice (`dispatch-guard.py`'s `os.environ.get(...) or "."` fallback is dead code —
   the same command line sets that env var unconditionally one token earlier).
 - `resolve_root`'s `HARNESS_PROJECT_DIR` override: grepped `.claude/settings.json` and every
   production caller — never set outside test fixtures, so the override branch cannot fire for an
   ordinary agent turn under the current, fresh-process-per-hook threat model.
 - Confirmed the stated DEC-174 blast-radius measurement myself: main checkout
-  `dispatch-guard.sh` is 6366 bytes / 0 occurrences of `HARNESS-FEATURE`/`_root_for`; the worktree
+  `dispatch-guard.py` is 6366 bytes / 0 occurrences of `HARNESS-FEATURE`/`_root_for`; the worktree
   copy is 9447 bytes / 4 occurrences; main HEAD is `3952814`. Matches exactly.
 
 ## DEC-174 blast radius: is the test suite alone adequate evidence to land this?
@@ -156,7 +156,7 @@ since it has no automated coverage today.
 |---|---|---|
 | Agent-writable cwd -> Python `sys.path[0]` (the measured #556 bug) | Elevation of privilege | Yes — 19/19 launches, verified empirically |
 | Agent-writable cwd -> OMP `runPolicy` script path | Elevation of privilege | **No** — Finding 1 |
-| Relative `file_path` -> `check-domain.sh` cwd-relative `abspath` | Tampering / Information disclosure (misrouted domain verdict) | Partial — convention only, not enforced (Finding 2) |
+| Relative `file_path` -> `check-domain.py` cwd-relative `abspath` | Tampering / Information disclosure (misrouted domain verdict) | Partial — convention only, not enforced (Finding 2) |
 | `HARNESS_PROJECT_DIR` env override in `resolve_root` | Spoofing (root confusion) | Yes — never set in production, reachability-closed |
 | `root_above` marker walk (`wayfind.py`) | Spoofing | Yes — informational CLI, not an enforcement decision |
 | `feature_schema.schema_path_for` unbounded ancestor walk | Tampering | No — pre-existing, out of this diff's scope (Finding 3) |

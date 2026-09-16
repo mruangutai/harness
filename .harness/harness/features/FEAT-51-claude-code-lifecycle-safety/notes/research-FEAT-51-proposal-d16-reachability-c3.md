@@ -1,4 +1,4 @@
-# A plan-merge.py proposal, not prose. It carries the .md name because check-domain.sh grants
+# A plan-merge.py proposal, not prose. It carries the .md name because check-domain.py grants
 # harness-pm exactly `.harness/*/features/*/notes/research-*.md` under notes/, and a proposal is
 # YAML that plan-merge.py reads by path regardless of extension. Fix cycle 3, the D-16 defect.
 #
@@ -21,12 +21,12 @@ tasks:
     traces: [REQ-04, REQ-05]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: plan-sign-gate.sh is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
+    execution_reason: plan-sign-gate.py is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
     depends_on: [T-07]
     status: ready
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
-      - .claude/skills/harness/bin/plan-sign-gate.sh
+      - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/test-plan-sign-gate.py
     verify: |
       grep -q 'an orphan quarantine.py discard of a quarantine directory is refused' .agents/skills/harness/bin/test-plan-sign-gate.py &&
@@ -37,7 +37,7 @@ tasks:
       THE ANCHORS AND THE SHA. Every line number and quoted literal below was measured from the
       MAIN checkout at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7, the sha this plan's lanes block
       resolves at. The main checkout's HEAD has since moved to a7569463, the FEAT-41 ship merge,
-      and git diff --stat ad93d43e a7569463 over plan-sign-gate.py, plan-sign-gate.sh,
+      and git diff --stat ad93d43e a7569463 over plan-sign-gate.py, plan-sign-gate.py,
       test-plan-sign-gate.py and inflight_registry.py is EMPTY, so every anchor below holds at
       both shas. Re-read each anchor before editing and treat the quoted literals as the
       anchors, never the numbers.
@@ -101,7 +101,7 @@ tasks:
       text and read as covered.
 
       PROVE THE GROUP DISCRIMINATES and record the failing output. GATE at :22 reads
-      PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.sh and plan-sign-gate.py to
+      PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.py and plan-sign-gate.py to
       plan-sign-gate.pre.sh and plan-sign-gate.pre.py INSIDE .claude/skills/harness/bin - not a
       temp directory, because the wrapper resolves its root from its own location and the
       python file imports its siblings - and change the single exec line of the .pre.sh to name
@@ -139,7 +139,7 @@ tasks:
            because a quarantine directory is not a canonical artifact.
         5. Return None unless _reg.orphan_write(ROOT, agent, feature, session) is True. ROOT at
            :35 is the root the wrapper resolved through harness_boundary.resolve_root from this
-           script's own directory, the same root check-domain.sh resolves at its _root() on
+           script's own directory, the same root check-domain.py resolves at its _root() on
            :154. D-04's OMP carve-out holds identically here with no extra code, because
            orphan_write itself returns False when the only live claims for the feature carry
            runtime omp - do NOT add a second runtime test, and do NOT reach into the registry
@@ -159,7 +159,7 @@ tasks:
       quarantine.py list stays outside every match, and a non-harness agent_type is still not
       reached by the quarantine rule.
 
-      STEP THREE, plan-sign-gate.sh, header comment only, no code. T-07 rewrites the header to
+      STEP THREE, plan-sign-gate.py, header comment only, no code. T-07 rewrites the header to
       say this is the PreToolUse Bash gate for plan-merge.py and quarantine.py carrying TWO
       rules. Extend the quarantine rule's sentence there to name quarantine.py adopt AND
       discard, and say in one clause that list is read-only and uncovered. Keep every other

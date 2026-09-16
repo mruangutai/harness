@@ -10,21 +10,21 @@ the OMP host feeds the accidental cwd straight back in as `HARNESS_PROJECT_DIR`.
   /test-` returns exactly the operator's list. All 20 are tasked; T-07's invariant counts them to 0.
 - **Nine more occurrences live in `test-*.py`** and SET the variable. That is why SC-01 states the
   test exclusion in the criterion instead of hiding it in a test comment.
-- **`dispatch-guard.sh`'s chain is at `:83` and `:92`**, not `:75`. `:75` is the `_root_from` def.
+- **`dispatch-guard.py`'s chain is at `:83` and `:92`**, not `:75`. `:75` is the `_root_from` def.
 - **Callers of the seven deleted names, enumerated** — the delete breaks all of them:
   `harness_root` → `board_lifecycle.py:671,:922,:934,:1034,:1121`, `factory_claim.py:45`,
   `feature-worktree.py:67`, `gh_cost_log.py:111`, `factory_config.py:59`; prose at
   `factory_claim.py:26`, `board_lifecycle.py:158`, `feature-worktree.py:10`, `gh_cost_log.py:109`,
   `worktree_terminal.py:112,:113,:301`; **tests that bind by attribute**
   `test-gh-cost-log.py:40,:45,:52`, `test-factory-claim.py:54`, `test-factory-config.py:780`.
-  `_repo_root_from_script` → `context-watch.py:79`. `_root_from` → `dispatch-guard.sh:95`.
-  `_resolve_repo_root` → `post-merge-sweep.sh:227` plus prose at `:67,:80,:86`. `wayfind.root` →
+  `_repo_root_from_script` → `context-watch.py:79`. `_root_from` → `dispatch-guard.py:95`.
+  `_resolve_repo_root` → `post-merge-sweep.py:227` plus prose at `:67,:80,:86`. `wayfind.root` →
   `wayfind.py:57`. All are in T-04, T-02, T-08, T-09, T-18.
 - **A test seam already exists for 7 of 9 gates** — `CHECK_DOMAIN_BIN`, `BASH_WRITE_GUARD_BIN`,
   `CHECK_STATE_BIN`, `CHECK_PLAN_ROUTES_BIN`, `DISPATCH_GUARD_BIN`, `VALIDATE_DIGEST_BIN`,
   `INJECT_EXPERTISE_BIN`. Missing on `test-branch-create-gate.py:25` and `test-gh-close-gate.py:15`;
   T-14 and T-15 add it first, because without it am.4's proof cannot be run at all.
-- **`run-unit-tests.sh` has a drift detector** (`:47-60`): a `test-*.py` under `bin/` that is not in
+- **`run-unit-tests.py` has a drift detector** (`:47-60`): a `test-*.py` under `bin/` that is not in
   the arrays exits 2. That is why T-01 and T-02 verify their own file directly and T-03 registers
   both before any later task runs the suite. `unit`'s detect glob already matches, so
   `.harness/harness.json` needs no edit.
@@ -54,10 +54,10 @@ registry did not exist. **That is evidence the DEFECT is real, not that the FIX 
 adopting it as written would have graded the defect. Rejected as stated.
 
 It is settleable anyway, by a different route. `test-dispatch-guard.py` already drives the real
-`dispatch-guard.sh` with a synthetic payload, and `_task()` at `:135-142` already carries
+`dispatch-guard.py` with a synthetic payload, and `_task()` at `:135-142` already carries
 `tool_input.prompt`. A case can therefore set payload `cwd` to a fixture MAIN checkout, declare
 `HARNESS-FEATURE:` for a fixture worktree, and assert the claim lands in the worktree's registry
-while main's is untouched — red first against `dispatch-guard.sh:83`. That is T-18's
+while main's is untouched — red first against `dispatch-guard.py:83`. That is T-18's
 `claim_lands_in_declared_worktree`.
 
 What a live operator dispatch would add over that is the **payload shape**, and the shape is already

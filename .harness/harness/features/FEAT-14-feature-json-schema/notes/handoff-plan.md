@@ -15,9 +15,9 @@ migration it protects.
   board's six capitalized columns, 12 tasks / 13 decisions / 18 SCs, 8 required of ELEVEN keys —
   `notes/answers-2026-08-11-revision.md`, `safe_load` — verified-at a29ad06
 - Deleting `phase` kills TWO required gates unless T-11 and T-12 land: `check-plan-routes.py:386`
-  matches nothing and route-checks every finished feature forever; `check-state.sh:451`
+  matches nothing and route-checks every finished feature forever; `check-state.py:451`
   `if _phase not in PHASE_ORDER: continue` sees `""` for all 17 — verified-at a29ad06
-- A dead INV-17 exits 0, so "check-state.sh passes" is NOT evidence T-12 worked. SC-18's two
+- A dead INV-17 exits 0, so "check-state.py passes" is NOT evidence T-12 worked. SC-18's two
   opposite-direction assertions are — `BRIEF.md` SC-18 — verified-at a29ad06
 - Handoff stems stay lowercase literals, never derived from capitalized status values: a derived
   `handoff-Build.md` passes here and fails on Linux CI — `plan.yaml` D-12 — verified-at a29ad06
@@ -29,13 +29,13 @@ migration it protects.
   leaves it in — 35 across 16. Keep that window inside one PR. Post-migration expected set is **11
   plans, 0 violations**; FEAT-09 (`shipping` → `Review`) STAYS checked — verified-at a29ad06
 - `jsonschema` **4.26.0 IS installed** — verified-at a29ad06. The seq-2 note said otherwise; void.
-- A validator that cannot LAUNCH and exits 1 fails OPEN; only exit 2 blocks — `check-domain.sh:14`
+- A validator that cannot LAUNCH and exits 1 fails OPEN; only exit 2 blocks — `check-domain.py:14`
   — verified-at a29ad06
 - gh-sync MUST NOT run between T-04 and T-08: it hardcodes feature.yaml and returns the EMPTY record
   on absence, re-filing existing issues — `bin/gh-sync.py:247,255-256` — verified-at 96d5d5c.
   External damage, NOT undone by `git reset`.
 - T-05→T-08 is the dangerous window, not T-06→T-08 — `runs/2026-08-10-02-eng/digest.md` MF-4
-- `.harness/team-config.yaml:15-16` is FALSE — `check-domain.sh:256` sets a flag — verified-at
+- `.harness/team-config.yaml:15-16` is FALSE — `check-domain.py:256` sets a flag — verified-at
   96d5d5c. It misled a lead once; do not reason from it.
 
 ## Dead ends

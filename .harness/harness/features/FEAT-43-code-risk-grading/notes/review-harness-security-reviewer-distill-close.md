@@ -3,7 +3,7 @@
 Final state: 3 candidates landed (O-09, O-10 as pure adds; C3 as a genuine displacement of G-09),
 0 rejected. Both the durable main checkout and the (now-disposable) worktree copy of
 `harness-security-reviewer.md` are verified byte-identical (md5 `09ffe777a295de5ea849483ca6ef56a2`)
-and `check-expertise.sh` OK (exit 0) on both.
+and `check-expertise.py` OK (exit 0) on both.
 
 ## Sources
 Own notes: only one of the four named paths actually exists on disk this feature —
@@ -34,7 +34,7 @@ corrected this, citing dev-ops precedent: the two-step procedure is (1) `apply` 
 replacement text under the SAME id — this exits 7 and applies nothing, but the CONFLICT output
 confirms the existing text really is what you think it is; (2) a targeted single-line replacement
 of exactly that line (verified before/after: only that one line changed, both copies stay
-byte-identical, `check-expertise.sh` still OK). This is the "7 = real conflict — resolve it
+byte-identical, `check-expertise.py` still OK). This is the "7 = real conflict — resolve it
 yourself" branch of the retry table, not a workaround of it. What remains true and still holds:
 exit 8 (cap exceeded) fires only for a genuinely NEW id past cap, and there is still no
 CLI-only path that both adds a new id and removes an old one in one `apply` call — the removal
@@ -58,7 +58,7 @@ No candidates remain rejected without disposition.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: three candidates landed on the DURABLE main checkout (O-09, O-10 added; C3 displaces G-09), verified byte-identical against the worktree copy and check-expertise.sh clean on both; both of my first-round conclusions (durable-copy miss, and "no replace at cap") were mistakes on my part, corrected this round
+  headline: three candidates landed on the DURABLE main checkout (O-09, O-10 added; C3 displaces G-09), verified byte-identical against the worktree copy and check-expertise.py clean on both; both of my first-round conclusions (durable-copy miss, and "no replace at cap") were mistakes on my part, corrected this round
   expertise_update:
     - { op: add, target: none, section: Outcomes, entry: "O-09: WHEN a check accepts a self-reported field as proof of a security claim (e.g. a digest's own reviewed: range) DO verify it is bound to an external ground truth (e.g. the feature's actual pinned commit) — unbound self-consistency lets a same-commit no-op range satisfy the check as if nothing changed.", why: "own note, validate-final-panel Finding 1 — self-certification without external binding is a distinct vulnerability shape" }
     - { op: add, target: none, section: Outcomes, entry: "O-10: WHEN judging fail-open/fail-closed of a range- or ref-based check DO enumerate every ref state (fresh, stale ancestor, missing, descendant, diverged) in a table, including the ordinary post-merge case most often skipped — and rate each by whether the delta widens (fail-closed) or narrows (fail-open).", why: "relay C1+C2 merged — the send-back that changed a PASS to FAIL turned on enumerating the mundane state and reading widen/narrow off the ref-state table" }

@@ -12,7 +12,7 @@
 - Extension census: 42 `md`, 12 `yaml`, 2 `py`, 2 `json`, and 1 `sh`; zero `html`, `css`, `scss`, `tsx`, `jsx`, `vue`, `svelte`, or `less` paths.
 - Object/surface classification: the executable changes are test programs and a test runner registry. The JSON changes are test-kind/configuration records; the Markdown/YAML changes are feature authorities, notes, digests, and state. None is a built rendered surface or product interaction flow.
 - Direct pinned-tree lookup found no feature `DESIGN.md` or prototype object. There is therefore no design or prototype contract to audit.
-- The production utility is outside the changed-path census and byte-identical at the base, c1, and c2 pins: `.agents/skills/harness/bin/merge-gitignore.sh` has blob `4610430764205c16a627edc9764a37dcb54af75c` at all three.
+- The production utility is outside the changed-path census and byte-identical at the base, c1, and c2 pins: `.agents/skills/harness/bin/merge-gitignore.py` has blob `4610430764205c16a627edc9764a37dcb54af75c` at all three.
 
 ## c1-to-c2 delta and continuity
 

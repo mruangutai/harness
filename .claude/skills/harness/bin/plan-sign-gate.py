@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Refuse an agent's `plan-merge.py sign-approval`, so only the main session can sign.
+"""Refuse an agent's `plan-merge.py sign-approval` — and, since FEAT-59, an agent's
+`feature-record.py raise-cycles` / `set-rework` — so only the main session writes them.
 
 FEAT-41 T-08, REQ-05, making DEC-120 mechanical. An agent may ASK for a signature and be
 refused; only the main session can write one. Until this gate that rule was prose:
@@ -18,12 +19,71 @@ habit or over-eagerness, NOT a security boundary. What actually bounds the harne
 `sign-approval` is the only verb that writes the block, and this gate makes reaching it from
 an agent an explicit act of evasion rather than an ordinary tool call.
 
-IT DENIES ONE VERB, NOT THE TOOL. `apply`, `add-tasks`, `set-task-station` and
+IT DENIES VERBS, NOT TOOLS. `apply`, `add-tasks`, `set-task-station` and
 `set-feature-station` are the orchestrator's legal routes and stay open — T-05's playbook
 names them and T-09's shape gate leaves them as plan.yaml's only writer. A gate that refused
 the whole tool would take the orchestrator's ability to record a task status with it.
+
+FEAT-59 (SEC-03) ADDED THE OPERATOR'S BUDGET RULINGS ON THE SAME SCANNERS. `raise-cycles`
+moves `max_total_cycles`, the HARD bound INV-39 enforces against the orchestrator's own fix
+loop, and `set-rework` writes the operator's one rework ruling (SC-15). Both are the
+operator's word relayed by the main session (DEC-157), exactly as the signature is, and until
+this the party the ceiling bounds could raise it. They join here — one tokenizer, one
+recursion, one raw-text fallback, one indirection rule — rather than in a second gate that
+would drift from this one. feature-record.py's other verbs (run-start, run-end, judgement,
+set-mission, spend, propose-rework) are the orchestrator's ledger and stay open.
 """
-import json
+import contextlib as _bootstrap_contextlib
+import io as _bootstrap_io
+import os as _bootstrap_os
+import site as _bootstrap_site
+import sys as _bootstrap_sys
+
+_bootstrap_bin = _bootstrap_os.path.dirname(
+    _bootstrap_os.path.abspath(__file__))
+_bootstrap_original_path = list(_bootstrap_sys.path)
+_bootstrap_pythonpath = {
+    _bootstrap_os.path.realpath(entry)
+    for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(
+        _bootstrap_os.pathsep)
+    if entry
+}
+_bootstrap_user_sites = _bootstrap_site.getusersitepackages()
+if isinstance(_bootstrap_user_sites, str):
+    _bootstrap_user_sites = [_bootstrap_user_sites]
+_bootstrap_unsafe = _bootstrap_pythonpath | {
+    _bootstrap_os.path.realpath(_bootstrap_bin),
+    _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
+    *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
+}
+_bootstrap_sys.path[:] = [
+    entry for entry in _bootstrap_sys.path
+    if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
+]
+
+
+def _resolve_root():
+    """Resolve through the trusted sibling with isolated import semantics."""
+    try:
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
+            import harness_boundary
+            return harness_boundary.resolve_root(_bootstrap_bin)
+    except Exception:
+        return ""
+
+
+ROOT = _resolve_root()
+if not ROOT or not _bootstrap_os.path.isdir(ROOT):
+    print(
+        f"plan-sign-gate.py: no harness root could be resolved from "
+        f"{_bootstrap_bin} — refusing to run",
+        file=_bootstrap_sys.stderr,
+    )
+    raise SystemExit(2)
+import artifact_accessors as _artifact_accessors
+_bootstrap_sys.path[:] = _bootstrap_original_path
+
 import os
 import re
 import shlex
@@ -31,6 +91,10 @@ import sys
 
 VERB = "sign-approval"
 TOOL = "plan-merge.py"
+RECORD_TOOL = "feature-record.py"
+# THE MAIN-SESSION-ONLY VERBS, PER TOOL. A tool absent here is never this gate's business; a
+# verb absent under its tool is open. Adding a row is the whole act of gating a new verb.
+GATED = {TOOL: (VERB,), RECORD_TOOL: ("raise-cycles", "set-rework")}
 MUTATING_VERBS = ("apply", "add-tasks", "set-task-station", "set-feature-station")
 ADOPT_TOOL = "quarantine.py"
 # D-18 deliberately omits discard: it cannot make content canonical, and an orphan can
@@ -38,42 +102,71 @@ ADOPT_TOOL = "quarantine.py"
 # legalises that path. Covering only the CLI would advertise a protection the tree lacks.
 ADOPT_VERB = "adopt"
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else ""
+# THE REFUSAL NAMES A COMMAND THE READER CAN RUN. The native bootstrap resolves the
+# harness root through this file's own directory, so when the tool is confirmed on disk
+# underneath it the message carries the ABSOLUTE path and is copy-pasteable from any cwd;
+# otherwise it falls back to the repo-relative form. It never asserts a path it could not confirm.
+def _tool_path(tool):
+    rel = os.path.join(".claude", "skills", "harness", "bin", tool)
+    abs_path = os.path.join(ROOT, rel) if ROOT else ""
+    return abs_path if abs_path and os.path.isfile(abs_path) else rel
 
-# THE REFUSAL NAMES A COMMAND THE READER CAN RUN. The wrapper hands over the resolved harness
-# root (matching gh-close-gate.sh), so when the tool is confirmed on disk underneath it the
-# message carries the ABSOLUTE path and is copy-pasteable from any cwd; otherwise it falls back
-# to the repo-relative form. It never asserts a path it could not confirm.
-_rel = os.path.join(".claude", "skills", "harness", "bin", TOOL)
-_abs = os.path.join(ROOT, _rel) if ROOT else ""
-TOOL_PATH = _abs if _abs and os.path.isfile(_abs) else _rel
 
-# ONE refusal text, used verbatim for EVERY denial. A second wording would drift and the
-# operator would learn two different answers to one question.
+TOOL_PATH = _tool_path(TOOL)
+
+# ONE refusal SHAPE, used verbatim for EVERY denial; only the verb, what it writes and the
+# tool's open verbs vary. A second wording would drift and the operator would learn two
+# different answers to one question.
 #
 # IT NAMES THE VERB LITERALLY rather than saying "the verb": a refusal logged without the
-# command that triggered it must still say what was refused.
-REASON = (
-    f"Refused: {VERB} writes the approval signature, which is the USER'S and is relayed by\n"
-    f"the main session alone (DEC-120). An agent may ask for a signature and be refused; it\n"
-    f"cannot write one.\n"
-    f"\n"
-    f"Return awaiting_user with what you need signed. Do not call {VERB}, and do not edit the\n"
-    f"approval block by hand — the main session runs {VERB} itself once the user has given\n"
-    f"their word:\n"
-    f"  python3 {TOOL_PATH} {VERB} --file <plan.yaml> ...\n"
-    f"\n"
-    f"Every other verb of this tool stays open to you: apply, add-tasks, set-task-station and\n"
-    f"set-feature-station. This gate refuses one verb, not the tool."
-)
+# command that triggered it must still say what was refused. When the verb is UNDETERMINABLE
+# (indirection) every gated verb of the tool is named, so the line still says what it protects.
+WRITES = {
+    VERB: "the approval signature, which is the USER'S (DEC-120)",
+    "raise-cycles": "a raise of max_total_cycles, which is the OPERATOR'S budget decision "
+                    "(DEC-157, SC-15)",
+    "set-rework": "the operator's rework ruling (SC-15)",
+}
+OPEN_VERBS = {
+    TOOL: "apply, add-tasks, set-task-station and set-feature-station",
+    RECORD_TOOL: "run-start, run-end, judgement, set-mission, spend and propose-rework",
+}
+WRITTEN_FILE = {TOOL: ("the approval block", "plan.yaml"),
+                RECORD_TOOL: ("feature.json", "feature.json")}
+
+
+def reason(tool, verbs):
+    named = " / ".join(verbs)
+    writes = "; ".join(WRITES[v] for v in verbs)
+    by_hand, file_arg = WRITTEN_FILE[tool]
+    count = "one verb" if len(verbs) == 1 else "these verbs"
+    return (
+        f"Refused: {named} writes {writes},\n"
+        f"relayed by the main session alone. An agent may ask for it and be refused; it cannot\n"
+        f"write it.\n"
+        f"\n"
+        f"Return awaiting_user with what you need decided. Do not call {named}, and do not\n"
+        f"edit {by_hand} by hand — the main session runs {named} itself once the user has\n"
+        f"given their word:\n"
+        f"  python3 {_tool_path(tool)} {verbs[0]} --file <{file_arg}> ...\n"
+        f"\n"
+        f"Every other verb of this tool stays open to you: {OPEN_VERBS[tool]}.\n"
+        f"This gate refuses {count}, not the tool."
+    )
+
+
+# The one wording every pre-FEAT-59 reader of this file knows; kept as the name for the
+# signature's refusal so a log line grepped for it still finds it.
+REASON = reason(TOOL, (VERB,))
 
 try:
-    payload = json.load(sys.stdin)
+    payload = _artifact_accessors.read_hook_payload(
+        sys.stdin.read(), "plan-sign-gate hook payload")
 except Exception:
     sys.exit(0)
 
 # AN ABSENT OR EMPTY agent_type IS THE MAIN SESSION, and that exemption is the mechanism
-# rather than a named branch — check-domain.sh's approval_guard records the same reasoning
+# rather than a named branch — check-domain.py's approval_guard records the same reasoning
 # for the same reason, and issue #132 records what happened the last time that file grew a
 # second carve-out to keep in sync.
 if not (payload.get("agent_type") or ""):
@@ -96,8 +189,13 @@ SEP = "--"
 # IT SKIPS SEPARATORS TOO (FEAT-41 F-03). Fixing only the token scan above would have moved
 # the evasion rather than closed it: an unlexable line carrying `plan-merge.py -- sign-approval`
 # reaches exactly this regex, and the hole would have survived one unbalanced quote away.
-RAW_SIGN = re.compile(r"plan-merge\.py[\"'\s]+(?:" + re.escape(SEP) + r"[\"'\s]+)*"
-                      + re.escape(VERB) + r"(\s|$)")
+def _raw_pattern(tool, verbs):
+    return re.compile(re.escape(tool) + r"[\"'\s]+(?:" + re.escape(SEP) + r"[\"'\s]+)*("
+                      + "|".join(re.escape(v) for v in verbs) + r")(\s|$)")
+
+
+RAW = {tool: _raw_pattern(tool, verbs) for tool, verbs in GATED.items()}
+RAW_SIGN = RAW[TOOL]
 
 
 def words(s):
@@ -111,8 +209,9 @@ def words(s):
 
 
 def is_tool(tok):
-    """`plan-merge.py`, `/abs/plan-merge.py`, `\\plan-merge.py`, `"plan-merge.py"` — one file."""
-    return os.path.basename(tok.strip("\\'\"$()`")) == TOOL
+    """`plan-merge.py`, `/abs/plan-merge.py`, `\\plan-merge.py`, `"plan-merge.py"` — one file;
+    likewise feature-record.py. True for any tool with a gated verb."""
+    return _basename(tok) in GATED
 
 
 # Bash's line continuation. Bash REMOVES `\<newline>` before the shell ever sees words, so the
@@ -136,6 +235,20 @@ CONTINUATION = re.compile(r"\\\r?\n")
 BRACED_EXPANSION = re.compile(r'"?\$\{[^{}]*\}"?')
 
 
+def _paren_substitution_end(line, start):
+    """Return the first index after a balanced `$(...)`, or past EOF."""
+    depth = 0
+    for index in range(start + 1, len(line)):
+        char = line[index]
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+        if depth == 0:
+            return index + 1
+    return len(line) + 1
+
+
 def _strip_substitutions(line):
     """Replace every `$(...)` and backtick substitution with a space.
 
@@ -144,31 +257,22 @@ def _strip_substitutions(line):
     still not split where bash splits it -- a one-line fix that looks right and leaks. There is a
     case for exactly that shape.
     """
-    out, i, n = [], 0, len(line)
-    while i < n:
-        if line[i] == "$" and i + 1 < n and line[i + 1] == "(":
-            depth, j = 0, i + 1
-            while j < n:
-                if line[j] == "(":
-                    depth += 1
-                elif line[j] == ")":
-                    depth -= 1
-                    if depth == 0:
-                        break
-                j += 1
+    out, index = [], 0
+    while index < len(line):
+        if line.startswith("$(", index):
             # An UNCLOSED substitution consumes the rest of the line. That is deliberate: bash
             # cannot run it either, and leaving the text behind would let a truncated `$(` hide
             # the verb from the scan while a later heredoc or continuation completed it.
             out.append(" ")
-            i = j + 1
+            index = _paren_substitution_end(line, index)
             continue
-        if line[i] == "`":
-            j = line.find("`", i + 1)
+        if line[index] == "`":
+            end = line.find("`", index + 1)
             out.append(" ")
-            i = (j + 1) if j != -1 else n
+            index = (end + 1) if end != -1 else len(line)
             continue
-        out.append(line[i])
-        i += 1
+        out.append(line[index])
+        index += 1
     return "".join(out)
 
 
@@ -205,14 +309,14 @@ INTERPRETERS = {"python", "python3", "python2", "env", "nice", "time", "nohup", 
 
 
 def _invokes_tool_indirectly(toks):
-    """True when a wrapper will run the tool with argv the gate cannot see.
+    """The gated TOOL a wrapper will run with argv the gate cannot see, or None.
 
     FAIL CLOSED ON INDIRECTION, WHICH IS NOT ANOTHER SEPARATOR PATCH. Measured: three xargs
     variants all deliver the verb, and the third reads it FROM A FILE --
     `xargs plan-merge.py < verb.txt` -- so the verb's text never appears in the command line and
     no text scanner can ever see it. Closing "the xargs form" would have been a fifth patch
     leaving the class open. A gate that cannot determine the verb must refuse rather than guess,
-    exactly as an unresolvable path refuses in check-domain.sh.
+    exactly as an unresolvable path refuses in check-domain.py.
 
     THE COMMAND WORD IS RESOLVED, NOT MERELY SEARCHED FOR, and that is what keeps this narrow:
     `xargs -I{} grep plan-merge.py dir` mentions the tool as grep's PATTERN and must stay allowed.
@@ -222,9 +326,9 @@ def _invokes_tool_indirectly(toks):
     THREE SMALL QUESTIONS, NOT ONE LOOP. Kept separate because each is a different question about
     the token stream, and the combined version graded 1 on nested control flow alone.
     """
-    return any(_find_exec_runs_tool(toks, i) if _basename(t) == "find"
-               else _wrapper_runs_tool(toks, i)
-               for i, t in enumerate(toks))
+    return next((tool for tool in (_find_exec_runs_tool(toks, i) if _basename(t) == "find"
+                                   else _wrapper_runs_tool(toks, i)
+                                   for i, t in enumerate(toks)) if tool), None)
 
 
 def _basename(tok):
@@ -235,9 +339,11 @@ def _basename(tok):
 def _find_exec_runs_tool(toks, i):
     """`find ... -exec <tool>` — find's command begins after -exec, not after its own flags."""
     for j in range(i + 1, len(toks)):
-        if toks[j] in ("-exec", "-execdir") and any(is_tool(x) for x in toks[j + 1:j + 3]):
-            return True
-    return False
+        if toks[j] in ("-exec", "-execdir"):
+            tool = next((_basename(x) for x in toks[j + 1:j + 3] if is_tool(x)), None)
+            if tool:
+                return tool
+    return None
 
 
 def _wrapper_runs_tool(toks, i):
@@ -248,7 +354,7 @@ def _wrapper_runs_tool(toks, i):
     command word is `grep`, so it stays allowed.
     """
     if _basename(toks[i]) not in INDIRECT:
-        return False
+        return None
     rest = toks[i + 1:]
     while rest and rest[0].startswith("-"):
         rest = rest[1:]
@@ -256,68 +362,82 @@ def _wrapper_runs_tool(toks, i):
     # worse and graded below the bar for a function this small.
     if rest and _basename(rest[0]) in INTERPRETERS:
         rest = rest[1:]
-    return bool(rest) and is_tool(rest[0])
+    return _basename(rest[0]) if rest and is_tool(rest[0]) else None
+
+
+def _raw_denial(line):
+    """Apply the bounded text fallback when a command cannot be tokenized."""
+    # UNPARSEABLE FALLS BACK TO A TEXT SCAN, IT DOES NOT BLANKET-DENY. gh-close-gate.py
+    # records what the blanket version cost when it was measured: shlex raises on ANY
+    # unbalanced quote, and an English possessive is an unbalanced quote, so `echo it's
+    # fine` was refused. It blocked ordinary work and caught nothing.
+    for tool, pattern in RAW.items():
+        match = pattern.search(line)
+        if match:
+            return tool, (match.group(1),)
+    return None
+
+
+def _direct_denial(toks):
+    """Find a gated verb directly following its tool and separators."""
+    for index, token in enumerate(toks):
+        tool = _basename(token)
+        if tool in GATED:
+            # THE VERB MUST FOLLOW THE TOOL, PAST ANY END-OF-OPTIONS SEPARATOR
+            # (FEAT-41 F-03). A bare gated verb elsewhere is legitimate text.
+            verb = _verb_after(toks, index)
+            if verb in GATED[tool]:
+                return tool, (verb,)
+    return None
+
+
+def _nested_denial(toks, depth):
+    """Re-scan command lines carried inside one shell token."""
+    if depth >= MAX_DEPTH:
+        return None
+    for token in toks:
+        if len(token.split()) >= 3:
+            hit = denies(token, depth + 1)
+            if hit:
+                return hit
+    return None
 
 
 def denies(line, depth=0):
+    """`(tool, verbs)` for a denied line, or None when the line is allowed."""
     line = as_bash_reads_it(line)
     toks = words(line)
     if toks is None:
-        # UNPARSEABLE FALLS BACK TO A TEXT SCAN, IT DOES NOT BLANKET-DENY. gh-close-gate.py
-        # records what the blanket version cost when it was measured: shlex raises on ANY
-        # unbalanced quote, and an English possessive is an unbalanced quote, so `echo it's
-        # fine` was refused. It blocked ordinary work and caught nothing, because a real
-        # evasion has no need of an unbalanced quote to hide behind.
-        return bool(RAW_SIGN.search(line))
-    if _invokes_tool_indirectly(toks):
-        # THE VERB IS UNDETERMINABLE HERE, so this refuses without looking for it (FEAT-41
-        # HIGH-2). Every other branch in this function asks "is the verb in the right position";
-        # this one asks "can the position be read at all", and when it cannot the answer is no.
-        return True
-    for i, t in enumerate(toks):
-        # THE VERB MUST FOLLOW THE TOOL, PAST ANY END-OF-OPTIONS SEPARATOR (FEAT-41 F-03).
-        # A bare `sign-approval` anywhere in a command line is not a signing attempt — an agent
-        # grepping for the verb, or writing a receipt that mentions it, is doing legitimate
-        # work, and a substring match would refuse both. So position still matters; what was
-        # wrong was testing STRICT adjacency.
-        #
-        # argparse treats a lone `--` as end-of-options and DROPS it, so `plan-merge.py --
-        # sign-approval` is a line argparse executes while no token sits adjacent to the tool.
-        # Measured against the real tool: one `--` signs, two `--` and an empty token are both
-        # refused by argparse at exit 2 and cannot sign at all.
-        #
-        # A RUN IS SKIPPED, NOT ONE, and deliberately: the repeated form cannot sign today, so
-        # skipping it costs nothing, and it means this gate does not silently reopen if
-        # argparse's handling of a second separator ever changes. Only `--` is skipped —
-        # widening to "the verb appears anywhere after the tool" would refuse the legitimate
-        # `apply` call asserted as a negative control in test-plan-sign-gate.py.
-        if not is_tool(t):
-            continue
-        j = i + 1
-        while toks[j:j + 1] == [SEP]:
-            j += 1
-        if toks[j:j + 1] == [VERB]:
-            return True
-    if depth < MAX_DEPTH:
-        # `eval "... sign-approval ..."` and `bash -c '...'` carry a whole command line
-        # inside ONE token. Re-scan any token that still looks like a command line.
-        for t in toks:
-            if len(t.split()) >= 3 and denies(t, depth + 1):
-                return True
-    return False
+        return _raw_denial(line)
+    indirect = _invokes_tool_indirectly(toks)
+    if indirect:
+        # THE VERB IS UNDETERMINABLE HERE, so refuse without looking for it
+        # (FEAT-41 HIGH-2).
+        return indirect, GATED[indirect]
+    return _direct_denial(toks) or _nested_denial(toks, depth)
+
+
+def _verb_after(toks, index):
+    """Return the verb after one tool and any end-of-options separators."""
+    index += 1
+    while toks[index:index + 1] == [SEP]:
+        index += 1
+    return toks[index] if index < len(toks) else None
+
+
+def _mutates_canonical_artifact(tool, verb):
+    """Whether this tool/verb pair can make a quarantined artifact canonical."""
+    return ((tool == TOOL and verb in MUTATING_VERBS)
+            or (tool == ADOPT_TOOL and verb == ADOPT_VERB))
+
 
 def _invocation(toks):
-    for i, token in enumerate(toks):
+    for index, token in enumerate(toks):
         tool = _basename(token)
-        if tool not in (TOOL, ADOPT_TOOL):
-            continue
-        j = i + 1
-        while toks[j:j + 1] == [SEP]:
-            j += 1
-        verb = toks[j] if j < len(toks) else None
-        if ((tool == TOOL and verb in MUTATING_VERBS)
-                or (tool == ADOPT_TOOL and verb == ADOPT_VERB)):
-            return i, tool
+        if (tool in (TOOL, ADOPT_TOOL)
+                and _mutates_canonical_artifact(
+                    tool, _verb_after(toks, index))):
+            return index, tool
     return None
 
 
@@ -350,47 +470,51 @@ def _quarantine_artifact(value, canonical_artifacts):
     return rel, match.group(1)
 
 
-def quarantines(line, agent, session, depth=0):
-    line = as_bash_reads_it(line)
-    toks = words(line)
-    if toks is None:
-        # There is no raw-text fallback: this rule needs the value of --file, and
-        # quoting makes that value unknowable when the command will not lex (D-13).
+def _nested_quarantine(toks, agent, session, depth):
+    """Re-scan command lines carried inside one shell token."""
+    if depth >= MAX_DEPTH:
         return None
+    for token in toks:
+        if len(token.split()) >= 3:
+            nested = quarantines(token, agent, session, depth + 1)
+            if nested is not None:
+                return nested
+    return None
 
-    found = _invocation(toks)
-    if found is None:
-        if depth < MAX_DEPTH:
-            for token in toks:
-                if len(token.split()) >= 3:
-                    nested = quarantines(token, agent, session, depth + 1)
-                    if nested is not None:
-                        return nested
+
+def _quarantine_target(registry, tool, value, agent, session):
+    """Resolve one plan mutation or adoption to its feature and quarantine."""
+    if tool == TOOL:
+        rel = _checkout_rel(value)
+        if rel is None:
+            return None
+        artifact = registry.canonical_artifact(rel)
+        if artifact is None:
+            return None
+        feature, _basename_value = artifact
+        quarantine_rel = registry.quarantine_rel(rel, agent, session)
+        return rel, feature, quarantine_rel, tool
+    artifact = _quarantine_artifact(value, registry.CANONICAL_ARTIFACTS)
+    if artifact is None:
         return None
+    rel, feature = artifact
+    return rel, feature, rel, tool
 
+
+def _enforce_quarantine(toks, found, agent, session):
+    """Return a refused orphan write, failing open on boundary errors."""
     start, tool = found
     value = _file_arg(toks, start)
     if value is None:
         return None
-    rel = _checkout_rel(value) if tool == TOOL else None
-    if tool == TOOL and rel is None:
-        return None
-
     try:
-        import inflight_registry as _reg
-        if tool == TOOL:
-            artifact = _reg.canonical_artifact(rel)
-            if artifact is None:
-                return None
-            feature, _basename_value = artifact
-            quarantine_rel = _reg.quarantine_rel(rel, agent, session)
-        else:
-            artifact = _quarantine_artifact(value, _reg.CANONICAL_ARTIFACTS)
-            if artifact is None:
-                return None
-            rel, feature = artifact
-            quarantine_rel = rel
-        if not _reg.orphan_write(ROOT, agent, feature, session):
+        import inflight_registry as registry
+        target = _quarantine_target(
+            registry, tool, value, agent, session)
+        if target is None:
+            return None
+        rel, feature, quarantine_rel, _tool = target
+        if not registry.orphan_write(ROOT, agent, feature, session):
             return None
         return rel, feature, quarantine_rel, tool
     except Exception as exc:
@@ -402,9 +526,23 @@ def quarantines(line, agent, session, depth=0):
         return None
 
 
+def quarantines(line, agent, session, depth=0):
+    line = as_bash_reads_it(line)
+    toks = words(line)
+    if toks is None:
+        # There is no raw-text fallback: this rule needs the value of --file, and
+        # quoting makes that value unknowable when the command will not lex (D-13).
+        return None
+    found = _invocation(toks)
+    if found is None:
+        return _nested_quarantine(toks, agent, session, depth)
+    return _enforce_quarantine(toks, found, agent, session)
 
-if denies(cmd):
-    sys.stderr.write(REASON + "\n")
+
+
+_denied = denies(cmd)
+if _denied:
+    sys.stderr.write(reason(*_denied) + "\n")
     sys.exit(2)
 
 agent = payload.get("agent_type") or ""

@@ -98,7 +98,7 @@ with line anchors is in `notes/research-FEAT-22-docs-boundary.md`.
 
 ## Success Criteria
 
-**Which runner produces each `evidence:` kind was measured, not inferred.** `run-unit-tests.sh:17-18`
+**Which runner produces each `evidence:` kind was measured, not inferred.** `run-unit-tests.py:17-18`
 holds two explicit arrays, and the array — not `harness.json`'s `detect` glob — decides what actually
 executes. `test-layout-migration.py` is in `UNIT_SCRIPTS`; `test-check-domain.py` and
 `test-gen-decisions-index.py` are both in `INTEGRATION_SCRIPTS`, even though both also match the
@@ -118,7 +118,7 @@ produce its passing test. This is FEAT-21 ship-review drift B-12 #2, avoided by 
   header rewrites, the grant, and the regenerated index — lands in exactly one commit, and that
   commit's tree contains no tracked file under `docs/harness/`.
   verify: inspection
-- SC-05: `check-domain.sh --resolve` names `harness-documentor` for a file under
+- SC-05: `check-domain.py --resolve` names `harness-documentor` for a file under
   `.harness/harness/docs/`, and a standing test case pins it.
   verify: automated      evidence: integration
 - SC-06: The committed decisions index is byte-identical to what its generator produces, and its
@@ -185,11 +185,11 @@ produce its passing test. This is FEAT-21 ship-review drift B-12 #2, avoided by 
 - **The detector's reader table needs no row edit.** Every docs row already carries its `migrated`
   pattern (`layout_migration.py:93-101`), pre-written for this migration. Confirmed by reading, and
   left alone. Those `migrated` regexes constrain the shape of the edits and are pinned in the plan.
-- **`gh-sync.py`, `branch-create-gate.sh`, `validate-feature-json.py`, `factory_claim.py`, the
+- **`gh-sync.py`, `branch-create-gate.py`, `validate-feature-json.py`, `factory_claim.py`, the
   gitignore snippet and prose are unit 9**, not this feature.
 - **The detector's own legacy patterns and fixtures are not touched.** They are how it recognises
   the pre-state; removing them would blind it.
-- **The destination is currently ungranted** — `check-domain.sh --resolve .harness/harness/docs/SPEC.md`
+- **The destination is currently ungranted** — `check-domain.py --resolve .harness/harness/docs/SPEC.md`
   returns `NOBODY`. The grant lands in the same commit, or the documentor loses the ability to write
   the docs it owns.
 

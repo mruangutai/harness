@@ -14,7 +14,7 @@ They agree; this is not a relayed verdict.
 | T-02 | `gh-sync.py` internal mirroring (`load_recorded`/`save_recorded`) | No — file I/O, no output | No |
 | T-03 | `_record_pr` diagnostic print-lines, `record-pr` subcommand | Yes — stdout lines a human reads at the terminal | Adjacent, lightly checked (not one of the two named surfaces) |
 | T-04 | `cmd_closes` — `Closes #<n>` renderer | Yes — stdout text pasted verbatim into a PR body | **Yes, examined in full** |
-| T-05 | INV-28 warn line in `check-state.sh` | Yes — stdout text read at session entry, prescribes an action | **Yes, examined in full** |
+| T-05 | INV-28 warn line in `check-state.py` | Yes — stdout text read at session entry, prescribes an action | **Yes, examined in full** |
 | T-06 | Backfill of 11 `feature.json` `pr` values | No — data write, no rendering | No |
 | T-07 | `SKILL.md` table rows, `templates/plan.yaml` comment | Documentation for the next author, not runtime UI | No |
 | T-08 | `DECISIONS.md` entry | Documentation | No |

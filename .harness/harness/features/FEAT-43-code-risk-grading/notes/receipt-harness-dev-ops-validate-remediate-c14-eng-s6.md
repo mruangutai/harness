@@ -33,7 +33,7 @@ measured `5 of 11 *.sh files ... raise tokenize.TokenError`. Dispatch: `logical_
 is_python) = _logical_lines_python(text) if is_python else _logical_lines_shell(text)`,
 `is_python=fname.endswith(".py")` — never content-sniffed.
 
-- **No exemption list touched.** The only coded exception remains `check-state.sh` (pre-existing,
+- **No exemption list touched.** The only coded exception remains `check-state.py` (pre-existing,
   documented as issue #156); no new filename was added anywhere in the diff.
 - **`case_20_the_detector_is_not_blind`'s guard is unchanged in substance**: `seen_any >= 2` is
   still the final assertion (now folded into `return ok and seen_any >= 2`, same predicate, refactor

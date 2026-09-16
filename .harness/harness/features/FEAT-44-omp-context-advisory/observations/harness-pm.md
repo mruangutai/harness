@@ -9,14 +9,14 @@
   is PRESENT in SKILL.md. Read at source: `:62-67` asserts a wording regex is present AND that
   `context-watch.py` is ABSENT. The deletion does not break that guard; the SKILL.md rewrite breaks
   its other half. Re-reading changed which half the task had to touch.
-- 2026-08-29: `run-unit-tests.sh --check-kinds` only flags an INTEGRATION_SCRIPTS name missing from
+- 2026-08-29: `run-unit-tests.py --check-kinds` only flags an INTEGRATION_SCRIPTS name missing from
   `harness.json` integration `detect`, and a UNIT_SCRIPTS name present in it. A STALE detect entry
   naming a deleted file is invisible to it, so a deletion task needs its own grep over harness.json.
-- 2026-08-29: full `run-unit-tests.sh` measured ~170s at 7ebfc9e, past the 60s a `verify:` may
+- 2026-08-29: full `run-unit-tests.py` measured ~170s at 7ebfc9e, past the 60s a `verify:` may
   spend. Budget-honest plans put the full-suite claim on the qa gate and keep `--check-kinds`
   (0.15s) plus targeted greps in the task verify.
 - 2026-08-29: `plan-merge.py apply` REFUSES (exit 8) a proposal carrying an `approval:` mapping when
   the base plan does not exist, so a first-spawn proposal must omit the block entirely — while
-  `check-state.sh:159-161` flags a `plan.yaml` with no `approval:` block as bad. Every brand-new
+  `check-state.py:159-161` flags a `plan.yaml` with no `approval:` block as bad. Every brand-new
   plan.yaml is therefore BAD until the main session inserts the pending block.
 - 2026-08-29: FEAT-44 T-01 item 5 specified a state the code cannot reach — a post-domain block reason composed with the task-gated advisory. postDomain returns [] for any toolName that is not write/edit/bash (harness-hooks.ts:272), so a task result never carries a block reason. The BRIEF's own composition paragraph asserted the same impossible state and had been through a validator panel and an eng-lead architecture review without either catching it: a composition claim about two gates is only checkable by intersecting their predicates, which prose review does not do. Worth doing at plan time whenever a task asserts "X and Y co-occur" across two independently gated paths.

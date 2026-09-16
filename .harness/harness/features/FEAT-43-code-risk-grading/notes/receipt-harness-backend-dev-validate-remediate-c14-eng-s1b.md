@@ -2,7 +2,7 @@
 
 **Task:** T-01 (send-back on `check_self_grading` in `.claude/skills/harness/bin/test-code-grade.py`,
 lines 184-203 pre-edit). **Verify command (dispatch-declared override):**
-`python3 .claude/skills/harness/bin/test-code-grade.py`, directly — not `run-unit-tests.sh` (dispatch
+`python3 .claude/skills/harness/bin/test-code-grade.py`, directly — not `run-unit-tests.py` (dispatch
 constraint overrides the plan's `--kind unit` verify for this remediation run).
 
 ## What changed

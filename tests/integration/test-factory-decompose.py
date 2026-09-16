@@ -363,7 +363,7 @@ def run_publish(feat_dir, fleet_path, rec, extra_args=None):
             try:
                 fd.factory_cli.run(
                     fd.TOOL, fd._main,
-                    expected=(fd.factory_config.FleetError, fd.factory_gh.GhError),
+                    expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError),
                 )
             except SystemExit as e:
                 code = e.code
@@ -400,6 +400,107 @@ with tempfile.TemporaryDirectory() as td:
           os.path.join(feat_dir, "plan.yaml") in err, err)
     check("(1) unsigned plan: zero mutating calls",
           rec.mutating_calls() == [], rec.mutating_calls())
+
+# ============================================================================
+# 1b. Issue #208: an UNPARSEABLE plan.yaml must exit 2 naming the file — not the
+# generic "unexpected failure: <ExceptionClassName>" the CLI trap prints for anything
+# outside its `expected=` tuple, which is what a raw harness_yaml.load_plan call let
+# an unwrapped YamlParseError produce before this fix.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, fleet_path = make_feature(td, approved=True)
+    write_text(os.path.join(feat_dir, "plan.yaml"), "tasks: [\n  bad: [[[")
+    rec = Recorder()
+    code, out, err = run_publish(feat_dir, fleet_path, rec)
+    check("(1b) unparseable plan.yaml: exits 2", code == 2, f"code={code!r}")
+    check("(1b) unparseable plan.yaml: names the plan path on stderr",
+          os.path.join(feat_dir, "plan.yaml") in err, err)
+    check("(1b) unparseable plan.yaml: does not leak the exception class name",
+          "unexpected failure" not in err and "YamlParseError" not in err, err)
+    check("(1b) unparseable plan.yaml: zero mutating calls",
+          rec.mutating_calls() == [], rec.mutating_calls())
+
+# ============================================================================
+# 1c. Issue #208: an UNPARSEABLE feature.json — same fix, same shape, at load_factory.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, fleet_path = make_feature(td, approved=True,
+                                         feature_json_extra="{ not: valid json [[[")
+    rec = Recorder()
+    code, out, err = run_publish(feat_dir, fleet_path, rec)
+    check("(1c) unparseable feature.json: exits 2", code == 2, f"code={code!r}")
+    check("(1c) unparseable feature.json: names the feature.json path on stderr",
+          os.path.join(feat_dir, "feature.json") in err, err)
+    check("(1c) unparseable feature.json: does not leak the exception class name",
+          "unexpected failure" not in err and "YamlParseError" not in err, err)
+    check("(1c) unparseable feature.json: zero mutating calls",
+          rec.mutating_calls() == [], rec.mutating_calls())
+
+# ============================================================================
+# 1d. BUG-285 nested factory records: absence remains empty, but a recorded
+# non-mapping refuses and legacy numeric values retain their issue numbers.
+# These call load_factory directly: coverage through publish would miss the reader contract.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(td, feature_json_extra=json.dumps({"factory": "x"}))
+    factory_path = os.path.join(feat_dir, "feature.json")
+    refusal_err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(refusal_err):
+            fd.load_factory(feat_dir)
+        check("(1d) non-mapping factory value refuses", False,
+              "load_factory returned instead of raising")
+    except SystemExit:
+        check("(1d) non-mapping factory value refuses and names the file",
+              factory_path in refusal_err.getvalue(), refusal_err.getvalue())
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(
+        td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": "7"}})
+    )
+    check("(1d) quoted parent is coerced through load_factory",
+          fd.load_factory(feat_dir)["parent"] == 7, fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(
+        td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": True}})
+    )
+    try:
+        fd.load_factory(feat_dir)
+        check("(1d) bool parent refuses rather than becoming absence", False, "returned")
+    except SystemExit:
+        check("(1d) bool parent refuses rather than becoming absence", True)
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(
+        td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": 7}})
+    )
+    check("(1d) integer parent remains an integer through load_factory",
+          fd.load_factory(feat_dir)["parent"] == 7, fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(td, feature_json_extra=json.dumps({"feature_id": "F-absent"}))
+    check("(1d) absent factory key remains the empty record",
+          fd.load_factory(feat_dir) == fd._empty_factory(), fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    check("(1d) absent feature.json remains the empty record",
+          fd.load_factory(td) == fd._empty_factory(), fd.load_factory(td))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(td)
+    factory_path = os.path.join(feat_dir, "feature.json")
+    with open(factory_path, "wb") as f:
+        f.write(b"\xff\xfe")
+    refusal_err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(refusal_err):
+            fd.load_factory(feat_dir)
+        check("(1d) non-UTF-8 feature.json refuses through load_factory", False,
+              "load_factory returned instead of raising")
+    except SystemExit:
+        check("(1d) non-UTF-8 feature.json refuses and names the file through load_factory",
+              factory_path in refusal_err.getvalue(), refusal_err.getvalue())
 
 # ============================================================================
 # 2. a signed two-task plan creates two issues, adds two board items, sets both stations
@@ -454,7 +555,7 @@ with tempfile.TemporaryDirectory() as td:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
                 fd.factory_cli.run(fd.TOOL, fd._main,
-                                    expected=(fd.factory_config.FleetError, fd.factory_gh.GhError))
+                                    expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
             except SystemExit as e:
                 code = e.code
     finally:
@@ -725,22 +826,19 @@ with tempfile.TemporaryDirectory() as td:
     check("(17) no edge call precedes the last create_issue call",
           all(i > last_create_idx for i in edge_idxs), (last_create_idx, edge_idxs, rec.calls))
 
-# --- 18. a blocker with no recorded issue number is skipped, not fatal
+# --- 18. a dangling depends_on blocker is refused at plan load, before any remote write
 with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01", depends_on=["T-99-missing"])]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec = Recorder()
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
-    check("(18) exits 0", code in (0, None), f"code={code!r} err={err}")
+    check("(18) exits exactly 2", code == 2, f"code={code!r} err={err}")
     check("(18) stderr names both task ids",
           "T-01" in err and "T-99-missing" in err, err)
-    check("(18) no blocked_by call was made for the missing blocker",
-          [c for c in rec.calls if c[0] == "blocked_by"] == [],
-          [c for c in rec.calls if c[0] == "blocked_by"])
-    payload = json.loads(out)
-    check("(18) payload edges_skipped is exactly 1", payload.get("edges_skipped") == 1, payload)
-    check("(18) payload edges_drawn counts only edges actually written",
-          payload.get("edges_drawn") == 1, payload)  # the one parent-attach edge for T-01
+    check("(18) no traceback appears anywhere in the output",
+          "Traceback" not in out and "Traceback" not in err, (out, err))
+    check("(18) refusal precedes any remote write: zero mutating calls",
+          rec.mutating_calls() == [], rec.mutating_calls())
 
 # --- 19. the fourth disposition: both issues+items recorded, empty edges — re-runs create/add
 #         nothing, draw every edge; a third run then draws nothing at all
@@ -756,7 +854,7 @@ with tempfile.TemporaryDirectory() as td:
     try:
         try:
             fd.factory_cli.run(fd.TOOL, fd._main,
-                                expected=(fd.factory_config.FleetError, fd.factory_gh.GhError))
+                                expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
         except SystemExit:
             pass
         except RuntimeError:
@@ -1378,5 +1476,19 @@ with tempfile.TemporaryDirectory() as td:
           not os.path.exists(os.path.join(_bad_feat_dir, "feature.json")))
 
 
+# --- BUG-285: malformed-present factory receipts must never look like absence and trigger creates.
+for _label, _factory in (
+    ("wrong parent", {"repo": REPO, "parent": True, "issues": {}}),
+    ("wrong issues", {"repo": REPO, "parent": None, "issues": []}),
+):
+    with tempfile.TemporaryDirectory() as td:
+        feat_dir, fleet_path = make_feature(
+            td, feature_json_extra=json.dumps({"factory": _factory})
+        )
+        rec = Recorder()
+        code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
+        check(f"BUG-285 {_label} refuses before parent or task issue creation",
+              code == 2 and [c for c in rec.calls if c[0] == "create_issue"] == [],
+              f"code={code!r} calls={rec.calls!r} err={err!r}")
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)

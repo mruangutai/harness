@@ -20,7 +20,7 @@ out to be outside every agent's grant.** The old process would have found that a
 
 **SC-08 says exactly one path matcher exists. The code genuinely satisfies that** —
 `check-plan-routes.py` contains no path comparison at all; every path decision is delegated to
-`check-domain.sh`. What fails is the *alarm*: the one fixture written to catch a future contributor
+`check-domain.py`. What fails is the *alarm*: the one fixture written to catch a future contributor
 re-introducing a prefix comparison **cannot fail**.
 
 It presupposes a path "granted only through a mid-pattern wildcard." No such path exists in the
@@ -33,7 +33,7 @@ both implementations look identical to it.
 | Option | What you get | What it costs |
 |---|---|---|
 | **(a)** Make the checker name the resolving agent so the fixture can assert *which* | A fixture that genuinely discriminates | Changing shipped behaviour to satisfy a test |
-| **(b)** Amend SC-08 to assert on `check-domain.sh --resolve` directly | The property proven where it actually lives | A BRIEF amendment — approval-gated, re-signature |
+| **(b)** Amend SC-08 to assert on `check-domain.py --resolve` directly | The property proven where it actually lives | A BRIEF amendment — approval-gated, re-signature |
 | **(c)** Accept SC-08 as unproven and file it | Ships today; the property is already true by construction | The regression guard stays absent until someone re-introduces the bug |
 
 There is no free option. **(c) is the principled one** — a file containing no path comparison anywhere
@@ -63,7 +63,7 @@ the argument for why this last leg is not paperwork.
 
 ## The unreviewed-guard window — it existed
 
-`check-domain.sh` is the write guard for the whole org. Its `--resolve` change landed at `6792331` and
+`check-domain.py` is the write guard for the whole org. Its `--resolve` change landed at `6792331` and
 then **sat committed, with zero independent review, across the entire park** — through eight further
 commits including the unpark. That window was real, and nothing in the green gates would have told you
 it was open.

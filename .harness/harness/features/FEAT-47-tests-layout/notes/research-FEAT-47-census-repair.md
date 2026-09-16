@@ -44,12 +44,12 @@ end from the ref this feature merges into. Current reconciliation, measured:
 
 ## Interactions with FEAT-48 that T-05 now states
 
-- `run-unit-tests.sh`'s serial loop is already
+- `run-unit-tests.py`'s serial loop is already
   `python3 run_pool.py --mutation-check "$ROOT" -- "${SCRIPTS[@]/#/$BIN_DIR/}"`. T-05 drops only the
   `$BIN_DIR` prefixing, feeds repo-relative discovered paths, and carries `--mutation-check`
   forward verbatim. Nothing in `run_pool.py` changes — that is what made ordering possible instead
   of merging.
-- Every line anchor into `run-unit-tests.sh` is de-anchored: FEAT-48 edits that file first.
+- Every line anchor into `run-unit-tests.py` is de-anchored: FEAT-48 edits that file first.
 - `test-suite-independence.py`'s anchor is the odd one out — a **root climb**, four levels from
   `bin/`, two from `tests/unit/`. Get it wrong and it scans a smaller set and still exits 0; its own
   `>= 50` discovered-file floor is what catches that. Named explicitly in T-03.

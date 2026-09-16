@@ -167,15 +167,15 @@ required by any REQ/SC. Not a finding worth blocking on.
 
 ---
 
-## INV-24 (`check-state.sh`) — read-only review, per the dispatch's explicit permission
+## INV-24 (`check-state.py`) — read-only review, per the dispatch's explicit permission
 
-Pin: `check-state.sh:858-908` (the DEC-186 block).
+Pin: `check-state.py:858-908` (the DEC-186 block).
 
 **Process note the operator should see, unrelated to correctness of the invariant itself.** The
 pinned SHA `8bbb246` is not reachable from `main` — it lives only on branch
 `wip-omp-and-feat10-mixed`. `main` carries a different commit, `28302a6`, with the identical
-message but a rewritten tree; at `28302a6`, `check-state.sh` differs from the pinned version by
-roughly 150 lines in its root-resolution block (confirmed: `git diff 8bbb246 -- check-state.sh`
+message but a rewritten tree; at `28302a6`, `check-state.py` differs from the pinned version by
+roughly 150 lines in its root-resolution block (confirmed: `git diff 8bbb246 -- check-state.py`
 against the current tree shows the "omp port" root-resolution code present at the pin but absent
 at `HEAD`). My line citations below (`:858-908`) are correct for the pinned bytes I was asked to
 review, but they will not match the file at the path the operator would actually edit on `main`

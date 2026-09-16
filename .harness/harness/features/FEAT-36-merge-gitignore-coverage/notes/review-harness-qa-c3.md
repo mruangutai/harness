@@ -8,16 +8,16 @@ severity_max: n/a
 must_fix: []
 coverage_gaps: []
 commands:
-  - cmd: "python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.sh --kind all"
+  - cmd: "python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.py --kind all"
     exit: 0
     result: "direct 7/7; all runner passed 46 registered scripts; no MISCONFIGURED or KIND-DRIFT output"
   - cmd: "python3 .agents/skills/harness/bin/test-merge-gitignore.py"
     exit: 0
     result: "7 named behavioral cases passed"
-  - cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit"
+  - cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit"
     exit: 0
     result: "23 registered unit scripts passed"
-  - cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration"
+  - cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration"
     exit: 0
     result: "23 registered integration scripts, including test-merge-gitignore.py, passed"
 kinds:
@@ -29,7 +29,7 @@ sc_evidence:
   - {id: SC-03, evidence: ".agents/skills/harness/bin/test-merge-gitignore.py:86-108"}
   - {id: SC-04, evidence: ".agents/skills/harness/bin/test-merge-gitignore.py:111-120"}
   - {id: SC-05, evidence: ".agents/skills/harness/bin/test-merge-gitignore.py:123-136"}
-  - {id: SC-06, evidence: ".agents/skills/harness/bin/run-unit-tests.sh:18; .harness/harness.json test_kinds.integration.detect; git diff 0fa8f33..be27d99 -- merge-gitignore.sh (empty)"}
+  - {id: SC-06, evidence: ".agents/skills/harness/bin/run-unit-tests.py:18; .harness/harness.json test_kinds.integration.detect; git diff 0fa8f33..be27d99 -- merge-gitignore.py (empty)"}
 open_questions: []
 files_touched:
   - .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-qa-c3.md

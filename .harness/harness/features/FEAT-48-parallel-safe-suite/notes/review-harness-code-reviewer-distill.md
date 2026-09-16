@@ -106,7 +106,7 @@ op: add, target: (new), section: Gotchas, entry: G-07
 
 Applied via `expertise-merge.py apply --file .harness/harness/expertise/harness-code-reviewer.md`:
 `ADDED G-06`, `ADDED G-07`, `PRESERVED G-01..G-05`, `APPLIED`, exit 0.
-`check-expertise.sh` on both files: `OK`, exit 0.
+`check-expertise.py` on both files: `OK`, exit 0.
 
 ### Craft tier — attempted, ACTUALLY DENIED, ops returned verbatim
 

@@ -22,7 +22,7 @@ Pre-checks (matching claims in `intent:`):
 (not piped) as instructed
 
 ```
-test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
+test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
 ```
 
 Observed:
@@ -47,4 +47,4 @@ T-07.
 
 Only `.claude/skills/harness/bin/deploy.sh` was touched, per the declared-files list. No other
 file was edited, staged, committed, or pushed. No carve-out file
-(`check-domain.sh`/`bash-write-guard.sh`/`validate-digest.py`/`check-state.sh`) was touched.
+(`check-domain.py`/`bash-write-guard.py`/`validate-digest.py`/`check-state.py`) was touched.

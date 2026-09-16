@@ -6,10 +6,10 @@ BQ-01 is resolved: with the signed Homebrew Python selected, both configured com
 
 - Environment change only: `PATH=/opt/homebrew/bin:$PATH`.
 - Selected interpreter: `/opt/homebrew/bin/python3`, `Python 3.14.5`.
-- `unit` (configured command exactly): `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0; 29/29 named scripts passed; 0 failed; 28.91 s.
-- `integration` (configured command exactly): `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0; 28/28 named scripts passed; 0 failed; 255.67 s.
-- The rerun executed the configured `.agents/skills/harness/bin/run-unit-tests.sh` matrix commands as assigned. T-03's distinct plan verify clause, carried verbatim for traceability, is `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`; it was not the command this rerun was asked to execute.
-- The runner emits one `PASS`/`FAIL` per explicitly enumerated named script (`run-unit-tests.sh:30-32,148-163`); no runner, load, import, collection, or assertion failure occurred.
+- `unit` (configured command exactly): `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0; 29/29 named scripts passed; 0 failed; 28.91 s.
+- `integration` (configured command exactly): `PATH=/opt/homebrew/bin:$PATH .agents/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0; 28/28 named scripts passed; 0 failed; 255.67 s.
+- The rerun executed the configured `.agents/skills/harness/bin/run-unit-tests.py` matrix commands as assigned. T-03's distinct plan verify clause, carried verbatim for traceability, is `.claude/skills/harness/bin/run-unit-tests.py --kind integration`; it was not the command this rerun was asked to execute.
+- The runner emits one `PASS`/`FAIL` per explicitly enumerated named script (`run-unit-tests.py:30-32,148-163`); no runner, load, import, collection, or assertion failure occurred.
 
 ## Gate assessment
 

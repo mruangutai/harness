@@ -79,7 +79,7 @@ Output: `T-01 GREEN`
 
 ## Full suite
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind all`, run last, on the restored tree.
+`.claude/skills/harness/bin/run-unit-tests.py --kind all`, run last, on the restored tree.
 
 Red set: empty (no `FAIL` lines). Exit code: 0.
 

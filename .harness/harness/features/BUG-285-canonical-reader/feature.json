@@ -1,0 +1,443 @@
+{
+  "feature_id": "BUG-285-canonical-reader",
+  "branch": "feat/BUG-285-canonical-reader",
+  "pr": 1710,
+  "review_sha": "ddcb3a80cb61d84cb3a7df602177d739fa70a482",
+  "cycles_used": 10,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-09-13-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-13T17:12:26+00:00",
+      "ended_at": "2026-09-13T18:17:47+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-13-plan-apply-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-14T01:28:13+00:00",
+      "ended_at": "2026-09-14T01:57:03+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-14-plan-refresh-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-14T21:49:23+00:00",
+      "ended_at": "2026-09-14T22:30:00+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-14-t09-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-14T23:23:31+00:00",
+      "ended_at": "2026-09-14T23:29:56+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-14-t02-t04-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-14T23:52:11+00:00",
+      "ended_at": "2026-09-15T00:14:22+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-14-t03-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-15T00:14:48+00:00",
+      "ended_at": "2026-09-15T00:23:28+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-14-t03-amend-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T00:28:28+00:00",
+      "ended_at": "2026-09-15T00:36:12+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t02-text-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T00:37:25+00:00",
+      "ended_at": "2026-09-15T00:45:48+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t03-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-15T00:46:13+00:00",
+      "ended_at": "2026-09-15T00:56:30+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t03-amend2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T01:02:43+00:00",
+      "ended_at": "2026-09-15T01:14:34+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t02-shapes-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T01:16:08+00:00",
+      "ended_at": "2026-09-15T01:25:27+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t03-final-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-15T01:26:01+00:00",
+      "ended_at": "2026-09-15T01:50:37+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t03-amend3-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T02:10:50+00:00",
+      "ended_at": "2026-09-15T02:31:33+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t02-manifest-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-15T02:32:49+00:00",
+      "ended_at": "2026-09-15T02:41:33+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t03-resume2-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T02:41:33+00:00",
+      "ended_at": "2026-09-15T02:49:40+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t02-verify-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T02:49:41+00:00",
+      "ended_at": "2026-09-15T02:53:57+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t04-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T02:54:41+00:00",
+      "ended_at": "2026-09-15T03:07:45+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t05-amend-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T03:28:30+00:00",
+      "ended_at": "2026-09-15T03:37:02+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t03-marker-fix-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T13:14:21+00:00",
+      "ended_at": "2026-09-15T13:19:50+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t06-contract-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T13:32:07+00:00",
+      "ended_at": "2026-09-15T13:39:09+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t06-contract-amend-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T13:39:09+00:00",
+      "ended_at": "2026-09-15T14:03:02+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t02-manifest-view-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T14:06:05+00:00",
+      "ended_at": "2026-09-15T14:18:01+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t02-pycompat-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T14:29:36+00:00",
+      "ended_at": "2026-09-15T14:39:57+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t07-ownership-amend-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T15:03:30+00:00",
+      "ended_at": "2026-09-15T15:44:20+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t08-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T16:35:14+00:00",
+      "ended_at": "2026-09-15T16:44:17+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T16:45:11+00:00",
+      "ended_at": "2026-09-15T16:57:08+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-validate-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-15T17:00:04+00:00",
+      "ended_at": "2026-09-15T17:23:57+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-fix-c1-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T18:07:42+00:00",
+      "ended_at": "2026-09-15T18:48:05+00:00",
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-13T17:12:26+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Operator assigned mission plan from issue #285; issue comment points to superseding canonical-reader scope in #1594"
+    },
+    {
+      "at": "2026-09-13T18:17:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Plan panel reported four unopposed proportionality findings and explicitly recommended downgrade patch; DEC-228 requires the downgrade without a re-cycle"
+    },
+    {
+      "at": "2026-09-14T01:26:52+00:00",
+      "by": "main-session",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "DEC-228 downgrade misfired: the plan is an 8-task accessor migration rewriting how every DEC-174 gate reads config, not a patch. Operator ruling 2026-09-13, concurred by FEAT-59's author."
+    },
+    {
+      "at": "2026-09-14T01:57:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Main corrected the source_issues ruling: [285,1594] is accurate provenance, issue 1682 belongs in SC-03, so the apply artifact needs no further mutation"
+    },
+    {
+      "at": "2026-09-14T21:48:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Prerequisite #1674 is merged and the deferred plan must be re-derived against current main before approval"
+    },
+    {
+      "at": "2026-09-15T00:28:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator approved the narrow load_harness_json keyword-only text-source amendment in notes/answers-2026-09-14-t03-eng.md"
+    },
+    {
+      "at": "2026-09-15T01:02:32+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator approved generalizing parse_gh_json and load_feature_json in notes/answers-2026-09-15-t03-eng.md"
+    },
+    {
+      "at": "2026-09-15T02:10:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator approved manifest_domains agent=None aggregation in notes/answers-2026-09-15-t03-final-eng.md"
+    },
+    {
+      "at": "2026-09-15T03:28:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "T-05 strict feature reader requires the existing shared check-state fixture producer to emit valid JSON rather than duplicating test-local fixtures"
+    },
+    {
+      "at": "2026-09-15T12:35:17+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-02 full verification failed only against the intentionally partial T-03 tree; after T-03 completed, the unchanged eight-script T-02 gate passed in run 2026-09-15-t02-verify-eng"
+    },
+    {
+      "at": "2026-09-15T13:14:21+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-06 baseline exposed T-03 run_identity.read_marker missing-file regression; signed T-03 owns the caller and its focused test"
+    },
+    {
+      "at": "2026-09-15T14:18:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-02 typed manifest view required one focused send-back to retain named roles without usable domains; revised implementation passed focused and exact signed gates"
+    },
+    {
+      "at": "2026-09-15T14:29:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-06 legacy receipt gate exposed T-02 artifact_accessors typed annotation import failure under supported pre-3.10 system Python"
+    },
+    {
+      "at": "2026-09-15T14:39:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-02 pycompat verification rebaselined one confirmed pre-existing T-06 test path and then proved all 31 protected paths stable"
+    },
+    {
+      "at": "2026-09-15T14:55:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-07 precondition exposed one T-06-updated check-domain classification row still marked migrate rather than canonical"
+    },
+    {
+      "at": "2026-09-15T15:03:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "T-07 clean ownership move requires every live legacy reader/error caller and a terminal classification-task contract; compatibility paths remain forbidden"
+    },
+    {
+      "at": "2026-09-15T17:23:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "Validation at da8932a0 found one AST fail-open defect, one missing inverse fixture, and missing durable fail-first evidence for SC-01/04/05; route owned fixes inside approved rework"
+    },
+    {
+      "at": "2026-09-15T18:53:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Retrospective seam correction: final validator c1 closed all four findings, so continue from build/review handoff to operator ship review"
+    },
+    {
+      "at": "2026-09-15T20:17:42+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Retrospective validate seam correction: final validation was clean and the operator accepted ship, so continue to the approved integration and terminal synchronization boundary"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 135,
+    "decision": ".harness/harness/features/BUG-285-canonical-reader/notes/research-t05-shared-json-fixture-amendment.md"
+  },
+  "github": {
+    "milestone": 69,
+    "parent": 1689,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 1690,
+      "T-02": 1691,
+      "T-03": 1692,
+      "T-04": 1693,
+      "T-05": 1694,
+      "T-06": 1695,
+      "T-07": 1696,
+      "T-08": 1697,
+      "T-09": 1698
+    },
+    "source_issues": [
+      285,
+      1594
+    ],
+    "build_entry": "opened"
+  }
+}

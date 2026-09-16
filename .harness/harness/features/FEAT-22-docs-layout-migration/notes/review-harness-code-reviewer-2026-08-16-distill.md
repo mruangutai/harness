@@ -55,7 +55,7 @@ what the digests already captured.
 
 ## Verification
 
-`bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-code-reviewer.md`
+`python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-code-reviewer.md`
 → `OK   .harness/expertise/harness-code-reviewer.md`, exit **0**. No advisory flags.
 
 ## Not proposed for repository layer

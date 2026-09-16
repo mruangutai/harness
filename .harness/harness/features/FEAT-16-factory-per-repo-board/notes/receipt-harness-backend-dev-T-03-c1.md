@@ -49,7 +49,7 @@ file and re-verified the hash matched (`eebe8c9...`, unchanged), and confirmed
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched.
-- `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` not touched.
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` not touched.
 - Two-argument `factory_config.station(fleet, key)` left exactly as defined — not deleted, not
   called from `factory_decompose.py` any more. `factory_config.py` and `factory_claim.py` not
   touched.
@@ -58,7 +58,7 @@ file and re-verified the hash matched (`eebe8c9...`, unchanged), and confirmed
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Verbatim stdout+stderr (captured to a file, `EXIT=0` appended as the last line — no lines edited,

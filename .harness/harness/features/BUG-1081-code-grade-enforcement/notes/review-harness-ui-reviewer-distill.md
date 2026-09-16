@@ -78,7 +78,7 @@ No ops applied to the repository-tier file (`.harness/harness/expertise/harness-
 
 ## Verification
 
-`check-expertise.sh` run in single-file mode against both touched-or-considered files: both
+`check-expertise.py` run in single-file mode against both touched-or-considered files: both
 report `OK`, exit 0.
 
 ```yaml

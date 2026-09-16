@@ -81,13 +81,13 @@ uncommitted T-02 diff (this task never had a grant to touch that file and didn't
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 **Correction on the exit code.** The first run captured output through `| tee <file>; echo "EXIT=$?"`
 — in this shell that reports `tee`'s own exit status, not the runner's, so `EXIT=0` from that run
 was not an observed measurement of the thing that matters. Re-ran as
-`run-unit-tests.sh --kind integration > <file> 2>&1; echo "REAL_EXIT=$?"` — the redirect form,
+`run-unit-tests.py --kind integration > <file> 2>&1; echo "REAL_EXIT=$?"` — the redirect form,
 where `$?` is the runner's own status — and got `REAL_EXIT=0`, observed directly this time.
 
 Verbatim stdout+stderr in full, exit code appended as the last line — no lines edited, curated, or
@@ -291,7 +291,7 @@ ok - case (m3): a decoy entry does not let a narrowed PostToolUse registration t
 ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
 ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
 ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
-ok - case (o): check-domain.sh, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated budget, key and heading
 ok - case (p/over): CLAUDE.md at 81 lines -> INV-23 fires (want fires)
 ok - case (p/at the budget): CLAUDE.md at 80 lines -> INV-23 silent (want silent)
 ok - case (p/warn): the CLAUDE.md finding is a `note`, not a `VIOLATION` — warn level, so it cannot halt /harness entry
@@ -850,7 +850,7 @@ memory.
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched.
-- `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` not touched.
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` not touched.
 - No source module and no other test file changed — the write set is exactly
   `.claude/skills/harness/bin/test-factory-integration.py`. `factory_claim.py`'s mutation was
   applied, verified, and reverted within this session for the RED proof only, confirmed by hash

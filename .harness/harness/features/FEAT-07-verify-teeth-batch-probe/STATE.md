@@ -12,7 +12,7 @@ ten tasks delivered across ten commits `0a34989`..`98ed3e7`, every mirrored issu
 Nothing pushed, no PR — both are the user's.
 
 GATES: blocking `qa_gate` PASS (`matrix_ok: true`); `review` PASS after its one med finding was
-fixed; `unit` and `check-docs` green; `check-expertise.sh` OK on all eleven files. `uat` has no
+fixed; `unit` and `check-docs` green; `check-expertise.py` OK on all eleven files. `uat` has no
 criterion. `security`, `ui` and `ship_refresh` are recorded SKIPS with reasons, not runs.
 
 GOAL CHECK: 17 met, 1 carved out. SC-12's receipt half was unmeetable by any agent in the org —
@@ -55,7 +55,7 @@ None blocking. All carried into the briefing's backlog table, where the user str
 - The index's 30-word ruling cap is stated in no header and is invisible to the generator and to
   `check-docs.sh` — the gate that caught a real defect is itself undiscoverable.
 - `harness-documentor` and `harness-pm` hold no receipt grant; three dispatches hit the refusal.
-- `bash-write-guard.sh` blocks redirects whose target is a shell variable.
+- `bash-write-guard.py` blocks redirects whose target is a shell variable.
 - SPEC §8.1 states no permission for dev-ops `suite: fail` + PASS, which stays accepted by D-03.
 - A clause-count check against fixture cases would catch the under-proof class this feature exposed.
 - Reviewer personas keep no observations log, so their distillation is digest-skim only.

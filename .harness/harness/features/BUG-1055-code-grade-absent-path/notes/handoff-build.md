@@ -30,7 +30,7 @@ is the merge and the board move — no further review cycle is owed.
   `"exists on disk, but not in"` string is gone from production code and survives only in
   unrelated prose — verified-at e353c7e
 - `_git_show` and `_tree_has_path` both self-grade 5, above the bar of 4 — verified-at e353c7e
-- unit 473 PASS, integration 588 PASS, both exit 0; `check-state.sh` 0 violations
+- unit 473 PASS, integration 588 PASS, both exit 0; `check-state.py` 0 violations
   — verified-at working tree
 
 ## Dead ends

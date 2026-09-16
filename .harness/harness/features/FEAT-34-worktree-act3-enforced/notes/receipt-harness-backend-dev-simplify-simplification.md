@@ -7,7 +7,7 @@ dispatch: ...") describes only the FIRST rework (the `_resolve_repo_root()` cwd-
 defect and its case `(h) case_cwd_outside_repo`, line 607). It says nothing about the SECOND
 rework already in the file: `case_linked_worktree_main_checkout()` (line 664, its own inline
 comment block at :656-661 labels it "T-03/T-04 SECOND REWORK") plus the `_resolve_main_checkout_root`
-split in `post-merge-sweep.sh` (feat_dir must resolve against the main checkout, never the
+split in `post-merge-sweep.py` (feat_dir must resolve against the main checkout, never the
 BIN_DIR-derived root, which can be a linked worktree — the FEAT-35 `Review/pr:null` vs
 `Done/pr:812` divergence). I enumerated all ten `case_*` functions (208, 319, 357, 407, 449, 486,
 517, 552, 607, 664) against the docstring's claims: nine are accounted for (`case_dry_run_safety`
@@ -27,7 +27,7 @@ those scripts, wrong for `feat_dir`, because that root can BE a linked worktree 
 own, possibly divergent, copy of `.harness/<repo>/features/<FEAT>/`. `os.path.isdir(feat_dir)`
 then found that copy and proceeded with no SKIP at all, so `gh-sync.py ship` read and wrote the
 WRONG feature (the FEAT-35 divergence already on record: worktree read `Review / pr:null` while
-main read `Done / pr:812`). `post-merge-sweep.sh` now resolves `feat_dir` against a SEPARATE
+main read `Done / pr:812`). `post-merge-sweep.py` now resolves `feat_dir` against a SEPARATE
 main-checkout root, never the BIN_DIR-derived one. Case (i), `case_linked_worktree_main_checkout()`,
 is the new case that would have caught this: invoked from inside a linked worktree carrying its
 own divergent copy of a feature id, it proves the sweep ships and removes against the main
@@ -55,21 +55,21 @@ None that meet the bar.
 
 Checked and explicitly NOT flagging (with reason):
 
-- `check-state.sh:1582` (INV-30) — `str(_doc30.get("status", "")).split()[:1] != ["Done"]`
+- `check-state.py:1582` (INV-30) — `str(_doc30.get("status", "")).split()[:1] != ["Done"]`
   looks like an over-elaborate pipeline for a status equality check, and the adjacent comment
   ("the exact string `Done` and nothing else") overclaims precision the `.split()[:1]` form does
   not literally enforce (a hypothetical "Done extra" would also match). But the identical idiom
-  already exists, unchanged by this diff, at `check-state.sh:1073` inside the pre-existing INV-28
+  already exists, unchanged by this diff, at `check-state.py:1073` inside the pre-existing INV-28
   block. INV-30 reused an established sibling pattern rather than inventing a new one — that is
   the REUSE angle's territory, and trimming it here would put INV-30 out of step with INV-28 for
   no semantic gain. Not flagged, per the hard constraint on preserving anchoring precedent.
-- The INV-29 discriminator (`_repo_level29`, `check-state.sh` inside the new block) — the
+- The INV-29 discriminator (`_repo_level29`, `check-state.py` inside the new block) — the
   three-way `feature_id is None and (repo is not None or (fleet_path matches))` conjunct looks
   dense, but its own comment states the reason it must key on more than `feature_id`: a
   repository-level failure record and a genuine out-of-segment worktree record are otherwise
   identical on class and `feature_id`. I could not construct a simpler form that keeps that
   disambiguation; not flagged.
-- `worktree_terminal.py` and `post-merge-sweep.sh` (the squad-built half) — read in full. Every
+- `worktree_terminal.py` and `post-merge-sweep.py` (the squad-built half) — read in full. Every
   branch and comment I could point at as "redundant" turned out to be explained inline as a fix
   for a measured defect (cwd-derivation, main-checkout-vs-BIN_DIR-root split, self-exclusion by
   realpath prefix). No conjunct or pipeline had a simpler form that preserved what the comment

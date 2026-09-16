@@ -25,7 +25,7 @@ measured against your **local** `main`, which is itself **2 ahead and 19 behind 
 The 19 upstream commits are **FEAT-44** (the OMP-native context advisory, PRs #982 and #995).
 Three files conflict:
 
-- `.claude/skills/harness/bin/run-unit-tests.sh` — both features registered new test scripts
+- `.claude/skills/harness/bin/run-unit-tests.py` — both features registered new test scripts
 - `.harness/harness.json` — both edited `test_kinds`
 - `.harness/harness/docs/DECISIONS-INDEX.md` — **generated**; FEAT-44 regenerated it after amending
   DEC-198, DEC-201 and DEC-159. It should be regenerated, never hand-merged.
@@ -100,7 +100,7 @@ the file. pm's goal-check caught it at source. This run repeated the shape once 
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-25 | bug | `bash-write-guard.sh` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.sh --resolve` grants that same path. Two enforcement surfaces disagree |
+| B-25 | bug | `bash-write-guard.py` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.py --resolve` grants that same path. Two enforcement surfaces disagree |
 | B-26 | bug | `/usr/bin/grep` on this machine is `pi-uu-grep 0.2.0`, in which a line-leading `+` matches every line. Four false readings in this feature, including an apparent 83 insertions against a true `--numstat` of zero. Every affected measurement was redone in Python |
 | B-39 | bug | A run-directory slug collision let one lead overwrite another run's `digest.md` and `state.yaml`. `runs/` is gitignored, so the record was unrecoverable. Nothing in the run-directory contract stops a lead choosing a slug that already exists |
 

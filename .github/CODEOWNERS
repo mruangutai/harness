@@ -19,15 +19,15 @@
 # narrowing `on:`, or deleting CODEOWNERS all land here.
 /.github/                                      @mruangutai
 
-# The workflow's substantive steps are `run-unit-tests.sh --kind unit` and
-# `run-unit-tests.sh --kind integration`. One edit here can narrow either
+# The workflow's substantive steps are `run-unit-tests.py --kind unit` and
+# `run-unit-tests.py --kind integration`. One edit here can narrow either
 # directory-driven suite or defeat the layout guard without touching the workflow.
 #
 # Pinned to the one file, not to `/.claude/skills/harness/bin/`. That directory holds
 # every test file and hook script in the repo; owning it would put the owner in the
 # review path for the majority of agent PRs, which is the friction this file is trying
 # not to spend.
-/.claude/skills/harness/bin/run-unit-tests.sh  @mruangutai
+/.claude/skills/harness/bin/run-unit-tests.py  @mruangutai
 
 # NOT OWNED, deliberately:
 #
@@ -36,8 +36,8 @@
 #   edited routinely by agents during normal feature work. Owning it would buy no
 #   guard-chain coverage and would tax ordinary traffic.
 #
-#   The other bin/ scripts named in DEC-174 (check-domain.sh, bash-write-guard.sh,
-#   validate-digest.py, check-state.sh) — these are guarded by DEC-174's
+#   The other bin/ scripts named in DEC-174 (check-domain.py, bash-write-guard.py,
+#   validate-digest.py, check-state.py) — these are guarded by DEC-174's
 #   human-reads-the-diff carve-out, which already forbids changing them through an
 #   automated team run. Adding them here would be a second lock on a door that is
 #   already bolted, paid for in review latency on every PR that touches a hook.

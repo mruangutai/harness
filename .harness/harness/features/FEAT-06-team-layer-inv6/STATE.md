@@ -9,7 +9,7 @@
 - status: awaiting_user
 
 **ONE THING IS LEFT AND IT IS THE USER'S: SC-13, the UAT.** 14 of 15 SCs are met. Every gate is
-green — unit 0, docs 0, `check-state.sh` zero violations — each re-run at the orchestrator's own
+green — unit 0, docs 0, `check-state.py` zero violations — each re-run at the orchestrator's own
 tier, not taken on report. **BRIEF and PLAN also await the main session's RE-SIGNATURE** after the
 amendments; only it writes `## Approval`.
 

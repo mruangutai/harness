@@ -16,7 +16,7 @@ Clean. Independently re-verified rather than taken on report:
 
 - `check-docs.sh` run directly: exit 0, `checked 45 superseded pattern(s) across 103 file(s)`
   (file count deliberately unpinned per BRIEF SC-07 — not a divergence).
-- `run-unit-tests.sh` run directly: exit 0, all six `test-gen-decisions-index.py` cases `ok`, no
+- `run-unit-tests.py` run directly: exit 0, all six `test-gen-decisions-index.py` cases `ok`, no
   `MISCONFIGURED`.
 - `gen-decisions-index.py --stdout` diffed against the committed index at `363b539` (HEAD equals
   the pin, tree clean): byte-identical — SC-05 holds at the pinned SHA, not just against drift.

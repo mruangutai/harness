@@ -1,12 +1,12 @@
 # Receipt — harness-dev-ops — distill-apply (read-only expertise check)
 
-BLUF: `check-expertise.sh` exits 1 (non-zero, expected). One FAIL, on
+BLUF: `check-expertise.py` exits 1 (non-zero, expected). One FAIL, on
 `harness-documentor.md`. No failure line names `harness-eng-lead.md`.
 
 ## Command
 
 ```
-.claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+.claude/skills/harness/bin/check-expertise.py .harness/expertise/
 ```
 
 ## Verbatim stdout+stderr

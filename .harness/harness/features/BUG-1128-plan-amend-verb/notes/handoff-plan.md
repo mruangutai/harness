@@ -14,7 +14,7 @@ it must not change through the enforcement path it is part of.
 
 ## Trust
 
-- claim - no amend route exists - verified-at a7569463 - source: `check-domain.sh:1529+`
+- claim - no amend route exists - verified-at a7569463 - source: `check-domain.py:1529+`
   denies Edit/Write to any `.harness/*/features/*/plan.yaml` for every author (probed with a
   synthetic Edit payload, exit 2); `plan-merge.py apply` is add-only (probed on a scratch copy,
   exit 7 on a changed value).

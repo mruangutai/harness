@@ -5,5 +5,6 @@
 - G-01: WHEN a feature's SHA or status is re-pinned here DO check `STATE.md` against `feature.json` — `feature.json` is the machine record and `STATE.md` the live human pointer a resuming context reads, and a re-pin applied to one and not the other sends the next run at a stale SHA.
 - G-02: WHEN planning to skim a prior run's evidence in this repository DO expect `runs/**` digests to be absent — they are gitignored, so a removed feature worktree takes every run digest with it, and only the `notes/` artifacts and the observations logs survive.
 - G-03: WHEN a panel finding's only remedy edits the harness skill bin/ tree DO route it as an operator decision, not a fix cycle — that tree is main-session-direct, no lead holds write authority over it, and a routed FAIL spends a cycle proving it.
+- G-04: WHEN an acceptance clause counts `^FAIL ` lines over this repo's suite output DO read the runner's exit status and per-file verdicts instead — a unit test reprints captured FAIL lines as its own success proof, so a green suite reads as red.
 ## Outcomes (max 10)
 ## Open (max 5)

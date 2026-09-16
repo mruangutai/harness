@@ -27,7 +27,7 @@ narration:
    land ahead of it. `test-gh-sync.py:1570-1613` (four cases: order-preserving, empty,
    absent, zero-gh-calls) backs this. **Commitment met.**
 
-2. **INV-28 warn line naming feature + remedy** — `check-state.sh:1080-1083` emits
+2. **INV-28 warn line naming feature + remedy** — `check-state.py:1080-1083` emits
    `INV-28: {feat} is Done but its pull request number was never recorded ... Record it
    with \`gh-sync.py record-pr {relpath}\`` per offending feature inside a `for` loop
    (one line each, not aggregated). `relpath` is `os.path.relpath(os.path.dirname(fy),
@@ -38,7 +38,7 @@ narration:
    **Commitment met.**
 
 Prebuild gap #2 (no enforcing test for the feature.json-parse-failure branch of INV-28)
-remains open exactly as predicted — `check-state.sh:1067-1070` appends the described
+remains open exactly as predicted — `check-state.py:1067-1070` appends the described
 message to `bad`, but none of the six `test-check-state.py` INV-28 cases exercise a
 malformed `feature.json`. This is not a new finding; it is the same low-severity gap the
 prebuild note already rated non-blocking (INV-21's own suite has the identical gap, and a

@@ -86,7 +86,7 @@ Scope: diff `7ebfc9e..384b800`. Read-only. No repository file edited.
 ## Hunt 2 — truth of the swept citation comments
 
 **Checked 27 of the ~42 sites**, selected as: every site in `.claude/skills/harness/bin/*.py`,
-`.claude/skills/harness/bin/check-domain.sh`, `.github/workflows/tests.yml` whose diff line matches
+`.claude/skills/harness/bin/check-domain.py`, `.github/workflows/tests.yml` whose diff line matches
 `^[-+].*DEC-\d+` — **excluding** (a) `gen-decisions-index.py`'s own machinery lines, covered by
 Hunt 1, and (b) synthetic `DEC-01/07/42/99` fixture literals introduced by the new T-17/T-20 test
 files, which cite no real decision. For each, cross-referenced the cited `DEC-NN` against
@@ -102,7 +102,7 @@ files, which cite no real decision. For each, cross-referenced the cited `DEC-NN
   struck under DEC-188", and its item 6 literally reads "case sensitive, byte for byte", matching
   the swept claims verbatim; `DEC-19`→dropped entirely ×3, correct since `DEC-19` has no live
   heading and DEC-110/DEC-119 remain valid on their own).
-- One site, `check-state.sh`'s `INV-24 (DEC-203)` factory/fleet citation, I could **not** fully
+- One site, `check-state.py`'s `INV-24 (DEC-203)` factory/fleet citation, I could **not** fully
   confirm verbatim against `DECISIONS.md` text (no exact phrase match for "repository the fleet
   declares" under any entry I located) but it is plausible under `DEC-203`'s stated "read-back
   purpose 1: whether an item is claimed" and I found no live decision it more clearly belongs to —
@@ -116,5 +116,5 @@ files, which cite no real decision. For each, cross-referenced the cited `DEC-NN
 - The removed supersession/amendment machinery itself, the anchoring regexes, and the
   `strip_trailing_clauses` defensive loop — settled design decisions per the dispatch's explicit
   non-goals.
-- `check-state.sh`'s unresolved `INV-24 (DEC-203)` citation — noted above, not raised as a finding
+- `check-state.py`'s unresolved `INV-24 (DEC-203)` citation — noted above, not raised as a finding
   for lack of confidence, not skipped for convenience.

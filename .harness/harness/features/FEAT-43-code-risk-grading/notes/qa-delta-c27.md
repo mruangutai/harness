@@ -42,11 +42,11 @@ All work done in the same disposable shallow clone above, never the worktree.
 - No `PATH:` in the 200-record output matches `*.fixture` (`grep -c "\.fixture"` = 0). Confirmed.
 - `code-grade.py .claude/skills/harness/bin/code_grade.py`: **exit 0**, **53** functions, all
   `RESULT: PASS`, grade distribution `{4: 11, 5: 42}` — zero below grade 4. Confirms 53/0-below-4.
-- Discovery: `run-unit-tests.sh` enumerates tests via two **explicit** arrays (`UNIT_SCRIPTS`,
+- Discovery: `run-unit-tests.py` enumerates tests via two **explicit** arrays (`UNIT_SCRIPTS`,
   `INTEGRATION_SCRIPTS`, lines 30-32) — neither fixture name appears in either
   (`grep -c` = 0) — plus a drift-detector glob `"$BIN_DIR"/test-*.py` (line 62), which cannot match
   `prior-*.fixture` (wrong prefix, wrong suffix). `.github/workflows/tests.yml` calls only
-  `run-unit-tests.sh --kind unit|integration` and named scripts; no independent glob. Fixtures are
+  `run-unit-tests.py --kind unit|integration` and named scripts; no independent glob. Fixtures are
   inert to both grading and discovery.
 
 ## Item 2 — engine defect sizing (operator decision, not a delta gate)

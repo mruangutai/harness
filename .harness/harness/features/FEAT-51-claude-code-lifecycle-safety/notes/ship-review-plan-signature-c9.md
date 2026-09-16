@@ -3,7 +3,7 @@
 **The plan is ready to sign, and one thing has to be fixed before you can physically sign it.**
 Every gating panel finding is closed at source and independently verified. But `plan.yaml` cannot
 acquire an `approval:` mapping by any route that exists today, so the signature has nowhere to land
-and `check-state.sh` reports it as a VIOLATION. That repair is yours — it is main-session-direct
+and `check-state.py` reports it as a VIOLATION. That repair is yours — it is main-session-direct
 under DEC-174 — and it is about fifteen lines.
 
 Three things need your decision. They are §1, §2 and §3. Everything else in this document is the
@@ -40,8 +40,8 @@ explicit CLI act. OMP behaviour is untouched.
 **REQ-04 was NARROWED, and you must accept that or refuse it.** It used to read, without
 qualification, that an orphan's writes to canonical feature artifacts are quarantined instead of
 landing. It now reads that they are quarantined **on the two governed write routes the harness
-gates** — the `Write`/`Edit` editor route through `check-domain.sh`, and the `plan-merge.py`
-mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.sh` — and that a generic `Bash`
+gates** — the `Write`/`Edit` editor route through `check-domain.py`, and the `plan-merge.py`
+mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.py` — and that a generic `Bash`
 write to a canonical artifact inside the writer's own domain is **not** covered.
 
 That is not housekeeping. It is a smaller promise than the one you were going to sign, and the
@@ -57,7 +57,7 @@ re-run against main's tip `0bc57c88`:
 | `apply` with a proposal carrying `approval:` onto an absent base | exit 8, refused (`plan-merge.py:468`) |
 | `apply` with a proposal carrying `approval:` onto an approval-less base | exit 0, `APPLIED`, block **silently dropped** (`:536`) |
 | `sign-approval` on a plan carrying no `approval:` | exit 5 (`:903`) |
-| `Write` of `plan.yaml`, main session, no `agent_type` | exit 2 — `check-domain.sh` denies the editor route for **every** author |
+| `Write` of `plan.yaml`, main session, no `agent_type` | exit 2 — `check-domain.py` denies the editor route for **every** author |
 
 The route that was supposed to produce the block is the one the pm skill names — instantiate from
 `.agents/skills/harness/templates/plan.yaml`, which carries `approval: status: pending`. That is a
@@ -77,7 +77,7 @@ this plan: it must land **before** the signature, and a plan task can only run a
 ## §3 — One word, and my recommendation is to leave it
 
 The independent verification pass returned FAIL on a single residue: `T-07`'s `title:` at
-`plan.yaml:738` reads *"Close the Bash route by adding the quarantine rule to plan-sign-gate.sh and
+`plan.yaml:738` reads *"Close the Bash route by adding the quarantine rule to plan-sign-gate.py and
 plan-sign-gate.py"*. After D-19, no artifact of this feature may assert the boundary unqualified,
 and "close the Bash route" does exactly that.
 
@@ -97,7 +97,7 @@ The adversarial panel ran twice, and both times it found the same class of defec
 plan promised that the tree does not have.**
 
 **Cycle 5** found the discard trio. `D-16`/`D-17`/`T-09` guarded `quarantine.py discard` while a
-plain `rm -rf` of the same directory stays permitted — `bash-write-guard.sh:259` exempts
+plain `rm -rf` of the same directory stays permitted — `bash-write-guard.py:259` exempts
 `harness-dev-ops` outright and `:784-790` notices-and-continues on the `shared` verdict D-06's own
 `.harness/*/features/*/quarantine/**` glob produces. You ruled: take the conservative clean scope.
 D-16, D-17, T-09 and SC-12 are gone; **D-18** records the choice and the ground.
@@ -109,14 +109,14 @@ builds. I measured it rather than taking it on report — `agent_type: harness-p
 checkout at `0bc57c88`:
 
 ```
-bash-write-guard.sh   exit 0
-plan-sign-gate.sh     exit 0
-check-domain.sh       exit 0
+bash-write-guard.py   exit 0
+plan-sign-gate.py     exit 0
+check-domain.py       exit 0
 ```
 
-`bash-write-guard.sh` passes any in-domain write, and `harness-pm`'s own `team-config.yaml` domain
-grants both `BRIEF.md` and `plan.yaml`. `check-domain.sh` is registered for `Write|Edit` only.
-`plan-sign-gate.sh`'s new rule matches only `plan-merge.py` and `quarantine.py` basenames.
+`bash-write-guard.py` passes any in-domain write, and `harness-pm`'s own `team-config.yaml` domain
+grants both `BRIEF.md` and `plan.yaml`. `check-domain.py` is registered for `Write|Edit` only.
+`plan-sign-gate.py`'s new rule matches only `plan-merge.py` and `quarantine.py` basenames.
 
 **This is issue #551's flagship occurrence.** A fourteen-task `plan.yaml` replaced by a one-task file
 63 seconds later. If the orphan used `plan-merge.py`, this feature stops it. If it used `cp`, this
@@ -173,8 +173,8 @@ on correct work — nothing is built.
 ## §6 — The build is mostly yours to execute, not mine to dispatch
 
 **7 of 9 tasks are `main-session-direct` under DEC-174.** They touch `validate-digest.py`,
-`inflight_registry.py`, `check-domain.sh`, `plan-sign-gate.py`/`.sh`, their test files, and the two
-playbooks — the enforcement layer, plus three surfaces `check-domain.sh --resolve` answers NOBODY
+`inflight_registry.py`, `check-domain.py`, `plan-sign-gate.py`/`.sh`, their test files, and the two
+playbooks — the enforcement layer, plus three surfaces `check-domain.py --resolve` answers NOBODY
 for. I cannot execute those, and neither can any squad. `check-plan-routes.py` exits 0 with zero
 violations; its four `DEVIATION` lines on T-01, T-02, T-07 and T-10 are that carve-out, correctly
 declared.
@@ -213,12 +213,12 @@ verification pass checked all 26. The other 19 target files are byte-identical b
 | B-4 | chore | The one-run Claude Code host spike `PF-e380f685c0697fb709ff29f65af0cf24` asks for: does the host re-enter a parent that returned exit 0 from its Stop hook with a live child claim? |
 | B-5 | bug | **`harness-code-reviewer` cannot terminally yield on a plan-phase dispatch.** `validate-digest.py` refuses `code_grade: n_a` ("cannot be bound to `review_sha`… an unpinned feature (INV-6) cannot anchor a `code_grade` claim") AND refuses it omitted ("missing `code_grade`"). The two refusals are mutually exclusive, so no return satisfies the gate — while `feature.json` already records `code_grade: n_a` for that same unpinned feature. Raised three consecutive times; cost one reader ~32 minutes and four yield attempts. |
 | B-6 | bug | `plan-merge.py`'s `UNION_KEYS` is `("tasks", "decisions")` only, so `lanes` and `panel` cannot be amended incrementally — any difference is exit 7. Five full remove-then-recreate cycles were needed this phase. **Probably already in flight:** `BUG-1128-plan-amend-verb` sits at station `review` with an `amend` verb built (`plan-merge.py:916-1091`, ten `case_amend_*` tests, `review_sha 58742037`). Strike this row if that lands. It does NOT cover B-2. |
-| B-7 | bug | `check-domain.sh` denies `harness-pm` a `Write` at `notes/plan-proposal-*.yaml` (its grant is `research-*.md` and `uat-*.md`), so the sanctioned tool is refused for the one write route `plan.yaml` has — and `python3` reaches it anyway, which the guard does not intercept. |
-| B-8 | bug | `bash-write-guard.sh` reads a `>=` inside Python source as a redirect and refuses the command, naming a target absent from it. Cost four retries in one run. |
+| B-7 | bug | `check-domain.py` denies `harness-pm` a `Write` at `notes/plan-proposal-*.yaml` (its grant is `research-*.md` and `uat-*.md`), so the sanctioned tool is refused for the one write route `plan.yaml` has — and `python3` reaches it anyway, which the guard does not intercept. |
+| B-8 | bug | `bash-write-guard.py` reads a `>=` inside Python source as a redirect and refuses the command, naming a target absent from it. Cost four retries in one run. |
 | B-9 | bug | `check-plan-routes.py` never reads `lanes.rows`, so a surface missing from that block is ungated. Four missing rows survived two cycles until measured by hand. |
-| B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run, and only `check-state.sh` catches it later. `runs/plan-fix-c2-product/digest.md` had shipped without one; repaired. |
+| B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run, and only `check-state.py` catches it later. `runs/plan-fix-c2-product/digest.md` had shipped without one; repaired. |
 | B-11 | chore | `panel.findings`' `reader` enum has no word for a lead's fan-in finding. Recorded as `validator-lead`, which is truthful; nothing breaks, but the template comment is out of step. |
-| B-12 | chore | `check-state.sh` INV-29 is red on a standing worktree that is not FEAT-51's: `.claude/worktrees/harness/BUG-1129-validate-handoff-sweep`, terminal on the default branch and dirty, so `remove` declines until its changes are committed or discarded. Pre-existing and unrelated; it is the only violation left that is not the two signature gates. |
+| B-12 | chore | `check-state.py` INV-29 is red on a standing worktree that is not FEAT-51's: `.claude/worktrees/harness/BUG-1129-validate-handoff-sweep`, terminal on the default branch and dirty, so `remove` declines until its changes are committed or discarded. Pre-existing and unrelated; it is the only violation left that is not the two signature gates. |
 
 ---
 

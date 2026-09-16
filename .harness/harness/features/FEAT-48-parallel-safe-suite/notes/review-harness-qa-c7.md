@@ -54,7 +54,7 @@ re-derived from `plan.yaml` and `harness.json` rather than read off that note.
 
 ## My own runner invocations (the only panel member permitted to run it)
 
-1. `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh --kind all`
+1. `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py --kind all`
    → **exit 0**. `pool: 8 workers, 63 files, 45.27s wall`.
    - File-level lines: `grep -cE '^PASS [a-zA-Z_.-]+\.py$'` → **69**, `^FAIL ` → **0**, `MUTATED` →
      **0**. The 69-vs-63 gap is the six scripts that print their own summary in addition to the
@@ -64,11 +64,11 @@ re-derived from `plan.yaml` and `harness.json` rather than read off that note.
      confirmed again in this run's own log, not merely trusted from the receipt.
    - `test-suite-independence.py` block: `root /…/FEAT-48-parallel-safe-suite`, `discovered 63`,
      `ok no test mutates a path derived from the live checkout`, `PASS test-suite-independence.py`.
-2. `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds`
+2. `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds`
    → **exit 0**, prints `check-kinds: the script arrays and test_kinds.integration.detect agree.`,
    runs no test.
-3. `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh --kind bogus`
-   → **exit 2**, prints `run-unit-tests.sh: unknown kind 'bogus' — use unit, integration or all`.
+3. `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py --kind bogus`
+   → **exit 2**, prints `run-unit-tests.py: unknown kind 'bogus' — use unit, integration or all`.
 
 All three match REQ-06's stated contract and SC-07's literal wording exactly.
 

@@ -36,8 +36,8 @@ and stay unmeasured rather than guessed. This path is opt-in / default-off
 a default run. Not flaggable — it is the feature's own deliberate instrumentation, correctly
 gated.
 
-**`run-unit-tests.sh`'s new array entry** (`test-gh-cost-log.py` appended to `UNIT_SCRIPTS`,
-`run-unit-tests.sh:17`, one line). Timed standalone: `python3 test-gh-cost-log.py` → 35/35 PASS,
+**`run-unit-tests.py`'s new array entry** (`test-gh-cost-log.py` appended to `UNIT_SCRIPTS`,
+`run-unit-tests.py:17`, one line). Timed standalone: `python3 test-gh-cost-log.py` → 35/35 PASS,
 **0.061s** wall (re-measured, matches a prior 0.062s run). Against the ~4.2-4.7s unit-kind suite
 this is ~1.3-1.5% — not worth flagging, and is exactly what registering a new `test-*.py` in
 `UNIT_SCRIPTS` is supposed to cost (P-03/G-03: the array entry, not a glob, is what keeps the
@@ -70,8 +70,8 @@ own framing — not flagged.
   the pagination loop already settled under B-13 (not re-litigated). No new efficiency finding.
 - `gh-sync.py`'s `gh()` wrapper: same `measured()` wrap site pattern as `factory_gh.run_gh`,
   same cost profile — no separate finding.
-- `test-factory-gh.py`, `test-gh-board.py`, `test-check-state.py`, `check-state.sh`: read for
-  hot-path additions; none found. `test-check-state.py`/`check-state.sh` are flag-only by the
+- `test-factory-gh.py`, `test-gh-board.py`, `test-check-state.py`, `check-state.py`: read for
+  hot-path additions; none found. `test-check-state.py`/`check-state.py` are flag-only by the
   dispatch's own boundary and carried nothing to flag regardless.
 
 No findings to route.

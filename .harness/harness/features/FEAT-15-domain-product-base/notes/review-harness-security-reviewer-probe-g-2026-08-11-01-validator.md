@@ -2,7 +2,7 @@
 
 Follow-up to `review-harness-security-reviewer-2026-08-11-01-validator.md`'s "Degenerate fleet
 values" bullet, which asserted the outcomes without per-target evidence. Re-derived here: live
-`check-domain.sh` fired as a subprocess against synthetic fixture roots (manifest granting
+`check-domain.py` fired as a subprocess against synthetic fixture roots (manifest granting
 `harness-documentor` `.harness/allowed/**`), for the three named targets — including a genuine
 `tempfile.mkdtemp()` path under `/var/folders/...` (not a hand-substituted `/private/tmp` stand-in),
 to settle whether the panel's F1 `/tmp`→`/private/tmp` symlink finding also bites here. Script and
@@ -67,7 +67,7 @@ scratch-write ergonomics under that one misconfiguration.
 All four are rejected by `load_fleet`'s own field validation (`workspace_root` must be absolute;
 `repos` must be non-empty; each `repos[].name` must contain `/`) before `resolve_fleet` can return a
 `workspace_root`/`bases` tuple at all. The `except Exception` in `resolve_fleet`
-(`check-domain.sh:200-208`) catches the `FleetError` and exits 2 for **every** governed write in the
+(`check-domain.py:200-208`) catches the `FleetError` and exits 2 for **every** governed write in the
 project, control-plane or not — the same behavior as case (b)/(c) in `test-check-domain.py` (broken
 YAML, missing `workspace_root` key). This is deliberate fail-closed design, not a new gap: "the value
 that identifies product paths is the one that failed... enforcement is CLOSED rather than partial."
@@ -81,7 +81,7 @@ No (B) or (C) outcome possible for these four — they never reach `select_base`
 of g1-g5's literal values across every `.py` in `bin/`). `test-factory-config.py` **does** cover the
 `load_fleet`-level rejections that make g2-g5 reachability-closed: `(9) repos is missing`,
 `(11) workspace_root is not absolute`, `(12) repos is empty`, `(14d) workspace_root is missing`, and
-a slash-less-name mutation at line 119 — but never through `check-domain.sh`'s `resolve_fleet`/
+a slash-less-name mutation at line 119 — but never through `check-domain.py`'s `resolve_fleet`/
 `select_base`, and never `workspace_root: "/"` anywhere in the tree. g1 is the one gap with zero
 coverage at either layer.
 

@@ -119,7 +119,7 @@ still **raises** — it propagates that error without reading its text.
   not merely unused. Deletion is the load-bearing half: with them gone, any surviving old-shape
   invocation hits the fake's unhandled-argv failure and reddens the suite; left in, a half-converted
   implementation passes silently. `harness.json` `test_kinds.integration` has a real `cmd`
-  (`run-unit-tests.sh --kind integration`) and its `detect` names this file explicitly, so the
+  (`run-unit-tests.py --kind integration`) and its `detect` names this file explicitly, so the
   evidence kind exists.
   verify: automated      evidence: integration
 - SC-10: **Every** failure raised out of the resolve path names the operator's own input. Two

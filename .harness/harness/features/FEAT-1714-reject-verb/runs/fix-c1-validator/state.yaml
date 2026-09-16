@@ -1,0 +1,105 @@
+schema_version: 2
+run_id: fix-c1-validator
+run_uid: cf4714ed32714f95b06c67a1921475d4
+feature: FEAT-1714-reject-verb
+squad: validator
+host: harness-validator-lead
+team: validate
+flow: fix-c1-validator
+status: failed
+review_sha: 8090ce0b0fd8eb9d12c63df83ef9cb45a7b38125
+verdict: FAIL
+severity_max: med
+digest: .harness/harness/features/FEAT-1714-reject-verb/runs/fix-c1-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-qa-c1.md
+    evidence:
+      matrix_ok: true
+      unit_files: 40
+      integration_files: 72
+      qa_pin_worktree: removed
+  - id: code
+    persona: harness-code-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-code-reviewer-c1.md
+    evidence:
+      code_grade: pass
+      code_grade_failures: 0
+  - id: security
+    persona: harness-security-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-security-reviewer-c1.md
+    evidence:
+      prior_finding: SEC-1714-01-closed
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-1714-reject-verb/notes/review-harness-ui-reviewer-c1.md
+    evidence:
+      rendered_ui_paths: 0
+      advisory: ADV-02-retained
+  - id: goalcheck
+    persona: harness-pm
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1714-reject-verb/notes/research-FEAT-1714-reject-verb-goalcheck-validate-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-1714-reject-verb/notes/research-FEAT-1714-reject-verb-goalcheck-validate-c1.md
+    evidence:
+      sc_met: 3
+      sc_not_met: 2

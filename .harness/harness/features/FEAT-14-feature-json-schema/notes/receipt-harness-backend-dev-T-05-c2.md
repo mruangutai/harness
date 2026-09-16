@@ -166,7 +166,7 @@ bad = []
 n = open('.claude/skills/harness/bin/test-harness-yaml-corpus.py').read().count('feature.yaml')
 if n != 4:
     bad.append(...)
-r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh'], capture_output=True, text=True)
+r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.py'], capture_output=True, text=True)
 if r.returncode != 0:
     bad.append(...)
 print('\n'.join(bad) if bad else 'OK')
@@ -177,7 +177,7 @@ Output: `OK`. Exit code: `0`.
 
 `--kind integration`, run separately, in full:
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration
 ...
 97/97 checks passed.
 PASS test-factory-integration.py
@@ -197,9 +197,9 @@ PASS test-check-plan-routes.py
 PASS test-merge-settings.py
 PASS test-factory-integration.py
 ```
-Note: the bare `run-unit-tests.sh` in T-05's `verify:` clause (no `--kind` flag) is a different,
+Note: the bare `run-unit-tests.py` in T-05's `verify:` clause (no `--kind` flag) is a different,
 narrower gate than `--kind integration` — `test-check-plan-routes.py` is in `INTEGRATION_SCRIPTS`
-(`run-unit-tests.sh:18`), so `--kind integration` is the run that actually exercises the file
+(`run-unit-tests.py:18`), so `--kind integration` is the run that actually exercises the file
 this task changed; both are reported above rather than treated as equivalent evidence.
 
 ## §K — the expected red that is not mine

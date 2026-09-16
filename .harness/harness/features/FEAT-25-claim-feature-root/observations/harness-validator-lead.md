@@ -8,7 +8,7 @@ while `harness-qa` ran the gate. Line anchors are at branch `feat/FEAT-25-claim-
   `detail` is empty prints `FAIL - <name>` and the script still exits 0. Reachable today: `:304`,
   `:308`, `:312` call `check()` with two arguments, so `detail` defaults to `""` — the three
   `case 18` assertions covering `lm.exit_code()`'s clean/mixed/cannot-verify mapping. Since
-  `run-unit-tests.sh:59-66` routes purely on exit status, those three cannot redden the blocking
+  `run-unit-tests.py:59-66` routes purely on exit status, those three cannot redden the blocking
   gate. Swept `test-*.py` for the same shape: EVERY other suite increments its counter directly in
   the `else:` of `if ok:`, unconditional on detail. Isolated to this one file. Pre-existing, not
   introduced by FEAT-25 (this feature added only case 22).

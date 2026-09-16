@@ -25,7 +25,7 @@ lanes:
     - surface: .claude/skills/harness/bin/expertise-merge.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-dev-ops
     - surface: .harness/harness.json
@@ -34,7 +34,7 @@ lanes:
     - surface: .harness/harness/docs/DECISIONS.md
       lane: team
       agent: harness-documentor
-    - surface: .claude/skills/harness/bin/dispatch-guard.sh
+    - surface: .claude/skills/harness/bin/dispatch-guard.py
       lane: main-session-direct
       reason: >-
         a registered PreToolUse hook, so the enforcement-layer category of DEC-174 amendment 4
@@ -52,17 +52,17 @@ lanes:
       reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
     - surface: .claude/skills/harness-spec-driven/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .claude/skills/harness-expertise/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .claude/agents/harness-orchestrator.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .gitignore
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
-    - surface: .claude/skills/harness/bin/check-domain.sh
+      reason: check-domain.py --resolve prints NOBODY at c32f332
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: >-
         named in DEC-174 amendment 4 as one of the five enforcement-layer scripts; --resolve grants it
@@ -73,13 +73,13 @@ lanes:
       reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
     - surface: .claude/skills/harness/templates/plan.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .claude/agents/harness-pm.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .harness/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .harness/harness/features/FEAT-32-concurrent-write-merge/notes/**
       lane: main-session-direct
       reason: >-
@@ -176,7 +176,7 @@ decisions:
   - id: D-06
     choice: >-
       The #551 fix is a CLAIM REGISTRY that records EVERY harness-* dispatch and REFUSES only the
-      ones under single flight. dispatch-guard.sh, already the PreToolUse Task hook, records a claim
+      ones under single flight. dispatch-guard.py, already the PreToolUse Task hook, records a claim
       for every dispatched harness-* persona and refuses a dispatch of a persona named in the module
       literal SINGLE_FLIGHT_AGENTS while a live claim for that persona exists on this checkout;
       validate-digest.py, already the SubagentStop hook, releases the returning agent's own claim.
@@ -218,13 +218,13 @@ decisions:
       the defect. 3600 is above the longest observed pm spawn and below any plausible session, and
       it is a named literal so a measurement can move it. Failing OPEN on a leaked claim is the
       house precedent for a guard's own bug, printed by validate-digest.py's internal-error
-      pass-through - the stderr line ending "this is our bug, not theirs" - and set by check-domain.sh.
+      pass-through - the stderr line ending "this is our bug, not theirs" - and set by check-domain.py.
     dec: none
   - id: D-08
     choice: >-
       Each merge CLI carries its own exit-9 destination refusal, decided on os.path.realpath, and
       THREE ISSUES ARE EXPLICITLY OUT OF SCOPE AND NO TASK MAY ABSORB THEM: #627,
-      bash-write-guard.sh's allow-by-omission default; #560, nothing serialises Expertise writes
+      bash-write-guard.py's allow-by-omission default; #560, nothing serialises Expertise writes
       against an open distillation run; and #605, nothing serialises two leads' members against one
       checkout. #560 and #605 are named out because the claim registry built here IS the mechanism
       both would need, so a build agent will be tempted to add a persona to SINGLE_FLIGHT_AGENTS and
@@ -234,7 +234,7 @@ decisions:
       under .harness and one nested under a repository segment — because DEC-194 judges a partial
       layout migration per coupled surface.
     because: >-
-      bash-write-guard.sh is allow-by-omission, so a python3 invocation reaches neither the
+      bash-write-guard.py is allow-by-omission, so a python3 invocation reaches neither the
       read-only denial at its agent-in-REVIEWERS branch nor the domain walk over its findings list -
       cite those by symbol, because the line anchors used in earlier rounds had all drifted by
       c32f332 - and the tool's own destination check is
@@ -262,7 +262,7 @@ decisions:
       was a FALSE VERDICT in the durable record, caught only by a resume. A one-shot refusal on the
       hook the return travels through is aimed at exactly that.
       (2) THE UNBOUNDED CONTAINMENT, on PreToolUse. A PreToolUse refusal has no once-only bound, and
-      dispatch-guard.sh already exercises that. The single-flight refusal of D-06 is what actually
+      dispatch-guard.py already exercises that. The single-flight refusal of D-06 is what actually
       prevents the LOSS, because the loss happens at the second dispatch and not at the premature
       return.
       WHAT REMAINS IMPOSSIBLE, stated so nobody mistakes this for a fix: an agent that re-returns the
@@ -286,7 +286,7 @@ decisions:
   - id: D-10
     choice: >-
       THE SIGNER IS THE MAIN SESSION, AND THE EXCLUSION BECOMES ENFORCED BY A CHECK THAT READS THE
-      RECORD. check-domain.sh gains a domain-path denial sourced from team-config.yaml's
+      RECORD. check-domain.py gains a domain-path denial sourced from team-config.yaml's
       main_session.writes list. Each entry in that list is a glob plus an OPTIONAL trailing FRAGMENT,
       space-separated, and the fragment decides the comparison. A fragment ending in a colon is a YAML
       mapping key: load both sides and compare that key's value. A fragment beginning with two hashes
@@ -302,7 +302,7 @@ decisions:
       independent property — a tool must not corrupt the mapping even when its caller is entitled to
       write the file — but it is NOT the enforcement point. TWO LAYERS SHIP, AND THEY ARE NOT
       REDUNDANCY: each exists for a different reason and neither substitutes for the other. LAYER 1,
-      in check-domain.sh, IS THE ENFORCEMENT OF WHO MAY SIGN. It is the gate: it holds the agent's
+      in check-domain.py, IS THE ENFORCEMENT OF WHO MAY SIGN. It is the gate: it holds the agent's
       identity, it is a PreToolUse hook so it runs on every governed Write and Edit whether or not the
       writer chooses to invoke any tool, and it is the only layer that can REFUSE. LAYER 2, in
       plan-merge.py, IS NOT THAT ENFORCEMENT. It is the structural backstop against a reformatting
@@ -318,7 +318,7 @@ decisions:
       A BOUNDARY OF DEC-180 IS EXTENDED HERE DELIBERATELY, and it is recorded so it is not mistaken
       for an oversight. DEC-180 at DECISIONS.md:5105 routes Edit to PostToolUse because a SHAPE
       verdict needs the whole resulting file to count its lines, so it would have to reconstruct
-      replacement semantics before the fact; check-domain.sh:1039 records that refusal in the POST
+      replacement semantics before the fact; check-domain.py:1039 records that refusal in the POST
       branch's own words. Layer 1 reconstructs nothing — it asks whether the replaced text is a
       substring of the approval block already on disk, and what the replacement text contains — so the
       refusal stands untouched. The same decision also forces layer 1 to be PRE: it fixes
@@ -332,8 +332,8 @@ decisions:
       at all and carries the wrong decision number on three separate comment lines.
     because: >-
       four artifacts disagreed and the tree enforced none of them. Measured at 62f861c: grep -n
-      main_session in check-domain.sh returns ZERO lines, so main_session.writes is a record no code
-      reads, which is the defect class this repository files most often; check-domain.sh --resolve on a
+      main_session in check-domain.py returns ZERO lines, so main_session.writes is a record no code
+      reads, which is the defect class this repository files most often; check-domain.py --resolve on a
       plan.yaml prints harness-orchestrator and harness-pm, so both may write the whole file including
       the mapping and nothing refuses them; and THE SAME HOLE IS THREE FILES WIDE, because
       team-config.yaml grants pm BRIEF.md and PLAN.md whole at :89 and :90 and the words except ##
@@ -352,8 +352,8 @@ decisions:
       glossed: sourcing the denial from the list makes the list load-bearing, and that cuts both ways —
       delete the entry and the gate silently stops denying. Fail-open is the correct direction, because
       a gate that blocks when it cannot read its own record breaks every write, but it MUST BE LOUD,
-      which is the precedent check-domain.sh sets in its own words at :798 and :811 and DEC-127 at
-      DECISIONS.md:2839 sets for validate-digest.py in matching check-domain.sh's precedent by name.
+      which is the precedent check-domain.py sets in its own words at :798 and :811 and DEC-127 at
+      DECISIONS.md:2839 sets for validate-digest.py in matching check-domain.py's precedent by name.
       So a missing key or an empty list ALLOWS and says on stderr that the exclusion list was
       unreadable, and T-14 asserts that stderr LINE and not only the exit code. The residual is exact
       and is not closed: someone who deletes the entry disarms the gate, and the only two things that
@@ -368,7 +368,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      the capture temporarily instruments dispatch-guard.sh, a registered PreToolUse hook and so
+      the capture temporarily instruments dispatch-guard.py, a registered PreToolUse hook and so
       inside DEC-174 amendment 4's enforcement-layer CATEGORY, even though the only file that changes
       is the note
     depends_on: []
@@ -385,7 +385,7 @@ tasks:
       grep -q '^DISPATCHED_PERSONA_KEY=' "$F" || { echo "the dispatched-persona key is not named"; exit 1; }
       grep -q '^DISPATCHED_PERSONA_KEY=NONE$' "$F" && { echo "the key was not found - T-06, T-08 are blocked"; exit 1; }
       grep -q '^STOP_HAS_AGENT_TYPE=' "$F" && { echo "SubagentStop agent_type is already measured; do not re-measure it"; exit 1; }
-      git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.sh || { echo "instrumentation left in dispatch-guard.sh"; exit 1; }
+      git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.py || { echo "instrumentation left in dispatch-guard.py"; exit 1; }
       git diff --quiet -- .claude/skills/harness/bin/validate-digest.py || { echo "validate-digest.py must not be touched by this task"; exit 1; }
       exit 0
     intent: |
@@ -410,9 +410,9 @@ tasks:
       WHAT IS STILL UNKNOWN is exactly one key: the key path on a PreToolUse Task payload that names
       the DISPATCHED persona - the subagent type being asked for, not the dispatcher.
 
-      THE CAPTURE. PreToolUse with matcher Task or Agent, which is dispatch-guard.sh. Trigger it by
+      THE CAPTURE. PreToolUse with matcher Task or Agent, which is dispatch-guard.py. Trigger it by
       spawning one throwaway subagent that does nothing. Record the complete key set of the payload
-      and the exact dotted key path naming the dispatched persona. dispatch-guard.sh already reads
+      and the exact dotted key path naming the dispatched persona. dispatch-guard.py already reads
       d["tool_input"]["model"], so the dispatched persona is expected somewhere under tool_input, but
       the key NAME is not established by any measurement in this repository and this task exists to
       establish it. Do not instrument validate-digest.py at all.
@@ -520,7 +520,7 @@ tasks:
 
       Write a module docstring that states, in the tool's own voice: this core has NO identity
       source, so it can check WHERE a write lands and never WHO asked for it; and it is reachable
-      from a read-only persona because bash-write-guard.sh is allow-by-omission, which is issue #627
+      from a read-only persona because bash-write-guard.py is allow-by-omission, which is issue #627
       and is not fixed here.
 
       FILE 2 - .claude/skills/harness/bin/test-harness-merge.py, house shape - a check(name, ok,
@@ -1103,13 +1103,13 @@ tasks:
            Both halves, so the assertion is positive as well as negative.
 
   - id: T-07
-    title: Capture dispatch-guard.sh's current refusal set as a test, before it changes
+    title: Capture dispatch-guard.py's current refusal set as a test, before it changes
     traces: [REQ-09]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
       DEC-174 amendment 4 puts the test file of each gate inside the carve-out, because a gate's test
-      is the only thing proving the gate discriminates; dispatch-guard.sh has no test at c32f332
+      is the only thing proving the gate discriminates; dispatch-guard.py has no test at c32f332
     depends_on: []
     status: done
     files:
@@ -1119,18 +1119,18 @@ tasks:
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
       python3 .claude/skills/harness/bin/test-dispatch-guard.py || exit 1
-      git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.sh \
-        || { echo "this task must not change dispatch-guard.sh"; exit 1; }
+      git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.py \
+        || { echo "this task must not change dispatch-guard.py"; exit 1; }
       exit 0
     intent: |
-      Write ONE new file and change nothing else - in particular, do NOT touch dispatch-guard.sh.
+      Write ONE new file and change nothing else - in particular, do NOT touch dispatch-guard.py.
       This task exists to pin the gate's behaviour BEFORE T-08 changes it, so that T-08's claim of
       an unchanged refusal set is falsifiable rather than asserted. That is DEC-174 amendment 4's
       stated proof obligation for a gate cutover.
 
       .claude/skills/harness/bin/test-dispatch-guard.py, house shape - a check(name, ok, detail)
       accumulator, PASS and FAIL lines, a final summary line, exit 1 on any failure. It runs
-      dispatch-guard.sh as a subprocess with a JSON payload on stdin and asserts the exit code and
+      dispatch-guard.py as a subprocess with a JSON payload on stdin and asserts the exit code and
       the stderr text.
 
       FOUR CASES, one per branch the script already has, each asserting the exit code AND a
@@ -1146,22 +1146,22 @@ tasks:
       model set - asserting exit 0, since model choice at the user channel is the user's.
 
       Take the exact expected strings from the script as it stands; do not paraphrase them. This file
-      must pass against dispatch-guard.sh UNCHANGED, and T-08 must leave every one of these five
+      must pass against dispatch-guard.py UNCHANGED, and T-08 must leave every one of these five
       cases passing without editing any of them.
 
   - id: T-08
-    title: Cut dispatch-guard.sh over to refuse a second concurrent single-flight dispatch
+    title: Cut dispatch-guard.py over to refuse a second concurrent single-flight dispatch
     traces: [REQ-05]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
-      dispatch-guard.sh is a registered PreToolUse hook, inside DEC-174 amendment 4's enforcement-layer
+      dispatch-guard.py is a registered PreToolUse hook, inside DEC-174 amendment 4's enforcement-layer
       category; the library it now calls was written by a squad in T-06, which is exactly the split
       amendment 4 authorises
     depends_on: [T-06, T-07]
     status: done
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       set -u
@@ -1184,7 +1184,7 @@ tasks:
       assert n == 1, "SINGLE_FLIGHT_AGENTS assignment not found BY NAME"
       open(p, "w").write(m)
       PY
-      DISPATCH_GUARD_BIN="$T/bin/dispatch-guard.sh" \
+      DISPATCH_GUARD_BIN="$T/bin/dispatch-guard.py" \
         python3 .claude/skills/harness/bin/test-dispatch-guard.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the refusal cases pass with no persona under single flight"; exit 1; }
       exit 0
@@ -1196,7 +1196,7 @@ tasks:
       and use its DISPATCHED_PERSONA_KEY value as the key path for the dispatched persona. Do not
       guess it.
 
-      IN dispatch-guard.sh, inside the existing embedded python3 block, AFTER the existing
+      IN dispatch-guard.py, inside the existing embedded python3 block, AFTER the existing
       not-governed early exit and AFTER the existing model check, add the claim step:
 
         - Read the dispatched persona from the key path the note names. If absent, print one stderr
@@ -1222,7 +1222,7 @@ tasks:
       point DISPATCH_GUARD_BIN at a copied tree and get that copy's inflight_registry.py.
 
       IN test-dispatch-guard.py, ADD cases and EDIT NONE. Resolve the script as
-        GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(HERE, "dispatch-guard.sh")
+        GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(HERE, "dispatch-guard.py")
       and point CLAUDE_PROJECT_DIR at a fresh tempfile.mkdtemp() for every case so no case touches
       the real registry.
 
@@ -1371,13 +1371,13 @@ tasks:
     depends_on: [T-02, T-03, T-04, T-06, T-07]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       set -u
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1) || { echo "$out"; exit 1; }
       for f in test-harness-merge.py test-plan-merge.py test-observations-merge.py \
                test-inflight-registry.py test-dispatch-guard.py; do
         echo "$out" | grep -q "^PASS $f$" || { echo "$f did not run or did not pass"; echo "$out"; exit 1; }
@@ -1402,7 +1402,7 @@ tasks:
       here matches BOTH globs on purpose and resolves to integration. Cite DEC-197 in the commit
       message; do not restate its reasoning in either file.
 
-      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array. Append
+      1. .claude/skills/harness/bin/run-unit-tests.py, the INTEGRATION_SCRIPTS array. Append
          test-harness-merge.py, test-plan-merge.py, test-observations-merge.py,
          test-inflight-registry.py and test-dispatch-guard.py. All five fork real subprocesses and
          real concurrent children, which is the principle that array encodes - do not put any of them
@@ -1469,7 +1469,7 @@ tasks:
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .gitignore at c32f332
+    execution_reason: check-domain.py --resolve prints NOBODY for .gitignore at c32f332
     depends_on: [T-06]
     status: done
     files:
@@ -1505,7 +1505,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for all three files at c32f332, and two of them are
+      check-domain.py --resolve prints NOBODY for all three files at c32f332, and two of them are
       preloaded rule skills that reach every spawn
     depends_on: [T-03, T-04]
     status: done
@@ -1686,36 +1686,36 @@ tasks:
       claim, then Chose, Over and Because paragraphs. Do not exceed 60 lines. Change no other entry.
 
   - id: T-14
-    title: Make the approval exclusions real by having check-domain.sh READ main_session.writes
+    title: Make the approval exclusions real by having check-domain.py READ main_session.writes
     traces: [REQ-11]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh is named in DEC-174 amendment 4 as one of the five enforcement-layer scripts and
+      check-domain.py is named in DEC-174 amendment 4 as one of the five enforcement-layer scripts and
       amendment 4 puts the test file of each inside the carve-out with it; --resolve grants both files
       to harness-backend-dev and harness-dev-ops at c32f332, so the CATEGORY and not the grant is what
       routes this
     depends_on: [T-03, T-15]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       set -u
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
-      grep -q 'APPROVAL_GUARD = True' .claude/skills/harness/bin/check-domain.sh \
+      grep -q 'APPROVAL_GUARD = True' .claude/skills/harness/bin/check-domain.py \
         || { echo "the named literal the red proof mutates does not exist"; exit 1; }
-      grep -q 'main_session' .claude/skills/harness/bin/check-domain.sh \
+      grep -q 'main_session' .claude/skills/harness/bin/check-domain.py \
         || { echo "the denial does not READ main_session.writes; a hardcoded pattern is a defect"; exit 1; }
-      grep -q 'CONVENTION, NOT A YAML GUARANTEE' .claude/skills/harness/bin/check-domain.sh \
+      grep -q 'CONVENTION, NOT A YAML GUARANTEE' .claude/skills/harness/bin/check-domain.py \
         || { echo "the indent-convention comment is missing from the rule; it is a deliverable"; exit 1; }
       out=$(python3 .claude/skills/harness/bin/test-check-domain.py) || { echo "$out"; exit 1; }
       n=$(printf '%s\n' "$out" | grep -c '^ok')
       [ "$n" -ge 167 ] || { echo "prior cases lost: $n ok lines, baseline was 167 at 6bb7d82"; exit 1; }
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
-      python3 - "$T/bin/check-domain.sh" <<'PY' || exit 1
+      python3 - "$T/bin/check-domain.py" <<'PY' || exit 1
       import sys
       p = sys.argv[1]
       s = open(p).read()
@@ -1723,7 +1723,7 @@ tasks:
       assert m != s, "APPROVAL_GUARD assignment not found BY NAME"
       open(p, "w").write(m)
       PY
-      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.py" \
         python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the suite passes with the approval guard switched off"; exit 1; }
       exit 0
@@ -1739,7 +1739,7 @@ tasks:
       while leaving the record it is supposed to enforce still unread. That grep returned ZERO at
       62f861c; its PRESENCE is the deliverable.
 
-      IN check-domain.sh, inside the existing embedded python3 block, inside the `if _domain_phase:`
+      IN check-domain.py, inside the existing embedded python3 block, inside the `if _domain_phase:`
       region and AFTER the existing domain verdict for the path, add the exclusion denial:
 
         - A module-level literal, spelled exactly
@@ -1864,7 +1864,7 @@ tasks:
           block, so the interleaving that would matter is one no legitimate writer performs, and
           plan-merge.py holds a lock over every other route into the file.
         - A COMMENT AT THE RULE IS A DELIVERABLE OF THIS TASK, not a nicety, and the verify greps
-          for it. Immediately above limb B, in check-domain.sh itself, state that the indentation it
+          for it. Immediately above limb B, in check-domain.py itself, state that the indentation it
           reads is a CONVENTION AND NOT A YAML GUARANTEE: the format permits an approval block at any
           indent, and limb B can discriminate an approval child key from a task's own key only because
           every plan.yaml in the tree is emitted by harness-pm and, after this feature, by
@@ -1994,14 +1994,14 @@ tasks:
            once at build.
 
       THE EDIT ROUTE REACHES THE DOMAIN PHASE ALREADY - do not touch the PRE short-circuit. Measured
-      in this worktree at 6bb7d82: the domain phase is entered at check-domain.sh:316 under
+      in this worktree at 6bb7d82: the domain phase is entered at check-domain.py:316 under
       _domain_phase, set at :294 to _governed and not _post, and nothing between :276 and :316 exits on
       the tool name. The tool-name short-circuit at :1032, if _tool != "Write" or not target, sits far
       BELOW that and gates only the SHAPE targets list. So an Edit already arrives at the region this
       task adds to, and :1032 must be left exactly as it is: moving or widening it would put Edit
       payloads into the shape gate, which is the thing DEC-180 deliberately routed to POST.
 
-      WHY THIS DOES NOT CONTRADICT DEC-180 OR check-domain.sh:1039, and read both before starting
+      WHY THIS DOES NOT CONTRADICT DEC-180 OR check-domain.py:1039, and read both before starting
       rather than trusting this paragraph. DEC-180 at DECISIONS.md:5105 routes Edit and Bash to POST
       because a SHAPE verdict needs the whole resulting file to count its lines, so it would have to
       reconstruct replacement semantics and replace_all before the fact; :1039 records the same refusal
@@ -2032,7 +2032,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for all three files at c32f332, so DEC-179 makes this a
+      check-domain.py --resolve prints NOBODY for all three files at c32f332, so DEC-179 makes this a
       declared main-session step rather than a dispatch that would be rejected mid-run
     depends_on: []
     status: done
@@ -2072,7 +2072,7 @@ tasks:
       DEC-120 at DECISIONS.md:2431 puts the user channel at the main session alone, so it is the only
       tier that can hold a signature the user actually gave.
 
-      THIS TASK IS NO LONGER COSMETIC. T-14 makes check-domain.sh READ main_session.writes, so the
+      THIS TASK IS NO LONGER COSMETIC. T-14 makes check-domain.py READ main_session.writes, so the
       entry item 3a adds is the gate's INPUT and not a record beside it. T-14 depends_on this task and
       its own suite asserts the entry's presence in the REAL file. The verify's assertion on that list
       is therefore load-bearing: if it fails, the plan.yaml approval denial does not exist.
@@ -2082,7 +2082,7 @@ tasks:
          orchestrator cannot ask the user (DEC-120)", which contradicts itself in one sentence: an
          agent that cannot ask the user cannot be the only writer of the user's answer. REPLACE it
          with: written by the MAIN SESSION only, because it is the only tier with a user channel;
-         neither pm nor the orchestrator writes it, and check-domain.sh denies an agent's write of this
+         neither pm nor the orchestrator writes it, and check-domain.py denies an agent's write of this
          mapping. Keep the existing sentence that any change to the task set resets this to pending.
 
       2. .claude/agents/harness-pm.md, the Writable paragraph. It currently says the approval block
@@ -2092,7 +2092,7 @@ tasks:
          agent definition and every added line taxes every pm spawn.
 
       3. .harness/team-config.yaml, TWO changes, and read D-10 before making either. This file stops
-         being a record and becomes THE GATE'S INPUT: after T-14, check-domain.sh READS
+         being a record and becomes THE GATE'S INPUT: after T-14, check-domain.py READS
          main_session.writes and denies a governed agent's write that changes an excluded fragment.
          The entry you add here is the datum that makes the plan.yaml denial exist. Deleting it later
          disarms that denial, which is the residual D-10 records.
@@ -2190,7 +2190,7 @@ tasks:
       including when the file is citing itself.
 
   - id: T-17
-    title: Propose the DEC-174 amendment 4 wording that adds dispatch-guard.sh to the enumeration
+    title: Propose the DEC-174 amendment 4 wording that adds dispatch-guard.py to the enumeration
     traces: [REQ-06]
     change_type: docs
     execution_mode: team
@@ -2210,9 +2210,9 @@ tasks:
       i = src.index("### DEC-174 amendment 4")
       j = src.index("\n## DEC-175", i)
       body = src[i:j]
-      assert "dispatch-guard.sh" in body, "amendment 4 still omits dispatch-guard.sh"
-      for f in ("check-domain.sh", "bash-write-guard.sh", "validate-digest.py",
-                "check-state.sh", "check-plan-routes.py"):
+      assert "dispatch-guard.py" in body, "amendment 4 still omits dispatch-guard.py"
+      for f in ("check-domain.py", "bash-write-guard.py", "validate-digest.py",
+                "check-state.py", "check-plan-routes.py"):
           assert f in body, "amendment 4 lost %s from its enumeration" % f
       flat = " ".join(body.split())
       assert "the category decides, the list records" in flat, \
@@ -2227,9 +2227,9 @@ tasks:
       finding rather than writing your own.
 
       WHY, measured at 62f861c. DEC-174 amendment 4's heading is at DECISIONS.md:4836 and its
-      enumeration sentence is at :4859-4860: "So the enforcement layer is: check-domain.sh,
-      bash-write-guard.sh, validate-digest.py, check-state.sh, check-plan-routes.py, and the test file
-      of each." dispatch-guard.sh is demonstrably a gate - it refused this feature's own orchestrator
+      enumeration sentence is at :4859-4860: "So the enforcement layer is: check-domain.py,
+      bash-write-guard.py, validate-digest.py, check-state.py, check-plan-routes.py, and the test file
+      of each." dispatch-guard.py is demonstrably a gate - it refused this feature's own orchestrator
       dispatch over a model: parameter during run 2026-08-21-1-product - and the enumeration omits it.
       Amendment 4 already settles what that means: at :4860-4862 it says a script that becomes a gate
       joins the list on the day it becomes one, and this entry is amended when that happens, because
@@ -2237,11 +2237,11 @@ tasks:
       correctly main-session-direct on the category. What is closed here is a gap in the record, not a
       routing question.
 
-      THE EDIT. In the enumeration sentence at :4859-4860, insert dispatch-guard.sh into the list after
+      THE EDIT. In the enumeration sentence at :4859-4860, insert dispatch-guard.py into the list after
       check-plan-routes.py, keeping the trailing clause "and the test file of each" and keeping every
       existing name in its existing order. Then append, as its own short paragraph at the end of
       amendment 4 and before the "Not a strike" paragraph, exactly this claim in the entry's own voice:
-      dispatch-guard.sh joins the enumeration on the evidence that it refuses dispatches - it declined
+      dispatch-guard.py joins the enumeration on the evidence that it refuses dispatches - it declined
       a harness-orchestrator dispatch over a model parameter on 2026-08-21 - and it joins under the
       rule this amendment already states rather than as a new ruling, so no lane changes and amendment
       4 remains an amendment about the list and not about the category.

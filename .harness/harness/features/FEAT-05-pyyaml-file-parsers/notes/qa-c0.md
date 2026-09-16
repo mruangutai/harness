@@ -5,7 +5,7 @@ Reviewer: harness-qa · review_sha pinned `340e18a` · diffed `37a8a66..340e18a`
 **PATH NOTE, read first:** the dispatch named
 `.harness/features/FEAT-05-pyyaml-file-parsers/notes/review-harness-qa-c0.md`. My write
 grant (`team-config.yaml`) permits `.harness/features/*/notes/qa-*.md`, not
-`review-harness-qa-*.md`; `check-domain.sh` denied the named path. Written instead to
+`review-harness-qa-*.md`; `check-domain.py` denied the named path. Written instead to
 `notes/qa-c0.md` per the hook's own instruction ("do not work around this hook"). Same
 routing-wall class PLAN.md already logs three recurrences of (FEAT-03 Q13, FEAT-04
 T-09, this feature's own T-10/T-11) — now a fourth, on the dispatch side rather than
@@ -13,7 +13,7 @@ the plan side. Non-blocking, flagged in `open_questions`.
 
 ## BLUF
 
-**T-07's conversion of `check-state.sh` is 70% incomplete, it is not merely a leftover
+**T-07's conversion of `check-state.py` is 70% incomplete, it is not merely a leftover
 regex, and it reproduces live: I triggered a real fail-open with the exact defect class
 this feature exists to close.** Only 3 of the 10 census-named call sites (the
 `runs:`/`val()` loop — issue #11's fix) were actually converted to `harness_yaml`. The
@@ -43,7 +43,7 @@ against a feature that has one — `gh-sync.py`'s own `load_recorded` docstring 
 this exact regex shape as a defect it fixed in *that* file, one file over.
 
 REQ-01 ("no hand-rolled YAML key/value regex is left behind") and SC-03 ("reaches
-PyYAML on every one of its .yaml read paths") are false for `check-state.sh`. This is
+PyYAML on every one of its .yaml read paths") are false for `check-state.py`. This is
 invisible to every gate because T-07, alone among the four conversion tasks that carry a
 regex-count discriminator (T-04 → 0 remaining, T-06 → 5 named markdown lines, T-12 → 7
 at named lines, T-14 → 5 at named lines), has **no such assertion in its own `verify:`
@@ -57,9 +57,9 @@ signal with the same blind spot: the seven unconverted sites produce no
 passes precisely because the conversion didn't happen there.
 
 **No decision defers this.** I checked PLAN.md's Decisions, the handoff, and every
-receipt under `notes/` for a ruling that scopes `check-state.sh`'s conversion down to
+receipt under `notes/` for a ruling that scopes `check-state.py`'s conversion down to
 just the `runs:`/`val()` loop. None exists. Commit `60b266c`'s own message states
-"check-state.sh reads feature.yaml with a real parser (T-07/T-08)" without
+"check-state.py reads feature.yaml with a real parser (T-07/T-08)" without
 qualification. PLAN T-07 enumerates all ten sites by line number and names exactly two
 carve-outs (the 7 markdown/`CHECKPOINT_KEYS` survivors D-05 documents, and D-09's
 deliberately-deferred `review_sha` fail-open) — neither covers `phase:`, `state.yaml`'s
@@ -73,11 +73,11 @@ Two further gaps, both matching the requested defect class:
   a commit message — never as a script or receipt under `notes/`.** Nothing a reviewer
   can re-run; the "verify" for these tasks (unchanged test file + a regex-count grep) is
   the durable evidence, and neither one is the byte-comparison PLAN.md text demands.
-- **`bash-write-guard.sh`'s bootstrap escape (`require_or_bootstrap`, wired at line 78)
+- **`bash-write-guard.py`'s bootstrap escape (`require_or_bootstrap`, wired at line 78)
   has zero test coverage.** `test-bash-write-guard.py` never hides PyYAML for this hook —
   every case fires with the real interpreter. The exact regression this feature already
   shipped once (both hooks discarding `require_or_bootstrap`'s return value, commit
-  `0775862`) is now regression-tested for `check-domain.sh` only.
+  `0775862`) is now regression-tested for `check-domain.py` only.
 - **T-07's SC-13 verify demands two durable listing artifacts ("both listings are then
   real artifacts the reviewer cites"); only the baseline (`receipt-baseline-run-inventory.md`)
   exists.** I regenerated the post-change listing myself via `harness_yaml.load_file` — it
@@ -98,7 +98,7 @@ concrete and consistent across three independent log entries), but it is not
 reviewable.
 
 **2. T-02 test 5 fixture provenance.** **Refuted — the fixture is accurate.** I
-extracted the pre-change `collect()` regex verbatim from `37a8a66`'s `check-domain.sh`
+extracted the pre-change `collect()` regex verbatim from `37a8a66`'s `check-domain.py`
 and ran it directly against the current `.harness/team-config.yaml` for
 `harness-backend-dev`, `harness-dev-ops`, `harness-pm`; all three matched
 `COLLECT_FIXTURE` in `test-harness-yaml.py:31-` exactly. Not a hand-transcription risk.
@@ -120,7 +120,7 @@ this gap is **closed at the integration level**: `test-check-domain.py:204-266` 
 the real hook binary as a subprocess with `CLAUDE_CODE_SESSION_ID` set (and
 `CLAUDE_CODE_BRIDGE_SESSION_ID` explicitly popped), with an explanatory comment naming
 exactly why the module-level test doesn't suffice. This is disclosed self-correction,
-not a live gap, **for `check-domain.sh`**. It is *not* closed for `bash-write-guard.sh`
+not a live gap, **for `check-domain.py`**. It is *not* closed for `bash-write-guard.py`
 (see BLUF, third bullet) — same mechanism, same production-dead entry risk, no
 subprocess-level test at all.
 
@@ -140,22 +140,22 @@ PLAN.md **except one is missing entirely**:
 
 - **T-04 (`upgrade-config.py`) — MISSING.** The task requires creating
   `.claude/skills/harness/bin/test-upgrade-config.py` with three named tests and adding
-  it to `run-unit-tests.sh`'s `SCRIPTS` array. **Neither exists.** `ls
-  .claude/skills/harness/bin/test-*.py` and `run-unit-tests.sh`'s `SCRIPTS` array both
+  it to `run-unit-tests.py`'s `SCRIPTS` array. **Neither exists.** `ls
+  .claude/skills/harness/bin/test-*.py` and `run-unit-tests.py`'s `SCRIPTS` array both
   confirm the file was never created, in any commit in the diff range. `upgrade-config.py`
   itself *was* converted (`harness_yaml.load_str` at `:99`/`:124`), so there is
   production code with **zero** regression coverage — the exact shape the matrix exists
-  to prevent. `run-unit-tests.sh` exits 0 / 11 suites, not the 12 the plan implies.
+  to prevent. `run-unit-tests.py` exits 0 / 11 suites, not the 12 the plan implies.
   **State: missing (FAIL) for T-04's `logic` requirement.**
 - **T-06, T-07, T-12, T-14, T-17** — all have their named tests present and running
-  (confirmed by grep against the diff and a live `run-unit-tests.sh` pass). T-07's tests
+  (confirmed by grep against the diff and a live `run-unit-tests.py` pass). T-07's tests
   (case_e/case_f) cover only the part of the script that was actually converted (see
   BLUF) — adequate for what they assert, silent on the 7 unconverted call sites.
   T-02/T-03 (harness_yaml.py itself) — 9/9 tests present and green.
 
 ## Suite run — real numbers
 
-`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh`, run 3 times:
+`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py`, run 3 times:
 
 ```
 exit=0, exit=0, exit=0 (no flake across 3 runs)
@@ -166,13 +166,13 @@ exit=0, exit=0, exit=0 (no flake across 3 runs)
 see T-04 above: the array is *consistent with itself*, it is just missing an entry the
 plan mandated.
 
-`check-state.sh` → exit 0, 0 violations, 40 notes (`feature.yaml` records
+`check-state.py` → exit 0, 0 violations, 40 notes (`feature.yaml` records
 `baseline_exit: 0 / baseline_violations: 0` — matches; 1 extra INV-8 note is this run's
 own bookkeeping, consistent with SC-02).
 
 `check-docs.sh` → exit 0. `gen-decisions-index.py --check` → exit 0. Both green, per
 DEC-174's premise these are not evidence of correctness beyond their own narrow scope —
-confirmed true here, since neither would ever see the check-state.sh gap.
+confirmed true here, since neither would ever see the check-state.py gap.
 
 ## SC-05/SC-06 paired-assertion check
 
@@ -190,9 +190,9 @@ Neither is discharged in two separate setups. Adequate.
 | SC | State | Test |
 |---|---|---|
 | SC-01 | met | `test-check-state.py::case_e` (invariant-level, RED/GREEN per commit `60b266c` message) |
-| SC-02 | met | live `check-state.sh` run above, matches `feature.yaml` baseline |
-| SC-03 | **NOT met for check-state.sh** | census answer key is stale against actual code — see BLUF |
-| SC-04 | met for the 5 converted scripts; moot/unverifiable for check-state.sh's unconverted fields | `test_exactly_one_guarded_import_in_the_tree` |
+| SC-02 | met | live `check-state.py` run above, matches `feature.yaml` baseline |
+| SC-03 | **NOT met for check-state.py** | census answer key is stale against actual code — see BLUF |
+| SC-04 | met for the 5 converted scripts; moot/unverifiable for check-state.py's unconverted fields | `test_exactly_one_guarded_import_in_the_tree` |
 | SC-05 | met | `test-check-domain.py` paired assertion |
 | SC-06 | met | `test-bash-write-guard.py::run_t14` paired assertion |
 | SC-07 | met | grep counts verified live (0 "six", 1 "seven prerequisites", 3 "No such file") |
@@ -208,16 +208,16 @@ Neither is discharged in two separate setups. Adequate.
 
 - Phase 1 (BRIEF/PLAN only) expected: every named script's YAML reads fully routed
   through the shared parser, with a discriminating absence-check per script. **Missing
-  for `check-state.sh`'s `phase:`/`state.yaml` block/`github:` block.**
+  for `check-state.py`'s `phase:`/`state.yaml` block/`github:` block.**
 - Expected: regression coverage for `upgrade-config.py`. **Entirely missing** (T-04).
 - Expected: symmetric bootstrap-escape coverage for both hooks named in REQ-04/REQ-05.
-  **Missing for `bash-write-guard.sh`.**
+  **Missing for `bash-write-guard.py`.**
 - Expected: a reproducible byte-equivalence artifact for T-13/T-15. **Missing**, only
   narrative.
 
 ## Findings, with severity
 
-1. **[critical]** `check-state.sh:268,324,328,347,425,429,430` — `phase:`,
+1. **[critical]** `check-state.py:268,324,328,347,425,429,430` — `phase:`,
    `state.yaml` `status:`/`cost:`/`host:`, and `feature.yaml`'s `github:` block are
    unconverted raw-text regex (measured old→new line mapping above, +31 uniform
    offset, identical source), contradicting T-07's explicit instruction to convert
@@ -227,14 +227,14 @@ Neither is discharged in two separate setups. Adequate.
    issue #11's own defect class, alive in the script that closed issue #11. A second
    reproduction: `parent: "40"` (quoted) false-positives INV-21. State that would
    satisfy every current verify command while this is true: exactly the state
-   observed — `run-unit-tests.sh` exit 0, `check-state.sh` exit 0/0 violations on
+   observed — `run-unit-tests.py` exit 0, `check-state.py` exit 0/0 violations on
    this repo's real (unquoted) data, run-inventory diff clean — because none of
    those signals depend on the unconverted fields or exercise a quoted value.
 2. **[high]** T-04's `test-upgrade-config.py` and its `SCRIPTS` registration were never
    created. `upgrade-config.py`'s conversion ships with zero regression tests.
-3. **[med]** `bash-write-guard.sh`'s bootstrap-escape path (`require_or_bootstrap`) has
+3. **[med]** `bash-write-guard.py`'s bootstrap-escape path (`require_or_bootstrap`) has
    no test coverage — the exact class of bug (`0775862`) that already shipped once for
-   both hooks is now caught only for `check-domain.sh`.
+   both hooks is now caught only for `check-domain.py`.
 4. **[med]** T-13/T-15's byte-level equivalence proof is not a durable, reviewable
    artifact — narrative-log-only.
 5. **[low]** SC-13's "both listings" requirement is unmet as a paperwork matter; the
@@ -252,22 +252,22 @@ ever written against them in either order — they were simply not touched.
 VERDICT: FAIL
 
 DIGEST:
-  headline: T-07's check-state.sh conversion is 70% incomplete and I reproduced a live fail-open from it (quoted `status: "complete"` silently skips INV-11) — issue #11's own defect class, alive in the script that closed issue #11; plus a missing T-04 test file and an untested bash-write-guard.sh bootstrap escape.
+  headline: T-07's check-state.py conversion is 70% incomplete and I reproduced a live fail-open from it (quoted `status: "complete"` silently skips INV-11) — issue #11's own defect class, alive in the script that closed issue #11; plus a missing T-04 test file and an untested bash-write-guard.py bootstrap escape.
   suite: pass
   failures: 0
   matrix_ok: false
   kinds:
-    - { kind: unit, state: satisfied, cmd: "CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh", named_tests: 11 }
+    - { kind: unit, state: satisfied, cmd: "CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py", named_tests: 11 }
     - { kind: unit, state: missing, cmd: "test-upgrade-config.py (never created, T-04)", named_tests: 0 }
   coverage_gaps:
-    - "check-state.sh: phase:/state.yaml status:-cost:-host:/feature.yaml github: block still raw regex, never routed through harness_yaml"
+    - "check-state.py: phase:/state.yaml status:-cost:-host:/feature.yaml github: block still raw regex, never routed through harness_yaml"
     - "upgrade-config.py: no test file exists despite T-04 mandating one"
-    - "bash-write-guard.sh: bootstrap-escape (require_or_bootstrap) path never exercised by any test"
+    - "bash-write-guard.py: bootstrap-escape (require_or_bootstrap) path never exercised by any test"
     - "T-13/T-15: byte-level equivalence proof exists only as log/commit-message narrative, not a durable artifact"
   sc_evidence:
     - { id: SC-01, test: ".claude/skills/harness/bin/test-check-state.py:145 (case_e)" }
-    - { id: SC-02, test: "live run: CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh" }
-    - { id: SC-03, test: "NOT MET for check-state.sh — see finding 1" }
+    - { id: SC-02, test: "live run: CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.py" }
+    - { id: SC-03, test: "NOT MET for check-state.py — see finding 1" }
     - { id: SC-04, test: ".claude/skills/harness/bin/test-harness-yaml.py:test_exactly_one_guarded_import_in_the_tree" }
     - { id: SC-05, test: ".claude/skills/harness/bin/test-check-domain.py (SC-05 paired assertion, T-12 section)" }
     - { id: SC-06, test: ".claude/skills/harness/bin/test-bash-write-guard.py:143 (run_t14)" }
@@ -276,7 +276,7 @@ DIGEST:
     - { id: SC-09, test: ".harness/features/FEAT-05-pyyaml-file-parsers/notes/uat-bootstrap-escape-expiry.md (U-05)" }
     - { id: SC-10, test: ".harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-harness-backend-dev-typed-value-sweep.md" }
     - { id: SC-11, test: ".claude/skills/harness/bin/test-gh-sync.py (label audit)" }
-    - { id: SC-12, test: "live run: run-unit-tests.sh, 11/11 PASS, exit 0" }
+    - { id: SC-12, test: "live run: run-unit-tests.py, 11/11 PASS, exit 0" }
     - { id: SC-13, test: "substance verified independently; PLAN's required second artifact absent" }
     - { id: SC-14, test: ".claude/skills/harness/bin/test-harness-yaml-corpus.py" }
   open_questions:

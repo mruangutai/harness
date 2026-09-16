@@ -46,7 +46,7 @@ hand again.
 
 - How the gate recognises abandon's own call without creating a marker anyone can set by hand. An
   environment variable is the shape; whether that is sufficient is not settled.
-- Whether `check-state.sh` gains an invariant for a tracked card that is closed but not at `Done` —
+- Whether `check-state.py` gains an invariant for a tracked card that is closed but not at `Done` —
   the leak the gate cannot see, such as a close made in the GitHub web interface.
 - What `ship` does when a card's board write fails partway through a batch. Today's station writes
   are best-effort per card (DEC-146); whether a terminal Done write may be best-effort is untested.
@@ -79,7 +79,7 @@ Measured at `cc84b29` unless stated.
   this session** — verify it before depending on it.
 - **The post-merge sweep does not fire on the harness's own clone.**
   `core.hooksPath = /Users/molchairuangutai/GitHub/harness/.git/hooks`, and `.git/hooks` holds only
-  samples. `post-merge-sweep.sh:174` is what runs `gh-sync.py ship`.
+  samples. `post-merge-sweep.py:174` is what runs `gh-sync.py ship`.
 - **Only FEAT-34's cards are stranded.** #616, #642, #701, #756 and #798 are all `CLOSED` at `Done`.
   #818 is `CLOSED` at `Review`, because its hand close landed *before* validate entry wrote `Review`
   over the top. Whichever ran last won; nothing says which should.
@@ -94,7 +94,7 @@ Measured at `cc84b29` unless stated.
 - **DEC-186 is not mainly a station rule.** It bounds read-back to five purposes, of which stations is
   one; it also carries the ban on a read-back value entering `BRIEF.md`, `plan.yaml` or an approval
   block.
-- **A `PreToolUse:Bash` gate can bind the main session.** `branch-create-gate.sh` refused two branch
+- **A `PreToolUse:Bash` gate can bind the main session.** `branch-create-gate.py` refused two branch
   names in this session.
 - **DEC-174 does not conflict with building this gate** (`DECISIONS.md:4808`): enforcement-layer
   changes are made directly by the main session; only *dispatching* them through the harness is

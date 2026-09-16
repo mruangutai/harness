@@ -126,7 +126,7 @@ more precisely-scoped gap than the disposition recorded, not a new defect and no
 reopen the compatibility-decision call — the disposition's conclusion (not an unmet criterion,
 routes to the operator) stands. Additionally: all three real call sites in `bin/` —
 `board-station.py:172-174`, `gh-sync.py`'s `load_config` (gated on `g.get("sync")` before ever
-calling `load_board`), and `check-state.sh`'s INV-26 block (gated on `isinstance(_g26, dict) and
+calling `load_board`), and `check-state.py`'s INV-26 block (gated on `isinstance(_g26, dict) and
 _g26.get("sync") is True`) — each independently check `github`-block-presence/`sync` before
 calling `load_board`, so none of the three reaches the silent-`None` branch on that cell today.
 That is what the `bin/*.py`/`bin/*.sh` grep supports; it does not establish the branch is

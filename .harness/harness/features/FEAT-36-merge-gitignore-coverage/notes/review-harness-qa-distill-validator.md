@@ -24,8 +24,8 @@ The mandated `expertise-merge.py apply` supports union addition only, not those 
 
 ## Receipts and verification
 
-Exact intended Expertise ops: the three `replace` operations above. Exact successfully applied Expertise ops: `[]`. Changed Expertise files: `[]`. Per-file `check-expertise.sh` output: none required or run, because no Expertise file changed. No formatter, linter, build, or project-wide test ran.
+Exact intended Expertise ops: the three `replace` operations above. Exact successfully applied Expertise ops: `[]`. Changed Expertise files: `[]`. Per-file `check-expertise.py` output: none required or run, because no Expertise file changed. No formatter, linter, build, or project-wide test ran.
 
 ## Canonical handoff
 
-Escalate to the validator lead: either extend `expertise-merge.py` with lock-safe replace/drop support or provide an approved curation mechanism, then apply the three accepted craft entries and run `check-expertise.sh .harness/expertise/harness-qa.md`. The repository tier remains unchanged.
+Escalate to the validator lead: either extend `expertise-merge.py` with lock-safe replace/drop support or provide an approved curation mechanism, then apply the three accepted craft entries and run `check-expertise.py .harness/expertise/harness-qa.md`. The repository tier remains unchanged.

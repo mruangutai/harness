@@ -28,7 +28,7 @@ Plus five distillation receipts, the blocked-ops record and four orchestrator ob
 
 **No entry was lost.** Every changed file was diffed id-by-id against its committed base by the orchestrator: zero ids added where an op was a displacement, zero removed anywhere, and every section held at its cap — which is what makes each displacement legal.
 
-`check-expertise.sh` exits 0 on both `.harness/expertise/` (15 files) and `.harness/harness/expertise/` (14 files). The five ADVISORY lines are pre-existing and on entries this branch did not touch.
+`check-expertise.py` exits 0 on both `.harness/expertise/` (15 files) and `.harness/harness/expertise/` (14 files). The five ADVISORY lines are pre-existing and on entries this branch did not touch.
 
 **One op was reported applied and had not been.** `harness-security-reviewer` G-10 still carried its base text after its squad returned PASS. The squad's proof was a hash over the file's lines *excluding* the rewritten ones, which is structurally blind to a rewrite that never happened — the missed line sits in the exclusion set either way, and a replace op leaves the id census unchanged. The orchestrator's independent id-by-id diff caught it; it was routed back to its owner and landed with a content comparison. That failure and its cause are recorded in `notes/distill-blocked-ops-2026-09-02.md` rather than quietly fixed.
 

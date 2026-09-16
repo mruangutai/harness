@@ -23,7 +23,7 @@ T-10 (gated on T-07), then the documentor segment T-13 → T-17 (gated on T-08, 
 ## Dead ends
 
 - Do NOT backfill `agent` into the 5 legacy runs entries to unblock feature.json — the indices are load-bearing and the runs predate the rule by two hours (`d03a835` 06:40 vs `ee608d2` 08:48) — coordinator instruction, this run
-- Do NOT re-merge main, re-run the signature hash check, or touch FEAT-26's unapproved-BRIEF violation in `check-state.sh` — all three discharged or pre-existing — dispatch brief, this run
+- Do NOT re-merge main, re-run the signature hash check, or touch FEAT-26's unapproved-BRIEF violation in `check-state.py` — all three discharged or pre-existing — dispatch brief, this run
 - Do NOT edit any main-session-direct surface, `feature_schema.py` included and being edited live — plan.yaml `lanes:` rows + coordinator message — verified-at b1281df
 
 ## Working set
@@ -32,4 +32,4 @@ T-10 (gated on T-07), then the documentor segment T-13 → T-17 (gated on T-08, 
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/feature.json`
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/STATE.md`
 - `.claude/skills/harness/teams/build.yaml`
-- `.claude/skills/harness/bin/run-unit-tests.sh` (`--check-kinds` before every commit)
+- `.claude/skills/harness/bin/run-unit-tests.py` (`--check-kinds` before every commit)

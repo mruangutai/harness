@@ -1,12 +1,12 @@
 # Receipt — SC-06 re-check (FEAT-10) — harness-pm
 
-Path note: the dispatch named `notes/receipt-harness-pm-sc06-product.md`. `check-domain.sh` denies
+Path note: the dispatch named `notes/receipt-harness-pm-sc06-product.md`. `check-domain.py` denies
 that path to harness-pm (permitted set is `notes/research-*.md` and `notes/uat-*.md`), so this
 receipt is filed under the granted research path rather than worked around. Raised as Q2.
 
 **SC-06 is `met`.** Evidence is the passing integration case
 `case_s "an UNLISTED repository is a violation naming the repo"` in `test-check-state.py`, reached
-via `run-unit-tests.sh --kind integration`. The source reads below are corroboration that the
+via `run-unit-tests.py --kind integration`. The source reads below are corroboration that the
 criterion's verb — *fails* — is what the code does; they are not the evidence.
 
 Scope: SC-06 only. No other criterion was re-derived. Assessed the **working tree** (T-08 landed
@@ -17,7 +17,7 @@ operator-direct, uncommitted; `review_sha` f9488a2 is HEAD, so a diff shows noth
 Cross-checked against `plan.yaml` T-08 (`verify:` at plan.yaml:1439-1440) — identical to the string
 in the dispatch. No mismatch.
 
-Ran it verbatim: **exit 0.** `run-unit-tests.sh --kind integration` emitted
+Ran it verbatim: **exit 0.** `run-unit-tests.py --kind integration` emitted
 `PASS test-check-state.py`, and eight `ok - case (s) INV-24:` lines, including
 `an UNLISTED repository is a violation naming the repo`.
 
@@ -25,11 +25,11 @@ Ran it verbatim: **exit 0.** `run-unit-tests.sh --kind integration` emitted
 
 **It holds.** The convention is failure, not report.
 
-- `check-state.sh:890` — the unlisted-repo branch calls `bad.append(...)`, the same list every other
+- `check-state.py:890` — the unlisted-repo branch calls `bad.append(...)`, the same list every other
   violation check uses. No new exit code.
-- `check-state.sh:952` — `for m in bad:  print(f"  VIOLATION  {m}")` (the `warn` list prints
+- `check-state.py:952` — `for m in bad:  print(f"  VIOLATION  {m}")` (the `warn` list prints
   `note` instead, at 953).
-- `check-state.sh:956` — `sys.exit(1 if bad else 0)`
+- `check-state.py:956` — `sys.exit(1 if bad else 0)`
 
 That heredoc is the script's last command, so its status is the script's status. `bad` is
 initialized once at `:93` and is never reassigned, cleared, filtered or indexed before `:956` — a
@@ -56,7 +56,7 @@ pass. Non-blocking: the failure semantics are structural (Read 1), so SC-06 stan
 ## Read 3 — evidence kind
 
 `evidence: integration` is honoured. `test-check-state.py` is a member of `INTEGRATION_SCRIPTS`
-in `run-unit-tests.sh:59`, so `--kind integration` selects it (line 72).
+in `run-unit-tests.py:59`, so `--kind integration` selects it (line 72).
 
 ## Not graded (out of scope, per dispatch)
 

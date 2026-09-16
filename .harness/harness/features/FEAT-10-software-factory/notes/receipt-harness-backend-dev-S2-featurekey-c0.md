@@ -150,8 +150,8 @@ All run from `/Users/molchairuangutai/GitHub/harness`.
 | `python3 .claude/skills/harness/bin/test-factory-claim.py` | 0 | 77/77 |
 | `python3 .claude/skills/harness/bin/test-factory-config.py` | 0 | 56/56 |
 | `python3 .claude/skills/harness/bin/test-factory-integration.py` | 0 | 97/97 |
-| `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 10/10 files PASS |
-| `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 14/14 files PASS |
+| `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 10/10 files PASS |
+| `.claude/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 14/14 files PASS |
 | `.claude/skills/harness/bin/check-docs.sh` | 0 | "no stale statements found" (62 patterns / 309 files, receipt included) |
 
 **Count that moved:** `test-factory-decompose.py` went from 123 to 147 checks (+24: 8 assertions ×

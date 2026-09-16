@@ -35,18 +35,18 @@ VERIFIED BY ME at 9d12e3a, independent of any squad:
   Presence half is METHOD-SENSITIVE: `.py`+`.sh` gives 23 importers, strict `.py` imports alone
   gives 14, below its own floor of 16. It passes on the wording; worth knowing.
 - SC-04: each deleted symbol checked SEPARATELY, all 0. Survivors intact at `harness_boundary.py:515`
-  and `post-merge-sweep.sh:64`.
+  and `post-merge-sweep.py:64`.
 - `harness-hooks.ts` finding re-derived line by line before it entered the briefing.
 - `"IGNORING it"` occurs exactly once tree-wide — the tautology confirmed.
 - No production file under `bin/` reads `CLAUDE_PROJECT_DIR`; `python3 -P` on 19 launches / 10 files.
-- `check-state.sh` exit 0, 0 violations.
+- `check-state.py` exit 0, 0 violations.
 
 ## Open Questions
 
 - Q10 (OPEN, non-blocking): `resolve_root` probes with `os.path.isfile`; the deleted
   `check-plan-routes.py` probe used `os.access(..., os.R_OK)`. An unreadable-but-present
   `team-config.yaml` now flips from "not a root" to "is a root". No site is known to reach it.
-- Q15 (OPEN, non-blocking, harness defect): `bash-write-guard.sh` refuses a command whose PROSE
+- Q15 (OPEN, non-blocking, harness defect): `bash-write-guard.py` refuses a command whose PROSE
   body contains an angle-bracket placeholder or an ASCII arrow, parsing it as a redirect. Three
   occurrences on this feature. Needs its own ticket.
 - Q16 (OPEN, non-blocking, harness defect): `gh-sync.py` has `start-task` and no per-task finish

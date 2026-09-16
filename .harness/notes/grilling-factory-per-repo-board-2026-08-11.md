@@ -59,7 +59,7 @@ member, so adding a third repo needs no rework.
   real one with the station restored afterwards. Note it must NOT be one of the 118 — the live run
   moves a station, and moving a finished issue would break the criterion above.
 - How the board/repo pairing is asserted so the two cannot drift apart silently again. The ticket
-  suggests `test-no-distribution.py` or a sibling; the natural home may be `check-state.sh`.
+  suggests `test-no-distribution.py` or a sibling; the natural home may be `check-state.py`.
 
 ## Out of scope
 

@@ -2,7 +2,7 @@
 
 ## Working set
 
-- `.claude/skills/harness/bin/check-state.sh` — INV-26, and the E-01 fix at `_derived is None`.
+- `.claude/skills/harness/bin/check-state.py` — INV-26, and the E-01 fix at `_derived is None`.
 - `.claude/skills/harness/bin/test-check-state.py` — `_inv26_fixture`, cases v.1–v.10.
 - `.claude/skills/harness/bin/gh_board.py` — `derive_station`, `read_station`, `set_station`.
 - `.harness/features/FEAT-18-board-truth/BRIEF.md` — SC-01 amended, SC-08 struck.
@@ -20,7 +20,7 @@ all met, 2 cycles of 10, 8 runs of 20. Leaving this feature:
 
 ## Trust
 
-- The suite for all six tasks: unit 0, integration 0, `check-state.sh` 0, `check-plan-routes.py` 0
+- The suite for all six tasks: unit 0, integration 0, `check-state.py` 0, `check-plan-routes.py` 0
   violations, re-run at `af204ed`.
 - **Case v.8 only, for the E-01 fix.** Proven able to redden — against the reverted file it FAILS,
   old code printed to show the revert applied. v.9 and v.10 guard over-reporting and pass either
@@ -45,7 +45,7 @@ all met, 2 cycles of 10, 8 runs of 20. Leaving this feature:
   goal-check.
 - **Re-running qa at an unchanged pin.** Skipped, not deleted, reason on disk.
 - **`/clear` kills an orchestrator and it is not resumable.** Respawn from disk state and run
-  `check-state.sh` first — the killed agent left a digest missing its `artifact:` key.
+  `check-state.py` first — the killed agent left a digest missing its `artifact:` key.
 - **INV-26's first live finding was not a defect.** A minute after the squash it reported
   `parent #326: plan derives Review — the board reads Done`, because the merge closed the issue and
   GitHub moved the card while `feature.json` still read `Review`. That is the feature working.

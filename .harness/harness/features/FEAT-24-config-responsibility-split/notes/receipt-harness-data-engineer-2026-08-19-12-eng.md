@@ -61,7 +61,7 @@ Counts before: Patterns 1, Gotchas 1, Outcomes 0, Open 0. 15 lines / 150-line bu
 
 Total: 15 lines → 34 lines, well under the 150-line budget.
 
-## check-expertise.sh output (raw)
+## check-expertise.py output (raw)
 
 ```
 OK   .harness/expertise/harness-data-engineer.md

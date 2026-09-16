@@ -96,7 +96,7 @@ it, once per feature. And no harness command in the mirror closes an issue direc
   The `gh api` `state=closed` denial returns the identical text. A Bash call running
   `gh-sync.py abandon` is not denied. Every assertion fails against the tree without the gate.
   verify: automated      evidence: integration
-- SC-08: `check-state.sh` reports a violation naming `core.hooksPath` when it does not resolve to
+- SC-08: `check-state.py` reports a violation naming `core.hooksPath` when it does not resolve to
   `.claude/skills/harness/hooks`, and a second, distinct violation when `post-merge` in that
   directory is missing or not executable. It is clean when both hold. All three states are exercised
   by fixtures.
@@ -130,7 +130,7 @@ it, once per feature. And no harness command in the mirror closes an issue direc
   new entry, with DEC-138 amendment 7's parent table struck in the same act.
   verify: automated      evidence: integration
 - SC-15: A `ship` run in which a card's `Done` write failed prints a line beginning
-  `gh-sync: FAILED ` naming that card, and `post-merge-sweep.sh` leaves the feature's worktree
+  `gh-sync: FAILED ` naming that card, and `post-merge-sweep.py` leaves the feature's worktree
   standing. A run in which cards were only held prints no `FAILED` line and the worktree is removed.
   No output of any `ship` run contains the substring `gh-sync: SKIP` unless `ship` genuinely skipped.
   verify: automated      evidence: integration
@@ -159,7 +159,7 @@ it, once per feature. And no harness command in the mirror closes an issue direc
 - `component`, `ui` and `eval` carry `cmd: null` in `.harness/harness.json`. This feature touches
   none of those surfaces, so no criterion rests on them.
 - `test-gh-sync.py` is detected by both the `unit` and `integration` globs and is run from the
-  `integration` bucket by `run-unit-tests.sh`. Every `verify:` in the plan runs `--kind all` so the
+  `integration` bucket by `run-unit-tests.py`. Every `verify:` in the plan runs `--kind all` so the
   bucket split cannot silently skip an assertion.
 
 ## The failure mode this brief settles, and the premise it had wrong
@@ -170,7 +170,7 @@ card: a `BoardError` prints one stderr line, the run continues, and the exit sta
 tickets close and some silently do not.
 
 **An earlier draft of this brief said that had "no gate downstream". Measured, that was wrong.**
-`post-merge-sweep.sh:180-195` already declines to remove the worktree when `ship`'s combined output
+`post-merge-sweep.py:180-195` already declines to remove the worktree when `ship`'s combined output
 contains the literal `gh-sync: SKIP`, on its own stated reason that an exit code is never positive
 evidence the write ran and that the standing checkout is "the only remaining evidence". A downstream
 reader exists; it was simply not reading anything this feature emits.
@@ -190,10 +190,10 @@ a card that silently misses `Done` with its only signal one line inside the outp
 - It does not remove the `absorbs:` machinery from `gh-sync.py`, `plan.yaml` or the suite. The rule
   is already struck in the docs (#840, merged as `cc84b29`); the code removal is its own change with
   its own tests. Operator-ruled.
-- It does not add a `check-state.sh` invariant for a card that is CLOSED but not at `Done`.
+- It does not add a `check-state.py` invariant for a card that is CLOSED but not at `Done`.
   `board_lifecycle.py` already detects exactly that, as its STATION finding class
   (`board_lifecycle.py:_audit_findings`, class 2 of six). What was missing was not a detector but a
-  runner — nothing scheduled `audit`. A second detector in `check-state.sh` would be two rules for
+  runner — nothing scheduled `audit`. A second detector in `check-state.py` would be two rules for
   one fact, and wiring `audit` into the pre-commit gate would cost four network calls on every run.
   **This is the same defect as the gate's limited reach, seen from the other side**: the Bash gate
   cannot see a close typed in a terminal or made in the web UI, and the one thing that catches such
@@ -239,7 +239,7 @@ a card that silently misses `Done` with its only signal one line inside the outp
 **These BLOCK:**
 
 - DEC-174 — the harness may PLAN its own enforcement-layer work but must not EXECUTE it through the
-  enforcement path being changed (`DECISIONS.md:4808`). `check-state.sh`, the new Bash gate and
+  enforcement path being changed (`DECISIONS.md:4808`). `check-state.py`, the new Bash gate and
   `.claude/settings.json` are enforcement layer.
 - DEC-164 — the grilling artifact is step zero and its facts are a floor, not a ceiling.
 - The operator's route ruling: the main session executes every task directly.
@@ -255,7 +255,7 @@ a card that silently misses `Done` with its only signal one line inside the outp
   `Review` because the native `Item closed` workflow moves it. FEAT-34's 13 sub-issues are closed and
   at `Review` right now.
 - **A `PreToolUse:Bash` gate cannot see `gh-sync.py`'s own `gh` calls.** The hook is handed
-  `tool_input.command` and nothing else (`branch-create-gate.sh:47`), and `gh-sync.py` reaches `gh`
+  `tool_input.command` and nothing else (`branch-create-gate.py:47`), and `gh-sync.py` reaches `gh`
   through `subprocess`, which never traverses the tool. An environment marker set inside `gh-sync.py`
   therefore cannot reach the gate at all. The gate can and should refuse every `gh issue close`
   unconditionally — abandon keeps working because its close is a subprocess, not a Bash call. This

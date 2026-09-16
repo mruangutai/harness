@@ -126,7 +126,7 @@ this tool is pointed at the operator's live tracker — the same shape T-06's ca
 `reconcile`. I extended the stub `gh`'s `["issue", "list"]` dispatch to answer a `--json
 number,title,milestone` query distinctly from audit's `--json number,stateReason,labels` query
 (same argv prefix, different `--json` value), and extended `["issue", "edit"]` to record a
-`--title` write onto its own state. No file added to any list; `run-unit-tests.sh` and
+`--title` write onto its own state. No file added to any list; `run-unit-tests.py` and
 `harness.json` untouched (both already correct, per T-04's own intent, unchanged here).
 
 ## Digest mapping note (issue #778, now nine-for-nine)
@@ -138,7 +138,7 @@ own test coverage. Reporting the rejection rather than silently picking a value.
 
 ## Verify
 
-Command (verbatim from `plan.yaml`): `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+Command (verbatim from `plan.yaml`): `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Ran in the background (full-repo suite spans several minutes, per D-14's own measurement).
 `test-board-lifecycle.py` (unit) and `test-factory-integration.py` (integration) were also run
@@ -154,7 +154,7 @@ $ python3 .claude/skills/harness/bin/test-factory-integration.py
 131/131 checks passed.
 ```
 
-Full-repo `run-unit-tests.sh --kind all` result: ran in the background (started before this
+Full-repo `run-unit-tests.py --kind all` result: ran in the background (started before this
 receipt, appended once it actually finished, never reported ahead of the real outcome). All 42
 registered scripts (20 `UNIT_SCRIPTS` + 22 `INTEGRATION_SCRIPTS`) printed `PASS test-<name>.py`
 with zero `FAIL`, zero `MISCONFIGURED`, zero `Traceback` anywhere in the ~2800-line log —

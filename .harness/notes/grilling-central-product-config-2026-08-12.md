@@ -137,7 +137,7 @@ Every anchor in issue #206's body was re-derived at `b6f2c80`. **Most had rotted
 | #206 says | At `b6f2c80` |
 |---|---|
 | `harness-init/SKILL.md` is 276 lines | **286** — `wc -l` |
-| four anchored regexes at `check-domain.sh:572-575` | moved to **`:650-653`**, still `[^/]+`, still cannot cross a segment |
+| four anchored regexes at `check-domain.py:572-575` | moved to **`:650-653`**, still `[^/]+`, still cannot cross a segment |
 | CI assertions at `tests.yml:134-141` | that range is now the `check-plan-routes.py` step |
 | `deploy.sh` exists | **absent** — `ls` fails |
 
@@ -175,7 +175,7 @@ moved**, and the pattern is the point: this issue's anchors rot about once a wee
 
 | The table above says | At `862d270` |
 |---|---|
-| four anchored regexes at `check-domain.sh:650-653` | **gone entirely.** FEAT-17 moved the boundary rule out of the embedded Python into `harness_boundary.py`; workspace resolution is now `resolve_fleet` (`:125`) and `select_base` (`:169`), and no `[^/]` anchor survives in either file |
+| four anchored regexes at `check-domain.py:650-653` | **gone entirely.** FEAT-17 moved the boundary rule out of the embedded Python into `harness_boundary.py`; workspace resolution is now `resolve_fleet` (`:125`) and `select_base` (`:169`), and no `[^/]` anchor survives in either file |
 | `templates/examples/harness.kaya-ai.json` | the path is **`.claude/skills/harness/templates/examples/`** — `templates/` at the repo root does not exist |
 | `.harness/harness.json` has 15 top-level keys | **16** |
 | a `repos:` entry carries `name` and `default_branch` | **`name`, `default_branch`, `board`** — FEAT-16 gave each repository its own board, and a leftover top-level `board:` is now rejected |

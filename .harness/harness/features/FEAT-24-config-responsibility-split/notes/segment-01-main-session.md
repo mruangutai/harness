@@ -105,7 +105,7 @@ imports no production code.
 ## T-08 — the config template shows a declared board (issue #509)
 
 Target file: `/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/templates/harness.json`
-— `check-domain.sh --resolve` returns `NOBODY` for it, re-confirmed today.
+— `check-domain.py --resolve` returns `NOBODY` for it, re-confirmed today.
 
 ### The diff I expect — one line, `_board_note` at line 154
 

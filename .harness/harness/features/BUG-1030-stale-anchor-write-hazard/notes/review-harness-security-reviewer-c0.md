@@ -77,7 +77,7 @@ source touched. All Python claims below were checked against a throwaway repro r
   `require_destination` (harness_merge.py:158-171) accepts `factory_decompose.py /tmp/anywhere
   --repo owner/name --parent 1` and writes `/tmp/anywhere/feature.json`, given a
   `plan.yaml` there with `approval.status: approved` and a `feature:` key.
-- But: (1) **executed** — read the full `bash-write-guard.sh` pattern set (lines 405-573):
+- But: (1) **executed** — read the full `bash-write-guard.py` pattern set (lines 405-573):
   the only recognized write shapes are redirects, `sed`/`perl`/`awk` in-place, `tee`, `mv`/
   `cp`, `rm`, `sponge`, and git worktree/HEAD moves. A `python3 factory_decompose.py <path>`
   invocation is invisible to it entirely, with or without this diff — a governed agent that

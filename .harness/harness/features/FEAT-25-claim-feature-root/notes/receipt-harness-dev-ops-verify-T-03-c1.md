@@ -82,7 +82,7 @@ observations/* per directory). Full listing captured in the run transcript.
 2. `.harness/factory/fleet.yaml` modified? → empty. **Not modified.**
 3. `.harness/harness.json` modified? → empty. **Not modified.**
 4. `.claude/skills/harness/bin/gh_board.py` modified? → empty. **Not modified.**
-5. `.claude/skills/harness/bin/check-domain.sh` modified? → empty. **Not modified.**
+5. `.claude/skills/harness/bin/check-domain.py` modified? → empty. **Not modified.**
 6. Does `load_board` appear in any ADDED line of `git diff`? `git diff | grep '^+' | grep -c 'load_board'` → `0`. **Absent.**
 
 ## Part 3 — three independent counts (all match expectations exactly)

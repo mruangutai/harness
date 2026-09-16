@@ -20,9 +20,9 @@ Three findings, in the order they cost the operator:
    `not_planned` and applies the `abandoned` label (`gh-sync.py:986-991`). An operator whose
    ticket is *done* — the common case for a hand-typed `gh issue close` — obeys the refusal and
    marks shipped work abandoned. **Contract 4 splits the refusal by intent.**
-2. **`ship`'s two new lines collide with `post-merge-sweep.sh`'s positive-signal gate.** That
+2. **`ship`'s two new lines collide with `post-merge-sweep.py`'s positive-signal gate.** That
    gate greps the combined stdout+stderr for the literal `gh-sync: SKIP`
-   (`post-merge-sweep.sh:187-194`). Neither new line may contain it. **Contract 2 pins that.**
+   (`post-merge-sweep.py:187-194`). Neither new line may contain it. **Contract 2 pins that.**
    Whether the incomplete terminal batch should *deliberately* emit `SKIP` to reuse that gate was
    my Q1; D-11 settles it — it emits the new literal `FAILED`, and the sweep learns to read it.
 3. **The plan's held-open line and its batch summary both say "not moved to Done".** T-04 step 5c
@@ -32,7 +32,7 @@ Three findings, in the order they cost the operator:
 
 Confirmation is **not** a prompt: no script under `.claude/skills/harness/bin/` calls `input()`
 (measured across every non-test `.py`), and `ship` is already invoked with captured output by
-`post-merge-sweep.sh:174-177`. Contract 3 makes that structural rather than a `isatty()` check.
+`post-merge-sweep.py:174-177`. Contract 3 makes that structural rather than a `isatty()` check.
 
 ## Contract 1 — the prefix taxonomy new lines must join
 
@@ -52,7 +52,7 @@ use `SKIP` or `REFUSED`** (contract). A roll-up needs its own token — see Cont
 
 ## Contract 2 — `ship`'s two reports, and why they must not read alike
 
-**The hard constraint, measured:** `post-merge-sweep.sh:192` treats the substring `gh-sync: SKIP`
+**The hard constraint, measured:** `post-merge-sweep.py:192` treats the substring `gh-sync: SKIP`
 anywhere in `ship`'s combined output as proof the terminal status was not recorded, and declines
 the worktree removal (`:193`). **Neither new line may contain that substring** (contract).
 
@@ -121,7 +121,7 @@ construction rather than guarded against. Specifically:
 
 ## Contract 4 — the gate's refusal must route by intent, not name one command
 
-**Measured precedent:** `branch-create-gate.sh`'s deny reasons are two sentences — what is wrong,
+**Measured precedent:** `branch-create-gate.py`'s deny reasons are two sentences — what is wrong,
 then something runnable. `:87` says "Install it (+ gh auth login), or branch under a flow id
 instead"; `:78` says "plan first, then branch"; `:85` gives the exact name form.
 
@@ -170,11 +170,11 @@ INV-31: .claude/skills/harness/hooks/post-merge is <missing | not executable (mo
 ```
 
 Both follow the file's measured grammar (`INV-NN: <subject> <what is wrong> — <consequence>`,
-`check-state.sh:1260`), and the unreadable-git-config case follows its `CANNOT RUN` form
-(`check-state.sh:1084, :1191, :1346`).
+`check-state.py:1260`), and the unreadable-git-config case follows its `CANNOT RUN` form
+(`check-state.py:1084, :1191, :1346`).
 
 **Both go to `bad`, not `warn`** (contract, and reversible). `INV-28` is `warn` on the stated
-reason that "the mirror is never a gate" (`check-state.sh:1020`). INV-31 is not a mirror fact: it
+reason that "the mirror is never a gate" (`check-state.py:1020`). INV-31 is not a mirror fact: it
 is whether the machine runs the hook that runs `ship`. After this feature the sweep is the only
 caller of `ship`, so a clone without it silently stops closing tickets — the exact silence this
 feature exists to end.
@@ -217,7 +217,7 @@ judgeable from its text.
 
 - **Q1 — answered, closed. Nothing here for the operator to decide.** *What I measured:* the
   brief's premise that a half-written terminal batch has "no gate downstream" is incomplete —
-  `post-merge-sweep.sh:192-194` already declines the worktree removal when `ship`'s output
+  `post-merge-sweep.py:192-194` already declines the worktree removal when `ship`'s output
   contains `gh-sync: SKIP`, and the sweep's own comment calls the standing worktree "the only
   remaining evidence". *What I recommended:* emit `SKIP` on an incomplete batch, reusing that
   gate. *What D-11 chose:* the incomplete batch emits the new literal `gh-sync: FAILED`, never

@@ -21,7 +21,7 @@ unstruck backlog items B-1..B-12 become issues. **Do not dispatch a lead for any
 - **`test-gh-sync.py:353`'s label lies** — it claims "for the new subcommand too (SC-12)" while `:351`
   invokes `open`. That false label, not a real gap, propagated through two review tiers. Backlog B-2 —
   verified-at e68ba00
-- **All eight `.harness/expertise/*.md` pass `check-expertise.sh`.** Two were repaired, not just
+- **All eight `.harness/expertise/*.md` pass `check-expertise.py`.** Two were repaired, not just
   extended: `harness-security-reviewer.md` had **four pre-existing violations** its member fixed, and
   **my own file had eleven** (six over the 50-word cap, five carrying feature ids) which I distilled
   this run — the spawn hook had been injecting a file its own validator rejects — verified-at e68ba00

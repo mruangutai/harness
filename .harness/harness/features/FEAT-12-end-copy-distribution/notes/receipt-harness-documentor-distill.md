@@ -1,6 +1,6 @@
 # Receipt — harness-documentor distillation
 
-**Six ops applied, `check-expertise.sh` exits 0.** Four new Patterns, one new Gotcha into the last
+**Six ops applied, `check-expertise.py` exits 0.** Four new Patterns, one new Gotcha into the last
 free slot, one Gotcha sharpened in place; no entry was displaced or dropped, because neither section
 hit its cap. One pre-existing over-cap entry was condensed to make the checker pass.
 

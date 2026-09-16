@@ -1,11 +1,11 @@
 # Rulings fix round — what changed, what I measured, what is still the operator's
 
 **Both rulings are applied and all four must-fixes are closed — but ruling 1 forces one edit to
-`check-state.sh`, which `SC-10` forbade. That is the one thing the operator must weigh at signature.**
+`check-state.py`, which `SC-10` forbade. That is the one thing the operator must weigh at signature.**
 
 ## The consequence neither review round could see
 
-INV-26 (`check-state.sh:1234` `_EXPECT`, compared at `:1303-1315`) maps a task status of `done` to
+INV-26 (`check-state.py:1234` `_EXPECT`, compared at `:1303-1315`) maps a task status of `done` to
 the board's `done` column. It has always agreed because `close-task` closed the sub-issue at commit
 and GitHub's `Item closed` workflow moved the card. Under ruling 1 the sub-issue is deliberately
 **open** and stands at `building`/`review` for the whole Review phase, so **every `done` task of
@@ -37,7 +37,7 @@ new `SC-20` grades the widening's bound, `T-11` now depends on `T-22`.
 
 ## Citations re-derived at `46ee87c` — the ones that MOVED
 
-`_EXPECT` `:1184`→`:1234` · `check-state.sh` `load_board` `:1147`→`:1197` ·
+`_EXPECT` `:1184`→`:1234` · `check-state.py` `load_board` `:1147`→`:1197` ·
 `_apply_parent_rule` `gh_board.py:177`→`gh-sync.py:177` · `factory_decompose.py` ready write
 `:411`→`:414` · `gh-sync.py` open-skip `:583`→`:584` · integration counts six/fourteen→22/22 ·
 `test-factory-{land,decompose,claim}` fixture lines shifted 1–3. **Still resolve:**
@@ -69,7 +69,7 @@ is yours.
 ## Gate output at return
 
 `check-plan-routes.py` → `0 violation(s) across 2 plan(s)`, exit 0 (five DEVIATIONs, all declared).
-`check-state.sh` → exit 1, one violation: `BRIEF.md is NOT approved`. Finding set **byte-identical**
+`check-state.py` → exit 1, one violation: `BRIEF.md is NOT approved`. Finding set **byte-identical**
 before and after this round's edits. `approval:` and `## Approval` untouched, both `pending`.
 
 ---
@@ -134,7 +134,7 @@ index, so a merge deferred past the build collides with their output. `:204` nee
 
 `check-plan-routes.py` → `0 violation(s) across 2 plan(s)`, exit 0. Six DEVIATION lines across the two
 plans (FEAT-28 T-05, T-06; FEAT-33 T-11, T-12, T-18, T-22), every one declared `main-session-direct`.
-`check-state.sh` → exit 1, exactly one VIOLATION:
+`check-state.py` → exit 1, exactly one VIOLATION:
 `.harness/harness/features/FEAT-33-board-lifecycle-native/BRIEF.md is NOT approved`. Expected during a
 plan phase awaiting signature (`STATE.md:38-40`, Q6). `approval:` and `## Approval` untouched, both
 `pending`.

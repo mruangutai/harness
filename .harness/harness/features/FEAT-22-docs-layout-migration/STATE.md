@@ -29,7 +29,7 @@ does not exist. Distillation ran for all three squads; a spend limit killed two 
 `distill-product` has a verdict-less digest and `distill-validator` has none. Both are recorded
 **`INCOMPLETE`**, never as passes. **The work itself is durable and I checked it three ways:** no
 wipe (all ten files GAINED entries, +25 net), no double-application (zero duplicate entry IDs across
-all thirteen), and `check-expertise.sh` exits 0. **I deliberately did not re-dispatch** — the members
+all thirteen), and `check-expertise.py` exits 0. **I deliberately did not re-dispatch** — the members
 had already self-applied, so a re-dispatch risks double-applying entries into files injected into
 every future spawn. A gap in the archive beats a permanent tax on every agent.
 
@@ -50,7 +50,7 @@ one that did); and I found a **failed run recorded as passed**, reconciled all 1
 digests, corrected the single mismatch, and did **not** retro-adjust `cycles_used` because its basis
 is unreconstructable — so the count may understate.
 
-**No handoff note is owed:** `check-state.sh` INV-17 exempts this feature — every task is
+**No handoff note is owed:** `check-state.py` INV-17 exempts this feature — every task is
 `execution_mode: main-session-direct` under D-03, so no squad ran a build seam.
 
 **Next, and it is the operator's:** accept and ship, or send back. On acceptance the main session
@@ -58,7 +58,7 @@ runs `gh-sync.py ship` and turns the unstruck backlog rows into issues.
 
 ## Open Questions
 
-- Q1 — `plan.yaml:927` invokes `check-expertise.sh` with no argument; its usage gate exits 2 on empty
+- Q1 — `plan.yaml:927` invokes `check-expertise.py` with no argument; its usage gate exits 2 on empty
   argv, so that clause cannot pass on any tree (measured both ways). Signed text — **operator's
   call**. Does not gate shipping; T-07 was accepted on the intended invocation. Briefing row B-13.
 - Q2 — DEC-189 amendment 1 states the control-plane list "is advertised in deny messages". Measured

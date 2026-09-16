@@ -22,13 +22,13 @@ is right, confirmed independently from the plan, not just accepted.
 
 | kind | cmd | exit | scripts | result |
 |---|---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | **0** | 15/15 `UNIT_SCRIPTS` | all PASS, 707 `ok` sub-assertions incl. `test-layout-migration.py` case 21 |
-| integration | `run-unit-tests.sh --kind integration` | **0** | 12/12 `INTEGRATION_SCRIPTS` | all PASS, incl. `test-check-domain.py`, `test-gen-decisions-index.py` |
+| unit | `run-unit-tests.py --kind unit` | **0** | 15/15 `UNIT_SCRIPTS` | all PASS, 707 `ok` sub-assertions incl. `test-layout-migration.py` case 21 |
+| integration | `run-unit-tests.py --kind integration` | **0** | 12/12 `INTEGRATION_SCRIPTS` | all PASS, incl. `test-check-domain.py`, `test-gen-decisions-index.py` |
 
-Confirmed BRIEF's claim that `run-unit-tests.sh:17-18`'s explicit arrays — not `harness.json`'s
+Confirmed BRIEF's claim that `run-unit-tests.py:17-18`'s explicit arrays — not `harness.json`'s
 `detect` glob — decide execution: `test-check-domain.py` and `test-gen-decisions-index.py` both
 match the `unit` glob (`test-*.py`) but only run under `--kind integration`, because they're listed
-in `INTEGRATION_SCRIPTS`, not `UNIT_SCRIPTS` (read directly at `run-unit-tests.sh:17-18`).
+in `INTEGRATION_SCRIPTS`, not `UNIT_SCRIPTS` (read directly at `run-unit-tests.py:17-18`).
 
 `component`, `ui`, `eval`, `typecheck` — all `cmd: null`/`status: unresolved`, none covers this
 diff's surface (no UI, no LLM behaviour, no TypeScript). **Not applicable**, correctly per BRIEF's
@@ -72,7 +72,7 @@ negated assertions on `CLEAN`/`evidence`/dash literals:
 
 ## 4. Enforcement-layer files (DEC-174) — report only, no fix drafted
 
-`check-domain.sh` and `check-state.sh` are both in the diff, each a single-line diagnostic-prose edit
+`check-domain.py` and `check-state.py` are both in the diff, each a single-line diagnostic-prose edit
 (`docs/harness/DECISIONS.md` → `.harness/harness/docs/DECISIONS.md`, lines 953/676 named in the
 plan). Grepped both files post-change for any remaining `docs/harness` mention outside the migrated
 form — **none found**. No defect, nothing to route back.
@@ -87,8 +87,8 @@ form — **none found**. No defect, nothing to route back.
 | SC-04 | `git show e6e74c8 --name-status`: 5× `R09x/R100` renames, one commit | inspection, reproduced |
 | SC-05 | `test-check-domain.py:795-802` (live-tree `--resolve` case) | integration |
 | SC-06 | `test-gen-decisions-index.py::test_committed_index_matches_a_fresh_regeneration` + header grep confirming `.harness/harness/docs/DECISIONS.md` literal at `gen-decisions-index.py:76` | integration |
-| SC-07 | `run-unit-tests.sh --kind unit`, exit 0 | unit |
-| SC-08 | `run-unit-tests.sh --kind integration`, exit 0 | integration |
+| SC-07 | `run-unit-tests.py --kind unit`, exit 0 | unit |
+| SC-08 | `run-unit-tests.py --kind integration`, exit 0 | integration |
 | SC-09 | `test-layout-migration.py::case 1` — exit-0 half only, see finding below | unit (partial) |
 | SC-10, SC-11, SC-12 | inspection-only per BRIEF; not qa's to verify | see gap below |
 

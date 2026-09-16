@@ -119,7 +119,7 @@
   `find <dirs> -path '*/runs/*/state.yaml'` is the portable form. Run any criterion command literally,
   in the real shell, before it goes into a signed artifact.
 
-- 2026-08-05: A-5. `bash-write-guard.sh` blocks `cp`/`rm`/redirects whose target is written as an
+- 2026-08-05: A-5. `bash-write-guard.py` blocks `cp`/`rm`/redirects whose target is written as an
   unexpanded shell variable (`$SCR/...`), including into the sanctioned session scratchpad — it cannot
   expand the variable so it fails closed. The same command with the path spelled literally is allowed.
   Correct behaviour, but it means scratch probe scaffolding must use literal absolute paths throughout.

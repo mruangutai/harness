@@ -62,7 +62,7 @@ and keep `guide.md` to one occurrence.
 
 ## Q1 — settled by measurement, at the pin
 
-Runner actually used: `.claude/skills/harness/bin/run-unit-tests.sh` (there is no `bin/` at the repo
+Runner actually used: `.claude/skills/harness/bin/run-unit-tests.py` (there is no `bin/` at the repo
 root; the dispatch's path was a guess).
 
 | Suite | `^FAIL test-` | `^PASS test-` | exit |
@@ -79,7 +79,7 @@ verified premise; nothing was patched around.
 - **A1** (T-01 red windows, :243-256): corrected. `test-layout-migration.py` is red on **[T-02, T-03)**
   via case 1's real-root exit-0 assertion (`test-layout-migration.py:131`, read at the pin), and T-05
   only adds cases to it. The `[T-03, T-05)` sentence now covers only the other four, and the 4-integration/
-  1-unit split is stated. Suite membership verified against `run-unit-tests.sh:17-18`.
+  1-unit split is stated. Suite membership verified against `run-unit-tests.py:17-18`.
 - **A2** (T-09 stray files, :937-947): hardened with a **prefix allow-list** over the commit's file
   list plus a `-ge 28` floor. An allow-list beats a count here — it catches the live case (a stray
   `.harness/logs/` edit riding `git add -u`) and cannot red a correct build the way an exact count

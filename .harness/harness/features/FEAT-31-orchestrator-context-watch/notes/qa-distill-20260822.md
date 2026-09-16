@@ -37,7 +37,7 @@ Open 1/5).
 subcommand; a same-id/different-text proposal is refused as `CONFLICT` (exit 7), consistent with
 "resolve it yourself" in the exit-7 row of `harness-distill`. With both `Patterns` and `Outcomes` at
 cap, resolving the two edits here (`P-13` replace, `O-05` revert) required a targeted `Edit` on the
-matched line rather than the merge tool. `check-expertise.sh` reports `OK` on the result.
+matched line rather than the merge tool. `check-expertise.py` reports `OK` on the result.
 
 ## Per-section counts
 

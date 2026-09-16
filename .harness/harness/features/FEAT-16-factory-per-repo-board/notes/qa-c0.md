@@ -31,7 +31,7 @@ blocker.
   gh call arguments* (board number + station names) match the acted-on repo and never the other's —
   count-based assertions explicitly insufficient per BRIEF.
 - SC-05: a case pinning the kaya-ai → board 2 pairing, failing if either side changes alone.
-- SC-08/SC-09: `run-unit-tests.sh --kind unit` / `--kind integration` both exit 0.
+- SC-08/SC-09: `run-unit-tests.py --kind unit` / `--kind integration` both exit 0.
 - SC-13: a claim run scoped via `--repo` to a repo with an empty `ready` station reports "no work
   available" on stderr, empty stdout, exit 1 — not a silent 0.
 
@@ -41,12 +41,12 @@ already anticipate.
 ## The two suites, exact commands and exit codes
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 exit code: **0** (all scripts reported ALL PASS / N/N checks passed, no FAIL/ERROR/Traceback lines)
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 exit code: **0** (106/106 in `test-factory-integration.py`'s own tally; no FAIL/ERROR/Traceback
 anywhere in the run; whole run ends `PASS test-factory-integration.py`)
@@ -71,8 +71,8 @@ per-repo-board cases dated to this feature), both exit 0.
 
 | kind | state | cmd | exit | named tests (this diff) |
 |---|---|---|---|---|
-| unit | satisfied | `run-unit-tests.sh --kind unit` | 0 | `test-factory-config.py` cases 3,4,25-31 (+28a-d); `test-factory-claim.py` P1-P6; `test-factory-decompose.py` T-03; `test-factory-land.py` T-04; `test-no-distribution.py` case5 (3 checks) |
-| integration | satisfied | `run-unit-tests.sh --kind integration` | 0 | `test-factory-integration.py` case (H); `test-check-domain.py` case (d) fixture migration |
+| unit | satisfied | `run-unit-tests.py --kind unit` | 0 | `test-factory-config.py` cases 3,4,25-31 (+28a-d); `test-factory-claim.py` P1-P6; `test-factory-decompose.py` T-03; `test-factory-land.py` T-04; `test-no-distribution.py` case5 (3 checks) |
+| integration | satisfied | `run-unit-tests.py --kind integration` | 0 | `test-factory-integration.py` case (H); `test-check-domain.py` case (d) fixture migration |
 | component | skipped-with-reason | n/a | n/a | `cmd: null` in harness.json, status `unresolved`; BRIEF's Verification-gaps records no surface touches it |
 | ui | skipped-with-reason | n/a | n/a | same — `cmd: null`, no rendered surface in this feature (D-11: no `.tsx`/`.ts` in any task's `files:`) |
 | eval | skipped-with-reason | n/a | n/a | same — `cmd: null`, no `ai_behavior` change_type in this feature |
@@ -86,8 +86,8 @@ per-repo-board cases dated to this feature), both exit 0.
 | SC-02 | evidenced | `test-factory-config.py` case (8b) `a leftover top-level board key raises FleetError`, asserts key `board` and `next_step` mentions `repos[].board` |
 | SC-04 | evidenced | `test-factory-claim.py` P1-P4 (asserts query built from each board's own field/option, refusal names the right board, never the other's); `test-factory-decompose.py` T-03 case (asserts `project_item_add`/`project_field_set` issue no call against B's board); `test-factory-land.py` T-04 case (same, via `b_markers` non-membership check); `test-factory-integration.py` case (H) (`no recorded gh call names the other repository's board number` + a power-check that the served repo's own board number IS named). All assert on recorded call **arguments**, not counts, per the BRIEF's requirement. |
 | SC-05 | evidenced | `test-no-distribution.py` `case5`/`kaya_ai_is_paired_with_board_2`, plus its siblings `board_lives_per_repo_not_fleet_level` and `every_repo_declares_its_own_board` — three separate `check()` calls, each independently named |
-| SC-08 | evidenced | `run-unit-tests.sh --kind unit` exit 0 (see above) |
-| SC-09 | evidenced | `run-unit-tests.sh --kind integration` exit 0 (see above) |
+| SC-08 | evidenced | `run-unit-tests.py --kind unit` exit 0 (see above) |
+| SC-09 | evidenced | `run-unit-tests.py --kind integration` exit 0 (see above) |
 | SC-13 | evidenced, with a caveat — see mutation section below | `test-factory-claim.py` P6 (`(P6) SC-13: ...` three checks) |
 
 SC-03, SC-06, SC-07, SC-10, SC-11, SC-12 are `verify: inspection`/`uat` — outside this gate's remit
@@ -96,7 +96,7 @@ except where the BRIEF asked me to spot-check mechanically (SC-10, SC-11 — see
 
 ## SC-10 / SC-11 spot check (mechanical, inspection-class, done because it's a one-line grep)
 
-- `git diff --name-only a7c429c..ec195ec | grep -E "check-domain.sh|bash-write-guard.sh|validate-digest.py|check-state.sh"` → **empty**. SC-10 holds.
+- `git diff --name-only a7c429c..ec195ec | grep -E "check-domain.py|bash-write-guard.py|validate-digest.py|check-state.py"` → **empty**. SC-10 holds.
 - `grep -rnE "fleet[A-Za-z_]*\[['\"]board['\"]\]|fleet[A-Za-z_]*\.get\(['\"]board['\"]\)" .claude/skills/harness/bin/` → **empty**.
 - `grep -n "def station(" .claude/skills/harness/bin/factory_config.py` → **empty**. SC-11 holds.
 
@@ -104,7 +104,7 @@ except where the BRIEF asked me to spot-check mechanically (SC-10, SC-11 — see
 
 Method: copied `factory_claim.py`, `factory_config.py`, `factory_cli.py`, `factory_gh.py`,
 `gh_issues.py`, `harness_yaml.py`, `test-factory-claim.py` into the scratchpad (only the literal
-absolute destination path was accepted by `bash-write-guard.sh` — a `$VAR`-based destination was
+absolute destination path was accepted by `bash-write-guard.py` — a `$VAR`-based destination was
 denied because the guard parses command text, not the shell-expanded path; noted as a gotcha, not a
 finding). All mutation and re-runs happened only in
 `/private/tmp/claude-501/.../scratchpad/mutant-bin/`. `git status --porcelain` on the real repo is

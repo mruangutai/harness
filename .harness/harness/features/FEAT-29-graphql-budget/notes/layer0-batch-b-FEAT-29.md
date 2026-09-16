@@ -52,8 +52,8 @@ After T-07's after-measurement is captured, run the catch-up `start-task`/`close
 ## Corroboration for what T-07 is about to prove
 
 One live call to `factory_gh.project_item_stations('mruangutai', 3, 'Status')` read **486 items for 5
-GraphQL points**. The `check-state.sh` run the old path sits inside measured **506** in your own
-baseline. That is corroboration only — SC-01 is a differenced `check-state.sh` run and that is T-07's
+GraphQL points**. The `check-state.py` run the old path sits inside measured **506** in your own
+baseline. That is corroboration only — SC-01 is a differenced `check-state.py` run and that is T-07's
 job, not something already discharged.
 
 ## State of the build, verified at my tier rather than relayed

@@ -207,17 +207,17 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 9
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "neither"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.py": "neither"})
     code, out = run(tmp)
-    line = reader_line(out, "check-domain.sh")
+    line = reader_line(out, "check-domain.py")
     check("case 9: a reader carrying NEITHER form -> exit 2, named, tagged [neither]",
           code == 2 and "[neither]" in line and code != 0 and code != 1, out)
 
 # ------------------------------------------------------------------- case 10
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "unreadable"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.py": "unreadable"})
     code, out = run(tmp)
-    line = reader_line(out, "check-domain.sh")
+    line = reader_line(out, "check-domain.py")
     check("case 10: an unreadable reader -> exit 2, tagged [unreadable], distinct in text",
           code == 2 and "[unreadable]" in line and "[neither]" not in line, out)
 
@@ -248,10 +248,9 @@ with tempfile.TemporaryDirectory() as tmp:
 # of THIS suite, not the CI step: the CI step's zero-count assertion is protected by
 # nothing (DEC-183), whereas these cases redden the required unit suite.
 with tempfile.TemporaryDirectory() as tmp:
-    # THE ONBOARDED-PRODUCT SHAPE (code-review blocker 1): harness-init installs the
-    # whole bin/ into products, so every reader file EXISTS here — what a product
-    # lacks is the fleet declaration. This tree must be NOT APPLICABLE, not
-    # cannot-verify-forever.
+    # THE ONBOARDED-PRODUCT SHAPE (code-review blocker 1): a copy or worktree of the
+    # control plane carries every reader file, while only the control plane carries the
+    # fleet declaration. This tree must be NOT APPLICABLE, not cannot-verify-forever.
     build(tmp, marker=False)
     code, out = run(tmp)
     check("case 14: readers present but no fleet marker -> exit 0, NOT APPLICABLE",
@@ -315,7 +314,7 @@ with tempfile.TemporaryDirectory() as tmp:
     r_mixed = lm.scan(tmp)
     check("case 18: mixed -> exit_code 1", lm.exit_code(r_mixed) == 1)
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "neither"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.py": "neither"})
     r_cv = lm.scan(tmp)
     check("case 18: cannot-verify -> exit_code 2", lm.exit_code(r_cv) == 2)
 
@@ -341,14 +340,14 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 20
 # FEAT-21 SC-10 (issue #387): CI/session-entry PARITY, pinned against the REAL gate.
-# The first draft of this case hand-mirrored check-state.sh's INV-27 composition in a
+# The first draft of this case hand-mirrored check-state.py's INV-27 composition in a
 # helper — and a copy cannot detect drift in the thing it copies: dropping a blamed
-# reader inside check-state.sh left the case green while reddening the integration
+# reader inside check-state.py left the case green while reddening the integration
 # suite. THERE IS NO SECOND MIRROR HERE: the session-entry side is the actual
-# check-state.sh run against a fixture tree, and the CI side is layout_migration's
+# check-state.py run against a fixture tree, and the CI side is layout_migration's
 # render() over a scan of the SAME tree. If either call site grows its own filtering
 # or wording, the named reader sets diverge and this reddens.
-_CHECK_STATE = os.path.join(HERE, "check-state.sh")
+_CHECK_STATE = os.path.join(HERE, "check-state.py")
 ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
 
 
@@ -360,7 +359,7 @@ def _parity(label, build_kwargs, extra=None):
             f.write('{"github": {"sync": false, "repo": null}}')
         if extra:
             extra(tmp)
-        # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.sh resolves its root through
+        # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.py resolves its root through
         # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name and
         # honours it only when .harness/team-config.yaml is readable underneath. With only the
         # host-owned name set, the gate resolved to the LIVE checkout, reported nothing about
@@ -392,9 +391,9 @@ def _parity(label, build_kwargs, extra=None):
 _parity("MIXED, one migrated reader on legacy evidence",
         dict(forms={".harness/team-config.yaml": "migrated"}))
 _parity("CANNOT_VERIFY neither",
-        dict(forms={".agents/skills/harness/bin/check-domain.sh": "neither"}))
+        dict(forms={".agents/skills/harness/bin/check-domain.py": "neither"}))
 _parity("CANNOT_VERIFY unreadable",
-        dict(forms={".agents/skills/harness/bin/check-domain.sh": "unreadable"}))
+        dict(forms={".agents/skills/harness/bin/check-domain.py": "unreadable"}))
 _parity("CANNOT_VERIFY no-evidence",
         dict(features_evidence=(), docs_evidence=("legacy",)))
 _parity("CANNOT_VERIFY undeclared-segment (carries detail)",
@@ -419,10 +418,11 @@ check("case 21: real root's harness/docs surface is CLEAN with migrated evidence
       code == 0 and "docs: CLEAN — evidence migrated" in docs_line, out)
 
 # ------------------------------------------------------------------- case 22
-# FEAT-25 T-03: the REAL tree's FEATURES surface, now that factory_claim.py is a
-# reader on it. Case 1 already scans the real root; this pins the features half
-# specifically — evidence at the migrated root and every FEATURES reader, including
-# factory_claim.py, speaking the migrated form.
+# FEAT-25 T-03 / BUG-1290 T-04: the REAL tree's FEATURES surface, now that
+# factory_config.py is a reader on it (factory_claim.py's join moved there in
+# BUG-1290 T-03; D-04 moved the reader row with it). Case 1 already scans the real
+# root; this pins the features half specifically — evidence at the migrated root
+# and every FEATURES reader, including factory_config.py, speaking the migrated form.
 code, out = run(REPO_ROOT)
 features_line = next((l for l in out.splitlines() if l.startswith("features:")), "")
 check("case 22: real root's harness/features surface is CLEAN with migrated evidence",

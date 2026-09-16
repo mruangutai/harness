@@ -4,7 +4,7 @@ Delta reviewed: `a2fb6c0b..e9b11035` (the remedy for cycle 0's HIGH), read again
 range `9f2a0702..e9b11035` for context. Worktree: `.claude/worktrees/harness/BUG-1080-inv6-plan-phase-runs`,
 `git branch --show-current` = `feat/BUG-1080-inv6-plan-phase-runs`, matching `feature.json`'s
 `branch` field exactly. Live: `test-check-state.py` 164 ok / 0 FAIL (26s); `test-validate-feature-json.py`
-64 PASS / 0 FAIL; `check-state.sh` on the real worktree exits 0, 0 violation lines (grep -ci
+64 PASS / 0 FAIL; `check-state.py` on the real worktree exits 0, 0 violation lines (grep -ci
 "violation" = 0; the ~200 `note`-severity lines are pre-existing repo-wide advisories unrelated
 to this feature). `code-grade.py --base 9f2a0702.. --head e9b11035` over the changed-Python range:
 13 functions graded, all PASS (grades 4-5, no function below its bar, 0 `SEVERITY:` lines) —
@@ -60,17 +60,17 @@ maintainability/fragile-test finding, **med, no must_fix**.
 
 ## Q-C — Schema vs. gate divergence, direction by direction (empirically verified, both layers)
 
-check-state.sh's loader is `harness_yaml.load_file` (PyYAML `safe_load`-class, whitespace-trims
+check-state.py's loader is `harness_yaml.load_file` (PyYAML `safe_load`-class, whitespace-trims
 unquoted scalars, preserves quoted scalars verbatim). The schema checker
 (`feature_schema.problems_for_text` / `validate-feature-json.py`) uses strict `json.loads`. The
 **sanctioned writer** (`feature-json-merge.py` → `feature_json_write.write_feature_json`) always
 serializes with `json.dumps(doc, indent=2)` and schema-validates before any write lands
-(monotonic non-regression — new violations refused; `check-domain.sh` also runs
-`feature_schema.problems_for_text` at write time per `check-domain.sh:1133-1150`). Live probe
+(monotonic non-regression — new violations refused; `check-domain.py` also runs
+`feature_schema.problems_for_text` at write time per `check-domain.py:1133-1150`). Live probe
 (isolated fixture, `CLAUDE_PROJECT_DIR`/`HARNESS_PROJECT_DIR` + marker, confirmed fast/isolated
 after an initial mistaken run against the live repo):
 
-| Value written | check-state.sh (exact match) | Schema (enum `["n_a"]`) | Divergent? | Reachable via sanctioned CLI? |
+| Value written | check-state.py (exact match) | Schema (enum `["n_a"]`) | Divergent? | Reachable via sanctioned CLI? |
 |---|---|---|---|---|
 | `n_a` unquoted, unpadded | exempt | valid | no | yes — canonical form |
 | `n_a` unquoted, padded (YAML bareword) | exempt | **N/A — not valid JSON at all** (bareword) | yes, in the safe direction (schema can't even parse it; gate is lenient) | **no** — `json.dumps` always quotes; only a raw hand-edit bypassing the CLI produces bareword YAML |
@@ -120,7 +120,7 @@ vacuity via the same mechanism (see cross-check note above) — no disagreement.
 
 ## Q-E — Regressions: none found.
 
-`runs` stays a documented 3-tuple for INV-7/INV-22 (`check-state.sh` comment, unchanged;
+`runs` stays a documented 3-tuple for INV-7/INV-22 (`check-state.py` comment, unchanged;
 `code_reviewing_runs` is deliberately a separate list). All INV-7/INV-22 cases in the 164-case
 suite pass. The rewritten INV-6 message still contains `"review_sha is not pinned"` — grepped the
 whole `.claude/` tree; every substring assertion elsewhere (`test-check-state.py` cases e/h/i/j,
@@ -140,7 +140,7 @@ Nothing to fix.
 
 ## Cycle-0 validator run recorded without `code_grade`, `review_sha` pinned: self-consistent.
 
-That run genuinely reviewed code (the SKILL.md/check-state.sh/test diff at `a2fb6c0b`) and pinned
+That run genuinely reviewed code (the SKILL.md/check-state.py/test diff at `a2fb6c0b`) and pinned
 a real commit — the correct shape under the new rule ("absence means code review", and code
 review happened). Not an oversight.
 

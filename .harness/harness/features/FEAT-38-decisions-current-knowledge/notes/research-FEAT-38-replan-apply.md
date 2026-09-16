@@ -14,7 +14,7 @@ byte-untouched.
   `depends_on: [T-19, T-27]`. `T-25.depends_on: [T-24]` unchanged (no-op, as pre-worked);
   `T-29.depends_on: [T-26] → [T-24]`. The dependency algebra as handed to me was correct and is
   applied unchanged. T-24's and T-25's intents now name the **MISCONFIGURED file-presence detector at
-  `run-unit-tests.sh:60-74`** — re-anchored: the loop is `:61-74`, the block comment opens at `:60`,
+  `run-unit-tests.py:60-74`** — re-anchored: the loop is `:61-74`, the block comment opens at `:60`,
   not `:65-79`. The KIND-DRIFT asymmetry argument survives, **derived once in T-24** with T-25
   pointing at it by id (F-2).
 - **MF-2 (index row falsified).** T-28 gains intent item 5 — hand-rewrite DEC-205's ruling in

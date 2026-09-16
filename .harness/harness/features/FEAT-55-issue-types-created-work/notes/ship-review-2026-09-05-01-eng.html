@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-55 — native issue types on created work: build review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-55-native-issue-types-on-created-work-build-review">FEAT-55 — native issue types on created work: build review</h1>
+<p><strong>FEAT-55 is not ready to ship, and it is closer than that sounds.</strong> Nine of twelve tasks are complete and verified. The other three are written, and I have measured that a <strong>single missing line-pair in one file</strong> is the only thing stopping them. Two decisions are yours, and one thing this feature cannot get for itself: a GitHub repository that actually has Issue Types turned on.</p>
+<p>I also have to report that the <strong>cycle budget is spent</strong> — 11 against a limit of 10 — so I stopped rather than push on. You declined a raise before the build opened, and I am not treating that as stale.</p>
+<h2 id="what-you-need-to-decide">What you need to decide</h2>
+<h3 id="f-01-one-file-nobody-was-told-to-edit-blocking">F-01 — one file nobody was told to edit (blocking)</h3>
+<p><code>feature-schema.json</code> locks feature.json&#x27;s <code>github</code> and <code>factory</code> objects shut (<code>additionalProperties: false</code>) and declares no <code>typed</code> property in either. Approved decision D-20 requires a <code>typed</code> mapping in <strong>both</strong>. So the first save that carries one is rejected:</p>
+<blockquote><p><code>MergeRefusal(11): undeclared key &#x27;typed&#x27; at /factory</code></p></blockquote>
+<p><strong>No task in the signed plan edits that file.</strong> I re-read all twelve <code>files:</code> lists. This is a plan gap, not a coding mistake — the three affected tasks (T-04, T-06, T-08) are written correctly and their authors proved them green under a temporary override.</p>
+<p>I did not take that on trust. I added the two property declarations myself, re-ran everything affected, then removed them and confirmed the file was byte-identical again. <strong>All five suites went green</strong>, including two pre-existing factory suites that are red today:</p>
+<div class="scroll"><table><thead><tr><th>suite</th><th>now</th><th>with the two declarations</th></tr></thead><tbody><tr><td>test-factory-decompose.py</td><td>FAIL</td><td>pass</td></tr><tr><td>test-factory-integration.py</td><td>FAIL</td><td>pass</td></tr><tr><td>test-gh-issue-types.py</td><td>FAIL</td><td>pass</td></tr><tr><td>test-factory-issue-types.py</td><td>FAIL</td><td>pass</td></tr><tr><td>test-gh-backlog-issue-types.py</td><td>FAIL</td><td>pass</td></tr></tbody></table></div>
+<p>So this is genuinely the whole blocker; nothing is hiding behind it. Note the first two: <strong>the feature currently breaks two existing test suites</strong>, same root cause.</p>
+<p><strong>What I need:</strong> permission to add <code>typed</code> to those two objects. Either pm adds the file to T-04&#x27;s and T-08&#x27;s <code>files:</code> lists, or you have the main session do it directly. The file is already inside the engineers&#x27; write domain — only plan authority is missing.</p>
+<h3 id="f-02-a-query-that-would-be-dead-on-arrival-blocking-and-nothing-is-red">F-02 — a query that would be dead on arrival (blocking, and nothing is red)</h3>
+<p>This is the one I would most regret shipping, because <strong>every test passes on it.</strong></p>
+<p>The plan asks for a capability query on every <code>gh-sync open</code>, and separately pins an existing test that says <em>every</em> call must carry <code>--repo &lt;repo&gt;</code>. Those cannot both hold: <strong><code>gh api</code> has no <code>--repo</code> flag.</strong> I ran it on this machine, gh 2.92.0:</p>
+<blockquote><p><code>gh api graphql --repo … </code> → <code>unknown flag: --repo</code></p></blockquote>
+<p>The author, told the existing test must stay green and unedited, satisfied it by appending <code>--repo</code> to the query anyway. It passes because the test double accepts any flag. Against real GitHub it fails every time. The live probe from T-10 issues the same query <em>without</em> <code>--repo</code> and gets a correct answer, which is what tells us which side is wrong.</p>
+<p><strong>My recommendation:</strong> drop <code>--repo</code> from the query, and widen that one assertion to accept an <code>api graphql</code> line carrying <code>-f owner=</code> and <code>-f name=</code>. That keeps exactly what the assertion was protecting — every call targets the intended repository rather than whichever one you happen to be standing in — because <code>-f owner</code>/<code>-f name</code> is the only way gh lets you pin a graphql query. Nothing is weakened.</p>
+<p>This one is a re-plan, not a fix: the plan asks for something impossible, and only you can change that.</p>
+<h3 id="f-03-the-live-probe-has-nowhere-to-run-external">F-03 — the live probe has nowhere to run (external)</h3>
+<p>Success criterion SC-10 wants a verdict from a repository that actually declares Issue Types. The probe works — it ran cleanly and reported <strong>CAPABILITY ABSENT</strong> for <code>mruangutai/harness</code>, which is the correct answer for a repo without them. But a correct &quot;absent&quot; is not the live pass SC-10 asks for. <strong>We need either an Issue-Type-enabled repository to point it at, or your decision to accept SC-10 on the absent-path evidence.</strong> No amount of further work here can produce this.</p>
+<h2 id="where-the-work-stands">Where the work stands</h2>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Complete and verified</td><td>T-01, T-02, T-03, T-05, T-07, T-09, T-10, T-11, T-12</td></tr><tr><td>Written, cannot be verified</td><td>T-04, T-06, T-08 — all three behind F-01</td></tr><tr><td>Committed at</td><td><code>ef591a53</code> on <code>feat/issue-1289-issue-types</code></td></tr><tr><td>Cycles</td><td><strong>11 of 10 — spent</strong></td></tr><tr><td>Runs</td><td>32 of 20 — over the informational budget</td></tr></tbody></table></div>
+<p>The two documentation halves landed in the required order (T-11 then T-12), and the drift guard that protects them is green: the 394-character row is present in both files and identical. I checked that at source rather than believing the report.</p>
+<p>On the runs count: it is high for one reason, unchanged since the plan phase — this plan was signed through five rounds of rulings instead of one. The runs themselves were efficient; this session&#x27;s two runs covered eleven tasks between them.</p>
+<p><strong>Quality gates not yet run:</strong> QA, the review panel, SIMPLIFY and the goal-check all sit after the build completes. I did not run them, because a blocking gate that fails for a reason nobody is allowed to fix teaches us nothing.</p>
+<h2 id="how-i-assembled-this">How I assembled this</h2>
+<p><strong>I spawned no reporting round.</strong> I read the run digests off disk:</p>
+<ul><li><code>runs/2026-09-05-01-eng/digest.md</code> — the engineering build, ten tasks</li><li><code>runs/2026-09-05-01-product/digest.md</code> — the documentation task</li><li>the plan-phase record in <code>STATE.md</code> and <code>plan.yaml</code>&#x27;s <code>panel:</code> block</li></ul>
+<p>Every measurement in F-01, F-02 and F-03 above is one I took myself in this checkout, not a claim relayed from a digest.</p>
+<h2 id="escalations-resolved-without-you">Escalations resolved without you</h2>
+<p>Two send-backs, both inside engineering, both reported honestly by the lead and both its own cost: T-03 and T-05 shared a test-double logging quirk that appended an invisible character to every logged line, so their label assertions could never pass. Fixed at source. Those two send-backs are what took the cycle count from 9 to 11.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Anything you do not strike becomes an issue. Anything not on this list is forgotten.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Seven of the eight read-back rows are duplicated across two files with no drift protection; only the eighth (this feature&#x27;s) is guarded</td></tr><tr><td>B-2</td><td>chore</td><td>T-06&#x27;s backlog receipt is flat on disk, while the plan&#x27;s prose describes it nested under <code>items</code>. Behaviour is unaffected; ratify one or the other</td></tr><tr><td>B-3</td><td>bug</td><td>The shell write guard blocked <code>cp</code> onto a protected file but allowed <code>python3 -c</code> to write the identical path in the same call — it reads command names, not what actually writes</td></tr><tr><td>B-4</td><td>bug</td><td><code>set-task-station</code> cannot record any task station on this plan (the tasks carry no status key and it only edits an existing one), and misreports the cause by naming the task it just called absent</td></tr><tr><td>B-5</td><td>bug</td><td>A truncated capture of the unit suite showed zero failures while the suite had actually failed four files — captured output cannot be read for absence of failure</td></tr><tr><td>B-6</td><td>bug</td><td>An agent&#x27;s edit resolved a relative path against its process directory instead of its assigned worktree, briefly writing into the main checkout. It caught and reverted this itself</td></tr><tr><td>B-7</td><td>bug</td><td><code>validate-digest.py</code> rejects a plan-phase review&#x27;s <code>code_grade: n_a</code>, the exact value the plan-phase panel is supposed to use</td></tr><tr><td>B-8</td><td>bug</td><td>A run digest cannot be repaired in place, so every malformed first write permanently costs a second run directory</td></tr><tr><td>B-9</td><td>chore</td><td>The plan-writing verb list omits <code>amend</code>, which every revision after the first needs</td></tr><tr><td>B-10</td><td>chore</td><td><code>amend --key</code> accepts only tasks and decisions, so a disposition edit inside the panel block has no route</td></tr></tbody></table></div>
+<h2 id="what-happens-next">What happens next</h2>
+<p>Rule F-01 and F-02 and the three blocked tasks verify immediately — I measured that. Then QA, SIMPLIFY, the review panel and the goal-check run in order. SC-10 stays open until F-03 has an answer. <strong>None of that can start without a cycle-budget decision</strong>, since the budget is spent and the bound is a hard one.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-01-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

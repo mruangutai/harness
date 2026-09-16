@@ -1,7 +1,7 @@
 # T-07 fixed to match the amended SC-01 — FEAT-42 — 2026-08-26
 
 **All three edits are on disk. SC-01 and the dispatch agree, so no BLOCKED on that axis.** One new
-finding, measured, needs the orchestrator: `bash-write-guard.sh` denies T-07's mutation proof — and
+finding, measured, needs the orchestrator: `bash-write-guard.py` denies T-07's mutation proof — and
 denied the version already in the plan, before I touched it.
 
 ## The three edits (`plan.yaml`, T-07 only)
@@ -46,17 +46,17 @@ a `|` literal block and `bash -n` parses it clean.
 
 **Why this discriminates and the old one did not:** planted outside `.claude/skills/harness/bin/`,
 the mutant is invisible to the directory-scoped scan root and visible only to the repo-wide one. The
-old `$B/gh-close-gate.sh` target went red under both, so it could not prove the widening.
+old `$B/gh-close-gate.py` target went red under both, so it could not prove the widening.
 
 ## Open question — the write guard denies this proof, and already denied the old one
 
-Measured against `.claude/skills/harness/bin/bash-write-guard.sh` with
+Measured against `.claude/skills/harness/bin/bash-write-guard.py` with
 `agent_type=harness-backend-dev`, `CLAUDE_PROJECT_DIR` = the main checkout:
 
 | redirect target | verdict |
 |---|---|
 | `docs/invalid-states-audit.html` (new) | **BLOCKED** — outside your domain |
-| `$B/gh-close-gate.sh` (the version already in the plan) | **BLOCKED** — takes `$B/...` literally |
+| `$B/gh-close-gate.py` (the version already in the plan) | **BLOCKED** — takes `$B/...` literally |
 | absolute path under `.claude/worktrees/.../docs/...` | **allowed** (DEC-153 carve-out, guard :687) |
 
 Root cause: the guard resolves a relative Bash path against `root` (:232, `CLAUDE_PROJECT_DIR`), not

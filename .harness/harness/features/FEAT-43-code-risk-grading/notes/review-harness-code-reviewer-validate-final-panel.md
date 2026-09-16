@@ -67,7 +67,7 @@ This matches the dispatch's own claim exactly — verified independently, not ta
 
 - **T-01 — `met` with the new ruling as a carve-out.** `code_grade.py:29-272` implements the pure
   API; `test-code-grade.py:19-56` carries 12+ hand-derived fixtures spanning all five grades
-  (`{5,4,3,2,1}` asserted a subset at `:306-307` by rerun of `run-unit-tests.sh --kind unit`, exit
+  (`{5,4,3,2,1}` asserted a subset at `:306-307` by rerun of `run-unit-tests.py --kind unit`, exit
   0); direction pairs at `:59-125` now assert BOTH metric and grade movement (`:394-407`). **The one
   clause NOT met**: "Keep every function you write in `code_grade.py` at grade 4 or better... The
   tool must pass its own bar" — `_records.collect` (232) and `_changed_python_files` (318) are
@@ -183,7 +183,7 @@ implied — I reran the file and it passes. D-01/D-02/D-03 are correctly and tes
   `git show` and proves IT accepts the guarded digest — the discriminating proof SC-20 requires.
 
 Remaining SC verdicts, by grounded citation (unchanged from or reconfirmed at this pin):
-SC-01 `met` (`test-code-grade.py:19-48`, 12+ fixtures, all five bands, `run-unit-tests.sh` rerun
+SC-01 `met` (`test-code-grade.py:19-48`, 12+ fixtures, all five bands, `run-unit-tests.py` rerun
 clean); SC-02 `met` (every fixture including `bindings-and-calls` at `:22` now carries a hand
 derivation — `A=2 B=2 C=0; abc=sqrt(8)=2.8`, checked by hand: correct — closing prior finding #3);
 SC-03 `met` (`:394-407`, both metric and grade movement asserted, closing prior finding #4); SC-04
@@ -291,7 +291,7 @@ The command above emitted exactly fifteen `REASON REQUIRED` lines. Each is named
 13. **`test-code-grade.py:374 main`** — cyc 8, cog 13, abc 44.4, driver abc. *Reason:* the suite's
     entry point sequencing every fixture band, direction pair, resolution check, commit-resolution
     check, worked-example check, and delivery check as one ordered run whose final print is the
-    single pass/fail signal `run-unit-tests.sh` consumes.
+    single pass/fail signal `run-unit-tests.py` consumes.
 14. **`test-gate-policy.py:55 check_policy_loading`** — cyc 1, cog 0, abc 36.1, driver abc.
     *Reason:* SC-13 requires each of the four gate keys resolved individually plus loud failure on
     missing/invalid/unreadable/unparseable config — one shared temp-config lifecycle keeps all eight

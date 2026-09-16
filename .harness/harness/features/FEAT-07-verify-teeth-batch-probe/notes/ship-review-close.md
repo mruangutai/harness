@@ -111,7 +111,7 @@ silently**, so strike what you do not want rather than assuming it will resurfac
 | 2 | `DECISIONS.md:4519` cites a line range that does not contain what it claims; the real anchor is `:378`. | bug |
 | 3 | The 30-word ruling cap and 20-character floor on index rows are stated in no header and invisible to both the generator and the docs checker. | chore |
 | 4 | `harness-documentor` and `harness-pm` hold no receipt-file grant, so criteria that name a receipt cannot be met by them. Three dispatches hit this. | chore |
-| 5 | `bash-write-guard.sh` blocks redirects whose target is a shell variable, even into the session scratchpad. | chore |
+| 5 | `bash-write-guard.py` blocks redirects whose target is a shell variable, even into the session scratchpad. | chore |
 | 6 | SPEC §8.1 never states that dev-ops `suite: fail` with a PASS verdict is *accepted* — an omitted permission a reader could infer wrongly. | chore |
 | 7 | A clause-count check comparing a criterion's enumerated items against its fixture cases would catch the dominant defect class this feature exposed. | enhancement |
 | 8 | Reviewer personas keep no observations log; distillation for them is digest-skim only. | enhancement |

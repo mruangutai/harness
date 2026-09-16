@@ -21,9 +21,9 @@ Matrix (`logic → unit`, `config/docs/scaffolding → []`) plus the SC-declared
 
 **Net requirement: unit + integration.** Both ran.
 
-- `run-unit-tests.sh` (full): exit 0, 23/23 test scripts PASS, 0 FAIL. Baseline reproduced exactly.
-- `run-unit-tests.sh --kind unit`: exit 0, 11 scripts PASS, 0 FAIL.
-- `run-unit-tests.sh --kind integration`: exit 0, 12 scripts PASS, 0 FAIL — includes
+- `run-unit-tests.py` (full): exit 0, 23/23 test scripts PASS, 0 FAIL. Baseline reproduced exactly.
+- `run-unit-tests.py --kind unit`: exit 0, 11 scripts PASS, 0 FAIL.
+- `run-unit-tests.py --kind integration`: exit 0, 12 scripts PASS, 0 FAIL — includes
   `test-check-plan-routes.py` (SC-02) and `test-upgrade-config.py` (SC-10).
 
 matrix_ok: **true**.
@@ -129,7 +129,7 @@ path-scoped rather than path-and-token scoped — a choice plan.yaml makes expli
 restructure ALLOW_LIST into path-and-token pairs"). Currently that file contains none of the
 `deploy.sh`/`harness-deploy` tokens (confirmed by grep) — only the legitimate synthetic
 `registry.json` at line 573. But because the exemption is path-scoped, **no standing test in
-`run-unit-tests.sh` would catch a regression that reintroduced `deploy.sh` prose into this
+`run-unit-tests.py` would catch a regression that reintroduced `deploy.sh` prose into this
 specific file's comments** (e.g. T-10's rewrite at lines 558/958-959 being reverted). The only
 thing that ever checked this was T-10's own task-local `verify:` — a one-shot grep, not a
 persisted test — which already passed once and is not re-run by any suite. This is the same
@@ -142,7 +142,7 @@ tradeoff is documented and deliberate in plan.yaml, and the file's *behavioural*
 
 | SC | Test | Result |
 |---|---|---|
-| SC-01 | `run-unit-tests.sh` full run, ALL PASS after deploy.sh/harness-deploy.md deletion | satisfied |
+| SC-01 | `run-unit-tests.py` full run, ALL PASS after deploy.sh/harness-deploy.md deletion | satisfied |
 | SC-02 | `test-check-plan-routes.py` under `--kind integration`, all cases incl. case_21 (registry-independent) | satisfied |
 | SC-02b | inspection only (per BRIEF) — not a test-runner claim; T-09's verify output is the cited evidence, not re-derived here | n/a to qa |
 | SC-03 | `test-no-distribution.py` case 3 (`case3_presence_fleet_yaml_safe_loads`, `case3_presence_fleet_has_exactly_two_repos`, `case3_presence_kaya_default_branch_is_master`) | satisfied |
@@ -179,7 +179,7 @@ FEAT-12 dispatch) is:
 `f3452bf, 96d5d5c, 8782ee1, 275de45, 5042f40, e987c6d, 9e49ba7, ff75afb, 65d40cb, 8b53ebd, d543809`
 
 Excluded deliberately: `6c89fff`, a merge of `origin/main` into the FEAT-12 branch that carries
-unrelated `bash-write-guard.sh`/`test-bash-write-guard.py`/`test-harness-yaml.py` changes from
+unrelated `bash-write-guard.py`/`test-bash-write-guard.py`/`test-harness-yaml.py` changes from
 other work (visible in the full-range diff but authored elsewhere) — including it would have
 misattributed those files to FEAT-12. Their absence from FEAT-12's own commit set is itself the
 check that the wider range's noise was correctly excluded.
@@ -192,7 +192,7 @@ Every one maps to exactly one of three buckets:
    (T-08); `harness-init/SKILL.md`, `harness-team/SKILL.md`, `templates/README.md`,
    `templates/team-config.yaml`, `.harness/team-config.yaml` (T-11); `check-plan-routes.py`,
    `factory_config.py`, `test-check-plan-routes.py`, `test-upgrade-config.py`, `upgrade-config.py`,
-   `wayfind.py` (T-10); `deploy.sh` (T-07); `run-unit-tests.sh`, `test-no-distribution.py` (T-13);
+   `wayfind.py` (T-10); `deploy.sh` (T-07); `run-unit-tests.py`, `test-no-distribution.py` (T-13);
    `fleet.yaml` (T-06); `.harness/README.md`, `README.md`, `docs/harness/SPEC.md` (T-12);
    `docs/harness/BUILD.md` (T-12 and T-14 both); `docs/harness/DECISIONS.md`,
    `docs/harness/DECISIONS-INDEX.md` (T-14); `notes/kaya-agents-count-before.txt` (T-02);
@@ -206,7 +206,7 @@ Every one maps to exactly one of three buckets:
 **Undeclared paths (coverage_gaps): `[]`.** Nothing in the diff is logic-shaped and unclaimed by
 any task — every `.py`/`.sh` change under `.claude/skills/harness/bin/` (`deploy.sh`,
 `upgrade-config.py`, `test-upgrade-config.py`, `check-plan-routes.py`, `test-check-plan-routes.py`,
-`wayfind.py`, `factory_config.py`, `run-unit-tests.sh`, `test-no-distribution.py`) is named in a
+`wayfind.py`, `factory_config.py`, `run-unit-tests.py`, `test-no-distribution.py`) is named in a
 task's `files:` list, and each of those tasks' `change_type` (`logic` for T-07/T-10/T-13) was
 already correctly derived and gated in the original run above.
 

@@ -88,7 +88,7 @@ test-feature-worktree.py, test-expertise-merge.py}`. No edits applied.
 - **Missing test case**: a proposal file containing the same section+id twice
   with *different* text, asserted to either exit 7 (routed through the same
   divergence check the base-vs-proposal comparison uses) or silently keep the
-  first occurrence — whichever `check-expertise.sh`'s own semantics require.
+  first occurrence — whichever `check-expertise.py`'s own semantics require.
   Currently untested either way.
 - **Severity**: info. **Apply marker**: `backlog-only` (names a coverage gap,
   not a code change).

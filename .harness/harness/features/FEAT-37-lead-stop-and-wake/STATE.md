@@ -37,7 +37,7 @@ verdict. The panel has graded at `4e652f9`, so running it now costs the panel ru
 against a budget holding one. Accept the omission, or re-open it with a fresh pin and a fresh panel.
 
 **ALL SEVEN INV-26 VIOLATIONS CLEARED** on the Review station write, no card touched by hand and
-`check-state.sh` untouched. No PR and no merge — both the operator's.
+`check-state.py` untouched. No PR and no merge — both the operator's.
 
 ## Open Questions
 

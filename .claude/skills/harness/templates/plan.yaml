@@ -25,7 +25,9 @@
 #   plan-merge.py add-tasks           --file <plan.yaml> --proposal <path or ->
 #   plan-merge.py set-task-station    --file <plan.yaml> --task T-NN --station <name>
 #   plan-merge.py set-feature-station --file <plan.yaml> --station <name>
-#   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
+#   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]...
+#   plan-merge.py set-key             --file <plan.yaml> --key <top-level key> --value-file <value.yaml>
+#   plan-merge.py revoke-approval     --file <plan.yaml> --by <name> --reason "<text>"
 #
 # A hand edit is what #628 was: two whole-file writes, the second silently losing what the
 # first added. The verbs splice text under a lock instead, and a station outside the declared
@@ -35,9 +37,11 @@ schema: plan/1
 feature: FEAT-NN-<slug>          # must match the directory name
 
 # THE FEATURE'S STATION, and the only record of it (FEAT-41). One of the six names
-# harness.json declares — backlog, plan, ready, building, review, done — or `abandoned`, which
-# names no board column. WRITTEN ONLY BY `plan-merge.py set-feature-station`; no agent and no
-# human edits this line, and check-domain.sh denies the write.
+# harness.json declares — backlog, plan, ready, building, review, done — or one of the two
+# terminal stations that name no board column: `abandoned` (planned, never built) or `rejected`
+# (refused at first-run intake as wrong or superseded, FEAT-1714). WRITTEN ONLY BY
+# `plan-merge.py set-feature-station` (or `gh-sync.py reject`, which calls it); no agent and no
+# human edits this line, and check-domain.py denies the write.
 status: <station>
 
 # The GitHub issue numbers this feature was PLANNED FROM — bare integers, written by pm at
@@ -48,12 +52,14 @@ source_issues: [<n>, <n>]
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
-  # agent's write of this mapping. Any change to the task set resets this to pending.
-  # Only the main session may add approval.rulings. Each ruling names a PF- id present in
-  # panel.findings and carries ruling: overrule, who: <operator>, date: YYYY-MM-DD, and a
-  # one-clause reason. check-state.sh REFUSES an absent id as a stale override: rewording
-  # creates a new content-hash id, so an old ruling stops applying and the operator is asked again.
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
+  # agent's write of this mapping. Any change to the task set resets this to pending, and
+  # revoke-approval resets it on the operator's word; reset_at/reset_reason say which.
+  # Only the main session may add approval.rulings, through sign-approval --overrule.
+  # Each ruling names a PF- id present in panel.findings and carries who: <operator>,
+  # date: YYYY-MM-DD, and a one-clause reason. check-state.py REFUSES an absent id as a
+  # stale risk acceptance: rewording creates a new content-hash id, so an old ruling stops
+  # applying and the operator is asked again.
   status: pending                # pending | approved
   approved_by: <name>
   date: <YYYY-MM-DD>
@@ -75,8 +81,10 @@ panel:
     - id: PF-0123abcd
       severity: unrated              # info | low | med | high | critical | unrated
       reader: should-not-exist        # should-not-exist | scope | goalcheck
+      kind: substance                # substance | form | proportionality
+      # scope: task|mission          # proportionality findings only (DEC-228)
       summary: <one line>
-      disposition: open              # open | resolved | overruled
+      disposition: open              # open | resolved; risk acceptance requires approval.rulings
       # resolved_by: T-NN            # present only when resolved
   # unrated is gating-equivalent to high, so omitted judgment fails closed.
 
@@ -122,8 +130,8 @@ tasks:
     depends_on: []               # [T-NN, ...] — the build runner orders on this.
                                  # File order is NOT a topological order.
 
-    # backlog | plan | ready | building | review | done | abandoned
-    # The SAME six names harness.json declares, plus the terminal marker. `pending` is not one
+    # backlog | plan | ready | building | review | done | abandoned | rejected
+    # The SAME six names harness.json declares, plus the two terminal stations. `pending` is not one
     # of them and is not a value anywhere any more (FEAT-41 T-04). An absent status reads as
     # `ready`, the not-started station.
     status: ready
