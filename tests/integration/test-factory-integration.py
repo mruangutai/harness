@@ -1500,8 +1500,8 @@ with tempfile.TemporaryDirectory() as td:
         }}, f)
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
-    # plan.yaml: station `done`; feature.json records parent #950 but the board reads Backlog --
-    # there is no done exemption (D-22), so this is a finding whether #950 is open or closed.
+    # plan.yaml: active station `review`; feature.json records parent #950 but the board reads
+    # Backlog, so the shared active-card projection must report the mismatch.
     # THE STATION IS IN plan.yaml AS OF FEAT-41 T-07; feature.json keeps the github block, which
     # is what this class reads it for.
     feat_dir = os.path.join(root, ".harness", "widget", "features", "FEAT-STATUS")
@@ -1509,7 +1509,7 @@ with tempfile.TemporaryDirectory() as td:
     with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
         json.dump({"github": {"parent": 950, "issues": {"T-01": 951}}}, f)
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
-        f.write("schema: plan/1\nfeature: FEAT-STATUS\nstatus: done\nstation_only: true\ntasks: []\n")
+        f.write("schema: plan/1\nfeature: FEAT-STATUS\nstatus: review\nstation_only: true\ntasks: []\n")
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
         "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
     })
@@ -1526,22 +1526,15 @@ with tempfile.TemporaryDirectory() as td:
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
     check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a plan.yaml "
-          "station disagreeing with its parent card (the EXIT STATUS, not an in-process "
+          "active station disagreeing with its parent card (the EXIT STATUS, not an in-process "
           "SystemExit catch)",
           r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     check("(L) board_lifecycle.py audit STATUS: the finding names the feature dir, the recorded "
-          "station done, its column, and the actual station backlog",
-          # BOTH RECORDED AND ACTUAL ARE LOWERCASE NOW, AND THE COLUMN IS NOT (FEAT-41 T-07).
-          # Until T-07 this assertion straddled the case boundary: `'Done'` was feature.json's
-          # own recorded value quoted verbatim, `'backlog'` was what the board answered after
-          # gh_board.board_stations lowercased it. The recorded side has moved to plan.yaml and
-          # is lowercase, so the two harness-side values now match. The one capitalised term left
-          # is `column 'Done'`, derived by station_column — and D-08 puts the capitals exactly
-          # there, at the GitHub boundary, because the column name is what the operator sees when
-          # they go and look at the board.
+          "active station, its column, and the actual station backlog",
+          # Harness-side stations are lowercase; the board column is the capitalized UI name.
           "STATUS" in r.stdout and "FEAT-STATUS" in r.stdout and "#950" in r.stdout
-          and "station 'done'" in r.stdout and "reads 'backlog'" in r.stdout
-          and "column 'Done'" in r.stdout, f"stdout={r.stdout!r}")
+          and "station 'review'" in r.stdout and "reads 'backlog'" in r.stdout
+          and "column 'Review'" in r.stdout, f"stdout={r.stdout!r}")
 
 
 # ============================================================================

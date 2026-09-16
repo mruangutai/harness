@@ -101,6 +101,11 @@ describe("yieldContractText", () => {
     const input = { result: { data: { VERDICT: "PASS" } } };
     expect(normalizeYieldInput(input, "ignored")).toEqual(input);
   });
+
+  test("keeps the current top-level yield envelope unchanged", () => {
+    const input = { data: { VERDICT: "PASS" } };
+    expect(normalizeYieldInput(input, "ignored")).toEqual(input);
+  });
 });
 
 // B-1 (FEAT-42 review panel). runPolicy chose the gate executable with `join(cwd, BIN,
@@ -409,7 +414,7 @@ describe("OMP task lifecycle adapter", () => {
       call.script === "inflight_registry.py" && call.args[0] === "attach"
     )).toHaveLength(0);
     expect(await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+      toolName: "yield", input: { data: { content: "VERDICT: PASS" } },
     }, ctx)).toBeUndefined();
   });
 
@@ -1257,7 +1262,7 @@ describe("host-stamped tokens", () => {
     expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "stamp-tokens")).toBe(false);
     // A bare run-end then records null: the host reported nothing, and nothing was invented.
     spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
-      "--id", "r1", "--verdict", "PASS"], { encoding: "utf8" });
+      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0"], { encoding: "utf8" });
     expect(tokensOf(featureJson)).toBeNull();
   });
 

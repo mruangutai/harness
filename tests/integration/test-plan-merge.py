@@ -3435,6 +3435,39 @@ def case_bug1699_terminal_features_stay_terminal():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+def case_bug1699_plan_mutation_makes_no_github_call():
+    """BUG-1699 SC-10: a local plan mutation never crosses the GitHub executable boundary."""
+    root, plan = fixture_root(prefix="plan-merge-b1699-")
+    gh_log = os.path.join(root, "gh.log")
+    fake_bin = os.path.join(root, "bin")
+    os.makedirs(fake_bin)
+    fake_gh = os.path.join(fake_bin, "gh")
+    try:
+        write(plan, _resume_plan("review", ["done", "abandoned"]))
+        write(fake_gh, "#!/bin/sh\nprintf 'called\\n' >> \"$GH_LOG\"\nexit 97\n")
+        os.chmod(fake_gh, 0o755)
+        env = dict(os.environ)
+        env["PATH"] = fake_bin + os.pathsep + env.get("PATH", "")
+        env["GH_LOG"] = gh_log
+        probe = subprocess.run([fake_gh], capture_output=True, text=True, env=env)
+        check("no-network NEGATIVE CONTROL: the same guard reddens when gh is invoked",
+              probe.returncode == 97 and read(gh_log) == "called\n",
+              f"rc={probe.returncode} log={read(gh_log)!r}")
+        os.remove(gh_log)
+        result = run_verb(
+            "delete-items", "--file", plan, "--task", "T-02", "--reason", "scope cut",
+            env=env,
+        )
+        check("no-network: local plan mutation succeeds",
+              result.returncode == 0 and "APPROVAL-RESET" in result.stdout,
+              f"rc={result.returncode} stdout={result.stdout!r} stderr={result.stderr!r}")
+        check("no-network: local plan mutation never invokes gh",
+              not os.path.exists(gh_log), read(gh_log) if os.path.exists(gh_log) else "")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
 
 
 
@@ -4269,6 +4302,7 @@ CASES = (
     case_bug1699_reapproval_restores_recorded_station,
     case_bug1699_pending_mutation_recomputes_resume_station,
     case_bug1699_terminal_features_stay_terminal,
+    case_bug1699_plan_mutation_makes_no_github_call,
     case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone,
     case_f59_sign_approval_rework_writes_feature_json,
     case_f59_review_f3_approval_reset_is_verified_not_reported,
