@@ -36,7 +36,11 @@ seam, and the commit. The quarantine list is inspected at wake, never at close (
 4. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> review`
    BEFORE the team is dispatched. Both preconditions sit together on purpose: the pin fixes what is
    reviewed, the station write puts the parent and every sub-issue at review. The station argument
-   is LOWERCASE — one vocabulary, and `gh-sync.py` refuses anything else (FEAT-41).
+   is LOWERCASE — one vocabulary, and `gh-sync.py` refuses anything else (FEAT-41). When
+   `feature.json` cannot carry the pin — a frozen feature, or a review dispatched with no feature
+   at all — put `HARNESS-REVIEW-PIN: <sha>` on its own line in the dispatch prompt: the host
+   forwards it to the digest validator, which accepts it as the pin when `feature.json` has none
+   and refuses it when the two disagree (#1677). It never replaces a recorded pin.
 5. **ONE `validate` dispatch** to `harness-validator-lead` —
    `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/validate.yaml`, then
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/validate.yaml`; run-dir slug

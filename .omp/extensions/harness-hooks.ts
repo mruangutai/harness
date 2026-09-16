@@ -5,6 +5,12 @@ import { fileURLToPath } from "node:url";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
 const FEATURE_MARKER = /^HARNESS-FEATURE: ((?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+)$/gm;
+// #1677: an operator-supplied review pin travels in the DISPATCH — the one text a reviewer
+// does not author — and reaches validate-digest.py as `harness_review_pin`, the same way the
+// feature marker reaches it as `harness_feature`. It stands in for feature.json's review_sha
+// when that is unset (a frozen feature, a review dispatched outside the plan path) and must
+// agree with it when both exist.
+const REVIEW_PIN_MARKER = /^HARNESS-REVIEW-PIN: ([0-9a-f]{7,40})$/gm;
 const BIN = ".agents/skills/harness/bin";
 
 // THE GATE DIRECTORY IS DERIVED FROM THIS FILE, NOT FROM ANY CALLER (FEAT-42, panel B-1).
@@ -65,6 +71,19 @@ export function detectHarnessFeature(systemPrompt: unknown): string | undefined 
     throw new Error(`conflicting Harness feature markers: ${[...features].sort().join(", ")}`);
   }
   return features.values().next().value;
+}
+
+export function detectHarnessReviewPin(systemPrompt: unknown): string | undefined {
+  if (!Array.isArray(systemPrompt)) return undefined;
+  const pins = new Set<string>();
+  for (const layer of systemPrompt) {
+    if (typeof layer !== "string") continue;
+    for (const match of layer.matchAll(REVIEW_PIN_MARKER)) pins.add(match[1]);
+  }
+  if (pins.size > 1) {
+    throw new Error(`conflicting Harness review pin markers: ${[...pins].sort().join(", ")}`);
+  }
+  return pins.values().next().value;
 }
 
 export function extractEditPaths(input: unknown): string[] {
@@ -737,6 +756,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let currentFeature: string | undefined;
   let expertiseInjected = false;
   let featureCaptured = false;
+  let currentReviewPin: string | undefined;
+  let pinCaptured = false;
   let claimsReconciled = false;
   let lastAssistantMessage = "";
   // FEAT-44: once-per-session cap for BOTH notice classes (inert and accessor
@@ -782,11 +803,23 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if ((candidate as Dict).role !== "user") return;
     setFeature(detectHarnessFeature([messageText(candidate)]), ctx);
   };
+  // The pin has one source: the assignment message (DEC-204), scanned once. A later user
+  // turn or a tool result echoing another dispatch is never a pin.
+  const capturePinFromMessage = (candidate: unknown): void => {
+    if (pinCaptured) return;
+    if (!candidate || typeof candidate !== "object") return;
+    if ((candidate as Dict).role !== "user") return;
+    pinCaptured = true;
+    const pin = detectHarnessReviewPin([messageText(candidate)]);
+    if (pin) currentReviewPin = pin;
+  };
 
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
     const detectedFeature = detectHarnessFeature(event.systemPrompt);
+    const detectedPin = detectHarnessReviewPin(event.systemPrompt);
     if (detected) currentAgent = detected;
+    if (detectedPin) currentReviewPin = detectedPin;
     setFeature(detectedFeature, ctx);
     if (!currentAgent || expertiseInjected) return;
 
@@ -819,6 +852,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureFeatureFromMessage(candidate, ctx);
+    capturePinFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -828,6 +862,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureFeatureFromMessage(candidate, ctx);
+    capturePinFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -926,6 +961,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           last_assistant_message: contract,
           harness_runtime: "omp",
           harness_feature: currentFeature,
+          harness_review_pin: currentReviewPin,
           harness_agent_id: text(ctx.agentId) || undefined,
         });
         debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
@@ -1127,6 +1163,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       last_assistant_message: finalText,
       harness_runtime: "omp",
       harness_feature: currentFeature,
+      harness_review_pin: currentReviewPin,
     });
     if (result.reason && result.blocked) ctx.ui?.notify?.(result.reason, "warning");
   });

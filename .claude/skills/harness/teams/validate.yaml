@@ -8,7 +8,9 @@
 # Five independent readers dispatch in ONE turn — serial dispatch looks correct while
 # running 5× slower, and FEAT-43 paid ~4 runs plus a human wait per defect because
 # readers ran as sequential squad segments (FEAT-59 SC-13). review_sha IS PINNED BY THE
-# CALLER, never read from HEAD (DEC-50; INV-6 fails an unpinned validator run).
+# CALLER, never read from HEAD (DEC-50; INV-6 fails an unpinned validator run) — in
+# feature.json, or as `HARNESS-REVIEW-PIN: <sha>` in the dispatch when feature.json cannot
+# carry it (#1677); the two must agree when both exist.
 #
 # THE LEAD HOSTS pm, a product-squad persona, for the goal-check. DEC-118 as amended by
 # FEAT-59 permits a read-only member from another squad in the validate run; pm authored
