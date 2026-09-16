@@ -528,10 +528,15 @@ check("(X) MANDATED_STATIONS is exactly the six lowercase stations, in board ord
       list(fc.MANDATED_STATIONS) == ["backlog", "plan", "ready", "building", "review", "done"],
       list(fc.MANDATED_STATIONS))
 
-check("(X) TERMINAL_MARKER is the lowercase terminal name and is NOT a seventh station",
-      fc.TERMINAL_MARKER == "abandoned"
-      and fc.TERMINAL_MARKER not in fc.MANDATED_STATIONS,
-      (fc.TERMINAL_MARKER, list(fc.MANDATED_STATIONS)))
+# FEAT-1714 T-03: the singular marker is GONE — no alias, no respelled tuple. Every terminal
+# consumer reads TERMINAL_STATIONS; a module still reaching for the old name fails loudly.
+check("(T-03) TERMINAL_MARKER no longer exists — TERMINAL_STATIONS is the one terminal vocabulary",
+      not hasattr(fc, "TERMINAL_MARKER"), dir(fc))
+check("(T-02) TERMINAL_STATIONS is the ordered abandoned/rejected non-board tuple",
+      getattr(fc, "TERMINAL_STATIONS", ()) == ("abandoned", "rejected")
+      and all(station not in fc.MANDATED_STATIONS
+              for station in getattr(fc, "TERMINAL_STATIONS", ())),
+      getattr(fc, "TERMINAL_STATIONS", None))
 
 # --- station_column: the ONE place a capitalised station name is produced (FEAT-41 T-01) ------
 # (c) ONE CASE PER STATION, never a set comparison. A set comparison passes when two stations
@@ -557,11 +562,11 @@ check("(X) every mandated station round-trips through station_column to a column
       all(fc.station_column(s).lower() == s for s in fc.MANDATED_STATIONS),
       [(s, fc.station_column(s)) for s in fc.MANDATED_STATIONS])
 
-# (d) station_column raises on TERMINAL_MARKER and on an already-capitalised name. The second is
+# (d) station_column raises on every TERMINAL_STATIONS name and on an already-capitalised name. The second is
 # the likelier live mistake: a caller that has a column name and passes it back in would
 # otherwise get "Done".capitalize() == "Done" and silently work, which is how a case boundary
 # stops being a boundary.
-for _bad in (fc.TERMINAL_MARKER, "Done", "Icebox", "", "DONE"):
+for _bad in (*fc.TERMINAL_STATIONS, "Done", "Icebox", "", "DONE"):
     try:
         _got = fc.station_column(_bad)
         check(f"station_column({_bad!r}) raises FleetError", False, f"returned {_got!r}")

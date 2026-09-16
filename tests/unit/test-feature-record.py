@@ -399,6 +399,22 @@ class JudgementTest(FeatureRecordCase):
         self.assertIn("vibe", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
+    def test_judgement_accepts_reject_with_the_superseding_issue_as_decision(self):
+        """FEAT-1714: the reject verdict's ledger entry — kind reject, decision the
+        superseding issue number (or `none`), reason the digest's one line."""
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-orchestrator", "--kind", "reject",
+                                    "--decision", "1594",
+                                    "--reason", "#285 superseded by #1594 on 2026-09-10"))
+        j = self.load()["judgements"][-1]
+        self.assertEqual(("reject", "1594"), (j["kind"], j["decision"]))
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-orchestrator", "--kind", "reject",
+                                    "--decision", "none", "--reason", "already fixed on main"))
+        self.assertEqual("none", self.load()["judgements"][-1]["decision"])
+        self.assert_clean()
+
     def test_judgement_refuses_a_reason_over_240_characters(self):
         """The ledger holds one-line reasons (SC-21); the cap is the schema's, and the
         refusal must propagate the schema code rather than be swallowed."""
@@ -795,6 +811,9 @@ class SchemaTest(unittest.TestCase):
     def test_judgement_unknown_kind_is_rejected(self):
         problems = self.problems(base_doc(judgements=[self.judgement(kind="hunch")]))
         self.assertTrue(problems and any("/judgements/0/kind" in p for p in problems), problems)
+
+    def test_judgement_reject_kind_is_accepted_by_the_strict_schema(self):
+        self.assertEqual([], self.problems(base_doc(judgements=[self.judgement(kind="reject")])))
 
     def test_judgement_extra_key_is_rejected(self):
         problems = self.problems(base_doc(judgements=[self.judgement(note="why")]))

@@ -628,7 +628,11 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, appr
         lines.append("approval:")
         for key, value in approval.items():
             lines.append(f"  {key}: {value}")
-    lines.append("tasks:")
+    if not task_statuses:
+        # A plan with no tasks is legal ONLY as the station-only record (FEAT-41 T-19) —
+        # the shape a first-run reject leaves behind (FEAT-1714).
+        lines.append("station_only: true")
+    lines.append("tasks:" + (" []" if not task_statuses else ""))
     for tid, status in task_statuses:
         lines += [
             f"  - id: {tid}",

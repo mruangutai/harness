@@ -1,0 +1,266 @@
+schema: plan/1
+feature: FEAT-1714-reject-verb
+approval:
+  date: '2026-09-15'
+  approved_by: mruangutai
+  status: approved
+status: review
+source_issues: [1714]
+panel:
+  last_run: plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-4b310e418a365e496d85e290784f60a1
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-03 deletes TERMINAL_MARKER while gh-sync.py retains live references not assigned to any migration task.
+    disposition: resolved
+    resolved_by: T-02, T-03
+  - id: PF-030315cd6111f7532d9c7d8e0efec0e5
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-03/T-04 build "INV-42", but INV-42 already exists — check-state.py:2605 (FEAT-60 SC-08, preload weight)
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-6857940d2701d0e6110d6cc456e810f4
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-03 deletes TERMINAL_MARKER while six gh-sync.py sites no task names still consume it (gh-sync.py:137,343,953,985,1150,1557)
+    disposition: resolved
+    resolved_by: T-02, T-03
+  - id: PF-3461fd65e08eabba0f76fe267bf4a8dd
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: superseded_by:none is a legal terminal return with no GitHub disposition and no legal close path for the parent
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-a92e4d4ad8b6e33d4804b64bb190400a
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: Two writers of the one station write — T-05's orchestrator writes rejected via plan-merge, then T-02's gh-sync reject records it again
+    disposition: resolved
+    resolved_by: T-02, T-05
+  - id: PF-6969fc28c9800a9afe368108c19cb9e1
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-03's "BRIEF must remain byte-stable through the station verb" tests a non-path
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+  - id: PF-89b56d76f929314904fb2aa8b0181337
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-03/T-04 build INV-42, but INV-42 already exists.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-507f6fec7915867514a0612bf14a6487
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-03 deletes TERMINAL_MARKER while six gh-sync.py sites still consume it.
+    disposition: resolved
+    resolved_by: T-02, T-03
+  - id: PF-8705e38904a0ee5ac54b9c719cf7c6e0
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: superseded_by:none lacks a legal GitHub parent disposition.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-3a4f2b39dc96ea45bbd0319aea3e06e9
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: Two writers perform the one rejected station write.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-5abd3fd4e11b73c0116f8810412db6f3
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The BRIEF byte-stability station test is a non-path.
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+lanes:
+  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  rows:
+    - surface: .claude/skills/harness/bin/validate-digest.py and feature-record.py enforcement contract
+      lane: main-session-direct
+      reason: DEC-174 reserves digest validation and feature-record enforcement for the main session
+    - surface: .claude/skills/harness/bin/factory_config.py plus GitHub and handoff consumers
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/plan-merge.py check-domain.py check-plan-routes.py check-state.py worktree_terminal.py
+      lane: main-session-direct
+      reason: DEC-174 reserves plan and state gates and their coupled terminal cutover for the main session
+    - surface: tests paired with main-session-direct enforcement tasks
+      lane: main-session-direct
+      reason: DEC-174 keeps enforcement changes and their coupled regression tests on one route
+    - surface: tests paired with GitHub lifecycle and terminal-consumer work
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/SKILL.md harness-handoff/SKILL.md and templates/plan.yaml
+      lane: main-session-direct
+      reason: no team domain grants the canonical skill and template contract surfaces
+
+decisions:
+  - id: D-01
+    choice: Replace the singular terminal marker with the ordered terminal station set abandoned then rejected, and migrate every consumer before removing the singular name.
+    because: A second non-board terminal state makes a singular constant false and leaving consumers on mixed vocabularies would make rejection terminal in some gates but live in others.
+    dec: none
+  - id: D-02
+    choice: Add reject to the closed judgement vocabulary without removing a concurrently landed amendment kind, and make DEC-230 state the resulting enum and count actually present after merge.
+    because: Issue 1716 is changing the same closed enum concurrently, so either landing order must preserve both independently authorised judgement kinds.
+    dec: DEC-230
+
+tasks:
+  - id: T-01
+    title: Define the terminal reject digest and ledger contract
+    traces: [SC-01, SC-02]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves validate-digest.py and feature-record.py enforcement changes and their coupled tests for the main session.
+    depends_on: []
+    status: done
+    files:
+      - path: .claude/skills/harness/bin/validate-digest.py
+        quote: '"orchestrator": {"feature": str,'
+      - path: .claude/skills/harness/bin/feature-record.py
+        quote: 'JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession")'
+      - path: .claude/skills/harness/bin/feature-schema.json
+        quote: '"kind": { "type": "string", "enum": ["mission", "finding_kind", "regate", "continue", "succession"]'
+      - tests/integration/test-validate-digest.py#main
+      - tests/unit/test-feature-record.py#JudgementTest
+      - tests/unit/test-feature-record.py#SchemaTest
+    verify: |
+      python3 tests/unit/test-feature-record.py && python3 tests/integration/test-validate-digest.py
+    intent: |
+      Extend the orchestrator digest status enum with rejected. A rejected return must carry a judgement mapping whose exact contract is kind: reject, superseded_by: a positive integer issue number or the literal none, and reason: a non-empty single line of at most 240 characters; reject missing keys, extra keys, booleans, zero or negative issue numbers, multiline reasons, and this mapping on no other terminal status. Require cycles_used to be the integer zero for the rejected shape while retaining the existing runs and briefing fields, with briefing represented as the string none when no briefing exists. Add reject to feature-record.py's closed JUDGEMENT_KINDS and to feature-schema.json so feature-record.py judgement can append the standard five-field ledger entry; store the superseding issue number or none in decision and the digest reason in reason. Preserve an amendment kind if issue 1716 has landed first. Add positive and negative behavioural cases for the digest, CLI, and strict schema; each new case must fail against the pre-change implementation.
+
+  - id: T-02
+    title: Add reject to terminal consumers and GitHub lifecycle
+    traces: [SC-03, SC-05]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - path: .claude/skills/harness/bin/factory_config.py
+        quote: 'TERMINAL_MARKER = "abandoned"'
+      - .claude/skills/harness/bin/handoff_done_when.py#_satisfied_plan
+      - .claude/skills/harness/bin/gh_board.py#project
+      - .claude/skills/harness/bin/board_lifecycle.py#_status_findings
+      - .claude/skills/harness/bin/gh-sync.py#cmd_abandon
+      - path: tests/unit/test-factory-config.py
+        quote: 'FAILS = 0'
+      - path: tests/unit/test-handoff-done-when.py
+        quote: 'PLAN_TASK = ('
+      - path: tests/unit/test-gh-board.py
+        quote: 'FAILURES = []'
+      - path: tests/integration/test-board-lifecycle.py
+        quote: 'FAILURES = []'
+      - tests/integration/test-gh-sync-abandon.py#main
+    verify: |
+      python3 tests/unit/test-factory-config.py && python3 tests/unit/test-handoff-done-when.py && python3 tests/unit/test-gh-board.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-gh-sync-abandon.py
+    intent: |
+      Introduce factory_config.TERMINAL_STATIONS as the ordered tuple (abandoned, rejected), retaining the old singular constant only until T-03 completes the enforcement cutover. Migrate handoff completion, card projection, and lifecycle auditing to treat every member as terminal and as naming no board column, while keeping abandoned-specific labels and close reasons specific to abandoned. In gh-sync.py, migrate every generic terminal-state consumer to TERMINAL_STATIONS, including STATION_VALUES, the cmd_status terminal exemption, finished-task station checks, both parent or sub-issue skip paths, and the status early return; keep behavior that is semantically specific to abandoned keyed only to abandoned. Extend the gh-sync regression to exercise each migrated generic consumer with both terminal stations so it cannot retain a reference to TERMINAL_MARKER.
+
+      Add gh-sync.py reject <feature-dir> --superseded-by <positive integer or none> --reason-file <path> [--yes]. Reuse cmd_abandon's report-and-ask and _close_and_reseat order. Without --yes, print the exact parent, successor disposition, comment, label if any, milestone, backlog, and station actions and perform no mutation. With a positive integer and --yes, close only the recorded parent with state_reason not_planned, post a body-file comment that links the superseding issue and includes the supplied one-line reason, ensure and add the superseded label, reseat the parent card to backlog after close, close a recorded milestone, touch no task issues or parent links, and record feature station rejected as the successful path's last mutation; gh-sync.py is the sole station writer on this numeric path. With the literal none and --yes, close only the recorded parent with state_reason not_planned, post the supplied one-line reason while explicitly recording that no successor was named, add no superseded label or successor link, perform the same close-then-reseat and milestone cleanup, touch no task issues or parent links, and perform no station mutation; T-05's direct plan-merge.py call is the sole station writer on this none path. Reject any other successor value or invalid reason file before any write. Extend the existing offline fake-gh tests to assert both successor dispositions, rendered values, mutation absence in report mode, exact close-before-reseat ordering, no sub-issue calls, and the path-specific single station writer.
+
+  - id: T-03
+    title: Enforce rejected station invariants and cleanup
+    traces: [SC-02, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves plan mutation and state/domain/route gates; the worktree classifier and terminal constant removal are coupled to those enforcement changes.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - path: .claude/skills/harness/bin/factory_config.py
+        quote: 'TERMINAL_MARKER = "abandoned"'
+      - .claude/skills/harness/bin/plan-merge.py#_legal_stations
+      - path: .claude/skills/harness/bin/check-domain.py
+        quote: '_legal = set(_fc.MANDATED_STATIONS) | {_fc.TERMINAL_MARKER}'
+      - .claude/skills/harness/bin/check-plan-routes.py#finished_stations
+      - path: .claude/skills/harness/bin/check-state.py
+        quote: '# --- INV-29 (FEAT-34 T-06, REQ-01..REQ-06): a worktree must not survive its feature'
+      - .claude/skills/harness/bin/worktree_terminal.py#_landed_station_record
+      - tests/integration/test-plan-merge.py#main
+      - tests/integration/test-check-plan-routes.py#case_41_t04_top_level_station_vocabulary
+      - tests/integration/test-check-state-feat59.py#case_inv40
+      - tests/integration/test-worktree-terminal.py#case_plan_station_is_the_landed_authority
+      - tests/integration/test-check-state-worktrees.py#case_inv29
+      - tests/integration/test-station-argument-spelling.py#case_every_argument_is_accepted
+      - path: tests/unit/test-factory-config.py
+        quote: 'FAILS = 0'
+    verify: |
+      python3 tests/unit/test-factory-config.py && python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-state-feat59.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-check-state-worktrees.py && python3 tests/integration/test-station-argument-spelling.py && python3 tests/integration/test-gh-sync-abandon.py
+    intent: |
+      Migrate plan-merge.py, check-domain.py, check-plan-routes.py, check-state.py, and worktree_terminal.py from the singular marker to factory_config.TERMINAL_STATIONS, then delete TERMINAL_MARKER with no compatibility alias or respelled terminal tuple left behind. set-feature-station must accept rejected; illegal-station remedies must enumerate it; route checks must skip rejected records; state seams and every terminal exclusion must recognize both terminal states; landed rejected plans must classify as terminal for INV-29 cleanup. After deleting TERMINAL_MARKER, rerun the gh-sync regression from T-02 so the generic consumers are verified against the final shared vocabulary rather than only against the temporary compatibility state.
+
+      At implementation time, inspect the then-current merged check-state.py invariant identifiers and assign this rejected-record invariant the next free number. If a concurrent landing claims the candidate before this task lands, reselect the next free number and apply the final assigned identifier consistently in the implementation, its tests, and T-04's DEC-230 text; do not hard-code the number drafted by this plan. For any plan whose top-level station is rejected, the invariant accepts only cycles_used equal to integer zero, exactly one run owned by harness-orchestrator and by no lead, at least one reject judgement, no approved plan or BRIEF signature, and no panel mapping. Report separate actionable violations for each bad dimension, including zero or multiple runs. Exempt a conforming rejected feature from the ordinary approval and plan-panel requirements without weakening those requirements for other stations. Tests must cover the valid record and independently mutate cycles, run count, run agent, reject judgement, approval, and panel, plus verify landed worktree classification. The valid record fixture must retain source_issues [1714] and may include a drafted BRIEF, with an assertion that the drafted unsigned BRIEF does not make the rejected record invalid. Do not add new byte-stability tests around set-feature-station for source_issues or BRIEF; the existing locked add-only mutation contract already owns that behavior.
+
+  - id: T-04
+    title: Amend the judgement decision record
+    traces: [SC-02, SC-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-03]
+    status: done
+    files:
+      - path: .harness/harness/docs/DECISIONS.md
+        quote: '## DEC-230 — The judgement ledger: every autonomous judgement is a `judgements[]` entry, and uncertainty asks once with a recommendation'
+      - path: .harness/harness/docs/DECISIONS-INDEX.md
+        quote: '- DEC-230 @7414 [cost,brief,orchestrator,plan]'
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Amend DEC-230 so reject is an exhaustive autonomous judgement kind whose standard ledger decision is the superseding issue number or none, with the operator retaining after-the-fact overrule authority. Replace the stale fixed count with the exact final count and list present after preserving issue 1716's amendment kind if already landed. State that a rejection is decided only at first-run plan or patch intake before lead dispatch, consumes zero cycles, and is guarded by the invariant identifier T-03 assigns as the next free number at implementation time. Read that identifier from T-03's landed check-state.py and use it consistently rather than assuming a number from this plan. Regenerate DECISIONS-INDEX.md and preserve its hand-written annotation suffix.
+
+  - id: T-05
+    title: Document the reject orchestration contract
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The canonical harness and handoff skills plus plan template resolve to no team domain and must remain coupled to the enforcement contract they instruct.
+    depends_on: [T-01, T-02, T-03, T-04]
+    status: done
+    files:
+      - path: .claude/skills/harness/SKILL.md
+        quote: '## The loop'
+      - path: .claude/skills/harness-handoff/SKILL.md
+        quote: '## Your return — three parts, always'
+      - path: .claude/skills/harness/templates/plan.yaml
+        quote: '# THE FEATURE''S STATION, and the only record of it (FEAT-41). One of the six names'
+    verify: |
+      python3 tests/integration/test-station-argument-spelling.py
+    intent: |
+      Teach the orchestrator to inspect the source ticket at the start of the first plan or patch run before any lead dispatch. On rejection it records the reject judgement through feature-record.py and ends the sole orchestrator-owned run. For a positive-integer successor, invoke gh-sync.py reject under the normal report-and-ask confirmation and let that command perform the only plan station write, rejected, as its last successful mutation; do not also call set-feature-station on this path. For superseded_by none, invoke gh-sync.py reject with the literal none under the same confirmation so it closes the GitHub parent not_planned, comments the reason without a successor link, reseats the card, and closes an existing milestone; only after that succeeds, write plan station rejected once through plan-merge.py set-feature-station, with the orchestrator as the sole station writer on this path. Return status rejected with the exact judgement mapping from T-01, runs containing only that run, cycles_used zero, briefing none, and no panel or product dispatch. The operator may overrule from that return; the orchestrator does not auto-plan a successor and never applies this path after build begins.
+
+      Add the rejected terminal return to the universal handoff contract without turning it into PASS prose. Update every station list and plan template comment to name both abandoned and rejected as non-board terminal stations and to show rejected as a legal feature station. Keep approval and panel absent from the drafted rejection path; do not add an approval or panel-writing instruction.

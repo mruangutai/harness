@@ -42,6 +42,35 @@ never at startup (DEC-150, DEC-158):
    **The approval gate depends on your mission.** On **ship**, BRIEF's `## Approval` *and*
    `plan.yaml`'s `approval.status` must both read `approved`, else `BLOCKED` at step 0. On **plan**
    or **patch**, producing them IS the mission: return them `pending`; only the main session signs.
+   **Inspect the source ticket before any lead is dispatched** — the first cycle of a `plan` or
+   `patch` mission, before step 3 ever runs. The ticket is the one the grilling artifact names
+   (mirrored as `plan.yaml`'s `source_issues` once a plan exists); read it and its comments. If it
+   is wrong — already fixed, superseded by another issue, or asking for what a later ruling
+   refused — the honest return is **`rejected`**, at the cost of this one run and zero cycles
+   (FEAT-1714). The record needs a plan to hold its station: when no `plan.yaml` exists yet, write
+   the station-only one (`schema: plan/1`, `feature:`, `status: plan`, `station_only: true`,
+   `source_issues: [<ticket>]`, `tasks: []`) — never a task. Then: record the judgement with
+   `feature-record.py judgement --file <feature.json> --by harness-orchestrator --kind reject
+   --decision <superseding issue number | none> --reason "<one line>"`, close your one run, and
+   run `gh-sync.py reject <feature-dir> --superseded-by <n | none> --reason-file <path>` — it
+   reports and asks first, and executes exactly the list it printed. Nothing harness-created
+   exists on GitHub yet (the parent is `open`'s, at build entry), so its disposition is the reason
+   posted on each source ticket and that card returned to backlog — the ticket is never closed or
+   labelled (the harness closes only cards it created). With `--yes` and a **superseding issue
+   number** it **writes the plan station `rejected` itself as its last mutation, only after every
+   GitHub write landed — do not also call `set-feature-station`**. With `--yes` and **`none`**
+   (the ticket should not be planned at all) it leaves the station to you: **only after it exits
+   0**, write `rejected` once with `plan-merge.py set-feature-station`. A failed GitHub write exits
+   1 naming what landed and what did not, and no station is written on either path — fix the
+   named step and re-run. (On a record that already carries a parent — a reject after build entry
+   never applies, but the verb is one — it closes that parent `not_planned` with the comment,
+   labels it `superseded` for a numeric successor, reseats it, and closes the milestone.) Then
+   return `status: rejected` with the digest's one inline `judgement: { kind: reject, superseded_by:
+   <n | none>, reason: "<one line>" }`, `runs` holding only that run, `cycles_used: 0` and
+   `briefing: none`; the validator refuses any other shape, and INV-44 grades the record (one
+   orchestrator run, zero cycles, a reject judgement, nothing signed, no panel). The operator
+   overrules from that return; you never auto-plan the successor, and this path never applies once
+   build has begun. A signed plan is never rejected — that is `abandoned`.
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
 3. **Delegate to a lead, never a member.** Every governed prompt starts with the literal line
    `HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>` — first, because the dispatch gate keys its claim
@@ -111,7 +140,8 @@ amendment to a signed task's `intent`, `files`, or `verify` (DEC-32/DEC-229), an
 **Your writes to `plan.yaml` are verbs, never edits:** `plan-merge.py set-task-station --file
 <plan.yaml> --task T-NN --station <name>`, `set-feature-station`, and `record-panel` after a plan
 run (DEC-229). Record your station in `plan.yaml`'s top-level `status:` — lowercase, one of
-`backlog plan ready building review done abandoned` — with `set-feature-station`; `feature.json`
+`backlog plan ready building review done` or a terminal station outside the board, `abandoned` or
+`rejected` — with `set-feature-station` (on the reject path `gh-sync.py reject` writes it for you); `feature.json`
 holds no `status:` or `phase:` key and the schema refuses both (FEAT-41, DEC-191).
 You never `Edit` `plan.yaml`, never `Write` it whole, never redirect a shell into
 it; the shape gate denies all three. `approval:` is the main session's `sign-approval` alone

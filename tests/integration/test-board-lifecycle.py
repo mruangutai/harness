@@ -1063,6 +1063,15 @@ with tempfile.TemporaryDirectory() as base:
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    write_feature(root, "widget", "FEAT-REJECTED", None, plan_station="rejected", parent=602,
+                  github_issues={"T-01": 603})
+    r, log = run(root, ["audit"], stations=_stations_json({602: "Backlog"}))
+    check("audit STATUS: rejected is terminal and has no board-column finding",
+          r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
+
+with tempfile.TemporaryDirectory() as base:
     # Exemption 2 -- no recorded parent (INV-21's finding, not this one).
     root = os.path.join(base, "root")
     write_root(root, default_github())

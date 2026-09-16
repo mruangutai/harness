@@ -818,57 +818,51 @@ def case_classify_empty_repo_no_linked_worktrees():
     return results
 
 
+def _landed_station_records(tmp, stations):
+    """One committed feature per (id, plan station) with a linked worktree, classified; returns
+    {id: record-or-None}. The feature.json carries NO status — what the FEAT-41 T-07 migration
+    leaves behind — so only a reader repointed at plan.yaml can see the station. REALPATH
+    FALLBACK as every other case here: on macOS the tempdir is /var/... while git reports
+    /private/var/..., so a bare dict lookup misses for a reason unrelated to the test."""
+    import worktree_terminal as w
+    repo = _repo(os.path.join(tmp, "R"))
+    dests = {}
+    for feature_id, station in stations:
+        _commit_feature(repo, feature_id, {"feature_id": feature_id}, plan_station=station)
+        dests[feature_id] = _add_wt(repo, feature_id)
+    recs = {r["path"]: r for r in w.classify(repo)}
+    return {fid: recs.get(os.path.realpath(dest)) or recs.get(dest) for fid, dest in dests.items()}
+
+
 def case_plan_station_is_the_landed_authority():
     """FEAT-41 T-07: the landed station is read from plan.yaml, not from feature.json.
 
     THIS IS THE CASE THAT PROVES THE MIGRATION'S POSITIVE SIDE, and it is the reason T-07's
     verify cannot rest on its schema and absence assertions alone: every one of those goes
     GREEN on a HALF-APPLIED migration in which the status key is deleted and this reader still
-    expects it. Here the feature.json carries NO status at all — exactly what the migration
-    leaves behind — and the sibling plan.yaml records the lowercase station. An un-repointed
-    reader finds no status, matches nothing, and OMITS the worktree instead of calling it
-    terminal, which is the silent direction: a terminal worktree that never gets reclaimed.
-    """
-    import worktree_terminal as w
-
-    results = []
-
+    expects it. An un-repointed reader finds no status, matches nothing, and OMITS the worktree
+    instead of calling it terminal, which is the silent direction: a terminal worktree that
+    never gets reclaimed. The `review` feature is the NEGATIVE CONTROL, and it is load-bearing:
+    without it "terminal" could be what this reader returns for ANY feature carrying a
+    plan.yaml. FEAT-1714 T-03: a landed `rejected` plan is terminal too — the feature will
+    never build, and its worktree is what INV-29 reclaims."""
     with tempfile.TemporaryDirectory() as tmp:
-        repo = _repo(os.path.join(tmp, "R"))
-
-        _commit_feature(repo, "FEAT-70-plan-done", {"feature_id": "FEAT-70-plan-done"},
-                        plan_station="done")
-        done_dest = _add_wt(repo, "FEAT-70-plan-done")
-
-        # NEGATIVE CONTROL, and it is load-bearing: without it "terminal" could be what this
-        # reader returns for ANY feature carrying a plan.yaml, and the case above would pass
-        # on a repointing that read the plan but ignored the station in it.
-        _commit_feature(repo, "FEAT-71-plan-review", {"feature_id": "FEAT-71-plan-review"},
-                        plan_station="review")
-        review_dest = _add_wt(repo, "FEAT-71-plan-review")
-
-        recs = {r["path"]: r for r in w.classify(repo)}
-
-        # REALPATH FALLBACK, as every other case in this file does: on macOS the tempdir is
-        # /var/... while git reports /private/var/..., so a bare dict lookup misses and the
-        # case fails for a reason that has nothing to do with what it tests.
-        def get(dest):
-            return recs.get(os.path.realpath(dest)) or recs.get(dest)
-
-        results.append((
-            "T-07: plan.yaml station `done` -> terminal, with NO feature.json status present",
-            (get(done_dest) or {}).get("klass") == "terminal",
-            f"got {get(done_dest)!r}"))
-        results.append((
-            "T-07: the reason names the lowercase station read from plan.yaml",
-            "done" in (get(done_dest) or {}).get("reason", ""),
-            f"got {(get(done_dest) or {}).get('reason')!r}"))
-        results.append((
-            "T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely",
-            get(review_dest) is None,
-            f"got {get(review_dest)!r}"))
-
-    return results
+        got = _landed_station_records(tmp, [("FEAT-70-plan-done", "done"),
+                                            ("FEAT-71-plan-review", "review"),
+                                            ("FEAT-72-plan-rejected", "rejected")])
+    done, review, rejected = (got["FEAT-70-plan-done"] or {}, got["FEAT-71-plan-review"],
+                              got["FEAT-72-plan-rejected"] or {})
+    return [
+        ("T-07: plan.yaml station `done` -> terminal, with NO feature.json status present",
+         done.get("klass") == "terminal", f"got {done!r}"),
+        ("T-07: the reason names the lowercase station read from plan.yaml",
+         "done" in done.get("reason", ""), f"got {done.get('reason')!r}"),
+        ("T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely",
+         review is None, f"got {review!r}"),
+        ("FEAT-1714: plan.yaml station `rejected` -> terminal, reason naming the station",
+         rejected.get("klass") == "terminal" and "rejected" in rejected.get("reason", ""),
+         f"got {rejected!r}"),
+    ]
 
 
 def _commit_brief(repo, feature_id, approval_block, repo_segment="harness"):

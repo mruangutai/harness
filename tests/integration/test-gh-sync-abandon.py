@@ -19,6 +19,8 @@ import re
 import sys
 import tempfile
 
+import yaml
+
 from gh_sync_support import (
     FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, add_plan_station, calls, check, edits_to,
     install_gh, read_feature_json, read_plan_station, report, run, ship_env, stage, stage_ship,
@@ -614,6 +616,199 @@ def main():
         check("_record_status still runs — feature.json reaches Abandoned",
               read_plan_station(featAC) == "abandoned",
               open(os.path.join(featAC, "feature.json")).read())
+    # T-02 reject: report mode has no mutation; confirmed numeric and none dispositions
+    # close ONLY the parent and keep sub-issues and links untouched.
+    def _reject_fixture(tmp, name):
+        install_gh(tmp, FAKE_GH_STATIONS)
+        feat = stage_station(tmp, name, [("T-01", "ready")],
+                             issues={"T-01": 41}, parent=40, milestone=7)
+        reason = os.path.join(tmp, "reject-reason.txt")
+        open(reason, "w").write("source ticket is obsolete")
+        return feat, reason
+
+    with tempfile.TemporaryDirectory() as tmpR0:
+        featR0, reasonR0 = _reject_fixture(tmpR0, "FEAT-REJECT-INVALID")
+        open(reasonR0, "w").write("first line\nsecond line")
+        r = run(["reject", featR0, "--superseded-by", "0", "--reason-file", reasonR0, "--yes"],
+                tmpR0, {"FACTORY_GH": os.path.join(tmpR0, "gh")})
+        _invalid_writes = lambda: [line for line in calls(tmpR0)
+                                   if "state=closed" in line or "issue comment" in line
+                                   or "issue edit" in line or "item-edit" in line
+                                   or "label create" in line]
+        check("reject invalid successor refuses before any mutation",
+              r.returncode == 1 and _invalid_writes() == [],
+              f"rc={r.returncode} log={calls(tmpR0)}")
+        r = run(["reject", featR0, "--superseded-by", "none", "--reason-file", reasonR0, "--yes"],
+                tmpR0, {"FACTORY_GH": os.path.join(tmpR0, "gh")})
+        check("reject multiline reason refuses before any mutation",
+              r.returncode == 1 and _invalid_writes() == [],
+              f"rc={r.returncode} log={calls(tmpR0)}")
+
+    with tempfile.TemporaryDirectory() as tmpR1:
+        featR1, reasonR1 = _reject_fixture(tmpR1, "FEAT-REJECT-REPORT")
+        r = run(["reject", featR1, "--superseded-by", "88", "--reason-file", reasonR1], tmpR1,
+                {"FACTORY_GH": os.path.join(tmpR1, "gh")})
+        logR1 = calls(tmpR1)
+        writesR1 = [line for line in logR1 if "state=closed" in line or "issue comment" in line
+                    or "issue edit" in line or "item-edit" in line or "label create" in line]
+        check("reject numeric report: names parent, successor, comment, label, milestone, backlog and station",
+              r.returncode == 0 and all(token in r.stdout for token in
+              ("parent #40", "#88", "comment", "superseded", "milestone #7", "backlog", "rejected")),
+              r.stdout + r.stderr)
+        check("reject numeric report: makes no mutations", writesR1 == [], str(logR1))
+        check("reject numeric report: does not record the station",
+              read_plan_station(featR1) != "rejected", read_plan_station(featR1))
+
+    # QA-C1-02: the station is the LAST mutation, proven by sequence not by final state. This
+    # fake gh stamps the plan's station line onto every remote call it logs, so a station write
+    # that moved ahead of any remote write shows as `plan:status: rejected` on that call.
+    FAKE_GH_STATION_TRACE = FAKE_GH_STATIONS.replace(
+        'echo "$*" | tr', 'echo "$* plan:$(grep -m1 "^status:" "$FAKE_PLAN")" | tr', 1)
+
+    def _remote_writes(log):
+        return [line for line in log if "state=closed" in line or "issue comment" in line
+                or "issue edit" in line or "item-edit" in line]
+
+    with tempfile.TemporaryDirectory() as tmpR2:
+        featR2, reasonR2 = _reject_fixture(tmpR2, "FEAT-REJECT-NUMERIC")
+        install_gh(tmpR2, FAKE_GH_STATION_TRACE)
+        r = run(["reject", featR2, "--superseded-by", "88", "--reason-file", reasonR2, "--yes"],
+                tmpR2, {"FACTORY_GH": os.path.join(tmpR2, "gh"),
+                        "FAKE_PLAN": os.path.join(featR2, "plan.yaml")})
+        logR2 = calls(tmpR2)
+        closeR2 = next((i for i, line in enumerate(logR2) if "issues/40" in line and "state=closed" in line), None)
+        backlogR2 = next((i for i, line in enumerate(logR2) if "ITEM_40" in line and "OPT_BACKLOG" in line), None)
+        check("reject numeric: closes only parent then reseats it, comments, labels, closes milestone, and records rejected",
+              r.returncode == 0 and closeR2 is not None and backlogR2 is not None and closeR2 < backlogR2
+              and read_plan_station(featR2) == "rejected"
+              and any(line.startswith("issue comment 40") and "--body-file" in line for line in logR2)
+              and any(line.startswith("issue edit 40") and "--add-label superseded" in line for line in logR2)
+              and any("milestones/7" in line and "state=closed" in line for line in logR2)
+              and not any("issues/41" in line or "sub_issue" in line for line in logR2),
+              f"rc={r.returncode} log={logR2}")
+        writesR2 = _remote_writes(logR2)
+        check("reject numeric: the station is still `building` at EVERY remote write — recorded last",
+              len(writesR2) >= 4 and all("plan:status: building" in line for line in writesR2),
+              str(writesR2))
+
+    with tempfile.TemporaryDirectory() as tmpR3:
+        featR3, reasonR3 = _reject_fixture(tmpR3, "FEAT-REJECT-NONE")
+        r = run(["reject", featR3, "--superseded-by", "none", "--reason-file", reasonR3, "--yes"],
+                tmpR3, {"FACTORY_GH": os.path.join(tmpR3, "gh")})
+        logR3 = calls(tmpR3)
+        check("reject none: closes only parent without label/link or station mutation",
+              r.returncode == 0 and any("issues/40" in line and "state=closed" in line for line in logR3)
+              and any(line.startswith("issue comment 40") and "--body-file" in line for line in logR3)
+              and not any("superseded" in line for line in logR3)
+              and not any("issues/41" in line or "sub_issue" in line for line in logR3)
+              and read_plan_station(featR3) != "rejected",
+              f"rc={r.returncode} log={logR3}")
+
+    # validate c0 F-01: a failed REQUIRED mutation after the close exits 1, names what landed
+    # and what did not, and writes NO station — the record never claims a disposition GitHub
+    # does not carry. The label is the failing write (FAKE_GH_STATIONS_LABEL_FAILS), the one
+    # that abandon treats as cosmetic; reject does not, because the label IS the supersession.
+    with tempfile.TemporaryDirectory() as tmpR4:
+        featR4, reasonR4 = _reject_fixture(tmpR4, "FEAT-REJECT-LABEL-FAILS")
+        install_gh(tmpR4, FAKE_GH_STATIONS_LABEL_FAILS)
+        r = run(["reject", featR4, "--superseded-by", "88", "--reason-file", reasonR4, "--yes"],
+                tmpR4, {"FACTORY_GH": os.path.join(tmpR4, "gh")})
+        logR4 = calls(tmpR4)
+        check("reject numeric, label fails: exits 1 naming the failed step",
+              r.returncode == 1 and "not labelled `superseded`" in r.stderr, f"rc={r.returncode} {r.stderr}")
+        check("reject numeric, label fails: reports the close and comment that landed and the steps not run",
+              "landed before the failure: close parent #40" in r.stderr
+              and "landed before the failure: post comment on parent #40" in r.stderr
+              and "NOT run: return parent #40 to backlog" in r.stderr
+              and "NOT run: close milestone #7" in r.stderr, r.stderr)
+        check("reject numeric, label fails: nothing after the label ran and the station is NOT rejected",
+              not any("milestones/7" in line for line in logR4)
+              and not any("ITEM_40" in line and "OPT_BACKLOG" in line for line in logR4)
+              and read_plan_station(featR4) != "rejected", f"log={logR4} station={read_plan_station(featR4)}")
+
+    # validate c0 F-01 / SC-02 (VAL-06): the FIRST-SYNC record — no parent, no milestone,
+    # nothing harness-created on GitHub — is exactly where a first-run intake rejects. The
+    # disposition is the reason on each source ticket and its card back to backlog; the ticket
+    # is neither closed nor labelled (the harness closes only cards it created). The plan's
+    # source_issues and the drafted BRIEF survive byte for byte; the station lands last.
+    with tempfile.TemporaryDirectory() as tmpR5:
+        install_gh(tmpR5, FAKE_GH_STATION_TRACE)
+        featR5 = stage_station(tmpR5, "FEAT-REJECT-FIRST-SYNC", [], parent=None, milestone=None,
+                               plan_station="plan", source_issues=[1714])
+        plan_path = os.path.join(featR5, "plan.yaml")
+        brief_path = os.path.join(featR5, "BRIEF.md")
+        open(brief_path, "a").write("\n## Drafted\nA drafted paragraph the reject must keep.\n")
+        brief_before = open(brief_path).read()
+        plan_before = open(plan_path).read()
+        reasonR5 = os.path.join(tmpR5, "reject-reason.txt")
+        open(reasonR5, "w").write("already fixed by #1700")
+        envR5 = {"FACTORY_GH": os.path.join(tmpR5, "gh"), "FAKE_PLAN": plan_path}
+        r = run(["reject", featR5, "--superseded-by", "1700", "--reason-file", reasonR5], tmpR5, envR5)
+        check("reject first-sync report: names the source ticket, no parent, and the station",
+              r.returncode == 0 and "source ticket #1714" in r.stdout and "parent #" not in r.stdout
+              and "record feature station rejected" in r.stdout, r.stdout + r.stderr)
+        r = run(["reject", featR5, "--superseded-by", "1700", "--reason-file", reasonR5, "--yes"],
+                tmpR5, envR5)
+        logR5 = calls(tmpR5)
+        check("reject first-sync: comments on the source ticket, reseats it, closes and labels nothing",
+              r.returncode == 0
+              and any(line.startswith("issue comment 1714") and "--body-file" in line for line in logR5)
+              and any("ITEM_1714" in line and "OPT_BACKLOG" in line for line in logR5)
+              and not any("state=closed" in line for line in logR5)
+              and not any("--add-label" in line for line in logR5), f"rc={r.returncode} log={logR5}")
+        writesR5 = _remote_writes(logR5)
+        check("reject first-sync: the station is still `plan` at every remote write — recorded last",
+              len(writesR5) == 2 and all("plan:status: plan" in line for line in writesR5), str(writesR5))
+        # QA-C1-01: parsed, two-sided — the station transitioned AND source_issues is exactly
+        # what was signed off; a final-station write that dropped or rewrote it fails here.
+        plan_after = yaml.safe_load(open(plan_path))
+        check("reject first-sync: status is rejected and source_issues is exactly [1714]",
+              plan_after.get("status") == "rejected" and plan_after.get("source_issues") == [1714],
+              open(plan_path).read())
+        check("reject first-sync: byte-for-byte, the plan differs from its baseline only by the station line",
+              open(plan_path).read() == plan_before.replace("status: plan\n", "status: rejected\n"),
+              open(plan_path).read())
+        check("reject first-sync: the drafted BRIEF is byte-identical",
+              open(brief_path).read() == brief_before, open(brief_path).read())
+        r = run(["reject", featR5, "--superseded-by", "none", "--reason-file", reasonR5, "--yes"],
+                tmpR5, envR5)
+        check("reject first-sync none: exits 0 and leaves the station to the caller (already rejected here)",
+              r.returncode == 0, r.stderr)
+
+    # QA-C1-02, the `none` arm: a required write fails (the comment — with `none` it is the whole
+    # disposition) → exit 1, the later steps do not run, and the station stays as it was, so a
+    # caller that obeys "only after it exits 0" never writes `rejected`.
+    FAKE_GH_STATIONS_COMMENT_FAILS = FAKE_GH_STATIONS.replace(
+        'case "$1 $2" in',
+        'case "$*" in\n  "issue comment"*) echo "comment service unavailable" >&2; exit 1 ;;\nesac\ncase "$1 $2" in', 1)
+    with tempfile.TemporaryDirectory() as tmpR7:
+        featR7, reasonR7 = _reject_fixture(tmpR7, "FEAT-REJECT-NONE-COMMENT-FAILS")
+        install_gh(tmpR7, FAKE_GH_STATIONS_COMMENT_FAILS)
+        r = run(["reject", featR7, "--superseded-by", "none", "--reason-file", reasonR7, "--yes"],
+                tmpR7, {"FACTORY_GH": os.path.join(tmpR7, "gh")})
+        logR7 = calls(tmpR7)
+        check("reject none, comment fails: exits 1 naming the failed step and the close that landed",
+              r.returncode == 1 and "reason not posted on #40" in r.stderr
+              and "landed before the failure: close parent #40" in r.stderr, f"rc={r.returncode} {r.stderr}")
+        check("reject none, comment fails: backlog and milestone did NOT run",
+              "NOT run: return parent #40 to backlog" in r.stderr and "NOT run: close milestone #7" in r.stderr
+              and not any("ITEM_40" in line and "OPT_BACKLOG" in line for line in logR7)
+              and not any("milestones/7" in line for line in logR7), f"{r.stderr} log={logR7}")
+        check("reject none, comment fails: the station is untouched",
+              read_plan_station(featR7) == "building", read_plan_station(featR7))
+
+    # No parent AND no source_issues: nothing on GitHub names the feature — refused, no station.
+    with tempfile.TemporaryDirectory() as tmpR6:
+        install_gh(tmpR6, FAKE_GH_STATIONS)
+        featR6 = stage_station(tmpR6, "FEAT-REJECT-NOTHING", [], parent=None, milestone=None,
+                               plan_station="plan")
+        reasonR6 = os.path.join(tmpR6, "reject-reason.txt")
+        open(reasonR6, "w").write("nothing to dispose")
+        r = run(["reject", featR6, "--superseded-by", "88", "--reason-file", reasonR6, "--yes"],
+                tmpR6, {"FACTORY_GH": os.path.join(tmpR6, "gh")})
+        check("reject with neither parent nor source_issues: refused (exit 1) and no station write",
+              r.returncode == 1 and "source_issues" in r.stdout + r.stderr
+              and read_plan_station(featR6) != "rejected", f"rc={r.returncode} {r.stdout}{r.stderr}")
     return report()
 
 

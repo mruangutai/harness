@@ -66,7 +66,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_json_write  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
-JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment")
+JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
 MISSIONS = ("patch", "plan")
 REFUSAL_CODE = 2
 

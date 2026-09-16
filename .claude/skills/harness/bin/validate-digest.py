@@ -232,7 +232,7 @@ SCHEMAS = {
     # `verify:` asserts that spelling appears nowhere in this file.
     "orchestrator": {"feature": str,
                       "status": {"in_progress", "in_review", "shipped", "blocked",
-                                 "awaiting_user"},
+                                 "awaiting_user", "rejected"},
                       "runs": list, "cycles_used": int,
                       "briefing": str},
 }
@@ -380,6 +380,12 @@ DOCUMENTED_OPTIONAL = {
     "harness-eng-lead": {
         "amendments": list,
     },
+    # FEAT-1714: the reject verdict's one mapping. Declared here so the closed-contract
+    # gate admits the key; `_reject_judgement_errors` grades its shape and binds it to
+    # `status: rejected` — present on any other status it is refused there.
+    "harness-orchestrator": {
+        "judgement": str,
+    },
 }
 
 
@@ -420,6 +426,89 @@ def _amendments_errors(seen):
             continue
         err.extend(amendment_contract.entry_errors(entry, index))
     return err
+
+
+REJECT_JUDGEMENT_KEYS = ("kind", "superseded_by", "reason")
+
+
+def _reject_keys(j):
+    extra = sorted(set(j) - set(REJECT_JUDGEMENT_KEYS))
+    missing = [k for k in REJECT_JUDGEMENT_KEYS if k not in j]
+    out = []
+    if extra:
+        out.append(f"judgement carries {extra} — the reject mapping has exactly the keys "
+                   f"{list(REJECT_JUDGEMENT_KEYS)}; `by` and `at` are the ledger's to write.")
+    if missing:
+        out.append(f"judgement is missing {missing} — the reject mapping has exactly the keys "
+                   f"{list(REJECT_JUDGEMENT_KEYS)}.")
+    return out
+
+
+def _reject_kind(j):
+    if j.get("kind") == "reject":
+        return []
+    return [f"judgement kind={j.get('kind')!r} — on a rejected return the kind is `reject`, "
+            f"nothing else."]
+
+
+def _positive_int(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _reject_successor(j):
+    sup = j.get("superseded_by")
+    if "superseded_by" not in j or sup == "none" or _positive_int(sup):
+        return []
+    return [f"superseded_by={sup!r} — a positive issue number, or the literal `none` when the "
+            f"ticket should not be planned at all."]
+
+
+def _one_line(text, limit=240):
+    return (isinstance(text, str) and text.strip() and "\n" not in text.strip()
+            and len(text) <= limit)
+
+
+def _reject_reason(j):
+    if "reason" not in j or _one_line(j.get("reason")):
+        return []
+    return ["reason must be one non-empty line of at most 240 characters — the operator reads "
+            "it in the ledger and overrules from it (DEC-230)."]
+
+
+def _reject_cycles(seen):
+    cycles = seen.get("cycles_used")
+    if isinstance(cycles, int) and not isinstance(cycles, bool) and cycles == 0:
+        return []
+    return [f"cycles_used={cycles!r} on a rejected return — a reject happens at first-run "
+            f"intake before any gate; it costs zero cycles by definition."]
+
+
+def _reject_mapping(raw):
+    """parse_digest keeps a flow mapping as its raw `{ ... }` text; parse_member_entry is the
+    file's one reader of that shape. A block mapping does not arrive as a string at all,
+    which is right: the reject mapping is ONE line."""
+    if isinstance(raw, str) and raw.strip().startswith("{"):
+        return parse_member_entry(raw) or None
+    return None
+
+
+def _reject_judgement_errors(seen):
+    """FEAT-1714 SC-01: `status: rejected` carries exactly one `judgement` mapping —
+    {kind: reject, superseded_by: <positive int | none>, reason: <one line, ≤240>} — and
+    `cycles_used: 0`; the mapping on any other status is refused. This is the return that
+    says "this ticket is wrong, here is the right one" at first-run intake, at the cost of
+    one run and zero cycles (#1684, #1714)."""
+    if seen.get("status") != "rejected":
+        return (["judgement: is legal only with `status: rejected` — every other judgement "
+                 "goes to feature.json through feature-record.py, never the return."]
+                if "judgement" in seen else [])
+    judgement = _reject_mapping(seen.get("judgement"))
+    if judgement is None:
+        return ["status: rejected needs one inline `judgement:` mapping {kind: reject, "
+                "superseded_by: <issue number or none>, reason: <one line>} — a reject with no "
+                "recorded judgement is an unrecorded judgement (DEC-230)."]
+    return [msg for check in (_reject_keys, _reject_kind, _reject_successor, _reject_reason)
+            for msg in check(judgement)] + _reject_cycles(seen)
 
 
 def review_config_path(config_path=None):
@@ -1709,6 +1798,8 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                    "it is an active routing signal, not a tally.")
     if raw_persona == "harness-eng-lead":
         err.extend(_amendments_errors(seen))
+    if persona == "orchestrator":
+        err.extend(_reject_judgement_errors(seen))
     return err
 
 

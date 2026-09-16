@@ -447,13 +447,18 @@ _p = gh_board.project(_plan("done", "done", top="done"), _rec(issues={}, parent=
 check("project: a done top-level station beats derive_station's review (terminal first)",
       _p.get(99) == "done", repr(_p))
 
-# --- A TERMINAL_MARKER card is ABSENT, never placed. D-05 says the marker names no column;
+# --- A TERMINAL_STATIONS card is ABSENT, never placed. D-05 says the marker names no column;
 # --- this is where that becomes true. Without it FEAT-28 — abandoned, card at Done — becomes
 # --- a write of a column that does not exist.
-_p = gh_board.project(_plan("done", "done", top=factory_config.TERMINAL_MARKER),
+_p = gh_board.project(_plan("done", "done", top=factory_config.TERMINAL_STATIONS[0]),
                       _rec(issues={}, parent=98))
-check("project: a TERMINAL_MARKER feature places NO parent card",
+check("project: an abandoned (TERMINAL_STATIONS[0]) feature places NO parent card",
       98 not in _p, repr(_p))
+
+_p = gh_board.project(_plan("done", "done", top="rejected"),
+                      _rec(issues={}, parent=100))
+check("project: a rejected terminal feature places NO parent card",
+      100 not in _p, repr(_p))
 
 # --- the parent, when not terminal, takes derive_station ---
 _p = gh_board.project(_plan("done", "building"), _rec(issues={}, parent=97))

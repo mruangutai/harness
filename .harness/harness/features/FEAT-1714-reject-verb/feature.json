@@ -1,0 +1,158 @@
+{
+  "feature_id": "FEAT-1714-reject-verb",
+  "branch": "feat/FEAT-1714-reject-verb",
+  "pr": null,
+  "review_sha": "130d5b5f1dd60a95d71e3e99bc245c49d3b0cd57",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T04:28:06+00:00",
+      "ended_at": "2026-09-16T05:12:37+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-eng-t02",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-16T05:31:55+00:00",
+      "ended_at": "2026-09-16T05:53:02+00:00",
+      "tokens": null
+    },
+    {
+      "id": "build-product-t04",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T06:12:26+00:00",
+      "ended_at": "2026-09-16T06:27:27+00:00",
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T06:34:32+00:00",
+      "ended_at": "2026-09-16T07:04:48+00:00",
+      "tokens": null
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T07:29:06+00:00",
+      "ended_at": "2026-09-16T07:51:40+00:00",
+      "tokens": null
+    },
+    {
+      "id": "fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T08:00:44+00:00",
+      "ended_at": "2026-09-16T08:19:09+00:00",
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T04:27:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new schema surfaces span digest validation, judgement and station gates, state invariants, and GitHub sync"
+    },
+    {
+      "at": "2026-09-16T06:10:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan\u2192build handoff (seq-1) taken up: T-01 direct, T-02 build team, T-03 direct; recorded late by Main"
+    },
+    {
+      "at": "2026-09-16T06:10:27+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "T-02 ESCALATE on T-02\u2192T-03 ordering: T-03 built direct in the same act; no plan correction, dependency order held at commit level"
+    },
+    {
+      "at": "2026-09-16T06:12:17+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "T-04 is the next ready plan task after T-03 landed INV-44; cumulative spend is 2 runs, 65 minutes, 0 rework cycles."
+    },
+    {
+      "at": "2026-09-16T06:33:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "build-to-validate handoff seq-3 taken up: 3 runs, 80 minutes, 0 rework cycles; pinned validation is next"
+    },
+    {
+      "at": "2026-09-16T07:28:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "validate c1 takes up Main's VAL-01..VAL-06 direct fixes at pinned review_sha 8090ce0b; cumulative spend is 4 runs, 110 minutes, 1 cycle"
+    },
+    {
+      "at": "2026-09-16T07:28:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate-c1",
+      "reason": "Main applied the six validate c0 findings directly under DEC-174 and pinned the corrected tree for one independent validator regate"
+    },
+    {
+      "at": "2026-09-16T08:00:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "validate c2 takes up Main fixes for QA-C1-01 and QA-C1-02 at pinned review_sha 130d5b5f; cumulative spend is 5 runs, 133 minutes, 52 rework minutes, 2 cycles"
+    },
+    {
+      "at": "2026-09-16T08:00:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c2-validator",
+      "reason": "Main fixed validate c1 findings QA-C1-01 and QA-C1-02 directly under DEC-174 and pinned the corrected tree for the final independent validator regate"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-1714-reject-verb/notes/answers-2026-09-15-sign.md"
+  },
+  "github": {
+    "milestone": 75,
+    "parent": 1736,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1737,
+      "T-02": 1738,
+      "T-03": 1739,
+      "T-04": 1740,
+      "T-05": 1741
+    },
+    "source_issues": [
+      1714
+    ],
+    "build_entry": "opened"
+  }
+}

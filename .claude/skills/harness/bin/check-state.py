@@ -102,7 +102,8 @@ def read(p):
 # that made a six-key mapping and a validator disagree, which is why FEAT-41 exists.
 import factory_config
 
-TERMINAL_MARKER = factory_config.TERMINAL_MARKER
+TERMINAL_STATIONS = factory_config.TERMINAL_STATIONS
+FINISHED_STATIONS = ("done",) + TERMINAL_STATIONS
 
 # THE FEATURE'S STATION, READ FROM THE ONE FILE THAT RECORDS IT (FEAT-41 T-07). Every site
 # below that used to read feature.json's `status` now calls this, so the vocabulary and the
@@ -328,7 +329,7 @@ _abandoned = set()
 for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
     if not os.path.isdir(_fd):
         continue
-    if station_of(_fd) == TERMINAL_MARKER:
+    if station_of(_fd) in TERMINAL_STATIONS:
         _abandoned.add(os.path.basename(_fd))
 for feat, brief in briefs.items():
     if feat in _abandoned:
@@ -780,7 +781,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # recorded run is a LAGGING indicator that can only fire after a panel has already read the
     # wrong text, which is how this feature's own divergence survived.
     if _git_top and _sha and _sha not in harness_yaml.PLACEHOLDER_UNSET \
-            and station_of(os.path.dirname(fy)) not in ("done", TERMINAL_MARKER):
+            and station_of(os.path.dirname(fy)) not in FINISHED_STATIONS:
         _pf = os.path.join(os.path.dirname(fy), "plan.yaml")
         if not os.path.isfile(_pf):
             _pf = os.path.join(os.path.dirname(fy), "PLAN.md")
@@ -1114,7 +1115,7 @@ import subprocess
 # does not degrade to a skip — it is a KeyError in the project's own state gate, for every
 # well-formed feature on disk. Derived from factory_config rather than spelled, which makes the
 # pairing structural: both are built from MANDATED_STATIONS, so neither can be rekeyed alone.
-STATUS_ORDER = list(factory_config.MANDATED_STATIONS) + [TERMINAL_MARKER]
+STATUS_ORDER = list(factory_config.MANDATED_STATIONS) + list(TERMINAL_STATIONS)
 SEAM_NOTES = {
     "backlog":  [],
     "plan":     [],
@@ -1122,12 +1123,12 @@ SEAM_NOTES = {
     "building": ["plan"],
     "review":   ["plan", "build"],
     "done":     ["plan", "build", "validate"],
-    # THE TERMINAL MARKER REQUIRES NO HANDOFF, and that is the whole difference from done. A
-    # feature planned and never built crossed no seam, so there is no honest handoff note to
-    # write and none will be fabricated. Keyed EXPLICITLY rather than omitted: an omitted key is
-    # now a KeyError rather than a silent skip, since the station passes the membership test
-    # above by construction.
-    TERMINAL_MARKER: [],
+    # THE TERMINAL STATIONS REQUIRE NO HANDOFF, and that is the whole difference from done. A
+    # feature planned and never built (abandoned) or refused at intake (rejected, FEAT-1714)
+    # crossed no seam, so there is no honest handoff note to write and none will be fabricated.
+    # Keyed EXPLICITLY rather than omitted: an omitted key is now a KeyError rather than a
+    # silent skip, since the station passes the membership test above by construction.
+    **{station: [] for station in TERMINAL_STATIONS},
 }
 # EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
 # structures are derived from the same source, so the only way they can disagree is a hand-typed
@@ -2222,7 +2223,7 @@ if _inv26_board:
     for _fp26 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
         if not plan_docs.get(os.path.basename(_fp26)):
             continue
-        if station_of(_fp26) in ("done", TERMINAL_MARKER):
+        if station_of(_fp26) in FINISHED_STATIONS:
             continue
         try:
             _fj26 = artifact_accessors.load_feature_json(
@@ -2292,7 +2293,7 @@ if _inv26_board:
             #
             # THE CONDITION NOW KEYS ON plan.yaml's STATION (FEAT-41 T-07) rather than
             # feature.json's status, which is the only change here: one file records the station.
-            if station_of(_fp) in ("done", TERMINAL_MARKER):
+            if station_of(_fp) in FINISHED_STATIONS:
                 continue
 
             _derived = _gb.derive_station(_pdoc)
@@ -3139,6 +3140,59 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
         warn.append(f"{_invs} {_feat59}: predates the FEAT-59 ledger (no mission, judgements, "
                     f"budget_decisions or rework key; no by-perspective BRIEF); not graded — "
                     f"would fail: " + "; ".join(_s for _, _s, _ in _hits59) + ".")
+
+# --- INV-44 (FEAT-1714 T-03): a REJECTED record has exactly one shape. `rejected` is the
+# orchestrator's first-run verdict that the ticket is wrong or superseded — one run, zero
+# cycles, one reject judgement, nothing signed, no panel. Each dimension is its own line
+# with its own remedy, because a rejection that spent cycles, ran a lead, or sits under a
+# signature is not a rejection but an abandoned build wearing the wrong station; and a
+# conforming rejected record is exempt from the approval and plan-panel demands ONLY by
+# being at this station (INV-32 keys on an approved plan; the approval gate skips terminal
+# stations), never by weakening those demands elsewhere.
+for _fd44 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+    if not os.path.isdir(_fd44) or station_of(_fd44) != "rejected":
+        continue
+    _feat44 = os.path.basename(_fd44)
+    try:
+        _doc44 = artifact_accessors.load_feature_json(os.path.join(_fd44, "feature.json")) or {}
+    except Exception:
+        bad.append(f"INV-44 {_feat44}: station is rejected but feature.json is unreadable, so "
+                   f"the rejection's one-run/zero-cycle shape cannot be verified.")
+        continue
+    _cu44 = _doc44.get("cycles_used")
+    if not (isinstance(_cu44, int) and not isinstance(_cu44, bool) and _cu44 == 0):
+        bad.append(f"INV-44 {_feat44}: rejected with cycles_used={_cu44!r} — a rejection is "
+                   f"decided at first-run intake before any gate and costs zero cycles; a record "
+                   f"that spent cycles was built, not rejected (set the honest station).")
+    _runs44 = [e for e in (_doc44.get("runs") or []) if isinstance(e, dict)]
+    if len(_runs44) != 1:
+        bad.append(f"INV-44 {_feat44}: rejected with {len(_runs44)} run(s) recorded — a "
+                   f"rejection is ONE orchestrator-owned run; {'none ran' if not _runs44 else 'more than one means a lead was dispatched'}, "
+                   f"so either the station or the ledger is wrong.")
+    else:
+        _agent44 = _runs44[0].get("agent")
+        if _agent44 != "harness-orchestrator":
+            bad.append(f"INV-44 {_feat44}: the one run is owned by {_agent44!r}, not "
+                       f"harness-orchestrator — a rejection dispatches no lead; the orchestrator "
+                       f"reads the ticket and returns.")
+    _js44 = [j for j in (_doc44.get("judgements") or []) if isinstance(j, dict)]
+    if not any(j.get("kind") == "reject" for j in _js44):
+        bad.append(f"INV-44 {_feat44}: rejected with no judgements[] entry of kind reject — an "
+                   f"unrecorded rejection is an unrecorded judgement (DEC-230); record it with "
+                   f"feature-record.py judgement --kind reject --decision <issue|none>.")
+    _pdoc44 = plan_docs.get(_feat44) or {}
+    _appr44 = _pdoc44.get("approval") if isinstance(_pdoc44, dict) else None
+    if isinstance(_appr44, dict) and str(_appr44.get("status", "")).strip() == "approved":
+        bad.append(f"INV-44 {_feat44}: rejected but plan.yaml's approval is approved — a "
+                   f"rejection happens BEFORE signature; a signed plan that is then refused is "
+                   f"abandoned, not rejected.")
+    _brief44 = briefs.get(_feat44)
+    if _brief44 and re.search(r"(?m)^status:\s*approved\b", _brief44):
+        bad.append(f"INV-44 {_feat44}: rejected but BRIEF.md's ## Approval reads approved — "
+                   f"nothing is signed on a rejected feature.")
+    if "panel" in _pdoc44:
+        bad.append(f"INV-44 {_feat44}: rejected but plan.yaml carries a panel mapping — no "
+                   f"panel runs on a rejected feature; its presence means the plan phase ran.")
 
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole

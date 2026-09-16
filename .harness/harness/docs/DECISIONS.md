@@ -7477,27 +7477,49 @@ five-key shape on the engineering lead's digest alone.
 
 ## DEC-230 — The judgement ledger: every autonomous judgement is a `judgements[]` entry, and uncertainty asks once with a recommendation
 
-**Chose:** every autonomous judgement the harness makes on a feature — the mission choice, a
-finding's `kind`, re-gate or not, continue or stop, succession — is appended to `feature.json`
+**Chose:** every autonomous judgement the harness makes on a feature is appended to `feature.json`
 `judgements[]` as `{at, by, kind, decision, reason}` by `feature-record.py judgement`, with a
-one-line reason of at most 240 characters. The six kinds are exhaustive: `mission`, `finding_kind`,
-`regate`, `continue`, `succession`, and `amendment` — the engineering lead's in-build change to a
+one-line reason of at most 240 characters. The seven kinds are exhaustive: `mission`, `finding_kind`,
+`regate`, `continue`, `succession`, `amendment` — the engineering lead's in-build change to a
 signed task's `intent`, `files` or `verify`, written by `plan-merge.py record-amendments` with
-`decision: T-NN.<field>` (DEC-229). INV-40 refuses a `mission` with no `mission` entry, a FAIL run
-followed by another run with no `regate` entry, a handoff with runs after it and no `succession`
-entry, and a signed task whose current `{files, intent, verify}` no longer hash to
-`signed_task_hashes` with no `amendment` entry naming that task. At ship the briefing tables every
-amendment; the operator overrules one by its exact `at` — `feature-record.py overrule-amendment
---file <feature.json> --at <instant>` adds `overruled: true` to that entry alone, absent otherwise
-and legal on no other kind — and `overruled / total` over `amendment` entries (`0/0` when none) is
-the trust KPI for builder-side amendments, derived from the ledger, never recorded beside it. A successor's first act after reading the handoff is
-a `succession` judgement — continue, downgrade or stop, from the feature's cumulative spend and the
-handoff's `## Next` — reported in its first return; it does not ask. When a reader or the
-orchestrator cannot classify — a finding's kind, a mission's proportionality, whether a finding is a
-new class — it returns `awaiting_user` with exactly one question and its own recommendation, and it
-never resolves the doubt by choosing the heavier route (re-panel, re-cycle, `plan` over `patch`) by
-default. The overrule rate over `judgements[]` is the trust KPI, read at five features. Origin:
-FEAT-59 SC-03, SC-20, SC-21, SC-22.
+`decision: T-NN.<field>` (DEC-229) — and `reject` (FEAT-1714). A `reject` keeps that standard
+ledger entry; its `decision` is the superseding issue number or the literal `none`. The rejected
+terminal return additionally carries the closed inline mapping `{kind: reject, superseded_by:
+<positive issue number|none>, reason: <non-empty one-line reason>}`, has `status: rejected`, and
+has `cycles_used: 0`.
+
+A rejection is decided only at first-run `plan` or `patch` intake, before any lead dispatch. It
+costs one orchestrator run and zero cycles, and ends at `rejected`, a non-board terminal station.
+The operator retains after-the-fact overrule authority from the return. `gh-sync.py reject`
+reports its disposition without `--yes` and performs no GitHub or feature-record mutation, and
+with `--yes` executes exactly the list it printed, failing closed: the first failed write exits 1
+naming what landed and what did not, and no station is written. On a record with a parent it
+closes only the parent as `not_planned`, comments with the successor link or no-successor
+disposition and the reason, adds `superseded` only for a numeric successor, reseats the parent to
+backlog after close, closes an existing recorded milestone, touches no sub-issues, and records
+`rejected` last on the numeric-successor path. On the first-sync record — no parent, because
+`open` creates it at build entry — the disposition is the reason on each `plan.yaml`
+`source_issues` ticket and that card returned to backlog; a ticket the harness did not create is
+never closed or labelled. INV-44 enforces the rejected record's six dimensions: zero cycles,
+exactly one orchestrator-owned run, a `reject` judgement, unsigned plan, unsigned BRIEF, and no
+panel.
+
+INV-40 refuses a `mission` with no `mission` entry, a FAIL run followed by another run with no
+`regate` entry, a handoff with runs after it and no `succession` entry, and a signed task whose
+current `{files, intent, verify}` no longer hash to `signed_task_hashes` with no `amendment` entry
+naming that task. At ship the briefing tables every amendment; the operator overrules one by its
+exact `at` — `feature-record.py overrule-amendment --file <feature.json> --at <instant>` adds
+`overruled: true` to that entry alone, absent otherwise and legal on no other kind — and
+`overruled / total` over `amendment` entries (`0/0` when none) is the trust KPI for builder-side
+amendments, derived from the ledger, never recorded beside it. A successor's first act after
+reading the handoff is a `succession` judgement — continue, downgrade or stop, from the feature's
+cumulative spend and the handoff's `## Next` — reported in its first return; it does not ask.
+When a reader or the orchestrator cannot classify — a finding's kind, a mission's
+proportionality, whether a finding is a new class — it returns `awaiting_user` with exactly one
+question and its own recommendation, and it never resolves the doubt by choosing the heavier
+route (re-panel, re-cycle, `plan` over `patch`) by default. The overrule rate over `judgements[]`
+is the trust KPI, read at five features. Origin: FEAT-59 SC-03, SC-20, SC-21, SC-22; BUG-1716;
+FEAT-1714.
 
 **Over:** in-flight rulings — the operator authorizing each cycle, each mission, each successor —
 which is how FEAT-43 accumulated 13 operator contacts on one feature.
