@@ -111,9 +111,12 @@ or when the ruling is spent.
 **Dispatch titles follow one convention at every layer** (DEC-142): `<flow-id> · <step or task id> · <what, 3–6 words>` — e.g. `FEAT-02 · plan · draft brief and plan`. The flow id appears in EVERY spawn title all the way down, so the user watching the agent tree sees one chain, not three unrelated tasks.
 
 One `Agent` call, `subagent_type: harness-orchestrator`, **in the background** — that is what lets
-N flows run at once while you stay free. The prompt carries only: the feature id, the mission
-(plan / patch / ship / resume / brief), and file paths — the grilling artifact's among them, never
-file contents.
+N flows run at once while you stay free. **The prompt's first line is the literal
+`HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>`** — the hook reads the orchestrator's assignment
+message for that marker (DEC-204) and keys everything per-feature on it: the in-flight claim, the
+spend advisory and the host's token stamp on the open run (BUG-1724). Without it the orchestrator
+runs unclaimed and every run's `tokens` stays `null`. Then the mission (plan / patch / ship /
+resume / brief) and file paths — the grilling artifact's among them, never file contents.
 
 **Do not author success criteria in the spawn prompt.** pm owns SC-NN and their `verify:` methods —
 that derivation is the product work the role exists for, and the user's signature is the check on it
