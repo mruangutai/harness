@@ -96,6 +96,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import sys
 
 _BIN_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -134,7 +135,7 @@ CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 # DERIVED, NEVER SPELLED. The marker is included directly rather than through station_column,
 # which refuses it on purpose: the terminal marker names no board column (D-05), so there is no
 # column name to ask for.
-STATION_VALUES = tuple(factory_config.MANDATED_STATIONS) + (factory_config.TERMINAL_MARKER,)
+STATION_VALUES = tuple(factory_config.MANDATED_STATIONS) + factory_config.TERMINAL_STATIONS
 
 
 def _place(board, repo, num, station, note="", failed=None, stations=None):
@@ -340,7 +341,7 @@ def _apply_parent_rule(feat_dir, repo, board):
     from which subcommand called it, because that would make the subcommand a second status
     record, which is exactly the drift D-03 removes.
     """
-    if _feature_station(feat_dir) in ("done", factory_config.TERMINAL_MARKER):
+    if _feature_station(feat_dir) in ("done",) + factory_config.TERMINAL_STATIONS:
         # Terminal exemption: `ship` wrote the parent's card to the done station and
         # recorded the terminal station, while the plan-derived station would still say
         # review. Without this exemption every shipped feature is a permanent false
@@ -950,7 +951,7 @@ def ensure_labels(repo, labels):
 
 def finished_stations():
     """Task stations that no longer represent executable work."""
-    return ("done", factory_config.TERMINAL_MARKER)
+    return ("done",) + factory_config.TERMINAL_STATIONS
 
 
 def detect_issue_types(repo):
@@ -982,7 +983,7 @@ def _task_needs_type(task, rec):
     """True when this task sub-issue will be CREATED this run, or is an already-recorded
     "created" remnant the backfill must still type."""
     tid = task["id"]
-    if tid not in rec["issues"] and task.get("status") != factory_config.TERMINAL_MARKER:
+    if tid not in rec["issues"] and task.get("status") not in factory_config.TERMINAL_STATIONS:
         return True
     return rec.get("typed", {}).get(tid) == "created"
 
@@ -1147,8 +1148,8 @@ def _open_attach_task(feat_dir, repo, rec, task):
 
 def _open_sync_task(feat_dir, repo, brief, rec, task, state):
     """One task's whole sync step: skip abandoned, create-or-skip, then attach."""
-    if task.get("status") == factory_config.TERMINAL_MARKER:
-        print(f"gh-sync: {task['id']} is abandoned — no sub-issue created")
+    if task.get("status") in factory_config.TERMINAL_STATIONS:
+        print(f"gh-sync: {task['id']} is terminal — no sub-issue created")
         return
     if task["id"] in rec["issues"]:
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
@@ -1554,7 +1555,7 @@ def cmd_status(feat_dir, station, repo, board):
 
     _record_station(feat_dir, station)
 
-    if board is None or station in ("plan", "done", factory_config.TERMINAL_MARKER):
+    if board is None or station in ("plan", "done") + factory_config.TERMINAL_STATIONS:
         return
 
     rec = load_recorded(feat_dir)
@@ -1710,7 +1711,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     refuses a hand close. Detaching is what makes the backlog station safe rather than a trap.
     The ticket survives, labelled and closed, for the operator to clean up later.
 
-    `_record_station(feat_dir, factory_config.TERMINAL_MARKER)` stays the LAST STATEMENT of the successful path
+    `_record_station(feat_dir, "abandoned")` stays the LAST STATEMENT of the successful path
     and runs only under `--yes`."""
     reason_file = post_body_path(reason_file, "--reason-file")
     rec = load_recorded(feat_dir)
@@ -1796,8 +1797,101 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above (that guard is a conjunction with the issues check, not
     # this write's business). Reaching here already proves `skip()` did not fire.
-    _record_station(feat_dir, factory_config.TERMINAL_MARKER)
+    # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
+    # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
+    _record_station(feat_dir, "abandoned")
 
+
+def _reject_successor(value):
+    if value == "none":
+        return None
+    if value is None or not value.isdigit() or int(value) <= 0:
+        die("--superseded-by needs a positive integer or literal 'none'")
+    return int(value)
+
+
+def _reject_reason_file(reason_file, successor):
+    """Create the exact body-file comment only after its source reason validates."""
+    reason_file = post_body_path(reason_file, "--reason-file")
+    reason = open(reason_file, encoding="utf-8").read()
+    if len(reason.splitlines()) != 1 or not reason.strip():
+        die("--reason-file must contain exactly one non-empty line")
+    prefix = (f"Superseded by #{successor}: " if successor is not None
+              else "No successor was named: ")
+    handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False)
+    try:
+        handle.write(prefix + reason)
+        return handle.name
+    finally:
+        handle.close()
+
+
+def _reject_plan(rec, successor):
+    """The report and execution share this ordered parent-only lifecycle."""
+    parent = rec["parent"]
+    if parent is None:
+        die("reject needs a recorded parent")
+    disposition = (f"link parent #{parent} to superseding issue #{successor}"
+                   if successor is not None else
+                   f"record that parent #{parent} has no named successor")
+    plan = [
+        f"close parent #{parent} (not_planned)",
+        f"post comment on parent #{parent}: {disposition}",
+    ]
+    if successor is not None:
+        plan.append(f"ensure and add superseded label to parent #{parent}")
+    plan.append(f"return parent #{parent} to backlog")
+    if rec["milestone"] is not None:
+        plan.append(f"close milestone #{rec['milestone']}")
+    if successor is not None:
+        plan.append("record feature station rejected")
+    return plan
+
+
+def cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes=False):
+    """Reject only the recorded parent; a numeric successor owns the final station write."""
+    successor = _reject_successor(successor_arg)
+    comment_file = _reject_reason_file(reason_file, successor)
+    try:
+        rec = load_recorded(feat_dir)
+        plan = _reject_plan(rec, successor)
+        if not yes:
+            for line in plan:
+                print(f"gh-sync: would {line}")
+            print("gh-sync: reject is a decision the operator makes — re-run with --yes to "
+                  "close the parent listed above")
+            return
+
+        parent = rec["parent"]
+        if successor is not None:
+            ensure_labels(repo, {"superseded"})
+        ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/issues/{parent}",
+                          "-f", "state=closed", "-f", "state_reason=not_planned"])
+        if not ok:
+            print(f"gh-sync: ERROR - could not close parent #{parent}: {out}", file=sys.stderr)
+            return
+        print(f"gh-sync: parent #{parent} closed (not_planned)")
+        _to_backlog(board, repo, parent)
+        ok, out = gh_try(["issue", "comment", str(parent), "--repo", repo,
+                          "--body-file", comment_file])
+        if not ok:
+            print(f"gh-sync: ERROR - reason not posted on parent #{parent}: {out}", file=sys.stderr)
+        if successor is not None:
+            ok, out = gh_try(["issue", "edit", str(parent), "--repo", repo,
+                              "--add-label", "superseded"])
+            if not ok:
+                print(f"gh-sync: ERROR - parent #{parent} not labelled `superseded`: {out}",
+                      file=sys.stderr)
+        if rec["milestone"] is not None:
+            ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
+                              "-f", "state=closed"])
+            if not ok:
+                print(f"gh-sync: ERROR - milestone #{rec['milestone']} not closed: {out}",
+                      file=sys.stderr)
+        if successor is not None:
+            _record_station(feat_dir, "rejected")
+    finally:
+        os.unlink(comment_file)
 
 def _backlog_receipt_path(feat_dir):
     return os.path.join(feat_dir, "backlog-issues.json")
@@ -2232,9 +2326,6 @@ def _ship_close_milestone(feat_dir, repo, rec, pr_arg):
 
 
 def main():
-    # Review finding 1: the module's documented gate had ZERO production callers,
-    # so a missing PyYAML surfaced as a raw traceback instead of INSTALL_COMMAND.
-    # First statement, before any parse can be attempted.
     harness_yaml.require_or_die()
     argv = sys.argv[1:]
     parent_arg = None
@@ -2243,6 +2334,13 @@ def main():
         if i + 1 >= len(argv):
             die("--parent needs a value")
         parent_arg = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    successor_arg = None
+    if "--superseded-by" in argv:
+        i = argv.index("--superseded-by")
+        if i + 1 >= len(argv):
+            die("--superseded-by needs a value")
+        successor_arg = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
     reason_file = None
     if "--reason-file" in argv:
@@ -2265,75 +2363,38 @@ def main():
             die("--pr needs a value")
         pr_arg = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
-        # MF-1: a non-numeric --pr is a caller mistake at the PARSE boundary, not an
-        # uncaught ValueError from int(pr_arg) inside _record_pr — fixing it here keeps
-        # _record_pr's own never-die contract (T-03) intact for its internal callers
-        # (cmd_ship).
         try:
             int(pr_arg)
         except ValueError:
             die(f"--pr needs an integer, got {pr_arg!r}")
-    # STRIPPED BY NAME-SEARCH, BEFORE THE POSITIONAL PARSE, exactly as the four flags above
-    # are. It takes NO VALUE, so this removes one element rather than two. Without the strip,
-    # `abandon --yes <dir>` reads `--yes` as the feature directory and dies with "--yes is not
-    # a directory" -- at precisely the moment the operator is being careful. Both orders must
-    # behave identically, and that is its own test assertion.
     yes_flag = False
     if "--yes" in argv:
         i = argv.index("--yes")
         yes_flag = True
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
-        die("usage: gh-sync.py open|start-task|abandon|ship|backlog|record-pr|"
+        die("usage: gh-sync.py open|start-task|abandon|reject|ship|backlog|record-pr|"
             "status|recover-terminal "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
-            "[--reason-file <path>] [--body-file <path>] [--pr <n>] [--yes]")
+            "[--superseded-by <positive integer|none>] [--reason-file <path>] "
+            "[--body-file <path>] [--pr <n>] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
-    # A flag that silently does nothing teaches the operator it is harmless everywhere, and
-    # the next place they try it is the one that closes tickets. It is a caller error.
-    if yes_flag and cmd not in ("abandon", "recover-terminal"):
-        die(f"--yes is only accepted by abandon and recover-terminal, not {cmd!r}")
+    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal"):
+        die(f"--yes is only accepted by abandon, reject and recover-terminal, not {cmd!r}")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
-    # DEPTH-AGNOSTIC ROOT (FEAT-21 T-10): the old three-level climb was right for
-    # .harness/features/<FEAT> and wrong for .harness/<repo>/features/<FEAT> — and a
-    # fixed depth is wrong for one of the two in every era. Walk UP from the feature
-    # dir to the first ancestor holding the MANIFEST, .harness/team-config.yaml —
-    # the established root-probe convention (check-plan-routes.py probes exactly
-    # this file, and harness_boundary.py calls it "this hook's probe"), enforced by
-    # test-check-plan-routes.py case_20 so every walk-up agrees on what proves a
-    # directory is a harness root. An onboarded tree always carries the manifest;
-    # harness.json is then read (or skipped over, loudly) by load_config from the
-    # resolved root. If no ancestor qualifies, fall back to the old arithmetic so
-    # an un-onboarded tree still reaches skip() with the message it prints today.
     _abs = os.path.abspath(feat_dir)
     _d = _abs
     while (not os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml"))
            and _d != os.path.dirname(_d)):
         _d = os.path.dirname(_d)
-    if os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")):
-        root = _d
-    else:
-        # today's behaviour, three parents up — spelled via dirname so the verify's
-        # assertion (no fixed join-climb as the PRIMARY derivation) stays meaningful
-        root = os.path.dirname(os.path.dirname(os.path.dirname(_abs)))
-    # T-02 (BUG-1309): armed only for `open` — main() is the one caller that knows the
-    # command before config resolution runs, and every skip() this run reaches after this
-    # point (including inside load_config) must be able to record an outcome.
+    root = _d if os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")) else (
+        os.path.dirname(os.path.dirname(os.path.dirname(_abs))))
     if cmd == "open":
         _BUILD_ENTRY["feat_dir"] = feat_dir
     try:
         repo, board, issue_types = load_config(root)
     except artifact_accessors.FleetError as e:
-        # An unusable board declaration is a LOUD failure of the whole invocation (D-01,
-        # D-02, D-07) — never a printed note followed by business as usual. Exit code 2
-        # matches board-station.py's pinned value and factory_cli.EXIT_REFUSED's wider
-        # convention for exactly this class of expected refusal; die() (exit 1) and
-        # skip() (exit 0) are both wrong here, the first because this is not a caller
-        # mistake in the dispatch and the second because an unusable config must not
-        # read as an environmental precondition. str(e) is printed verbatim — it is
-        # already built by factory_cli.body(what, value, next_step), so composing a
-        # new line would drop the next_step that tells the operator what to do.
         print(f"gh-sync: {e}", file=sys.stderr)
         sys.exit(2)
     if cmd == "open":
@@ -2344,6 +2405,8 @@ def main():
         cmd_start_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
         cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
+    elif cmd == "reject":
+        cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes_flag)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
     elif cmd == "recover-terminal":

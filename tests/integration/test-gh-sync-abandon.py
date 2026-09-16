@@ -614,6 +614,77 @@ def main():
         check("_record_status still runs — feature.json reaches Abandoned",
               read_plan_station(featAC) == "abandoned",
               open(os.path.join(featAC, "feature.json")).read())
+    # T-02 reject: report mode has no mutation; confirmed numeric and none dispositions
+    # close ONLY the parent and keep sub-issues and links untouched.
+    def _reject_fixture(tmp, name):
+        install_gh(tmp, FAKE_GH_STATIONS)
+        feat = stage_station(tmp, name, [("T-01", "ready")],
+                             issues={"T-01": 41}, parent=40, milestone=7)
+        reason = os.path.join(tmp, "reject-reason.txt")
+        open(reason, "w").write("source ticket is obsolete")
+        return feat, reason
+
+    with tempfile.TemporaryDirectory() as tmpR0:
+        featR0, reasonR0 = _reject_fixture(tmpR0, "FEAT-REJECT-INVALID")
+        open(reasonR0, "w").write("first line\nsecond line")
+        r = run(["reject", featR0, "--superseded-by", "0", "--reason-file", reasonR0, "--yes"],
+                tmpR0, {"FACTORY_GH": os.path.join(tmpR0, "gh")})
+        _invalid_writes = lambda: [line for line in calls(tmpR0)
+                                   if "state=closed" in line or "issue comment" in line
+                                   or "issue edit" in line or "item-edit" in line
+                                   or "label create" in line]
+        check("reject invalid successor refuses before any mutation",
+              r.returncode == 1 and _invalid_writes() == [],
+              f"rc={r.returncode} log={calls(tmpR0)}")
+        r = run(["reject", featR0, "--superseded-by", "none", "--reason-file", reasonR0, "--yes"],
+                tmpR0, {"FACTORY_GH": os.path.join(tmpR0, "gh")})
+        check("reject multiline reason refuses before any mutation",
+              r.returncode == 1 and _invalid_writes() == [],
+              f"rc={r.returncode} log={calls(tmpR0)}")
+
+    with tempfile.TemporaryDirectory() as tmpR1:
+        featR1, reasonR1 = _reject_fixture(tmpR1, "FEAT-REJECT-REPORT")
+        r = run(["reject", featR1, "--superseded-by", "88", "--reason-file", reasonR1], tmpR1,
+                {"FACTORY_GH": os.path.join(tmpR1, "gh")})
+        logR1 = calls(tmpR1)
+        writesR1 = [line for line in logR1 if "state=closed" in line or "issue comment" in line
+                    or "issue edit" in line or "item-edit" in line or "label create" in line]
+        check("reject numeric report: names parent, successor, comment, label, milestone, backlog and station",
+              r.returncode == 0 and all(token in r.stdout for token in
+              ("parent #40", "#88", "comment", "superseded", "milestone #7", "backlog", "rejected")),
+              r.stdout + r.stderr)
+        check("reject numeric report: makes no mutations", writesR1 == [], str(logR1))
+        check("reject numeric report: does not record the station",
+              read_plan_station(featR1) != "rejected", read_plan_station(featR1))
+
+    with tempfile.TemporaryDirectory() as tmpR2:
+        featR2, reasonR2 = _reject_fixture(tmpR2, "FEAT-REJECT-NUMERIC")
+        r = run(["reject", featR2, "--superseded-by", "88", "--reason-file", reasonR2, "--yes"],
+                tmpR2, {"FACTORY_GH": os.path.join(tmpR2, "gh")})
+        logR2 = calls(tmpR2)
+        closeR2 = next((i for i, line in enumerate(logR2) if "issues/40" in line and "state=closed" in line), None)
+        backlogR2 = next((i for i, line in enumerate(logR2) if "ITEM_40" in line and "OPT_BACKLOG" in line), None)
+        check("reject numeric: closes only parent then reseats it, comments, labels, closes milestone, and records rejected last",
+              r.returncode == 0 and closeR2 is not None and backlogR2 is not None and closeR2 < backlogR2
+              and read_plan_station(featR2) == "rejected"
+              and any(line.startswith("issue comment 40") and "--body-file" in line for line in logR2)
+              and any(line.startswith("issue edit 40") and "--add-label superseded" in line for line in logR2)
+              and any("milestones/7" in line and "state=closed" in line for line in logR2)
+              and not any("issues/41" in line or "sub_issue" in line for line in logR2),
+              f"rc={r.returncode} log={logR2}")
+
+    with tempfile.TemporaryDirectory() as tmpR3:
+        featR3, reasonR3 = _reject_fixture(tmpR3, "FEAT-REJECT-NONE")
+        r = run(["reject", featR3, "--superseded-by", "none", "--reason-file", reasonR3, "--yes"],
+                tmpR3, {"FACTORY_GH": os.path.join(tmpR3, "gh")})
+        logR3 = calls(tmpR3)
+        check("reject none: closes only parent without label/link or station mutation",
+              r.returncode == 0 and any("issues/40" in line and "state=closed" in line for line in logR3)
+              and any(line.startswith("issue comment 40") and "--body-file" in line for line in logR3)
+              and not any("superseded" in line for line in logR3)
+              and not any("issues/41" in line or "sub_issue" in line for line in logR3)
+              and read_plan_station(featR3) != "rejected",
+              f"rc={r.returncode} log={logR3}")
     return report()
 
 

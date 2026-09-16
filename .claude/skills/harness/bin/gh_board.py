@@ -147,7 +147,7 @@ def project(plan_doc, rec):
       consequence.
 
     - THE PARENT'S RULE IS TERMINAL FIRST, and this ordering is load-bearing. When the feature's
-      top-level station is `done` or the TERMINAL_MARKER, that wins outright and derive_station
+      top-level station is `done` or one of TERMINAL_STATIONS, that wins outright and derive_station
       is NOT consulted. MEASURED at 8f8a6a3 against live board 3 on 2026-08-25: every shipped
       feature has all tasks done, so derive_station returns `review` for all of them, and
       derive-first would project 22 of the 23 parent cards to Review while they sit correctly at
@@ -155,7 +155,7 @@ def project(plan_doc, rec):
       count zero. DEC-203 says the harness writes Done at ship; derive_station is an in-flight
       review detector and was never meant to outrank a recorded terminal station.
 
-    - A CARD WHOSE STATION IS THE TERMINAL_MARKER IS ABSENT FROM THE MAPPING, never placed. D-05
+    - A CARD WHOSE STATION IS ONE OF TERMINAL_STATIONS IS ABSENT FROM THE MAPPING, never placed. D-05
       says the marker names no column and never reaches the board; this is where that becomes
       true rather than merely stated. Without this clause FEAT-28 — abandoned, with its card at
       Done — becomes a write of a column that does not exist.
@@ -171,7 +171,7 @@ def project(plan_doc, rec):
 
     Pure: no I/O, no gh binary, unit-testable.
     """
-    legal = frozenset(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER}
+    legal = frozenset(factory_config.MANDATED_STATIONS) | frozenset(factory_config.TERMINAL_STATIONS)
     placed = _task_cards(plan_doc, rec, legal)
 
     parent_station = _parent_station(plan_doc, legal)
@@ -221,7 +221,7 @@ def _task_card(task_id, number, by_id, legal):
 
     None covers two different routes to the same outcome, deliberately: the plan has no such
     task (a stale record, which is gh-sync's business rather than a vocabulary miss), or the
-    task is at the TERMINAL_MARKER, which DEC-203 gives no board column at all.
+    task is at a TERMINAL_STATIONS name, which DEC-203 gives no board column at all.
 
     An illegal station RAISES rather than returning None, because that is the one case the
     operator has to act on. Extracted from `_task_cards` (FEAT-41 F-05).
@@ -237,7 +237,7 @@ def _task_card(task_id, number, by_id, legal):
             f"{task_id}={station}",
             _station_remedy(f"set-task-station --task {task_id} "),
         )
-    if station == factory_config.TERMINAL_MARKER:
+    if station in factory_config.TERMINAL_STATIONS:
         return None
     return number, station
 
@@ -260,7 +260,7 @@ def _task_cards(plan_doc, rec, legal):
 def _parent_station(plan_doc, legal):
     """The parent's station, TERMINAL FIRST — or None, meaning no write.
 
-    Returns None for the TERMINAL_MARKER as well as for no-verdict, because both mean the same
+    Returns None for every TERMINAL_STATIONS name as well as for no-verdict, because both mean the same
     thing to the caller: place no card. They reach it by different routes and that is why the
     marker is tested BEFORE derive_station rather than filtered out afterwards.
     """
@@ -271,7 +271,7 @@ def _parent_station(plan_doc, legal):
             str(top),
             _station_remedy(),
         )
-    if top == factory_config.TERMINAL_MARKER:
+    if top in factory_config.TERMINAL_STATIONS:
         return None
     if top == "done":
         return "done"

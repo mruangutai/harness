@@ -6,6 +6,7 @@ import re
 import stat
 
 import artifact_accessors
+import factory_config
 import harness_yaml
 
 SECTION = "## Done when"
@@ -273,7 +274,7 @@ def _satisfied_plan(match, feature_dir, root):
     status = task.get("status")
     if not isinstance(status, str):
         return None
-    return status.strip().lower() in ("done", "abandoned")
+    return status.strip().lower() in ("done",) + factory_config.TERMINAL_STATIONS
 
 
 def _heading_body(lines, heading):

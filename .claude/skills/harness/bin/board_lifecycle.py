@@ -525,8 +525,8 @@ def _status_findings(root, board, stations):
         # applied here). They did: `station_key is None` covered the terminal marker, an absent
         # status AND a value nobody recognised, so a typo was silently exempt from the only
         # class that compares a feature against its parent card. Each is now its own branch.
-        if station_key == factory_config.TERMINAL_MARKER:
-            continue  # exemption 1 -- the marker names no board column to compare against.
+        if station_key in factory_config.TERMINAL_STATIONS:
+            continue  # terminal stations name no board column to compare against.
         if not station_key:
             # No plan, or a plan carrying no station: nothing to compare, and INV-3 already
             # reports a plan that should exist and does not.

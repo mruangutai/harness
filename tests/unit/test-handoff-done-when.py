@@ -295,6 +295,17 @@ try:
 finally:
     _td.cleanup()
 
+# Both terminal stations satisfy a task authority; rejected must not leave a successor
+# treating an already-terminal task as actionable.
+_td, _root, _rel = satisfaction_fixture("rejected", "pending")
+try:
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
+    check("satisfaction: rejected task is terminal", len(_got) == 1 and "binds nothing" in _got[0],
+          repr(_got))
+finally:
+    _td.cleanup()
+
 # The check is WRITE-TIME ONLY, exactly like resolution: the persisted-corpus pass must
 # never reopen targets, or every superseded note on disk turns the state gate red as its
 # tasks land.
