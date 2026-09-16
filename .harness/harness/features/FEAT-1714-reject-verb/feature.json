@@ -51,6 +51,15 @@
       "started_at": "2026-09-16T07:29:06+00:00",
       "ended_at": "2026-09-16T07:51:40+00:00",
       "tokens": null
+    },
+    {
+      "id": "fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T08:00:44+00:00",
+      "ended_at": "2026-09-16T08:19:09+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -102,6 +111,20 @@
       "kind": "regate",
       "decision": "validate-c1",
       "reason": "Main applied the six validate c0 findings directly under DEC-174 and pinned the corrected tree for one independent validator regate"
+    },
+    {
+      "at": "2026-09-16T08:00:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "validate c2 takes up Main fixes for QA-C1-01 and QA-C1-02 at pinned review_sha 130d5b5f; cumulative spend is 5 runs, 133 minutes, 52 rework minutes, 2 cycles"
+    },
+    {
+      "at": "2026-09-16T08:00:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c2-validator",
+      "reason": "Main fixed validate c1 findings QA-C1-01 and QA-C1-02 directly under DEC-174 and pinned the corrected tree for the final independent validator regate"
     }
   ],
   "mission": "plan",
