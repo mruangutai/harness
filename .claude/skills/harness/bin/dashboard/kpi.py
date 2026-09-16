@@ -20,7 +20,8 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
     generated = _as_utc(generated_at or datetime.now(timezone.utc))
     start, end = resolve_window(window, generated)
     records = _trend_records(root)
-    features = [_feature(path, root, records) for path in _feature_dirs(root)]
+    default_branch = _default_branch(root)
+    features = [_feature(path, root, records, default_branch) for path in _feature_dirs(root)]
     selected = [item for item in features if _in_window(item["shipped_at"], start, end)]
     return {
         "schema": _SCHEMA,
@@ -49,7 +50,7 @@ def _feature_dirs(root: Path) -> list[Path]:
     return sorted(path.parent for path in root.glob(".harness/*/features/*/feature.json"))
 
 
-def _feature(feature_dir: Path, root: Path, records: dict) -> dict:
+def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str | None) -> dict:
     document = json.loads((feature_dir / "feature.json").read_text(encoding="utf-8"))
     unavailable = _plan_unavailability(feature_dir)
     approved_on, approval_reason = brief_approval.approval_date(feature_dir)
@@ -61,7 +62,7 @@ def _feature(feature_dir: Path, root: Path, records: dict) -> dict:
     cycle_time = _cycle_time(approved_on, shipped_at)
     if cycle_time is None:
         unavailable["cycle_time_days"] = approval_reason or _NO_SHIP
-    insertions, deletions, files_changed, diff_reason = _change_size(root, document["branch"])
+    insertions, deletions, files_changed, diff_reason = _change_size(root, default_branch, document["branch"])
     if diff_reason is not None:
         unavailable["insertions"] = diff_reason
         unavailable["deletions"] = diff_reason
@@ -104,9 +105,21 @@ def _trend_records(root: Path) -> dict:
     return records
 
 
-def _change_size(root: Path, branch: str) -> tuple[int | None, int | None, int | None, str | None]:
+def _default_branch(root: Path) -> str | None:
     result = subprocess.run(
-        ["git", "diff", "--numstat", f"main...{branch}"], cwd=root,
+        ["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=root,
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0 or not result.stdout.startswith("origin/"):
+        return None
+    return result.stdout.strip().removeprefix("origin/")
+
+
+def _change_size(root: Path, default_branch: str | None, branch: str) -> tuple[int | None, int | None, int | None, str | None]:
+    if default_branch is None:
+        return None, None, None, "project default branch is unavailable"
+    result = subprocess.run(
+        ["git", "diff", "--numstat", f"{default_branch}...{branch}"], cwd=root,
         capture_output=True, text=True, check=False,
     )
     if result.returncode != 0:

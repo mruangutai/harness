@@ -46,11 +46,45 @@ class KpiCoreTest(unittest.TestCase):
             {" ".join(call.args[0]) for call in diff.call_args_list
              if call.args[0][-1] == "main...feature/shipped"},
         )
-        self.assertEqual(6, diff.call_count)
+        self.assertEqual(7, diff.call_count)
         for key in ("touchpoints", "escaped_defects", "grading", "attribution"):
             self.assertIsNone(result["aggregate"][key]["value"])
             self.assertEqual("not yet implemented", result["aggregate"][key]["unavailable"]["value"])
 
+    def test_change_size_uses_project_default_branch_once(self):
+        calls = []
+
+        def git_run(command, **kwargs):
+            calls.append((command, kwargs))
+            if command[1:3] == ["symbolic-ref", "--short"]:
+                return _git_result("origin/trunk\n")
+            return _diff_result(command)
+
+        with patch("kpi.subprocess.run", side_effect=git_run):
+            kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
+
+        diffs = [command for command, _kwargs in calls if command[1:3] == ["diff", "--numstat"]]
+        self.assertEqual(
+            [(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], {"cwd": self.project.resolve(),
+              "capture_output": True, "text": True, "check": False})],
+            [(command, kwargs) for command, kwargs in calls if command[1] == "symbolic-ref"],
+        )
+        self.assertEqual(6, len(diffs))
+        self.assertTrue(all(command[-1].startswith("trunk...") for command in diffs))
+
+
+    def test_missing_project_default_branch_does_not_use_feature_diffs(self):
+        def git_run(command, **_kwargs):
+            return _git_result("", returncode=1)
+
+        with patch("kpi.subprocess.run", side_effect=git_run) as git:
+            result = kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
+
+        self.assertEqual(1, git.call_count)
+        self.assertTrue(all(
+            item["unavailable"]["insertions"] == "project default branch is unavailable"
+            for item in result["features"]
+        ))
     def test_four_gap_features_have_distinct_specific_reasons(self):
         result = kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
         reasons = []
@@ -96,10 +130,17 @@ class KpiCoreTest(unittest.TestCase):
             self.assertTrue(all("plan" in item["unavailable"] for item in result["features"]))
 
 def _diff_result(command, **_kwargs):
+    if command[1:3] == ["symbolic-ref", "--short"]:
+        return _git_result("origin/main\n")
+    return _git_result("3\t2\talpha.py\n1\t0\tbeta.py\n")
+
+def _git_result(stdout, returncode=0):
     class Result:
-        returncode = 0
-        stdout = "3\t2\talpha.py\n1\t0\tbeta.py\n"
-    return Result()
+        pass
+    result = Result()
+    result.returncode = returncode
+    result.stdout = stdout
+    return result
 
 
 def _feature(result, feature_id):
