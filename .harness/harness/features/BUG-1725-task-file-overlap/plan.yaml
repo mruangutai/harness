@@ -30,7 +30,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 places plan-merge.py and its integration test in the direct lane; the two bounded skill and team prompt edits are folded into the same task
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/plan-merge.py
       - tests/integration/test-plan-merge.py
