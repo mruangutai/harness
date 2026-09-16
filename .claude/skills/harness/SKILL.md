@@ -161,19 +161,24 @@ byte-verified before any commit.
   proportionality finding no reader opposes downgrades the mission to `patch` by your own hand
   (SC-03); `scope: task` findings never do, however many (DEC-228). Procedure:
   `plan-phase.md`.
-- **Build** — `gh-sync.py open`; the `build` team to `harness-eng-lead` (single-squad, DEC-118),
-  `set-feature-station building` as it starts. **A `PASS` carrying `amendments:` is transcribed
-  FIRST**: `plan-merge.py record-amendments --file <plan.yaml> --digest <lead digest.md>` inside the
-  same build run, before any task or feature station moves — no product dispatch, no separate
-  transcript run, no re-dispatch of the task, no `cycles_used` increment (no gate failed, DEC-157).
-  A lead that could not amend returns `BLOCKED` with the question and its recommendation — an SC
-  change, a task added or deleted, a decision changed, a file outside grants — and that routes as
-  `BLOCKED` below. SIMPLIFY last, before the pin; pin `review_sha` and
-  `gh-sync.py status <feature-dir> review`; then ONE `validate` dispatch to `harness-validator-lead` over that sha —
-  `qa` enforces the `test_matrix` gate with `fail_first` evidence; a qa FAIL is a `loop_back` to the
-  owning dev through a `fix` run, never a second qa run over the same sha — beside `code`,
-  `security`, `ui`, `goalcheck`, fanned in to one must-fix list. On `must_fix`: a `fix` run to the
-  validator lead naming the owning dev, re-pin on return, inside the rework ruling. Procedure:
+- **Build** — require the signature-created `github.build_entry` receipt; ordinary Build does not
+  call `open`, while missing or `recovery-required` receipts use idempotent `open` as the explicit
+  recovery path. Run `gh-sync.py status <feature-dir> building` for every active card before task
+  dispatch, then send the `build` team to `harness-eng-lead` (single-squad, DEC-118). **A `PASS`
+  carrying `amendments:` is transcribed FIRST**: `plan-merge.py record-amendments --file
+  <plan.yaml> --digest <lead digest.md>` inside the same build run, before any task or feature
+  station moves — no product dispatch, no separate transcript run, no re-dispatch of the task, no
+  `cycles_used` increment (no gate failed, DEC-157). A lead that could not amend returns `BLOCKED`
+  with the question and its recommendation — an SC change, a task added or deleted, a decision
+  changed, a file outside grants — and that routes as `BLOCKED` below. SIMPLIFY last, before the
+  pin; pin `review_sha` and run `gh-sync.py status <feature-dir> review` before the `validate`
+  dispatch to `harness-validator-lead` over that sha. `qa` enforces the `test_matrix` gate with
+  `fail_first` evidence; a qa FAIL is a `loop_back` to the owning dev through a `fix` run, never a
+  second qa run over the same sha — beside `code`, `security`, `ui`, `goalcheck`, fanned in to one
+  must-fix list. On `must_fix`, run `gh-sync.py status <feature-dir> building` before each `fix`
+  dispatch to the validator lead naming the owning dev. Re-pin on return, then run
+  `gh-sync.py status <feature-dir> review` at the next validation boundary before handling or
+  dispatching the subsequent validation pass. The loop stays inside the rework ruling. Procedure:
   `build-phase.md`.
 - **Ship** — the briefing (`briefing.md`); the merge is the user's.
 

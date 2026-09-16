@@ -130,6 +130,12 @@ You draft `BRIEF.md` and `plan.yaml`; you never mark them approved. Only the **m
 changes the task set after signature sets `approval.status` back to `pending` on its own; only
 `sign-approval` writes `approved`.
 
+Capture and print stdout from every task-changing `plan-merge.py` invocation. Only when the
+captured output contains its exact `APPROVAL-RESET:` receipt, run
+`gh-sync.py status <feature-dir> plan` after the local reset has landed. No `APPROVAL-RESET:`
+receipt means no remote call. This applies to `apply`, `add-tasks`, task-changing `amend`, and
+`delete-items --task`; it never guesses from the verb or from the prior approval state.
+
 ## Red flags
 
 | Thought | Reality |

@@ -167,7 +167,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: no single agent domain owns the canonical commands, cross-phase orchestration skills, generated command adapters, and their focused lifecycle caller-order test
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
     - path: .omp/commands/harness-plan.md
       quote: '**The signature is immediately followed by**'
