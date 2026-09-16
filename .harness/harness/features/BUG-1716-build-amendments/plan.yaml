@@ -250,7 +250,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The ledger reference resolves to no team grant in the scoped plan route check.
     depends_on: [T-03, T-04, T-05]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/references/ledger.md
         quote: "## Judgements"
