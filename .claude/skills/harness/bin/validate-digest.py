@@ -1990,16 +1990,39 @@ def _resolve_run_unit_tests_bin(payload):
                         "run-unit-tests.py")
 
 
-def _reverify_suite(run_bin):
-    """Run `run_bin` and return its CompletedProcess, or None if it could not be run
-    at all (missing file, spawn failure, timeout) — every case is our gap, not theirs."""
+def _kind_of(raw):
+    entry = parse_member_entry(raw) if isinstance(raw, str) else None
+    return str((entry or {}).get("kind", "")).strip()
+
+
+def _claimed_kinds(text):
+    """The test kinds the qa return's `kinds:` names, in order, deduplicated — the matrix
+    the claim is about. Empty when the digest names none (the runner's default set then
+    governs)."""
+    kinds = [_kind_of(raw) for raw in parse_digest(text).get("kinds") or []]
+    return list(dict.fromkeys(k for k in kinds if k))
+
+
+def _reverify_suite(run_bin, kinds=()):
+    """Run the Python runner — with `sys.executable`, never a shell: run-unit-tests.py has
+    been a Python file since #1674 and bash reading it exited 2 on every honest PASS
+    (BUG-1756) — once per claimed kind (`--kind <k>`), or once bare when the claim names
+    none. Returns the first non-zero CompletedProcess, else the last one; None if it could
+    not be run at all (missing file, spawn failure, timeout) — every such case is our gap,
+    not theirs."""
     if not run_bin or not os.path.isfile(run_bin):
         return None
-    try:
-        return subprocess.run(["bash", run_bin], capture_output=True, text=True,
-                              timeout=1800)
-    except Exception:
-        return None
+    invocations = [["--kind", k] for k in kinds] or [[]]
+    result = None
+    for extra in invocations:
+        try:
+            result = subprocess.run([sys.executable, run_bin, *extra], capture_output=True,
+                                    text=True, timeout=1800)
+        except Exception:
+            return None
+        if result.returncode != 0:
+            return result
+    return result
 
 
 def check_qa_matrix_claim(agent, text, payload):
@@ -2027,7 +2050,7 @@ def check_qa_matrix_claim(agent, text, payload):
     if not _qa_claims_unconditional_pass(text):
         return 0
     run_bin = _resolve_run_unit_tests_bin(payload)
-    result = _reverify_suite(run_bin)
+    result = _reverify_suite(run_bin, _claimed_kinds(text))
     if result is None:
         print(f"check-digest: could not independently re-run the suite at {run_bin!r} "
               f"— {agent}'s matrix_ok: true / suite: pass claim was NOT verified; this "
