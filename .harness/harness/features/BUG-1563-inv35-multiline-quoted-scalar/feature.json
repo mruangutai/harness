@@ -1,0 +1,175 @@
+{
+  "feature_id": "BUG-1563-inv35-multiline-quoted-scalar",
+  "branch": "feat/BUG-1563-inv35-multiline-quoted-scalar",
+  "pr": null,
+  "review_sha": "9fd79689e24353ac81689bb5227b8aa752e536ea",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T03:00:14+00:00",
+      "ended_at": "2026-09-15T03:11:10+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T12:46:22+00:00",
+      "ended_at": "2026-09-15T12:57:07+00:00",
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-15T12:58:56+00:00",
+      "ended_at": "2026-09-15T13:15:52+00:00",
+      "tokens": null
+    },
+    {
+      "id": "plan-upgrade-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T13:23:08+00:00",
+      "ended_at": "2026-09-15T13:47:06+00:00",
+      "tokens": null
+    },
+    {
+      "id": "simplify-eng-final",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-15T13:58:03+00:00",
+      "ended_at": "2026-09-15T14:07:57+00:00",
+      "tokens": null
+    },
+    {
+      "id": "simplify-eng-confirm",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T14:11:54+00:00",
+      "ended_at": "2026-09-15T14:18:16+00:00",
+      "tokens": null
+    },
+    {
+      "id": "validate-validator-final",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T14:19:09+00:00",
+      "ended_at": "2026-09-15T14:32:30+00:00",
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-15T03:00:14+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "The line-local quote-state defect is known, the checker and integration-test files are bounded, and no new public interface, schema, or enforcement surface is introduced."
+    },
+    {
+      "at": "2026-09-15T13:15:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "scope-change",
+      "reason": "V-01 requires unit-kind coverage, but T-01 owns only the checker and its integration test; any unit-test remedy adds a file outside the signed two-file patch."
+    },
+    {
+      "at": "2026-09-15T13:16:08+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The patch cannot enter a fix run until the operator decides whether to broaden the signed scope for matrix-required unit coverage; recommend upgrade plan."
+    },
+    {
+      "at": "2026-09-15T13:22:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Operator authorized the minimum plan upgrade for matrix-required unit coverage in notes/answers-upgrade-plan.md; DEC-174 remains binding."
+    },
+    {
+      "at": "2026-09-15T13:22:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator approved upgrading the scope to plan for the minimum matrix-required unit coverage; proceed without weakening the gate."
+    },
+    {
+      "at": "2026-09-15T13:22:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "replan",
+      "reason": "Validate finding V-01 is a scope change; operator approved the minimum plan upgrade before any fix run."
+    },
+    {
+      "at": "2026-09-15T14:08:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "product-defect",
+      "reason": "Simplify EFF-01 is a behavior-preserving reorder inside T-01's approved check-state.sh ownership, not a scope change."
+    },
+    {
+      "at": "2026-09-15T14:08:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "EFF-01 is low-risk, behavior-preserving, within the signed check-state.sh task, and remains inside the active one-round rework before the validation regate."
+    },
+    {
+      "at": "2026-09-15T14:11:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "resimplify",
+      "reason": "Main-session-direct commit e1a5fe60 applied EFF-01 and both focused tests plus canonical check-state pass; rerun the four-angle simplify gate before final pin."
+    },
+    {
+      "at": "2026-09-15T14:19:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "revalidate",
+      "reason": "V-01 is addressed by T-02 unit-kind coverage, EFF-01 is resolved, focused proof is green, simplify confirms no remaining finding, and review_sha is pinned to 9fd79689e24353ac81689bb5227b8aa752e536ea."
+    },
+    {
+      "at": "2026-09-15T14:37:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "ship",
+      "reason": "Operator accepted ship at pinned SHA 9fd79689e24353ac81689bb5227b8aa752e536ea and kept backlog item B-1 in notes/answers-ship-decision.md."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1563-inv35-multiline-quoted-scalar/.harness/harness/features/BUG-1563-inv35-multiline-quoted-scalar/notes/answers-upgrade-plan.md"
+  },
+  "github": {
+    "milestone": 70,
+    "parent": 1701,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 1702,
+      "T-02": 1703
+    },
+    "source_issues": [
+      1563
+    ],
+    "build_entry": "opened"
+  }
+}
