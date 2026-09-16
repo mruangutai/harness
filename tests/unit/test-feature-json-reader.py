@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
-"""Tests for feature_json_write.load_feature_json (BUG-285) -- the one canonical reader for
-feature.json, replacing the two independent parsers gh-sync.py's load_recorded and
-factory_decompose.py's load_factory used to run for themselves. Exercises the accessor
-directly against all 13 input classes measured in
-`.harness/harness/features/BUG-285-yaml-loader-pin/notes/research-BUG-285-parity-survey.md`,
-plus a structural check that neither reader parses feature.json independently any more --
-that is what keeps this ONE implementation rather than two that happen to agree today.
+"""Contract tests for the public feature.json accessor (BUG-285).
 
-Rows about a specific FIELD inside the parsed document (a `github`/`factory` block present
-but wrong-typed, or a member coerced) are each reader's own business, not this accessor's --
-those stay covered by gh-sync.py's and factory_decompose.py's own suites. This file tests
-only the raw read/parse/shape layer load_feature_json owns: absent-vs-malformed, JSON
-validity, duplicate keys, and top-level mapping shape.
+The load implementation remains inward in feature_json_write.py through T-07. These tests
+exercise it only through artifact_accessors, covering absence-vs-corruption, strict JSON,
+top-level shape, and recorded GitHub/factory issue fields.
 """
 from pathlib import Path
-import ast
 import json
 import os
 import sys
@@ -24,7 +15,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
+import artifact_accessors as accessors  # noqa: E402
 import feature_json_write  # noqa: E402
+import harness_yaml  # noqa: E402
 
 
 def _write(dirpath, data_bytes):
@@ -39,7 +32,7 @@ class LoadFeatureJsonTest(unittest.TestCase):
         """Row 1: a legitimate first sync/first publish -- never an error."""
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "feature.json")
-            self.assertIsNone(feature_json_write.load_feature_json(path))
+            self.assertIsNone(accessors.load_feature_json(path))
 
     def test_empty_file_raises_not_returns_empty(self):
         """Row 2: a 0-byte file is the truncating-write window FEAT-14 was about -- it must
@@ -47,15 +40,15 @@ class LoadFeatureJsonTest(unittest.TestCase):
         the same answer."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_unparseable_json_raises(self):
         """Row 3."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"{ not: valid json [[[")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_non_utf8_bytes_raise_not_traceback(self):
         """Row 4: gh-sync.py's OLD reader let this escape its `except OSError` as a bare
@@ -63,29 +56,29 @@ class LoadFeatureJsonTest(unittest.TestCase):
         cannot happen here."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"\xff\xfe\x00\x01")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_top_level_list_raises(self):
         """Row 5."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"[1, 2]")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_top_level_scalar_string_raises(self):
         """Row 6."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b'"x"')
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_top_level_scalar_int_raises(self):
         """Row 7."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"3")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_block_key_absent_returns_the_mapping(self):
         """Row 8: a mapping present with nothing recorded yet is a legitimate document --
@@ -93,25 +86,22 @@ class LoadFeatureJsonTest(unittest.TestCase):
         means a first sync is each reader's own job, not this accessor's."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, json.dumps({"feature_id": "F1"}).encode())
-            self.assertEqual({"feature_id": "F1"}, feature_json_write.load_feature_json(path))
+            self.assertEqual({"feature_id": "F1"}, accessors.load_feature_json(path))
 
     def test_block_key_present_not_a_mapping_still_returns(self):
-        """Row 9: load_feature_json does not inspect nested field types -- a `github` value
-        that is a plain string is still sitting inside a valid top-level JSON mapping, and
-        catching THAT shape is each reader's own guard, not this accessor's."""
+        """A present block without recorded parent or issues fields remains raw metadata."""
         with tempfile.TemporaryDirectory() as td:
             doc = {"github": "x", "factory": "x"}
             path = _write(td, json.dumps(doc).encode())
-            self.assertEqual(doc, feature_json_write.load_feature_json(path))
+            self.assertEqual(doc, accessors.load_feature_json(path))
 
-    def test_wrong_typed_members_still_returns(self):
-        """Row 10: coercion policy (a quoted "7" reads as 7, or not) is each reader's own
-        decision, made after load_feature_json hands back the raw mapping -- unaffected
-        here."""
+    def test_wrong_typed_members_raise(self):
+        """Present recorded parent and issues fields are shared-boundary corruption."""
         with tempfile.TemporaryDirectory() as td:
             doc = {"github": {"parent": "7", "issues": "nope"}}
             path = _write(td, json.dumps(doc).encode())
-            self.assertEqual(doc, feature_json_write.load_feature_json(path))
+            with self.assertRaises(Exception):
+                accessors.load_feature_json(path)
 
     def test_duplicate_top_level_keys_raise(self):
         """Row 11: json.load's own default for a repeated key is silent last-wins --
@@ -121,8 +111,8 @@ class LoadFeatureJsonTest(unittest.TestCase):
             text = ('{"github": {"parent": 1}, "feature_id": "F1", '
                     '"github": {"parent": 2}}').encode()
             path = _write(td, text)
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_duplicate_nested_keys_raise(self):
         """A repeated key one level below the top -- DuplicateKeyError's own contract is
@@ -130,17 +120,36 @@ class LoadFeatureJsonTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             text = '{"github": {"parent": 1, "parent": 2}}'.encode()
             path = _write(td, text)
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
-    def test_yaml_only_document_raises(self):
-        """Row 12: a document no JSON writer produces and no JSON reader accepts -- the
-        parser-choice divergence this migration closes by accepting ONLY JSON. Was, under
-        the old harness_yaml-based load_factory, RETURNED populated; must now raise."""
+    def test_issue_285_comment_bearing_yaml_document_is_rejected(self):
+        """Issue 285's prior feature document remains valid YAML, never feature JSON."""
+        text = (
+            b"feature_id: F1\n"
+            b"github:\n"
+            b"  parent: 40        # the container issue, adopted\n"
+            b'  milestone: "7"    # quoted on purpose\n'
+            b"  parent_origin: adopted\n"
+            b"  attached: [T-01]\n"
+            b"  issues:\n"
+            b"    T-01: 41   # trailing comment here too\n"
+        )
+        expected = {
+            "feature_id": "F1",
+            "github": {
+                "parent": 40,
+                "milestone": "7",
+                "parent_origin": "adopted",
+                "attached": ["T-01"],
+                "issues": {"T-01": 41},
+            },
+        }
         with tempfile.TemporaryDirectory() as td:
-            path = _write(td, b"github:\n  parent: 40\n  milestone: 7\n")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(path)
+            path = _write(td, text)
+            self.assertEqual(expected, harness_yaml.load_file(path))
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(path)
 
     def test_valid_well_formed_document_returns_it(self):
         """Row 13, the control: a normal write_feature_json/write_factory document loads
@@ -149,17 +158,59 @@ class LoadFeatureJsonTest(unittest.TestCase):
             doc = {"feature_id": "F1",
                    "github": {"parent": 40, "milestone": 7, "issues": {"T-01": 41}}}
             path = _write(td, json.dumps(doc).encode())
-            self.assertEqual(doc, feature_json_write.load_feature_json(path))
+            self.assertEqual(doc, accessors.load_feature_json(path))
 
     def test_absent_and_malformed_are_distinguishable(self):
         """The core defect this migration closes (property 5): absent must never be
         indistinguishable from present-but-corrupt to a caller."""
         with tempfile.TemporaryDirectory() as td:
             absent_path = os.path.join(td, "feature.json")
-            self.assertIsNone(feature_json_write.load_feature_json(absent_path))
+            self.assertIsNone(accessors.load_feature_json(absent_path))
             corrupt_path = _write(td, b"")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
-                feature_json_write.load_feature_json(corrupt_path)
+            with self.assertRaises(accessors.FeatureJsonError):
+                accessors.load_feature_json(corrupt_path)
+
+    def test_nonfinite_constants_raise(self):
+        for constant in ("NaN", "Infinity", "-Infinity"):
+            with self.subTest(constant=constant), tempfile.TemporaryDirectory() as td:
+                path = _write(td, f'{{"github": {{"parent": {constant}}}}}'.encode())
+                with self.assertRaises(accessors.FeatureJsonError):
+                    accessors.load_feature_json(path)
+
+    def test_text_source_matches_path_validation(self):
+        document = {"feature_id": "F1", "github": {"issues": {"T-01": "8"}}}
+        self.assertEqual(
+            document,
+            accessors.load_feature_json(
+                text=json.dumps(document), context="git show main:feature.json"
+            ),
+        )
+        failures = (
+            ('{"outer": {"inner": {"key": 1, "key": 2}}}', "duplicate key"),
+            ("NaN", "non-finite JSON constant"),
+            ("Infinity", "non-finite JSON constant"),
+            ("-Infinity", "non-finite JSON constant"),
+            ("[1, 2]", "not a JSON mapping"),
+            ('{"github": {"issues": []}}', "issues"),
+        )
+        for text, expected in failures:
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(
+                    accessors.FeatureJsonError, expected
+                ) as caught:
+                    accessors.load_feature_json(
+                        text=text, context="git show main:feature.json"
+                    )
+                self.assertIn("git show main:feature.json", str(caught.exception))
+
+    def test_exactly_one_source_is_required(self):
+        with self.assertRaises(accessors.FeatureJsonError):
+            accessors.load_feature_json()
+        with self.assertRaises(accessors.FeatureJsonError):
+            accessors.load_feature_json(
+                "feature.json", text='{"feature_id": "F1"}',
+                context="git show main:feature.json",
+            )
 
 
 class OptIntTest(unittest.TestCase):
@@ -182,28 +233,6 @@ class OptIntTest(unittest.TestCase):
         self.assertEqual(41, feature_json_write.opt_int(41))
 
 
-def _function_source(path, name):
-    source = path.read_text()
-    tree = ast.parse(source, filename=str(path))
-    node = next(n for n in ast.walk(tree)
-                if isinstance(n, ast.FunctionDef) and n.name == name)
-    return ast.get_source_segment(source, node)
-
-
-class SingleReaderStructuralTest(unittest.TestCase):
-    """BUG-285's whole point: only ONE implementation parses feature.json now. A reader
-    that reimplements even one call it delegates today would silently reopen the fork this
-    feature closes."""
-
-    def test_load_recorded_does_not_parse_independently(self):
-        source = _function_source(BIN / "gh-sync.py", "load_recorded")
-        for banned in ("json.load(", "json.loads(", "harness_yaml.load_file("):
-            self.assertNotIn(banned, source, f"{banned!r} found in load_recorded")
-
-    def test_load_factory_does_not_parse_independently(self):
-        source = _function_source(BIN / "factory_decompose.py", "load_factory")
-        for banned in ("json.load(", "json.loads(", "harness_yaml.load_file("):
-            self.assertNotIn(banned, source, f"{banned!r} found in load_factory")
 
 
 if __name__ == "__main__":

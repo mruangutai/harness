@@ -47,7 +47,7 @@ rediscovered.
 ## The other coupling — same class, and one half of it was a live red gate
 
 **Two paragraphs restated FEAT-48's `D-11` watched set as fact**: "snapshots every tracked file's
-size and mtime around the run" (the `run-unit-tests.sh` rewrite bullet, and the TWO INHERITED GUARDS
+size and mtime around the run" (the `run-unit-tests.py` rewrite bullet, and the TWO INHERITED GUARDS
 paragraph in `T-05`). That set is under revision in FEAT-48 this cycle — a copy here would keep
 reading true while ceasing to be true, the identical failure mode as the climb. Both now cite
 `D-11` as the single definition and state only what FEAT-47 depends on.

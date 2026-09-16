@@ -30,7 +30,7 @@ This feature was re-founded three times, and each time by measurement rather tha
 Planning killed session identity as a denial input (it refused a resumed owner), then killed
 marker-acquisition (a panel `critical` showed it refused approximately only the legitimate owner and
 approximately no foreign run), leaving the minted `run_uid` the Advisor had recorded as its fallback.
-Build then found the deeper defect: the omp bridge sends `check-domain.sh` only `{ file_path }` for
+Build then found the deeper defect: the omp bridge sends `check-domain.py` only `{ file_path }` for
 an Edit, so **every governed Edit PRE check was dormant on the host the harness itself runs on** —
 not open in corner cases. The suite's exit-2 evidence was real only for payload shapes this host
 never emits. Cycle 13 made reconstruction-`None` fail closed for `state.yaml`, `digest.md` and
@@ -67,7 +67,7 @@ later round independently confirmed closed.
 
 ## Cleanup you own
 
-Four scratch worktrees survive and `check-state.sh` INV-29 will notice them. Removal is never a
+Four scratch worktrees survive and `check-state.py` INV-29 will notice them. Removal is never a
 subagent's act:
 
 `qa-c2-c369` (`c369fb1f`), `qa-c2-dc0` (`dc0e0313`), `qa-c2-e77` (`e77b30ca`), `qa-c2-mutate`
@@ -85,16 +85,16 @@ collation across seventeen cycles. Strike rows by ID.
 | B-2 | chore | Regression note `:9` names the removed complexity-allowlist row as `validate_digest.py:main`; the row actually removed is `("validate-digest.py", "check_artifact_file")`. Substance true, identifier false. |
 | B-3 | chore | The note's unit-suite figure was measured at `dee707e9`, before three files changed — it is not a pin measurement, while the integration line is. Non-gating under the criterion as signed. |
 | B-4 | chore | The reconstruction-`None` disclosure quotes its message verbatim but names only the permit cases; the message itself is pinned at `test-check-domain.py:3839` and `:4860-4864` and could be cited. |
-| B-5 | chore | `check-state.sh` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
+| B-5 | chore | `check-state.py` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
 | B-6 | chore | `harness_boundary.py` imports `MARKER_NAME` eagerly: +6.45 ms on every governed write, measured over a 60-invocation A/B. |
 | B-7 | chore | POST effective-uid selection lives in a shell heredoc with no importable function and no unit test. |
-| B-8 | chore | `check-domain.sh:1240` still reads like the false PRE-only comment REQ-06 removed. True as written — its subject is the POST-sweep exclusion — and it will mislead the next reader anyway. |
+| B-8 | chore | `check-domain.py:1240` still reads like the false PRE-only comment REQ-06 removed. True as written — its subject is the POST-sweep exclusion — and it will mislead the next reader anyway. |
 | B-9 | enhancement | Brief review panels to hunt the composite claim: five of this feature's sharpest defects lived where two readers' scopes overlap, each reader correct alone. |
 | B-10 | bug | Harness: worktree claims key on persona and on the shared broker pid, so a lead is refused writes into its own feature's run directory while a sibling flow holds that persona's claim — and a claim whose agent has left the roster still reads live. **Six occurrences this feature**, two of which lost a run digest to an inline-only record. |
 | B-11 | bug | Harness: members emitted complete, well-formed returns that the host recorded as `failed (exit 1) — yield with null data`. |
 | B-12 | bug | Harness: a pre-plan `harness-code-reviewer` cannot yield at all — `validate-digest.py` demands a binding that cannot exist before a plan is drafted. |
 | B-13 | chore | Harness: no `plan-merge.py` verb reaches the `lanes:` block. |
-| B-14 | chore | Harness: `check-state.sh` INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval. |
+| B-14 | chore | Harness: `check-state.py` INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval. |
 | B-15 | enhancement | Define "exhausts" for `max_total_cycles` (BUG-1286's B-12). Undefined again here; it cost an Advisor round-trip. |
 | B-16 | chore | `tests/integration/test-check-domain.py` lets `CHECK_DOMAIN_BIN` swap the guard binary under test. It is what made this feature's mutation probes possible; an env-swappable guard under test still deserves an owner's eyes. |
 

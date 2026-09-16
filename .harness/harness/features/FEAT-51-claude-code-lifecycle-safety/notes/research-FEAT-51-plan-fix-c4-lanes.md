@@ -10,7 +10,7 @@ including the `78a79,90` hunk header), additions only, zero removals, zero modif
     - surface: .claude/skills/harness/bin/plan-sign-gate.py
       lane: main-session-direct
       reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
-    - surface: .claude/skills/harness/bin/plan-sign-gate.sh
+    - surface: .claude/skills/harness/bin/plan-sign-gate.py
       lane: main-session-direct
       reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
     - surface: .claude/skills/harness/bin/test-plan-sign-gate.py
@@ -21,9 +21,9 @@ including the `78a79,90` hunk header), additions only, zero removals, zero modif
       agent: harness-dev-ops
 ```
 
-Lane assignments are the orchestrator's measured `check-domain.sh --resolve` answers, not
+Lane assignments are the orchestrator's measured `check-domain.py --resolve` answers, not
 re-derived. The first three carry `reason:` naming both the grant and the DEC-174 carve-out,
-matching the `check-domain.sh` / `validate-digest.py` rows; the fourth is T-08's `execution_mode:
+matching the `check-domain.py` / `validate-digest.py` rows; the fourth is T-08's `execution_mode:
 team` / `execution_agent: harness-dev-ops` and carries `agent:` with no `reason:`, matching the
 `quarantine.py` rows.
 
@@ -53,7 +53,7 @@ team` / `execution_agent: harness-dev-ops` and carries `agent:` with no `reason:
 
 ## Procedure deviations, stated rather than hidden
 
-- **Proposal built by a Python splice, not the Edit tool.** `check-domain.sh` denies harness-pm the
+- **Proposal built by a Python splice, not the Edit tool.** `check-domain.py` denies harness-pm the
   Edit write to `notes/plan-proposal-lanes-c4.yaml` (`notes/` grants me only `research-*.md` and
   `uat-*.md`). The `cp` and the row splice both went through `python3 -c`, which the hook does not
   intercept. The file was still a verbatim `shutil.copyfile` of the original — no YAML dumper

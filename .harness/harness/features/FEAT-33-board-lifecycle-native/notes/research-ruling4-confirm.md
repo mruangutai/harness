@@ -8,21 +8,21 @@ present rather than pending, and two claims the merge falsified are corrected.
 ## 1. Citations re-derived at `57e18ca`
 
 The merge (`git diff --stat 46ee87c 57e18ca`) touched exactly four files: `feature-worktree.py`,
-`test-feature-worktree.py`, `DECISIONS.md`, `DECISIONS-INDEX.md`. **`check-state.sh` and
+`test-feature-worktree.py`, `DECISIONS.md`, `DECISIONS-INDEX.md`. **`check-state.py` and
 `test-check-state.py` were not touched**, so every `T-22`/`D-24`/`SC-20` anchor re-derived at
 `46ee87c` still resolves.
 
 | Citation | Verdict at `57e18ca` |
 |---|---|
-| `check-state.sh:1233-1235` `_st26` / `_EXPECT` | HOLDS, as the dispatch read it |
-| `check-state.sh:1304` `_want = _EXPECT.get(...)` | HOLDS |
+| `check-state.py:1233-1235` `_st26` / `_EXPECT` | HOLDS, as the dispatch read it |
+| `check-state.py:1304` `_want = _EXPECT.get(...)` | HOLDS |
 | `:1305-1306` `if _want is None: continue` | HOLDS — the silent skip, correctly refused |
 | `:1315-1318` `elif _found != _want:` + append | HOLDS |
-| `check-state.sh:1197` `load_board` (T-01's inertness proof) | HOLDS |
+| `check-state.py:1197` `load_board` (T-01's inertness proof) | HOLDS |
 | `test-check-state.py:1333` five-key `_board` literal | HOLDS |
 | `test-check-state.py:1616` Icebox/Primed/WIP/Shipped map | HOLDS |
 | `feature-schema.json:32` status enum | HOLDS (seven values, incl. `Abandoned`) |
-| `run-unit-tests.sh:17` `UNIT_SCRIPTS` | HOLDS |
+| `run-unit-tests.py:17` `UNIT_SCRIPTS` | HOLDS |
 | `factory_config.py:41,:134` · `factory_claim.py:302` · `factory_decompose.py:393` | untouched by the merge |
 
 **Nothing had MOVED.** One citation was imprecise rather than stale and is tightened: the plan and
@@ -54,8 +54,8 @@ of ` :: ` verbatim (its docstring, `:12-14`), so regeneration cannot flatten am.
   the heading the operator reads at signature; the breakage is latent (a `FleetError` naming
   `github.board.stations`, reachable only if a `factory_*` command runs against kaya-ai between
   the two merges) and loud. Signing ratifies a stated departure; nothing new is needed to decide it.
-- **FEAT-31 on `run-unit-tests.sh` — does NOT block, and it is not the operator's.** Settled from
-  the tree: FEAT-31 is `Done` and merged, and `run-unit-tests.sh:17` already lists
+- **FEAT-31 on `run-unit-tests.py` — does NOT block, and it is not the operator's.** Settled from
+  the tree: FEAT-31 is `Done` and merged, and `run-unit-tests.py:17` already lists
   `test-context-watch.py`. Among live features only FEAT-33's `T-04` writes that file (FEAT-26's
   eight tasks do not).
 - **`SPEC.md:1868` — does NOT block.** It is genuinely falsified: `feature-schema.json:32`
@@ -65,7 +65,7 @@ of ` :: ` verbatim (its docstring, `:12-14`), so regeneration cannot flatten am.
   defect. **File it as an issue, the way #730 was filed.**
 - **FEAT-26 concurrency — does NOT block signature; it is a scheduling call.** Found this round:
   FEAT-26 is `Ready`, `approved 2026-08-23`, **all eight tasks pending**, and its `T-05` writes
-  `check-state.sh` and `test-check-state.py` — the same two files as `T-22` — while
+  `check-state.py` and `test-check-state.py` — the same two files as `T-22` — while
   `T-02`/`T-03`/`T-04` write `gh-sync.py` and `T-08` writes `DECISIONS.md`. Neither plan is wrong;
   whichever builds second re-derives by symbol, and `T-22`'s intent now says so.
 
@@ -82,7 +82,7 @@ of ` :: ` verbatim (its docstring, `:12-14`), so regeneration cannot flatten am.
 two plans (FEAT-26 T-05, T-06; FEAT-33 T-11, T-12, T-18, T-22), every one declared
 `main-session-direct`.
 
-`bash .claude/skills/harness/bin/check-state.sh` → **exit 1**, 437 lines, **exactly one VIOLATION**:
+`python3 .claude/skills/harness/bin/check-state.py` → **exit 1**, 437 lines, **exactly one VIOLATION**:
 `.harness/harness/features/FEAT-33-board-lifecycle-native/BRIEF.md is NOT approved — halt that flow
 and surface to the user.` Everything else is a `note`. Expected while the signature is pending
 (`STATE.md:38-40`, Q6). No INV-26 finding — this feature has no `done` task yet.

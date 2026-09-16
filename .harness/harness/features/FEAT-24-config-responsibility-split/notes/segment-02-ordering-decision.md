@@ -13,7 +13,7 @@ carries all four pre-FEAT-18 pinned ids, so its pull request has not merged.
 
 ## Why — the chain, each link read at `ada8e99`
 
-1. `check-domain.sh:485` calls `harness_boundary.classify()` for every governed write.
+1. `check-domain.py:485` calls `harness_boundary.classify()` for every governed write.
 2. `harness_boundary.py:263` — `resolve_fleet(...)` is the **first statement** of `classify()`,
    ahead of anything that asks where the target lives. Its own comment says so: *"Resolution runs
    for EVERY governed write, whatever the target looks like."*
@@ -31,13 +31,13 @@ That is true of the keys the guard **consumes** and false of what `load_fleet` *
 way to handing them back. T-07's own intent states the consequence but scopes it to writes *outside*
 the harness root; `harness_boundary.py:263` contradicts that scoping.
 
-Confirmed separately: the main session is **not** governed — `check-domain.sh:271`,
+Confirmed separately: the main session is **not** governed — `check-domain.py:271`,
 `_governed = bool(agent) and agent.startswith("harness-")`, and the whole domain phase is gated on
 it. Your hands still work while every agent's are tied. That is what makes every option possible.
 
 **And I am inside the blast radius too.** `harness-orchestrator` is a governed agent, so during the
 window I cannot write `STATE.md`, `feature.json` or a handoff note either. I measured what survives:
-`bash-write-guard.sh:375` records that `git` produces no write findings, and `classify` is only
+`bash-write-guard.py:375` records that `git` produces no write findings, and `classify` is only
 reached per finding (`:551`, after `if not findings: sys.exit(0)` at `:475`) — so **`git add` and
 `git commit` still work while `Write` and `Edit` do not.** That is what makes option A survivable
 rather than a trap for me as well, and it is why A's procedure below front-loads my state writes.
@@ -107,7 +107,7 @@ to you as segment 01 and depends on nothing; it is now on the critical path for 
   marked `building` at dispatch and never ran, and a status the receipts do not support is a lie to
   my successor. Their board cards were returned to `Backlog` with `board-station.py` — INV-26 caught
   the drift as four real violations before I did, which is the check earning its place.
-- `check-state.sh`: FEAT-24 is back to its one expected violation, the unpinned `review_sha`.
+- `check-state.py`: FEAT-24 is back to its one expected violation, the unpinned `review_sha`.
 - Cycles: **1 of 10, unchanged.** The lead reported zero send-backs; a blocked-before-dispatch task
   is not rework.
 - Runs: 7 of 20.

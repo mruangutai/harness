@@ -86,7 +86,7 @@ My context is ~25% over its advisory threshold, so I wrote the phase handoff at
 | B-1 | DEC-179's route check ignores `verify:` blocks, so an ungranted write in a verify passes plan-time routing | bug |
 | B-2 | `validate-digest.py`'s children-in-flight check blocks a parent that emits no verdict at all, leaving an async-dispatching parent no legal way to yield | bug |
 | B-3 | DEC-174 am.4 needs amending to record the six scripts pm's category reading adds — issue #869, UNVERIFIED by me | chore |
-| B-4 | `bash-write-guard.sh` may false-positive on an ASCII arrow inside a heredoc body, parsing prose as a redirect | bug |
+| B-4 | `bash-write-guard.py` may false-positive on an ASCII arrow inside a heredoc body, parsing prose as a redirect | bug |
 | B-5 | The analysis note's Section 5 item 2 ("wayfind has ZERO test coverage") is false at HEAD | chore |
 | B-6 | `gh_cost_log.py:111` derives root from its own file location — a caller cluster D-5's map omitted | bug |
 | B-7 | An orchestrator cannot clear a stranded claim; no tier below the main session has both the need and the permission | enhancement |

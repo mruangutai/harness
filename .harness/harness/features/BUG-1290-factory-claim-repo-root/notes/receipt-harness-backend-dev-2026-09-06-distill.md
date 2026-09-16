@@ -3,7 +3,7 @@
 **BLUF:** Applied 2 replaces to the craft file (net zero growth, both via the merge tool) and 2
 adds to the repository file (+2 lines, well under budget). All three lead-relayed candidates were
 judged and rejected or absorbed as noted below; the two accepted entries are both my own
-artifacts. Both `expertise-merge.py ops` and `check-expertise.sh` ran successfully by me directly
+artifacts. Both `expertise-merge.py ops` and `check-expertise.py` ran successfully by me directly
 — nothing here is unapplied.
 
 ## Counts (read from disk, before → after)

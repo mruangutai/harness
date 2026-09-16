@@ -21,7 +21,7 @@ source tree.
   discrepancy in the framing, not a gate finding (doesn't change `matrix_ok`).
 
 ## Phase 1 (BRIEF/PLAN only, before reading code)
-Expected: the matrix binds `unit` to logic tasks touching `validate-digest.py`, `check-state.sh`,
+Expected: the matrix binds `unit` to logic tasks touching `validate-digest.py`, `check-state.py`,
 and the deletion of `cost-report.py`/its test/the runner's script list. Config-only edits
 (`harness.json` × 2) and docs tasks require nothing under the matrix. SC-11 explicitly demands the
 *whole* unit suite green, not just the touched scripts.
@@ -34,7 +34,7 @@ kind — the other 9 are correctly unbound by the matrix, not unaudited (P-04).
 
 | kind | state | cmd | named tests |
 |---|---|---|---|
-| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh` | 12 scripts, all PASS, exit 0 |
+| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.py` | 12 scripts, all PASS, exit 0 |
 
 Per-task verify commands (T-01/T-02/T-03), run directly, all pass. **T-01 and T-02's PLAN bodies
 are each superseded by A-4** (PLAN.md `## Amendments` → A-4, BRIEF.md `## Amendments` → A-4) — read
@@ -53,10 +53,10 @@ before crediting either, per the dispatch instruction:
   `grep -n INV-11 test-check-state.py` returns nothing (both sites reworded). `case_k`'s docstring
   and body assert BOTH directions the amendment requires — a `status: complete` run with no `cost:`
   block is clean (the DETECTOR, would have failed pre-removal), and one WITH a `cost:` block is also
-  clean (D-03 whitelist regression guard). `test-check-state.py` exits 0; `check-state.sh` exits 0
+  clean (D-03 whitelist regression guard). `test-check-state.py` exits 0; `check-state.py` exits 0
   zero violations; `CHECKPOINT_KEYS` block still has `"cost"` (count=1); whole suite exits 0.
 - T-03: `cost-report.py` and `test-cost-report.py` both absent; `grep -c test-cost-report
-  run-unit-tests.sh` = 0; whole suite exits 0 (drift detector not tripped — confirmed by a live
+  run-unit-tests.py` = 0; whole suite exits 0 (drift detector not tripped — confirmed by a live
   `find` sweep: exactly 12 `test-*.py` under `bin/`, matching `SCRIPTS[]` 1:1, `--exclude-dir=worktrees`
   honored, nothing orphaned).
 
@@ -69,7 +69,7 @@ environment: `python3 -c "import yaml; print(yaml.__version__)"` → `6.0.3`. No
 
 ## The two carried-forward items
 1. **Twelve scripts, not thirteen** — confirmed live (`find`), matches `SCRIPTS[]` in
-   `run-unit-tests.sh` exactly. Not a finding.
+   `run-unit-tests.py` exactly. Not a finding.
 2. **A-4 removed the digest validator's dedicated unknown-key-tolerance fixture.** Confirmed:
    `grep -n "unknown.key" test-validate-digest.py` returns only an unrelated comment, no fixture.
    Per the framing this is RULED and CLOSED (issue #104, "add nothing") — reported as fact only,
@@ -77,14 +77,14 @@ environment: `python3 -c "import yaml; print(yaml.__version__)"` → `6.0.3`. No
 
 ## sc_evidence (only the `evidence: unit` SCs are qa's lane; the rest are `evidence: command` /
 `evidence: inspection` and belong to pm's goal-check, sampled below as corroboration only)
-- SC-02: `.claude/skills/harness/bin/run-unit-tests.sh:9-22` (drift detector) +
+- SC-02: `.claude/skills/harness/bin/run-unit-tests.py:9-22` (drift detector) +
   `test ! -e cost-report.py && test ! -e test-cost-report.py` — both absent, detector not tripped.
 - SC-04 (amended by A-4): `.claude/skills/harness/bin/test-validate-digest.py:761-772` ("orchestrator
   briefing is NULLABLE — `none` when nothing was written") — the amended discriminating case.
   Re-proved directly against both the `ae2443d` and current `validate-digest.py` binaries (see T-01
   above), not just read off the fixture label (P-01: the label doesn't name SC-04, the inline
   comment and the re-proof do).
-- SC-11: `.claude/skills/harness/bin/run-unit-tests.sh` full run — 12/12 scripts PASS, exit 0.
+- SC-11: `.claude/skills/harness/bin/run-unit-tests.py` full run — 12/12 scripts PASS, exit 0.
 
 ## SC evidence sampled beyond qa's lane (corroboration for pm, not a re-verification)
 - SC-05 (`max_total_cycles` + rationale untouched): present, byte-identical across both configs.

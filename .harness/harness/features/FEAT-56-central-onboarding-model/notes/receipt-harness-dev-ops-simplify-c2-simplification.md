@@ -9,7 +9,7 @@ Read-only. Scope: `git diff 4b5dbb23..HEAD`, the three new integration suites, t
   1 baseline structural pair + 1 live-tree-pass + 10 mutate/assert pairs, each pair mutating a
   **different file/field** to trip a **different validation branch** in `check-omp-port.py`
   (AGENTS.md presence, model provider-neutrality, Claude adapter staleness, `async.enabled`,
-  `task.maxRuntimeMs`, OMP lifecycle wiring, `plan-sign-gate.sh` wiring, `blocking: true`, one
+  `task.maxRuntimeMs`, OMP lifecycle wiring, `plan-sign-gate.py` wiring, `blocking: true`, one
   missing command door, the whole canonical command root missing). All 23 accounted for; **zero
   collapse**.
   2. `test-sync-command-adapters.py`: read the full `main()` body (12 `check()` calls). One pair
@@ -65,11 +65,11 @@ not flagged (matches Expertise O-2: adjacent-looking checks that each guard a di
 not redundant just because they resemble each other).
 
 **bin/ comment sweep (point 4): clean.** All seven touched scripts
-(`check-domain.sh`, `check-instruction-paths.py`, `check-state.sh`, `gh-sync.py`,
-`layout_migration.py`, `post-merge-sweep.sh`, `upgrade-config.py`) rewrite operator-facing
+(`check-domain.py`, `check-instruction-paths.py`, `check-state.py`, `gh-sync.py`,
+`layout_migration.py`, `post-merge-sweep.py`, `upgrade-config.py`) rewrite operator-facing
 messages/comments to state the present central-model fact (e.g. "this control-plane clone", "a
 copy or worktree of the control plane carries every reader file") — none narrates the change
-itself ("now also", "previously this"). `post-merge-sweep.sh`'s comment already replaced a
+itself ("now also", "previously this"). `post-merge-sweep.py`'s comment already replaced a
 line-number citation (`SKILL.md:73/:78`, now stale after the 279-line cut) with a heading-name
 citation — the dead-reference fix this pass would otherwise have flagged is already done. No
 findings here.

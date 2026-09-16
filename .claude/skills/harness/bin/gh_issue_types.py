@@ -8,7 +8,7 @@ answering for exactly one role: `type_for_change_type` for a task sub-issue (pla
 factory), `type_for_nature` for a backlog item, `type_for_parent` for a feature or factory
 parent. No caller may resolve a parent through `type_for_change_type`.
 """
-import json
+import artifact_accessors
 
 DEFAULT_TYPE_BY_CHANGE_TYPE = {
     "bugfix": "Bug",
@@ -103,9 +103,10 @@ def _capability_error(stdout):
 
 
 def classify_capability(returncode, stdout):
+    """Classify the issue-type capability response after strict JSON parsing."""
     try:
-        doc = json.loads(stdout)
-    except (ValueError, TypeError) as exc:
+        doc = artifact_accessors.parse_gh_json(stdout, "GitHub capability query")
+    except artifact_accessors.ArtifactAccessError as exc:
         return ("query_failed", {}, str(exc))
     if not isinstance(doc, dict):
         return _capability_error(stdout)

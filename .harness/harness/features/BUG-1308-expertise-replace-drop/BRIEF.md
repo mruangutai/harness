@@ -47,9 +47,9 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
 - SUPPLIES — DEC-66 already blesses ops with stable per-section ids and a named target, so the
   operation is a mechanism for a contract that exists, not a new contract.
 - BLOCKS — DEC-145's caps (`Patterns` 15, `Gotchas` 15, `Outcomes` 10, `Open` 5) are spelled once in
-  `expertise-merge.py:37` and cross-checked against `check-expertise.sh` as text; no third copy.
+  `expertise-merge.py:37` and cross-checked against `check-expertise.py` as text; no third copy.
 - BLOCKS — DEC-174: `.claude/skills/harness-distill/SKILL.md` resolves to NOBODY under
-  `check-domain.sh --resolve`, so its text change is a main-session-direct step, not a squad task.
+  `check-domain.py --resolve`, so its text change is a main-session-direct step, not a squad task.
 - BLOCKS — DEC-213: harness tests live under `tests/unit/**` and `tests/integration/**`; the directory
   selects the kind.
 - BLOCKS — python3 stdlib only in `.claude/skills/harness/bin/`; no third-party imports.
@@ -92,7 +92,7 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   performs no replacement — so the suite reddens if the new resolver is reverted to the old one.
   verify: automated        evidence: unit
 - SC-08: A file produced by a replace and a file produced by a drop are both accepted by
-  `bash .claude/skills/harness/bin/check-expertise.sh <file>` at exit 0, so the format the checker
+  `python3 .claude/skills/harness/bin/check-expertise.py <file>` at exit 0, so the format the checker
   governs is unbroken.
   verify: automated        evidence: integration
 - SC-09: A contract-drift case reads `.claude/skills/harness-distill/SKILL.md` as text, normalises

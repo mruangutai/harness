@@ -26,7 +26,7 @@ Alternate-branch audit: both measurement arms call `measure_arm() -> ask()`; req
 |---|---|---|
 | F-01 — authority containment/fail-closed reads | **Closed.** | `handoff_done_when.py:57-101,123-174,224-253` rejects absolute/traversal/control-bearing pointer paths, canonicalizes beneath root, requires regular bounded UTF-8 targets, uses `yaml.safe_load`, and catches resolver failures. Resolver test passed 54/54; real-hook handoff group passed 41/41, including symlink escape, FIFO and injected resolver exception. |
 | F-02 — probe note admission | **Closed.** | `probe-handoff-comprehension.py:49-109` contains notes beneath the feature tree, requires the handoff path shape and a regular bounded UTF-8 no-follow file. Focused probe suite passed 7/7: outside/traversal/symlink/directory/wrong-name/oversized inputs made no model call; valid input made two. |
-| F-03 — Edit mutates before refusal | **Closed.** | `check-domain.sh:1819-1874` reconstructs protected Edit candidates and exits 2 on invalid UTF-8 before mutation. Real hook tests observed invalid-candidate and invalid-UTF-8 refusal with byte identity preserved. |
+| F-03 — Edit mutates before refusal | **Closed.** | `check-domain.py:1819-1874` reconstructs protected Edit candidates and exits 2 on invalid UTF-8 before mutation. Real hook tests observed invalid-candidate and invalid-UTF-8 refusal with byte identity preserved. |
 | F-04 — SC-04 Done-when violation | **Closed for SC-04.** | Literal command produced no line naming `Done when`. Its process exit was 1 only because of an unrelated concurrent INV-29 worktree violation, detailed below; no handoff-shape finding survived. |
 | F-05 — blank Scope | **Closed.** | `_scope_problems` rejects empty/whitespace-only values; unit, real write hook, and persisted-state fixtures passed. |
 | F-06 — Scope ordering | **Closed.** | `_order_problems` requires Scope before the first Authority; all three layers' fixtures passed. |
@@ -39,7 +39,7 @@ Alternate-branch audit: both measurement arms call `measure_arm() -> ask()`; req
 
 ## Literal SC-04 evidence
 
-From the repository root, the literal command `bash .claude/skills/harness/bin/check-state.sh` exited **1** and emitted **0 lines naming `Done when`**. The only `VIOLATION` was unrelated to handoff validation: INV-29 reported the concurrent `BUG-1157-approval-overrule` worktree because its landed `feature.json` was absent. Per SC-04's stated falsifier (a reported handoff/Done-when line) and the assignment's unrelated-path non-goal, SC-04 is clean for FEAT-54; the unrelated live-worktree condition is recorded rather than misreported as exit 0.
+From the repository root, the literal command `python3 .claude/skills/harness/bin/check-state.py` exited **1** and emitted **0 lines naming `Done when`**. The only `VIOLATION` was unrelated to handoff validation: INV-29 reported the concurrent `BUG-1157-approval-overrule` worktree because its landed `feature.json` was absent. Per SC-04's stated falsifier (a reported handoff/Done-when line) and the assignment's unrelated-path non-goal, SC-04 is clean for FEAT-54; the unrelated live-worktree condition is recorded rather than misreported as exit 0.
 
 ## OWASP / STRIDE assessment
 
@@ -56,10 +56,10 @@ From the repository root, the literal command `bash .claude/skills/harness/bin/c
 2. `tests/unit/test-handoff-done-when.py` — 54 direct parser/path/symlink/special-file assertions.
 3. `tests/unit/test-probe-handoff-comprehension.py` — admission and exact OMP argv contract; 7/7 passed.
 4. `tests/integration/test-check-domain.py` — real PreToolUse/shape/Edit/exception boundary; handoff group 41/41 passed.
-5. `.claude/skills/harness/bin/check-domain.sh` — hook payload, path matching, Edit reconstruction, `resolve=True`, exit-2 refusal.
+5. `.claude/skills/harness/bin/check-domain.py` — hook payload, path matching, Edit reconstruction, `resolve=True`, exit-2 refusal.
 6. `.harness/harness.json` — frozen baseline, locally-run probe registration, `advisory_unless_high` policy.
 7. `tests/integration/test-check-state.py` — persisted grammar, all-line absent-target assertions, and real=0/mutant=1 proof; FEAT-54 group 18/18 passed.
-8. `.claude/skills/harness/bin/check-state.sh` — corpus/baseline boundary, `resolve=False`, module failure reporting.
+8. `.claude/skills/harness/bin/check-state.py` — corpus/baseline boundary, `resolve=False`, module failure reporting.
 9. `.claude/skills/harness/templates/HANDOFF.md` — author-facing untrusted-input and authority contract.
 10. `.claude/skills/harness/SKILL.md` — five-section orchestration instruction; no command construction added.
 11. `tests/manual/probe-handoff-comprehension.py` — admitted file, model prompt/argv, provider output and terminal boundaries; SEC-F-08 survivor and SEC-F-10 closure site.

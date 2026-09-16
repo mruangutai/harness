@@ -55,7 +55,7 @@ Stale-entry audit: P-06 is stale because it directs review against `HEAD`, contr
 
 ## Scoped checks and touched files
 
-- Expertise checks: none run, because no Expertise file changed; the assignment permits `check-expertise.sh` only for changed Expertise files.
+- Expertise checks: none run, because no Expertise file changed; the assignment permits `check-expertise.py` only for changed Expertise files.
 - Touched: `.harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-code-reviewer-distill-validator.md` only.
 
 ```yaml

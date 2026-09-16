@@ -47,7 +47,7 @@ behaviour — so **severity: med**, not high. `must_fix` non-empty is what gates
 - SC-11: `d6fa0a8` is the sole commit touching both `validate-digest.py` and `test-validate-digest.py`.
 - SC-12: `gen-decisions-index.py --stdout | diff - docs/harness/DECISIONS-INDEX.md` exits 0 against
   the working tree, re-run myself; `DEC-175/176/177` present and correctly anchored.
-- `run-unit-tests.sh` from repo root: exit 0, all cases including the FEAT-07 block (57 CLI cases +
+- `run-unit-tests.py` from repo root: exit 0, all cases including the FEAT-07 block (57 CLI cases +
   joint-hint case), the SC-15 dev-ops residue fixture, and the D-08 `task: none` regression fixtures.
 - T-02/03/05/06/07/08/10 doc surfaces spot-checked against PLAN `intent:`/BRIEF SC by reading the
   diff hunks directly: field spellings, `§2`/`§4` placement in `harness.md`, the literal string

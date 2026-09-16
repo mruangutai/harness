@@ -40,15 +40,26 @@ def feat_dir(tmp, name, trailing_slash=False):
 
 
 def write_plan(d, status, tasks):
-    """A minimal plan.yaml recovery_command_for can read: `status:` plus `tasks:`, each
-    task rendered as a JSON object (valid YAML flow mapping)."""
-    lines = ["schema: plan/1", f"status: {status}"]
+    """Write a schema-valid plan so each case isolates recovery state."""
+    lines = [
+        "schema: plan/1",
+        f"feature: {os.path.basename(d)}",
+        f"status: {status}",
+    ]
     if tasks:
         lines.append("tasks:")
-        for t in tasks:
-            lines.append(f"  - {json.dumps(t)}")
+        required = {
+            "title": "fixture task",
+            "change_type": "bugfix",
+            "execution_mode": "main-session-direct",
+            "files": ["fixture.py"],
+            "verify": "true",
+            "intent": "exercise recovery state",
+        }
+        for task in tasks:
+            lines.append(f"  - {json.dumps({**required, **task})}")
     else:
-        lines.append("tasks: []")
+        lines.extend(("station_only: true", "tasks: []"))
     with open(os.path.join(d, "plan.yaml"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 

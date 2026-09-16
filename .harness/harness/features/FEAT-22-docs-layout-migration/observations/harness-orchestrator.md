@@ -80,7 +80,7 @@
   exactly the sort of claim not to take on trust. Three checks settled it in one command each: entry
   counts per file against `git show HEAD:<path>` (a WIPE is the failure distillation is most exposed
   to and the format checker cannot see it — all ten files had GAINED entries, +25), duplicate entry
-  IDs (zero, so nothing was double-applied), and `check-expertise.sh` (exit 0). Then the judgment:
+  IDs (zero, so nothing was double-applied), and `check-expertise.py` (exit 0). Then the judgment:
   **do not re-dispatch when the members have already self-applied.** Re-running risks double-applying
   into files injected into every future spawn — a permanent tax — where the alternative is one gap in
   the run archive. Record the killed runs with an honest token rather than a flattering one, and say

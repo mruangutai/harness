@@ -3,13 +3,13 @@
 Worktree confirmed: `.claude/worktrees/harness/BUG-1080-inv6-plan-phase-runs`, `git diff HEAD a2fb6c0b`
 empty for the reviewed files; HEAD (`7851902`) is one commit past the pin, touching only
 `feature.json`/`review_sha`/`notes/` (the pin itself), never the reviewed source. Diff matches the
-contract exactly: `check-state.sh` (+28/-3), `feature-schema.json` (+3/-1), `test-check-state.py`
+contract exactly: `check-state.py` (+28/-3), `feature-schema.json` (+3/-1), `test-check-state.py`
 (+132/-1).
 
 ## Stage 1 — spec compliance
 
 The fix delivers exactly what issue #1080's "Proposed fix" scoped: a `feature-schema.json` addition,
-the INV-6 predicate, and tests — `check-state.sh:419-461`, `feature-schema.json:61`,
+the INV-6 predicate, and tests — `check-state.py:419-461`, `feature-schema.json:61`,
 `test-check-state.py:3308-3506`. Fail-closed default confirmed correct and load-bearing (traced by
 hand: `entry.get("code_grade", "")` on a missing key yields `""`, `.strip().lower() != "n_a"` is
 `True`, so absence is always treated as "reviewed code" — matches D-23's `agent`-key precedent in
@@ -72,13 +72,13 @@ traced the interpreter semantics directly instead):**
 | `"N_A"` / `" n_a "` | **exempt** (case/whitespace folded) | **schema-invalid** (exact-string enum, no fold) | **gate is more lenient than schema** |
 | `"n_a"` | exempt | schema-valid | agree |
 
-The one divergent direction: `check-state.sh`'s case-insensitive, whitespace-tolerant comparison
+The one divergent direction: `check-state.py`'s case-insensitive, whitespace-tolerant comparison
 accepts a strict superset of what the schema allows, so a hand-typed `code_grade: "N_A"` would be
 exempted by INV-6 while being rejected by schema validation. Low practical severity, not med/high:
 `feature-json-merge.py append-run` → `feature_json_write.write_feature_json` schema-validates
 **before** the atomic write and refuses invalid documents (confirmed: `_apply` →
 `feature_json_write.write_feature_json`, doc-string: "schema-validates the candidate text... before
-the atomic replace"), and the `check-domain.sh` PreToolUse hook denies a raw `Write`/`Edit` with the
+the atomic replace"), and the `check-domain.py` PreToolUse hook denies a raw `Write`/`Edit` with the
 same violation at `sys.exit(2)` (blocking). Reaching the gap requires bypassing both — a raw
 filesystem write outside every governed writer. Real, but narrow. Not blocking; recorded as a
 should-fix (tighten the comparison to `.strip() != "n_a"`, dropping `.lower()`, or leave the
@@ -139,7 +139,7 @@ future readers of this file who re-run `_read`/`_grep` against this same range s
 
 ## should_fix (non-blocking)
 
-- `check-state.sh:446` — tighten `.strip().lower()` to `.strip()` so the gate's acceptance set
+- `check-state.py:446` — tighten `.strip().lower()` to `.strip()` so the gate's acceptance set
   matches the schema's exactly, or document the intentional lenience.
 - Resolve the `code_grade` naming collision with `validate-digest.py`'s unrelated reviewer-digest
   field — different token, same repo, two meanings.

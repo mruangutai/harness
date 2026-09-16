@@ -24,7 +24,7 @@
 # lead's domain. (2) At close-out the team digest at `<run_dir>/digest.md` carries the
 # same `readers:` and `findings:` (validate-digest.py passthrough), now with `goalcheck`
 # in the roster, so the orchestrator can re-record the panel from it after the return
-# (D-03 as amended: the orchestrator may run `record-panel`). check-state.sh INV-32
+# (D-03 as amended: the orchestrator may run `record-panel`). check-state.py INV-32
 # expects `goalcheck` among the recorded readers.
 
 name: plan

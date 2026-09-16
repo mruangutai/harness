@@ -54,8 +54,8 @@ from `78e87dc`.
 
 **Suite state at HEAD, re-run independently:**
 - `python3 test-board-station.py` → rc 0, all 10 checks PASS including the new r5 case.
-- `bash run-unit-tests.sh --kind unit` → `ALL PASSED`, rc 0.
-- `bash run-unit-tests.sh --kind integration` → `106/106 checks passed`, `ALL PASSED`, rc 0.
+- `python3 run-unit-tests.py --kind unit` → `ALL PASSED`, rc 0.
+- `python3 run-unit-tests.py --kind integration` → `106/106 checks passed`, `ALL PASSED`, rc 0.
 - T-02, T-03, T-05 `verify:` clauses copied from `plan.yaml` and run against HEAD: all three print their
   own `*-GREEN` line and exit 0. (T-05's inline failure-echo strings were abbreviated for my own
   terminal legibility — the `grep -qF`/`test` logic itself is verbatim; this does not affect the

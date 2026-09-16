@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for bash-write-guard.sh (DEC-151, Task #5).
+"""Tests for bash-write-guard.py (DEC-151, Task #5).
 
 WHY THIS EXISTS: the guard was added after a live bypass, so loosening its
 detection without a test proving it STILL BLOCKS the real bypass shapes is how a
@@ -24,13 +24,13 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 from isolated_bin import isolated_bin
-GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.sh")
+GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.py")
 
 
 def _env(root, **kw):
     """The guard's environment for a fixture rooted at `root` — BOTH names, one value.
 
-    FEAT-42 T-11. bash-write-guard.sh resolves its root through
+    FEAT-42 T-11. bash-write-guard.py resolves its root through
     harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name. The
     reverted sha-3952814 copy this suite is diffed against reads HARNESS_PROJECT_DIR first
     and CLAUDE_PROJECT_DIR second. Setting both to the same value is the ONE spelling under
@@ -255,6 +255,17 @@ def run_t14():
                 r.returncode == 2 and "duplicate key" in r.stderr,
                 f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
 
+    strict_payload = (
+        '{"agent_type":"","agent_type":"harness-backend-dev",'
+        '"tool_name":"Bash","tool_input":{"command":"echo hi > '
+        + os.path.join(root, "forbidden", "duplicate.json") + '"}}'
+    )
+    strict = subprocess.run(
+        [GUARD], input=strict_payload, capture_output=True, text=True, env=_env(root))
+    if strict.returncode != 0:
+        T14.append(("duplicate hook-payload keys are rejected before policy evaluation",
+                    False, f"exit {strict.returncode}: {strict.stderr.strip()[:160]}"))
+
     # DEC-151's carve-out is unchanged: an absent manifest still fails OPEN. Needs an
     # isolated copy, not merely an empty CLAUDE_PROJECT_DIR — root falls back to
     # _derived, so a guard running from the real bin/ finds the real manifest whatever
@@ -262,10 +273,10 @@ def run_t14():
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
-    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.sh"))
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
     payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
                "tool_input": {"command": f"echo hi > {os.path.join(iso, 'x.txt')}"}}
-    r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
+    r = subprocess.run([os.path.join(isobin, "bash-write-guard.py")],
                        input=json.dumps(payload), capture_output=True, text=True,
                        env=_env(iso))
     T14.append(("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
@@ -276,8 +287,8 @@ def run_t14():
     #
     # THE PRODUCT-SHAPED PATH IS BACK, AND SO IS THE AGREEMENT (FEAT-17 T-03). On
     # 2026-08-11 the allow half was moved off <root>/src/main.py because the surfaces
-    # genuinely disagreed there: FEAT-15 taught check-domain.sh that a product-shaped
-    # target inside the harness root is refused, and bash-write-guard.sh was out of that
+    # genuinely disagreed there: FEAT-15 taught check-domain.py that a product-shaped
+    # target inside the harness root is refused, and bash-write-guard.py was out of that
     # feature's scope, so Write exited 2 and Bash exited 0. Issue #261. That divergence
     # is closed — this guard now decides from harness_boundary.classify — so the case is
     # restored rather than left describing a split the code no longer has.
@@ -291,7 +302,7 @@ def run_t14():
         "          - { path: .harness/allowed/**, upsert: true }\n"
         "          - { path: src/**, upsert: true }")
     root = fixture(agree_manifest)
-    cd = os.path.join(HERE, "check-domain.sh")
+    cd = os.path.join(HERE, "check-domain.py")
     for rel, want in ((".harness/allowed/x.txt", 0), ("src/main.py", 2),
                       ("forbidden/x.txt", 2)):
         tgt = os.path.join(root, rel)
@@ -466,15 +477,18 @@ def run_worktree():
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
-    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.sh"))
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
     shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
+    shutil.copy(
+        os.path.join(HERE, "artifact_accessors.py"),
+        os.path.join(isobin, "artifact_accessors.py"))
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
         f.write(FIXTURE_MANIFEST)
     payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
                "tool_input": {"command": "echo hi > %s"
                               % os.path.join(iso, ".harness", "allowed", "x.txt")}}
-    r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
+    r = subprocess.run([os.path.join(isobin, "bash-write-guard.py")],
                        input=json.dumps(payload), capture_output=True, text=True,
                        env=_env(iso))
     wtb("a MISSING harness_boundary.py blocks the bash write and NAMES the module",
@@ -501,10 +515,10 @@ def run_worktree():
     m_tmp = tempfile.mkdtemp()
     m_bin = os.path.join(m_tmp, "bin")
     os.makedirs(m_bin)
-    for fn in ("check-domain.sh", "bash-write-guard.sh", "harness_boundary.py",
-               "harness_yaml.py", "run_identity.py"):
+    for fn in ("artifact_accessors.py", "check-domain.py", "bash-write-guard.py",
+               "harness_boundary.py", "harness_yaml.py", "run_identity.py"):
         shutil.copy(os.path.join(HERE, fn), os.path.join(m_bin, fn))
-    for fn in ("check-domain.sh", "bash-write-guard.sh"):
+    for fn in ("check-domain.py", "bash-write-guard.py"):
         os.chmod(os.path.join(m_bin, fn), 0o755)
 
     m_root = os.path.join(m_tmp, "root")
@@ -519,12 +533,12 @@ def run_worktree():
     def _both_routes():
         env = _env(m_wt,
                    PYTHONPATH=m_bin + os.pathsep + os.environ.get("PYTHONPATH", ""))
-        b = subprocess.run([os.path.join(m_bin, "bash-write-guard.sh")],
+        b = subprocess.run([os.path.join(m_bin, "bash-write-guard.py")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
                                              "tool_name": "Bash",
                                              "tool_input": {"command": f"echo hi > {m_target}"}}),
                            capture_output=True, text=True, env=env)
-        w = subprocess.run([os.path.join(m_bin, "check-domain.sh")],
+        w = subprocess.run([os.path.join(m_bin, "check-domain.py")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
                                              "tool_name": "Write",
                                              "tool_input": {"file_path": m_target,
@@ -671,7 +685,7 @@ def run_worktree_deep():
     A FINDING FIRST, because T-04's intent asks for something this route cannot do. It
     asks for a paired case where a granted path at depth is allowed and "a path that agent
     is not granted, at the same depth, is refused" — and in the same breath forbids
-    touching `bash-write-guard.sh:545`. That line is
+    touching `bash-write-guard.py:545`. That line is
     `if re.match(r"^\\.claude/worktrees/", rel): continue`: DEC-153's BLANKET allow for
     governed agents anywhere under the segment. So the refuse half is unreachable on this
     route by construction, and the intent is internally contradictory. The instruction not
@@ -709,7 +723,7 @@ def run_worktree_deep():
           "carve-out is blanket and depth-agnostic",
           r_un.returncode == 0,
           f"exit {r_un.returncode}: {r_un.stderr.strip()[:200]} — if this now refuses, "
-          f"bash-write-guard.sh:545 was narrowed and DEC-153 needs re-reading first")
+          f"bash-write-guard.py:545 was narrowed and DEC-153 needs re-reading first")
 
     # THE REFUSAL, where it is reachable: an out-of-place linked worktree of the same
     # root. Refused ahead of the DEC-153 continue, and the message names the location.
@@ -981,9 +995,9 @@ def run_feat50_checkout_binding():
 
 def bug1304_pre_change_guard(dest):
     copied_bin = isolated_bin(dest)
-    guard = os.path.join(copied_bin, "bash-write-guard.sh")
+    guard = os.path.join(copied_bin, "bash-write-guard.py")
     fixture_path = os.path.join(
-        TESTS_DIR, "fixtures", "prior-bash-write-guard.sh.fixture")
+        TESTS_DIR, "fixtures", "prior-bash-write-guard.fixture")
     shutil.copyfile(fixture_path, guard)
     os.chmod(guard, 0o755)
     return guard
@@ -1343,7 +1357,7 @@ def main():
 
 def run_bug895_wrong_checkout():
     """Issue #895 code review (PR #1188): the Bash route must refuse the SAME
-    wrong-checkout write check-domain.sh (Write/Edit route) already refuses — two
+    wrong-checkout write check-domain.py (Write/Edit route) already refuses — two
     surfaces disagreeing is a bypass by construction (DEC-151)."""
     root = os.path.join(tempfile.mkdtemp(), "root")
     os.makedirs(os.path.join(root, ".harness"))
@@ -1407,7 +1421,7 @@ def _run_artifact_fixture():
 def run_bug1106_bash_route():
     """Issue #1106, gap (a) on the Bash route. Bash carries no complete incoming payload
     to compare against prior content, so content-based protection (issue #1058's digest
-    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.sh) is
+    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.py) is
     structurally impossible here — a route-only refusal is the weakest sufficient rule."""
     results = []
     root, digest_rel, state_rel, identity_rel, other_rel = _run_artifact_fixture()

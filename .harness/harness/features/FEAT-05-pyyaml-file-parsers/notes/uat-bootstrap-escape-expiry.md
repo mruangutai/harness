@@ -52,11 +52,11 @@ created. Either works; the fake-module route is closer to a machine that genuine
   expect: the write is **permitted**.
   result: **PASS.** `notes/uat-scratch.md` written (10 bytes) by a spawned `harness-orchestrator`.
     NOTE the permit came from the ESCAPE, not the domain grant: with no parser
-    `check-domain.sh:122-123` exits 0 before `domain_check()` is reachable. Two separate
+    `check-domain.py:122-123` exits 0 before `domain_check()` is reachable. Two separate
     agents initially mis-attributed this to `team-config.yaml:28`. The marker appearing
     (U-03) is what proves the escape ran.
     CAVEAT for re-runs: the write MUST go through a spawned `harness-*` subagent. A
-    main-session write exits 0 at `check-domain.sh:72-74` and tests nothing.
+    main-session write exits 0 at `check-domain.py:72-74` and tests nothing.
 
 - **U-02 (SC-08):** Look at that agent's stderr / the hook output from U-01.
   expect: the **two-line install command** appears, the one beginning `python3 -m pip install pyyaml`.
@@ -67,7 +67,7 @@ created. Either works; the fake-module route is closer to a machine that genuine
     `grep -rc "pip install pyyaml" ~/.claude/projects/-private-tmp-uat-pyyaml/` returns 0 across
     all three sessions. Claude Code does not surface hook stderr when the hook ALLOWS (exit 0).
     Emitted-to-stderr is not the criterion; user-visible is. See D-14b below.
-    RE-RUN TRAP: `check-domain.sh:26` reads the payload from STDIN and overwrites `$HOOK_PAYLOAD`.
+    RE-RUN TRAP: `check-domain.py:26` reads the payload from STDIN and overwrites `$HOOK_PAYLOAD`.
     An env-var payload, or malformed JSON, yields no agent identity and a SILENT exit 0 that
     looks exactly like a pass. Treat any silent exit 0 as suspect until the payload is verified.
 
@@ -102,7 +102,7 @@ created. Either works; the fake-module route is closer to a machine that genuine
     `:78-79` warns about did not occur.
     The block is SILENT. No install command, no reason, zero bytes of stderr — reproduced
     directly (`exit=2`, stderr 0 bytes) and independently hit live: the agent saw only
-    "PreToolUse:Write hook error: No stderr output". `bash-write-guard.sh` is affected too —
+    "PreToolUse:Write hook error: No stderr output". `bash-write-guard.py` is affected too —
     even `echo hi` was refused with nothing printed. See D-14a below.
     AMEND THE EXPECTATION to "BLOCKED, silently" until D-14a is fixed. A block WITH a message
     would mean some other branch fired and needs a second look.
@@ -118,7 +118,7 @@ created. Either works; the fake-module route is closer to a machine that genuine
     the four intentional probe files — the marker never appeared as untracked across all three
     sessions, so the `.gitignore:13` chain holds in a real clone (`git check-ignore -v` confirms).
     This is the ONLY step in the whole script where `domain_check()` actually executes — every
-    prior step exits at `check-domain.sh:122-123` for want of a parser. The domain guard is
+    prior step exits at `check-domain.py:122-123` for want of a parser. The domain guard is
     therefore exercised exactly once here, and nowhere else in this UAT.
 
 ## What each step is really testing
@@ -158,7 +158,7 @@ consolidation. Highest id in use across BRIEF/PLAN is D-13.)
 - **D-14a (does not block SC-09): the block is silent.** `harness_yaml.py` returns
   `False` without writing to stderr on three branches — `:259` (marker unreadable), `:260`
   (identity mismatch), `:266` (marker write fails). Both callers assume the callee already
-  printed: `check-domain.sh:110-112` says so in a comment, `bash-write-guard.sh:75-77` likewise.
+  printed: `check-domain.py:110-112` says so in a comment, `bash-write-guard.py:75-77` likewise.
   That assumption holds only for the no-identity path at `:247-251`. Consequence: a user whose
   grant has expired gets every Write AND every Bash command refused with no explanation and no
   install command — recoverable only by reading the source. Fix: print `INSTALL_COMMAND` on
@@ -207,7 +207,7 @@ grant path needed a different one.
 
 **D-14b — FIXED, and your warning that D-14a would not close it was correct.** The grant path
 now also emits `{"systemMessage": ...}` on **stdout**, the PreToolUse contract's user-visible
-channel. Not assumed: `branch-create-gate.sh:82,111` already emits that shape on its own allow
+channel. Not assumed: `branch-create-gate.py:82,111` already emits that shape on its own allow
 path and is registered in `.claude/settings.json`, so the channel is proven live in this repo.
 Emitted last, so a failure there cannot cost the stderr copy the agent reads.
 

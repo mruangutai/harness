@@ -51,7 +51,7 @@ Compared against the actual call site, `gh-sync.py:918`:
 | `tests/integration/test-factory-decompose.py` | 0 | 0 |
 | `tests/integration/test-factory-integration.py` | 0 | 0 |
 | `tests/unit/test-factory-gh.py` | 0 | 0 |
-| `bash .claude/skills/harness/bin/run-unit-tests.sh` (captured `$?` right after) | 0 | 0 |
+| `python3 .claude/skills/harness/bin/run-unit-tests.py` (captured `$?` right after) | 0 | 0 |
 
 ## Working tree
 `git status --porcelain`:

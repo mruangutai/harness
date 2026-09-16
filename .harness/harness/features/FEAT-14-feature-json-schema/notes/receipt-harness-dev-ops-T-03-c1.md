@@ -59,7 +59,7 @@ PY
 I ran the actual command the required `integration` context executes, not just my verify clause:
 
 ```
-bash -c '.claude/skills/harness/bin/run-unit-tests.sh --kind integration; echo "EXIT: $?"'
+bash -c '.claude/skills/harness/bin/run-unit-tests.py --kind integration; echo "EXIT: $?"'
 ```
 
 **Exit 1.** `test-harness-yaml.py`'s `test_exactly_one_guarded_import_in_the_tree` FAILs:
@@ -77,7 +77,7 @@ this as `open_questions` below rather than fixing it or working around it.
 
 ## Open questions
 
-- `{ id: Q1, question: "run-unit-tests.sh --kind integration currently exits 1 on the tree as
+- `{ id: Q1, question: "run-unit-tests.py --kind integration currently exits 1 on the tree as
   landed: test-harness-yaml.py's test_exactly_one_guarded_import_in_the_tree fails because
   feature_schema.py (T-01) now also contains an except ImportError block, and that test asserts
   the pattern appears in exactly one bin/ file (harness_yaml.py). This means the required

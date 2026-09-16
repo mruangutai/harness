@@ -54,7 +54,7 @@ residual is untested, by design closing the deletion half only. No reader re-lit
 PF-049c59c515c538bc41da6616176f8987 or the signed residual; PF-049 stays `open` as a deliberate
 non-action, and an info finding needs no ruling.
 
-**Two record violations found by `check-state.sh` and CLOSED here.** Both real, neither caused here.
+**Two record violations found by `check-state.py` and CLOSED here.** Both real, neither caused here.
 (1) INV-26: tasks were finished but the mirror had never run, so no issues existed. `gh-sync.py open`
 is the orchestrator's own subcommand — ran it, then re-ran `status review`, putting #1477 and #1478
 at `review`. (2) INV-32: the `goalcheck` reader was absent from `plan.yaml`'s `panel.readers`, so the
@@ -76,7 +76,7 @@ commit after a pin touches `feature.json`/`STATE.md` ONLY.
 `de97f4a2`, behind the branch point, and that diff falsely attributes three other flows' merged PRs
 (#1456, #1455, #1465) to BUG-442. True diff: 15 files, +1421/-0, one code file.
 
-**Next:** the main session's ship decision. Two expected `check-state.sh` lines remain:
+**Next:** the main session's ship decision. Two expected `check-state.py` lines remain:
 `notes/handoff-build.md` missing (known worktree defect below), and INV-29 for OTHER worktrees.
 
 Log — station transitions:
@@ -92,10 +92,10 @@ Log — station transitions:
   the MAIN checkout instead of the caller's worktree, so worktree flows — how the harness runs every
   feature — hit false denials, stale reads and false passes. (1) `handoff_done_when.py:359-364` joins
   a worktree-relative `rel_path` to the main root, so `plan-task:`/`brief-sc:` pointers cannot resolve
-  from a worktree. (2) `bash-write-guard.sh` rejected a relative-path `rm` naming the main-checkout
+  from a worktree. (2) `bash-write-guard.py` rejected a relative-path `rm` naming the main-checkout
   target. (3) `notes/handoff-<phase>.md` is unwritable from a worktree pre-merge. (4) Relative
   read/grep tool paths silently returned a STALE 908-line copy of `test-harness-yaml.py` from the main
-  checkout with no error, and (5) `check-state.sh` from the main checkout prints NOTHING about a
+  checkout with no error, and (5) `check-state.py` from the main checkout prints NOTHING about a
   worktree-hosted feature, reading as a pass.
 - Harness defect, non-blocking, observed by me this run. `check-domain` enforces STATE.md's 120-line
   shape gate on the Write tool, but a `python3 - <<PY` heredoc that opens the same path writes it
@@ -107,7 +107,7 @@ Log — station transitions:
 - Harness defect, non-blocking, from the panel. `validate-digest.py` REJECTS a member entry carrying
   `status: ran` and reads an all-`status:` member list as a team where nobody ran — while the run
   digest is append-only, so a lead that encodes it wrong cannot correct the recorded block.
-- Harness defect, non-blocking. `check-domain.sh:1312-1318` permits correcting a recorded digest only
+- Harness defect, non-blocking. `check-domain.py:1312-1318` permits correcting a recorded digest only
   by APPENDING, but `validate-digest.py`'s `parse_digest` binds the FIRST `DIGEST:` block and stops at
   the first dedent. The permitted route and the enforced contract do not intersect.
 - Harness defect, non-blocking. This worktree's `.harness/.inflight-claims.json` held no claim for the

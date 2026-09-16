@@ -28,7 +28,7 @@ matches surrounding style without an importable equivalent already in the tree.
    formatter exists anywhere in the tree. Not a restatement of an existing helper.
 
 4. **`layout_migration.py`'s new `READER_TABLE` row for `factory_claim.py`** — this is the
-   intended shape: every other reader in the table (check-plan-routes.py, check-state.sh, etc.) is
+   intended shape: every other reader in the table (check-plan-routes.py, check-state.py, etc.) is
    its own `Row(...)` entry with the same two-regex shape by design; adding one more row is the
    mechanism working as built, not a duplicate of another row's content.
 

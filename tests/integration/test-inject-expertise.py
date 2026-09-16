@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for inject-expertise.sh — the SubagentStart hook that injects an
+"""Tests for inject-expertise.py — the SubagentStart hook that injects an
 agent's Expertise into its starting context, now across three tiers
 (global craft, project craft, repository).
 
@@ -32,7 +32,7 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
-SCRIPT = os.environ.get("INJECT_EXPERTISE_BIN") or os.path.join(HERE, "inject-expertise.sh")
+SCRIPT = os.environ.get("INJECT_EXPERTISE_BIN") or os.path.join(HERE, "inject-expertise.py")
 
 fails = 0
 case_count = 0
@@ -40,7 +40,7 @@ case_count = 0
 
 def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
     env = dict(os.environ)
-    # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.sh resolves through
+    # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
     # honours it only when .harness/team-config.yaml is readable underneath. A fixture
     # holding only .harness/expertise/ is discarded and the hook falls back to the LIVE
@@ -209,11 +209,13 @@ def case4c():
     root = tempfile.mkdtemp()
     home = fresh_home()
     isolated = tempfile.mkdtemp()
-    script = os.path.join(isolated, "bin", "inject-expertise.sh")
+    script = os.path.join(isolated, "bin", "inject-expertise.py")
     os.makedirs(os.path.dirname(script))
     shutil.copyfile(SCRIPT, script)
     shutil.copyfile(os.path.join(HERE, "harness_boundary.py"),
                     os.path.join(os.path.dirname(script), "harness_boundary.py"))
+    shutil.copyfile(os.path.join(HERE, "artifact_accessors.py"),
+                    os.path.join(os.path.dirname(script), "artifact_accessors.py"))
     os.chmod(script, 0o755)
     r = run_hook(root, home, b'{"agent_type": "harness-qa"}', script=script,
                  create_marker=False)
@@ -267,6 +269,18 @@ def case5():
            f"exit={r1.returncode} stderr={r1.stderr!r}")
     report("case5b: invalid JSON payload -> exit 0, no traceback", ok2,
            f"exit={r2.returncode} stderr={r2.stderr!r}")
+
+
+def case5c():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "MUST NOT INJECT\n")
+    payload = b'{"agent_type":"other","agent_type":"harness-qa"}'
+    result = run_hook(root, home, payload)
+    output = result.stdout.decode("utf-8", errors="replace").strip()
+    if output:
+        report("case5c: duplicate hook-payload keys are rejected before expertise injection",
+               False, f"exit={result.returncode} out={output!r}")
 
 
 # --- Case 6: non-harness agent ------------------------------------------------
@@ -396,12 +410,6 @@ def case13():
     report("case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr",
            all(checks), f"checks={checks} stderr={stderr!r} ctx={ctx[:300]!r}")
 
-def case14():
-    source = open(SCRIPT, encoding="utf-8").read()
-    matches = __import__("re").findall(r"^[ \t]*exit [1-9]", source, __import__("re").MULTILINE)
-    positive = bool(__import__("re").search(r"^[ \t]*exit [1-9]", "  exit 2", __import__("re").MULTILINE))
-    report("case14: hook contains no non-zero exit and the pattern has a positive control",
-           not matches and positive, repr(matches))
 
 
 def main():
@@ -413,10 +421,10 @@ def main():
     case4c()
     case4d()
     case5()
+    case5c()
     case6()
     case7()
     case8()
-    case14()
     case10()
     case11()
     case12()

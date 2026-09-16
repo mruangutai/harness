@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gh-close-gate.sh — the PreToolUse Bash hook that refuses a hand-typed issue close.
+"""gh-close-gate.py — the PreToolUse Bash hook that refuses a hand-typed issue close.
 
 Every case feeds hook JSON on stdin and asserts the process's STDOUT, because that is the
 whole contract: a deny is exit 0 plus a structured permissionDecision, and an allow is exit 0
@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 BIN = _anchor_bin
-GATE = os.environ.get("GH_CLOSE_GATE_BIN") or os.path.join(BIN, "gh-close-gate.sh")
+GATE = os.environ.get("GH_CLOSE_GATE_BIN") or os.path.join(BIN, "gh-close-gate.py")
 
 fails = 0
 
@@ -37,7 +37,7 @@ def _root(sync=True):
     os.makedirs(os.path.join(d, ".harness"))
     json.dump({"github": {"sync": sync, "repo": "o/r"}},
               open(os.path.join(d, ".harness", "harness.json"), "w"))
-    # THE MARKER, WITHOUT WHICH THE OVERRIDE IS DISCARDED (FEAT-42 T-15). gh-close-gate.sh
+    # THE MARKER, WITHOUT WHICH THE OVERRIDE IS DISCARDED (FEAT-42 T-15). gh-close-gate.py
     # resolves through harness_boundary.resolve_root, which honours HARNESS_PROJECT_DIR only
     # when .harness/team-config.yaml is readable underneath it. A fixture holding only
     # harness.json falls back to the derived root — the LIVE checkout — so every case would
@@ -51,7 +51,7 @@ def gate(command, root=None):
     """(returncode, decision_or_None, reason_or_None)."""
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = root or _root()
-    r = subprocess.run(["bash", GATE], input=json.dumps({"tool_input": {"command": command}}),
+    r = subprocess.run([GATE], input=json.dumps({"tool_input": {"command": command}}),
                        capture_output=True, text=True, env=env)
     if not r.stdout.strip():
         return (r.returncode, None, None)
@@ -215,6 +215,26 @@ _rc, _d, _ = gate("gh issue close 728", root=_root(sync=False))
 check("github.sync false: the gate exits 0 with no output, even for gh issue close — it costs "
       "nothing where the mirror is off",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
+
+_duplicate_config_root = _root(sync=False)
+with open(os.path.join(_duplicate_config_root, ".harness", "harness.json"), "w") as _f:
+    _f.write('{"github":{"sync":false},"github":{"sync":true,"repo":"o/r"}}')
+_rc, _d, _ = gate("gh issue close 728", root=_duplicate_config_root)
+if _d is not None:
+    check("duplicate harness.json keys disable close policy rather than choosing one",
+          False, f"rc={_rc} decision={_d!r}")
+
+_duplicate_payload_root = _root()
+_duplicate_payload_env = dict(os.environ, HARNESS_PROJECT_DIR=_duplicate_payload_root)
+_duplicate_payload = (
+    '{"tool_input":{"command":"gh issue list"},'
+    '"tool_input":{"command":"gh issue close 728"}}')
+_duplicate_payload_result = subprocess.run(
+    [GATE], input=_duplicate_payload, capture_output=True, text=True,
+    env=_duplicate_payload_env)
+if _duplicate_payload_result.stdout.strip():
+    check("duplicate hook-payload keys are rejected before close policy evaluation",
+          False, f"stdout={_duplicate_payload_result.stdout!r}")
 
 # A HARNESS ROOT WITH NO CONFIG — which is what "no harness.json" now means (FEAT-42 T-15).
 # A bare tmpdir stood here, and under the MARKER rule a directory with no

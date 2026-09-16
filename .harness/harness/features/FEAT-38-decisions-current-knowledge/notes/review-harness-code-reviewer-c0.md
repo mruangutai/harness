@@ -77,9 +77,9 @@ history-with-a-marker any more.
   Mutated DEC-181's marker (`budget is 80` → `budget is 81`) via process substitution and re-ran:
   reddened exactly, naming `DEC-181 — CLAUDE.md gets a line budget of 80` and the mismatched
   substring. SC-09 reproduces live, exactly as specified.
-- **Registration, both sides** — `run-unit-tests.sh:31` `INTEGRATION_SCRIPTS` carries both
+- **Registration, both sides** — `run-unit-tests.py:31` `INTEGRATION_SCRIPTS` carries both
   `test-check-decision-anchors.py` and `test-check-decision-claims.py`. `.github/workflows/tests.yml`
-  runs `run-unit-tests.sh --kind integration` as its own CI step, so CI does reach both new checkers'
+  runs `run-unit-tests.py --kind integration` as its own CI step, so CI does reach both new checkers'
   live-authority tests (see Stage 2). No `harness.json` `integration` detect-glob edit was needed for
   this registration path — the runner's own name-list is what CI invokes, and it already carries both.
 
@@ -103,7 +103,7 @@ trailing-text       (prose after -->) -> claims found: 0   # silently invisible
 ```
 
 **Concrete failure scenario.** DEC-181's two live markers are hand-authored HTML comments tracking
-`check-domain.sh`'s exact message string. The next time `harness-documentor` (or a human) edits one
+`check-domain.py`'s exact message string. The next time `harness-documentor` (or a human) edits one
 of them — bumping the budget number, or re-wording the anchor around it — a single dropped colon or
 a stray trailing character removes that marker from consideration entirely. `check-decision-claims.py`
 still exits 0, still prints a non-zero `examined` count (because the OTHER marker in the file still
@@ -134,7 +134,7 @@ regression against what it does test for.
 
 Read the ~20 swept `bin/` scripts' diffs for the citation-rewrite pattern specifically (item 4's
 ask) and for fail-open shape generally; nothing else showed a branch where a miss sails through
-silently. `run-unit-tests.sh`'s `KIND-DRIFT` cross-check (`:78-128`) is unchanged in shape and still
+silently. `run-unit-tests.py`'s `KIND-DRIFT` cross-check (`:78-128`) is unchanged in shape and still
 enforces both directions (an `INTEGRATION_SCRIPTS` name must be in the config's detect; no
 `UNIT_SCRIPTS` name may be).
 

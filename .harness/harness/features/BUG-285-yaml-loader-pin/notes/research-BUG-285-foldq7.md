@@ -69,15 +69,15 @@ All seven read at source this cycle, all correct as cited in `plan.yaml` T-04 an
 
 Refusal messages at `:562-564` (read) and `:572-574` (parse) are what SC-13 requires unchanged.
 
-## 4 · Routing — `check-domain.sh --resolve`, quoted
+## 4 · Routing — `check-domain.py --resolve`, quoted
 
 ```
-$ check-domain.sh --resolve .claude/skills/harness/bin/gh-sync.py
+$ check-domain.py --resolve .claude/skills/harness/bin/gh-sync.py
 harness-backend-dev
 harness-dev-ops
 EXIT=0
 
-$ check-domain.sh --resolve tests/unit/test-feature-json-readers.py
+$ check-domain.py --resolve tests/unit/test-feature-json-readers.py
 harness-backend-dev
 harness-dev-ops
 harness-qa

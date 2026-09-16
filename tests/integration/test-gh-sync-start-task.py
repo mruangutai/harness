@@ -21,6 +21,7 @@ import os
 import sys
 import tempfile
 
+import artifact_accessors
 import feature_schema
 import harness_yaml
 
@@ -552,14 +553,14 @@ def main():
         write_dangling_plan_yaml(_legal_dir, _LEGAL_FEAT, "T-01",
                                   approval={"status": "pending"}, plan_station="plan")
         try:
-            harness_yaml.load_plan(os.path.join(_dangling_dir, "plan.yaml"))
+            artifact_accessors.load_plan(os.path.join(_dangling_dir, "plan.yaml"))
             check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
                   False, "load_plan returned instead of raising")
         except harness_yaml.PlanSchemaError as exc:
             check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
                   "T-02" in str(exc) and "T-99" in str(exc), str(exc))
         try:
-            _legal_doc0 = harness_yaml.load_plan(os.path.join(_legal_dir, "plan.yaml"))
+            _legal_doc0 = artifact_accessors.load_plan(os.path.join(_legal_dir, "plan.yaml"))
             check("(D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, "
                   "present)", isinstance(_legal_doc0, dict), _legal_doc0)
         except Exception as exc:

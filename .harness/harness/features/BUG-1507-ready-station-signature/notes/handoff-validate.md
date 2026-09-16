@@ -5,7 +5,7 @@
 Ship BUG-1507 via `gh-sync.py ship .harness/harness/features/BUG-1507-ready-station-signature`
 (already executed by the main session; this note documents the validate -> ship seam that
 could not get a native handoff note from inside a worktree pre-merge — same diagnosed
-`check-domain.sh` handoff-shape gate defect worked around identically for the prior five
+`check-domain.py` handoff-shape gate defect worked around identically for the prior five
 features shipped this session).
 
 ## Trust

@@ -2,11 +2,11 @@
 
 ## Decision
 
-The generated `ship-review-c1.html` contrast finding does not gate FEAT-36. The feature's approved destination is behavioral coverage for `merge-gitignore.sh`; changing the shared briefing renderer is unrelated product work.
+The generated `ship-review-c1.html` contrast finding does not gate FEAT-36. The feature's approved destination is behavioral coverage for `merge-gitignore.py`; changing the shared briefing renderer is unrelated product work.
 
 ## Evidence
 
-The B-1 panel found the requested functional change sound: code, QA, and security passed, the exact diagnostic-set assertion discriminated the fabricated-superset mutant, all 46 registered scripts passed, and `merge-gitignore.sh` remained byte-identical. The UI-only failure concerned a pre-existing color token in `.agents/skills/harness/bin/render-brief.py`, reached because the Harness ship phase generated a reading artifact.
+The B-1 panel found the requested functional change sound: code, QA, and security passed, the exact diagnostic-set assertion discriminated the fabricated-superset mutant, all 46 registered scripts passed, and `merge-gitignore.py` remained byte-identical. The UI-only failure concerned a pre-existing color token in `.agents/skills/harness/bin/render-brief.py`, reached because the Harness ship phase generated a reading artifact.
 
 ## Disposition
 

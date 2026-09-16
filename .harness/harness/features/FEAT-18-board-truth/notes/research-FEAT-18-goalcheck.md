@@ -13,7 +13,7 @@ the rest `pending`, nothing `building`. Judged at HEAD `6303683`; source is the 
 SC-05's leading sentence binds *any* feature whose plan records a task `done` while that task's card
 sits in `Backlog`. Verified at source myself at HEAD:
 
-- `check-state.sh` INV-26 does `if _derived is None: continue` — skipping the **whole** feature, the
+- `check-state.py` INV-26 does `if _derived is None: continue` — skipping the **whole** feature, the
   per-task card comparison included. That loop needs no parent verdict: `_EXPECT` maps
   `pending|building|done` to columns per task, independently.
 - `gh_board.derive_station` returns `None` for a **legal** mix — one task `done`, the rest
@@ -28,7 +28,7 @@ Under the rule that a criterion is graded on its full text, that is `not_met`, n
 
 **What would have to be true for SC-05 to be met:** a done task's card comparison runs, and a
 mis-column is reported, even when the plan derives no parent station — with a multi-task mixed
-fixture binding that branch. The remedy sites (`check-state.sh`, `gh_board.py`) are DEC-174
+fixture binding that branch. The remedy sites (`check-state.py`, `gh_board.py`) are DEC-174
 carve-outs; the routing question is **E-01, already pending with the operator**. Nothing here
 proposes or attempts a repair.
 

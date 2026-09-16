@@ -17,8 +17,8 @@ for `cross_module`; both are configured active, neither added beyond the floor.
 
 | kind | required/added | command (verbatim) | state | count |
 |---|---|---|---|---|
-| unit | required (matrix: cross_module.always) | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | satisfied | 29/29 scripts pass, 0 fail, exit 0 |
-| integration | required (matrix: cross_module.always) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | satisfied | 28/28 scripts pass, 0 fail, exit 0 |
+| unit | required (matrix: cross_module.always) | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | satisfied | 29/29 scripts pass, 0 fail, exit 0 |
+| integration | required (matrix: cross_module.always) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | satisfied | 28/28 scripts pass, 0 fail, exit 0 |
 | functional | excluded (DEC-187, `cmd: null`) | n/a | excluded-with-signature (soft skip, not blocked, not passed) | n/a |
 
 Baseline was unit 29/29, integration 28/28 — reproduced exactly, no regression. Raw run logs:
@@ -26,7 +26,7 @@ Baseline was unit 29/29, integration 28/28 — reproduced exactly, no regression
 un-elided captures via redirected file (the hub-relayed console output silently elides long
 runs mid-stream; do not trust script counts read off the hub transcript, only off a file).
 
-Script-level count method: `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays in `run-unit-tests.sh`
+Script-level count method: `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays in `run-unit-tests.py`
 hold 29 and 28 entries respectively (drift-checked against `harness.json`
 `test_kinds.integration.detect` on every invocation — that check ran and passed both times,
 silently, as part of the script's own preamble). Grepping `^PASS test-*.py$` and de-duplicating

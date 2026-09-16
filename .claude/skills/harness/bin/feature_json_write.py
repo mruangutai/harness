@@ -69,7 +69,9 @@ def parse_doc(base, display):
     if base is None:
         return None
     try:
-        doc = feature_schema.json.loads(base.decode("utf-8"))
+        doc = feature_schema.json.loads(base.decode("utf-8"),
+                                        object_pairs_hook=_reject_duplicate_keys,
+                                        parse_constant=_reject_nonfinite_constant)
     except (UnicodeDecodeError, ValueError) as e:
         raise harness_merge.MergeRefusal(
             SCHEMA_REFUSAL_CODE, [f"{display}: not valid JSON: {e}"]
@@ -82,20 +84,11 @@ def parse_doc(base, display):
     return doc
 
 
-class FeatureJsonError(Exception):
-    """str() is always built with factory_cli.body(what, value, next_step) -- never by hand
-    -- the same precedent factory_config.FleetError set for fleet.yaml: `value` is always a
-    path or an offending detail the operator can act on, never a class name.
 
-    `next_step` also survives as its own attribute, so a caller that wants to build its own
-    factory_cli.refuse(...) call around a different `what`/`value` -- factory_decompose.py's
-    load_factory does, to keep its own established "feature.json invalid" wording -- can
-    reuse the underlying detail without nesting `body()` inside `body()`.
-    """
 
-    def __init__(self, what, value, next_step):
-        self.next_step = next_step
-        super().__init__(factory_cli.body(what, value, next_step))
+def _reject_nonfinite_constant(value):
+    """Refuse JSON's non-standard NaN and Infinity spellings."""
+    raise ValueError(f"non-finite JSON constant: {value}")
 
 
 def _reject_duplicate_keys(pairs):
@@ -114,54 +107,6 @@ def _reject_duplicate_keys(pairs):
         result[key] = value
     return result
 
-
-def load_feature_json(path):
-    """The one canonical reader for feature.json (BUG-285), replacing the two independent
-    parsers gh-sync.py's `load_recorded` and factory_decompose.py's `load_factory` each used
-    to run for themselves -- one YAML-ish (`harness_yaml.load_file`), one JSON
-    (`json.loads`), disagreeing on 9 of 13 measured input classes
-    (`.harness/harness/features/BUG-285-yaml-loader-pin/notes/research-BUG-285-parity-survey.md`).
-    Parses with the stdlib `json` module ONLY, never a YAML loader: feature.json is written
-    exclusively by `write_feature_json` above and by factory_decompose's `write_factory`,
-    both of which emit JSON, and a reader that also accepts a YAML-only document (a bare
-    `github:\\n  parent: 40` block, no braces) accepts input neither writer ever produces.
-
-    Returns None when `path` does not exist. That is a legitimate first-sync/first-publish
-    state for both callers, and this module already draws that same line at `parse_doc`
-    above: None means absent, {} means "present, parsed, and empty", and the two are never
-    interchangeable.
-
-    Raises FeatureJsonError, naming `path`, for every other way the file can fail a caller:
-    unreadable (`OSError`) or not UTF-8 (`UnicodeDecodeError`) -- the READ happens inside
-    this same `try`, so neither exception can escape uncaught the way a non-UTF-8
-    feature.json used to escape gh-sync.py's `except OSError` as a bare traceback; not valid
-    JSON (`json.JSONDecodeError`, itself a `ValueError`); a mapping key repeated at any
-    nesting depth (`_reject_duplicate_keys` above); or a document that parses but is not a
-    JSON mapping (a top-level list, string, or number).
-
-    A file that is PRESENT but cannot be read or parsed is corruption, not absence, and
-    every one of the cases above raises rather than returning an empty document -- collapsing
-    the two was the measured FEAT-14 incident this migration exists to close: a caller that
-    cannot tell "nothing recorded yet" from "something is recorded but I can no longer read
-    it" re-creates GitHub issues, milestones and parents that already exist.
-    """
-    if not os.path.exists(path):
-        return None
-    try:
-        with open(path, "rb") as f:
-            text = f.read().decode("utf-8")
-    except (OSError, UnicodeDecodeError) as e:
-        raise FeatureJsonError("feature.json unreadable", path, f"could not be read: {e}")
-    try:
-        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys)
-    except ValueError as e:
-        raise FeatureJsonError("feature.json invalid", path, f"does not parse: {e}")
-    if not isinstance(doc, dict):
-        raise FeatureJsonError(
-            "feature.json invalid", path,
-            f"parsed but is not a JSON mapping (got {type(doc).__name__})",
-        )
-    return doc
 
 
 def opt_int(value):

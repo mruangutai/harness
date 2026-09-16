@@ -8,7 +8,7 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-GATE = os.path.join(BIN, "merge-gate.sh")
+GATE = os.path.join(BIN, "merge-gate.py")
 fails = 0
 
 
@@ -33,7 +33,17 @@ def fixture(feature="FEAT-9001-fixture-non-era", entry=None, repo="acme/widgets"
     with open(os.path.join(directory, "feature.json"), "w") as f:
         json.dump(document, f)
     with open(os.path.join(directory, "plan.yaml"), "w") as f:
-        f.write("status: plan\ntasks: []\n")
+        f.write(
+            "status: plan\n"
+            "tasks:\n"
+            "  - id: T-01\n"
+            "    title: Fixture task\n"
+            "    change_type: test\n"
+            "    execution_mode: main-session-direct\n"
+            "    files: [fixture.py]\n"
+            "    status: ready\n"
+            "    verify: python3 test.py\n"
+            "    intent: Exercise the merge gate fixture.\n")
     subprocess.run(["git", "init", "-q", "-b", "feature/test"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
@@ -45,7 +55,7 @@ def gate(command, root, gh=None):
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     if gh:
         env["GH_BIN"] = gh
-    result = subprocess.run(["bash", GATE], input=json.dumps({"tool_input": {"command": command}}),
+    result = subprocess.run([GATE], input=json.dumps({"tool_input": {"command": command}}),
                             text=True, capture_output=True, cwd=root, env=env)
     decision = None
     reason = ""
@@ -234,5 +244,35 @@ for command, name in (
     root, _ = fixture()
     r, d, reason = gate(command, root)
     check(name, r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
+
+root, _ = fixture()
+raw_payload = (
+    '{"tool_input":{"command":"git status"},'
+    '"tool_input":{"command":"git merge feature/test"}}')
+raw_env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+raw_result = subprocess.run(
+    [GATE], input=raw_payload, text=True, capture_output=True, cwd=root, env=raw_env)
+if raw_result.stdout.strip():
+    check("duplicate hook-payload keys are rejected before merge policy evaluation",
+          False, raw_result.stdout)
+
+root, _ = fixture()
+with open(os.path.join(root, ".harness", "harness.json"), "w") as stream:
+    stream.write(
+        '{"github":{"sync":false},"github":{"sync":true,"repo":"acme/widgets"}}')
+r, d, reason = gate("git merge feature/test", root)
+if d is not None:
+    check("duplicate harness.json keys disable merge policy rather than choosing one",
+          False, f"rc={r.returncode} reason={reason!r}")
+
+root, directory = fixture()
+with open(os.path.join(directory, "feature.json"), "w") as stream:
+    stream.write(
+        '{"feature_id":"FEAT-9001-fixture-non-era","branch":"other",'
+        '"branch":"feature/test","github":{}}')
+r, d, reason = gate("git merge feature/test", root)
+if d is not None:
+    check("duplicate feature.json keys cannot claim a merge branch",
+          False, f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

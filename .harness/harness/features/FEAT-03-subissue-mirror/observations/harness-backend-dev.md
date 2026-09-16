@@ -1,6 +1,6 @@
 # Observations — harness-backend-dev — FEAT-03-subissue-mirror
 
-- 2026-07-31 (T-02): the task's own listed `verify:` lines (grep receipts + `run-unit-tests.sh`)
+- 2026-07-31 (T-02): the task's own listed `verify:` lines (grep receipts + `run-unit-tests.py`)
   never actually import or execute `wayfind.py` — `test-gh-sync.py`/`test-validate-digest.py` don't
   touch it, and the module-import verify checks `gh_issues.py` standalone, not through wayfind's
   `sys.path.insert`. A broken import (bad `realpath` line, `NameError` on the module alias) would

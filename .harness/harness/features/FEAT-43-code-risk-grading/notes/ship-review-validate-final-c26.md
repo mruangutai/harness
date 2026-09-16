@@ -57,7 +57,7 @@ commit is one file, +68/−0.
 | Delta review — T-01 closure (`e12d53b1`) | **PASS**, `must_fix: []`, `severity_max: med` |
 | Delta review — B21 closure (this pin) | **PASS**, `must_fix: []`, **`severity_max: low`** |
 | Test matrix — the project's only blocking gate | **PASS** |
-| `check-state.sh` | **exit 0** |
+| `check-state.py` | **exit 0** |
 | Canonical repository suite | 957 results, **one** failing suite — not ours |
 | Goal-check | **19 of 20 met, none `not_met`**, SC-11 unproven |
 

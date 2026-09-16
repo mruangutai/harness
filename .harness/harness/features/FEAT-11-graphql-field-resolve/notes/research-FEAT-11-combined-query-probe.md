@@ -85,7 +85,7 @@ Re-verified against the `repositoryOwner` text, not the earlier `user(login:)` d
 `fields[[:space:]]*\(` = 0, `(first|last)[[:space:]]*:` = 0.
 `test-factory-integration.py`: quoted `"field-list"` = 1, `"project", "view"` = 1.
 `git diff bd295b0e…c1d1617` over `team-config.yaml` and the three task files: empty, so the lane
-resolution is unchanged; `check-domain.sh --resolve` re-run at HEAD returns
+resolution is unchanged; `check-domain.py --resolve` re-run at HEAD returns
 `harness-backend-dev` / `harness-dev-ops`, exit 0, for all three.
 
 `GhError` stores `argv`, `status`, `stdout`, `stderr` only (`factory_gh.py:41-44`) — there is no

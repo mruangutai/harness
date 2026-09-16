@@ -11,13 +11,13 @@ grading rule). Nothing else found rises above info.
 ## Stage 1 — spec compliance
 
 Diffed `git diff 80ce35d1..6c037de4 -- <the four files>` directly; read `harness_boundary.py`,
-`dispatch-guard.sh`, both test diffs in full (not truncated), `BRIEF.md`, `plan.yaml` T-01/T-02
+`dispatch-guard.py`, both test diffs in full (not truncated), `BRIEF.md`, `plan.yaml` T-01/T-02
 intents, and both T-02 receipts (`receipt-harness-backend-dev-T-02-c1.md`,
 `...-T-02-c2.md`) at the pinned sha.
 
 | REQ | Verdict | Evidence |
 |---|---|---|
-| REQ-01 (refused before dispatch runs) | PASS | `dispatch-guard.sh` — the check block sits strictly between the `harness_boundary`/`inflight_registry` import and `_root_for`/checkout-resolution/claim; no state write happens between the import and the check (read myself: lines 94–186). Matches D-04. |
+| REQ-01 (refused before dispatch runs) | PASS | `dispatch-guard.py` — the check block sits strictly between the `harness_boundary`/`inflight_registry` import and `_root_for`/checkout-resolution/claim; no state write happens between the import and the check (read myself: lines 94–186). Matches D-04. |
 | REQ-02 (names slug + compliant form) | PASS | refusal prints `slug %r` and `hb.run_dir_forms(globs)`; integration case 18a/18b. |
 | REQ-03 (compliant/no-ref prompts unaffected) | PASS | case_19 (t01-eng, plan-product, dated slug), case_20 (no run-dir ref at all). |
 | REQ-04 (vocabulary derived, no second edit) | PASS | `run_dir_grant_globs` walks generically (any list of path-carrying dicts, not just `leads:`); case_22 proves an invented squad is recognized both directions with zero code change. |
@@ -31,7 +31,7 @@ intents, and both T-02 receipts (`receipt-harness-backend-dev-T-02-c1.md`,
 | SC-03 | PASS | case_19/20 plus receipt: "48 original checks across cases 1-17 unedited and passing" — confirmed against the diff, which only appends `case_18`…`case_23` and never touches an existing case body. |
 | SC-04 | PASS | case_22, synthetic `oddsquad` squad. |
 | SC-05 | PASS | case_21. |
-| SC-06 (verify: inspection) | **PASS, and unusually well-evidenced** | Both T-02 receipts. c1's RED PROOF ran the new suite against the pinned pre-change `dispatch-guard.sh` fetched via `git show 6d969ed3:...`, md5-verified (`ca904b2906ad8d44662db428cb2dbc89`) against the T-01-landed state, and reported the exact 8 FAIL lines covering cases (a)(b)(f)(g) as the plan required, plus two extra text-assertion FAILs in (e)/(i) explained correctly (old file never prints a SKIPPED line at all). c1 additionally ran **two hand-applied mutations** — deleting the D-05 anchor rewrite (only case-18h's two paste-back assertions redden) and collapsing the two SKIPPED texts into one generic line (only case-21/23's text assertions redden) — each restored and re-verified green after. c2 re-ran the same red proof after the launch-line SIMPLIFY, re-confirming md5-identity of the pre-change binary and the same 8 FAIL lines. This is exactly the "recorded command and output demonstrate FAIL against the pre-change guard" bar, not a bare assertion that it was done. |
+| SC-06 (verify: inspection) | **PASS, and unusually well-evidenced** | Both T-02 receipts. c1's RED PROOF ran the new suite against the pinned pre-change `dispatch-guard.py` fetched via `git show 6d969ed3:...`, md5-verified (`ca904b2906ad8d44662db428cb2dbc89`) against the T-01-landed state, and reported the exact 8 FAIL lines covering cases (a)(b)(f)(g) as the plan required, plus two extra text-assertion FAILs in (e)/(i) explained correctly (old file never prints a SKIPPED line at all). c1 additionally ran **two hand-applied mutations** — deleting the D-05 anchor rewrite (only case-18h's two paste-back assertions redden) and collapsing the two SKIPPED texts into one generic line (only case-21/23's text assertions redden) — each restored and re-verified green after. c2 re-ran the same red proof after the launch-line SIMPLIFY, re-confirming md5-identity of the pre-change binary and the same 8 FAIL lines. This is exactly the "recorded command and output demonstrate FAIL against the pre-change guard" bar, not a bare assertion that it was done. |
 | SC-07 | PASS | case_18g: `_claims_for(data, "harness-eng-lead") == []` after refusal. |
 | SC-08 | PASS | case_18h, and c1's mutation proof shows deleting the anchor rewrite reddens exactly this case and no other. |
 | SC-09 | PASS | case_21/23 each assert their own text present AND the other's text absent; c1's mutation proof (collapsing the two lines into one) reddens exactly this pair and nothing else, confirming the messages are not interchangeable in practice, not just in prose. |
@@ -44,7 +44,7 @@ against REQ-01..06 or D-01..D-05.
 ### Q6 — `run_dir_grant_globs` fail-open on a future read-only `/runs/` grant — **ruling: real defect, MED, should_fix, not gating**
 
 Confirmed by comparison: `harness_yaml.manifest_domains` (the sibling walker used by
-`check-domain.sh`, `harness_yaml.py:392-420`) filters `not entry.get("read")` before treating an
+`check-domain.py`, `harness_yaml.py:392-420`) filters `not entry.get("read")` before treating an
 entry as a write grant. `run_dir_grant_globs` (`harness_boundary.py:816-848`) walks the identical
 shape — "any list whose members are all mappings carrying a `path` key" — and collects every entry
 whose pattern contains `/runs/` **with no `read` filter at all**. The function's own docstring
@@ -95,7 +95,7 @@ swallow beyond the documented REQ-05 fail-open design. No finding.
 ### SIMPLIFY nest-collapse correctness (commit `64924e19`)
 
 Ruled on correctness only, per the ALREADY-SETTLED list. Traced all three input classes by hand
-against the current code (`dispatch-guard.sh:150-186`):
+against the current code (`dispatch-guard.py:150-186`):
 - `refs` empty → outer `if refs:` is false, block is a no-op — matches the original
   `if refs and not globs` / `elif refs and globs` (both require `refs` truthy; empty `refs` satisfies
   neither).

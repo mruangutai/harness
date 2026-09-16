@@ -146,7 +146,7 @@ left exactly as `git status` shows for the working tree (both untracked, as befo
 `test-factory-config.py` stayed exactly 56/56: this widens an existing enumeration and adds no
 check, as required.
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 (87 `PASS ` lines total in the
+`python3 .claude/skills/harness/bin/run-unit-tests.py` → exit 0 (87 `PASS ` lines total in the
 combined run). File-level gate counts unchanged from the receipt this fixes: `--kind unit` →
 **10/10** unit-registered `.py` files PASS; `--kind integration` → **14/14** registered
 integration-script files PASS (counting `PASS test-*` lines only, excluding per-case sub-checks
@@ -241,7 +241,7 @@ did not re-verify it by running it. Flagging this rather than asserting it as a 
 | `test-factory-claim.py` | **77/77** | 0 |
 | `test-factory-integration.py` | **97/97** | 0 |
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh` → **exit 0**; 87 `PASS ` lines in the combined
+`python3 .claude/skills/harness/bin/run-unit-tests.py` → **exit 0**; 87 `PASS ` lines in the combined
 run (unchanged from cycle 0's count — no file added to or removed from either registry).
 
 ### No git safety net, no commit, no stage

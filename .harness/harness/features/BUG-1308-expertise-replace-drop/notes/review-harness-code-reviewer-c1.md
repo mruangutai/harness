@@ -67,7 +67,7 @@ ones below).
 ### F-03 — HIGH — `add` silently resolves against an ambiguous base id instead of refusing it
 `_resolve_add`, `expertise-merge.py:221-237`. D-03 states its ambiguity taxonomy is "two conditions,
 no third," condition (a) being *"a target id appearing more than once inside one section of the base
-file."* `check-expertise.sh` does not forbid duplicate ids in a section (grepped: no such check
+file."* `check-expertise.py` does not forbid duplicate ids in a section (grepped: no such check
 exists), and `case14(b)`/`u5` construct exactly this base shape and treat it as a legitimate fixture
 the tool must correctly refuse — but both of those tests exercise it only with `op: replace`, never
 `op: add`.

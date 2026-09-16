@@ -21,7 +21,7 @@ found something no single reader reported — and that is the one decision left.
   notes only.
 
 **The decision: VL-01.** REQ-01 promises the seed-field refusal on both governed routes. On the
-**Edit** route with an **absent** prior checkpoint, `check-domain.sh` reaches `sys.exit(0)` through
+**Edit** route with an **absent** prior checkpoint, `check-domain.py` reaches `sys.exit(0)` through
 `_edit_reconstructed_content`'s `except OSError: return None` before the witness is ever consulted —
 measured exit 0 at both pins, with a refusing control at exit 2 and the Write route measured closed.
 SC-01(a) is *literally* met, because its FAILS-if clause does not reach this case; REQ-01's
@@ -75,17 +75,17 @@ collation. Strike rows by ID.
 | B-1 | bug | **VL-01, if you accept it rather than fix it:** REQ-01's seed-field refusal is absent on the Edit route with an absent prior. Pre-existing, dormant on this host, Write route closed. |
 | B-2 | bug | SEC-01 — directory-level Bash `rm`/`mv` destroys witness, checkpoint and digest with no refusal. Already filed as **#1376** under your Advisor-delegated acceptance; listed so it is not double-filed. |
 | B-3 | enhancement | A portable regression for the Edit-creates path that does not depend on any one host's `Edit` semantics. |
-| B-4 | chore | `check-state.sh:1502-1514` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
+| B-4 | chore | `check-state.py:1502-1514` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
 | B-5 | chore | `harness_boundary.py:22` imports `MARKER_NAME` eagerly: +6.45 ms on every governed write, measured over a 60-invocation A/B. |
 | B-6 | chore | POST effective-uid selection lives in a shell heredoc with no importable function and no unit test. |
 | B-7 | chore | Two citation-rot lines in `notes/regression-delta-BUG-1305.md` (a case renamed at cycle 11; the composed digest case uncited). Non-gating; you ruled against spending a cycle. |
-| B-8 | chore | `check-domain.sh:1240` still reads like the false PRE-only comment REQ-06 removed. Its subject is the POST-sweep exclusion and it is true; it will mislead the next reader anyway. |
+| B-8 | chore | `check-domain.py:1240` still reads like the false PRE-only comment REQ-06 removed. Its subject is the POST-sweep exclusion and it is true; it will mislead the next reader anyway. |
 | B-9 | chore | Sweep the remaining criteria for the pattern that produced two highs: a criterion's test grading a materially easier case than the criterion's own body describes. |
 | B-10 | bug | Harness: worktree claims are keyed per persona globally, so a lead correctly dispatched at BUG-1305 was refused writes into its own BUG-1305 run directory while holding a claim on another feature. Blocked three digests this feature. |
 | B-11 | bug | Harness: members emitted complete, well-formed returns that the host recorded as `failed (exit 1) — yield with null data`. A good return looks like a crashed member. |
 | B-12 | bug | Harness: a pre-plan `harness-code-reviewer` cannot yield at all — `validate-digest.py` demands a binding that cannot exist before a plan is drafted. |
 | B-13 | chore | Harness: no `plan-merge.py` verb reaches the `lanes:` block, so late-added surfaces are recorded in a task's `execution_reason` instead. |
-| B-14 | chore | Harness: `check-state.sh` INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval. |
+| B-14 | chore | Harness: `check-state.py` INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval. |
 | B-15 | chore | Stale scratch worktrees: `.claude/worktrees/harness/qa-regate-sc01-baseline-c10` stands, and a `.git/worktrees` entry may survive `qa-redproof-sc13-c1`. `git worktree prune` plus a removal, both yours. |
 | B-16 | enhancement | Define "exhausts" for `max_total_cycles` (BUG-1286's B-12). Undefined again here and it cost two Advisor round-trips. |
 

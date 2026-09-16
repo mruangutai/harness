@@ -8,12 +8,12 @@ DIGEST:
   steps_run: 2
   cycles_used: 0
   members:
-    - { step: should-not-exist, persona: fable-advisor, verdict: PASS, headline: "Ran and returned 5 findings: everything in this plan earns its existence; the per-invocation git ls-files tax is a two-subprocess delta inside a gate run-unit-tests.sh:33 already runs, and an audit-only or CI-only instrument fails issue #1286 by construction", files_touched: [] }
+    - { step: should-not-exist, persona: fable-advisor, verdict: PASS, headline: "Ran and returned 5 findings: everything in this plan earns its existence; the per-invocation git ls-files tax is a two-subprocess delta inside a gate run-unit-tests.py:33 already runs, and an audit-only or CI-only instrument fails issue #1286 by construction", files_touched: [] }
     - { step: scope, persona: harness-code-reviewer, verdict: PASS, headline: "Ran and returned 4 findings: no orphan REQs, valid topological depends_on, no verify shown ungradable at its own task's completion, SC-07/SC-09/SC-15 anchors all live at the pinned tip", files_touched: [".harness/harness/features/BUG-1286-test-tree-enforcement/notes/review-harness-code-reviewer-planpanel-c3.md"] }
   severity_max: med
   findings:
     - { reader: scope, severity: low, summary: "T-03's --against output contract doesn't state whether the row/TOTAL block still prints under comparison mode", why: "A spec-compliant diff-only reading makes T-04's own verify: fail on a correct note, forcing a rework cycle" }
-    - { reader: scope, severity: med, summary: "D-05's accepted archival landmine", why: "Archiving FEAT-44's evidence file reddens every run-unit-tests.sh invocation repo-wide until a backend-dev/dev-ops edit, though the archiver need not hold that grant" }
+    - { reader: scope, severity: med, summary: "D-05's accepted archival landmine", why: "Archiving FEAT-44's evidence file reddens every run-unit-tests.py invocation repo-wide until a backend-dev/dev-ops edit, though the archiver need not hold that grant" }
     - { reader: should-not-exist, severity: low, summary: "The D-05 coupling should be accepted at low severity; the reddening is a loud self-describing one-line finding fixable by a one-tuple-entry edit, and the alternatives are rewriting a landed feature's shipped record or letting exceptions go silently stale, which breaches AC-07", why: "A rare deliberate act (archiving landed evidence) requires routing a trivial suite_layout.py edit to backend-dev or dev-ops before any test can run again" }
     - { reader: scope, severity: info, summary: "SC-06's exact-equality assertion is acceptable, not brittle in the way asked", why: "The pinned string is introduced by T-01 itself, so a later wording change is owned by the same task — normal coupling, not cross-feature brittleness" }
     - { reader: should-not-exist, severity: info, summary: "SC-06's exact-equality grader should stand; whole-list equality is the only form that proves the valid unit, integration and manual files and the copied bin module each contributed nothing, and the pinned string is also asserted at the runner boundary in T-02", why: "Brittleness cost is one deliberate re-pin when the message is intentionally changed, which must already coordinate with T-02's MISCONFIGURED assertions" }
@@ -25,7 +25,7 @@ DIGEST:
   adequacy_notes:
     - "SC-06's unrebound two-finding baseline was not re-measured by the panel — scope traced the rebound one-element result by hand, but no reader re-ran the c3 prototype; if that count is wrong the rebinding rationale moves, not the assertion."
     - "SC-02 (test-first red proof) is ungradable at plan phase by construction; no panel finding bears on whether qa's later base-commit audit happens."
-    - "This is not a shallow pass: should-not-exist verified run-unit-tests.sh:33 already calls violations(), scope opened SC-07/SC-09/SC-15's anchors and confirmed grep -c of T-05's asserted phrase is 0 — both readers ran probes that could have come back red."
+    - "This is not a shallow pass: should-not-exist verified run-unit-tests.py:33 already calls violations(), scope opened SC-07/SC-09/SC-15's anchors and confirmed grep -c of T-05's asserted phrase is 0 — both readers ran probes that could have come back red."
     - "No security or UI lens ran; the team file defines exactly two steps and this change has no auth, secret, input or visual surface."
   must_fix: []
   files_touched:

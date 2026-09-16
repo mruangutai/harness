@@ -22,7 +22,7 @@ each measured clean — see dispositions below.
 **1. Trust boundary between concurrent features (`inflight_registry.py`).**
 Measured, not assumed. Read the full pre- and post-diff module
 (`.claude/skills/harness/bin/inflight_registry.py`). Findings:
-- The **automated** lifecycle (dispatch-guard.sh → `claim_with_receipt` → host-issued
+- The **automated** lifecycle (dispatch-guard.py → `claim_with_receipt` → host-issued
   `claim_id`/`agent_id`/`job_id` → `releaseClaim` in `harness-hooks.ts`) is correctly scoped:
   `claim_id` is a server-side `uuid4`, `agent_id`/`job_id` come from `ctx.agentId` /
   `task:subagent:lifecycle` event data (host-controlled, not model/tool-input controlled).
@@ -42,7 +42,7 @@ Measured, not assumed. Read the full pre- and post-diff module
   already-trusted local process, a second feature genuinely running concurrently, and correctly
   guessing both names; it is same-user/same-machine (no privilege gain), and the worst outcome
   (two concurrent PM writers) is caught by ordinary `plan.yaml` diff review before merge, same as
-  before this PR. `bash-write-guard.sh` does not block it (it only intercepts *write* patterns —
+  before this PR. `bash-write-guard.py` does not block it (it only intercepts *write* patterns —
   `perl -pi`, `sed -i`, redirections — not an ordinary command invocation, and this is the exact
   command the tool's own refusal message tells an operator to run).
 - **PID-reuse liveness (explicitly asked about).** `_pid_alive()` (`os.kill(pid, 0)`) is the
@@ -55,7 +55,7 @@ Measured, not assumed. Read the full pre- and post-diff module
 **2. Registry file as untrusted input → shell/subprocess/log injection.**
 No finding — measured. `harness-hooks.ts`'s `runPolicy()` calls `spawnSync(gatePath(script),
 args, {...})` with **no `shell: true`** and `args` as an array, so Node never tokenizes through a
-shell regardless of claim content. `dispatch-guard.sh` pipes the JSON payload to python **only
+shell regardless of claim content. `dispatch-guard.py` pipes the JSON payload to python **only
 via stdin** (`printf '%s' "$payload" | python3 -I -c '...'`); no payload field is ever
 string-interpolated into a shell command. `release_cmd()` shell-quotes every argument with
 `shlex.quote()` before composing the printed remedy string. `feature_root()`/`_root_for()`
@@ -66,7 +66,7 @@ into a filesystem path — so no path-traversal vector either. Clean.
 **3. Data exposure in digest/mirror paths.**
 No finding — measured. `validate-digest.py`'s diff only threads a `feature` parameter through
 already-local release/children-lookup calls (no new network call, no new log field). The mirror
-doc (`github-mirror.md`) changes are prose-only. `gh-close-gate.sh`'s one code change
+doc (`github-mirror.md`) changes are prose-only. `gh-close-gate.py`'s one code change
 (`python3 -P` → `python3 -I`) is a *stronger* interpreter-isolation flag, consistent with the
 same hardening applied elsewhere in this diff (T-08/T-15 comments), not a regression. No new path
 from local content (transcripts, paths, tokens) to GitHub or logs was found in this diff.

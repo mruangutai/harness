@@ -13,7 +13,7 @@ Three things this build leaves open, all filed:
 - **SC-11 is deliberately `not_met`.** It is the operator's own run against board 2.
 
 ## Trust
-- `run-unit-tests.sh --kind all`: **46 scripts PASS, 801 individual PASS lines, 0 FAIL, exit 0** —
+- `run-unit-tests.py --kind all`: **46 scripts PASS, 801 individual PASS lines, 0 FAIL, exit 0** —
   measured independently three times (builder, main session, both qa seats).
 - Task counts, parsed rather than grepped: `api 1, bugfix 3, config 6, docs 4, feature 5,
   logic 3` = 22. The main session's grep said 27 and was wrong.
@@ -53,7 +53,7 @@ Three things this build leaves open, all filed:
 - `factory_gh.py` — six primitives; `project_single_select_extend` REPLACES an option set.
 - `gh-sync.py` — T-07's fail-open guard, T-08's `--reason completed` and `abandoned` label,
   T-13's `status` subcommand, T-16's title format.
-- `check-state.sh` — INV-26 widened, bounded on `feature.json` status `Review` (T-22, carve-out).
+- `check-state.py` — INV-26 widened, bounded on `feature.json` status `Review` (T-22, carve-out).
 - `factory_config.py` `_STATION_KEYS` at six; `SKILL.md`, `commands/harness-plan.md`,
   `harness-init/SKILL.md`, `templates/harness.json`.
 - `DECISIONS.md` — DEC-196 am.3 and am.4.

@@ -76,7 +76,7 @@ pre-existing green from a different cause — command 1 was re-greened only by t
 
 ## Read-not-run re-assertion of the DEC-210 region
 
-`DECISIONS.md:6515-6544` still contains `check-domain.sh` (6516, 6527, 6536), `plan-sign-gate.sh`
+`DECISIONS.md:6515-6544` still contains `check-domain.py` (6516, 6527, 6536), `plan-sign-gate.py`
 (6517, 6524), `quarantine.py adopt` (6519, 6542), and names `plan.yaml` and `plan-merge.py` in one
 sentence at 6524-6525. Nothing in DEC-210 was edited.
 

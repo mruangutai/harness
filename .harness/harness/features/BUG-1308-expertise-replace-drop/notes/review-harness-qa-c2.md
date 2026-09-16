@@ -4,7 +4,7 @@
 
 ## Suites at the pin (`env -u HARNESS_AGENT_TYPE`, `EXPERTISE_MERGE_BIN` unset)
 - unit: exit 0, `^FAIL ` count 0, 28 files — matches orchestrator measurement.
-- integration (`run-unit-tests.sh --kind integration`, no separate integration runner exists): exit 0, `^FAIL ` count 0, 46 files — matches orchestrator measurement. slowest: test-check-state.py 61.6s.
+- integration (`run-unit-tests.py --kind integration`, no separate integration runner exists): exit 0, `^FAIL ` count 0, 46 files — matches orchestrator measurement. slowest: test-check-state.py 61.6s.
 
 ## Cycle-1 findings, reproduced at the pin (sandbox: disposable worktree `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/qa-sandbox-c2` removed after use; probes ran from `/tmp/qasb` against copies of `git show 48d2285b:.claude/skills/harness/bin/{expertise-merge,harness_merge}.py`)
 - **VL-01 CLOSED (as originally scoped):** `add`/`replace` entry with literal `\n`/`\r` + forged `## Gotchas`/`- G-16:` → exit 12 `MALFORMED OPS ... entry must be a single line`, file sha unchanged. Confirmed both in my own sandbox and via the suite's own case21/u17.
@@ -45,7 +45,7 @@ Cases: integration `case_ops_entry_injection`(21), `case_ops_target_injection`(2
 | SC-05 | satisfied | reasoned | `case_atomic_failure`, :571 |
 | SC-06 | satisfied | measured (full integration suite green, 0 FAIL) | run above |
 | SC-07 | satisfied | reasoned (permanent red case present, unmodified) | test-expertise-ops.py u10 ("THE PERMANENT RED CASE") |
-| SC-08 | satisfied | reasoned | check-expertise.sh invoked at :457 (case11, replace) and :485 (case12, drop), both asserted exit-0-accept |
+| SC-08 | satisfied | reasoned | check-expertise.py invoked at :457 (case11, replace) and :485 (case12, drop), both asserted exit-0-accept |
 | SC-09 | satisfied | reasoned | `case_contract_drift`, :728, both directions asserted (case17) |
 | SC-10 | satisfied | measured | DECISIONS-INDEX.md:219 carries the literal string; test-gen-decisions-index.py ran green in the 46-file integration suite |
 | SC-11 | satisfied | measured (mutation-proven above) | `case_concurrent_writers`, :890 |

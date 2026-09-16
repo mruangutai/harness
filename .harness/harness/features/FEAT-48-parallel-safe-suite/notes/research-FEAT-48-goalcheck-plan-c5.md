@@ -57,7 +57,7 @@ only what FEAT-48 adds. A list was not relabelled: the scope is genuinely derive
 T-02's verify (`:456-489`) is satisfiable on faithful execution: its run set is read from its own
 `files:` list (I loaded the plan with `safe_load` — it parses, and the two paths resolve), it
 asserts `appeared` and `moved` both empty, and both files are in `INTEGRATION_SCRIPTS`
-(`run-unit-tests.sh:31`) so they are green at the tip. T-03's `live.returncode == 0` is **reachable**
+(`run-unit-tests.py:31`) so they are green at the tip. T-03's `live.returncode == 0` is **reachable**
 by the chain T-01 → T-02 → T-07 → T-03: the eight sites are the whole static set, and my independent
 sink×taint sweep over all 59 discovered test files found no ninth candidate (every other
 `shutil.copy`/`copytree` writes an `args[1]` tempdir, which the rule does not flag). The chain's last
@@ -110,7 +110,7 @@ vacuous today — I re-derived that all 59 discovered test files sit under the l
 
 - **F-07 (med)** No criterion would fail if #1053's own symptom persisted. SC-05's ten `--kind all`
   runs are declared non-probative by the BRIEF itself (`BRIEF.md:127-131`), and nothing asserts
-  `test-gh-sync.py` (`run-unit-tests.sh:31`, integration) passes N consecutive 8-worker runs.
+  `test-gh-sync.py` (`run-unit-tests.py:31`, integration) passes N consecutive 8-worker runs.
   Consequence: if the real collision partner is a class neither half covers (D-11's third and fourth
   uncovered classes, `:262-272`), FEAT-48 ships all-green and #1053 stays reproducible. See Q1.
 - **F-08 (low)** #1053's `## Scope` still reads "Folded into FEAT-47" (verified via `gh issue view
@@ -124,7 +124,7 @@ vacuous today — I re-derived that all 59 discovered test files sit under the l
 ## 5. Satisfiability of all seven verify blocks at the tip — VERDICT: yield ZERO unsatisfiable, one under-specified
 
 Swept for the cycle-1..4 class (a block that greps a moved line, counts a moved set, or asserts a
-changed value). Confirmed at the tip: `"${SCRIPTS[@]}"` occurs **only** at `run-unit-tests.sh:148`,
+changed value). Confirmed at the tip: `"${SCRIPTS[@]}"` occurs **only** at `run-unit-tests.py:148`,
 so T-06's `not serial` leg is both satisfiable and discriminating (`${SCRIPTS[@]/#/$BIN_DIR/}` does
 not contain it, and `"${UNIT_SCRIPTS[@]}"` does not either); `--check-kinds` exits 0 printing zero
 `PASS`/`FAIL` lines and `--kind nope` exits 2 (both run, both as asserted); T-07's `red` grep target
@@ -154,8 +154,8 @@ plus a non-zero control are both obtainable without reopening the hazard on the 
 
 ## 6. Residual staleness — VERDICT: 30 anchors/numerals checked, 1 finding
 
-Re-derived at the tip and **true**: `AGENTS.md:8` (exact phrase), `check-domain.sh:102` (PYTHONPATH
-export) and `:125` (`sys.path.insert`), `run-unit-tests.sh:147-157` (serial loop) and `:60`
+Re-derived at the tip and **true**: `AGENTS.md:8` (exact phrase), `check-domain.py:102` (PYTHONPATH
+export) and `:125` (`sys.path.insert`), `run-unit-tests.py:147-157` (serial loop) and `:60`
 ("Drift detector:"), `harness_boundary.py:44`/`:53`/`:84` (the three resolvers, all three ranges),
 `test-check-domain.py` SITE A 1470-1492 and SITE B 3275-3289 with callers `:3293`/`:3367`,
 `test-bash-write-guard.py` 891-915, `discovered 59`, DECISIONS.md `192 of 192` em-dash headings with
@@ -177,7 +177,7 @@ cycle 4's historical record, out of scope, untouched.
 ## 7. SC linkage — VERDICT: all ten reachable, no BLOCKING question
 
 SC-01 → T-01 verify (evidence `integration` is correct: `test-check-domain.py` is in
-`INTEGRATION_SCRIPTS`, `run-unit-tests.sh:31`). SC-02 → T-06's note, empirically demonstrated
+`INTEGRATION_SCRIPTS`, `run-unit-tests.py:31`). SC-02 → T-06's note, empirically demonstrated
 reachable above. SC-03/SC-04 → T-03 verify + `UNIT_SCRIPTS` registration (`:788-792`). SC-05/SC-06 →
 T-06's note, whose shape T-06's verify enforces including `tree condition:`. SC-07 → T-06 verify plus
 `test-run-unit-tests-kinds.py` (integration, `:31`). SC-08/SC-10 → T-04 verify + `test-run-pool.py`

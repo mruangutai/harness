@@ -17,7 +17,7 @@ Read at HEAD `87205da9`. Nothing edited: `plan.yaml`/`BRIEF.md` untouched (see `
 | PF-05e45a58b54f (live-manifest `len(g)==3` pin) | med | **closed** | T-01 verify reads `assert g and all("/runs/" in x for x in g), g` — no count assertion; intent's TESTS section carries the "DO NOT PIN THE LIVE MANIFEST BY COUNT OR BY CONTENT" paragraph naming REQ-04 |
 | PF-64c48fa9fb3d (unobservable derivation failure) | med | **closed at design level** | T-02 intent: `harness_yaml.load_str` now runs with NO try/except in the shell-side derivation, `HARNESS_RUN_DIR_DERIVED` crosses the isolation boundary, THE CHECK prints one of two non-interchangeable SKIPPED texts keyed on that flag, new case (i) exercises a garbage manifest, and the RED PROOF instructs collapsing the two lines to prove the pair discriminates |
 | PF-4f1b6dc30897 (T-03 verify binds 4 words) | med | **closed** | Verified below (§3) — six required substrings, all present in the doer's prescribed prose, `case`/`tr` construct tested and discriminates correctly |
-| PF-6e184d4c13c2 (mis-cited check-domain.sh:103) | low | **closed** | Read check-domain.sh directly: line 103 is `python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' ... <<'PY'` (pop, feeds stdin); line 125 is `sys.path.insert(0, _bin_dir)` where `_bin_dir` comes from `_derived, argv_agent, _bin_dir = sys.argv[1:4]`, i.e. `sys.argv[3]`. T-02's intent now states exactly this and disclaims the old `sys.argv[1]` citation |
+| PF-6e184d4c13c2 (mis-cited check-domain.py:103) | low | **closed** | Read check-domain.py directly: line 103 is `python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' ... <<'PY'` (pop, feeds stdin); line 125 is `sys.path.insert(0, _bin_dir)` where `_bin_dir` comes from `_derived, argv_agent, _bin_dir = sys.argv[1:4]`, i.e. `sys.argv[3]`. T-02's intent now states exactly this and disclaims the old `sys.argv[1]` citation |
 
 A remedy that changed text without closing the finding would be a finding in its own right; none of
 the seven did that — each remedy's mechanism was independently re-derived from the file, not
@@ -56,14 +56,14 @@ against a NOSCAN token.** D-05's own `because` rejects a suppression marker on t
 "anything a dispatcher can type into a quote can also be typed into a directive." That argument
 applies unchanged to `[.]harness/`: nothing mechanically distinguishes a correctly-applied escape
 (a genuine quote) from the same spelling misapplied to a genuinely-bad directive to silence a real
-refusal. If that happens, dispatch-guard.sh does not see the reference at all (confirmed: `run_dir_refs`
+refusal. If that happens, dispatch-guard.py does not see the reference at all (confirmed: `run_dir_refs`
 only fires on the literal `.harness/` anchor), so the dispatch proceeds. The eventual write is still
-refused — independently verified in `check-domain.sh`: `classify()`/`domain_check()` emit the literal
+refused — independently verified in `check-domain.py`: `classify()`/`domain_check()` emit the literal
 token `NOBODY` and exit 2 whenever no grant's glob matches the actual write target, and no grant in
 `.harness/team-config.yaml` starts with `[.]harness` — so this is not a security bypass. But detection
 moves from dispatch time to write time, reproducing — self-inflicted, through the fix's own escape
 hatch — the exact "mid-run, build spine already open" cost `BRIEF.md`'s Problem section names as the
-harm being eliminated. **Severity: med** (bounded by check-domain.sh as an independent backstop, and
+harm being eliminated. **Severity: med** (bounded by check-domain.py as an independent backstop, and
 mitigated by REQ-02 surfacing the compliant form first, but a genuine, unaddressed gap in the design's
 own stated non-goal).
 
@@ -108,7 +108,7 @@ The orchestrator's claim holds under independent re-derivation from the plan's o
   separate objection.
 - **T-03's six-string `verify:`:** checked the string itself against the exact sentence the intent
   tells the doer to write. All five plain-prose phrases appear intact in sentence one
-  ("dispatch-guard.sh refuses a governed dispatch that names a run-dir path whose slug matches no
+  ("dispatch-guard.py refuses a governed dispatch that names a run-dir path whose slug matches no
   run-dir write grant in .harness/team-config.yaml, at exit 2, naming the offending slug and a
   compliant form, and the check is on slug shape and is not on ownership by the dispatched persona"),
   and the literal `[.]harness/` is mandated verbatim in sentence two. Ran the `tr -s`/`case` construct

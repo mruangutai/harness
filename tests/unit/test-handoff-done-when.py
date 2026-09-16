@@ -18,13 +18,25 @@ def check(name, condition, detail=""):
         failures.append(name)
 
 
+PLAN_TASK = (
+    "tasks:\n"
+    "  - id: T-03\n"
+    "    title: fixture task\n"
+    "    change_type: bugfix\n"
+    "    execution_mode: team\n"
+    "    files: [fixture.py]\n"
+    "    verify: python3 test.py\n"
+    "    intent: fixture\n"
+)
+
+
 def fixture():
     td = tempfile.TemporaryDirectory()
     root = Path(td.name)
     feat = root / ".harness/harness/features/FEAT-90-fixture"
     notes = feat / "notes"
     notes.mkdir(parents=True)
-    (feat / "plan.yaml").write_text("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    (feat / "plan.yaml").write_text(PLAN_TASK)
     (feat / "BRIEF.md").write_text("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
     (notes / "review-fixture.md").write_text("Finding F-02 remains.\n")
     rel = ".harness/harness/features/FEAT-90-fixture/notes/handoff-build.md"
@@ -53,6 +65,19 @@ finally:
 
 valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
 check("well formed", problems(valid) == [], repr(problems(valid)))
+
+# `plan-task` authority must use load_plan, not merely parse YAML: an incomplete task that
+# happens to carry the pointed id and verify is not a valid authority-bearing plan.
+td, root, rel = fixture()
+try:
+    feat = root / ".harness/harness/features/FEAT-90-fixture"
+    (feat / "plan.yaml").write_text("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    got = handoff_done_when.problems(
+        rel, note("Scope: done\nAuthority: plan-task:T-03.verify"), root, True)
+    check("plan authority rejects schema-invalid plan",
+          len(got) == 1 and "unresolved" in got[0] and "title" in got[0], repr(got))
+finally:
+    td.cleanup()
 
 for name, malformed_note in [
     ("nested heading cannot truncate validation",
@@ -119,7 +144,7 @@ for name, good, bad in pointers:
     check(f"{name} unresolved ignored without resolution",
           problems(f"Scope: done\nAuthority: {bad}", False) == [])
 
-for value in ("docs:whatever", "check-domain.sh:1523", "brief-perspective:SC-04"):
+for value in ("docs:whatever", "check-domain.py:1523", "brief-perspective:SC-04"):
     for resolve in (True, False):
         got = problems(f"Scope: done\nAuthority: {value}", resolve)
         check(f"unknown authority {value} resolve={resolve}",
@@ -211,8 +236,7 @@ def satisfaction_fixture(task_status, approval_status):
     feat = root / ".harness/harness/features/FEAT-91-satisfaction"
     (feat / "notes").mkdir(parents=True)
     (feat / "plan.yaml").write_text(
-        "tasks:\n  - id: T-03\n    verify: python3 test.py\n"
-        f"    status: {task_status}\n")
+        PLAN_TASK + f"    status: {task_status}\n")
     (feat / "BRIEF.md").write_text(
         f"# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: {approval_status}\n")
     rel = ".harness/harness/features/FEAT-91-satisfaction/notes/handoff-build.md"
@@ -264,7 +288,7 @@ for _name, _task, _appr, _pointers, _refuse in [
 _td, _root, _rel = satisfaction_fixture("done", "approved")
 try:
     _feat = _root / ".harness/harness/features/FEAT-91-satisfaction"
-    (_feat / "plan.yaml").write_text("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    (_feat / "plan.yaml").write_text(PLAN_TASK)
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
     check("satisfaction: stationless task is indeterminate", _got == [], repr(_got))
@@ -330,7 +354,7 @@ def perspective_fixture(task_status="building", approval_status="pending", brief
     feat = root / ".harness/harness/features/FEAT-92-perspective"
     (feat / "notes").mkdir(parents=True)
     (feat / "plan.yaml").write_text(
-        f"tasks:\n  - id: T-03\n    verify: python3 test.py\n    status: {task_status}\n")
+        PLAN_TASK + f"    status: {task_status}\n")
     (feat / "BRIEF.md").write_text(
         BY_PERSPECTIVE_BRIEF.format(approval=approval_status) if brief is None else brief)
     rel = ".harness/harness/features/FEAT-92-perspective/notes/handoff-build.md"

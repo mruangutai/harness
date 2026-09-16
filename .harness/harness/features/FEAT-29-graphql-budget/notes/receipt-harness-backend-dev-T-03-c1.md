@@ -21,7 +21,7 @@ clean up. Flagged as a blocking open_question.
 - `.claude/skills/harness/bin/factory_gh.py` — `run_gh`'s subprocess call wrapped in
   `gh_cost_log.measured(args)`.
 - `.claude/skills/harness/bin/gh-sync.py` — `gh()`'s subprocess call wrapped the same way.
-- `.claude/skills/harness/bin/run-unit-tests.sh` — `test-gh-cost-log.py` added to `UNIT_SCRIPTS`
+- `.claude/skills/harness/bin/run-unit-tests.py` — `test-gh-cost-log.py` added to `UNIT_SCRIPTS`
   (in-process, does not fork).
 - `.claude/skills/harness/bin/test-factory-gh.py` — `os.environ["HARNESS_GH_COST_LOG"] = "0"` at
   true module scope, before any test runs, with a comment stating why (protects the ~28
@@ -141,7 +141,7 @@ check for the restore.
 ## task_verify
 
 `task: T-03`
-Command (verbatim): `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+Command (verbatim): `.claude/skills/harness/bin/run-unit-tests.py --kind unit`
 Result: exit 0, 160 PASS, 0 FAIL. `task_verify: pass`.
 
 ## Open questions
@@ -155,9 +155,9 @@ Result: exit 0, 160 PASS, 0 FAIL. `task_verify: pass`.
   blocked me — it is main-session's domain). This needs a decision I cannot make from my file
   list: options I see are (a) main-session/CI always sets `CLAUDE_PROJECT_DIR` before running
   these suites, (b) `.harness/logs/gh-cost-*.jsonl` is gitignored so the pollution is harmless
-  noise rather than a tracked-status hazard, (c) `run-unit-tests.sh` itself sets
+  noise rather than a tracked-status hazard, (c) `run-unit-tests.py` itself sets
   `HARNESS_GH_COST_LOG=0` for the whole suite run (a one-line, low-risk change, but
-  `run-unit-tests.sh` is one of only two files amendment 4 granted me and only for the registration
+  `run-unit-tests.py` is one of only two files amendment 4 granted me and only for the registration
   edit — extending its scope further is not mine to decide either), or (d) `factory_config.py`'s
   fallback is tightened to refuse rather than silently redirect (a much bigger, harness-wide
   change, out of scope entirely). Flagging rather than picking.

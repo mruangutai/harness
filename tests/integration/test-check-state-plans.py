@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-3/4/5, INV-6, INV-22, INV-23, INV-34 and INV-35: file content.
+"""check-state.py INV-3/4/5, INV-6, INV-22, INV-23, INV-34 and INV-35: file content.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). What a feature's own
 files must contain — the plan read through the loader (INV-3/4/5), the review_sha pin and
@@ -16,11 +16,13 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+import json
 import os
 import re
 import sys
 import tempfile
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, feature_yaml, make_fixture,
+import harness_yaml
+from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, feature_json, make_fixture,
     run)
 
 
@@ -41,13 +43,16 @@ def case_h():
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
+        document = harness_yaml.load_str(
+            "feature_id: FEAT-TEST\n"
+            "review_sha: none\n"
+            "runs:\n"
+            "  - id: 2026-08-04-01-validator\n"
+            "    squad: validator\n"
+            "    verdict: PASS\n",
+            "case_h feature fixture")
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write("feature_id: FEAT-TEST\n"
-                    "review_sha: none\n"
-                    "runs:\n"
-                    "  - id: 2026-08-04-01-validator\n"
-                    "    squad: validator\n"
-                    "    verdict: PASS\n")
+            json.dump(document, f)
         code, out = run(tmp)
         ok = "review_sha is not pinned" in out
         print(f"{'ok' if ok else 'FAIL'} - case (h): issue #16 — `review_sha: none` is a "
@@ -70,13 +75,16 @@ def case_i():
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
+        document = harness_yaml.load_str(
+            "feature_id: FEAT-TEST\n"
+            "review_sha: 1ce886a\n"
+            "runs:\n"
+            "  - id: 2026-08-04-01-validator\n"
+            "    squad: validator\n"
+            "    verdict: PASS\n",
+            "case_i feature fixture")
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write("feature_id: FEAT-TEST\n"
-                    "review_sha: 1ce886a\n"
-                    "runs:\n"
-                    "  - id: 2026-08-04-01-validator\n"
-                    "    squad: validator\n"
-                    "    verdict: PASS\n")
+            json.dump(document, f)
         code, out = run(tmp)
         ok = "review_sha is not pinned" not in out
         print(f"{'ok' if ok else 'FAIL'} - case (i): a pinned SHA does not trip INV-6")
@@ -100,13 +108,16 @@ def case_j():
         os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
+        document = harness_yaml.load_str(
+            "feature_id: FEAT-TEST\n"
+            "review_sha: none\n"
+            "runs:\n"
+            "  - id: 2026-08-04-01-product\n"
+            "    squad: product\n"
+            "    verdict: PASS\n",
+            "case_j feature fixture")
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write("feature_id: FEAT-TEST\n"
-                    "review_sha: none\n"
-                    "runs:\n"
-                    "  - id: 2026-08-04-01-product\n"
-                    "    squad: product\n"
-                    "    verdict: PASS\n")
+            json.dump(document, f)
         code, out = run(tmp)
         ok = "review_sha is not pinned" not in out
         print(f"{'ok' if ok else 'FAIL'} - case (j): no validator run, so INV-6 stays "
@@ -136,9 +147,11 @@ def case_l():
                     + (",\n  " + budget if budget else "") + "\n}\n")
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
+        source = (f"feature_id: FEAT-TEST\ncycles_used: 2\n"
+                  f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
+        document = harness_yaml.load_str(source, "case_l feature fixture")
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write(f"feature_id: FEAT-TEST\ncycles_used: 2\n"
-                    f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
+            json.dump(document, f)
         return run(tmp)
 
     results = []
@@ -215,14 +228,11 @@ def case_n():
         with tempfile.TemporaryDirectory() as tmp:
             h = make_fixture(tmp, '{}', "  parent: 40")
             fd = os.path.join(h, "harness", "features", "FEAT-TEST")
-            # EXACTLY `fl` lines, header included — the boundary is the whole point of the
-            # second fixture, so the padding is sized against the header rather than added
-            # to it. Written the naive way, "within" came out at 205 lines and reported a
-            # violation, which reads as INV-23 being wrong when the fixture was.
-            head = feature_yaml("  parent: 40")
-            pad = fl - len(head.splitlines())
+            # EXACTLY `fl` lines — the boundary is the whole point of the
+            # fixture. Blank JSON whitespace crosses no semantic boundary, so the
+            # canonical reader still receives one valid document at every size.
             with open(os.path.join(fd, "feature.json"), "w") as f:
-                f.write(head + "\n".join(f"k{i}: v" for i in range(pad)) + "\n")
+                f.write(feature_json("  parent: 40", line_count=fl))
             with open(os.path.join(fd, "STATE.md"), "w") as f:
                 f.write("## Current\n" + "\n".join(f"line {i}" for i in range(sl - 1)) + "\n")
             _code, out = run(tmp)
@@ -281,7 +291,7 @@ def case_p():
     # `warn.append` to `bad.append` left the ENTIRE SUITE GREEN with this case printing
     # `ok ... (1 -> 1)`. It was comparing two constants.
     #
-    # check-state.sh prints `  VIOLATION  ` for bad and `  note       ` for warn. That
+    # check-state.py prints `  VIOLATION  ` for bad and `  note       ` for warn. That
     # prefix flips under the mutation, on the fixture this case already has, and it cannot
     # saturate. One line, no second fixture — and notably NOT the "build a clean fixture"
     # fix, which would duplicate case (d)'s settings blob that case (d)'s own docstring
@@ -335,7 +345,7 @@ def case_q():
             fd = os.path.join(h, "harness", "features", "FEAT-TEST")
             os.remove(os.path.join(fd, "feature.json"))
             with open(os.path.join(fd, "feature.json"), "w") as f:
-                f.write("feature_id: FEAT-TEST\nstatus: in_review\n")
+                json.dump({"feature_id": "FEAT-TEST"}, f)
             with open(os.path.join(fd, "plan.yaml"), "w") as f:
                 f.write(PLAN_YAML_OK.replace("status: approved", f"status: {status}"))
             _code, out = run(tmp)
@@ -396,8 +406,10 @@ def _inv6_feature(runs_yaml, review_sha="none", approval=""):
     os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_OFF)
+    source = f"feature_id: FEAT-TEST\nreview_sha: {review_sha}\n{approval}runs:\n{runs_yaml}"
+    document = harness_yaml.load_str(source, "INV-6 feature fixture")
     with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-        f.write(f"feature_id: FEAT-TEST\nreview_sha: {review_sha}\n{approval}runs:\n{runs_yaml}")
+        json.dump(document, f)
     _code, out = run(tmp)
     return out
 
@@ -704,7 +716,7 @@ def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
     marker could be MINTED onto a task-bearing SIGNED plan -- via the ungated `apply` verb or a
     raw Bash write -- durably silencing the approval and STATE.md-task checks for that feature.
 
-    THIS CASE EXISTS BECAUSE A COMMENT CLAIMED IT ALREADY DID. `check-state.sh` cited case
+    THIS CASE EXISTS BECAUSE A COMMENT CLAIMED IT ALREADY DID. `check-state.py` cited case
     (inv34.d) as asserting this guarantee; two reviewers checked at source and (inv34.d)'s fixture
     carries NO marker, so the cited test never tested it. A false citation in a comment is worse
     than a missing test, because it stops the next reader looking.
@@ -760,7 +772,7 @@ def case_inv35_unquoted_hash_digit_is_reported():
 
 def case_inv35_matches_real_truncation():
     """(inv35.b) THE PROOF THIS IS NOT HYPOTHETICAL. The exact fixture (inv35.a) flags,
-    loaded through the same harness_yaml module check-state.sh and every other reader use,
+    loaded through the same harness_yaml module check-state.py and every other reader use,
     silently drops everything from the `#` onward. If this case ever goes green while
     (inv35.a) still fires, the invariant has drifted from the defect it exists to catch."""
     with tempfile.TemporaryDirectory() as tmp:

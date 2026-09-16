@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-285-canonical-reader — blocked at T-03</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-285-canonical-reader-blocked-at-t-03">Ship review — BUG-285-canonical-reader — blocked at T-03</h1>
+<p>The feature is not ready to ship. T-09, T-01, and T-02 are complete, but T-03 stopped before source edits because the signed classification assigns <code>factory_config.product_config</code> to migration without naming a usable canonical accessor. The current public <code>load_harness_json(path)</code> cannot parse the remote in-memory <code>harness.json</code> body. No report round was spawned; this briefing was assembled from the six run digests named below and the committed direct-task record at <code>12c0171b</code>.</p>
+<h2 id="definition-of-done">Definition of done</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed outcome</th><th>Verdict</th><th>SCs and evidence</th></tr></thead><tbody><tr><td>operator</td><td>Every reader agrees while hooks, gates, and validators preserve violations, diagnostics, and exits.</td><td>unmet</td><td>SC-04/SC-05 remain incomplete: T-03 is blocked and T-04 through T-08 have not run. Evidence: <code>runs/2026-09-14-t03-eng/digest.md</code>; <code>plan.yaml</code> task stations.</td></tr><tr><td>code maintainer</td><td>One dependency-light reader module and one AST guard cover all Python entrypoints with named remedies.</td><td>unmet</td><td>T-01 built the AST inventory at <code>12c0171b</code> and T-02 built the accessor seam at <code>4c4b1a2f</code>, but one T-03 row names only <code>documented source route</code>, so SC-01/SC-02 are not yet closed. Evidence: <code>tests/integration/canonical-reader-classification.json</code>; <code>runs/2026-09-14-t03-eng/digest.md</code>.</td></tr><tr><td>reader (reviewer / qa)</td><td>Semantic and mechanical diffs are separately reviewable with fail-first evidence.</td><td>unmet</td><td>T-02 has fail-first evidence, but T-03/T-04 and validate have not completed, so SC-06 and final SC-07 grading remain open. Evidence: <code>runs/2026-09-14-t02-t04-eng/digest.md</code>; <code>notes/receipt-harness-backend-dev-T-02-c1.md</code>.</td></tr></tbody></table></div>
+<h2 id="blocking-decision">Blocking decision</h2>
+<p>Approve a narrow plan amendment or choose another disposition for <code>.claude/skills/harness/bin/factory_config.py::product_config::json_string#1</code>.</p>
+<p>Recommendation: keep one public accessor and extend <code>load_harness_json</code> with an explicit keyword-only in-memory text source mode. Path and text inputs should be mutually exclusive and share duplicate-key, non-finite-constant, mapping, context, and typed-error behavior. Reopen T-02 only for this source mode and its tests, then re-run T-03. Exempting the remote reader would preserve the bypass class this feature exists to remove; routing it through generic <code>parse_gh_json</code> would classify artifact content as transport output.</p>
+<h2 id="run-summaries">Run summaries</h2>
+<ul><li>Initial plan: signature-ready draft after reader application, later superseded by current-state planning — <code>runs/2026-09-13-plan-product/digest.md</code>.</li><li>Deferred apply: blocked on a now-resolved source-issue interpretation — <code>runs/2026-09-13-plan-apply-c1-product/digest.md</code>.</li><li>Current-state plan: all readers and goal-check passed; both approvals were subsequently signed — <code>runs/2026-09-14-plan-refresh-product/digest.md</code>.</li><li>T-09: obsolete shell differential deleted and exact verify passed — <code>runs/2026-09-14-t09-eng/digest.md</code>.</li><li>T-02: accessor seam and issue 1682 hardening passed after one internal send-back — <code>runs/2026-09-14-t02-t04-eng/digest.md</code>.</li><li>T-03: blocked before source edits on the unresolved remote <code>harness.json</code> source contract — <code>runs/2026-09-14-t03-eng/digest.md</code>.</li><li>T-01 was main-session-direct, so it has no team run digest; commit <code>12c0171b</code> and the Done task station are its record.</li></ul>
+<h2 id="open-questions">Open questions</h2>
+<ol><li>Should the signed plan add the recommended keyword-only text source mode to <code>load_harness_json</code>, or explicitly exempt/reassign the remote <code>harness.json</code> row?</li></ol>
+<h2 id="resolved-escalations">Resolved escalations</h2>
+<ul><li>The original issue provenance and issue 1682 placement were resolved at plan time: <code>source_issues</code> remains <code>[285, 1594]</code>, and issue 1682 remains within SC-03/SC-07.</li><li>The obsolete shell exclusion was removed after PR 1688; all former shell entrypoints are now inside the AST surface.</li></ul>
+<h2 id="spend-and-record">Spend and record</h2>
+<ul><li><code>feature-record.py spend</code>: 6 runs, 172 recorded wall-clock minutes, build phase, tokens unmeasured, no validate rework window started.</li><li><code>feature.json</code>: 5 judgements, <code>cycles_used: 0</code>, hard ceiling 10, and 6 runs against the informational 20-run budget.</li><li>The feature-level cycle record currently understates lead send-backs: the run digests report two in the initial plan, two in the refresh plan, and one in T-02. No authorized <code>feature-record.py</code> increment verb exists; this is disclosed rather than silently rewritten.</li></ul>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Make <code>observations-merge.py</code> create its parent directory or document/guarantee the directory precondition; T-09 initially failed until the directory was created.</td></tr><tr><td>B-2</td><td>bug</td><td>Add an authorized feature-record verb that increments <code>cycles_used</code> from lead-reported send-backs; the current CLI can start/end runs and raise the ceiling but cannot record consumed cycles.</td></tr><tr><td>B-3</td><td>bug</td><td>Repair the denied <code>xd://report_issue</code> route reported by the T-09 engineer so harness-tool inconsistencies can be filed through the required channel.</td></tr></tbody></table></div><p class='derived'>Derived from <code>ship-review-2026-09-14-t03-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

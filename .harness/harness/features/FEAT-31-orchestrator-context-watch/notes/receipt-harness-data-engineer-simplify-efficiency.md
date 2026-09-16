@@ -15,11 +15,11 @@ member can apply it — it goes to the lead's docket as an open question, not a 
 3. `warn_for_agent`'s tail-read of the transcript jsonl (`_last_measured_usage`): reads from
    EOF in 64KB chunks and stops at the first qualifying line by design (docstring states the
    full-scan/peak tradeoff explicitly) — this is the deliberate efficient path, not waste.
-4. `check-state.sh`'s new INV-17 handoff-shape glob (74 `notes/handoff-*.md` files read in
+4. `check-state.py`'s new INV-17 handoff-shape glob (74 `notes/handoff-*.md` files read in
    full): this is a manual/pre-commit boundary check, not a hook in `.claude/settings.json`
-   — confirmed by grep, `check-state.sh` is absent from the hooks block. A boundary-step full
+   — confirmed by grep, `check-state.py` is absent from the hooks block. A boundary-step full
    read is not waste per the skill's own carve-out. Not a finding.
-5. `run-unit-tests.sh`'s new kind-drift cross-check subprocess (one `python3 -` heredoc per
+5. `run-unit-tests.py`'s new kind-drift cross-check subprocess (one `python3 -` heredoc per
    suite invocation, before any test runs): one process spawn per suite run, not per tool
    call. At the suite's own stated ~15s runtime this is immaterial. Not a finding.
 6. The blind-spot footer's second full corpus read (~0.39s of ~0.80s) — already dispositioned
@@ -28,7 +28,7 @@ member can apply it — it goes to the lead's docket as an open question, not a 
 ## The one finding (FLAG-ONLY)
 
 **File:** `.claude/settings.json:57-61` (adds `context-watch-hook.py` to the `PostToolUse`
-`Write|Edit|Bash` matcher, alongside pre-existing `check-domain.sh --post`).
+`Write|Edit|Bash` matcher, alongside pre-existing `check-domain.py --post`).
 
 **Summary:** the new hook is registered on a matcher that fires for every agent type — main
 session, both leads, and all engineer/reviewer members — not just `harness-orchestrator`,
@@ -42,7 +42,7 @@ interpreter spawn that does nothing.
   20 calls in 0.383s wall → ~19ms/call.
 - bare `python3 -c "pass"` baseline: 20 calls in 0.338s wall → ~17ms/call — confirms the
   cost is almost entirely interpreter startup, not the script's own logic.
-- for scale, the existing `check-domain.sh --post` on the same event: 20 calls in 1.406s
+- for scale, the existing `check-domain.py --post` on the same event: 20 calls in 1.406s
   wall → ~70ms/call (bash + subprocess-heavy). The new hook adds ~19ms on top of that
   ~70ms baseline per matched tool call — a ~27% increase in this event's total hook
   latency, paid by every Write/Edit/Bash from every agent that is never the intended
@@ -56,10 +56,10 @@ interpreter spawn that does nothing.
 **Why FLAG-ONLY, not applicable:** the fix is a matcher-granularity question — Claude Code's
 hook `matcher` field matches on tool name only, not on `agent_type`, so the per-agent
 filter cannot move out of the script and into the settings.json matcher itself. The two
-candidate alternatives (merge the check into the already-running `check-domain.sh --post`
+candidate alternatives (merge the check into the already-running `check-domain.py --post`
 process rather than spawning a second interpreter; or accept the cost as the price of a
 hook API that cannot filter by agent type) both require a call the lead should make, and
-`.claude/settings.json` plus `check-domain.sh` are both DEC-174 main-session-direct files
+`.claude/settings.json` plus `check-domain.py` are both DEC-174 main-session-direct files
 no squad member may write. This is an `open_questions` item, not a build-side apply.
 
 ## Not re-raised

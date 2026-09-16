@@ -3,7 +3,7 @@
 ## BLUF
 
 Reachability question: **both compares ARE reachable and neither is dead code** — proven by
-execution, not inference (below). One real simplification finding in `check-state.sh`'s new
+execution, not inference (below). One real simplification finding in `check-state.py`'s new
 INV-36 block (APPLY candidate). Part 2: no grade regression in the three named production
 files' changed functions; `uid_conflict` (new, `run_identity.py:123`) fails the production
 bar at grade 3; `main()` in `tests/integration/test-check-domain.py` genuinely worsened
@@ -13,7 +13,7 @@ grade 2→1 from this diff's added case calls.
 
 ### The two-compare reachability question — ANSWERED: both reachable, neither dead
 
-`check-domain.sh`'s `state.yaml` route (~1603–1707) gates the witness compare on
+`check-domain.py`'s `state.yaml` route (~1603–1707) gates the witness compare on
 `prior_has_uid` (line 1628) and the minted-uid ladder (`uid_conflict`, line 1695) is reached
 only past `if prior_state:` — the two are mutually exclusive **by design** (D-01), never both
 live for one input, but each is independently reachable for a *different* input shape:
@@ -44,7 +44,7 @@ Executed proof, not inference:
 
 **Verdict: no defect.** This is the valuable negative result — retire the question.
 
-### Finding — redundant conjunct masks an unguarded consumer (`check-state.sh:1502–1514`)
+### Finding — redundant conjunct masks an unguarded consumer (`check-state.py:1502–1514`)
 
 ```
 _wuid = _marker.get("run_uid") if isinstance(_marker, dict) else None
@@ -81,15 +81,15 @@ files (reuse/efficiency angles).
 
 ### Rest of the sweep — nothing else found
 
-- `check-domain.sh`'s rewritten comments (`RE_RUN_DIGEST`/`RE_PLAN_YAML`/`RE_RUN_IDENTITY`
+- `check-domain.py`'s rewritten comments (`RE_RUN_DIGEST`/`RE_PLAN_YAML`/`RE_RUN_IDENTITY`
   rationale, the #1058 digest-guard docstring) state present fact, not change narration —
   and are shorter than what they replaced. No dead references: I re-verified the `#1058`
   comment's "fires on Write and Edit" claim against the Edit-route dispatch at
-  `check-domain.sh` ~2042–2048, which does include `RE_RUN_IDENTITY`/`RE_RUN_DIGEST` — accurate.
-- `bash-write-guard.sh`'s `_run_artifact_guard` docstring was shortened and stays accurate
+  `check-domain.py` ~2042–2048, which does include `RE_RUN_IDENTITY`/`RE_RUN_DIGEST` — accurate.
+- `bash-write-guard.py`'s `_run_artifact_guard` docstring was shortened and stays accurate
   (verified the `RE_RUN_IDENTITY` check precedes the digest/state check, matching "stays
   ahead of the DEC-153 worktree carve-out").
-- No redundant conjuncts found in the new POST-mint block (`check-domain.sh` ~1568–1592) or
+- No redundant conjuncts found in the new POST-mint block (`check-domain.py` ~1568–1592) or
   `prior_has_uid` (~1628–1630) — every conjunct there gates a distinct, necessary precondition.
 - The `case_bug1305_run_identity_invariant` fixture in `tests/integration/test-check-state.py`
   double-checks its clean-tree result via both `clean_code == 0` and `"INV-36" not in

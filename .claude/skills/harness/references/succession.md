@@ -61,10 +61,10 @@ and by `git -C`. Creating it and removing it are the main session's acts.
 **Never run `feature-worktree.py remove`.** `git worktree remove` succeeds at exit 0 from inside the
 tree it removes, so an orchestrator obeying that instruction deletes its own working directory.
 Your part of a terminal state is to finish landing your artifacts and report; the `post-merge`
-hook removes the checkout when the merge lands, and `check-state.sh` INV-29 refuses while a
+hook removes the checkout when the merge lands, and `check-state.py` INV-29 refuses while a
 worktree still stands for a feature at a terminal state.
 
 **Run-dir slugs:** `<task-or-purpose>-<squad>` (`t04-fe-eng`, `plan-product`, `fix-c2-validator`)
 — the squad suffix is what the lead's domain glob keys on; never embed the feature id. A run-dir
 path that is QUOTED rather than written — in a plan block, a pasted refusal, a bug report — is
-spelled `[.]harness/` so `dispatch-guard.sh` does not read it as a write.
+spelled `[.]harness/` so `dispatch-guard.py` does not read it as a write.

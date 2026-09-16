@@ -18,7 +18,7 @@ order, `feature_for` has no other caller, no sibling gate shares this code, the 
 unreachable without at least one malformed record, and `test-merge-gate.py` (19/19) plus code-grade
 (clean apart from four pre-reasoned grade-2 functions) are both green.
 
-## 1. Four states, one fixture (`/tmp` fixture, `merge-gate.sh` end to end)
+## 1. Four states, one fixture (`/tmp` fixture, `merge-gate.py` end to end)
 
 All four held **simultaneously** in one temp root (features `FEAT-A-healthy`,
 `FEAT-B-unrelated-malformed`, `FEAT-C-owing`, `FEAT-E-owes-nothing`, then `FEAT-D-selfbad` added
@@ -78,7 +78,7 @@ the walk — or track and report the offending path instead of a generic message
 
 - **Other callers of `feature_for`**: none. `grep -rn "feature_for("` finds only its
   definition and the one call site in `merge-gate.py:136`; no sibling script imports it.
-- **Sibling PreToolUse gates**: `gh-close-gate.py` and `branch-create-gate.sh` do not scan
+- **Sibling PreToolUse gates**: `gh-close-gate.py` and `branch-create-gate.py` do not scan
   `.harness/*/features/*/feature.json` at all (pattern-match on the command / directory-existence
   checks respectively) — the sentinel is local to `merge-gate.py`, not shared.
 - **DENY-with-no-malformed-record reachable?** No — `unusable` starts `False` and is set only at

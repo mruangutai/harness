@@ -4,7 +4,7 @@
 
 Two craft entries displaced (Patterns P-07, Outcomes O-04), one repository-tier Gotcha added
 (G-02). Two relayed candidates rejected as redundant with entries already on file. Both touched
-files pass `check-expertise.sh` in single-file mode (exit 0). **One tooling gap found and not
+files pass `check-expertise.py` in single-file mode (exit 0). **One tooling gap found and not
 worked around silently**: `expertise-merge.py apply` is union/add-only — it has no `replace` or
 `drop` verb despite the distill contract's op vocabulary naming both — so the two displacements
 could not be executed through the mandated tool and were applied by direct edit instead, after
@@ -104,7 +104,7 @@ Resolution taken: after confirming (a) the tool's actual refusal, (b) sole write
 of this exact persona file per `team-config.yaml`, and (c) a fresh re-read immediately before
 writing, I applied the two displacements by direct edit to
 `.harness/expertise/harness-security-reviewer.md`, preserving every other entry's id and text
-byte-for-byte, then reran `check-expertise.sh` in single-file mode (exit 0, no violations) to
+byte-for-byte, then reran `check-expertise.py` in single-file mode (exit 0, no violations) to
 verify the result independently of how it was written. This is a deviation from "apply through
 the merge tool, never a whole-file write" — recorded here rather than smoothed over, per rule 15.
 The fix belongs to the harness owner: give `expertise-merge.py` a real `replace`/`drop` verb, or

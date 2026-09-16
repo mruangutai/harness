@@ -103,7 +103,7 @@ main-session segment is never recorded as a run — so sixteen is a floor, not t
 no `.harness/codebase/` map to refresh.
 
 Expertise changed in eight files, 139 entries to 160, applied by their owners.
-`check-expertise.sh` reports OK on all thirteen files, and the three reviewer files plus qa took
+`check-expertise.py` reports OK on all thirteen files, and the three reviewer files plus qa took
 insertions only — checked per file, not from the aggregate diffstat.
 
 ---
@@ -128,7 +128,7 @@ Strike any row by name. Anything not listed here dies silently.
 | B-12 | bug | `harness.json`'s `test_kinds.integration.detect` can never match the two files that actually run under `--kind integration` |
 | B-13 | bug | `gh-sync.py open` created parent issue #223 instead of adopting #203. On ship acceptance #223 closes and **#203 — the issue you watch — stays open** |
 | B-14 | bug | The orchestrator cannot apply another agent's Expertise ops (exit 2), which is the path its own playbook prescribes. Reviewers hold `Write` and self-apply |
-| B-15 | bug | `check-expertise.sh` does not bind an entry's ID letter to its section, nor detect duplicate or skipped IDs |
+| B-15 | bug | `check-expertise.py` does not bind an entry's ID letter to its section, nor detect duplicate or skipped IDs |
 | B-16 | bug | The instruction-shaped-pattern guard mangles any return that merely names `.claude/settings.json`, twice this feature |
 | B-17 | bug | A `plan.yaml` plain scalar carrying a space-then-`#NN` truncates silently under `safe_load` while the route check exits 0 |
 | B-18 | enhancement | kaya became fleet-reachable in the same range that stripped its guards. No task, criterion or gate records re-wiring as a precondition |

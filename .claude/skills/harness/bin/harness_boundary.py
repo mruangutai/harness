@@ -1,17 +1,17 @@
 """The boundary rule — one implementation, read by every guard that needs it.
 
-Extracted from `check-domain.sh`'s embedded Python (FEAT-17 T-01). The rule was
-reachable only from inside that heredoc, so `bash-write-guard.sh` could not consult it
+Extracted from `check-domain.py`'s embedded Python (FEAT-17 T-01). The rule was
+reachable only from inside that heredoc, so `bash-write-guard.py` could not consult it
 and enforced a second, weaker version of the same question — the split issue #261
 reports. A heredoc cannot be imported, so the rule moves here and both guards import it.
 
-NO BEHAVIOUR CHANGES IN THIS MOVE. Every function below is the `check-domain.sh` text
+NO BEHAVIOUR CHANGES IN THIS MOVE. Every function below is the `check-domain.py` text
 verbatim, with exactly two edits, both stated in T-01's intent: `resolve_fleet` and
 `select_base` take the hook `label` as a parameter and emit it, so a second caller
 cannot print a verdict naming the wrong hook; and the DEC-143 worktree prefix is built
 from `WORKTREES_SEGMENT` rather than spelled again.
 
-`check-domain.sh` keeps printing the agent-facing BLOCKED lines. `classify` RETURNS a
+`check-domain.py` keeps printing the agent-facing BLOCKED lines. `classify` RETURNS a
 verdict and prints nothing: a module shared by two hooks must not decide whose wording
 the agent sees.
 """
@@ -19,6 +19,7 @@ the agent sees.
 import os
 import re
 import sys
+import artifact_accessors
 from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 
 # THE LEGITIMATE WORKTREE LOCATION, named once. Every rule in this module that needs
@@ -26,15 +27,15 @@ from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 # — which is what T-03 mutates by name to prove there is one implementation and not
 # two agreeing copies.
 #
-# Two literals survive in check-domain.sh and are deliberately NOT rewired: the
+# Two literals survive in check-domain.py and are deliberately NOT rewired: the
 # stripping regex in `_norm` and the prefixes in SWEEP_GLOBS. Both belong to the shape
 # phase, whose import of this module is absorbing rather than fail-closed, so reading
 # this constant from there would hand the shape gate a dependency the fail-closed rule
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
 
-# THE RUN-ARTIFACT PATTERNS, shared between check-domain.sh (content or route
-# guards on Write/Edit) and bash-write-guard.sh (route-only refusal on Bash).
+# THE RUN-ARTIFACT PATTERNS, shared between check-domain.py (content or route
+# guards on Write/Edit) and bash-write-guard.py (route-only refusal on Bash).
 # One definition keeps both write surfaces from silently disagreeing.
 RE_RUN_DIGEST = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$",
                             re.IGNORECASE)
@@ -52,6 +53,7 @@ RE_RUN_IDENTITY = re.compile(
 # fail-open recorded at check-plan-routes.py:489-495: $HOME/.harness holds two backup
 # tarballs and no team-config.yaml, so the bare-directory probe resolved $HOME as a root.
 MARKER = os.path.join(".harness", "team-config.yaml")
+PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 
 
 def root_from_script(bin_dir):
@@ -75,12 +77,12 @@ def resolve_root(bin_dir, strict=True):
     both candidates when `strict`, else return the derived root anyway.
     """
     derived = root_from_script(bin_dir)
-    override = os.environ.get("HARNESS_PROJECT_DIR")
+    override = os.environ.get(PROJECT_DIR_ENV)
     if override:
         if os.path.isfile(os.path.join(override, MARKER)):
             return os.path.abspath(override)
         print(
-            f"harness_boundary: discarding HARNESS_PROJECT_DIR={override!r} — it does "
+            f"harness_boundary: discarding {PROJECT_DIR_ENV}={override!r} — it does "
             f"not carry {MARKER}. Falling back to the derived root {derived!r}.",
             file=sys.stderr,
         )
@@ -158,7 +160,7 @@ def linked_worktrees(owner_root):
     NO GIT SUBPROCESS: DEC-193 forbids one on the governed-write path, and a hook that
     shells out is both slow and a new failure surface.
 
-    Used by `check-domain.sh`'s post-write sweep, which at `eeabc59` joined the segment to
+    Used by `check-domain.py`'s post-write sweep, which at `eeabc59` joined the segment to
     a single star and therefore reached no file in any worktree deeper than one level — a
     glob that matches nothing reports nothing, so that was a SILENT regression rather than
     a refusal.
@@ -403,7 +405,7 @@ def real(path):
 
     AN UNRESOLVABLE PATH RETURNS ITS ABSOLUTE FORM RATHER THAN RAISING (FEAT-41 MF-2). realpath
     raises ValueError -- not OSError -- on an embedded NUL, and this function is called from
-    `classify`, which runs inside check-domain.sh's Python body. That ValueError propagated all
+    `classify`, which runs inside check-domain.py's Python body. That ValueError propagated all
     the way out, and by that hook's own header exit 1 is NON-BLOCKING, so a single NUL in
     `tool_input.file_path` disabled EVERY domain grant, budget and route denial at once and the
     write proceeded.
@@ -413,7 +415,7 @@ def real(path):
     it at exit 1, so it is PRE-EXISTING and lives here. The finding was right; its blame was not.
 
     Returning the absolute form keeps this function total. Callers that need to REFUSE an
-    unresolvable path do so on their own terms -- check-domain.sh's route denial treats one as a
+    unresolvable path do so on their own terms -- check-domain.py's route denial treats one as a
     refusal -- rather than depending on an exception from a path-normalising helper.
 
     AND THE FALLBACK RESOLVES AS FAR AS IT SAFELY CAN, rather than returning a bare `abspath`
@@ -421,7 +423,7 @@ def real(path):
     spelling namespace. A bare abspath is not: when the checkout root is reached through a symlink,
     `real(root)` is fully resolved while an unresolvable target was not, the two shared no prefix,
     and `select_base`/`inside` classified an IN-BASE target as `not_a_domain_question` --
-    bash-write-guard.sh then exited 0 with empty stderr.
+    bash-write-guard.py then exited 0 with empty stderr.
 
     MEASURED before the fix, on a symlinked root:
         real('/tmp/h3/link')                   -> /private/tmp/h3/actual
@@ -485,7 +487,7 @@ def resolve_fleet(root, label):
         # at import time from resolve_root(factory_config's own bin dir) — always the LIVE
         # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
-        fleet = factory_config.load_fleet(fleet_path)
+        fleet = artifact_accessors.load_fleet(fleet_path)
         bases = [real(factory_config.workspace_path(fleet, e["name"]))
                  for e in fleet["repos"]]
         return fleet["workspace_root"], bases, fleet_path
@@ -564,10 +566,10 @@ def is_control_plane_target(rel):
 def classify(abs_target, root, globs, shared, label):
     """Decide whether `globs`/`shared` reach `abs_target`, and return the verdict.
 
-    Moved verbatim from `check-domain.sh`'s `domain_check` (FEAT-17 T-01) — the block
+    Moved verbatim from `check-domain.py`'s `domain_check` (FEAT-17 T-01) — the block
     that ran from THE FLEET AND THE BASE to the actionable rejection. It RETURNS rather
     than prints or exits, because two hooks now ask this question and the module must
-    not decide whose wording the agent reads. `check-domain.sh` prints exactly what it
+    not decide whose wording the agent reads. `check-domain.py` prints exactly what it
     printed before, from these fields.
 
     The verdict is a dict:
@@ -632,7 +634,7 @@ def classify(abs_target, root, globs, shared, label):
                     "advertise": [], "shared_advertise": [],
                     "checkout": _wt_owner[0], "root": real(root)}
 
-        # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.sh already said so
+        # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.py already said so
         # ("outside repo — not this hook's problem"), and check-domain did not: a
         # scratch script at /tmp/x.py was legal via Bash and blocked via Write, so an
         # agent learned to route around a hook whose own message said not to. /tmp,
@@ -809,47 +811,24 @@ def worktree_refusal_location(owner_root):
 # THE RUN-DIR GRANT VOCABULARY (BUG-124 T-01). A dispatcher can name a run-dir path
 # a governed callee provably cannot write — an inverted slug such as `eng-t01` instead
 # of `t01-eng` resolves to no lead's grant. These four helpers are the mechanism that
-# lets dispatch-guard.sh (T-02) catch that at dispatch time instead of at write time;
+# lets dispatch-guard.py (T-02) catch that at dispatch time instead of at write time;
 # nothing here spells a squad name literally, so a renamed or added squad needs no
 # second edit (D-02).
 
 def run_dir_grant_globs(root):
-    """Every write-grant glob in `<root>/.harness/team-config.yaml` whose pattern
-    text contains the substring `/runs/`, sorted and de-duplicated.
+    """Return all declared write grants for run directories, or [] on manifest failure.
 
-    Walked GENERICALLY: any list whose members are ALL mappings carrying a `path`
-    key is a grant list, wherever it sits in the parsed document — not only under
-    `leads:` — so a run-dir grant declared under a new role is still found with no
-    change here. Parsed through harness_yaml (DEC-171): no hand-rolled YAML regex
-    reading of this manifest. Never raises: an absent, unreadable, unparseable
-    manifest, a missing `harness_yaml` module, or a missing PyYAML, all yield
-    `[]` — the caller decides what an empty
-    vocabulary means (dispatch-guard.sh falls through rather than refusing on a
-    manifest it cannot read; D-04).
+    `manifest_domains(..., agent=None)` aggregates named-role write grants separately
+    from shared write grants. Both can authorize a dispatcher run directory. Manifest
+    access remains fail-open because dispatch-guard decides what an empty vocabulary
+    means when the manifest cannot be read.
     """
     manifest_path = os.path.join(root, ".harness", "team-config.yaml")
-    found = set()
-
-    def walk(node):
-        if isinstance(node, dict):
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            if node and all(isinstance(item, dict) and "path" in item for item in node):
-                for item in node:
-                    pat = str(item["path"])
-                    if "/runs/" in pat:
-                        found.add(pat)
-            for item in node:
-                walk(item)
-
     try:
-        import harness_yaml
-        walk(harness_yaml.load_file(manifest_path))
+        all_roles, shared = artifact_accessors.manifest_domains(manifest_path, agent=None)
     except Exception:
         return []
-
-    return sorted(found)
+    return sorted({glob for glob in (*all_roles, *shared) if "/runs/" in glob})
 
 
 # Anchored on the literal `.harness/` segment (not `checkout_relative()`): a dispatch

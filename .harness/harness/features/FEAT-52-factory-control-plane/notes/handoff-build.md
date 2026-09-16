@@ -22,7 +22,7 @@ session's: `set-feature-station ready` plus `gh-sync.py status … ready`.
 ## Trust
 
 - Both approvals are signed: plan `approval.status: approved` / `approved_by: mruangutai` / `2026-09-01`, and BRIEF `## Approval` reads approved — read at plan.yaml:3-6 and BRIEF.md:221-225 — verified-at 8ff525e2
-- FEAT-52 now has ZERO violations in check-state.sh; the only VIOLATIONs left are FEAT-51 and BUG-1187 worktrees plus FEAT-51's INV-26, all pre-existing and out of this feature's scope — full run, exit 1 — verified-at 8ff525e2
+- FEAT-52 now has ZERO violations in check-state.py; the only VIOLATIONs left are FEAT-51 and BUG-1187 worktrees plus FEAT-51's INV-26, all pre-existing and out of this feature's scope — full run, exit 1 — verified-at 8ff525e2
 - The orchestrator may NOT execute main-session-direct tasks: fable-advisor spawned and answered NO on all four parts, validator lead concurred and supplied the stronger anchor — runs/2026-09-02-01-validator/digest.md — verified-at 8ff525e2
 - github-mirror.md:32-34 excludes the orchestrator from the mode BY NAME ("orchestrator for `team`, main session for `main-session-direct`") — I read the line at source, not via the lead — verified-at 8ff525e2
 - The mirror is OPEN as of this run: milestone #41, parent #1220, sub-issues #1221–#1235 one per T-NN, all 15 attached — `gh-sync.py open` exit 0, receipts read back from feature.json `github` — verified-at 8ff525e2

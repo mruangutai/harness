@@ -14,14 +14,14 @@ pin a repo, so it cannot clear the deny either.** What I read, in the worktree a
 - `.claude/commands/` holds only `harness.md`, `harness-plan.md`, `harness-ship.md`,
   `harness-grilling.md` — `--upgrade` is a MODE of the harness-init skill, whose `## --upgrade`
   section (`.claude/skills/harness-init/SKILL.md:327-336`) runs exactly `upgrade-config.py`,
-  `merge-settings.py`, `merge-gitignore.sh`.
+  `merge-settings.py`, `merge-gitignore.py`.
 - `upgrade-config.py` never touches `github.repo` (grep for `repo` returns only prose/docstring);
   it merges the shipped template, whose block is `"sync": false, "repo": null`
   (`.claude/skills/harness/templates/harness.json:166-169`).
 - The repo is pinned only in the fresh-onboarding mirror interview, from
   `gh repo view --json nameWithOwner -q .nameWithOwner`, under the user's eyes
   (`harness-init/SKILL.md:245-248`), or by hand.
-- The language that names the actually-clearing fix already exists at `check-state.sh:2351-2353`
+- The language that names the actually-clearing fix already exists at `check-state.py:2351-2353`
   ("github.sync is ON but github.repo is not pinned — … Pin the repo (from `gh repo view`) or turn
   sync off"); `wayfind.py:60-61` and `board-station.py:139-140` agree.
 
@@ -50,7 +50,7 @@ configuration fix and no command at all.
   the remedy is the configuration fix, never `gh-sync.py open`. `D-09.because` was not amended, so
   the overturnable-at-signature disclosure survives byte-identically.
 - **R2 — `T-07.intent` WHY paragraph** gained one sentence: for the era corpus, settled bullet 8 is
-  delivered by the PRE-EXISTING gates at `post-merge-sweep.sh:192-195` and `:206-209` (the anchors
+  delivered by the PRE-EXISTING gates at `post-merge-sweep.py:192-195` and `:206-209` (the anchors
   the task already cites), which keep the worktree and return before the new build-entry block; the
   new check is the backstop for a ship that exits cleanly printing neither line.
 
@@ -64,8 +64,8 @@ OK T-02 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
-DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.sh, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor
 0 violation(s) across 1 plan(s)

@@ -3,11 +3,11 @@
 ## What I read and measured
 
 - `plan.yaml` (686 lines), `BRIEF.md` (127 lines), full text.
-- `.claude/skills/harness/bin/check-state.sh` lines 850-1000 — read INV-21's block (858-891) and
+- `.claude/skills/harness/bin/check-state.py` lines 850-1000 — read INV-21's block (858-891) and
   INV-24's block (893-995) in full to answer the dispatch's specific question.
 - Timed `python3 .claude/skills/harness/bin/test-gh-sync.py`: **7.145s wall** (2.24s user, 1.26s
   sys), all 3 boundary-step tasks (T-02/T-03/T-04) run this whole suite as `verify:`.
-- Timed a full `bash .claude/skills/harness/bin/check-state.sh` run on the current tree:
+- Timed a full `python3 .claude/skills/harness/bin/check-state.py` run on the current tree:
   **10.546s wall**.
 - Counted `.harness/harness/features/*/feature.json`: **27 files** today.
 - Measured `harness_yaml.load_file()` cost on all 27 files, 3 passes vs 1: **12.9ms for 3 passes,
@@ -17,14 +17,14 @@
 
 ### 1. INV-28 adds a third independent glob+parse pass where two already exist
 
-**File/line:** `.claude/skills/harness/bin/check-state.sh:893-903` (INV-24's block, opening
+**File/line:** `.claude/skills/harness/bin/check-state.py:893-903` (INV-24's block, opening
 `for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")): ... harness_yaml.load_file(fy)`)
 and `plan.yaml:420-423` (T-05's intent: "Model it on the INV-21 block - the per-feature glob loop
 over the feature.json files... place it after INV-24's block").
 
 **The measurement asked for:** are the loops already N passes? Yes — read both blocks in full.
-INV-21 (`check-state.sh:863-891`) runs its own `glob.glob(...features*/feature.json)` +
-`harness_yaml.load_file(fy)` per feature. INV-24 (`check-state.sh:902-903` onward) runs a second,
+INV-21 (`check-state.py:863-891`) runs its own `glob.glob(...features*/feature.json)` +
+`harness_yaml.load_file(fy)` per feature. INV-24 (`check-state.py:902-903` onward) runs a second,
 independent `glob.glob(...)` + `harness_yaml.load_file(fy)` over the identical fileset immediately
 below it. T-05's intent explicitly instructs a **third** independent glob+parse loop, "modeled on
 INV-21," positioned right after INV-24's block ends — i.e., right after INV-24 has already opened
@@ -32,7 +32,7 @@ and parsed every `feature.json` in scope.
 
 **Concrete cost, measured honestly:** on today's 27 features, one glob+parse pass costs ~4.3ms
 in-process; a third pass over the same fileset costs the same again — a few milliseconds, not a
-build-breaking cost today. `check-state.sh` is CLAUDE.md's own mandated per-commit gate
+build-breaking cost today. `check-state.py` is CLAUDE.md's own mandated per-commit gate
 (the closest thing this repo has to a hot path), and this is a structural 2-becomes-3 pattern on a
 file count that only grows, so the honest framing is: cheap today, and it is redundant work a
 shared loop body would not do at all, on a script every commit is told to run.
@@ -61,7 +61,7 @@ already opens the same files.
   in my dispatch, and I did not flag it.
 - **T-06's eleven `record-pr` invocations (one gh query per feature, on 7 of the 11).** Each is a
   distinct branch with no shareable query shape, this runs once at backfill signature time (not a
-  hot path — CLAUDE.md's per-commit gate is `check-state.sh`, not this), and it deliberately reuses
+  hot path — CLAUDE.md's per-commit gate is `check-state.py`, not this), and it deliberately reuses
   the mechanism T-03 built rather than a hand-rolled batch query, which the intent states as a goal
   ("using the mechanism T-03 built rather than by editing the files by hand"). Not flagged.
 - **D-01..D-08.** Read all eight; none restates another or is undead. Not an efficiency-angle

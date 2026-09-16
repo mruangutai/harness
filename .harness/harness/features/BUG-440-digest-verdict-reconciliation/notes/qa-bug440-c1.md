@@ -16,14 +16,14 @@ inferred. Recommend **FAIL** on assertion completeness for SC-01 and SC-03(d); e
 ## Matrix
 
 - `change_type: bugfix` (plan.yaml T-01). `test_matrix.bugfix`: `unit if touches_runtime_code` (true —
-  check-state.sh is runtime code) → **unit required**. `integration if
-  fix_confined_to_tests_and_contract_docs` (false — the fix touches check-state.sh itself, not tests
+  check-state.py is runtime code) → **unit required**. `integration if
+  fix_confined_to_tests_and_contract_docs` (false — the fix touches check-state.py itself, not tests
   alone) → not obligated by this leg. `__bug_class__ if match_bug_class` — per this repo's own
   Expertise (G-08, repository tier), `match_bug_class` has no resolvable taxonomy entry in this project
   yet, so this leg is inert.
 - The `integration` kind is *also* satisfied here independently: the diff's own test file lives at
   `tests/integration/**`, matching `test_kinds.integration.detect`, whose bound command is
-  `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` (`harness.json:315`) — the standing
+  `.agents/skills/harness/bin/run-unit-tests.py --kind integration` (`harness.json:315`) — the standing
   per-kind command, not merely T-01's own scoped verify. I did not execute that full command (it would
   run the entire `tests/integration/**` bucket, outside this dispatch's scope); the scoped proof required
   by this dispatch — `python3 tests/integration/test-check-state.py` directly — is SC-06 below and is
@@ -60,10 +60,10 @@ is what the pre-change script lacks. Not fabricated.
 
 ## SC-07 (tail-anchor semantics)
 
-`check-state.sh:1546-1548` is byte-identical to `validate-digest.py:1155-1160` (`re.finditer(r"^\s*VERDICT:"...)`
+`check-state.py:1546-1548` is byte-identical to `validate-digest.py:1155-1160` (`re.finditer(r"^\s*VERDICT:"...)`
 → slice from last match → `re.search(r"^\s*VERDICT:\s*(\S+)"...)`), cites those exact line numbers in a
 comment, reuses `_dtext` already read for `validate()` (no second `open(dg)`), and the new region
-(`check-state.sh:1519-1558`) contains **zero** literal occurrences of `PASS`/`FAIL`/`BLOCKED`/`ESCALATE`
+(`check-state.py:1519-1558`) contains **zero** literal occurrences of `PASS`/`FAIL`/`BLOCKED`/`ESCALATE`
 — confirmed by direct grep. Satisfied.
 
 ## Non-vacuity — mutation results (isolated copy via `isolated_bin.py`, mutated, run via
@@ -98,7 +98,7 @@ structurally**, independent of the code under test:
 `paths` = `[feature.json]` + every `digest.md` found via `os.walk` under `runs/` at fixture-build time
 (6 entries: M, E, N, I, X, O — G correctly has none, since no file exists to hash). `before == after` is
 a straightforward whole-dict comparison that would fail on any single-byte mutation to any covered file.
-Confirmed check-state.sh's new region contains no `open(..., "w")`/write call anywhere (grepped). Sound.
+Confirmed check-state.py's new region contains no `open(..., "w")`/write call anywhere (grepped). Sound.
 
 ## Per-SC resolution
 
@@ -133,6 +133,6 @@ Confirmed check-state.sh's new region contains no `open(..., "w")`/write call an
 
 Both gaps are fixable by adding two run entries to the mismatch fixture in `case_bug440_digest_verdict_reconciliation()`
 (one isolated mismatch-only tree to close gap 1, one "invalid digest that still names a VERDICT" entry to
-close gap 2) — small, additive, no change to check-state.sh needed. This is dev/qa build work, not a
+close gap 2) — small, additive, no change to check-state.py needed. This is dev/qa build work, not a
 design question; opening as a blocking finding rather than an open_question since it is cheap and
 reversible (test-only).

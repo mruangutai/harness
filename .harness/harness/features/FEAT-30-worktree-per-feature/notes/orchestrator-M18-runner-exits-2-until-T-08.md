@@ -2,14 +2,14 @@
 
 Measured, not predicted, at the point where T-01 was complete and T-02 was in flight:
 
-    .claude/skills/harness/bin/run-unit-tests.sh --kind unit         -> exit 2
-    .claude/skills/harness/bin/run-unit-tests.sh --kind integration  -> exit 2
+    .claude/skills/harness/bin/run-unit-tests.py --kind unit         -> exit 2
+    .claude/skills/harness/bin/run-unit-tests.py --kind integration  -> exit 2
     MISCONFIGURED: .claude/skills/harness/bin/test-feature-worktree.py is not in
-      run-unit-tests.sh's explicit script list
+      run-unit-tests.py's explicit script list
 
 ## Why
 
-`run-unit-tests.sh:41-56` runs a **drift detector before any test executes**: it globs
+`run-unit-tests.py:41-56` runs a **drift detector before any test executes**: it globs
 `$BIN_DIR/test-*.py` and, for any file not present in its explicit `UNIT_SCRIPTS` /
 `INTEGRATION_SCRIPTS` arrays, prints `MISCONFIGURED` and `exit 2`. It is a deliberate
 anti-silent-omission guard — a new test file cannot be added and quietly not run.
@@ -24,7 +24,7 @@ Nothing inside the window needs the runner:
 
 - **T-02's** `verify:` invokes `python3 test-feature-worktree.py` **directly**, not through the runner.
 - **T-06's** `verify:` invokes `python3 test-expertise-merge.py` **directly**.
-- **T-08's** `verify:` is the first to call `run-unit-tests.sh`, and by then it has done the
+- **T-08's** `verify:` is the first to call `run-unit-tests.py`, and by then it has done the
   registration — so it also serves as the window's closing proof.
 - **T-10's** and **T-09's** verifies call the runner, and both are downstream of T-08.
 
@@ -51,7 +51,7 @@ Therefore:
 
 M-17 established the expectation `scriptPASS` 12 -> 14 for integration. The drift detector gives an
 independent one, and it is stronger because it cannot be satisfied vacuously: **once T-08 is right,
-`run-unit-tests.sh` stops exiting 2 at all.** Exit 0 from the runner, post-T-08, proves both new test
+`run-unit-tests.py` stops exiting 2 at all.** Exit 0 from the runner, post-T-08, proves both new test
 files are in the arrays — because if either were missing, the glob would still find it and still
 exit 2.
 

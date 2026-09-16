@@ -17,7 +17,7 @@ authored by this run.
 
 **Fields: `reader` and `status` only.** `set-panel`'s validator (`plan-merge.py:1017-1037`) checks
 only that `readers` is a list — it never inspects a row. The consumer that does is
-`check-state.sh:542-555`: it requires `persona` and `reason` **only on the `skipped` branch**
+`check-state.py:542-555`: it requires `persona` and `reason` **only on the `skipped` branch**
 (`:548-552`); a `ran` row is accepted on `status` alone and no code path reads a `persona` there.
 The template's `persona:`/`reason:` comments say "required when skipped"
 (`templates/plan.yaml:70-74`), i.e. admitted-when-skipped, not admitted-on-`ran`. Unread fields on
@@ -50,7 +50,7 @@ failure mode `panel.transcription_rule` in the plan itself warns about. Write ro
 
 ## Gate evidence
 
-`check-state.sh` **from the worktree copy** (it resolves its root from its own location, so the
+`check-state.py` **from the worktree copy** (it resolves its root from its own location, so the
 main-root copy grades the main root's tree and says nothing about this feature). Every BUG-1309
 INV-32 line is now a `note`: three `disposition resolved`, four `operator accepted risk`. **No
 blocking line, and no stale risk acceptance.** The script's overall exit 1 is other features'

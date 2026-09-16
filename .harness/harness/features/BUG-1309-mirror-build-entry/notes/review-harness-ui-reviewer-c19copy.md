@@ -59,7 +59,7 @@ striking it, and nothing argues for striking it either.
 ## 5. UAT quote fidelity + Step 6 regression check
 
 - Step 3 quoted block (`:159-164`) matches the actual rendered string character-for-character
-  against the real `merge-gate.sh` invocation recorded in the dispatch's own measurement.
+  against the real `merge-gate.py` invocation recorded in the dispatch's own measurement.
 - Step 3b's inline quote (`:209-211`) uses `…` to elide the path, consistent with a paraphrase, not
   a literal-quote break.
 - Step 6 (`:300`, "a `deny` naming `recover-terminal … --yes` — not `open`") **stays true.** The new

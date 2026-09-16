@@ -45,7 +45,7 @@ still exists at `.claude/worktrees/harness/qa-regate-sc01-baseline-c10`, detache
 `592e88dc` — verified via `git -C <wt> worktree list` and `git -C <baseline-wt> rev-parse HEAD`.
 
 ```
-cd <wt> && CHECK_DOMAIN_BIN=<baseline-wt>/.claude/skills/harness/bin/check-domain.sh \
+cd <wt> && CHECK_DOMAIN_BIN=<baseline-wt>/.claude/skills/harness/bin/check-domain.py \
   env -u HARNESS_AGENT_TYPE python3 -c '<same run_bug1305_identity_cases invocation>'
 ```
 Result: **`STATUS=4`**, `grep -c '^FAIL '` = **`4`**, `grep -c '^ok '` = **`6`**. Printed summary:

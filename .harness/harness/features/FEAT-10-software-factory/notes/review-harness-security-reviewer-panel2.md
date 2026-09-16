@@ -15,7 +15,7 @@ below), so they are reported as carried, not re-argued in full.
 
 ## New finding — INV-24's allowed-repo set can silently admit a null repo (low)
 
-`check-state.sh:~876-882` (pinned commit): the gate builds its own allow-list straight from
+`check-state.py:~876-882` (pinned commit): the gate builds its own allow-list straight from
 `harness_yaml.load_file(fleet_p)` —
 
 ```
@@ -46,7 +46,7 @@ reach. Recommend (not fixed here, per the no-source-edit constraint): build `nam
 
 **Ruled out, not a finding:** the neighbouring `except harness_yaml.YamlParseError: continue` on
 an unparseable `feature.yaml` (comment: "the parse failure is already a violation elsewhere").
-Verified — `check-state.sh`'s independent INV-6..8 block (`grep -n 'feature.yaml does not
+Verified — `check-state.py`'s independent INV-6..8 block (`grep -n 'feature.yaml does not
 parse'`) iterates the same `glob.glob(.../features/*/feature.yaml)` earlier in the same script
 and unconditionally appends a violation on any parse failure, so INV-24's skip does not fail
 open: the same run already reports it.
@@ -107,7 +107,7 @@ external input.
 
 ## Scope note
 
-INV-24 (`check-state.sh:858-908` per dispatch anchors) was read in full, read-only, per the
+INV-24 (`check-state.py:858-908` per dispatch anchors) was read in full, read-only, per the
 DEC-174 carve-out permitting review without edit. The other four factory modules
 (`factory_claim.py`, `factory_workspace.py`, `factory_land.py`, `factory_config.py`) were read
 whole; no findings beyond what is listed above.

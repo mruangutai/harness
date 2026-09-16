@@ -6,7 +6,7 @@ already contradict their own digests. That is the bug doing its job — but you 
 starts shouting. Pick **A**, **B** or **C** below.
 
 **Nothing is built yet.** This was a planning run only: no production code, no test code, no
-approval signature. One task is planned, and it is yours to execute — `check-state.sh` and its
+approval signature. One task is planned, and it is yours to execute — `check-state.py` and its
 tests are enforcement-layer files under the DEC-174 carve-out, so the harness plans that change
 and does not dispatch it to a squad.
 
@@ -42,7 +42,7 @@ its direction — but the record should be right.
 
 ## What is planned
 
-One task, `T-01`, `main-session-direct`. It adds invariant **INV-37** to `check-state.sh`: for
+One task, `T-01`, `main-session-direct`. It adds invariant **INV-37** to `check-state.py`: for
 every `feature.json` run entry whose run directory is complete, lead-hosted and carries a
 structurally valid digest, the digest's final verdict must equal the recorded verdict. A mismatch
 becomes a blocking finding naming the feature, the run id, both values and both file paths.

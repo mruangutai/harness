@@ -23,7 +23,7 @@ readers:
   reason: none
   artifact: none
   note: RAN, and was NOT skipped. Its review completed; the write of notes/review-harness-code-reviewer-planpanel-c1.md
-    was refused by check-domain.sh claim_worktrees() unioning a stale live harness-code-reviewer claim
+    was refused by check-domain.py claim_worktrees() unioning a stale live harness-code-reviewer claim
     from FEAT-05-factory-doc-smoke. Its findings survive verbatim in the panel digest and its full prose
     in history://Bug440Plan.MilitaryAmphibian.ScopeReview. Harness defect, carried up as the lead's Q1.
 - reader: goalcheck
@@ -34,7 +34,7 @@ readers:
   note: 'RAN outside the panel team, as the plan-phase product segment the orchestrator sequenced before
     the panel: pm''s goal-check of the drafted plan against the operator''s stated intent. Recorded for
     continuity; it is not a panel step and it is NOT a skip.'
-reader_coverage_note: 'All three readers INV-32 (check-state.sh:534-547) expects are recorded. The plan-panel
+reader_coverage_note: 'All three readers INV-32 (check-state.py:534-547) expects are recorded. The plan-panel
   team declares two steps, should-not-exist and scope, which is why the validator lead''s digest named
   two; the goalcheck reader is an orchestrator-sequenced product segment rather than a team step, it ran
   for this plan as notes/research-BUG-440-digest-verdict-reconciliation-goalcheck-plan-c1.md, and it is
@@ -45,7 +45,7 @@ findings:
   reader: scope
   severity: med
   summary: T-01 intent anchors the run_verdicts side-dict 'beside the existing code_reviewing_runs.append(...)',
-    a line gated by `if _squad == "validator"` (check-state.sh:663-666), but run_verdicts must capture
+    a line gated by `if _squad == "validator"` (check-state.py:663-666), but run_verdicts must capture
     every squad.
   consequence: 'A literal reading nests the recording inside the validator-only conditional, so product-squad
     runs are never compared - concretely 2 of the BRIEF''s own 4 disclosed mismatches (FEAT-07/goalcheck-product,
@@ -55,7 +55,7 @@ findings:
     equivalent guard.'
   disposition: resolved
   resolution: 'RESOLVED by plan text, not by a task: T-01 intent step 1 now anchors the run_verdicts recording
-    to the UNCONDITIONED runs.append((...)) at check-state.sh:650-652 and states in terms that no literal
+    to the UNCONDITIONED runs.append((...)) at check-state.py:650-652 and states in terms that no literal
     reader can nest it in the validator-only branch at :665-666. Verified at source by pm on 2026-09-06.
     No resolved_by: no task resolves it.'
 - id: PF-3f3c8cbd75c6538ac820075bfc6efe9b
@@ -77,7 +77,7 @@ findings:
   severity: low
   summary: D-04's run_verdicts dict collapses duplicate runs[] ids last-wins, while the operator contract
     quantifies over ENTRIES - a shadowed stale row keeps the gate green over a live contradiction.
-  consequence: runs[] rows are list items, so the strict loader's DuplicateKeyError (check-state.sh:1446-1455)
+  consequence: runs[] rows are list items, so the strict loader's DuplicateKeyError (check-state.py:1446-1455)
     never fires on two rows sharing an id, and no invariant checks runs[] id uniqueness (INV-8's set at
     :823-826 only tests directory existence). A corrective row appended beside a wrong one leaves both
     on disk; the dict keeps the last, INV-37 stays silent, and a consumer reading the first row still

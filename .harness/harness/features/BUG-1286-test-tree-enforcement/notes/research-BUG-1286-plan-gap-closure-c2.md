@@ -14,7 +14,7 @@ moved; both approvals still `pending`; no `panel:` key written. All five mechani
 | 2 SC-01 second clause ungradable | `BRIEF.md` | split: SC-01 keeps the behavioural assertion (`automated`/`unit`); new SC-02 is the test-first obligation, `verify: inspection`, grader named (qa's test-first audit) and evidence named (red result of the new assertions run against `suite_layout.py` at the base commit, before T-01's edit), with "a passing unit run at review time cannot discharge it" |
 | 3 AC-05's `tests/manual/**` half unasserted | `plan.yaml` T-01 `intent` case 1 | fixture additionally creates `tests/manual/probe-fixture.py`; separate assertion that no finding names it, with the reason the shape is `probe-*.py` and not `test-*.py` written into the case |
 | 3 criterion side | `BRIEF.md` SC-06 | now quantifies over the manual file the fixture actually contains, names the shape `probe-*.py`, and records why `tests/manual/test-*.py` is refused today (`suite_layout.py:20-28`) so no reader substitutes it |
-| 4 SC-13 gave inspection no target | `BRIEF.md` | split into SC-14 (`harness.json` unchanged, no byte) and SC-15 (mutation scope: `run-unit-tests.sh` carries exactly one `run_pool.py` invocation, line 47 at HEAD `1977ebd6`, whose `--mutation-check` argument is `"$BIN_DIR"` and is not widened). Two independently failable claims, so two criteria |
+| 4 SC-13 gave inspection no target | `BRIEF.md` | split into SC-14 (`harness.json` unchanged, no byte) and SC-15 (mutation scope: `run-unit-tests.py` carries exactly one `run_pool.py` invocation, line 47 at HEAD `1977ebd6`, whose `--mutation-check` argument is `"$BIN_DIR"` and is not widened). Two independently failable claims, so two criteria |
 | 5 lead call: SC-06/SC-08 traced nowhere | `BRIEF.md` SC-07, SC-09 | each now names its pre-existing discharging assertion: `manual tests are not actively detected` at `tests/unit/test-suite-layout.py:104-105`; `import layout_fixtures as lf` at `tests/integration/test-layout-migration.py:62`. Both anchors re-read at HEAD before writing. Nothing else about either criterion changed |
 
 **D-04 checked after the change (asked for explicitly):** its `choice` is unchanged and agrees —
@@ -64,7 +64,7 @@ renumber required no task re-proposal. `BRIEF.md`'s one prose cross-reference wa
    `test_kinds`; ACs covered = AC-01..AC-11 (11 distinct). SC-07 and SC-09 now name their
    pre-existing assertions in-criterion, so no SC is discharged by nothing.
 
-Side check for SC-15's non-vacuity: `grep -c run_pool run-unit-tests.sh` = 1, so "exactly one
+Side check for SC-15's non-vacuity: `grep -c run_pool run-unit-tests.py` = 1, so "exactly one
 invocation" is true today and a widened second call would falsify the criterion.
 
 ## Open question

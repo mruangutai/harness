@@ -31,7 +31,7 @@ through the normal gates (DEC-139).
 - none
 
 ## Out of scope
-- Migrating `post-merge-sweep.sh:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`,
+- Migrating `post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`,
   `feature_schema.py:231` onto the new resolver — they already work; touch only if the change forces it.
 - Landing `.harness/kaya-ai/features/FEAT-04-…` on `main` — it lives only in the FEAT-04 worktree, so a
   live claim run from `main` still sees `no_plan` after this fix. That is FEAT-04's landing, not this bug.
@@ -42,7 +42,7 @@ through the normal gates (DEC-139).
   `:341`; `repo_name` is in hand at `:343`. Docstring `:26-29` describes the hardcode.
 - `factory_decompose.py:337` — `feature_dir` is a positional CLI argument; no repo-keyed resolution.
 - Segment derivations today: `feature-worktree.py:64-87` (`resolve_repo`, `split("/",1)[-1]`, literal
-  `harness`), `worktree_terminal.py:107-129` (reverse direction), `post-merge-sweep.sh:163`,
+  `harness`), `worktree_terminal.py:107-129` (reverse direction), `post-merge-sweep.py:163`,
   `quarantine.py:109,171`, `feature_schema.py:231`.
 - `fleet.yaml` repos: `mruangutai/kaya-ai`, `mruangutai/harness-factory-smoke`; `mruangutai/harness`
   deliberately absent (DEC-174, asserted by `tests/unit/test-no-distribution.py:178-198`).

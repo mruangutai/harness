@@ -1,6 +1,6 @@
 # Research — BUG-1309 surfaces, measured at 4e8f5ea1
 
-**BLUF.** Every surface the plan names was resolved with `check-domain.sh --resolve` at
+**BLUF.** Every surface the plan names was resolved with `check-domain.py --resolve` at
 `4e8f5ea115d84899abafb301ea390c6a333e4514`, and the four anchors a builder is most likely to get
 wrong are recorded below as CONTENT, never line numbers.
 
@@ -8,7 +8,7 @@ wrong are recorded below as CONTENT, never line numbers.
 
 | path | `--resolve` |
 |---|---|
-| `bin/gh-sync.py`, `bin/feature-schema.json`, `bin/check-state.sh`, `bin/post-merge-sweep.sh`, `bin/merge-gate.sh` | `harness-backend-dev harness-dev-ops` |
+| `bin/gh-sync.py`, `bin/feature-schema.json`, `bin/check-state.py`, `bin/post-merge-sweep.py`, `bin/merge-gate.py` | `harness-backend-dev harness-dev-ops` |
 | `tests/integration/*`, `tests/unit/omp-hooks.test.ts` | `harness-backend-dev harness-dev-ops harness-qa` |
 | `references/github-mirror.md`, `SKILL.md`, `.claude/settings.json`, `templates/settings.snippet.json`, `.omp/extensions/harness-hooks.ts` | **NOBODY** |
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md` | `harness-documentor` |
@@ -24,22 +24,22 @@ wrong are recorded below as CONTENT, never line numbers.
 2. `skip()` is the single funnel for every environmental no-go (`gh()` routes non-zero exits into
    it), which is what makes `skip(msg, build_entry=None)` a complete recording point rather than one
    of several.
-3. `post-merge-sweep.sh` greps ship's combined stdout+stderr for the literal `gh-sync: SKIP` and
+3. `post-merge-sweep.py` greps ship's combined stdout+stderr for the literal `gh-sync: SKIP` and
    `gh-sync: FAILED`. T-03 rewords the milestone SKIP message and must keep that prefix.
-4. `check-state.sh` INV-26 `continue`s on `station_of(_fp) in ("done", TERMINAL_MARKER)` and again
+4. `check-state.py` INV-26 `continue`s on `station_of(_fp) in ("done", TERMINAL_MARKER)` and again
    on `_derived is None and all(_s == "ready" for _s in _statuses)`. FEAT-55 hit both. INV-26's
    terminal exemption is load-bearing (`ship` writes `done`; the plan-derived station says `review`),
    so INV-37 is a separate loop, not a weakened exemption.
 
 ## Counts and free identifiers, measured
 
-- Highest `INV-NN` in `check-state.sh`: **36** → this feature takes **INV-37**.
+- Highest `INV-NN` in `check-state.py`: **36** → this feature takes **INV-37**.
 - Highest `DEC-NNN` in `DECISIONS-INDEX.md`: **219** → this feature takes **DEC-220**.
-- Registered PreToolUse Bash gates today, in order: `branch-create-gate.sh`, `bash-write-guard.sh`,
-  `gh-close-gate.sh`, `plan-sign-gate.sh` (`.claude/settings.json`) and the same four in
+- Registered PreToolUse Bash gates today, in order: `branch-create-gate.py`, `bash-write-guard.py`,
+  `gh-close-gate.py`, `plan-sign-gate.py` (`.claude/settings.json`) and the same four in
   `harness-hooks.ts`'s `firstBlock([...])`. BUG-1132 is the recorded cost of registering in one and
   not the other.
-- `run-unit-tests.sh` discovers by glob (`tests/unit/test-*.py`, `tests/integration/test-*.py`), so
+- `run-unit-tests.py` discovers by glob (`tests/unit/test-*.py`, `tests/integration/test-*.py`), so
   a new test file needs no registration. `tests/unit/omp-hooks.test.ts` is executed by
   `tests/unit/test-omp-hooks.py`, which shells out to `bun`.
 - `feature_schema.py` needs no change: it loads `feature-schema.json` and has no per-field code.

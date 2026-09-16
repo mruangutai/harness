@@ -13,13 +13,13 @@ cannot be built at all: per-repository write grants (unit 7), per-repository con
 (unit 5), the expertise split (unit 6), and a live proof against a second repository (unit 8).
 
 The move itself is not the hard part. The hazard is that the mechanisms which resolve a feature path
-**fail silently when a segment is inserted** (issue #344, measured): `check-state.sh`'s fifteen
-discovery sites return empty and the gate reports a healthy tree; `check-domain.sh`'s four shape
+**fail silently when a segment is inserted** (issue #344, measured): `check-state.py`'s fifteen
+discovery sites return empty and the gate reports a healthy tree; `check-domain.py`'s four shape
 regexes and its `SWEEP_GLOBS` stop enforcing anything while still advancing the shape-sweep stamp;
 CI's plan-route guard is defeated by exactly the shape a repo segment produces. Split the cluster
 across commits and the tree is either one where every write is denied, or — worse — one whose shape
 gate is silently off. Two of the failures are loud instead: after the move, `team-config.yaml`'s
-grants no longer match, so every agent loses its own artifact paths, and `branch-create-gate.sh`
+grants no longer match, so every agent loses its own artifact paths, and `branch-create-gate.py`
 denies the creation of a branch for any feature.
 
 ## Goal
@@ -32,10 +32,10 @@ detector at a landed commit is a stop rather than a note.
 ## Scope
 
 **In:** the physical move of every directory under `.harness/features/`; `team-config.yaml`'s write
-grants; `check-domain.sh`'s `SWEEP_GLOBS` and its four shape regexes; `check-plan-routes.py`'s
-discovery; `check-state.sh`'s fifteen discovery sites; the test suites whose fixtures or literal
+grants; `check-domain.py`'s `SWEEP_GLOBS` and its four shape regexes; `check-plan-routes.py`'s
+discovery; `check-state.py`'s fifteen discovery sites; the test suites whose fixtures or literal
 expectations are pinned to the old path; the guard-enforced instruction paths that tell an agent
-where to write its receipt, its observations and its per-feature notes; `branch-create-gate.sh`'s
+where to write its receipt, its observations and its per-feature notes; `branch-create-gate.py`'s
 flow lookup; this repository's own `.gitignore` run-dir rule; the three mechanisms that resolve a
 feature path by arithmetic over its depth rather than by a literal — `test-factory-cli.py`'s
 module-scope plan read, `gh-sync.py`'s root derivation and `validate-feature-json.py`'s discovery
@@ -52,7 +52,7 @@ own commit.
   detector derives harness's segment from `harness.json` independently of the fleet, so the
   post-move scan raises no undeclared segment. Re-adding a fleet entry would be a decision, not a
   convenience.
-- `factory_claim.py`, the shipped `templates/gitignore.snippet`, `merge-gitignore.sh` and
+- `factory_claim.py`, the shipped `templates/gitignore.snippet`, `merge-gitignore.py` and
   informational prose — unit 9, landing anytime. `gh-sync.py` and `validate-feature-json.py` were
   on this list and have moved into scope: both fail **silently** after the move, and the BRIEF's own
   severity ordering puts silent above loud. The two `.github/workflows/tests.yml` texts move with
@@ -60,7 +60,7 @@ own commit.
   a CI reader and an operator that the sweep globs a path nothing occupies. The dated measurement
   comments in that same file stay as they are: they record commands that were run and what they
   returned, so they are true as taken.
-- The cross-repository **key collision** in `check-state.sh`. Its feature dictionaries key on the
+- The cross-repository **key collision** in `check-state.py`. Its feature dictionaries key on the
   bare directory name, so two repositories holding a same-named feature collapse last-write-wins.
   It cannot fire while one repository exists. Only the finding *label* is fixed here; the keying is
   unit 5's or unit 8's, where a second repository actually lands.
@@ -97,7 +97,7 @@ own commit.
   commit sha. No criterion here counts feature directories: this feature's own directory is created
   under the legacy layout and moves with the rest, so any count is stale within one cycle.
   verify: inspection
-- SC-03: `check-state.sh` exits 0 and emits no INV-27 finding at the landed move commit.
+- SC-03: `check-state.py` exits 0 and emits no INV-27 finding at the landed move commit.
   verify: automated      evidence: integration
 - SC-04: The full unit and integration suites pass at the landed move commit, including
   `test-check-state.py`, `test-check-domain.py`, `test-check-plan-routes.py`,
@@ -107,7 +107,7 @@ own commit.
   git-ignored — and the check that establishes this asserts the search's exit status rather than a
   line count.
   verify: automated      evidence: integration
-- SC-06: `check-domain.sh --resolve` on a post-move feature artifact path
+- SC-06: `check-domain.py --resolve` on a post-move feature artifact path
   (`.harness/harness/features/FEAT-21-features-layout-migration/notes/receipt-harness-backend-dev-x.md`)
   names `harness-backend-dev`, and the same path under the pre-move shape names nobody. The write
   gate moved with the files rather than being widened to accept both.
@@ -117,7 +117,7 @@ own commit.
   command — names the new path, and the only survivors of that literal outside the shipped
   `templates/` directory are ones a reviewer can name and justify individually.
   verify: inspection
-- SC-08: `branch-create-gate.sh` allows creating a branch named for a feature that exists at the new
+- SC-08: `branch-create-gate.py` allows creating a branch named for a feature that exists at the new
   location, and still denies one naming a feature that exists nowhere.
   verify: automated      evidence: integration
 - SC-09: Run directories at the new location are git-ignored, so a team run does not find a dirty
@@ -165,11 +165,11 @@ on a runner; that is stated here rather than dressed as automation.
 
 ## Constraints
 
-- **One commit for the cluster.** The grants, both `check-domain.sh` sites,
-  `check-plan-routes.py`'s discovery, `check-state.sh`'s discovery sites and the physical move are
-  mechanically coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.sh
+- **One commit for the cluster.** The grants, both `check-domain.py` sites,
+  `check-plan-routes.py`'s discovery, `check-state.py`'s discovery sites and the physical move are
+  mechanically coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.py
   --resolve`, which reads `team-config.yaml` and calls `harness_boundary.matches`.
-- **DEC-174 applies to most of this feature.** `check-state.sh` and `check-domain.sh` are named
+- **DEC-174 applies to most of this feature.** `check-state.py` and `check-domain.py` are named
   carve-outs; `layout_migration.py` is one by content on the FEAT-20 precedent;
   `team-config.yaml`, `.gitignore`, the agent files and the skills all resolve to NOBODY. Every
   task here is main-session-direct.
@@ -194,7 +194,7 @@ on a runner; that is stated here rather than dressed as automation.
   the plan.
 - **The detector's residual bound is inherited.** It proves per-file form agreement, never per-site
   completeness. A file migrated so thoroughly that no legacy fragment survives, yet holding a stale
-  site the pattern was too narrow to name, is not caught — which is why `check-state.sh`'s fifteen
+  site the pattern was too narrow to name, is not caught — which is why `check-state.py`'s fifteen
   sites are enumerated by code fragment in the plan rather than trusted to the detector.
 - **The dangerous sites carry no `.harness/features/` literal at all**, and units 4 through 7 face
   the same shape. Three of this feature's own findings were of that class: a fixed climb of `..`, a

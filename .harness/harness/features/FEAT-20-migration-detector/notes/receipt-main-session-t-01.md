@@ -20,7 +20,7 @@ on a row keyed to a non-member surface).
 ## Verify clause, run as plan.yaml spells it
 
 ```
-run-unit-tests.sh --kind unit  -> exit 0
+run-unit-tests.py --kind unit  -> exit 0
 output contains the exact line: PASS test-layout-migration.py
 ```
 

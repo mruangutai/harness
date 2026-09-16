@@ -12,10 +12,10 @@ Every path in the shared scope was inspected in the pinned diff and at the pinne
 2. `tests/unit/test-handoff-done-when.py`
 3. `tests/unit/test-probe-handoff-comprehension.py`
 4. `tests/integration/test-check-domain.py`
-5. `.claude/skills/harness/bin/check-domain.sh`
+5. `.claude/skills/harness/bin/check-domain.py`
 6. `.harness/harness.json`
 7. `tests/integration/test-check-state.py`
-8. `.claude/skills/harness/bin/check-state.sh`
+8. `.claude/skills/harness/bin/check-state.py`
 9. `.claude/skills/harness/templates/HANDOFF.md`
 10. `.claude/skills/harness/SKILL.md`
 11. `tests/manual/probe-handoff-comprehension.py`
@@ -31,11 +31,11 @@ Authorities read: approved `BRIEF.md`; approved `plan.yaml`, including D-01–D-
 
 ### F-04 — high, must-fix — literal SC-04 exits 1
 
-From the repository root, the exact command `bash .claude/skills/harness/bin/check-state.sh` exited **1**. Its complete captured output contains **zero** lines naming `Done when`, but it contains one violation: INV-29 reports the standing worktree `.claude/worktrees/harness/BUG-1157-approval-overrule` because its landed `feature.json` is missing and terminal status cannot be determined.
+From the repository root, the exact command `python3 .claude/skills/harness/bin/check-state.py` exited **1**. Its complete captured output contains **zero** lines naming `Done when`, but it contains one violation: INV-29 reports the standing worktree `.claude/worktrees/harness/BUG-1157-approval-overrule` because its landed `feature.json` is missing and terminal status cannot be determined.
 
 **Failure scenario.** A reviewer runs the acceptance-prescribed repository state gate at this pin. The external worktree lookup fails, INV-29 reports rather than exempts it, and the command returns 1. The feature therefore cannot satisfy the explicit c5 rule that SC-04 exit 0, even though FEAT-54's handoff corpus itself produces no Done-when finding.
 
-**Owner lane:** Main session / worktree lifecycle owner, outside FEAT-54 source. Do not weaken `check-state.sh` or remove a worktree from inside this feature worktree.
+**Owner lane:** Main session / worktree lifecycle owner, outside FEAT-54 source. Do not weaken `check-state.py` or remove a worktree from inside this feature worktree.
 
 ### F-11 — high, must-fix — both real Done-when authorities are already satisfied before their actions start
 
@@ -51,10 +51,10 @@ This is high because the only two in-scope real handoffs demonstrate the exact e
 
 - **REQ-01 / REQ-03: FAIL** on F-11. Mechanical presence and AND evaluation exist, but the two real notes' only authority is already satisfied and does not delimit their immediate actions.
 - **REQ-02, REQ-04, REQ-05: PASS.** The shared parser enforces one non-empty `Scope:`, one-to-four `Authority:` lines, no other prose, four exact typed grammars, ordering, and source-location refusal. The 54 direct checks and 41 real write-gate cases passed.
-- **REQ-06: PASS.** `check-domain.sh:1561-1566` calls the shared implementation with `resolve=True` and fails closed; `check-state.sh:1243-1251` calls it with `resolve=False`. The repaired persisted fixtures reject every output line naming their handoff, and the caller-mode mutant discriminates exactly `real=0, mutant=1`.
+- **REQ-06: PASS.** `check-domain.py:1561-1566` calls the shared implementation with `resolve=True` and fails closed; `check-state.py:1243-1251` calls it with `resolve=False`. The repaired persisted fixtures reject every output line naming their handoff, and the caller-mode mutant discriminates exactly `real=0, mutant=1`.
 - **REQ-07: PASS.** The frozen baseline is 141 entries, 141 unique, sorted, and set-equal to the `b7956fc4` handoff enumeration. It contains no FEAT-54 note.
 - **REQ-08: PASS.** Whole-file 60/61 boundaries and long-Trust-at-60 cases passed through both gates; no per-section cap exists.
-- **REQ-09: PASS.** Template, playbook, both gates, DEC-159, and DEC-214 state five sections. The only gate-script `four headings` occurrences are the two SC-08-authorized FEAT-31 historical observations at `check-state.sh:1198-1202,1215-1219`.
+- **REQ-09: PASS.** Template, playbook, both gates, DEC-159, and DEC-214 state five sections. The only gate-script `four headings` occurrences are the two SC-08-authorized FEAT-31 historical observations at `check-state.py:1198-1202,1215-1219`.
 - **REQ-10: PASS.** Deterministic behavior is in the permanent unit/integration gates. The comprehension probe is `locally_run`, outside `test_matrix`, and excluded from `--kind all` by executable fixture evidence.
 - **SC-01/02/03/05/06/09/12/13/14: PASS** on focused executable evidence.
 - **SC-04: FAIL.** Exact root command exit 1; zero reported `Done when` lines; one unrelated INV-29 violation.
@@ -89,7 +89,7 @@ This is high because the only two in-scope real handoffs demonstrate the exact e
 - `python3 tests/integration/test-check-state.py` — exit 0; all FEAT-54 cases passed, including `state caller-mode mutation (real=0, mutant=1)`.
 - `python3 tests/integration/test-run-unit-tests-kinds.py` — exit 0, **5** registration/isolation checks passed.
 - `python3 tests/manual/probe-handoff-comprehension.py --dry-run` — exit 0, planned two calls and executed none.
-- Literal SC-04: `bash .claude/skills/harness/bin/check-state.sh` — **exit 1**, **0** lines name `Done when`, **1** INV-29 violation.
+- Literal SC-04: `python3 .claude/skills/harness/bin/check-state.py` — **exit 1**, **0** lines name `Done when`, **1** INV-29 violation.
 
 Mandatory command:
 

@@ -2,7 +2,7 @@
 
 ## Why this exists
 
-SC-04 grades that `check-state.sh` emits the identical violation set before and after the
+SC-04 grades that `check-state.py` emits the identical violation set before and after the
 cutover. The plain baseline in `measurement-before.md` contains **zero INV-26 lines**, because
 the board agreed. Issue #588 records that INV-26 also prints nothing when the board read
 FAILS. So after the change a silent break and a working cheap read produce identical output,

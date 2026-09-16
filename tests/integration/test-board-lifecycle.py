@@ -76,11 +76,10 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
                    factory_issues=None, plan_station=None):
     """A `feature.json` fixture at `<root>/.harness/<repo_slug>/features/<feat>/feature.json` —
     the SAME `.harness/*/features/*/feature.json` glob shape `board_lifecycle.py`'s own
-    `_feature_dirs` reads, and check-state.sh's INV-24/INV-26 already read (T-15).
+    `_feature_dirs` reads, and check-state.py's INV-24/INV-26 already read (T-15).
 
-    `status=None` OMITS the key rather than writing a null — the post-migration shape (FEAT-41
-    T-07), not a malformed document. `plan_station` writes the sibling plan.yaml carrying that
-    lowercase top-level station, which is where the station is read from once T-07 lands.
+    `status=None` omits the legacy feature.json key. `plan_station` writes a
+    schema-valid sibling plan.yaml whose lower-case top-level status is the audit source.
     """
     fdir = os.path.join(root, ".harness", repo_slug, "features", feat)
     os.makedirs(fdir, exist_ok=True)
@@ -98,7 +97,12 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
         json.dump(doc, f)
     if plan_station is not None:
         with open(os.path.join(fdir, "plan.yaml"), "w", encoding="utf-8") as f:
-            f.write(f"feature: {feat}\nstatus: {plan_station}\ntasks: []\n")
+            f.write(
+                f"feature: {feat}\nstatus: {plan_station}\ntasks:\n"
+                "  - id: T-01\n    title: fixture task\n    change_type: bugfix\n"
+                "    execution_mode: team\n    files: [fixture.py]\n"
+                "    verify: python3 test.py\n    intent: fixture\n"
+            )
 
 
 _BOARD = {
@@ -137,12 +141,9 @@ if [ -n "$FAIL_MATCH" ]; then
   esac
 fi
 # Fix cycle c4, finding 1: MALFORMED_MATCH makes a call SUCCEED (exit 0) with a body that is not
-# JSON. That is the real shape behind the defect -- `factory_gh.run_gh`'s bare
-# `json.loads(r.stdout)` (factory_gh.py:170) then raises ValueError, which is NOT a GhError and
-# so escaped the GhError-only catches in the post-create blocks straight to `factory_cli.run`'s
-# `except BaseException`, exiting 2 ("nothing was written") on a board that had just been
-# created and linked. FAIL_MATCH cannot express this: a nonzero exit produces a GhError, the
-# class that was already handled.
+# JSON. The strict GitHub response boundary now raises ArtifactAccessError, which is NOT a
+# GhError and so must still escape the GhError-only catches in the post-create blocks rather
+# than misreporting a board that was created and linked as untouched.
 if [ -n "$MALFORMED_MATCH" ]; then
   case "$*" in
     *"$MALFORMED_MATCH"*)
@@ -738,10 +739,10 @@ with tempfile.TemporaryDirectory() as base:
 
 # ---------------- cases 5h/5i (fix cycle c4, finding 1): a NON-GhError failure after a
 # successful create+link is exit 4, never exit 2 ---------------------------------------------
-# The defect: both post-create blocks caught `factory_gh.GhError` only. `run_gh`'s bare
-# `json.loads(r.stdout)` raises ValueError on a body gh returned with exit 0, and
-# `_project_field_resolve`'s unguarded subscripts raise KeyError/TypeError -- none of them a
-# GhError, so each reached `factory_cli.run`'s `except BaseException` and exited EXIT_REFUSED = 2.
+# The defect: both post-create blocks caught `factory_gh.GhError` only. Strict GitHub parsing
+# raises ArtifactAccessError for an invalid body returned with exit 0, and
+# `_project_field_resolve`'s unguarded subscripts raise KeyError/TypeError -- none are GhError,
+# so each must retain the partial-success exit path.
 # 2 is documented as "nothing was written". A project has been created and linked by then, so an
 # operator or script that reads 2 as "nothing happened" retries, re-enters the create branch and
 # gets a SECOND board -- the exact disaster the exit-code contract exists to prevent. These two
@@ -754,15 +755,12 @@ with tempfile.TemporaryDirectory() as base:
                  probe=_PROBE_FRESH_DEFAULT_STATUS,
                  options=_options_json(_GITHUB_DEFAULT_OPTIONS),
                  malformed_match="ProjectV2IterationField")
-    check("c4: a NON-GhError (ValueError from run_gh's json.loads) in the field work after a "
-          "successful create+link exits 4, NEVER 2 -- 2 would claim nothing was written",
+    check("c4: a NON-GhError (ArtifactAccessError from strict GitHub parsing) in the field work "
+          "after a successful create+link exits 4, NEVER 2 -- 2 would claim nothing was written",
           r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-    check("c4: that unexpected failure still names the CREATED project's number on stderr -- a "
-          "retry that cannot see 42 re-enters the create branch and duplicates the board",
-          "42" in r.stderr, repr(r.stderr))
-    check("c4: it says plainly that the failure was UNEXPECTED and names the exception class, "
-          "rather than dressing a ValueError up as a gh error",
-          "UNEXPECTED" in r.stderr and "JSONDecodeError" in r.stderr, repr(r.stderr))
+    check("c4: it says plainly that the failure was UNEXPECTED and names the typed parse "
+          "exception class rather than a gh error",
+          "UNEXPECTED" in r.stderr and "ArtifactAccessError" in r.stderr, repr(r.stderr))
     check("c4: it still tells the operator to record the number now",
           "record 42" in r.stderr, repr(r.stderr))
     check("c4: create and link really did land before the unexpected failure",
@@ -777,8 +775,8 @@ with tempfile.TemporaryDirectory() as base:
     check("c4: a NON-GhError in the LINK call after a successful create exits 4, never 2 -- the "
           "same hole lived in that block too",
           r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-    check("c4: the link's unexpected failure names the created number and the exception class",
-          "42" in r.stderr and "unexpected" in r.stderr and "JSONDecodeError" in r.stderr,
+    check("c4: the link's unexpected failure names the created number and typed parse class",
+          "42" in r.stderr and "unexpected" in r.stderr and "ArtifactAccessError" in r.stderr,
           repr(r.stderr))
     check("c4: no field work was attempted after the link failed",
           not any("createProjectV2Field" in l or "updateProjectV2Field" in l for l in log),
@@ -1008,12 +1006,11 @@ with tempfile.TemporaryDirectory() as base:
                   github_issues={"T-01": 701})
     r, log = run(root, ["audit"], stations=_stations_json({700: "Building"}))
     check("audit STATUS (FEAT-32 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    # The recorded feature.json STATUS stays capitalised ('Review') and the message also names
-    # the derived column, but the ACTUAL value read off the board is lowercase (FEAT-41 T-02).
-    check("audit STATUS (FEAT-32 shape): names the feature dir, recorded status, expected "
-          "station and column, and the actual lowercase station",
+    # The recorded station is lowercase and the message names its derived column separately.
+    check("audit STATUS (FEAT-32 shape): names the feature dir, recorded station, column, "
+          "and actual lowercase board station",
           "STATUS" in r.stdout and "FEAT-32-fixture" in r.stdout
-          and "'Review'" in r.stdout and "'review'" in r.stdout
+          and "'review'" in r.stdout and "'Review'" in r.stdout
           and "'building'" in r.stdout and "'Building'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
@@ -1025,10 +1022,10 @@ with tempfile.TemporaryDirectory() as base:
     write_feature(root, "widget", "FEAT-08", None, plan_station="done", parent=85, github_issues={"T-01": 86})
     r, log = run(root, ["audit"], stations=_stations_json({85: "Backlog"}))
     check("audit STATUS (FEAT-08 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    check("audit STATUS (FEAT-08 shape): names the feature dir, status Done, expected done, "
+    check("audit STATUS (FEAT-08 shape): names the feature dir, expected done, column, "
           "actual backlog -- no Done exemption",
           "STATUS" in r.stdout and "FEAT-08" in r.stdout
-          and "'Done'" in r.stdout and "'done'" in r.stdout
+          and "'done'" in r.stdout and "'Done'" in r.stdout
           and "'backlog'" in r.stdout and "'Backlog'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
@@ -1038,10 +1035,10 @@ with tempfile.TemporaryDirectory() as base:
     write_feature(root, "widget", "FEAT-09", None, plan_station="done", parent=98, github_issues={"T-01": 99})
     r, log = run(root, ["audit"], stations=_stations_json({98: "Backlog"}))
     check("audit STATUS (FEAT-09 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    check("audit STATUS (FEAT-09 shape): names the feature dir, status Done, expected done, "
+    check("audit STATUS (FEAT-09 shape): names the feature dir, expected done, column, "
           "actual backlog",
           "STATUS" in r.stdout and "FEAT-09" in r.stdout
-          and "'Done'" in r.stdout and "'done'" in r.stdout
+          and "'done'" in r.stdout and "'Done'" in r.stdout
           and "'backlog'" in r.stdout and "'Backlog'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:

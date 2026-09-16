@@ -18,12 +18,12 @@ station by station, for the PLAN phase question "can this plan reach it":
 | completed validation | every task carries a runnable `verify:`; `change_type:` present on all 8 | yes |
 | merged PR / ship closeout / closed issue | lifecycle stations, orchestrator-owned; correctly not plan tasks | yes |
 | issue-specific verification | SC-01..SC-08 with `verify:` methods (`BRIEF.md:105-148`) | yes, except SC-06 and SC-07 — §6 |
-| `check-state.sh` exiting 0 | **no task, no verify, no mechanism** | gap 1 |
+| `check-state.py` exiting 0 | **no task, no verify, no mechanism** | gap 1 |
 
-Named station with no mechanism: **`check-state.sh` exit 0 and a full-suite regression run**. Eight
+Named station with no mechanism: **`check-state.py` exit 0 and a full-suite regression run**. Eight
 tasks change two registered PreToolUse gates and two shared libraries; the widest `verify:` in the
 plan is T-08's three guard suites (`plan.yaml:479-483`). Nothing in the plan runs the harness suite
-or `check-state.sh`, and the intent names both. It rests entirely on main-session closeout.
+or `check-state.py`, and the intent names both. It rests entirely on main-session closeout.
 
 ## 2 — B-10's defect vs the plan's remedy: legitimate substitution, not a swapped problem
 
@@ -53,8 +53,8 @@ Intent allows "implementation, focused tests, governing decisions/docs, and Harn
 artifacts" (`grilling-...:12`). Every path in the plan:
 
 - implementation — `.claude/skills/harness/bin/harness_boundary.py`, `inflight_registry.py`
-  (`plan.yaml:148-149`), `check-domain.sh` (`:256`), `bash-write-guard.sh` (`:369`),
-  `dispatch-guard.sh` (`:477`);
+  (`plan.yaml:148-149`), `check-domain.py` (`:256`), `bash-write-guard.py` (`:369`),
+  `dispatch-guard.py` (`:477`);
 - focused tests — `tests/unit/test-harness-boundary.py`, `tests/integration/test-inflight-registry.py`
   (`plan.yaml:84-85`), `tests/integration/test-check-domain.py` (`:193`),
   `tests/integration/test-bash-write-guard.py` (`:297`), `tests/integration/test-dispatch-guard.py`
@@ -64,14 +64,14 @@ artifacts" (`grilling-...:12`). Every path in the plan:
 **No file falls outside the allowed surface.** The two T-08 paths are inside it by category; whether
 T-08 belongs to *this issue* is §4, not a surface violation.
 
-## 4 — T-08 (`dispatch-guard.sh _root_for`): RECOMMENDATION ONLY — strike it
+## 4 — T-08 (`dispatch-guard.py _root_for`): RECOMMENDATION ONLY — strike it
 
 **My recommendation, not a decision: STRIKE T-08 from this feature and file it as its own issue.**
 
 Reasoning. T-08's own intent concedes the enforcement hole is closed without it, because T-02
 resolves each claim by its `feature` field rather than by the registry file it sits in
 (`plan.yaml:490-492`, D-02 `:40`). What T-08 changes is *where a claim is recorded*
-(`dispatch-guard.sh:122` basename equality, `:126` owner-root fallback) — a different defect in a
+(`dispatch-guard.py:122` basename equality, `:126` owner-root fallback) — a different defect in a
 third gate, with its own regression surface: every consumer that asks `live_claim(root=owner_root)`
 stops seeing claims that move into a worktree registry. No REQ requires it (its `traces: [REQ-01]`
 is satisfiable without it), and rule 6 says take the weakest sufficient change. It is closest in
@@ -96,7 +96,7 @@ the intent's ban on "risk acceptance" (`grilling-...:28`):
 - **Reachability.** Not rare: the advisor measured 3 personas holding ≥2 live claims at the time of
   the probe (advisor note line 15), and D-03 correctly rests on unbuildability rather than on
   rarity — the honest ground survives the frequency.
-- **Direction of change.** Neither residue is a regression. Today `bash-write-guard.sh:794` allows
+- **Direction of change.** Neither residue is a regression. Today `bash-write-guard.py:794` allows
   *every* governed agent to write *every* worktree; the false-allow narrows that to same-persona
   concurrency. The false-refuse fails **closed**, with a REQ-06 message naming the worktrees held —
   an availability cost the agent can act on, not a silent harm.
@@ -143,7 +143,7 @@ construction under every task, T-08 included. Strike T-08 and the gap returns to
 
 ## Gaps found
 
-1. **gating** — No task or `verify:` covers `check-state.sh` exiting 0 or a full-suite regression,
+1. **gating** — No task or `verify:` covers `check-state.py` exiting 0 or a full-suite regression,
    though the intent names both as success (`grilling-...:9`). Eight tasks change two registered
    gates. Add a closeout verify or state explicitly that main-session closeout carries it.
 2. **gating** — A third same-persona-class residue is unstated *and* one task's intent can create
@@ -166,10 +166,10 @@ construction under every task, T-08 included. Strike T-08 and the gap returns to
    spread over D-01, D-05 and D-08. Either widen D-01's `choice` or re-scope SC-07 to the plan's
    `decisions:` block. Fixable pre-signature; unfixable after, since a change resets approval.
 5. **advisory** — T-06 places the Bash-route claim-set check "beside the existing
-   `feature_checkout_guard` calls" at `bash-write-guard.sh:841` and `:845` (`plan.yaml:385-390`).
+   `feature_checkout_guard` calls" at `bash-write-guard.py:841` and `:845` (`plan.yaml:385-390`).
    The `:840` branch fires on `allow` **and** `not_a_domain_question`, which is the `/tmp`
    pass-through SC-04 case 4 and T-05 case 14 require to stay exit 0. The Write route has no such
-   overlap — `not_a_domain_question` returns earlier at `check-domain.sh:908`. One clause ("in-repo
+   overlap — `not_a_domain_question` returns earlier at `check-domain.py:908`. One clause ("in-repo
    destinations only") removes the ambiguity; without it the build discovers it as a red case.
 6. **advisory** — T-03 case 7 / T-05 case 8 instruct asserting that the owner-root registry "WAS
    read" (`plan.yaml:226-230`, `:331-333`) without naming an observable that distinguishes it from

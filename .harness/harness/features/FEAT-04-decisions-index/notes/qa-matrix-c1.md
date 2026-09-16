@@ -35,18 +35,18 @@ a post-ship cache-read measure. Recorded as a coverage gap per protocol; not thi
 
 No task demanded a kind never produced. `matrix_ok: true`.
 
-Diff also carries unrelated fixes (`bash-write-guard.sh`, `check-domain.sh`, both with their own
+Diff also carries unrelated fixes (`bash-write-guard.py`, `check-domain.py`, both with their own
 `test-bash-write-guard.py`/`test-check-domain.py`, both `PASS` in the runner output) — not FEAT-04
 scope per PLAN's task table, already covered, not a gap.
 
 ## 2. SC-12 receipt — the check that was actually run
 
-Ran `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` directly, captured
+Ran `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` directly, captured
 combined stdout+stderr. **Check performed:** `grep -n 'MISCONFIGURED' <captured output>` → 0
 matches (not a grep for `SKIP` or a loose look at `test-gh-sync.py`'s own printed case names like
 `ok    gh missing -> SKIP, exit 0`, which are that file's test labels, not runner-emitted lines).
-Confirmed the runner's actual emission site: `run-unit-tests.sh:19` —
-`"MISCONFIGURED: $f is not in run-unit-tests.sh's explicit script list"` — a distinct string that
+Confirmed the runner's actual emission site: `run-unit-tests.py:19` —
+`"MISCONFIGURED: $f is not in run-unit-tests.py's explicit script list"` — a distinct string that
 did not appear anywhere in the captured output. Exit code: 0. `PASS test-gen-decisions-index.py`
 present at output line 137. **SC-12 satisfied**, on the correct discriminator.
 
@@ -87,7 +87,7 @@ cap logic. That confirms the coupling is a recurring, manual step, not a one-tim
 
 ## Findings already on record (per dispatch) — not re-litigated here
 
-DEC-102 index row supersession clause gap; `bash-write-guard.sh` heredoc/compound-line misparse;
+DEC-102 index row supersession clause gap; `bash-write-guard.py` heredoc/compound-line misparse;
 orchestrator playbook cost-append vs. placeholder duplicate-key; `.harness/**/*.md` as an
 undocumented `check-docs.sh` scan surface; a code/receipt-only member having no per-feature
 writable artifact beyond observations.

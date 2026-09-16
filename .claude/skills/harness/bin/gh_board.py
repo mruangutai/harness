@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The ONE implementation of the harness board's station rule (FEAT-18, T-02).
 
-Two consumers follow: `gh-sync.py` writes stations, `check-state.sh`'s INV-26 compares them.
+Two consumers follow: `gh-sync.py` writes stations, `check-state.py`'s INV-26 compares them.
 Two copies of this logic is precisely the drift this feature exists to remove, so everything
 about "which station is this at, and what should it be" lives here and nowhere else.
 
@@ -16,9 +16,9 @@ from here: its callers exit non-zero, and this module's callers must not (D-02 �
 is loud on stderr and the run continues).
 """
 
-import json
 import os
 
+import artifact_accessors
 import factory_config
 import factory_gh
 
@@ -51,12 +51,12 @@ def load_board(root):
     `github` not a mapping, the whole file not a mapping, and the file absent or unparseable.
     The last is arguably correct: a project with no `harness.json` genuinely has no board.
 
-    EXACTLY ONE unusable shape RAISES `factory_config.FleetError` naming the harness.json path
-    and the offending key: a `github` block that IS a mapping and carries no `board` key
+    EXACTLY ONE unusable shape RAISES `artifact_accessors.FleetError` naming the harness.json
+    path and the offending key: a `github` block that IS a mapping and carries no `board` key
     (indistinguishable from a typo — never treated the same as an explicit null). A `board`
     present but not a mapping, or carrying any field `factory_config.validate_board` rejects
-    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to catch this must import
-    `factory_config` and catch `factory_config.FleetError`.
+    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to
+    catch this must catch `artifact_accessors.FleetError`.
 
     Field validation itself — including the digit-string-to-int coercion for `number` — is
     delegated ENTIRELY to `factory_config.validate_board`, the one board validator in the tree
@@ -66,9 +66,8 @@ def load_board(root):
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path) as f:
-            cfg = json.load(f)
-    except (OSError, ValueError):
+        cfg = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError:
         return None
     if not isinstance(cfg, dict):
         return None
@@ -76,7 +75,7 @@ def load_board(root):
     if not isinstance(github, dict):
         return None
     if "board" not in github:
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             "board key missing", "github.board", f"declare github.board in {path}",
         )
     board = github["board"]
@@ -95,7 +94,7 @@ def derive_station(plan_doc):
     THE `board` PARAMETER IS GONE. Its only two uses were the two `board["stations"][...]`
     indexings this function no longer performs, and a parameter the body never reads would
     contradict this docstring's own claim that `plan.yaml` is the sole input. Both call sites —
-    check-state.sh's INV-26 and board_lifecycle — drop the argument. The station names are
+    check-state.py's INV-26 and board_lifecycle — drop the argument. The station names are
     spelled here as the lowercase literals they now are; the board's COLUMN name is derived
     later, once, by factory_config.station_column, and only when a value is actually written.
 
@@ -143,7 +142,7 @@ def project(plan_doc, rec):
 
     - Each task sub-issue gets its own task's station, VERBATIM AND WITH NO EXCEPTION. A task at
       the ready station projects to the ready station. The old ready-to-backlog exception —
-      carried from check-state.sh's `_EXPECT` comment on the grounds that `gh-sync open` lands
+      carried from check-state.py's `_EXPECT` comment on the grounds that `gh-sync open` lands
       every sub-issue in backlog — is DELETED by D-11. T-10's one-time board pass settles the
       consequence.
 
@@ -233,7 +232,7 @@ def _task_card(task_id, number, by_id, legal):
     if station not in legal:
         # NAMES THE TASK ID AND THE VALUE. `value` is what the operator can act on, so it
         # carries both — a station alone would not say which task to go fix.
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             f"task {task_id} station not in the vocabulary",
             f"{task_id}={station}",
             _station_remedy(f"set-task-station --task {task_id} "),
@@ -267,7 +266,7 @@ def _parent_station(plan_doc, legal):
     """
     top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
     if top is not None and top not in legal:
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             "the feature's top-level station is not in the vocabulary",
             str(top),
             _station_remedy(),

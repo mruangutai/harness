@@ -113,7 +113,7 @@ before signature. It is not recorded as true.
 | B-8 | `harness-team` seeded a colliding run id because `Glob` on `runs/*` matches files, not directories, clobbering a `state.yaml`. `runs/` is gitignored, so there is no recovery | bug |
 | B-10 | `SKILL.md:105-107` says handing off "stops being optional" at 2x the threshold — a mandate DEC-198 does not license, three lines after "the decision is yours". Not a gate; nothing enforces it | chore |
 | B-11 | Approval dates are day-granular, so a same-day amendment after signature is invisible to the record. Bit this feature twice | enhancement |
-| B-9 | **Reported by pm, unverified by me:** `bash-write-guard.sh` coverage is redirect-shaped, not write-shaped — it blocked a heredoc redirect to an out-of-domain path while a `python3 -c open(path,'w')` in the same tool ran unchecked. Nothing was evaded; the write performed was in-domain. Whoever tickets this should verify it before acting | bug |
+| B-9 | **Reported by pm, unverified by me:** `bash-write-guard.py` coverage is redirect-shaped, not write-shaped — it blocked a heredoc redirect to an out-of-domain path while a `python3 -c open(path,'w')` in the same tool ran unchecked. Nothing was evaded; the write performed was in-domain. Whoever tickets this should verify it before acting | bug |
 
 Already ticketed, cited not re-filed: **#803**, **#804**, **#805**, **#806**, **#808**.
 

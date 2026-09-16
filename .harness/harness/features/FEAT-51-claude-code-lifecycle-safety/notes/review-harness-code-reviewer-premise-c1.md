@@ -80,7 +80,7 @@ End-to-end reproduction, `mktemp -d` scratch root, canonical `feature.json` at
 `notquarantine` not `quarantine`), no claim in the registry for session `sess1`/feature
 `FEAT-TEST`:
 
-- Gate: `HARNESS_PROJECT_DIR=$SCRATCH3 plan-sign-gate.sh` fed `{"agent_type":
+- Gate: `HARNESS_PROJECT_DIR=$SCRATCH3 plan-sign-gate.py` fed `{"agent_type":
   "harness-backend-dev", "session_id": "sess1", "tool_input": {"command": "python3
   .../quarantine.py adopt --file $STAGED --root $SCRATCH3"}}` → **EXIT=0**, empty
   stdout/stderr — no refusal at all.

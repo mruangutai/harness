@@ -206,7 +206,7 @@ $ echo $?
 ### 6. Unit test runner exits 0
 
 ```
-$ HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ HARNESS_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ...
 917:PASS test-validate-feature-json.py
 ...

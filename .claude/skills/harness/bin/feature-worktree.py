@@ -11,7 +11,7 @@ cannot be asserted (D-01) — so the worktree lifecycle ships as one CLI here, w
                       The repository path segment is the literal "harness". The default branch
                       is "main".
   owner/repo         a repository declared in .harness/factory/fleet.yaml's repos list. The
-                      declaration is loaded with factory_config.load_fleet(), the entry found
+                      declaration is loaded with artifact_accessors.load_fleet(), the entry found
                       with factory_config.repo_entry(), owner_root taken from
                       factory_config.workspace_path(fleet, name), the repository path segment
                       from the part of the name after the slash, and the default branch from
@@ -30,6 +30,7 @@ import os
 import re
 import subprocess
 import sys
+import artifact_accessors
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -42,7 +43,7 @@ REFUSE_ON_DIRTY = True
 REQUIRE_LANDED = True
 
 # The flow-id form this CLI accepts: FEAT or BUG, a number, and an optional kebab slug — the same
-# vocabulary branch-create-gate.sh already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
+# vocabulary branch-create-gate.py already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
 _ID_RE = re.compile(r"^(FEAT|BUG)-[0-9]+[a-z0-9-]*$")
 
 
@@ -76,9 +77,9 @@ def resolve_repo(repo):
 
     import factory_config
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
         entry = factory_config.repo_entry(fleet, repo)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         sys.stderr.write(f"feature-worktree: {exc}\n")
         sys.exit(2)
 
@@ -334,7 +335,7 @@ def cmd_behind(args):
 
     NO THRESHOLD, DELIBERATELY. An earlier design gated on whether the missing commits
     touched `.claude/` or the decision docs, to stay quiet on ordinary drift. That
-    discriminator exists because the check was going to live in `check-state.sh`, which runs
+    discriminator exists because the check was going to live in `check-state.py`, which runs
     at every door AND before every commit. At the SHIP DOOR it runs once per ship, so any
     commit behind is worth stopping for and the fix is one merge.
 

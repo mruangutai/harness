@@ -31,7 +31,7 @@ Floor for this cycle: **`integration` only.** `unit` is not required.
 
 | kind | required? | cmd | outcome |
 |---|---|---|---|
-| integration | yes (predicate fired) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | **pass** — exit 0, 49 files, 0 `^FAIL` lines anywhere in the run; `test-check-domain.py` itself reported `PASS test-check-domain.py (exit 0, 86.66s)` (artifact: `/tmp/bug151_integration_kind.txt`) |
+| integration | yes (predicate fired) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | **pass** — exit 0, 49 files, 0 `^FAIL` lines anywhere in the run; `test-check-domain.py` itself reported `PASS test-check-domain.py (exit 0, 86.66s)` (artifact: `/tmp/bug151_integration_kind.txt`) |
 | unit | no | — | not required; not run |
 
 No kind in the matrix has a null `cmd` obligated by this diff, so there is no BLOCKED state to

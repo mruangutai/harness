@@ -12,8 +12,8 @@ recommended single apply.
 
 - `feature_schema.py:226` — the one definition (`BUILD_ENTRY_ERA_EXEMPT = {...}`).
 - `gh-sync.py:1361,1380` — reads `feature_schema.BUILD_ENTRY_ERA_EXEMPT` directly.
-- `check-state.sh:2002` — reads `_fs37.BUILD_ENTRY_ERA_EXEMPT` (imported at `check-state.sh:1987`).
-- `post-merge-sweep.sh:223` — reads `feature_schema.BUILD_ENTRY_ERA_EXEMPT` (imported at line 42,
+- `check-state.py:2002` — reads `_fs37.BUILD_ENTRY_ERA_EXEMPT` (imported at `check-state.py:1987`).
+- `post-merge-sweep.py:223` — reads `feature_schema.BUILD_ENTRY_ERA_EXEMPT` (imported at line 42,
   after `sys.path.insert` at line 38 — the heredoc **can** import; it already does, for this and
   three other modules, so nothing here is import-blocked).
 - `merge-gate.py:132` — reads `feature_schema.BUILD_ENTRY_ERA_EXEMPT` (imported at line 11).
@@ -48,7 +48,7 @@ available); it should stay as-is. The new helper is for callers that already hol
 ### 2 — the terminal-allow-set `{"opened", "not-applicable", "recovered-terminal"}` is a literal restated twice, not imported
 
 - `merge-gate.py:135` — `if entry in {"opened", "not-applicable", "recovered-terminal"}:`
-- `post-merge-sweep.sh:228` — `elif entry not in {"opened", "not-applicable", "recovered-terminal"}:`
+- `post-merge-sweep.py:228` — `elif entry not in {"opened", "not-applicable", "recovered-terminal"}:`
 
 Both files already `import feature_schema` (for `BUILD_ENTRY_ERA_EXEMPT`), so nothing blocks either
 from reading a shared constant instead. No such constant exists in `feature_schema.py` today.
@@ -66,7 +66,7 @@ behavior, never against the literal set's source text, so this substitution chan
 ## Checked, not flagged
 
 - **Recovery-notice sentence** (`recover-terminal <path> --yes`) at `gh-sync.py:1368-1369,1373-1374,
-  1384-1385`, `merge-gate.py:133`, `post-merge-sweep.sh:227,232`: each occurrence is a distinct full
+  1384-1385`, `merge-gate.py:133`, `post-merge-sweep.py:227,232`: each occurrence is a distinct full
   sentence with its own prefix (`refuse(...)` vs. two different `print(..., file=sys.stderr)`
   notices), not a restated constant — only the trailing clause is shared prose, and per the
   dispatch's own framing each site's full wording is independently asserted by a test. Not worth

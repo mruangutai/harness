@@ -36,7 +36,7 @@ test-check-state.py` → **no output**. SC-01's amended command returns exactly,
 | SC | Verdict | token | scope | Sufficiency finding |
 |---|---|---|---|---|
 | SC-01 | met | **FAIL** | **FAIL** | The clean illustration. All five tokens are **compound**; MF-1 sat *inside* the scope path and was invisible to every one (`cost vs budget`, plain English) → **token**. MF-3 (`.harness/expertise/`) is *outside* the stated path entirely → **scope**. Met on a method that cannot detect the class it exists to detect. |
-| SC-02 | met | OK | OK | Sufficient. `run-unit-tests.sh:9-24` exits 2 on any unlisted `test-*.py`, so a reinstated `test-cost-report.py` fails the same command — the absence claim is actively policed, not merely observed. |
+| SC-02 | met | OK | OK | Sufficient. `run-unit-tests.py:9-24` exits 2 on any unlisted `test-*.py`, so a reinstated `test-cost-report.py` fails the same command — the absence claim is actively policed, not merely observed. |
 | SC-03 | met | OK | **FAIL** | **False-negative-producing, the opposite direction from SC-01.** Repo-wide, so unrelated in-flight state can fail it. Already visible: its output's only content is 8 `note` lines, one of which is FEAT-08's own orphaned `goalcheck-product` run dir — nothing to do with cost. Hazard dormant only because FEAT-09 is in a worktree (Q6). |
 | SC-04 | met | OK | OK | Sufficient. The detector was **red at `ae2443d`** for the missing required field, per its own comment (`test-validate-digest.py:765-769`) — a passing green that only the deletion can produce. |
 | SC-05 | **not_met (wording)** | OK | **FAIL** | Line-granularity diff used as proxy for a semantic claim → **false positive**. Clause 1 met; clause 2 literally fails on one line. Intent fully satisfied. |
@@ -60,7 +60,7 @@ Separately: A-4 §1 cites the SPEC marker at `:2129`; it is at **`:2126`**.
 
 ### SC-05 — the literal failure, so nobody routes a fix at correct code
 
-`git diff ae2443d..HEAD -- check-state.sh SKILL.md | grep -E '^[-+].*cycles_used'` returns:
+`git diff ae2443d..HEAD -- check-state.py SKILL.md | grep -E '^[-+].*cycles_used'` returns:
 
 ```
 -    "cycles_used", "cost",
@@ -70,7 +70,7 @@ Separately: A-4 §1 cites the SPEC marker at `:2129`; it is at **`:2126`**.
 A changed line mentioning `cycles_used`. **Intent is satisfied**: `max_total_cycles` and
 `_max_total_cycles_rationale` are present and byte-identical in both configs
 (`.harness/harness.json:137-138`, `templates/harness.json:139-140`), and the change only split
-`"cost"` onto its own line under a four-line HISTORICAL-ONLY comment (`check-state.sh:331-335`) —
+`"cost"` onto its own line under a four-line HISTORICAL-ONLY comment (`check-state.py:331-335`) —
 whose own text says it avoids the quoted spelling *because a `verify:` counts that spelling*.
 **Red on wording, not on delivery.**
 

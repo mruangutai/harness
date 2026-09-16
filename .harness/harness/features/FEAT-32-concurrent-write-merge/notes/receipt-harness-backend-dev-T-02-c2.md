@@ -12,7 +12,7 @@ file content" was true of case 5 only — case 6 had no trials and reported byte
 
 Built the discriminating mutant per the dispatch: copied `bin/` via
 `python3 -c "shutil.copytree(...)"` (the same `cp`-avoidance substitution accepted in cycle 1 —
-`bash-write-guard.sh` denies a literal `cp` with a variable target) into a tmpdir, then mutated
+`bash-write-guard.py` denies a literal `cp` with a variable target) into a tmpdir, then mutated
 `harness_merge.py`'s `locked_update` BY NAME, replacing the mkstemp-plus-`os.replace` block with a
 direct `open(path, "wb")` write to the target, with `assert m != s` guarding the substitution
 applied (mirrors the task's own `USE_FLOCK` mutation pattern).
@@ -73,7 +73,7 @@ unmutated 4 times (once plus 3 more), 18/18 checks passed every time, no flake.
 
 Ran the block verbatim (same one accepted substitution: `cp -R` → `python3 -c
 "shutil.copytree(...)"`, because the literal `cp` with a `$T` variable target is denied by
-`bash-write-guard.sh` before the shell expands `$T`):
+`bash-write-guard.py` before the shell expands `$T`):
 
 ```
 PASS - case1: transform receives None for missing file
@@ -115,11 +115,11 @@ exit=1
 All other 16 checks (now 18 total with the two new case-6 assertions) still pass — case 4 and only
 case 4 is flock-dependent, unchanged from cycle 1.
 
-## `run-unit-tests.sh --check-kinds`
+## `run-unit-tests.py --check-kinds`
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
-MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.sh's
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.py's
 explicit script list
 (exit 2)
 ```
@@ -130,7 +130,7 @@ untracked file already in the worktree before this run (present in cycle 1's `gi
 authored by me — see cycle-1 receipt's files-written list, which does not include it); the script
 evidently reports the first unregistered script it finds alphabetically, and `test-harness-merge.py`
 is equally unregistered and would trip the same check. Registering either is T-10's job, not
-mine — did not touch `run-unit-tests.sh` or `.harness/harness.json`.
+mine — did not touch `run-unit-tests.py` or `.harness/harness.json`.
 
 ## Rules followed
 
@@ -140,7 +140,7 @@ mine — did not touch `run-unit-tests.sh` or `.harness/harness.json`.
   is empty.
 - `cp -R` → `python3 -c "shutil.copytree(...)"` substitution reused and declared, per the accepted
   cycle-1 precedent.
-- Did not touch `run-unit-tests.sh`, `.harness/harness.json`, or any DEC-174 surface.
+- Did not touch `run-unit-tests.py`, `.harness/harness.json`, or any DEC-174 surface.
 
 ## Open items
 

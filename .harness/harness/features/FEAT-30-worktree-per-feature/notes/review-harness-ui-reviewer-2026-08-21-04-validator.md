@@ -28,14 +28,14 @@ markup, nothing a human renders and judges by appearance.
 
 ## Adjacent question (per dispatch): operator-facing CLI output intelligibility
 
-Checked `feature-worktree.py`'s stdout/stderr lines and `bash-write-guard.sh`'s refusal text.
+Checked `feature-worktree.py`'s stdout/stderr lines and `bash-write-guard.py`'s refusal text.
 
 - `feature-worktree.py`: every error line is `feature-worktree: <subcommand>: <what> <value>` (e.g.
   `create: destination already exists: <dest>`, `remove: not a linked worktree of <root>: <dest>`);
   status lines during removal are single verbs + path (`WOULD DISCARD <path>`, `MISSING <rel>`,
   `DIFFERS <rel>`, `VERIFIED <rel>`, `REMOVED <dest>`). Consistent grammar, names the noun and the
   path in every case. Intelligible.
-- `bash-write-guard.sh`: refusals follow `bash-write-guard: BLOCKED — <reason>`, and the reason
+- `bash-write-guard.py`: refusals follow `bash-write-guard: BLOCKED — <reason>`, and the reason
   names the specific subcommand and why it is undecidable/refused (e.g. "`git worktree <sub>`
   carrying a force flag..."). Intelligible.
 

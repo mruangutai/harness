@@ -64,7 +64,7 @@ Nothing here gates. On acceptance these become issues in one pass; **anything yo
 
 | # | Item | Nature |
 |---|---|---|
-| 1 | **#36** (filed) — `run-unit-tests.sh` exits 2 with a bogus `MISCONFIGURED` error outside the repo root | bug |
+| 1 | **#36** (filed) — `run-unit-tests.py` exits 2 with a bogus `MISCONFIGURED` error outside the repo root | bug |
 | 2 | **#19** (filed) — no agent ever runs a PLAN task's `verify:` command | enhancement |
 | 3 | **#37** (filed) — `adequacy_notes` is load-bearing across tiers and absent from the digest schema | bug |
 | 4 | `DECISIONS.md:1634` and `:630` still show the ship-feature panel as three-wide | chore |

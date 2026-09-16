@@ -80,7 +80,7 @@ the gates around it stay green. Whether the procedure actually onboards a reposi
 UAT and on nothing else. There has been no dry run against a real new repository, and that is stated
 in the brief's own `## Verification gaps` rather than discovered later.
 
-**REQ-05 has no standing invariant behind it, by design.** `check-state.sh` never reads a member's
+**REQ-05 has no standing invariant behind it, by design.** `check-state.py` never reads a member's
 config from its remote, so a member whose config is deleted after onboarding stays invisible until
 the next build. `--check-product-configs` is operator-run. DEC-220 now says so.
 
@@ -106,8 +106,8 @@ Unstruck rows become issues on your acceptance. **Anything not listed here dies 
 | B-6 | bug | Subagent returns intermittently arrive as `failed (exit 1)` with "called yield with null data" while a well-formed VERDICT/DIGEST block is present in the final turn. Hit at least three times this feature; routing on the exit code alone would have re-spent each spawn. |
 | B-7 | bug | `harness-code-reviewer`'s return carried no VERDICT while its artifact was complete; one re-prompt recovered it. A channel that drops the verdict but keeps the artifact defeats `validate-digest.py` on the parent's side. |
 | B-8 | chore | Plan task T-06's title still says "regenerating the omp adapter"; it is the Claude adapter that is regenerated. No gate reads the title. |
-| B-9 | chore | Plan task T-03's intent names `tests/fixtures/prior-check-domain.sh.fixture`; the file is at `tests/integration/fixtures/`. Text only — the fixture was untouched either way. |
+| B-9 | chore | Plan task T-03's intent names `tests/fixtures/prior-check-domain.py.fixture`; the file is at `tests/integration/fixtures/`. Text only — the fixture was untouched either way. |
 | B-10 | chore | `BUILD.md` carries two differently-worded counts at `@104` and `@399/@401` for different subjects. Each is internally consistent; neither was changed. |
 | B-11 | enhancement | `--repo` narrows `declared` to the requested member, so a single-repo exit 0 is not a fleet-wide all-clear. The skill says so; nothing enforces it. |
-| B-12 | bug | `check-state.sh` INV-29 reports six standing worktrees for features that already reached a terminal state, none of them this feature's. |
+| B-12 | bug | `check-state.py` INV-29 reports six standing worktrees for features that already reached a terminal state, none of them this feature's. |
 | B-13 | chore | T-06's verify does not run `check-instruction-paths.py`, which is how that task landed four unanchored paths that a later task's gate caught. Task verifies for instruction-file surfaces should include the scanner.

@@ -32,8 +32,8 @@ floor addition, per DEC-217's own rationale against ceremonial unit coverage.
 
 | kind | state | cmd | exit | tally (verbatim) |
 |---|---|---|---|---|
-| `integration` | **missing** (→ FAIL) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | see below — kind's own `detect` (`tests/integration/**`) matches nothing in the diff |
-| `unit` (extra, not required) | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | see below |
+| `integration` | **missing** (→ FAIL) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | see below — kind's own `detect` (`tests/integration/**`) matches nothing in the diff |
+| `unit` (extra, not required) | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | see below |
 
 **Integration presence, resolved honestly (per dispatch item 2).** DEC-35's presence rule as
 stated in the dispatch is "the diff itself contains the test exercising the change." Two readings
@@ -64,7 +64,7 @@ directory-label mismatch for this specific increment — that is not mine to dec
 Command output (verbatim tallies):
 
 ```
-$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration
 ... (46 files: test-factory-decompose.py, test-feature-worktree.py, test-factory-integration.py,
     test-layout-migration.py, test-check-state.py, test-gh-sync.py, test-check-domain.py, ...)
 pool: 8 workers, 46 files, 62.75s wall
@@ -74,7 +74,7 @@ EXIT=0
 `grep -c '^FAIL '` on that output = 0. None of the 46 files is a member of this diff.
 
 ```
-$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
 ----- test-factory-claim.py (exit 0, 0.13s) -----
 PASS test-factory-claim.py
 ----- test-factory-claim-mutation.py (exit 0, 0.21s) -----

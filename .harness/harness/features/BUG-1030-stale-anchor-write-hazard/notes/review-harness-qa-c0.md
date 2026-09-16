@@ -6,13 +6,13 @@ DIGEST:
   failures: 1
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 455 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 581 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 455 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 581 }
     - { kind: ts-unit-omp-hooks, state: satisfied, cmd: "bun test ./.claude/skills/harness/bin/omp-hooks.test.ts (run manually — NOT wired into any declared test_kinds cmd)", named_tests: 48 }
   coverage_gaps:
     - "harness-hooks.ts:234 (preDomain's edit branch, PreToolUse, no --post) — every new edit-route case drives tool_result (postDomain) only; zero tool_call cases use toolName edit. Mutation-confirmed unreachable by the suite (neutering it: 47 pass/1 fail, byte-identical to baseline's 1 pre-existing environmental fail)."
     - "test-factory-decompose.py case_22's 3 richest assertions (dest-is-fixture, source-in-same-dir, source-parses-as-YAML-with-factory-key) never execute on this OS: fake_open/fake_replace gate on os.path.abspath(x)==os.path.abspath(feature_json_path), but harness_merge resolves via os.path.realpath, and macOS resolves /var -> /private/var. Directly verified with REAL captured values from a live run: abspath('/private/var/folders/.../feature.json') != abspath('/var/folders/.../feature.json') -> False. The gate never fires for any call, on any of the ~90 scenarios that reach it, not just case 22."
-    - "omp-hooks.test.ts is matched by test_kinds.unit's detect glob (**/*.test.*) but NOT executed by unit's cmd (run-unit-tests.sh's UNIT_SCRIPTS array has no bun/TS entries at all) — the kind reports satisfied for Python while the TS suite this diff most changes has no standing execution path in harness.json. I ran it manually; nothing in the matrix machinery would have."
+    - "omp-hooks.test.ts is matched by test_kinds.unit's detect glob (**/*.test.*) but NOT executed by unit's cmd (run-unit-tests.py's UNIT_SCRIPTS array has no bun/TS entries at all) — the kind reports satisfied for Python while the TS suite this diff most changes has no standing execution path in harness.json. I ran it manually; nothing in the matrix machinery would have."
     - "No BRIEF.md/plan.yaml exists for this feature (handoff-plan.md: 'There was no plan seam... Do not grade this against success criteria. There are none.'). sc_evidence is empty because there is nothing to cite evidence against."
   sc_evidence: []
   open_questions:
@@ -38,7 +38,7 @@ sibling reviewers' untracked artifact files, none touched.
 No `BRIEF.md`, no `plan.yaml` — `handoff-plan.md` states this plainly: "There was no plan seam...
 Do not grade this against success criteria. There are none." From issue #1030 and the analysis
 note's own S1/S2/S3 remedy list (the only spec surrogate available) I expected: (a) test coverage
-proving the OMP edit route reaches `check-domain.sh` for both hook phases (pre AND post), (b) a
+proving the OMP edit route reaches `check-domain.py` for both hook phases (pre AND post), (b) a
 non-blocking notice when the edit-route extraction yields nothing, (c) every Python `feature.json`
 writer routed through one locked core with its never-create/path-shape/schema policies pinned
 per-caller. Phase 2 below is scored against this list.
@@ -51,7 +51,7 @@ floors `unit` + `integration` (also satisfies `bugfix`'s `unit` floor). Both ran
 unrelated pre-existing environmental failure (`test-validate-feature-json.py`, not in the diff —
 fails only because this worktree's live `.harness` tree has 41 real `feature.json` files, which its
 own fixture assumes zero of; confirmed unrelated by `git diff --stat` showing neither
-`validate-feature-json.py` nor its test touched). `run-unit-tests.sh --kind unit`: 455 named PASS,
+`validate-feature-json.py` nor its test touched). `run-unit-tests.py --kind unit`: 455 named PASS,
 1 unrelated FAIL. `--kind integration`: 581 named PASS, 0 FAIL. `bun test omp-hooks.test.ts`: 48/48
 — **run manually**; nothing in `test_kinds.unit`'s `cmd` (the `UNIT_SCRIPTS` bash array) executes
 any `.test.ts` file despite the `detect` glob matching one. Flagged as a coverage gap, not a matrix

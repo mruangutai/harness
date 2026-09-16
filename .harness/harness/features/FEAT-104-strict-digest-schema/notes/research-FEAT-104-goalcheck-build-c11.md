@@ -18,10 +18,10 @@ from the c9 note. Every c9 pointer still resolves, but many drifted — see Anch
 | REQ | verdict | pointer at the pin |
 |---|---|---|
 | REQ-01 | met | key set closed inside `validate()`: `validate-digest.py:1407` (`raw_persona != "lead"`) → `:1415` `undeclared digest key(s)`; hook exit 2 asserted `test-validate-digest.py:3155-3159` |
-| REQ-02 | met | creation floor `check-domain.sh:1586,1608` (`schema_version floor`); step check `:1663-1682` (both `missing required step key.` and `undeclared step key or evidence shape.`); four creation fixtures `test-check-domain.py:135-153` |
+| REQ-02 | met | creation floor `check-domain.py:1586,1608` (`schema_version floor`); step check `:1663-1682` (both `missing required step key.` and `undeclared step key or evidence shape.`); four creation fixtures `test-check-domain.py:135-153` |
 | REQ-03 | met | `run-state-schema.json:45-49` — `evidence` object, `propertyNames ^[a-z][a-z0-9_]*$`, scalar/scalar-array values, `additionalProperties: false` at step level |
 | REQ-04 | met | re-counted row-by-row at the pin: `DOCUMENTED_OPTIONAL` `validate-digest.py:248-280` = 17 rows / **16 distinct** names (`in_scope` twice), 1:1 with the test's `_t01_documented_values` `test-validate-digest.py:2962-2976`; `PASSTHROUGH["lead"]` `:235-243` = the 5 rows; `prototype` carried by `NULLABLE` `:54` |
-| REQ-05 | met | digest refusal names every key + route `validate-digest.py:1415-1421`; step refusal names every key + route `check-domain.sh:1667,1674,1682` |
+| REQ-05 | met | digest refusal names every key + route `validate-digest.py:1415-1421`; step refusal names every key + route `check-domain.py:1667,1674,1682` |
 | REQ-06 | met | `stop_hook_active` guard `validate-digest.py:1828`, ahead of every `validate()` call; written down as DEC-223 (`DECISIONS.md:7092`, "one-shot sufficient" at `:7127-7128`) |
 | REQ-07 | met | `SCHEMAS["lead"]` requires `adequacy_notes` `validate-digest.py:209`; documented `.claude/skills/harness-team/SKILL.md:264`; generic-`lead` archive path keeps it optional `:1248-1250` |
 | REQ-08 | met | archive exemption `validate-digest.py:1407`; version-1 update accepted `test-check-domain.py:156-164`; SC-12 executed below — 728 artifacts, 0 changed, 0 vanished |
@@ -71,7 +71,7 @@ The criterion demands the declaration route be named **by file and symbol** and 
   strict.stderr and "run-state-schema.json" in strict.stderr and "`evidence`" in strict.stderr`.
   **The route file `run-state-schema.json` and the symbol `` `evidence` `` are each required as
   substrings** — this is the assertion the c9 note found missing, and it is present at
-  `984bd26b`. Emission side: `check-domain.sh:1671` head, `:1674` route, `:1682` pointer.
+  `984bd26b`. Emission side: `check-domain.py:1671` head, `:1674` route, `:1682` pointer.
 - **MEASURED here:** `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py` →
   **13/13 T-06 cases passed, exit 0, `ALL PASSED`**. The file is byte-identical between `984bd26b`
   and the worktree HEAD (`git diff --name-only 984bd26b HEAD` lists only `.harness/` artifacts), so
@@ -79,9 +79,9 @@ The criterion demands the declaration route be named **by file and symbol** and 
 - **AT-REST seam — does not need the assertion.** `tests/integration/test-check-state.py:51-54`
   asserts only `run`, `step` and `key` (`r1`, `strict-step`, `rogue_step_key`) and no route.
   **Ruling: SC-08 is satisfied without it.** SC-08 grades *rejection* text — a refused digest return
-  (REQ-01) and a refused `steps[]` write (REQ-02). `check-state.sh`'s INV-16 is an at-rest **report**
+  (REQ-01) and a refused `steps[]` write (REQ-02). `check-state.py`'s INV-16 is an at-rest **report**
   over already-written artifacts, not a rejection, and REQ-08 forbids acting on historical ones. The
-  emission there does carry the route anyway (`check-state.sh:1526-1528`), so the behaviour is
+  emission there does carry the route anyway (`check-state.py:1526-1528`), so the behaviour is
   present-but-unasserted; recorded as a recommendation, not an unmet criterion.
 
 ## SC-12 — executed in THIS run, both halves
@@ -100,11 +100,11 @@ running; identical. Run from the OWNER ROOT `/Users/molchairuangutai/GitHub/harn
 ## SC-13 — `pending-operator`, the sole remaining item
 
 **In one line: the operator must read the diff of the four DEC-174 carve-out files —
-`validate-digest.py`, `check-domain.sh`, `check-state.sh` and their tests — and confirm it changes
+`validate-digest.py`, `check-domain.py`, `check-state.py` and their tests — and confirm it changes
 nothing beyond the declared contract.** Concrete items to look at: **CF-1** (unescaped `run_id` /
-step-id interpolation in `check-state.sh`'s INV-16 at-rest message, `check-state.sh:1525-1526`,
+step-id interpolation in `check-state.py`'s INV-16 at-rest message, `check-state.py:1525-1526`,
 security `med`, re-measured byte-identical this cycle) and **CF-4** (raw Python `None` reaching the
-`schema_version` downgrade message, `check-domain.sh` downgrade branch near `:1608`, `low`). The c11
+`schema_version` downgrade message, `check-domain.py` downgrade branch near `:1608`, `low`). The c11
 panel adds **Q14** (`med`): a declared step key with a type violation prints under the
 *undeclared* head with a remedy that, followed literally, yields `evidence: {cycles: "3"}` accepted
 at exit 0 while the step-level field is silently lost — one branch inside the carve-out.
@@ -112,9 +112,9 @@ at exit 0 while the step-level field is silently lost — one branch inside the 
 ## Anchor drift from the c9 note — every pointer re-located, none vanished
 
 The `790023f0` fix inserted the `missing required step key` branch and its case, shifting anchors
-below it. `check-domain.sh:1653-1658` → `:1663-1682`; `test-check-domain.py:85-87` → `:87-91`,
+below it. `check-domain.py:1653-1658` → `:1663-1682`; `test-check-domain.py:85-87` → `:87-91`,
 `:102-111` → `:111-118`, `:114-124` → `:122-132`, `:127-145` → `:135-153`, `:148-156` → `:156-164`;
-`check-state.sh:1527-1529` → `:1526-1528`. All re-derived by content string. **No c9 pointer failed
+`check-state.py:1527-1529` → `:1526-1528`. All re-derived by content string. **No c9 pointer failed
 to resolve** — but the c9 SC-08 verdict itself is falsified at this pin, which is why it was graded
 fresh rather than carried.
 
@@ -124,10 +124,10 @@ None is an unmet SC; the BRIEF states none of them. Each is routed in `open_ques
 RECOMMENDATION, and each judged new-vs-covered.
 
 - **R1 — at-rest route assertion (NEW, uncovered).** `test-check-state.py:51-54` asserts no route
-  string, though `check-state.sh:1526-1528` emits one. Outside SC-08's subject (see the ruling
+  string, though `check-state.py:1526-1528` emits one. Outside SC-08's subject (see the ruling
   above); a one-line addition inside the DEC-174 carve-out whenever that file is next touched.
 - **R2 — Q17, seam pinned by invocation path (COVERED by the panel, non-gating).**
-  `undeclared step key` has two producers (`check-domain.sh:1671`, `check-state.sh:1526`); the step
+  `undeclared step key` has two producers (`check-domain.py:1671`, `check-state.py:1526`); the step
   case discriminates because it fires a Write hook, not because the phrase is unique.
 - **R3 — Q14 remedy prose (COVERED by the panel at `med`, advisory).** Carve-out fix; an operator
   decision, never a fix cycle.

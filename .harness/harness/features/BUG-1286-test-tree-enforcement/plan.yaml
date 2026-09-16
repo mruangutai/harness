@@ -132,7 +132,7 @@ decisions:
     because: >-
       the ownership condition scopes repository-wide enforcement to a checkout whose own index carries
       this predicate at that exact relative path, and violations() has exactly one caller, Harness's own
-      run-unit-tests.sh (pinned by the runner-delegates-layout-once assertion at
+      run-unit-tests.py (pinned by the runner-delegates-layout-once assertion at
       tests/unit/test-suite-layout.py lines 136 to 139), so a product checkout is reached by neither the
       clause nor the runner; DEC-189 (DECISIONS.md heading "The write guard resolves against two bases")
       records that the factory works on repositories it does not contain, that a product repo is checked
@@ -493,7 +493,7 @@ tasks:
       - tests/unit/test-suite-layout.py
       - .claude/skills/harness/bin/suite_layout.py
     verify: |
-      python3 tests/unit/test-suite-layout.py && .claude/skills/harness/bin/run-unit-tests.sh --check-layout
+      python3 tests/unit/test-suite-layout.py && .claude/skills/harness/bin/run-unit-tests.py --check-layout
     intent: |
       Extend suite_layout.violations(root) so it also refuses every TRACKED test-shaped file outside
       tests/, and write the covering assertions in tests/unit/test-suite-layout.py FIRST, observing
@@ -851,7 +851,7 @@ tasks:
            This case is ADDITIVE. The existing "unit detect matches template" and "unit detect excludes
            .claude" assertions are kept exactly as they are and are not replaced by it.
       Case 11 READS .harness/harness.json and must not write it. Do not modify .harness/harness.json,
-      run-unit-tests.sh, or any file outside the two named here.
+      run-unit-tests.py, or any file outside the two named here.
   - id: T-02
     title: Prove the runner presents the refusal before any test sentinel runs
     traces: [REQ-01, REQ-02, REQ-03]
@@ -866,7 +866,7 @@ tasks:
       python3 tests/integration/test-run-unit-tests-layout.py
     intent: |
       Add integration coverage to tests/integration/test-run-unit-tests-layout.py for the
-      repository-wide clause, driving the real .claude/skills/harness/bin/run-unit-tests.sh through
+      repository-wide clause, driving the real .claude/skills/harness/bin/run-unit-tests.py through
       the existing tree() and run() helpers. Keep every existing case and its expectations unchanged.
 
       Add a git_tree() helper that builds tree() and then makes it a real checkout: git init -b main,
@@ -889,7 +889,7 @@ tasks:
         5. untracked control: git_tree() with the rogue file written but not added returns 0 and runs
            both sentinels.
       Use only subprocess, tempfile, shutil and pathlib as the file already does, keep the per-case
-      check() reporting, and do not edit run-unit-tests.sh or suite_layout.py.
+      check() reporting, and do not edit run-unit-tests.py or suite_layout.py.
   - id: T-03
     title: Add a re-runnable tree-audit census subcommand for any ref
     traces: [REQ-06]

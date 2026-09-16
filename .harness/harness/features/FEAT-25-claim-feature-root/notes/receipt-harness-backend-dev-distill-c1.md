@@ -67,4 +67,4 @@ expertise_update:
 
 ## Checker
 
-`.claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-backend-dev.md` → `OK`.
+`.claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-backend-dev.md` → `OK`.

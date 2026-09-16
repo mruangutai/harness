@@ -35,7 +35,7 @@ Then: T-17, qa gate, simplify, pin `review_sha` at a commit CONTAINING the work,
   `test_kinds.integration.detect`, victim eighth. Root cause is a contradiction inside T-08's intent:
   "fresh `mkdtemp()` for every case" (`:1225-1226`) vs "EDIT NONE … cases 1-5" (`:1223`, `:1250`)
 - The index is CLEAN at HEAD (generated == committed, diff exit 0, isolated tree) — verified-at 016be31
-- The nine main-session tasks are **NOT** in `runs:` and must not be added (harness.json budgets rationale). `cycles_used` **3** of 10 — T-13's ESCALATE is a gate defect, not rework. Runs **14** of 20. Sole `check-state.sh` VIOLATION is FEAT-26's unapproved BRIEF, pre-existing — verified-at 016be31
+- The nine main-session tasks are **NOT** in `runs:` and must not be added (harness.json budgets rationale). `cycles_used` **3** of 10 — T-13's ESCALATE is a gate defect, not rework. Runs **14** of 20. Sole `check-state.py` VIOLATION is FEAT-26's unapproved BRIEF, pre-existing — verified-at 016be31
 
 ## Dead ends
 

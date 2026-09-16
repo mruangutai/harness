@@ -1,11 +1,11 @@
-# check-state.sh gate-reachability probe — FEAT-48 cycle 6
+# check-state.py gate-reachability probe — FEAT-48 cycle 6
 
 ## Command run
 ```
 cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-48-parallel-safe-suite && \
-bash .claude/skills/harness/bin/check-state.sh; echo "EXIT=$?"
+python3 .claude/skills/harness/bin/check-state.py; echo "EXIT=$?"
 ```
-`check-state.sh` takes no CLI arguments — it self-resolves its harness root via
+`check-state.py` takes no CLI arguments — it self-resolves its harness root via
 `harness_boundary.resolve_root()` from its own directory (never cwd/env) and then sweeps the
 **entire repo tree**, not a single feature. It refused to run only if the root is unresolvable
 (`exit 2`); here it resolved and ran to completion.
@@ -19,7 +19,7 @@ that answer the three questions).
 
 **No.** Grepped the full captured output for `digest\.md is|INV-15|lead digest contract` and for
 `2026-09-01-08-validator` — zero matches on every pattern. The INV-15 check (source at
-`check-state.sh:1330-1444`, DEC-156) is the only lead-digest-contract invariant in this script; its
+`check-state.py:1330-1444`, DEC-156) is the only lead-digest-contract invariant in this script; its
 failure line reads `"{run}: run is complete but digest.md is missing…"` or `"…fails the lead digest
 contract — a successor reads this file, not the transcript (DEC-156)."` Neither string, nor any
 `FEAT-48` line referencing `digest.md`, appears anywhere in the run.
@@ -32,7 +32,7 @@ carries a passing digest.
 
 ## c. Overall exit code and remaining reasons
 
-Exit code **1** (`bad` list non-empty; per `check-state.sh:2394`, `sys.exit(1 if bad else 0)` —
+Exit code **1** (`bad` list non-empty; per `check-state.py:2394`, `sys.exit(1 if bad else 0)` —
 `note`/warn lines never affect the exit code). Four `VIOLATION` lines total, **none run-digest
 related**:
 
@@ -50,6 +50,6 @@ pruned-run-dir notices, etc.) are warnings only and do not gate the exit code; n
 `runs/**/digest.md`.
 
 ## Conclusion
-The repair is reachable by the gate: `check-state.sh` no longer flags
+The repair is reachable by the gate: `check-state.py` no longer flags
 `runs/2026-09-01-08-validator/digest.md`, and no other run digest is flagged for the lead-digest
 contract. The gate's exit-1 status is driven entirely by four pre-existing, unrelated violations.

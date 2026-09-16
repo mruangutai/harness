@@ -10,7 +10,7 @@ step with its own red/then-green requirement, and SC-09 requires end-to-end pass
 scoped run at T-02/T-03/T-04 could not substitute for it.
 
 **Limitation, stated per the dispatch's constraint:** I did not run either test file or
-`run-unit-tests.sh`. Every cost below is a structural estimate from reading the code (operation
+`run-unit-tests.py`. Every cost below is a structural estimate from reading the code (operation
 counts, subprocess counts, file sizes), not a measurement. Where I say "within bound" that is an
 estimate, never a timed result.
 
@@ -30,11 +30,11 @@ estimate, never a timed result.
   `legal_tree()` builds (loop×2, line 91, line 286) and 3 bare `tempfile.TemporaryDirectory()`
   shape probes (lines 123–138).
 - Net: on the order of 20+ subprocess spawns and 90+ file reads per run. This is the file's
-  existing baseline, already inside the `run-unit-tests.sh --kind unit` CI gate today, per the
+  existing baseline, already inside the `run-unit-tests.py --kind unit` CI gate today, per the
   dispatch's framing — not a cost this plan introduces.
 
 `tests/integration/test-run-unit-tests-layout.py` (136 lines): ~10 fresh git-tree fixtures, each
-`subprocess.run`-ing the real `run-unit-tests.sh` end to end (`timeout=60` per invocation, line
+`subprocess.run`-ing the real `run-unit-tests.py` end to end (`timeout=60` per invocation, line
 47) — each nested invocation itself pays the unit file's baseline above. Existing cost, unrelated
 to T-05's one-clause edit.
 
@@ -55,7 +55,7 @@ to T-05's one-clause edit.
 
 None of this is material against the file's existing baseline (dominated by ~20 subprocess spawns
 and ~90 file reads), and none of it is added to any per-write or per-session hot path — it only
-runs inside the `run-unit-tests.sh --kind unit` CI gate, a one-shot-per-invocation boundary, not a
+runs inside the `run-unit-tests.py --kind unit` CI gate, a one-shot-per-invocation boundary, not a
 hook.
 
 ## Per-task 60-second bound (structural estimate, unmeasured)
@@ -70,7 +70,7 @@ hook.
   (~3 subprocess spawns over 2 files), an order of magnitude smaller than the file's other 8
   fixtures.
 - **T-05:** within bound (structural estimate, unmeasured) — zero added operations; the file's
-  existing ~10 nested `run-unit-tests.sh` invocations (each internally timeout-capped at 60s) are
+  existing ~10 nested `run-unit-tests.py` invocations (each internally timeout-capped at 60s) are
   pre-existing cost this task does not touch.
 
 ## Findings

@@ -18,7 +18,7 @@ finding" so the ranking isn't padded.
   route in this feature" (`harness_merge.py:2-4`). It already does same-directory `mkstemp` +
   `os.fdopen` write + `os.replace`, wrapped in an `fcntl.flock` (`acquire()`,
   `harness_merge.py:105-118`) that is timeout-bounded specifically so a hook caller (like the
-  PostToolUse route these two functions run in, `check-domain.sh:1575-1592`) does not stall.
+  PostToolUse route these two functions run in, `check-domain.py:1575-1592`) does not stall.
   `feature_json_write.py:20-22` already wraps it this way for a comparable write-once/read-modify
   case ("This module builds no lock or rename primitive of its own... a thin, schema-checking
   wrapper over `harness_merge.locked_update`").
@@ -45,20 +45,20 @@ finding" so the ranking isn't padded.
   `LOCK_TIMEOUT_SECONDS` is 10s (`harness_merge.py:36`), and both call sites run inside a
   PostToolUse hook body that is explicitly documented as "best effort" and wrapped in a blanket
   `except Exception: pass` specifically so recording never turns into a new refusal
-  (`check-domain.sh:1589-1592`, `run_identity.py:74` docstring "Best-effort, write-once
+  (`check-domain.py:1589-1592`, `run_identity.py:74` docstring "Best-effort, write-once
   creation"). Adopting `locked_update` with its default timeout would let a lock contention stall
   a tool-call hook for up to 10s — the exact failure mode `acquire()`'s own docstring warns
   against for hook callers (`harness_merge.py:108-114`). A correct adoption has to pass an
-  explicit short `timeout=` (as `dispatch-guard.sh`'s route already does, per that same
+  explicit short `timeout=` (as `dispatch-guard.py`'s route already does, per that same
   docstring), not the bare default — an apply that used the default would trade a rare lost-write
   race for a much more frequent hook stall, which is a worse defect in a best-effort path.
 
 ## Checked, no finding
 
 - **RE_RUN_IDENTITY / marker path**: single authority. `harness_boundary.py:43-46` defines the
-  regex once from `run_identity.MARKER_NAME`; `check-domain.sh:1186-1191`, `:1318`, `:2045` and
-  `bash-write-guard.sh:793` all import `harness_boundary.RE_RUN_IDENTITY` rather than
-  re-deriving it, and `check-state.sh:53,1482` calls `run_identity.marker_path`/`read_marker`
+  regex once from `run_identity.MARKER_NAME`; `check-domain.py:1186-1191`, `:1318`, `:2045` and
+  `bash-write-guard.py:793` all import `harness_boundary.RE_RUN_IDENTITY` rather than
+  re-deriving it, and `check-state.py:53,1482` calls `run_identity.marker_path`/`read_marker`
   directly rather than re-spelling the filename. No second spelling found.
 - **`mint_uid` (`uuid.uuid4().hex`)**: `inflight_registry.py:91,461` mints `claim_id` the same
   stdlib call inline. Not a duplicate worth extracting — it's a one-line stdlib call with nothing
@@ -72,7 +72,7 @@ finding" so the ranking isn't padded.
   `inflight_registry.feature_root` for root resolution rather than re-deriving it; no finding.
 - **`harness_yaml._resolve_identity`** (`harness_yaml.py:511-546`): resolves session identity for
   the `identity` forensic field passed into `record_seed` — already called via
-  `harness_yaml._resolve_identity(d)` at the `check-domain.sh:1588` call site, not
+  `harness_yaml._resolve_identity(d)` at the `check-domain.py:1588` call site, not
   reimplemented in `run_identity.py`. No finding.
 
 ## Verification

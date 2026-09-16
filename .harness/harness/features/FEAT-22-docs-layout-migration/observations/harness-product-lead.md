@@ -42,7 +42,7 @@
   No goal-check ran, so the contract value is `[]`; rebuilt it rather than re-spawning over a
   report-only defect (O-02).
 
-- 2026-08-16: I passed `model: sonnet` in the re-grade dispatch to pm and `dispatch-guard.sh`
+- 2026-08-16: I passed `model: sonnet` in the re-grade dispatch to pm and `dispatch-guard.py`
   blocked the call outright (DEC-152/155). No agent launched, so it cost one turn and not a spawn —
   but the reflex is worth naming: I reached for the model knob because the task looked mechanical
   (re-grade seven ids), i.e. I was optimising cost on a dimension that is org design and not mine.

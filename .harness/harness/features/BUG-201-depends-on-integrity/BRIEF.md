@@ -116,7 +116,7 @@ do today.
   The last two suites bind the two consumers the earlier list omitted, and the enumeration is
   stated so a reader can CHECK it rather than trust it. Every file that reads a plan through the
   shared validator, at `af859ee8` in `.claude/skills/harness/bin/`: `check-plan-routes.py:366`,
-  `check-state.sh:140`, `factory_claim.py:107`, `factory_decompose.py:471` and `gh-sync.py:357`,
+  `check-state.py:140`, `factory_claim.py:107`, `factory_decompose.py:471` and `gh-sync.py:357`,
   `:1154`, `:1264` call `harness_yaml.load_plan`; `plan-merge.py` reaches the same rule through
   `validate_plan_doc` directly. That is six files, and SC-06 and SC-07 together name a suite for
   each of the six. Both added suites live under `tests/integration/`, which is the `integration`

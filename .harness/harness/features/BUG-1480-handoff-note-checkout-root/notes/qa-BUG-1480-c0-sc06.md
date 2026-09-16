@@ -16,7 +16,7 @@ Commit subjects and dates:
 - `6b5ae254617cdf4` 2026-09-07 20:10:49 -0700 — `BUG-1480 [harness:t-01] cover worktree handoff authority root`
   — `git show --stat`: `tests/integration/test-check-domain.py | 42 ++++...` (42 insertions, 1 file)
 - `d8a9999172583eb` 2026-09-07 20:12:14 -0700 — `BUG-1480 [harness:t-02] resolve handoff authorities in owning checkout`
-  — `git show --stat`: `.claude/skills/harness/bin/check-domain.sh | 16 +++...` (15 insertions, 1 deletion, 1 file)
+  — `git show --stat`: `.claude/skills/harness/bin/check-domain.py | 16 +++...` (15 insertions, 1 deletion, 1 file)
 
 Test commit touches only the test file; fix commit touches only the gate script. Test strictly
 precedes and is ancestor of the fix. (a) is satisfied.
@@ -31,7 +31,7 @@ tree at the test commit). Ran the suite from the real worktree with the override
 
 ```
 $ cd <worktree> && env -u HARNESS_AGENT_TYPE \
-    CHECK_DOMAIN_BIN=<scratch-worktree>/.claude/skills/harness/bin/check-domain.sh \
+    CHECK_DOMAIN_BIN=<scratch-worktree>/.claude/skills/harness/bin/check-domain.py \
     python3 tests/integration/test-check-domain.py
 rc = 1
 FAIL count (grep -c '^FAIL ') = 2
@@ -48,7 +48,7 @@ FAIL  handoff worktree-only brief-sc pointer refused exit 2: check-domain: BLOCK
 ```
 
 Re-run at HEAD (post-fix, same as review_sha for this file — no commits between `d8a99991` and
-`4de92e75` touch `check-domain.sh`) for contrast:
+`4de92e75` touch `check-domain.py`) for contrast:
 ```
 $ cd <worktree> && env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py
 rc = 0, FAIL count = 0
@@ -63,7 +63,7 @@ fix, with the total suite `FAIL` count matching the two rows named below, no oth
 
 ### Third-difference check
 
-`diff` of the scratch (test-commit) `check-domain.sh` against `git show 4de92e75:...check-domain.sh`:
+`diff` of the scratch (test-commit) `check-domain.py` against `git show 4de92e75:...check-domain.py`:
 ```
 1150a1151,1163
 > def _checkout_root(path):
@@ -82,7 +82,7 @@ third difference** — the fix commit changes nothing else in this file.
 
 | Row | Pre-fix | Post-fix | Class |
 |---|---|---|---|
-| `main root has no feature dir` | ok | ok | **fixture precondition** — asserts the test's own setup (`os.path.exists(main_feat)` is False), never invokes the hook. Can never be red from a `check-domain.sh` change. |
+| `main root has no feature dir` | ok | ok | **fixture precondition** — asserts the test's own setup (`os.path.exists(main_feat)` is False), never invokes the hook. Can never be red from a `check-domain.py` change. |
 | `feature dir resolves` | **FAIL** (exit 2, "handoff shape (DEC-159)") | ok (exit 0) | **red-then-green** — the discriminating row. |
 | `unresolvable pointer refused` | ok (exit 2, contains `T-99`) | ok (exit 2, contains `T-99`) | **vacuity control** — green both ways by design (plan.yaml T-01 intent calls this "the one vacuity control" explicitly). The needle `T-99` is the raw pointer token echoed back regardless of which checkout resolution failed against, so it does not discriminate the fix. |
 | `brief-sc pointer refused` | **FAIL** (exit 2, but message is the generic "handoff shape" — needles `SC-99` + path absent) | ok (exit 2, containing both `SC-99` and the worktree-relative BRIEF.md path) | **red-then-green** — a second, independent discriminating row: pre-fix the refusal message names no BRIEF.md at all (main root's copy doesn't exist); post-fix it correctly names the worktree's BRIEF.md and both needles land. |

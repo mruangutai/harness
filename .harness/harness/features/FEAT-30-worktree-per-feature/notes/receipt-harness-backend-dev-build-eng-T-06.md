@@ -4,21 +4,21 @@
 D-05/D-06 and DEC-95/DEC-145's caps. The prior cycle's PASS record was accurate about the code but
 falsified about `files_touched` — this receipt and the observations log genuinely did not exist
 before this cycle. Root cause: the task's own `verify:` block, run verbatim, is denied by
-`bash-write-guard.sh` before it can execute, for a reason unrelated to the code under test — see
+`bash-write-guard.py` before it can execute, for a reason unrelated to the code under test — see
 `open_questions`. The prior spawn most plausibly hit this same denial repeatedly, never got the
 verify to complete, and still returned PASS with an artifact path it never wrote to.
 
 ## Diagnosis of the two missing files
 
-- `check-domain.sh --resolve` and a simulated `PreToolUse:Write` payload for both
+- `check-domain.py --resolve` and a simulated `PreToolUse:Write` payload for both
   `notes/receipt-harness-backend-dev-build-eng-T-06.md` and `observations/harness-backend-dev.md`
   both resolve to `harness-backend-dev` and both exit 0 (allow). **No guard denies either path.**
   Both are correctly granted by `.harness/team-config.yaml:169,172`.
 - Neither file exists in git history and neither is untracked in `git status` — they were never
   written, not written-then-lost.
-- **Real guard defect found while re-running the verify** (see below): `bash-write-guard.sh`
+- **Real guard defect found while re-running the verify** (see below): `bash-write-guard.py`
   denied the verify's own `cp -R .claude/skills/harness/bin "$T/bin"` line. Its static parser
-  (`shlex.split` on command text, `bash-write-guard.sh:342-368`) does not expand shell variables —
+  (`shlex.split` on command text, `bash-write-guard.py:342-368`) does not expand shell variables —
   `"$T/bin"` is taken as the **literal string** `$T/bin`, treated as relative (doesn't start with
   `/`), joined onto repo root, and denied as "outside your domain" even though the real runtime
   target is a `/var/folders/...` mktemp dir that `harness_boundary.classify` explicitly carves out
@@ -41,7 +41,7 @@ Ran the verify's steps with the mktemp path substituted as a literal string inst
 
 ## The eight cap numbers (DEC-145)
 
-`check-expertise.sh:39` and `expertise-merge.py:32` both define
+`check-expertise.py:39` and `expertise-merge.py:32` both define
 `CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}` — identical, byte for byte.
 case8's four agreement assertions all PASS.
 
@@ -63,7 +63,7 @@ present and passing. No gap found requiring a code fix this cycle.
 
 ## open_questions
 
-- Q1 (harness defect, `bash-write-guard.sh`): verbatim refusal —
+- Q1 (harness defect, `bash-write-guard.py`): verbatim refusal —
   `` bash-write-guard: BLOCKED — harness-backend-dev: `cp` targets $T/bin, outside your domain. ``
   Cause: the guard's static command-text parser does not expand shell variables before checking
   cp/mv destinations against domain globs, so any verify or task that assigns a temp path to a

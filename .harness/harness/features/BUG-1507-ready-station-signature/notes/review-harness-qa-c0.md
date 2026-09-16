@@ -31,7 +31,7 @@ probes concern `inflight_registry.py`/session-accessor and issue-types, neither 
 
 | kind | state | cmd | exit | evidence |
 |---|---|---|---|---|
-| integration | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | pool: 8 workers, 50 files, 65.34s wall; every listed script ended `PASS`/`ALL PASSED`, none `FAIL`, no collection/import error |
+| integration | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | pool: 8 workers, 50 files, 65.34s wall; every listed script ended `PASS`/`ALL PASSED`, none `FAIL`, no collection/import error |
 | unit | not required | — | — | `touches_runtime_code` false for the three `bugfix` tasks (see above) |
 | component/ui/typecheck/functional | not applicable | — | — | `unresolved`/`excluded` in `test_kinds`, diff does not touch their surfaces |
 | eval | not applicable | — | — | `excluded` (DEC-187), no `ai_behavior` change_type in this feature |
@@ -121,7 +121,7 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 50 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 50 }
     - { kind: unit, state: not_applicable, cmd: "n/a — touches_runtime_code false for the bugfix tasks", named_tests: 0 }
   coverage_gaps: []
   sc_evidence:

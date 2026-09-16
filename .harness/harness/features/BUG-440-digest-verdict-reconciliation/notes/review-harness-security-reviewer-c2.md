@@ -4,11 +4,11 @@ review_sha: `a1a67956a5844c67ce098e9580ee6692a92f9a30` (prior: `2964cddbbfe465d1
 
 ## BLUF
 
-**PASS.** The census confirms the remedy was test-only: `.claude/skills/harness/bin/check-state.sh`
-is byte-for-byte identical between the two pins (`git diff <old>..<new> -- check-state.sh` is empty);
+**PASS.** The census confirms the remedy was test-only: `.claude/skills/harness/bin/check-state.py`
+is byte-for-byte identical between the two pins (`git diff <old>..<new> -- check-state.py` is empty);
 `tests/integration/test-check-state.py` is the only file that moved (65 insertions / 59 deletions,
 pure refactor + two fixture edits). Every REQ-03(d)/no-write/security property that attaches to
-`check-state.sh` therefore carries forward from cycle 1 unchanged, by construction — no re-derivation
+`check-state.py` therefore carries forward from cycle 1 unchanged, by construction — no re-derivation
 performed. The one carried finding, V-05, is unaffected: still **low**, still open, not touched by
 this cycle because its remedy was never assigned to T-01.
 
@@ -18,11 +18,11 @@ this cycle because its remedy was never assigned to T-01.
 tests/integration/test-check-state.py | 124 ++++++++++++++++++----------------
 1 file changed, 65 insertions(+), 59 deletions(-)
 ```
-`check-state.sh` diff: empty. No other files in the feature's source surface moved.
+`check-state.py` diff: empty. No other files in the feature's source surface moved.
 
 ## Carried finding: V-05 — STILL OPEN, severity unchanged (low)
 
-**Mechanism** (`check-state.sh:1552-1557`, unchanged bytes): `os.path.basename(_feat_dir)` (feature
+**Mechanism** (`check-state.py:1552-1557`, unchanged bytes): `os.path.basename(_feat_dir)` (feature
 directory name) and `_rid` (run directory basename) are spliced into the INV-37 operator message via
 plain f-string interpolation; `_dm.group(1)` and `_rv` (the two verdict tokens) are `!r`-quoted
 (`repr()`, which escapes and quotes). A directory name containing structure-breaking characters —
@@ -63,7 +63,7 @@ is exactly what it was at cycle 1: real, low, unremedied, and out of scope for t
 
 ## REQ-04 (no-write) — reconfirmed at this pin
 
-Grepped the full INV-15/INV-37 region (`check-state.sh:1524-1557`): the only I/O call is
+Grepped the full INV-15/INV-37 region (`check-state.py:1524-1557`): the only I/O call is
 `open(dg, encoding="utf-8", errors="replace").read()` — read-mode only. No `open(..., "w")`,
 `os.makedirs`, `os.rename`, or `shutil.*` call appears in the region. Since the file is byte-identical
 to the pin cycle 1 already verified, this is confirmation of an unchanged fact, not new evidence.
@@ -91,9 +91,9 @@ open security finding, unchanged in severity or mechanism.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "check-state.sh is byte-identical between pins by measured diff; the test-only remedy introduces no new security surface, and the one carried finding (V-05, low, output-spoofing on unescaped operator-facing names) is unchanged and still open."
+  headline: "check-state.py is byte-identical between pins by measured diff; the test-only remedy introduces no new security surface, and the one carried finding (V-05, low, output-spoofing on unescaped operator-facing names) is unchanged and still open."
   in_scope: true
-  scope_reason: "check-state.sh moved zero bytes (measured git diff), so REQ-04 no-write and V-05's mechanism carry forward unchanged; the new test helpers were audited for sandbox escape, wrong-root clobber, and secret leakage since they are new code even though non-production."
+  scope_reason: "check-state.py moved zero bytes (measured git diff), so REQ-04 no-write and V-05's mechanism carry forward unchanged; the new test helpers were audited for sandbox escape, wrong-root clobber, and secret leakage since they are new code even though non-production."
   severity_max: low
   findings: 1
   must_fix: []

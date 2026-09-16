@@ -462,7 +462,7 @@ def case_sc14_end_to_end_and_red_proof():
         shim_path = os.path.join(origin_red, ".claude", "skills", "harness", "hooks",
                                   "post-merge")
         real_shim_text = open(shim_path).read()
-        needle = '_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.sh"'
+        needle = '_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.py"'
         assert needle in real_shim_text, (
             "expected shim text not found verbatim — the repoint mutation would be a no-op")
         mutated = real_shim_text.replace(

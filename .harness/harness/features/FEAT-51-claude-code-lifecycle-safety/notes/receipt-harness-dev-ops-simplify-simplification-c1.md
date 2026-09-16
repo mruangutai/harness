@@ -4,7 +4,7 @@
 `test-harness-yaml.py` restates a 9-element `shared` list verbatim six times. Fix: hoist to one
 module-level constant, reference it six times, keep six independent comparisons. `applicable:
 writable`. No other simplification finding survived a read of the rest of the writable diff
-(`quarantine.py`, `test-quarantine.py`, `test-gen-decisions-index.py`, `run-unit-tests.sh`,
+(`quarantine.py`, `test-quarantine.py`, `test-gen-decisions-index.py`, `run-unit-tests.py`,
 `harness.json`) — comments there state present facts or justify anchoring, not narrate change,
 and no redundant conjuncts or unnecessary pipelines were found. `findings_count: 1`.
 
@@ -75,7 +75,7 @@ and no redundant conjuncts or unnecessary pipelines were found. `findings_count:
   restated code, not restated *fact-through-different-spellings* — it is REUSE-angle territory
   (a helper restated where one could be extracted), not SIMPLIFICATION's target. Left for the
   Reuse reader; not claimed here to avoid double-counting across the two independent passes.
-- `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` comment block (lines 19-29) and
+- `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` comment block (lines 19-29) and
   `--check-kinds` comment (lines 40-42) both state present facts and measured numbers, not
   change narration ("now we also…", "previously…") — no finding.
 - `test-gen-decisions-index.py`'s new `QUARANTINE_DEC`/`_dec_region`/three `test_dec_210_*`

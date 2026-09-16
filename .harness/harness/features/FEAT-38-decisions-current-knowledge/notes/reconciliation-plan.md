@@ -38,12 +38,12 @@ exactly one entry, `.agents/skills`, mode **120000** — a tracked **symlink** t
 **Every path in the plan is written against `.claude/skills/…`.** A task whose `verify:` or file
 list names `.agents/skills/…` addresses a symlink and will not match a `git ls-files` check.
 
-## 3. Lanes — re-resolved with `check-domain.sh --resolve` at HEAD
+## 3. Lanes — re-resolved with `check-domain.py --resolve` at HEAD
 
 | Path | Owner |
 |---|---|
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md`, `BUILD.md`, `SPEC.md` | `harness-documentor` |
-| `.claude/skills/harness/bin/gen-decisions-index.py`, `test-gen-decisions-index.py`, `check-state.sh`, `validate-digest.py` | `harness-backend-dev harness-dev-ops` |
+| `.claude/skills/harness/bin/gen-decisions-index.py`, `test-gen-decisions-index.py`, `check-state.py`, `validate-digest.py` | `harness-backend-dev harness-dev-ops` |
 | `.harness/expertise/harness-documentor.md` | `harness-documentor` |
 | `.claude/skills/harness/SKILL.md` | **NOBODY** |
 | `.claude/skills/harness-team/SKILL.md` | **NOBODY** |

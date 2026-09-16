@@ -10,7 +10,7 @@ names the real cause (no agent domain grants the mutant target), and its `intent
 - `execution_agent: harness-backend-dev` — DELETED
 - `execution_reason:` — ADDED, one line, in T-10/T-11's position:
 
-  `the mutation proof writes docs/invalid-states-audit.html; check-domain.sh --resolve returns NOBODY
+  `the mutation proof writes docs/invalid-states-audit.html; check-domain.py --resolve returns NOBODY
   for that path at sha 3952814, so no agent domain grants the mutant target`
 
 Shape matches T-10 and T-11 field-for-field: mode, reason, no `execution_agent`. Wording follows
@@ -18,7 +18,7 @@ T-19 / T-20, not DEC-174 am.4 — `test-no-distribution.py` is not in the am.4 e
 am.4 citation here would be a false entry in the record.
 
 **Verdict verified before the sha was written.** At HEAD `3952814` in this worktree,
-`check-domain.sh --resolve docs/invalid-states-audit.html` returned `NOBODY` (rc 0). For contrast,
+`check-domain.py --resolve docs/invalid-states-audit.html` returned `NOBODY` (rc 0). For contrast,
 `--resolve .claude/skills/harness/bin/test-no-distribution.py` returned `harness-backend-dev` and
 `harness-dev-ops` — which is why `check-plan-routes.py` now reports T-07 as a DEVIATION, exactly as
 it does for T-03 and T-08 through T-18. That checker exits 0: 0 violations across the plan.

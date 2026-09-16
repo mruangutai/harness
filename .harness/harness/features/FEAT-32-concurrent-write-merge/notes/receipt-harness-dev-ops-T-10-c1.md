@@ -26,7 +26,7 @@ append a duplicate."
 
 ## Files touched
 
-- `.claude/skills/harness/bin/run-unit-tests.sh:18` — appended `"test-harness-merge.py"
+- `.claude/skills/harness/bin/run-unit-tests.py:18` — appended `"test-harness-merge.py"
   "test-plan-merge.py" "test-observations-merge.py" "test-inflight-registry.py"
   "test-dispatch-guard.py"` to `INTEGRATION_SCRIPTS`. `UNIT_SCRIPTS` (:17), drift detector, and
   everything else in the file: byte-unchanged (confirmed via `git diff` — single-line diff only).
@@ -83,8 +83,8 @@ enforcement`
 
 ## Scope
 
-Did not touch: `dispatch-guard.sh`, `test-dispatch-guard.py` (content), `validate-digest.py`,
-`test-validate-digest.py` (content), `check-domain.sh`, `test-check-domain.py` (content),
+Did not touch: `dispatch-guard.py`, `test-dispatch-guard.py` (content), `validate-digest.py`,
+`test-validate-digest.py` (content), `check-domain.py`, `test-check-domain.py` (content),
 `feature_schema.py`, `.gitignore`, `.harness/team-config.yaml`, `.claude/agents/*.md`,
 `harness-spec-driven/SKILL.md`, `harness-expertise/SKILL.md`,
 `.claude/skills/harness/templates/plan.yaml`, `plan-merge.py`, `harness_yaml.py`,

@@ -34,19 +34,19 @@ Wall time: 0.20 seconds
 Exact invocation:
 
 ```text
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Complete observed outcome:
 
 ```text
-run-unit-tests.sh: no harness root could be resolved from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-43-code-risk-grading/.claude/skills/harness/bin — refusing to run
+run-unit-tests.py: no harness root could be resolved from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-43-code-risk-grading/.claude/skills/harness/bin — refusing to run
 
 Wall time: 0.03 seconds
 Command exited with code 2
 ```
 
-The runner invokes `python3 -P` while resolving its root; this host's `python3` reports `Unknown option: -P`, so the signed command cannot execute its unit scripts. `run-unit-tests.sh` is outside T-02 ownership and was not changed.
+The runner invokes `python3 -P` while resolving its root; this host's `python3` reports `Unknown option: -P`, so the signed command cannot execute its unit scripts. `run-unit-tests.py` is outside T-02 ownership and was not changed.
 
 ## Changed files
 

@@ -380,11 +380,11 @@ needed; nothing was dropped to satisfy the gate.
 
 ## Suite results
 
-**Unit** (`.agents/skills/harness/bin/run-unit-tests.sh --kind unit`): exit status `0`.
+**Unit** (`.agents/skills/harness/bin/run-unit-tests.py --kind unit`): exit status `0`.
 `grep -c '^FAIL '` over full captured output: `0`. `test-code-grade.py` ran and reported
 `PASS test-code-grade` / `PASS test-code-grade.py`.
 
-**Integration** (`.agents/skills/harness/bin/run-unit-tests.sh --kind integration`): exit
+**Integration** (`.agents/skills/harness/bin/run-unit-tests.py --kind integration`): exit
 status `0`. `grep -c '^FAIL '` over full captured output: `0`. `test-code-grade-cli.py` ran
 and reported `PASS test-code-grade-cli` / `PASS test-code-grade-cli.py` (script tail:
 `ALL PASSED` … `PASS test-check-decision-anchors.py` as final entries in the log).

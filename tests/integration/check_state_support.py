@@ -1,7 +1,7 @@
 """Fixture vocabulary shared by the test-check-state-*.py files.
 
 Split out of tests/integration/test-check-state.py (issue #1527): that one file ran the
-whole check-state.sh corpus serially and set the integration pool's wall clock on its
+whole check-state.py corpus serially and set the integration pool's wall clock on its
 own. The cases moved into six sibling files by invariant family; every builder more than
 one of those files uses lives here, unchanged, so the fixture shape stays defined once.
 
@@ -14,6 +14,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import json
 import os
 import subprocess
 import sys
@@ -21,7 +22,7 @@ import sys
 # Overridable so a fix can be proven RED against a reverted copy — the same
 # VALIDATE_DIGEST_BIN escape test-validate-digest.py uses.
 SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".claude", "skills", "harness", "bin"), "check-state.sh"
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".claude", "skills", "harness", "bin"), "check-state.py"
 )
 
 # THE MARKER IS READ FROM THE RESOLVER ITSELF, never spelled again here: a fixture that
@@ -43,19 +44,32 @@ HARNESS_JSON_SYNC_OFF = """{
 """
 
 
-def feature_yaml(parent_line):
-    return f"""github:
-{parent_line}
-  issues:
-    T-01: 41
-"""
+def feature_json(parent_line, line_count=None):
+    raw_parent = parent_line.partition(":")[2].strip()
+    parent = int(raw_parent) if raw_parent.isdigit() else None
+    document = {
+        "feature_id": "FEAT-TEST",
+        "branch": "none",
+        "pr": None,
+        "review_sha": "none",
+        "cycles_used": 0,
+        "max_total_cycles": 10,
+        "runs": [],
+        "github": {"parent": parent, "issues": {"T-01": 41}},
+    }
+    lines = json.dumps(document, indent=2).splitlines()
+    if line_count is not None:
+        if line_count < len(lines):
+            raise ValueError("feature.json line_count is smaller than the fixture")
+        lines[-1:-1] = [""] * (line_count - len(lines))
+    return "\n".join(lines) + "\n"
 
 
 def _root_env(tmp, env=None, **extra):
-    """The environment that points check-state.sh at the fixture `tmp` — and the MARKER
+    """The environment that points check-state.py at the fixture `tmp` — and the MARKER
     without which the pointer is discarded (FEAT-42 T-12).
 
-    BOTH NAMES. check-state.sh now resolves through harness_boundary.resolve_root, which
+    BOTH NAMES. check-state.py now resolves through harness_boundary.resolve_root, which
     reads HARNESS_PROJECT_DIR and no other name; the reverted sha-3952814 copy this suite is
     diffed against read HARNESS first and the host-owned name second. Both set to one value
     is the only spelling under which the two copies resolve the same root.
@@ -89,7 +103,7 @@ def make_fixture(tmp, harness_json, parent_line):
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(harness_json)
     with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-        f.write(feature_yaml(parent_line))
+        f.write(feature_json(parent_line))
     return h
 
 

@@ -14,9 +14,9 @@ exact false belief the feature exists to kill, verify green.** D-17 embeds its o
 T-09's `intent:` ("STEP ZERO ... If T-07 wrote that comment, CORRECT it here", `plan.yaml:917-921`).
 D-15 (`plan.yaml:151-154`) has no equivalent: T-06's own `intent:` (`plan.yaml:~495-520`) still
 carries, verbatim and uncorrected, the two bullets D-15 says it supersedes — "refused at the
-check-domain.sh Write gate on the canonical artifacts" and "the four canonical artifacts are
+check-domain.py Write gate on the canonical artifacts" and "the four canonical artifacts are
 plan.yaml, BRIEF.md, feature.json and STATE.md" — with no mention anywhere in T-06's intent of
-`plan-sign-gate.sh`, the Bash half, or "plan.yaml's only write route is plan-merge.py." Nothing in
+`plan-sign-gate.py`, the Bash half, or "plan.yaml's only write route is plan-merge.py." Nothing in
 T-06's own text points a documentor at D-15. T-06's `verify:` (`plan.yaml:583-586`) only checks
 `DEC-209` exists, that `gen-decisions-index.py --stdout` diffs clean, and that the *pre-T-08*,
 11-test suite passes — none of which inspects entry content — so **T-06's own gate is green on the
@@ -77,7 +77,7 @@ under an orphan condition — e.g., wrongly matching a shell-variable value agai
   other task traces to a REQ through a mechanism, not a self-referential prose-test. Clean.
 - **Lead 3 (the wake):** checked SC-01 through SC-09, SC-11, SC-12 for a quiet dependency on the host
   actually resuming the same parent. All are component-level tests (`validate-digest.py` return
-  codes, `check-domain.sh`/`plan-sign-gate.sh` refusals, decision-record content) that neither
+  codes, `check-domain.py`/`plan-sign-gate.py` refusals, decision-record content) that neither
   exercise nor assume a live interrupt→resume cycle; only SC-08 (inspection of prose) and SC-10 (uat)
   touch the wake claim at all, and SC-08 grades text-completeness, not truth. This matches the
   goal-check's own §5.2 finding exactly — no new gap beyond the already-accepted bound.

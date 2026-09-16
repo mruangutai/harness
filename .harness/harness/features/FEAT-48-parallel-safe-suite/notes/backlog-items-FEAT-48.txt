@@ -10,6 +10,6 @@ bug:[FEAT-48 B-9] The suite is green only with HARNESS_AGENT_TYPE unset: test-pl
 chore:[FEAT-48 B-10] FEAT-48 BRIEF.md Approval block carries no distinct re-signature for the approved SC-03 amendment
 chore:[FEAT-48 B-11] Issue #1053 Scope section still reads Folded into FEAT-47
 enhancement:[FEAT-48 B-12] BACKLOG-C: vendor the ten ea6f51f fixture-secret sites as committed fixtures so CI can re-check them
-bug:[FEAT-48 B-13] bash-write-guard.sh blocks all bash-level file writes including /tmp for read-only reviewer personas
+bug:[FEAT-48 B-13] bash-write-guard.py blocks all bash-level file writes including /tmp for read-only reviewer personas
 bug:[FEAT-48 B-14] validate-digest.py accepted severity_max medium where the contract enum is med
 chore:[FEAT-48 B-15] test-run-pool.py case_cache_exclusion pins only the .pyc leg, so narrowing the __pycache__ skip would pass unchanged

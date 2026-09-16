@@ -8,7 +8,7 @@ approval:
     - finding: PF-334e1b370c596f88c39730bf43579f13
       who: operator
       date: '2026-09-07'
-      reason: escape spelling is write-time-checked by check-domain.sh regardless; accepted mid-run-cost tradeoff, not a bypass
+      reason: escape spelling is write-time-checked by check-domain.py regardless; accepted mid-run-cost tradeoff, not a bypass
     - finding: PF-c996440943e296d047bc8707c587ad89
       who: operator
       date: '2026-09-07'
@@ -30,7 +30,7 @@ source_issues: [124]
 lanes:
   resolved_at: 6d969ed375f8458e32c47502ecdcc85bb9916635
   rows:
-    - surface: .claude/skills/harness/bin/dispatch-guard.sh
+    - surface: .claude/skills/harness/bin/dispatch-guard.py
       lane: team
       agent: harness-backend-dev | harness-dev-ops
     - surface: .claude/skills/harness/bin/harness_boundary.py
@@ -75,7 +75,7 @@ decisions:
   - id: D-03
     choice: >-
       The manifest is parsed through harness_yaml in a SEPARATE non-isolated python invocation in
-      the shell half of dispatch-guard.sh, whose result crosses into the python3 -I body as the
+      the shell half of dispatch-guard.py, whose result crosses into the python3 -I body as the
       environment variable HARNESS_RUN_DIR_GLOBS.
     because: >-
       DEC-171 requires a real PyYAML parse and strikes hand-rolled YAML regex readers of this manifest, but PyYAML lives in the user site-packages that python3 -I excludes (measured at the pinned sha: the isolated import fails while a plain import succeeds), so a parse inside the isolated body would fail open on every dispatch and the gate would never fire. Dropping -I was rejected because it weakens the isolation of a security gate and changes the invocation that integration case 16 pins. An orchestrator measurement dated 2026-09-07, taken at 6d969ed3 on this machine, bounds what remains at risk: import yaml SUCCEEDS under /opt/homebrew/bin/python3, under /usr/bin/python3 and under PATH=/usr/bin:/bin python3, while python3 -I -c import yaml fails. So the shell-half bridge is necessary, and the gate is not a dead no-op in this environment - which is why the plan panel blocking question about the python3 a live hook resolves is ANSWERED, and panel finding F-4 is an observability defect rather than a dead gate. What the measurement does not buy is silence: the derivation subprocess must still be able to report its own breakage, so T-02 gives it a non-zero exit on a failed parse and two distinguishable SKIPPED texts.
@@ -173,7 +173,7 @@ panel:
   - id: PF-6e184d4c13c2f8966eb49de0b188d070
     severity: low
     reader: scope
-    summary: T-02's intent mis-cites check-domain.sh:103 as the source of sys.path.insert(0,
+    summary: T-02's intent mis-cites check-domain.py:103 as the source of sys.path.insert(0,
       sys.argv[1]); the real insert is :125 using sys.argv[3] in a heredoc plus PYTHONPATH
       pattern
     disposition: resolved
@@ -189,7 +189,7 @@ panel:
     summary: D-05's escape is a spelling, so it is typable into a DIRECTED path just
       as D-05's own because objects for a NOSCAN token, and the refusal's final line
       teaches it to every refused dispatcher including a true positive; detection
-      then moves from dispatch time to check-domain.sh write time (NOBODY, exit 2,
+      then moves from dispatch time to check-domain.py write time (NOBODY, exit 2,
       so no bypass), reproducing the mid-run cost BUG-124 exists to remove, and BRIEF.md
       discloses the D-01 narrowing but not this residual.
     disposition: open
@@ -251,7 +251,7 @@ tasks:
       .harness/team-config.yaml containing /runs/ are .harness/*/features/*/runs/*-product/**,
       .harness/*/features/*/runs/*-eng/** and .harness/*/features/*/runs/*-validator/**. An inverted
       slug such as eng-t01 resolves to a set excluding the callee lead. These helpers are the
-      mechanism; a sibling task wires them into dispatch-guard.sh.
+      mechanism; a sibling task wires them into dispatch-guard.py.
 
       THE API, exactly, with these names:
 
@@ -319,16 +319,16 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - tests/integration/test-dispatch-guard.py
     verify: |
-      python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;q = "HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n[.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md";sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":q.replace("[.]", ".")}}))' | .claude/skills/harness/bin/dispatch-guard.sh 2>&1 | grep -q "eng-t01"
+      python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;q = "HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n[.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md";sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":q.replace("[.]", ".")}}))' | .claude/skills/harness/bin/dispatch-guard.py 2>&1 | grep -q "eng-t01"
     intent: |
-      Wire the run-dir shape check into .claude/skills/harness/bin/dispatch-guard.sh and APPEND
+      Wire the run-dir shape check into .claude/skills/harness/bin/dispatch-guard.py and APPEND
       integration cases to tests/integration/test-dispatch-guard.py. Write the new cases FIRST and
       watch them fail.
 
-      There is ONE dispatch-guard.sh: .agents/skills is a SYMLINK to .claude/skills. Edit the
+      There is ONE dispatch-guard.py: .agents/skills is a SYMLINK to .claude/skills. Edit the
       .claude path named above.
 
       THE QUOTING CONVENTION (D-05), which this task implements and which the rest of this intent
@@ -360,7 +360,7 @@ tasks:
           resolve_root(bin_dir, strict=False), parses the manifest once through
           harness_yaml.load_str with NO try/except around that call, and then prints
           run_dir_grant_globs(root) one per line. The house precedent for the sys.path handling is
-          check-domain.sh, and it is TWO lines, not one: line 103 runs
+          check-domain.py, and it is TWO lines, not one: line 103 runs
           python3 -c with sys.path.pop(0) and feeds the real program in on stdin, and line 125 then
           does sys.path.insert(0, _bin_dir) where _bin_dir comes from sys.argv[3]. There is no
           sys.path.insert(0, sys.argv[1]) at line 103; copy the pop-then-insert-an-argument pair.
@@ -473,9 +473,9 @@ tasks:
             mirror image: its own text present, the derivation-failed text absent. Neither case can
             pass against a single generic skip line, which is the whole point of the pair.
 
-      RED PROOF, and record it. Copy the bin dir to a temp tree, replace dispatch-guard.sh in the copy
+      RED PROOF, and record it. Copy the bin dir to a temp tree, replace dispatch-guard.py in the copy
       with the output of
-      git show 6d969ed375f8458e32c47502ecdcc85bb9916635:.claude/skills/harness/bin/dispatch-guard.sh,
+      git show 6d969ed375f8458e32c47502ecdcc85bb9916635:.claude/skills/harness/bin/dispatch-guard.py,
       run the suite with DISPATCH_GUARD_BIN pointed at that copy, and record the exact command and the
       FAIL lines in your receipt at
       .harness/harness/features/BUG-124-run-dir-squad-suffix/notes/receipt-<your-agent-name>-<runid>.md.
@@ -501,7 +501,7 @@ tasks:
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
-      S=$(tr -s ' \t\n' ' ' < .claude/skills/harness/SKILL.md); ok=1; for p in "dispatch-guard.sh refuses" "matches no run-dir write grant" "at exit 2" "and a compliant form" "not on ownership by the dispatched persona" "[.]harness/"; do case "$S" in *"$p"*) ;; *) echo "MISSING: $p"; ok=0;; esac; done; test "$ok" = 1
+      S=$(tr -s ' \t\n' ' ' < .claude/skills/harness/SKILL.md); ok=1; for p in "dispatch-guard.py refuses" "matches no run-dir write grant" "at exit 2" "and a compliant form" "not on ownership by the dispatched persona" "[.]harness/"; do case "$S" in *"$p"*) ;; *) echo "MISSING: $p"; ok=0;; esac; done; test "$ok" = 1
     intent: |
       The Run-dir slugs paragraph at .claude/skills/harness/SKILL.md lines 272-274 states the
       task-or-purpose then squad convention in prose and says the squad suffix is what the lead
@@ -509,7 +509,7 @@ tasks:
       say so in TWO added sentences, and nothing more.
 
       Sentence one, the enforcement. Write it with these phrases intact, because the verify checks each
-      of them and a paraphrase fails it: dispatch-guard.sh refuses a governed dispatch that names a
+      of them and a paraphrase fails it: dispatch-guard.py refuses a governed dispatch that names a
       run-dir path whose slug matches no run-dir write grant in .harness/team-config.yaml, at exit 2,
       naming the offending slug and a compliant form, and the check is on slug shape and is
       not on ownership by the dispatched persona.
@@ -528,7 +528,7 @@ tasks:
       transcription slip - stating exit 1, or saying the guard checks who OWNS the path rather than what
       SHAPE the slug has, or dropping the compliant-form clause REQ-02 needs - would otherwise ship
       uncaught behind a grep that binds four words. The verify therefore requires all six strings:
-      dispatch-guard.sh refuses / matches no run-dir write grant / at exit 2 / and a compliant form /
+      dispatch-guard.py refuses / matches no run-dir write grant / at exit 2 / and a compliant form /
       not on ownership by the dispatched persona / the literal [.]harness/. It normalizes runs of
       whitespace to one space before matching, so wrapping the sentences across lines is fine; changing
       their wording is not. None of the six strings is present in SKILL.md today, so the verify fails

@@ -130,7 +130,7 @@ decayed once, and that decay was the cycle-4 med.
 ## Falsification evidence — why the clean results are credible
 
 Anchors re-measured live and all matching: `test-suite-layout.py:100-103`, `:104-105`, `:136-139`;
-`suite-census.py:24` is exactly the find-all fence pattern T-03 describes; `run-unit-tests.sh:47` is
+`suite-census.py:24` is exactly the find-all fence pattern T-03 describes; `run-unit-tests.py:47` is
 the single `run_pool.py --mutation-check "$BIN_DIR"` SC-15 cites; `suite_layout.py:20-33` is the two
 existing clauses. Census independently re-measured: TOTAL 85 / OUTSIDE 9 / VIOLATIONS 0, dispositions
 1 documented exception (`.ts`) + 8 probe records (7 `.md`, 1 `.jsonl`). Amendment collateral intact:

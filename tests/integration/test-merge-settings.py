@@ -38,7 +38,7 @@ _spec = importlib.util.spec_from_file_location("ms", SCRIPT)
 ms = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ms)
 
-CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh --post"
+CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py --post"
 
 
 def entry(matcher, cmd=CMD):
@@ -63,7 +63,7 @@ CASES = [
     ("reordered alternation",         [entry("Bash|Edit|Write")],                    True),
     ("an unparseable matcher is not evidence of absence", [entry("Write|Edit|[")],   True),
     ("registered via an absolute path",
-     [entry("Write|Edit|Bash", "/abs/path/check-domain.sh --post")],                 True),
+     [entry("Write|Edit|Bash", "/abs/path/check-domain.py --post")],                 True),
 
     # --- MUST BE REJECTED. Each silently reverts issue #132 while looking installed.
     ("NARROWED to 'Write' (the live F-01 attack)", [entry("Write")],                 False),
@@ -71,9 +71,9 @@ CASES = [
     ("right tools, WRONG script",
      [entry("Write|Edit|Bash", "x/some-other-hook.sh --post")],                      False),
     ("right tools, missing --post",
-     [entry("Write|Edit|Bash", "x/check-domain.sh")],                                False),
+     [entry("Write|Edit|Bash", "x/check-domain.py")],                                False),
     ("'--posture' must not satisfy '--post'",
-     [entry("Write|Edit|Bash", "x/check-domain.sh --posture")],                      False),
+     [entry("Write|Edit|Bash", "x/check-domain.py --posture")],                      False),
     ("nothing registered",            [],                                            False),
 ]
 
@@ -81,7 +81,7 @@ CASES = [
 def case_matchers():
     ok = True
     for label, entries, want in CASES:
-        got = ms.hook_present(entries, "check-domain.sh", "Write|Edit|Bash", " --post")
+        got = ms.hook_present(entries, "check-domain.py", "Write|Edit|Bash", " --post")
         good = got == want
         ok &= good
         print(f"{'ok  ' if good else 'FAIL'} - {label}: present={got}, want={want}")
@@ -117,13 +117,13 @@ def case_no_duplicate_write():
         settings = {
             "env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
             "hooks": {
-                "SubagentStart": [entry("harness-.*", "x/inject-expertise.sh")],
+                "SubagentStart": [entry("harness-.*", "x/inject-expertise.py")],
                 "SubagentStop": [entry("harness-.*", "x/validate-digest.py --hook")],
                 "PreToolUse": [
-                    entry("Write|Edit", "x/check-domain.sh"),
-                    entry("Bash", "x/branch-create-gate.sh"),
-                    entry("Bash", "x/bash-write-guard.sh"),
-                    entry("Task|Agent", "x/dispatch-guard.sh"),
+                    entry("Write|Edit", "x/check-domain.py"),
+                    entry("Bash", "x/branch-create-gate.py"),
+                    entry("Bash", "x/bash-write-guard.py"),
+                    entry("Task|Agent", "x/dispatch-guard.py"),
                 ],
                 # The shape that was duplicated: three entries, one tool each.
                 "PostToolUse": [entry("Write"), entry("Edit"), entry("Bash")],

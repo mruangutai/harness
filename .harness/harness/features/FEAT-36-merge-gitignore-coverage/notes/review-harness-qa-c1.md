@@ -5,16 +5,16 @@
 
 ## Result
 
-T-01 is `change_type: feature` with `test_kinds: [unit, integration]` (`plan.yaml:41-57`). The pinned matrix requires both kinds (`.harness/harness.json:40-50`); no interaction-flow predicate fires and `eval` is not applicable. Both configured commands are active: unit `.agents/skills/harness/bin/run-unit-tests.sh --kind unit`, integration `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` (`.harness/harness.json:103-122`). Discovery is non-zero: `run-unit-tests.sh:17-18` lists 23 unit and 24 integration scripts, including the changed `test-merge-gitignore.py` only in integration.
+T-01 is `change_type: feature` with `test_kinds: [unit, integration]` (`plan.yaml:41-57`). The pinned matrix requires both kinds (`.harness/harness.json:40-50`); no interaction-flow predicate fires and `eval` is not applicable. Both configured commands are active: unit `.agents/skills/harness/bin/run-unit-tests.py --kind unit`, integration `.agents/skills/harness/bin/run-unit-tests.py --kind integration` (`.harness/harness.json:103-122`). Discovery is non-zero: `run-unit-tests.py:17-18` lists 23 unit and 24 integration scripts, including the changed `test-merge-gitignore.py` only in integration.
 
 The prescribed command was run verbatim in a detached worktree at the review SHA:
 
 ```sh
 python3 .agents/skills/harness/bin/test-merge-gitignore.py &&
-.agents/skills/harness/bin/run-unit-tests.sh --kind all
+.agents/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
-It exited **0** in 155.16s. Direct evidence: all seven named merge cases passed (SC-01..SC-05: `test-merge-gitignore.py:36-123`), then the all-kinds run exited 0 and emitted `PASS test-merge-gitignore.py`. Thus all 23 unit and all 24 integration registrations executed without a failed script. The all-kinds invocation also ran the registration drift detector and kind cross-check before tests (`run-unit-tests.sh:42-127`); no `MISCONFIGURED` or `KIND-DRIFT` finding was emitted. The changed test is explicitly registered in `INTEGRATION_SCRIPTS` (`:18`) and exact-path integration detection (`harness.json:118-122`), so there is no kind drift.
+It exited **0** in 155.16s. Direct evidence: all seven named merge cases passed (SC-01..SC-05: `test-merge-gitignore.py:36-123`), then the all-kinds run exited 0 and emitted `PASS test-merge-gitignore.py`. Thus all 23 unit and all 24 integration registrations executed without a failed script. The all-kinds invocation also ran the registration drift detector and kind cross-check before tests (`run-unit-tests.py:42-127`); no `MISCONFIGURED` or `KIND-DRIFT` finding was emitted. The changed test is explicitly registered in `INTEGRATION_SCRIPTS` (`:18`) and exact-path integration detection (`harness.json:118-122`), so there is no kind drift.
 
 ## C0 continuity and limits
 

@@ -28,9 +28,9 @@ Standalone run: **89 `PASS `, 0 `FAIL `, exit 0.**
    `RED PROOF FAILED`, a real gap I fixed, not the flake I retried past).
 2. `python3 .claude/skills/harness/bin/test-feature-worktree.py` — **exit 0**, all 89 assertions
    `PASS`, 0 `FAIL`.
-3. `run-unit-tests.sh --kind unit` — **exit 0**, 179 `PASS `, 0 `FAIL `. Matches the pre-T-10
+3. `run-unit-tests.py --kind unit` — **exit 0**, 179 `PASS `, 0 `FAIL `. Matches the pre-T-10
    baseline exactly.
-4. `run-unit-tests.sh --kind integration` — **exit 1**, 212 `PASS `, 2 `FAIL `. The two `FAIL `
+4. `run-unit-tests.py --kind integration` — **exit 1**, 212 `PASS `, 2 `FAIL `. The two `FAIL `
    lines are exactly the two named as out-of-scope in the dispatch, verbatim:
    - `FAIL test_exactly_one_guarded_import_in_the_tree: unexpected guarded-import file(s) outside the allowed set: {'feature-worktree.py'}`
    - `FAIL test-harness-yaml.py`
@@ -103,7 +103,7 @@ about was never observed after the fix, in 8 tries.
   corrected to `cp -R .claude/skills/harness/bin "$T/bin"` (matching T-06's own precedent) so a
   future re-run of this exact verify text doesn't need this same re-expression again?
   `blocking: false` — I already re-expressed it faithfully for this run and disclosed it above.
-- Q2 (carried forward, not mine to fix): `run-unit-tests.sh --kind integration` exits 1 on two
+- Q2 (carried forward, not mine to fix): `run-unit-tests.py --kind integration` exits 1 on two
   pre-existing FAILs (`test_exactly_one_guarded_import_in_the_tree`, `test-harness-yaml.py`)
   unrelated to T-10 or T-08, already escalated by T-08. Unchanged by this task.
   `blocking: true` for reaching a fully green `verify:`, but explicitly out of scope for T-10 per

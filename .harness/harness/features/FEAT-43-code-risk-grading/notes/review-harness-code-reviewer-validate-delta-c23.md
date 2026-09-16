@@ -154,7 +154,7 @@ delta did not disturb what the c21 panel closed.
 - The five focused suites and the guard's own mutation-tested discovery seams — owned by the
   sibling `harness-qa` agent this cycle per the dispatch; I traced the guard's logic by reading
   and ran it once (`18/18`, `EXIT=0`) but did not break its seams myself.
-- The canonical suite and `check-state.sh` — the orchestrator's job after this cycle, per
+- The canonical suite and `check-state.py` — the orchestrator's job after this cycle, per
   constraints.
 - `Item 2` in the dispatch's own numbering does not exist (items are labeled 1 and 3 in the
   dispatch); nothing was skipped as a result — both named items are answered above.

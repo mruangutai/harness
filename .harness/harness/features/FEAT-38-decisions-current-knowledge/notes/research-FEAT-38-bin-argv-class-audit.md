@@ -31,17 +31,17 @@ Verdict precedence within a multi-site file: TEXT-DERIVED-ARGV > FIXED-LITERAL-A
 ## The decisive case — a whole command string stored in configuration
 
 `.harness/harness.json`'s `test_kinds.<kind>.cmd` holds a complete command line
-(`.agents/skills/harness/bin/run-unit-tests.sh --kind integration`). Q1 catches any script that
+(`.agents/skills/harness/bin/run-unit-tests.py --kind integration`). Q1 catches any script that
 reads that field and executes it. **Every reader of `test_kinds` under `bin/` was found and judged;
 none executes a `cmd`:**
 
-- `run-unit-tests.sh:108` reads `test_kinds.integration.detect` — a pipe-separated glob string, not
+- `run-unit-tests.py:108` reads `test_kinds.integration.detect` — a pipe-separated glob string, not
   `cmd` — and only set-compares it against its own two literal bash arrays (lines 30-31). The
-  scripts it actually runs come from those arrays (`run-unit-tests.sh:149`,
+  scripts it actually runs come from those arrays (`run-unit-tests.py:149`,
   `python3 "$BIN_DIR/$s"`). Nothing parsed reaches `argv`.
 - `test-run-unit-tests-kinds.py:61-66` writes a mutated `detect` into a fixture and drives
   `["bash", RUNNER, "--check-kinds"]` (line 47) — argv all literal.
-- `check-state.sh:480` parses `harness.json` and consults `test_kinds` for INV checks only; no
+- `check-state.py:480` parses `harness.json` and consults `test_kinds` for INV checks only; no
   `cmd` is executed there.
 - `upgrade-config.py:209-211` is the only script that touches `test_kinds.*.cmd` at all, and it
   formats the value into a diagnostic string. It is not even in the candidate set (it matches no
@@ -53,26 +53,26 @@ it, outside `bin/`.
 
 ## Per-file verdicts
 
-| bash-write-guard.sh | FIXED-LITERAL-ARGV | line 42 runs python3 -c with a literal bootstrap plus the PY heredoc from its own source; argv[1:3] are $_derived and $_selfdir, both derived from BASH_SOURCE. The agent JSON it parses arrives via the HOOK_PAYLOAD env var (line 41), and its shlex.split uses (239, 380, 486) only tokenize for inspection, never execute |
+| bash-write-guard.py | FIXED-LITERAL-ARGV | line 42 runs python3 -c with a literal bootstrap plus the PY heredoc from its own source; argv[1:3] are $_derived and $_selfdir, both derived from BASH_SOURCE. The agent JSON it parses arrives via the HOOK_PAYLOAD env var (line 41), and its shlex.split uses (239, 380, 486) only tokenize for inspection, never execute |
 | board_lifecycle.py | TEXT-DERIVED-ARGV | line 1003 _ensure_abandoned_label runs [gh_bin, "label", "create", "abandoned", "--repo", repo_name]; repo_name comes from _resolve_board, which reads harness.json github.repo at lines 289-298 (json.load then github.get("repo")) |
 | check-decision-anchors.py | FIXED-LITERAL-ARGV | line 111 git_tracked_basenames runs ["git", "ls-files"], both elements literal; the DECISIONS.md anchors it parses (line 46 regex, line 172 open) are only compared against that output, never executed |
-| check-domain.sh | FIXED-LITERAL-ARGV | line 1478 _unmodified_since_commit runs ["git", "-C", _checkout] + _argv where _argv is one of two literal lists (1476-1477) and _checkout comes from the _sweep list built at 1417-1421 from the resolved root plus harness_boundary.linked_worktrees, both excluded provenances |
+| check-domain.py | FIXED-LITERAL-ARGV | line 1478 _unmodified_since_commit runs ["git", "-C", _checkout] + _argv where _argv is one of two literal lists (1476-1477) and _checkout comes from the _sweep list built at 1417-1421 from the resolved root plus harness_boundary.linked_worktrees, both excluded provenances |
 | check-omp-port.py | FIXED-LITERAL-ARGV | line 152 runs [sys.executable, str(sync), "--root", str(root), "--check"]; sync is a literal path join off root (line 150) and root is the CLI argument. The many yaml.safe_load reads (43, 60, 116) feed assertions only, never argv |
 | check-plan-routes.py | TEXT-DERIVED-ARGV | line 74 resolve_agents runs [CHECK_DOMAIN, "--resolve", path]; path is a task files: entry, called at line 199 and line 356 over literal_entries and literals, which come from harness_yaml.load_plan(plan.yaml) at line 308 or the PLAN.md regex reader. A plan-authored string is the third argv element |
-| check-state.sh | TEXT-DERIVED-ARGV | line 1633 runs [_gh_bin30, "api", "--paginate", "repos/%s/milestones..." % _repo30]; _repo30 is harness.json github.repo, read at line 1583 from the parsed config. The other sites (470, 1117, 1405, 1749) are literal git and gh argv |
+| check-state.py | TEXT-DERIVED-ARGV | line 1633 runs [_gh_bin30, "api", "--paginate", "repos/%s/milestones..." % _repo30]; _repo30 is harness.json github.repo, read at line 1583 from the parsed config. The other sites (470, 1117, 1405, 1749) are literal git and gh argv |
 | factory_gh.py | FIXED-LITERAL-ARGV | line 153 run_gh runs [gh] + list(args); gh is _gh_binary(), the FACTORY_GH env var or the literal "gh", and args arrive as a function parameter. This file itself parses nothing off disk — its json.loads calls (170, 420, 521, 805) consume gh stdout for return values and error text, not argv |
 | factory_workspace.py | TEXT-DERIVED-ARGV | lines 103, 129 and 130 pass default_branch into git checkout and git reset --hard argv; default_branch is entry["default_branch"] read from the parsed fleet.yaml at lines 113-115 via factory_config.load_fleet and repo_entry |
 | feature-worktree.py | TEXT-DERIVED-ARGV | _run_git at line 91 runs ["git"] + args; line 125 passes default_branch to git worktree add -b and line 289 embeds it in git rev-parse <default_branch>:<rel>. default_branch is entry["default_branch"] from the parsed fleet.yaml, returned by resolve_repo at line 87 |
 | feature_schema.py | NO-EXECUTION | the three matches (lines 6, 9, 292) are prose in a docstring explaining that this module is imported rather than spawned; the file contains no subprocess, os.system or eval call at all |
 | gh-close-gate.py | NO-EXECUTION | it uses shlex to LEX the agent-proposed command line for inspection (line 47 shlex.shlex, punctuation_chars=True) and decides allow or deny; there is no subprocess, os.system or eval call anywhere in the file |
-| gh-close-gate.sh | FIXED-LITERAL-ARGV | line 73 runs python3 -I -c with a literal one-liner plus "$_selfbin" from BASH_SOURCE, and line 79 execs python3 "$(dirname "$0")/gh-close-gate.py" "$root" where root is a harness_boundary.resolve_root result, an explicitly excluded provenance |
+| gh-close-gate.py | FIXED-LITERAL-ARGV | line 73 runs python3 -I -c with a literal one-liner plus "$_selfbin" from BASH_SOURCE, and line 79 execs python3 "$(dirname "$0")/gh-close-gate.py" "$root" where root is a harness_boundary.resolve_root result, an explicitly excluded provenance |
 | gh-sync.py | TEXT-DERIVED-ARGV | the clearest instance in the tree. Line 775 passes title and body built from brief['feat'], brief['phrase'], brief['problem'] and brief['goal'] into gh issue create argv, and line 789 passes task['title'] and task['body']; parse_brief reads BRIEF.md at line 289 and parse_tasks reads plan.yaml or PLAN.md at lines 305-355. Every gh call also carries --repo repo from harness.json github.repo, read at line 200 |
 | gh_cost_log.py | FIXED-LITERAL-ARGV | line 82 _read_counter runs [_counter_binary()] + list(_COUNTER_ARGV); the binary is the FACTORY_GH env var or the literal "gh" (line 75) and _COUNTER_ARGV is a module constant. Its only file access is the append-only log write at line 142 |
 | harness_boundary.py | NO-EXECUTION | the single match at line 122 is a comment stating that this resolver deliberately runs no git subprocess; the file spawns nothing |
 | harness_yaml.py | NO-EXECUTION | the single match at line 231 is a comment about a hook subprocess exit code; the loader itself never spawns a process and never evaluates its input |
 | inflight_registry.py | TEXT-DERIVED-ARGV | line 159 runs ["ps", "-o", "lstart=", "-p", str(pid)]; on the _omp_claim_live path pid is claim.get("supervisor_pid") read from the registry JSON parsed at line 54 (line 178, then _process_start_time at 182). The executable is literal and pid is int-validated at line 131, so the exposure is narrow, but the value's provenance is a parsed .json |
-| post-merge-sweep.sh | TEXT-DERIVED-ARGV | line 215 runs feature-worktree.py remove --repo repo_arg --id wt_id; repo_arg comes from _repo_arg_for_segment (line 152), which returns either the literal "harness" or a name read out of the parsed fleet.yaml via factory_config.load_fleet at lines 110-118 |
-| run-unit-tests.sh | FIXED-LITERAL-ARGV | line 149 runs python3 "$BIN_DIR/$s" where s iterates the two literal arrays at lines 30-31, and line 101 runs python3 -I - with the KINDCHECK heredoc from its own source. It parses test_kinds.integration.detect at line 108 but only set-compares it; no parsed value reaches argv |
+| post-merge-sweep.py | TEXT-DERIVED-ARGV | line 215 runs feature-worktree.py remove --repo repo_arg --id wt_id; repo_arg comes from _repo_arg_for_segment (line 152), which returns either the literal "harness" or a name read out of the parsed fleet.yaml via factory_config.load_fleet at lines 110-118 |
+| run-unit-tests.py | FIXED-LITERAL-ARGV | line 149 runs python3 "$BIN_DIR/$s" where s iterates the two literal arrays at lines 30-31, and line 101 runs python3 -I - with the KINDCHECK heredoc from its own source. It parses test_kinds.integration.detect at line 108 but only set-compares it; no parsed value reaches argv |
 | test-bash-write-guard.py | FIXED-LITERAL-ARGV | the harness at line 185 runs [GUARD] with the JSON payload on STDIN, never in argv; the isolated-tree variants (240, 445, 490, 495) build the executable path by os.path.join off a tempdir this file creates |
 | test-board-lifecycle.py | FIXED-LITERAL-ARGV | line 398 runs [sys.executable, SCRIPT] + args and line 415 runs [sys.executable, "-c", code]; SCRIPT is a module constant, args are caller literals, and code is an f-string from this file's own source |
 | test-board-station.py | FIXED-LITERAL-ARGV | line 120 runs [sys.executable, SCRIPT] + args with SCRIPT a module constant and args supplied literally by each case; the fake gh binary is injected through the FACTORY_GH and GH_SYNC_GH env vars, not argv |
@@ -82,13 +82,13 @@ it, outside `bin/`.
 | test-check-expertise.py | FIXED-LITERAL-ARGV | line 55 runs [CHECK, p] where p is a fixture path this file wrote into its own tempdir, and the argv parameter at line 90 is assembled by the caller from those same constants |
 | test-check-omp-port.py | FIXED-LITERAL-ARGV | line 17 runs [sys.executable, str(CHECK), str(root)]; CHECK is a module constant and root is the fixture tree this file builds |
 | test-check-plan-routes.py | FIXED-LITERAL-ARGV | line 62 runs the checker with argv from module constants plus the fixture plan path the case created; the plan text under test is read by the CHILD, never spliced into this file's argv |
-| test-check-state.py | TEXT-DERIVED-ARGV | line 2620-2628 imports shlex, regex-matches the backticked command out of short_line (check-state.sh's own captured STDOUT) and builds argv = [sys.executable] + shlex.split(m.group(1)), which line 2655 EXECUTES. This is the argv-from-parsed-text shape, deliberately: SC-17 of an earlier feature required the printed command to be run rather than read. It is mitigated but not eliminated — argv[1] is rewritten to the real script path (line 2635) and the resolver probe at 2644-2652 refuses to run unless the resolved root is the fixture. Its other ~25 sites are literal git and SCRIPT argv |
+| test-check-state.py | TEXT-DERIVED-ARGV | line 2620-2628 imports shlex, regex-matches the backticked command out of short_line (check-state.py's own captured STDOUT) and builds argv = [sys.executable] + shlex.split(m.group(1)), which line 2655 EXECUTES. This is the argv-from-parsed-text shape, deliberately: SC-17 of an earlier feature required the printed command to be run rather than read. It is mitigated but not eliminated — argv[1] is rewritten to the real script path (line 2635) and the resolver probe at 2644-2652 refuses to run unless the resolved root is the fixture. Its other ~25 sites are literal git and SCRIPT argv |
 | test-context-watch-cli.py | FIXED-LITERAL-ARGV | line 56 _run_cli runs [sys.executable, CONTEXT_WATCH_PATH] + args; the transcript JSONL fixtures it writes (lines 50-52) are read by the child from a path, never expanded into argv |
 | test-context-watch-hook.py | FIXED-LITERAL-ARGV | line 84 fire runs [hook] with the payload JSON on stdin; hook is the constant path resolved in the fixture builder |
 | test-dispatch-guard.py | FIXED-LITERAL-ARGV | line 48 runs [GUARD] with the payload on stdin, line 302 builds the mutant path by os.path.join off this file's own tempdir, and the git fixture calls (347-358) are literal argv |
 | test-expertise-merge.py | FIXED-LITERAL-ARGV | line 81 run_apply runs [sys.executable, CLI, "apply", "--file", file_path, "--entries", entries_path] where both paths are fixture files this file created; the Popen race at 140 and 146 reuses the same construction. The ast.literal_eval calls at 268-269 evaluate a cap tuple, not a command |
 | test-factory-claim.py | NO-EXECUTION | in-process by design; the three matches (4, 393, 933) are docstring and comment prose stating that nothing here spawns a subprocess, and the file has no execution call site |
-| test-factory-cli.py | NO-EXECUTION | the single match at line 9 is docstring prose about why run-unit-tests.sh classifies this file as unit; there is no execution call site |
+| test-factory-cli.py | NO-EXECUTION | the single match at line 9 is docstring prose about why run-unit-tests.py classifies this file as unit; there is no execution call site |
 | test-factory-config.py | NO-EXECUTION | the single match at line 10 is docstring prose stating nothing here spawns a subprocess; no execution call site exists |
 | test-factory-decompose.py | NO-EXECUTION | the two matches (4, 33) are docstring and comment prose asserting this tool is exercised in-process; no execution call site exists |
 | test-factory-gh.py | NO-EXECUTION | all 92 matches are ATTRIBUTE ASSIGNMENTS of the form fgh.subprocess.run = fake plus the saved original at line 64; a grep for subprocess.run( or subprocess.Popen( as a CALL returns zero hits, so this file never spawns anything |
@@ -134,13 +134,13 @@ it, outside `bin/`.
 executable is always a literal or an env var, and the value is a repo slug, a branch name or a pid:
 
 - `board_lifecycle.py:1003` — `harness.json` `github.repo` into `gh label create --repo`
-- `check-state.sh:1633` — `harness.json` `github.repo` into a `gh api` path
+- `check-state.py:1633` — `harness.json` `github.repo` into a `gh api` path
 - `wayfind.py:66,83,170` — `harness.json` `github.repo` into `gh ... -R`
-- `check-plan-routes.py:74` — a `plan.yaml` `files:` path into `check-domain.sh --resolve`
+- `check-plan-routes.py:74` — a `plan.yaml` `files:` path into `check-domain.py --resolve`
 - `factory_workspace.py:103,129,130` — `fleet.yaml` `default_branch` into `git checkout`/`reset`
 - `feature-worktree.py:125,289` — `fleet.yaml` `default_branch` into `git worktree add`/`rev-parse`
 - `worktree_terminal.py:150,160` — `fleet.yaml` `default_branch` into `git ls-tree`/`rev-parse`
-- `post-merge-sweep.sh:215` — a `fleet.yaml` repo name into `feature-worktree.py --repo`
+- `post-merge-sweep.py:215` — a `fleet.yaml` repo name into `feature-worktree.py --repo`
 - `inflight_registry.py:159` — the registry JSON's `supervisor_pid` into `ps -p`
 
 **Group B — document text becoming argv (2).** These are the shape closest to the mechanism T-24
@@ -151,7 +151,7 @@ deleted:
   (`gh-sync.py:289`) and `plan.yaml`/`PLAN.md` (`gh-sync.py:305-355`), into `gh issue create`
   argv. This is argv assembled from approval-gated prose.
 - `test-check-state.py:2620-2655` — a backticked command string regex-matched out of
-  `check-state.sh`'s stdout, `shlex.split` into argv, and executed. A test, and guarded (the
+  `check-state.py`'s stdout, `shlex.split` into argv, and executed. A test, and guarded (the
   resolver probe at 2644 refuses unless the resolved root is the fixture), but structurally the
   same move.
 

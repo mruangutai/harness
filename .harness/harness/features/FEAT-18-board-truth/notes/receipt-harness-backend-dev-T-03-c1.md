@@ -144,12 +144,12 @@ $ echo $?
 
 ## Other runners
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0. Includes
+`.claude/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0. Includes
 `PASS test-gh-sync.py` alongside `test-check-state.py`, `test-check-plan-routes.py`, and
 every other registered integration script; 106/106 checks in `test-factory-integration.py`
 and no other regression.
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0. `test-gh-board.py` and
+`.claude/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0. `test-gh-board.py` and
 `test-branch-create-gate.py` both PASS unchanged; `test-gh-sync.py` correctly does **not**
 appear in this list — T-02's registration keeps it integration-only, and this task did not
 move it (per the explicit instruction not to).

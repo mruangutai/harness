@@ -6,7 +6,7 @@
 no `when` predicate fires — the only conditional in the matrix, `config.touches_config_shape`,
 binds `change_type: config`, not `docs`; `harness.json` itself is untouched by this diff). The
 matrix is satisfied by construction: there is no floor to miss. SC-04's integration evidence is
-**AUDITED, not executed** by me — I did not run `run-unit-tests.sh` or any suite this cycle. My own
+**AUDITED, not executed** by me — I did not run `run-unit-tests.py` or any suite this cycle. My own
 judgement, below: the required-kind set of `[]` is correct, and the known red-capability gap on
 one of SC-04's two named tests is a **backlog row, not a ship-blocking gate**.
 
@@ -40,7 +40,7 @@ this diff actually exercises (integration, via SC-04) has a recorded green run.
 
 ## 3. SC-04 evidence — AUDITED, not executed
 
-I did not run `run-unit-tests.sh --kind integration` or any suite this cycle (operator ruling:
+I did not run `run-unit-tests.py --kind integration` or any suite this cycle (operator ruling:
 no re-run in this phase). I am citing, not reproducing, the qa segment's measurement:
 `.harness/harness/features/BUG-148-gate-record-correction/notes/qa-BUG-148-2026-09-06.md` §3,
 measured at `f60d5d27` (a commit strictly before this pin): `RUNNER_EXIT=0`, `grep -c '^FAIL '` = 0,
@@ -107,7 +107,7 @@ DIGEST:
   matrix_ok: true
   kinds:
     - { kind: unit, state: "not applicable", cmd: none, named_tests: 0 }
-    - { kind: integration, state: satisfied, cmd: "run-unit-tests.sh --kind integration (cited from qa-BUG-148-2026-09-06.md §3, audited not executed)", named_tests: 2 }
+    - { kind: integration, state: satisfied, cmd: "run-unit-tests.py --kind integration (cited from qa-BUG-148-2026-09-06.md §3, audited not executed)", named_tests: 2 }
     - { kind: functional, state: "not applicable", cmd: none, named_tests: 0 }
     - { kind: component, state: "not applicable", cmd: none, named_tests: 0 }
     - { kind: ui, state: "not applicable", cmd: none, named_tests: 0 }

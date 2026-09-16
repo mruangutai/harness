@@ -126,11 +126,11 @@ exit 0. The twelve `DEVIATION` lines it also prints are the pre-existing DEC-174
 
 ## planfix-c2d — 2026-09-02 — the missing `goalcheck` reader
 
-**BLUF: `panel.readers` now records all three readers `check-state.sh` INV-32 expects; nothing else
+**BLUF: `panel.readers` now records all three readers `check-state.py` INV-32 expects; nothing else
 in plan.yaml changed.** One entry was appended — `reader: goalcheck`, `status: ran`. `last_run`
 stays `2026-09-02-c2-validator` and `cycle` stays 2.
 
-**Why the entry is authorised, not invented.** `check-state.sh:519` reads
+**Why the entry is authorised, not invented.** `check-state.py:519` reads
 `expected_readers = {"should-not-exist", "scope", "goalcheck"}`, so a two-entry list is an
 incomplete record rather than a clean one. The goalcheck reader DID run this cycle (run
 `2026-09-02-c2goalcheck-product`) and its artifact is on disk at

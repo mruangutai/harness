@@ -67,13 +67,13 @@ grade the pre-change file).
    criterion among the five. New gaps: **none**.
 3. **Traceability both ways:** tasks→REQ: T-01 REQ-01..07, T-02 REQ-01..09, T-03 REQ-08, T-04 REQ-08.
    SC→task: SC-01..05→case11-15, SC-06→case16, SC-07→T-01 unit file (u10 permanent red), SC-08→cases
-   11/12 `check-expertise.sh`, SC-09→case17, SC-10→T-04, SC-11→case18. Orphans in either direction: **none**.
+   11/12 `check-expertise.py`, SC-09→case17, SC-10→T-04, SC-11→case18. Orphans in either direction: **none**.
 4. **Determinism:** every SC names an observable — exit codes, exact stdout tokens, sha256 identity,
    ordinal index 7, section counts, id census. New gaps: **none**.
 5. **Verifiability (re-derived, nothing project-wide run):** `tests/integration/test-expertise-merge.py`
    exists and its case-8 idiom is real (`case_cap_drift_detector`, "Case 8 … read as TEXT from both
    files", `:259-261`); cases run to 10, so 11–18 are free numbers. `tests/integration/test-gen-decisions-index.py`
-   exists; `check-expertise.sh` takes a file argument (`for arg in "$@"`, `:28`);
+   exists; `check-expertise.py` takes a file argument (`for arg in "$@"`, `:28`);
    `tests/unit/test-expertise-ops.py` is created by T-01. Anchors re-derived and both hold: SKILL.md
    `:112`/`:116` "Updates are **ops**, each naming its target:" / `# add | replace | merge | drop`;
    SPEC.md `:904` "The apply is a union merge, not a whole-file write". New gaps: **none**.

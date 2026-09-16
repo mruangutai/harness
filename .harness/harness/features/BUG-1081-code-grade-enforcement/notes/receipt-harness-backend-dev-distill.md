@@ -6,7 +6,7 @@ All three relayed candidates accepted, in reframed/split form — none survived 
 contributed one sharper, more general lesson than its incident narrative. Plus two self-derived
 repository-tier facts pulled from my own REUSE/SIMPLIFICATION receipts. Craft Patterns and Gotchas
 were already at cap; freed one Gotchas slot by merging two overlapping "verify the claim, don't
-trust the prose" entries (G-05+G-12) rather than appending over cap. `check-expertise.sh` NOT run
+trust the prose" entries (G-05+G-12) rather than appending over cap. `check-expertise.py` NOT run
 per dispatch (orchestrator runs it once over the corpus).
 
 ## Section counts, before → after
@@ -95,5 +95,5 @@ existing-id conflicts) went through `expertise-merge.py apply` as intended, outp
 
 Both files re-read after edits (see body above); no duplicate IDs, no section over its cap,
 `WHEN/DO` shape preserved on every touched/added entry, no `FEAT`/`T-NN`/`#NN` ids introduced.
-`check-expertise.sh` intentionally not run (dispatch instruction — orchestrator runs it once
+`check-expertise.py` intentionally not run (dispatch instruction — orchestrator runs it once
 over the full corpus).

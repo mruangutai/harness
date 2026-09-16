@@ -16,7 +16,7 @@ signed, accepted tradeoff (PF-334e1b370c596f88c39730bf43579f13). No new finding.
   L816-848, `_RUN_DIR_REF_RE`/`run_dir_refs` L855-876, `run_dir_slug_ok` L878-890,
   `run_dir_forms` L892-915), plus `glob_to_re`/`matches` (L315-348) since
   `run_dir_slug_ok` calls them on attacker-influenced candidate text.
-- `dispatch-guard.sh`: full file (314 lines) — both python3 invocations (the
+- `dispatch-guard.py`: full file (314 lines) — both python3 invocations (the
   non-isolated derivation subprocess L37-58, the `-I` isolated hook body L60-314),
   the run-dir shape-check block (L153-186) and its `try/except SystemExit: raise /
   except Exception` wrapper.
@@ -26,7 +26,7 @@ signed, accepted tradeoff (PF-334e1b370c596f88c39730bf43579f13). No new finding.
   `run_dir_*`/`write_synthetic_run_dir_manifest` cases (L582-704), incl. the
   garbage/binary-manifest case.
 - Cross-referenced (read-only, outside the four-file set, to ground severity):
-  `check-domain.sh` L356-358 — confirms write-time enforcement derives its target
+  `check-domain.py` L356-358 — confirms write-time enforcement derives its target
   from `tool_input.file_path`/`notebook_path` (the real Write/Edit call), never
   from dispatch-prompt text.
 - `plan.yaml` approval block (L1-30) and findings PF-334e1b370c596f88c39730bf43579f13
@@ -46,7 +46,7 @@ documented DEC-100 fail-open, not something a dispatch prompt can steer.
 
 **Is `HARNESS_RUN_DIR_DERIVED`/`HARNESS_RUN_DIR_GLOBS` a caller-settable bypass?**
 No. Both are set via `VAR=value python3 -I -c '...'` on the same line that invokes
-the governed interpreter (`dispatch-guard.sh` L60), which always wins over any
+the governed interpreter (`dispatch-guard.py` L60), which always wins over any
 identically-named variable already present in the hook process's inherited
 environment. `_derived`/`_globs` are computed fresh, in-script, from the actual
 exit status and stdout of the derivation subprocess (L37-58) every invocation —
@@ -90,9 +90,9 @@ legitimate half).
 This is exactly finding `PF-334e1b370c596f88c39730bf43579f13` (severity `med` in
 plan.yaml, L186-193), and it is **ruled, not open**: the operator's signed approval
 (`plan.yaml` L9-11, 2026-09-07) accepts it explicitly — "escape spelling is
-write-time-checked by check-domain.sh regardless; accepted mid-run-cost tradeoff,
+write-time-checked by check-domain.py regardless; accepted mid-run-cost tradeoff,
 not a bypass." I independently confirmed the mechanism behind that ruling:
-`check-domain.sh` L356-358 derives its enforcement target from
+`check-domain.py` L356-358 derives its enforcement target from
 `tool_input.file_path`/`notebook_path` — the real Write/Edit tool call — which is
 completely unreachable from dispatch-prompt text. So smuggling past this shape
 check only defers detection from dispatch time to write time; it grants no

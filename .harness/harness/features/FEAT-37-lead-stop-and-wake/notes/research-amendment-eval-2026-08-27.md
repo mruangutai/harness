@@ -8,7 +8,7 @@ cannot write an eval in this checkout**, so T-07 is `main-session-direct`.
 
 ## The finding that changed the plan
 
-`check-domain.sh --resolve evals/lead-never-wait/run-eval.py` → `NOBODY`. The PreToolUse guard,
+`check-domain.py --resolve evals/lead-never-wait/run-eval.py` → `NOBODY`. The PreToolUse guard,
 given a `harness-ai-dev` Write to `evals/lead-never-wait/cases.yaml`, exits 2:
 `harness-ai-dev may not write evals/lead_never_wait/cases.yaml`, and prints its permitted set —
 notes, expertise, observations, nothing else. `.harness/team-config.yaml:182` does grant
@@ -26,7 +26,7 @@ it rather than hiding it.
 ## The runner problem — recommended: fix it inside the feature (T-08)
 
 - **Chosen.** `harness-dev-ops` writes `test_kinds.eval.cmd`, sets `status: active`, deletes the
-  `_reason`. `check-domain.sh --resolve .harness/harness.json` → `harness-dev-ops`, and the guard
+  `_reason`. `check-domain.py --resolve .harness/harness.json` → `harness-dev-ops`, and the guard
   admits that agent (exit 0). Cost: **one dev-ops dispatch**, sequential after T-07 because T-08's
   verify executes the cmd it just wrote.
 - **Rejected: defer to work outside the feature.** Saves no run — the eval still has to be authored
@@ -42,11 +42,11 @@ T-08, the qa re-run, the panel, the goal-check and the docs sweep are five. One 
 `.harness/harness.json` is **outside** the carve-out on the evidence, and the operator rules:
 
 - Amendment 4 (`DECISIONS.md:4983`) declares the category — hooks, validators, gate **scripts** —
-  governing, and the list recording: `check-domain.sh`, `bash-write-guard.sh`,
-  `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh` and each
+  governing, and the list recording: `check-domain.py`, `bash-write-guard.py`,
+  `validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py` and each
   one's test. `harness.json` is data, not a script.
-- No enforcement-layer script reads `test_kinds.eval.cmd`. `run-unit-tests.sh:108` reads
-  `test_kinds.integration.detect` only; `check-state.sh`'s sole mention of `test_kinds` is the
+- No enforcement-layer script reads `test_kinds.eval.cmd`. `run-unit-tests.py:108` reads
+  `test_kinds.integration.detect` only; `check-state.py`'s sole mention of `test_kinds` is the
   comment at line 479. The consumer of `eval.cmd` is the qa **persona's** matrix.
 - The residual worry is am.4's cutover rule — "the cutover that makes a gate use it is
   main-session-direct". It does not bite here: no gate script changes at all, and no script's

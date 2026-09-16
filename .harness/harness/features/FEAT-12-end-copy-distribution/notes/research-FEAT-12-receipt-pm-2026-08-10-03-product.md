@@ -1,7 +1,7 @@
 # Receipt — harness-pm — FEAT-12 revision pass — 2026-08-10-03-product
 
 **Path note:** the dispatch named
-`notes/receipt-harness-pm-2026-08-10-03-product.md`. `check-domain.sh` BLOCKED that path for
+`notes/receipt-harness-pm-2026-08-10-03-product.md`. `check-domain.py` BLOCKED that path for
 `harness-pm` (permitted list is `notes/research-*.md`, `notes/uat-*.md`, BRIEF, PLAN, plan.yaml).
 Raised as an open question rather than worked around; this file is the same content at a permitted
 path.

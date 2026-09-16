@@ -153,7 +153,7 @@ So: `reader: goalcheck, status: ran, persona: harness-pm`.
 `panel.findings`, `panel.last_run/cycle/transcription_rule` all identical. `panel.readers` now
 carries exactly 3 entries.
 
-**check-state.sh after the write:** the `INV-32 … reader goalcheck never ran or was not recorded`
+**check-state.py after the write:** the `INV-32 … reader goalcheck never ran or was not recorded`
 VIOLATION is **GONE**. It surfaced a NEW one my write caused: `INV-33 … review_sha ac8dd671 is STALE
 — plan.yaml has changed since it was pinned`. Expected and unavoidable — closing INV-32 requires
 editing the pinned file. The main session must re-pin `review_sha` after this lands. Two unrelated

@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-RUNNER = ROOT / ".claude/skills/harness/bin/run-unit-tests.sh"
+RUNNER = ROOT / ".claude/skills/harness/bin/run-unit-tests.py"
 failures = []
 def check(name, condition, detail=""):
     print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
@@ -17,8 +17,8 @@ def tree():
     (r/".harness").mkdir(); (r/".harness/team-config.yaml").write_text("teams: []\n")
     b = r/".claude/skills/harness/bin"; b.mkdir(parents=True)
     for name in (
-            "run-unit-tests.sh", "harness_boundary.py", "run_identity.py",
-            "suite_layout.py", "run_pool.py"):
+            "run-unit-tests.py", "harness_boundary.py", "run_identity.py",
+            "artifact_accessors.py", "suite_layout.py", "run_pool.py"):
         shutil.copy2(ROOT/".claude/skills/harness/bin"/name, b/name)
     for kind in ("unit", "integration"):
         d=r/"tests"/kind; d.mkdir(parents=True); (d/f"test-{kind}.py").write_text(f'print("PASS test-{kind}.py")\n')
@@ -50,7 +50,7 @@ def git_commit(r, message="fixture"):
 
 def run(r, *args):
     env=dict(os.environ, HARNESS_PROJECT_DIR=str(r))
-    return subprocess.run([str(r/".claude/skills/harness/bin/run-unit-tests.sh"), *args], cwd=r, env=env, text=True, capture_output=True, timeout=60)
+    return subprocess.run([str(r/".claude/skills/harness/bin/run-unit-tests.py"), *args], cwd=r, env=env, text=True, capture_output=True, timeout=60)
 
 r=tree()
 try:
@@ -72,7 +72,7 @@ for label, mutate, needle in [
     finally: shutil.rmtree(r)
 
 # Repository-wide clause: the runner must present the refusal before any test
-# sentinel runs. Cases below drive run-unit-tests.sh through a real Git checkout
+# sentinel runs. Cases below drive run-unit-tests.py through a real Git checkout
 # so tracked_paths()'s self-ownership condition (suite_layout.py tracked at its
 # real relative path) is satisfied.
 

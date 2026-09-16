@@ -36,7 +36,7 @@ first test ran, not after.
 
 `cmd_ship`'s unreadable-child-list branch printed one stderr line and continued **without** appending
 to `failed`, while the board-read branch four lines above did. So no `gh-sync: FAILED` line fired, and
-`post-merge-sweep.sh` gates worktree removal on exactly three things — non-zero exit, `SKIP`, `FAILED`
+`post-merge-sweep.py` gates worktree removal on exactly three things — non-zero exit, `SKIP`, `FAILED`
 — so a network blip on one child read left the ticket open, said nothing, and had its evidence swept
 away with the tree.
 

@@ -16,8 +16,8 @@ Plan change types are logic (T-01/02/03/04/06/07/12), config (T-05), docs (T-08/
 
 Commands were run from repository root with only `HARNESS_AGENT_TYPE` unset; the command portions are exactly `test_kinds.<kind>.cmd`.
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0; `pool: 8 workers, 25 files`; non-zero discovery and execution.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0; `pool: 8 workers, 44 files`; non-zero discovery and execution.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0; `pool: 8 workers, 25 files`; non-zero discovery and execution.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0; `pool: 8 workers, 44 files`; non-zero discovery and execution.
 - `python3 tests/unit/test-handoff-done-when.py` — exit 0; 54/54 printed named assertions.
 - `python3 tests/unit/test-probe-handoff-comprehension.py` — exit 0; `Ran 7 tests`; the captured actual argv assertion requires `argv.count("--no-tools") == 1` and rejects `--auto-approve` (`tests/unit/test-probe-handoff-comprehension.py:71-80`).
 - `python3 tests/integration/test-check-domain.py` — exit 0; 41/41 printed FEAT-54 handoff outcomes.
@@ -28,14 +28,14 @@ No assertion, import, collection, syntax, load, or discovery failure occurred. R
 
 ## Literal SC-04 and inspections
 
-- **SC-04 FAIL:** from repository root, literal `bash .claude/skills/harness/bin/check-state.sh` exited **1**. Its complete capture contains **0** case-sensitive lines naming `Done when` and **1** `VIOLATION` line. The line is INV-29 for `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1157-approval-overrule`: terminal status could not be determined because its landed feature.json is missing. This is not a Done-when defect, but acceptance requires the command itself to be clean.
-- **SC-07 PASS by inspection:** `check-domain.sh:1546-1566` imports the single module and calls `problems(..., resolve=True)`; `check-state.sh:53-56,1243-1251` imports it and calls `problems(..., resolve=False)`. Neither gate carries a second Done-when body parser or target resolver.
-- **SC-08 PASS by inspection:** template, playbook, DEC-159/214, and both gates state five sections and name `## Done when`. The surviving `four headings` statements in `check-state.sh:1194-1219` are commit/feature-bound historical observations expressly exempted by SC-08.
+- **SC-04 FAIL:** from repository root, literal `python3 .claude/skills/harness/bin/check-state.py` exited **1**. Its complete capture contains **0** case-sensitive lines naming `Done when` and **1** `VIOLATION` line. The line is INV-29 for `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1157-approval-overrule`: terminal status could not be determined because its landed feature.json is missing. This is not a Done-when defect, but acceptance requires the command itself to be clean.
+- **SC-07 PASS by inspection:** `check-domain.py:1546-1566` imports the single module and calls `problems(..., resolve=True)`; `check-state.py:53-56,1243-1251` imports it and calls `problems(..., resolve=False)`. Neither gate carries a second Done-when body parser or target resolver.
+- **SC-08 PASS by inspection:** template, playbook, DEC-159/214, and both gates state five sections and name `## Done when`. The surviving `four headings` statements in `check-state.py:1194-1219` are commit/feature-bound historical observations expressly exempted by SC-08.
 - **SC-11 PASS by inspection:** base is `0ec44965a961d19177de871c3bb1f02b701e646b`. The handoff diff contains four additions and no modified/deleted base-existing note: FEAT-51 `handoff-validate.md` and FEAT-54 `handoff-build.md`, `handoff-plan.md`, and `handoff-validate.md`. Thus the historical intersection is empty and the positive control is non-empty and equals the added-only set.
 
 ## Full shared 16-path inspection
 
-All shared paths were inspected at the pinned bytes: `.claude/skills/harness/bin/handoff_done_when.py`; `tests/unit/test-handoff-done-when.py`; `tests/unit/test-probe-handoff-comprehension.py`; `tests/integration/test-check-domain.py`; `.claude/skills/harness/bin/check-domain.sh`; `.harness/harness.json`; `tests/integration/test-check-state.py`; `.claude/skills/harness/bin/check-state.sh`; `.claude/skills/harness/templates/HANDOFF.md`; `.claude/skills/harness/SKILL.md`; `tests/manual/probe-handoff-comprehension.py`; `.harness/harness/docs/DECISIONS.md`; `.harness/harness/docs/DECISIONS-INDEX.md`; `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-plan.md`; `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-build.md`; `tests/integration/test-run-unit-tests-kinds.py`.
+All shared paths were inspected at the pinned bytes: `.claude/skills/harness/bin/handoff_done_when.py`; `tests/unit/test-handoff-done-when.py`; `tests/unit/test-probe-handoff-comprehension.py`; `tests/integration/test-check-domain.py`; `.claude/skills/harness/bin/check-domain.py`; `.harness/harness.json`; `tests/integration/test-check-state.py`; `.claude/skills/harness/bin/check-state.py`; `.claude/skills/harness/templates/HANDOFF.md`; `.claude/skills/harness/SKILL.md`; `tests/manual/probe-handoff-comprehension.py`; `.harness/harness/docs/DECISIONS.md`; `.harness/harness/docs/DECISIONS-INDEX.md`; `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-plan.md`; `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-build.md`; `tests/integration/test-run-unit-tests-kinds.py`.
 
 ## Findings reassessed at c5
 
@@ -66,8 +66,8 @@ DIGEST:
   failures: 1
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

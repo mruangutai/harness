@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Harness team run checkpoint (state.yaml)",
-  "description": "FEAT-104: the closed schema for schema_version 2 and later run checkpoints. check-domain.sh enforces it at write time and check-state.sh sweeps it at rest.",
+  "description": "FEAT-104: the closed schema for schema_version 2 and later run checkpoints. check-domain.py enforces it at write time and check-state.py sweeps it at rest.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version"],
   "properties": {
-    "schema_version": {"type": "integer", "description": "Read by check-domain.sh and check-state.sh to select closed-schema enforcement; version 2 is the first enforced version."},
-    "run_id": {"type": "string", "description": "Read by check-domain.sh to bind an update to the run directory it replaces."},
+    "schema_version": {"type": "integer", "description": "Read by check-domain.py and check-state.py to select closed-schema enforcement; version 2 is the first enforced version."},
+    "run_id": {"type": "string", "description": "Read by check-domain.py to bind an update to the run directory it replaces."},
     "run_uid": {"type": "string", "description": "Minted and read by the Harness write path to preserve one run identity across updates."},
     "feature": {"type": "string", "description": "Read by team leads and state checks as the owning feature identifier."},
     "squad": {"type": "string", "description": "Read by the orchestrator and feature.json run roll-up as the executing squad."},
@@ -57,7 +57,7 @@
       }
     },
     "cycles_used": {"type": "integer", "minimum": 0, "description": "Read by the orchestrator as the run-level rework count."},
-    "cost": {"description": "Historical-only checkpoint key retained because check-state.sh still recognizes pre-FEAT-08 runs."},
+    "cost": {"description": "Historical-only checkpoint key retained because check-state.py still recognizes pre-FEAT-08 runs."},
     "flow": {"type": "string", "description": "Read by the resuming lead as a matchable flow identifier."},
     "task": {"type": "string", "description": "Read by the resuming lead as a run-level plan task identifier."},
     "team": {"type": "string", "description": "Read by the resuming lead as a matchable team identifier."},

@@ -7,15 +7,15 @@ and Q1 were not touched.
 ## D-15 — the instruction the documentor actually needs
 
 T-06's `intent:` is immutable and two of its bullets are now wrong: the one saying the boundary is
-"refused at the check-domain.sh Write gate on the canonical artifacts", and the one saying the
+"refused at the check-domain.py Write gate on the canonical artifacts", and the one saying the
 boundary bites on "the last three" because the `plan.yaml` case is handled by FEAT-41's editor
-denial. A documentor following them writes a DEC-209 entry with no `plan-sign-gate.sh` half and an
+denial. A documentor following them writes a DEC-209 entry with no `plan-sign-gate.py` half and an
 implicit claim that `plan.yaml` is covered by a denial on a route nobody may use — the exact belief
 this cycle overturned.
 
 **D-15 names T-06 and says in so many words that it supersedes those two bullets**, and states the
-three claims the entry must carry: the `check-domain.sh` `Write`/`Edit` half on `BRIEF.md`,
-`feature.json`, `STATE.md`; the `plan-sign-gate.sh` `PreToolUse` `Bash` half on the four mutating
+three claims the entry must carry: the `check-domain.py` `Write`/`Edit` half on `BRIEF.md`,
+`feature.json`, `STATE.md`; the `plan-sign-gate.py` `PreToolUse` `Bash` half on the four mutating
 `plan-merge.py` verbs plus `quarantine.py adopt` and `discard` (D-16); and explicitly that
 `plan.yaml`'s only write route is `plan-merge.py` through `Bash`. The documentor reads the
 `decisions:` block and the task intent, so a decision naming the task is the only route left.
@@ -29,12 +29,12 @@ and runs `test-gen-decisions-index.py` — all three are green over an entry tha
 T-06's `verify:` and `files:` cannot be edited, so the assertion cannot live in T-06.
 
 T-08 adds two functions to `.claude/skills/harness/bin/test-gen-decisions-index.py` (integration,
-already registered — no `run-unit-tests.sh` / `harness.json` change, no `DECISIONS.md` edit, so no
+already registered — no `run-unit-tests.py` / `harness.json` change, no `DECISIONS.md` edit, so no
 index regeneration is owed). It follows the precedent already in that file at `:829`,
 `test_no_amendment_construct_survives_in_the_authority`, which guards the **live** authority rather
 than a fixture. Region sliced `## DEC-209` → next `^##\s+DEC-\d+` through the file's own fence
 toggle at `:46`; bounded both sides (G-04). One assertion per clause (P-04):
-`check-domain.sh`, `plan-sign-gate.sh`, `quarantine.py adopt`, the whole word `Bash`, and one
+`check-domain.py`, `plan-sign-gate.py`, `quarantine.py adopt`, the whole word `Bash`, and one
 sentence carrying both `plan.yaml` and `plan-merge.py`. Absent heading ⇒ **FAIL, never skip**.
 `depends_on: [T-06]`; lane `team` / `harness-dev-ops` (`--resolve` → `harness-backend-dev`,
 `harness-dev-ops`). `change_type: scaffolding` — the deliverable is the guard.
@@ -64,13 +64,13 @@ labels and runs the whole suite, so the new case is gated without touching it.
 
 ## SC-09, tightened — and what turns it red
 
-It now requires **both** script names, `check-domain.sh` and `plan-sign-gate.sh`, plus one sentence
+It now requires **both** script names, `check-domain.py` and `plan-sign-gate.py`, plus one sentence
 saying `plan.yaml`'s write route is `plan-merge.py` through `Bash`, and says that resting
 `plan.yaml`'s coverage on FEAT-41's editor denial is `not_met`. Shape kept: `verify: automated`,
 `evidence: integration`, consistent with SC-11 (which grades the same script by name on the
 behavioural side; SC-09 grades the record). **The candidate entry that turns it red:** a DEC-209
-entry reproducing T-06's two bullets verbatim — it carries `check-domain.sh`, "the last three", and
-FEAT-41's denial for `plan.yaml`, and carries no `plan-sign-gate.sh` token at all. T-08's clause 2
+entry reproducing T-06's two bullets verbatim — it carries `check-domain.py`, "the last three", and
+FEAT-41's denial for `plan.yaml`, and carries no `plan-sign-gate.py` token at all. T-08's clause 2
 fails on it. No REQ added or reworded.
 
 ## Gate output — run from `/Users/molchairuangutai/GitHub/harness/`

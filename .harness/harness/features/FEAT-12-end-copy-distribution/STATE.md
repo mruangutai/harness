@@ -13,7 +13,7 @@ distribution story across README.md, SPEC.md, BUILD.md and `.harness/README.md` 
 unit suite green at each: exit 0, 85 PASS, 0 FAIL, re-run by me rather than relayed.
 
 **The build stops here and goes up, because nine of the fourteen tasks are lane-locked to layer 0
-and I am layer 1.** T-06, T-08 and T-11 return exit 2 from `check-domain.sh` for
+and I am layer 1.** T-06, T-08 and T-11 return exit 2 from `check-domain.py` for
 `harness-orchestrator` — I probed each path. T-01 to T-05 and T-09 sit outside the project
 directory where both guards pass me through, so those are locked by the signed plan under DEC-179,
 not by a hook. The nine work orders, with every `verify:` verbatim, are in
@@ -25,7 +25,7 @@ names T-11 but omits T-08, and T-08 does block it.
 
 One send-back this session, so the cycle count is five of ten. Product-lead sent documentor back
 for writing into README.md a claim its own research had just disproved — that `factory_config.py`
-is the fleet declaration's only reader. It is not: `check-state.sh` reads that file directly.
+is the fleet declaration's only reader. It is not: `check-state.py` reads that file directly.
 
 ## Open Questions
 
@@ -35,7 +35,7 @@ is the fleet declaration's only reader. It is not: `check-state.sh` reads that f
   modifications he signed off on discarding. Read literally the stop fires on the signed-for work
   and T-02 can never run; read as intended it means entries beyond those 34. The cost of guessing
   is a permanent discard on another repository's `master`, so it is his call, not an agent's.
-- Q2 (non-blocking, a HARNESS DEFECT, filed nowhere yet): `bash-write-guard.sh` passes
+- Q2 (non-blocking, a HARNESS DEFECT, filed nowhere yet): `bash-write-guard.py` passes
   `rm -f <out-of-domain-path>` at exit 0 while blocking `rm <same-path>` and `rm -rf <same-dir>` at
   exit 2. `trailing_files` treats `-f` as sed's script-file flag and skips the next token, so the
   target list comes back empty and no deny fires. Measured for `harness-orchestrator`, `harness-pm`

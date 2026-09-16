@@ -35,7 +35,7 @@ SC-10 was rewritten to say exactly that:
 | file | its named assertion |
 |---|---|
 | `gh_board.py` | T-04 literal-absence grep + positive control |
-| `check-state.sh` | T-05 INV-26 slice greps + positive control |
+| `check-state.py` | T-05 INV-26 slice greps + positive control |
 | `gh-sync.py` | T-04 `an unusable board config is a loud failure, not a skipped station write` |
 | `board-station.py` | T-04 two named cases |
 | `factory_config.py` | T-02's named `product_config`/`board_for` cases |
@@ -45,7 +45,7 @@ SC-10 was rewritten to say exactly that:
 
 The non-reader half is implemented too — a four-file grep loop in T-04's verify, each file with its
 own positive control — and **corrected from three files to four**: the survey classifies
-`wayfind.py`, `layout_migration.py`, `check-plan-routes.py` and `branch-create-gate.sh`. All four
+`wayfind.py`, `layout_migration.py`, `check-plan-routes.py` and `branch-create-gate.py`. All four
 match zero moved keys at HEAD, so `## Verification gaps` now records that this clause is a
 regression guard, not evidence of migration, and that the classification itself rests on a
 planning-time grep at `ada8e99` that nothing re-runs.
@@ -120,7 +120,7 @@ did. Two reconciliations, both recorded rather than silently absorbed:
 - The efficiency receipt measures `factory_land.py:85` as a third `board_for` call site. `D-03`'s
   accepted-cost line now names it alongside `factory_decompose.py:329,:399` and
   `factory_claim.py:226`, re-derived by grep at HEAD.
-- The altitude receipt proposes excluding `branch-create-gate.sh` from the non-reader check (its
+- The altitude receipt proposes excluding `branch-create-gate.py` from the non-reader check (its
   pinned-id absence is covered by `test-branch-create-gate.py:55`). That is a different assertion —
   pinned ids, not moved board keys — and the lanes block already records a zero-match survey for it,
   so I kept it in, making the loop four files. SC-10 names all four.
@@ -133,7 +133,7 @@ OK T-01 granted to harness-backend-dev, harness-dev-ops
 OK T-02 granted to harness-backend-dev, harness-dev-ops
 OK T-03 granted to harness-backend-dev, harness-dev-ops
 OK T-04 granted to harness-backend-dev, harness-dev-ops
-DEVIATION T-05 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-05 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-06 granted to harness-dev-ops
 OK T-07: declared main-session-direct (.harness/factory/fleet.yaml ungranted)
 OK T-08: declared main-session-direct (.claude/skills/harness/templates/harness.json ungranted)

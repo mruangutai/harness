@@ -1,6 +1,6 @@
 # Observations — harness-orchestrator — FEAT-27-expertise-repository-tier
 
-- 2026-08-19: Pre-change baseline of `inject-expertise.sh`, captured at `253287f` BEFORE T-02 edits
+- 2026-08-19: Pre-change baseline of `inject-expertise.py`, captured at `253287f` BEFORE T-02 edits
   it, because T-02 changes what the hook DISCOVERS and after that the exit code stops being evidence
   (P-09). Per agent, `context_lines` from `hookSpecificOutput.additionalContext`:
   `harness-qa` 134, `harness-orchestrator` 149, `harness-dev-ops` 35, `harness-frontend-dev` 0,
@@ -70,12 +70,12 @@
   there as S-04), hosted by a second lead, which created its own dir. Recording it in `feature.json`
   `runs:` would have double-counted it AND forced me to invent a verdict, since the schema's run
   entry has no field in which to say "inherited from another run's step record". Leaving it out costs
-  one `check-state.sh` NOTE about an unrecorded dir; that note is the honest outcome.
+  one `check-state.py` NOTE about an unrecorded dir; that note is the honest outcome.
 
 - 2026-08-19: A stale `detect` glob in `harness.json` looked like it would fail the blocking gate on
   a correct task, and one command disproved it. `test_kinds.integration.detect` does not name
   `test-check-expertise.py`, and the qa-gate skill turns "detect found nothing" into FAIL/BLOCKED —
-  but the configured `cmd` is what discharges the obligation, and `run-unit-tests.sh --kind
+  but the configured `cmd` is what discharges the obligation, and `run-unit-tests.py --kind
   integration` executes the file (it is in `INTEGRATION_SCRIPTS`, and the run prints `PASS
   test-check-expertise.py`). Rule of thumb: when config metadata and a runner disagree about what
   runs, RUN IT — the runner is the authority, and the metadata becomes a backlog row, not a gate.
@@ -112,7 +112,7 @@
   owning squad exists to do.
 
 - 2026-08-19: A green-looking suite report was RED, and the tell was where the reader stopped. The
-  layer-0 executor reported `run-unit-tests.sh --kind integration` as "106/106, exit 0". The real
+  layer-0 executor reported `run-unit-tests.py --kind integration` as "106/106, exit 0". The real
   run exits 1 with two FAIL lines — and the LAST line of that run is
   `106/106 checks passed. PASS test-factory-integration.py`, the final script's own internal count.
   A tail-only read of this runner reports any earlier script's failure as success. Always count

@@ -31,8 +31,8 @@ itself changed. Required kinds this cycle: **unit, integration**.
 | integration (targeted) | `python3 tests/integration/test-merge-gate.py` | 0 | 18 cases, all `ok`, `ALL PASSED` |
 | integration (targeted) | `python3 tests/integration/test-gh-sync.py` | 0 | 28 cases, all `ok`, `ALL PASSED` |
 | unit (targeted, T-05-adjacent) | `python3 tests/unit/test-omp-hooks.py` | 0 | `bun test`: 56 pass / 0 fail / 100 expect() calls |
-| unit (full bucket) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 33 files, pool-run, all PASS |
-| integration (full bucket) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 50 files, pool-run (75.7s wall), includes `test-merge-gate.py` and `test-gh-sync.py`, all PASS |
+| unit (full bucket) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 33 files, pool-run, all PASS |
+| integration (full bucket) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 50 files, pool-run (75.7s wall), includes `test-merge-gate.py` and `test-gh-sync.py`, all PASS |
 
 `env -u HARNESS_AGENT_TYPE` used throughout per repo-tier G-07 (its presence spuriously fails
 `test-plan-merge.py`, unrelated to this diff).
@@ -68,7 +68,7 @@ reconstruction — can hold both at once.
 invisible while the current feature is independently hitting an internal error, or while it is
 independently gh-outage-allowed. I reconstructed both pairs by hand in a throwaway `/tmp` fixture
 (not committed, not in the tracked tree) reusing the suite's own `fixture()`/`gate()` shapes
-against `merge-gate.sh`:
+against `merge-gate.py`:
 
 - (a)+(c): matched `FEAT-9001` with an empty `plan.yaml` *and* an unrelated malformed
   `FEAT-9002-unrelated-malformed/feature.json=[]` present → denied, reason still names

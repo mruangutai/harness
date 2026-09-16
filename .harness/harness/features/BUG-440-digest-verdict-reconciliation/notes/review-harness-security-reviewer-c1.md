@@ -8,14 +8,14 @@ secrets in the four corrected `feature.json` records. `severity_max: low`, nothi
 
 ## Scope established
 Base for the two target files: `27507695` (immediate parent touching either file per
-`git log -- check-state.sh test-check-state.py`). Feature commits: `3722a2c3` (logic +
+`git log -- check-state.py test-check-state.py`). Feature commits: `3722a2c3` (logic +
 four `feature.json` corrections) and `2964cddb` (pinned sha; test-only reuse, no
 behavior change — `git show --stat 2964cddb` is 4 deletions in the test file only).
-Full diff for the two code files verified at `check-state.sh:601-608`, `:650-658`,
+Full diff for the two code files verified at `check-state.py:601-608`, `:650-658`,
 `:1526-1557`; test at `test-check-state.py:4618-4712`.
 
 ## 1. Untrusted-input parsing / ReDoS — no finding
-`^\s*VERDICT:` and `^\s*VERDICT:\s*(\S+)` (`check-state.sh:1541,1544`) are anchored,
+`^\s*VERDICT:` and `^\s*VERDICT:\s*(\S+)` (`check-state.py:1541,1544`) are anchored,
 single-quantifier patterns (`\s*`, `\S+` over a negated class) with no nested or
 ambiguous quantifier composition — linear in input size, not exponential-backtracking
 candidates. `list(re.finditer(...))` (`:1541`) materializes one match per line-start
@@ -30,7 +30,7 @@ Confirmed live by the new test itself, which builds a digest with tail-anchored 
 and non-tail junk and asserts `validator.validate("lead", text) == []` — same code path.
 
 ## 2. Data exposure / output-format spoofing — low finding
-The new message (`check-state.sh:1551-1557`):
+The new message (`check-state.py:1551-1557`):
 ```
 f"INV-37: {os.path.basename(_feat_dir)} run {_rid}: "
 f"digest verdict {_dm.group(1)!r} in {os.path.relpath(dg, H)} differs from "
@@ -50,7 +50,7 @@ The **name/path** components are *not* wrapped in `!r`: `os.path.basename(_feat_
 `_rid` (`os.path.basename(rundir)`), and the two `os.path.relpath(...)` results. All
 four are directory-name-derived, and directory names are POSIX-legal to contain a
 literal newline (only `/` and NUL are forbidden). Findings are printed one-per-line with
-no per-message escaping: `for m in bad: print(f"  VIOLATION  {m}")` (`check-state.sh:2504`).
+no per-message escaping: `for m in bad: print(f"  VIOLATION  {m}")` (`check-state.py:2504`).
 A `runs/<id>/` or `features/<feat>/` directory named with an embedded
 `\n  VIOLATION  <forged text>` would break out of the single-line format and inject an
 indistinguishable extra finding line, or corrupt an automated consumer that greps
@@ -70,7 +70,7 @@ diff's scope.
 `dg = os.path.join(rundir, "digest.md")` and `os.path.join(_feat_dir, 'feature.json')`
 are always built from `rundir`/`_feat_dir`, which are themselves `os.path.dirname(...)`
 of glob matches templated as `os.path.join(H, "*", "features", "*", "runs", "*", ...)`
-(`check-state.sh:1479`, `:1526`) — every match is syntactically rooted under `H`, so
+(`check-state.py:1479`, `:1526`) — every match is syntactically rooted under `H`, so
 `os.path.relpath(dg, H)` can never contain `..`; there is no attacker-controlled
 component that reaches the glob's fixed literal segments. `os.path.basename()` on
 either side strips any embedded `/`, so no cross-directory reference is possible via
@@ -124,7 +124,7 @@ No secrets, tokens, or unrelated payload in any of the four.
 ## Threat model
 | boundary | STRIDE | mitigated |
 |---|---|---|
-| digest.md text (agent-authored, read by check-state.sh) | Tampering/Spoofing | true — tail-anchor semantics match validate-digest.py byte-for-byte; VERDICT token pre-constrained to enum by `validate()` before INV-37 runs |
+| digest.md text (agent-authored, read by check-state.py) | Tampering/Spoofing | true — tail-anchor semantics match validate-digest.py byte-for-byte; VERDICT token pre-constrained to enum by `validate()` before INV-37 runs |
 | feature.json `runs[].verdict` (unbounded str) | Information disclosure / output spoofing | true for the value itself (`!r`) |
 | feature.json/run-directory names in the new message | Information disclosure / output spoofing | false — unescaped, pre-existing file-wide convention, low severity, local-write precondition only |
 | gate write surface | Tampering | true — proven no-write by hash-equality test |

@@ -1,6 +1,6 @@
 # SIMPLIFY · REUSE angle — BUG-124 run-dir squad suffix
 
-Read-only pass over the exact 4-file scope (`dispatch-guard.sh`,
+Read-only pass over the exact 4-file scope (`dispatch-guard.py`,
 `harness_boundary.py`, `tests/integration/test-dispatch-guard.py`,
 `tests/unit/test-harness-boundary.py`) at `80ce35d1..dac8f099`. Three findings.
 
@@ -71,7 +71,7 @@ Read-only pass over the exact 4-file scope (`dispatch-guard.sh`,
 ## Rejected (not filed)
 
 - The second `team-config.yaml` parse inside T-02's derivation subprocess
-  (`dispatch-guard.sh`'s heredoc, ~line 47-50) versus `run_dir_grant_globs`'s
+  (`dispatch-guard.py`'s heredoc, ~line 47-50) versus `run_dir_grant_globs`'s
   own `harness_yaml.load_file` call: settled per the shared context (Q4,
   needed to distinguish "no grants" from "broken derivation" — F-4/D-04). Not
   refiled.

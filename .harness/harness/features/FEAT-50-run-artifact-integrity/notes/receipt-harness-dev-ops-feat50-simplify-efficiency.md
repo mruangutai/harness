@@ -1,7 +1,7 @@
 # Efficiency angle — FEAT-50 plan surface
 
 **BLUF.** Actual per-write hot-path cost is negligible for both D-03 and D-05 (sub-millisecond
-against the ~38 ms interpreter-startup floor `check-domain.sh:955` already pays per call), but
+against the ~38 ms interpreter-startup floor `check-domain.py:955` already pays per call), but
 **neither decision states any cost figure**, despite the figure for D-03's mechanism already
 existing verbatim in the code it calls. That absence is itself the finding the dispatch asked me
 to make. D-05 also has one small, real, unaccounted-for redundant read the plan's own "costs
@@ -19,13 +19,13 @@ nothing" claim doesn't cover. Grading-time redundancy exists in BRIEF.md's SC ev
 
 ### EFF-01 — D-03/T-03: hot-path cost measured, but not recorded in the plan
 
-`check-domain.sh:1046`'s own drift-hazard comment and `harness_boundary.py:138-156`'s docstring
+`check-domain.py:1046`'s own drift-hazard comment and `harness_boundary.py:138-156`'s docstring
 already carry the number this decision needs: `linked_worktrees` measures **0.371 ms/call at 5
 linked worktrees** (`harness_boundary.py:153`), i.e. **+0.22 ms marginal per governed write**
 against a prior 0.147 ms baseline, scaling linearly with worktree count — "no git subprocess,
 no segment counting, no regex" (`:122`, `:145`). `real()` (`:258-273`) is two `os.path.realpath`
 calls, no subprocess, no directory walk. Against the file's own recorded ~38 ms interpreter-startup
-floor per hook launch (`check-domain.sh:955`), the marginal cost is under 1%.
+floor per hook launch (`check-domain.py:955`), the marginal cost is under 1%.
 
 The ordering the intent specifies — regex match on `^\.harness/[^/]+/features/([^/]+)/` **before**
 calling `linked_worktrees` — does correctly bound *when* the lookup runs: only writes whose target
@@ -35,9 +35,9 @@ reaches the lookup.
 
 **Failure scenario.** Neither D-03's `because`, T-03's intent, nor T-03's `verify` cites this
 number or this bound. A future reader deciding whether to add a second per-write check to
-`check-domain.sh` — the same hot path, run on every `PreToolUse:Write|Edit` by every agent in
+`check-domain.py` — the same hot path, run on every `PreToolUse:Write|Edit` by every agent in
 every project — has no recorded budget to weigh a new addition against; each addition is measured
-against nothing, and `check-domain.sh`'s own per-call cost creeps unrecorded, addition by addition,
+against nothing, and `check-domain.py`'s own per-call cost creeps unrecorded, addition by addition,
 until the interpreter-start-up-dominated cost this file's earlier authors were careful to protect
 (`:952-955`) is no longer the dominant term and nobody can point to when that happened.
 
@@ -45,12 +45,12 @@ until the interpreter-start-up-dominated cost this file's earlier authors were c
 measurement: *"`linked_worktrees` measures 0.371 ms/call over 5 worktrees and `real()` adds two
 negligible realpath calls (`harness_boundary.py:138-156,258-273`); bounded to writes matching the
 feature-path regex inside the already-ALLOWED governed branch, this is under 1% of the ~38 ms
-interpreter-startup floor `check-domain.sh` already pays per hook launch."* No code change; a
+interpreter-startup floor `check-domain.py` already pays per hook launch."* No code change; a
 one-sentence addition to the decision record.
 
 ### EFF-02 — D-05/T-04: the plan's "costs nothing" is true for the sweep, not for the third route
 
-`check-domain.sh` has exactly one call site of `shape_problems()` (`:1547`), fed by `targets` built
+`check-domain.py` has exactly one call site of `shape_problems()` (`:1547`), fed by `targets` built
 three different ways: PRE-Write (`:1367-1370`, unconditional), POST-named-target for
 Write/Edit/NotebookEdit (`:1372-1386`, gated by `has_shape_rules`), and POST-Bash-no-target — what
 the file's *own* comment (`:1389`) calls "the sweep" — built from `SWEEP_GLOBS` alone (`:1417`),
@@ -154,6 +154,6 @@ SC-01/SC-02 for `test-validate-digest.py`.
 
 `.agents/skills/harness-simplify/SKILL.md` (EFFICIENCY section); `plan.yaml` (full, all 7 tasks, 8
 decisions); `BRIEF.md` (full, all 14 SCs); `.claude/skills/harness/bin/harness_boundary.py:102-320`
-(`checkout_relative`, `linked_worktrees`, `real`, `resolve_fleet`); `.claude/skills/harness/bin/check-domain.sh:919-1058` (`SWEEP_PATTERNS`, `SHAPE_PATTERNS`, `has_shape_rules`, cost-measurement
+(`checkout_relative`, `linked_worktrees`, `real`, `resolve_fleet`); `.claude/skills/harness/bin/check-domain.py:919-1058` (`SWEEP_PATTERNS`, `SHAPE_PATTERNS`, `has_shape_rules`, cost-measurement
 comment block) and `:1359-1553` (both `targets`-construction routes, the sweep, and the single
 `shape_problems` call site).

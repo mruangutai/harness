@@ -104,6 +104,7 @@ from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
 import gh_issue_types
 
+import artifact_accessors
 import feature_json_write
 import feature_schema
 import harness_merge
@@ -257,7 +258,7 @@ def gh_try(args):
     `gh()` turns any non-zero exit into `skip()`, which prints the literal `gh-sync: SKIP` and
     calls `sys.exit(0)`. That is right for a mid-flight environmental failure of the whole
     invocation, and WRONG for `cmd_ship`'s per-card child read: it would abandon a ship that
-    had already written most of its cards, and `post-merge-sweep.sh` greps that exact literal
+    had already written most of its cards, and `post-merge-sweep.py` greps that exact literal
     to decide whether to keep the worktree, so a single unreadable child list would silently
     change worktree behaviour on an otherwise healthy run."""
     with gh_cost_log.measured(args) as _cost:
@@ -277,7 +278,7 @@ def load_config(root):
     still runs; only station writes are skipped.
 
     Every OTHER unusable board shape — the `github` block absent, `board` key absent, or any
-    field `factory_config.validate_board` rejects — raises `factory_config.FleetError` from
+    field `factory_config.validate_board` rejects — raises `artifact_accessors.FleetError` from
     `gh_board.load_board`, and THIS FUNCTION does not catch it; `main()` does, exiting 2 with
     the error on stderr. That is a loud failure of the WHOLE invocation, not a skipped station
     write — an unusable declaration is a misconfiguration to fix, not an absence to tolerate."""
@@ -285,8 +286,8 @@ def load_config(root):
     if not os.path.isfile(p):
         skip("no .harness/harness.json — project not onboarded")
     try:
-        cfg = json.load(open(p))
-    except Exception as e:
+        cfg = artifact_accessors.load_harness_json(p)
+    except artifact_accessors.ArtifactAccessError as e:
         skip(f"harness.json unreadable ({e})")
     g = cfg.get("github") or {}
     if not g.get("sync"):
@@ -317,8 +318,8 @@ def _feature_station(feat_dir):
     """
     path = os.path.join(feat_dir, "plan.yaml")
     try:
-        doc = harness_yaml.load_file(path)
-    except Exception:
+        doc = artifact_accessors.load_plan(path)
+    except harness_yaml.YamlParseError:
         return None
     if not isinstance(doc, dict):
         return None
@@ -403,9 +404,8 @@ def parse_tasks(feat_dir):
     """
     yml = os.path.join(feat_dir, "plan.yaml")
     if os.path.isfile(yml):
-        import harness_yaml
         try:
-            doc = harness_yaml.load_plan(yml)
+            doc = artifact_accessors.load_plan(yml)
         except harness_yaml.YamlParseError as e:
             die(f"{yml} does not load: {e}")
         out = []
@@ -472,7 +472,7 @@ def parse_source_issues(feat_dir):
     path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(path):
         return []
-    doc = harness_yaml.load_file(path)
+    doc = artifact_accessors.load_plan(path)
     if not isinstance(doc, dict):
         return []
     si = doc.get("source_issues")
@@ -510,17 +510,15 @@ def type_label(change_type):
 # as today. A `github` key that IS present but is not itself a mapping is treated as the
 # error case too — refusing to sync beats guessing what is mirrored.
 #
-# BUG-285: the parse/read layer above converged on feature_json_write.load_feature_json,
-# the one canonical reader shared with factory_decompose.py's load_factory — this file no
-# longer parses feature.json for itself. `_opt_int` moved to feature_json_write.opt_int,
-# alongside it, for the same reason.
+# BUG-285: the public feature.json read boundary is artifact_accessors.load_feature_json.
+# feature_json_write remains the inward locked writer and owns opt_int, the shared numeric
+# coercion used after the boundary validates recorded fields.
 
 
 def load_recorded(feat_dir):
     """Read the `github:` block from feature.json through
-    feature_json_write.load_feature_json (BUG-285: the one canonical reader, shared with
-    factory_decompose.py's load_factory — this function no longer parses feature.json for
-    itself).
+    artifact_accessors.load_feature_json. This function converts the validated record into
+    its caller-facing GitHub shape but no longer validates recorded parent or issue fields.
 
     Three states stay distinct on purpose (fix1 Part B) — collapsing either pair
     reproduces a real bug:
@@ -546,8 +544,8 @@ def load_recorded(feat_dir):
     rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
            "source_issues": [], "build_entry": None}
     try:
-        doc = feature_json_write.load_feature_json(path)
-    except feature_json_write.FeatureJsonError as e:
+        doc = artifact_accessors.load_feature_json(path)
+    except artifact_accessors.FeatureJsonError as e:
         # Absent (returned as None below, never raised) and malformed (this branch) stay
         # distinct on purpose — see the docstring above.
         raise SystemExit(f"gh-sync: {e}. Refusing to sync rather than risk duplicate issues.")
@@ -564,8 +562,9 @@ def load_recorded(feat_dir):
                          f"mirrored cannot be known. Refusing to sync rather than risk "
                          f"duplicate issues.")
 
+    parent = feature_json_write.opt_int(gh.get("parent"))
     rec["milestone"] = feature_json_write.opt_int(gh.get("milestone"))
-    rec["parent"] = feature_json_write.opt_int(gh.get("parent"))
+    rec["parent"] = parent
     # THE PARENT'S ORIGIN IS NOT RECORDED (DEC-203 item 4). A github block written before
     # this feature may still carry that key; it is read without complaint and never
     # surfaced, because the record has no such field any more. Where a parent came from is
@@ -581,7 +580,7 @@ def load_recorded(feat_dir):
     if isinstance(issues, dict):
         for k, v in issues.items():
             n = feature_json_write.opt_int(v)
-            if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
+            if re.fullmatch(r"T-\d+", str(k).strip()):
                 rec["issues"][str(k).strip()] = n
 
     # PROVENANCE READS THE SAME WAY "issues" DOES, AND ABSENCE MEANS UNKNOWN (D-20): a
@@ -636,7 +635,7 @@ def _record_station(feat_dir, station):
     commit somebody else's edit under this function's message.
 
     AND BOTH FAILURE LINES SAY `gh-sync: FAILED` (FEAT-41 F-01, found by the validation panel).
-    post-merge-sweep.sh gates worktree REMOVAL on the ABSENCE of `gh-sync: SKIP` and
+    post-merge-sweep.py gates worktree REMOVAL on the ABSENCE of `gh-sync: SKIP` and
     `gh-sync: FAILED` from ship's combined output, treating absence-plus-exit-0 as positive
     evidence the write ran. Without the word, a station that reached disk NOWHERE read to the
     sweep as a clean ship: it deleted the worktree, which was the only surviving evidence the
@@ -691,7 +690,7 @@ def _commit_terminal_station(feat_dir):
     DEFECT ONE OF FEAT-41 T-10, AND IT WAS MEASURED IN THE FIELD RATHER THAN REASONED ABOUT.
     `cmd_ship` recorded the terminal station as its last statement and left it UNCOMMITTED, so
     the default branch read a non-terminal station while the board read the done column. That
-    is precisely the INV-26 violation check-state.sh reported against FEAT-40 and issue 842.
+    is precisely the INV-26 violation check-state.py reported against FEAT-40 and issue 842.
     FEAT-40 has since merged and the violation closed itself, so the finding is gone — but the
     defect that produced it was still here, and would produce the next one.
 
@@ -705,7 +704,7 @@ def _commit_terminal_station(feat_dir):
     FAILURE IS LOUD BUT NEVER FATAL, matching the best-effort posture the rest of ship already
     has (DEC-146). It prints to stderr and returns; the exit status is untouched.
 
-    AND THE FAILURE LINE MUST NOT SAY EITHER OF TWO WORDS. post-merge-sweep.sh gates worktree
+    AND THE FAILURE LINE MUST NOT SAY EITHER OF TWO WORDS. post-merge-sweep.py gates worktree
     removal on the ABSENCE of `gh-sync: SKIP` and `gh-sync: FAILED` from this command's combined
     output. Emitting either here would make an uncommitted station — a trivial, recoverable
     bookkeeping miss — silently cancel the worktree removal, which is a different subsystem
@@ -770,13 +769,9 @@ def _record_pr(feat_dir, repo, pr_arg=None):
     """
     path = os.path.join(feat_dir, "feature.json")
     try:
-        with open(path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
+        doc = artifact_accessors.load_feature_json(path)
+    except artifact_accessors.FeatureJsonError:
         print(f"gh-sync: {path} could not be read — pr not recorded")
-        return
-    if not isinstance(doc, dict):
-        print(f"gh-sync: {path} is not a JSON mapping — pr not recorded")
         return
     existing = doc.get("pr")
     if isinstance(existing, int) and not isinstance(existing, bool):
@@ -802,8 +797,9 @@ def _record_pr(feat_dir, repo, pr_arg=None):
                   f"(gh pr list failed: {(r.stderr or r.stdout).strip()[:200]})")
             return
         try:
-            found = json.loads(r.stdout)
-        except (ValueError, TypeError):
+            found = artifact_accessors.parse_gh_json(
+                r.stdout, "merged pull request list")
+        except artifact_accessors.ArtifactAccessError:
             found = None
         if not isinstance(found, list) or not found:
             print(f"gh-sync: no merged pull request found on branch {branch}")
@@ -1066,7 +1062,8 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
                         "-f", f"title={brief['feat']}", "-f", f"description={desc}"],
                        capture_output=True, text=True)
     if r.returncode == 0:
-        rec["milestone"] = json.loads(r.stdout)["number"]
+        rec["milestone"] = artifact_accessors.parse_gh_json(
+            r.stdout, "milestone create response")["number"]
         print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
         _BUILD_ENTRY["remote_written"] = True
     else:
@@ -1321,7 +1318,7 @@ def _projected_for(feat_dir, rec):
     if not os.path.isfile(plan_path):
         return {}
     try:
-        plan_doc = harness_yaml.load_plan(plan_path)
+        plan_doc = artifact_accessors.load_plan(plan_path)
     except harness_yaml.YamlParseError as exc:
         # BUG-201 (D-05): a plan.yaml that PARSES but fails referential integrity (a dangling
         # depends_on) reached this except identically to an absent or unreadable file and was
@@ -1332,7 +1329,7 @@ def _projected_for(feat_dir, rec):
         refuse(f"the plan at {plan_path} failed to load — {exc}", stream=sys.stderr)
     try:
         return gh_board.project(plan_doc, rec)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         # A VOCABULARY MISS REFUSES LOUDLY; IT NEVER TRACEBACKS (FEAT-41 T-16). project raises
         # FleetError naming the task and the value, and T-06 left that exception to escape —
         # measured, it crashed `status Ready` with a stack trace through main(). A stack trace is
@@ -1481,7 +1478,7 @@ def _status_plan_doc(feat_dir):
     if not os.path.isfile(path):
         return None
     try:
-        return harness_yaml.load_plan(path)
+        return artifact_accessors.load_plan(path)
     except harness_yaml.YamlParseError as exc:
         print(f"gh-sync: the plan at {path} failed to load — {exc}", file=sys.stderr)
         return None
@@ -1547,7 +1544,7 @@ def cmd_status(feat_dir, station, repo, board):
         plan_doc = _status_plan_doc(feat_dir)
         tasks = (plan_doc or {}).get("tasks") or []
         # THE NOT-STARTED STATION, NOT THE DEAD WORD (FEAT-41 T-16). This read `or "pending"`,
-        # a live default T-04's migration missed because T-04 grepped check-state.sh and the
+        # a live default T-04's migration missed because T-04 grepped check-state.py and the
         # plan corpus, never this file. An absent status reads as `ready`, exactly as
         # gh_board.derive_station and project treat it.
         all_done = bool(tasks) and all(
@@ -1685,7 +1682,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
     branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
-    and `ship` is already invoked with captured output by `post-merge-sweep.sh`, so a TTY
+    and `ship` is already invoked with captured output by `post-merge-sweep.py`, so a TTY
     prompt would be both a first for this codebase and unanswerable from the sweep.
 
     THE PARENT CLOSES WHATEVER ITS HISTORY. Where it came from is no longer recorded at all
@@ -1999,14 +1996,14 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     FAILURE POSTURE, unchanged (DEC-146): best-effort per card. A `BoardError` on one card
     prints one stderr line and the loop continues, the exit status stays 0, and there is no
     transaction across N `project_field_set` calls. git ignores a post-merge hook's exit status
-    anyway, which is why `post-merge-sweep.sh` greps this function's OUTPUT rather than its exit
+    anyway, which is why `post-merge-sweep.py` greps this function's OUTPUT rather than its exit
     code.
 
     ORDER: `_record_pr` runs before `_record_station(feat_dir, "done")`, and that status write
     stays the LAST STATEMENT of the successful path (T-01/FEAT-23) -- `skip()` calls
     `sys.exit(0)`, so reaching it is itself the proof no early-exit branch fired."""
     # DEFECT TWO OF FEAT-41 T-10: A FEATURE DIR INSIDE A WORKTREE THAT IS ABOUT TO BE DELETED.
-    # post-merge-sweep.sh runs ship and then REMOVES the worktree, so a terminal station written
+    # post-merge-sweep.py runs ship and then REMOVES the worktree, so a terminal station written
     # to a feature dir under .claude/worktrees/ is written to a directory with minutes to live.
     #
     # A REFUSAL, NOT A SKIP, and that is the whole point of putting it here. `skip()` exits 0,
@@ -2114,7 +2111,8 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         ok, raw = gh_try(sub_issues_args(repo, num))
         if not ok:
             raise RuntimeError(raw)
-        kids = json.loads(raw) if raw and raw.strip() else []
+        kids = artifact_accessors.parse_gh_json(
+            raw, "sub-issues response") if raw and raw.strip() else []
         numbers = sorted(int(k["number"]) for k in kids
                          if isinstance(k, dict) and k.get("number") is not None)
         # THE DISCOVERED CHILDREN ARE FETCHED HERE, because here is the first moment they are
@@ -2147,7 +2145,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             # SAME BUCKET as the board-read failure four lines above, and for the same
             # reason: this card did not reach done, and nothing downstream reports it. An
             # earlier cut printed and continued WITHOUT recording it, so the run exited 0
-            # with no `FAILED` line -- which post-merge-sweep.sh reads as a clean ship and
+            # with no `FAILED` line -- which post-merge-sweep.py reads as a clean ship and
             # removes the worktree on. A network blip on one child list would have left the
             # ticket open and said nothing.
             print(f"gh-sync: ERROR - #{num} child list unreadable, card not moved: {e}",
@@ -2194,7 +2192,7 @@ def _ship_audit(repo):
     """Run the board audit and print each finding under ship's own prefix.
 
     No audit line may carry the substring `gh-sync: SKIP` or `gh-sync: FAILED`.
-    `post-merge-sweep.sh` greps ship's combined output for both, and an audit finding is
+    `post-merge-sweep.py` greps ship's combined output for both, and an audit finding is
     neither an environmental no-go nor a failed write -- a line carrying either literal would
     silently change worktree behaviour on a healthy run."""
     try:
@@ -2326,7 +2324,7 @@ def main():
         _BUILD_ENTRY["feat_dir"] = feat_dir
     try:
         repo, board, issue_types = load_config(root)
-    except factory_config.FleetError as e:
+    except artifact_accessors.FleetError as e:
         # An unusable board declaration is a LOUD failure of the whole invocation (D-01,
         # D-02, D-07) — never a printed note followed by business as usual. Exit code 2
         # matches board-station.py's pinned value and factory_cli.EXIT_REFUSED's wider

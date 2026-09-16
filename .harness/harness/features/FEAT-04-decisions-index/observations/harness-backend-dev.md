@@ -28,7 +28,7 @@
   only, per open_questions above) — `gen-decisions-index.py:68-70`. Dry-ran `--stdout` against the
   real `docs/harness/DECISIONS.md`: exit 0, stderr 0 bytes, 169 rows, 169 RULING PENDING, 189 lines
   (19 header + 1 blank + 169 rows, identity closes exactly), every row has exactly one ` :: ` on one
-  physical line. No generator defect found on the real authority. check-domain.sh blocks
+  physical line. No generator defect found on the real authority. check-domain.py blocks
   harness-backend-dev from writing `.harness/features/*/runs/**/digest.md` — only
   `.harness/features/*/observations/harness-backend-dev.md` is permitted; the digest for this step
   lives in the conversation return, not a run-dir file.

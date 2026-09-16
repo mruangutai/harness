@@ -39,7 +39,7 @@ nothing in `plan.yaml tasks:` remains to build.
   occupancy assertion — `plan.yaml` T-01 case 11 — verified-at 6a5e0e0b.
 - Do not edit `.harness/harness.json`; SC-14 asserts the diff changes no byte of it — BRIEF.md:144
   — verified-at 6a5e0e0b.
-- Do not `git rebase`, `checkout` or `reset` — `bash-write-guard.sh` refuses every HEAD move for a
+- Do not `git rebase`, `checkout` or `reset` — `bash-write-guard.py` refuses every HEAD move for a
   governed agent; the main session performed the rebase to 6a5e0e0b from outside — verified-at
   6a5e0e0b.
 

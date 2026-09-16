@@ -16,12 +16,12 @@ failed. `BRIEF.md` was edited directly; `## Approval` untouched.
 - **Rank 1 (high) — struck.** T-12 retired in place in the shape T-04 and T-10 use: `RETIRED - `
   title, `traces: []`, `depends_on: []`, `status: abandoned`, `verify: test ! -e …/notes/probe-postmint-BUG-1305.md`.
   Its intent opens `DO NOT EXECUTE THIS TASK.` and records the main-checkout hook confound
-  (`.claude/settings.json` registers `${CLAUDE_PROJECT_DIR}/…/check-domain.sh --post`), that
+  (`.claude/settings.json` registers `${CLAUDE_PROJECT_DIR}/…/check-domain.py --post`), that
   `post_mint_observed: no` was guaranteed by construction, and that the mandatory `## Reported`
   section would therefore have published a false claim. SC-12 retired in place in BRIEF; SC-10's
   dangling pointer re-aimed at the new REQ-01 disclosure. T-04's own body said REQ-01 was covered by
   "T-01, T-02, T-09, T-11 and T-12 — every one of them live"; corrected in the same pass.
-- **Rank 2 (high) — guarded, not disclosed.** No task owned `bash-write-guard.sh` or
+- **Rank 2 (high) — guarded, not disclosed.** No task owned `bash-write-guard.py` or
   `harness_boundary.py` (grep of every `files:` list), so both went into **T-02**, the task that makes
   the witness exist. T-02 now adds `RE_RUN_IDENTITY` to `harness_boundary.py` (:42-45), the Bash
   `_run_artifact_guard` (:744-767), and a `SHAPE_PATTERNS` (:1185) route denial in `shape_problems`

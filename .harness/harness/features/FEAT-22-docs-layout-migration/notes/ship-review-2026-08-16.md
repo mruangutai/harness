@@ -125,7 +125,7 @@ checked the files:
   mode distillation is most exposed to, because writing the file from new entries alone silently
   deletes every earlier one, and the format checker cannot see it.
 - **No double-application.** Zero duplicate entry IDs across all thirteen files.
-- **Format gate green.** `check-expertise.sh` exits 0 over the whole directory.
+- **Format gate green.** `check-expertise.py` exits 0 over the whole directory.
 
 **I chose not to re-dispatch the two killed runs, and the reason is the risk direction.** Their
 members had already self-applied their ops; a re-dispatch would re-adjudicate work already on disk
@@ -171,7 +171,7 @@ Strike any row by ID. Anything not listed here dies silently, so this list is de
 | B-10 | Nothing reconciles digest verdicts against `feature.json`. A failed run sat recorded as passed until I checked all 17 by hand | bug |
 | B-11 | The playbook's distillation clause is stale in both directions: it says reviewers are write-less and the orchestrator applies their ops. Measured — all five write their own file (exit 0), the orchestrator is denied (exit 2). Following it literally strands the ops | bug |
 | B-12 | The docs grant is correct but pinned by nothing; a witness needs both a repointable root and an exhaustive assertion. Remedy is the witness test, not narrowing the grant | enhancement |
-| B-13 | `plan.yaml:927` invokes `check-expertise.sh` with no argument, so that clause cannot pass on any tree. Signed text — **your call** whether to correct it | chore |
+| B-13 | `plan.yaml:927` invokes `check-expertise.py` with no argument, so that clause cannot pass on any tree. Signed text — **your call** whether to correct it | chore |
 | B-14 | DEC-189 amendment 1 says the control-plane list is "advertised in deny messages". Measured false — it is a filter, never printed. The amendment copied the wording from a code comment that has since been corrected, leaving the signed text as the sole carrier. Signed text — **your call** | chore |
 | B-15 | `harness-pm` holds no `notes/goalcheck-*.md` grant, so the goal-check flow's named artifact path is unwritable by its own author. Hit on two consecutive runs | bug |
 | B-16 | A suspected concurrency-sensitive test: two reviewers independently saw transient failures neither could reproduce, in back-to-back subprocess-heavy suite runs | bug |

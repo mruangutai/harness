@@ -102,7 +102,7 @@ assertions.
 ## 6. Constraint compliance — PASS
 
 `check-plan-routes.py` on this plan: **0 violations**; the single `DEVIATION` on T-01 is the expected
-DEC-174 carve-out output. I re-derived the lanes rather than accepting them: `check-domain.sh
+DEC-174 carve-out output. I re-derived the lanes rather than accepting them: `check-domain.py
 --resolve` returns `NOBODY` for `.claude/agents/harness-code-reviewer.md`,
 `.omp/agents/harness-code-reviewer.md` and `.claude/skills/harness-code-review/SKILL.md` — the plan's
 claim (`plan.yaml:17-25`) holds. `tests/integration/test-validate-digest.py` resolves to

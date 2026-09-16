@@ -20,7 +20,7 @@ classified every hit:
 | Site | Kind | Permanent suite member? | Verdict |
 |---|---|---|---|
 | `plan.yaml:522-529,542-543` T-06(g) | fixture-root scan + fixture mtime/byte check | yes (`test-check-state.py`, INTEGRATION_SCRIPTS) | **clean — fixture only, never the real tree** |
-| `plan.yaml:566-573` T-07 `verify:` | runs `check-state.sh` over the real repo | **no — one-shot task verify, run once when T-07 lands, never re-run by the suite** | clean |
+| `plan.yaml:566-573` T-07 `verify:` | runs `check-state.py` over the real repo | **no — one-shot task verify, run once when T-07 lands, never re-run by the suite** | clean |
 | `plan.yaml:610-613` T-07 intent tail | prose describing that same one-shot verify | no | clean |
 | `plan.yaml:841-842` T-11 `verify:` | reads this feature's own real notes | no — same one-shot-task-verify class | clean |
 | `plan.yaml:724-726` T-09 intent | "byte-identical" of two JSON keys | not a note, not a corpus scan | clean |
@@ -29,11 +29,11 @@ classified every hit:
 **No entry I found sits in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` and reads the real tree.** The
 discriminator that makes T-07's and T-11's real-tree reads non-violating is structural, not a fact
 about today's tree: they are `verify:` blocks on plan **tasks**, executed once at build time by
-the executor, not test files registered in `run-unit-tests.sh`'s arrays — so they cannot redden
+the executor, not test files registered in `run-unit-tests.py`'s arrays — so they cannot redden
 `test-check-state.py` when a concurrent feature writes a pre-sweep note, which is the exact failure
 mode PF-570b9c87 named. **CORROBORATES** goal-check §3(a)'s table and its per-site verdicts.
 
-**SC-04 executability.** Concrete command (`bash check-state.sh` at `review_sha` from repo root),
+**SC-04 executability.** Concrete command (`python3 check-state.py` at `review_sha` from repo root),
 concrete falsifier (any reported line naming "Done when"). **Executable: yes.** Checkable that it
 was executed: **partially** — SC-04 (`BRIEF.md:89-99`) says the reviewer "records in the review
 record" without naming a target path. This is not a defect unique to SC-04: none of SC-07, SC-08,
@@ -46,13 +46,13 @@ goal-check Q1** as a real but non-novel, non-blocking ambiguity — info, not a 
 - **T-06's `verify:` vs rewritten (g) and the red/green paragraph** (`plan.yaml:492-495`,
   `:545-549`): the task-level shell verify only checks `rc != 0` and greps `'done when'` in output
   — indifferent to which case fails, so (g)'s rewrite cannot desync it. The red/green paragraph
-  claims (g) is green both before and after: before T-07 lands, `check-state.sh` doesn't parse
+  claims (g) is green both before and after: before T-07 lands, `check-state.py` doesn't parse
   "## Done when" at all, so it structurally cannot report a "Done when" line against (g)'s fixture,
   and the scan is read-only either way — consistent, not broken.
 - **SC-04 vs REQ-07/REQ-10**: REQ-07's new-note carve-out is satisfied because T-11 lands before
   `review_sha` is pinned, so this feature's own notes already carry the section by the time SC-04's
   reviewer runs the check. REQ-10 ("deterministic checks... run in the permanent gates") is
-  satisfied by `check-domain.sh`/`check-state.sh` themselves being the permanent gates (T-04, T-07);
+  satisfied by `check-domain.py`/`check-state.py` themselves being the permanent gates (T-04, T-07);
   SC-04 is a one-time confirmatory run at review, not a substitute for that. No conflict.
 - **T-09's verify vs the real `test_kinds` shape** — read directly at
   `.harness/harness.json:105-159` (not trusted from the plan): 8 existing kinds, every one carrying

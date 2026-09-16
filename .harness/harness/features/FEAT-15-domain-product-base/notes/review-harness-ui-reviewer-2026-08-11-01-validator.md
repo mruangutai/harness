@@ -4,7 +4,7 @@
 
 1. **File-extension census** (`git diff --stat 8122948..e057525 --name-only`) — zero
    html/css/scss/less/tsx/jsx/vue/svelte files. All 22 changed files are `.sh`, `.py`, `.yaml`,
-   `.md`. `check-domain.sh` (241 lines changed) is the only substantive code touched; it's a
+   `.md`. `check-domain.py` (241 lines changed) is the only substantive code touched; it's a
    bash-invoked Python PreToolUse hook, no markup or styling.
 2. **DESIGN.md** — confirmed absent: `git cat-file -e e057525:.harness/features/FEAT-15-domain-product-base/DESIGN.md`
    fails (does not exist at pinned SHA). Matches BRIEF.md:191-192, "No UAT criterion, deliberately"

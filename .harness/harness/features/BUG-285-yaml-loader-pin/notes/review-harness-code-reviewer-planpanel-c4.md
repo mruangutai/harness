@@ -15,7 +15,7 @@ No `must_fix`. `severity_max: low`.
   (a quoted `"7"`, a bool `true`).** Concrete scenario: a future edit makes
   `factory_decompose.py`'s copy accept a negative-signed digit string (`"-5"` → `-5`) while
   `gh-sync.py:512-524`'s `_opt_int` is untouched and still returns `None` for it (`"-5".isdigit()` is
-  `False`) — `run-unit-tests.sh --kind unit` stays green, because none of T-05's 12 fixed inputs
+  `False`) — `run-unit-tests.py --kind unit` stays green, because none of T-05's 12 fixed inputs
   contains a negative, floating, or otherwise-shaped wrong-typed value. D-16's own justification for
   accepting the duplicate ("what stops it is not discipline but a detector … a change to either copy
   alone reddens the suite") is true only within the tested input set, not in general. Not gating: both
@@ -74,9 +74,9 @@ OK T-05 granted to harness-backend-dev, harness-dev-ops, harness-qa
 Zero `DEVIATION` lines. Confirms main's merge made the manifests byte-identical — the standing low
 finding (PF-142f3a51...) premised on a team-config skew is resolved.
 
-**B2 — `check-state.sh` INV-15 sweep, from worktree root:**
+**B2 — `check-state.py` INV-15 sweep, from worktree root:**
 ```
-$ b2_out=$(bash .agents/skills/harness/bin/check-state.sh 2>&1); b2_exit=$?
+$ b2_out=$(python3 .agents/skills/harness/bin/check-state.py 2>&1); b2_exit=$?
 ```
 `b2_exit=1` (unrelated: 3 pre-existing `VIOLATION` lines — BRIEF not approved, `notes/handoff-
 plan.md` over the 60-line handoff cap, INV-37 no `github.build_entry` recorded). No line in the

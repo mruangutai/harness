@@ -23,8 +23,8 @@ block on the create path. FEAT-51's user signature currently rests on `BRIEF.md`
 Approval section, which is unsigned.
 
 **Q2 — REQ-04 and REQ-05 are no longer fully reachable for `plan.yaml`.** At the old base
-`plan.yaml` was written with `Write`, so the `check-domain.sh` Write gate covered it. FEAT-41
-made that route non-existent for every author (`check-domain.sh:1529-1678`) and moved the
+`plan.yaml` was written with `Write`, so the `check-domain.py` Write gate covered it. FEAT-41
+made that route non-existent for every author (`check-domain.py:1529-1678`) and moved the
 real write to `plan-merge.py`, a **Bash** route the PreToolUse Write gate never sees. An
 orphaned child can therefore still land canonical `plan.yaml` content via
 `plan-merge.py apply` with no adoption. The union merge means it cannot *delete* tasks
@@ -44,7 +44,7 @@ boundary. **Requirements left standing, unedited, per dispatch.**
 | T-03 | cases through `case()` + `_env` | `case()` `:41` carries no `session_id`; `_env` `:22` is right for env only |
 | T-03 | branch after `domain_check()`, before the shape phase | that position now sits **ahead** of FEAT-41's plan.yaml route denial. Moved to immediately after `:1678`, before the mode split at `:1680` — recorded as **D-11** |
 | T-03 | grade the canonical case on `plan.yaml` | non-discriminating: already exit 2 for every author. Regraded on `BRIEF.md`, plus a case pinning the route-denial text for `plan.yaml` |
-| T-04 | `.claude/...test-quarantine.py` into `integration.detect` | the cross-check (`run-unit-tests.sh:98-131`) uses the `.agents` spelling as its prefix, so the `.claude` spelling fails it |
+| T-04 | `.claude/...test-quarantine.py` into `integration.detect` | the cross-check (`run-unit-tests.py:98-131`) uses the `.agents` spelling as its prefix, so the `.claude` spelling fails it |
 | T-05 | add `case9_claude_code_suspension` | `case9_plan_yaml_write_is_a_verb_not_an_edit` is **taken** (FEAT-41, `:129`) → `case10_...`; and the override is `PLAYBOOK_PATH` / `TEAM_PLAYBOOK_PATH`, not `TEAM_PLAYBOOK_DEFAULT` (`:34` is the default) |
 | T-05 | "add a passage beside the dispatch step" | `harness-team/SKILL.md:126-130` already tells a lead to *expect the refusal to recur*. This feature supersedes that clause; it must be rewritten, not doubled |
 | T-06 | `DEC-208` | taken; `DEC-209` is free (0 tokens in `DECISIONS.md` at `ad93d43e`) |
@@ -59,12 +59,12 @@ The premise holds: `validate-digest.py` still calls `live_children` (`:1563`) an
 excluded; 16 `.omp/agents/harness-*.md` files, every non-orchestrator one still
 `blocking: true`; `check-omp-port.py`, `gen-decisions-index.py` and
 `test-gen-decisions-index.py` all present. The four `--resolve` NOBODY answers in the BRIEF
-still hold; `check-domain.sh` itself resolves to **both** `harness-backend-dev` and
+still hold; `check-domain.py` itself resolves to **both** `harness-backend-dev` and
 `harness-dev-ops` (the batch context named only the first), which changes nothing because
 DEC-174 holds it back either way.
 
 ## Lanes
 
-All 17 surfaces re-resolved with the main checkout's `check-domain.sh --resolve` and written
+All 17 surfaces re-resolved with the main checkout's `check-domain.py --resolve` and written
 into `lanes.rows`. `.claude/settings.json` is not a plan surface and has no row (it is still
 NOBODY, and the BRIEF's constraint still cites it correctly).

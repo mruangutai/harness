@@ -1,6 +1,6 @@
 # Goal-check `goalcheck2` — scoped re-grade of SC-13, SC-18, SC-19 (harness-pm)
 
-> Filed here, not at the dispatched path. `check-domain.sh` blocked
+> Filed here, not at the dispatched path. `check-domain.py` blocked
 > `notes/receipt-harness-pm-goalcheck2.md` for harness-pm; my grant covers
 > `.harness/features/*/notes/research-*.md`. Raised as Q1 in the DIGEST.
 
@@ -22,7 +22,7 @@ changed by this run). Baseline re-run by me, not inherited: `test-factory-claim.
 | SC-18 | automated | unit | 177 |
 | SC-19 | automated | integration | 184 |
 
-`harness.json` `test_kinds.integration` is **active** with `cmd: run-unit-tests.sh --kind integration`
+`harness.json` `test_kinds.integration` is **active** with `cmd: run-unit-tests.py --kind integration`
 and a `detect` glob that names `test-factory-integration.py` explicitly. SC-19 does not rest on a
 null runner; there is no verification-gap residual here.
 

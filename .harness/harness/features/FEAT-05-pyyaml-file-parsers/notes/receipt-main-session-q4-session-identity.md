@@ -6,7 +6,7 @@ executed so the question had stood open on an unproven inference.
 ## Method
 
 Same technique that settled Q3, which is the point — it is demonstrably capable of producing
-evidence. One additive block at the top of the worktree's `check-domain.sh` (immediately after
+evidence. One additive block at the top of the worktree's `check-domain.py` (immediately after
 `payload=$(cat)`, before every early exit), dumping the payload's key set and the length of every
 `CLAUDE*` environment variable. `bash -n` and `test-check-domain.py` (9/9) run after insertion and
 before spawning. One throwaway `general-purpose` agent attempted a single `Write`. Reverted and
@@ -58,7 +58,7 @@ with NO env var   : None             # chain correctly exhausts
 
 ## What this CORRECTS in T-09's receipt
 
-That receipt concluded: *"Which copy of `check-domain.sh` executes, for a real Write/Edit in this
+That receipt concluded: *"Which copy of `check-domain.py` executes, for a real Write/Edit in this
 worktree: **most likely the main checkout's**"*, while honestly flagging an alternative it could
 not rule out — that the worktree copy runs and its probe failed for another reason.
 

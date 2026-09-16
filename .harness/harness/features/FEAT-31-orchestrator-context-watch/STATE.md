@@ -9,7 +9,7 @@
 - `review_sha`: **`0fc10e5a9f48afae512baed6d9297aab88e7f181`**
 - **briefing: `notes/ship-review-ship1.md`** (+ `.html`) — the operator's artifact and where the full
   detail now lives. It proposes **B-1..B-22**; anything not listed there dies silently.
-- `check-state.sh`: ONE violation, FEAT-26's unapproved BRIEF (another flow). None in FEAT-31.
+- `check-state.py`: ONE violation, FEAT-26's unapproved BRIEF (another flow). None in FEAT-31.
 - **BOTH GATES PASS** (approved / operator / 2026-08-21). **The operator PRE-APPROVED the ship.**
 
 ### ALL THREE MACHINE GATES ARE SETTLED — THE UAT IS THE ONLY THING LEFT
@@ -90,7 +90,7 @@ is a defect. The VERB is the good one: `OVER BUDGET (already written)` is why ev
 - **"187 PASS lines" IS NOT A COVERAGE MEASURE** — one PASS line per script, and the file carrying all
   78 defect proofs prints `ok`/`FAIL`, contributing exactly one.
 - **Q-DEC159CAP** — `DECISIONS.md:3986` denies handoff notes above 40 lines, its own `:3968` says ~60,
-  `check-domain.sh:951` enforces 60. It survived T-19, a cycle about a false clause in that same entry.
+  `check-domain.py:951` enforces 60. It survived T-19, a cycle about a false clause in that same entry.
   No SC covers it, so fixing it is scope expansion; left deliberately (B-2).
 - **Q-HOOKCTX is CLOSED.** #663-#669 are filed.
 - Do NOT trust a `verify:` floor expressed as an absolute case count; verify by case NAME.

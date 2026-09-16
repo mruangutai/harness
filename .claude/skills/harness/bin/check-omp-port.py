@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
+import artifact_accessors
 
 EXPECTED_AGENTS = {
     "harness-ai-dev",
@@ -35,15 +35,9 @@ PROVIDER_PREFIX = {
 
 
 def frontmatter(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    if not lines or lines[0] != "---" or "---" not in lines[1:]:
-        raise ValueError("missing frontmatter delimiters")
-    end = lines.index("---", 1)
-    data = yaml.safe_load("\n".join(lines[1:end]))
-    if not isinstance(data, dict):
-        raise ValueError("frontmatter is not a mapping")
-    return data
+    metadata, _body = artifact_accessors.load_frontmatter(
+        path.read_text(encoding="utf-8"), str(path))
+    return metadata
 
 
 def check(root: Path) -> list[str]:
@@ -57,7 +51,7 @@ def check(root: Path) -> list[str]:
 
     config_path = root / ".omp" / "config.yml"
     try:
-        config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+        config = artifact_accessors.load_omp_config(config_path)
         if "claude" not in (config.get("disabledProviders") or []):
             errors.append(".omp/config.yml does not disable Claude discovery")
         if ((config.get("task") or {}).get("maxRecursionDepth")) != 3:
@@ -113,7 +107,7 @@ def check(root: Path) -> list[str]:
     for filename, prefix in PROVIDER_PREFIX.items():
         path = root / ".omp" / "providers" / filename
         try:
-            roles = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("modelRoles") or {}
+            roles = (artifact_accessors.load_omp_config(path).get("modelRoles") or {})
             if set(roles) != {capability[1:] for capability in CAPABILITIES}:
                 errors.append(f"{path.relative_to(root)} must map deep, strong, standard, and review")
             for role, selector in roles.items():
@@ -138,16 +132,16 @@ def check(root: Path) -> list[str]:
     else:
         source = extension.read_text(encoding="utf-8")
         required_wiring = {
-            "dispatch-guard.sh": "OMP task preflight",
+            "dispatch-guard.py": "OMP task preflight",
             "task:subagent:lifecycle": "OMP task terminal lifecycle",
-            "gh-close-gate.sh": "GitHub close preflight",
+            "gh-close-gate.py": "GitHub close preflight",
             "inflight_registry.py": "OMP claim attachment and release",
-            # BUG-1132: absent here until this fix, so plan-sign-gate.sh's own absence from
+            # BUG-1132: absent here until this fix, so plan-sign-gate.py's own absence from
             # harness-hooks.ts's bash gate list — REQ-05/DEC-120's only enforcement — went
             # undetected. required_wiring is a spot-check, not an enumeration of every gate
             # script; this entry closes the one instance that was actually missing, not the
             # general class.
-            "plan-sign-gate.sh": "sign-approval identity preflight",
+            "plan-sign-gate.py": "sign-approval identity preflight",
         }
         for marker, purpose in required_wiring.items():
             if marker not in source:

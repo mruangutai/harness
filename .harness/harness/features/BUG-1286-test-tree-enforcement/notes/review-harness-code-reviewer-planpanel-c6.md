@@ -30,7 +30,7 @@ excused" side-assertion does not fire either), all three basename globs still sy
 Consequence: `tests/../evil/**` in `unit.detect` makes qa's kind map count *every* file under
 `evil/` (a directory entirely outside `tests/**`) as a unit test, unconstrained by any basename
 check because the glob is directory-only — so the repository-wide guard (which only ever inspects
-basenames) refuses none of them — and unreachable by `run-unit-tests.sh` (which selects only
+basenames) refuses none of them — and unreachable by `run-unit-tests.py` (which selects only
 `tests/unit` and `tests/integration`). That is the exact "counted by the map, permitted by the
 guard, executed by no runner" defect BUG-1286 exists to close, reproduced silently through the very
 assertion GAP-1's fix was written to prevent. The same class of defeat needs no glob-string
@@ -85,9 +85,9 @@ requires.
   claim. `tests/unit/test-suite-layout.py:100-103` (detect-matches-template loop), `:104-105`
   (manual-not-actively-detected), `:136-139` (runner-delegates-layout-once) all land inside the cited
   ranges. `tests/manual/suite-census.py:24` is exactly `re.findall(r"```(?:text)?\n(.*?)\n```",
-  text, re.S)`, matching T-03's description of `baseline()`'s fence pattern. `run-unit-tests.sh:47`
+  text, re.S)`, matching T-03's description of `baseline()`'s fence pattern. `run-unit-tests.py:47`
   is exactly the one `run_pool.py --mutation-check "$BIN_DIR"` invocation SC-15 cites (47-line file).
-  `--check-layout` already exists in `run-unit-tests.sh`, so T-01's verify clause needs no new
+  `--check-layout` already exists in `run-unit-tests.py`, so T-01's verify clause needs no new
   runner work.
 - **Today's four `unit.detect` globs, re-derived from the live `.harness/harness.json` and
   `templates/harness.json`** (byte-identical between the two), classify exactly as the plan states:

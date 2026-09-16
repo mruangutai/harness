@@ -18,7 +18,7 @@ All content claims below were read with `git show 9d12e3a:<path>` or `git grep 9
 ## SC-05 — re-derived independently, MET (QA had reported the wrong proof)
 
 QA cited the #556 cwd-parity numbers (203/203 at ONE sha, two working directories). That is a
-different proof. SC-05's declared instrument is `check-domain.sh --resolve` over a fixed path list,
+different proof. SC-05's declared instrument is `check-domain.py --resolve` over a fixed path list,
 BEFORE and AFTER, two shas. I took it.
 
 Method (scripts kept at `scratchpad/sc05/`): two full mirrors of `.claude/skills/harness/bin` — 103
@@ -135,8 +135,8 @@ to the SC wording, not as a defect in this build.
 - **SC-04.** Each symbol checked separately at `9d12e3a` over `bin/` minus `test-*`: `harness_root`,
   `def root(`, `wayfind.root`, `_repo_root_from_script`, `_root_from(`, `_resolve_repo_root` — **all
   0**. Survivors present: `worktree_owner` at `harness_boundary.py:515`,
-  `_resolve_main_checkout_root` at `post-merge-sweep.sh:64` (called at `:245`). The two inline chains
-  (`harness_yaml.py`, `check-state.sh:22`) are gone — covered by SC-01's repo-wide zero.
+  `_resolve_main_checkout_root` at `post-merge-sweep.py:64` (called at `:245`). The two inline chains
+  (`harness_yaml.py`, `check-state.py:22`) are gone — covered by SC-01's repo-wide zero.
 
 ## The remaining criteria
 
@@ -167,7 +167,7 @@ Every suite below run by me at `9d12e3a`, exit 0.
 | F-3 | enhancement | Three of SC-10's four reds are `AttributeError` (absence), not behaviour. Future SCs of this shape should require a behavioural red. Same for SC-02. |
 | F-4 | chore | `test-check-domain.py`'s `schema/a CRASHING schema module DENIES the write` case fails against a bin-only mirror at BOTH shas — it depends on repo state outside `bin/`. Harmless here; makes mirror-based parity proofs noisier than they need to be. |
 | F-5 | chore | T-21's `change_type: test` has no `test_matrix` entry in `.harness/harness.json` (QA's finding, reproduced by reading the file). |
-| F-6 | bug | `bash-write-guard.sh` denies redirects/`cp` to the session scratchpad despite an explicit dispatch grant (QA; hit again by me — every file in this proof went through the `Write` tool). |
+| F-6 | bug | `bash-write-guard.py` denies redirects/`cp` to the session scratchpad despite an explicit dispatch grant (QA; hit again by me — every file in this proof went through the `Write` tool). |
 | F-7 | bug | `gh_cost_log.py`'s counter reads `FACTORY_GH`, not `GH_SYNC_GH`, so `test-gh-sync.py`'s offline guarantee breaks under `HARNESS_GH_COST_LOG=1` (QA). Not in this diff; relates to #676. |
 | F-8 | bug | `test-validate-digest.py` is non-hermetic while a dispatch is in flight (this feature's own known list). |
 | F-9 | bug | STATE.md's three surfaced-but-unfixed defects: `bash-write-guard`'s angle-bracket refusal, `gh-sync`'s missing per-task finish command, `validate-digest` releasing a claim before refusing the return. |

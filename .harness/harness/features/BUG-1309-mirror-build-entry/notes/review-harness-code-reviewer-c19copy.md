@@ -30,7 +30,7 @@ hunks) — **matches the claimed 2 files / 3 hunks / 5 ins / 3 del exactly.**
 | `merge-gate.py:180` era-exempt stderr | untouched | **PASS** — same hunk-exclusion; verbatim match |
 | `merge-gate.py:188` repo-unpinned deny | untouched, still carries `records github.build_entry={value}` | **PASS** — verbatim match, correctly in scope for no change |
 | `merge-gate.py:194` bare-except deny | untouched | **PASS** — verbatim match |
-| `post-merge-sweep.sh:230-232` | untouched, own jargon out of scope | **PASS** — file not in the diff; its own `records github.build_entry=…so no Build entry receipt exists` text is a different message in a different script, correctly not this cycle's target |
+| `post-merge-sweep.py:230-232` | untouched, own jargon out of scope | **PASS** — file not in the diff; its own `records github.build_entry=…so no Build entry receipt exists` text is a different message in a different script, correctly not this cycle's target |
 | Local test run | 36 ok / 0 FAIL / rc=0 | **PASS** — reran independently: `36`/`0`/`rc=0`, tree clean except `feature.json` pin (plus one unrelated untracked sibling-agent note) |
 
 ## Old-sentence sweep — every surviving site, allowed/not-allowed
@@ -132,7 +132,7 @@ DIGEST:
   spec_compliance: "yes — message names the feature, exposes an executable command, and carries none of the rejected jargon; verified against the rendered string and merge-gate.py:190-192"
   sc04_satisfied: true
   sc10_satisfied: true
-  table_section_3: "6/6 rows PASS — all four untouched merge-gate.py branches verbatim-match, post-merge-sweep.sh out of scope, local suite 36 ok/0 FAIL/rc=0 reproduced independently"
+  table_section_3: "6/6 rows PASS — all four untouched merge-gate.py branches verbatim-match, post-merge-sweep.py out of scope, local suite 36 ok/0 FAIL/rc=0 reproduced independently"
   old_sentence_sweep: "clean — every surviving occurrence is either plan.yaml:1273-1274 (deliberately superseded, PRINCIPLES rule 15) or a historical notes/review-*.md or notes/research-*.md record; UAT Step 3/3b confirmed amended to new copy; no live source, SKILL.md, or references/ carries it"
   severity_max: low
   findings: 2

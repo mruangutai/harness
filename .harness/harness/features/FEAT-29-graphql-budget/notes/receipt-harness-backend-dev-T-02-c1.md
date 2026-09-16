@@ -70,7 +70,7 @@ and re-hashing.
 
 Command (verbatim from plan.yaml T-02 / this dispatch):
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Result: exit 0. `grep -c '^FAIL '` across the full captured output: `0`. Last lines of the run
 (the LAST script's own summary, `test-inject-expertise.py`, per the runner's per-script-not-

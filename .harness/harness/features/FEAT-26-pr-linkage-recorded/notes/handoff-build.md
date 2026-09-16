@@ -39,7 +39,7 @@ criteria, then the PR, CI and merge. Two things must ride into the PR body:
 ## Working set
 - `.claude/skills/harness/bin/gh-sync.py` — `_record_pr` (exactly-one rule, never overwrites),
   `cmd_closes` (renders, never posts), `source_issues` mirroring.
-- `.claude/skills/harness/bin/check-state.sh` — INV-28, and its six cases in
+- `.claude/skills/harness/bin/check-state.py` — INV-28, and its six cases in
   `test-check-state.py`.
 - `.claude/skills/harness/bin/feature-schema.json` — `pr` and `github.source_issues`.
 - `.harness/harness/docs/DECISIONS.md` — DEC-200, and its regenerated index row.

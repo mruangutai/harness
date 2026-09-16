@@ -18,8 +18,8 @@ acceptance, and anything not listed dies silently.
 
 Verified by me at the final tip, not relayed: `--kind unit` 16/16 scripts exit 0; `--kind integration`
 12/12 exit 0; SC-05 measured **per section** — the only method that can see it — with all four angles
-at `plan surface` 1 / `code surface` 1; `check-expertise.sh` exit 0 over all 15 files;
-`check-state.sh` exit 0; parent `#454` at `Review`.
+at `plan surface` 1 / `code surface` 1; `check-expertise.py` exit 0 over all 15 files;
+`check-state.py` exit 0; parent `#454` at `Review`.
 
 **The panel's PASS was taken at `490c37c` and the tip has moved five times since.** It transfers on
 measurement, re-taken at the FINAL tip: **zero** `.py`/`.sh`/`.ts` files changed between `490c37c`
@@ -53,7 +53,7 @@ Next: the main session presents the briefing. On acceptance it runs `gh-sync.py 
   `completed_at` per step, and I never opened it. (2) I dispatched the three panel reviewers as
   "write-less", following the playbook's close-out wording, when `check-domain --resolve` grants each
   its own Expertise file — costing a correction round. The playbook wording is briefing row B-16.
-- **`check-expertise.sh` cannot detect a wipe** — it validates sections, caps, word counts and the line
+- **`check-expertise.py` cannot detect a wipe** — it validates sections, caps, word counts and the line
   budget, all of which a file reduced to one entry would pass. The no-wipe evidence for this feature is
   before/after count pairs taken independently by each lead and member, not the checker.
   `harness-security-reviewer.md` sits at 134 of its 150-line budget and the spawn hook truncates

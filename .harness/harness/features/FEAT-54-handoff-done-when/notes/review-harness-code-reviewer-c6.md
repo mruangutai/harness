@@ -70,11 +70,11 @@ is the semantic question graded above by hand, per this dispatch's instruction t
 is not a pass on F-11.
 
 ## SC-07 — PASS
-`check-domain.sh:1562` — `import handoff_done_when` (single import, inside the `RE_HANDOFF.match`
-branch). Call site `check-domain.sh:1563` — `problems.extend(handoff_done_when.problems(rel,
+`check-domain.py:1562` — `import handoff_done_when` (single import, inside the `RE_HANDOFF.match`
+branch). Call site `check-domain.py:1563` — `problems.extend(handoff_done_when.problems(rel,
 content, root, resolve=True))`, exactly once.
-`check-state.sh:54` — `import handoff_done_when` (module-level, wrapped in try/except that sets
-`handoff_done_when = None` on failure). Call site `check-state.sh:1251` — exactly one
+`check-state.py:54` — `import handoff_done_when` (module-level, wrapped in try/except that sets
+`handoff_done_when = None` on failure). Call site `check-state.py:1251` — exactly one
 `handoff_done_when.problems(_rel_handoff, _text, root, resolve=False)`.
 `grep -n "Scope:\|Authority:\|plan-task:\|brief-sc:\|LEGAL_PREFIXES"` over both scripts returns zero
 matches in either file — no second block parser, no second pointer-grammar or resolution logic
@@ -87,9 +87,9 @@ immediate action in Next..." — five, not four.
 `## Dead ends`... `## Working set` and `## Done when`" — five, all five named.
 `DECISIONS.md:3701,3723,6698` and `DECISIONS-INDEX.md:163,214` (pinned): all say "five sections" /
 "fifth required handoff section."
-`check-domain.sh:1554` (pinned): `required = ["## Next", "## Trust", "## Dead ends", "## Working
+`check-domain.py:1554` (pinned): `required = ["## Next", "## Trust", "## Dead ends", "## Working
 set", "## Done when"]`, and its refusal message at :1558 reads "the five sections are the contract."
-`check-state.sh:1069-1070` (pinned): `HANDOFF_SECTIONS` lists all five; `HANDOFF_NARRATIVE_HEADINGS
+`check-state.py:1069-1070` (pinned): `HANDOFF_SECTIONS` lists all five; `HANDOFF_NARRATIVE_HEADINGS
 = HANDOFF_SECTIONS[:4]` is NOT a contract assertion — it is an internal subset used only to separate
 the free-text sections (checked for non-empty body, INV-17) from the machine-checked `## Done when`
 block (checked via the imported resolver). The `## done when` heading is checked separately and
@@ -127,11 +127,11 @@ gate-script hunks this feature actually touched:
   CLOSED on read/parse error — returns an unresolved-problem string, never silently "resolved."
   `_resolution_problems` wraps the whole dispatch in `except Exception` and converts ANY resolver
   crash into a reported problem ("resolver failed closed (...)"), never a swallow.
-- Both gate scripts fail closed on import failure: `check-state.sh:54-56` sets
+- Both gate scripts fail closed on import failure: `check-state.py:54-56` sets
   `handoff_done_when = None` and later (`:1245-1248`) turns that into a reported violation rather
-  than skipping the check; `check-domain.sh:1561-1565` wraps the import+call in try/except and
+  than skipping the check; `check-domain.py:1561-1565` wraps the import+call in try/except and
   turns any failure into "REFUSING the write."
-- `check-domain.sh`'s Edit-path widening (this feature adds `RE_HANDOFF.match(target)` to the set of
+- `check-domain.py`'s Edit-path widening (this feature adds `RE_HANDOFF.match(target)` to the set of
   identities reconstructed and shape-checked pre-write) also FIXES a real prior fail-open in the
   same hunk: `open(..., errors="replace")` silently mangled non-UTF-8 disk content into a
   reconstructed candidate that could then pass shape checks against corrupted bytes; the diff
@@ -193,10 +193,10 @@ DIGEST:
       evidence: "notes/handoff-validate.md Done when authorities (brief-sc:SC-04 AND finding:...#F-04) both open at write time; not in c5's original F-11 scope but passes the same test."
     - id: SC-07
       verdict: PASS
-      evidence: "check-domain.sh:1562/1563 and check-state.sh:54/1251, one import + one call site each; zero Scope:/Authority:/prefix matches elsewhere in either file."
+      evidence: "check-domain.py:1562/1563 and check-state.py:54/1251, one import + one call site each; zero Scope:/Authority:/prefix matches elsewhere in either file."
     - id: SC-08
       verdict: PASS
-      evidence: "HANDOFF.md, SKILL.md:311, DECISIONS.md:3701/3723/6698, DECISIONS-INDEX.md:163/214, check-domain.sh:1554/1558, check-state.sh:1069-1070/1211-1212 all state five sections; the two BRIEF-named exempt past-measurement comments are present and untouched."
+      evidence: "HANDOFF.md, SKILL.md:311, DECISIONS.md:3701/3723/6698, DECISIONS-INDEX.md:163/214, check-domain.py:1554/1558, check-state.py:1069-1070/1211-1212 all state five sections; the two BRIEF-named exempt past-measurement comments are present and untouched."
     - id: SC-11
       verdict: PASS
       evidence: "comm -12 empty (primary); comm -23 = 4 lines, set-equal to the diff-filter=A added set, run from repo root with BASE=0ec44965a961d19177de871c3bb1f02b701e646b."

@@ -44,7 +44,7 @@ The dispatch's preflight step could not be satisfied. No edit was made.
 - No fleet-with-no-board fixture was constructed.
 - No before/after `next_step` string was captured.
 - `factory_config.py:151-155` was not read or edited.
-- `run-unit-tests.sh --kind unit` was not run.
+- `run-unit-tests.py --kind unit` was not run.
 
 ## Why I stopped here rather than proceeding anyway
 

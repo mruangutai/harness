@@ -19,7 +19,7 @@ VERBS
                 that is not a file under the feature's own directory.
   set-mission   write mission: patch | plan (SC-01) AND append the `kind: mission` judgement
                 deciding it, from --by / --reason, in the same locked write — so a mission
-                never exists without the entry check-state.sh INV-40 demands (SC-21).
+                never exists without the entry check-state.py INV-40 demands (SC-21).
   propose-rework read-only: print {rounds, minutes, basis} — the baseline ruling the main
                 session shows the operator at signature (patch: 1 round; plan: tasks/3,
                 floor 2, cap max_total_cycles; minutes = rounds x budgets.rework_round_minutes).
@@ -46,6 +46,7 @@ file, 9 destination, 6 lock). python3 stdlib only.
 """
 import argparse
 import json
+import artifact_accessors
 import os
 import re
 import sys
@@ -225,7 +226,7 @@ def cmd_raise_cycles(args):
 
 
 def cmd_set_mission(args):
-    # THE MISSION AND ITS JUDGEMENT ARE ONE WRITE. check-state.sh INV-40 refuses a `mission`
+    # THE MISSION AND ITS JUDGEMENT ARE ONE WRITE. check-state.py INV-40 refuses a `mission`
     # whose last `kind: mission` entry decides something else; writing the two separately
     # would let this CLI produce exactly that state between its own two calls.
     record = _judgement(args.by, "mission", args.mission, args.reason)
@@ -322,10 +323,10 @@ def _budgets_for(feature_json):
         candidate = os.path.join(here, ".harness", "harness.json")
         if os.path.isfile(candidate):
             try:
-                with open(candidate, encoding="utf-8") as handle:
-                    budgets = (json.load(handle) or {}).get("budgets")
+                doc = artifact_accessors.load_harness_json(candidate)
+                budgets = doc.get("budgets")
                 return budgets if isinstance(budgets, dict) else {}
-            except (OSError, ValueError):
+            except artifact_accessors.ArtifactAccessError:
                 return {}
         parent = os.path.dirname(here)
         if parent == here:
@@ -370,8 +371,7 @@ def cmd_propose_rework(args):
     doc = _read_doc(args.file)
     plan_path = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
     try:
-        import harness_yaml
-        tasks = harness_yaml.load_plan(plan_path).get("tasks") or []
+        tasks = artifact_accessors.load_plan(plan_path).get("tasks") or []
         proposal = propose_rework(doc, len(tasks), _budgets_for(args.file))
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:

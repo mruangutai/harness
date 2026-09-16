@@ -1,8 +1,8 @@
 ## BLUF
 
 **FAIL, unchanged from cycle 1's gating reason.** The remedy is genuinely test-only
-(`.claude/skills/harness/bin/check-state.sh` is byte-identical between the two pins — `git diff
-2964cddb..a1a6795 -- .claude/skills/harness/bin/check-state.sh` is empty) and it genuinely fixes
+(`.claude/skills/harness/bin/check-state.py` is byte-identical between the two pins — `git diff
+2964cddb..a1a6795 -- .claude/skills/harness/bin/check-state.py` is empty) and it genuinely fixes
 V-02 and V-03 (both mutants now discriminate). But V-01, the gating finding, is **STILL OPEN**:
 `case_bug440_digest_verdict_reconciliation` still grades **1** (cyclomatic 22 / cognitive 12 / ABC
 55.0) against test-code bar 3 — improved from cycle 1's 28/17/67.1 but not far enough. The
@@ -25,9 +25,9 @@ boolean conjunction — still over budget.
 ## What moved
 
 `git diff 2964cddb..a1a6795 --stat`: only `tests/integration/test-check-state.py` (65 insertions /
-59 deletions). `check-state.sh` diff is empty. `notes/redproof-BUG-440.md` diff is empty. The remedy
+59 deletions). `check-state.py` diff is empty. `notes/redproof-BUG-440.md` diff is empty. The remedy
 is exactly what it claims to be: test-only. **Every cycle-1 spec-compliance clearance for
-`check-state.sh` (REQ-01..04, REQ-03(a)-(e), D-07, PF-b884d6ee, SC-07) carries forward by name —
+`check-state.py` (REQ-01..04, REQ-03(a)-(e), D-07, PF-b884d6ee, SC-07) carries forward by name —
 not re-derived, since the file that would falsify them is unchanged.**
 
 ## V-01 — code-grade.py, the gate
@@ -72,7 +72,7 @@ returns `mixed_ok` — is still owed.
 
 New third fixture (test-check-state.py:4698-4700): `entries=("M",)`, single run M with a mismatched
 digest, `blocking_ok = mismatch_code == 1 and "INV-37" in mismatch_out`. Verified against
-`check-state.sh`'s actual control flow (`git show a1a6795:.claude/skills/harness/bin/check-state.sh`
+`check-state.py`'s actual control flow (`git show a1a6795:.claude/skills/harness/bin/check-state.py`
 line 1552 `bad.append(...)` for INV-37; line 2508 `sys.exit(1 if bad else 0)` — only `bad`, never
 `warn`, drives the exit code). This fixture has exactly one run, so exit 1 has exactly one possible
 cause; the old fixture's G and X runs (which forced exit 1 independently) are absent here. A mutant
@@ -83,11 +83,11 @@ demoting the INV-37 append from `bad` to `warn` now flips `mismatch_code` to 0, 
 
 Fixture run X's digest text changed from `"# digest\n"` to `"VERDICT: FAIL\n"`. Verified: the
 former has no `VERDICT:` line at all, so even under the m3 mutant, `_dm` (the regex match at
-check-state.sh:1548) is `None` and the reconciliation code is unreachable either way — no
+check-state.py:1548) is `None` and the reconciliation code is unreachable either way — no
 discrimination. The new text has a real `VERDICT:` line but is otherwise invalid — confirmed by
 running `validate("lead", "VERDICT: FAIL\n")` directly: returns 8+ errors (no DIGEST: block, no
 artifact:, missing headline/team/steps_run/...). Under correct code this routes to the `if _errs:`
-branch (check-state.sh:1531, "does not satisfy the lead digest contract") and never reaches the
+branch (check-state.py:1531, "does not satisfy the lead digest contract") and never reaches the
 reconciliation `else:` at line 1541; under the m3 mutant (reconciliation hoisted to the outer else)
 it would reach the `_dm` match, produce a spurious `runs/X` INV-37 entry, and fail
 `mixed_ok`'s `not any(f"runs/{name}" ... for name in (..., "X", ...))` clause. Genuinely bound.
@@ -97,14 +97,14 @@ it would reach the `_dm` match, produce a spurious `runs/X` INV-37 entry, and fa
 Six-token tuple at test-check-state.py:4691-4692 —
 `("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")` — is **byte-unchanged** from
 cycle 1. Three of the six tokens still cannot fail (`"M"` is guaranteed by the `runs/M` pre-filter;
-`"feature.json"`/`"digest.md"` are literal filenames baked into check-state.sh's f-string), and
+`"feature.json"`/`"digest.md"` are literal filenames baked into check-state.py's f-string), and
 `"FAIL"`/`"PASS"` remain order-blind: transposing the two `!r` interpolations in the INV-37 message
-(check-state.sh:1554/1556) would still satisfy `all(token in mismatch[0] for token in ...)` and ship
+(check-state.py:1554/1556) would still satisfy `all(token in mismatch[0] for token in ...)` and ship
 green. Reporting at cycle-1's severity (med), not gating on my own authority.
 
 ## V-05 / V-06 / V-07 / V-08
 
-- **V-05** (low) — unchanged by construction: anchors in `check-state.sh:1553`, which is
+- **V-05** (low) — unchanged by construction: anchors in `check-state.py:1553`, which is
   byte-identical to the prior pin. Still open, same severity.
 - **V-06** (info) — **RESOLVED.** `entries` is no longer a dict; the mixed-case call site
   (test-check-state.py:4684) now passes a plain tuple `("M", "E", "N", "I", "G", "X")`. Confirmed
@@ -113,8 +113,8 @@ green. Reporting at cycle-1's severity (med), not gating on my own authority.
   values were provably always discarded, and the new tuple makes that honest instead of implying
   per-entry configurability that never existed.
 - **V-07** (info) — unchanged by construction: the new INV-37 region still sits outside the INV-36
-  `try/except` one line above it in `check-state.sh`, which is byte-identical to the prior pin.
-- **V-08** (info) — unchanged: no change owed, `check-state.sh` untouched.
+  `try/except` one line above it in `check-state.py`, which is byte-identical to the prior pin.
+- **V-08** (info) — unchanged: no change owed, `check-state.py` untouched.
 
 ## Gating wiring
 

@@ -35,7 +35,7 @@ distillation — never before the merge (DEC-145). Do not re-dispatch any lead.
   verified-at a826673
 - Do not re-ask about UAT Steps 3b/5/6/7 or re-run a step to corroborate them; an agent re-test
   cannot substitute for their judgement — `…uat-…md:405-463` — verified-at a826673
-- Do not touch `merge-gate.py`, `merge-gate.sh`, `tests/integration/test-merge-gate.py`: signed D-11
+- Do not touch `merge-gate.py`, `merge-gate.py`, `tests/integration/test-merge-gate.py`: signed D-11
   carve-out, main-session-direct — `plan.yaml:47-49,73-75` — verified-at 4857818b
 - Do not remove this worktree and do not run `gh-sync.py ship` from it; no answers file exists for
   either round and none may be sought (#671) — `…c19-uat-sc10.md` — verified-at a826673

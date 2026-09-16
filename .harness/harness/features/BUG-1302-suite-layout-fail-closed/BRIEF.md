@@ -156,7 +156,7 @@ No criterion pins a line number: anchors are function names, literal content str
 ## Constraints
 
 - DEC-174 BINDS both files (Advisor RULING, this feature's validator digest, run
-  `2026-09-05-2-validator`). `run-unit-tests.sh` is a gate and DEC-174's enumeration reaches the test
+  `2026-09-05-2-validator`). `run-unit-tests.py` is a gate and DEC-174's enumeration reaches the test
   file of each. Every implementation task is `main-session-direct`; no squad member may write either
   file. The blanket `tests/**` grant to backend-dev, dev-ops and qa in `team-config.yaml` carries no
   weight against it. `check-plan-routes.py` prints a DEVIATION line for these tasks; that is designed
@@ -166,7 +166,7 @@ No criterion pins a line number: anchors are function names, literal content str
   `tests/integration/**` select the kind, and the predicate refuses tracked test-shaped files outside
   `tests/`. Nothing in this feature changes the predicate or the registry; only its tests change.
 - DEC-179 and DEC-183 SUPPLY the plan-time routing check that SC-10 runs.
-- No file outside these two is edited: `suite_layout.py`, `run-unit-tests.sh`, `code_grade.py`,
+- No file outside these two is edited: `suite_layout.py`, `run-unit-tests.py`, `code_grade.py`,
   `.harness/harness.json` and `team-config.yaml` are read-only for this feature.
 - Operator stop conditions carried from the stated-intent artifact
   (`.harness/notes/grilling-six-residual-bugs-2026-09-05.md`): no risk acceptance, no scope
@@ -228,8 +228,8 @@ refactored function and update the pin; it is fixture maintenance, not a gate re
   The other grade-2 record that row could mean — `suite_layout.py tracked_paths` — is NOT touched:
   `suite_layout.py` is read-only for this feature. Beyond that one function, no code-grade record is
   produced, re-graded or cleared, and no grading run is added to any gate.
-- No production code changes: neither `suite_layout.py` nor `run-unit-tests.sh` is edited.
-- Amending DEC-174's enumeration to name `run-unit-tests.sh` is not done here — it is an open
+- No production code changes: neither `suite_layout.py` nor `run-unit-tests.py` is edited.
+- Amending DEC-174's enumeration to name `run-unit-tests.py` is not done here — it is an open
   question for the operator.
 - The other residual rows from the BUG-1286 ship review (B-7, B-9 to B-13, B-15) belong to their own
   issues.

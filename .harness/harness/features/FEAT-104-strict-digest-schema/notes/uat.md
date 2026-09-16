@@ -9,8 +9,8 @@ From `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-
 ```bash
 git diff origin/main...984bd26b -- \
   .claude/skills/harness/bin/validate-digest.py \
-  .claude/skills/harness/bin/check-domain.sh \
-  .claude/skills/harness/bin/check-state.sh \
+  .claude/skills/harness/bin/check-domain.py \
+  .claude/skills/harness/bin/check-state.py \
   .claude/skills/harness/bin/run-state-schema.json \
   tests/integration/test-validate-digest.py \
   tests/integration/test-check-domain.py \

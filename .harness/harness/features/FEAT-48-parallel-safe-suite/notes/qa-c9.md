@@ -31,8 +31,8 @@ their `detect` globs match `.claude/skills/harness/bin/**`.
 
 | kind | binding | cmd | status | state |
 |---|---|---|---|---|
-| unit | `test-suite-independence.py` in `UNIT_SCRIPTS`, unit `detect` glob matches `bin/test-*.py` | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | active | **satisfied** |
-| integration | `test-run-pool.py` in `INTEGRATION_SCRIPTS` and in `test_kinds.integration.detect` explicitly | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | active | **satisfied** |
+| unit | `test-suite-independence.py` in `UNIT_SCRIPTS`, unit `detect` glob matches `bin/test-*.py` | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | active | **satisfied** |
+| integration | `test-run-pool.py` in `INTEGRATION_SCRIPTS` and in `test_kinds.integration.detect` explicitly | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | active | **satisfied** |
 | component/ui/eval/typecheck | no detect-glob match on this diff's surface | `cmd: null` | unresolved | soft skip (unchanged from c8) |
 
 ## 3. My own runs, `env -u HARNESS_AGENT_TYPE`, at the pin
@@ -106,7 +106,7 @@ same block (`ctrl`, `wall`) is checked leniently (`ctrl and int(ctrl[0]) > 0`, n
 even uses `set(runs) == {"0"}` for exactly this reason).
 
 **Ruling: backlog, not must_fix for this feature.** Reasons: (1) this is a one-shot,
-`main-session-direct`-task build-time verify, never re-run by CI or by `run-unit-tests.sh` — a red
+`main-session-direct`-task build-time verify, never re-run by CI or by `run-unit-tests.py` — a red
 here carries no live gate risk (matches this repo's own Expertise G-01: no standing regression
 protection re-runs a task verify); (2) SC-02/SC-05/SC-06, the only SCs this note supports, are all
 `verify: inspection` — pm and I both grade their content by direct read, not by this script's exit
@@ -144,8 +144,8 @@ DIGEST:
   matrix_ok: true
   severity_max: low
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 33 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 30 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 33 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 30 }
     - { kind: component, state: not_applicable, cmd: null, named_tests: 0 }
     - { kind: ui, state: not_applicable, cmd: null, named_tests: 0 }
     - { kind: eval, state: not_applicable, cmd: null, named_tests: 0 }
@@ -154,7 +154,7 @@ DIGEST:
   sc_evidence:
     - { id: SC-01, test: ".claude/skills/harness/bin/test-check-domain.py (--kind all run, exit 0, zero FAIL/MUTATED)" }
     - { id: SC-04, test: ".claude/skills/harness/bin/test-suite-independence.py (--kind unit run, PASS line present)" }
-    - { id: SC-07, test: "run-unit-tests.sh --check-kinds (exit 0) and --kind nope (exit 2), run directly by me" }
+    - { id: SC-07, test: "run-unit-tests.py --check-kinds (exit 0) and --kind nope (exit 2), run directly by me" }
     - { id: SC-08, test: ".claude/skills/harness/bin/test-run-pool.py case_completion_order (exit 0 via full suite run)" }
     - { id: SC-10, test: ".claude/skills/harness/bin/test-run-pool.py case_file_mutations/case_symlinks/case_cache_exclusion, each independently mutation-proven in qa-c9.md §4" }
   open_questions:

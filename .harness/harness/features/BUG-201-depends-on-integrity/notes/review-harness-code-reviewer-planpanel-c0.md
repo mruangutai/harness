@@ -90,8 +90,8 @@ is correct sequential ownership, not a conflict.**
 ## Existing goal-check finding independently reached: D-03 / Q1 — CONFIRM, defensible/low
 
 I read DEC-174 in full (`DECISIONS.md:4302-4403`) rather than trust the plan's paraphrase. Two facts
-hold independently: (a) the enumerated enforcement layer is `check-domain.sh`, `bash-write-guard.sh`,
-`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, and each one's
+hold independently: (a) the enumerated enforcement layer is `check-domain.py`, `bash-write-guard.py`,
+`validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py`, and each one's
 test file — `harness_yaml.py` and the two touched test files are in none of those; (b) this feature
 performs no **cutover** — both `plan-merge.py` and `check-plan-routes.py` already called through
 `validate_plan_doc`/`load_plan` at `af859ee8`, so the paragraph's specific "the cutover that makes a

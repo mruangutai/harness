@@ -1,7 +1,7 @@
 # Plan-panel review (scope reader) — FEAT-104 — cycle 1
 
 **BLUF.** The cycle-1 plan is sound. Every claim I could ground-truth against the real source
-(`validate-digest.py`, `check-domain.sh`, `feature_schema.py`, `.omp/agents/*.md`,
+(`validate-digest.py`, `check-domain.py`, `feature_schema.py`, `.omp/agents/*.md`,
 `harness-team/SKILL.md`, `test-validate-digest.py`) checked out — line anchors, the `raw_persona`
 variable D-10 keys `DOCUMENTED_OPTIONAL` on, the `jsonschema`-required fail-closed precedent D-08
 cites, the two-space documented-block indentation D-12's reverse parser assumes, all 17 field
@@ -65,7 +65,7 @@ criterion whose enforcing test is already specified correctly.
   two-space indent) holds for every sampled `.omp/agents/*.md` block, including lines carrying
   trailing inline comments.
 - **D-11 creation floor vs. concurrency**: the write-payload path already discriminates
-  "file does not exist yet" (`prior_state = ""` at `check-domain.sh:~1621`) from "file exists" via
+  "file does not exist yet" (`prior_state = ""` at `check-domain.py:~1621`) from "file exists" via
   the same code region CLAUSE B hooks into; the residual risk (a lead dispatched from an
   older preloaded `harness-team/SKILL.md` copy seeding `schema_version: 1` on a brand-new run
   after this lands) is real but already named and accepted in `planfix-c1.md` F3 — the refusal is

@@ -10,7 +10,7 @@ reader the moment the operator signed; it no longer can.
 ## Why the entry has no artifact field
 
 The reader-entry schema has none. `plan-merge.py:_load_panel_value` (line 1011) validates only
-`last_run: str`, `cycle: int`, `readers: list`, `findings: list`; `check-state.sh:534-555` reads
+`last_run: str`, `cycle: int`, `readers: list`, `findings: list`; `check-state.py:534-555` reads
 only `reader`, `status`, and — for `skipped` — `persona` and `reason`. `verdict` is carried
 because both sibling entries carry it. The segment's artifact is recorded here instead:
 `notes/research-BUG-151-goalcheck-plan-c0.md` (YES-WITH-FINDINGS, two must_fix items, both since

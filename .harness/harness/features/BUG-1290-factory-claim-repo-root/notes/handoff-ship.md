@@ -32,7 +32,7 @@ Nothing is shipped, merged or PR'd.
 - Do not edit BRIEF.md or plan.yaml for REQ-05's wording; the operator declined to rule three times — `notes/answers-2026-09-06-b27.md` — verified-at 72a97b99
 - Do not grade the test matrix against a fix cycle's incremental diff; the object is `main`..`HEAD` — `notes/qa-2026-09-06-15-validator.md` — verified-at 72a97b99
 - Do not collapse the two files' duplicate expression of the property; the duplication IS the operator's directive, and simplify declined it on that ground — `runs/2026-09-06-16-eng/digest.md` — verified-at 72a97b99
-- Do not read `check-state.sh` run from this worktree as evidence about BUG-1290; it resolves features through the project root and reports zero mentions of this feature — `/tmp/cs.txt`, 814 lines — verified-at ecc21dbe
+- Do not read `check-state.py` run from this worktree as evidence about BUG-1290; it resolves features through the project root and reports zero mentions of this feature — `/tmp/cs.txt`, 814 lines — verified-at ecc21dbe
 - Do not fabricate `notes/handoff-build.md` for a phase nobody ran; it stays reported as row B-24 — `notes/ship-review-2026-09-06-19-ship.md` — verified-at ecc21dbe
 
 ## Working set

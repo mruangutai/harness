@@ -4,14 +4,14 @@
 
 **FAIL — 14 of 15 met; one criterion, SC-08, carries a false `evidence:` label and cannot be
 discharged as signed.** B1 (the DEC-213 layout violation) is **CLOSED**: `72a6a757` deletes the two
-stale `bin/` carriers (168 deletions, deletions only), `run-unit-tests.sh --check-layout` exits **0**,
+stale `bin/` carriers (168 deletions, deletions only), `run-unit-tests.py --check-layout` exits **0**,
 and `git diff --stat 72a6a757 -- . ':(exclude).harness'` is empty, so the tracked source I graded IS
 the pinned tree. The user's amendment `7ca27941` is BRIEF-only and changes exactly the eight
 `evidence: unit` → `integration` lines plus the approval date to 2026-09-02.
 
 **The one gap is the same defect class the amendment fixed, on a criterion the amendment did not
 list.** SC-08 declares `evidence: unit`; its only carrier is
-`tests/integration/test-check-instruction-paths.py:79-86` (`case_workflow_gate`). `run-unit-tests.sh:27`
+`tests/integration/test-check-instruction-paths.py:79-86` (`case_workflow_gate`). `run-unit-tests.py:27`
 selects `tests/unit/test-*.py` for `--kind unit`, and `harness.json` `unit.detect` is
 `tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py` — the hyphenated name matches none of the
 non-directory globs. **The `unit` kind never executes SC-08's assertions.** No `tests/unit/` file
@@ -27,13 +27,13 @@ reads `.github/workflows/tests.yml` (grep: zero hits). Substance is proven; the 
 | SC-04 | met | automated/integration | `test-anchor-directions.py` 7/7 exit 0 run with `HARNESS_REVIEW_SHA=72a6a757`; rows S1-S5 each read via `git show <ref>:<path>`, plus `reviewed-sha whole scope` |
 | SC-05 | met | automated/integration | `:42` — exit 1, `:1:` inline, `:3:` fenced, `2 violation(s)`. `TOKEN` (`check-instruction-paths.py:17`) and `_tokens` (`:60-67`) are prefix-agnostic, so the fenced fixture exercises the same code path a fenced `.harness/` span would |
 | SC-06 | met | automated/integration | `:71-76` conjoins `isfile(debug_path)`, `not os.path.exists(product_path)` and a content read — the discriminating half is present |
-| SC-07 | met | inspection | `.harness/team-config.yaml` zero-line diff `origin/main..72a6a757`; `check-domain.sh` **unchanged**; no `tools:` line changed in any `.omp/agents/*.md`; the two writable claims naming a control-plane path (`harness-dev-ops.md`, `harness-documentor.md`) are re-anchorings of pre-existing claims, no new path |
+| SC-07 | met | inspection | `.harness/team-config.yaml` zero-line diff `origin/main..72a6a757`; `check-domain.py` **unchanged**; no `tools:` line changed in any `.omp/agents/*.md`; the two writable claims naming a control-plane path (`harness-dev-ops.md`, `harness-documentor.md`) are re-anchorings of pre-existing claims, no new path |
 | SC-08 | **partial** | automated/unit | Substance green: `case_workflow_gate` asserts real `tests.yml` enforced (`:200-216`, `exit "$rc"`) and both mutants refused (`:82`, `:86`). Two deviations: (a) declared kind `unit`, carrier under `tests/integration/` — the `unit` runner never runs it; (b) mutants are in-memory `str.replace`, not "materialised into a temporary path" as the criterion states |
 | SC-09 | met | inspection | `harness-handoff/SKILL.md:62-66` at the pin — both placeholders, the `inflight_registry.py feature-root` command, the read-only policy; `DECISIONS.md:6689` DEC-214; `DECISIONS-INDEX.md:214` ruling written; `test-gen-decisions-index.py` 14 ok, exit 0 |
 | SC-10 | met | automated/integration | `test-inflight-registry.py` 126 ok, exit 0 (`feature-root` CLI, worktree-differs and owner-root halves) |
 | SC-11 | met | automated/integration | `test-check-instruction-paths.py:47-52` (control-plane-anchored feature path refused, named reason) + `test-anchor-directions.py` row `SC-11 S2 write observations` and whole-scope row, both green at the pin |
-| SC-12 | met | automated/integration | `test-inject-expertise.py:249-252` asserts `none`, `1 unanchored path(s)` AND `.omp/agents/harness-qa.md:1`; `inject-expertise.sh:75` invokes the real checker over exactly the four files; both branches exit 0 |
-| SC-13 | met | automated/integration | `test-dispatch-guard.py` 48 ok, exit 0; `dispatch-guard.sh` is +48 lines with no other guard changed |
+| SC-12 | met | automated/integration | `test-inject-expertise.py:249-252` asserts `none`, `1 unanchored path(s)` AND `.omp/agents/harness-qa.md:1`; `inject-expertise.py:75` invokes the real checker over exactly the four files; both branches exit 0 |
+| SC-13 | met | automated/integration | `test-dispatch-guard.py` 48 ok, exit 0; `dispatch-guard.py` is +48 lines with no other guard changed |
 | SC-14 | met | inspection | four per-file findings at the pin: `harness-product-lead.md:92`, `harness-eng-lead.md:110`, `harness-validator-lead.md:138`, `harness-orchestrator.md:157` (emit duty), plus `harness-handoff/SKILL.md:66` |
 | SC-15 | met | automated/integration | `test-check-domain.py` 301 ok, exit 0 (`SC-15 PAIR`); guard script itself unchanged, so the allow/refuse pair measures shipped behaviour |
 
@@ -41,7 +41,7 @@ Suites I ran at the pin (tracked source identical to `72a6a757`): `test-check-in
 16 PASS, `test-anchor-directions.py` 7 PASS, `test-inject-expertise.py` 21 ok,
 `test-inflight-registry.py` 126 ok, `test-dispatch-guard.py` 48 ok, `test-check-domain.py` 301 ok,
 `test-gen-decisions-index.py` 14 ok — every one exit 0, zero `FAIL`/`not ok` lines.
-`run-unit-tests.sh --check-layout` exit 0. Each runner's failure accounting checked before citing its
+`run-unit-tests.py --check-layout` exit 0. Each runner's failure accounting checked before citing its
 exit code (e.g. `test-check-instruction-paths.py:92-93` raises on any false row).
 
 ## REQ coverage — complete
@@ -85,7 +85,7 @@ measurement-equivalent (both mutants ARE asserted red) and would not gate on its
   `case_workflow_gate` to `tests/unit/`? See the two routes above.
 - **Q2 (non-blocking, harness owner)** — third cycle running in which a criterion's `evidence:` kind
   was falsified by where its carrier lives. Nothing in the plan or qa path cross-checks a declared
-  kind against the carrier's directory, so it is found only at goal-check. A `check-state.sh`
+  kind against the carrier's directory, so it is found only at goal-check. A `check-state.py`
   invariant over BRIEF `evidence:` versus carrier path would close it.
 - **Q3 (non-blocking, harness owner)** — carried from c11/c12: a rebase or a later commit can falsify
   criteria already graded met, and nothing re-takes grades after history moves.

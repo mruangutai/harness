@@ -29,18 +29,18 @@ Finding 4 stays attributed to `validator-lead`, its true author, not laundered i
 1. **Ids are content hashes, not `PF-1 … PF-5`.** The dispatch said sequential; `panel_findings.py`
    is the single identity source (`harness-spec-driven`: "never type it"), and its docstring says
    why sequential is wrong — a re-run renumbers, so a risk acceptance recorded against finding 2
-   silently starts covering whatever is second next time. `check-state.sh` INV-32 (`:514-517`) and
+   silently starts covering whatever is second next time. `check-state.py` INV-32 (`:514-517`) and
    `plan-merge.py sign-approval --overrule` both read these ids. Every id above recomputes from its
    stored `summary` field (verified); `panel.transcription_rule` states the rule.
 2. **A third reader entry, `goalcheck` (`harness-pm`, `status: ran`).** It ran outside
    `runs/2026-09-06-01-validator` — hence the digest's `steps_run: 2` — and its artifact is
    `notes/research-BUG-148-goalcheck-plan-c0.md`, whose F-2 and F-4 the panel explicitly carries
-   forward. INV-32 (`check-state.sh:534-547`) requires all three of `should-not-exist`, `scope`,
+   forward. INV-32 (`check-state.py:534-547`) requires all three of `should-not-exist`, `scope`,
    `goalcheck` to be recorded at signature; omitting a reader that demonstrably ran would have made
    the record incomplete and reddened the gate the moment the plan is signed. Its own F-1/F-3/F-5
    are **not** transcribed as panel findings — they live in its note.
 
-Reader field is `reader:`, not `id:` — that is the key `check-state.sh` and every live plan use.
+Reader field is `reader:`, not `id:` — that is the key `check-state.py` and every live plan use.
 
 ## Open questions
 

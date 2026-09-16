@@ -48,7 +48,7 @@ because no such fleet fixture exists.
 
 ## Suites (exit status captured, not inferred)
 
-- `run-unit-tests.sh --kind unit`: **exit 0**. Grepped `^FAIL ` — exactly 4 lines,
+- `run-unit-tests.py --kind unit`: **exit 0**. Grepped `^FAIL ` — exactly 4 lines,
   all from `test-factory-claim-mutation.py` (which itself PASSed):
   ```
   FAIL  BUG-1290 5a: served non-harness repository reaches its own segment's blocker verdict, not no_plan
@@ -57,7 +57,7 @@ because no such fleet fixture exists.
   FAIL  BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed
   ```
   Matches the known by-design baseline exactly — no others.
-- `run-unit-tests.sh --kind integration`: **exit 0**, zero `^FAIL ` lines.
+- `run-unit-tests.py --kind integration`: **exit 0**, zero `^FAIL ` lines.
 
 ## Direct exercise of the changed path (throwaway script, `factory_gh.file_at_ref`
 stubbed per `test-fleet-product-config.py`'s `patched_file_at_ref` convention)

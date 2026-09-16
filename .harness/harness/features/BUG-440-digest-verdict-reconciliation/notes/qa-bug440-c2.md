@@ -1,7 +1,7 @@
 # QA Gate — BUG-440 digest verdict reconciliation (c2, mutation re-probe)
 
 review_sha: `a1a67956a5844c67ce098e9580ee6692a92f9a30` (prior pin `2964cddbbfe465d1268cb12a248861d8a28e31a6`).
-`check-state.sh` is confirmed byte-identical to the prior pin (`diff` clean) — the remedy is
+`check-state.py` is confirmed byte-identical to the prior pin (`diff` clean) — the remedy is
 genuinely test-only, as claimed.
 
 ## BLUF
@@ -35,13 +35,13 @@ never touching the live tree; anchors matched exactly once each before mutating)
 | SC-04 | satisfied | before/after sha256 dict compare over `feature.json` + every `digest.md`, `unchanged=True` in the mixed fixture (the two new isolated fixtures discard the flag via `_`, but SC-04 only requires one fixture tree demonstrate it, which the mixed tree does); no `open(..., "w")` in the new region |
 | SC-05 | satisfied on substance, **new low-severity finding on literal text** | note present at the pinned sha, heading/sha/`CHECK_STATE_BIN`/`RESULT: RED` all match the grep contract, and I independently reran the CURRENT (restructured) case against a private copy of the pre-change (`772790be`) script: it still exits 1 printing `FAIL - BUG-440 INV-37 reconciles digest verdicts without mutation` — non-vacuity genuinely reproduces today. **But** the note's *verbatim* captured text (`mixed=False; clean=True; output=...` three-violation-line dump) is a transcript of the OLD single-fixture case's own diagnostic print, which no longer exists — today's case prints only the one-line `FAIL - ...` on failure, and the note was never touched between the two pins (`git diff` on the note across both shas is empty). The note's RED *conclusion* still holds; its literal *output text* no longer matches what the current case would produce. Advisory, not blocking — SC-05's exit/heading/sha/RESULT gate is satisfied and does not require exact text reproduction |
 | SC-06 | satisfied | `python3 tests/integration/test-check-state.py`: exit 0, 217 output lines, 0 `FAIL` lines, 71.6s. Identical to cycle-1's 217/0/exit-0 at the prior pin — the +1 over the 772790be baseline (216) is exactly `case_bug440_digest_verdict_reconciliation`'s own `ok -` print, and stayed at +1 (not +2 or more) despite the case being internally restructured into three fixture calls, because only one `print(...)` statement exists in the case regardless of how many fixture trees it builds |
-| SC-07 | satisfied | `check-state.sh` unchanged since cycle-1 (byte-identical to prior pin, confirmed by diff); tail-anchor regexes remain byte-identical to `validate-digest.py:1155-1160`, `_dtext` is read once and reused, zero literal `PASS`/`FAIL`/`BLOCKED`/`ESCALATE` tokens in the new region (grep-confirmed) |
+| SC-07 | satisfied | `check-state.py` unchanged since cycle-1 (byte-identical to prior pin, confirmed by diff); tail-anchor regexes remain byte-identical to `validate-digest.py:1155-1160`, `_dtext` is read once and reused, zero literal `PASS`/`FAIL`/`BLOCKED`/`ESCALATE` tokens in the new region (grep-confirmed) |
 
 ## Coverage gaps (carried forward / new)
 
 1. **V-04 / SC-01 order-blindness — still open, not remediated, not cycle-1 must_fix.** A defect that
    swaps which verdict is reported as "digest" vs. "feature.json" ships green. Fix is cheap: replace
-   the two bare `"FAIL"`/`"PASS"` substring checks with two *positional* assertions (e.g. `mismatch[0].index("digest verdict 'FAIL'") < mismatch[0].index("feature.json verdict 'PASS'")`), which is dev/qa test-only work, not a `check-state.sh` change.
+   the two bare `"FAIL"`/`"PASS"` substring checks with two *positional* assertions (e.g. `mismatch[0].index("digest verdict 'FAIL'") < mismatch[0].index("feature.json verdict 'PASS'")`), which is dev/qa test-only work, not a `check-state.py` change.
 2. **SC-05's recorded verbatim text is stale relative to the current case shape** (info/low). Not a
    remediation gap in the check itself — RED still reproduces — but the note over-claims exactness for
    an output format that no longer exists. If the note is ever re-read as literal proof of *today's*
@@ -51,10 +51,10 @@ never touching the live tree; anchors matched exactly once each before mutating)
 ## Test matrix
 
 Unchanged since cycle-1: `change_type: bugfix` (plan.yaml T-01, unchanged this cycle).
-`test_matrix.bugfix`: `unit if touches_runtime_code` → true (check-state.sh is runtime code) → unit
+`test_matrix.bugfix`: `unit if touches_runtime_code` → true (check-state.py is runtime code) → unit
 required, satisfied by T-01's own verify. `integration if fix_confined_to_tests_and_contract_docs` →
 false this cycle too (the remedy IS confined to `tests/integration/test-check-state.py`, but the
-*original* T-01 diff touched `check-state.sh` itself — the leg is evaluated against the feature's
+*original* T-01 diff touched `check-state.py` itself — the leg is evaluated against the feature's
 whole diff, not the c2 delta alone) → not obligated by this leg; `integration` is independently
 satisfied regardless because the diff's own test file matches `test_kinds.integration.detect` and I ran
 it directly (SC-06, the scoped proof required by this dispatch). `match_bug_class` remains inert

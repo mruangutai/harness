@@ -92,7 +92,7 @@ All at `3bfedc9`.
     → main session
 - **The validator already has a registered test**, so DEC-174's "tests run explicitly" is
   satisfiable: `.claude/skills/harness/bin/test-validate-digest.py` exists and is first in
-  `run-unit-tests.sh:6`'s `SCRIPTS` list. A new gated field with no new test case would be the
+  `run-unit-tests.py:6`'s `SCRIPTS` list. A new gated field with no new test case would be the
   2026-08-03 shape — four green gates over a validator that rejected its own template — so the
   test case is part of the task, not optional. Run the suite from the repo root; issue #36 makes
   it abort from anywhere else.
@@ -115,5 +115,5 @@ All at `3bfedc9`.
   Note for pm: the perf doc's row 5 cites `:17` as retracting the orchestrator's identical
   over-claim; read at `3bfedc9`, `:17` records the DEC-174 user ruling instead. The finding stands;
   only that one citation is loose. Left uncorrected by the user's scoping ruling.
-- **`bin/check-state.sh` exits 0** at `3bfedc9` — the only output is the known `note` class from
+- **`bin/check-state.py` exits 0** at `3bfedc9` — the only output is the known `note` class from
   issue #23 (pruned FEAT-05 run dirs) plus one FEAT-06 pruned run dir.

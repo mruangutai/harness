@@ -6,7 +6,7 @@
 `evidence: unit` label falsified by a `tests/integration/` carrier) is **CLOSED by route 2**:
 `1d93c727` moves `case_workflow_gate` out of `tests/integration/test-check-instruction-paths.py`
 into `tests/unit/test-instruction-workflow-gate.py`, and the declared kind now genuinely executes
-its assertions — `run-unit-tests.sh --kind unit` exit **0**, 24 files, and the run names
+its assertions — `run-unit-tests.py --kind unit` exit **0**, 24 files, and the run names
 `test-instruction-workflow-gate.py (exit 0)` explicitly, not by count.
 
 Delta since the graded pin is exactly three things: the BRIEF's eight evidence-kind lines
@@ -82,6 +82,6 @@ feature is its precondition, not its substitute.
   with the plan's clauses known-stale and the criterion evidence carried by this note?
 - **Q2 (non-blocking, harness owner)** — carried from c13 and now demonstrated a fourth time: nothing
   between plan and qa cross-checks a BRIEF `evidence:` kind against its carrier's directory, nor a
-  task `verify:` path against the tree. Both were found only at goal-check. One `check-state.sh`
+  task `verify:` path against the tree. Both were found only at goal-check. One `check-state.py`
   invariant over BRIEF `evidence:` versus carrier path, plus a path-existence check on every
   `verify:` token, would close both.

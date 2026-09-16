@@ -117,7 +117,7 @@ added), `factory_config.py`'s `board_for`/`product_config` (pre-existing remote-
 pattern, re-exercised by this feature's new caller), `gh-sync.py`'s new `status` subcommand and
 `start-task` guard (204 lines changed). Read in full.
 
-Out of scope / no security surface: `check-state.sh` (INV-26 widening, a gate-script change under
+Out of scope / no security surface: `check-state.py` (INV-26 widening, a gate-script change under
 the DEC-174 carve-out — correctness/process, not a trust-boundary change), `DECISIONS.md`/
 `DECISIONS-INDEX.md`/`BRIEF.md`/`plan.yaml`/notes/observations (documentation and planning
 artifacts, no executable surface), `harness.json` template's one-line station addition (adds

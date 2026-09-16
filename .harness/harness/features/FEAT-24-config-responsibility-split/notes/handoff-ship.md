@@ -21,10 +21,10 @@ then T-03 and T-06, then T-04. T-04 must NOT be committed without T-05, which is
 - The cutover trap: `harness_boundary.py:263` (`resolve_fleet` first in `classify`), `:157-169`
   (`load_fleet` then `sys.exit(2)`), `factory_config.py:151-156` (board REQUIRED today), T-02 item 3
   (board REJECTED after), `fleet.yaml:26` (a board is there) — verified-at 7a00255
-- `git add`/`git commit` SURVIVE the lockout while `Write`/`Edit` do not: `bash-write-guard.sh:375`
+- `git add`/`git commit` SURVIVE the lockout while `Write`/`Edit` do not: `bash-write-guard.py:375`
   records that `git` produces no findings, `classify` runs per finding at `:551` behind the
   `if not findings` exit at `:475` — verified-at 7a00255
-- The main session is ungoverned and can cross the window: `check-domain.sh:271`,
+- The main session is ungoverned and can cross the window: `check-domain.py:271`,
   `_governed = bool(agent) and agent.startswith("harness-")` — verified-at 7a00255
 - Q3 and Q4 of the earlier lists are CLOSED, not outstanding — a pm pass applied both before
   signature: `grep -c "nothing in this repository can enforce" plan.yaml` returns 0, and the
@@ -41,14 +41,14 @@ then T-03 and T-06, then T-04. T-04 must NOT be committed without T-05, which is
 
 - Do not try to `Write` state after T-02's commit lands — that is the whole reason this note and
   STATE.md were written BEFORE the dispatch — source: this session, route A step 1
-- Do not edit `check-state.sh`, `check-domain.sh`, `bash-write-guard.sh` or `validate-digest.py`
+- Do not edit `check-state.py`, `check-domain.py`, `bash-write-guard.py` or `validate-digest.py`
   through a team run; T-05 is the operator's — source: DEC-174 carve-out
 - Do not pull T-07 Part A items 4 and 5 forward; only item 1, the board deletion, unblocks the
   loader — source: notes/segment-02-ordering-decision.md, route A
 - Do not re-raise D-10's `because` or D-06's reversibility cost — both applied pre-signature — source: above
 - Do not touch `FEAT-25-claim-feature-root`, `FEAT-25-expertise-repository-tier`,
   `FEAT-26-pr-linkage-recorded`, `FEAT-27-expertise-repository-tier` — source: this dispatch
-- `review_sha` stays `none` until the build ends; FEAT-24's single `check-state.sh` violation is
+- `review_sha` stays `none` until the build ends; FEAT-24's single `check-state.py` violation is
   expected until then — source: INV-6
 
 ## Working set

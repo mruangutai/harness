@@ -22,7 +22,7 @@
   guard settled it in one grep.
 
 - 2026-08-14: Two LEAVE-list items in my dispatch were wrong on the merits, and pm caught both.
-  `branch-create-gate.sh:77` runs `ls -d "$root/.harness/features/${flow}"*` and line 78 DENIES when
+  `branch-create-gate.py:77` runs `ls -d "$root/.harness/features/${flow}"*` and line 78 DENIES when
   nothing matches — post-move, no branch is creatable for any feature. `.gitignore:7` is
   `.harness/features/*/runs/**` and its own comment names the consequence ("run dirs dirty the
   working tree and the dirty-tree halt (SPEC 8.6) deadlocks the next crew"). Both were on the

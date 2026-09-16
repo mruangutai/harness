@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
+"""check-state.py at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). The hook registration
 INV-9 requires, the mirrored feature with no recorded parent (INV-21), factory claims
@@ -16,8 +16,11 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
+import harness_yaml
 from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT,
     make_fixture, run, _run_with_gh, _run_with_gh_streams)
 
@@ -74,14 +77,14 @@ def case_d():
         os.makedirs(cl, exist_ok=True)
         base = {"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                 "hooks": {
-                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                     "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.sh --post"}]}],
+                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.py --post"}]}],
                     "PreToolUse": [
-                        {"hooks": [{"command": "x/check-domain.sh"}]},
-                        {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                        {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                        {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}
+                        {"hooks": [{"command": "x/check-domain.py"}]},
+                        {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                        {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                        {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}
         local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump(base, f)
@@ -101,16 +104,21 @@ def case_d():
         return ok
 
 
-RUNS_WITH_TRAILING_COMMENTS = """feature_id: FEAT-TEST
-cycles_used: 0
-runs:
-  - id: 2026-08-03-01-validator   # panel run
-    squad: validator              # issue #11: a comment HERE dropped the whole entry
-    verdict: FAIL
-github:
-  parent: 40
-  issues:
-    T-01: 41
+RUNS_WITH_VALIDATOR_ENTRY = """{
+  "feature_id": "FEAT-TEST",
+  "cycles_used": 0,
+  "runs": [
+    {
+      "id": "2026-08-03-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    }
+  ],
+  "github": {
+    "parent": 40,
+    "issues": {"T-01": 41}
+  }
+}
 """
 
 
@@ -118,15 +126,13 @@ def case_e():
     """Issue #11, behavioural: a trailing `#` comment on a run's `id:` or `squad:`
     line must not make the run invisible.
 
-    The pre-T-07 block-form regex required `\\s*\\n` immediately after those two
-    captures, so a comment — legal YAML, and the house style on 45 lines of FEAT-03's
-    feature.json — matched nothing and dropped the ENTIRE entry. Three invariants then
-    failed OPEN at exit 0: INV-6 (no validator run seen, so an unpinned review_sha was
-    not reported), INV-7 (0 FAILs counted) and INV-8.
+    The historical label is retained in the printed byte baseline, but this fixture now
+    reaches the same invariant through strict JSON. The canonical reader must preserve the
+    observable run semantics: a validator run with no usable review_sha makes INV-6 fire.
 
     Asserted through the invariant rather than the parser: this fixture has a validator
     run and NO `review_sha`, so a correct parse MUST report INV-6. Pre-fix the run
-    vanished and check-state.sh said nothing at all — which is why a parser-level
+    vanished and check-state.py said nothing at all — which is why a parser-level
     assertion would be the weaker test.
     """
     with tempfile.TemporaryDirectory() as tmp:
@@ -135,7 +141,7 @@ def case_e():
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write(RUNS_WITH_TRAILING_COMMENTS)
+            f.write(RUNS_WITH_VALIDATOR_ENTRY)
         code, out = run(tmp)
         ok = "review_sha is not pinned" in out
         print(f"{'ok' if ok else 'FAIL'} - case (e): issue #11 — a commented squad:/id: "
@@ -192,7 +198,8 @@ def case_k():
             with open(os.path.join(h, "harness.json"), "w") as f:
                 f.write(HARNESS_JSON_SYNC_OFF)
             with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-                f.write("feature_id: FEAT-TEST\nreview_sha: none\nruns: []\n")
+                json.dump(
+                    {"feature_id": "FEAT-TEST", "review_sha": "none", "runs": []}, f)
             with open(os.path.join(rundir, "state.yaml"), "w") as f:
                 f.write("schema_version: 1\n"
                         "run_id: 2026-08-05-01-product\n"
@@ -231,13 +238,13 @@ def case_m():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         ok = "No PostToolUse check-domain hook" in out
         print(f"{'ok' if ok else 'FAIL'} - case (m): INV-9 catches a MISSING PostToolUse "
@@ -263,15 +270,15 @@ def case_m2():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write",
-                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
         # tools that are uncovered, because "a hook is misconfigured" without them sends
@@ -304,20 +311,20 @@ def case_m3():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [
                                # decoy: right matcher, and it mentions check-domain only in
                                # a path that does not run it
                                {"matcher": "Write|Edit|Bash",
-                                "hooks": [{"command": "x/check-domain.sh.disabled --post"}]},
+                                "hooks": [{"command": "x/check-domain.py.disabled --post"}]},
                                {"matcher": "Write",
-                                "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         code, out = run(tmp)
         # The decoy DOES widen coverage on a basename match, which is honest: this fixture
         # asserts only that a `Write`-only real entry cannot pass on its own merits.
@@ -356,15 +363,15 @@ def case_t():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write|Edit|Bash(",
-                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         ok = out.strip() != "" and "not a valid regular expression" in out
         print(f"{'ok' if ok else 'FAIL'} - case (t1): an invalid hook matcher is REPORTED, "
@@ -397,7 +404,7 @@ def case_r():
     `if cfg:`, so an absent harness.json left the name unbound and every later consumer
     raised NameError. A crash exits 1 — the same code a real violation exits — so /harness
     entry reported "violations found" for a missing config, with a traceback where the
-    diagnosis should be. check-state.sh's own header records the identical shape being
+    diagnosis should be. check-state.py's own header records the identical shape being
     fixed once already, for a bad _selfdir.
 
     Found while landing DEC-182, because a plan.yaml fixture legitimately carries none.
@@ -422,14 +429,6 @@ def case_r():
 
 
 FLEET_YAML = """schema: factory-fleet/1
-board:
-  owner: acme
-  number: 3
-  station_field: Status
-  stations:
-    ready: Ready
-    building: Building
-    review: Review
 repos:
   - name: acme/widget
     default_branch: main
@@ -440,8 +439,9 @@ workspace_root: /tmp/acme-factories
 def _factory_tree(tmp, features, fleet=FLEET_YAML):
     """Build a fixture with N features, each optionally carrying a `factory` block.
 
-    `features` is {feature_id: factory_block_yaml_or_None}. A None block writes a
-    feature.json with no factory key at all, which INV-24 must ignore entirely.
+    `features` is {feature_id: factory_block_yaml_or_None}. The legacy case
+    vocabulary is converted to JSON here so every feature.json reaches the
+    canonical strict reader.
     """
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
@@ -454,133 +454,113 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
     for feat, block in features.items():
         d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
+        document = (
+            harness_yaml.load_str(block, f"{feat} factory fixture")
+            if block else {"branch": "none"}
+        )
         with open(os.path.join(d, "feature.json"), "w") as f:
-            f.write(block if block else "branch: none\n")
+            json.dump(document, f)
+            f.write("\n")
     return h
 
 
+def _inv24_output_lines(output, strict_rejection):
+    lines = [line for line in output.splitlines() if "INV-24" in line]
+    if strict_rejection:
+        subject = [
+            line for line in output.splitlines()
+            if "feature.json invalid" in line and "FEAT-CONTROL" not in line
+        ]
+    else:
+        subject = [line for line in lines if "FEAT-CONTROL" not in line]
+    return lines, subject
+
+
+def _inv24_case_passes(lines, subject, expect_hit, needles, require_control):
+    expected_subject = bool(subject) == expect_hit
+    required_text = all(
+        any(needle in line for line in subject) for needle in needles
+    )
+    control_found = (
+        not require_control
+        or any("FEAT-CONTROL" in line for line in lines)
+    )
+    return expected_subject and required_text and control_found
+
+
 def case_s():
-    """INV-24 (DEC-203): factory claims must resolve against the fleet, and no two
-    features may claim one issue.
-
-    The parent is folded into the SAME comparison list as the task issues rather than
-    checked separately. That is the operator's 2026-08-08 ruling on finding A-1, and it is
-    what makes D-12 visible: gh-sync.py's `open` also adopts or creates a container for the
-    same feature in the same repository, so a container published beside one the factory
-    created collides — and an issues-only comparison cannot see it.
-    """
+    """INV-24 factory claims, including strict-reader rejection at its input boundary."""
     results = []
+    control_block = "factory:\n  repo: acme/nope\n  issues:\n    T-99: 999\n"
 
-    CONTROL = "factory:\n  repo: acme/nope\n  issues:\n    T-99: 999\n"
-
-    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True):
-        """expect_hit False is VACUOUS on its own — it also passes when INV-24 is deleted.
-
-        panel2 C3: four of the eight original cases asserted only absence, so none of them
-        would go red if the branch they target were removed or inverted. Every no-hit case
-        now carries a POSITIVE CONTROL feature in the same tree — an unlisted repo, which
-        must always fire. Absence is only believed when the checker demonstrably ran.
-        """
+    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True,
+              strict_rejection=False):
         feats = dict(features)
-        if not expect_hit and control and fleet is not None:
-            feats["FEAT-CONTROL"] = CONTROL
+        require_control = not expect_hit and control and fleet is not None
+        if require_control:
+            feats["FEAT-CONTROL"] = control_block
         with tempfile.TemporaryDirectory() as tmp:
             _factory_tree(tmp, feats, fleet=fleet)
             _code, out = run(tmp)
-        lines = [l for l in out.splitlines() if "INV-24" in l]
-        subject = [l for l in lines if "FEAT-CONTROL" not in l]
-        hit = bool(subject)
-        ok = (hit == expect_hit) and all(
-            any(n in l for l in subject) for n in needles
-        )
-        if not expect_hit and control and fleet is not None:
-            # the control MUST have fired, or absence proves nothing
-            ok = ok and any("FEAT-CONTROL" in l for l in lines)
+        lines, subject = _inv24_output_lines(out, strict_rejection)
+        ok = _inv24_case_passes(
+            lines, subject, expect_hit, needles, require_control)
         print(f"{'ok' if ok else 'FAIL'} - case (s) INV-24: {label}")
         if not ok:
             print(f"       | INV-24 lines: {lines!r}")
         results.append(ok)
 
     listed = "factory:\n  repo: acme/widget\n  parent: 10\n  issues:\n    T-01: 11\n"
-
     check("a listed repository passes", {"FEAT-A": listed}, False)
-
     check("an UNLISTED repository is a violation naming the repo",
           {"FEAT-A": "factory:\n  repo: acme/nope\n  issues:\n    T-01: 11\n"},
           True, needles=("acme/nope",))
-
     check("two features recording one repo+issue names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: 11\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-
-    # A-1: the case an issues-only comparison could not see.
     check("one feature's PARENT equal to another's issue names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-09: 12\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-
     check("two features sharing one PARENT names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 10\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 10\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-
     check("a block with NO parent key is silent",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n"}, False)
-
     check("factory state with NO fleet file names the FLEET as the problem",
           {"FEAT-A": listed}, True, needles=("FEAT-A", "fleet.yaml", "is absent"), fleet=None)
-
     check("a null factory.repo is a violation, not a silent pass (C1)",
           {"FEAT-A": "factory:\n  repo: null\n  issues:\n    T-01: 11\n"},
           True, needles=("not a repository name",))
-
     check("a null issue number is named, not treated as a collision (C1)",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: null\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: null\n"},
-          True, needles=("not an integer",))
-
-    # The needle reaches PAST "twice within its own factory" deliberately. The message used
-    # to re-derive both labels from `n == fac.get("parent")`, so in this exact case — the
-    # only case it was written for — it rendered "(parent and parent)" and told the reader
-    # the container was recorded twice instead of that a task collides with it.
+          True, needles=("not a recorded issue number",), strict_rejection=True)
     check("a feature whose own parent equals its own task issue fires, and names BOTH sides (C2)",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-01: 11\n"},
           True, needles=("twice within its own factory", "task T-01", "the parent"))
-
-    # INV-21 thirty lines above accepts `parent: "40"` on purpose (gh-sync.py's reader was
-    # widened to it). If INV-24 rejected the same shape, one legal feature.json would pass
-    # one invariant and hard-block on its twin — the D-03 divergence, inside one file.
     check("a quoted issue number is a number here, as it is for INV-21 (D-03)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  parent: "40"\n  issues:\n    T-01: "41"\n'},
           False)
-
     check("a quoted number still collides across features (D-03 does not weaken the check)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  issues:\n    T-01: "41"\n',
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-02: 41\n"},
           True, needles=("both record acme/widget issue 41",))
-
-    # The CONTENTS were type-checked while the CONTAINER was assumed: `issues: 42` left the
-    # number list empty, so no collision check ran and nothing was reported at all.
     check("an issues block that is neither a mapping nor a list is reported, not skipped",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues: 42\n"},
-          True, needles=("neither a T-NN-to-number mapping nor a list",))
-
-    # control=False, and the reason is the case itself: injecting the control would put a
-    # factory block in the one tree whose entire premise is that none exists, so the
-    # `not isinstance(fac, dict): continue` branch would go untested. Absence is instead
-    # believed because every OTHER case above proves the checker runs on this fixture shape.
+          True, needles=("not a JSON object",), strict_rejection=True)
     check("a tree with no factory blocks at all is silent",
           {"FEAT-A": None, "FEAT-B": None}, False, control=False)
-
     return all(results)
 
 
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
-    Nothing shares these — deliberately (D-02): check-domain.sh measures a write payload,
-    check-state.sh measures a file on disk, and merging the mechanisms is what let a
+    Nothing shares these — deliberately (D-02): check-domain.py measures a write payload,
+    check-state.py measures a file on disk, and merging the mechanisms is what let a
     malformed file pass unread once already. What is NOT deliberate is the two drifting
     apart in silence, where check-domain blocks at 201 lines while check-state warns at
     251 and no reader can tell which number is the budget.
@@ -595,8 +575,8 @@ def case_o():
     # CHECK_DOMAIN_BIN at a mutant saying "budget is 999" and this case printed ok,
     # having opened the real file instead.
     dom = open(os.environ.get("CHECK_DOMAIN_BIN")
-               or os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
-    # SCRIPT, not a hard-coded "check-state.sh". This case reads source rather than running
+               or os.path.join(here, "check-domain.py"), encoding="utf-8").read()
+    # SCRIPT, not a hard-coded "check-state.py". This case reads source rather than running
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
     # it never opened, which is the failure mode the override exists to expose.
@@ -688,7 +668,7 @@ def case_o():
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
                   f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
-    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.sh and "
+    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.py, check-state.py and "
           f"HANDOFF.md agree on every duplicated budget, key and heading")
     if not ok_all:
         for c in checks:
@@ -731,7 +711,9 @@ def _inv28_fixture(tmp, sync_on, features):
             f.write(body)
         if plan_station is not None:
             with open(os.path.join(d, "plan.yaml"), "w") as f:
-                f.write(f"schema: plan/1\nfeature: {feat}\nstatus: {plan_station}\ntasks: []\n")
+                f.write(
+                    f"schema: plan/1\nfeature: {feat}\nstatus: {plan_station}\n"
+                    "station_only: true\ntasks: []\n")
     return h
 
 
@@ -841,7 +823,9 @@ def _inv30_fixture(tmp, features):
         # The station lands in plan.yaml, lowercase (FEAT-41 T-07). feature.json keeps the
         # milestone, which is what this invariant is actually about.
         with open(os.path.join(d, "plan.yaml"), "w") as f:
-            f.write(f"feature: {feat}\nstatus: {str(station).lower()}\ntasks: []\n")
+            f.write(
+                f"feature: {feat}\nstatus: {str(station).lower()}\n"
+                "station_only: true\ntasks: []\n")
     return h
 
 
@@ -908,7 +892,7 @@ def case_inv30_silent_on_closed_milestone():
 
 def case_inv30_silent_offline():
     """SC-12 clause three, and it is TWO claims, not one: no INV-30 line AND no error. This
-    grades the INV-26 offline posture the design copies deliberately — `check-state.sh` runs
+    grades the INV-26 offline posture the design copies deliberately — `check-state.py` runs
     before every commit, so an unreachable network must never become a red gate."""
     with tempfile.TemporaryDirectory() as tmp:
         _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
@@ -954,6 +938,54 @@ def case_inv30_silent_on_nonterminal():
         return ok
 
 
+def case_no_root_replays_resolver_stderr():
+    """An unconfigured isolated copy keeps the resolver's full traceback.
+
+    The former shell entry point replayed stderr from its isolated root-resolution
+    helper. Replacing that traceback with only ``str(exc)`` loses the failure's
+    source and violates the conversion's byte-preservation contract.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        isolated = os.path.join(tmp, "bin")
+        shutil.copytree(_anchor_bin, isolated)
+        script = os.path.join(isolated, "check-state.py")
+        env = os.environ.copy()
+        env.pop("HARNESS_PROJECT_DIR", None)
+        result = subprocess.run(
+            [script], cwd=isolated, env=env, capture_output=True, text=True)
+        lines = result.stderr.splitlines()
+        ok = (
+            result.returncode == 2
+            and not result.stdout
+            and bool(lines)
+            and lines[0].startswith(
+                "check-state.py: no harness root could be resolved from ")
+            and "Traceback (most recent call last):" in result.stderr
+            and "ValueError: no harness root found:" in result.stderr
+            and "check-state.py: no harness root found:" not in result.stderr
+        )
+        print(f"{'ok' if ok else 'FAIL'} - no-root refusal replays the resolver traceback")
+        return ok
+
+
+def case_canonical_reader_rejects_duplicate_harness_json():
+    """The enforcement reader must not inherit json.loads' last-key-wins behavior."""
+    duplicate = (
+        '{"github":{"sync":false,"repo":null},'
+        '"github":{"sync":true,"repo":"org/repo"}}\n')
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, duplicate, "  parent: 40")
+        code, out = run(tmp)
+        ok = (
+            code == 1
+            and "harness.json is not valid JSON" in out
+            and "duplicate key" in out
+        )
+        if not ok:
+            print("FAIL - canonical harness.json reader accepted duplicate keys")
+        return ok
+
+
 def main():
     results = []
     ok, code_a = case_a()
@@ -986,6 +1018,8 @@ def main():
     results.append(case_inv30_silent_offline())
     results.append(case_inv30_silent_on_null_milestone())
     results.append(case_inv30_silent_on_nonterminal())
+    results.append(case_no_root_replays_resolver_stderr())
+    results.append(case_canonical_reader_rejects_duplicate_harness_json())
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "

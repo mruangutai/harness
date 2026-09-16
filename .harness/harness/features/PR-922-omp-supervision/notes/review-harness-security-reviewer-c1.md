@@ -53,7 +53,7 @@ The fixer's three revisions to cycle 0's findings all hold up:
   persona's lead/orchestrator yield on `live_children`, not only `SINGLE_FLIGHT_AGENTS`. `reconcile`
   (`inflight_registry.py:449-475`) does ask the same `_expire`/liveness question per claim before
   its `feature` filter is applied, so "it self-heals" was false as stated.
-- **F5 downgrade: CORRECT**, verified at both anchors. `dispatch-guard.sh:156` passes
+- **F5 downgrade: CORRECT**, verified at both anchors. `dispatch-guard.py:156` passes
   `feature=declared` (regex-validated non-empty earlier in the same script); `validate-digest.py:1000-1001`
   passes `feature=_c.get("feature")` sourced from a claim record that every legitimate write path
   (`claim_with_receipt`, the v1→v2 migration in `_parse`) sets to a non-empty string. No other
@@ -93,7 +93,7 @@ Traced the blast radius precisely rather than assuming it:
   `feature`. A poisoned claim anywhere therefore throws out of `reconcile` for every feature that
   triggers it, not just its own.
 - Every caller that reaches this code wraps it in a broad `except Exception` that fails OPEN, matching
-  this codebase's DEC-100 posture (`dispatch-guard.sh`'s `except Exception as exc: ... passing
+  this codebase's DEC-100 posture (`dispatch-guard.py`'s `except Exception as exc: ... passing
   through, the dispatch is NOT blocked`; `validate-digest.py:983-987`'s `except Exception as _e: _kids
   = []`). `setFeature`'s reconcile call in `harness-hooks.ts:426-430` never inspects the subprocess
   result at all. So the practical effect is not a hard crash of the pipeline — it is **silent,

@@ -47,7 +47,7 @@ Authority read: `.claude/skills/harness/bin/suite_layout.py` at HEAD `5f76d6b1`.
 - T-05 `verify:` verbatim (string cross-checked against `plan.yaml` line 1047): output
   `examined 30 anchor(s), 0 failed`, exit **0** (the `diff` stage printed nothing — an empty diff is
   the pass condition).
-- `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.sh --kind unit`: exit **0**,
+- `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py --kind unit`: exit **0**,
   341 `^PASS `, 0 `^FAIL `, `pool: 8 workers, 27 files`.
 - HEAD unmoved: `5f76d6b1`. Nothing staged, nothing committed.
 

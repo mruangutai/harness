@@ -516,7 +516,7 @@ def case_real_keeps_one_namespace_when_unresolvable():
     the fail-open crash, but it returns an UNRESOLVED path -- and when the checkout root is
     reached through a symlink, `real(root)` is fully resolved while `real(target)` is not. The two
     no longer share a prefix, so `select_base`/`inside` classify an in-base target as
-    `not_a_domain_question` and `bash-write-guard.sh` exits 0 with empty stderr.
+    `not_a_domain_question` and `bash-write-guard.py` exits 0 with empty stderr.
 
     MEASURED on a symlinked root before the fix:
         real('/tmp/h3/link')                    -> /private/tmp/h3/actual
@@ -621,6 +621,28 @@ def case_run_dir_grant_globs_synthetic():
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
+def case_run_dir_grant_globs_uses_aggregated_accessor():
+    mod = hb()
+    calls = []
+
+    class Accessors:
+        @staticmethod
+        def manifest_domains(path, agent=None):
+            calls.append((path, agent))
+            return ("all/runs/alpha", "shared/runs/beta", "outside"), (
+                "shared/runs/gamma",)
+
+    mod.artifact_accessors = Accessors
+    root = "/synthetic-root"
+    got = mod.run_dir_grant_globs(root)
+    expected_path = os.path.join(root, ".harness", "team-config.yaml")
+    check("run_dir_grant_globs_uses_aggregated_manifest_accessor",
+          calls == [(expected_path, None)],
+          f"calls={calls!r}")
+    check("run_dir_grant_globs_combines_all_role_and_shared_run_grants",
+          got == ["all/runs/alpha", "shared/runs/beta", "shared/runs/gamma"],
+          f"got {got!r}")
+
 
 def case_run_dir_grant_globs_absent_and_garbage():
     mod = hb()
@@ -700,6 +722,7 @@ def main():
     run_case(case_real_keeps_one_namespace_when_unresolvable)
     run_case(case_run_identity_pattern)
     run_case(case_tests_are_target_side_control_plane_only)
+    run_case(case_run_dir_grant_globs_uses_aggregated_accessor)
     run_case(case_run_dir_grant_globs_live_shape)
     run_case(case_run_dir_grant_globs_synthetic)
     run_case(case_run_dir_grant_globs_absent_and_garbage)

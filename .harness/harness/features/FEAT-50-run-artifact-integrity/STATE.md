@@ -34,7 +34,7 @@ so all seven are copied together: `STATE.md`, `feature.json`, `plan.yaml`, `note
 `observations/harness-orchestrator.md`. Only the two lines above actually change. The commands are
 in `notes/handoff-ship.md` and in the briefing's *Terminal state* section.
 
-Until they land, `check-state.sh` exits 1 with two FEAT-50 rows — INV-33 (stale `review_sha`,
+Until they land, `check-state.py` exits 1 with two FEAT-50 rows — INV-33 (stale `review_sha`,
 because FEAT-41's migration edited `plan.yaml` after the pin) and INV-26 (plan derives `review`,
 board reads `done`). Both close on the station write; neither is a defect in delivered code.
 
@@ -57,7 +57,7 @@ landed station from `main`.
 - Q3 (non-blocking, harness defect): the two write routes disagree on the identical target. The
   Write route refuses a governed write to the main checkout's FEAT-50 record at exit 2; the Bash
   route returns exit 0 for `python3 gh-sync.py ship <that same dir>`, because
-  `bash-write-guard.sh` cannot see through an interpreter. Briefing B-13. The refusal was honoured
+  `bash-write-guard.py` cannot see through an interpreter. Briefing B-13. The refusal was honoured
   here rather than routed around.
 - Q4 (non-blocking, harness defect): a merged feature's honest `review_sha` goes stale when a LATER
   feature's migration rewrites its `plan.yaml`. INV-33's terminal-station silence catches it only

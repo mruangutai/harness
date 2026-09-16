@@ -29,7 +29,7 @@ _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # --- Errors -----------------------------------------------------------------
-# Two distinct types on purpose (T-03 goal #5): check-domain.sh's converted
+# Two distinct types on purpose (T-03 goal #5): check-domain.py's converted
 # block must catch a duplicate key and a general parse failure separately —
 # the duplicate case renders the existing DEC-156 denial verbatim, the parse
 # case renders a new parse-error denial. Merging them forces a rework there.
@@ -292,31 +292,6 @@ REQUIRED_TASK_FIELDS = ("id", "title", "change_type", "execution_mode", "files",
 LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
 
 
-def load_plan(path):
-    """Load a `plan.yaml` and validate the shape its consumers depend on.
-
-    WHY THIS EXISTS RATHER THAN load_file: PLAN.md was markdown that LOOKED like
-    YAML, so three scripts hand-rolled regexes against it and each invented its own
-    rule for what a value may contain. Measured before the change: `safe_load` fails
-    on 35 of the 36 task blocks in the four live plans — 26 because
-    `files:` began with a backtick, which is a reserved YAML indicator (one of
-    those is ALSO `execution_mode: **SPLIT`, which reads as an alias — the same
-    block, not a 27th), and 9 because `execution_mode: <mode> — reason: ...`
-    puts a second `": "` inside a plain scalar. Those are not style
-    problems; they are the format inviting decoration into data fields.
-
-    A FENCED ```yaml BLOCK INSIDE MARKDOWN WAS CONSIDERED AND REFUSED. It is the
-    same mixture with a border drawn round it: an author who decorates a value
-    today decorates it inside a fence tomorrow. The fence makes the mistake loud
-    instead of silent, which is worth something, but it is compensating code for a
-    problem the format invites. A plain `.yaml` file cannot tempt the author,
-    because nothing else in it is prose.
-
-    Raises YamlParseError if it is not YAML, PlanSchemaError if it is YAML that a
-    consumer could not act on. Never returns a partially-valid plan: a caller that
-    got a dict back can index every field named in REQUIRED_TASK_FIELDS.
-    """
-    return validate_plan_doc(load_file(path), path)
 
 
 def validate_plan_doc(doc, path):
@@ -463,60 +438,6 @@ def _validate_plan_depends_on(tasks, path):
 
 # --- Manifest domain walk (D-03) --------------------------------------------
 
-def manifest_domains(manifest_path, agent):
-    """Walk the parsed manifest and return (mine, shared) glob lists for
-    `agent`. Equivalent to check-domain.sh's pre-change collect() for every
-    agent in this repo's manifest, at EVERY nesting level — not just
-    teams[].members[] (T-02 test 5: harness-eng-lead lives under `leads:`,
-    harness-orchestrator is a bare top-level key). Every returned glob is
-    str()-coerced (D-08)."""
-    parsed = load_file(manifest_path)
-
-    mine = []
-
-    def walk(node):
-        if isinstance(node, dict):
-            domain = node.get("domain")
-            if node.get("name") == agent and isinstance(domain, list):
-                for entry in domain:
-                    if isinstance(entry, dict) and "path" in entry and not entry.get("read"):
-                        mine.append(str(entry["path"]))
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
-
-    walk(parsed)
-
-    # M-02: `parsed.get("shared")` assumed a dict and sat OUTSIDE the widened try, so
-    # it raised AttributeError past every caller's `except YamlParseError`. Note the
-    # shape of the bug — `walk()` immediately above guards every branch with
-    # isinstance, and the very next statement did not.
-    #
-    # WHY THE F-01 FIX DID NOT COVER IT: an empty file, a bare scalar and a bare list
-    # all PARSE SUCCESSFULLY. They yield None / str / list, never an error, so the
-    # widened `except` never engages. F-01 was scoped to the two shapes cycle 0 named
-    # (bad UTF-8, manifest-as-directory) and this is a third route to the same
-    # exit-1 fail-open — which is non-blocking (DEC-100), so both write hooks let the
-    # write through. An EMPTY team-config.yaml was enough.
-    #
-    # Raised as YamlParseError rather than returning empty: callers already treat that
-    # as "cannot read the rulebook, block", and a manifest that is not a mapping is
-    # exactly that. Returning ([], []) would read as "this agent owns nothing" — a
-    # silent, total loss of enforcement dressed as a legitimate answer.
-    if not isinstance(parsed, dict):
-        raise YamlParseError(
-            manifest_path,
-            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
-            f"an empty or malformed file cannot declare any domain")
-
-    shared = []
-    for entry in (parsed.get("shared") or []):
-        if isinstance(entry, dict) and "path" in entry:
-            shared.append(str(entry["path"]))
-
-    return mine, shared
 
 
 # --- PyYAML-presence policy (D-06, D-07, D-08 install command; E3 escape) ---
@@ -545,27 +466,27 @@ def _marker_path(root):
 
 
 def require_or_die():
-    """For check-state.sh and the plain .py scripts. No bootstrap escape
+    """For check-state.py and the plain .py scripts. No bootstrap escape
     (D-06) — this gates the orchestrator, not a write, so a hard block here
     costs no recovery path."""
     if yaml is not None:
         # The resolved root is used for exactly one thing below: best-effort
         # unlink of the PyYAML bootstrap marker. That cleanup must never be able
-        # to abort THIS caller's caller — check-state.sh, the canonical
+        # to abort THIS caller's caller — check-state.py, the canonical
         # pre-commit state checker, calls require_or_die() near its own top
-        # (check-state.sh:35), BEFORE its own later, properly guarded INV-25/
+        # (check-state.py:35), BEFORE its own later, properly guarded INV-25/
         # INV-27 checks ever run. A missing harness_boundary.py (ImportError) or
         # a root the resolver cannot verify (resolve_root's own strict raise) is
         # a DIFFERENT module's problem, not a reason to deny PyYAML availability
         # for every downstream consumer including checks that exist to REPORT
         # exactly that kind of breakage. Confirmed live: an isolated bin/
-        # carrying only harness_yaml.py (no harness_boundary.py — check-state.sh's
+        # carrying only harness_yaml.py (no harness_boundary.py — check-state.py's
         # own u.7/x.5 fixtures build exactly this) made this raise UNCAUGHT,
-        # so require_or_die() died with a raw traceback before check-state.sh
+        # so require_or_die() died with a raw traceback before check-state.py
         # ever reached its guarded `import harness_boundary as _hb` at :1080 to
         # report the INV-25 CANNOT RUN violation that fixture exists to prove.
         # Fail-open, the same class T-05 already fixed one caller earlier for
-        # bash-write-guard.sh/check-domain.sh.
+        # bash-write-guard.py/check-domain.py.
         try:
             import harness_boundary
             root = harness_boundary.resolve_root(_BIN_DIR)
@@ -589,7 +510,7 @@ def _resolve_identity(payload):
     payload=None means: this is a real hook invocation, so read the payload
     from the HOOK_PAYLOAD environment variable (never stdin — `python3 -`
     takes its PROGRAM from stdin, so a payload piped alongside a heredoc is
-    lost; check-domain.sh:232-234 records why). If HOOK_PAYLOAD is unset or
+    lost; check-domain.py:232-234 records why). If HOOK_PAYLOAD is unset or
     empty, fall through to the environment-variable entries below."""
     if payload is None:
         raw = os.environ.get("HOOK_PAYLOAD")
@@ -706,7 +627,7 @@ def require_or_bootstrap(root, payload=None):
     # message they never see is the same as no message.
     #
     # `systemMessage` on stdout is the PreToolUse contract's user-visible channel, and
-    # it is proven live in this repo rather than assumed: branch-create-gate.sh:82,111
+    # it is proven live in this repo rather than assumed: branch-create-gate.py:82,111
     # already emits exactly this shape on its own allow path, and it is registered in
     # .claude/settings.json. Emitted LAST so that a failure here cannot lose the stderr
     # copy, which is what reaches the agent.

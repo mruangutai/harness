@@ -51,11 +51,11 @@ exit 0; tree-audit `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`; `check-decision-anchors.py
 records (`suite_layout.tracked_paths` bar 4, `test-suite-layout._literal_key_present` bar 3), no
 grade-1. Full `--kind integration`: 46 files, 0 FAIL, exit 0.
 
-- **`check-state.sh` exits 1, not 0** (reproduced twice, ~75s each). Exactly one `VIOLATION`, over
+- **`check-state.py` exits 1, not 0** (reproduced twice, ~75s each). Exactly one `VIOLATION`, over
   `…/runs/2026-09-05-02-validator/digest.md` — a **gitignored** (`.gitignore:7`) run artifact from
   an earlier validator run today, absent from `bb3a31ed`'s tree and from `git status`. No SC covers
   it and no BUG-1286 deliverable is implicated, but the reported exit 0 is not what disk says.
-- **`run-unit-tests.sh` (kind `all`) reds under a pm dispatch env.** With `HARNESS_AGENT_TYPE=harness-pm`
+- **`run-unit-tests.py` (kind `all`) reds under a pm dispatch env.** With `HARNESS_AGENT_TYPE=harness-pm`
   exported, `tests/integration/test-plan-merge.py` returns 10 FAILs (`REFUSED: harness-pm may not
   sign an approval`). With the variable unset it is **291 checks, exit 0**. The suite is not
   hermetic against the caller's agent identity — a harness defect, not a BUG-1286 one (Q1).
@@ -70,7 +70,7 @@ cycle 1. None changes a grade; each names a real construct at a moved line.
 | SC-06 `suite_layout.py:20-28` (under-`tests/` rglob clause) | **STALE** — `:20-28` is the `DOCUMENTED_EXCEPTIONS` body; the clause is `_runner_selection_findings` at **`:135-148`** (was `:115-123` at `9adbce6b`) |
 | SC-07 `tests/unit/test-suite-layout.py:104-105` | **STALE** — assertion at **`:108-109`** |
 | SC-19 template-equality assertion `:100-103` | **STALE** — configs load at `:102-103`, the two assertions at **`:106-107`** |
-| SC-15 `run-unit-tests.sh` line 47 | **accurate** at both `1977ebd6` and `bb3a31ed` |
+| SC-15 `run-unit-tests.py` line 47 | **accurate** at both `1977ebd6` and `bb3a31ed` |
 | SC-09 `test-layout-migration.py:62` | **accurate** |
 | `code_grade.py:458-473` (`_is_test_path`) | **accurate** — `def` at `:458` |
 | census `85 / 9 / 0` at `c040c319`; "counted-outside-`tests/` set is EMPTY" at `cab6adb2` | **both reproduce** at `bb3a31ed` (85/9/0; `offenders(real_tracked) == []` over 2743 paths) |

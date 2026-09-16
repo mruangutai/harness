@@ -15,7 +15,7 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `BRIEF.md` | The **goal of record**: Goal, `REQ-NN`, Constraints, `SC-NN` (each with a `verify:` method), `## Approval`. Stable across the project. | `pm` drafts · **you** approve |
 | `PLAN.md` | Active plan: `## Decisions` (`D-NN`), `## Approval`, `## Features` (`FEAT-NN`), `## Tasks` (`T-NN`, each with `change_type:`) | `pm` — except `## Approval` |
 | `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
-| `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `harness-init`, **in this control plane only** — no product repository has one, seeded from detection |
+| `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.py` on every write | `harness-init`, **in this control plane only** — no product repository has one, seeded from detection |
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `harness-init` for this control plane's own copy; `harness-add-repo` for a fleet member's, which must land on that repository's default branch · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable **craft** — how that agent works, true wherever it works. Budget **150 lines**. Injected at every OMP task-agent start; the agent never reads it itself | each agent, its own file only |
 | `<repo>/expertise/<agent>.md` | Per-agent repository-specific knowledge. Budget **40 lines**. Injected by the same OMP lifecycle extension alongside craft knowledge | each agent, its own file only |
@@ -35,7 +35,7 @@ a dirty tree deadlocks the next run.
 
 ## Who writes what
 
-Every path above has exactly one writer, and `check-domain.sh` enforces it on every `Write`/`Edit`.
+Every path above has exactly one writer, and `check-domain.py` enforces it on every `Write`/`Edit`.
 An agent that tries to write outside its `domain` is **blocked** and told which paths are its own.
 
 Three rules explain most of the table:
@@ -87,7 +87,7 @@ A repository is not onboarded when it is absent from `.harness/factory/fleet.yam
 unconfigured, run `harness-init` first; a `schema_version` gap calls for `harness-init --upgrade`.
 An empty `features/` directory is a normal state, not a sign of missing onboarding.
 
-Run `.agents/skills/harness/bin/check-state.sh` any time; it checks invariants that fail silently,
+Run `.agents/skills/harness/bin/check-state.py` any time; it checks invariants that fail silently,
 including required lifecycle integration, approvals, and tasks missing `change_type`.
 
 > **Schemas are authored in `.claude/skills/harness/templates/`** and exposed to OMP through

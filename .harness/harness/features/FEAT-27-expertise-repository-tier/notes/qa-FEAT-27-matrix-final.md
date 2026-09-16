@@ -17,7 +17,7 @@ two files swept.
 | T-04 | docs | `[]` | n/a | — | discharged by design; T-04's own `verify:` re-run below as corroboration |
 | T-05 | docs | `[]` | n/a | — | discharged by design; T-05's own `verify:` re-run below |
 | T-06 | docs | `[]` | n/a | — | discharged by design; T-06's own `verify:` re-run below |
-| **T-07** | **logic** | **unit** | `run-unit-tests.sh --kind unit` | **0** | `PASS test-inject-expertise.py`, 19/19, 0 FAIL lines in full captured output |
+| **T-07** | **logic** | **unit** | `run-unit-tests.py --kind unit` | **0** | `PASS test-inject-expertise.py`, 19/19, 0 FAIL lines in full captured output |
 
 **Full-suite re-run, this session, at `252fa72`:**
 - `--kind unit`: exit 0. 17/17 `test-*.py` scripts report `PASS <name>`, `grep -c '^FAIL '` = 0 over
@@ -35,12 +35,12 @@ two files swept.
 | SC | Method | Evidence |
 |---|---|---|
 | SC-01 | bound (mutation, carried) | `test-inject-expertise.py:84-105` case1; unchanged since `2117a46` per `git diff --stat 2117a46 252fa72` (append-only, +25/-0, all of it case13) |
-| SC-02 | bound by an executing assertion, **standing-suite gap disclosed** | T-01's own `verify:` (`plan.yaml:110-125`), re-run by me this session: `ALL-GRANTS-OK`, exit 0, all 16 agents' repo-tier and craft `--resolve` checks pass. **Gap**: this loop lives only in the task's one-shot `verify:`, not in `test-check-domain.py` — nothing in `run-unit-tests.sh` re-runs it, so a future regression on any of the 16 grants is not caught by the standing suite |
+| SC-02 | bound by an executing assertion, **standing-suite gap disclosed** | T-01's own `verify:` (`plan.yaml:110-125`), re-run by me this session: `ALL-GRANTS-OK`, exit 0, all 16 agents' repo-tier and craft `--resolve` checks pass. **Gap**: this loop lives only in the task's one-shot `verify:`, not in `test-check-domain.py` — nothing in `run-unit-tests.py` re-runs it, so a future regression on any of the 16 grants is not caught by the standing suite |
 | SC-03 | rests on inspection (by design) | T-04's `verify:` re-run by me: `MIGRATION-OK`. It checks all 16 adjudicated entries (11 moved + 5 stayed) but as one combined presence-and-absence boolean per entry, not the 32 separately-reported assertions SC-03's text describes — corroborating, not a literal match to the SC's own phrasing |
 | SC-04 | bound (mutation, carried) | `test-check-expertise.py` `run_extra` case1 + case2's 9 non-FEAT token classes; file unchanged since `2117a46` (`git diff --stat` empty) |
 | SC-05 | bound (mutation, carried) | `run_extra` case6 (abspath) |
 | SC-06 | bound (mutation, carried, both clauses) | case3 (no-repo-tier) + case5b (bad agent_type) |
-| SC-07 | bound by an executing assertion | T-04's `verify:`, re-run by me: `check-expertise.sh .harness/expertise/` → 15 `OK` lines (+6 non-blocking `ADVISORY`s, expected per D-03); `check-expertise.sh .harness/harness/expertise/` → 6 `OK` lines. Each file named individually, matching SC-07's own wording exactly |
+| SC-07 | bound by an executing assertion | T-04's `verify:`, re-run by me: `check-expertise.py .harness/expertise/` → 15 `OK` lines (+6 non-blocking `ADVISORY`s, expected per D-03); `check-expertise.py .harness/harness/expertise/` → 6 `OK` lines. Each file named individually, matching SC-07's own wording exactly |
 | SC-08 | rests on inspection (by design) | T-05's `verify:` (`DOCS-OK`) + T-06's `verify:` (`SKILLS-OK`), both re-run by me; plus my own `grep -nE 'expertise/<repo>|\*\*/expertise'` over all four named files — zero matches. Establishes the two admissible forms are present and the forbidden third form is absent in all four; does not establish every *other* prose sentence in the four files is accurate, which inspection by construction cannot |
 | SC-09 | bound (mutation, carried) | case7a |
 | SC-10 | bound (mutation, carried) | case1 |
@@ -87,13 +87,13 @@ direct reproduction, not by re-reading the claim. Method validated.
    mutation-tested this directly last round; not re-run this round per the dispatch's citation
    instruction).
 2. `test-check-expertise.py` case2's `FEAT-\d+` sub-case — confirmed structurally, this round, by
-   reading `check-expertise.sh:45`: `FEATURE_TOKEN_RE = re.compile(r"\bFEAT-\d+\b|\bT-\d+\b|#\d+\b")`
+   reading `check-expertise.py:45`: `FEATURE_TOKEN_RE = re.compile(r"\bFEAT-\d+\b|\bT-\d+\b|#\d+\b")`
    independently catches `FEAT-12` as a hard violation regardless of whether `REPO_TOKEN_RE`'s
    `FEAT-\d+` sub-pattern ever fires — checked that none of the other 9 token classes (`DEC-\d+`,
    `INV-\d+`, `.harness/`, `.claude/`, `check-*.sh`, `factory_*.py`, `gh-sync`, `harness.json`,
    `team-config`) overlaps `FEATURE_TOKEN_RE`'s pattern, so only the `FEAT-12` case is vacuous — a
    per-assertion finding, not a generalisation across the loop's 10 sub-cases.
-3. `inject-expertise.sh`'s `[ -r ]` documented half (non-matching glob) — established last round,
+3. `inject-expertise.py`'s `[ -r ]` documented half (non-matching glob) — established last round,
    script byte-identical this round (confirmed).
 4. case11's `"Traceback" not in stderr` — confirmed vacuous under the T-07 guard-removal mutant by
    direct reproduction this round (§ above), not by re-reading the claim.
@@ -113,7 +113,7 @@ part of this feature) and every other test file in the tree — bounded per the 
 ## 5. T-07's specific question: what does case13 actually pin?
 
 Reproduced the eng squad's claim myself on a scratchpad copy (`Write`-tool copy of
-`inject-expertise.sh`, confirmed byte-identical to the real file by `diff` before mutating; mutant
+`inject-expertise.py`, confirmed byte-identical to the real file by `diff` before mutating; mutant
 built by removing exactly the line `[ -r "$f" ] || continue`, confirmed by `diff` — one line, no
 more).
 
@@ -132,7 +132,7 @@ stderr-empty) — I did not repeat it, I reproduced it.
 **Does case13 pin the guard's UNSPECIFIED duty (exists-and-unreadable) rather than the documented
 half (non-matching glob)?** Yes. The fixture's `.harness/kaya/expertise/harness-qa.md` is a real
 dangling symlink — bash's glob **matches** it by name (it exists as a directory entry), so this is
-not the non-matching-glob case the segment filter at `inject-expertise.sh:75-77` already covers
+not the non-matching-glob case the segment filter at `inject-expertise.py:75-77` already covers
 independently. `[ -r ]` here is doing the only guarding: following the symlink to a target that does
 not exist, which `-r` correctly reports false for.
 
@@ -149,7 +149,7 @@ item 4 — would have stayed green under exactly the mutant SC-11 requires case1
 ## Coverage gaps (net across both rounds)
 
 - SC-02 / T-01's 10 non-fixtured repository-tier grants: automated and passing, but living only in a
-  one-shot task `verify:`, not in the standing `run-unit-tests.sh` suite — a future regression on any
+  one-shot task `verify:`, not in the standing `run-unit-tests.py` suite — a future regression on any
   of the 16 grants (or the 10 not covered by `COLLECT_FIXTURE`) will not be caught automatically.
 - `[ -r ]` guard's *documented* half (non-matching glob) — still unpinned as its own case (carried
   from the T-02/T-03 round; T-07 pinned the *other* half, deliberately, per its own intent text).
@@ -165,7 +165,7 @@ outside every currently-defined SC's text, same ruling as the prior round.
 No source or test file was written or edited. All mutation probes ran on scratchpad copies at
 `/private/tmp/claude-501/.../scratchpad/probes2/`, built via the `Write` tool (the `bash-write-guard`
 denies `cp`/redirect into scratchpad from Bash — logged as an observation). Nothing committed or
-staged. `check-expertise.sh` was run read-only over both tiers as part of re-running T-04's `verify:`
+staged. `check-expertise.py` was run read-only over both tiers as part of re-running T-04's `verify:`
 — the six craft `ADVISORY` lines it prints are D-03's adjudicated-craft entries working as designed,
 not a violation.
 
@@ -183,7 +183,7 @@ gap sits beside it.
 ## N-1 — CONFIRMED. Global tier reachable by no case in the suite.
 
 `fresh_home()` (`test-inject-expertise.py:57-58`) returns an empty tempdir; grepped the whole file for
-any `write(os.path.join(home` — zero hits. So `inject-expertise.sh:98-101`'s glob-tier branch
+any `write(os.path.join(home` — zero hits. So `inject-expertise.py:98-101`'s glob-tier branch
 (header, `cap_body "$glob" 150`) is dead code as far as this suite is concerned.
 
 **Measured:** mutated `:100`'s budget `150 → 77` (one line, diffed clean against the real file
@@ -197,7 +197,7 @@ remedy is a new case writing under `home`, not a stronger existing check.
 
 ## N-2 — CONFIRMED. case2's ordering assertion (`:123`) cannot fail against removal of the manual sort.
 
-`inject-expertise.sh:82-92`'s explicit re-sort is provably redundant for case2's fixture: bash glob
+`inject-expertise.py:82-92`'s explicit re-sort is provably redundant for case2's fixture: bash glob
 expansion already returns `.harness/*/expertise/harness-qa.md` matches in collation order — verified
 directly (not inferred) by globbing a scratch `kaya`+`harness` pair, independent of the hook: glob
 returned `harness` before `kaya` with no sort involved.
@@ -319,9 +319,9 @@ defense-in-depth, not miscoverage, and does not belong in the census as scoped.
 1. case12's four hostile `agent_type` values — vacuous (carried from prior rounds, mutation-tested
    directly at `2117a46`, unchanged since).
 2. `test-check-expertise.py` case2's `FEAT-\d+` sub-case — vacuous; `FEATURE_TOKEN_RE` independently
-   catches the violation regardless of `REPO_TOKEN_RE`'s overlapping sub-pattern (`check-expertise.sh:45`).
+   catches the violation regardless of `REPO_TOKEN_RE`'s overlapping sub-pattern (`check-expertise.py:45`).
 3. case2's segment-ordering assertion (`test-inject-expertise.py:123`) — **new this round (N-2)**:
-   cannot fail against removal of `inject-expertise.sh:82-92`'s manual sort, because the fixture's two
+   cannot fail against removal of `inject-expertise.py:82-92`'s manual sort, because the fixture's two
    segment names are already in bash glob/collation order.
 4. case9a's ordering clause (`test-inject-expertise.py:233`) — **new this round (N-3)**: degenerates
    vacuously (`all()` over `[]`) when all three Expertise headers are absent; scoped to the ordering
@@ -329,9 +329,9 @@ defense-in-depth, not miscoverage, and does not belong in the census as scoped.
    removal.
 
 **(b) shipped code that no assertion reaches at all:**
-5. `inject-expertise.sh:98-101`'s `[ -r ]`-guarded documented half (non-matching glob) — carried,
+5. `inject-expertise.py:98-101`'s `[ -r ]`-guarded documented half (non-matching glob) — carried,
    unchanged since prior rounds.
-6. `inject-expertise.sh:98-101`'s glob-tier branch as a whole (header text, `cap_body "$glob" 150`) —
+6. `inject-expertise.py:98-101`'s glob-tier branch as a whole (header text, `cap_body "$glob" 150`) —
    **new this round (N-1)**: unreachable because no test ever writes under `home`.
 
 **Removed from the census:** case11's `"Traceback" not in stderr` (former item 4) — refuted; it

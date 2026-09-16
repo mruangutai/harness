@@ -99,5 +99,5 @@ passes a `shlex.split` argv list with no `shell` keyword at all.
 - `.claude/skills/harness/bin/check-decision-claims.py` (new)
 - `.claude/skills/harness/bin/test-check-decision-claims.py` (new)
 
-Did not touch `run-unit-tests.sh`, `.harness/harness.json`, or `DECISIONS.md`, per
+Did not touch `run-unit-tests.py`, `.harness/harness.json`, or `DECISIONS.md`, per
 the task's stated non-goals (T-18/T-19/T-21 respectively).

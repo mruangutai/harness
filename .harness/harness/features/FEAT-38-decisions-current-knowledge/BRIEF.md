@@ -92,7 +92,7 @@ removing redundant, self-reversing decisions — rather than the goal itself.
 In plain words, this is what you are signing that you were not signing when you signed below:
 
 - **The mechanism goes entirely, not into a safer form.** `check-decision-claims.py`, its test file,
-  its registration in `run-unit-tests.sh` and in `.harness/harness.json`, all 11 live claim markers in
+  its registration in `run-unit-tests.py` and in `.harness/harness.json`, all 11 live claim markers in
   `DECISIONS.md`, and DEC-205's rule mandating them. Blast radius outside this feature's folder is
   exactly those five tracked files, measured at `48bbe7e`; `DECISIONS.md`, `.harness/harness.json` and
   `.claude/skills/harness/bin/**` are byte-identical at `99bb52c`, so that measurement still holds.
@@ -220,13 +220,13 @@ It is closed as superseded once this lands.
 - **`.agents/skills` is a tracked symlink** to `.claude/skills`. Every path is written against
   `.claude/skills/...`; a path spelling `.agents/skills` will not match a `git ls-files` check.
 - **Thirteen surfaces this feature must edit are in NOBODY's domain** — measured with
-  `check-domain.sh --resolve` per path at `7ebfc9e`. They include `.claude/skills/harness/SKILL.md`,
+  `check-domain.py --resolve` per path at `7ebfc9e`. They include `.claude/skills/harness/SKILL.md`,
   `harness-team/SKILL.md`, both orchestrator agent files (`.claude/agents/` and `.omp/agents/`, the
   second a citation surface no intake artifact saw), `.gitignore` and `.harness/factory/fleet.yaml`.
   They cannot be dispatched to a squad — a NOBODY path is a violation in `check-plan-routes.py` under
   `execution_mode: team` — so they are one `main-session-direct` task, with the carve-out declared
   once in the plan's `lanes:` block rather than re-argued per task.
-- **`run-unit-tests.sh` and `.harness/harness.json` are in different lanes** and must agree: the
+- **`run-unit-tests.py` and `.harness/harness.json` are in different lanes** and must agree: the
   runner rejects any `INTEGRATION_SCRIPTS` name absent from the config's `integration` detect. A
   checker registers on both sides or the runner exits 2 — **and deregisters from both sides, for the
   same reason.** A removal that clears one side only is a live defect, not a cosmetic leftover.
@@ -276,7 +276,7 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   The tombstone stands because `notes/review-harness-qa-c0.md`,
   `notes/review-harness-code-reviewer-c0.md` and both ship reviews cite SC-09, and those records are
   frozen and correct for the day they were written. **Not graded, by anybody.**
-- SC-10: `run-unit-tests.sh` exits 0 and prints zero lines beginning `FAIL`, with the output captured
+- SC-10: `run-unit-tests.py` exits 0 and prints zero lines beginning `FAIL`, with the output captured
   and searched rather than piped to `tail`. Both are asserted: the runner has a path where a detail
   string is empty, and a truncating pipe reports the pipe's status.
   verify: automated        evidence: integration
@@ -308,9 +308,9 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   a count compared to zero. It rejects the tree at `99bb52c`, where the marker search matches 11 lines
   across 6 entries and the reference search matches 5 tracked files.
   verify: automated        evidence: integration
-- SC-15: At `review_sha`, neither `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` nor
+- SC-15: At `review_sha`, neither `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` nor
   `.harness/harness.json`'s `integration` detect names the removed checker or its test, and
-  `run-unit-tests.sh` at `review_sha` exits 0 while printing zero lines beginning `FAIL`, with its
+  `run-unit-tests.py` at `review_sha` exits 0 while printing zero lines beginning `FAIL`, with its
   output captured and searched rather than piped. Both halves are asserted: the runner exits 2 when
   the two registration sides disagree, so a one-sided deregistration is invisible to an absence
   search that only looks at one file.
@@ -363,7 +363,7 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   verify: inspection
 - SC-18: `.claude/skills/harness/bin/check-decision-anchors.py` and its test
   `test-check-decision-anchors.py` at `review_sha` are byte-identical to `git show 99bb52c:` of the
-  same paths, and the test is still named by both `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` and
+  same paths, and the test is still named by both `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` and
   `.harness/harness.json`'s `integration` detect. The retained check sits beside everything being
   removed and shares a filename prefix with it, so over-deletion is the likely error and must be
   visible rather than inferred from a green suite.
@@ -436,5 +436,5 @@ author of the audit table it grades.
 the whole of the panel revision. The withdrawal commit `753f4cd` touched `plan.yaml` only, so the two
 artifacts disagreed — the plan said `pending` while this brief still said `approved`. The
 orchestrator caught it and refused to write either fragment, correctly, since both are the main
-session's alone (DEC-120). Nothing mechanical would have caught it: `check-domain.sh`'s
+session's alone (DEC-120). Nothing mechanical would have caught it: `check-domain.py`'s
 `approval_guard` is measured fail-open inside every worktree.

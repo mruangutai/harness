@@ -22,7 +22,7 @@ close a record gap, not to hand work forward.
 - Fixed with a third return state callers refuse rather than ignore, plus `MULTILINE` on the pointer
   regex — `$` had anchored at end-of-string, so any second line failed the whole match —
   `notes/ship-review-2026-08-12.md`
-- **F-B [med]:** `check-state.sh` absorbed the `ImportError`, skipped every INV-25 branch, and printed
+- **F-B [med]:** `check-state.py` absorbed the `ImportError`, skipped every INV-25 branch, and printed
   *"all state invariants hold"* while exiting 0. The fourth import route and the only one that did not
   fail closed. Now a violation — `notes/ship-review-2026-08-12.md`
 - **F-C [med, record]:** DEC-193's claim of preserved Bash-route behaviour was too wide by one column.
@@ -43,9 +43,9 @@ close a record gap, not to hand work forward.
   into the other — `notes/ship-review-2026-08-12.md`
 - **The worktree-creation scan was never tested against evasion** — `sh -c`, `command git`, an alias,
   `xargs`. It is REQ-03's only mechanism — `notes/ship-review-2026-08-12.md`
-- **`classify`'s `shared` outcome is unreachable**, so the branch handling it in `bash-write-guard.sh`
+- **`classify`'s `shared` outcome is unreachable**, so the branch handling it in `bash-write-guard.py`
   is dead code new in that diff — `notes/ship-review-2026-08-12.md`
-- **One unreproduced gate failure.** `run-unit-tests.sh` exited 1 once and returned 0 on the three
+- **One unreproduced gate failure.** `run-unit-tests.py` exited 1 once and returned 0 on the three
   runs after it. No cause found — `notes/ship-review-2026-08-12.md`
 - **`--kind unit` runs neither guard suite nor `test-check-state.py`**, despite all three matching the
   unit detect glob. Backlog — `notes/ship-review-2026-08-12.md`

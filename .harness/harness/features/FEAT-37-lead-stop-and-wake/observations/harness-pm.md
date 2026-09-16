@@ -3,7 +3,7 @@
 - 2026-08-24: plan-merge.py apply REFUSES (exit 8) when the base plan.yaml does not exist and the
   proposal carries an approval mapping. Bootstrap is two steps: write the template's header plus a
   `approval: status: pending` stub directly, then merge the rest with no approval key in the
-  proposal. check-state.sh treats a plan.yaml with NO approval block as a hard violation, so the
+  proposal. check-state.py treats a plan.yaml with NO approval block as a hard violation, so the
   pending stub cannot simply be omitted.
 - 2026-08-24: FEAT-37 contradiction sweep — harness-team/SKILL.md holds no explicit stay-alive
   instruction, but :81 ("Until every step is terminal") and :112 ("Collect returns") read as one

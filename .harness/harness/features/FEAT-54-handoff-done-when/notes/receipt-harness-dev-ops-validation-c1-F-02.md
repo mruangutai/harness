@@ -47,7 +47,7 @@ except SystemExit as e:
 print('ok: dry run made no model call')"
 ```
 
-Exit 0. Both runs selected `handoff-build.md`, printed two planned calls as not executed, and the audit-hook clause printed `ok: dry run made no model call`. The registration assertion and `run-unit-tests.sh --check-layout` clauses were intentionally not rerun because this fix forbids registration edits and broad validation.
+Exit 0. Both runs selected `handoff-build.md`, printed two planned calls as not executed, and the audit-hook clause printed `ok: dry run made no model call`. The registration assertion and `run-unit-tests.py --check-layout` clauses were intentionally not rerun because this fix forbids registration edits and broad validation.
 
 ## Risk grade
 

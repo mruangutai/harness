@@ -102,16 +102,16 @@ real typo and asserts zero mutating calls before step 5. Different mechanisms, a
 
 ## Verify runs
 
-**T-04's `verify:`** (`.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t04.txt
+**T-04's `verify:`** (`.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t04.txt
 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]`):
 exit 0. `PASS test-factory-decompose.py` present in `/tmp/v-t04.txt`.
 
-**Full suite** (`.claude/skills/harness/bin/run-unit-tests.sh`, no `--kind`): exit 0. All 22
+**Full suite** (`.claude/skills/harness/bin/run-unit-tests.py`, no `--kind`): exit 0. All 22
 test files `PASS`, 0 `FAIL`.
 
 ## Hard constraints honored
 
-`check-state.sh` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
+`check-state.py` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
 unchanged (`repo, feature, parent, parent_origin, issues, edges_drawn, edges_skipped`). No
 `factory["stations"]` key invented. No fifth disposition. `sort_dispositions` untouched. Nothing
 committed or staged.
@@ -190,12 +190,12 @@ from `open_questions`.
 
 ### Verify runs, cycle 1
 
-**T-04's `verify:`** (`.claude/skills/harness/bin/run-unit-tests.sh --kind unit >
+**T-04's `verify:`** (`.claude/skills/harness/bin/run-unit-tests.py --kind unit >
 /tmp/v-t04.txt 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s"
 -eq 0 ]`): exit 0. `PASS test-factory-decompose.py` present in `/tmp/v-t04.txt`. 10 `PASS`, 0
 `FAIL` across the `--kind unit` set.
 
-**Full suite** (`.claude/skills/harness/bin/run-unit-tests.sh`, no `--kind`): exit 0. 22 test
+**Full suite** (`.claude/skills/harness/bin/run-unit-tests.py`, no `--kind`): exit 0. 22 test
 files `PASS` (`grep -c "^PASS test-" /tmp/v-full.txt`), 0 `FAIL` — same file count cycle-0
 reported; `grep -c "^PASS"` alone overcounts because some suites print a `PASS case_NN_...` line
 per sub-case in addition to the per-file line.
@@ -215,7 +215,7 @@ introduced.
 
 ### Hard constraints honored, cycle 1
 
-`check-state.sh` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
+`check-state.py` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
 unchanged. No `factory["stations"]` key invented. No fifth disposition. Nothing committed or
 staged.
 
@@ -234,7 +234,7 @@ no stale statements found.
 No `<!-- ok-stale -->` markers were needed — this receipt does not quote the superseded phrasing
 verbatim.
 
-### Full suite tail (`.claude/skills/harness/bin/run-unit-tests.sh`, no `--kind`)
+### Full suite tail (`.claude/skills/harness/bin/run-unit-tests.py`, no `--kind`)
 
 ```
 97/97 checks passed.
@@ -252,7 +252,7 @@ PASS test-factory-integration.py
 
 ### T-04 `verify:` re-run
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q
+`.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q
 "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]` — exit 0.
 `PASS test-factory-decompose.py` present in `/tmp/v-t04.txt`.
 

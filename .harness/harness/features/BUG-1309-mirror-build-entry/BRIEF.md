@@ -3,7 +3,7 @@
 ## Problem
 
 FEAT-55 was planned, approved, built, reviewed and merged with `github.sync: true` and never opened
-its GitHub mirror. Nothing refused it. At the merge, `post-merge-sweep.sh` ran `gh-sync.py ship`
+its GitHub mirror. Nothing refused it. At the merge, `post-merge-sweep.py` ran `gh-sync.py ship`
 against the main-checkout feature directory, `cmd_ship` hit `skip("no recorded milestone — nothing
 to close")` before `_record_pr` and the `done` station write, and the sweep read that SKIP as "not
 proof the terminal status was recorded" and kept the worktree. The feature reached its merge with
@@ -17,7 +17,7 @@ historical task sub-issues this feature exists to prevent were created once alre
 gate. The cause is known and stated: the mirror act was doctrinally attached to "mission
 ship, right after the approval gate passes" (`references/github-mirror.md`, originating at
 `ab4d2fdc`), which reads as the terminal Ship phase, while the orchestrator playbook's build phase
-names no mirror act at all; and `check-state.sh` INV-26 exempts terminal features and
+names no mirror act at all; and `check-state.py` INV-26 exempts terminal features and
 all-status-absent plans, which is exactly the shape FEAT-55 presented.
 
 ## Goal
@@ -60,7 +60,7 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
 - SUPPLIES — DEC-138: GitHub is a mirror and never a gate, and the mirror act belongs at
   `plan approved -> create`. This feature does not make GitHub a gate: every refusal here reads a
   LOCAL receipt, never the remote.
-- SUPPLIES — DEC-179: routing is resolved at plan time by `check-domain.sh --resolve`, which is how
+- SUPPLIES — DEC-179: routing is resolved at plan time by `check-domain.py --resolve`, which is how
   each surface below received its lane.
 - SUPPLIES — DEC-146 / DEC-203: the mirror's failure posture (best-effort per card, `ship` is the
   sole writer of the done station) is unchanged by this feature.
@@ -127,7 +127,7 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   parent and source issues and ZERO task sub-issues — asserted as an exact count of the recorded
   `github.issues` map and of the fake `gh` binary's create calls, not as a substring search.
   verify: automated        evidence: integration
-- SC-06: `post-merge-sweep.sh` retention keys on the RECORDED Build-entry value and never on era
+- SC-06: `post-merge-sweep.py` retention keys on the RECORDED Build-entry value and never on era
   membership, over two graded features: one that RECORDS `recovery-required` — the state a recovery
   attempted while GitHub is unavailable leaves behind, which keeps that feature non-terminal — has
   its worktree KEPT after the merge, with the sweep naming the recorded receipt, and that holds even
@@ -137,11 +137,11 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   `T-07 era-exempt recovery-required keeps the worktree` and
   `T-07 era-exempt absent build_entry is swept`.
   verify: automated        evidence: integration
-- SC-07: `check-state.sh` reports a violation for a sync-enabled feature that carries no Build-entry
+- SC-07: `check-state.py` reports a violation for a sync-enabled feature that carries no Build-entry
   outcome even when its station is terminal AND every task status is absent — the exact FEAT-55
   shape — and reports nothing for the same fixture once the outcome is recorded. The violating
   fixture is DISCRIMINATING at `review_sha`: pointed at the pre-change copy of the script recovered
-  with `git show <base>:.claude/skills/harness/bin/check-state.sh` (the `CHECK_STATE_BIN` escape),
+  with `git show <base>:.claude/skills/harness/bin/check-state.py` (the `CHECK_STATE_BIN` escape),
   or at a mutation of that production path, the violation case FAILS — and a case that cannot be
   made to redden is reported as non-discriminating rather than kept.
   verify: automated        evidence: integration
@@ -182,7 +182,7 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   never a live repository. What is therefore NOT proven automatically: that a real `gh pr merge`
   against GitHub is refused in the operator's own session. SC-10 carries that, by hand.
 - The Build-entry outcome for the legacy already-merged corpus is not backfilled. The new
-  `check-state.sh` invariant binds features created from this change onward, through a frozen
+  `check-state.py` invariant binds features created from this change onward, through a frozen
   era-exempt set; the existing corpus stays exempt and is recovered case by case on the operator's
   say-so. Concretely, 17 sync-enabled feature directories record no milestone at all (FEAT-01,
   FEAT-02, FEAT-03, FEAT-04, FEAT-05, FEAT-10, FEAT-15, FEAT-17, FEAT-19, FEAT-28, FEAT-36,

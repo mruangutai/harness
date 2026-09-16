@@ -17,7 +17,7 @@ write that destroys exactly the drift a check would have reported.
 The two records are:
 
 1. `.harness/harness/docs/DECISIONS.md` DEC-174, the evidence sentence "Every gate was green —
-   `run-unit-tests.sh`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` —
+   `run-unit-tests.py`, `check-docs.sh`, `check-state.py`, `gen-decisions-index.py --check` —
    while:" (`DECISIONS.md:4308-4309` at `41c16c7`).
 2. `.harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md:14-15`, "**All four gates
    green:** ... `gen-decisions-index.py --check` 0".
@@ -72,12 +72,12 @@ exactly as written.
   paragraph: no line of the DEC-174 heading, the three-bullet defect list, the "Self-hosting caught
   none of these" paragraph or the carve-out table appears as a `+`/`-` line.
   verify: inspection
-- SC-04: `bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` exits 0 with
+- SC-04: `python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` exits 0 with
   `test_committed_index_matches_a_fresh_regeneration` and
   `test_no_amendment_construct_survives_in_the_authority` both `ok`
   (`tests/integration/test-gen-decisions-index.py:339,836`) — the index matches a fresh
   regeneration and the correction introduced no amendment construct. The runner is a bash
-  script (`run-unit-tests.sh:1`), so it is invoked with `bash`, never `python3`. Baseline: run
+  script (`run-unit-tests.py:1`), so it is invoked with `bash`, never `python3`. Baseline: run
   in this worktree on 2026-09-06 at `41c16c7`, pre-correction, it exited 0 with both tests `ok`;
   it still discriminates, because lengthening DEC-174 without regenerating `DECISIONS-INDEX.md`
   reddens `test_committed_index_matches_a_fresh_regeneration`.
@@ -117,7 +117,7 @@ exactly as written.
   rewrite of the evidence sentence, not a note under it. Enforced mechanically:
   `test_no_amendment_construct_survives_in_the_authority` rejects a `**Amendment` line
   (`tests/integration/test-gen-decisions-index.py:836-870`).
-  The enforcement layer says the same of the other record: `check-domain.sh:1798-1800` denies an
+  The enforcement layer says the same of the other record: `check-domain.py:1798-1800` denies an
   over-budget FEAT-05 `STATE.md` with "STATE.md is {n} lines — budget is 120. It holds no history:
   ## Current is replaced, never appended." That sentence is the rationale attached to the
   LINE-BUDGET denial message, not a standalone rule elsewhere in the file, so read it as the
@@ -127,14 +127,14 @@ exactly as written.
   the false claim.
 - **DEC-150 — BLOCKS.** `FEAT-05-pyyaml-file-parsers/STATE.md` is already 165 lines against the
   120-line budget and carries 7 `##` sections against the two the vocabulary allows
-  (`check-domain.sh:1798-1805`). A `Write` of it is denied pre-hoc; only `Edit` is not
-  (`check-domain.sh:1820-1824`). The correction is therefore an in-place `Edit` of lines 14-15 and
+  (`check-domain.py:1798-1805`). A `Write` of it is denied pre-hoc; only `Edit` is not
+  (`check-domain.py:1820-1824`). The correction is therefore an in-place `Edit` of lines 14-15 and
   adds no section. The pre-existing over-budget state is left as it is: shrinking a completed
   feature's record is out of scope, and the PostToolUse shape report that fires on it is expected
   and non-blocking.
 - **DEC-174 — SUPPLIES.** It is the entry under correction. Its ruling — the harness plans its own
   work but does not execute changes to its own gates — is untouched by this feature.
-- **DEC-179 — SUPPLIES.** Routing is resolved at plan time; `check-domain.sh --resolve` gave
+- **DEC-179 — SUPPLIES.** Routing is resolved at plan time; `check-domain.py --resolve` gave
   `harness-documentor` for both `docs/` paths and `harness-orchestrator` for the FEAT-05 `STATE.md`.
 - **DEC-217 and `harness.json` `test_matrix` — SUPPLIES.** They are why `docs` requires no kind; see
   Verification gaps.

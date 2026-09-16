@@ -34,7 +34,7 @@ Independently re-ran every SC that has an automated carrier, rather than trustin
 - `DEC-214` is present in `DECISIONS.md` with a `DECISIONS-INDEX.md` row (SC-09).
 - `git diff <base>..1d93c727 -- .harness/team-config.yaml` is 0 lines; `grep` for changed `- bash`
   `- write` `- edit` tool lines across `.omp/agents` and `.claude/agents` is 0 (SC-07).
-- `check-domain.sh` itself is untouched (0 lines in the diff); SC-15 is proved by a new paired
+- `check-domain.py` itself is untouched (0 lines in the diff); SC-15 is proved by a new paired
   fixture (`test-check-domain.py::_feat52_foreign_cwd_receipt_pair`) run from a foreign product cwd,
   asserting the feature-worktree receipt path allows (exit 0) and its product-tree twin refuses
   (exit 2) — read and confirmed inline, matches the SC-15 text exactly.
@@ -56,18 +56,18 @@ fabricating results):
 - `check-instruction-paths.py`'s `_classify` only recognizes the two placeholders by exact string
   match (`prefix.endswith("<HARNESS_CONTROL_PLANE_ROOT>/")` etc.); any near-miss spelling falls
   through to `"unanchored instruction path"` — the safe (fail-closed) direction, not a fail-open.
-- `dispatch-guard.sh`'s shell-less feature-tree-root check fails CLOSED on a `declared_root`/
+- `dispatch-guard.py`'s shell-less feature-tree-root check fails CLOSED on a `declared_root`/
   `expected_root` mismatch and on `AmbiguousWorktree`; it deliberately fails OPEN only on a generic
   resolver exception, consistent with the file's stated policy that every branch except the
   FEAT-declaration check passes through on its own failure. Verified `linked_worktrees()` degrades
   to `[]` on a non-git directory rather than raising, so the common no-worktree path never hits that
   fallback.
-- `inject-expertise.sh`'s only unguarded array expansion (`"${sorted_idx[@]}"`) iterates an array
+- `inject-expertise.py`'s only unguarded array expansion (`"${sorted_idx[@]}"`) iterates an array
   explicitly initialized to `()`, which is safe under `set -u` in the bash versions in use (the
   classic "unbound array" gotcha applies to a never-assigned array, not one initialized empty) — no
   reachable path found that would violate the never-exits-nonzero contract SC-02 requires.
 
-One informational item, not gating: `.claude/skills/harness/bin/run-unit-tests.sh` picks up two
+One informational item, not gating: `.claude/skills/harness/bin/run-unit-tests.py` picks up two
 blank lines with no other change (line 14-15) — cosmetic debris, most likely from the rebase this
 task's dispatch named as in-scope. No behavioral effect; not worth a cycle to clean up.
 

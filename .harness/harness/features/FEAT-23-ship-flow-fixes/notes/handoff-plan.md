@@ -24,9 +24,9 @@ T-02, T-03 and T-06 are `main-session-direct` (no persona is granted `.claude/sk
   finding — verified-at b7ae135
 - T-03's anchors occur exactly once at `SKILL.md` lines 57 and 59, and line 58 carries a second
   sentence (the DEC-118 one) that must not be split — `sed -n '57,59p'` — verified-at b7ae135
-- `run-unit-tests.sh --kind unit` exits 0 in 2.5s; `test-gh-sync.py` is ALL PASSED — verified-at b7ae135
+- `run-unit-tests.py --kind unit` exits 0 in 2.5s; `test-gh-sync.py` is ALL PASSED — verified-at b7ae135
 - `test-check-plan-routes.py` case_20 is real and sits in `INTEGRATION_SCRIPTS`, so T-05's
-  `--kind unit` conjunct cannot execute it — `run-unit-tests.sh:18` — verified-at b7ae135
+  `--kind unit` conjunct cannot execute it — `run-unit-tests.py:18` — verified-at b7ae135
 - `cmd_abandon`'s early exit is a CONJUNCTION (`gh-sync.py:607`), `cmd_ship`'s is not (`:670`) —
   the reason T-01 item 4 takes the structural remedy — verified-at b7ae135
 - `github.attached` is array-of-string (`feature-schema.json:76-79`) — verified-at b7ae135

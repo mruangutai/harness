@@ -11,7 +11,7 @@ Validate phase closed. `review_sha` is pinned at `e2c800f1`, tree clean. The c4 
 returned FAIL with two `must_fix`; both were fixed in one cycle and independently confirmed resolved
 at c5 (`notes/review-harness-code-reviewer-c5.md`, `notes/review-harness-qa-c5.md`). MF-1: the DEC-217
 `DECISIONS-INDEX.md` row carried hand-written tags no regeneration reproduces, which reddened
-`run-unit-tests.sh --kind integration` and falsified SC-06's byte-identity clause — regenerated, one
+`run-unit-tests.py --kind integration` and falsified SC-06's byte-identity clause — regenerated, one
 row moved, ruling text unchanged. MF-2: the plan-mode `code_grade` assertion retyped `n_a` instead of
 deriving it, against SC-03's own words — it now probes `_pending_plan_review_error` across
 `CODE_GRADE_VALUES` and keeps the single member that rule accepts, and reds loudly when zero or many
@@ -20,7 +20,7 @@ qualify. pm's goal-check grades **8 of 8 criteria met** at the new pin
 digests that failed the lead digest contract on shape alone; both now read `digest ok`. Gates at
 `e2c800f1`, all orchestrator-run: digest-validator suite exit 0 / zero `^FAIL ` / `ALL PASSED`;
 `test-config-shape-matrix.py` 19/19; `--kind integration` exit 0 over 46 files; index regeneration
-byte-identical; `check-state.sh` exit 0 with zero violations. Panel `severity_max` is `med` with
+byte-identical; `check-state.py` exit 0 with zero violations. Panel `severity_max` is `med` with
 `must_fix: []` — under `gates.review: advisory_unless_high` nothing gates. F-01, the build phase's
 blocking matrix-floor question, is **RESOLVED** by DEC-217, the delegated-Advisor ruling the main
 session implemented at `e014ede3`. cycles_used 6 of 8; 19 runs of a budget of 20 — informational, and
@@ -37,7 +37,7 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
   time from its preloaded skills; their definitions exist only in `DECISIONS.md`. Raised `high` by the
   code reviewer, reconciled to `med` by the validator lead because the two predicates are exact
   complements so no diff can require zero kinds. Both remedy files resolve to `NOBODY` under
-  `check-domain.sh` — main-session-only, unroutable to any squad. Evidence:
+  `check-domain.py` — main-session-only, unroutable to any squad. Evidence:
   `notes/review-harness-code-reviewer-c4.md`, restated at c5.
 - Non-blocking, operator's to reconcile: applied literally to this feature's own diff,
   `touches_runtime_code` is TRUE — solely via `.claude/skills/harness/templates/harness.json`, which is
@@ -56,12 +56,12 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
   agent's own artifact. Both harness-qa (c4) and harness-backend-dev (MF-2) hit it. A lead routing on
   tool status or on the preview would have discarded correct work or shipped a red gate.
 - Harness defect, the costliest of this phase: the run-digest guard refuses in-place REPLACEMENT, so
-  correcting a contract token in a digest cost two extra run directories, and `check-state.sh` then
+  correcting a contract token in a digest cost two extra run directories, and `check-state.py` then
   graded each of them. The correction finally had to be APPENDED below the block it supersedes.
   Related: a scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot
   for it — `members[].status: skipped` is reserved for the optional advisor — so the honest record
   lives in an ad-hoc `not_rerun:` key the validator ignores rather than validates.
-- Harness defect, RECURRENCE, two independent leads this run: `check-domain.sh` guards
+- Harness defect, RECURRENCE, two independent leads this run: `check-domain.py` guards
   `<run_dir>/digest.md` against replacement but applies no guard to `<run_dir>/state.yaml`, and
   `runs/` is gitignored so a Glob of it returns nothing. Each lead opened an existing run dir and
   silently replaced an earlier run's checkpoint before the digest write refused. Extend the guard to
@@ -75,7 +75,7 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
 - Harness defect, carried from build and re-measured: inside a worktree, `handoff_done_when` authority
   pointers resolve against the MAIN checkout, so `brief-sc:` and `plan-task:` are UNUSABLE from here;
   only `finding:` and `approval:` can be spelled through `.claude/worktrees/`. Also carried:
-  `bash-write-guard.sh` parses the whole command line textually, refusing `plan-merge.py apply
+  `bash-write-guard.py` parses the whole command line textually, refusing `plan-merge.py apply
   --proposal -` when the proposal body contains an angle bracket.
 - Documentation defect, cost one send-back this run: dispatch text templated
   `gen-decisions-index.py --apply`. That flag does not exist — the tool exits 2 and the BARE

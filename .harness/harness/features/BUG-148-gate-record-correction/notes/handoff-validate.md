@@ -22,7 +22,7 @@ digest under Trust below.
 - SC-04 was EXECUTED this cycle, not audited: `tests/integration/test-gen-decisions-index.py` exit 0, 14 `ok`, both named tests among them — verified-at aceb7ec6
 - The index regeneration is anchor-only: normalising `@[0-9]+` → `@N` over the changed lines leaves zero unpaired lines, and DEC-174's row keeps `@4302` and its hand-written ruling verbatim — verified-at aceb7ec6
 - The panel PASSED clean but graded the PREVIOUS wording at `87e6033`; it was not re-run for the shortened prose, and the gate that grades prose is SC-06 — `runs/2026-09-06-08-validator/digest.md`; STATE.md `## Current` — verified-at aceb7ec6
-- `runs/2026-09-06-08-validator/digest.md` FAILS the lead digest contract (no fenced YAML: no VERDICT, no DIGEST, no artifact, ten missing fields) and reddens `check-state.sh`. Pre-existing, gitignored, untouched by cycle 5; not rewritten because authoring another run's record is not this tier's act — `validate-digest.py lead <that path>` — verified-at aceb7ec6
+- `runs/2026-09-06-08-validator/digest.md` FAILS the lead digest contract (no fenced YAML: no VERDICT, no DIGEST, no artifact, ten missing fields) and reddens `check-state.py`. Pre-existing, gitignored, untouched by cycle 5; not rewritten because authoring another run's record is not this tier's act — `validate-digest.py lead <that path>` — verified-at aceb7ec6
 
 ## Dead ends
 

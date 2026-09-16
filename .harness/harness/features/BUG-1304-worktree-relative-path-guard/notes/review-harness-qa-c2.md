@@ -7,7 +7,7 @@ the panel warned against.
 
 ## 1. Change type / matrix
 
-Diff `af5ddd7a..c5869301` touches `bash-write-guard.sh`, `harness_boundary.py`, and three
+Diff `af5ddd7a..c5869301` touches `bash-write-guard.py`, `harness_boundary.py`, and three
 `tests/{integration,unit}/*.py` files. Every live plan task is `change_type: logic`
 (plan.yaml:692,831,944,1106,1160,1333,1503,1542 — one `docs` at :1397, one `scaffolding` at
 :1652, neither touched by this diff). `logic` → `always: [unit]` (harness.json:157-161) — the
@@ -22,8 +22,8 @@ integration tests cannot be graded without running integration.
 
 | kind | required by | cmd | exit |
 |---|---|---|---|
-| unit | matrix floor (`logic`→always) | `run-unit-tests.sh --kind unit` | 0 |
-| integration | added (diff touches `tests/integration/**`) | `run-unit-tests.sh --kind integration` | 0 |
+| unit | matrix floor (`logic`→always) | `run-unit-tests.py --kind unit` | 0 |
+| integration | added (diff touches `tests/integration/**`) | `run-unit-tests.py --kind integration` | 0 |
 
 ## 2. Six suites at the pin (env -u HARNESS_AGENT_TYPE)
 
@@ -34,7 +34,7 @@ integration tests cannot be graded without running integration.
 | harness-boundary | `python3 tests/unit/test-harness-boundary.py` | 0 | ALL PASS |
 | inflight-registry | `python3 tests/integration/test-inflight-registry.py` | 0 | **147/147** checks passed |
 | dispatch-guard | `python3 tests/integration/test-dispatch-guard.py` | 0 | **48/48** cases passed |
-| `run-unit-tests.sh --kind all` | (wraps all suites) | 0 | **0** `^FAIL ` lines; **73 files** discovered |
+| `run-unit-tests.py --kind all` | (wraps all suites) | 0 | **0** `^FAIL ` lines; **73 files** discovered |
 
 Discovered-file count: unit pool reported 27 files, integration pool 46 files, `--kind all`
 pool 73 files (27+46). Matches the pre-build baseline of 73 exactly — **no drop**.

@@ -81,7 +81,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed here dies 
 
 | ID | Nature | Item |
 |---|---|---|
-| B-1 | bug | **VLD-01** No character-length cap on `target`/`entry`; `check-expertise.sh`'s `WORD_CAP=50` counts words, so a 10 KB single-token line passes clean. The file is injected whole into every spawn, so it taxes every later context. |
+| B-1 | bug | **VLD-01** No character-length cap on `target`/`entry`; `check-expertise.py`'s `WORD_CAP=50` counts words, so a 10 KB single-token line passes clean. The file is injected whole into every spawn, so it taxes every later context. |
 | B-2 | enhancement | **VLD-02** Python's unicode-aware `\d` lets `P-١`/`P-０１` pass as ids distinct from `P-01`. Round-trips consistently, so it is human confusability only. Remedy narrows `ENTRY_RE`, which REQ-07 pinned — hence post-ship. Do this before B-3 and B-6. |
 | B-3 | chore | **VLD-03** The exit-12 grammar refusal echoes the offending value but never states the shape that would pass. |
 | B-4 | bug | **VLD-04** `cmd_ops` catches only `JSONDecodeError`; a deeply nested `--ops` payload raises an uncaught `RecursionError` at exit 1 instead of a documented refusal code. Fails closed, no data loss. |
@@ -93,7 +93,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed here dies 
 | B-10 | bug | **`handoff-*.md` cannot be written for a worktree-only feature.** `handoff_done_when.py` resolves `feature_dir` against the project root, so `brief-sc:`/`plan-task:` never resolve; `FINDING_RE` wants `F-\d+` while this repo mints hex ids. Confirmed live at this HEAD. |
 | B-11 | bug | `runs/<dir>/state.yaml` is unguarded where `digest.md` is guarded, and nothing stops a write into an occupied run dir. One checkpoint was destroyed twice here. |
 | B-12 | bug | The unit runner's discovery count is caller-dependent (28/29/74 files from one command) and it false-fails `test-plan-merge.py` unless invoked `env -u HARNESS_AGENT_TYPE`. A zero FAIL count does not bound what ran. |
-| B-13 | bug | The run-digest append-only guard refuses a replacing write, so a digest cannot be corrected in place; and `bash-write-guard.sh` misreports a `mktemp -d` redirect target as `"xx"`. |
+| B-13 | bug | The run-digest append-only guard refuses a replacing write, so a digest cannot be corrected in place; and `bash-write-guard.py` misreports a `mktemp -d` redirect target as `"xx"`. |
 
 ## Budget note
 

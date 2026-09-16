@@ -20,7 +20,7 @@ commits).
 Ran literally from `/Users/molchairuangutai/GitHub/harness` (repository root):
 
 ```
-env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/check-state.sh
+env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-state.py
 ```
 
 - **Exit code: 0**
@@ -67,9 +67,9 @@ shape → fires `integration` per DEC-212); T-08/10/11 = `docs`; T-09 = `scaffol
 **unit** (logic) and **integration** (config-shape + shared two-gate seam). `gates.qa_gate:
 blocking` confirmed in `.harness/harness.json`.
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0;
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0;
   `pool: 8 workers, 25 files`; `grep -c '^FAIL '` = **0**.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` —
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` —
   exit 0; `pool: 8 workers, 44 files`; `grep -c '^FAIL '` = **0**.
 - `python3 tests/unit/test-handoff-done-when.py` — all named assertions `PASS` (last 5 shown:
   resolve-false, symlink-escape ×2, special-file ×2).
@@ -129,8 +129,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

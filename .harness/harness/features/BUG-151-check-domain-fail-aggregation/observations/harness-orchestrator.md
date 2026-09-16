@@ -7,7 +7,7 @@
   `approval:` and `finding:` take an explicit path and DO work if spelled relative to the
   main root — i.e. beginning `.claude/worktrees/<repo>/<FEAT>/`. Absolute paths are refused
   outright ("is absolute").
-- 2026-09-07: BUG-151. teams/plan-panel.yaml declares two readers; check-state.sh INV-32
+- 2026-09-07: BUG-151. teams/plan-panel.yaml declares two readers; check-state.py INV-32
   (line 534) expects three, including `goalcheck`. The goalcheck reader row has to be
   transcribed into panel.readers by hand after the product segment, or the plan goes `bad`
   the moment it is signed. Found only because pm read the invariant rather than the team file.

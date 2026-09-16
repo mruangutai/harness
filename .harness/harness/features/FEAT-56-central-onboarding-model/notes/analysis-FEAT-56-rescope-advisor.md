@@ -34,7 +34,7 @@ artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-
 # Digest — rescope-advisor-validator — FEAT-56 re-scope ruling
 
 **TRANSCRIBED BY harness-orchestrator, not written by its author.** `harness-validator-lead` ran this
-segment and returned a complete four-part ruling, but `check-domain.sh` refused every write by that
+segment and returned a complete four-part ruling, but `check-domain.py` refused every write by that
 persona — this path AND its own granted `.harness/notes/analysis-*.md` — citing a stale claim on
 `.claude/worktrees/harness/BUG-1309-mirror-build-entry`. It holds no shell and could not clear it. It
 returned `artifact: none` and declined to claim a write the guard refused three times, which is
@@ -115,7 +115,7 @@ The first two are orchestrator-measured; the third is the lead's own, found beca
 happened.
 
 1. **The guard and the registry read different stores.** `inflight_registry.py list` from the main
-   checkout reports NO CLAIMS while `check-domain.sh` refuses on a stale claim. `REGISTRY_REL` is
+   checkout reports NO CLAIMS while `check-domain.py` refuses on a stale claim. `REGISTRY_REL` is
    `.harness/.inflight-claims.json` resolved against a ROOT, so the record lives in the OTHER
    worktree's own registry and a `list` run from the main checkout cannot see it — it reports clear,
    which reads exactly like a cleared claim. `list --root <that worktree>` shows five live claims for

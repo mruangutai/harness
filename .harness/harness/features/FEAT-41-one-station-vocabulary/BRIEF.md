@@ -13,11 +13,11 @@ happening — has no code writer at all. `gh-sync.py:815`'s docstring claims `st
 and `.omp/agents/harness-orchestrator.md:96` records five task statuses lost that way already.
 Every anchor in this paragraph was re-derived at `0d4845b`.
 
-The cost was live and is now recorded rather than observable. `check-state.sh` used to report
+The cost was live and is now recorded rather than observable. `check-state.py` used to report
 `VIOLATION INV-26 FEAT-40-harness-writes-done parent (issue #842): the plan derives Review — the
 board reads Done`, because `ship`'s `Done` write was made in a worktree that was then deleted and
 never committed. **That violation closed itself when FEAT-40 merged to `main`** — measured at
-`0d4845b`, `check-state.sh` emits zero `INV-26` lines and its only violation is this feature's own
+`0d4845b`, `check-state.py` emits zero `INV-26` lines and its only violation is this feature's own
 unapproved BRIEF. Merging hid the symptom; it fixed neither defect. `ship` still writes the
 terminal station without committing it, and still accepts a feature directory inside a worktree
 that is about to be deleted, so the next shipped feature loses its terminal record the same way.
@@ -55,7 +55,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   execute those changes through the enforcement path being changed. Twelve tasks are therefore
   executed by the main session directly. **The thirteenth, T-15, is on the `harness-documentor`
   team lane**: it touches exactly one file, `.harness/harness/docs/DECISIONS.md`, which is not an
-  enforcement surface, and `check-domain.sh --resolve` grants that path to `harness-documentor` —
+  enforcement surface, and `check-domain.py --resolve` grants that path to `harness-documentor` —
   measured, not assumed. `check-plan-routes.py` prints one ordinary team line for the whole plan,
   `OK T-15 granted to harness-documentor`. **An earlier version of this paragraph said all
   thirteen tasks were main-session-direct and that the plan carried no team-lane task at all.**
@@ -75,7 +75,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   the schema; the decision entry **is** corrected alongside it, by T-15 — see the disclosure
   below. The closed key set itself is untouched: it goes from eight required to seven.
 - **DEC-182 SUPPLIES `plan.yaml`** and currently states that `plan.yaml` is deliberately excluded
-  from the shape gate (`check-domain.sh:1040-1046`, re-derived at `0d4845b`; the comment sat at
+  from the shape gate (`check-domain.py:1040-1046`, re-derived at `0d4845b`; the comment sat at
   `:1011-1017` before the rebase). REQ-05 reverses that clause, and the reversal **is** recorded
   in the entry, by T-15 — see the disclosure below. The entry ruled out a budget check and a parse
   check, the two things it considered; a write DENIAL is a third thing it did not, so the
@@ -99,7 +99,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   entry alone.
 - **DEC-180 SUPPLIES the mechanism for REQ-05**: the shape gate is independent of domain and binds
   every author including the main session. The domain region cannot be used, because
-  `check-domain.sh` exits 0 for a payload with no `agent_type`.
+  `check-domain.py` exits 0 for a payload with no `agent_type`.
 - **DEC-120 SUPPLIES the signature rule** and this feature makes it mechanical rather than
   documentary.
 - **DEC-179 SUPPLIES route resolution** — every task's lane is resolved at plan time.
@@ -129,7 +129,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   English prose, and can therefore never reach zero. It read 746 at `ee66ae2`; the growth is test
   files, which is why the invocation is written out here rather than left to be re-guessed.
   Discriminating today: RE-MEASURED at `0d4845b` by
-  running the criterion's own grep, it returns **27 lines across 5 files** — `check-state.sh` 11,
+  running the criterion's own grep, it returns **27 lines across 5 files** — `check-state.py` 11,
   `gh-sync.py` 9, `board_lifecycle.py` 3, `check-plan-routes.py` 3, `worktree_terminal.py` 1,
   which sums to the total, IDENTICAL line-for-line to the `ee66ae2` reading even though four of
   those five files changed in the rebase — and this feature repoints every one of them. Both the
@@ -185,13 +185,13 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   the eleven former readers reads the feature's station from `plan.yaml` instead.
   verify: automated        evidence: integration
 - SC-09: At `review_sha`, `git show <review_sha>:.harness/harness/features/FEAT-40-harness-writes-done/plan.yaml`
-  carries a top-level `status: done`, and a full run of `check-state.sh` reports no `INV-26` line
+  carries a top-level `status: done`, and a full run of `check-state.py` reports no `INV-26` line
   for **any** feature. **This criterion was re-based at `0d4845b` and the original is recorded
   rather than rewritten away.** It used to demand that the live `INV-26` violation naming FEAT-40
   and issue #842 be closed by this feature, and to demonstrate the failing state by reproducing
   that violation. FEAT-40 has since merged to `main`, and the violation closed itself: measured at
   `0d4845b`, FEAT-40's `feature.json` reads `Done`, `check-plan-routes.py` skips it as shipped, and
-  `check-state.sh` emits zero `INV-26` lines. Demanding its closure would now be true by
+  `check-state.py` emits zero `INV-26` lines. Demanding its closure would now be true by
   construction. What remains is falsifiable and is the half of REQ-07 the merge did not deliver:
   measured at `0d4845b`, FEAT-40's `plan.yaml` carries **no** top-level `status` key at all, so the
   first clause fails before the work and is discharged by T-07's migration, not by T-10. The
@@ -219,9 +219,9 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   DEC-188 at `DECISIONS.md:5945-5947` reserves striking for a flat contradiction and requires the
   operator's word first, and all three of these are narrowings.
   verify: automated        evidence: unit
-- SC-13: `check-state.sh`'s INV-26 takes its expected station from the same function that writes
+- SC-13: `check-state.py`'s INV-26 takes its expected station from the same function that writes
   it, and a station it cannot map is loud. Observations, both required: `grep -n "_EXPECT"
-  .claude/skills/harness/bin/check-state.sh` returns nothing, and a fixture plan carrying a task
+  .claude/skills/harness/bin/check-state.py` returns nothing, and a fixture plan carrying a task
   station outside the vocabulary makes INV-26 emit a violation line naming the feature, the task
   id and the value — where at `0d4845b` the same fixture is silently skipped by the
   `if _want is None: continue` at circa `:1501`, re-derived from `:1476` at `ee66ae2`. The failing state is demonstrated first.
@@ -246,7 +246,7 @@ Proposed only. These become GitHub issues when the main session accepts the ship
 build, and not opened by an agent. The row exists so a deferral has an instrument instead of
 living in prose that nothing ever reads again.
 
-- **PB-01 — case selection for `run-unit-tests.sh`.** Let a `verify:` name the cases it needs
+- **PB-01 — case selection for `run-unit-tests.py`.** Let a `verify:` name the cases it needs
   instead of running a whole test file. `test-gh-sync.py` costs 149 s and this plan runs it in
   full three times (T-06, T-07 and T-10), about 447 s, against a 60-second-per-verify guideline.
   Recovers roughly 300 s on a plan of this shape and takes future verifies back under the guideline.

@@ -1,7 +1,7 @@
 # Receipt — T-18 red proof, 2026-08-27
 
 Main session, main-session-direct lane. Both cases were written FIRST and run against the
-sha-8439002 copy of `dispatch-guard.sh`, restored into a mirror checkout and driven through the
+sha-8439002 copy of `dispatch-guard.py`, restored into a mirror checkout and driven through the
 `DISPATCH_GUARD_BIN` seam so the live hook was never in an intermediate state. The verbatim
 lines:
 

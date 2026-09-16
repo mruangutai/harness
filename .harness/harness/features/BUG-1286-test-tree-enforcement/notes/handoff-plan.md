@@ -23,7 +23,7 @@ T-03, T-05 behind T-01 and T-02.
   today at full breadth — notes/research-amend-c6-closure.md and the c7 goal-check — verified-at
   cab6adb2.
 - plan.yaml loads, routes clean, five tasks with all eleven keys, `status: plan`,
-  `approval.status: pending`; `check-state.sh` reports one violation for this feature, the expected
+  `approval.status: pending`; `check-state.py` reports one violation for this feature, the expected
   unsigned BRIEF — verified-at a8532ce3 by the orchestrator running both checkers itself.
 - **Every "case 11 is green/red under X" result on record is a hand-simulation of a SPECIFICATION**,
   including all six prototype results and both panels' sweeps — notes/research-BUG-1286-test-tree-enforcement-panel-c10.md

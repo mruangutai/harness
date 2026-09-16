@@ -5,7 +5,7 @@
 Do not dispatch anything until the operator's signature lands: this note is written AT the
 gate, not after it. Once `approval.status` reads `approved`, build in two waves, because
 T-05 `depends_on` T-01 and T-02 and those two are NOT the eng squad's to write. Wave 1 is
-main-session-direct — T-01, T-02, T-03 (`check-domain.sh --resolve` returns NOBODY for all
+main-session-direct — T-01, T-02, T-03 (`check-domain.py --resolve` returns NOBODY for all
 three surfaces, a DEC-174 carve-out recorded in `plan.yaml` `lanes:`). Wave 2 dispatches
 `harness-eng-lead` for T-04 then T-05, per plan-task:T-05.verify. Record the feature station
 as `building` when wave 1 opens — that instruction is what T-03 adds, and this feature is its

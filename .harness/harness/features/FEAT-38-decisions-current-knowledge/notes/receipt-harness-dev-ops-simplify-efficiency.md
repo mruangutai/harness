@@ -6,7 +6,7 @@ comment/prose-only edit with zero runtime effect. `findings: []`.
 
 ## What I measured
 
-- **`run-unit-tests.sh`** — T-24 removed exactly one entry (`test-check-decision-claims.py`)
+- **`run-unit-tests.py`** — T-24 removed exactly one entry (`test-check-decision-claims.py`)
   from `INTEGRATION_SCRIPTS` (line 31). Read the full kind-selection path (lines 33-53):
   `--kind` selects a plain array slice or concatenation, no duplication, nothing runs twice.
   The drift detector still runs over the union (by design, per its own comment) and the
@@ -23,10 +23,10 @@ comment/prose-only edit with zero runtime effect. `findings: []`.
   glob string with the deleted test's literal path removed (T-25's counterpart to T-24). A
   detect-glob shrinking by one entry is not a cost.
 
-- **`board_lifecycle.py` / `check-domain.sh` / `check-state.sh`** — all diffs in range are
+- **`board_lifecycle.py` / `check-domain.py` / `check-state.py`** — all diffs in range are
   docstring/comment DEC-renumbering only (`DEC-186`→`DEC-203`, `DEC-192`→`DEC-203`, `DEC-171
   am.1`→`DEC-171`). Verified via `git diff --stat` (2, 10, and 2 lines respectively) and full
-  `git diff` read — no executable line touched in any of the three. `check-domain.sh` (a
+  `git diff` read — no executable line touched in any of the three. `check-domain.py` (a
   per-write hook, per the dispatch's own flag for extra scrutiny) has exactly one comment-only
   line changed; no code path added to its hot path.
 
@@ -54,8 +54,8 @@ finding to make either way.
 wc -l .harness/harness/docs/DECISIONS.md          # 6272
 time python3 .agents/skills/harness/bin/gen-decisions-index.py --stdout > /dev/null
 git diff --stat <range> -- .github/workflows/tests.yml .harness/harness.json
-git diff --stat <range> -- .claude/skills/harness/bin/check-state.sh .claude/skills/harness/bin/check-domain.sh
-git diff <range> -- .claude/skills/harness/bin/board_lifecycle.py .claude/skills/harness/bin/check-domain.sh .github/workflows/tests.yml .harness/harness.json .claude/skills/harness/bin/check-state.sh
+git diff --stat <range> -- .claude/skills/harness/bin/check-state.py .claude/skills/harness/bin/check-domain.py
+git diff <range> -- .claude/skills/harness/bin/board_lifecycle.py .claude/skills/harness/bin/check-domain.py .github/workflows/tests.yml .harness/harness.json .claude/skills/harness/bin/check-state.py
 ```
 
 No source file edited, no generator write path run, no full unit suite run.

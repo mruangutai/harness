@@ -6,7 +6,7 @@ source_issues: [842]
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
   status: approved               # pending | approved
   # BACKFILLED BY BUG-1071, NOT RECONSTRUCTED FROM MEMORY. This signature carried no
@@ -29,27 +29,27 @@ lanes:
     - surface: .claude/skills/harness/bin/gh_issues.py
       lane: main-session-direct
       reason: same act as gh-sync.py, one commit, operator route ruling on issue 842
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out, the state checker is a validator the harness must not change through itself
-    - surface: .claude/skills/harness/bin/gh-close-gate.sh
+    - surface: .claude/skills/harness/bin/gh-close-gate.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered PreToolUse Bash gate script
     - surface: .claude/settings.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the hook registry itself
+      reason: check-domain.py --resolve returns NOBODY, and it is the hook registry itself
     - surface: .harness/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the gate config surface
+      reason: check-domain.py --resolve returns NOBODY for the gate config surface
     - surface: .claude/skills/harness/references/github-mirror.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY
+      reason: check-domain.py --resolve returns NOBODY
     - surface: .claude/commands/harness.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY
+      reason: check-domain.py --resolve returns NOBODY
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY
+      reason: check-domain.py --resolve returns NOBODY
     - surface: .harness/harness/docs/DECISIONS.md
       lane: main-session-direct
       reason: resolves to harness-documentor, but the entry is the operator's own ruling whose prose register is unsettled (Q1)
@@ -72,7 +72,7 @@ decisions:
     because: FEAT-34's parent 728 has 13 children whose cards read Review, so a single-pass order would skip it and the acceptance test would fail for the wrong reason
     dec: none
   - id: D-05
-    choice: the terminal done write keeps DEC-146's best-effort per-card posture and exit 0, and ship prints two distinct summary literals - gh-sync HELD for a designed skip and gh-sync FAILED for a write that failed - of which post-merge-sweep.sh reads FAILED as a reason to decline the worktree removal
+    choice: the terminal done write keeps DEC-146's best-effort per-card posture and exit 0, and ship prints two distinct summary literals - gh-sync HELD for a designed skip and gh-sync FAILED for a write that failed - of which post-merge-sweep.py reads FAILED as a reason to decline the worktree removal
     because: no transaction spans N project_field_set calls and git ignores a post-merge hook's exit status, so the reader must change rather than the writer; the sweep already treats a literal's absence as its positive evidence and never the exit code, and a standing worktree is the evidence a human trips over
     dec: DEC-146
   - id: D-06
@@ -96,7 +96,7 @@ decisions:
     because: cmd_open is the only writer of the recorded issue map and creates each task issue flat, attaching it to the parent and never to another task issue, so the recursion has depth 1 by construction; checking each would add one sub_issues read per task sub-issue - thirteen on FEAT-34's acceptance run - to prove a set that is empty by construction
     dec: none
   - id: D-11
-    choice: an incomplete terminal batch emits the new literal gh-sync FAILED, never gh-sync SKIP, and post-merge-sweep.sh gains FAILED as a second condition of its existing positive-signal gate
+    choice: an incomplete terminal batch emits the new literal gh-sync FAILED, never gh-sync SKIP, and post-merge-sweep.py gains FAILED as a second condition of its existing positive-signal gate
     because: reusing SKIP would preserve the standing worktree but overload a token the module reserves for an environmental no-go where nothing was written, so a partial write would report as no write at all; a second literal preserves the same worktree evidence while keeping the prefix taxonomy one meaning per token
     dec: none
 
@@ -105,7 +105,7 @@ decisions:
     because: the new Bash gate refuses a typed gh issue close but is structurally blind to a Python subprocess (gh-sync.py:147), so it would never have stopped close-task; keeping the subcommand leaves a harness-blessed route to the exact state this feature exists to prevent, an issue CLOSED with its card not at the done station. Operator ruling on Q8, 2026-08-25. The cost, accepted, is that the deliberate single-issue close is gone with no replacement, and abandon, which reports and asks first, is the one narrow exception
     dec: DEC-203
   - id: D-13
-    choice: board_lifecycle.py's audit runs once per feature, inside ship, and nowhere else - not per commit, not per station write, and not in check-state.sh
+    choice: board_lifecycle.py's audit runs once per feature, inside ship, and nowhere else - not per commit, not per station write, and not in check-state.py
     because: ship already reads GitHub for the open-child check, so the audit's four calls (board_lifecycle.py:831) are a small increment on a read already happening; a station-change trigger was rejected because the leak happens when the harness is NOT writing a station, so it would catch nothing sooner at several times the cost. Operator ruling on Q6, 2026-08-25. The cost, accepted, is that a card closed outside the harness can sit wrong for the whole build and is only caught at ship, which is where the open-child decision is made
     dec: DEC-203
 
@@ -210,7 +210,7 @@ tasks:
            git merge --no-ff that branch. A merge that creates a commit is what fires post-merge;
            an "Already up to date" merge fires nothing, so assert a merge commit was created.
         4. Capture the merge's combined stdout and stderr. The post-merge shim execs
-           post-merge-sweep.sh, which prints its own lines prefixed post-merge-sweep:. Assert at
+           post-merge-sweep.py, which prints its own lines prefixed post-merge-sweep:. Assert at
            least one such line is present. If instead you see the shim's
            "post-merge: ... is missing or not executable" line, that is also proof the hook
            resolved; record which of the two you saw.
@@ -332,15 +332,15 @@ tasks:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-gh-sync.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
       - .claude/skills/harness/bin/test-post-merge-sweep.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-post-merge-sweep.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-board-lifecycle.py'
-      grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.sh
+      grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.py
       grep -q 'def audit_findings' .claude/skills/harness/bin/board_lifecycle.py
     intent: |
       Rewrite cmd_ship in .claude/skills/harness/bin/gh-sync.py so the harness lands cards at the
@@ -428,7 +428,7 @@ tasks:
         - when neither class occurred, print the single line, unchanged:
             gh-sync: every recorded card is at <done>
       NO NEW LINE THIS TASK ADDS MAY CONTAIN THE SUBSTRING "gh-sync: SKIP", and this is a hard
-      constraint, not a style note: post-merge-sweep.sh:192 greps ship's combined stdout+stderr for
+      constraint, not a style note: post-merge-sweep.py:192 greps ship's combined stdout+stderr for
       exactly that substring and declines to remove the worktree on a match. A new line carrying it
       would silently change worktree behaviour on runs that are entirely healthy. Contract 1 of
       DESIGN.md also reserves SKIP for an environmental no-go where nothing was written, which a
@@ -438,7 +438,7 @@ tasks:
       never gates, no transaction exists across N project_field_set calls, and git ignores a
       post-merge hook's exit status anyway.
 
-      Step 7b. TEACH THE SWEEP TO READ THE FAILED LINE, in .claude/skills/harness/bin/post-merge-sweep.sh.
+      Step 7b. TEACH THE SWEEP TO READ THE FAILED LINE, in .claude/skills/harness/bin/post-merge-sweep.py.
       That script already refuses to trust ship's exit code: it greps the combined output for
       "gh-sync: SKIP" and declines the removal on a match, because the standing worktree is "the
       only remaining evidence" the status was never recorded (its own comment, :180-195). Add the
@@ -490,7 +490,7 @@ tasks:
       SHIP NEVER GATES ON THE AUDIT. A factory_gh.GhError means the audit COULD NOT RUN: print one
       stderr line saying exactly that and continue. Ship's exit status stays 0 whatever the audit
       reports, and no audit line may carry the substring "gh-sync: SKIP" or the substring
-      "gh-sync: FAILED" — post-merge-sweep.sh greps both, and an audit finding is not a failed
+      "gh-sync: FAILED" — post-merge-sweep.py greps both, and an audit finding is not a failed
       write.
       WHY HERE AND NOWHERE ELSE, recorded so it is not re-litigated (operator ruling, 2026-08-25):
       ship already reads GitHub for the open-child check, so the audit's four calls
@@ -625,7 +625,7 @@ tasks:
           line lists exactly the cards whose write failed and no held one; a run with holds and no
           failures prints no FAILED line at all;
         - no line of the combined stdout+stderr of any of these runs contains the substring
-          "gh-sync: SKIP" — the assertion that protects post-merge-sweep.sh's worktree gate;
+          "gh-sync: SKIP" — the assertion that protects post-merge-sweep.py's worktree gate;
         - the milestone is still PATCHed closed;
         - REGRESSION GUARD for REQ-10: after cmd_status(feat_dir, "Review", ...), the parent and
           every recorded sub-issue receive a review-station write;
@@ -652,7 +652,7 @@ tasks:
       - .claude/skills/harness/bin/test-validate-feature-json.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-validate-feature-json.py'
@@ -692,7 +692,7 @@ tasks:
 
          CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No isatty() branch, no
          default-on-no-TTY, no stdin read: no script in .claude/skills/harness/bin/ calls input()
-         today, and ship is already invoked with captured output by post-merge-sweep.sh, so a TTY
+         today, and ship is already invoked with captured output by post-merge-sweep.py, so a TTY
          prompt would be both a first for the codebase and unanswerable from the sweep.
 
          Without --yes, abandon must:
@@ -753,7 +753,7 @@ tasks:
       - .claude/skills/harness/bin/test-gh-sync.py
       - .claude/skills/harness/templates/plan.yaml
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       test -z "$(grep -rl 'Closes #' .claude/skills/harness/bin/ .claude/skills/harness/templates/)"
@@ -792,21 +792,21 @@ tasks:
     depends_on: [T-02, T-05]
     status: done
     files:
-      - .claude/skills/harness/bin/gh-close-gate.sh
+      - .claude/skills/harness/bin/gh-close-gate.py
       - .claude/skills/harness/bin/test-gh-close-gate.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/settings.json
       - .harness/harness.json
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-close-gate.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-run-unit-tests-kinds.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-branch-create-gate.py'
-      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.sh' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
+      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.py' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
     intent: |
-      Create .claude/skills/harness/bin/gh-close-gate.sh, a third PreToolUse Bash hook, modelled on
-      the structure of branch-create-gate.sh: read the hook JSON from stdin, take
+      Create .claude/skills/harness/bin/gh-close-gate.py, a third PreToolUse Bash hook, modelled on
+      the structure of branch-create-gate.py: read the hook JSON from stdin, take
       (tool_input or {}).get("command"), and deny with a structured permissionDecision — exit 0
       plus JSON with hookSpecificOutput.permissionDecision = "deny" and a
       permissionDecisionReason. Reuse that file's deny() helper shape verbatim in structure.
@@ -851,16 +851,16 @@ tasks:
 
       NO ENVIRONMENT MARKER. Issue 842 specifies an environment marker gh-sync.py sets to exempt
       abandon's own call. It cannot work and is not needed: a PreToolUse hook is handed only
-      tool_input.command (branch-create-gate.sh:47), and gh-sync.py reaches gh through subprocess,
+      tool_input.command (branch-create-gate.py:47), and gh-sync.py reaches gh through subprocess,
       which never traverses the Bash tool, so abandon's close is never presented to this gate. A
       marker would only be settable by hand, which is the hole the grilling flagged. Record this
       reasoning in the script's header comment, citing the measurement.
 
-      SELF-GATING, as branch-create-gate.sh does: read .harness/harness.json github.sync and exit 0
+      SELF-GATING, as branch-create-gate.py does: read .harness/harness.json github.sync and exit 0
       immediately when it is off or absent, so the hook costs nothing where the mirror is off.
 
       REGISTER IT in .claude/settings.json as a third command under the existing PreToolUse Bash
-      matcher, after bash-write-guard.sh, using the same ${CLAUDE_PROJECT_DIR} prefix form.
+      matcher, after bash-write-guard.py, using the same ${CLAUDE_PROJECT_DIR} prefix form.
 
       TEST at .claude/skills/harness/bin/test-gh-close-gate.py, feeding hook JSON on stdin and
       asserting the process stdout. Each case its own assertion:
@@ -880,8 +880,8 @@ tasks:
       All of these must be shown failing against a tree without the script.
 
       REGISTER THE TEST in two places or the suite refuses to run: add "test-gh-close-gate.py" to
-      INTEGRATION_SCRIPTS in .claude/skills/harness/bin/run-unit-tests.sh, and add the same path to
-      the integration kind's detect glob list in .harness/harness.json. run-unit-tests.sh's drift
+      INTEGRATION_SCRIPTS in .claude/skills/harness/bin/run-unit-tests.py, and add the same path to
+      the integration kind's detect glob list in .harness/harness.json. run-unit-tests.py's drift
       detector exits 2 on an unregistered test-*.py, and its kind cross-check compares the two
       lists.
 
@@ -890,23 +890,23 @@ tasks:
     traces: [REQ-09]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — check-state.sh is the harness's own state validator and its test is the gate's test; neither may be changed through the enforcement path being changed
+    execution_reason: DEC-174 carve-out — check-state.py is the harness's own state validator and its test is the gate's test; neither may be changed through the enforcement path being changed
     depends_on: [T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
-      grep -q "INV-31" .claude/skills/harness/bin/check-state.sh
-      out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1)
+      grep -q "INV-31" .claude/skills/harness/bin/check-state.py
+      out=$(python3 .claude/skills/harness/bin/check-state.py 2>&1)
       printf '%s' "$out" | grep -Eq 'all state invariants hold\.|VIOLATION|note  '
       ! printf '%s' "$out" | grep -q Traceback
       ! printf '%s' "$out" | grep -q "INV-31"
     intent: |
-      Add INV-31 to .claude/skills/harness/bin/check-state.sh. INV-30 is the highest number in use
+      Add INV-31 to .claude/skills/harness/bin/check-state.py. INV-30 is the highest number in use
       at cc84b29; take 31 and do not reuse a retired number.
 
       WHY IT EXISTS, and record this in the invariant's own header comment: the setup step lives in
@@ -926,19 +926,19 @@ tasks:
       The two findings differ in SUBJECT, not only in a variable tail — one is about a config
       value, the other about a file — because they are two different failures: a misconfigured
       clone, and a damaged checkout. Each is one line beginning "INV-31: ", follows the file's
-      measured grammar (INV-NN: <subject> <what is wrong> — <consequence>, check-state.sh:1258-1262),
+      measured grammar (INV-NN: <subject> <what is wrong> — <consequence>, check-state.py:1258-1262),
       and carries its own fix. The pinned shapes, from DESIGN.md Contract 5:
         INV-31: core.hooksPath is <unset | "<value found>">, not .claude/skills/harness/hooks — no
         harness hook runs on this clone. Fix: git config core.hooksPath .claude/skills/harness/hooks
         INV-31: .claude/skills/harness/hooks/post-merge is <missing | not executable (mode <m>)> —
         the hook path resolves but the merge sweep cannot run. Fix: restore it | chmod +x it
       Both append to `bad`, never `warn`. INV-28 is a warn on the stated reason that the mirror is
-      never a gate (check-state.sh:1018-1020); INV-31 is not a mirror fact — it is whether the machine
+      never a gate (check-state.py:1018-1020); INV-31 is not a mirror fact — it is whether the machine
       runs the hook that runs ship, and after this feature the sweep is ship's only caller, so a
       clone without it silently stops closing tickets.
 
       WHERE IT RUNS. Follow the file's existing convention for an invariant that reads git config:
-      it must run against the checkout check-state.sh is invoked in, and it must not fail the run
+      it must run against the checkout check-state.py is invoked in, and it must not fail the run
       when git itself is unavailable — an unreadable git config is CANNOT RUN, reported as its own
       line, exactly as INV-25, INV-26 and INV-29 already handle an import failure. A CANNOT RUN is a
       violation, not a pass.
@@ -947,13 +947,13 @@ tasks:
       the done station. board_lifecycle.py's audit already reports exactly that as its STATION
       finding class, and a second detector for one fact is two rules that will drift. What was
       missing there is a runner, not a detector, and the operator has now placed that runner
-      inside ship, once per feature (T-04 step 7c, D-13) — deliberately NOT inside check-state.sh,
+      inside ship, once per feature (T-04 step 7c, D-13) — deliberately NOT inside check-state.py,
       where the audit's four network calls would fall on every run of the state checker. The two
       notes are consistent rather than contradictory: the detector is now scheduled, and it is
       scheduled somewhere other than here. Do not add it here.
 
-      CORRECT THE TWO FALSIFIED Item-closed COMMENTS IN check-state.sh, in this same task. This
-      task is their only legal home: under the DEC-174 carve-out check-state.sh may be changed only
+      CORRECT THE TWO FALSIFIED Item-closed COMMENTS IN check-state.py, in this same task. This
+      task is their only legal home: under the DEC-174 carve-out check-state.py may be changed only
       through the main-session route, and this is the sole task in the plan carrying that file.
       Both sites are comment-only. No assertion in test-check-state.py and no clause of this task's
       verify reads either one. Re-derive both anchors before editing.
@@ -961,14 +961,14 @@ tasks:
       one of their thirteen cards sits at Review. Closing an issue does not move its card to the
       done station on this board. After this feature, ship writes the done station itself (D-01),
       so a card that is at Done is there because ship put it there.
-        (a) check-state.sh:1416, INV-26's TERMINAL EXEMPTION. At 4571bda it justifies the exemption
+        (a) check-state.py:1416, INV-26's TERMINAL EXEMPTION. At 4571bda it justifies the exemption
             by saying the ship closes the parent and GitHub's Item-closed workflow lands it in
             Done. Restate the reason: ship writes the parent's card to the done station and records
             the terminal status, while the plan-derived station would still say Review — so without
             this exemption every shipped feature is a permanent false violation. Keep the
             case-sensitivity note that follows it as it stands. Roughly two lines. THE EXEMPTION'S
             CONDITION IS UNCHANGED: it still keys on feature.json status being Done or Abandoned.
-        (b) check-state.sh:1479, D-24's JUSTIFICATION COMMENT. This one is a REWRITE, not a
+        (b) check-state.py:1479, D-24's JUSTIFICATION COMMENT. This one is a REWRITE, not a
             relabel — roughly five to eight lines. At 4571bda it argues that under D-23 a done
             task's sub-issue is deliberately left OPEN so it can hold its column through the Review
             phase, because GitHub's native Item closed workflow would otherwise land a closed
@@ -991,7 +991,7 @@ tasks:
         only, and every existing INV-26 assertion in test-check-state.py must still pass unchanged.
 
       THE VERIFY'S THIRD CLAUSE ASSERTS THE RUN COMPLETED before it asserts INV-31 is absent, and
-      must not be simplified back to a pipe into grep. check-state.sh's embedded python exits 1
+      must not be simplified back to a pipe into grep. check-state.py's embedded python exits 1
       both when it finds violations and when it dies on a traceback, so the exit code cannot tell
       the two apart; a pipe into grep would take grep's status and green on a run that never
       reached INV-31 at all. The terminal report block — one of "all state invariants hold.", a
@@ -1011,7 +1011,7 @@ tasks:
     traces: [REQ-11, REQ-04, REQ-07, REQ-10]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all three files, so there is no agent granted to write them; this is a declared main-session step, not a dispatchable task
+    execution_reason: check-domain.py --resolve returns NOBODY for all three files, so there is no agent granted to write them; this is a declared main-session step, not a dispatchable task
     depends_on: [T-03, T-06, T-07, T-11]
     status: done
     files:
@@ -1037,7 +1037,7 @@ tasks:
            parent_origin is created" with what ship now does — closes the milestone, and lands
            every recorded card at the done station, children first, skipping any card that still
            has an open child and naming that child. State the two summary literals ship prints,
-           gh-sync: HELD and gh-sync: FAILED, and that post-merge-sweep.sh declines the worktree
+           gh-sync: HELD and gh-sync: FAILED, and that post-merge-sweep.py declines the worktree
            removal on the second — the mirror still never gates a GitHub write, and the worktree is
            not one.
         4. The `open` row: remove "recorded with its parent_origin".
@@ -1112,7 +1112,7 @@ tasks:
 
       C. .claude/skills/harness-init/SKILL.md, the core.hooksPath section. Add one sentence after
          step 3 naming INV-31 as the invariant that reports an uninstalled hook on every
-         check-state.sh run, so a clone that skipped this step is caught rather than silently
+         check-state.py run, so a clone that skipped this step is caught rather than silently
          losing its merge sweep. Do not change the three steps themselves — they are the fix
          instruction the invariant points at.
 
@@ -1178,7 +1178,7 @@ tasks:
 
       RUN IT:
         1. Confirm the suite is green:
-           .agents/skills/harness/bin/run-unit-tests.sh --kind all
+           .agents/skills/harness/bin/run-unit-tests.py --kind all
            It must exit 0 with no FAIL line, and test-gh-sync.py, test-check-state.py and
            test-post-merge-sweep.py must each report PASS. One trap, measured 2026-08-25: if
            test-validate-digest.py fails saying "returned with children in flight", that is stale
@@ -1216,7 +1216,7 @@ tasks:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       ! grep -qi 'close.task' .claude/skills/harness/bin/gh-sync.py

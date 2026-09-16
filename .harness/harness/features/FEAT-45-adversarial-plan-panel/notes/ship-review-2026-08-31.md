@@ -35,7 +35,7 @@ itself does not.
 An adversarial reader panel that runs in the plan phase, before any code exists. Twelve tasks:
 a new team definition, three reader prompts wired into the plan door and the orchestrator playbook,
 a content-hash identity for panel findings (`panel_findings.py`), a new signature gate (INV-32 in
-`check-state.sh`), and two signed decisions — DEC-206 (a lead may wrap a non-harness reader and owns
+`check-state.py`), and two signed decisions — DEC-206 (a lead may wrap a non-harness reader and owns
 its shape but never its content) and DEC-207 (a gate may grade a specification, not a diff).
 
 ## Where each squad landed
@@ -51,7 +51,7 @@ its shape but never its content) and DEC-207 (a gate may grade a specification, 
 ## The finding that justified the whole exercise
 
 The gate this feature ships **failed open on exactly the input its own signed decision names as the
-risk**. `check-state.sh` defaulted a missing panel-finding severity to the empty string, which was in
+risk**. `check-state.py` defaulted a missing panel-finding severity to the empty string, which was in
 no gating set — so a finding whose rating was lost would have reached your signature un-vetted, while
 DEC-206, written in the same change, promised verbatim that a lost rating withholds. Caught at
 cycle 0, fixed, and the fix was proven able to fail by reverting it and watching the test go red.
@@ -90,7 +90,7 @@ structured return. That single run also settles SC-11, SC-12 and SC-16.
 | B-11 | chore | `plan-panel.yaml` restates the validator lead's transcription contract with no drift detector. Flagged by two SIMPLIFY passes and appliable by no squad — both files resolve to NOBODY |
 | B-12 | chore | 40+ of 43 `bin/test-*.py` files define their own `check()` in five incompatible shapes |
 | B-13 | chore | Five pre-existing plan-phase artifacts fail the DEC-154/DEC-156 contracts. Not corrected — rewriting another run's record would falsify it |
-| B-14 | bug | `check-state.sh`'s overrule attribution check has no `continue`, so a rejected unattributed overrule still emits a `disposition overruled.` line. The VIOLATION still fires |
+| B-14 | bug | `check-state.py`'s overrule attribution check has no `continue`, so a rejected unattributed overrule still emits a `disposition overruled.` line. The VIOLATION still fires |
 | B-15 | chore | `M6` — `goalcheck` transcription ambiguity; fails closed and loudly on the first live run. `M7` — the withhold message states the fact but not the remedy |
 | B-16 | chore | `V2` — branch-less corroboration is a documented deliberate no-op; closing it needs a non-branch identity input |
 

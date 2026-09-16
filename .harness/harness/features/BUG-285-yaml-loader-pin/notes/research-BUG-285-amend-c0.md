@@ -41,7 +41,7 @@ at source** — none changes the conclusion, all three change what a reader shou
 - Case `(1c)` at `tests/integration/test-factory-decompose.py:426-437` uses `{ not: valid json [[[`
   — rejected by **both** loaders, so it stays green across the swap and is the #208 regression anchor
   (SC-08).
-- `check-domain.sh --resolve`: `factory_decompose.py` → `harness-backend-dev`, `harness-dev-ops`
+- `check-domain.py --resolve`: `factory_decompose.py` → `harness-backend-dev`, `harness-dev-ops`
   (no qa); the test path → those two plus `harness-qa`. `execution_agent` set accordingly.
 
 ## Two constraints that shaped the plan
@@ -50,7 +50,7 @@ at source** — none changes the conclusion, all three change what a reader shou
   `test-*.py` name present in both `tests/unit/` and `tests/integration/`, and
   `test-factory-decompose.py` is taken. Hence `tests/unit/test-factory-decompose-loader.py`.
 - **`lanes:` has no write route** (D-05). `check-plan-routes.py` contains zero occurrences of
-  `lanes`; it grades each task's `files` through `check-domain.sh` plus the `execution_mode` token.
+  `lanes`; it grades each task's `files` through `check-domain.py` plus the `execution_mode` token.
   So the stale lanes table misreports, but binds nothing.
 
 ## Verification observed
@@ -81,7 +81,7 @@ directly, not inferred from the exit code).
 |---|---|---|---|---|
 |T-01|bugfix|harness-qa|—|`test-gh-sync.py`. **Untouched**|
 |T-02|bugfix|harness-backend-dev|[]|`test-factory-decompose.py`, then the tempdir refusal probe|
-|T-03|bugfix|harness-qa|[T-02]|the new unit file, then `run-unit-tests.sh --kind unit`|
+|T-03|bugfix|harness-qa|[T-02]|the new unit file, then `run-unit-tests.py --kind unit`|
 
 T-02's intent decides the open questions a builder would otherwise ask: catch
 `(json.JSONDecodeError, OSError)` — the narrower name over `ValueError`, with the reason — open and
@@ -128,15 +128,15 @@ re-measurement matches them.
 `files:` is `.claude/skills/harness/bin/factory_decompose.py`, so D-03's `touches_runtime_code`
 clause demands the `unit` kind of it, and its block ran only the integration suite plus the inline
 probe. Added, as the FIRST line of the block:
-`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit`.
+`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit`.
 
 Order is deliberate: the unit suite is the cheapest, module-scoped regression check, so it fails
 fast before the slower integration suite, and it leaves the inline probe last as this task's own
 red-then-green evidence. The two pre-existing commands are byte-unchanged and the block is still a
 literal `|` scalar (`plan.yaml:168`).
 
-The runner CAN run at T-02's moment — checked, not assumed: `.agents/skills/harness/bin/run-unit-tests.sh`
-exists and parses `--kind unit` (`run-unit-tests.sh:18`, usage line `:23`), and `harness.json`
+The runner CAN run at T-02's moment — checked, not assumed: `.agents/skills/harness/bin/run-unit-tests.py`
+exists and parses `--kind unit` (`run-unit-tests.py:18`, usage line `:23`), and `harness.json`
 `test_kinds.unit.cmd` is that exact command with `status: active`. T-02 lands before T-03 creates
 `tests/unit/test-factory-decompose-loader.py`, so at T-02's moment this runs the EXISTING unit
 suite over the module being edited — a regression check, which is the point.

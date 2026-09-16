@@ -21,7 +21,7 @@ W5: T-08, T-10
 
 - **T-02 `[T-01]` — FALSE.** T-01 appends two DEC entries to `DECISIONS.md`/`-INDEX.md`. T-02's
   intent (author `plan-panel.yaml`, matching `review.yaml`'s vocabulary) and verify (structural
-  YAML assertions + a `check-domain.sh --resolve` probe) never cite a DEC number or read either
+  YAML assertions + a `check-domain.py --resolve` probe) never cite a DEC number or read either
   file T-01 touches. **Saves 1 step**: T-01 and T-02 can share wave 1.
 
 - **T-03 `[T-02]` — FALSE.** T-03 edits `SKILL.md` to *describe* the plan-panel team (filename,
@@ -44,7 +44,7 @@ W5: T-08, T-10
 
 - **T-07 `[T-05]` — FALSE.** INV-32's four checks (panel shape, per-finding severity gating,
   rulings attribution, stale-ruling) are fully re-specified in T-07's own intent, verbatim from
-  the decisions — `check-state.sh` reads a project's *real* `plan.yaml`, never the *template*
+  the decisions — `check-state.py` reads a project's *real* `plan.yaml`, never the *template*
   T-05 edits. **Saves 1 step.**
 
 - **T-09 `[T-05]` — FALSE.** `panel_findings.py`'s hash algorithm (lowercase+collapse-whitespace,
@@ -53,7 +53,7 @@ W5: T-08, T-10
 
 - **T-08 `[T-07]` — REAL, keep.** `test-check-state.py`'s `inv32-red` case locates the literal
   marker lines `# INV-32 BEGIN (FEAT-45 T-07)` / `# INV-32 END (FEAT-45 T-07)` inside
-  `check-state.sh`, copies the file, and slices out the region T-07 wrote — a genuine read of
+  `check-state.py`, copies the file, and slices out the region T-07 wrote — a genuine read of
   T-07's produced content, not just its existence.
 
 - **T-10 `[T-02, T-03, T-04, T-06, T-09]`** — mixed:
@@ -70,15 +70,15 @@ W5: T-08, T-10
   - **`T-09` FALSE for content, but REQUIRED for a different reason — keep it, mislabeled.**
     `test-plan-panel.py` never opens `panel_findings.py` or `test-panel-findings.py`, and T-10's
     verify never greps for `test-panel-findings.py` in the suite's output. But T-09 and T-10 BOTH
-    append an entry to the same `UNIT_SCRIPTS` array in `run-unit-tests.sh`, and plan-level tasks
+    append an entry to the same `UNIT_SCRIPTS` array in `run-unit-tests.py`, and plan-level tasks
     (unlike team steps) have no `mutates_repo` primitive (only team-step YAML carries that key —
     confirmed in T-02's own intent, line ~282) — `depends_on` is the *only* thing serializing this
     write. So the edge is accidentally-labeled: it reads as a content dependency but is load-bearing
     only as a write-conflict lock. **Recommend to pm:** keep the edge, but change its cited reason
-    from "T-10 needs T-09's output" to "shared-file serialization on `run-unit-tests.sh`" so a
+    from "T-10 needs T-09's output" to "shared-file serialization on `run-unit-tests.py`" so a
     future reader doesn't drop it as a false content edge — which it would otherwise correctly look like.
   - **T-07/T-08 correctly absent** from T-10's `depends_on` — `test-plan-panel.py` grades
-    doctrine/wiring files only; it never touches `check-state.sh` or `test-check-state.py`.
+    doctrine/wiring files only; it never touches `check-state.py` or `test-check-state.py`.
 
 ## Cost
 
@@ -86,10 +86,9 @@ Before: **5 waves**. After (drop the 8 false edges above, keep T-08→T-07 and t
 including the relabeled T-09 one): **2 waves** — `{T-01,T-02,T-03,T-04,T-05,T-06,T-07,T-09}` then
 `{T-08,T-10}`. **3 sequential steps saved.**
 
-## Repeated work: `run-unit-tests.sh --kind unit` in T-09 and T-10 verify
+## Repeated work: `run-unit-tests.py --kind unit` in T-09 and T-10 verify
 
-Measured once, read-only, on this checkout: **wall 20.3s** (`time bash
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit`). Not negligible in absolute terms, but
+Measured once, read-only, on this checkout: **wall 20.3s** (`time python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit`). Not negligible in absolute terms, but
 each task registers a *different* new test file (`test-panel-findings.py` vs.
 `test-plan-panel.py`) and each verify's own full-suite run is that task's own proof its
 registration didn't drift — this is the KIND-DRIFT boundary check DEC-174 exists for, not

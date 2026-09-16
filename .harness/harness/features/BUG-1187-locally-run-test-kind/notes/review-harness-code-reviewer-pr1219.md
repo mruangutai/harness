@@ -21,14 +21,14 @@ answers are internally coherent:
 
 1. **`test_kinds` shape for a kind that can never be `cmd`-gated in CI** — `status: "locally_run"`,
    demonstrated by the new `omp_session_accessor` kind (`harness.json:120-126`), with a real `cmd` that
-   `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` never invoke (matches "never expected to
+   `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` never invoke (matches "never expected to
    gate CI").
 2. **Where "run and recorded" lands** — the issue explicitly offered "a required note" as one option;
    the PR picks it: `harness-qa-gate/SKILL.md:79` / `harness-verification-rules/SKILL.md:44` require a
    note under the feature's `notes/` naming who ran it, when, and the result, else `BLOCKED`. A
    reasonable resolution of an open question, not an omission.
 3. **What happens to `probe-omp-session-accessor.py`** — registered under the new kind, and
-   `run-unit-tests.sh`'s new drift block (~L79-166) makes it structurally impossible for any future
+   `run-unit-tests.py`'s new drift block (~L79-166) makes it structurally impossible for any future
    `probe-*.py` to go unregistered again (verified: real tree is green; `case_6`/`7`/`8` in
    `test-run-unit-tests-kinds.py` prove the loud-failure path).
 
@@ -51,7 +51,7 @@ This is not just stale prose. The same file's frontmatter (`.omp/agents/harness-
 `autoloadSkills: [..., harness-verification-rules]`, so the harness-qa agent's context contains, back to
 back: its own body claiming FOUR states, immediately followed by the freshly-edited skill claiming FIVE.
 That is a live, direct contradiction inside one persona's own prompt — exactly the "two lists that
-describe the same thing and cannot see each other will diverge" failure class `run-unit-tests.sh`'s own
+describe the same thing and cannot see each other will diverge" failure class `run-unit-tests.py`'s own
 comments (and `harness-qa-gate/SKILL.md:41`, "never restate or paraphrase [the matrix] — a hardcoded
 copy here has already drifted from the config once") warn about, recurring here in persona prose instead
 of config.
@@ -89,7 +89,7 @@ but the connecting instruction is absent from the numbered steps. One added sent
 
 ### F3 — info (untested edge cases named in the review scope)
 
-`run-unit-tests.sh`'s new probe-registration block (~L143-166) is correct by inspection for two cases
+`run-unit-tests.py`'s new probe-registration block (~L143-166) is correct by inspection for two cases
 the review scope explicitly asked about but that aren't covered by `test-run-unit-tests-kinds.py`'s new
 `case_6`/`7`/`8`:
 - **multiple simultaneous `locally_run` kinds** — the union (`locally_run_declared |= {...}`) is
@@ -120,7 +120,7 @@ in its own comments.
   JSON-Schema file, so nothing there needed updating for the new value.
 - Ran both new/changed test files directly: `test-code-grade.py` (`PASS test-code-grade`) and
   `test-run-unit-tests-kinds.py` (32 of 32 cases passed, including the new `case_6`/`7`/`8`). Confirms
-  the PR's own claim that its tests pass. `run-unit-tests.sh --check-kinds` on the real tree: exit 0.
+  the PR's own claim that its tests pass. `run-unit-tests.py --check-kinds` on the real tree: exit 0.
 
 ## Verdict rationale
 

@@ -90,7 +90,7 @@ Vendoring those blobs as committed fixtures is recorded as `BRIEF.md` **BACKLOG-
 
 ## 6. Suite, contract and the remaining criteria
 
-- `run-unit-tests.sh --kind all`: **exit 0, 63 files, 8 workers, 48.29s wall, zero `FAIL`, zero
+- `run-unit-tests.py --kind all`: **exit 0, 63 files, 8 workers, 48.29s wall, zero `FAIL`, zero
   `MUTATED`**, tree clean before and after. (Under 120s; the ten recorded runs sit 42.64–47.82s.)
 - `--kind unit`: exit 0, 33 files, 12.15s, zero `FAIL`, emits `PASS test-suite-independence.py`
   (SC-04).

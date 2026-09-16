@@ -488,7 +488,7 @@ def case_14_remedy_is_absolute():
         cmd,
     )
     # F5: `feature` is REQUIRED, not defaulted. Both production callers already passed one
-    # (dispatch-guard.sh, validate-digest.py), so the optional default only ever made the
+    # (dispatch-guard.py, validate-digest.py), so the optional default only ever made the
     # dangerous form — an agent-only release that can take a SIBLING feature's claim — the
     # easy one for the next caller to reach for.
     try:

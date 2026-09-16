@@ -1672,7 +1672,7 @@ def _resolve_run_unit_tests_bin(payload):
     A NAMED FEATURE MUST RESOLVE TO ITS OWN CHECKOUT, OR NOT AT ALL (code review of
     #1185). check_artifact_file's owner_root/feature_root pattern falls back to
     owner_root on any lookup failure, and that is safe THERE because a wrong root
-    means the specific run digest simply 404s, loudly. run-unit-tests.sh is a static,
+    means the specific run digest simply 404s, loudly. run-unit-tests.py is a static,
     always-present path: a wrong-root fallback here never 404s, it just silently
     re-runs the suite against the WRONG checkout and reports that mismatched result as
     though it verified the claim — reproducing #919's exact failure mode inside the
@@ -1699,7 +1699,7 @@ def _resolve_run_unit_tests_bin(payload):
     if not base:
         return None
     return os.path.join(base, ".claude", "skills", "harness", "bin",
-                        "run-unit-tests.sh")
+                        "run-unit-tests.py")
 
 
 def _reverify_suite(run_bin):
@@ -1731,7 +1731,7 @@ def check_qa_matrix_claim(agent, text, payload):
     claimed failure buys nothing this hook is positioned to check for free.
 
     FAIL OPEN, LOUDLY when the suite cannot be located or run at all (missing root,
-    missing script, a spawn OSError, a timeout) — check-domain.sh's precedent: a hook
+    missing script, a spawn OSError, a timeout) — check-domain.py's precedent: a hook
     whose own execution environment is broken must never be the reason a legitimate qa
     return is blocked. FAIL CLOSED when the suite DOES run and disagrees with the
     claim — that disagreement is exactly the gap #919 exists to close.
@@ -1748,7 +1748,7 @@ def check_qa_matrix_claim(agent, text, payload):
     if result.returncode == 0:
         return 0
     print(f"{agent} reported VERDICT: PASS with suite: pass and matrix_ok: true, but "
-          f"an independent re-run of run-unit-tests.sh at this checkout exited "
+          f"an independent re-run of run-unit-tests.py at this checkout exited "
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
           f"it is genuinely green. Tail of the independent run:", file=sys.stderr)
@@ -1779,7 +1779,7 @@ def hook_mode():
     2. `stop_hook_active`. Set when we are already re-running because a stop hook
        blocked. Blocking again is an infinite loop with no operator escape.
     3. Our own failure — unreadable payload, unknown persona, an exception. We
-       fail OPEN and say so on stderr. check-domain.sh set this precedent for the
+       fail OPEN and say so on stderr. check-domain.py set this precedent for the
        same reason: a hook that blocks on its own bug wedges every agent in every
        project the moment a payload shape changes. Blocking is for THEIR contract
        violation, never ours.
@@ -1827,7 +1827,7 @@ def hook_mode():
     if _reg is not None:
         # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
         # the payload cwd. The old note here said cwd had to come first so this released from
-        # the same registry dispatch-guard.sh wrote to — but that guard now takes its root
+        # the same registry dispatch-guard.py wrote to — but that guard now takes its root
         # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
         # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
         # which is why it was never a root.
@@ -1960,7 +1960,7 @@ def hook_mode():
               f"blocking on our own gap.", file=sys.stderr)
         return 0
 
-    # Fail OPEN, LOUDLY on our own bug (check-domain.sh's precedent) — never crash
+    # Fail OPEN, LOUDLY on our own bug (check-domain.py's precedent) — never crash
     # to an ambiguous exit. Before this, any exception raised inside `validate()`
     # (e.g. the enum/list TypeError above, pre-fix) propagated uncaught, exited 1,
     # and — because only exit 2 blocks (DEC-100/DEC-122) — the digest shipped

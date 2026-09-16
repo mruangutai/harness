@@ -49,7 +49,7 @@ sails through the `except`, and the very next line, `document.get("branch")`, ra
 on *whichever* glob entry glob happens to visit that has this shape — regardless of whether that
 entry belongs to the feature actually being merged.
 
-I reproduced this directly (temp fixture, real `merge-gate.sh`/`merge-gate.py` at this pin, no repo
+I reproduced this directly (temp fixture, real `merge-gate.py`/`merge-gate.py` at this pin, no repo
 files touched):
 - Feature `FEAT-A-fixture`, branch `feature/test`, `build_entry: "opened"` (would ALLOW on its own).
 - Feature `FEAT-B-unrelated` (different branch, not being merged), `feature.json` = `[]` (valid JSON,

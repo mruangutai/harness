@@ -14,12 +14,12 @@ Worktree: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-
 
 1. **Bare `python3 -c 'pass'` startup** (10x loop): 637ms wall / 10 → **~34ms/proc**
    (this is the floor any additional interpreter pays regardless of content).
-2. **The new derivation subprocess in isolation** (`dispatch-guard.sh:37-54`'s heredoc
+2. **The new derivation subprocess in isolation** (`dispatch-guard.py:37-54`'s heredoc
    body, run 10x with the real `harness_boundary.py`/`harness_yaml.py`/live
    `team-config.yaml`): 637ms wall / 10 → **~64ms/proc** (measured directly; not the
    same 637ms figure by coincidence — reran to confirm, both loops landed at 63-64ms
    avg independently).
-3. **The full `dispatch-guard.sh` end-to-end**, real payload (`harness-eng-lead` →
+3. **The full `dispatch-guard.py` end-to-end**, real payload (`harness-eng-lead` →
    `harness-backend-dev`, `HARNESS-FEATURE:` first line, no run-dir reference in the
    prompt, single-flight claim path exercised): 3 runs, **104-111ms wall** each.
 4. **A bash regex pre-filter** over the raw JSON payload for the same pattern
@@ -36,14 +36,14 @@ import + parse, not by the regex matching or the tree walk (both sub-millisecond
 
 ## The finding
 
-- **file:** `.claude/skills/harness/bin/dispatch-guard.sh`
+- **file:** `.claude/skills/harness/bin/dispatch-guard.py`
 - **line:** 37 (the `if _globs=$(python3 -c '...' <<'PY'` block, running through line 59)
 - **summary:** the run-dir vocabulary derivation subprocess runs unconditionally, before
   the guard has any idea whether the dispatch prompt references a run-dir path at all.
 - **cost (measured):** ~64ms of the guard's ~105ms total is this one subprocess
   (import + YAML parse), paid on every governed dispatch across the whole factory —
   including the ordinary case where the prompt names no `.harness/.../runs/...` path
-  and the derived globs are never consulted (`dispatch-guard.sh:158`'s
+  and the derived globs are never consulted (`dispatch-guard.py:158`'s
   `if refs and not globs` / `elif refs and globs` — both branches are skipped when
   `refs` is empty, so the derived globs are computed and then discarded).
 - **alternative:** gate the `python3 -c` block behind a cheap pre-filter on the raw

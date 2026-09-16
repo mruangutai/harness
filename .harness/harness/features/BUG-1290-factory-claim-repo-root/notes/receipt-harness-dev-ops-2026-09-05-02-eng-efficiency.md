@@ -70,7 +70,7 @@ claim case named in the task intent, not to whichever of the 131 checks happens 
   `test-layout-migration.py` likely already runs against fixtures, but it checks a different
   target (the real tree's `features` surface, not a fixture) — not the same work twice.
 - Total measured cost of the plan's four `verify:` commands run in sequence: ~21s. No task's
-  verify is a hot path, a session-entry gate, or a per-write gate (`check-state.sh`/INV-27 is
+  verify is a hot path, a session-entry gate, or a per-write gate (`check-state.py`/INV-27 is
   manual-only per this agent's own project Expertise, G-01 — not invoked automatically at any
   boundary this plan touches).
 - No same-file-re-read-across-tasks pattern: T-01 touches the unit test file only, T-02 the

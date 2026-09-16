@@ -16,7 +16,7 @@ production code and tests were untouched.
 
 Merged onto latest `origin/main` (`0f885a0a`, BUG-1305's ship state) at `cc16f721`, clean, no
 conflicts. Both the rebase onto `4b0d04e9` and this merge were performed by the MAIN SESSION:
-`git rebase` and `git merge` are in `bash-write-guard.sh`'s closed `HEAD_MOVERS` set and are refused
+`git rebase` and `git merge` are in `bash-write-guard.py`'s closed `HEAD_MOVERS` set and are refused
 to every governed agent, this orchestrator included. Verified after the fact —
 `git merge-base --is-ancestor 0f885a0a HEAD` exits 0.
 

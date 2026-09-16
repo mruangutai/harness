@@ -3,7 +3,7 @@
 BLUF: SC-01 was right and T-04's two-run flow was the defect. `cmd_provision`'s no-project branch
 now creates the project, links the repo, AND creates the Status field with all six declared
 stations before exiting 3. A field-create failure after a successful create+link exits 4 and names
-the created number. `run-unit-tests.sh --kind all` exits 0, 0 FAIL lines; total `^PASS` lines
+the created number. `run-unit-tests.py --kind all` exits 0, 0 FAIL lines; total `^PASS` lines
 812 -> 822 (+11 new assertions, -1 inverted).
 
 ## The fix
@@ -70,7 +70,7 @@ case (I). Verified by running it: exit 0, 0 FAIL, all four (J) assertions ok.
 
 ## Suite
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind all`, exit code captured with
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all`, exit code captured with
 `echo "EXIT:$?"` appended to the log (never through a pipe — zsh does not carry PIPESTATUS):
 
 | | baseline (HEAD, measured here) | after |

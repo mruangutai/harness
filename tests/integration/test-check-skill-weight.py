@@ -17,6 +17,8 @@ from pathlib import Path
 TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 MODULE = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-skill-weight.py")
+sys.path.insert(0, os.path.dirname(MODULE))
+import artifact_accessors
 
 _spec = importlib.util.spec_from_file_location("check_skill_weight", MODULE)
 csw = importlib.util.module_from_spec(_spec)
@@ -55,6 +57,14 @@ class WeightTests(unittest.TestCase):
         self.assertEqual(r.total_words, 320)
         self.assertEqual(r.notes(), [])
         self.assertEqual(r.errors, [])
+        agent = root / ".omp" / "agents" / "a.md"
+        agent.write_text(
+            agent.read_text(encoding="utf-8").replace(
+                "autoloadSkills:\n", "autoloadSkills: []\nautoloadSkills:\n", 1),
+            encoding="utf-8",
+        )
+        with self.assertRaises(artifact_accessors.ArtifactAccessError):
+            csw._frontmatter(agent)
 
     def test_over_budget_is_a_note_never_an_error(self):
         root = _tree({"a": ["u", "x"], "b": ["u"]}, {"u": 100, "x": 50},
@@ -75,6 +85,11 @@ class WeightTests(unittest.TestCase):
             self.assertIsNone(r.budget, bad)
             self.assertEqual(len(r.notes()), 1)
             self.assertIn("UNBUDGETED", r.notes()[0])
+        root = _tree({"a": ["u"]}, {"u": 10}, None)
+        (root / ".harness" / "harness.json").write_text(
+            '{"budgets": {}, "budgets": {}}', encoding="utf-8")
+        with self.assertRaises(artifact_accessors.ArtifactAccessError):
+            csw._budget(root)
 
     def test_missing_skill_is_an_error(self):
         root = _tree({"a": ["u", "ghost"]}, {"u": 10}, {"universal": 1, "agent": 1})

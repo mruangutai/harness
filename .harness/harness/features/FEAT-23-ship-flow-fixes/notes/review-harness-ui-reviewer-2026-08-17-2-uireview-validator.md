@@ -21,7 +21,7 @@ first; the second is adequately specified. Nothing here should block the operato
 | `.claude/commands/harness-plan.md` | T-03, T-06 | Read by the main session at the start of every live `/harness-plan` operator session — directly shapes what the operator sees and is asked. **In scope** — one of the two named surfaces (T-06's kickoff bullet). |
 | `.claude/skills/harness/bin/board-station.py` | T-05 | New CLI whose stdout/stderr text and exit codes are read live by the operator during a planning session (`execution_mode: main-session-direct` context on the calling side). **In scope** — the other named surface. |
 | `.claude/skills/harness/bin/test-board-station.py` | T-05 | Test fixture. Out of scope directly, though relevant to whether the gap below is gated (it is not — see below). |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | T-05 | Test-runner registration array, no operator-facing text. Out of scope. |
+| `.claude/skills/harness/bin/run-unit-tests.py` | T-05 | Test-runner registration array, no operator-facing text. Out of scope. |
 | `.harness/harness.json`, `.harness/factory/fleet.yaml`, `gh_board.py` | resolved_but_not_written | No content change (D-05: `set_station` called, not edited; `harness.json`/`fleet.yaml` ruled out of scope). Out of scope. |
 
 This is a measured census against `plan.yaml`'s actual rows and files, not a prediction of absence.

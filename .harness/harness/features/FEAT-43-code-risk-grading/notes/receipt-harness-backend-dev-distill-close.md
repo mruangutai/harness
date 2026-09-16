@@ -106,7 +106,7 @@ PRESERVED G-03
 APPLIED .harness/harness/expertise/harness-backend-dev.md
 EXIT=0
 
-$ .agents/skills/harness/bin/check-expertise.sh .harness/expertise/harness-backend-dev.md .harness/harness/expertise/harness-backend-dev.md
+$ .agents/skills/harness/bin/check-expertise.py .harness/expertise/harness-backend-dev.md .harness/harness/expertise/harness-backend-dev.md
 OK   .harness/expertise/harness-backend-dev.md
 ADVISORY .harness/expertise/harness-backend-dev.md:25: G-08 names 'team-config' — repository-layer candidate; rule on it (issue 340)
 OK   .harness/harness/expertise/harness-backend-dev.md
@@ -114,7 +114,7 @@ EXIT=0
 ```
 
 The G-08 advisory is pre-existing (not touched by this distillation) and is advisory, not
-blocking, per `check-expertise.sh`'s own contract.
+blocking, per `check-expertise.py`'s own contract.
 
 `git status --porcelain` confirms only my two Expertise files were modified by me; the other
 modified/untracked files in the working tree belong to sibling distillers running concurrently

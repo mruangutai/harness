@@ -24,4 +24,4 @@ None. The planner may choose the narrowest provider-neutral implementation that 
 - #496 identifies #356 as required before the first real factory run; four #498 destination criteria depend on that run.
 - #356 establishes that relative Harness paths resolve against a factory worker’s product checkout, not the Harness control plane.
 - #356’s recorded measurement says `CLAUDE_PROJECT_DIR` is session-scoped and unavailable in an agent tool shell, so the worker needs an explicit agent-visible path.
-- PR #899 merged the distinct `check-state.sh` root-resolution repair, which closed #156; it does not resolve #356’s factory instruction-path contract.
+- PR #899 merged the distinct `check-state.py` root-resolution repair, which closed #156; it does not resolve #356’s factory instruction-path contract.

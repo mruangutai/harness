@@ -3,7 +3,7 @@
 ## BLUF
 
 **PASS.** The cycle-3 MED (an unrelated feature's malformed `feature.json` denying a merge that
-matches no feature at all) is fixed and verified by execution against the shipped `merge-gate.sh`.
+matches no feature at all) is fixed and verified by execution against the shipped `merge-gate.py`.
 One NEW MED, not gating: the fix narrowed the outer `except Exception` against exactly the failure
 mode cycle 3 found (a bad record read inside `feature_for`'s own loop) but did not narrow the
 try's SCOPE — it still wraps `head_branch()`'s environmental resolution, which runs *before* any
@@ -23,7 +23,7 @@ in the test file). No REQ/D touched by this remediation is left unimplemented; n
 pin's job is closing cycle 3's F1 (an innocent-bystander deny that misattributes "this feature");
 judged against that job below.
 
-### 1. The three-posture reconstruction — ONE fixture, all three states, driven through the shipped `merge-gate.sh`
+### 1. The three-posture reconstruction — ONE fixture, all three states, driven through the shipped `merge-gate.py`
 
 Fixture (`/tmp/bug1309-triple-*`), one `.harness/harness.json` (`sync: true`, `repo: acme/widgets`),
 git HEAD on `feature/healthy`, three feature directories:
@@ -66,7 +66,7 @@ feature, posture #2's exact scenario), same broken `gh` (`GH_BIN=/nonexistent/gh
 restricted to a directory holding only `python3` and `dirname` — no `git`:
 ```
 $ echo '{"tool_input":{"command":"gh pr merge 7"}}' | HARNESS_PROJECT_DIR=$ROOT GH_BIN=/nonexistent/gh \
-    PATH=/tmp/no-git-bin bash merge-gate.sh
+    PATH=/tmp/no-git-bin ./merge-gate.py
 exit=0
 stdout: {"hookSpecificOutput":{...,"permissionDecision":"deny","permissionDecisionReason":
   "merge-gate: could not evaluate this feature's Build-entry receipt, so this merge is denied.
@@ -101,26 +101,26 @@ system would notice the same corrupt record, by name:
 
 | Consumer | Detects `[]`-shaped `feature.json`? | How |
 |---|---|---|
-| `check-state.sh` INV-6/7/8/12 loop (`:604-627`) | **Yes** | `harness_yaml.load_file` succeeds (valid YAML), then an explicit `isinstance(doc, dict)` check at `:625` reports `"...is not a YAML mapping."` |
-| `check-state.sh` INV-17 handoff-shape loop (`:1153-1158`) | No (but irrelevant) | Reads `harness_yaml.load_file(fy) or {}` with no isinstance check, but the loaded value (`_doc`) is never referenced again in that loop — station comes from `plan.yaml`, not this document — so this is not a real detection gap, just an unused read |
+| `check-state.py` INV-6/7/8/12 loop (`:604-627`) | **Yes** | `harness_yaml.load_file` succeeds (valid YAML), then an explicit `isinstance(doc, dict)` check at `:625` reports `"...is not a YAML mapping."` |
+| `check-state.py` INV-17 handoff-shape loop (`:1153-1158`) | No (but irrelevant) | Reads `harness_yaml.load_file(fy) or {}` with no isinstance check, but the loaded value (`_doc`) is never referenced again in that loop — station comes from `plan.yaml`, not this document — so this is not a real detection gap, just an unused read |
 | `validate-feature-json.py` (schema `"type": "object"`) | **Yes** | jsonschema rejects a list against an object-typed schema; sweeps *every* `feature.json` on disk with no arguments, wired as its own dedicated step in `.github/workflows/tests.yml:101` — but that is a scheduled/CI check, not synchronous with the merge |
 | `gh-sync.py`'s `load_recorded` (`:518-548`) | **Yes, loudly** | Explicitly documented 4th state: a non-mapping document is treated as the ERROR case, `raise SystemExit`, never as "nothing recorded" |
-| `post-merge-sweep.sh`'s per-record handler (`:213-218`) | **Partially** | `except (OSError, json.JSONDecodeError)` does NOT catch a valid-JSON-wrong-type read; `feature_doc.get(...)` then raises `AttributeError` — but the caller's per-record loop (`:279-283`) wraps `_handle_record` in a blanket `except Exception`, prints `"post-merge-sweep: ERROR handling {path}: {e}"`, and moves on. The record is reported (generically, not by a targeted message) and — critically — the worktree is NOT removed on this path, which is the safe direction |
+| `post-merge-sweep.py`'s per-record handler (`:213-218`) | **Partially** | `except (OSError, json.JSONDecodeError)` does NOT catch a valid-JSON-wrong-type read; `feature_doc.get(...)` then raises `AttributeError` — but the caller's per-record loop (`:279-283`) wraps `_handle_record` in a blanket `except Exception`, prints `"post-merge-sweep: ERROR handling {path}: {e}"`, and moves on. The record is reported (generically, not by a targeted message) and — critically — the worktree is NOT removed on this path, which is the safe direction |
 | `factory_claim.py`'s `_BlockerCache.issue_number` (`:142-158`) | **Yes, gracefully** | Already `isinstance(doc, dict)`-guarded; a non-dict document degrades to "no issues", not a crash |
 
 **Not "nobody notices" — but nobody notices *synchronously, at merge time*.** By design (DEC-174:
 validators are main-session-direct, never auto-run by the harness), a corrupt record sitting on disk
-is invisible until an operator next runs `check-state.sh`, `gh-sync.py`, or the CI schema sweep
+is invisible until an operator next runs `check-state.py`, `gh-sync.py`, or the CI schema sweep
 against it. Between the corrupting write and that next run, only `merge-gate.py`'s own posture
 (now: silently skip if unrelated, deny naming the feature if matched) governs what a merge attempt
 sees. Not re-raising BUG-1080's already-dispositioned, separately-tracked backlog item (Q3 in that
-feature's QA notes) about `check-state.sh`'s YAML-tolerant parser accepting some strictly-invalid
+feature's QA notes) about `check-state.py`'s YAML-tolerant parser accepting some strictly-invalid
 JSON shapes that `validate-feature-json.py` would reject — different failure shape (comments/
 unquoted scalars vs. wrong JSON type), already recorded elsewhere.
 
 ### 4. Widened beyond the delta; discrimination proven against the parent, not asserted
 
-**Sibling PreToolUse gates re-checked** (`gh-close-gate.py`, `branch-create-gate.sh`,
+**Sibling PreToolUse gates re-checked** (`gh-close-gate.py`, `branch-create-gate.py`,
 `plan-sign-gate.py`): none replicate `feature_for`'s per-glob-match pattern (grepped for
 `glob.glob.*feature.json` and `isinstance(document` across the three files — no matches); the
 defect class stays specific to `merge-gate.py`'s own directory scan, as cycle 3 already established
@@ -162,7 +162,7 @@ duplication, no comment/code drift.
 |---|---|---|---|
 | F1 (cycle 3) | — | `merge-gate.py:104-106` | **Closed.** Verified fixed by execution (posture #3, §1) and by parent-vs-pinned divergence (§4). |
 | F2 (new) | MED | `merge-gate.py:131` (`feat` placeholder) + `merge-gate.py:69-72` (`local_branch`, unguarded `subprocess.run`) | A `git`-subprocess `OSError` (binary missing/unspawnable) raised while resolving the head branch, combined with an already-failed `gh` lookup, denies a merge for a feature that owes nothing, with the same un-interpolated "this feature" reason cycle 3 found — reproduced by execution with `PATH` stripped of `git`. Bounded reachability: needs a degraded execution environment, not attacker/record-controllable. |
-| F3 (info) | none | `post-merge-sweep.sh:213-218` | A valid-JSON-non-dict `feature.json` is not caught by the narrow `except (OSError, json.JSONDecodeError)`, but the caller's per-record `except Exception` (`:279-283`) reports it generically and keeps the worktree (safe direction) — noted for completeness, not a defect. |
+| F3 (info) | none | `post-merge-sweep.py:213-218` | A valid-JSON-non-dict `feature.json` is not caught by the narrow `except (OSError, json.JSONDecodeError)`, but the caller's per-record `except Exception` (`:279-283`) reports it generically and keeps the worktree (safe direction) — noted for completeness, not a defect. |
 
 `must_fix: []`. `severity_max: med` does not gate (protocol: `must_fix` empty and `severity_max <
 high`).

@@ -9,7 +9,7 @@
 
 Revised in place on the operator's re-scope of 2026-09-08, amended on their three signature
 conditions, signed 2026-09-09, and built out. SHIP-READY at `review_sha` 8ff5197f, pushed, with
-ZERO `check-state.sh` violations.
+ZERO `check-state.py` violations.
 
 Onboarding is now two artifacts: `harness-init`, a six-step fresh-checkout procedure with no CLI
 version check, and `harness-add-repo`, a three-step provider-neutral registration skill. `.omp/commands/`

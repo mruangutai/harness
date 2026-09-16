@@ -1,7 +1,7 @@
 # Handoff — BUG-201-depends-on-integrity, plan → build — written at b44005a8, seq-1
 
 <!-- BACKFILLED 2026-09-08, not written at the seam. The seam write was refused at the time
-     by check-domain.sh's handoff shape rel, which discarded the worktree root and looked for
+     by check-domain.py's handoff shape rel, which discarded the worktree root and looked for
      every Authority pointer in the main checkout, where an unmerged feature dir does not
      exist. That defect was BUG-1480, shipped in PR #1497; this note is written from the
      worktree the moment the fix made it possible. The record says so rather than pretending

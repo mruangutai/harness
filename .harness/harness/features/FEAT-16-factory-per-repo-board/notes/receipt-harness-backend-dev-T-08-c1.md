@@ -130,11 +130,11 @@ $ grep -n 'def station(' .claude/skills/harness/bin/factory_config.py
 (no output — exit 1)
 ```
 
-## Verify — clause 1: `run-unit-tests.sh --kind unit`
+## Verify — clause 1: `run-unit-tests.py --kind unit`
 
 Invocation:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Verbatim output (final run, on the final files, after the mutation-proof restore):
@@ -902,11 +902,11 @@ PASS test-validate-feature-json.py
 
 Exit code: 0
 
-## Verify — clause 2: `run-unit-tests.sh --kind integration`
+## Verify — clause 2: `run-unit-tests.py --kind integration`
 
 Invocation:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Verbatim output (final run, on the final files, after the mutation-proof restore):
@@ -1108,7 +1108,7 @@ ok - case (m3): a decoy entry does not let a narrowed PostToolUse registration t
 ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
 ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
 ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
-ok - case (o): check-domain.sh, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated budget, key and heading
 ok - case (p/over): CLAUDE.md at 81 lines -> INV-23 fires (want fires)
 ok - case (p/at the budget): CLAUDE.md at 80 lines -> INV-23 silent (want silent)
 ok - case (p/warn): the CLAUDE.md finding is a `note`, not a `VIOLATION` — warn level, so it cannot halt /harness entry
@@ -1669,7 +1669,7 @@ checkout carries its own copy of it **and** its own `factory_config.py`, so `git
 pair an old loader with a new fleet. What *can* is a **mixed invocation** — a `factory_config.py`
 from before FEAT-16 T-01 resolving a fleet path that lands on a post-T-07 `fleet.yaml`, whether by
 an explicit `--fleet` flag or by running the tool from one checkout against another checkout's
-tree. There, `load_fleet` raises and `check-domain.sh` fails CLOSED on every governed write in
+tree. There, `load_fleet` raises and `check-domain.py` fails CLOSED on every governed write in
 that checkout. **This is expected, not a defect.** The recovery is to rebase that checkout past
 this task (T-08) — never to edit the fleet back to carrying a top-level `board:` block, which
 T-08 now rejects outright. If you hit a fail-closed guard here, diagnose it as a stale checkout

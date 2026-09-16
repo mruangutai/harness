@@ -167,9 +167,9 @@ diff hunks directly (see hunk headers `@@ -139,6 +140,277 @@ def compute_union(.
 ## 8. Both suites
 
 ```
-$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
 exit=0, ^FAIL  count=0, pool: 8 workers, 28 files, 3.81s wall
-$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration
 exit=0, ^FAIL  count=0, pool: 8 workers, 46 files, 62.60s wall
 ```
 Both match baseline (28 unit files / 46 integration files).

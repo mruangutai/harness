@@ -33,8 +33,8 @@ File changed: `tests/integration/test-run-unit-tests-layout.py` (only file touch
   5. untracked control (rogue written, never `git add`ed): `returncode == 0`, both sentinels run.
 
 ## Ordering-guarantee mutation proof (not part of the file; throwaway script, discarded)
-Built a temp copy of the fixture tree, patched a COPY of `run-unit-tests.sh` (never the real
-file — confirmed via `git status --porcelain -- .claude/skills/harness/bin/run-unit-tests.sh`
+Built a temp copy of the fixture tree, patched a COPY of `run-unit-tests.py` (never the real
+file — confirmed via `git status --porcelain -- .claude/skills/harness/bin/run-unit-tests.py`
 returning empty afterward) to suppress the layout early-exit, simulating a fail-open reordering
 defect. Reran case 2's exact predicate against that mutant:
 ```

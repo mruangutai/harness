@@ -26,7 +26,7 @@ A hard failure (AttributeError), not a passing-vacuously run — RED-CAPABILITY 
 Added `product_config_report(fleet)` immediately after `product_config` and before `board_for` in
 `factory_config.py`; added `--check-product-configs` and `--repo` to `_main()`, delegating to a
 new `_check_product_configs(fleet, repo_name)` helper; added `import sys` (module previously had
-none). No `check-state.sh`/invariant change — a comment on the new flag states why, naming the
+none). No `check-state.py`/invariant change — a comment on the new flag states why, naming the
 board-audit once-at-onboarding precedent, per the intent.
 
 ## 3. Verify — run exactly as specified (env -u HARNESS_AGENT_TYPE prefix only permitted deviation)

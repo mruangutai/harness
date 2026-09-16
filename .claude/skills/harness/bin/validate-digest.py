@@ -29,6 +29,7 @@ import sys, re, os, json, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
+import artifact_accessors
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
@@ -840,9 +841,8 @@ def _load_test_kinds(root):
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path, encoding="utf-8") as handle:
-            doc = json.load(handle)
-    except (OSError, ValueError) as exc:
+        doc = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError as exc:
         return None, (_GRADE_PREFIX + f"{path} could not be read ({exc}), so this "
                       f"checkout's grade bars are unknown — repair harness.json "
                       f"and rerun.")
@@ -1024,9 +1024,8 @@ def _read_review_sha(feature_dir):
     unpinned (DEC-121/INV-6 placeholder vocabulary)."""
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        with open(fj_path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError) as e:
+        doc = artifact_accessors.load_feature_json(fj_path)
+    except Exception as e:
         return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
                        f"could not be read ({e}), so the claim is not trusted.")
     sha = doc.get("review_sha") if isinstance(doc, dict) else None
@@ -1050,9 +1049,8 @@ def _read_feature_branch(feature_dir):
     """
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        with open(fj_path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
+        doc = artifact_accessors.load_feature_json(fj_path)
+    except Exception:
         return None
     branch = doc.get("branch") if isinstance(doc, dict) else None
     if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
@@ -1141,7 +1139,7 @@ def _resolve_plan_review_path(reviewed):
 
 def _pending_plan_status_error(plan_path):
     try:
-        plan = harness_yaml.load_file(plan_path)
+        plan = artifact_accessors.load_plan(plan_path)
     except Exception as exc:
         return f"reviewed plan target {plan_path!r} could not be read ({exc})."
     approval = plan.get("approval") if isinstance(plan, dict) else None
@@ -1157,9 +1155,8 @@ def _pinned_feature_review_error(feature_dir):
     if not os.path.exists(feature_json):
         return None
     try:
-        with open(feature_json, encoding="utf-8") as handle:
-            feature = json.load(handle)
-    except (OSError, ValueError) as exc:
+        feature = artifact_accessors.load_feature_json(feature_json)
+    except Exception as exc:
         return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
     review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
     if not isinstance(review_sha, str) \
@@ -1824,7 +1821,7 @@ def _resolve_run_unit_tests_bin(payload):
     A NAMED FEATURE MUST RESOLVE TO ITS OWN CHECKOUT, OR NOT AT ALL (code review of
     #1185). check_artifact_file's owner_root/feature_root pattern falls back to
     owner_root on any lookup failure, and that is safe THERE because a wrong root
-    means the specific run digest simply 404s, loudly. run-unit-tests.sh is a static,
+    means the specific run digest simply 404s, loudly. run-unit-tests.py is a static,
     always-present path: a wrong-root fallback here never 404s, it just silently
     re-runs the suite against the WRONG checkout and reports that mismatched result as
     though it verified the claim — reproducing #919's exact failure mode inside the
@@ -1851,7 +1848,7 @@ def _resolve_run_unit_tests_bin(payload):
     if not base:
         return None
     return os.path.join(base, ".claude", "skills", "harness", "bin",
-                        "run-unit-tests.sh")
+                        "run-unit-tests.py")
 
 
 def _reverify_suite(run_bin):
@@ -1883,7 +1880,7 @@ def check_qa_matrix_claim(agent, text, payload):
     claimed failure buys nothing this hook is positioned to check for free.
 
     FAIL OPEN, LOUDLY when the suite cannot be located or run at all (missing root,
-    missing script, a spawn OSError, a timeout) — check-domain.sh's precedent: a hook
+    missing script, a spawn OSError, a timeout) — check-domain.py's precedent: a hook
     whose own execution environment is broken must never be the reason a legitimate qa
     return is blocked. FAIL CLOSED when the suite DOES run and disagrees with the
     claim — that disagreement is exactly the gap #919 exists to close.
@@ -1900,7 +1897,7 @@ def check_qa_matrix_claim(agent, text, payload):
     if result.returncode == 0:
         return 0
     print(f"{agent} reported VERDICT: PASS with suite: pass and matrix_ok: true, but "
-          f"an independent re-run of run-unit-tests.sh at this checkout exited "
+          f"an independent re-run of run-unit-tests.py at this checkout exited "
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
           f"it is genuinely green. Tail of the independent run:", file=sys.stderr)
@@ -1931,13 +1928,14 @@ def hook_mode():
     2. `stop_hook_active`. Set when we are already re-running because a stop hook
        blocked. Blocking again is an infinite loop with no operator escape.
     3. Our own failure — unreadable payload, unknown persona, an exception. We
-       fail OPEN and say so on stderr. check-domain.sh set this precedent for the
+       fail OPEN and say so on stderr. check-domain.py set this precedent for the
        same reason: a hook that blocks on its own bug wedges every agent in every
        project the moment a payload shape changes. Blocking is for THEIR contract
        violation, never ours.
     """
     try:
-        d = json.load(sys.stdin)
+        d = artifact_accessors.read_hook_payload(
+            sys.stdin.read(), "SubagentStop hook payload")
     except Exception as e:
         print(f"check-digest: unreadable hook payload ({e}) — passing through.", file=sys.stderr)
         return 0
@@ -1979,7 +1977,7 @@ def hook_mode():
     if _reg is not None:
         # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
         # the payload cwd. The old note here said cwd had to come first so this released from
-        # the same registry dispatch-guard.sh wrote to — but that guard now takes its root
+        # the same registry dispatch-guard.py wrote to — but that guard now takes its root
         # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
         # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
         # which is why it was never a root.
@@ -2112,7 +2110,7 @@ def hook_mode():
               f"blocking on our own gap.", file=sys.stderr)
         return 0
 
-    # Fail OPEN, LOUDLY on our own bug (check-domain.sh's precedent) — never crash
+    # Fail OPEN, LOUDLY on our own bug (check-domain.py's precedent) — never crash
     # to an ambiguous exit. Before this, any exception raised inside `validate()`
     # (e.g. the enum/list TypeError above, pre-fix) propagated uncaught, exited 1,
     # and — because only exit 2 blocks (DEC-100/DEC-122) — the digest shipped

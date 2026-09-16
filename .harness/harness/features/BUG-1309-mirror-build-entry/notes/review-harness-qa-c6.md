@@ -9,13 +9,13 @@ One pre-existing (not new at this pin) wording defect found by hand: the DEC-138
 misleading, not decision-wrong, when the local record is HELD during a remote-read failure.
 
 ## 1. Matrix re-run
-`merge-gate.py`/`merge-gate.sh` is task T-05, `change_type: feature` (plan.yaml:873). Floor from
+`merge-gate.py`/`merge-gate.py` is task T-05, `change_type: feature` (plan.yaml:873). Floor from
 `.harness/harness.json:191-195` (`feature.always`): `unit`, `integration`.
 
 | kind | cmd | exit | discovered |
 |---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 33 files, all PASS (no FAIL/ERROR lines) |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 50 files, all PASS; `test-merge-gate.py` exit 0, 19/19 `ok`, `ALL PASSED` |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 33 files, all PASS (no FAIL/ERROR lines) |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 50 files, all PASS; `test-merge-gate.py` exit 0, 19/19 `ok`, `ALL PASSED` |
 
 Both runs `env -u HARNESS_AGENT_TYPE`ed per repo Expertise G-07. Non-empty discovered set on both
 (not an exit-0-over-nothing false pass). **matrix_ok: true.**
@@ -70,7 +70,7 @@ unrelated malformed record`, whose fixture no longer makes the retargeted record
 the *own-record-is-malformed* pair genuinely dropped out of the suite when the fixture was
 repurposed. Also unbound: REMOTE=fail × RECEIPT=held (only REMOTE=fail × RECEIPT=owed is tested).
 
-Constructed by hand against `merge-gate.sh` via `HARNESS_PROJECT_DIR` (same harness the suite
+Constructed by hand against `merge-gate.py` via `HARNESS_PROJECT_DIR` (same harness the suite
 uses), disposable fixtures under `/tmp` (script not committed):
 
 | Constructed pair | Observed | Verdict |

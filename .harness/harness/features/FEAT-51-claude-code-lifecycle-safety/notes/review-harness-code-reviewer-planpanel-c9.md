@@ -100,7 +100,7 @@ by SC-12's withdrawal.
 | SC-06 | T-04 | adopt/discard/list CLI + sha256 no-op proof |
 | SC-07 | T-02, T-03, T-07 | OMP discrimination cases (case 33, check-domain OMP label, plan-sign-gate OMP label); the `check-omp-port.py`/`.omp/agents/*.md`/`--kind` clauses are pre-existing invariants outside all 21 target files — correctly not owned by any task, verified directly at SC-grading time, not a gap |
 | SC-08 | T-05 | content + reviewer inspection (verify: inspection) |
-| SC-09 | T-06 + T-08 | T-06 writes the entry, T-08 supplies the per-clause assertions in `run-unit-tests.sh` `INTEGRATION_SCRIPTS` — see finding below |
+| SC-09 | T-06 + T-08 | T-06 writes the entry, T-08 supplies the per-clause assertions in `run-unit-tests.py` `INTEGRATION_SCRIPTS` — see finding below |
 | SC-10 | T-05 (conduct) | verify: uat, operator-run, correctly unowned by any task's automated verify |
 | SC-11 | T-07 | exact match to T-07's four/nine labels |
 | SC-13 | T-10 | exact match, one-to-one |
@@ -168,7 +168,7 @@ worth a note so nobody downstream treats "two" as a bound on how many `:NNNN` va
    despite D-15 saying it supersedes exactly those bullets.** `plan.yaml:600-652` (T-06's `intent:`)
    states "it carries exactly these claims" over a closed 8-bullet list. Grepped that intent text in
    isolation (not the surrounding `verify:`/decisions): **zero** occurrences of `plan-sign-gate`,
-   `Bash`, `PreToolUse`, or `D-15`. Bullet 3 still reads "…refused at the check-domain.sh Write gate
+   `Bash`, `PreToolUse`, or `D-15`. Bullet 3 still reads "…refused at the check-domain.py Write gate
    on the canonical artifacts…" and bullet 4 still begins "The four canonical artifacts are
    plan.yaml, BRIEF.md, feature.json and STATE.md" — these are, near-verbatim, the exact two bullets
    D-15 (`plan.yaml:205-208`) names as the ones it "SUPERSEDES," because (D-15's own `because:`
@@ -181,10 +181,10 @@ worth a note so nobody downstream treats "two" as a bound on how many `:NNNN` va
    never names) ships a DEC-210 entry that fails T-06's own `verify:` (the `plan-sign-gate\.sh` grep,
    confirmed absent today), fails SC-09, and fails all three of T-08's new guard tests — forcing at
    least one redo cycle, and risking a documentor "gaming" the grep by inserting the bare string
-   `plan-sign-gate.sh` without the semantic content D-15/T-08 actually require (T-08's sentence-
+   `plan-sign-gate.py` without the semantic content D-15/T-08 actually require (T-08's sentence-
    adjacency check on `plan.yaml`+`plan-merge.py` mitigates this specific risk, but the general
    confusion of a self-contradicting task spec remains). **This is adjacent to but distinct from the
-   dispatch's already-ruled item 3** ("T-06's `verify:` greps… BOTH `plan-sign-gate.sh` and
+   dispatch's already-ruled item 3** ("T-06's `verify:` greps… BOTH `plan-sign-gate.py` and
    `plan-merge.py`") — that item closed the *gate*; it did not touch the *intent text* the gate is
    meant to validate against, so the underlying inconsistency D-15 names is still live in the
    artifact. Not `must_fix` on its own (the gate genuinely blocks a bad ship), but worth a line-edit

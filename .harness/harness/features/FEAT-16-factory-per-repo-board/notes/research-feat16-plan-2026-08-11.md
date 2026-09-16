@@ -17,7 +17,7 @@ gate evidence had never been FEAT-16's.
 | T-07's four-option, `sort`ed name clause | "Verifies proved rather than asserted" below — six names, board order, no `sort` |
 
 **What DID hold and is unchanged:** the architecture, the DAG, the three-phase migration walk, the
-per-repository schema, MF-1..MF-6, and every `check-domain.sh --resolve` resolution.
+per-repository schema, MF-1..MF-6, and every `check-domain.py --resolve` resolution.
 
 ## BLUF — cycle 2
 
@@ -154,7 +154,7 @@ reviewer corrected its own A-9 and the mitigation is kept either way).
   instead, which is where a chosen-not-accidental ordering belongs.
 
 **A-4's trap, resolved by measurement, and the operator's framing was slightly off:** `--kind all`
-**is** runnable (`run-unit-tests.sh:33` accepts `all` and it is the default), but it is the `cmd` of
+**is** runnable (`run-unit-tests.py:33` accepts `all` and it is the default), but it is the `cmd` of
 **no** entry in `.harness/harness.json`'s `test_kinds` — so no criterion could cite its output.
 T-08 therefore carries two clauses in one literal `|` block, `--kind unit` and `--kind integration`,
 which map 1:1 onto SC-08 and SC-09.
@@ -196,10 +196,10 @@ one board **per repository**, plus the **index row** (which T-10 does rewrite in
   `d97f5ea`.
 - **`d97f5ea` exists but is NOT an ancestor of HEAD** (`git merge-base --is-ancestor` → 1). It is
   *"A filesystem root as workspace_root is rejected at load, not obeyed by the guard"*, off this
-  line. `git diff d97f5ea a29ad06` over `check-domain.sh` and `check-state.sh` is **empty**, so
+  line. `git diff d97f5ea a29ad06` over `check-domain.py` and `check-state.py` is **empty**, so
   D-06's claim is unaffected — but D-06 is now re-anchored at `a29ad06`, where I re-read it:
-  `check-domain.sh` reads `workspace_root` and `repos[].name` only and never `board`;
-  `check-state.sh` INV-24 reads the fleet with `harness_yaml.load_file` (`:768`), not `load_fleet`.
+  `check-domain.py` reads `workspace_root` and `repos[].name` only and never `board`;
+  `check-state.py` INV-24 reads the fleet with `harness_yaml.load_file` (`:768`), not `load_fleet`.
 - **SC-03's board measurement stays pinned at `d97f5ea` / 2026-08-11** by operator instruction. The
   option ids and item counts were measured live, not derived from the tree, so the sha is a
   timestamp for them rather than a code anchor — but it is a sha a reader cannot `git show` from
@@ -233,10 +233,10 @@ next reader to the wrong answer, so the ids below are the answers file's.
   indeed untracked (`git status --porcelain` reports `??`, still true), but with 0 violations there
   is nothing for a commit to turn red.
 
-**Settled this cycle, no longer open:** T-06's lane. It stays `team` — `check-domain.sh` is
+**Settled this cycle, no longer open:** T-06's lane. It stays `team` — `check-domain.py` is
 untouched and reads no board, so what remains is a review problem, not a lane problem.
 
-## Gate 1 — check-domain.sh --resolve on every literal `files:` path (verbatim, cycle 2, re-run)
+## Gate 1 — check-domain.py --resolve on every literal `files:` path (verbatim, cycle 2, re-run)
 
 **CORRECTED at the 2026-08-11 re-baseline.** An earlier version of this lead-in read "Paths did not
 change this cycle; identical to cycle 1." They did change afterwards: T-07's two capture entries
@@ -245,82 +245,82 @@ one path was re-resolved on 2026-08-11 (`harness-orchestrator`, exit 0) and is p
 of the two it replaced; every other resolution is unchanged and was re-run.
 
 ```
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/factory_config.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/factory_config.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-factory-config.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-factory-config.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/factory_claim.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/factory_claim.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-factory-claim.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-factory-claim.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/factory_decompose.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/factory_decompose.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-factory-decompose.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-factory-decompose.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/factory_land.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/factory_land.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-factory-land.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-factory-land.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-factory-integration.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-factory-integration.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-check-domain.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-check-domain.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .harness/factory/fleet.yaml
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .harness/factory/fleet.yaml
 NOBODY
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
 harness-orchestrator
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-no-distribution.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-no-distribution.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve docs/harness/DECISIONS.md
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve docs/harness/DECISIONS.md
 harness-documentor
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve docs/harness/DECISIONS-INDEX.md
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve docs/harness/DECISIONS-INDEX.md
 harness-documentor
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve docs/harness/SPEC.md
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve docs/harness/SPEC.md
 harness-documentor
 (exit 0)
 
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/test-factory-workspace.py
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/test-factory-workspace.py
 harness-backend-dev
 harness-dev-ops
 (exit 0)

@@ -30,46 +30,46 @@ lanes:
     - surface: .claude/skills/harness/bin/gh-sync.py
       lane: team
       agent: harness-backend-dev
-      reason: resolved by check-domain.sh to harness-backend-dev and harness-dev-ops; the recording and recovery behaviour is mirror work, not a refusal
+      reason: resolved by check-domain.py to harness-backend-dev and harness-dev-ops; the recording and recovery behaviour is mirror work, not a refusal
     - surface: .claude/skills/harness/bin/gh-sync.py start-task refusal
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - the branch placed here IS the Build refusal mechanism, so it is a gate whatever file hosts it
     - surface: .claude/skills/harness/bin/feature-schema.json
       lane: team
       agent: harness-backend-dev
-      reason: resolved by check-domain.sh to harness-backend-dev and harness-dev-ops; a data declaration, not an enforcement path
-    - surface: .claude/skills/harness/bin/check-state.sh
+      reason: resolved by check-domain.py to harness-backend-dev and harness-dev-ops; a data declaration, not an enforcement path
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
-      reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and its own invariant is the artifact doing the checking
-    - surface: .claude/skills/harness/bin/post-merge-sweep.sh
+      reason: DEC-174 enforcement carve-out - check-state.py is the state validator, and its own invariant is the artifact doing the checking
+    - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - the post-merge hook driver decides whether evidence of a failed ship is destroyed
-    - surface: .claude/skills/harness/bin/merge-gate.sh and merge-gate.py
+    - surface: .claude/skills/harness/bin/merge-gate.py and merge-gate.py
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script
     - surface: .claude/settings.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the hook registration surface (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY, and it is the hook registration surface (DEC-179)
     - surface: .claude/skills/harness/templates/settings.snippet.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the installed hook registration template (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY, and it is the installed hook registration template (DEC-179)
     - surface: .omp/extensions/harness-hooks.ts
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the OMP host's bash-gate list - the surface BUG-1132 records as the only enforcement path under OMP
+      reason: check-domain.py --resolve returns NOBODY, and it is the OMP host's bash-gate list - the surface BUG-1132 records as the only enforcement path under OMP
     - surface: .claude/skills/harness/references/github-mirror.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY (DEC-179)
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY (DEC-179)
     - surface: .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md
       lane: team
       agent: harness-documentor
-      reason: resolved by check-domain.sh to harness-documentor
+      reason: resolved by check-domain.py to harness-documentor
     - surface: tests/integration/test-gh-sync.py and tests/integration/test-validate-feature-json.py
       lane: team
       agent: harness-backend-dev
-      reason: resolved by check-domain.sh to harness-backend-dev, harness-dev-ops and harness-qa; these exercise mirror behaviour, not a gate
+      reason: resolved by check-domain.py to harness-backend-dev, harness-dev-ops and harness-qa; these exercise mirror behaviour, not a gate
     - surface: tests/integration/test-check-state.py, tests/integration/test-post-merge-sweep.py, tests/integration/test-merge-gate.py, tests/unit/omp-hooks.test.ts
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - each gate's own test is inside the carve-out with the gate
@@ -97,15 +97,15 @@ decisions:
     dec: none
   - id: D-06
     choice: The Build refusal lives in gh-sync.py cmd_start_task, which every task start already runs, and refuses with exit 2 rather than skipping with exit 0.
-    because: start-task is the one chokepoint every team and main-session task passes through at build time, and skip exits 0, which is exactly the signal post-merge-sweep.sh already documents as unsafe to read as success.
+    because: start-task is the one chokepoint every team and main-session task passes through at build time, and skip exits 0, which is exactly the signal post-merge-sweep.py already documents as unsafe to read as success.
     dec: DEC-174
   - id: D-07
-    choice: The merge refusal is a new registered PreToolUse Bash gate, merge-gate.sh plus merge-gate.py, modelled on gh-close-gate; it decides on the LOCAL feature.json receipt alone and FAILS OPEN on a GitHub read failure - when the head branch cannot be resolved through gh it falls back to the local current branch, denies only if that resolves to a feature owing a receipt, and otherwise allows the merge at exit 0 with one stderr line saying it could not verify and why.
-    because: GitHub is a mirror, never a gate - gh absent or unauthenticated means the flow succeeds and reports the sync skipped (DEC-138, DECISIONS.md:2948-2952) - and the stated intent puts changing the user-gated merge policy out of scope. Denying on a failed read would deny every gh pr merge in the repo during an outage, including for a feature recorded opened and for a PR matching no harness feature at all. A gate that cannot verify still says so, on stderr, which is the honest half of the posture branch-create-gate.sh takes over a LOCAL fact; the deny half cannot be carried over onto a remote one. Extending gh-close-gate.sh instead was rejected because its name would then lie about its subject.
+    choice: The merge refusal is a new registered PreToolUse Bash gate, merge-gate.py plus merge-gate.py, modelled on gh-close-gate; it decides on the LOCAL feature.json receipt alone and FAILS OPEN on a GitHub read failure - when the head branch cannot be resolved through gh it falls back to the local current branch, denies only if that resolves to a feature owing a receipt, and otherwise allows the merge at exit 0 with one stderr line saying it could not verify and why.
+    because: GitHub is a mirror, never a gate - gh absent or unauthenticated means the flow succeeds and reports the sync skipped (DEC-138, DECISIONS.md:2948-2952) - and the stated intent puts changing the user-gated merge policy out of scope. Denying on a failed read would deny every gh pr merge in the repo during an outage, including for a feature recorded opened and for a PR matching no harness feature at all. A gate that cannot verify still says so, on stderr, which is the honest half of the posture branch-create-gate.py takes over a LOCAL fact; the deny half cannot be carried over onto a remote one. Extending gh-close-gate.py instead was rejected because its name would then lie about its subject.
     dec: DEC-174
   - id: D-08
-    choice: 'The ONE frozen set BUILD_ENTRY_ERA_EXEMPT governs the three REFUSALS this change adds, and post-merge retention is keyed on something else. The three refusals - check-state.sh INV-37 (T-06), the gh-sync.py start-task Build refusal (T-04) and the merge-gate deny (T-05) - each skip a feature whose directory basename is in that set, so a legacy feature stays Build-allowed and merge-allowed and is recovered only by an explicit operator-approved recover-terminal. POST-MERGE RETENTION (T-07) keys on the RECORDED VALUE, not on era membership: an era feature whose github.build_entry key is ABSENT is swept normally, and ANY feature that RECORDS recovery-required is RETAINED, era or not. That set, and the station rule that reads it, live in feature_schema.py as BUILD_ENTRY_ERA_EXEMPT and recovery_command_for(feat_dir), the single source T-04, T-05, T-06 and T-07 all read; a second definition of either, anywhere, is a defect. recovery_command_for names recover-terminal for a feature in the era set, at station review or done, or carrying any task recorded done, and open otherwise.'
-    because: 'No existing feature.json carries the field, so an unguarded invariant would report roughly fifty violations on its first run and be muted by the operator within a day. Same shape as BUG-1071''s INV-32 era guard and feature_schema.RUNS_AGENT_EXEMPT. The exemption covers all three refusals, from one source, because the stated intent''s settled bullet 7 makes legacy recovery an explicit operator-approved act, so a refusal that FORCES that act is not the stated policy; and because blocking a legacy merge would change the user-gated merge policy the same intent fences off as out of scope. RETENTION IS DELIBERATELY DIFFERENT. Settled bullet 8 requires a feature under recovery while GitHub is unavailable to remain non-terminal and to KEEP its worktree until recovery and Ship BOTH succeed, so sweeping a feature that RECORDS recovery-required would delete the very checkout the operator''s own policy preserves - era membership excuses a feature that could not have a receipt, never one that has a bad one. The exemption still covers the ABSENT key for retention, which is why an era feature merged with no receipt is swept normally. The reason recorded here in the earlier draft - that an ungated retention would be refused downstream by check-state.sh INV-29 - is FALSE as measured, and is replaced rather than kept beside this one: worktree_terminal.py:389-394 classifies a standing worktree terminal ONLY when the LANDED plan.yaml carries top-level status done, and a feature owing a receipt never reaches that station, because cmd_ship''s no-recorded-milestone skip at gh-sync.py:1799-1800 returns before _record_pr at :1962 and before _record_station(feat_dir, done) at :1975. The guard that speaks to a terminal feature with no receipt is INV-37 (T-06), by design. The station rule has one home because four call sites choose between open and recover-terminal, and open on a feature whose work is already under way or finished creates the task-level historical mirror records the stated intent puts out of scope - merged-ness cannot discriminate that case, since a done-but-unmerged feature and a legacy mid-build one reach the forbidden act through the same call, and a second copy of the rule is where one of the four quietly keeps naming open.'
+    choice: 'The ONE frozen set BUILD_ENTRY_ERA_EXEMPT governs the three REFUSALS this change adds, and post-merge retention is keyed on something else. The three refusals - check-state.py INV-37 (T-06), the gh-sync.py start-task Build refusal (T-04) and the merge-gate deny (T-05) - each skip a feature whose directory basename is in that set, so a legacy feature stays Build-allowed and merge-allowed and is recovered only by an explicit operator-approved recover-terminal. POST-MERGE RETENTION (T-07) keys on the RECORDED VALUE, not on era membership: an era feature whose github.build_entry key is ABSENT is swept normally, and ANY feature that RECORDS recovery-required is RETAINED, era or not. That set, and the station rule that reads it, live in feature_schema.py as BUILD_ENTRY_ERA_EXEMPT and recovery_command_for(feat_dir), the single source T-04, T-05, T-06 and T-07 all read; a second definition of either, anywhere, is a defect. recovery_command_for names recover-terminal for a feature in the era set, at station review or done, or carrying any task recorded done, and open otherwise.'
+    because: 'No existing feature.json carries the field, so an unguarded invariant would report roughly fifty violations on its first run and be muted by the operator within a day. Same shape as BUG-1071''s INV-32 era guard and feature_schema.RUNS_AGENT_EXEMPT. The exemption covers all three refusals, from one source, because the stated intent''s settled bullet 7 makes legacy recovery an explicit operator-approved act, so a refusal that FORCES that act is not the stated policy; and because blocking a legacy merge would change the user-gated merge policy the same intent fences off as out of scope. RETENTION IS DELIBERATELY DIFFERENT. Settled bullet 8 requires a feature under recovery while GitHub is unavailable to remain non-terminal and to KEEP its worktree until recovery and Ship BOTH succeed, so sweeping a feature that RECORDS recovery-required would delete the very checkout the operator''s own policy preserves - era membership excuses a feature that could not have a receipt, never one that has a bad one. The exemption still covers the ABSENT key for retention, which is why an era feature merged with no receipt is swept normally. The reason recorded here in the earlier draft - that an ungated retention would be refused downstream by check-state.py INV-29 - is FALSE as measured, and is replaced rather than kept beside this one: worktree_terminal.py:389-394 classifies a standing worktree terminal ONLY when the LANDED plan.yaml carries top-level status done, and a feature owing a receipt never reaches that station, because cmd_ship''s no-recorded-milestone skip at gh-sync.py:1799-1800 returns before _record_pr at :1962 and before _record_station(feat_dir, done) at :1975. The guard that speaks to a terminal feature with no receipt is INV-37 (T-06), by design. The station rule has one home because four call sites choose between open and recover-terminal, and open on a feature whose work is already under way or finished creates the task-level historical mirror records the stated intent puts out of scope - merged-ness cannot discriminate that case, since a done-but-unmerged feature and a legacy mid-build one reach the forbidden act through the same call, and a second copy of the rule is where one of the four quietly keeps naming open.'
     dec: none
 
   - id: D-09
@@ -119,8 +119,8 @@ decisions:
       and BUILD_ENTRY_ERA_EXEMPT membership, and gh-sync.py's record_build_entry, load_recorded and
       save_recorded normalization, the skip record guard, _build_entry_preflight and the two
       recover-terminal report helpers - each asserted as a decision table the subprocess suites do not
-      enumerate. T-07's retention branch gets NO unit test: post-merge-sweep.sh executes it inside a
-      python3 -I - heredoc fed on stdin (post-merge-sweep.sh:29-293), so nothing can import it, and its
+      enumerate. T-07's retention branch gets NO unit test: post-merge-sweep.py executes it inside a
+      python3 -I - heredoc fed on stdin (post-merge-sweep.py:29-293), so nothing can import it, and its
       only unit-reachable input is the era set, which T-11 covers. That cell stays discharged by
       tests/integration/test-post-merge-sweep.py plus T-10's end-to-end case, and its DISPOSITION is
       D-12: the unit kind there is NOT-APPLICABLE, never an owed test recorded as a gap.
@@ -139,17 +139,17 @@ decisions:
   - id: D-11
     choice: |
       tests/integration/test-hooks-install.py is inside the DEC-174 enforcement carve-out, so its
-      repair is main-session-direct, even though check-domain.sh --resolve grants it to
+      repair is main-session-direct, even though check-domain.py --resolve grants it to
       harness-backend-dev, harness-dev-ops and harness-qa. A unit test of a helper module a gate
       merely imports - feature_schema's pure functions, gh-sync.py's recorders - is NOT in the
       carve-out and stays team. The line is EXERCISES A GATE, never IMPORTS A MODULE A GATE USES.
     because: |
       DECISIONS.md:4360-4363 places the test file of each gate inside the carve-out and states that
       the category governs and the enumeration only records it. Case (e) of that file runs a real git
-      merge through the tracked core.hooksPath post-merge shim and executes post-merge-sweep.sh end to
+      merge through the tracked core.hooksPath post-merge shim and executes post-merge-sweep.py end to
       end (test-hooks-install.py:388-432), which is the same subject this plan's own lanes row already
       routes main-session-direct for tests/integration/test-post-merge-sweep.py. --resolve grants team
-      for check-state.sh and post-merge-sweep.sh themselves, which is exactly why the carve-out rows in
+      for check-state.py and post-merge-sweep.py themselves, which is exactly why the carve-out rows in
       this plan override it, so a team grant cannot settle the question. The narrower reading is
       required because the wider one would pull tests/integration/test-gh-sync.py and
       test-validate-feature-json.py into the carve-out, and this plan's signed lanes rows place both in
@@ -162,8 +162,8 @@ decisions:
       it carries it across exactly three nodes: T-07's eight named cases, T-10's red-proof, and
       T-13's "not-applicable" case, which closes the one member of the retention allow-set none of
       T-07's eight cases reaches.
-      WHY IT IS UNOWNABLE, at source: post-merge-sweep.sh runs its ENTIRE Python body inside ONE
-      heredoc, python3 -I - fed on stdin, opened at post-merge-sweep.sh:29 and closed at :293, so
+      WHY IT IS UNOWNABLE, at source: post-merge-sweep.py runs its ENTIRE Python body inside ONE
+      heredoc, python3 -I - fed on stdin, opened at post-merge-sweep.py:29 and closed at :293, so
       the retention arm - the sync_enabled block at :221-228, whose retention test is the elif at
       :228 - is not importable, and NO tests/unit/** file can reach it without first extracting the
       body into a module. THE RETENTION TEST IS :228, the elif over the allow-set; :222 is only the
@@ -386,7 +386,7 @@ panel:
     defect and NOT a reader outcome, the same class the cycle-1 sentence above records.
     Cycle 2''s four summaries are the digest findings table''s finding column UNALTERED,
     which includes finding 2''s off-by-two citation of the sweep''s github.sync re-read
-    as post-merge-sweep.sh:216-217 when it is :214-215 (:216-217 is the feature.json
+    as post-merge-sweep.py:216-217 when it is :214-215 (:216-217 is the feature.json
     read); the lead re-derived that at source and the correction lives here and in
     the fix text, never inside the finding, because any alteration mints a different
     id.'
@@ -408,7 +408,7 @@ panel:
     severity: med
     reader: should-not-exist
     summary: "T-05's settings.json registration position is unsatisfiable: 'fourth\
-      \ entry after gh-close-gate.sh and before bash-write-guard.sh' (plan.yaml:688-689)\
+      \ entry after gh-close-gate.py and before bash-write-guard.py' (plan.yaml:688-689)\
       \ against a live array of branch-create, bash-write-guard, gh-close, plan-sign\
       \ (.claude/settings.json:32-45) \u2014 it would be a fifth entry and no index\
       \ satisfies both constraints; settings.snippet.json inherits it via 'the same\
@@ -418,7 +418,7 @@ panel:
   - id: PF-1aa3b36ca9f98cdaf25b30f16e72069f
     severity: med
     reader: should-not-exist
-    summary: T-05 builds merge-gate.sh/.py as a FIFTH standalone per-Bash-call gate
+    summary: T-05 builds merge-gate.py/.py as a FIFTH standalone per-Bash-call gate
       process when the existing tokenizing gate could host the rule; the only recorded
       reason not to consolidate is a file name, and the per-call cost was never shown
       to the operator
@@ -503,10 +503,10 @@ panel:
     reader: should-not-exist
     summary: "The unit-ruling note's \"four heredoc-hosted bin scripts\" recurrence\
       \ claim is false, so the repo-wide DEC-217 sibling its Q1 recommends should\
-      \ not be written on that evidence. `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62`\
+      \ not be written on that evidence. `gh-close-gate.py:59/:79` and `plan-sign-gate.py:43/:62`\
       \ say *\"THE DECISION LIVES IN A FILE, NOT A HEREDOC\"* and exec `.py` files\
-      \ \u2014 counter-examples, not instances. Only `post-merge-sweep.sh:29-293`\
-      \ and `bash-write-guard.sh:42` feed Python on stdin."
+      \ \u2014 counter-examples, not instances. Only `post-merge-sweep.py:29-293`\
+      \ and `bash-write-guard.py:42` feed Python on stdin."
     disposition: resolved
     resolved_by: .harness/harness/features/BUG-1309-mirror-build-entry/notes/research-BUG-1309-mirror-build-entry-unit-ruling.md
   - id: PF-14faae5d430e5c49df19e30751ad2784
@@ -516,7 +516,7 @@ panel:
       than what was proven: `"not-applicable"`, the third member of the retention
       allow-set, is exercised by none of T-07''s eight cases nor by T-10''s red-proof.
       Reachable when `github.sync` flips on between Build entry and merge (the sweep
-      re-reads `sync` at `post-merge-sweep.sh:216-217`).'
+      re-reads `sync` at `post-merge-sweep.py:216-217`).'
     disposition: resolved
     resolved_by: T-13
   - id: PF-98762207d33d7c905df8a1c0c410c33a
@@ -532,7 +532,7 @@ panel:
   - id: PF-67da25de71e5be289b53782778feed02
     severity: info
     reader: should-not-exist
-    summary: D-12 pins the retention test to `post-merge-sweep.sh:222`; the `elif`
+    summary: D-12 pins the retention test to `post-merge-sweep.py:222`; the `elif`
       is at `:228` and `:222` is the `entry =` read. Second inaccurate "verified at
       source" claim in the same note.
     disposition: resolved
@@ -800,18 +800,18 @@ tasks:
       On success, and as the last statement of the successful path,
       record_build_entry(feat_dir, "recovered-terminal"). If gh is unavailable the existing
       skip() funnel fires: nothing is recorded, the field stays absent, the feature stays
-      non-terminal, and post-merge-sweep.sh keeps the worktree (T-07). Do NOT special-case that.
+      non-terminal, and post-merge-sweep.py keeps the worktree (T-07). Do NOT special-case that.
 
       THE MESSAGE. In cmd_ship, the existing
         skip("no recorded milestone - nothing to close")
       becomes an actionable line naming both the cause and the fix, still through skip() and
-      still exit 0 so post-merge-sweep.sh's positive-signal gate keeps reading it as
+      still exit 0 so post-merge-sweep.py's positive-signal gate keeps reading it as
       not-proof-of-a-terminal-write:
         skip("no recorded milestone - this feature never completed a Build entry, so there is
         nothing to close. Run gh-sync.py recover-terminal <feature-dir> --yes to create the
         terminal receipt, then ship again.")
       with <feature-dir> interpolated as the real absolute path. Keep the literal prefix
-      "gh-sync: SKIP" that skip() emits: post-merge-sweep.sh greps for that exact substring.
+      "gh-sync: SKIP" that skip() emits: post-merge-sweep.py greps for that exact substring.
 
       Tests, written first and confirmed failing, in tests/integration/test-gh-sync.py against
       the fake gh.
@@ -920,7 +920,7 @@ tasks:
         open performs the forbidden act, so the word cannot appear even as a description.
 
         Use refuse(), NOT skip(): skip exits 0, and an exit-0 refusal is the exact signal
-        post-merge-sweep.sh already documents as unsafe to read as success.
+        post-merge-sweep.py already documents as unsafe to read as success.
       - "recovery-required": print ONE line to stderr and CONTINUE. This is the settled policy: a
         recorded temporary environmental mirror failure gates the merge, never Build. WHICH line is
         printed is decided FIRST by the era set, because T-05 ALLOWS the merge for an era feature and
@@ -1064,17 +1064,17 @@ tasks:
         0 for a task id absent from github.issues when build_entry is "opened".
 
   - id: T-05
-    title: Add merge-gate.sh, the PreToolUse Bash gate that refuses a merge while recovery is owed
+    title: Add merge-gate.py, the PreToolUse Bash gate that refuses a merge while recovery is owed
     traces: [REQ-07]
     change_type: feature
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script and its registration surfaces; check-domain.sh --resolve returns NOBODY for settings.json, settings.snippet.json and harness-hooks.ts
+    execution_reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script and its registration surfaces; check-domain.py --resolve returns NOBODY for settings.json, settings.snippet.json and harness-hooks.ts
     depends_on:
     - T-02
     - T-06
     status: done
     files:
-    - .claude/skills/harness/bin/merge-gate.sh
+    - .claude/skills/harness/bin/merge-gate.py
     - .claude/skills/harness/bin/merge-gate.py
     - .claude/settings.json
     - .claude/skills/harness/templates/settings.snippet.json
@@ -1096,17 +1096,17 @@ tasks:
       echo VERIFY-PASS
     intent: |
       A new PreToolUse Bash gate that refuses the operator's merge while a mirror receipt is
-      owed. Model it on gh-close-gate.sh plus gh-close-gate.py, which is the working precedent
+      owed. Model it on gh-close-gate.py plus gh-close-gate.py, which is the working precedent
       for this exact shape, and copy their structure rather than inventing one.
 
-      merge-gate.sh: resolve the harness root from the script's own directory through
+      merge-gate.py: resolve the harness root from the script's own directory through
       harness_boundary.resolve_root, refuse to run with exit 2 and a named message if no root
       resolves, then exec python3 "$(dirname "$0")/merge-gate.py" "$root". One interpreter
-      start, exactly as gh-close-gate.sh documents.
+      start, exactly as gh-close-gate.py documents.
 
       merge-gate.py, reading the hook JSON on stdin, taking the root as argv[1]:
       1. SELF-GATE. Read <root>/.harness/harness.json; if github.sync is not true, exit 0
-         immediately. Same posture as gh-close-gate.sh and branch-create-gate.sh.
+         immediately. Same posture as gh-close-gate.py and branch-create-gate.py.
       2. DETECT. Extract tool_input.command. Tokenize with the same technique plan-sign-gate.py
          uses - shlex, compare basenames, re-scan the argument of eval and bash -c, and fall
          back to a raw-text scan for a line that will not lex. A merge command is either a token
@@ -1186,7 +1186,7 @@ tasks:
            github.repo> --json headRefName -q .headRefName.
          - gh pr merge with no number: git -C <cwd> rev-parse --abbrev-ref HEAD.
          Use the GH_BIN environment override for the gh binary so the gate is testable offline,
-         exactly as branch-create-gate.sh does.
+         exactly as branch-create-gate.py does.
          THE GH ROUTE MAY FAIL - gh absent, unauthenticated, or GitHub unreachable. That is not a
          verdict. Fall back to the LOCAL resolution, git -C <cwd> rev-parse --abbrev-ref HEAD, and
          carry forward one flag saying the head branch is locally resolved rather than confirmed,
@@ -1251,7 +1251,7 @@ tasks:
            which the stated intent's out-of-scope line on the user-gated merge policy fences off.
            There is no branch in this script that denies on a read failure.
       6. DENY SHAPE. exit 0 plus the structured permissionDecision JSON on stdout, the same
-         object branch-create-gate.sh emits. The reason names the feature directory, the value
+         object branch-create-gate.py emits. The reason names the feature directory, the value
          found, and THE REMEDY THAT ACTUALLY CLEARS IT - and which remedy that is depends on
          whether github.repo is pinned, because with sync enabled and the repo left unpinned
          gh-sync.py open records nothing at all (D-09), so naming it there would send the operator
@@ -1277,7 +1277,7 @@ tasks:
          because none does. gh-sync.py open takes the "github.repo is not pinned" skip at
          gh-sync.py:247 and records nothing; /harness-init --upgrade is not a slash command but a
          MODE of the harness-init skill that runs upgrade-config.py, merge-settings.py and
-         merge-gitignore.sh, and upgrade-config.py merges the shipped template whose github block
+         merge-gitignore.py, and upgrade-config.py merges the shipped template whose github block
          is sync false / repo null, so it cannot pin a repo either. The repo is pinned only by the
          fresh-onboarding mirror interview or by hand. THIS REASON MUST THEREFORE CARRY NO "open"
          TOKEN IN ANY FORM - the same rule the era line at step 5 carries, and what makes the two
@@ -1309,8 +1309,8 @@ tasks:
       REGISTER IT IN FOUR PLACES, or it does not run. THE FOUR ARRAYS ARE IN FOUR DIFFERENT
       ORDERS, so register by NAMED NEIGHBOUR plus the constraint below, never by an ordinal: an
       ordinal is satisfied by a reshuffled array that breaks the intent.
-      THE CONSTRAINT: merge-gate.sh runs LAST among the Bash gates in every one of the four
-      arrays - after bash-write-guard.sh in particular. bash-write-guard.sh is the only registered
+      THE CONSTRAINT: merge-gate.py runs LAST among the Bash gates in every one of the four
+      arrays - after bash-write-guard.py in particular. bash-write-guard.py is the only registered
       gate whose subject can also match a merge command line: it reads the whole line textually for
       redirects, tee, cp, mv and rm, so "gh pr merge 7 --squash > /tmp/merge.log" is refused by BOTH
       gates. When two gates refuse one command the operator must be shown the write-guard's reason,
@@ -1328,23 +1328,23 @@ tasks:
       the position there is chosen so the three files and the omp-hooks ordering assertion can be
       diffed against one another.
       - .claude/settings.json, hooks.PreToolUse, the entry whose matcher is "Bash", its hooks array.
-        That array today holds FOUR entries in this order: branch-create-gate.sh,
-        bash-write-guard.sh, gh-close-gate.sh, plan-sign-gate.sh - so the new hook is the FIFTH
-        entry, not the fourth, and no index is both after gh-close-gate.sh and before
-        bash-write-guard.sh. Literal predecessor: the plan-sign-gate.sh entry. Literal successor:
-        NONE - merge-gate.sh is the final entry of that array;
+        That array today holds FOUR entries in this order: branch-create-gate.py,
+        bash-write-guard.py, gh-close-gate.py, plan-sign-gate.py - so the new hook is the FIFTH
+        entry, not the fourth, and no index is both after gh-close-gate.py and before
+        bash-write-guard.py. Literal predecessor: the plan-sign-gate.py entry. Literal successor:
+        NONE - merge-gate.py is the final entry of that array;
       - .claude/skills/harness/templates/settings.snippet.json, the same event and the same "Bash"
         matcher. THIS FILE'S ARRAY IS NOT settings.json's: it holds THREE entries -
-        branch-create-gate.sh, bash-write-guard.sh, plan-sign-gate.sh - and carries NO
-        gh-close-gate.sh entry at all, so "the same position" names nothing here. Literal
-        predecessor: the plan-sign-gate.sh entry. Literal successor: NONE - merge-gate.sh is the
+        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.py - and carries NO
+        gh-close-gate.py entry at all, so "the same position" names nothing here. Literal
+        predecessor: the plan-sign-gate.py entry. Literal successor: NONE - merge-gate.py is the
         fourth and final entry;
       - .omp/extensions/harness-hooks.ts, the firstBlock([...]) array of policyRunner calls inside
-        the toolName === "bash" branch. ITS ORDER IS DIFFERENT AGAIN: gh-close-gate.sh,
-        branch-create-gate.sh, bash-write-guard.sh, plan-sign-gate.sh. Literal predecessor: the
-        policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload) element. Literal successor: NONE -
-        merge-gate.sh is the fifth and final element. BUG-1132 records what omitting this file
-        costs: plan-sign-gate.sh was wired for native Claude Code and never ported here, so under
+        the toolName === "bash" branch. ITS ORDER IS DIFFERENT AGAIN: gh-close-gate.py,
+        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.py. Literal predecessor: the
+        policyRunner(ctx.cwd, "plan-sign-gate.py", [], payload) element. Literal successor: NONE -
+        merge-gate.py is the fifth and final element. BUG-1132 records what omitting this file
+        costs: plan-sign-gate.py was wired for native Claude Code and never ported here, so under
         OMP its enforcement did not exist at all.
       - .claude/skills/harness/bin/merge-settings.py, the HOOK_SPECS list - THE SITE THAT MAKES THIS
         GATE INSTALL INTO AN ONBOARDED PROJECT, and the one no other site substitutes for.
@@ -1354,27 +1354,27 @@ tasks:
         .claude/settings.json. The snippet is a ONE-WAY drift check only - HOOK_SPECS -> template,
         merge-settings.py lines ~232-246 - so an entry present in the snippet but ABSENT from HOOK_SPECS
         installs nowhere and is checked nowhere: the gate would then be live in the harness checkout
-        ALONE. APPEND it as the LAST element of HOOK_SPECS, after the bash-write-guard.sh entry,
+        ALONE. APPEND it as the LAST element of HOOK_SPECS, after the bash-write-guard.py entry,
         LITERALLY this element - four keys, and NO "args" key, because this gate takes none:
           {
               "event": "PreToolUse",
-              "script": "merge-gate.sh",
+              "script": "merge-gate.py",
               "matcher": "Bash",
               "why": "Mirror build-entry merge gate (DEC-138). Absent -> a merge lands while a "
                      "build-entry receipt is still owed, silently.",
           },
-        Last place is THE SAME ordering constraint stated above and not a second rule: merge-gate.sh
-        must run after bash-write-guard.sh so the write-guard's reason wins the overlapping refusal.
-        The element sitting last in HOOK_SPECS today, dispatch-guard.sh, carries matcher "Task|Agent"
+        Last place is THE SAME ordering constraint stated above and not a second rule: merge-gate.py
+        must run after bash-write-guard.py so the write-guard's reason wins the overlapping refusal.
+        The element sitting last in HOOK_SPECS today, dispatch-guard.py, carries matcher "Task|Agent"
         and is NOT a Bash gate, so appending AFTER it satisfies the constraint rather than violating it.
-        Register by named neighbour - after the bash-write-guard.sh entry, at the end of the list -
+        Register by named neighbour - after the bash-write-guard.py entry, at the end of the list -
         never by ordinal, the rule this task already carries for the other three sites.
 
       If a reshuffle has already moved these neighbours, satisfy THE CONSTRAINT - last in the array,
-      after bash-write-guard.sh - and not the names.
+      after bash-write-guard.py - and not the names.
 
-      OUT OF SCOPE, recorded here as one clause and NOT fixed by this task: gh-close-gate.sh and
-      plan-sign-gate.sh carry no HOOK_SPECS entry today, so both are installed in this checkout alone.
+      OUT OF SCOPE, recorded here as one clause and NOT fixed by this task: gh-close-gate.py and
+      plan-sign-gate.py carry no HOOK_SPECS entry today, so both are installed in this checkout alone.
       That is pre-existing, it is not this bug, no file is added to this task for it, and it is reported
       to the operator as backlog.
 
@@ -1434,14 +1434,14 @@ tasks:
           recorded value - assert the reason does NOT contain "could not" or the gh failure text,
           since the deny must read as grounded in the local record.
       - tests/unit/omp-hooks.test.ts: extend the existing gate-ordering assertion - the one that
-        today asserts gh-close-gate.sh before branch-create-gate.sh before bash-write-guard.sh -
-        with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.sh")
-        is greater than -1, greater than scripts.indexOf("bash-write-guard.sh"), and greater than
-        scripts.indexOf("plan-sign-gate.sh"). Assert the RELATION, never a literal index, so a
+        today asserts gh-close-gate.py before branch-create-gate.py before bash-write-guard.py -
+        with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.py")
+        is greater than -1, greater than scripts.indexOf("bash-write-guard.py"), and greater than
+        scripts.indexOf("plan-sign-gate.py"). Assert the RELATION, never a literal index, so a
         later reshuffle that keeps the constraint stays green and one that breaks it reddens.
 
       tests/integration/test-merge-settings.py exists but exercises hook_present generically against
-      check-domain.sh fixtures and enumerates no individual gate, so it is NOT a bed for this entry and
+      check-domain.py fixtures and enumerates no individual gate, so it is NOT a bed for this entry and
       no case is added there; merge-settings.py --check in this task's verify: is what asserts it.
 
       THE CASE NAMES BELOW ARE A CONTRACT, not labels: this task's verify: greps the runner's
@@ -1496,15 +1496,15 @@ tasks:
       to redden is reported as non-discriminating rather than kept.
 
   - id: T-06
-    title: Add check-state.sh INV-37 for a terminal feature with no Build-entry receipt
+    title: Add check-state.py INV-37 for a terminal feature with no Build-entry receipt
     traces: [REQ-10]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and the artifact under change is the artifact doing the checking
+    execution_reason: DEC-174 enforcement carve-out - check-state.py is the state validator, and the artifact under change is the artifact doing the checking
     depends_on: [T-01]
     status: done
     files:
-    - .claude/skills/harness/bin/check-state.sh
+    - .claude/skills/harness/bin/check-state.py
     - .claude/skills/harness/bin/feature_schema.py
     - tests/integration/test-check-state.py
     verify: |
@@ -1535,7 +1535,7 @@ tasks:
         names exactly ONE recovery command. WHICH command is chosen by the feature's OWN recorded
         station, never by whether it is merged, and the choice is made by calling the shared
         classifier this task adds - feature_schema.recovery_command_for(feat_dir) - never by a
-        station test written inside check-state.sh. Naming both commands is what this line must
+        station test written inside check-state.py. Naming both commands is what this line must
         not do: an operator reading "or recover-terminal if it is already merged" on a
         done-but-unmerged or legacy mid-build feature runs the bare open and creates exactly the
         historical task sub-issues the operator fenced off as out of scope.
@@ -1560,9 +1560,9 @@ tasks:
         command, never to decide whether the invariant fires.
 
       THE SHARED SOURCE (D-08). The era-exempt set and the station rule that reads it live in
-      .claude/skills/harness/bin/feature_schema.py, NOT in check-state.sh, because T-04
+      .claude/skills/harness/bin/feature_schema.py, NOT in check-state.py, because T-04
       (gh-sync.py) and T-05 (merge-gate.py) must read the same two things and a bash-local literal
-      cannot be read by either. check-state.sh already imports that module for INV-23 at :1345, so
+      cannot be read by either. check-state.py already imports that module for INV-23 at :1345, so
       this adds a name, not a mechanism. Add exactly two public names, beside RUNS_AGENT_EXEMPT:
 
         BUILD_ENTRY_ERA_EXEMPT - a frozen literal set of feature directory names, generated ONCE at
@@ -1599,11 +1599,11 @@ tasks:
       THE ERA SET HAS EXACTLY ONE DEFINITION: the symbol BUILD_ENTRY_ERA_EXEMPT in
       .claude/skills/harness/bin/feature_schema.py, which this task adds. This invariant, T-04's Build
       refusal, T-05's merge deny and T-07's post-merge retention gate all read that ONE symbol; a second
-      definition anywhere - a literal list, a re-derived glob, a copy in check-state.sh - is a DEFECT.
+      definition anywhere - a literal list, a re-derived glob, a copy in check-state.py - is a DEFECT.
 
       Tests, in tests/integration/test-check-state.py, following its existing fixture style, and
       the failing state must be demonstrated first - build the violating fixture, run the
-      pre-change check-state.sh against it, and confirm it reports NOTHING.
+      pre-change check-state.py against it, and confirm it reports NOTHING.
 
       THE CASE NAMES BELOW ARE A CONTRACT, not labels: this task's verify: greps the runner's
       per-case ok line, so a renamed or missing case fails the verify. Collect the new cases as
@@ -1663,13 +1663,13 @@ tasks:
     traces: [REQ-09, REQ-02]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - post-merge-sweep.sh is the post-merge hook driver and decides whether the last evidence of a failed ship is destroyed
+    execution_reason: DEC-174 enforcement carve-out - post-merge-sweep.py is the post-merge hook driver and decides whether the last evidence of a failed ship is destroyed
     depends_on:
     - T-03
     - T-06
     status: done
     files:
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
       - tests/integration/test-post-merge-sweep.py
     verify: |
       out=$(python3 tests/integration/test-post-merge-sweep.py) || exit 1
@@ -1685,7 +1685,7 @@ tasks:
       exits cleanly for another reason would delete the evidence.
 
       Add ONE positive check to the same function, placed AFTER the existing returncode gate
-      (post-merge-sweep.sh:188-191), the "gh-sync: SKIP" gate (:192-195) and the "gh-sync: FAILED"
+      (post-merge-sweep.py:188-191), the "gh-sync: SKIP" gate (:192-195) and the "gh-sync: FAILED"
       gate (:206-209), and BEFORE the feature-worktree.py remove call (:213-217), keeping their
       order and their messages unchanged. The block runs only when the project's
       .harness/harness.json github.sync is true; when it is false the sweep removes as it does
@@ -1720,7 +1720,7 @@ tasks:
       ABSENT build_entry could not have written a receipt, so it is swept; ANY feature that RECORDS
       "recovery-required" wrote that receipt itself, so it is retained, era or not. An earlier draft
       of this paragraph justified the gate by predicting that an ungated retention would be REFUSED
-      downstream by check-state.sh INV-29. THAT PREDICTION IS FALSE, measured at source:
+      downstream by check-state.py INV-29. THAT PREDICTION IS FALSE, measured at source:
       worktree_terminal.py:389-394 classifies a standing worktree terminal ONLY when the LANDED
       plan.yaml carries top-level status done, and a feature owing a mirror receipt never reaches
       that station, because cmd_ship's no-recorded-milestone skip at gh-sync.py:1799-1800 returns
@@ -1735,7 +1735,7 @@ tasks:
       AND FOR THE ERA CORPUS, SETTLED BULLET 8 IS DELIVERED BY THE GATES THAT ALREADY EXIST, not by
       this new check: a legacy feature under recovery while GitHub is unavailable records no
       milestone, so its ship prints "gh-sync: SKIP" or "gh-sync: FAILED" and the PRE-EXISTING gates
-      at post-merge-sweep.sh:192-195 and :206-209 keep the worktree and return BEFORE the new
+      at post-merge-sweep.py:192-195 and :206-209 keep the worktree and return BEFORE the new
       build-entry block - and therefore before the era gate inside it - is ever reached. The new
       check is the BACKSTOP for the one case those gates miss: a ship that exits cleanly having
       printed neither line, which is the shape every case below fakes.
@@ -1745,7 +1745,7 @@ tasks:
       Build refusal, T-05's merge deny and T-06's INV-37 all read that ONE symbol; a second
       definition anywhere - a literal list, a re-derived glob, a copy in this script - is a DEFECT.
       Reach it the way this file already reaches its siblings: sys.path.insert(0, BIN_DIR) is
-      already done at post-merge-sweep.sh:37, so add "import feature_schema" to the existing import
+      already done at post-merge-sweep.py:37, so add "import feature_schema" to the existing import
       block at :38-40.
 
       Read the JSON with json.load and treat an unreadable or unparseable feature.json as a
@@ -1820,7 +1820,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out reasoning does not apply, but check-domain.sh --resolve returns NOBODY for both files, so DEC-179 makes this a declared main-session step
+    execution_reason: DEC-174 enforcement carve-out reasoning does not apply, but check-domain.py --resolve returns NOBODY for both files, so DEC-179 makes this a declared main-session step
     depends_on: []
     status: done
     files:
@@ -1892,13 +1892,13 @@ tasks:
       gh-sync.py open and records feature.json github.build_entry as opened, recovery-required
       or not-applicable, with ABSENCE meaning no Build entry completed. Build refuses at
       gh-sync.py start-task when it is absent and proceeds on recovery-required, which instead
-      gates the merge through the registered PreToolUse Bash gate merge-gate.sh. A partial
+      gates the merge through the registered PreToolUse Bash gate merge-gate.py. A partial
       remote write and a caller or contract error record nothing, so both block Build. An
       already-merged sync-enabled feature whose mirror was never opened is recovered by
       gh-sync.py recover-terminal --yes, which creates the milestone and the parent and source
       issues only, never historical task sub-issues, and records recovered-terminal; while
-      GitHub is unavailable that recovery stays non-terminal and post-merge-sweep.sh keeps the
-      worktree. check-state.sh INV-37 reports a sync-enabled feature carrying no receipt even
+      GitHub is unavailable that recovery stays non-terminal and post-merge-sweep.py keeps the
+      worktree. check-state.py INV-37 reports a sync-enabled feature carrying no receipt even
       when its station is terminal and its task statuses are absent, bounded by a frozen
       era-exempt set.
 
@@ -1927,7 +1927,7 @@ tasks:
     - REQ-02
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out (D-11) - case (e) of test-hooks-install.py runs the tracked post-merge shim and post-merge-sweep.sh end to end, so it is a hook's own test; the category governs (DECISIONS.md:4360-4363)"
+    execution_reason: "DEC-174 carve-out (D-11) - case (e) of test-hooks-install.py runs the tracked post-merge shim and post-merge-sweep.py end to end, so it is a hook's own test; the category governs (DECISIONS.md:4360-4363)"
     depends_on: [T-07]
     status: done
     files:
@@ -1941,7 +1941,7 @@ tasks:
       echo VERIFY-PASS
     intent: |
       tests/integration/test-hooks-install.py case case_sc14_end_to_end_and_red_proof is RED at HEAD
-      and THE PRODUCTION CODE IS CORRECT. Do not touch post-merge-sweep.sh. The criterion this case
+      and THE PRODUCTION CODE IS CORRECT. Do not touch post-merge-sweep.py. The criterion this case
       grades is FEAT-34's SC-14, not one of this BRIEF's - BUG-1309's success criteria end at SC-10 -
       and the id stays in the case and assertion names because it is how a reader finds them in the
       test file. Do not weaken what that FEAT-34 criterion grades: that the tracked core.hooksPath
@@ -1952,7 +1952,7 @@ tasks:
       with _commit_feature(clone, f"FEAT-90-{label}-thing", "Done", milestone=9001). _commit_feature
       (:176-194) writes github = {"milestone": ...} and no build_entry, while _bootstrap_origin
       (:128-144) writes harness.json with github.sync true. T-07's retention branch
-      (post-merge-sweep.sh:221-233) therefore KEEPS the worktree - sync enabled, build_entry absent,
+      (post-merge-sweep.py:221-233) therefore KEEPS the worktree - sync enabled, build_entry absent,
       and the synthetic name FEAT-90-e-green-thing can never be in
       feature_schema.BUILD_ENTRY_ERA_EXEMPT. The fixture predates the field. Measured at plan time:
       exactly one FAIL in this file, the (e-green) SC-14 assertion, whole file 4.6s.
@@ -2083,7 +2083,7 @@ tasks:
       absent plan.yaml and BE-04's unparseable plan.yaml are unreachable (a valid plan.yaml is always
       written), BE-06's status done is not among its stations, BE-08's multi-task plan is unreachable
       (one task), BE-09's empty tasks list is unreachable (one task), and BE-10 is a property of the set
-      rather than of the function. BE-10 is also what post-merge-sweep.sh:223 and gh-sync.py:1361 both
+      rather than of the function. BE-10 is also what post-merge-sweep.py:223 and gh-sync.py:1361 both
       branch on, and what the stale merge fixture in tests/integration/test-hooks-install.py turned on -
       the SC-14 that fixture grades is FEAT-34's criterion, not this BRIEF's, which ends at SC-10. Do
       NOT assert the set's size or full membership: the comment at feature_schema.py:222-225 makes it a
@@ -2180,7 +2180,7 @@ tasks:
     traces: [REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - the edited line sits inside cmd_start_task's Build refusal preflight, the surface the plan's own lanes row "gh-sync.py start-task refusal" already places main-session-direct, and which T-04 carries; check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for the file itself, and the carve-out governs the refusal branch inside it
+    execution_reason: DEC-174 enforcement carve-out - the edited line sits inside cmd_start_task's Build refusal preflight, the surface the plan's own lanes row "gh-sync.py start-task refusal" already places main-session-direct, and which T-04 carries; check-domain.py --resolve returns harness-backend-dev and harness-dev-ops for the file itself, and the carve-out governs the refusal branch inside it
     depends_on: [T-04, T-06]
     status: done
     files:
@@ -2264,7 +2264,7 @@ tasks:
       echo VERIFY-PASS
     intent: |
       Close the one member of the post-merge sweep's retention allow-set that no test reaches.
-      This task is TEST-ONLY - change nothing in .claude/skills/harness/bin/post-merge-sweep.sh,
+      This task is TEST-ONLY - change nothing in .claude/skills/harness/bin/post-merge-sweep.py,
       and change no existing case.
 
       THE CASE, literally: a merged feature whose feature.json records
@@ -2292,7 +2292,7 @@ tasks:
       feature_schema.BUILD_ENTRY_ERA_EXEMPT cannot contain - a real feature directory name is IN
       that frozen set and would silently invert the case.
 
-      THE BRANCH UNDER TEST is the elif at post-merge-sweep.sh:228 - elif entry not in the set
+      THE BRANCH UNDER TEST is the elif at post-merge-sweep.py:228 - elif entry not in the set
       opened, not-applicable, recovered-terminal - and specifically its "not-applicable" member.
       :222 is only the entry = read that feeds that test, and :223 is the era-exempt gate above
       it. The row asserts the FALSE arm of :228 for a recorded "not-applicable", which falls
@@ -2300,7 +2300,7 @@ tasks:
 
       WHY THE STATE IS REACHABLE, and not dead code. The sweep re-reads the project's
       github.sync from the MAIN CHECKOUT's .harness/harness.json at merge time
-      (post-merge-sweep.sh:214-215), whereas "not-applicable" is written at Build entry by the
+      (post-merge-sweep.py:214-215), whereas "not-applicable" is written at Build entry by the
       sync-not-enabled skip (D-09). A project that flips github.sync ON between Build entry and
       merge therefore arrives at :228 with "not-applicable" recorded under enabled sync. That is
       the state this row pins, and it is why the case belongs in the sync-enabled table rather
@@ -2310,7 +2310,7 @@ tasks:
       already handles this state correctly, so the row is GREEN the moment it is written - this
       is a coverage gap found by panel c2, not a bug. Prove it discriminates instead, and record
       the proof in the return - temporarily delete the "not-applicable" member from the allow-set
-      literal at post-merge-sweep.sh:228, re-run the bed, confirm the new row alone reddens while
+      literal at post-merge-sweep.py:228, re-run the bed, confirm the new row alone reddens while
       the eight T-07 rows stay green, then RESTORE the literal and re-run to confirm the file is
       byte-identical to HEAD and the bed is fully green. A row no mutation can redden is vacuous
       and must be reported rather than kept.

@@ -12,7 +12,7 @@ audit (REQ-01..08 × T-01..T-10 × SC-01..09) is clean: every REQ has ≥1 traci
 traces a live REQ, every SC has exactly one producing task, no orphan or dangling reference found.
 `depends_on` is acyclic and matches the ordering claims in T-02's/T-10's intent bodies and the
 DEC-171 BRIEF paragraph verbatim (T-10 depends on T-03; T-08 depends on `[T-02,T-03,T-05,T-06,T-09,
-T-10]` exactly as T-02's intent quotes it). T-10's `files:` correctly declares the `check-state.sh`
+T-10]` exactly as T-02's intent quotes it). T-10's `files:` correctly declares the `check-state.py`
 region it supersedes from T-03, so that specific dispatch concern is clean.
 
 ## Findings
@@ -20,7 +20,7 @@ region it supersedes from T-03, so that specific dispatch concern is clean.
 ### F-01 · high · T-09's acquisition refusal blocks the true owner recreating its own lost checkpoint — REQ-01's "never refused" claim is narrower than stated
 
 T-09 denies whenever `marker is not None AND prior_unreadable is False AND prior_state == ""`
-(plan.yaml T-09 §"THE REFUSAL CONDITION"). Per `check-domain.sh:1508-1518` at `c369fb1f` (read at
+(plan.yaml T-09 §"THE REFUSAL CONDITION"). Per `check-domain.py:1508-1518` at `c369fb1f` (read at
 that sha), `prior_state == ""` is produced by **two** code paths, not one: the `FileNotFoundError`
 branch where `os.path.lexists` is false (genuinely no file), **and** the ordinary `open().read()`
 path when the file exists but is zero bytes. T-09's own text asserts the opposite — "That local is
@@ -51,9 +51,9 @@ newly refused") is unfalsifiable against exactly this case because no pair names
 T-10's own intent states the corpus "GROWS while this feature is planned and built (it was 575
 earlier the same day)" and that this is why the remedy must be "an idempotent script re-run at
 execution time." But the task only *runs* the seeder once, inside this feature's own build (in the
-`BUG-1305` worktree), then enables the `check-state.sh` invariant in the same commit sequence.
-`check-state.sh` resolves a single root via `harness_boundary.resolve_root` and sweeps only
-`<that root>/.harness/*/features/*/runs/*/state.yaml` (`check-state.sh:67,1426` at `c369fb1f` —
+`BUG-1305` worktree), then enables the `check-state.py` invariant in the same commit sequence.
+`check-state.py` resolves a single root via `harness_boundary.resolve_root` and sweeps only
+`<that root>/.harness/*/features/*/runs/*/state.yaml` (`check-state.py:67,1426` at `c369fb1f` —
 confirmed by reading the source; no worktree traversal in the invariant loop itself). The seeder's
 own two-glob description (`.harness/*/features/*/runs/*/` **and**
 `.claude/worktrees/*/*/.harness/*/features/*/runs/*/`) shows the corpus it backfills spans the
@@ -61,12 +61,12 @@ control-plane root's tree *plus every nested worktree's own tree* — and the co
 `.harness` tree (356 of the 630) is exactly the tree this repository's own concurrently-running
 harness activity writes into continuously (this session's own hub roster shows half a dozen
 unrelated feature builds live right now, each writing run directories there under the *pre-fix*
-`check-domain.sh`).
+`check-domain.py`).
 
 Failure scenario: between the moment T-10's seeder snapshots the corpus and the moment this feature
-merges and `check-state.sh`'s new invariant is actually exercised against the control-plane root, any
+merges and `check-state.py`'s new invariant is actually exercised against the control-plane root, any
 concurrent feature build writes new, entirely legitimate run directories through the still-unmerged
-`check-domain.sh`, which does not yet call `record_seed`. Those directories carry no marker. Once
+`check-domain.py`, which does not yet call `record_seed`. Those directories carry no marker. Once
 merged, the invariant reports every one of them as "nothing prevents another run from writing into
 it" — a wave of false positives on ship, for directories that are neither clobbered nor malformed,
 undermining REQ-03's own "an operator reading only the checker's output knows what was lost" promise

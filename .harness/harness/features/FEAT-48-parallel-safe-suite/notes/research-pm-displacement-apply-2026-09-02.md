@@ -3,7 +3,7 @@
 **BLUF.** All five owner-accepted displacements landed in `.harness/expertise/harness-pm.md` as
 targeted single-line in-place rewrites. 40 ids before, the same 40 after, in the same order.
 Every non-rewritten line is byte-identical (sha256 proof below). Sections stayed 15 / 15 / 10.
-`check-expertise.sh` is OK at exit 0. `expertise-merge.py` was not invoked (exit 7 on same-id
+`check-expertise.py` is OK at exit 0. `expertise-merge.py` was not invoked (exit 7 on same-id
 rewrite); nothing else in the tree was touched.
 
 ## The five ops (all `op: replace`, id and section preserved, position preserved)
@@ -55,7 +55,7 @@ Section entry counts before and after: Patterns 15, Gotchas 15, Outcomes 10.
 ## The gate, verbatim
 
 ```
-$ .agents/skills/harness/bin/check-expertise.sh .harness/expertise/harness-pm.md
+$ .agents/skills/harness/bin/check-expertise.py .harness/expertise/harness-pm.md
 OK   .harness/expertise/harness-pm.md
 ADVISORY .harness/expertise/harness-pm.md:3: P-01 names '.harness/' — repository-layer candidate; rule on it (issue 340)
 EXIT=0

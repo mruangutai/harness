@@ -5,8 +5,8 @@
 ## The specific question: does `_checkout_root` re-running `checkout_relative` cost anything real?
 
 **Blast radius — narrow, not per-write.** `_checkout_root(absolute_path)` is called from exactly one
-site, `.claude/skills/harness/bin/check-domain.sh:1761-1762`, inside `if RE_HANDOFF.match(rel):`
-(`check-domain.sh:1744`). It fires only when the write under evaluation is a
+site, `.claude/skills/harness/bin/check-domain.py:1761-1762`, inside `if RE_HANDOFF.match(rel):`
+(`check-domain.py:1744`). It fires only when the write under evaluation is a
 `notes/handoff-<phase>.md` (DEC-159) — a capped-60-line file written once per phase seam per
 feature, not on every governed write. Every other write (STATE.md, feature.json, plan.yaml, digests,
 CLAUDE.md, arbitrary files) never reaches this line. This is the "one-shot, not hot-path" case the
@@ -43,14 +43,14 @@ one `worktree_owner` lookup (reads a `.git` pointer file) plus an `os.path.relpa
 git subprocess, no tree walk beyond that.
 
 **Against the baseline.** The hook's own comments record ~38 ms of interpreter start against a ~42 ms
-total call (`check-domain.sh` surrounding prose, cited in the dispatch). `_checkout_root`'s one extra
+total call (`check-domain.py` surrounding prose, cited in the dispatch). `_checkout_root`'s one extra
 call adds ≈0.1 ms — about 0.25% of the ~42 ms baseline, and gated behind a write class that happens
 once per phase, not per write. This is inside the noise, not outside it.
 
 ## Rest of the angle — both files
 
 - **Startup cost:** `_checkout_root` is a plain top-level `def`, defined but not called at import
-  time — same shape as `_norm` immediately above it (check-domain.sh:1151). Defining a function adds
+  time — same shape as `_norm` immediately above it (check-domain.py:1151). Defining a function adds
   no measurable startup cost; it is not invoked until the handoff branch runs. No finding.
 - **Repeated I/O:** the one extra `checkout_relative` call repeats one `worktree_owner` file read
   that `_norm` already performed moments earlier for the same `absolute_path` — covered above as the

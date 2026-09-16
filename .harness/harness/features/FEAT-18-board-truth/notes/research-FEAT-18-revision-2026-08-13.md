@@ -11,7 +11,7 @@ Nothing was re-measured: every figure came from `notes/answers-2026-08-13-revisi
 | 1 | `plan.yaml` D-08 | New `struck:` key carrying the strike record; `choice:` prefixed `STRUCK - no longer in force`; `because:` prefixed `RECORDED, NO LONGER LOAD-BEARING` with its original text intact. Both breaks recorded as **measured, not predicted**. |
 | 2 | `BRIEF.md` SC-08 | Struck in place, entry kept, `verify: none — struck`. |
 | 3 | `BRIEF.md` REQ-07 | **Restated, not deleted**, to the surviving half: no harness-composed text in a PR body closes an issue. T-06's `traces: [REQ-07, REQ-08]` still resolves. |
-| 4 | `BRIEF.md` out-of-scope fence | `Closes #N` restated as the operator's standing preference; a second fence added recording that teaching `branch-create-gate.sh` `gh` subcommands is now unnecessary and out. |
+| 4 | `BRIEF.md` out-of-scope fence | `Closes #N` restated as the operator's standing preference; a second fence added recording that teaching `branch-create-gate.py` `gh` subcommands is now unnecessary and out. |
 | 5 | `plan.yaml` D-03 `because:` | Sole-driver claim now unqualified, with the workflow roster folded in and marked READ, not assumed. Notes that the strike **restores** the Done-exemption premise the linkage had falsified; the exemption itself is unchanged. |
 | 6 | `plan.yaml` T-06 title | "plus the linked branch" → "plus how the build branch is created". |
 | 7 | `plan.yaml` T-06 `intent:` §3 | Plain `git checkout -b feat/<FEAT-id>`. Keeps the no-composed-closing-text clause. Adds one caution: make the edit with the editor, not by echoing through a shell. |
@@ -19,7 +19,7 @@ Nothing was re-measured: every figure came from `notes/answers-2026-08-13-revisi
 
 ## The verify trap, and the evidence it is closed
 
-The replacement clause carries **no `git` token**, so `branch-create-gate.sh` cannot match it.
+The replacement clause carries **no `git` token**, so `branch-create-gate.py` cannot match it.
 Verified, not reasoned: the task's `verify:` string was loaded from the file, wrapped as a hook
 payload and fed to the live gate — **empty output, exit 0, no adjudication**.
 

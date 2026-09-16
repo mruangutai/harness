@@ -13,9 +13,9 @@ session's subcommands, not mine.** No PR is open and nothing is merged.
 
 - All ten tasks `done` and committed; 17 commits on the branch; every sub-issue closed; parent
   derived to `Review` — `plan.yaml`, `feature.json` — verified-at 0c11e23
-- **FEAT-24's own `check-state.sh` violations: ZERO.** The four remaining all belong to paused
+- **FEAT-24's own `check-state.py` violations: ZERO.** The four remaining all belong to paused
   FEAT-25/26/27 dirs — verified-at 0c11e23
-- Full suite: zero FAIL lines, exit 0 — `run-unit-tests.sh --kind all` — verified-at 0c11e23
+- Full suite: zero FAIL lines, exit 0 — `run-unit-tests.py --kind all` — verified-at 0c11e23
 - pm's goal-check: **7 met, 5 partial, 1 split, nothing broken behaviourally.** Partial always means
   evidence durability, never behaviour — `runs/2026-08-19-11-product/digest.md` — verified-at 0c11e23
 - **SC-06 was closed after the panel FAILed it** and I mutation-proved the fix myself by neutering
@@ -25,7 +25,7 @@ session's subcommands, not mine.** No PR is open and nothing is merged.
 - **My earlier claim that three cells return `None` was WRONG** — the probe passed a file path where
   the function takes a repository root, so it hit file-not-found every time. pm's reading stands
   over mine — verified-at 0c11e23
-- Expertise: `check-expertise.sh` exits 0 over all 15 files; each lead verified no wipe by entry
+- Expertise: `check-expertise.py` exits 0 over all 15 files; each lead verified no wipe by entry
   TEXT, not counts — verified-at 0c11e23
 - **Cycles 9 of 10 — one left.** Runs 24 against an informational budget of 20 — `feature.json` —
   verified-at 0c11e23
@@ -36,7 +36,7 @@ session's subcommands, not mine.** No PR is open and nothing is merged.
   source: DEC-157, `harness.json` budgets
 - Do not treat `max_total_runs` as a stop; it is informational and two leads escalated wrongly on it
   — source: `harness.json:167`, "it never stops a branch"
-- Do not try to apply another agent's Expertise ops: `check-domain.sh --resolve` grants each file to
+- Do not try to apply another agent's Expertise ops: `check-domain.py --resolve` grants each file to
   its own agent alone, orchestrator included in the exclusion — verified-at 0c11e23
 - Do not reconstruct the three reviewers' verbatim ops from headlines — the text is gone, and
   inventing it into a per-spawn-injected file is the defect this feature exists to remove — source: this session

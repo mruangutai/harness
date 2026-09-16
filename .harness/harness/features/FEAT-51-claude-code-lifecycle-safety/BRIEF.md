@@ -40,8 +40,8 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   dispatched into a live child's write.
 - REQ-04: A live child of an interrupted parent may finish read-only analysis, and its writes to
   canonical feature artifacts are quarantined instead of landing **on the two governed write routes
-  the harness gates** — the `Write`/`Edit` editor route through `check-domain.sh`, and the
-  `plan-merge.py` mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.sh`. A generic
+  the harness gates** — the `Write`/`Edit` editor route through `check-domain.py`, and the
+  `plan-merge.py` mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.py`. A generic
   `Bash` write to a canonical artifact that lies inside the writer's own domain is NOT covered
   (D-19).
 - REQ-05: A quarantined result becomes canonical only by a resumed parent's explicit adoption.
@@ -67,16 +67,16 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
 
 **What BLOCKS**
 
-- DEC-174 blocks a squad route on the enforcement layer. `validate-digest.py`, `check-domain.sh`,
-  `dispatch-guard.sh` and the test file of each are executed directly by the main session;
+- DEC-174 blocks a squad route on the enforcement layer. `validate-digest.py`, `check-domain.py`,
+  `dispatch-guard.py` and the test file of each are executed directly by the main session;
   `inflight_registry.py` is inside the same category because both hooks import it and its answer is
   the gate's answer.
-- `check-domain.sh --resolve` returns **NOBODY**, re-measured at `ad93d43e` from the main
+- `check-domain.py --resolve` returns **NOBODY**, re-measured at `ad93d43e` from the main
   checkout, for `.claude/skills/harness/SKILL.md`, `.claude/skills/harness-team/SKILL.md`,
   `.harness/team-config.yaml` and `.claude/settings.json`, so tasks touching them are
   `main-session-direct` (DEC-179).
 - **`plan.yaml` may not be hand-written, for a second and independent reason.** FEAT-41 (DEC-182
-  reversed) gave `check-domain.sh` a route denial that exits 2 on a `Write`, `Edit` or
+  reversed) gave `check-domain.py` a route denial that exits 2 on a `Write`, `Edit` or
   `NotebookEdit` of any `plan.yaml` — for *every* author, the main session included, because it
   sits in the shape region and not the domain region. `plan-merge.py`'s verbs are the only route.
   A reader who knows only DEC-179 will reach for a `Write` and be refused by a rule DEC-179 does
@@ -107,7 +107,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   live in the registry, and after a terminal return it is released. Both states are read back from
   the registry file, not inferred from the exit code.
   verify: automated        evidence: integration
-- SC-04: `check-domain.sh` refuses (exit 2) a governed persona's `Write` to
+- SC-04: `check-domain.py` refuses (exit 2) a governed persona's `Write` to
   `.harness/harness/features/<FEAT>/BRIEF.md` when the registry holds at least one live claim for
   that feature and none for that persona in that session, and its stderr names the exact quarantine
   path to write instead. The same write exits 0 when that persona's own claim is live. Both cases run
@@ -134,7 +134,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
 - SC-07: The OMP path is unchanged, and the check can go red. For a claim with `runtime: omp` and a
   live supervisor pid, the quarantine verdict is allow at both the registry level and the hook level
   even when no session matches; `check-omp-port.py` exits 0; every `.omp/agents/harness-*.md` except
-  `harness-orchestrator.md` still declares `blocking: true`; and `run-unit-tests.sh --kind
+  `harness-orchestrator.md` still declares `blocking: true`; and `run-unit-tests.py --kind
   integration` and `--kind unit` both pass. Discrimination is demonstrated: removing the runtime
   condition from the quarantine predicate turns the OMP case red.
   verify: automated        evidence: integration
@@ -151,33 +151,33 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   the quarantine write boundary, explicit adoption, and the clause that OMP behaviour is unchanged;
   its `DECISIONS-INDEX.md` row names the compatibility host in the hand-written ruling half; and
   `gen-decisions-index.py --stdout | diff -` against the committed index is clean. The entry
-  additionally names **both** enforcement points **by script name** — `check-domain.sh` for the
-  `Write`/`Edit` half on `BRIEF.md`, `feature.json` and `STATE.md`, and `plan-sign-gate.sh` for the
+  additionally names **both** enforcement points **by script name** — `check-domain.py` for the
+  `Write`/`Edit` half on `BRIEF.md`, `feature.json` and `STATE.md`, and `plan-sign-gate.py` for the
   `PreToolUse` `Bash` half, including `quarantine.py adopt` — and states in one sentence that
-  `plan.yaml`'s write route is `plan-merge.py` through `Bash`. Naming only `check-domain.sh`, or
+  `plan.yaml`'s write route is `plan-merge.py` through `Bash`. Naming only `check-domain.py`, or
   resting `plan.yaml`'s coverage on FEAT-41's editor route denial, is `not_met`: that is the belief
   SC-11 exists to overturn, and an entry asserting it would understate the contract that shipped.
-  Asserted in the suite by `test-gen-decisions-index.py`, which is in `run-unit-tests.sh`
+  Asserted in the suite by `test-gen-decisions-index.py`, which is in `run-unit-tests.py`
   `INTEGRATION_SCRIPTS`, not only by a one-off command; each clause is its own assertion, because a
   whole-region search for two script names is satisfied by the one that is present. The check can
-  go red: an entry carrying `check-domain.sh` but no `plan-sign-gate.sh` fails the suite.
+  go red: an entry carrying `check-domain.py` but no `plan-sign-gate.py` fails the suite.
   verify: automated        evidence: integration
 - SC-10: **WITHDRAWN, not unmet.** It required the operator to interrupt and resume a real Claude
   Code parent, then verify quarantine and explicit adoption by hand. On 2026-09-02 the operator
   explicitly chose to skip this Claude Code-specific UAT and withdraw the criterion. The feature
   therefore ships without live-host evidence that the compatibility parent resumes correctly.
 - SC-11: The quarantine boundary covers the `Bash` route, not only the editor route — and it is
-  graded on `plan-sign-gate.sh`, the `PreToolUse` `Bash` hook, by name. At the reviewed sha, with a
+  graded on `plan-sign-gate.py`, the `PreToolUse` `Bash` hook, by name. At the reviewed sha, with a
   registry holding one live non-`omp` claim for `<FEAT>` held by another persona in another session,
-  running `plan-sign-gate.sh` with `agent_type: harness-pm` refuses (exit 2) each of
+  running `plan-sign-gate.py` with `agent_type: harness-pm` refuses (exit 2) each of
   `plan-merge.py apply --file .harness/harness/features/<FEAT>/plan.yaml --proposal p.yaml`,
   `plan-merge.py set-task-station --file <the same plan.yaml> ...`, and `quarantine.py adopt` on a
   quarantined `plan.yaml` for that feature, and each refusal's stderr names the exact quarantine
   path; the byte-identical calls exit 0 when that persona's own claim is live, and exit 0 when the
-  claim's `runtime` is `omp`. Asserted against `plan-sign-gate.sh` and not against a fact both
+  claim's `runtime` is `omp`. Asserted against `plan-sign-gate.py` and not against a fact both
   routes happen to satisfy, because at `ad93d43e` `.claude/settings.json` registers
-  `check-domain.sh` on `PreToolUse` for `Write|Edit` only, so a criterion graded on
-  `check-domain.sh` alone is met while `plan.yaml`'s only writer travels an ungated route. The check
+  `check-domain.py` on `PreToolUse` for `Write|Edit` only, so a criterion graded on
+  `check-domain.py` alone is met while `plan.yaml`'s only writer travels an ungated route. The check
   can go red: with the quarantine rule removed from `plan-sign-gate.py`, or with the suite pointed
   by `PLAN_SIGN_GATE_BIN` at a pre-change copy of the gate, the three refusals return exit 0.
   verify: automated        evidence: integration
@@ -218,7 +218,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   normal run too. That cost is accepted rather than papered over, and it does not exist on OMP.
 - **`quarantine.py discard` is deliberately NOT covered by the quarantine boundary, and SC-12 was
   WITHDRAWN rather than graded.** Panel finding `PF-2b48984b50ff69c5dfdf8afa20c3956b` measured that
-  `bash-write-guard.sh` already permits a plain `rm -rf` of a quarantine directory — it exempts
+  `bash-write-guard.py` already permits a plain `rm -rf` of a quarantine directory — it exempts
   `harness-dev-ops` outright, and on the `shared` verdict D-06's own
   `.harness/*/features/*/quarantine/**` glob produces it prints a notice and continues — so a rule
   covering only `quarantine.py discard` would have recorded a protection the tree does not have.
@@ -231,10 +231,10 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   `PF-c7ab6506f6ffde4765e238519f337887` measured it: with `agent_type: harness-pm` and a session
   holding no claim, `cp /tmp/evil.md <worktree>/.harness/harness/features/FEAT-51-…/BRIEF.md` was
   fired at all three registered `PreToolUse` gates in the main checkout at `0bc57c88` and every one
-  exited **0** — `bash-write-guard.sh`, `plan-sign-gate.sh` and `check-domain.sh`. The cause is at
-  source: `bash-write-guard.sh:259-260` exempts `harness-dev-ops` outright and passes any in-domain
+  exited **0** — `bash-write-guard.py`, `plan-sign-gate.py` and `check-domain.py`. The cause is at
+  source: `bash-write-guard.py:259-260` exempts `harness-dev-ops` outright and passes any in-domain
   write for every other governed agent, `harness-pm`'s `team-config.yaml` domain grants both
-  `.harness/*/features/*/BRIEF.md` and `.harness/*/features/*/plan.yaml`, and `check-domain.sh` is
+  `.harness/*/features/*/BRIEF.md` and `.harness/*/features/*/plan.yaml`, and `check-domain.py` is
   registered for `Write` and `Edit` only. So issue #551's FIRST measured occurrence — a fourteen-task
   `plan.yaml` replaced whole-file — travels a route this feature does not close if the writer uses a
   generic shell write (`cp`, `cat`, `tee`, `mv`, `sed -i`, `python3 -c`) rather than an editor tool

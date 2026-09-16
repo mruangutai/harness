@@ -16,7 +16,7 @@ added 2026-08-21 (`47a9935a`), so no `compute_union` existed when they happened.
 the whole-file-rewrite distillation that DEC-95/DEC-125 and this tool were built to end — a
 different mechanism, since ended — and the guard planned here would not have prevented them. The
 defect this BRIEF closes is the one measured independently at 6d969ed3 by the reproduction above.
-The one check that could notice a duplicated id — `check-expertise.sh` (~202-206) — is
+The one check that could notice a duplicated id — `check-expertise.py` (~202-206) — is
 structurally blind here,
 because the drop happens before the file is written, so no duplicate ever reaches the file it
 inspects. The cost is that the memory layer silently loses recorded lessons, and the only signal an
@@ -46,7 +46,7 @@ loss months later, if at all.
   same file already refuse this exact class on the sibling `ops` path with
   `MergeRefusal(11, ["AMBIGUOUS TARGET section=<s> id=<i> reason=..."])` (DEC-219). The fix joins
   that convention; it does not invent an exit code or a message shape.
-- `check-expertise.sh` is NOT modified. Its duplicate-id check already exists (~202-206) and is
+- `check-expertise.py` is NOT modified. Its duplicate-id check already exists (~202-206) and is
   correct; it cannot see this defect because `compute_union` drops the duplicate before anything is
   written, so the file it inspects never contains one.
 - `.claude/skills/harness/bin/expertise-merge.py` and `.agents/skills/harness/bin/expertise-merge.py`
@@ -92,7 +92,7 @@ loss months later, if at all.
 ## Verification gaps
 
 - None. Both kinds these criteria rest on — `unit` and `integration` — are `active` in
-  `.harness/harness.json` with real runners (`run-unit-tests.sh --kind unit` / `--kind integration`),
+  `.harness/harness.json` with real runners (`run-unit-tests.py --kind unit` / `--kind integration`),
   and both suites already reach the changed code.
 
 ## Approval

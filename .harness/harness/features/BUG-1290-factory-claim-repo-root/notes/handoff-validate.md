@@ -22,7 +22,7 @@ Input paths: `BRIEF.md` `## Success Criteria`, `plan.yaml`, `notes/review-harnes
 
 - Do not re-litigate the five signed choices; settled by the c2 panel and unchanged since — `notes/handoff-ship.md` Dead ends — verified-at 3faada88
 - Do not edit `BRIEF.md` or `plan.yaml` for REQ-05's wording; the operator declined to rule three times — `notes/answers-2026-09-06-b27.md` — verified-at 3faada88
-- Do not read `check-state.sh` run from a feature worktree as evidence about this feature; it resolves features through the project root and reports zero mentions — `notes/handoff-ship.md` Dead ends — verified-at 3faada88
+- Do not read `check-state.py` run from a feature worktree as evidence about this feature; it resolves features through the project root and reports zero mentions — `notes/handoff-ship.md` Dead ends — verified-at 3faada88
 - Do not re-pin `review_sha`; `72a97b99` is the tree all four c4 reviewers graded — `plan.yaml`, `notes/review-harness-code-reviewer-b27-c4.md` — verified-at 3faada88
 
 ## Working set

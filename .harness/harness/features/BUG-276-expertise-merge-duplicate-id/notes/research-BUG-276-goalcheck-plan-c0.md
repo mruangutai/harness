@@ -19,7 +19,7 @@ edits to the plan's own text.
   `parse_expertise` then `render`: `:481-532`, `:577-586`). Measured directly against the pre-fix
   module: `- ARCH-01: x` (4-letter prefix) and `- P-01:` (no space after the colon) vanish, entry
   count down, no exception; `## Open Questions` (two-word header) is dropped and its entries are
-  relocated into the preceding section. `check-expertise.sh:152-154` *would* flag such a line, but
+  relocated into the preceding section. `check-expertise.py:152-154` *would* flag such a line, but
   never sees it — the drop precedes the write, exactly the blindness the BRIEF already names for
   duplicate ids (`BRIEF.md:14-16`). **Position:** the guard closes the route the operator narrowed
   to; a second silent-reduction route remains reachable. It is not in this ticket's scope, and it is

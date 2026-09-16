@@ -283,7 +283,7 @@
     "unit": {
       "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
-      "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind unit",
+      "cmd": ".agents/skills/harness/bin/run-unit-tests.py --kind unit",
       "status": "active"
     },
     "functional": {
@@ -291,7 +291,7 @@
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
       "cmd": null,
       "status": "excluded",
-      "excluded_because": "this repository ships no service API, and run-unit-tests.sh splits its suite by the tests/unit and tests/integration directories. There is no third bucket; pointing functional at either would double-count files the other kind already runs.",
+      "excluded_because": "this repository ships no service API, and run-unit-tests.py splits its suite by the tests/unit and tests/integration directories. There is no third bucket; pointing functional at either would double-count files the other kind already runs.",
       "signed": "DEC-187"
     },
     "omp_session_accessor": {
@@ -318,7 +318,7 @@
     "integration": {
       "detect": "tests/integration/**",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
-      "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind integration",
+      "cmd": ".agents/skills/harness/bin/run-unit-tests.py --kind integration",
       "status": "active"
     },
     "component": {
@@ -374,7 +374,7 @@
     "_rework_round_minutes_rationale": "The per-round allowance `feature-record.py propose-rework` multiplies by the proposed rounds to give the operator a baseline `--rework minutes=M` at signature (FEAT-59 SC-15). A proposal, never a gate: the operator confirms or changes it, and the signed value is what the SPEND advisory measures against. 45 is a starting constant with no measured basis; once five shipped features carry `rework_rounds`, the median measured minutes per round replaces it.",
     "_plan_phase_warn_minutes_rationale": "INFORMATIONAL, NOT A GATE (FEAT-59 SC-19): the wall-clock minutes a feature may spend before build entry, summed from feature.json runs[].started_at/ended_at, past which the OMP hook appends one SPEND advisory line to the orchestrator's wake; 90 is the BRIEF's plan-lane KPI target (patch lane: 30) against a measured BUG-285 plan phase of 6h20m, and after build entry the per-feature rework.wall_clock_minutes ruling takes its place.",
     "preload_warn_words": {"universal": 1900, "agent": 5500},
-    "_preload_warn_words_rationale": "INFORMATIONAL, NOT A GATE (FEAT-60 SC-08): the words of SKILL.md text an agent pays on every spawn through autoloadSkills. `universal` bounds the set every agent preloads (handoff, expertise, principles), `agent` bounds any one agent's whole preload; check-skill-weight.py measures both and check-state.sh NOTES an excess. The numerals are the FEAT-60 BRIEF's KPI targets against a measured baseline of 2982 universal and 8246 for pm at 2660e34c; DEC-158 (rule + one clause + pointer) is what keeps the text under them."
+    "_preload_warn_words_rationale": "INFORMATIONAL, NOT A GATE (FEAT-60 SC-08): the words of SKILL.md text an agent pays on every spawn through autoloadSkills. `universal` bounds the set every agent preloads (handoff, expertise, principles), `agent` bounds any one agent's whole preload; check-skill-weight.py measures both and check-state.py NOTES an excess. The numerals are the FEAT-60 BRIEF's KPI targets against a measured baseline of 2982 universal and 8246 for pm at 2660e34c; DEC-158 (rule + one clause + pointer) is what keeps the text under them."
   },
   "gates": {
     "qa_gate": "blocking",
@@ -386,7 +386,7 @@
     "sync": true,
     "repo": "mruangutai/harness",
     "board": {
-      "_note": "The harness's own project board (FEAT-18). THE SIX STATION NAMES ARE FIXED AND MAY NOT BE RENAMED, REORDERED OR EXTENDED (FEAT-41 T-01): stations is an ordered list of exactly backlog, plan, ready, building, review, done, and factory_config.MANDATED_STATIONS is the mandate it is checked against, so this declaration is a checksum rather than a source of names. The board's column names are DERIVED from these six by factory_config.station_column(), the one place in the tree a capitalised station name is produced, so no capital is stored here. Extra columns you add to the board yourself are untouched by the harness. Nothing pins a project_id, field_id or option id — everything resolves BY NAME at runtime so a wrong value fails loudly, because branch-create-gate.sh pinned exactly those and a wrong pinned id did nothing at all, silently. An absent or incomplete board declaration is a loud error naming the offending key; only an explicitly null board means this project has no board. PLACEMENT IS TEMPORARY: #206 moves github, test_matrix and test_kinds to the product, since harness.json holds runtime metadata.",
+      "_note": "The harness's own project board (FEAT-18). THE SIX STATION NAMES ARE FIXED AND MAY NOT BE RENAMED, REORDERED OR EXTENDED (FEAT-41 T-01): stations is an ordered list of exactly backlog, plan, ready, building, review, done, and factory_config.MANDATED_STATIONS is the mandate it is checked against, so this declaration is a checksum rather than a source of names. The board's column names are DERIVED from these six by factory_config.station_column(), the one place in the tree a capitalised station name is produced, so no capital is stored here. Extra columns you add to the board yourself are untouched by the harness. Nothing pins a project_id, field_id or option id — everything resolves BY NAME at runtime so a wrong value fails loudly, because branch-create-gate.py pinned exactly those and a wrong pinned id did nothing at all, silently. An absent or incomplete board declaration is a loud error naming the offending key; only an explicitly null board means this project has no board. PLACEMENT IS TEMPORARY: #206 moves github, test_matrix and test_kinds to the product, since harness.json holds runtime metadata.",
       "owner": "mruangutai",
       "number": 3,
       "station_field": "Status",

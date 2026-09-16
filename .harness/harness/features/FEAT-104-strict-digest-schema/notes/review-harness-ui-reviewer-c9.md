@@ -62,15 +62,15 @@ on its own (G-13: names the concrete remedy, not just the fact). **F1 confirmed 
 ## Cross-emitter message-consistency assessment
 
 Three emitters carry the enforcement text an operator reads: `validate-digest.py` (digest-key
-rejection), `check-domain.sh` (step-key rejection, schema_version floor, schema_version downgrade —
+rejection), `check-domain.py` (step-key rejection, schema_version floor, schema_version downgrade —
 all via the file's existing `_head()` convention, confirmed against a dozen pre-existing call sites
-in the same file, P-14), and `check-state.sh` (the at-rest `INV-16` sweep, same house style
+in the same file, P-14), and `check-state.py` (the at-rest `INV-16` sweep, same house style
 `INV-16: {rel}: run {run_id} step {step_id}: undeclared step key or evidence shape {names} —
 declare recovery fields in .claude/skills/harness/bin/run-state-schema.json; put per-dispatch facts
 under evidence.`).
 
-- **Route symbol for step keys is consistent across all three**: `check-domain.sh`'s write-time
-  message and `check-state.sh`'s at-rest message both name the same file
+- **Route symbol for step keys is consistent across all three**: `check-domain.py`'s write-time
+  message and `check-state.py`'s at-rest message both name the same file
   (`.claude/skills/harness/bin/run-state-schema.json`) and the same symbol (`evidence`), with
   near-identical remedy wording (only cosmetic phrasing differs — "A recovery field is declared in…"
   vs "declare recovery fields in…" — same content, not a defect).
@@ -123,9 +123,9 @@ routing up as a finding, not a fix).
 
 ## F2 reassessment
 
-F2's declined fix concerns whether `check-state.sh`'s at-rest sweep classifies historical digest
+F2's declined fix concerns whether `check-state.py`'s at-rest sweep classifies historical digest
 files through the generic `lead` CLI persona (`_vd_mod.validate("lead", _dtext)`,
-`check-state.sh:1590`) versus the raw producing persona. **This does not touch operator-visible
+`check-state.py:1590`) versus the raw producing persona. **This does not touch operator-visible
 text**: because the fix is declined, no new or changed message is emitted for historical digests
 either way — they continue to pass the sweep silently, exactly as before this feature. This is a
 coverage/enforcement-boundary decision (REQ-08/SC-12 stranding-avoidance, already argued in the

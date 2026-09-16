@@ -70,7 +70,7 @@ tracing a non-existent REQ.
    **byte-identical** to `git show c040c319:…/plan.yaml`.
 2. `check-plan-routes.py` → `0 violation(s) across 1 plan(s)`; all 5 tasks `OK`; every task carries
    exactly the 11 required keys.
-3. `check-state.sh` → **no `INV-35` line at all**; for this feature only
+3. `check-state.py` → **no `INV-35` line at all**; for this feature only
    `VIOLATION … BRIEF.md is NOT approved` (expected) and two `note` lines.
 4. Traceability verified programmatically: 18/18 SCs well-formed, 11/11 ACs mapped, 0 untraced REQs.
 5. Grep `(?i)SOURCE_EXTENSIONS|source extension|restrict|extension-agnostic|whatever its
@@ -79,7 +79,7 @@ tracing a non-existent REQ.
 
 ## Open questions
 
-- **Q1 (non-blocking, harness/state):** `check-state.sh` reports `run dir 2026-09-04-11-product
+- **Q1 (non-blocking, harness/state):** `check-state.py` reports `run dir 2026-09-04-11-product
   exists on disk but feature.json does not record it — orphaned work`. Pre-existing at dispatch and
   not mine (I wrote nothing under `runs/`); it needs reconciling before the next resume.
 - **Q2 (non-blocking, for the fresh panel):** the amendment invalidates the cycle-3 panel by

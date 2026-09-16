@@ -19,7 +19,7 @@ only the test file and this feature's artifacts. SC-01/02/03 are already measure
 - The pre-fix/post-fix check counts differ by 12 (278 → 290) because a failing signature short-circuits its own case's later assertions, not because coverage moved — the same probe reported 261 PASS + 17 FAIL — verified-at 7e38d0ae
 - The main checkout is clean of the builder's two stray early writes — `git -C /Users/molchairuangutai/GitHub/harness status --porcelain -- tests bin .claude .agents` is empty — verified-at 7e38d0ae
 - `review_sha` names the seam commit, whose `plan.yaml` is byte-identical to disk, so INV-33 stays quiet — the pin was moved after the last plan write — verified-at 7e38d0ae
-- qa's runner corroboration (`run-unit-tests.sh --kind integration`) proves the CI path unbroken and nothing about hermeticity — `run_pool.py:59-63` passes ambient env through — verified-at 7e38d0ae
+- qa's runner corroboration (`run-unit-tests.py --kind integration`) proves the CI path unbroken and nothing about hermeticity — `run_pool.py:59-63` passes ambient env through — verified-at 7e38d0ae
 
 ## Dead ends
 

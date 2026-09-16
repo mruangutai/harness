@@ -34,7 +34,7 @@ chose the right entries.
   `test-context-watch-cli.py` and `test-context-watch-hook.py`, both confirmed absent from the tree.
   All 26 concrete registrations name a file that exists; the 27th is the glob `tests/integration/**`,
   matching nothing because the directory does not exist.
-- `run-unit-tests.sh` — the same shape, and its arrays agree with `harness.json` in both directions
+- `run-unit-tests.py` — the same shape, and its arrays agree with `harness.json` in both directions
   today.
 - `DECISIONS-INDEX.md` — **regenerated, never hand-merged**, proved by the committed file being
   byte-identical to a fresh generation. Confirmed twice independently. 188 rows against 188 live
@@ -52,8 +52,8 @@ independently twice, at the orchestrator tier and by the main session:
 | array | base `79e2639` | ours | theirs | union at the pin |
 |---|---|---|---|---|
 | `harness.json` `test_kinds.integration.detect` | 26 | 27 | 27 | **28** |
-| `run-unit-tests.sh:30` `UNIT_SCRIPTS` | 26 | 26 | 28 | **28** |
-| `run-unit-tests.sh:31` `INTEGRATION_SCRIPTS` | 25 | 26 | 26 | **27** |
+| `run-unit-tests.py:30` `UNIT_SCRIPTS` | 26 | 26 | 28 | **28** |
+| `run-unit-tests.py:31` `INTEGRATION_SCRIPTS` | 25 | 26 | 26 | **27** |
 
 **Zero removals on either side** — which is exactly why a union is right here and was wrong for
 FEAT-44, whose side had deleted two registered files. 27 scripts plus the inert `tests/integration/**`
@@ -101,7 +101,7 @@ receiver caught it.
    drop of two as a drop of one. The truth is 29 → 27. **The resolution's substance is correct**; only
    the numeral was wrong, and it reached no durable record — it appears only in the notes that refute it.
 2. **"`.claude/settings.json` is absent from this tree."** It is present, and still registers a
-   PostToolUse hook on the `Write|Edit|Bash` matcher — `check-domain.sh --post`, not the retired
+   PostToolUse hook on the `Write|Edit|Bash` matcher — `check-domain.py --post`, not the retired
    watchdog. DEC-159's folded clause is scoped "no Claude hook is registered *for this*", so it is
    true as written.
 3. **"DEC-159's amendment ends with a stray `---`."** It was DEC-201's. Both were handled.
@@ -127,12 +127,12 @@ B-39 are carried unchanged from the last briefing.
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-25 | bug | `bash-write-guard.sh` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.sh --resolve` grants that same path. Two enforcement surfaces disagree |
+| B-25 | bug | `bash-write-guard.py` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.py --resolve` grants that same path. Two enforcement surfaces disagree |
 | B-26 | bug | `/usr/bin/grep` on this machine is `pi-uu-grep 0.2.0`, in which a line-leading `+` matches every line. Four false readings in this feature. Every affected measurement was redone in Python |
 | B-39 | bug | A run-directory slug collision let one lead overwrite another run's `digest.md` and `state.yaml`. `runs/` is gitignored, so the record was unrecoverable. Nothing in the contract stops a lead reusing a slug |
 | B-40 | chore | `DEC-159` still says the handoff shape gate denies a note at >40 lines, while the same entry records the cap raised to ~60 at DEC-160. In the un-amended remainder; found during the fold and reported rather than edited, because re-auditing the remainder was an explicit non-goal |
 | B-41 | chore | Three `### DEC-NNN addendum` level-3 sub-headings survive in `DECISIONS.md` (under DEC-124, DEC-125, DEC-141). They are a sibling construct to the amendment this feature abolished, nothing mechanical bans them, and they predate the feature — present at its original base `7ebfc9e`. Outside its approved scope. **FEAT-46's triage is the natural home** |
-| B-42 | bug | `run-unit-tests.sh --check-kinds` asserts only one direction. It does **not** assert that every declared `test_kinds.integration` entry appears in the script arrays, so it would not have caught the naive-union defect it was cited as guarding. Correct today only because qa measured file existence directly; nothing automated holds it. Pre-existing, ranked first by the panel on irreversibility — the failure mode is silent |
+| B-42 | bug | `run-unit-tests.py --check-kinds` asserts only one direction. It does **not** assert that every declared `test_kinds.integration` entry appears in the script arrays, so it would not have caught the naive-union defect it was cited as guarding. Correct today only because qa measured file existence directly; nothing automated holds it. Pre-existing, ranked first by the panel on irreversibility — the failure mode is silent |
 | B-43 | chore | Four test scripts (`test-feature-worktree.py`, `test-expertise-merge.py`, `test-plan-merge.py`, `test-observations-merge.py`) print their own `PASS <script>` line in a format byte-identical to the runner's own marker, so any log-based tally over-counts. It produced a false "61 scripts" in this run's own reporting before qa re-measured it at 55 |
 
 ## Open, recorded, not proposed as backlog

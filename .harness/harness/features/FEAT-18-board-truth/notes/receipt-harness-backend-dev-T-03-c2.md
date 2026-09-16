@@ -123,14 +123,14 @@ dispatched command verbatim (trailing newline only).
 ## Additional runs
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration
 106/106 checks passed.
 PASS test-factory-integration.py
 ```
 Exit status: 0.
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ALL PASS (test-validate-feature-json.py)
 all pass (test-gh-board.py)
 8/8 cases passed. PASS test-branch-create-gate.py

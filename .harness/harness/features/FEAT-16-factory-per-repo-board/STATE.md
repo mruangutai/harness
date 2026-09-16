@@ -60,11 +60,11 @@ only inside a gitignored run digest, which is why they are restated here.
 - Q2 (non-blocking): amend SC-10's base to `a7c429c`, or record the discrepancy as known?
 - Q3 (non-blocking): amend SC-13's rationale, or record it as a known inaccuracy?
 - Q4 (non-blocking, HARNESS DEFECT): `.claude/skills/harness/references/missions.md` was modified
-  during the T-10 run — a path that resolves to NOBODY under `check-domain.sh --resolve`. I reverted
+  during the T-10 run — a path that resolves to NOBODY under `check-domain.py --resolve`. I reverted
   and byte-verified it, and could not reproduce the channel: the hook denies every agent against
-  Write, Edit, MultiEdit and NotebookEdit for that path, and `bash-write-guard.sh` is live enough to
+  Write, Edit, MultiEdit and NotebookEdit for that path, and `bash-write-guard.py` is live enough to
   have blocked my own probe. The decision layer is sound and a write landed anyway.
-- Q5 (non-blocking, HARNESS DEFECT): `bash-write-guard.sh` parses command TEXT rather than the
+- Q5 (non-blocking, HARNESS DEFECT): `bash-write-guard.py` parses command TEXT rather than the
   shell-expanded path, so a redirect through a `$VAR` is denied while the identical literal path is
   allowed. I hit this myself twice.
 - Q6 (non-blocking, ROUTING WALL): `harness-qa` holds no write grant over

@@ -6,7 +6,7 @@ Three ops applied to `.harness/expertise/harness-backend-dev.md`: P-13 broadened
 untracked-file case (C1, accept), P-14 replaced with a structural-guarantee-over-conditional-guard
 rule (C2, accept), P-06 replaced with a RED-integrity rule sharpened from C3 (C3, accept in
 narrowed form). No section grew or shrank — Patterns stayed at 15/15 by construction (displacement
-only). `check-expertise.sh` OK, exit 0. `run-unit-tests.sh` exit 0, 197 `PASS` lines (script- and
+only). `check-expertise.py` OK, exit 0. `run-unit-tests.py` exit 0, 197 `PASS` lines (script- and
 case-level mixed — some scripts print per-case `PASS <name>` lines, not one line per script), 0
 `FAIL` lines (re-run for `suite:` truthfulness on an Expertise-file-only edit — does not validate
 the edits themselves, only that nothing else broke).
@@ -43,7 +43,7 @@ the edits themselves, only that nothing else broke).
 
    **Relocation attempted and blocked, not completed — flagged below.** I tried to preserve the
    displaced P-14 content at the repository tier (`.harness/harness/expertise/harness-backend-dev.md`,
-   per `harness-distill`'s three-tier description) so it wasn't simply lost. `check-domain.sh`
+   per `harness-distill`'s three-tier description) so it wasn't simply lost. `check-domain.py`
    denied the write: that path is not in my permitted set (`.harness/expertise/harness-backend-dev.md`
    is; `.harness/harness/expertise/**` is not). Per `harness-digest-dev`, I did not work around the
    guard. Net effect: the argv[1:3]-vs-[0:2] gh-fake convention is no longer recorded anywhere in
@@ -97,10 +97,10 @@ the edits themselves, only that nothing else broke).
 - **Gotchas:** G-01 through G-09 — unchanged, byte-identical. Not touched this cycle.
 - **Outcomes / Open:** still empty; no candidate this cycle warranted either section.
 
-## `check-expertise.sh` — verbatim
+## `check-expertise.py` — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-backend-dev.md
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-backend-dev.md
 OK   .harness/expertise/harness-backend-dev.md
 EXIT: 0
 ```
@@ -108,7 +108,7 @@ EXIT: 0
 ## `suite:` truthfulness — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh > <scratchpad>/feat23-distill-suite.log 2>&1
+$ python3 .claude/skills/harness/bin/run-unit-tests.py > <scratchpad>/feat23-distill-suite.log 2>&1
 EXIT: 0
 $ grep -c "^PASS" <scratchpad>/feat23-distill-suite.log
 197
@@ -124,9 +124,9 @@ nothing more.)
 
 - **Q1 (non-blocking):** the repository-tier Expertise path (`.harness/harness/expertise/
   harness-backend-dev.md`) described in `harness-distill` is not in my `team-config.yaml` write
-  domain — `check-domain.sh` denies it. Two separate issues bundled here: (a) the manifest may need
+  domain — `check-domain.py` denies it. Two separate issues bundled here: (a) the manifest may need
   a per-agent repository-tier entry if that tier is meant to be used, and (b) even if writable,
-  `inject-expertise.sh` only reads `$root/.harness/expertise/$agent.md` (project) and
+  `inject-expertise.py` only reads `$root/.harness/expertise/$agent.md` (project) and
   `$HOME/.harness/expertise/$agent.md` (global) — it has no third read path for
   `.harness/harness/expertise/`, so a file there would never reach a spawn regardless of who writes
   it. Net effect on this run: P-14's original argv[1:3]-vs-argv[0:2] convention for gh-sync's fake
@@ -140,4 +140,4 @@ nothing more.)
 
 No `plan.yaml`, `BRIEF.md`, `feature.json`, `STATE.md`, or DEC-174 enforcement file touched. No
 `git add`, no commit, no `gh` call. Attempted write to `.harness/harness/expertise/
-harness-backend-dev.md` was denied by `check-domain.sh` and not retried or worked around.
+harness-backend-dev.md` was denied by `check-domain.py` and not retried or worked around.

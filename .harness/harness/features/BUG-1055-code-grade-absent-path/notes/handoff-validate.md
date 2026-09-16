@@ -20,7 +20,7 @@ station via the `Fixes #1055` linkage. This note and the `feature.json` close re
   byte-identically after each mutation — verified-at f56a2f1
 - CI `integration` passed in 2m43s and merge state was `CLEAN` at merge time —
   verified-at f56a2f1
-- unit 473 PASS, integration 588 PASS, `check-state.sh` 0 violations — verified-at f56a2f1
+- unit 473 PASS, integration 588 PASS, `check-state.py` 0 violations — verified-at f56a2f1
 - Merge is real, not assumed: `gh pr view 1077` reports `MERGED`, `2026-09-01T04:43:16Z`,
   merge commit `1bcf5c488dff61cb18789612ee16c25707b72706` — verified-at 1bcf5c4
 

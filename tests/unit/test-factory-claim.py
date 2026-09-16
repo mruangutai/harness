@@ -8,8 +8,8 @@ evidence every assertion below is a projection of. The features root is now reso
 candidate through a monkeypatched `factory_config.features_root`, built once by this file — `build_features_root()` — holding two fixture
 features: FEAT-01-demo (one unblocked task, used by every case that is not about the blocker
 gate) and FEAT-02-block (several tasks with varying `depends_on`, used by the seven blocker-gate
-cases, SC-22). Both are read via `factory_claim.harness_yaml`, never re-derived, so a case that
-needs to prove "no plan file consulted" monkeypatches `harness_yaml.load_plan` itself.
+cases, SC-22). Both are read via `factory_claim.artifact_accessors`, never re-derived, so a case
+that proves "no plan file consulted" monkeypatches `artifact_accessors.load_plan` itself.
 
 """
 import os as _anchor_os, sys as _anchor_sys
@@ -26,6 +26,7 @@ import sys
 import tempfile
 
 import yaml
+import artifact_accessors
 
 import factory_claim as claim
 import factory_cli
@@ -458,7 +459,7 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None, features_roo
             try:
                 factory_cli.run(
                     "claim", claim._main,
-                    expected=(fc.FleetError, factory_gh.GhError),
+                    expected=(artifact_accessors.FleetError, factory_gh.GhError),
                 )
             except SystemExit as e:
                 code = e.code
@@ -938,7 +939,7 @@ check("(B5-ter) plan present, task id absent: still the edge (i) text",
 
 # B6. FEATURE NULL IS UNGATED — no plan file consulted for it.
 load_plan_calls = []
-real_load_plan = harness_yaml.load_plan
+real_load_plan = artifact_accessors.load_plan
 
 
 def recording_load_plan(path):
@@ -946,14 +947,14 @@ def recording_load_plan(path):
     return real_load_plan(path)
 
 
-harness_yaml.load_plan = recording_load_plan
+artifact_accessors.load_plan = recording_load_plan
 try:
     rec = Recorder()
     rec.items = [board_item("i1", 730, REPO)]
     rec.issue_data[730] = issue_data(730, "some mirrored issue", labels=["harness"])
     code, out, err = run_main(rec, ["--as", AS_LOGIN])
 finally:
-    harness_yaml.load_plan = real_load_plan
+    artifact_accessors.load_plan = real_load_plan
 check("(B6) feature: null claims normally", code == 0 and json.loads(out).get("feature") is None,
       (code, out))
 check("(B6) no plan file was consulted for it", load_plan_calls == [], load_plan_calls)
@@ -989,7 +990,7 @@ _dangling_plan_path = os.path.join(fixture_features_root(REPO), FEAT_DANGLING, "
 _legal_plan_path = os.path.join(fixture_features_root(REPO), FEAT_DANGLING_LEGAL, "plan.yaml")
 
 try:
-    harness_yaml.load_plan(_dangling_plan_path)
+    artifact_accessors.load_plan(_dangling_plan_path)
     check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
           False, "load_plan returned instead of raising")
 except harness_yaml.PlanSchemaError as exc:
@@ -997,7 +998,7 @@ except harness_yaml.PlanSchemaError as exc:
           "T-02" in str(exc) and "T-99" in str(exc), str(exc))
 
 try:
-    _legal_doc = harness_yaml.load_plan(_legal_plan_path)
+    _legal_doc = artifact_accessors.load_plan(_legal_plan_path)
     check("(D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, present)",
           isinstance(_legal_doc, dict), _legal_doc)
 except Exception as exc:

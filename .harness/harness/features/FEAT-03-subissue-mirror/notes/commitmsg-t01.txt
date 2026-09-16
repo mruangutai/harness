@@ -4,7 +4,7 @@ feat(FEAT-03): the unit gate runs the bin test scripts [harness:t-01]
 `unit.detect`'s globs matched zero files in this repo, so eight success
 criteria claiming `evidence: unit` rested on a gate that did not run.
 
-`run-unit-tests.sh` holds an explicit ordered list of test scripts and
+`run-unit-tests.py` holds an explicit ordered list of test scripts and
 STREAMS each child's stdout and stderr through unfiltered — a bare
 `python3 "$s"`, no capture, no tee, no redirection. That is the
 load-bearing property: five downstream tasks' verifies read `ok` lines

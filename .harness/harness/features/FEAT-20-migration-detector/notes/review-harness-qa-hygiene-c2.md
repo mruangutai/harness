@@ -22,7 +22,7 @@ appears exactly once (:1585), `case_l` once (:456), `case_m` once (:528).
 Mutated `layout_fixtures.STUB[".harness/team-config.yaml"]["legacy"]` in a scratch copy of the
 6296149 tree (git-archive export, never the source checkout). Reran `test-check-state.py`:
 **exit 1**, subcase `(x.3) an applicable clean tree -> NO INV-27 line` → **FAIL** (the mutated stub
-now disagrees with `check-state.sh`'s own `team-config.yaml` stub, so the "clean" fixture stops
+now disagrees with `check-state.py`'s own `team-config.yaml` stub, so the "clean" fixture stops
 being clean). x.1/x.2/x.4/x.5 still pass, confirming the failure is localized to the consolidation
 edge, not noise. Restored the mutation and confirmed `diff` against the untouched source file at
 `/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/layout_fixtures.py` is
@@ -31,7 +31,7 @@ The shadow-era objection ("passes equally with two copies") no longer holds: the
 perturbing it moves the suite.
 
 ## 3. M-1 — divergence non-reproducible, probed at both call sites
-Re-derived `check-state.sh`'s wording logic (:1295-1319) into a standalone Python function and ran
+Re-derived `check-state.py`'s wording logic (:1295-1319) into a standalone Python function and ran
 it against constructed `SurfaceReport`s alongside `layout_migration.render()`'s logic (:293-320),
 both calling the literal same `layout_migration.blame()`:
 
@@ -42,21 +42,21 @@ both calling the literal same `layout_migration.blame()`:
 | no-rows (readers=[] by construction, `scan()`:233) | `[]` | `[]`, text has no trailing separator | **True** |
 
 Judged on the (path, form) pair sets, not the punctuation (render() joins with `"; p [f]"` per
-reader, check-state.sh joins with `", "` after an em dash — confirmed both formats above, ignored
-for the equality judgment as instructed). At source: `check-state.sh:1318` computes `_named` via
+reader, check-state.py joins with `", "` after an em dash — confirmed both formats above, ignored
+for the equality judgment as instructed). At source: `check-state.py:1318` computes `_named` via
 `_lmod.blame(_srep)` inside `_cv_wording`, called for **every** entry in the closed 5-cause table
 (:1302-1312) — there is no per-cause skip left. This is the same function object called on the same
 report at both sites, so the earlier divergence is not merely unreproduced here, it is structurally
 foreclosed by the M-1 fix (one shared function, no second filter).
 
 ## 4. Suites and gates — every exit code separately
-- `run-unit-tests.sh --kind all`: **exit 0**. 27/27 registered `test-*.py` files `PASS`, includes
+- `run-unit-tests.py --kind all`: **exit 0**. 27/27 registered `test-*.py` files `PASS`, includes
   `test-check-state.py` and `test-layout-migration.py`; `test-factory-integration.py` 106/106; no
   `FAIL`/`MISCONFIGURED` line; drift detector (unregistered file check) green.
 - `test-check-domain.py`: **exit 0**, 14/14.
 - `test-check-plan-routes.py`: **exit 0**, `ALL PASS`.
 - `test-validate-digest.py`: **exit 0**, 2/2 + `ALL PASSED`.
-- Live `check-state.sh` against the real repo (`CLAUDE_PROJECT_DIR` set, HEAD=6296149): **exit 0**,
+- Live `check-state.py` against the real repo (`CLAUDE_PROJECT_DIR` set, HEAD=6296149): **exit 0**,
   zero `INV-27` lines — marker present, no reader migrated, both surfaces CLEAN by design, matching
   the two prior panels.
 - No dedicated `test-dispatch-guard.py` exists in the tree (pre-existing condition, not introduced

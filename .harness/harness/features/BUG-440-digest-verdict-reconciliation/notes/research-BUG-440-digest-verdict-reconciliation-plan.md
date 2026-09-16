@@ -34,10 +34,10 @@ cannot be graded against the real corpus from the build worktree, the positive f
 
 ## Where the code goes, and the two structures it must not disturb
 
-- Host it in the existing INV-15 branch (`check-state.sh:1516-1535`) — `complete`, `_host in LEADS`,
+- Host it in the existing INV-15 branch (`check-state.py:1516-1535`) — `complete`, `_host in LEADS`,
   `digest.md` present and `_vd_mod.validate("lead", text)` empty are all already computed there. The
   digest text is already read for `validate()`; **reuse the local, do not re-read the file.**
-- The `feature.json` `runs:` parse is a separate earlier loop (`check-state.sh:643-652`) whose
+- The `feature.json` `runs:` parse is a separate earlier loop (`check-state.py:643-652`) whose
   comment pins `runs` as a 3-tuple because INV-7 and INV-22 unpack exactly three. The new check
   therefore needs **its own** side structure, exactly as `code_reviewing_runs` does at :644.
 - Key that structure on the **feature directory path** (`os.path.dirname(fy)`), not the bare feature
@@ -68,7 +68,7 @@ legal token: **no unparseable branch is needed.** The dispatch's reading is conf
 - Fixture idiom to copy: `_bug1305_invariant_scaffold` / `_bug1305_invariant_feature`
   (`test-check-state.py:4502-4557`), one tree carrying every case, `run(tmp)` for exit+output.
 - Red proof: `isolated_bin(dest_root)` (`isolated_bin.py:8-14`) copies the whole bin tree, so the
-  pre-change `check-state.sh` runs with its sibling imports intact; point `CHECK_STATE_BIN`
+  pre-change `check-state.py` runs with its sibling imports intact; point `CHECK_STATE_BIN`
   (`test-check-state.py:22`) at that copy. Never write the mutant into the live bin dir.
 - New cases must be folded into `main()`'s final `and` conjunction (`:4775-4784`) or they are
   never run.
@@ -78,5 +78,5 @@ legal token: **no unparseable branch is needed.** The dispatch's reading is conf
 - Q1 (non-blocking): the 4 live mismatches — does the operator want a reconciliation ticket?
 - Q2 (non-blocking): a 5th copy of the tail-anchor idiom vs. one shared extractor in
   `validate-digest.py` (out of this bug's surface).
-- Q3 (non-blocking): `INV-37` is free — no match for `INV-37` or `INV-38` in `check-state.sh` or
+- Q3 (non-blocking): `INV-37` is free — no match for `INV-37` or `INV-38` in `check-state.py` or
   `tests/`; only those two files carry invariant numbers at all.

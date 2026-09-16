@@ -51,7 +51,7 @@ gate_status:
     excluded every time
   distillation: 'COMPLETE. 11 agent Expertise files updated, harness-visual-designer.md
     created for the first time. No wipes — entry counts checked before and after rather
-    than trusted. check-expertise.sh over the directory exits 1 on ONE file, harness-documentor.md
+    than trusted. check-expertise.py over the directory exits 1 on ONE file, harness-documentor.md
     (G-04, 53 words against a 50 cap). PRE-EXISTING, not caused here: git log 8dedeae..HEAD
     shows that file untouched by this feature. Two leads independently declined to
     spawn documentor to trim three words on DEC-125 wipe-risk grounds and I endorsed
@@ -74,7 +74,7 @@ gate_status:
   review_panel: 'PASS at severity_max: info — four reviewers in one turn, zero must_fix,
     none of the four pre-briefed items re-raised as a discovery'
   seam_handoffs: 'WRITTEN, and owed: I ran build, validate and ship in one session
-    without stopping, and check-state.sh correctly reported both missing seam notes
+    without stopping, and check-state.py correctly reported both missing seam notes
     as VIOLATIONS rather than advice. notes/handoff-build.md and notes/handoff-validate.md
     are written retrospectively and say so rather than presenting themselves as contemporaneous.'
   ship_refresh: SKIPPED, documented — no codebase map exists (no INDEX.md anywhere
@@ -108,13 +108,13 @@ operator_rulings_2026_08_10: 'Q1 AMENDED. SC-01''s "single-digit GraphQL points 
   This is signed D-03 step 3 behaving as written and it does not violate SC-07, so
   no engineering fix cycle may close it. Recorded, not fixed.
 
-  Q3 TAKEN BY THE MAIN SESSION. bash-write-guard.sh mis-parses `cp ... 2>/dev/null`
+  Q3 TAKEN BY THE MAIN SESSION. bash-write-guard.py mis-parses `cp ... 2>/dev/null`
   and blocks a legal in-domain write. DEC-174 carve-out: fixed directly, never dispatched.'
 peer_feature_collision:
   peer: FEAT-12-end-copy-distribution
-  shared_surface: .claude/skills/harness/bin/run-unit-tests.sh
+  shared_surface: .claude/skills/harness/bin/run-unit-tests.py
   ship_phase_measurement: 'MEASURED before every commit, not assumed: git status --porcelain
-    stayed clean over run-unit-tests.sh and all four DEC-174 carve-out files throughout.
+    stayed clean over run-unit-tests.py and all four DEC-174 carve-out files throughout.
     FEAT-12 landed nothing into this tree, so T-01''s verify means what the plan measured.
     Unrelated held dirt appeared mid-run (harness-handoff/SKILL.md, team-config.yaml,
     test-harness-yaml.py, .harness/logs/2026-08-10.md, the untracked FEAT-12 dir)
@@ -126,7 +126,7 @@ preflight_measurements: Taken by me at 8dedeae BEFORE any dispatch, so no claim 
   come from the change.
 residuals: 'All carried into the briefing''s backlog as B-1..B-16, which is the list
   that survives: anything not in that table dies silently at acceptance. The ones
-  that most want the operator''s eye are B-5 (bash-write-guard.sh mis-parses a redirect
+  that most want the operator''s eye are B-5 (bash-write-guard.py mis-parses a redirect
   and is a DEC-174 carve-out file only the operator may fix), B-7 (multi-clause criteria
   scored as covered when one clause is asserted — the same defect twice in this feature),
   and B-13 (the expertise gate is red on a pre-existing file).'
@@ -137,7 +137,7 @@ review_sha_note: The pin the review panel ran against. Every validator run got a
   pin would have returned PASS on a tree with none of T-01 in it. MF-2 landed after
   the panel at 15cabe9 and was verified by me directly rather than by a second panel
   — the change is one guarded assertion in a test file, mutant-proved by name.
-route_resolution: ZERO main-session-direct. Resolved by check-domain.sh --resolve,
+route_resolution: ZERO main-session-direct. Resolved by check-domain.py --resolve,
   not by reading team-config, which is ambiguous for bin/** (granted to both backend-dev
   and dev-ops). None of the DEC-174 carve-out files was in scope at any point.
 runs_note: 16 runs against an informational budget of 20 — INV-22 not crossed, no

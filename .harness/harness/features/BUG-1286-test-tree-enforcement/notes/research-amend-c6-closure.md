@@ -81,7 +81,7 @@ All three behavioural checks PASSED in every run, including the discriminating o
    byte-identical** — 10993 bytes, `sha256 f39dbdd89025c73ae087ed523c7fae5987aa4572b2dd574303e0d52bca0e4805`
    before and after.
 2. `check-plan-routes.py` → `0 violation(s) across 1 plan(s)`, exit 0; all five tasks carry 11 keys.
-3. `check-state.sh` → **no `INV-35` line**; the only violation for this feature is the expected
+3. `check-state.py` → **no `INV-35` line**; the only violation for this feature is the expected
    `BRIEF.md is NOT approved`.
 4. 19 SCs, each with exactly one `verify:` and an `evidence:` on every `automated` one; 19
    traceability rows; all 11 ACs still mapped; SC-19 still `REQ-09` / `AC-01`; no untraced REQ and
@@ -127,7 +127,7 @@ Neither repeats the corrected claim.
 with no `rulings` key; `panel:` block still 10993 bytes,
 `sha256 f39dbdd89025c73ae087ed523c7fae5987aa4572b2dd574303e0d52bca0e4805`. (2) `check-plan-routes.py`
 → `0 violation(s) across 1 plan(s)`, exit 0, five OK lines, all five tasks 11 keys. (3)
-`check-state.sh` → no `INV-35` line; the only VIOLATION for this feature is the unsigned BRIEF.
+`check-state.py` → no `INV-35` line; the only VIOLATION for this feature is the unsigned BRIEF.
 (4) 19 SCs, SC-01…SC-19 contiguous; the SC-19 traceability row is unchanged (`REQ-09 | AC-01`).
 (5) `fix stated positively` returns zero matches in both artifacts; `SUFFICIENT condition on pattern
 SHAPE` appears once in each. Surviving `F-02` mentions are inside the untouched `panel:` block.

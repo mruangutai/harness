@@ -19,7 +19,7 @@ docs restatement of the worktree path formula — is sound or negligible. `leave
   `plan.yaml`'s task `verify:` (T-06 for `UNION_APPLY` at `plan.yaml:1032-1046`; T-02 for
   the other two, receipted in `receipt-harness-dev-ops-build-eng-T-02.md:36-38`). Grepped
   both checked-in test files for `UNION_APPLY`, `REFUSE_ON_DIRTY`, `REQUIRE_LANDED`: zero
-  hits in either. Both files ARE in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` and run on
+  hits in either. Both files ARE in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` and run on
   every future gate — but neither contains the mutation that proved the switch matters.
 - **Concrete cost**: a future edit that makes any of the three switches inert (e.g. a
   refactor of `compute_union` that no longer branches on `UNION_APPLY`, or a change to
@@ -95,6 +95,6 @@ docs restatement of the worktree path formula — is sound or negligible. `leave
 
 `harness_boundary.py`'s `checkout_relative`/`linked_worktrees` (flag-only/DEC-174)
 consolidate what were four independent, segment-counting re-derivations of "which
-checkout is this path in" (`classify()`, `check-domain.sh`'s resolver, its sweep globs,
+checkout is this path in" (`classify()`, `check-domain.py`'s resolver, its sweep globs,
 its `_norm()`) into one function each. This is the ALTITUDE question answered correctly
 in the other direction — already reflected in settled F-6 and A-2; not re-scored here.

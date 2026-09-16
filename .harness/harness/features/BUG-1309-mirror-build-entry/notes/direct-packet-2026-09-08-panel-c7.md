@@ -201,7 +201,7 @@ is main-session-direct, so the orchestrator has deliberately run **no** `gh-sync
 side is already recorded (`plan-merge.py set-task-station` T-04/T-05 → `building`,
 `set-feature-station` → `building`), which is what those commands require to have happened first.
 
-`check-state.sh` INV-26 is therefore RED on eleven rows for this feature right now. Two are yours to
+`check-state.py` INV-26 is therefore RED on eleven rows for this feature right now. Two are yours to
 clear in the same act as the work:
 
 ```

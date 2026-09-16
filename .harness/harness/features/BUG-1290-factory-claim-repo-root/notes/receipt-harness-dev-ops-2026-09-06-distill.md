@@ -1,7 +1,7 @@
 # Receipt — harness-dev-ops — distillation — BUG-1290-factory-claim-repo-root
 
 **BLUF:** 5 ops applied (1 replace, 4 add), all self-derived from my own 8 receipts — no
-lead-relayed candidate was accepted as-is. Both files pass `check-expertise.sh`, both applied
+lead-relayed candidate was accepted as-is. Both files pass `check-expertise.py`, both applied
 through `expertise-merge.py ops` (never a whole-file write), both well under budget.
 
 ## Per-section counts (read from disk before/after)
@@ -80,7 +80,7 @@ add — forwarding them verbatim as open questions per the lead's framing.
 
 ## Tooling
 
-Both `expertise-merge.py ops` calls and both `check-expertise.sh` calls ran directly in this
+Both `expertise-merge.py ops` calls and both `check-expertise.py` calls ran directly in this
 session (exit 0 each); no step was left unapplied.
 
 ```yaml

@@ -16,8 +16,8 @@ Every substantive task (T-01, T-02, T-03, T-04, T-05, T-06, T-09) carries `chang
 `plan.yaml`. The matrix's `logic` entry is `always: [unit]`, no `when` clause — **the floor is `unit`
 only.** T-07 is `docs` (`always: []`), T-10 is `scaffolding` (`always: []`), T-08 is `abandoned`.
 
-The floor understates what the change needs: two gate scripts (`check-domain.sh`,
-`bash-write-guard.sh`) and two shared libraries (`harness_boundary.py`, `inflight_registry.py`) all
+The floor understates what the change needs: two gate scripts (`check-domain.py`,
+`bash-write-guard.py`) and two shared libraries (`harness_boundary.py`, `inflight_registry.py`) all
 move together, and REQ-04 explicitly requires both write routes to refuse identically — textbook
 `cross_module` shape (`always: [unit, integration]`), not `logic`. This was reviewed and signed
 through three plan-panel cycles (L-01/L-02/F1/F2 all resolved) without anyone flagging the
@@ -32,8 +32,8 @@ plainly warrants it and in fact delivers it (every SC-01–SC-12 verify block al
 
 | kind | required by | cmd | result | files | notes |
 |---|---|---|---|---|---|
-| unit | matrix floor (`logic.always`) | `run-unit-tests.sh --kind unit` | **satisfied**, exit 0, 0 FAIL | 27 | `test-harness-boundary.py` present and passes; binds `claim_worktrees`/`claim_set_refusal` directly (`case_bug1304_claim_set`, 16 refs) |
-| integration | added by qa (diff-warranted, cross-module shape + REQ-04 both-routes) | `run-unit-tests.sh --kind integration` | **satisfied**, exit 0, 0 FAIL | 46 | `test-check-domain.py` (44.1s), `test-bash-write-guard.py` (16.1s), `test-inflight-registry.py` (1.7s) all individually exit 0 |
+| unit | matrix floor (`logic.always`) | `run-unit-tests.py --kind unit` | **satisfied**, exit 0, 0 FAIL | 27 | `test-harness-boundary.py` present and passes; binds `claim_worktrees`/`claim_set_refusal` directly (`case_bug1304_claim_set`, 16 refs) |
+| integration | added by qa (diff-warranted, cross-module shape + REQ-04 both-routes) | `run-unit-tests.py --kind integration` | **satisfied**, exit 0, 0 FAIL | 46 | `test-check-domain.py` (44.1s), `test-bash-write-guard.py` (16.1s), `test-inflight-registry.py` (1.7s) all individually exit 0 |
 | component/ui/typecheck | not touched by this diff (no `.tsx`/e2e paths in the 8-file set) | — | not applicable | — | correctly out of scope |
 
 Both commands run with `env -u HARNESS_AGENT_TYPE` per instruction; no phantom `test-plan-merge.py`
@@ -57,7 +57,7 @@ regression observed.
 
 **Disagree (FINDING):** the prior digest's headline reads *"unit suite rc=0 ... and **20/20**
 discovery against the **20 baseline**."* My own run of the identical command
-(`run-unit-tests.sh --kind unit`) reports **27 files discovered**, and `--kind integration` reports
+(`run-unit-tests.py --kind unit`) reports **27 files discovered**, and `--kind integration` reports
 **46**, for 73 total — matching the shared context's own baseline claim of 73. I cannot locate any
 "20" total anywhere in this tree (27 unit + 46 integration = 73; no kind or subset sums to 20). This
 looks like a transcription error in the prior digest rather than a real regression — my own recount

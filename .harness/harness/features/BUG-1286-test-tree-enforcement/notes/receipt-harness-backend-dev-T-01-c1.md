@@ -48,15 +48,15 @@ message text, unchanged pass/fail semantics for every prior check).
 ## 3. Verify command (verbatim, matches plan.yaml T-01 `verify:` at line 495-496)
 
 ```
-python3 tests/unit/test-suite-layout.py && .claude/skills/harness/bin/run-unit-tests.sh --check-layout
+python3 tests/unit/test-suite-layout.py && .claude/skills/harness/bin/run-unit-tests.py --check-layout
 ```
 Exit code: 0. `test-suite-layout.py` printed 46 PASS / 0 FAIL (listed above);
-`run-unit-tests.sh --check-layout` printed nothing (clean) and exited 0.
+`run-unit-tests.py --check-layout` printed nothing (clean) and exited 0.
 
 ## 4. Full unit suite
 
 ```
-env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Runner's own exit code: 0. `grep -c '^PASS '` → **341**. `grep -c '^FAIL '` → **0**. Tail:
 `pool: 8 workers, 27 files, 2.01s wall`. Baseline at `5eebad66` clean tree: 316 PASS / 0 FAIL /

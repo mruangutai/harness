@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: approval-gated writes to a plan or a brief.
+"""check-domain.py: approval-gated writes to a plan or a brief.
 
 Slice of the former test-check-domain.py (issue #1527) — T-09's plan/brief approval
 denials across every write route, T-14's main_session.writes exclusion and FEAT-51's
@@ -140,15 +140,25 @@ _PLAN_LEGAL = (
     f"status: {_fc09.MANDATED_STATIONS[3]}\n"
     "tasks:\n"
     "  - id: T-01\n"
+    "    title: Completed fixture task\n"
+    "    change_type: test\n"
+    "    execution_mode: main-session-direct\n"
+    "    files: [fixture.py]\n"
     f"    status: {_fc09.MANDATED_STATIONS[5]}\n"
     "    verify: python3 test.py\n"
+    "    intent: Exercise completed task handling.\n"
     # T-02 IS DELIBERATELY NOT TERMINAL. T-01 is `done`, and under FEAT-54's B-1 satisfaction
     # rule a handoff whose every authority is already satisfied binds nothing and is refused —
     # so a fixture handoff citing T-01 alone reds for a reason its own case never names. Any
     # case here that needs a LEGAL handoff body cites T-02.
     "  - id: T-02\n"
+    "    title: Active fixture task\n"
+    "    change_type: test\n"
+    "    execution_mode: main-session-direct\n"
+    "    files: [fixture.py]\n"
     f"    status: {_fc09.MANDATED_STATIONS[3]}\n"
     "    verify: python3 test.py\n"
+    "    intent: Exercise active task handling.\n"
 )
 
 
@@ -932,8 +942,8 @@ def _feat51_fail_open_cases(reg, root):
     shutil.copytree(HERE, copybin, dirs_exist_ok=True)
     os.remove(os.path.join(copybin, "inflight_registry.py"))
     unimportable = _feat51_result(
-        "an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch",
-        _feat51_fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.sh")),
+        "an unimportable inflight_registry fails OPEN at the check-domain.py quarantine branch",
+        _feat51_fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.py")),
         0, "boundary was not enforced")
     return [raising, names_file, unimportable]
 

@@ -60,16 +60,16 @@ working-tree and `--ref HEAD` mode, printing the three excused lines. Six discri
 
 T-07's own verify was run for real: **red** on the current tree, naming all three offending lines
 (`harness-eng-lead.md:9,10`, `harness-code-reviewer.md:7`); **green** on a repaired pair of files
-built in `/tmp/feat47-t07/`, with `check-expertise.sh` also `OK` on both.
+built in `/tmp/feat47-t07/`, with `check-expertise.py` also `OK` on both.
 
-**A cap discovered while doing that, now written into T-07:** `check-expertise.sh` caps a single
+**A cap discovered while doing that, now written into T-07:** `check-expertise.py` caps a single
 entry at **50 words**, not just the file at 40 lines. A first draft of the G-04 replacement came in
 at 51 and failed with `G-04 is 51 words — cap is 50; a rule, not a story`.
 
 ## The fourth instance (new, unfiled by either panel half)
 
 T-05 step 7 said to replace `test-check-plan-routes.py`'s `case_13` with an assertion that
-`run-unit-tests.sh` "contains neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS`". That file lands in
+`run-unit-tests.py` "contains neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS`". That file lands in
 `tests/integration/`, which is not a record prefix, so the assertion is itself a live file naming the
 deleted mechanism: the task would have broken the next task's gate in order to assert something. The
 negative clause is struck; only the positive glob property remains, and the reason is D-02's own —

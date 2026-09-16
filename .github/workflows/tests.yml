@@ -1,7 +1,7 @@
 name: tests
 
 # WHY THIS EXISTS (issue #161): nothing ran the suites mechanically. Not a git hook, not a
-# Claude Code hook, not check-state.sh at /harness entry — the only path was harness-qa
+# Claude Code hook, not check-state.py at /harness entry — the only path was harness-qa
 # reading test_kinds during a team flow, or a human remembering. Every assertion added
 # across #149, #152 and #153 was dormant by default, which is issue #133's own shape
 # ("logic correct, nothing calls it") applied to the safety net itself.
@@ -83,26 +83,26 @@ jobs:
       - name: Unit suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+        run: .agents/skills/harness/bin/run-unit-tests.py --kind unit
 
       # Integration kind measured at 12 scripts, ~15s.
       - name: Integration suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+        run: .agents/skills/harness/bin/run-unit-tests.py --kind integration
 
       # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
       # arguments: the CLI sweeps every .harness/*/features/*/feature.{json,yaml,yml} file
       # on disk and exits non-zero if any fails the schema. This is the CI backstop for
-      # a session where check-domain.sh's write-time gate is not registered at all.
+      # a session where check-domain.py's write-time gate is not registered at all.
       - name: Validate feature execution state
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: .agents/skills/harness/bin/validate-feature-json.py
 
       # THE ROUTE CHECK, PROMOTED (issue #133, DEC-183). `check-plan-routes.py` worked from the
-      # day it shipped and NOTHING mechanical ran it: not this workflow, not check-state.sh, not
-      # one of the 7 hook registrations in settings.json — `run-unit-tests.sh` runs its TEST, never
+      # day it shipped and NOTHING mechanical ran it: not this workflow, not check-state.py, not
+      # one of the 7 hook registrations in settings.json — `run-unit-tests.py` runs its TEST, never
       # the checker. Its sole invocation was one sentence in harness-spec-driven/SKILL.md telling a
       # planner to remember. This step is the mechanism; the sentence stays, because plan time is
       # still when a violation is cheap to fix.
@@ -274,7 +274,7 @@ jobs:
           exit "$rc"
 
       # THE REPOSITORY-STATE GATE, PROMOTED (FEAT-54 backlog B-5). SC-04 asserted a clean
-      # `check-state.sh` at ONE review pin and bound no later commit: the gate ran because a
+      # `check-state.py` at ONE review pin and bound no later commit: the gate ran because a
       # criterion told a human to run it, so the next commit could redden the corpus and
       # nothing would say so until the next feature happened to look. This step is the
       # standing detector that criterion could not be.
@@ -283,7 +283,7 @@ jobs:
       # requires exactly the `integration` context, which is this job's ID. A job of its own
       # would emit a context nobody requires and merge with this gate red or absent.
       #
-      # EXIT CODE IS THE VERDICT, BUT SILENCE IS NOT A PASS. check-state.sh prints one row per
+      # EXIT CODE IS THE VERDICT, BUT SILENCE IS NOT A PASS. check-state.py prints one row per
       # finding and nothing at all when the corpus is clean, so exit 0 with no output is
       # genuinely ambiguous between "clean" and "discovered nothing to check" — this
       # repository's most-repeated defect. The corpus count below is the positive control:
@@ -297,15 +297,15 @@ jobs:
 
           features=$(git ls-files '.harness/*/features/*/feature.json' | wc -l | tr -d ' ')
           if [ "$features" -eq 0 ]; then
-            echo "::error::no .harness/*/features/*/feature.json is tracked, so check-state.sh would have nothing to examine and would exit 0 on an empty corpus. Refusing to report a pass." >&2
+            echo "::error::no .harness/*/features/*/feature.json is tracked, so check-state.py would have nothing to examine and would exit 0 on an empty corpus. Refusing to report a pass." >&2
             exit 1
           fi
 
           rc=0
-          out=$(bash .agents/skills/harness/bin/check-state.sh 2>&1) || rc=$?
+          out=$(python3 .agents/skills/harness/bin/check-state.py 2>&1) || rc=$?
           printf '%s\n' "$out"
 
-          # NOTE ROWS ARE NOT VIOLATIONS. check-state.sh already decides that: it exits 0
+          # NOTE ROWS ARE NOT VIOLATIONS. check-state.py already decides that: it exits 0
           # with note rows present and non-zero only for a refusal, so this step adds no
           # severity judgment of its own and cannot drift from the checker's.
           echo "repository-state gate examined ${features} tracked feature record(s); checker exit ${rc}"

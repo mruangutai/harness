@@ -41,7 +41,7 @@ It failed on seven record violations, five of them another feature's.
    `gh pr update-branch` produced merge `69af7582` with parents `202995a1` and `9ec2a037`, so every
    reviewed commit survives by id and the pin still resolves. A rebase would have rewritten them.
 2. **BUG-201's own two rows** — `notes/handoff-plan.md` and `notes/handoff-build.md` — could not be
-   written from a worktree until BUG-1480 (PR #1497) taught `check-domain.sh` to carry
+   written from a worktree until BUG-1480 (PR #1497) taught `check-domain.py` to carry
    `_checkout_root(...)` into `handoff_done_when.problems`. Both are now written, and
    `notes/handoff-validate.md` followed once the `done` station required it. All three are marked
    BACKFILLED in their own comments rather than presented as contemporaneous, and all three are

@@ -8,8 +8,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 29 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 28 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 29 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 28 }
   coverage_gaps:
     - "SEC-01: no test in test-validate-digest.py exercises a self-consistent no-op range AT review_sha itself (base=head=review_sha). Every existing SEC-01 case (check_review_sha_binding, check_review_sha_binding_unconditional) forges a no-op whose head is NOT review_sha ('HEAD..HEAD' against the fixture's distinct REVIEW_SHA). That is why the residual bypass ships green."
   sc_evidence:
@@ -32,8 +32,8 @@ floor.
 
 | kind | required | command | state | count | vs baseline |
 |---|---|---|---|---|---|
-| unit | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | satisfied | 29/29 scripts, 0 fail, exit 0 | matches (29/29) |
-| integration | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | satisfied | 28/28 scripts, 0 fail, exit 0 | matches (28/28) |
+| unit | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | satisfied | 29/29 scripts, 0 fail, exit 0 | matches (29/29) |
+| integration | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | satisfied | 28/28 scripts, 0 fail, exit 0 | matches (28/28) |
 | functional | excluded (DEC-187) | n/a | soft skip | n/a | n/a |
 
 Raw logs: `/tmp/qa_unit_c18.log` (1444 lines), `/tmp/qa_integration_c18.log` (1909 lines),

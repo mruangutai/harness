@@ -2,7 +2,7 @@
 
 BLUF: **FAIL.** Not because of this feature's own code — every T-09/T-08/T-14/T-03 case I audited
 is solid, red-first, negative-controlled. It fails because SC-11 ("the whole suite is green") is
-measured **false** at the pin: `run-unit-tests.sh --kind integration` exits **1**, reproducibly
+measured **false** at the pin: `run-unit-tests.py --kind integration` exits **1**, reproducibly
 (2/2), on a case in a file this feature never touches. Two real coverage gaps also confirmed in
 the areas the build itself flagged thin (worktree-deletion fallback, plan-write splice guard).
 
@@ -10,18 +10,18 @@ the areas the build itself flagged thin (worktree-deletion fallback, plan-write 
 
 | check | expected | observed |
 |---|---|---|
-| `run-unit-tests.sh --kind unit` | exit 0, 493 PASS, 0 FAIL | **matches**: exit 0, 493 PASS, 0 FAIL |
-| `run-unit-tests.sh --kind integration` | exit 0, 797 PASS, 0 FAIL | **disagrees**: exit 1, 1 FAIL script (`test-bash-write-guard.py`), reproduced 2/2 full-suite runs |
-| `check-state.sh` | exit 0, 0 VIOLATION, 0 tracebacks | **matches**: exit 0, 0 VIOLATION, 0 tracebacks (only pre-existing INV-23 notes for FEAT-05/FEAT-43, correctly out of scope) |
+| `run-unit-tests.py --kind unit` | exit 0, 493 PASS, 0 FAIL | **matches**: exit 0, 493 PASS, 0 FAIL |
+| `run-unit-tests.py --kind integration` | exit 0, 797 PASS, 0 FAIL | **disagrees**: exit 1, 1 FAIL script (`test-bash-write-guard.py`), reproduced 2/2 full-suite runs |
+| `check-state.py` | exit 0, 0 VIOLATION, 0 tracebacks | **matches**: exit 0, 0 VIOLATION, 0 tracebacks (only pre-existing INV-23 notes for FEAT-05/FEAT-43, correctly out of scope) |
 
 **F-1 (blocks ship as measured, HIGH, but not attributable to this diff).**
 `test-bash-write-guard.py`'s `"ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes
 0 -> 2"` case (source line 524) fails deterministically inside the full `--kind integration` run
 (`bash=0, write=0`, wanted `(2,2)`) but passes 4/4 when run standalone. Neither
-`harness_boundary.py`, `bash-write-guard.sh`, nor `test-bash-write-guard.py` are touched by this
+`harness_boundary.py`, `bash-write-guard.py`, nor `test-bash-write-guard.py` are touched by this
 diff (`git diff --name-only base..review_sha` — confirmed absent); the test file's last edit
-(`66e9a9d`) is an ancestor of `base`, i.e. pre-existing. `check-domain.sh`, which this feature
-does touch, is one of the two routes this case exercises, but the untouched `bash-write-guard.sh`
+(`66e9a9d`) is an ancestor of `base`, i.e. pre-existing. `check-domain.py`, which this feature
+does touch, is one of the two routes this case exercises, but the untouched `bash-write-guard.py`
 route fails identically, pointing at shared/timing infrastructure (the file's own comment already
 documents a `.pyc`-staleness hazard it tried to work around) rather than at FEAT-41's code. Still:
 **SC-11 literally requires the whole suite green, and it is not, at this pin, as measured twice.**
@@ -41,8 +41,8 @@ dispatch. Resolved against `.harness/harness.json`'s matrix:
 
 | kind | required by | state | evidence |
 |---|---|---|---|
-| unit | logic, api, cross_module, bugfix (`always`) | **satisfied** | `run-unit-tests.sh --kind unit`, active cmd, 493 PASS |
-| integration | cross_module (`always`) | **satisfied for this diff's coverage** (named cases for T-03/T-08/T-09/T-14/T-16/T-17 all pass) but **suite: fail** overall — see F-1 | `run-unit-tests.sh --kind integration` |
+| unit | logic, api, cross_module, bugfix (`always`) | **satisfied** | `run-unit-tests.py --kind unit`, active cmd, 493 PASS |
+| integration | cross_module (`always`) | **satisfied for this diff's coverage** (named cases for T-03/T-08/T-09/T-14/T-16/T-17 all pass) but **suite: fail** overall — see F-1 | `run-unit-tests.py --kind integration` |
 | api's `integration` (`touches_db_or_external`) | not triggered — T-03 (plan-merge.py) touches no DB/external service | n/a | — |
 | bugfix's `__bug_class__` (`match_bug_class`) | not triggered — no `bug_class` field on T-10/T-14 | n/a | — |
 | component / ui / eval | not required (config/docs/scaffolding carry `always: []`; frontend/`ai_behavior` absent from this diff) | **not applicable** | confirmed by grep: zero files in the 163-file diff match the `component` (`*.spec.tsx`/`*.stories.tsx|ts`), `ui` (`tests/e2e/**`, `*.e2e.spec.ts`) or `eval` (`evals/**`) detect globs. BRIEF's claim holds — verified, not accepted on faith |
@@ -63,7 +63,7 @@ required kind carries a null `cmd`.
 
 ## Adequacy judged, not just green
 
-- **check-domain.sh T-09 route denial (`test-check-domain.py:2529-2621`, `run_t09`).** Case 1
+- **check-domain.py T-09 route denial (`test-check-domain.py:2529-2621`, `run_t09`).** Case 1
   (agent_type present) asserts denial + `set-task-station` name + **the reason** (`"one writer"`
   and `"validate"` both in stderr) + correct basename + absence of an unrelated routing sentence.
   Case 2 (agent=None, i.e. the main session) asserts **only the exit code**, not the reason text.
@@ -79,7 +79,7 @@ required kind carries a null `cmd`.
   type(exc).__name__ != "MissingDependency": ... else: doc = _scan_top_level_status(...)`
   (`worktree_terminal.py:213-221`) — has no deterministic, environment-independent test. The only
   thing that exercises it is `test-post-merge-sweep.py` invoking the real `-I`-isolated
-  `post-merge-sweep.sh` as a subprocess, and that only actually raises `ImportError` **on this
+  `post-merge-sweep.py` as a subprocess, and that only actually raises `ImportError` **on this
   machine**, because PyYAML happens to live in user site-packages here (confirmed:
   `python3 -I -c "import yaml"` → `ModuleNotFoundError`). A machine with PyYAML in system or venv
   site-packages would silently skip this path with zero test failure to flag the gap. **Failure
@@ -101,7 +101,7 @@ required kind carries a null `cmd`.
   `case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation` proves the parsed form
   correctly stops flagging what the old byte comparison over-reported. No gap.
 - **SC-09 / INV-26.** Confirmed directly: `git show 7c02ea4:...FEAT-40.../plan.yaml` carries
-  top-level `status: done`; `check-state.sh`'s full run emits zero `INV-26` lines for any feature.
+  top-level `status: done`; `check-state.py`'s full run emits zero `INV-26` lines for any feature.
 - **SC-01..SC-04, SC-14 — ran each criterion's own stated command verbatim:**
   - SC-01: no code in `.claude/skills/harness/bin` (or anywhere outside `__pycache__`/feature
     history docs) defines `_STATION_KEYS`. **Caveat (info, not blocking):** the literal wording
@@ -126,8 +126,8 @@ DIGEST:
   failures: 1
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 493 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 797 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 493 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 797 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }
@@ -144,9 +144,9 @@ DIGEST:
     - { id: SC-06, test: ".claude/skills/harness/bin/test-check-domain.py run_t09 cases T-09 5/6" }
     - { id: SC-07, test: ".claude/skills/harness/bin/test-plan-sign-gate.py" }
     - { id: SC-08, test: ".claude/skills/harness/bin/test-factory-integration.py, test-check-plan-routes.py (both PASS; not independently re-derived reader-count this pass)" }
-    - { id: SC-09, test: "git show 7c02ea4:.../FEAT-40.../plan.yaml + check-state.sh full run — 0 INV-26 lines, verified directly" }
+    - { id: SC-09, test: "git show 7c02ea4:.../FEAT-40.../plan.yaml + check-state.py full run — 0 INV-26 lines, verified directly" }
     - { id: SC-10, test: ".claude/skills/harness/bin/test-gh-sync.py (PASS; not independently re-derived this pass)" }
-    - { id: SC-11, test: "run-unit-tests.sh both kinds + check-plan-routes.py — MEASURED FALSE: integration exits 1 (F-1)" }
+    - { id: SC-11, test: "run-unit-tests.py both kinds + check-plan-routes.py — MEASURED FALSE: integration exits 1 (F-1)" }
     - { id: SC-13, test: ".claude/skills/harness/bin/test-check-state.py case_24/case_25 series (PASS; not independently re-derived this pass)" }
     - { id: SC-14, test: "T-15's own verify script (plan.yaml), run verbatim — exit 0" }
   open_questions:

@@ -18,7 +18,7 @@ persona, lead or orchestrator ran. 14 commits, 75 files, +7,132 / −1,459.
 | SC-07 symbol anchors, `check`, line numbers refused | `plan_anchors.py`, `plan-merge.py check`; `case_f59_check_*`, `case_f59_line_number_anchor_is_refused_at_write` |
 | SC-08 approval auto-reset, `apply` replaces, `lanes`, `set-panel` identity | `case_f59_approval_auto_reset_*` (2), `case_conflict`, `case_f59_set_lanes_*`, `case_f59_set_panel_keeps_*` |
 | SC-09 goal-check twice, never per cycle | playbook step 7 and plan/validate teams — inspection |
-| SC-10 BRIEF shape + INV-38 | `templates/BRIEF.md`; `check-state.sh` INV-38; `test-check-state-feat59.py::case_inv38` (8 cases) |
+| SC-10 BRIEF shape + INV-38 | `templates/BRIEF.md`; `check-state.py` INV-38; `test-check-state-feat59.py::case_inv38` (8 cases) |
 | SC-11 handoff cites `brief-perspective:` | `handoff_done_when.py`; `test-handoff-done-when.py` 13 new cases; `templates/HANDOFF.md` |
 | SC-12 scope reader hunts orphan SCs | `teams/plan.yaml` scope prompt; `harness-brief/SKILL.md` §3 — inspection |
 | SC-13 batched validate | `teams/validate.yaml` (qa, code, security, ui, goalcheck in one turn); `test-plan-team.py`. **Live evidence pending SC-24** |
@@ -35,7 +35,7 @@ persona, lead or orchestrator ran. 14 commits, 75 files, +7,132 / −1,459.
 | SC-24 live feature through plan lane | **OPEN** — the next real feature |
 
 Suites at `a1c3a683`: unit 37 files exit 0; integration 71 files exit 0; `check-omp-port.py`,
-`sync-agent-adapters.py --check`, `sync-command-adapters.py --check` exit 0; `check-state.sh`
+`sync-agent-adapters.py --check`, `sync-command-adapters.py --check` exit 0; `check-state.py`
 on the branch: 0 violations, 69 legacy notes (one per pre-ledger feature.json, as INV-39/40 intend).
 
 ## Judgements made outside the ledger

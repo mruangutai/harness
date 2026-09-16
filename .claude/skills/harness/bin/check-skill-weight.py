@@ -17,12 +17,11 @@ Usage: check-skill-weight.py [ROOT] [--json]
 
 from __future__ import annotations
 
-import json
+import artifact_accessors
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
 
 AGENTS_REL = Path(".omp") / "agents"
 SKILLS_REL = Path(".claude") / "skills"
@@ -70,21 +69,17 @@ class Report:
 
 
 def _frontmatter(path: Path) -> dict:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    if not lines or lines[0] != "---" or "---" not in lines[1:]:
-        raise ValueError("missing frontmatter delimiters")
-    data = yaml.safe_load("\n".join(lines[1:lines.index("---", 1)]))
-    if not isinstance(data, dict):
-        raise ValueError("frontmatter is not a mapping")
-    return data
+    metadata, _body = artifact_accessors.load_frontmatter(
+        path.read_text(encoding="utf-8"), str(path))
+    return metadata
 
 
 def _budget(root: Path) -> dict[str, int] | None:
-    try:
-        raw = json.loads((root / CONFIG_REL).read_text(encoding="utf-8"))
-        block = (raw.get("budgets") or {}).get(BUDGET_KEY)
-    except Exception:
+    path = root / CONFIG_REL
+    if not path.is_file():
         return None
+    raw = artifact_accessors.load_harness_json(path)
+    block = (raw.get("budgets") or {}).get(BUDGET_KEY)
     if not isinstance(block, dict):
         return None
     out = {}
@@ -98,7 +93,16 @@ def _budget(root: Path) -> dict[str, int] | None:
 
 def scan(root: Path) -> Report:
     root = Path(root)
-    report = Report(skills={}, agents={}, universal=[], budget=_budget(root))
+    try:
+        budget = _budget(root)
+    except artifact_accessors.ArtifactAccessError as error:
+        budget = None
+        budget_error = f"harness.json is unreadable ({error})"
+    else:
+        budget_error = None
+    report = Report(skills={}, agents={}, universal=[], budget=budget)
+    if budget_error:
+        report.errors.append(budget_error)
     agents_dir = root / AGENTS_REL
     for agent_path in sorted(agents_dir.glob("*.md")):
         agent = agent_path.stem

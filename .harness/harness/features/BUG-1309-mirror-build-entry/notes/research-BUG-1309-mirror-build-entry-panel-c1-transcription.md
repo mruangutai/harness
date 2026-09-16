@@ -16,7 +16,7 @@ same personas, same notes, `status: complete`), so the state files do not decide
   `findings_by_severity`, `must_fix`, `readers_status`, `escalations`). `panelc1/digest.md` has no
   contract block at all — it is the prose assessment only.
 - The lead states the split itself: `panelc1b/digest.md:57-60` ("This directory is the canonical
-  record for cycle 1") and Q3 at `:32` — DEC-156 wants the block at the top while `check-domain.sh`
+  record for cycle 1") and Q3 at `:32` — DEC-156 wants the block at the top while `check-domain.py`
   permits only appends to a recorded digest, so the lead opened a second directory. One panel, one
   cycle, two directories; no member re-dispatched.
 
@@ -75,7 +75,7 @@ task list rather than assumed; `T-11.depends_on` now includes `T-12`.
 ## Open questions
 
 - **Q1 (non-blocking, harness defect, already raised by the lead as Q1/Q3):** the panel's own
-  `validate-digest.py` gap and the DEC-156/`check-domain.sh` digest-file conflict are unresolved, and
+  `validate-digest.py` gap and the DEC-156/`check-domain.py` digest-file conflict are unresolved, and
   the second produced the run-directory pair this transcription had to disambiguate by hand. Nothing
   in the plan record fixes either; both belong to the harness owner.
 - No open question about the panel content itself. All four cycle-1 findings are recorded resolved

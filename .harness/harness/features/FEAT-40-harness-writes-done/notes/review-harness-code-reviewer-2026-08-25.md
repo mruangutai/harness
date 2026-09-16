@@ -29,10 +29,10 @@ Every change in scope traces to a `REQ`/`D`. No scope creep found. One omission-
 
 ## Stage 2 — code quality
 
-### Finding 1 (critical, must_fix) — `gh-close-gate.sh` has real, reachable false-ALLOWs
+### Finding 1 (critical, must_fix) — `gh-close-gate.py` has real, reachable false-ALLOWs
 
 Independently reproduced against the pinned-SHA script (JSON hook payload piped into
-`bash .claude/skills/harness/bin/gh-close-gate.sh`, `github.sync: true`), not reasoned about:
+`python3 .claude/skills/harness/bin/gh-close-gate.py`, `github.sync: true`), not reasoned about:
 
 | command | result | why the regex misses it |
 |---|---|---|
@@ -62,7 +62,7 @@ signal here; passing green is consistent with the gap, not evidence against it.
 unrecoverable false-ALLOW at the gate second only to a false Done, and this is a false ALLOW an
 ordinary agent reaches with `bash -c` or `eval` — not an adversarial edge case.
 
-**Route**: `gh-close-gate.sh` and its test are enforcement layer under DEC-174. Reporting only, per
+**Route**: `gh-close-gate.py` and its test are enforcement layer under DEC-174. Reporting only, per
 this review's execution-route bound — no fix, no dispatched-fix recommendation.
 
 ### Finding 2 (high) — `cmd_abandon`'s `--yes` path aborts the whole batch on the first `gh()` failure, unlike every other multi-card writer this feature touches
@@ -142,11 +142,11 @@ privilege question, not the write loop's failure posture.
   skip line *before* any finding (since findings were only printed by the caller after the function
   returned), so collecting them into a `notes` list printed first by `cmd_audit` reproduces that
   order exactly, not a regression.
-- **`INV-31`** (`check-state.sh:1700-1758`): both findings append to `bad`; both subjects differ
+- **`INV-31`** (`check-state.py:1700-1758`): both findings append to `bad`; both subjects differ
   (config value vs. file); the CANNOT-RUN path is a violation, not a pass; realpath comparison
   correctly passes an absolute `core.hooksPath` naming the same directory. `test-check-state.py`
   exercises all six named states including the absolute-path-passes case.
-- **`post-merge-sweep.sh`**: `gh-sync: FAILED` added as a second, independent condition beside
+- **`post-merge-sweep.py`**: `gh-sync: FAILED` added as a second, independent condition beside
   `SKIP` in the positive-signal gate; `HELD` deliberately excluded; removal declined without
   changing the sweep's own exit code. Matches D-11/T-04 step 7b exactly.
 

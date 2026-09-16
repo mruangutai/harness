@@ -56,7 +56,7 @@ speaking gate by it. Strike it in the edit if unwanted; nothing else depends on 
 | `merge-gate.py:174` (ambiguity) | **untouched** | `gh-sync.py` must stay absent there — `test-merge-gate.py:162,174` |
 | `merge-gate.py:194` (exception) | **untouched** | carries `T-05 empty plan fails closed` (`:127`) |
 | `merge-gate.py:180` (era-exempt stderr) | **untouched** | `:93` asserts no `open` token in stderr |
-| `post-merge-sweep.sh:230-231` | **untouched** | its own "records github.build_entry" text is asserted ABSENT by `test-hooks-install.py:434`; editing it would be a different task |
+| `post-merge-sweep.py:230-231` | **untouched** | its own "records github.build_entry" text is asserted ABSENT by `test-hooks-install.py:434`; editing it would be a different task |
 | docs / `references/github-mirror.md` | **no change** | grepped: no copy of the deny sentence outside `plan.yaml`, the UAT note and the gate |
 
 ## 4. The one plan amendment — D-19, additive
@@ -77,9 +77,9 @@ forbids exactly that. The intent stays as the historical record; D-19 names it s
 
 ## 5. The direct implementation packet — main session only
 
-**Lane authority:** `plan.yaml:47-49` (`merge-gate.sh and merge-gate.py` → `main-session-direct`),
+**Lane authority:** `plan.yaml:47-49` (`merge-gate.py and merge-gate.py` → `main-session-direct`),
 `:73-75` (`tests/integration/test-merge-gate.py` → `main-session-direct`), `T-05
-execution_mode: main-session-direct` (`:1047-1048`), D-11 (`:139-157`). `check-domain.sh --resolve`
+execution_mode: main-session-direct` (`:1047-1048`), D-11 (`:139-157`). `check-domain.py --resolve`
 returns `harness-backend-dev`/`harness-dev-ops`/`harness-qa` for these paths and the signed
 carve-out rows OVERRIDE it. **No agent edits either file.**
 

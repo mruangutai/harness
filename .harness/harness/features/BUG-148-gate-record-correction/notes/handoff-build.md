@@ -25,7 +25,7 @@ passages; carry STATE.md's Q1 register question into that read rather than pre-d
 
 - Do not re-open whether the `--stdout | diff` form belongs in only one record: the operator ruled it stays in BOTH — `plan.yaml` `decisions:` D-05 ruling 2, discharging PF-54450f537e28244ae73d9c0e48ae4efe — verified-at f60d5d27
 - Do not treat FEAT-05 `STATE.md`'s 170-line / 7-heading shape as a finding: pre-existing, deliberately left as found — `plan.yaml` `decisions:` D-04 — verified-at f60d5d27
-- Do not restore the untracked duplicate grilling artifact under `.harness/harness/notes/`: removed on purpose, and no agent lane may write it — `check-domain.sh --resolve` returns NOBODY — verified-at 63f7fc97
+- Do not restore the untracked duplicate grilling artifact under `.harness/harness/notes/`: removed on purpose, and no agent lane may write it — `check-domain.py --resolve` returns NOBODY — verified-at 63f7fc97
 - `git merge-base origin/main HEAD` is not a usable diff baseline here; SC-03/SC-05 grade against the branch base `41c16c7` — `plan.yaml` `lanes.resolved_at` — verified-at f60d5d27
 - Do not spend a cycle on SIMPLIFY's altitude finding: its premise fails against the approved BRIEF — REQ-01 positively requires the FEAT-05 record to name 2026-09-06, and D-05 ruling 1's "treatment" is the in-place mechanism, not the rhetorical register — verified-at f60d5d27
 

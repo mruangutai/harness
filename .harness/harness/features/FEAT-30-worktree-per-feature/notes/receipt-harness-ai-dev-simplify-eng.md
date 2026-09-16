@@ -44,18 +44,18 @@ stated once each" as license to copy identical prose into all three.
 - D-04 (plan.yaml:88-97): accepts main-session HEAD moves being unguarded; compensating control
   named explicitly — worktree isolation means a main-session branch change can no longer move
   the HEAD the orchestrator commits against. **Leave.**
-- D-07 (plan.yaml:123-138): accepts bash-write-guard.sh staying fleet-unaware for worktree
+- D-07 (plan.yaml:123-138): accepts bash-write-guard.py staying fleet-unaware for worktree
   creation; compensating control named explicitly — `dest_for()` is the single destination
   constructor and "makes an illegal destination unrepresentable," so the door's blind spot has
   no reachable exploit path. **Leave.**
-- D-08 (plan.yaml:139-161): accepts that the check-state.sh half of SC-09's baseline only
+- D-08 (plan.yaml:139-161): accepts that the check-state.py half of SC-09's baseline only
   catches VIOLATION lines whose text contains `FEAT-30` — verified against
-  `check-state.sh:1366` (`for m in bad: print(f"  VIOLATION  {m}")`) that violation text is
+  `check-state.py:1366` (`for m in bad: print(f"  VIOLATION  {m}")`) that violation text is
   free-form and not guaranteed to name a feature id, so a code regression could in principle
   surface as an untagged VIOLATION. The compensating control is present but implicit rather
-  than named as such: the suite half ("run-unit-tests.sh --kind unit and --kind integration ...
+  than named as such: the suite half ("run-unit-tests.py --kind unit and --kind integration ...
   zero FAIL/ERROR") is the hard zero that catches code-level regressions in
-  `harness_boundary.py`/`check-domain.sh`, leaving the check-state half to catch only
+  `harness_boundary.py`/`check-domain.py`, leaving the check-state half to catch only
   feature/process-state violations, which are the ones that do carry the feature id in practice.
   The two-half split is a reasoned design, not an oversight. **Leave** — the control exists, it
   is just not cross-referenced by name inside D-08's own text.

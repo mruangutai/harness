@@ -4,7 +4,7 @@
 
 `gh-sync.py status <feature-dir> <Status>` is implemented and GREEN. It couples recording
 `feature.json`'s `status` (via the existing `_record_status`) to the board writes that phase
-event implies, exactly per the plan's step 2/D-16. Full `run-unit-tests.sh --kind all` passes
+event implies, exactly per the plan's step 2/D-16. Full `run-unit-tests.py --kind all` passes
 (all scripts PASS, zero FAIL lines). Note on `plan.yaml`'s `status: building` for this task —
 per T-13's own intent (step 2's "Plan" branch), `status <dir> Plan` is a no-op for stations by
 design; the task-level `plan.yaml` status the orchestrator records is a different field
@@ -92,7 +92,7 @@ Two test-suite fixture helpers gained optional, backward-compatible parameters t
 these cases (no existing caller's behavior changed): `write_plan_yaml(..., approval=None)`
 and `stage_station(..., approval=None, source_issues=None)`.
 
-## Verify: `run-unit-tests.sh --kind all`
+## Verify: `run-unit-tests.py --kind all`
 
 Ran after the restore. Every script in the suite printed `PASS`, including
 `PASS test-gh-sync.py` and `PASS test-factory-integration.py` (integration kind, unaffected

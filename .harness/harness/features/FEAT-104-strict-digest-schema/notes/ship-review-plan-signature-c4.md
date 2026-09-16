@@ -1,6 +1,6 @@
 # FEAT-104 — final plan signature packet (c4)
 
-**Ready to sign.** All six rulings executed, Q2 closed, and `check-state.sh` is down to a single
+**Ready to sign.** All six rulings executed, Q2 closed, and `check-state.py` is down to a single
 FEAT-104 violation: "BRIEF.md is NOT approved" — the signature gate itself. Nothing is implemented
 and nothing is signed.
 
@@ -50,7 +50,7 @@ on the `integration` runner, **1 `inspection`** (SC-12's sha256 run-artifact man
 (SC-13 — you read the DEC-174 carve-out diff; no automated gate substitutes).
 
 `plan.yaml` — 12 decisions, **9 tasks** (T-01, T-03..T-10), the `lanes:` routing table resolving
-every literal path through `check-domain.sh --resolve`, and `panel:` with three readers recorded
+every literal path through `check-domain.py --resolve`, and `panel:` with three readers recorded
 `ran` and all four `PF-` findings at `disposition: resolved`, ids, severities, readers and evidence
 unchanged.
 
@@ -64,7 +64,7 @@ legal home, and **issue #37 resolved in-feature** — `adequacy_notes` becomes a
 
 ## Gate state
 
-- `check-state.sh` — **one** FEAT-104 violation: BRIEF not approved. The gate working.
+- `check-state.py` — **one** FEAT-104 violation: BRIEF not approved. The gate working.
 - `check-plan-routes.py` — exit 1, `1 violation(s)`, the pre-existing manifest deviation (this
   worktree's `.harness/team-config.yaml` is behind the owner root by `4d81e460`). No task
   violation. You struck B-2, so it stays.

@@ -10,13 +10,13 @@ source_issues: [356]
 lanes:
   resolved_at: e8e1b78be3379d4a669aa7e28aef8f76eb942471
   rows:
-    - surface: .claude/skills/harness/bin/inject-expertise.sh
+    - surface: .claude/skills/harness/bin/inject-expertise.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered SubagentStart hook and its test file
     - surface: .claude/skills/harness/bin/check-instruction-paths.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a gate script joins the category on the day it becomes a gate
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: registering a gate test file is part of the same enforcement-layer edit
     - surface: .claude/skills/harness-handoff/SKILL.md
@@ -37,7 +37,7 @@ lanes:
 
 decisions:
   - id: D-01
-    choice: "The Harness control-plane root reaches an agent as one line of the preamble that inject-expertise.sh injects through hookSpecificOutput.additionalContext, and it is the only value this feature injects."
+    choice: "The Harness control-plane root reaches an agent as one line of the preamble that inject-expertise.py injects through hookSpecificOutput.additionalContext, and it is the only value this feature injects."
     because: "It is the only registered SubagentStart hook, it already resolves the root from its own directory via harness_boundary.resolve_root, and DEC-100 measured that SubagentStart fires for nested spawns."
     rejected:
       - "An environment variable: CLAUDE_PROJECT_DIR is session-scoped and was measured UNSET in an agent tool shell, so an agent cannot anchor its own paths with it."
@@ -50,12 +50,12 @@ decisions:
       - "A dollar sigil: it would read as a shell variable that provably does not exist in the agent's shell."
     dec: none
   - id: D-03
-    choice: "The lint is a standalone checker, check-instruction-paths.py, wired as a step of the required integration CI job rather than as an invariant inside check-state.sh."
-    because: "check-state.sh audits per-feature state while this is a repo-wide instruction lint with its own scope list, a standalone script is runnable verbatim as a task verify command, and DEC-183 set the precedent for promoting a checker to a required CI step."
+    choice: "The lint is a standalone checker, check-instruction-paths.py, wired as a step of the required integration CI job rather than as an invariant inside check-state.py."
+    because: "check-state.py audits per-feature state while this is a repo-wide instruction lint with its own scope list, a standalone script is runnable verbatim as a task verify command, and DEC-183 set the precedent for promoting a checker to a required CI step."
     rejected: []
     dec: DEC-183
   - id: D-04
-    choice: "The spawn-time assertion lives inside inject-expertise.sh but signals through the injected text and stderr, never through the exit code, which stays 0 on every branch."
+    choice: "The spawn-time assertion lives inside inject-expertise.py but signals through the injected text and stderr, never through the exit code, which stays 0 on every branch."
     because: "DECISIONS.md line 1503 and the script's own header fix its contract at always exits 0 so it can never block a spawn, and all seventeen existing cases assert exit 0, so the refusal happens one tier up at the agent, which is told to return VERDICT BLOCKED when the block says UNRESOLVED."
     rejected:
       - "Exiting non-zero on an unresolved root or on drift: it contradicts a signed contract and would let a hook block a spawn."
@@ -67,21 +67,21 @@ decisions:
       - "Widening a domain in team-config.yaml: it would widen WRITE permission as a side effect of fixing a resolution defect."
     dec: none
   - id: D-06
-    choice: "Instruction paths carry TWO anchors: HARNESS_CONTROL_PLANE_ROOT, injected by inject-expertise.sh, prefixes every READ of a Harness-owned skill, rule, reference, decision or config, and HARNESS_FEATURE_TREE_ROOT, never injected, prefixes every WRITE into a feature directory and resolves to the checkout that HOLDS that feature's directory as inflight_registry.feature_root returns worktree_for_feature(owner_root, feature) or owner_root."
-    because: "One value cannot serve both directions - measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json registers the MAIN checkout copy of inject-expertise.sh and harness_boundary.resolve_root is script-directory-relative, so the injected root is the main checkout whatever the agent's cwd and the FEAT-52 feature directory does not exist there at all, which sends a write anchored to it off the reviewed branch and invisible at review_sha, while leaving the write relative sends a factory worker's records into a disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against."
+    choice: "Instruction paths carry TWO anchors: HARNESS_CONTROL_PLANE_ROOT, injected by inject-expertise.py, prefixes every READ of a Harness-owned skill, rule, reference, decision or config, and HARNESS_FEATURE_TREE_ROOT, never injected, prefixes every WRITE into a feature directory and resolves to the checkout that HOLDS that feature's directory as inflight_registry.feature_root returns worktree_for_feature(owner_root, feature) or owner_root."
+    because: "One value cannot serve both directions - measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json registers the MAIN checkout copy of inject-expertise.py and harness_boundary.resolve_root is script-directory-relative, so the injected root is the main checkout whatever the agent's cwd and the FEAT-52 feature directory does not exist there at all, which sends a write anchored to it off the reviewed branch and invisible at review_sha, while leaving the write relative sends a factory worker's records into a disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against."
     rejected:
-      - "Injecting a SECOND resolved value from inject-expertise.sh: the hook cannot identify the spawning agent's feature, because dispatch-guard.sh:76-80 records that tool_input.prompt exists only on the dispatch payload and DEC-64 fixes the SubagentStart payload's contract at agent_type, so it would have to scan the inflight registry of the control plane and of every linked worktree for a claim keyed on persona alone - ambiguous whenever two spawns of one non-single-flight persona run on different features at once - plus an unmeasured dependency on PreToolUse:Task firing before SubagentStart."
+      - "Injecting a SECOND resolved value from inject-expertise.py: the hook cannot identify the spawning agent's feature, because dispatch-guard.py:76-80 records that tool_input.prompt exists only on the dispatch payload and DEC-64 fixes the SubagentStart payload's contract at agent_type, so it would have to scan the inflight registry of the control plane and of every linked worktree for a claim keyed on persona alone - ambiguous whenever two spawns of one non-single-flight persona run on different features at once - plus an unmeasured dependency on PreToolUse:Task firing before SubagentStart."
       - "Anchoring writes to the control-plane root: the feature tree is the one description true both for a Harness self-development run, where it is the feature worktree, and for a factory run, where the resolver collapses to the control plane because the product feature has no Harness worktree."
     dec: DEC-204
   - id: D-07
-    choice: "The spawn-time assertion asserts the PATH CONTRACT rather than merely that a root resolved: inject-expertise.sh invokes check-instruction-paths.py over the four instruction files every harness agent receives - its own .omp/agents/<agent_type>.md and the three always-preloaded skills harness-handoff, harness-expertise and harness-principles - and reports the finding count plus up to five file:line pointers as a HARNESS_PATH_DRIFT line in the injected block, at exit 0 on every branch."
+    choice: "The spawn-time assertion asserts the PATH CONTRACT rather than merely that a root resolved: inject-expertise.py invokes check-instruction-paths.py over the four instruction files every harness agent receives - its own .omp/agents/<agent_type>.md and the three always-preloaded skills harness-handoff, harness-expertise and harness-principles - and reports the finding count plus up to five file:line pointers as a HARNESS_PATH_DRIFT line in the injected block, at exit 0 on every branch."
     because: "Root resolution cannot go red when a new relative path is introduced, which is the entire failure class a second mechanism is wanted against, and the hook already knows agent_type so that instruction set is knowable at spawn with no payload field the SubagentStart contract does not promise; the accepted cost is one extra subprocess per spawn on top of the interpreter-startup floor the hook already pays."
     rejected:
       - "Exiting non-zero on drift: it contradicts DECISIONS.md:1503 and the seventeen existing exit-0 cases, so the refusal stays the agent's."
       - "Re-implementing the lint's rule inside the hook: it would give the factory two rules free to drift apart, so the hook invokes the checker instead."
     dec: none
   - id: D-08
-    choice: "The feature-tree anchor is resolved by whoever holds a shell: a persona whose .omp/agents entry grants bash resolves its own with inflight_registry.py feature-root --feature FEAT-NN-slug, and a persona that grants none never resolves its own but receives it from its dispatcher on a line of the dispatch text spelled HARNESS-FEATURE-TREE-ROOT then a colon then one absolute path, which dispatch-guard.sh refuses the dispatch without at exit 2, the predicate being the TOOL GRANT and never a list of names."
+    choice: "The feature-tree anchor is resolved by whoever holds a shell: a persona whose .omp/agents entry grants bash resolves its own with inflight_registry.py feature-root --feature FEAT-NN-slug, and a persona that grants none never resolves its own but receives it from its dispatcher on a line of the dispatch text spelled HARNESS-FEATURE-TREE-ROOT then a colon then one absolute path, which dispatch-guard.py refuses the dispatch without at exit 2, the predicate being the TOOL GRANT and never a list of names."
     because: "The gap is present tense - .omp/agents/harness-product-lead.md:4-9, harness-eng-lead.md:4-9 and harness-validator-lead.md:4-9 grant read, glob, grep, task and write and no bash by DEC-116's design, while all three WRITE into a feature directory as normal operation (harness-team SKILL.md:44-47 mandates the run dir, :49-52 and :209-210 the team digest, :249 makes that digest the lead's reported artifact), so three of sixteen personas would otherwise be bound to a write prefix whose only specified resolution route they cannot execute, and a lead that guesses writes the run record into the wrong checkout."
     rejected:
       - "Granting the three leads bash: DEC-116 removes the shell deliberately so a lead cannot do a member's work, and re-granting it to repair a path-resolution defect is the error shape D-05 already refuses; DEC-116 also records that a lead sets cost pending_orchestrator precisely because it cannot meter its own run."
@@ -97,7 +97,7 @@ tasks:
     traces: [REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, inflight_registry.py is imported by dispatch-guard.sh, a registered PreToolUse hook
+    execution_reason: DEC-174 carve-out, inflight_registry.py is imported by dispatch-guard.py, a registered PreToolUse hook
     depends_on: []
     status: done
     files:
@@ -111,7 +111,7 @@ tasks:
       The feature-tree write anchor is the checkout that HOLDS a feature's directory. That
       resolution already exists and is already used: inflight_registry.feature_root(owner_root,
       feature) at inflight_registry.py:260-266 returns worktree_for_feature(owner_root, feature)
-      or owner_root, and dispatch-guard.sh:115-126 resolves a dispatch's checkout by the identical
+      or owner_root, and dispatch-guard.py:115-126 resolves a dispatch's checkout by the identical
       rule. What is missing is a way for an AGENT to ask.
 
       1. Add one verb to inflight_registry.py main(), beside list, attach, release, release-all and
@@ -144,11 +144,11 @@ tasks:
          both halves in one case and name the direction each protects: exit 0 alone is also what a path
          outside every base returns, so the allow half on its own is passed by a guard that stopped
          adjudicating. Do NOT register test-check-domain.py anywhere new - it is already in
-         run-unit-tests.sh's INTEGRATION_SCRIPTS and already named in harness.json's
+         run-unit-tests.py's INTEGRATION_SCRIPTS and already named in harness.json's
          test_kinds.integration.detect, and adding it again trips the KIND-DRIFT cross-check.
 
       Do NOT register the test file anywhere new. test-inflight-registry.py is already in
-      run-unit-tests.sh's INTEGRATION_SCRIPTS and already named in harness.json's
+      run-unit-tests.py's INTEGRATION_SCRIPTS and already named in harness.json's
       test_kinds.integration.detect; adding it again trips the KIND-DRIFT cross-check.
 
   - id: T-02
@@ -162,7 +162,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/check-instruction-paths.py
       - .claude/skills/harness/bin/test-check-instruction-paths.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .agents/skills/harness/bin/test-check-instruction-paths.py
     intent: |
@@ -289,7 +289,7 @@ tasks:
           harness-wayfinding.
         - A positional path outside the scope exits 2.
 
-      REGISTRATION. Append "test-check-instruction-paths.py" to UNIT_SCRIPTS in run-unit-tests.sh.
+      REGISTRATION. Append "test-check-instruction-paths.py" to UNIT_SCRIPTS in run-unit-tests.py.
       Do NOT add it to test_kinds.integration.detect in harness.json: the KIND-DRIFT cross-check
       fails when a UNIT_SCRIPTS name appears there, and unit.detect's glob
       .claude/skills/harness/bin/test-*.py already matches it.
@@ -304,16 +304,16 @@ tasks:
     traces: [REQ-01, REQ-04, REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and its test file is enforcement layer
+    execution_reason: DEC-174 carve-out, inject-expertise.py is a registered SubagentStart hook and its test file is enforcement layer
     depends_on: [T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/inject-expertise.sh
+      - .claude/skills/harness/bin/inject-expertise.py
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
       python3 .agents/skills/harness/bin/test-inject-expertise.py
     intent: |
-      inject-expertise.sh resolves the harness root today (variable `root`, from
+      inject-expertise.py resolves the harness root today (variable `root`, from
       harness_boundary.resolve_root against the script's own bin directory) and uses it only to
       locate Expertise files. Carry that value to the AGENT, and assert the path contract while you
       are there.
@@ -404,7 +404,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: agent definitions and harness skill files both resolve to NOBODY under check-domain.sh
+    execution_reason: agent definitions and harness skill files both resolve to NOBODY under check-domain.py
     depends_on: [T-02]
     status: done
     files:
@@ -481,7 +481,7 @@ tasks:
     traces: [REQ-02, REQ-03]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: the five doer agent files, harness-eng-lead and the harness references are all NOBODY under check-domain.sh
+    execution_reason: the five doer agent files, harness-eng-lead and the harness references are all NOBODY under check-domain.py
     depends_on: [T-02, T-04]
     status: done
     files:
@@ -539,7 +539,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: every harness skill file resolves to NOBODY under check-domain.sh
+    execution_reason: every harness skill file resolves to NOBODY under check-domain.py
     depends_on: [T-02]
     status: done
     files:
@@ -599,7 +599,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: templates resolve to NOBODY under check-domain.sh
+    execution_reason: templates resolve to NOBODY under check-domain.py
     depends_on: [T-02]
     status: done
     files:
@@ -640,7 +640,7 @@ tasks:
 
       Bare names with no directory component - settings.snippet.json, harness.json,
       team-config.yaml, BRIEF.md, plan.yaml, PLAN.md, STATE.md, DESIGN.md, gitignore.snippet,
-      .gitignore, bin/merge-settings.py, bin/merge-gitignore.sh - are template FILENAMES in the
+      .gitignore, bin/merge-settings.py, bin/merge-gitignore.py - are template FILENAMES in the
       left-hand column, not paths the rule matches. Leave them exactly as they are; prefixing a
       column of template names would make the table say something false.
 
@@ -653,7 +653,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
+    execution_reason: check-domain.py --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-01, T-02, T-03]
     status: done
     files:
@@ -680,7 +680,7 @@ tasks:
         prefixes every WRITE into it - your receipt, your observations log, your notes. Substitute
         the value before you read or write.
       - You MAY read anything under the control-plane root - skills, rules, references, decisions -
-        read-only. Your WRITE grants are unchanged and are still resolved by check-domain.sh; the
+        read-only. Your WRITE grants are unchanged and are still resolved by check-domain.py; the
         read permission widens nothing.
       - Resolve the second anchor yourself, once, before your first feature-directory write. Your
         FEAT id is the first line of your own dispatch (DEC-204) and the command is, in one
@@ -693,7 +693,7 @@ tasks:
       - THE EXCEPTION, and it is stated with the literal phrase "holds no shell": if your persona
         holds no shell you do not run that command and must not try. Your dispatcher resolved the
         value for you and it is on a line of your own dispatch spelled
-        `HARNESS-FEATURE-TREE-ROOT: ` followed by one absolute path. dispatch-guard.sh refuses a
+        `HARNESS-FEATURE-TREE-ROOT: ` followed by one absolute path. dispatch-guard.py refuses a
         dispatch to a shell-less persona without that line at exit 2, so you will never be running
         without it - and if you somehow are, return VERDICT BLOCKED rather than guessing a root.
         Today this is the three leads and nobody else.
@@ -716,19 +716,19 @@ tasks:
     traces: [REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, dispatch-guard.sh is a registered PreToolUse gate and test-dispatch-guard.py is its test file
+    execution_reason: DEC-174 carve-out, dispatch-guard.py is a registered PreToolUse gate and test-dispatch-guard.py is its test file
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       python3 .agents/skills/harness/bin/test-dispatch-guard.py
     intent: |
-      This is the runtime half of D-08. It adds ONE block to dispatch-guard.sh and four cases to
+      This is the runtime half of D-08. It adds ONE block to dispatch-guard.py and four cases to
       its test file. Nothing existing in either file is edited.
 
-      WHERE. Immediately after the "if not root:" pass-through that ends at dispatch-guard.sh:138
+      WHERE. Immediately after the "if not root:" pass-through that ends at dispatch-guard.py:138
       and before the runtime/supervisor_pid block that begins at :140, so it runs on every
       governed dispatch regardless of host runtime, and after both hb and reg are imported.
 
@@ -784,7 +784,7 @@ tasks:
         is not the resolved root. Assert exit 2 and assert stderr contains BOTH the declared
         value and the resolved one.
 
-      Register nothing new in run-unit-tests.sh: test-dispatch-guard.py is already in
+      Register nothing new in run-unit-tests.py: test-dispatch-guard.py is already in
       INTEGRATION_SCRIPTS, so the kind cross-check and the file-presence check both stay green.
 
   - id: T-10
@@ -792,7 +792,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
+    execution_reason: check-domain.py --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-06, T-08, T-09]
     status: done
     files:
@@ -812,7 +812,7 @@ tasks:
       paragraph at :26-36, the one already stating the HARNESS-FEATURE first line, with the emit
       duty stated as a property of the TARGET and never as a list of names - when you dispatch a
       persona that holds no shell, your dispatch must also carry a line spelled
-      `HARNESS-FEATURE-TREE-ROOT: ` followed by the absolute value, and dispatch-guard.sh refuses
+      `HARNESS-FEATURE-TREE-ROOT: ` followed by the absolute value, and dispatch-guard.py refuses
       the dispatch at exit 2 without it. Add in the same place that you yourself hold no shell and
       received that value the same way, on a line of your own dispatch, and that an absent line is
       VERDICT BLOCKED rather than a guessed root.
@@ -863,7 +863,7 @@ tasks:
       dispatch you make to a lead carries a second line, HARNESS-FEATURE-TREE-ROOT: followed by
       the absolute path that
       `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`
-      prints. Resolve it once per feature, not once per dispatch. dispatch-guard.sh refuses a
+      prints. Resolve it once per feature, not once per dispatch. dispatch-guard.py refuses a
       dispatch to a shell-less persona without it at exit 2.
 
       In each of the three lead files: you hold no shell, so you never resolve that value
@@ -967,7 +967,7 @@ tasks:
           inflight_registry.py feature-root --feature FEAT-NN-slug, which returns
           worktree_for_feature(owner_root, feature) or owner_root: the checkout that HOLDS the
           feature directory. A persona that holds NO shell never resolves it - its dispatcher does,
-          and passes it on a HARNESS-FEATURE-TREE-ROOT line of the dispatch, which dispatch-guard.sh
+          and passes it on a HARNESS-FEATURE-TREE-ROOT line of the dispatch, which dispatch-guard.py
           refuses the dispatch without at exit 2. The predicate is the tool grant, never a name
           list, so a persona that loses its shell is covered on the day it loses it;
         - reading anything under the control-plane root is permitted and read-only, and no write
@@ -980,7 +980,7 @@ tasks:
         - the defect: a relative path in prose resolves against the AGENT's working directory, and
           until the factory that was always the harness checkout;
         - why two anchors: measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json
-          registers the MAIN checkout's copy of inject-expertise.sh and
+          registers the MAIN checkout's copy of inject-expertise.py and
           harness_boundary.resolve_root is script-directory-relative, so the injected root is the
           main checkout even for an agent standing in a feature worktree - anchoring writes there
           sends a Harness self-development agent's receipt and observations off the reviewed branch,
@@ -995,8 +995,8 @@ tasks:
           and dangerous, and a missing skill read has no signal at all.
 
       Record the REJECTED alternatives and why, because a future scan will re-suggest both:
-        - injecting a SECOND resolved value from inject-expertise.sh. The hook cannot identify the
-          spawning agent's feature - dispatch-guard.sh:76-80 records that tool_input.prompt exists
+        - injecting a SECOND resolved value from inject-expertise.py. The hook cannot identify the
+          spawning agent's feature - dispatch-guard.py:76-80 records that tool_input.prompt exists
           only on the dispatch payload and reaches no other hook, and DEC-64 fixes the
           SubagentStart payload's contract at agent_type - so it would have to scan the inflight
           registry of the control plane and of every linked worktree for a claim keyed on persona
@@ -1023,7 +1023,7 @@ tasks:
     traces: [REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and test-inject-expertise.py is its test file
+    execution_reason: DEC-174 carve-out, inject-expertise.py is a registered SubagentStart hook and test-inject-expertise.py is its test file
     depends_on: [T-03]
     status: done
     files:
@@ -1032,7 +1032,7 @@ tasks:
       python3 .agents/skills/harness/bin/test-inject-expertise.py
     intent: |
       Add ONE case to test-inject-expertise.py that proves, by TEXT SCAN, that the shipped
-      inject-expertise.sh contains no literal non-zero exit statement. This is the second clause of
+      inject-expertise.py contains no literal non-zero exit statement. This is the second clause of
       SC-02, and D-04 is the ruling it defends: the hook signals through injected text and stderr,
       never through the exit code, because DECISIONS.md:1503 fixes its contract at always exits 0
       so it can never block a spawn.
@@ -1049,7 +1049,7 @@ tasks:
 
       2. THE FILE, and the count. Scan the SHIPPED script, resolved from the repository the test
          itself lives in: the sibling of the test file's own directory, i.e.
-         Path(__file__).resolve().parent / "inject-expertise.sh". Never a copy, never a fixture,
+         Path(__file__).resolve().parent / "inject-expertise.py". Never a copy, never a fixture,
          never a path built from the process working directory. Assert the number of matching
          lines equals ZERO, as an integer count compared to 0 - not as a truthiness check on the
          output string, and not as "the output is empty". Distinguish an ERROR from an ABSENCE:
@@ -1068,8 +1068,8 @@ tasks:
 
       4. WHAT THIS CASE MUST NOT DO. It must not execute the hook: this is a text scan of the
          script's source, not a behavioural run, and running it proves nothing about branches that
-         did not fire. It must not edit inject-expertise.sh. And it must not register the test file
-         anywhere new - test-inject-expertise.py is already registered in run-unit-tests.sh and
+         did not fire. It must not edit inject-expertise.py. And it must not register the test file
+         anywhere new - test-inject-expertise.py is already registered in run-unit-tests.py and
          already named in harness.json's test_kinds detect, so adding it again trips the KIND-DRIFT
          cross-check. Keep every existing case in the file passing.
   - id: T-15
@@ -1077,12 +1077,12 @@ tasks:
     traces: [REQ-02, REQ-04, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, a new gate test file registered in run-unit-tests.sh is enforcement layer the moment the gate is wired, the same route T-02 and T-12 take for these same two surfaces
+    execution_reason: DEC-174 carve-out, a new gate test file registered in run-unit-tests.py is enforcement layer the moment the gate is wired, the same route T-02 and T-12 take for these same two surfaces
     depends_on: [T-12]
     status: done
     files:
       - .claude/skills/harness/bin/test-anchor-directions.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .agents/skills/harness/bin/test-anchor-directions.py
     intent: |
@@ -1218,7 +1218,7 @@ tasks:
         - remove the temp root at the end, on the failure path too.
       A `git show` failure for any listed path is a hard failure naming that path, not a skip.
 
-      REGISTRATION. Append "test-anchor-directions.py" to UNIT_SCRIPTS in run-unit-tests.sh, next
+      REGISTRATION. Append "test-anchor-directions.py" to UNIT_SCRIPTS in run-unit-tests.py, next
       to test-check-instruction-paths.py. SC-04 and SC-11 both declare evidence: unit, and the
       kind is a property of which array the script name sits in. Do NOT add it to
       test_kinds.integration.detect in harness.json: the KIND-DRIFT cross-check fails when a
@@ -1257,7 +1257,7 @@ panel:
   - id: PF-4ea5b56692f0684ae2a69722b19bc74f
     severity: med
     reader: should-not-exist
-    summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.sh is
+    summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.py is
       set -uo pipefail, so a set -u abort exits 1 with no literal exit statement anywhere
     disposition: open
   - id: PF-da16f6e14bec89a768041c4146c87873
@@ -1358,7 +1358,7 @@ panel:
     severity: med
     reader: goalcheck
     summary: 'R1: issue 356''s headline symptom is never re-measured - no task and
-      no SC fires harness_boundary.classify or check-domain.sh on the anchored absolute
+      no SC fires harness_boundary.classify or check-domain.py on the anchored absolute
       receipt path with the agent standing in a product base. One test-check-domain.py
       case asserting allow would carry it.'
     disposition: open

@@ -37,7 +37,7 @@ feature: FEAT-NN-<slug>          # must match the directory name
 # THE FEATURE'S STATION, and the only record of it (FEAT-41). One of the six names
 # harness.json declares — backlog, plan, ready, building, review, done — or `abandoned`, which
 # names no board column. WRITTEN ONLY BY `plan-merge.py set-feature-station`; no agent and no
-# human edits this line, and check-domain.sh denies the write.
+# human edits this line, and check-domain.py denies the write.
 status: <station>
 
 # The GitHub issue numbers this feature was PLANNED FROM — bare integers, written by pm at
@@ -48,11 +48,11 @@ source_issues: [<n>, <n>]
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
   # Only the main session may add approval.rulings, through sign-approval --overrule.
   # Each ruling names a PF- id present in panel.findings and carries who: <operator>,
-  # date: YYYY-MM-DD, and a one-clause reason. check-state.sh REFUSES an absent id as a
+  # date: YYYY-MM-DD, and a one-clause reason. check-state.py REFUSES an absent id as a
   # stale risk acceptance: rewording creates a new content-hash id, so an old ruling stops
   # applying and the operator is asked again.
   status: pending                # pending | approved

@@ -15,7 +15,7 @@ the author (DEC-224).
 
 **You are the host, and you are a lead** — never the orchestrator or the main session (DEC-120,
 DEC-158). Spawn allowlist, dispatch header, the `model:` ban and tool grants are
-`harness-zero-micro-management`'s rules, enforced by `dispatch-guard.sh`.
+`harness-zero-micro-management`'s rules, enforced by `dispatch-guard.py`.
 
 ## The two rules that make this safe
 
@@ -23,7 +23,7 @@ DEC-158). Spawn allowlist, dispatch header, the `model:` ban and tool grants are
 next step is told the artifact's *path* and reads it.
 
 **Every step writes only inside the producing agent's own domain.** Members cannot write the run
-dir — a step told to stage output there is blocked by `check-domain.sh` on dispatch (DEC-116) —
+dir — a step told to stage output there is blocked by `check-domain.py` on dispatch (DEC-116) —
 and namespaced artifact paths keep parallel outputs disjoint.
 
 ## Process
@@ -43,13 +43,13 @@ registry.
 ```
 
 **The run dir is yours alone** — `state.yaml`, collected DIGESTs, no per-step member directories.
-`check-domain.sh` refuses a `<run_dir>/digest.md` write that would discard existing content, so a
+`check-domain.py` refuses a `<run_dir>/digest.md` write that would discard existing content, so a
 new cycle takes its own run directory.
 
 Seed `state.yaml` — `schema_version: 2`, run identity, one `pending` step per team step — before
 the first dispatch; `run_uid` the harness mints, never you. **A team file carries EITHER a literal
 `steps:` DAG OR a `steps_from:` expansion rule**; with `steps_from:`, expand FIRST, then seed.
-Version 2 closes each step to the keys `run-state-schema.json` declares — `check-domain.sh` refuses
+Version 2 closes each step to the keys `run-state-schema.json` declares — `check-domain.py` refuses
 any other. **Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/team-run-state.md`
 when seeding `state.yaml`** — seed keys, step-key contract and `steps_from:` expansion live there.
 
@@ -74,7 +74,7 @@ which makes every recovery case decidable.
 `origin/<branch>` — with unpushed commits origin is behind the pinned SHA (DEC-143).
 
 **c. Serialize anything that mutates the repo.** `mutates_repo: true` steps dispatch **one at a
-time** even when the DAG allows parallelism — `check-domain.sh` cannot see `Bash` writes, and
+time** even when the DAG allows parallelism — `check-domain.py` cannot see `Bash` writes, and
 every doer holds it (DEC-85).
 
 **d. Dispatch the rest of the ready set in one turn** — **all task calls in one message, never

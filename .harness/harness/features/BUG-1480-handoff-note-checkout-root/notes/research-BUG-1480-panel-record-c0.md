@@ -32,7 +32,7 @@ recorded below: the finding ids are the canonical `panel_findings.py` ids, not t
 | `PF-7b29d51a6c8f4b6dbdcba528ca92d5ff` | info | should-not-exist | open — advisory, no resolution invented |
 
 `should-not-exist`'s four KEEP verdicts and the lead's POST-route observation at
-`check-domain.sh:2092-2094` are dismissed in the digest and are deliberately absent from `findings:`.
+`check-domain.py:2092-2094` are dismissed in the digest and are deliberately absent from `findings:`.
 
 ## The id-scheme deviation — read this before comparing against the dispatch
 
@@ -43,12 +43,12 @@ The dispatch specified `PF-` + first 8 hex of `sha256(summary)`, which would hav
 
 1. `harness-spec-driven` mandates it verbatim: "Compute every id with … `panel_findings.py`; never
    type it." The script's own docstring is the reason — it is the ONE place identity is computed so
-   the lead, pm and `check-state.sh` cannot disagree.
-2. `check-state.sh` INV-32 (`:514-517`) reports STALE RISK ACCEPTANCE when an `approval.rulings`
+   the lead, pm and `check-state.py` cannot disagree.
+2. `check-state.py` INV-32 (`:514-517`) reports STALE RISK ACCEPTANCE when an `approval.rulings`
    entry names an id absent from `panel.findings`. An operator ruling on the open `info` finding will
    compute the id with the mandated tool, so a non-canonical id in the plan is a latent hard fail.
 3. Every other recorded panel in this tree uses the 32-hex form (FEAT-55, BUG-1303, BUG-1290,
-   BUG-1306 in `check-state.sh` output). The 8-hex form would have been unique in the record.
+   BUG-1306 in `check-state.py` output). The 8-hex form would have been unique in the record.
 4. The dispatch's preimage omits the reader, so two readers reporting identical text would collide —
    the exact property `test-panel-findings.py` case4 defends.
 
@@ -56,7 +56,7 @@ The summaries are byte-identical to the dispatch's preimages, so the lead can re
 
 ## Open questions
 
-- Q1 (non-blocking, not mine): `check-state.sh` reports
+- Q1 (non-blocking, not mine): `check-state.py` reports
   `runs/2026-09-07-01-validator/digest.md: does not satisfy the lead digest contract … Run
   bin/validate-digest.py lead on it for reasons.` The run dir is the validator lead's write grant,
   not the pm's. Flagged for the lead before the ship review reads it.

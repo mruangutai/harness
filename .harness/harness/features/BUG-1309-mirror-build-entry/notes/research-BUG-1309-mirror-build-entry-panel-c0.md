@@ -31,10 +31,10 @@ My read matches the lead's on `.claude/settings.json` and adds the two the lead 
 | `.claude/skills/harness/templates/settings.snippet.json` | branch-create, bash-write-guard, plan-sign — **no gh-close entry at all** | the **fourth** entry |
 | `.omp/extensions/harness-hooks.ts` `firstBlock([...])` | gh-close, branch-create, bash-write-guard, plan-sign — **a third, different order** | the **fifth** element |
 
-The rewritten instruction names, per site, the literal predecessor (`plan-sign-gate.sh` in all
-three, as it happens) and the literal successor (**none** — merge-gate.sh is last), and states the
-constraint the neighbours only encode: **merge-gate.sh runs last, after `bash-write-guard.sh`.**
-`bash-write-guard.sh` is the only registered gate whose subject can also match a merge command
+The rewritten instruction names, per site, the literal predecessor (`plan-sign-gate.py` in all
+three, as it happens) and the literal successor (**none** — merge-gate.py is last), and states the
+constraint the neighbours only encode: **merge-gate.py runs last, after `bash-write-guard.py`.**
+`bash-write-guard.py` is the only registered gate whose subject can also match a merge command
 line (it scans the whole line for redirects/`tee`/`cp`/`mv`/`rm`), so `gh pr merge 7 > log` is
 refused by both; the write-guard's reason must win, because the redirect is refused whatever the
 merge verdict while merge-gate's reason names a recovery command that would not make that line
@@ -48,8 +48,8 @@ path no index is read at all: the failure mode there is **absence, not order**, 
 says so rather than inventing a consequence. The instruction also tells the doer to satisfy the
 constraint, not the names, if a reshuffle has already moved them, and turns
 `tests/unit/omp-hooks.test.ts`'s ordering assertion into the machine-checkable form
-(`indexOf("merge-gate.sh")` greater than `indexOf("bash-write-guard.sh")` and
-`indexOf("plan-sign-gate.sh")` — a relation, never a literal index).
+(`indexOf("merge-gate.py")` greater than `indexOf("bash-write-guard.py")` and
+`indexOf("plan-sign-gate.py")` — a relation, never a literal index).
 
 ## Fix 2 — SCOPE-01: one declared case, and the clause is real
 
@@ -123,8 +123,8 @@ OK T-02 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
-DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.sh, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor
 0 violation(s) across 1 plan(s)
@@ -138,7 +138,7 @@ EXIT=0
 **T-05's `settings.snippet.json` bullet says "so harness-init installs it", and that is false as
 written.** `harness-init` installs hooks through `merge-settings.py`'s hard-coded `HOOK_SPECS`
 (seven entries), not by copying the snippet; a script absent from `HOOK_SPECS` is never installed
-into a target project however the snippet reads. `plan-sign-gate.sh` is already in exactly that
-position — in the snippet, absent from `HOOK_SPECS` — so `merge-gate.sh` would inherit a
+into a target project however the snippet reads. `plan-sign-gate.py` is already in exactly that
+position — in the snippet, absent from `HOOK_SPECS` — so `merge-gate.py` would inherit a
 **pre-existing** inconsistency rather than create a new one. Out of this dispatch's scope (it would
 add `merge-settings.py` to T-05's `files:`), so T-05 is unchanged and this is raised as Q1.

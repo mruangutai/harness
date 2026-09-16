@@ -16,7 +16,7 @@ does not touch. `depends_on: [T-04, T-06]`: T-04 authored the function and the f
 T-06 authored `BUILD_ENTRY_ERA_EXEMPT` and `recovery_command_for`, the two symbols the disagreeing
 comparison reads. `change_type: bugfix`, `status: ready`, `files:` the two it touches.
 
-**Lane — `main-session-direct`.** `check-domain.sh --resolve` returned, verbatim, from inside the
+**Lane — `main-session-direct`.** `check-domain.py --resolve` returned, verbatim, from inside the
 worktree: `.claude/skills/harness/bin/gh-sync.py` → `harness-backend-dev` / `harness-dev-ops`
 (exit 0); `tests/integration/test-gh-sync.py` → `harness-backend-dev` / `harness-dev-ops` /
 `harness-qa` (exit 0). Both disagree with the carve-out, and the carve-out governs: the plan's

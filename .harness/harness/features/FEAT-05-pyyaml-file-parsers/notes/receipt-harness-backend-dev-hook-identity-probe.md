@@ -12,7 +12,7 @@ corrected, reproducible result.
 
 ## What was actually observed
 
-- **Insertion (`.claude/skills/harness/bin/check-domain.sh`, after the `:242` `sys.exit(0)`):**
+- **Insertion (`.claude/skills/harness/bin/check-domain.py`, after the `:242` `sys.exit(0)`):**
   as specified, including the literal `sorted(d.keys())`.
 - **Gate-safety check, immediately after insertion:** `CLAUDE_PROJECT_DIR=$(pwd) python3
   .claude/skills/harness/bin/test-check-domain.py` → `11/11 cases passed`, exit 0. The DEC-156
@@ -49,10 +49,10 @@ corrected, reproducible result.
   chain entries reached the hook" condition is unproven, not confirmed) and not a confirmed PASS
   either. The one thing I can state as a fact: the real, Claude-Code-dispatched `PreToolUse`
   fire for a `Write`/`Edit` in this worktree does **not** demonstrably execute this worktree's
-  copy of `check-domain.sh` — two genuine tries left no trace anywhere the probe could have
+  copy of `check-domain.py` — two genuine tries left no trace anywhere the probe could have
   written, while a synthetic same-script invocation with a forced `CLAUDE_PROJECT_DIR` reliably
   produced 6 traces per run.
-- **Which copy of `check-domain.sh` executes, for a real Write/Edit in this worktree: most
+- **Which copy of `check-domain.py` executes, for a real Write/Edit in this worktree: most
   likely the main checkout's, not this worktree's** — reversing my first-pass conclusion, which
   was drawn from the forced-env test run and did not distinguish "the script's logic works when
   invoked directly" from "Claude Code's real hook dispatch invokes this copy." This is
@@ -73,9 +73,9 @@ corrected, reproducible result.
 
 ## Cleanup confirmation
 
-- Probe block removed from `.claude/skills/harness/bin/check-domain.sh` — `grep -c
-  'sorted(d.keys())' .claude/skills/harness/bin/check-domain.sh` → `0`.
-- `diff` against `/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/check-domain.sh`
+- Probe block removed from `.claude/skills/harness/bin/check-domain.py` — `grep -c
+  'sorted(d.keys())' .claude/skills/harness/bin/check-domain.py` → `0`.
+- `diff` against `/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/check-domain.py`
   is empty (net zero change), confirmed before insertion, after the forced-env run, and after
   final removal.
 - `CLAUDE_PROJECT_DIR=$(pwd) python3 .claude/skills/harness/bin/test-check-domain.py` → `11/11

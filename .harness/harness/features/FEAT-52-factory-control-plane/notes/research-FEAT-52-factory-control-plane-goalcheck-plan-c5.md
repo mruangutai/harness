@@ -14,10 +14,10 @@ plan — `len(tasks) 15`, `T-01..T-15`, `'approval' in doc: False`, `status: pla
 | Destination: worker in a product checkout uses the control plane without reading/writing the wrong repo | D-01, D-06; T-03 (read anchor injected), T-01 + T-09 (write anchor resolved/refused) |
 | Worker LOCATES the control plane: Harness injects the absolute root into the preamble | D-01, D-02, T-03 steps 1-2; SC-01 (asserts injected root ≠ cwd) |
 | Worker MAY READ Harness skills through that root, read-only | D-05, T-05 (anchor + explicit read-through), T-08; SC-06 both directions |
-| Product writes remain constrained by the EXISTING grants | D-05, T-05 step 2 (no `team-config.yaml` grant), T-08 ("write grants unchanged, still resolved by check-domain.sh"); SC-07 |
+| Product writes remain constrained by the EXISTING grants | D-05, T-05 step 2 (no `team-config.yaml` grant), T-08 ("write grants unchanged, still resolved by check-domain.py"); SC-07 |
 | Drift prevented by a STATIC LINT over factory-reachable instructions | T-02 (scope + inline **and** fenced rule), T-12 (required `integration` step, proven red), **T-15** (whole-scope run at the reviewed sha, which T-12's working-tree run cannot discharge) |
 | …AND by a SPAWN-TIME assertion | D-07, T-03 step 5 — `HARNESS_PATH_DRIFT`, exit 0 on every branch; SC-12. This is what c0 graded `partial`; it now asserts the PATH CONTRACT, not merely that a root resolved |
-| "Narrowest provider-neutral implementation" | The injected placeholders `<HARNESS_CONTROL_PLANE_ROOT>` / `<HARNESS_FEATURE_TREE_ROOT>` are text, and the carrier (`inject-expertise.sh`, `SubagentStart`) is registered for both runtimes by `merge-settings.py:46-48` and exercised by `omp-hooks.test.ts:148`. No new mechanism |
+| "Narrowest provider-neutral implementation" | The injected placeholders `<HARNESS_CONTROL_PLANE_ROOT>` / `<HARNESS_FEATURE_TREE_ROOT>` are text, and the carrier (`inject-expertise.py`, `SubagentStart`) is registered for both runtimes by `merge-settings.py:46-48` and exercised by `omp-hooks.test.ts:148`. No new mechanism |
 | Out of scope: kaya-ai product code | Respected — no task names a product path (grep of all 15 intents: `kaya` 0, `496` 0) |
 | Out of scope: widening product-checkout write permissions | D-05, SC-07, T-05 step 2 |
 | Fact: `CLAUDE_PROJECT_DIR` unusable inside an agent shell → needs an agent-visible path | Honoured: the value arrives as injected TEXT (D-01), and the write anchor is resolved by a script that reads its own directory (T-01), never the environment |
@@ -40,7 +40,7 @@ destination clause forbids. T-15 then proves each of the five canonical sites in
 
 - **R1 — #356's HEADLINE symptom is never re-measured.** The ticket is "a factory worker cannot WRITE
   its receipt or observation, in any product." The plan makes the path absolute and correct; no task
-  and no SC fires `harness_boundary.classify` / `check-domain.sh` on that absolute path with the
+  and no SC fires `harness_boundary.classify` / `check-domain.py` on that absolute path with the
   agent standing in a product base (grep of all 15 intents: `classify` 0, `check-domain` only T-08,
   as prose). Read directly, `harness_boundary.py:451` selects the base by `inside(abs_target, base)`
   — target-side — so the anchored write SHOULD be allowed, and the grants are already segmented

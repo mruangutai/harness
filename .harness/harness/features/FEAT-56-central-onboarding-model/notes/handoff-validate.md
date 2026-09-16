@@ -23,7 +23,7 @@ operator merge (`gates.merge` is `user_gated`), then terminalize — `gh-sync.py
 - The review panel returned `must_fix: []` at `severity_max: med` in cycle 2, with all four cycle-1
   findings closed on evidence reviewers took themselves —
   `notes/review-harness-*-c2.md` and the c3 set — verified-at 44351432
-- `check-state.sh` reports ZERO FEAT-56 violations — run from this worktree — verified-at 8ff5197f
+- `check-state.py` reports ZERO FEAT-56 violations — run from this worktree — verified-at 8ff5197f
 - `sync-command-adapters.py --check` exits 0 and `check-omp-port.py` prints `OMP port surface: ok` —
   run directly — verified-at 8ff5197f
 - Budget has two cycles left: `cycles_used` 20 of `max_total_cycles` 22, the operator's second raise

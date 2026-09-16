@@ -80,7 +80,7 @@ redirect reached `plan.yaml`.
    against this file. It is a task-set change on a plan pending signature, so it is not mine to take.
 2. **It is not cosmetic.** B-1's INV-26 false positive — `all(status == "ready")` — is tripped by
    T-02's `abandoned` value alone. The operator struck B-1, so the in-place strike leaves
-   `check-state.sh` red at signature; **removing the entry is what clears it**
+   `check-state.py` red at signature; **removing the entry is what clears it**
    (`notes/ship-review-plan-signature-c2.md:69-73`).
 3. **Three shipped artifacts now assert the false premise** and will mislead whoever reads them
    next: `STATE.md:17-27`, `notes/research-FEAT-104-sigfix-c2.md:98-118`,
@@ -136,7 +136,7 @@ where it survives.
 - Traceability closed both ways over the nine tasks: every one of the 9 REQs has ≥1 task (set
   difference empty), no task traces a REQ absent from `BRIEF.md` (set difference empty), and every
   REQ has ≥1 SC (`research-FEAT-104-sigfix-c2.md:143-144`, unaffected by a task removal).
-- **Expected B-1 side effect, not re-measured here:** `check-state.sh` INV-26's not-started skip
+- **Expected B-1 side effect, not re-measured here:** `check-state.py` INV-26's not-started skip
   requires `all(status == "ready")`, which T-02's `abandoned` value alone defeated. Cycle 2
   measured the counterfactual directly — with T-02 dropped the skip fires, with it present it does
   not (`notes/ship-review-plan-signature-c2.md:69-73`) — so the removal is expected to clear that

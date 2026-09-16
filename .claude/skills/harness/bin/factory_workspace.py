@@ -43,6 +43,7 @@ import sys
 
 import factory_cli
 import factory_config
+import artifact_accessors
 import harness_boundary
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -132,7 +133,7 @@ def _main():
     parser.add_argument("--fleet", default=None, help="path to fleet.yaml (default: FLEET_PATH)")
     args = parser.parse_args()
 
-    fleet = factory_config.load_fleet(args.fleet) if args.fleet else factory_config.load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     entry = factory_config.repo_entry(fleet, args.repo)
     default_branch = entry["default_branch"]
 
@@ -191,4 +192,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run("workspace", _main, expected=(factory_config.FleetError,))
+    factory_cli.run("workspace", _main, expected=(artifact_accessors.FleetError,))

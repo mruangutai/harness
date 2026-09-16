@@ -88,7 +88,7 @@ key is inert.
   Every earlier anchoring task verifies the checker over its own file list, so no task asserts a
   by-construction red.
 - **F-4 (`lanes:` still incomplete, unchanged).** The four surfaces added in cycle 1
-  (`inflight_registry.py`, `test-inflight-registry.py`, `dispatch-guard.sh`, `templates/*.md`) still
+  (`inflight_registry.py`, `test-inflight-registry.py`, `dispatch-guard.py`, `templates/*.md`) still
   have no `lanes:` row. This rewrite could have added them — the file is written whole — but
   `lanes.resolved_at` pins the resolution to sha `e8e1b78b` and adding rows now would assert a
   resolution nobody performed. `check-plan-routes.py` reads task fields, so nothing is unenforced.
@@ -114,7 +114,7 @@ proposal carries one, and the missing block is the separately routed harness def
   only route to a consolidated plan was `rm` plus a whole re-create. A `replace` verb, or an
   `--allow-replace` flag under the same lock, would make a re-expression a first-class operation
   instead of a delete-and-recreate that only works while `approval:` is absent.
-- **Q4 (non-blocking, unchanged)** — `dispatch-guard.sh:115-126` resolves a checkout by basename
+- **Q4 (non-blocking, unchanged)** — `dispatch-guard.py:115-126` resolves a checkout by basename
   equality while `harness_boundary.worktree_for_feature:193-229` resolves by prefix; `T-09`
   enforces against the prefix resolver so the disagreement is loud, and reconciling `_root_for` is
   a separate change.
@@ -124,8 +124,8 @@ proposal carries one, and the missing block is the separately routed harness def
 `lanes:` is a non-union key, so the four surfaces added in cycle 1 have no `lanes.rows` entry and no
 `plan-merge.py` verb can add one (Q1). The resolution is recorded here instead, so the operator signs
 with it visible. Each answer below is the verbatim stdout of
-`bash .agents/skills/harness/bin/check-domain.sh --resolve <path>`, exit 0 in all four cases. The
-dispatch spelled the command `python3 …check-domain.sh`; the file is a shell script, so it was run
+`python3 .agents/skills/harness/bin/check-domain.py --resolve <path>`, exit 0 in all four cases. The
+dispatch spelled the command `python3 …check-domain.py`; the file is a shell script, so it was run
 with `bash` (lead-corrected).
 
 `.claude/skills/harness/bin/inflight_registry.py`
@@ -142,7 +142,7 @@ harness-backend-dev
 harness-dev-ops
 ```
 
-`.claude/skills/harness/bin/dispatch-guard.sh`
+`.claude/skills/harness/bin/dispatch-guard.py`
 
 ```
 harness-backend-dev
@@ -170,7 +170,7 @@ asserts ZERO matches, and asserts the same pattern matches a one-line `exit 2` f
 carrier. `T-06:527` is the anchor-sweep's own positive control and is unrelated; `T-03` carries the
 unresolved-branch cases but not this grep. Added as `T-14`, `traces: [REQ-05]`, `depends_on: [T-03]`,
 `files:` the test file only, `main-session-direct` per the same DEC-174 carve-out `lanes:` already
-records for `inject-expertise.sh`. `T-12` is NOT amended to depend on it: `T-12` wires and runs the
+records for `inject-expertise.py`. `T-12` is NOT amended to depend on it: `T-12` wires and runs the
 instruction-path lint, its verify never runs `test-inject-expertise.py`, and it does not depend on
 `T-03` either — so `T-14` is outside its ordering, and `apply` exits 7 on any amendment regardless.
 

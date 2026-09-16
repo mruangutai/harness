@@ -2,6 +2,7 @@
 """FEAT-104: closed schema enforcement on run state.yaml writes."""
 import json
 import os
+import subprocess
 import sys
 
 TESTS = os.path.dirname(os.path.abspath(__file__))
@@ -182,6 +183,27 @@ def _floor_update_cases():
     ]
 
 
+def _strict_hook_payload_case():
+    root = fixture(FIXTURE_MANIFEST)
+    target = os.path.join(root, "forbidden", "duplicate.json")
+    payload = (
+        '{"agent_type":"","agent_type":"harness-documentor",'
+        '"tool_name":"Write","tool_input":{"file_path":'
+        + json.dumps(target) + ',"content":"x"}}'
+    )
+    hook = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-domain.py")
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    result = subprocess.run(
+        [hook], input=payload, capture_output=True, text=True, env=env)
+    if result.returncode == 0:
+        return None
+    return (
+        "duplicate hook-payload keys are rejected before domain policy evaluation",
+        False,
+        result,
+    )
+
+
 def _report(cases):
     failures = 0
     for name, passed, result in cases:
@@ -204,6 +226,9 @@ def run_t06_cases():
     cases.append(_declared_shape_case())
     cases.extend(_floor_creation_cases())
     cases.extend(_floor_update_cases())
+    strict_failure = _strict_hook_payload_case()
+    if strict_failure is not None:
+        cases.append(strict_failure)
     return _report(cases)
 
 

@@ -18,16 +18,16 @@ Diff-inferred change types: `logic`, `cross_module` (one new parser imported by 
 
 | Kind | State | Configured command run | Discovery | Exit/outcome |
 |---|---|---|---:|---|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 25 files | 0; all executed files passed |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 44 files | 0; all executed files passed |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 25 files | 0; all executed files passed |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 44 files | 0; all executed files passed |
 | handoff_comprehension | locally-run, not executed | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a; credentialled probe prohibited here |
 
 The unit transcript names `test-handoff-done-when.py` exit 0 and `test-probe-handoff-comprehension.py` exit 0 (`Ran 6 tests`, `OK`). The integration runner's 44-file non-empty bucket includes the named `test-check-domain.py`, `test-check-state.py`, and `test-run-unit-tests-kinds.py`; the overall command exited 0. `matrix_ok: false` because a required high-risk authority leg lacks permanent regression coverage despite both required kinds being green.
 
 ## Literal inspections
 
-- **SC-04 FAIL:** from repository root, exact command `bash .claude/skills/harness/bin/check-state.sh` exited **1**. No output line named `Done when`. Actual violations included the unrelated FEAT-51 missing `notes/handoff-validate.md` and five malformed lead-digest-contract records under FEAT-54 run directories. Per the criterion, no absence-of-`Done when` observation can override the nonzero exit.
-- **SC-07 PASS:** `check-domain.sh:1562-1563` imports/calls `handoff_done_when.problems(..., resolve=True)`; `check-state.sh:54,1251` imports/calls the same implementation with `resolve=False`. The reviewed gates carry no second Done-when target resolver.
+- **SC-04 FAIL:** from repository root, exact command `python3 .claude/skills/harness/bin/check-state.py` exited **1**. No output line named `Done when`. Actual violations included the unrelated FEAT-51 missing `notes/handoff-validate.md` and five malformed lead-digest-contract records under FEAT-54 run directories. Per the criterion, no absence-of-`Done when` observation can override the nonzero exit.
+- **SC-07 PASS:** `check-domain.py:1562-1563` imports/calls `handoff_done_when.problems(..., resolve=True)`; `check-state.py:54,1251` imports/calls the same implementation with `resolve=False`. The reviewed gates carry no second Done-when target resolver.
 - **SC-08 PASS:** template `HANDOFF.md:4-16`, playbook `SKILL.md:310-316`, DEC-159 `DECISIONS.md:3698-3727`, DEC-214 `:6696-6716`, and both gate heading lists/messages state five sections and name `## Done when`; only the authorized historical measurements remain four-section prose.
 - **SC-11 PASS:** merge base was exactly `0ec44965a961d19177de871c3bb1f02b701e646b`; primary intersection was empty. The positive control contained exactly `handoff-build.md` and `handoff-plan.md`, identical to the added-only set; set diff exited 0.
 

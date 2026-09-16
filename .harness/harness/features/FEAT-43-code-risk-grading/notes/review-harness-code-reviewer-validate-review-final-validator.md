@@ -20,7 +20,7 @@ The exact complete `git diff --name-only` census is 48 files (6,865 insertions, 
 10. `.claude/skills/harness/bin/code-grade.py`
 11. `.claude/skills/harness/bin/code_grade.py`
 12. `.claude/skills/harness/bin/gate_policy.py`
-13. `.claude/skills/harness/bin/run-unit-tests.sh`
+13. `.claude/skills/harness/bin/run-unit-tests.py`
 14. `.claude/skills/harness/bin/test-check-plan-routes.py`
 15. `.claude/skills/harness/bin/test-code-grade-cli.py`
 16. `.claude/skills/harness/bin/test-code-grade.py`

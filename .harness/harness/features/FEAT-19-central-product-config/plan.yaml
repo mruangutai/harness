@@ -21,13 +21,13 @@ lanes:
       agent: harness-documentor
     - surface: .harness/products/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
     - surface: .claude/skills/harness-qa-gate/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
     - surface: .harness/harness.json
       lane: team
       agent: harness-dev-ops
@@ -75,7 +75,7 @@ decisions:
       The resolver's CLI flag is --which-config, not --resolve, and every place naming it names
       the tool with it
     because: >-
-      check-domain.sh --resolve already answers which agent owns a path, in plain text including
+      check-domain.py --resolve already answers which agent owns a path, in plain text including
       the literal NOBODY, so a second --resolve answering which config file applies, in JSON, is a
       homonym on an adjacent tool
     dec: none
@@ -103,10 +103,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_product_config.py
       - .claude/skills/harness/bin/test-factory-product-config.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      grep -q test-factory-product-config.py .claude/skills/harness/bin/run-unit-tests.sh \
-        && .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      grep -q test-factory-product-config.py .claude/skills/harness/bin/run-unit-tests.py \
+        && .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create .claude/skills/harness/bin/factory_product_config.py, the ONLY resolver of which
       config file answers for a given session root. Every future consumer takes its config from
@@ -140,7 +140,7 @@ tasks:
       Never returns a partial mapping and never returns None. product is None if and only if
       source is "harness" — the two encode one fact twice, so a test asserts they agree.
 
-      def main() — an argparse CLI exposing --which-config <path>. NOT --resolve: check-domain.sh
+      def main() — an argparse CLI exposing --which-config <path>. NOT --resolve: check-domain.py
       --resolve already answers a different question (which agent owns a path) in a different
       shape (plain text, including the literal NOBODY), and a homonym on an adjacent tool is what
       D-07 rules out. The path argument accepts a RELATIVE path and is resolved the way every
@@ -304,7 +304,7 @@ tasks:
         - the LIVE kaya config in this repository, located as
           os.path.join(factory_config.harness_root(), ".harness", "products", "kaya-ai",
           "harness.json") — NOT a path relative to the process working directory, which is correct
-          only under run-unit-tests.sh and wrong under a direct invocation. Assert: every value in
+          only under run-unit-tests.py and wrong under a direct invocation. Assert: every value in
           that file's test_kinds is a MAPPING (a string sibling would break every consumer that
           iterates the object); every kind named in any change type's always list exists in that
           file's own test_kinds; every when clause names either an existing kind or a predicate
@@ -342,7 +342,7 @@ tasks:
             - one refusal branch (a checkout registered nowhere) exits 2 with EMPTY stdout, the
               diagnostic going to stderr, per factory_cli.run's contract
 
-      Finally register the new file in .claude/skills/harness/bin/run-unit-tests.sh by appending
+      Finally register the new file in .claude/skills/harness/bin/run-unit-tests.py by appending
       "test-factory-product-config.py" to the UNIT_SCRIPTS array. The runner's drift detector runs
       over the union of both arrays and fails the WHOLE run on an unregistered test file, so this
       registration belongs in this task and not a later one.
@@ -352,7 +352,7 @@ tasks:
     traces: [REQ-01, REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .harness/products/** at 63b83c7 (DEC-179)
+    execution_reason: check-domain.py --resolve returns NOBODY for .harness/products/** at 63b83c7 (DEC-179)
     depends_on: []
     status: abandoned
     files:
@@ -438,7 +438,7 @@ tasks:
     traces: [REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 63b83c7 (DEC-179)
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 63b83c7 (DEC-179)
     depends_on: []
     status: abandoned
     files:
@@ -494,7 +494,7 @@ tasks:
         - state that the config a session resolves can be checked by running
           .claude/skills/harness/bin/factory_product_config.py with --which-config and a path,
           which accepts a relative path so a dot works from inside the checkout. Name the tool
-          with the flag every time: check-domain.sh has its own --resolve answering a different
+          with the flag every time: check-domain.py has its own --resolve answering a different
           question, and a bare flag name is ambiguous between the two (D-07)
 
       RENUMBER the six surviving steps from 3-8 to 2-7, changing ONLY the digit in each heading.
@@ -663,7 +663,7 @@ tasks:
           this effort rewires the qa gate only. gh-sync.py still joins .harness/harness.json for
           github data, and rewiring it is a named follow-on, not an oversight
         - the flag name and why: the resolver's CLI flag is --which-config, because
-          check-domain.sh --resolve already answers which agent owns a path, in plain text
+          check-domain.py --resolve already answers which agent owns a path, in plain text
           including the literal NOBODY, and a second --resolve answering which config file
           applies, in JSON, would be a homonym on an adjacent tool. Documentation naming the flag
           names the tool with it
@@ -737,7 +737,7 @@ tasks:
     traces: [REQ-02, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-qa-gate/SKILL.md at 63b83c7 (DEC-179)
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/skills/harness-qa-gate/SKILL.md at 63b83c7 (DEC-179)
     depends_on: [T-01]
     status: abandoned
     files:
@@ -781,7 +781,7 @@ tasks:
       Replace that instruction with this one, keeping the section's voice and its brevity:
         - resolve the config for the session under test by running
           .claude/skills/harness/bin/factory_product_config.py with --which-config and the path of
-          the checkout under test. Name the tool with the flag: check-domain.sh has its own
+          the checkout under test. Name the tool with the flag: check-domain.py has its own
           --resolve answering a different question (D-07)
         - the command prints one JSON line carrying source, config_path and product. Read
           test_matrix and test_kinds from the file named by config_path

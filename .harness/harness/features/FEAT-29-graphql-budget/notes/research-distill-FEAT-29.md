@@ -60,7 +60,7 @@ every plan carrying a quantified criterion and is checkable before dispatch.
 | | Open | 0 | 0 |
 | `.harness/harness/expertise/harness-pm.md` | all | 0/3/0/0 | unchanged, not written |
 
-`check-expertise.sh .harness/expertise/` → **exit 0**, every file OK, no re-run needed. The one
+`check-expertise.py .harness/expertise/` → **exit 0**, every file OK, no re-run needed. The one
 advisory on my file (`P-01 names '.harness/'`) is pre-existing and unchanged by me; the path there
 is an exemplar pointer, which the layer rule keeps in craft.
 

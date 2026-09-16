@@ -1,6 +1,6 @@
 # Plan fix cycle 1 — BUG-1305 — F-01..F-08 applied
 
-*(Dispatch named `notes/plan-fix-BUG-1305-c1.md`; check-domain.sh denies that path for harness-pm —
+*(Dispatch named `notes/plan-fix-BUG-1305-c1.md`; check-domain.py denies that path for harness-pm —
 permitted is `notes/research-*.md`. Written here instead, per harness-handoff #216.)*
 
 ## BLUF
@@ -29,11 +29,11 @@ falsifiable. Approval remains `pending`; `panel:` absent; top-level `status: pla
 D-01 no longer bars the identity signal; it makes the denial **conditional**: it fires only when both
 sides carry a resolvable identity **and** they disagree, gated on T-04's per-runtime answer. **T-09**
 (`depends_on: [T-04]`) wires it: `run_identity.identity_denial()` beside `identity_disagreement`,
-consumed in check-domain.sh's `RE_STATE_YAML` PRE branch after T-02's `conflict()` check, with seven
+consumed in check-domain.py's `RE_STATE_YAML` PRE branch after T-02's `conflict()` check, with seven
 enumerated fail-open rows (no marker; null recorded identity; unresolvable `_resolve_identity`; equal
 identities; no live claim or a raising registry read; a `runtime: "omp"` claim — `inflight_registry.py:255-258`;
 a runtime T-04 did not record as discriminating). `conflict()` still never consults identity, so
-check-state.sh's sweep is unaffected. **No-op branch named:** on `discriminates: no|inconclusive` T-09
+check-state.py's sweep is unaffected. **No-op branch named:** on `discriminates: no|inconclusive` T-09
 changes no code and writes `notes/identity-denial-BUG-1305.md` with `disposition: not-executed` and
 the residual in operator terms — that note is where the report lands, and SC-01's contingent clause
 points at it. T-04's intent now states what each answer triggers; the "do not write a task for it"
@@ -98,6 +98,6 @@ No tracked file modified; BRIEF.md and plan.yaml live inside that untracked dire
 
 ## Open question for the panel
 
-Q1 (non-blocking): T-09 traces `REQ-01` only, per dispatch. It edits `check-domain.sh` and its test
+Q1 (non-blocking): T-09 traces `REQ-01` only, per dispatch. It edits `check-domain.py` and its test
 file, so REQ-07 ("no protection traded away") arguably binds it too, and T-08's `depends_on` does not
 include T-09. If the panel agrees, the fix is one `amend` on each.

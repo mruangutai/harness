@@ -46,7 +46,7 @@ clean, contains only the three intended edits above): **1 file changed, 16 inser
 11 deletions(-)**.
 
 ## Full unit suite
-Ran `.claude/skills/harness/bin/run-unit-tests.sh`, captured exit status and counted `^FAIL `
+Ran `.claude/skills/harness/bin/run-unit-tests.py`, captured exit status and counted `^FAIL `
 lines separately from the tail:
 
 ```
@@ -58,5 +58,5 @@ Grep of the full log confirms `PASS test-harness-yaml-corpus.py` (previously red
 
 ## Scope
 Touched only `.claude/skills/harness/bin/test-harness-yaml-corpus.py`. No team file added,
-deleted or renamed. No other test, `run-unit-tests.sh`, plan, state, or approval fragment
+deleted or renamed. No other test, `run-unit-tests.py`, plan, state, or approval fragment
 touched. Tree left uncommitted.

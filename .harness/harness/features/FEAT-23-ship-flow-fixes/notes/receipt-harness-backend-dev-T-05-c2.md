@@ -28,7 +28,7 @@ did not run step (ii) (standalone `test-board-station.py`), did not edit any fil
 adopt/correct/rewrite anything.
 
 **Correction to the dispatch's own framing, based on what the forensics below show:** this is not
-a gate defect. `run-unit-tests.sh` and the drift detector are fine. The tree the dispatch describes
+a gate defect. `run-unit-tests.py` and the drift detector are fine. The tree the dispatch describes
 ("board-station.py does not exist") was true at dispatch-authoring time and is no longer true at
 execution time — the deliverables were written by another run between then and now.
 
@@ -36,11 +36,11 @@ execution time — the deliverables were written by another run between then and
 
 `git status --porcelain -- .claude/skills/harness/bin/`:
 ```
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
 ?? .claude/skills/harness/bin/board-station.py
 ?? .claude/skills/harness/bin/test-board-station.py
 ```
-Both new files are **untracked**; `run-unit-tests.sh` is **modified, unstaged**. None are inside any
+Both new files are **untracked**; `run-unit-tests.py` is **modified, unstaged**. None are inside any
 commit.
 
 `git show --stat d96ab5e -- .claude/skills/harness/bin/`:
@@ -50,7 +50,7 @@ commit.
  2 files changed, 167 insertions(+), 20 deletions(-)
 ```
 `d96ab5e` (T-01's commit, 2026-08-17 10:15:54) carries only `gh-sync.py` and `test-gh-sync.py` — it
-does **not** carry `board-station.py`, `test-board-station.py`, or the `run-unit-tests.sh` edit.
+does **not** carry `board-station.py`, `test-board-station.py`, or the `run-unit-tests.py` edit.
 Confirms the dispatch's own claim about `d96ab5e`.
 
 ## 3. The actual provenance: an already-complete, already-receipted `c1` run
@@ -68,13 +68,13 @@ Confirms the dispatch's own claim about `d96ab5e`.
   and corrected: file hashed, moved out of tree, test suite written, RED watched (8/8 FAIL for the
   right reason — `can't open file`), file restored, hash re-verified before GREEN.
 - All seven required PASS labels plus an eighth (stronger) assertion on the field-set case.
-- `run-unit-tests.sh --kind unit` and `--kind all` both green with the file registered.
+- `run-unit-tests.py --kind unit` and `--kind all` both green with the file registered.
 - The full `T-05 GREEN` verify output.
 - `case_20` on `test-check-plan-routes.py` checked directly and shown PASS (item 4a's
   variable-first form confirmed, without editing `INTEGRATION_SCRIPTS`).
 
 I independently confirmed the two load-bearing facts without re-running the suite: the
-`UNIT_SCRIPTS` diff (`git diff -- run-unit-tests.sh`, shown above minus the one-line addition of
+`UNIT_SCRIPTS` diff (`git diff -- run-unit-tests.py`, shown above minus the one-line addition of
 `"test-board-station.py"`) and my own pre-edit verify reproducing `T-05 GREEN` exit 0. Both match
 `c1`'s claims.
 
@@ -91,7 +91,7 @@ accounting, and it postdates the dispatch's own measurement.
 
 ## 5. What I did NOT do
 
-- Did not edit `board-station.py`, `test-board-station.py`, or `run-unit-tests.sh`.
+- Did not edit `board-station.py`, `test-board-station.py`, or `run-unit-tests.py`.
 - Did not run step (ii) (standalone pre-edit test run) — moot once the verify itself greened
   pre-edit; running it risked a destructive race against a possibly-still-in-flight duplicate
   writer.

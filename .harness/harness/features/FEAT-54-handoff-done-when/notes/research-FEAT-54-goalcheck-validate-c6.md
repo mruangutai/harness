@@ -11,7 +11,7 @@ defect:
    from `/Users/molchairuangutai/GitHub/harness` — the MAIN checkout, whose tree at `a12aa4e9` does
    not contain this feature's handoff notes (`test -f .../FEAT-54.../notes/handoff-plan.md` →
    absent). SC-04 requires the run to cover "every handoff note this feature itself wrote". I ran
-   `bash .claude/skills/harness/bin/check-state.sh` from the WORKTREE root: **exit 0, 812 lines, 0
+   `python3 .claude/skills/harness/bin/check-state.py` from the WORKTREE root: **exit 0, 812 lines, 0
    lines naming `Done when`, 0 matching `refus|fail|INV-29`, 52 distinct feature/bug IDs** over a
    corpus of **145** `handoff-*.md` (141 baseline + the 4 this range added); all three FEAT-54 notes
    are present and each carries `## Done when`; the INV-17 handoff branch is demonstrably live in
@@ -37,13 +37,13 @@ review notes. No handoff note differs from the pin, so the handoff corpus measur
 
 | SC | Method | Verdict | Evidence I personally resolved |
 |---|---|---|---|
-| SC-01 | automated (integration) | met | `test-check-domain.py:4036-4042` — refusal needles `("## Done when","templates/HANDOFF.md")`; message at `check-domain.sh:1557-1559`. Both named cases `ok` |
+| SC-01 | automated (integration) | met | `test-check-domain.py:4036-4042` — refusal needles `("## Done when","templates/HANDOFF.md")`; message at `check-domain.py:1557-1559`. Both named cases `ok` |
 | SC-02 | automated (integration) | met | `test-check-domain.py:4043-4064` — 5 required fixtures, each its own `_record_handoff_result` |
 | SC-03 | automated (integration) | met | `test-check-domain.py:4067-4085` — 8 separately named cases |
 | SC-04 | inspection | met | my own worktree-root run (BLUF ¶1). QA's `notes/qa-c6.md:20-33` does not reach the feature's own notes |
 | SC-05 | automated (integration) | met | `test-check-domain.py:4235-4244` — asserts 60/61 line counts, 60 → exit 0, 61 → exit 2 with `cap is 60` |
 | SC-06 | automated (integration) | met | `test-check-domain.py:4216-4232` **plus** `test-check-state.py:2227-2231` (pointer gap, ¶2) |
-| SC-07 | inspection | met | `git show dd55b357`: `check-domain.sh:1562/1563`, `check-state.sh:54/1251` — one import + one call each; zero `scope:|authority:|plan-task:|brief-sc:|finding:|approval:` parser hits in either file (the 5 `approval:` hits are unrelated YAML-block prose) |
+| SC-07 | inspection | met | `git show dd55b357`: `check-domain.py:1562/1563`, `check-state.py:54/1251` — one import + one call each; zero `scope:|authority:|plan-task:|brief-sc:|finding:|approval:` parser hits in either file (the 5 `approval:` hits are unrelated YAML-block prose) |
 | SC-08 | inspection | met | see surface-by-surface block below |
 | SC-09 | automated (integration) | met | `test-run-unit-tests-kinds.py:21-98` — positive registration + two mutants + `--kind all` isolation; ran 5/5 PASS |
 | SC-10 | uat | **pending_uat** | no agent can grade it |
@@ -60,10 +60,10 @@ sections, all required" + a live `## Done when` section with its shape. `SKILL.m
 sections… and `## Done when`" (`:135` "four segments" is the build phase, not the contract).
 DEC record: `DECISIONS.md:3701` "exactly five sections", `:3710` the `## Done when` bullet,
 `:3723/3725` both gates demand five, `:6698` DEC-214 "the fifth required handoff section";
-`DECISIONS-INDEX.md:163,214` both say five/`Done when`. `check-domain.sh`: required list `:1554`
+`DECISIONS-INDEX.md:163,214` both say five/`Done when`. `check-domain.py`: required list `:1554`
 five entries; normative comment `:1547-1548` "five fixed sections including ## Done when"; **both
 user-facing messages** name it — cap `:1552-1553` ("…a working set and ## Done when") and missing
-`:1557-1559` ("the five sections are the contract"). `check-state.sh`: `HANDOFF_SECTIONS` `:1069`
+`:1557-1559` ("the five sections are the contract"). `check-state.py`: `HANDOFF_SECTIONS` `:1069`
 five entries; the missing-section text `:1255` and the cap text `:1256` (emitted at `:1259-1261`)
 enumerate nothing by hand — they print the computed `miss` list — so no four-section message
 exists. A case-insensitive sweep of `four|4 section|4-section` over both gate scripts returns 16
@@ -71,7 +71,7 @@ and 13 hits respectively; I read every one —
 all concern four state files, four hook routes, four interpreter launches etc., **except** the two
 BRIEF-named exempt sites, and I confirmed both **byte-identical** to the feature's base
 `0ec44965` (`cmp` on the extracted comment bytes): the FEAT-31 74-note measurement
-(`check-state.sh:1199`) and the INV-17 empty-body narrative (`:1218`, 8 comment lines identical).
+(`check-state.py:1199`) and the INV-17 empty-body narrative (`:1218`, 8 comment lines identical).
 Two judgements recorded rather than buried: (a) `HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]`
 (`:1070`) is a **derived subset** naming the sections whose bodies the empty-body check reads — not
 a contract claim, and structurally unable to drift from the five-item list; (b) `DECISIONS.md:3765`
@@ -96,7 +96,7 @@ fifth has no count to name and its refusal quotes the offending line instead
 a behaviour gap — a count for "a non-blank line that is neither" would be meaningless.
 
 **SC-13 — two assertions.** `handoff unknown authority docs:whatever` and `handoff unknown
-authority check-domain.sh:1523`, each exit 2 with all four legal prefixes required in stderr.
+authority check-domain.py:1523`, each exit 2 with all four legal prefixes required in stderr.
 
 **SC-14 — one separately named case per gate.** `handoff no per-section cap` in
 `test-check-domain.py` (Trust 50 lines, file exactly 60, exit 0) and `FEAT-54 no per-section cap` in

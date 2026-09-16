@@ -70,7 +70,7 @@ All at `abff2a84`, on this host, with two throwaway probe worktrees since remove
   `git grep -l review_sha main -- .harness/harness/features` → 932 files in **0.06s**, against
   **0.30s / 928 files** for the materialised copy. The git-served view is both faster and less
   stale than the copy.
-- The fail-open is live, not hypothetical: `check-state.sh` run in the sparse probe swept **1 of
+- The fail-open is live, not hypothetical: `check-state.py` run in the sparse probe swept **1 of
   88** features and **exited 0**.
 - Nothing needs a second feature's directory: every `team-config.yaml` domain glob is
   `features/*/…` (a wildcard over one feature) and DEC-208/DEC-218 already bind feature writes to
@@ -79,18 +79,18 @@ All at `abff2a84`, on this host, with two throwaway probe worktrees since remove
   directory at `main`'s HEAD.
 - `harness_boundary.worktree_owner(path)` already returns `(checkout_dir, owner_root, legitimate)`,
   so deriving a corpus root is a small function at an existing seam.
-- Sweep latency is not an argument either way: `check-state.sh` 3.78s full vs 3.10s sparse.
+- Sweep latency is not an argument either way: `check-state.py` 3.78s full vs 3.10s sparse.
 
 ## Constraints pm must carry into the plan
 
-- `check-state.sh` is shared with FEAT-57's T-19 — serialise the edits.
+- `check-state.py` is shared with FEAT-57's T-19 — serialise the edits.
 - Execution waits on FEAT-57's replay manifest and dataset being frozen and spot-checked; planning
   has no precondition.
 - DEC-174, CORRECTED 2026-09-10 (the original wording here had it backwards, and the design comment
   on issue #1559 repeats the error): a change to hooks, validators and gate scripts is made
   **directly by the main session**, never dispatched through a team run whose gates are the artifact
-  being changed. `feature-worktree.py`, `check-state.sh`, `harness_boundary.py`, `check-domain.sh`,
-  `merge-gate.py`, `dispatch-guard.sh` and the validators are exactly that surface, so those tasks
+  being changed. `feature-worktree.py`, `check-state.py`, `harness_boundary.py`, `check-domain.py`,
+  `merge-gate.py`, `dispatch-guard.py` and the validators are exactly that surface, so those tasks
   belong in the `main-session-direct` lane and `check-plan-routes.py` printing DEVIATION on them
   while exiting 0 is the carve-out working.
 - The verification trap: `du` reports logical size. A criterion phrased as "`du` of

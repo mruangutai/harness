@@ -3,6 +3,7 @@
 import importlib.util
 import os
 import re
+import sys
 import tempfile
 
 import yaml
@@ -10,6 +11,9 @@ import yaml
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SCRIPT = os.environ.get("RUN_IDENTITY_BIN") or os.path.join(
     ROOT, ".claude", "skills", "harness", "bin", "run_identity.py")
+BIN_DIR = os.path.dirname(SCRIPT)
+if BIN_DIR not in sys.path:
+    sys.path.insert(0, BIN_DIR)
 failures = []
 
 
@@ -48,15 +52,26 @@ def case_seed_is_write_once():
 def case_marker_absent_and_unreadable():
     mod = module()
     with tempfile.TemporaryDirectory() as run_dir:
-        check("absent marker is None", mod.read_marker(run_dir) is None)
         path = mod.marker_path(run_dir)
-        for name, content in (("truncated", "{"), ("array", "[]")):
-            with open(path, "w", encoding="utf-8") as fh:
+        try:
+            absent = mod.read_marker(run_dir)
+        except mod.MarkerUnreadable as exc:
+            check("absent marker is None", False, str(exc))
+        else:
+            check("absent marker is None", absent is None, absent)
+        for name, content, diagnostic in (
+                ("truncated", b"{", "invalid JSON:"),
+                ("array", b"[]", "JSON document is not a mapping"),
+                ("invalid UTF-8", b"\xff", "invalid JSON:")):
+            with open(path, "wb") as fh:
                 fh.write(content)
             try:
                 mod.read_marker(run_dir)
-            except mod.MarkerUnreadable:
-                check(f"{name} marker is unreadable", True)
+            except mod.MarkerUnreadable as exc:
+                check(f"{name} marker is unreadable",
+                      str(exc).startswith(
+                          f"cannot read run identity marker {path}: {path}: {diagnostic}"),
+                      str(exc))
             else:
                 check(f"{name} marker is unreadable", False)
 

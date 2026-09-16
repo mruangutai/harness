@@ -30,7 +30,7 @@ and add a project-specific name only when none of these fits:
 A perspective with nothing to say is OMITTED, never written as "none". The perspective test: a
 statement survives changing the implementation — swap the whole technical approach and it still
 holds. A trailing parenthetical is a gloss, not part of the name: `**reader (reviewer / qa)**`
-declares `reader`. check-state.sh INV-38 reads this block.>
+declares `reader`. check-state.py INV-38 reads this block.>
 
 **operator** — <what I can rely on, in my own words>
 
@@ -62,7 +62,7 @@ verifiable and blocks the goal-check — the state check treats it like a task m
   verify: uat         -> only the user can judge it. Becomes a step in
                          .harness/features/<FEAT>/notes/uat.md, executed by the user.
 
-An SC is scoped to this feature. One whose `verify:` runs check-state.sh or check-domain.sh with
+An SC is scoped to this feature. One whose `verify:` runs check-state.py or check-domain.py with
 no feature-scoped argument grades the whole repository, and other features' debris turns it red;
 repository hygiene is a merge-time check, not a feature criterion. INV-41 refuses it (SC-16).
 

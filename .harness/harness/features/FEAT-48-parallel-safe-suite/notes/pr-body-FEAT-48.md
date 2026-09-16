@@ -22,7 +22,7 @@ back, and turns the runner into a worker pool with attributable output.
 - **`run_pool.py`** — the worker pool, with a `--mutation-check` snapshot of the watched `bin/`
   directory before and after the run. It reports the worker count, the file count and the wall time,
   and one `PASS <file>` / `FAIL <file>` line per file.
-- **`run-unit-tests.sh`** keeps every existing contract: `--kind unit`, `--kind integration`,
+- **`run-unit-tests.py`** keeps every existing contract: `--kind unit`, `--kind integration`,
   `--kind all`, `--check-kinds`, and exit codes 0, 1 and 2 with their present meanings.
 - **`DECISIONS.md`** records the choices, including change-based test selection rejected as the
   speed lever.
@@ -46,7 +46,7 @@ Graded at `review_sha 27f8105b`, which is unmoved: the only commits after it are
 
 | Gate | Result |
 |---|---|
-| `.claude/skills/harness/bin/run-unit-tests.sh --kind all` | **exit 0** — 63 files, 8 workers, 48.29s, zero `FAIL`, zero `MUTATED`, clean tree |
+| `.claude/skills/harness/bin/run-unit-tests.py --kind all` | **exit 0** — 63 files, 8 workers, 48.29s, zero `FAIL`, zero `MUTATED`, clean tree |
 | blocking qa gate (`unit` + `integration`) at the pin | **PASS** — matrix satisfied, both kinds green |
 | `code-grade.py --base origin/main --head 27f8105b` | **exit 0**, `PASSING: 70`, zero blocking records |
 | validation panel (code, security, qa, ui) | c8's two `must_fix` closed with re-taken proofs |

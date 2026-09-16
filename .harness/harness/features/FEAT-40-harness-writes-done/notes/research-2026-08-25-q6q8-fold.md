@@ -48,11 +48,11 @@ inverse-of-the-mirror posture; `ship` performs none of them itself, so DEC-203 i
 stand. Getting this wrong would have forced T-03 to write a seventh purpose into a signed decision.
 
 `ship` never gates on the audit: exit 0 regardless, and no audit line may carry `gh-sync: SKIP` or
-`gh-sync: FAILED` (`post-merge-sweep.sh` greps both).
+`gh-sync: FAILED` (`post-merge-sweep.py` greps both).
 
 ## Reconciled, so nothing reads as contradictory
 
-- **T-08's note** (the `check-state.sh` invariant deliberately does NOT detect a closed-not-Done card)
+- **T-08's note** (the `check-state.py` invariant deliberately does NOT detect a closed-not-Done card)
   now says the runner exists and is somewhere else — inside `ship`, not the state checker. The two
   notes agree.
 - **T-04 step 8c** no longer corrects `cmd_close_task`'s comment; the comment goes with the function.

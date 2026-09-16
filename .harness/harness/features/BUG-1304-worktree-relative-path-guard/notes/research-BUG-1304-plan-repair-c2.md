@@ -31,7 +31,7 @@ Written through `plan-merge.py` verbs only, one field per call, compare-and-swap
   `OMP_UNVERIFIED_TTL_SECONDS` and `inflight_registry.py:30-35` so the residue cannot be dropped.
 - C7 DONE — `add-tasks` T-09 and T-10. T-09 = OC-1, STRIKEABLE AT SIGNATURE, carrying both halves
   (retention rule + RULING D assertion 4) so they strike together; nothing depends on it. T-10 =
-  G-1a broad verification, `run-unit-tests.sh --kind all` plus `check-state.sh`, depends only on the
+  G-1a broad verification, `run-unit-tests.py --kind all` plus `check-state.py`, depends only on the
   always-landing T-02/T-04/T-06/T-07 so no edge dangles when T-08 or T-09 is struck.
 - C8 DONE — `apply` D-09 (`dec: DEC-204`). Carries the two-liveness-questions boundary, the explicit
   "1200s is NOT accepted", the accepted past-backstop residue with its named reason
@@ -66,7 +66,7 @@ Written through `plan-merge.py` verbs only, one field per call, compare-and-swap
 | Ruling 3 item 5 — new D-09 | `plan.yaml` `decisions:` D-09, `dec: DEC-204`. D-03 byte-unchanged. |
 | Ruling 3 item 6 — T-07 carries D-09 verbatim | T-07 `intent` obligation 1b; T-07 `verify` greps `OMP_UNVERIFIED_TTL_SECONDS` and `inflight_registry.py:30-35`. |
 | Ruling 3 item 7 — BRIEF criterion for case (5) | `BRIEF.md` SC-09. |
-| G-1a — nothing verifies wider than the suite it edits | New task T-10: `run-unit-tests.sh --kind all` then `check-state.sh`, both exit 0. Not bolted onto any existing `verify:`. |
+| G-1a — nothing verifies wider than the suite it edits | New task T-10: `run-unit-tests.py --kind all` then `check-state.py`, both exit 0. Not bolted onto any existing `verify:`. |
 | G-3 — SC-06 had no producing task | T-03 `bug1304_pre_change_hook` and T-05 `bug1304_pre_change_guard`, each over a vendored pre-change fixture, called by every refusal case; both `verify:` blocks assert the helper exists and count its call sites. Discrimination now survives at `review_sha` instead of vanishing with the transient red suite. |
 | G-4 — SC-07 unmeetable | `BRIEF.md` SC-07 re-worded to grade each of the five boundary questions against the decision that carries it. No decision was widened or collapsed. |
 | OC-1 — registry-file retention scope | T-09, `STRIKEABLE AT SIGNATURE`, both halves together, nothing depends on it; D-09 states the consequence of striking it. |

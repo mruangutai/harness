@@ -66,7 +66,7 @@ Preserved in sequence, not erased:
 
 ## Filename note (still true, still escalated)
 
-The originating dispatch asked for `notes/rulings-2026-09-08-c18-sc04.md`. `check-domain.sh` denies
+The originating dispatch asked for `notes/rulings-2026-09-08-c18-sc04.md`. `check-domain.py` denies
 that path to `harness-pm`: `notes/rulings-*.md` falls under the orchestrator's
 `.harness/*/features/**` grant (`.harness/team-config.yaml:45`), which is why the c16 ruling note is
 orchestrator-authored. Per #216 the guard is right and is not worked around, so the content lives
@@ -117,7 +117,7 @@ were measured against the integration fixture's branch `feature/test`. The UAT f
 `feature/uat-scratch` (`feature.json`, and every other UAT step). `feature/test` owns nothing in the
 UAT fixture, so a Step 3b line using it would ALLOW and the operator would read a correct gate as a
 failure. Every added invocation therefore substitutes `feature/uat-scratch`, in the same
-`printf … | HARNESS_PROJECT_DIR=$UAT_ROOT bash …/merge-gate.sh` shape as the existing three. That
+`printf … | HARNESS_PROJECT_DIR=$UAT_ROOT …/merge-gate.py` shape as the existing three. That
 substitution is the sole difference between the measured strings and the Step 3b lines.
 
 ## Non-modification

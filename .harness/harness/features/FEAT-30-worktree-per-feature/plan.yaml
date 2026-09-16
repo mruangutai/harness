@@ -22,7 +22,7 @@ approval:
       date: 2026-08-20
       subject: REQ-04's HEAD refusal binds all sixteen governed agents, harness-dev-ops included
       ruling: >-
-        The HEAD-move matcher is evaluated BEFORE bash-write-guard.sh's harness-dev-ops early
+        The HEAD-move matcher is evaluated BEFORE bash-write-guard.py's harness-dev-ops early
         return, so the refusal reaches that persona too. The early return survives unchanged for
         every WRITE.
       reason: >-
@@ -85,10 +85,10 @@ lanes:
     - surface: .claude/skills/harness/bin/harness_boundary.py
       lane: main-session-direct
       reason: every named enforcement guard imports it, so a change there changes all of them at once - enforcement layer by DEC-174 am.4 category
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: named in DEC-174 am.4 as a registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: named in DEC-174 am.4 as a registered PreToolUse gate script
     - surface: .claude/skills/harness/bin/test-check-domain.py
@@ -99,16 +99,16 @@ lanes:
       reason: DEC-174 am.4 puts the test file of each gate script inside the carve-out
     - surface: .claude/agents/harness-orchestrator.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
     - surface: .claude/commands/harness.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
     - surface: .claude/skills/harness-distill/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
 
 decisions:
   - id: D-01
@@ -126,8 +126,8 @@ decisions:
     choice: >-
       REQ-08 replaces WORKTREE_REL_RE with one function in harness_boundary.py that relativizes a
       path against the checkout it stands in, and EVERY consumer of the fixed segment count moves to
-      it: harness_boundary.classify, the check-domain.sh resolve path, the check-domain.sh shape
-      phase normaliser, and the check-domain.sh sweep globs.
+      it: harness_boundary.classify, the check-domain.py resolve path, the check-domain.py shape
+      phase normaliser, and the check-domain.py sweep globs.
     because: >-
       the mechanism is one-for-one, and a consumer left on the regex keeps the segment count
       load-bearing. The shape normaliser and the sweep globs were measured this run as the two
@@ -136,7 +136,7 @@ decisions:
       worktree state files. That is a regression no success criterion would catch. The cutover is
       therefore ONE task, T-04, and must not be split per file: WORKTREE_REL_RE has consumers in two
       files, so a partial cutover leaves an intermediate state where harness_boundary.py no longer
-      defines the attribute while check-domain.sh still reaches for it, and that direction fails
+      defines the attribute while check-domain.py still reaches for it, and that direction fails
       OPEN. DEC-193 records the same direction - a handled import failure was deliberately made to
       exit 2 because an unhandled ImportError exits 1, which is non-blocking, and would switch
       enforcement off on both routes at once. A missing attribute is the same fail-open shape, so
@@ -175,10 +175,10 @@ decisions:
   - id: D-06
     choice: >-
       Task verifies invoke a new test file directly with python3 until T-08 registers it, and only
-      tasks ordered after T-08 call run-unit-tests.sh. No task ordered before T-08 may invoke
-      run-unit-tests.sh, and that is an ordering requirement rather than a preference.
+      tasks ordered after T-08 call run-unit-tests.py. No task ordered before T-08 may invoke
+      run-unit-tests.py, and that is an ordering requirement rather than a preference.
     because: >-
-      run-unit-tests.sh runs a drift detector over the union of its two arrays, so an unregistered
+      run-unit-tests.py runs a drift detector over the union of its two arrays, so an unregistered
       new test file makes the runner fail; a verify routed through the runner before registration
       would report a failure that is not the task's. The consequence is a runner-red window: from
       the moment T-01 lands until T-08 lands the full suite is red and no mid-build qa gate can
@@ -189,13 +189,13 @@ decisions:
     dec: none
   - id: D-07
     choice: >-
-      The worktree CREATION door in bash-write-guard.sh stays fleet-unaware and unchanged. A
+      The worktree CREATION door in bash-write-guard.py stays fleet-unaware and unchanged. A
       served-repo worktree creation issued over Bash stays refused, and the sanctioned creation path
       is feature-worktree.py, whose single dest_for() makes an illegal destination unrepresentable.
     because: >-
       measured at eeabc59, git worktree add against workspace_root/<repo>/.claude/worktrees/<repo>/
       FEAT-30 exits 2 for harness-backend-dev and for harness-orchestrator, because the legal home is
-      computed as realpath(CLAUDE_PROJECT_DIR)/.claude/worktrees at bash-write-guard.sh:464 with no
+      computed as realpath(CLAUDE_PROJECT_DIR)/.claude/worktrees at bash-write-guard.py:464 with no
       fleet awareness. That is not REQ-01's served-repo half being blocked: creation goes through
       feature-worktree.py, which forks git from inside Python, so the Bash parser sees no git token
       and the door never fires. Making the door fleet-aware would widen a governed write path to
@@ -205,21 +205,21 @@ decisions:
     dec: DEC-174
   - id: D-08
     choice: >-
-      SC-09's baseline is the SUITE baseline and nothing else: at eeabc59, run-unit-tests.sh
+      SC-09's baseline is the SUITE baseline and nothing else: at eeabc59, run-unit-tests.py
       --kind unit and --kind integration each pass with zero FAIL lines and zero ERROR lines,
       re-observed unchanged at HEAD during the simplify pass with 269 PASS, 0 FAIL, 0 ERROR and
       exit 0. Separately, and explicitly NOT part of SC-09 and owned by no task: an operator-run
-      sanity check at ship time that check-state.sh reports no VIOLATION line whose text contains
+      sanity check at ship time that check-state.py reports no VIOLATION line whose text contains
       FEAT-30. A VIOLATION COUNT is rejected as the assertion form for either.
     because: >-
       SC-09's own text is about the test suites - no test that passed before this feature fails
-      after it, and the full unit and integration suites pass - so a check-state.sh clause cannot
+      after it, and the full unit and integration suites pass - so a check-state.py clause cannot
       be a half of it, and no task's verify instruments one. Inventing a verify for it would
       assert a whole-repository property against a criterion that does not claim it. The
       count-form reasoning below is kept rather than trimmed with it, because it is the
       load-bearing lesson about asserting anything over a whole-repository scan here. The count
       form was written first and was falsified three minutes later. The same command in
-      the same checkout, FACTORY_GH=/nonexistent/gh check-state.sh, reported 2 VIOLATIONs at 07:41
+      the same checkout, FACTORY_GH=/nonexistent/gh check-state.py, reported 2 VIOLATIONs at 07:41
       and 3 at 08:07; the third was the unapproved BRIEF of FEAT-31-orchestrator-context-watch,
       which the main session started and which has nothing to do with this feature. The defect is
       structural rather than stale arithmetic: a violation count over a whole-repository scan is a
@@ -570,7 +570,7 @@ tasks:
       open(p, "w").write(m)
       PY
       rm -rf "$T/bin/__pycache__"
-      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.py" \
         python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the new cases pass with WORKTREES_SEGMENT mutated"; exit 1; }
       exit 0
@@ -579,7 +579,7 @@ tasks:
       that a path written from inside a worktree resolves to the same grant as the same path written
       from the checkout root. Change no other file, and change no existing case.
 
-      SC-05 says check-domain.sh grants the same paths inside a worktree as outside it, for every one
+      SC-05 says check-domain.py grants the same paths inside a worktree as outside it, for every one
       of the 16 agents, and that nothing currently asserts it. This task asserts it against the
       layout that exists TODAY - exactly one segment after WORKTREES_SEGMENT - so that T-04 has a
       baseline it must leave green. Do not anticipate the repo-and-id layout here; T-04 owns it.
@@ -629,12 +629,12 @@ tasks:
     traces: [REQ-08, REQ-01]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 - harness_boundary.py, check-domain.sh and the two guard test files are the enforcement layer, and the cutover that makes a gate use the new mechanism is the main session's
+    execution_reason: DEC-174 am.4 - harness_boundary.py, check-domain.py and the two guard test files are the enforcement layer, and the cutover that makes a gate use the new mechanism is the main session's
     depends_on: [T-03]
     status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
@@ -642,10 +642,10 @@ tasks:
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
       git show eeabc59:.claude/skills/harness/bin/harness_boundary.py > "$T/bin/harness_boundary.py" || exit 1
-      git show eeabc59:.claude/skills/harness/bin/check-domain.sh > "$T/bin/check-domain.sh" || exit 1
-      chmod +x "$T/bin/check-domain.sh"
+      git show eeabc59:.claude/skills/harness/bin/check-domain.py > "$T/bin/check-domain.py" || exit 1
+      chmod +x "$T/bin/check-domain.py"
       rm -rf "$T/bin/__pycache__"
-      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.py" \
         python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the deep-layout cases pass against the eeabc59 guard"; exit 1; }
       python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
@@ -697,13 +697,13 @@ tasks:
       iterations, the regex took 0.3 ms in total against 46.8 ms in total for walk-and-relativize,
       which is 0.023 ms per write against a guard that already reads files.
 
-      PART 2 - check-domain.sh, the resolve path at line 212.
+      PART 2 - check-domain.py, the resolve path at line 212.
 
       Replace the WORKTREE_REL_RE match with harness_boundary.checkout_relative on the absolute
       target, keeping the same candidate ordering: base-relative first, checkout-relative second
       when one is returned and differs. The rest of that branch is unchanged.
 
-      PART 3 - check-domain.sh, the shape phase. This is the part with the largest blast radius and
+      PART 3 - check-domain.py, the shape phase. This is the part with the largest blast radius and
       it is the reason REQ-08 is not one line.
 
       At eeabc59 two literals in this file assume exactly ONE segment after .claude/worktrees:
@@ -734,7 +734,7 @@ tasks:
       not merely the two-level shape start working. Replacing rather than widening is the failure
       mode here, and it is the mirror image of the do-not-add-a-segment rule above.
 
-      DO NOT TOUCH bash-write-guard.sh line 545. That line matches a ^\.claude/worktrees/ PREFIX
+      DO NOT TOUCH bash-write-guard.py line 545. That line matches a ^\.claude/worktrees/ PREFIX
       only - DEC-153's blanket allow for governed agents on the Bash route. It carries no segment
       count, so it is already depth-agnostic and already correct under the two-level layout.
       Unifying it into checkout_relative would touch a signed carve-out for no behavioural gain.
@@ -871,27 +871,27 @@ tasks:
     traces: [REQ-04, REQ-03]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 - bash-write-guard.sh is a registered PreToolUse gate script and its test file is inside the carve-out with it
+    execution_reason: DEC-174 am.4 - bash-write-guard.py is a registered PreToolUse gate script and its test file is inside the carve-out with it
     depends_on: [T-04]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
       set -u
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
-      git show eeabc59:.claude/skills/harness/bin/bash-write-guard.sh > "$T/bin/bash-write-guard.sh" || exit 1
-      chmod +x "$T/bin/bash-write-guard.sh"
+      git show eeabc59:.claude/skills/harness/bin/bash-write-guard.py > "$T/bin/bash-write-guard.py" || exit 1
+      chmod +x "$T/bin/bash-write-guard.py"
       rm -rf "$T/bin/__pycache__"
-      BASH_WRITE_GUARD_BIN="$T/bin/bash-write-guard.sh" \
+      BASH_WRITE_GUARD_BIN="$T/bin/bash-write-guard.py" \
         python3 .claude/skills/harness/bin/test-bash-write-guard.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the HEAD-move cases pass against the eeabc59 guard"; exit 1; }
       python3 .claude/skills/harness/bin/test-bash-write-guard.py || exit 1
       python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
       exit 0
     intent: |
-      Add one rule to .claude/skills/harness/bin/bash-write-guard.sh and its cases to
+      Add one rule to .claude/skills/harness/bin/bash-write-guard.py and its cases to
       test-bash-write-guard.py. No other file changes.
 
       THE RULE. When the payload's agent_type matches the governed-agent prefix harness-, a Bash
@@ -934,7 +934,7 @@ tasks:
           allowed, and only the UNDECIDABLE case is refused.
         a reset with no mode flag and with a pathspec
         creating a worktree, which is already governed by the existing rule and by
-          branch-create-gate.sh
+          branch-create-gate.py
 
       The refusal message must name three things: the command shape that was refused, that HEAD is
       shared mutable state for the duration of a run, and the alternative - work in the worktree cut
@@ -1060,8 +1060,8 @@ tasks:
       file is lost. The entries input uses the same line format the file itself uses: entries of the
       form dash, an id such as P-01, a colon, then text, at column zero, grouped under the four
       canonical section headings Patterns, Gotchas, Outcomes and Open. That format and its caps are
-      DEC-145's and are enforced by check-expertise.sh; this tool must produce a file that
-      check-expertise.sh still accepts.
+      DEC-145's and are enforced by check-expertise.py; this tool must produce a file that
+      check-expertise.py still accepts.
 
       THE ALGORITHM, and the ordering matters:
         1. Take an exclusive lock: create a sibling lock file with os.open using the create-and-
@@ -1103,7 +1103,7 @@ tasks:
         2. THE GREEN CASE, the same two close-outs through the tool: starting file with P-01 and
            P-02, apply A's proposal of P-01 and P-03, then apply B's proposal of P-01 and P-04.
            Assert all four ids are present, one assertion per id, and that the file still passes
-           check-expertise.sh by forking it and asserting exit 0.
+           check-expertise.py by forking it and asserting exit 0.
         3. CONCURRENCY FOR REAL: spawn two subprocesses that apply overlapping proposals to the same
            file at the same time, join both, and assert that either the union of both proposals
            survives, or that one run exited 6 with the lock message and applied nothing. Assert
@@ -1116,7 +1116,7 @@ tasks:
         6. A file that does not exist yet is created from the proposal alone and exits 0.
         7. The lock is released: after each of cases 4, 5 and 6 the lock file does not exist.
         8. THE CAP DRIFT DETECTOR, which this task owes because step 5 re-spells DEC-145's four
-           section caps in a second file. Read .claude/skills/harness/bin/check-expertise.sh as
+           section caps in a second file. Read .claude/skills/harness/bin/check-expertise.py as
            TEXT, extract the four numbers from the CAPS mapping it assigns - those caps live inside
            a python3 heredoc in that script and cannot be imported - and assert they equal the four
            caps this tool enforces, section by section, naming any section whose two values differ.
@@ -1130,7 +1130,7 @@ tasks:
     traces: [REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .claude/skills/harness-distill/SKILL.md at eeabc59
+    execution_reason: check-domain.py --resolve prints NOBODY for .claude/skills/harness-distill/SKILL.md at eeabc59
     depends_on: [T-06]
     status: done
     files:
@@ -1157,7 +1157,7 @@ tasks:
           text, which is a real conflict for the agent to resolve; exit 8, the section cap is
           exceeded, which means curating rather than appending.
         - It does not restate the entry format or the caps. Those are DEC-145's and
-          check-expertise.sh enforces them; a second copy here is the drift this repository keeps
+          check-expertise.py enforces them; a second copy here is the drift this repository keeps
           paying for.
       Add nothing about worktrees to this file. Change no other statement in it.
 
@@ -1171,11 +1171,11 @@ tasks:
     depends_on: [T-02, T-06]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       set -u
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1) || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^PASS test-feature-worktree.py$' || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^PASS test-expertise-merge.py$' || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
@@ -1189,7 +1189,7 @@ tasks:
     intent: |
       Two edits, both registrations. No logic changes anywhere.
 
-      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array at line 18.
+      1. .claude/skills/harness/bin/run-unit-tests.py, the INTEGRATION_SCRIPTS array at line 18.
          Append test-feature-worktree.py and test-expertise-merge.py. Both fork real scripts and
          real git repositories, which is the principle that array encodes - do not put either in
          UNIT_SCRIPTS. Change nothing else in the file, and do not touch the drift detector.
@@ -1213,7 +1213,7 @@ tasks:
     traces: [REQ-05, REQ-03]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .claude/agents/harness-orchestrator.md, .claude/commands/harness.md and .claude/skills/harness/SKILL.md at eeabc59
+    execution_reason: check-domain.py --resolve prints NOBODY for .claude/agents/harness-orchestrator.md, .claude/commands/harness.md and .claude/skills/harness/SKILL.md at eeabc59
     depends_on: [T-04, T-05, T-07, T-08]
     status: done
     files:
@@ -1229,7 +1229,7 @@ tasks:
       grep -q 'feature-worktree.py' .claude/skills/harness/SKILL.md || { echo "the playbook does not name the CLI"; exit 1; }
       grep -q 'feature-worktree.py' .claude/commands/harness.md || { echo "the command does not name the CLI"; exit 1; }
       grep -q 'git -C' .claude/agents/harness-orchestrator.md || { echo "the orchestrator is not told how to address its worktree"; exit 1; }
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh 2>&1) || { echo "$out"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.py 2>&1) || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
       exit 0
     intent: |
@@ -1253,7 +1253,7 @@ tasks:
          ABSOLUTE PATH for every file operation, and by git's directory option - git -C and the
          worktree path - for every git command. It never uses cd, which does not persist between
          Bash calls in any case. It never moves HEAD: checking out a branch, switching, a hard reset,
-         a rebase and a merge are all refused for a governed agent by bash-write-guard.sh, and the
+         a rebase and a merge are all refused for a governed agent by bash-write-guard.py, and the
          refusal names the alternative. State that the refusal exists, so the orchestrator does not
          read a denial as a malfunction.
 
@@ -1266,8 +1266,8 @@ tasks:
          orchestrator from inside it - symmetric with point 1, which attributes creation to the main
          session for the same reason. This sentence discharges must_fix M-1: git worktree remove
          succeeds at exit 0 from inside the tree it removes, so guidance that omits who runs it and
-         from where tells the orchestrator to delete its own cwd, which check-domain.sh:428-431,
-         bash-write-guard.sh:135-137 and check-state.sh:1082-1085 each already refuse to say and
+         from where tells the orchestrator to delete its own cwd, which check-domain.py:428-431,
+         bash-write-guard.py:135-137 and check-state.py:1082-1085 each already refuse to say and
          T-05 refuses on the Bash route. The orchestrator's part of a terminal state is to finish
          landing its artifacts and report; removal is not its act. State that remove refuses on a dirty tree, and refuses until every
          artifact under the feature's directory is present with identical content on the default
@@ -1324,14 +1324,14 @@ tasks:
         exit 1
       fi
       python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >/dev/null 2>&1 || exit 1
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >/dev/null 2>&1 || exit 1
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >/dev/null 2>&1 || exit 1
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration >/dev/null 2>&1 || exit 1
       exit 0
     intent: |
       Add cases to .claude/skills/harness/bin/test-feature-worktree.py. NO OTHER FILE CHANGES, and
-      no new test file - this file is already registered in run-unit-tests.sh's INTEGRATION_SCRIPTS
+      no new test file - this file is already registered in run-unit-tests.py's INTEGRATION_SCRIPTS
       and in harness.json's integration.detect by T-08, so a third file would have to be registered
-      in BOTH places or run-unit-tests.sh exits 2 MISCONFIGURED on its drift detector. Do not create
+      in BOTH places or run-unit-tests.py exits 2 MISCONFIGURED on its drift detector. Do not create
       one.
 
       THIS TASK OWNS SC-01b, which the operator amended to automated / integration on 2026-08-20.

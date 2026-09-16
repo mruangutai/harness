@@ -11,7 +11,7 @@
   it — not user input, not rendered to another party, no credentials, no new external call.
   The embedded shell recipe (`grep`/`sed`/`xargs` over `~/.claude/projects/*/*/subagents/*.meta.json`)
   is documentation of a manual procedure, not code this diff executes.
-- `.claude/skills/harness/bin/run-unit-tests.sh` (+2/-1) — one literal basename
+- `.claude/skills/harness/bin/run-unit-tests.py` (+2/-1) — one literal basename
   (`"test-orchestrator-playbook.py"`) appended to the `UNIT_SCRIPTS` bash array. Static
   string, no new input path, no interpolation change.
 - `.claude/skills/harness/bin/test-orchestrator-playbook.py` (new, 125 lines) — stdlib-only,
@@ -39,4 +39,4 @@ reviewer, and was treated as such.
 ## Already-ticketed (cited, not refiled)
 
 #803, #804, #805 — not implicated by this diff; no new instance found. The six INV-26
-`check-state.sh` violations are accepted board lag, not findings.
+`check-state.py` violations are accepted board lag, not findings.

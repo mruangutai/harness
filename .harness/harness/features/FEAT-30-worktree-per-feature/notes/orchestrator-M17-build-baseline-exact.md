@@ -12,7 +12,7 @@ silently, and T-08's whole job is to move what the runner discovers.
 Counted as `grep -c '^PASS test-'` with the exit status captured in a variable. Two traps this
 avoids, both of which have burned this repository:
 
-- **A tail read reports a red suite as green.** `run-unit-tests.sh`'s final line is the last
+- **A tail read reports a red suite as green.** `run-unit-tests.py`'s final line is the last
   script's own `N/N checks passed`, not a roll-up.
 - **A bare `^PASS ` count conflates two granularities.** It matches both `PASS test-foo.py`
   (script-level) and `PASS  <check description>` (check-level, two spaces). The coarse counts are
@@ -21,7 +21,7 @@ avoids, both of which have burned this repository:
   worth asserting against.
 
 Both numbers are corroborated by the runner's own hardcoded arrays at
-`.claude/skills/harness/bin/run-unit-tests.sh:17-18` — `UNIT_SCRIPTS` has 18 entries and
+`.claude/skills/harness/bin/run-unit-tests.py:17-18` — `UNIT_SCRIPTS` has 18 entries and
 `INTEGRATION_SCRIPTS` has 12. Two independent methods, same answer.
 
 ## The T-08 expectation, therefore exact
@@ -92,7 +92,7 @@ change, not an execution-time adjustment. So the fix is **at the point of gradin
 handed to whoever runs the qa segment for T-04:
 
 > `test-check-domain.py` and `test-bash-write-guard.py` ARE this change's integration coverage. They
-> run under `--kind integration` (`run-unit-tests.sh:18`). Their absence from
+> run under `--kind integration` (`run-unit-tests.py:18`). Their absence from
 > `test_kinds.integration.detect` is pre-existing config drift recorded in this note, NOT missing
 > tests. Grade the coverage, not the glob.
 
@@ -124,7 +124,7 @@ from 12 to 14 adding precisely the two new files, `UNIT_SCRIPTS` untouched, and 
 
 ## Footnote: the heredoc trap hit ME while writing this section
 
-My first attempt to append this text was BLOCKED by `bash-write-guard.sh`, because the prose
+My first attempt to append this text was BLOCKED by `bash-write-guard.py`, because the prose
 contained an ASCII arrow whose `greater-than` character the guard read as a redirect operator; the
 masked span it reported was the digits following it. That is the predecessor's recorded finding
 reproduced first-hand: documentation about git or shell cannot reliably be written through the Bash

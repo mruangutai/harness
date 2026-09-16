@@ -23,16 +23,17 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
+import artifact_accessors
 
 # Repo root: four levels above .agents/skills/harness/bin. CLAUDE_PROJECT_DIR
-# overrides when the caller has already resolved it (run-unit-tests.sh does).
+# overrides when the caller has already resolved it (run-unit-tests.py does).
 REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )
 MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
 
 # D-03 equivalence fixture: the PRE-change collect() output from
-# check-domain.sh:105-126, run against this repo's real .harness/team-config.yaml
+# check-domain.py:105-126, run against this repo's real .harness/team-config.yaml
 # and inlined here as literals (not derived from harness_yaml — that would prove
 # nothing). manifest_domains() must return exactly these tuples for these agents.
 # The nine `shared` manifest paths every agent's row below repeats verbatim. ONE literal
@@ -188,7 +189,7 @@ def test_manifest_domains_matches_the_regex_walk_on_the_real_manifest():
     import harness_yaml as hy
 
     for agent, (expected_mine, expected_shared) in COLLECT_FIXTURE.items():
-        mine, shared = hy.manifest_domains(MANIFEST_PATH, agent)
+        mine, shared = artifact_accessors.manifest_domains(MANIFEST_PATH, agent)
         assert list(mine) == expected_mine, (
             f"{agent}: mine mismatch\n  got:      {list(mine)!r}\n  expected: {expected_mine!r}"
         )
@@ -257,7 +258,7 @@ def _docs_domain_census(manifest_path):
 
     docs_grants = {}
     for name in personas:
-        mine, _shared = hy.manifest_domains(manifest_path, name)
+        mine, _shared = artifact_accessors.manifest_domains(manifest_path, name)
         docs_grants[name] = sorted(
             path for path in mine if "docs" in path.split("/")
         )
@@ -398,7 +399,7 @@ teams:
         manifest_path = os.path.join(tmp, "team-config.yaml")
         with open(manifest_path, "w", encoding="utf-8") as f:
             f.write(manifest)
-        mine, shared = hy.manifest_domains(manifest_path, "agentX")
+        mine, shared = artifact_accessors.manifest_domains(manifest_path, "agentX")
         assert "p-yes" not in mine, f"read: yes leaked into mine: {mine!r}"
         assert "p-true" not in mine, f"read: True leaked into mine: {mine!r}"
         assert "p-yes-off" in mine, f"read: no wrongly excluded: {mine!r}"
@@ -531,18 +532,18 @@ def test_require_or_die_survives_a_missing_harness_boundary():
     """require_or_die()'s root-resolution is used for exactly one thing: best-effort
     unlink of the PyYAML bootstrap marker (`_marker_path`, reached only inside
     `if yaml is not None:`). That cleanup must not be able to abort every caller of
-    require_or_die() — including check-state.sh, the canonical pre-commit state
+    require_or_die() — including check-state.py, the canonical pre-commit state
     checker — when harness_boundary.py (a DIFFERENT module) is missing or its
     resolve_root() raises.
 
     Regression: FEAT-42 T-05 added a lazy `import harness_boundary` inside
     require_or_die(). In an isolated bin/ carrying only harness_yaml.py (no
-    harness_boundary.py — check-state.sh's own u.7/x.5 fixtures build exactly this),
+    harness_boundary.py — check-state.py's own u.7/x.5 fixtures build exactly this),
     that import raised ModuleNotFoundError UNCAUGHT, so require_or_die() crashed with
     a raw traceback and exit 1 instead of returning normally — exit 1 is
-    NON-BLOCKING, and worse, check-state.sh never reached its own later, PROPERLY
+    NON-BLOCKING, and worse, check-state.py never reached its own later, PROPERLY
     guarded INV-25/INV-27 checks at all. Fail-open, same class as the module-level
-    import T-05 already fixed for bash-write-guard.sh/check-domain.sh, one caller
+    import T-05 already fixed for bash-write-guard.py/check-domain.py, one caller
     later."""
     import shutil
 
@@ -621,21 +622,21 @@ def test_exactly_one_guarded_import_in_the_tree():
     # required dependency, each living in the module whose job IS that
     # dependency's policy. FEAT-14 (D-04) added jsonschema as a second
     # required dependency, so feature_schema.py is now allowed alongside
-    # harness_yaml.py. check-domain.sh is T-06's tight try around
+    # harness_yaml.py. check-domain.py is T-06's tight try around
     # `import feature_schema` — T-06 is main-session-direct and lands AFTER
     # this fix, so it holds zero occurrences of the needle right now. This
     # MUST be a subset (`<=`), never `==`: an equality assertion sized to all
-    # three fails immediately (check-domain.sh is empty today), and one sized
+    # three fails immediately (check-domain.py is empty today), and one sized
     # to today's two goes red the moment T-06 lands with nothing driving it.
     # Subset is what spans that window without losing the cap.
     # feature-worktree.py added 2026-08-20 by operator ruling (FEAT-30 Q1). T-01's SIGNED
     # intent required it: "import harness_boundary lazily and, if the import fails, exit 2
     # with a message naming the module." It guards a FIRST-PARTY sibling, which is the same
-    # category check-domain.sh is already allowed for — not a fourth third-party fallback,
+    # category check-domain.py is already allowed for — not a fourth third-party fallback,
     # which is what this cap exists to prevent. The alternative considered and rejected was
     # dropping the guard: it breaks no test today, because NOTHING exercises the guarded
     # branch, but it departs from signed text to buy nothing.
-    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.sh",
+    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
                "feature-worktree.py"}
     assert set(guarded_hits) <= allowed, (
         f"unexpected guarded-import file(s) outside the allowed set: "
@@ -687,7 +688,7 @@ def test_duplicate_key_is_catchable_as_a_parse_error():
     defeating the very handler each had just added.
 
     Finding 5: the message must also carry DEC-156's guidance, because removing
-    check-state.sh's dedicated scan dropped that wording from the codebase entirely
+    check-state.py's dedicated scan dropped that wording from the codebase entirely
     while a comment claimed it was preserved.
     """
     import harness_yaml as hy
@@ -814,7 +815,7 @@ def test_load_plan_accepts_a_well_formed_plan():
     import harness_yaml as hy
 
     with tempfile.TemporaryDirectory() as tmp:
-        doc = hy.load_plan(_plan(tmp, GOOD_PLAN))
+        doc = artifact_accessors.load_plan(_plan(tmp, GOOD_PLAN))
         assert doc["tasks"][0]["files"] == ["src/a.py", "src/b.py"], doc["tasks"][0]["files"]
         assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
 
@@ -851,7 +852,7 @@ def test_every_required_task_field_is_actually_required():
         del doc["tasks"][0][field]
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                hy.load_plan(_plan(tmp, yaml.safe_dump(doc)))
+                artifact_accessors.load_plan(_plan(tmp, yaml.safe_dump(doc)))
             except hy.PlanSchemaError as e:
                 assert field in str(e), (
                     f"omitting {field!r} raised, but the message does not name it: {e}")
@@ -884,7 +885,7 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
     station_only = ("schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"
                     "station_only: true\ntasks: []\n")
     with tempfile.TemporaryDirectory() as tmp:
-        doc = hy.load_plan(_plan(tmp, station_only))
+        doc = artifact_accessors.load_plan(_plan(tmp, station_only))
         assert doc["tasks"] == [], doc["tasks"]
         assert doc["status"] == "review", doc["status"]
         assert doc["station_only"] is True, doc["station_only"]
@@ -925,7 +926,7 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
     ):
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                hy.load_plan(_plan(tmp, text))
+                artifact_accessors.load_plan(_plan(tmp, text))
             except hy.PlanSchemaError:
                 pass
             else:
@@ -969,7 +970,7 @@ def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     for label, text in cases.items():
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                hy.load_plan(_plan(tmp, text))
+                artifact_accessors.load_plan(_plan(tmp, text))
             except hy.YamlParseError:
                 continue
             raise AssertionError(f"ACCEPTED what it must reject: {label}")
@@ -989,7 +990,7 @@ def test_load_plan_backticked_path_is_not_silently_cleaned():
 
     text = GOOD_PLAN.replace("      - src/a.py", "      - src/a.py (delete)")
     with tempfile.TemporaryDirectory() as tmp:
-        doc = hy.load_plan(_plan(tmp, text))
+        doc = artifact_accessors.load_plan(_plan(tmp, text))
         got = doc["tasks"][0]["files"][0]
         assert got == "src/a.py (delete)", f"loader altered the authored value: {got!r}"
 
@@ -1002,7 +1003,7 @@ def test_load_plan_reports_line_and_column_on_malformed_yaml():
 
     with tempfile.TemporaryDirectory() as tmp:
         try:
-            hy.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
+            artifact_accessors.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
         except hy.YamlParseError as e:
             assert "line" in str(e.original).lower(), f"no position in: {e.original}"
             return
@@ -1026,7 +1027,7 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
     import harness_yaml as hy
 
     tmpl = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "plan.yaml")
-    hy.load_plan(tmpl)  # raises on any drift
+    artifact_accessors.load_plan(tmpl)  # raises on any drift
 
     spec = open(os.path.join(ROOT, ".harness", "harness", "docs", "SPEC.md"),
                 encoding="utf-8").read()
@@ -1036,7 +1037,7 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
         path = os.path.join(tmp, "plan.yaml")
         with open(path, "w", encoding="utf-8") as f:
             f.write(m.group(1))
-        hy.load_plan(path)
+        artifact_accessors.load_plan(path)
 
 
 TESTS = [

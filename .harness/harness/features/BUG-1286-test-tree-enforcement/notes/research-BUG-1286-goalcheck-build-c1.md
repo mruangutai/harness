@@ -30,11 +30,11 @@ sets**, so no vocabulary match was added or removed. The remedy is a one-token S
 
 **SC-16 — UNMET, `unproven only`.** Clause 1 holds and is asserted: case 9 (`:346-362`) proves the
 repository-wide clause inert on a root not shipping `suite_layout.py`. Clause 2 — "`violations()`
-still has exactly one caller, Harness's own `run-unit-tests.sh`" — is **true but unasserted**.
+still has exactly one caller, Harness's own `run-unit-tests.py`" — is **true but unasserted**.
 Measured at the pinned tree: `git grep -n 'violations(' 9adbce6b` gives exactly one production call
-site, `run-unit-tests.sh:33`; `suite-census.py` imports the vocabulary tuples and `is_test_shaped`,
+site, `run-unit-tests.py:33`; `suite-census.py` imports the vocabulary tuples and `is_test_shaped`,
 never `violations`. No unit assertion pins it: the nearest, `runner delegates layout once`
-(`:141-143`), counts `suite_layout` lines **inside `run-unit-tests.sh`** and stays green if a second
+(`:141-143`), counts `suite_layout` lines **inside `run-unit-tests.py`** and stays green if a second
 caller appears in any other file. This conjunct is the decisive one — the eng-lead plan review
 (`notes/review-harness-eng-lead-plan-c0.md:26`) established that an onboarded product checkout DOES
 carry `.claude/skills/harness/bin/`, so case 9's self-ownership condition may be SATISFIED there and
@@ -76,7 +76,7 @@ a moved line; none changes a grade.
 - SC-07 cites `tests/unit/test-suite-layout.py:104-105`; the assertion is at **`:108-109`**.
 - SC-19 cites the template-equality assertion at `:100-103`; it is at **`:102-107`**.
 - Accurate and re-verified: `code_grade.py:458` (`_is_test_path`), `test-layout-migration.py:62`,
-  `run-unit-tests.sh:47`.
+  `run-unit-tests.py:47`.
 
 One nuance, not a defect: SC-19's `tests/../evil/**` mutation is refused with reason "core contains a
 directory separator" rather than by the `..` rejection the BRIEF names. It is refused by name either

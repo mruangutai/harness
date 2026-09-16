@@ -1,15 +1,15 @@
 # EFFICIENCY angle — FEAT-34 four-angle quality pass
 
 FLAG-ONLY. No edits applied, no git mutation performed. Two findings, both real network-I/O
-waste in `check-state.sh`'s INV-30 (T-08, unreviewed `main-session-direct`), weighted first per
-dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.sh` (T-03) are measured clean.
+waste in `check-state.py`'s INV-30 (T-08, unreviewed `main-session-direct`), weighted first per
+dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.py` (T-03) are measured clean.
 
 ## Method
 
-- Baseline: extracted pre-diff `check-state.sh` at `9165162` via `git show`, ran it with
+- Baseline: extracted pre-diff `check-state.py` at `9165162` via `git show`, ran it with
   `PYTHONPATH=<bin>` (dirname-based sys.path resolution breaks when copied elsewhere) —
   `time PYTHONPATH="$BIN" bash check-state-base.sh` → **11.414s** wall clock, exit 0.
-- Post-diff, same repo state: `time bash .claude/skills/harness/bin/check-state.sh` → three
+- Post-diff, same repo state: `time python3 .claude/skills/harness/bin/check-state.py` → three
   runs: **14.935s, 11.315s, 12.177s**, all exit 0. Variance tracks network jitter from the two
   new `gh` calls (below), not the script itself.
 - `time gh auth status` → **0.304s** (real network round trip, logged-in session).
@@ -23,24 +23,24 @@ dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.sh` (T-03) ar
 - `classify_all(root)` (INV-29, T-01/T-02) timed directly: **0.236s**, 5 worktree records, all
   `exempt_absent`, no fleet repos declared. Subprocess count: 1 `git worktree list` + ~2 per
   worktree (`git status --porcelain`, `git ls-tree`) ≈ 11 subprocesses total.
-- `post-merge-sweep.sh 0 --dry-run` timed directly: **0.238s, 0.226s** across two runs, zero
+- `post-merge-sweep.py 0 --dry-run` timed directly: **0.238s, 0.226s** across two runs, zero
   terminal records in this tree (no gh calls on this path — dry-run and no terminal worktrees).
 - This repo's own `github.sync` is `true` and `github.repo` is set (`.harness/harness.json`),
   so INV-30's network path is the live path here, not a hypothetical.
-- `gh_bin` / `gh auth status` cross-check: grepped `check-state.sh` for `_gh_bin`/`subprocess.run`
+- `gh_bin` / `gh auth status` cross-check: grepped `check-state.py` for `_gh_bin`/`subprocess.run`
   — INV-26 (pre-existing, not part of this diff) already runs its own `gh auth status` at
-  check-state.sh:1397, gated the same way (`github.sync` + `github.repo` + a declared board,
+  check-state.py:1397, gated the same way (`github.sync` + `github.repo` + a declared board,
   which this repo has).
 
 ## Finding 1 — INV-30 re-runs `gh auth status`, duplicating INV-26's own call in the same script run
 
-`.claude/skills/harness/bin/check-state.sh:1602-1605` (INV-30) duplicates the identical
-`gh auth status` call INV-26 already makes at `check-state.sh:1397`, in the same script
+`.claude/skills/harness/bin/check-state.py:1602-1605` (INV-30) duplicates the identical
+`gh auth status` call INV-26 already makes at `check-state.py:1397`, in the same script
 invocation, under the same gating condition (`github.sync: true`, `github.repo` set — both
 true in this repo). Neither block reads the other's result.
 
 **Cost, measured:** `gh auth status` costs 0.304s per call (see Method). Both INV-26 and INV-30
-run it unconditionally on every `check-state.sh` invocation in this repo (INV-26 gated on a
+run it unconditionally on every `check-state.py` invocation in this repo (INV-26 gated on a
 declared board, which this repo has at `harness.json`'s `github.board`; INV-30 gated on
 `github.sync` + `github.repo`, both true). That is ~0.6s of network round trip spent proving
 the same fact twice, on a gate the CLAUDE.md convention says to run before every commit.
@@ -56,7 +56,7 @@ call: backlog row after ship
 ## Finding 2 — INV-30's two timeouts (15s + 60s) stack a 75s worst-case stall onto a
 pre-commit / session-entry gate, on top of INV-26's pre-existing 15s
 
-`.claude/skills/harness/bin/check-state.sh:1602-1622` sets `timeout=15` on the `gh auth status`
+`.claude/skills/harness/bin/check-state.py:1602-1622` sets `timeout=15` on the `gh auth status`
 call and `timeout=60` on the `gh api --paginate milestones` call. Both fire unconditionally
 (subject to Finding 1's gating) on a script the project convention runs "before every commit"
 and (per this pass's dispatch) at every session entry.
@@ -89,11 +89,11 @@ call: fix cycle before ship
   to the real work (one `git worktree list` per repo, a bounded few `git` calls per worktree),
   and this repo declares no fleet repos so cross-repo fan-out is untested here but the mechanism
   is linear in worktree/fleet-repo count, not obviously wasteful.
-- `post-merge-sweep.sh`: 0.226-0.238s in front of a human waiting on `git merge`, negligible.
+- `post-merge-sweep.py`: 0.226-0.238s in front of a human waiting on `git merge`, negligible.
   Its ship-then-remove path (real gh-sync + feature-worktree calls on a genuine terminal record)
   is necessary work, not waste — not measured further since this tree has no terminal worktree to
   exercise that path against.
-- `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` diff: all three new test files
+- `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` diff: all three new test files
   (`test-worktree-terminal.py`, `test-post-merge-sweep.py`, `test-hooks-install.py`) are added to
   the array the runner actually executes — confirmed by reading the array literal, not
   `harness.json`'s detect globs. Not an efficiency finding (correctness/reuse territory), noted
@@ -105,7 +105,7 @@ The operator supplied the observation that `harness.json`'s `unit.detect` glob
 (`.claude/skills/harness/bin/test-*.py`) and `integration.detect`'s explicit enumeration both match
 all three new test files. Answered directly, per-question:
 
-**Q1 — which array actually runs them.** Read `run-unit-tests.sh:17-18` (`UNIT_SCRIPTS` /
+**Q1 — which array actually runs them.** Read `run-unit-tests.py:17-18` (`UNIT_SCRIPTS` /
 `INTEGRATION_SCRIPTS` literals, not the detect globs). All three names
 (`test-worktree-terminal.py`, `test-post-merge-sweep.py`, `test-hooks-install.py`) appear only in
 `INTEGRATION_SCRIPTS`. Cross-checked programmatically: `set(UNIT_SCRIPTS) & set(INTEGRATION_SCRIPTS)
@@ -113,7 +113,7 @@ all three new test files. Answered directly, per-question:
 shared name). `--kind unit` cannot select them; `--kind integration` is the only kind that runs them.
 
 **Q2 — does the double glob-match cause a double run.** No. Measured directly by running
-`.claude/skills/harness/bin/run-unit-tests.sh --kind integration` to completion (held the SOLE
+`.claude/skills/harness/bin/run-unit-tests.py --kind integration` to completion (held the SOLE
 Q8 permit for this dispatch; ran once, alone):
 `real 287.16s / user 82.82s / sys 41.85s`, exit 0, all 25 `INTEGRATION_SCRIPTS` entries reporting
 `PASS <script>`, including the three new files — `test-worktree-terminal.py` and
@@ -123,23 +123,23 @@ Q8 permit for this dispatch; ran once, alone):
 once per name across the run (tracked live via `ps -g <pgid>` at ~3-4s intervals throughout — no
 repeat sightings of any of the three names). A file's selection is governed exclusively by
 `SCRIPTS=("${UNIT_SCRIPTS[@]}")` / `SCRIPTS=("${INTEGRATION_SCRIPTS[@]}")` per `--kind`
-(`run-unit-tests.sh:23-26`) — the detect globs in `harness.json` are never read by this script at
-all except by the kind-cross-check (`run-unit-tests.sh:82-116`), which only asserts agreement
+(`run-unit-tests.py:23-26`) — the detect globs in `harness.json` are never read by this script at
+all except by the kind-cross-check (`run-unit-tests.py:82-116`), which only asserts agreement
 between `INTEGRATION_SCRIPTS` and `integration.detect`'s explicit paths and never touches
 `unit.detect`. A `qa` pass running `--kind unit` then `--kind integration` back to back therefore
 executes each of the 46 listed scripts exactly once, total.
 
 **Q3 — why the double glob-match is harmless.** Array membership, not glob matching, decides what
-`run-unit-tests.sh` executes. The `unit.detect` glob's `test-*.py` catch-all exists to feed
+`run-unit-tests.py` executes. The `unit.detect` glob's `test-*.py` catch-all exists to feed
 `qa`'s diff-scan classifier (which kind must run given which files changed in a diff) — a
-different consumer entirely from `run-unit-tests.sh`'s own selection logic. Two files can match
+different consumer entirely from `run-unit-tests.py`'s own selection logic. Two files can match
 the same detect glob without ever running twice, because the glob only ever decides "is this kind
 required", never "run this specific file". The one place that WOULD matter — a name present in
 both `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` — is independently confirmed empty above. **Measured
 wall-clock caveat:** 287.16s for `--kind integration` alone is markedly slower than the ~15.6s the
 script's own top-of-file comment documents as the historical full-suite baseline (all 46 scripts,
 unit+integration). Observed via live `ps` sampling: real subprocess forks (`gh api rate_limit`,
-`git merge --squash`, `factory_decompose.py`, several `check-domain.sh --resolve` calls per test)
+`git merge --squash`, `factory_decompose.py`, several `check-domain.py --resolve` calls per test)
 account for genuine work, and two unrelated local `mcp` python processes were running concurrently
 on this machine throughout — the elevated wall-clock is not attributable to this diff or to the
 double-detect-match; it is machine-load variance in this one measurement, not a claim about typical
@@ -149,7 +149,7 @@ CI cost. Flagged as measured, not diagnosed further (out of this angle's scope).
   findings rest on direct wall-clock timing of the actual runtime code paths (`gh`, `classify_all`,
   the sweep script), which is more precise for a hot-path cost question than a pytest pass/fail
   count would be, and P-16 applies. The addendum above is the one exception — the operator's
-  question is specifically about `run-unit-tests.sh`'s own execution behavior, which only running
+  question is specifically about `run-unit-tests.py`'s own execution behavior, which only running
   it settles.
 
 ```yaml
@@ -164,25 +164,25 @@ DIGEST:
   files_touched: []
   expertise_update: []
   test_kinds_written: []
-  suite_note: "ran run-unit-tests.sh --kind integration once (SOLE Q8 permit, held alone, per addendum): real 287.16s / user 82.82s / sys 41.85s, exit 0, all 25 INTEGRATION_SCRIPTS PASS including the 3 new files. --kind unit not run — UNIT_SCRIPTS/INTEGRATION_SCRIPTS confirmed disjoint by direct set comparison, so a separate unit run cannot re-execute any of the 3 new files and was not needed to answer the addendum's question"
+  suite_note: "ran run-unit-tests.py --kind integration once (SOLE Q8 permit, held alone, per addendum): real 287.16s / user 82.82s / sys 41.85s, exit 0, all 25 INTEGRATION_SCRIPTS PASS including the 3 new files. --kind unit not run — UNIT_SCRIPTS/INTEGRATION_SCRIPTS confirmed disjoint by direct set comparison, so a separate unit run cannot re-execute any of the 3 new files and was not needed to answer the addendum's question"
   measurements:
-    - "check-state.sh baseline (pre-diff, 9165162): 11.414s wall clock"
-    - "check-state.sh post-diff (513c4a4): 14.935s / 11.315s / 12.177s across 3 runs"
+    - "check-state.py baseline (pre-diff, 9165162): 11.414s wall clock"
+    - "check-state.py post-diff (513c4a4): 14.935s / 11.315s / 12.177s across 3 runs"
     - "gh auth status: 0.304s"
     - "gh api --paginate milestones: 0.475s"
     - "gh auth status under simulated slow network (unroutable proxy, 3s test timeout): blocked full 3.003s, confirmed no fast-fail"
     - "worktree_terminal.classify_all: 0.236s, ~11 subprocesses, 5 worktree records"
-    - "post-merge-sweep.sh --dry-run: 0.226s / 0.238s across 2 runs"
-    - "run-unit-tests.sh --kind integration (addendum, full 25-script run, all 46 UNIT+INTEGRATION scripts confirmed disjoint by set comparison): real 287.16s / user 82.82s / sys 41.85s, exit 0"
+    - "post-merge-sweep.py --dry-run: 0.226s / 0.238s across 2 runs"
+    - "run-unit-tests.py --kind integration (addendum, full 25-script run, all 46 UNIT+INTEGRATION scripts confirmed disjoint by set comparison): real 287.16s / user 82.82s / sys 41.85s, exit 0"
 findings:
   - id: F1
-    file: .claude/skills/harness/bin/check-state.sh
+    file: .claude/skills/harness/bin/check-state.py
     lines: "1602-1605 (INV-30) vs 1397 (INV-26)"
     severity: low
     call: backlog row after ship
     summary: INV-30 re-runs gh auth status, identical to INV-26's own call in the same invocation
   - id: F2
-    file: .claude/skills/harness/bin/check-state.sh
+    file: .claude/skills/harness/bin/check-state.py
     lines: "1602-1622"
     severity: med
     call: fix cycle before ship

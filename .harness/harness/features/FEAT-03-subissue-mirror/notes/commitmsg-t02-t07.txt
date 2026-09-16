@@ -40,10 +40,10 @@ false. Each leave-open case asserts absence in BOTH close forms.
 T-07 — INV-21 reports a mirrored feature with recorded issues and no
 recorded parent at warn level, leaving the exit code unchanged, with
 `test-check-state.py` covering the parent-recorded and sync-off cases
-too. It joins `run-unit-tests.sh`'s explicit list; the list and the
+too. It joins `run-unit-tests.py`'s explicit list; the list and the
 `test-*.py` drift glob remain two separate mechanisms.
 
-`run-unit-tests.sh` exits 0 naming all three scripts. `check-docs.sh`
+`run-unit-tests.py` exits 0 naming all three scripts. `check-docs.sh`
 exits 0, no stale statements.
 
 T-02..T-07 of 8. Plan: .harness/features/FEAT-03-subissue-mirror/PLAN.md

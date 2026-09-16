@@ -29,7 +29,7 @@ I attempted the first command twice. The host permission layer denied both. I di
 
 ## What blocked it, precisely
 
-`dispatch-guard.sh` refused the `harness-pm` spawn at `PreToolUse` on single-flight, against a claim
+`dispatch-guard.py` refused the `harness-pm` spawn at `PreToolUse` on single-flight, against a claim
 left behind when a predecessor orchestrator context ended mid-run (`runs/2026-08-26-1-product/state.yaml`
 still records `s1-plan` dispatched, never completed). The claim was ~17 minutes old against a TTL of
 3600s, so it had no chance of expiring inside the cycle it was guarding — REQ-06 verbatim.
@@ -38,7 +38,7 @@ The same stale entry then refused the lead's *return*, because `validate-digest.
 check reads the same registry. **One stranded claim blocks both ends of a run.**
 
 It then refused **my own return too** — a third consumer, in a single planning attempt. The chain is
-now: (1) `dispatch-guard.sh` refused pm's spawn, (2) `validate-digest.py` refused the lead's return
+now: (1) `dispatch-guard.py` refused pm's spawn, (2) `validate-digest.py` refused the lead's return
 against pm's stranded claim, (3) `validate-digest.py` refused the orchestrator's return against the
 lead's stranded claim. **The defect propagates up the tier chain**, each stranded claim creating the
 next. That is a materially stronger case than BRIEF's REQ-06 currently makes, and the plan should
@@ -59,8 +59,8 @@ site outside the resolver carries its own env fallback chain. The chain occurs *
 files**; D-5's map removes 7 definitions covering 6 of them; **14 occurrences in 9 files survive, and
 SC-01's file list cannot see one of them.** SC-01 would go green with REQ-01 plainly unmet. Seven
 survivors are enforcement layer (`check-plan-routes.py:496` — the model implementation the design was
-copied from — plus `check-domain.sh:152/:296`, `bash-write-guard.sh:194/:232`,
-`validate-digest.py:821/:913`). Seven are not, and one of those, `inject-expertise.sh:31`, is a
+copied from — plus `check-domain.py:152/:296`, `bash-write-guard.py:194/:232`,
+`validate-digest.py:821/:913`). Seven are not, and one of those, `inject-expertise.py:31`, is a
 **SubagentStart hook falling back to `$(pwd)`** — #866's defect verbatim in a file nobody scoped.
 **This needs your call: widen scope, or narrow REQ-01 to the truth and backlog the rest.** What must
 not ship is a broad requirement with a narrow gate.

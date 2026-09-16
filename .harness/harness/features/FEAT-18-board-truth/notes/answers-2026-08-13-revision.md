@@ -15,10 +15,10 @@ Operator's ruling, taken after the two failures below were measured.
 
 ## Why — two breaks, both measured today, not argued
 
-### Break 1 — `gh issue develop` bypasses `branch-create-gate.sh` entirely
+### Break 1 — `gh issue develop` bypasses `branch-create-gate.py` entirely
 
 The gate extracts a branch name from **four patterns, all `git` subcommands**
-(`branch-create-gate.sh:62-71`): `checkout -b`, `switch -c|--create`, `worktree add -b`, and
+(`branch-create-gate.py:62-71`): `checkout -b`, `switch -c|--create`, `worktree add -b`, and
 `git branch NAME`. Anything else falls to **`else exit 0`** at `:72`.
 
 `gh issue develop` matches none of them, so the gate exits silently. The `git checkout <branch>` that
@@ -99,5 +99,5 @@ closing the issue at the end, was already built and already shipping.
 ## Scope fence — unchanged
 
 Still out: product boards (#278), and composing `Closes #N` into a PR body. **Do not widen scope on
-the strength of this revision.** Teaching `branch-create-gate.sh` to parse `gh` subcommands is now
+the strength of this revision.** Teaching `branch-create-gate.py` to parse `gh` subcommands is now
 unnecessary and must not be added.

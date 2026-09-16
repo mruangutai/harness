@@ -99,7 +99,7 @@ Clean. REQ-01..06 all traced (T-01→01; T-02→01,04; T-03→02; T-04→03,06; 
 task citing a REQ that does not exist. `depends_on` is topological (only T-05→T-01,T-02). Every task
 carries `change_type`. No `verify:` asserts anything another task removes.
 `check-plan-routes.py <plan>` → **0 violations, exit 0**; three `main-session-direct` rows are the
-DEC-174 carve-out and match the recorded `check-domain.sh --resolve` NOBODY results.
+DEC-174 carve-out and match the recorded `check-domain.py --resolve` NOBODY results.
 
 ## (g) D-02's premise
 

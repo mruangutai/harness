@@ -21,8 +21,8 @@
 
 - 2026-08-10: the dispatch asserted the concurrent flows touch disjoint files ("FEAT-14 and this
   feature both care about `.harness/` layout but not the same files"). False by a mechanism no file
-  list would show: FEAT-15 T-04 changes what `check-domain.sh --resolve` returns, and FEAT-12's
-  APPROVED plan justifies its lane rows with the literal string "check-domain.sh --resolve returns
+  list would show: FEAT-15 T-04 changes what `check-domain.py --resolve` returns, and FEAT-12's
+  APPROVED plan justifies its lane rows with the literal string "check-domain.py --resolve returns
   harness-documentor". The collision is through a tool both plans consult, not through a shared
   path. Confirms P-08 and widens it: re-derive a disjointness claim over the TOOLS the other
   artifact cites, not only its file lists.

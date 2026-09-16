@@ -16,8 +16,8 @@ PASS. Nothing in `plan.yaml` remains to build.
   carve-out — `feature.yaml` `tasks:` — verified-at b86565b
 - Three build waves, eleven tasks, ZERO send-backs — `runs/w1-eng`, `w2-eng`, `w3-eng` digests —
   verified-at b86565b
-- `run-unit-tests.sh` exit 0, 22 test files PASS, 0 FAIL — re-run by me — verified-at b86565b
-- Every factory module has its own test file registered in `run-unit-tests.sh` —
+- `run-unit-tests.py` exit 0, 22 test files PASS, 0 FAIL — re-run by me — verified-at b86565b
+- Every factory module has its own test file registered in `run-unit-tests.py` —
   `runs/w3-eng/digest.md` — verified-at b86565b
 - The suite is green against SCRIPTED RECORDERS, never against GitHub; no build run made a live
   `gh` call — `runs/qa2-validator/digest.md` — verified-at b86565b

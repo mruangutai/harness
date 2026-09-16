@@ -43,7 +43,7 @@ mutation only reaches code paths T-04 did NOT touch (the `worktree_owner`/`check
 placement rules, which still spell `WORKTREES_SEGMENT` inline in a few sites and correctly redden
 when it moves). **Not a regression — it is a scope mismatch in what the red proof asserts.** I
 additionally confirmed the discriminating counterexample exists elsewhere in the same feature: T-05's
-red proof (mutating `bash-write-guard.sh` back to eeabc59) reddens exactly its own new SC-03/SC-07
+red proof (mutating `bash-write-guard.py` back to eeabc59) reddens exactly its own new SC-03/SC-07
 cases (10 named FAILs, all HEAD-move/force-remove assertions) with **zero** collateral noise — so the
 "exit-code-only, but the failures happen to be the right ones" shape is achievable in this feature and
 T-03 simply isn't it. **Severity: med. enforcement-layer** (`test-check-domain.py`, T-03/T-04,

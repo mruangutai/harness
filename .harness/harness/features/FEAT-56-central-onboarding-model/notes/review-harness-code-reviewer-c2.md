@@ -22,12 +22,12 @@ All reads done via `git show <sha>:<path>` (per instruction). Diff range `4b5dbb
 - `bin/check-instruction-paths.py:18` — `MAIN_SESSION_ONLY` lists `harness-add-repo` (with
   `harness-init` at :17, rationale-commented for the anchor-rule exemption). Names both artifacts
   correctly.
-- `bin/check-state.sh` — all FOUR `/harness-init` remedies graded, none registration-scoped:
+- `bin/check-state.py` — all FOUR `/harness-init` remedies graded, none registration-scoped:
   `:111` ("no `.harness/` here ... Run `/harness-init` in the control-plane clone"),
   `:287` (".harness/harness.json missing — not onboarded ... Run `/harness-init`, in this clone"),
   `:408` ("Run `/harness-init --upgrade`"), `:2375` ("`/harness-init --upgrade` to decide the
   Issues mirror once"). All four are checkout-configuration or `--upgrade` conditions.
-- `bin/check-domain.sh:384-386` — fail-open message: "That path is the control plane's own
+- `bin/check-domain.py:384-386` — fail-open message: "That path is the control plane's own
   manifest; a product repository never carries one. Run `/harness-init` in the control-plane
   clone." States the central model and names the right artifact.
 - `bin/upgrade-config.py:2-6` (docstring) + `:192`, `:236` (remedies) — docstring states the

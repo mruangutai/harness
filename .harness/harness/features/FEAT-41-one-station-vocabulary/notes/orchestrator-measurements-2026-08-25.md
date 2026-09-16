@@ -18,11 +18,11 @@ half. This makes D-07 cheaper than the plan states, not more expensive.
 
 pm's premise is correct and the path in DECISIONS-INDEX.md's summary is not.
 
-- `check-state.sh:879` tests `os.path.isfile(H + "/glossary.md")` — that is
+- `check-state.py:879` tests `os.path.isfile(H + "/glossary.md")` — that is
   `.harness/glossary.md`, NOT the `.harness/codebase/glossary.md` the index row for DEC-162
   names.
 - Neither path exists on disk. `.harness/codebase/` does not exist at all.
-- The note fires in my own full `check-state.sh` run: "no .harness/glossary.md — the domain's
+- The note fires in my own full `check-state.py` run: "no .harness/glossary.md — the domain's
   ubiquitous language is unrecorded (DEC-162)". It is a WARN, not a VIOLATION.
 - It fires independently of this feature and predates it. Nothing FEAT-41 does causes or
   clears it.
@@ -33,7 +33,7 @@ is the operator's.
 
 ## INV-26, the in-scope violation
 
-Confirmed live by my own `check-state.sh` run at ee66ae2:
+Confirmed live by my own `check-state.py` run at ee66ae2:
 "VIOLATION INV-26 FEAT-40-harness-writes-done parent (issue #842): the plan derives Review —
 the board reads Done." SC-09 is the criterion that closes it.
 
@@ -47,12 +47,12 @@ Four checked, four CONFIRMED. None was routed on the reader's word alone.
 - **F-02 CONFIRMED.** `grep -n -- "--all" check-plan-routes.py` returns ZERO hits. The flag
   does not exist. T-04's verify would pass `--all` as a path.
 
-- **F-04 CONFIRMED, and it is the worst of the nine.** `check-state.sh` circa 1403-1405 reads
+- **F-04 CONFIRMED, and it is the worst of the nine.** `check-state.py` circa 1403-1405 reads
   `_EXPECT = {"building": ..., "done": ..., "pending": _st26["backlog"]}` and circa 1475-1477
   reads `_want = _EXPECT.get(_tstat.get(_tid, "pending"))` then `if _want is None: continue`.
   That IS a fail-open. After T-04 renames `pending` to `ready`, `_EXPECT.get("ready")` returns
   None and INV-26 stops checking every not-started card SILENTLY. No task in the plan lists
-  check-state.sh for this.
+  check-state.py for this.
 
 - **F-03 CONFIRMED.** `_renamed` and `_no_finding` are defined inside the 1660-1680 span but
   USED at roughly 1673, 1681, 1687 and 1690 — outside it. Deleting 1660-1680 leaves NameErrors,
@@ -123,7 +123,7 @@ Read: the plan's lane block is internally consistent with the guard's own resolu
 the guard rather than by argument. This does NOT verify the lanes are RIGHT — DEC-174 is a
 judgement the operator signs — only that nothing in the plan claims a lane the guard would refuse.
 
-Incidental: this section was first written with an ASCII arrow, and bash-write-guard.sh read the
+Incidental: this section was first written with an ASCII arrow, and bash-write-guard.py read the
 arrow inside the heredoc BODY as a shell redirect and denied the write ("redirect targets EXIT").
 A false positive on heredoc content. Reworded rather than worked around.
 
@@ -149,7 +149,7 @@ as an open question rather than working around it.
 
 ## Final gate state at plan-phase close
 
-`bash .claude/skills/harness/bin/check-state.sh` exits 1 with exactly two violations:
+`python3 .claude/skills/harness/bin/check-state.py` exits 1 with exactly two violations:
 1. "FEAT-41 BRIEF.md is NOT approved — halt that flow and surface to the user." This is the
    CORRECT terminal state for mission plan. The checker is naming the handoff I am performing.
 2. "INV-26 FEAT-40 parent (issue #842): the plan derives Review — the board reads Done." The
@@ -198,7 +198,7 @@ revision lands. The SCs are DRAFT. pm may edit them freely. No ruling required, 
 spend an operator round-trip on it.
 
 ### F-1's mechanism claim is CONFIRMED, and the source documents the hazard itself.
-check-domain.sh at roughly 1161-1167 carries this comment in its own voice:
+check-domain.py at roughly 1161-1167 carries this comment in its own voice:
 "ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny(): deny() appends the
 module-level ROUTING constant, speaking about STATE.md, digests and notes/ ... Two routing
 sentences in one stderr stream contradict each other about the same file class."

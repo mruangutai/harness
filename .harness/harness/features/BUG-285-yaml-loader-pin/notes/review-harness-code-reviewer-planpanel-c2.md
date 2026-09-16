@@ -60,14 +60,14 @@ non-raise. Cosmetic; no concrete wrong outcome; not filed.
 **4. Dependency order vs. T-02's vacuous unit gate — this is listed as STATE, not a re-openable
 finding, and I concur with cycle 1's lead judgment on the merits.** `T-02 depends_on: []`,
 `T-03 depends_on: [T-02]` is a valid topological order. T-02's own `verify:` line 1
-(`run-unit-tests.sh --kind unit`) does sweep a unit-test directory that does not yet contain
+(`run-unit-tests.py --kind unit`) does sweep a unit-test directory that does not yet contain
 `tests/unit/test-factory-decompose-loader.py` at T-02's own execution time — that sweep exits 0
 identically to a real pass. Nothing changed this cycle that alters this: T-03 still lands the file
 and still runs both verify commands before ship, so coverage is genuinely delivered, just not by
 T-02's own gate. Order is right; the gate does not need reshaping.
 
 **5. Duplicate-key loosening — CLEAN, and stronger than "nothing depends on it."** Grepped the tree
-for `DuplicateKeyError` consumers: `bash-write-guard.sh`, `check-domain.sh`, `check-state.sh` all
+for `DuplicateKeyError` consumers: `bash-write-guard.py`, `check-domain.py`, `check-state.py` all
 catch it for *manifest*/*rulebook* YAML files, never for `feature.json`. More directly:
 `feature_json_write.py:71` — the one locked, schema-validated write authority for `feature.json`
 that both `gh-sync.py` and `factory_decompose.py`'s own `write_factory` already go through — parses

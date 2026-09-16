@@ -6,7 +6,7 @@ is an add-only union merge with no delete/replace primitive, so a full 15/15 Pat
 cannot be curated through the sanctioned tool despite the documented `replace`/`drop` ops in the
 distill schema. Filed as an open_question, not forced in and not silently dropped. One relayed
 candidate (bash-write-guard workaround) rejected as a banned harness-defect-workaround. Both files
-`check-expertise.sh` clean.
+`check-expertise.py` clean.
 
 ## Material read
 
@@ -71,7 +71,7 @@ contract and the shipped tool, not a judgment call — filed as `Q3`.
 
 ## Verified
 
-- `check-expertise.sh` on both of my files: exit 0, `OK` on both.
+- `check-expertise.py` on both of my files: exit 0, `OK` on both.
 - Real `apply` run: `ADDED O-07`, `ADDED O-08`, all 36 pre-existing ids `PRESERVED`, `APPLIED`.
 - Post-apply file read back to confirm exact final content (Patterns 15/15 byte-identical to
   before, Gotchas 15/15 byte-identical, Outcomes now 8/10, Open 0/5).

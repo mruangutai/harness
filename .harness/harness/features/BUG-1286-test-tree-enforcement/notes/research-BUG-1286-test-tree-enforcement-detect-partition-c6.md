@@ -24,7 +24,7 @@ Computable from the glob string alone — no repository state, no `git ls-files`
   and empties the check still cannot pass silently.
 
 **Why the rule is right for this repository** (checked, not assumed): `unit.cmd` is
-`run-unit-tests.sh --kind unit` (`.harness/harness.json:271`) and the excluded `functional` kind's
+`run-unit-tests.py --kind unit` (`.harness/harness.json:271`) and the excluded `functional` kind's
 `excluded_because` (`:279`) records that this runner splits its suite by the `tests/unit` and
 `tests/integration` directories. A `unit.detect` root outside `tests/` is therefore unrunnable here by
 construction. I found no legitimate counter-case; I do not believe the rule is wrong.
@@ -52,7 +52,7 @@ deleted (it never touched disk).
    differ from `HEAD` — those are prior cycles' uncommitted amendments, not this spawn's.
 2. `CLAUDE_PROJECT_DIR=$PWD python3 .claude/skills/harness/bin/check-plan-routes.py <plan.yaml>` →
    `0 violation(s) across 1 plan(s)`, exit 0; all five tasks carry all eleven keys.
-3. `CLAUDE_PROJECT_DIR=$PWD env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/check-state.sh` →
+3. `CLAUDE_PROJECT_DIR=$PWD env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/check-state.py` →
    **no `INV-35` line**. For this feature: the expected unsigned-BRIEF violation, plus one
    pre-existing, unrelated violation — `runs/2026-09-04-17-product/digest.md` fails the lead digest
    contract (DEC-156). Not mine to write; raised as Q1.

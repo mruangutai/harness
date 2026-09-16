@@ -89,7 +89,7 @@ moment is named, with its path and its moment, and I read it then.
   spawn path. `gen-decisions-index.py` and `check-decision-anchors.py` exit 0.
   verify: inspection
 - SC-08 (code maintainer): a preload-weight check exists — `check-skill-weight.py` reading
-  each agent's `autoloadSkills` and the word count of each file — and `check-state.sh` NOTES (never
+  each agent's `autoloadSkills` and the word count of each file — and `check-state.py` NOTES (never
   fails) when the universal trio or any single agent's preload exceeds `budgets.preload_warn_words`
   in harness.json. The numeral lives in harness.json only.
   verify: automated  evidence: unit

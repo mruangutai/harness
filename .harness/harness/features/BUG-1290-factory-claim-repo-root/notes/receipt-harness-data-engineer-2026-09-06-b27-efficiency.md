@@ -24,7 +24,7 @@ present in the standalone timing). **Marginal cost of the third run ≈ 0.09s pe
 ## Where this runs — boundary, not hot path
 
 Grepped prior qa/receipt notes in this feature: this suite runs inside
-`.agents/skills/harness/bin/run-unit-tests.sh --kind unit`, the qa test-matrix gate, alongside 27
+`.agents/skills/harness/bin/run-unit-tests.py --kind unit`, the qa test-matrix gate, alongside 27
 other files (`pool: 8 workers, 28 files, ~3.1–4.5s wall` per multiple qa receipts in this
 feature's notes). It is not invoked at session entry or on every write. **A ~0.09s marginal cost
 inside a ~3–4.5s, 28-file gate pool is the evidence the boundary exists, not waste** — it is

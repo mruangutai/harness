@@ -42,7 +42,7 @@ resolved:
 - approval gate PASSED — BRIEF:233 and PLAN:653 both status approved, Mike Ruangutai,
   at 4d00dbc
 - LEAD DISTILLATION CLOSED at runs 17-19 — all 13 lead ops applied by their own owners,
-  0 dropped; check-expertise.sh over .harness/expertise/ is OK on all 11 files, exit
+  0 dropped; check-expertise.py over .harness/expertise/ is OK on all 11 files, exit
   0
 runs[0].cost_usd: 19
 runs[10].cost_usd: 12

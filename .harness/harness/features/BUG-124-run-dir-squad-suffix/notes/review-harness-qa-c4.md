@@ -10,9 +10,9 @@ disagreement to report.
 Diff `80ce35d1..6c037de4` on the four named files spans two plan tasks, both `status: done`:
 - T-01 (`harness_boundary.py` + `tests/unit/test-harness-boundary.py`) — `change_type: logic`
   → matrix `always: [unit]`.
-- T-02 (`dispatch-guard.sh` + `tests/integration/test-dispatch-guard.py`) — `change_type:
+- T-02 (`dispatch-guard.py` + `tests/integration/test-dispatch-guard.py`) — `change_type:
   bugfix` → matrix `always: []`, `when` predicates evaluated against this diff:
-  - `unit` if `touches_runtime_code` → **fires** (dispatch-guard.sh, harness_boundary.py are
+  - `unit` if `touches_runtime_code` → **fires** (dispatch-guard.py, harness_boundary.py are
     runtime source).
   - `integration` if `fix_confined_to_tests_and_contract_docs` → does not fire (the fix edits
     real source, not only tests/docs), so the matrix does not obligate `integration` here.
@@ -22,7 +22,7 @@ Diff `80ce35d1..6c037de4` on the four named files spans two plan tasks, both `st
 **Floor: `unit` (mandatory, both tasks agree).** QA adds `integration` on top of the floor
 (P-04/verification-rules "add what the diff warrants, never drop below"): the diff's own
 183-line `test-dispatch-guard.py` addition is the only artifact that exercises
-`dispatch-guard.sh`'s new refusal behaviour end-to-end, T-02's own `verify:` block runs it, and
+`dispatch-guard.py`'s new refusal behaviour end-to-end, T-02's own `verify:` block runs it, and
 every one of BRIEF SC-01..SC-09 (except SC-06, `verify: inspection`) is typed
 `evidence: integration`. Treating it as non-binding would gate nothing that actually proves the
 fix.
@@ -37,7 +37,7 @@ fire; the diff touches no `frontend`/`ai_behavior` surface.
 |---|---|---|---|---|---|
 | unit | matrix (both tasks) | `python3 tests/unit/test-harness-boundary.py` (also covered by the sweep's `--kind unit` bucket) | 0 | 56 named `PASS` cases, `ALL PASS` | **satisfied** |
 | integration | qa-added (diff-warranted, not matrix-mandatory) | `python3 tests/integration/test-dispatch-guard.py` (also covered by the sweep's `--kind integration` bucket) | 0 | 69 of 69 cases passed | **satisfied** |
-| full sweep (both kinds, whole repo) | cross-check | `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh` | 0 | 5403 lines, `8 workers, 80 files` | **satisfied**, matches the two prior independent measurements at this pin exactly |
+| full sweep (both kinds, whole repo) | cross-check | `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py` | 0 | 5403 lines, `8 workers, 80 files` | **satisfied**, matches the two prior independent measurements at this pin exactly |
 
 Both target test files are confirmed inside the sweep's own log:
 `test-harness-boundary.py (exit 0, 0.12s)` and `test-dispatch-guard.py (exit 0, 4.67s)`.

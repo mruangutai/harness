@@ -8,7 +8,7 @@ VERDICT: **FAIL**
 gap the fix itself introduces:
 
 1. **team-config.yaml grant claim — TRUE, verified against the actual matcher.**
-   `harness_boundary.matches()`/`classify()` (imported directly by `check-domain.sh`, the real
+   `harness_boundary.matches()`/`classify()` (imported directly by `check-domain.py`, the real
    runtime hook) has no exclusion/deny syntax — confirmed by reading `glob_to_re`/`matches`/
    `classify` in full. The orchestrator's `.harness/*/features/**` grant, which ends in `/**`,
    translates to a regex whose `.*` crosses `/`, so it already matches
@@ -93,7 +93,7 @@ resource leaks, or copy-paste divergence to report beyond the Stage 1 finding ab
 
 ## Other observations (non-gating)
 
-- `run-unit-tests.sh` registration verified: `test-answers-provenance.py` appears exactly once in
+- `run-unit-tests.py` registration verified: `test-answers-provenance.py` appears exactly once in
   `UNIT_SCRIPTS`, so it actually runs under the gate (checked, not assumed — Expertise G-04).
 - The three-rung-ladder language newly added to `SPEC.md` step 3 is not invented — it matches
   pre-existing, untouched text elsewhere in the same file (`SPEC.md:234-237`, `:2196-2200`) and in

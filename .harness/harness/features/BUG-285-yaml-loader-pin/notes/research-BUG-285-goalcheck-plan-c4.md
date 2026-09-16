@@ -93,7 +93,7 @@ Re-measured at `6cb113f4`, all at source, none trusted from `research-BUG-285-re
 - Baselines re-run by me, not adopted: `test-gh-sync-open.py` exit 0 / **79 ok** / 0 FAIL;
   `test-gh-sync-record.py` exit 0 / **56 ok** / 0 FAIL. SC-04 exact.
 - **The unit-suite trap: clean at criterion level, one hole at task level.** Measured:
-  `run-unit-tests.sh --kind unit` → **exit 0, 4 lines beginning `FAIL `, 36 files, 2.35s** (the
+  `run-unit-tests.py --kind unit` → **exit 0, 4 lines beginning `FAIL `, 36 files, 2.35s** (the
   BUG-1290 mutation-proof block). No criterion and no `verify:` grades it on a FAIL count; T-03, T-04
   and T-05 each carry the EXIT-STATUS-ONLY warning. **T-02's intent does not** — it runs the same
   command as its first verify line and says nothing about the four FAIL lines. This feature has
@@ -117,7 +117,7 @@ Re-measured at `6cb113f4`, all at source, none trusted from `research-BUG-285-re
 2. **`lanes.resolved_at: 7e0c2ec`**, pre-merge, with a single `tests/**` row while the plan now edits
    two files under `.claude/skills/harness/bin/`. I diffed `team-config.yaml` across
    `7e0c2ec..HEAD`: two lines, neither touching the `tests/**` row or any lane this plan uses.
-   Effect: **none on routing** (D-05 is right that `execution_agent` + `check-domain.sh` binds, and
+   Effect: **none on routing** (D-05 is right that `execution_agent` + `check-domain.py` binds, and
    the checker exits 0); the table is a stale report, not a hazard.
 3. The four open panel findings (2 info, 2 low) are unchanged; PF-142f3a still does not reproduce
    (`check-plan-routes.py` exit 0 today), so its disposition needs a re-measure, not a fix.
@@ -132,7 +132,7 @@ Re-measured at `6cb113f4`, all at source, none trusted from `research-BUG-285-re
 - **Q2 (non-blocking).** Add a seventh T-05 input, "`feature.json` is a directory" → `refuse` both,
   so the `OSError` arm is defended by a standing gate rather than by SC-06 inspection alone?
 - **Q3 (non-blocking).** Give T-02's intent the same EXIT-STATUS-ONLY warning its three siblings
-  carry for `run-unit-tests.sh --kind unit`.
+  carry for `run-unit-tests.py --kind unit`.
 
 ## Addendum — S-03 amendment
 

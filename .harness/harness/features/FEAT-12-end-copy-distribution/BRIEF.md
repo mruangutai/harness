@@ -15,7 +15,7 @@ redundant**: `harness-wayfinding` and `harness-grilling` were last written on Ju
 rewrote them on 2026-08-09 in `c5597be`. The global text lacked the one-door-per-job framing for ten
 days and nobody noticed until someone diffed it. `kaya-ai` still carries the same frozen fork —
 55 skill files and 8 command files tracked on `master`, 16 untracked agent files, and a further
-153 skill files tracked on three of its feature branches — and `check-state.sh`,
+153 skill files tracked on three of its feature branches — and `check-state.py`,
 `validate-digest.py` and every other gate run in kaya run **from that copy, not from here**. A gate
 that is a stale fork of the real gate is worse than no gate: it reports green about rules that no
 longer exist.
@@ -76,7 +76,7 @@ what the factory clones.
 - SC-02: `test-check-plan-routes.py` still passes every case after the registry is deleted —
   including case 20, whose `$HOME`-shaped trap builds its **own** synthetic `registry.json` in a
   temp directory and therefore must not have depended on the real one. That script is in
-  `INTEGRATION_SCRIPTS`, so `run-unit-tests.sh --kind integration` is the command that runs it.
+  `INTEGRATION_SCRIPTS`, so `run-unit-tests.py --kind integration` is the command that runs it.
   verify: automated      evidence: integration
 - SC-02b: `~/.harness/registry.json` does not exist, while the two `global-harness-*-backup-2026-08-10.tgz`
   archives beside it do. No test kind may assert this — a test that reads `$HOME` is machine-dependent
@@ -160,8 +160,8 @@ what the factory clones.
   anywhere. Deferred by operator ruling; the central-store migration is separate work.
 - Out of scope: `factory_gh.py` and `.harness/features/FEAT-11-graphql-field-resolve/`, which are
   being planned concurrently against issue #211.
-- Untouchable under DEC-174: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` and
-  `check-state.sh` — **four, not five.** `check-docs.sh` was the fifth; it no longer exists.
+- Untouchable under DEC-174: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
+  `check-state.py` — **four, not five.** `check-docs.sh` was the fifth; it no longer exists.
   Issue #202 deleted it under DEC-188 and its absence from the tree is confirmed at `687fd3e`.
   It is not recreated by this feature. All four survivors were grepped for `deploy` and `registry`
   at `c1d1617` and every hit is incidental prose, so no enforcement-file edit is implied by this
@@ -209,32 +209,32 @@ what the factory clones.
   the worktrees: they are outside all three of T-02's globs and SC-04 is worded against
   `.claude/skills/`, which they are not under.
 - **Pre-existing red suite, not this feature's.** Observed at `c4fea5d` on 2026-08-10 with the
-  operator's #202 change staged: `run-unit-tests.sh --kind unit` exits 0, but `--kind integration`
+  operator's #202 change staged: `run-unit-tests.py --kind unit` exits 0, but `--kind integration`
   exits 1 on `test-gen-decisions-index.py`, with two failures —
   `test_row_per_distinct_dec_matches_authority` (expected one fence-guarded `DEC-83` duplicate,
   found none, because `DEC-83` was struck) and `test_committed_index_is_complete_and_within_budget`
   (`DEC-188`'s row summary is 37 words against a 30-word cap). Separately,
   `gen-decisions-index.py --stdout` emits nothing and reports `ORPHAN: DEC-104`. All three are the
-  in-flight #202 strike, not FEAT-12. Three task verifies here call `run-unit-tests.sh` and cannot
+  in-flight #202 strike, not FEAT-12. Three task verifies here call `run-unit-tests.py` and cannot
   pass until #202's index regeneration lands. Repairing them is #202's work and is out of scope.
   **SUPERSEDED at `835b297`.** The observation above is what was measured at `c4fea5d` and stays on
   the record, but it no longer describes the tree. #202 landed as
   `835b297 [harness:human] #202: the propagation checker is struck, not deprecated`, and at that
-  commit the operator re-measured: `run-unit-tests.sh` exits 0 with 85 distinct test files passing
+  commit the operator re-measured: `run-unit-tests.py` exits 0 with 85 distinct test files passing
   and none failing; `test-gen-decisions-index.py` reports all 8 cases `ok`, including the two
   recorded failing above; and `gen-decisions-index.py --stdout` emits the index normally, starting
   `<!-- index-contract v1 -->`, with no ORPHAN. **There is no red-suite dependency left. Nothing in
   this feature is waiting on #202.**
 - **The propagation checker is gone, and the plan is written around that.** At `c1d1617` the
   mechanism was a `<!-- stale: ... -->` marker declared in the invalidated decision, enforced by
-  `check-docs.sh` as `check-state.sh`'s INV-10. Issue #202 landed during this planning run:
+  `check-docs.sh` as `check-state.py`'s INV-10. Issue #202 landed during this planning run:
   `check-docs.sh` is **deleted, committed at `835b297`** (`[harness:human] #202: the propagation
   checker is struck, not deprecated`), and its absence is re-confirmed at `687fd3e`. It is not
   staged and not pending a possible revert. **DEC-188 is the standing rule** and states it in the
   record's own words: a decision the tree flatly contradicts is **struck from the record and
   removed from every gate** — not marked stale, not amended, not left standing with a marker
   beside it. DEC-188 also records what was already done under it: `check-docs.sh` deleted, the
-  INV-10 block out of `check-state.sh`, and the 66 stale-wording markers and 14 escape comments
+  INV-10 block out of `check-state.py`, and the 66 stale-wording markers and 14 escape comments
   gone from the live docs. `DEC-103`, `DEC-104`, `DEC-83` and `DEC-181` were each deleted
   outright. Nothing in this feature runs a propagation checker and nothing substitutes for one.
   This feature therefore strikes rather

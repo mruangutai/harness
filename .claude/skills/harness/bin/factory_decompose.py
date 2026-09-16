@@ -40,6 +40,7 @@ import sys
 import factory_cli
 import factory_config
 import factory_gh
+import artifact_accessors
 import feature_json_write
 import gh_issue_types
 import harness_merge
@@ -111,16 +112,9 @@ def _empty_factory():
 def load_factory(feat_dir):
     path = os.path.join(feat_dir, "feature.json")
     factory = _empty_factory()
-    # BUG-285: converged onto feature_json_write.load_feature_json, the one canonical
-    # reader shared with gh-sync.py's load_recorded — this function no longer parses
-    # feature.json for itself. Was, before that, a raw call to harness_yaml's load_file
-    # (Issue #208): a malformed feature.json raised YamlParseError past the trap's
-    # `expected=` tuple, printing the class name instead of naming the file. refuse()
-    # exits via SystemExit, which factory_cli.run() propagates unchanged (never
-    # re-wrapped as "unexpected failure") — that refusal shape is unchanged here.
     try:
-        doc = feature_json_write.load_feature_json(path)
-    except feature_json_write.FeatureJsonError as e:
+        doc = artifact_accessors.load_feature_json(path)
+    except artifact_accessors.FeatureJsonError as e:
         factory_cli.refuse(TOOL, "feature.json invalid", path, e.next_step)
     if doc is None or "factory" not in doc:
         return factory
@@ -139,10 +133,8 @@ def load_factory(feat_dir):
 
     issues = f.get("issues")
     if isinstance(issues, dict):
-        for k, v in issues.items():
-            issue = feature_json_write.opt_int(v)
-            if issue is not None:
-                factory["issues"][str(k)] = issue
+        for key, value in issues.items():
+            factory["issues"][str(key)] = feature_json_write.opt_int(value)
 
     items = f.get("items")
     if isinstance(items, dict):
@@ -379,7 +371,7 @@ def _issue_type_overrides(fleet, repo):
     or invalid) yields {} so the defaults apply rather than aborting the run."""
     try:
         return gh_issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
-    except factory_config.FleetError:
+    except artifact_accessors.FleetError:
         return {}
 
 
@@ -474,14 +466,14 @@ def _main():
     feat_dir = args.feature_dir
 
     # 1. fleet + repo.
-    fleet = factory_config.load_fleet(args.fleet) if args.fleet else factory_config.load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     factory_config.repo_entry(fleet, args.repo)
 
     # 2. the signed plan.
     plan_path = os.path.join(feat_dir, "plan.yaml")
-    # Issue #208: same fix as load_factory above — was a raw harness_yaml.load_plan call.
+    # Issue #208: same fix as load_factory above — this call once bypassed the plan accessor.
     try:
-        plan = harness_yaml.load_plan(plan_path)
+        plan = artifact_accessors.load_plan(plan_path)
     except harness_yaml.YamlParseError as e:
         factory_cli.refuse(TOOL, "plan does not load", plan_path, f"does not load: {e}")
     approval = plan.get("approval") or {}
@@ -691,4 +683,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run(TOOL, _main, expected=(factory_config.FleetError, factory_gh.GhError))
+    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, factory_gh.GhError))

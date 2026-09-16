@@ -22,7 +22,7 @@ no production file touched this cycle.
 Production code is unchanged this cycle, so "pre-change production copy" is byte-identical to
 the pin — no discrimination there. Used PRED-1/3's own sanctioned alternative: a temporary
 mutation of the production path under a temp root. Built a scratch bin
-(`merge-gate.sh`+`.py`, `feature_schema.py`, `harness_boundary.py`, `run_identity.py`,
+(`merge-gate.py`+`.py`, `feature_schema.py`, `harness_boundary.py`, `run_identity.py`,
 `harness_yaml.py`) and confirmed it faithfully reproduces the pin (baseline: all three named
 cases `ok` against the unmutated scratch copy, via `HARNESS_PROJECT_DIR` override, whose
 `MARKER` resolution is read by `harness_boundary.resolve_root`).

@@ -23,8 +23,8 @@ the earlier `qa-2026-09-05-01-validator.md` FAIL note, which was measured at an 
 
 | invocation | rc | `^FAIL ` count |
 |---|---|---|
-| `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | **0** |
-| `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | **0** | **0** |
+| `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** |
+| `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | **0** | **0** |
 
 Unit log: 1270 lines, nine `N/N checks passed` self-test tallies, all green — final driver line
 not read as a whole-suite summary (per Expertise G-04). Integration log: 3532 lines, 49 files,

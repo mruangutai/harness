@@ -1,7 +1,7 @@
 # F-2 delta security review — FEAT-51 — pin `aab31504`
 
 **F-2 is CLOSED.** Every row of the containment matrix, run independently against the real
-`quarantine.py`/`plan-sign-gate.sh` binaries with fixtures I built myself (not the suite), refuses
+`quarantine.py`/`plan-sign-gate.py` binaries with fixtures I built myself (not the suite), refuses
 the attack and passes the legitimate case. No new high/critical was introduced. The two halves
 agree on every case that matters to authorization; they disagree only on which malformed shapes
 each *recognizes* as "quarantine-relevant" at all — and that asymmetry is safe because
@@ -17,7 +17,7 @@ agent, `harness-pm`, holds the feature's only live compat claim):
 ```
 python3 quarantine.py adopt --file <root>/.../FEAT-99/notquarantine/.../feature.json --root <root>
 ```
-- `plan-sign-gate.sh` (piped the hook payload, `HARNESS_PROJECT_DIR=<root>`): **exit 0**, empty
+- `plan-sign-gate.py` (piped the hook payload, `HARNESS_PROJECT_DIR=<root>`): **exit 0**, empty
   stdout/stderr — it does not recognize `notquarantine` as a quarantine-shaped path (its own regex
   also requires the literal `quarantine` segment), so it never reaches the orphan check. Same as
   before this fix.
@@ -36,7 +36,7 @@ the (admittedly evadable, per its own docstring) PreToolUse text scanner.
 
 ## Step 2 — full matrix (fresh fixture root per row, canonical `feature.json`, no shared state)
 
-All commands run for real against `quarantine.py` (`--root <fixture>`) and `plan-sign-gate.sh`
+All commands run for real against `quarantine.py` (`--root <fixture>`) and `plan-sign-gate.py`
 (`HARNESS_PROJECT_DIR=<fixture>`, same fixture, agent `harness-backend-dev`, no live claim on the
 targeted feature unless noted). Victim = canonical `feature.json`, checked by sha256.
 
@@ -80,7 +80,7 @@ directly (escaping-symlink and foreign-root rows, both halves): `plan-sign-gate.
 recognizes a resolved path that begins `.harness/<repo>/features/<feature>/quarantine/<writer>/<basename>`
 *relative to its own trusted `ROOT`* (resolved once, from the hook's own script location via
 `harness_boundary.resolve_root`, **never** from the command's own `--root` flag — confirmed by
-reading `plan-sign-gate.sh`, which passes only its self-resolved root as `sys.argv[1]`). A
+reading `plan-sign-gate.py`, which passes only its self-resolved root as `sys.argv[1]`). A
 resolved path that lands outside `ROOT` (foreign root) or inside `ROOT` but off-shape (escaping
 symlink) fails that regex and the hook exits 0 — it simply does not classify the call as a
 quarantine matter at all, rather than recognizing-then-refusing it. `quarantine.py`'s own

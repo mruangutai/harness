@@ -7,20 +7,20 @@ in the `tasks:` list). Files touched:
 
 - `.claude/skills/harness/bin/factory_claim.py` (new)
 - `.claude/skills/harness/bin/test-factory-claim.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (appended `"test-factory-claim.py"` to the end
+- `.claude/skills/harness/bin/run-unit-tests.py` (appended `"test-factory-claim.py"` to the end
   of `UNIT_SCRIPTS` at line 58, no other change)
 
 ## Verify — cross-checked verbatim against plan.yaml, exact match
 
 Dispatch form:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t05.txt 2>&1; s=$?; grep -q "^PASS test-factory-claim.py$" /tmp/v-t05.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t05.txt 2>&1; s=$?; grep -q "^PASS test-factory-claim.py$" /tmp/v-t05.txt && [ "$s" -eq 0 ]
 ```
 This is byte-identical to plan.yaml's T-05 `verify:` block (confirmed with `awk` against
 plan.yaml directly, not from memory).
 
 **Observed result: exit 0.** Ran the command exactly as above. `$?` (verify_result) = `0`,
-`$s` (run-unit-tests.sh's own exit) = `0`. Tail of `/tmp/v-t05.txt`:
+`$s` (run-unit-tests.py's own exit) = `0`. Tail of `/tmp/v-t05.txt`:
 
 ```
 ...
@@ -33,7 +33,7 @@ Full unit run: **9/9 `PASS` lines** (`test-harness-yaml-corpus.py`, `test-render
 `test-factory-workspace.py`, `test-factory-decompose.py`, `test-factory-claim.py`), suite exit 0.
 Baseline recorded at task start: `--kind unit` exit 0 over 8 files — this run adds exactly one
 new `PASS` line and changes nothing else. `--kind integration` re-run after the change: still
-13 files, 76 `PASS`/`ok` lines, exit 0 — unaffected, as expected (`run-unit-tests.sh`'s only
+13 files, 76 `PASS`/`ok` lines, exit 0 — unaffected, as expected (`run-unit-tests.py`'s only
 change is the `UNIT_SCRIPTS` append).
 
 ## TDD

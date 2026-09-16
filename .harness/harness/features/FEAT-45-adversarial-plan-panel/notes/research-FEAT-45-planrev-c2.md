@@ -40,7 +40,7 @@ every project that lacks it, the opposite of what REQ-14 asks.
 | T-02 | team file states the rule as shipped doctrine | `teams/plan-panel.yaml` |
 | T-05 | `panel.readers` shape in the template + pm's transcription duty | `templates/plan.yaml`, `harness-spec-driven/SKILL.md` |
 | T-06 | the lead's skip-and-record obligation (third refusal) | `.omp/agents/harness-validator-lead.md` |
-| T-07 | INV-32 check 5, the falsifier | `check-state.sh` |
+| T-07 | INV-32 check 5, the falsifier | `check-state.py` |
 | T-08 | cases `reader-missing` / `reader-skipped`, and the existing mutant extended to the second fixture | `test-check-state.py` |
 
 A T-12 was rejected deliberately: its `files:` would have overlapped four tasks that already own
@@ -67,9 +67,9 @@ platform-built-ins bullet.
   compile: 0 failures.
 - `check-plan-routes.py <this plan>`: **exit 0, 0 violations**. The only two DEVIATION lines are
   T-07/T-08's DEC-174 carve-out, which Q4 confirmed — reported as deviations, not violations.
-- `check-domain.sh --resolve` on all five extended surfaces: `teams/plan-panel.yaml`,
+- `check-domain.py --resolve` on all five extended surfaces: `teams/plan-panel.yaml`,
   `templates/plan.yaml`, `.omp/agents/harness-validator-lead.md` → `NOBODY`;
-  `check-state.sh`, `test-check-state.py` → `harness-backend-dev harness-dev-ops`. Every one already
+  `check-state.py`, `test-check-state.py` → `harness-backend-dev harness-dev-ops`. Every one already
   has a `lanes.rows` entry with a matching reason. **No new surface, no new lane row.**
 - `.omp/agents/` still 16 files; no advisor definition added anywhere.
 

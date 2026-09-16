@@ -14,7 +14,7 @@ forbidden to execute in. That is the whole of what stands between here and a mer
 
 | # | Item | Why it is yours |
 |---|---|---|
-| **1** | Rule on **F-01** and **F-02**, two fail-open/misfire defects in `merge-gate.py` | The remedy edits a registered PreToolUse gate script. DEC-174 forbids the harness executing changes to its own gate scripts, whatever `check-domain.sh` resolves |
+| **1** | Rule on **F-01** and **F-02**, two fail-open/misfire defects in `merge-gate.py` | The remedy edits a registered PreToolUse gate script. DEC-174 forbids the harness executing changes to its own gate scripts, whatever `check-domain.py` resolves |
 | **2** | Rule on **F-03**, a wrong remedy command in `gh-sync.py` | The code **matches** the approved spec — `plan.yaml:779-791` dictates the string verbatim. Fixing it amends a signed plan, which needs your signature, not a fix cycle |
 | **3** | **Re-sign** `BRIEF.md ## Approval` | SC-03 and SC-07 were amended today on your ruling. The 2026-09-06 signature no longer covers the file on disk |
 | **4** | Run the **SC-10 hand test** — `notes/uat-BUG-1309-mirror-build-entry.md`, 8 steps, ~10 minutes | SC-10 is `verify: uat`. No agent may grade it. The script was verified drift-free against the pinned code today |
@@ -56,7 +56,7 @@ record the contradiction under `BRIEF.md ## Verification gaps`.
   19/19, no cell missing; T-07's unit cell is not-applicable per D-12.
 - **The SC amendment you ruled on:** both criteria kept their teeth. The unevidenceable "must be
   shown red before the fix landed" became "is DISCRIMINATING at `review_sha`" — and pm then *ran*
-  both: the pre-change `gh-sync.py` fails all five SC-03 cases, the pre-change `check-state.sh`
+  both: the pre-change `gh-sync.py` fails all five SC-03 cases, the pre-change `check-state.py`
   fails the SC-07 violation case.
 - **Cycles:** 12 of 14. Neither of today's two runs sent anything back, so neither cost a cycle.
 - **Runs: 37 against a 20-run budget (INV-22, informational).** My read: the count is honest, not
@@ -70,7 +70,7 @@ record the contradiction under `BRIEF.md ## Verification gaps`.
 Six review cycles established "is this new?" against the **pin's parent commit** and therefore
 reported F-01 and F-03 as pre-existing carry-forwards, out of scope. The panel lead ordered the
 measurement against the true merge-base instead, and I re-ran it myself: `merge-gate.py` and
-`merge-gate.sh` **do not exist** at `6ad7233f` and arrive at `4338ee44`, inside this feature's own
+`merge-gate.py` **do not exist** at `6ad7233f` and arrive at `4338ee44`, inside this feature's own
 range. They are this feature's code. That single measurement is what promoted two advisories into
 gating findings.
 

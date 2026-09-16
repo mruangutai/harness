@@ -76,7 +76,7 @@ rc=0
 
 **(c) full unit-kind suite:**
 ```
-cd <worktree> && env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+cd <worktree> && env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
 rc=0
 ```
 `grep -c '^FAIL '` on the captured output: `0`. Tail of run confirms `test-factory-workspace.py`

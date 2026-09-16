@@ -3,21 +3,21 @@
 **Conclusion: no findings.** Measured every candidate hot-path and suite-cost claim in the
 dispatch; every one comes back negligible or explicitly sanctioned as evidence, not waste.
 
-## 1. INV-32 in `check-state.sh` — read the branch
+## 1. INV-32 in `check-state.py` — read the branch
 
-`.claude/skills/harness/bin/check-state.sh:174-238`. Confirmed by reading the surrounding
+`.claude/skills/harness/bin/check-state.py:174-238`. Confirmed by reading the surrounding
 script (`:48` shows the WHOLE file is one `python3 -c ... <<'PY'` block — a single interpreter
 for all ~30 invariants, so INV-32 spawns **no extra python3 process**), and by grep for
 `panel_findings|subprocess\.` inside the block (none): INV-32 does zero subprocess calls, zero
 new `glob`, zero new file reads. It iterates `plan_docs`, a dict already built once at
-`check-state.sh:98-108` for other invariants, and is gated behind
+`check-state.py:98-108` for other invariants, and is gated behind
 `approval.status == "approved"` before touching `panel` at all (`:178`). The expensive case
 (iterating `findings`/`rulings`/`readers` lists) only runs for a plan that is both approved
 and carries a panel record — a small, bounded set. Cheap predicate gates the only per-item
 work; nothing here runs unconditionally on every session entry beyond a dict `.items()` walk
 over data already in memory.
 
-## 2. Measured: `check-state.sh` before vs. after — delta is noise
+## 2. Measured: `check-state.py` before vs. after — delta is noise
 
 Compared HEAD against the merge-base (`1d3e5db`) by extracting the old script + its
 `harness_boundary.py`/`harness_yaml.py` deps to `/tmp` (never wrote into or moved the
@@ -47,16 +47,16 @@ Ran each in isolation, worktree root, `time -p`:
 | `test-plan-panel.py` (new, unit) | 0.29s | 24/24 pass |
 | `case_inv32()` alone inside `test-check-state.py` (integration, pre-existing file) | 2.59s | pass |
 
-`case_inv32()`'s 2.59s comes from ~12 real subprocess invocations of `check-state.sh` against
+`case_inv32()`'s 2.59s comes from ~12 real subprocess invocations of `check-state.py` against
 minimal fixtures (no network, no real repo) — this is the mutation-kill discriminator proof
 (`inv32-red`: deletes the marked region, confirms the check goes silent), explicitly the kind
 of boundary evidence the skill says is not waste ("deliberate full-suite runs... are the
 evidence the boundary exists"). Total new suite-time contribution across all three:
-**~3.0s**, added to a runner (`run-unit-tests.sh`) that already executes 53 scripts
+**~3.0s**, added to a runner (`run-unit-tests.py`) that already executes 53 scripts
 sequentially. Not flagged — this is normal test cost for a new module, and the runner's
 sequential (non-parallel) execution is pre-existing, unchanged by this diff.
 
-`run-unit-tests.sh`'s own diff: two `UNIT_SCRIPTS` array entries appended
+`run-unit-tests.py`'s own diff: two `UNIT_SCRIPTS` array entries appended
 (`test-panel-findings.py`, `test-plan-panel.py`); zero structural change.
 
 ## 4. `panel_findings.py` CLI — invocation pattern

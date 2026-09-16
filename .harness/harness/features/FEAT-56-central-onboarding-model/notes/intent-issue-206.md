@@ -38,7 +38,7 @@ Run in the harness repo, against a repo being added:
 
 ## This overturns a planning ruling from the same session
 
-FEAT-10's planning recorded "**No product level in `.harness/`**" as settled, with a measured cost for the alternative: 473 references across 152 files; 40 live and 22 template domain globs that `upgrade-config.py:11-21` refuses to rewrite by design; four anchored regexes at `check-domain.sh:572-575` whose `[^/]+` cannot cross a path segment; CI assertions at `tests.yml:134-141`; and no layout-migration machinery. It also cited DEC-95 — "`.harness/` is per-worktree state, not per-repository state."
+FEAT-10's planning recorded "**No product level in `.harness/`**" as settled, with a measured cost for the alternative: 473 references across 152 files; 40 live and 22 template domain globs that `upgrade-config.py:11-21` refuses to rewrite by design; four anchored regexes at `check-domain.py:572-575` whose `[^/]+` cannot cross a path segment; CI assertions at `tests.yml:134-141`; and no layout-migration machinery. It also cited DEC-95 — "`.harness/` is per-worktree state, not per-repository state."
 
 **The operator has overturned that ruling.** Those costs are now the work, not an argument against it. They are listed here so nobody re-derives them.
 

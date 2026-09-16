@@ -3,13 +3,13 @@
 ## Current
 
 - feature: BUG-1507-ready-station-signature
-- run: VALIDATE PASSED at `ac5e24e5` — panel `must_fix: []`, `severity_max: med`, all four readers
-  ran. Returned to the main session, which owns PR open, CI watch, merge and `gh-sync.py ship`
-- squad: none — the orchestrator's build+validate mission is complete
-- status: in_review (panel clean; awaiting the main session's PR and merge)
-- station: `review` (plan.yaml line 3), written by `gh-sync.py status <feature-dir> review`
-- review_sha: `df9ccd0147748bd6e7dd4cd8eab4add301a1ba21` (re-pinned; zero code-path delta from the reviewed `ac5e24e5`)
-- mirror: milestone #64, parent #1517, sub-issues #1518-#1522, all six at the review station
+- run: terminal record correction after PR #1523 merged
+- squad: none
+- status: done
+- station: `done` (`plan.yaml` line 3)
+- pull request: #1523 merged; source issue #1507 closed as completed
+- review_sha: `df9ccd0147748bd6e7dd4cd8eab4add301a1ba21`
+- mirror receipt: milestone #64, parent #1517, sub-issues #1518-#1522
 - cycles_used: 3 of 10 · runs: 10 of 20
 
 Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and `runs/*/digest.md`):
@@ -74,7 +74,7 @@ Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and
 - 2026-09-09: run `2026-09-08-panel-validator` PASS — the validate panel at the pin. All four
   readers RAN, none skipped. `severity_max: med`, `must_fix: []`, `code_grade: grade_2`. Findings:
   VL-01 (med), F-01 (low, a `BrokenPipeError` in the `verify:` chain under `pipefail`, unexploited
-  because `run-unit-tests.sh` executes the file directly), F-02 (med, an accepted grade-2 function
+  because `run-unit-tests.py` executes the file directly), F-02 (med, an accepted grade-2 function
   with its reason on file), and two assessed-and-dismissed info rows.
 - 2026-09-09: VL-01 MEASURED by the orchestrator rather than relayed —
   `notes/vl-01-plan-merge-shape-measurement.md`. The shape the witness cannot see occurs twice in

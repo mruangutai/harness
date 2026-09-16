@@ -13,7 +13,7 @@ grepped the feature dir for `notes/research-` — **no citation to it anywhere**
 
 1. **Absolute root injected into every factory agent's preamble — `delivered`.**
    REQ-01, SC-01 (BRIEF.md:71-74), T-01 steps 1-2 + test cases (plan.yaml:100-149). Coverage of "every
-   factory agent" holds: the injector fires only for `^harness-[a-z0-9-]+$` (inject-expertise.sh:27-29,
+   factory agent" holds: the injector fires only for `^harness-[a-z0-9-]+$` (inject-expertise.py:27-29,
    settings.json:8) and **all 16 dispatchable agents are `harness-*`** (`.omp/agents/*.md`), so the
    matcher's set equals the dispatchable set. The main session is not a subagent and receives no
    injection — consistent with #356 comment 2's triage, and with T-03's three exemptions.
@@ -58,14 +58,14 @@ grepped the feature dir for `notes/research-` — **no citation to it anywhere**
 Both wrinkles resolve, and a third does not.
 
 - **Matcher gate: not a defect.** Resolved above (item 1). Every dispatchable agent is `harness-*`.
-- **Empty-body drop: closed by T-01.** `emit` drops an empty body (inject-expertise.sh:58-62), but T-01
+- **Empty-body drop: closed by T-01.** `emit` drops an empty body (inject-expertise.py:58-62), but T-01
   step 2 (plan.yaml:116-118) emits the control-plane block FIRST and UNCONDITIONALLY, so the body is
   never empty for a matched agent, and T-01 step 5 case 1 asserts exactly the no-Expertise spawn. The
   conditional itself is left standing, correctly — it no longer has a reachable false branch.
 - **The caveat, measured, and it is the finding: one root for two jobs.**
   `resolve_root` is script-directory-relative: the MAIN bin resolves to `/…/GitHub/harness`, the
   worktree bin resolves to `/…/worktrees/harness/FEAT-52-factory-control-plane`. The registered command
-  is `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh` (settings.json:12), and #322
+  is `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py` (settings.json:12), and #322
   (via #356 comment 4) measured `CLAUDE_PROJECT_DIR` as the MAIN checkout even for a worktree agent — so
   the injected root is always the main checkout. `/…/GitHub/harness/.harness/harness/features/FEAT-52-factory-control-plane`
   is **ABSENT** (checked). T-02 (plan.yaml:183-184) and T-04 F3/F4 anchor the receipt and observations

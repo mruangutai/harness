@@ -63,7 +63,7 @@ trust as a control-plane edit") would close it.
 | # | File | `file:line` @ 6f34e289 | met? |
 |---|---|---|---|
 | 1 | `.claude/skills/harness/templates/harness.json` | `:2` — `"_template": "Canonical harness.json. /harness-init instantiates this as the control plane's own .harness/harness.json, and as a fleet member's own .harness/harness.json which must be committed to that repository's default branch..."` | met |
-| 2 | `.claude/skills/harness/templates/team-config.yaml` | `:4` — `# .harness/team-config.yaml - check-domain.sh reads only that file and a product` (continues line 5 "repository never carries one") | met |
+| 2 | `.claude/skills/harness/templates/team-config.yaml` | `:4` — `# .harness/team-config.yaml - check-domain.py reads only that file and a product` (continues line 5 "repository never carries one") | met |
 | 3 | `.claude/skills/harness/templates/BRIEF.md` | `:2` — `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/BRIEF.md; harness-pm owns it thereafter,` | met, with a noted nuance below |
 | 4 | `.claude/skills/harness/references/github-mirror.md` | `:23` — `own \`harness.json\` on its \`default_branch\`, the file onboarding lands there; for the control plane it` | met |
 

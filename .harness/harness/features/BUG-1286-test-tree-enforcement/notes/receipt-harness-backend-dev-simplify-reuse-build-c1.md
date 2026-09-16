@@ -34,8 +34,8 @@ idiom that predates this feature and is out of scope.
   (`base_git_fixture()` in test-suite-layout.py vs. `tree()`/`git_tree()` in
   test-run-unit-tests-layout.py) — those build genuinely different trees (one drives
   `suite_layout.violations()` directly and needs a copy of `suite_layout.py` itself plus a
-  `tests/manual` probe fixture; the other drives the real `run-unit-tests.sh` end-to-end and needs
-  copies of `run-unit-tests.sh`, `harness_boundary.py`, `run_pool.py`). Collapsing those would cost
+  `tests/manual` probe fixture; the other drives the real `run-unit-tests.py` end-to-end and needs
+  copies of `run-unit-tests.py`, `harness_boundary.py`, `run_pool.py`). Collapsing those would cost
   more clarity than it recovers, so I scoped the finding to the one exactly-duplicated primitive.
 
 ## Considered and dropped
@@ -67,7 +67,7 @@ idiom that predates this feature and is out of scope.
   would reach far outside the reviewed scope. Dropped as out-of-scope, not a false positive.
 - **`suite_layout.py`'s `tracked_paths()` duplicating a check some other `bin/` module already
   performs** — searched `.claude/skills/harness/bin/` for another Git `ls-files`/toplevel-guard
-  helper; found none. `run-unit-tests.sh` and `harness_boundary.py` do not implement an equivalent
+  helper; found none. `run-unit-tests.py` and `harness_boundary.py` do not implement an equivalent
   tracked-file enumeration. No finding.
 - **`suite-census.py`'s `_measure`/`_vocabulary_paths` duplicating `suite_layout.violations()`
   itself** — they overlap in vocabulary (both look at tracked test-shaped files outside `tests/`)

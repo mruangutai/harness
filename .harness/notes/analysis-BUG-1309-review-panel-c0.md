@@ -34,7 +34,7 @@ because the second changes the block the first must sit inside.
 `main()`'s `try/except Exception: return` covers only the harness.json read and the stdin parse
 (`merge-gate.py:115-121`). `gh_head` (`:76`) invokes `os.environ.get("GH_BIN", "gh")` through
 `subprocess.run` with no guard, so an unresolvable or non-executable `GH_BIN`/`gh` raises
-`FileNotFoundError`/`PermissionError` out of `main()`. `merge-gate.sh` `exec`s the script, so the
+`FileNotFoundError`/`PermissionError` out of `main()`. `merge-gate.py` `exec`s the script, so the
 hook exits 1 with a traceback — and exit 1 is non-blocking for PreToolUse, where only exit 2
 denies. Failure scenario, demonstrated by the reviewer running it: `GH_BIN=/nonexistent/gh`,
 `gh pr merge 42`, non-era feature with `build_entry` absent → exit 1, no denial JSON, merge
@@ -53,7 +53,7 @@ Failure scenario: any of the 78 frozen era-exempt directories — including BUG-
 first real `open`, hits a transient `gh` failure, records `recovery-required`; `gh-sync.py`
 `_build_entry_recovery_notice` (`:1379-1386`) prints to the operator "its merge is not refused";
 the operator merges and is denied. Two of the other four readers of the set
-(`check-state.sh:2002`, `post-merge-sweep.sh:223`) implement the unconditional rule, which is why
+(`check-state.py:2002`, `post-merge-sweep.py:223`) implement the unconditional rule, which is why
 this reads as `merge-gate.py` deviating rather than the decision record being stale.
 
 **M3 (lead, adequacy) — the test that would have caught M2 does not exist, in either direction.**
@@ -85,7 +85,7 @@ and spec-contemplated.
   does not append the feature dir to the command, unlike its five siblings. Same function as M2's
   operator promise: one fix site, two findings, worth handing to the same dev.
 - **QA-1 (qa, low)** — INV-37's `open` remedy message is asserted only through the pure
-  `recovery_command_for()` unit, never against captured `check-state.sh` stdout; the sibling
+  `recovery_command_for()` unit, never against captured `check-state.py` stdout; the sibling
   `recover-terminal` branch is asserted against output.
 
 ## Assessed and dismissed, with reason
@@ -110,7 +110,7 @@ and spec-contemplated.
    test, and both would survive the suite unchanged.
 2. Neither high was reachable through the qa gate's own evidence, so `matrix_ok: true` and
    `severity_max: high` are consistent, not contradictory. Do not read the passing gate as clearance.
-3. No reviewer exercised `merge-gate.sh` end to end inside a real PreToolUse hook invocation; M1's
+3. No reviewer exercised `merge-gate.py` end to end inside a real PreToolUse hook invocation; M1's
    exit-1-is-non-blocking step rests on the documented hook convention plus the reviewer's direct
    execution of the Python, not on an observed hook allowing a merge.
 4. `ui` and `security` self-scoping was measured, not predicted — ui gave a file census, security

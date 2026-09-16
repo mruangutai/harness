@@ -101,7 +101,7 @@ T-01 GREEN
 - `.harness/factory/fleet.yaml` — not in `git diff --name-only`. Unedited.
 - `.harness/harness.json` — not in `git diff --name-only`. Unedited.
 - `gh_board.py` — not in `git diff --name-only`. Unedited.
-- `check-domain.sh` — not in `git diff --name-only`. Unedited.
+- `check-domain.py` — not in `git diff --name-only`. Unedited.
 - `load_board` — `git diff | grep -E '^\+' | grep -c load_board` → `0`. Appears in no line I added.
 
 ## Held dirt — untouched

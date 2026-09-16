@@ -47,7 +47,7 @@ note. Every id is a hash of the exact string on disk, cross-checked through the 
   before the verb ran, the panel block was excised from the post-write file (lines 70–152, ending at the
   `tasks:` top key) and the remainder compared byte-for-byte — **equal** (13808 → 17559 bytes). The
   addition is the `panel:` block and nothing else.
-- **d. INV-32 re-check.** The predicates of `check-state.sh:489-548` applied directly to the loaded file:
+- **d. INV-32 re-check.** The predicates of `check-state.py:489-548` applied directly to the loaded file:
   `bad == []`, `warn == []`. All three vocabulary readers resolve to `ran`; no finding is `unrated` or
   outside `{info, low, med}`; no `resolved` row (which `:527` would downgrade to a warning); no
   `approval.rulings`, so no stale acceptance.

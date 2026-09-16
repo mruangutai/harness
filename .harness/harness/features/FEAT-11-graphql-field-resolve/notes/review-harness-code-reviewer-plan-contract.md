@@ -11,7 +11,7 @@ returns nothing — no human-edit drift since the pin.
 Every anchor listed in the dispatch resolves to what the plan claims, checked by direct read at HEAD:
 factory_gh.py `:41-44,48-63,105-114,196-198,206-210,251-256,257-262,263-271`; test-factory-gh.py
 `:78-87,255-267,269-279,282-306,309-328,446-463,571-573,594-597`; test-factory-integration.py
-`:178-188,190-191,196-199,200-202,205,227`; factory_decompose.py `:255-268,444-458`; run-unit-tests.sh
+`:178-188,190-191,196-199,200-202,205,227`; factory_decompose.py `:255-268,444-458`; run-unit-tests.py
 `:17,18,42-55`. No class of drift found — no off-by-N, no stale target.
 
 **D-04 byte-identity confirmed.** factory_gh.py:209 and :255 are both exactly

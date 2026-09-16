@@ -25,7 +25,7 @@
   all four; it also asserted "zero grep hits" for a string that had three. Re-derive every
   structural claim from the file before treating any of it as a gap.
 - 2026-08-21 (plan2b run): before inventing a top-level plan.yaml key because a dispatch names one,
-  grep templates/plan.yaml AND every live plan AND check-state.sh for it. `uat:` appears in none of
+  grep templates/plan.yaml AND every live plan AND check-state.py for it. `uat:` appears in none of
   them, so writing it would have parked a narrowed criterion in a key no gate reads. This plan
   records no-task UAT routings as a D-NN instead (D-12).
 - 2026-08-21 (plan3-amend run): the colon-space trap recurred, ninth time — nine `choice:`/`because:`
@@ -34,7 +34,7 @@
   keys. A mechanical post-write pass over exactly those keys, replacing `: ` with ` - `, fixed all
   nine at once and touched no pre-existing line (originals cannot contain the sequence and still
   parse) — that pass is cheaper than proofreading.
-- 2026-08-21: `check-domain.sh --resolve .harness/harness.json` returns `harness-dev-ops` ALONE at
+- 2026-08-21: `check-domain.py --resolve .harness/harness.json` returns `harness-dev-ops` ALONE at
   7299669, while `.claude/skills/harness/bin/*` returns backend-dev AND dev-ops. So an operator
   instruction of the form "add harness.json to T-NN's `files:`" is unactionable whenever T-NN's
   agent is backend-dev — check-plan-routes.py reports a DEVIATION. Resolve with a separate dev-ops

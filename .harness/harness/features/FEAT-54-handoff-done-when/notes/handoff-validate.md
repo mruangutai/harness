@@ -20,7 +20,7 @@ re-scope / stop instruction. Do not merge, open a PR, or remove the worktree bef
   it myself at this run's start, and QA re-ran it independently —
   `.harness/harness/features/FEAT-54-handoff-done-when/notes/qa-c6.md` — verified-at
   dd55b3570c6a20f5ca1da016d6959752bd0ffc74.
-- `check-domain.sh` exits 0 on a blank-`Scope:` note when the claimed path is RELATIVE and cwd is
+- `check-domain.py` exits 0 on a blank-`Scope:` note when the claimed path is RELATIVE and cwd is
   outside the project; absolute path or cwd at the root both refuse at exit 2, and
   `CLAUDE_PROJECT_DIR` does not change it. My own four-arm measurement, cause is
   `os.path.abspath(path)` resolving against cwd —

@@ -1,7 +1,7 @@
 # Receipt — harness-backend-dev — simplify c10 — SIMPLIFICATION angle
 
 ## BLUF
-The required/error split at `check-domain.sh:1645-1683` is close to the right shape and I am
+The required/error split at `check-domain.py:1645-1683` is close to the right shape and I am
 **not** recommending any structural change to the two-set/two-message design. One real, cheap
 finding: the comment at line 1646-1647 describes only half of what the loop now does and should
 be rewritten (concrete replacement given below). The `isinstance(_error.instance, dict)` guard at
@@ -33,7 +33,7 @@ mapping — it returns early internally, exactly as the dispatch predicted. I al
 `properties.steps.items`): the only `"required"` keyword anywhere in the step schema is the
 top-level one (`["id", "status"]`); there is no nested object with its own `required` reachable
 under a non-dict sub-instance. So `_error.instance` for a `validator == "required"` error is always
-exactly the top-level `_step` object being validated at `check-domain.sh:1633`
+exactly the top-level `_step` object being validated at `check-domain.py:1633`
 (`_validator.iter_errors(_step)`), and that call always receives `_step` untouched by the
 `isinstance(_step, dict)` branch at line 1634 (which only affects `_offending`, `continue`s past
 the `_declared`/`evidence` checks, but does **not** skip the `iter_errors` call already made on
@@ -57,7 +57,7 @@ missing field). The only place the single missing key is expressed per-error is 
 `_error.message` (`"'id' is a required property"`, `"'status' is a required property"`) — free text
 that is fragile to parse and versioned by jsonschema's message strings, not its data model.
 
-Given that, `set(_error.validator_value) - set(_error.instance)` (`check-domain.sh:1652-1655`) is
+Given that, `set(_error.validator_value) - set(_error.instance)` (`check-domain.py:1652-1655`) is
 the **right** choice: it reads the missing-key set off structured data (`validator_value`, a plain
 list; `instance`, the dict itself) with no string parsing, and it is naturally idempotent — every
 `required` error on the same instance recomputes the identical full missing-set, so re-running it
@@ -93,7 +93,7 @@ inconsistency the change introduced.
 
 ## 4. Comment accuracy at ~1646-1647
 
-`check-domain.sh:1646-1647`:
+`check-domain.py:1646-1647`:
 > `# Type/value failures on declared fields may not be captured by the vocabulary comparisons
 > above; name their nearest field.`
 
@@ -106,7 +106,7 @@ are handled separately at all.
 **Recommended fix (rank 1 of 1 — the only fix I'm recommending from this angle), described as a
 prose diff, NEVER applied (DEC-174):**
 
-At `check-domain.sh:1646-1647`, replace the two-line comment
+At `check-domain.py:1646-1647`, replace the two-line comment
 
 ```
                     # Type/value failures on declared fields may not be captured by
@@ -140,6 +140,6 @@ true facts it reports, not accidental duplication.
 ?? .harness/harness/features/FEAT-104-strict-digest-schema/notes/receipt-harness-backend-dev-2026-09-10-16-simplify-eng-reuse.md
 ```
 Only an untracked sibling reader's receipt (reuse angle, concurrent run) is present. No file under
-the tracked delta (`check-domain.sh`, `run-state-schema.json`, `test-check-domain.py`) shows any
+the tracked delta (`check-domain.py`, `run-state-schema.json`, `test-check-domain.py`) shows any
 change; my own probes ran entirely inside `tempfile.mkdtemp()` and were cleaned up with
 `shutil.rmtree` from inside the same Python process before this receipt was written.

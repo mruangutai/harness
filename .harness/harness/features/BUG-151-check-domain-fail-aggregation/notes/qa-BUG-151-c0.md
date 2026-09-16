@@ -31,8 +31,8 @@ an honest full-suite report; nothing in the diff warrants adding a kind beyond t
 
 | kind | state | cmd | result |
 |---|---|---|---|
-| `integration` | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0, 49 files, `grep -c '^FAIL '` = 0; `test-check-domain.py` ran (49.33s) as part of the pool |
-| `unit` | not required (ran for honesty) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0, 31 files, `grep -c '^FAIL '` = 0 |
+| `integration` | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0, 49 files, `grep -c '^FAIL '` = 0; `test-check-domain.py` ran (49.33s) as part of the pool |
+| `unit` | not required (ran for honesty) | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0, 31 files, `grep -c '^FAIL '` = 0 |
 
 Task-level `verify:` clauses, cross-checked verbatim against `plan.yaml` before running (both match):
 

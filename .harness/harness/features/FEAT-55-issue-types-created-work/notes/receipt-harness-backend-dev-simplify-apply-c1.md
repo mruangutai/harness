@@ -65,7 +65,7 @@ docstring are all untouched.
 | 6 | tests/unit/test-factory-gh.py | 0 | 0 |
 | 7 | tests/integration/test-factory-integration.py | 0 | 0 |
 | 8 | tests/unit/test-issue-types.py | 0 | 0 |
-| 9 | `.claude/skills/harness/bin/run-unit-tests.sh` (absolute path under this worktree) | 1 | 2 |
+| 9 | `.claude/skills/harness/bin/run-unit-tests.py` (absolute path under this worktree) | 1 | 2 |
 
 All nine commands were run with `env -u HARNESS_AGENT_TYPE`, `rc=$?` captured immediately after
 each run, and `^FAIL ` counted with `grep -c '^FAIL '` against that run's own captured output (not

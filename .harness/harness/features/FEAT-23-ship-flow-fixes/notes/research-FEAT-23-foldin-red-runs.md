@@ -93,7 +93,7 @@ passes against the text the intent prescribes, and reddens against every state i
 A clause that cannot pass is the same defect as one that cannot fail.
 
 **Not re-run, and stated rather than implied:** the two conjuncts of T-05 that surround the ladder —
-the `run-unit-tests.sh` registration grep and the `--kind unit` drift-detector run — are
+the `run-unit-tests.py` registration grep and the `--kind unit` drift-detector run — are
 byte-unchanged by this fold-in. Their receipts, including the drift detector proved by mutation
 (`rc=0` unmutated, `rc=2 MISCONFIGURED` with one on-disk test file unlisted), stand at
 `research-FEAT-23-453-station.md` and were not repeated here.
@@ -101,7 +101,7 @@ byte-unchanged by this fold-in. Their receipts, including the drift detector pro
 ## The commands, verbatim
 
 The fixture, the five mutants and the ladder harness, exactly as run. No file was written — the
-suite output is carried in a shell variable, because `bash-write-guard.sh` denies `harness-pm` a
+suite output is carried in a shell variable, because `bash-write-guard.py` denies `harness-pm` a
 redirect outside its domain and a redirect-based probe was blocked on this session before being
 rewritten to this shape.
 

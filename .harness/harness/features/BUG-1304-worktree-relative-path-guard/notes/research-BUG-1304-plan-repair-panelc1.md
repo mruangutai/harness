@@ -52,7 +52,7 @@ harm) and adds a **paired well-formed control** that must exit 0. That is the ve
 **Audited 10 verifies, changed 5** (T-03, T-05, T-07, T-08, T-09). Two more defects of the same
 class found beyond L-03:
 
-- **T-08**: `grep -q 'worktree_for_feature'` already matches `dispatch-guard.sh:174`. Replaced by
+- **T-08**: `grep -q 'worktree_for_feature'` already matches `dispatch-guard.py:174`. Replaced by
   `grep -q 'worktree_for_feature(owner_root, flow)'` plus `! grep -q 'os.path.basename(wt) == flow'`
   — both proven red today.
 - **T-09**: `grep -q 'case_bug1304_retention()'` is satisfied by the `def` line; the file wires
@@ -68,16 +68,16 @@ wiring (`test-check-domain.py:4419-4437`); T-07's four presence greps match 0 li
 SC-06 and SC-09 now require every pre-change call to prove the guard RAN: **no** `enforcement OFF`,
 `was not enforced`, `passing through` on stderr, **and** a positive control refused with exit 2 at
 the same frozen guard. T-03 and T-05 specify one helper, `bug1304_assert_pre_change_allows`, that
-every refusal case must call. **The Bash route's fail-opens are silent** (`bash-write-guard.sh:78-80`
+every refusal case must call. **The Bash route's fail-opens are silent** (`bash-write-guard.py:78-80`
 payload, `:267-269` manifest) — a marker check cannot see them, so the positive control is named
 there as the load-bearing half (T-05 reuses the run-artifact refusal). Write route markers measured
-at `check-domain.sh:1864-1869` and `:383-386`.
+at `check-domain.py:1864-1869` and `:383-386`.
 
 ## L-05 — the asymmetric strike
 
 T-09's opening and D-09's strike paragraph both now say the strike **overrides Advisor rulings A and
 B**, is not symmetric with T-08's (T-02 already makes T-08 free), and leaves B-10 reachable on the
-routine suspend path (`dispatch-guard.sh:197`, `validate-digest.py:1755-1760`). OC-1 asks where the
+routine suspend path (`dispatch-guard.py:197`, `validate-digest.py:1755-1760`). OC-1 asks where the
 closure lands, not whether the hole may stay open. SC-11 supplies the missing criterion.
 
 ## Open questions

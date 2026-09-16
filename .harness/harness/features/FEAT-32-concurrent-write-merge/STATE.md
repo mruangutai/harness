@@ -49,7 +49,7 @@ falsely refused eng-lead's real return at the simplify segment. I cleared them w
 evidence for DEC-199's own sentence rather than an assertion in it.
 
 **T-07's VERIFY NOW FAILS BY DESIGN AND NOTHING IS WRONG.** It asserts
-`git diff --quiet -- dispatch-guard.sh`, true at T-07 and legitimately falsified by T-08. A temporal
+`git diff --quiet -- dispatch-guard.py`, true at T-07 and legitimately falsified by T-08. A temporal
 guard, meaningful only at its own commit. T-07 is not regressed — do not record it as failing.
 
 **A DEFECT IN A RULE FILE THIS LANE SHIPS.** T-12 installs at
@@ -94,7 +94,7 @@ stop, and claiming more would overclaim one observation.
   keep 10.0s, so the registry's LOCKED branch is now materially easier to reach than when this was
   written.
 - Q6 **NOT blocking, backlog.** `RUNS_AGENT_EXEMPT` was hand-fixed for two features; the suite
-  asserts the map's MECHANISM, never its COVERAGE. Pre-existing and NOT mine: `check-state.sh`'s one
+  asserts the map's MECHANISM, never its COVERAGE. Pre-existing and NOT mine: `check-state.py`'s one
   violation is FEAT-26's unapproved BRIEF, still the only violation as of this session.
 - Q7 **NOT blocking, ANSWERED.** No `DECISIONS-INDEX.md` row governs what re-opens a signature. pm:
   it deserves an entry as FOLLOW-UP, not folded into T-13.

@@ -7,7 +7,7 @@ decisions:
       Its DISPATCHER resolves it - every such persona is spawned by a tier that does hold bash -
       and passes the absolute value into the dispatch text as a line spelled exactly
       HARNESS-FEATURE-TREE-ROOT: /absolute/path
-      on a line of its own, anywhere after the first. dispatch-guard.sh, the one hook that can
+      on a line of its own, anywhere after the first. dispatch-guard.py, the one hook that can
       see a dispatch prompt, refuses the dispatch at exit 2 when the DISPATCHED persona grants
       no bash in its .omp/agents entry and that line is absent, or is present and names a path
       other than the one inflight_registry.feature_root resolves for the declared feature. Every
@@ -38,7 +38,7 @@ decisions:
       cost: pending_orchestrator precisely because it cannot meter its own run.
 
       REJECTED, a second INJECTED value. D-06's measurement stands unreversed and no narrower
-      injection exists: dispatch-guard.sh:76-80 records that tool_input.prompt reaches only the
+      injection exists: dispatch-guard.py:76-80 records that tool_input.prompt reaches only the
       dispatch payload, and DEC-64 fixes the SubagentStart payload at agent_type, so the hook
       cannot know which feature a spawn belongs to. Nothing about a shell-less target changes
       what the hook can see.
@@ -69,19 +69,19 @@ tasks:
     traces: [REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, dispatch-guard.sh is a registered PreToolUse gate and test-dispatch-guard.py is its test file
+    execution_reason: DEC-174 carve-out, dispatch-guard.py is a registered PreToolUse gate and test-dispatch-guard.py is its test file
     depends_on: [T-10]
     status: ready
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       python3 .agents/skills/harness/bin/test-dispatch-guard.py
     intent: |
-      This is the runtime half of D-08. It adds ONE block to dispatch-guard.sh and four cases to
+      This is the runtime half of D-08. It adds ONE block to dispatch-guard.py and four cases to
       its test file. Nothing existing in either file is edited.
 
-      WHERE. Immediately after the "if not root:" pass-through that ends at dispatch-guard.sh:138
+      WHERE. Immediately after the "if not root:" pass-through that ends at dispatch-guard.py:138
       and before the runtime/supervisor_pid block that begins at :140, so it runs on every
       governed dispatch regardless of host runtime, and after both hb and reg are imported.
 
@@ -136,7 +136,7 @@ tasks:
         is not the resolved root. Assert exit 2 and assert stderr contains BOTH the declared
         value and the resolved one.
 
-      Register nothing new in run-unit-tests.sh: test-dispatch-guard.py is already in
+      Register nothing new in run-unit-tests.py: test-dispatch-guard.py is already in
       INTEGRATION_SCRIPTS, so the kind cross-check and the file-presence check both stay green.
 
   - id: T-19
@@ -144,7 +144,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
+    execution_reason: check-domain.py --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-12, T-13, T-14, T-18]
     status: ready
     files:
@@ -168,7 +168,7 @@ tasks:
       the literal phrase "holds no shell", you do not run that command and must not try. Your
       dispatcher resolved the value for you and it is on a line of your own dispatch spelled
       HARNESS-FEATURE-TREE-ROOT: followed by one absolute path. If that line is absent from a
-      dispatch to a shell-less persona, dispatch-guard.sh refuses the spawn at exit 2, so you
+      dispatch to a shell-less persona, dispatch-guard.py refuses the spawn at exit 2, so you
       will never be running without it - and if you somehow are, return VERDICT BLOCKED rather
       than guessing a root. Today this is the three leads and nobody else.
 
@@ -223,7 +223,7 @@ tasks:
       dispatch you make to a lead carries a second line, HARNESS-FEATURE-TREE-ROOT: followed by
       the absolute path that
       `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`
-      prints. Resolve it once per feature, not once per dispatch. dispatch-guard.sh refuses a
+      prints. Resolve it once per feature, not once per dispatch. dispatch-guard.py refuses a
       dispatch to a shell-less persona without it at exit 2.
 
       In each of the three lead files: you hold no shell, so you never resolve that value

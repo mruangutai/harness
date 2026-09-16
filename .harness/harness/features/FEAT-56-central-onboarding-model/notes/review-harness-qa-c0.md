@@ -122,7 +122,7 @@ My quarter: **4/4 met**, one `file:line` citation each, each read at the pin via
 
 ## 5. REQ-05 verification-gap honesty
 
-BRIEF.md's `## Verification gaps` (last bullet) states the gap plainly: `check-state.sh`
+BRIEF.md's `## Verification gaps` (last bullet) states the gap plainly: `check-state.py`
 deliberately makes no network call, so REQ-05 is discharged only by the operator-run
 `--check-product-configs` (SC-05), and "a member whose config is deleted after onboarding stays
 invisible until the next build." **Honestly disclosed — no understatement found.**

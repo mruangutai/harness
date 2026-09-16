@@ -50,7 +50,7 @@ human" per my own scope definition (an operator debugging a blocked dispatch or 
 this stderr/preamble text directly), even though their primary consumer is an LLM agent, not a
 human at a keyboard.
 
-**`inject-expertise.sh` preamble** (`.claude/skills/harness/bin/inject-expertise.sh:57-84`) — live-
+**`inject-expertise.py` preamble** (`.claude/skills/harness/bin/inject-expertise.py:57-84`) — live-
 executed against this tree (not just read): confirmed byte-identical output for the clean case —
 ```
 ## Harness control plane
@@ -60,7 +60,7 @@ HARNESS_PATH_DRIFT: none
 ```
 Checked against plan.yaml's binding spec for this block (T-03 item 5, `plan.yaml:373-386`): drift
 status must land "immediately after the HARNESS_CONTROL_PLANE_ROOT line" — confirmed true in both
-source and live output. The `UNRESOLVED` branch (`inject-expertise.sh:60`) matches T-03 item 3's
+source and live output. The `UNRESOLVED` branch (`inject-expertise.py:60`) matches T-03 item 3's
 literal text verbatim, including the `VERDICT: BLOCKED` remedy instruction. The five-pointer cap
 (`sed -n '1,5p'`) and the `HARNESS_PATH_DRIFT: <n> unanchored path(s)` / `none` / `unknown` triad
 all match `plan.yaml:373-390` and SC-01/SC-02 (`BRIEF.md:96-104`) exactly. Every branch's remedy
@@ -81,7 +81,7 @@ for the contract (SC-09); dropping the duplicate is the correct resolution of th
 conflict, not a completeness gap. Flagging as an `open_question` per the "wording matches an
 approved plan's own text → plan question, not a defect" rule rather than filing a fix.
 
-**`dispatch-guard.sh` stderr** (`.claude/skills/harness/bin/dispatch-guard.sh:140-181`) — read
+**`dispatch-guard.py` stderr** (`.claude/skills/harness/bin/dispatch-guard.py:140-181`) — read
 against T-09's binding spec (`plan.yaml:747-765`) for its three exit-2 branches:
 - no-tree-root-line: names the persona, spells `HARNESS-FEATURE-TREE-ROOT: ` literally, names the
   remedy command `inflight_registry.py feature-root --feature <declared>` — matches spec verbatim.
@@ -104,7 +104,7 @@ encoding, no theme). No fidelity or interaction findings.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "No rendered UI surface in the 93-file diff (0 html/css/scss/tsx/jsx/vue/svelte/less hits, no DESIGN.md); the one named adjacent text surface (inject-expertise.sh preamble + dispatch-guard.sh stderr) audited and found faithful to plan.yaml, one non-blocking wording note."
+  headline: "No rendered UI surface in the 93-file diff (0 html/css/scss/tsx/jsx/vue/svelte/less hits, no DESIGN.md); the one named adjacent text surface (inject-expertise.py preamble + dispatch-guard.py stderr) audited and found faithful to plan.yaml, one non-blocking wording note."
   mode: B
   in_scope: false
   severity_max: low
@@ -114,7 +114,7 @@ DIGEST:
   contract_violations: []
   a11y: []
   open_questions:
-    - { id: Q1, question: "inject-expertise.sh's control_plane_block() omits T-03 item 1's illustrative explanatory sentence ('Every Harness-owned path in your instructions is written as <HARNESS_CONTROL_PLANE_ROOT>/...'); item 5 of the same task's intent requires HARNESS_PATH_DRIFT immediately after the root line, textually conflicting with item 1's placement, and the identical rule already ships via harness-handoff/SKILL.md:62-63 (SC-09-covered). Is the dropped sentence an intentional resolution of the plan's own internal conflict, or should plan.yaml's T-03 intent be amended to match?", blocking: false }
+    - { id: Q1, question: "inject-expertise.py's control_plane_block() omits T-03 item 1's illustrative explanatory sentence ('Every Harness-owned path in your instructions is written as <HARNESS_CONTROL_PLANE_ROOT>/...'); item 5 of the same task's intent requires HARNESS_PATH_DRIFT immediately after the root line, textually conflicting with item 1's placement, and the identical rule already ships via harness-handoff/SKILL.md:62-63 (SC-09-covered). Is the dropped sentence an intentional resolution of the plan's own internal conflict, or should plan.yaml's T-03 intent be amended to match?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-52-factory-control-plane/.harness/harness/features/FEAT-52-factory-control-plane/notes/review-harness-ui-reviewer-impl-c9.md

@@ -11,7 +11,7 @@ exits 1**: `.omp/agents/harness-backend-dev.md` does not contain the string
 `HARNESS_FEATURE_TREE_ROOT`, though the task's own `verify:` demands it as a positional member
 (`pos=[...,'.omp/agents/harness-backend-dev.md']`). Confirmed with a direct grep — 0 matches. This
 is a real gap in T-04, not a validation artifact; the digest repair under test (block D) is
-unaffected and passes. `run-unit-tests.sh`'s full run also exits 1, but the sole failure
+unaffected and passes. `run-unit-tests.py`'s full run also exits 1, but the sole failure
 (`test-check-plan-routes.py`, 6 sub-cases) is attributable to the worktree-vs-main-checkout
 `team-config.yaml` drift the dispatch pre-identified as environmental/out-of-scope, not to
 FEAT-52's diff (`team-config.yaml` does not appear in `git diff main...HEAD`). The scoped
@@ -78,7 +78,7 @@ carry it), not be silently absorbed here.
 | test-check-domain.py | 0 | 8 sub-suites, all green (12/12, 27/27, 20/20, 10/10, 30/30, 16/16, 38/38, 28/28, 11/11) |
 | test-gen-decisions-index.py | 0 | 14/14 |
 
-`bash .agents/skills/harness/bin/run-unit-tests.sh` (env cleared of `HARNESS_AGENT_TYPE` per repo
+`python3 .agents/skills/harness/bin/run-unit-tests.py` (env cleared of `HARNESS_AGENT_TYPE` per repo
 Gotcha G-07 — without that unset, `test-plan-merge.py` fails 11 checks unrelated to this diff):
 **exit 1**, 60 scripts declared (31 `UNIT_SCRIPTS` + 29 `INTEGRATION_SCRIPTS`), 1 file failed —
 `test-check-plan-routes.py` (6 sub-cases: `case_04_all_granted_exits_0`,
@@ -90,7 +90,7 @@ same cause: `DEVIATION .../worktree/.harness/team-config.yaml differs from
 the **main checkout's**, and the dispatch's own constraints flag the main checkout as a stale copy
 at identical paths. `team-config.yaml` is absent from `git diff main...HEAD` for this feature, so
 the failure is not attributable to FEAT-52's changes. **Scoped confirmation**: the matrix's actual
-required command, `run-unit-tests.sh --kind unit`, run in isolation, exits **0**, 35/35 scripts
+required command, `run-unit-tests.py --kind unit`, run in isolation, exits **0**, 35/35 scripts
 pass (including `test-inject-expertise.py` and `test-check-instruction-paths.py`).
 
 ## D. Repaired validator digest
@@ -110,7 +110,7 @@ pass (including `test-inject-expertise.py` and `test-check-instruction-paths.py`
    severity or finding is added, removed or re-rated here" — consistent with the appended block
    transcribing, not altering, the existing ruling (`ESCALATE`, `severity_max: med`).
 
-## E. State sweep (`check-state.sh`, worktree root, exit 1)
+## E. State sweep (`check-state.py`, worktree root, exit 1)
 
 **Zero VIOLATION lines mention FEAT-52.** The three VIOLATION lines present, verbatim:
 
@@ -146,7 +146,7 @@ only.**
 
 | Kind | State | Satisfied by |
 |---|---|---|
-| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit`, exit 0, 35/35 scripts (includes `test-check-instruction-paths.py` and `test-inject-expertise.py`, both new/changed by this feature) |
+| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind unit`, exit 0, 35/35 scripts (includes `test-check-instruction-paths.py` and `test-inject-expertise.py`, both new/changed by this feature) |
 
 `matrix_ok: true`.
 

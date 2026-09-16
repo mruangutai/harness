@@ -9,7 +9,7 @@ is out of reach this pass regardless (DEC-174 suspends the apply on `tests/**` t
 
 ## `_norm` call-site count (per instructions, counted not trusted)
 
-`grep -o '_norm(' check-domain.sh | wc -l` → **16** total occurrences; one is the `def _norm(path):`
+`grep -o '_norm(' check-domain.py | wc -l` → **16** total occurrences; one is the `def _norm(path):`
 line (1114), so **15 call sites**, not eleven: lines 1920, 1926, 1964, 1989, 2057, 2058, 2060,
 2061, 2062, 2072, 2087, 2091, 2103 (×1), 2104 (×1), 2232. All 15 predate this diff — the diff adds
 zero new `_norm` call sites (it adds `_checkout_root`, a sibling, and changes one `handoff_done_when.problems(...)`
@@ -18,7 +18,7 @@ discrepancy for the record, it does not change either finding below.
 
 ## Finding 1 — `_checkout_root` duplicates `_norm`'s comparison core
 
-- **file/line:** `.claude/skills/harness/bin/check-domain.sh:1151-1162` vs `:1114-1149` (`_norm`)
+- **file/line:** `.claude/skills/harness/bin/check-domain.py:1151-1162` vs `:1114-1149` (`_norm`)
 - **summary:** Both bodies do `import harness_boundary as _hb`; `_ck = _hb.checkout_relative(_claimed_abs(path))`;
   `if _ck is not None and _hb.real(_ck[0]) != _hb.real(root): return _ck[N]`; `except Exception: pass`.
   They are **not** byte-identical, though: `_norm` unconditionally computes `rel =

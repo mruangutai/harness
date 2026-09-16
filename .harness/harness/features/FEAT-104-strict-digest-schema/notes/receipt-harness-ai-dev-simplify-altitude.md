@@ -89,14 +89,14 @@ sound as built.
   not a proof-soundness one.
 - recommendation: **briefing-row**
 
-## F4 — `check-domain.sh` and `check-state.sh` each hand-roll the same step-schema loader
+## F4 — `check-domain.py` and `check-state.py` each hand-roll the same step-schema loader
 
-- file/line: `.claude/skills/harness/bin/check-domain.sh:1619-1629` (`import jsonschema` through
-  `_name_pattern = re.compile(...)`) and `.claude/skills/harness/bin/check-state.sh:1490-1499`
+- file/line: `.claude/skills/harness/bin/check-domain.py:1619-1629` (`import jsonschema` through
+  `_name_pattern = re.compile(...)`) and `.claude/skills/harness/bin/check-state.py:1490-1499`
   (`import jsonschema` through `_evidence_name = re.compile(...)`); shape source-of-truth is
   `.claude/skills/harness/bin/run-state-schema.json`, referenced independently by both.
 - The two-enforcement-point *architecture* itself is not the problem: write-time refusal
-  (`check-domain.sh`) plus at-rest reporting (`check-state.sh`) is the established harness pattern
+  (`check-domain.py`) plus at-rest reporting (`check-state.py`) is the established harness pattern
   for exactly this kind of invariant (DEC-150/DEC-180 already do this for `feature.yaml`/STATE.md
   caps), and at-rest auditing legitimately catches drift a write gate never saw (hand edits, older
   tooling, merges). That split is settled and out of scope to re-litigate.

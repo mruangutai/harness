@@ -7,8 +7,8 @@ verified are sound (REQ tracing, `depends_on` topology, no orphan REQs — confi
 the "reaches every route / survives its own predecessor" hunt turns up four real gaps the prior two
 rounds missed, two of them `high`: (1) T-02 adds new cases to `test-validate-digest.py` without
 touching a **pre-existing conflicting case** the new D-01 logic directly contradicts — the file will
-not pass its own `verify:` as specified; (2) T-03's worktree-binding narrows `check-domain.sh` only —
-its documented twin `bash-write-guard.sh` keeps today's unbound behavior, and that file's own header
+not pass its own `verify:` as specified; (2) T-03's worktree-binding narrows `check-domain.py` only —
+its documented twin `bash-write-guard.py` keeps today's unbound behavior, and that file's own header
 comment proves this exact bypass shape (`perl -pi` routing around a Write-side denial) already
 happened once in this repo's history (DEC-151); (3) a **blocking** open question from two prior
 review rounds — whether the platform can legitimately hand `validate-digest.py` an empty
@@ -35,12 +35,12 @@ guidance on which. Verified: line numbers checked directly against
 mentions this case.
 
 ### F-PP2 · high · T-03, D-03, D-04, REQ-03
-T-03's worktree-binding check is added only to `check-domain.sh`'s `domain_check()` (allow branch
+T-03's worktree-binding check is added only to `check-domain.py`'s `domain_check()` (allow branch
 `:835-841`, shared branch `:843-848` — anchors verified against source, exact). Governed-agent Bash
-writes take a **separate** code path: `bash-write-guard.sh` calls its own
-`harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")` (`bash-write-guard.sh:720`)
-with its own allow/shared handling, and T-03's `files:` list names only `check-domain.sh` — the new
-narrowing is never threaded there. `bash-write-guard.sh`'s own header states the exact bypass shape
+writes take a **separate** code path: `bash-write-guard.py` calls its own
+`harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")` (`bash-write-guard.py:720`)
+with its own allow/shared handling, and T-03's `files:` list names only `check-domain.py` — the new
+narrowing is never threaded there. `bash-write-guard.py`'s own header states the exact bypass shape
 this leaves open: *"Field incident: qa, denied a source edit by check-domain, made the same edit via
 `perl -pi` from Bash"* (DEC-151) — the codebase already has one proven instance of an agent routing
 around a Write-side denial through Bash. A governed agent denied by T-03's new refusal on `Write` can
@@ -49,8 +49,8 @@ check allows it exactly as before, because the worktree-binding narrowing lives 
 REQ-03's text carries no tool qualifier ("A governed agent's write of a feature artifact lands in the
 checkout…") — unlike REQ-04, which explicitly and honestly scopes itself to `Write`. No SC tests the
 Bash route (SC-03/SC-04 fire `tool_name: Write` only), and no `Verification gaps` bullet discloses it,
-though the file directly above (`check-domain.sh`'s own recent history, referenced from
-`bash-write-guard.sh:306-309`, *"Two guards, one rule, and I changed one of them"*) shows this project's
+though the file directly above (`check-domain.py`'s own recent history, referenced from
+`bash-write-guard.py:306-309`, *"Two guards, one rule, and I changed one of them"*) shows this project's
 own convention is to disclose exactly this kind of twin-guard divergence when it is deliberate. Here
 it reads as unconsidered, not disclosed-and-accepted.
 
@@ -102,16 +102,16 @@ VERDICT: FAIL
 DIGEST:
   headline: >-
     Two high findings the prior two rounds missed: T-02's own verify cannot pass against a
-    pre-existing conflicting test case, and T-03's worktree binding never reaches bash-write-guard.sh
+    pre-existing conflicting test case, and T-03's worktree binding never reaches bash-write-guard.py
     — the exact Bash-bypass shape this repo already fixed once for a different check (DEC-151).
   severity_max: high
   findings: 4
   must_fix:
     - "F-PP1 (T-01/T-02, D-01): test-validate-digest.py:738-739's pre-existing pass-through case contradicts the new discrimination and is not addressed by any task; T-02 cannot pass its own verify as specified."
-    - "F-PP2 (T-03, D-03/D-04, REQ-03): the worktree-binding narrowing is added to check-domain.sh only; bash-write-guard.sh's separate classify() call keeps today's unbound behavior for Bash writes, undisclosed."
+    - "F-PP2 (T-03, D-03/D-04, REQ-03): the worktree-binding narrowing is added to check-domain.py only; bash-write-guard.py's separate classify() call keeps today's unbound behavior for Bash writes, undisclosed."
   spec_violations:
     - { kind: omission, path: .claude/skills/harness/bin/test-validate-digest.py, ref: D-01 }
-    - { kind: omission, path: .claude/skills/harness/bin/bash-write-guard.sh, ref: REQ-03 }
+    - { kind: omission, path: .claude/skills/harness/bin/bash-write-guard.py, ref: REQ-03 }
   reviewed: "plan:.harness/harness/features/FEAT-50-run-artifact-integrity/plan.yaml"
   human_commits_in_scope: []
   open_questions:

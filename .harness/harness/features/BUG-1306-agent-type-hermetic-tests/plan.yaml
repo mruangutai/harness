@@ -31,7 +31,7 @@ decisions:
     because: Its environment read is deliberate issue-1103 defence-in-depth added after four demonstrated shell-form leaks past the hook's text prediction, and a test-mode escape hatch would add a bypass to an enforcement-adjacent guard.
     dec: none
   - id: D-04
-    choice: Explicitly dropped as over-building — a shared tests/integration hermetic helper, a mandatory-explicit-env rule at every call site, any tree-wide lint or gate on environment discipline, per-site edits to run_apply and the two Popens, and a central scrub in run_pool.py or run-unit-tests.sh.
+    choice: Explicitly dropped as over-building — a shared tests/integration hermetic helper, a mandatory-explicit-env rule at every call site, any tree-wide lint or gate on environment discipline, per-site edits to run_apply and the two Popens, and a central scrub in run_pool.py or run-unit-tests.py.
     because: The scrubbed-default helper and the explicit-env rule are bypassed by raw call sites; a central scrub in the pool turns the suite green while every file stays non-hermetic under the direct python3 tests/... invocation agents actually use, hiding the defect at the layer that would surface it.
     dec: none
   - id: D-05
@@ -257,7 +257,7 @@ tasks:
       explicit mapping is needed only when a case wants a specific identity.
 
       Do NOT change plan-merge.py. Do NOT add a helper shared with other test files. Do NOT edit
-      run_pool.py, run-unit-tests.sh, or any other test file. Do NOT add a new case: an in-process
+      run_pool.py, run-unit-tests.py, or any other test file. Do NOT add a new case: an in-process
       assertion that the variable is absent merely re-asserts the pop, and the child-process
       variant (a fresh interpreter spawned with the variable set) COULD be written but is declined
       on the Iron Law, since a test earns its place only where a plausible bug would fail it and

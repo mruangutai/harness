@@ -9,9 +9,9 @@ source_issues: [440]
 
 lanes:
   resolved_at: 772790be52774eafe2971f9c44400e18b2d54275
-  measurement: "Every row was MEASURED, not inferred: check-domain.sh --resolve was run on each path with HEAD at 772790be52774eafe2971f9c44400e18b2d54275, and the verbatim answer is quoted in each row's resolve field."
+  measurement: "Every row was MEASURED, not inferred: check-domain.py --resolve was run on each path with HEAD at 772790be52774eafe2971f9c44400e18b2d54275, and the verbatim answer is quoted in each row's resolve field."
   rows:
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "DEC-174 carve-out; the measured grant is overridden because the state gate cannot vouch for its own change - its green is the thing under test."
@@ -27,19 +27,19 @@ lanes:
 decisions:
   - id: D-01
     choice: "The implementation, its regression cases and its red proof are ONE task, and test-first ordering is kept INSIDE that task: the case is written and observed red against the pre-change script before the check is added."
-    because: "the verify that proves either half needs both halves present, so splitting them parks a red gate between two tasks - the grounds FEAT-24 T-07 and BUG-1305 T-03 already carried check-state.sh with test-check-state.py in one task."
+    because: "the verify that proves either half needs both halves present, so splitting them parks a red gate between two tasks - the grounds FEAT-24 T-07 and BUG-1305 T-03 already carried check-state.py with test-check-state.py in one task."
     dec: none
   - id: D-02
     choice: "The new invariant is INV-37."
-    because: "INV-36 is the highest allocated number and a search for INV-37 and INV-38 across check-state.sh and tests/ returns nothing; those two files are the only ones in the repository that carry invariant numbers at all."
+    because: "INV-36 is the highest allocated number and a search for INV-37 and INV-38 across check-state.py and tests/ returns nothing; those two files are the only ones in the repository that carry invariant numbers at all."
     dec: none
   - id: D-03
     choice: "No DECISIONS.md or DECISIONS-INDEX.md entry is owed for INV-37, and no task in this plan touches either file."
-    because: "BUG-1305 added INV-36 with no decisions entry, and no document outside check-state.sh and its test names an invariant number - a doc row here would create the first such reference and a second home for the rule."
+    because: "BUG-1305 added INV-36 with no decisions entry, and no document outside check-state.py and its test names an invariant number - a doc row here would create the first such reference and a second home for the rule."
     dec: none
   - id: D-04
-    choice: The check is hosted inside the existing INV-15 branch and is fed by its own side structure - a dict keyed on the feature DIRECTORY PATH mapping run id to the LIST of verdicts every matching runs[] entry records (D-07 refines this from the single last-wins value first written), built in the earlier feature.json loop beside the unconditioned runs.append((...)) at check-state.sh:650-652, never beside code_reviewing_runs.append which is validator-only. The runs 3-tuple is not widened.
-    because: "INV-15 has already computed complete, host-in-LEADS, digest presence and structural validity, and the comment at check-state.sh:640-642 pins the tuple at three because INV-7 and INV-22 unpack exactly three; keying on the directory path rather than the bare feature name keeps two repos under one control plane from colliding."
+    choice: The check is hosted inside the existing INV-15 branch and is fed by its own side structure - a dict keyed on the feature DIRECTORY PATH mapping run id to the LIST of verdicts every matching runs[] entry records (D-07 refines this from the single last-wins value first written), built in the earlier feature.json loop beside the unconditioned runs.append((...)) at check-state.py:650-652, never beside code_reviewing_runs.append which is validator-only. The runs 3-tuple is not widened.
+    because: "INV-15 has already computed complete, host-in-LEADS, digest presence and structural validity, and the comment at check-state.py:640-642 pins the tuple at three because INV-7 and INV-22 unpack exactly three; keying on the directory path rather than the bare feature name keeps two repos under one control plane from colliding."
     dec: none
   - id: D-05
     choice: "The task verify runs ONLY the new case, by importing tests/integration/test-check-state.py and calling the case function; the whole file is left to the qa gate."
@@ -91,7 +91,7 @@ panel:
     reason: none
     artifact: none
     note: RAN, and was NOT skipped. Its review completed; the write of notes/review-harness-code-reviewer-planpanel-c1.md
-      was refused by check-domain.sh claim_worktrees() unioning a stale live harness-code-reviewer
+      was refused by check-domain.py claim_worktrees() unioning a stale live harness-code-reviewer
       claim from FEAT-05-factory-doc-smoke. Its findings survive verbatim in the panel
       digest and its full prose in history://Bug440Plan.MilitaryAmphibian.ScopeReview.
       Harness defect, carried up as the lead's Q1.
@@ -104,7 +104,7 @@ panel:
       sequenced before the panel: pm''s goal-check of the drafted plan against the
       operator''s stated intent. Recorded for continuity; it is not a panel step and
       it is NOT a skip.'
-  reader_coverage_note: 'All three readers INV-32 (check-state.sh:534-547) expects
+  reader_coverage_note: 'All three readers INV-32 (check-state.py:534-547) expects
     are recorded. The plan-panel team declares two steps, should-not-exist and scope,
     which is why the validator lead''s digest named two; the goalcheck reader is an
     orchestrator-sequenced product segment rather than a team step, it ran for this
@@ -117,7 +117,7 @@ panel:
     reader: scope
     severity: med
     summary: T-01 intent anchors the run_verdicts side-dict 'beside the existing code_reviewing_runs.append(...)',
-      a line gated by `if _squad == "validator"` (check-state.sh:663-666), but run_verdicts
+      a line gated by `if _squad == "validator"` (check-state.py:663-666), but run_verdicts
       must capture every squad.
     consequence: 'A literal reading nests the recording inside the validator-only
       conditional, so product-squad runs are never compared - concretely 2 of the
@@ -128,7 +128,7 @@ panel:
       gives this anchor no equivalent guard.'
     disposition: resolved
     resolution: 'RESOLVED by plan text, not by a task: T-01 intent step 1 now anchors
-      the run_verdicts recording to the UNCONDITIONED runs.append((...)) at check-state.sh:650-652
+      the run_verdicts recording to the UNCONDITIONED runs.append((...)) at check-state.py:650-652
       and states in terms that no literal reader can nest it in the validator-only
       branch at :665-666. Verified at source by pm on 2026-09-06. No resolved_by:
       no task resolves it.'
@@ -156,7 +156,7 @@ panel:
       the operator contract quantifies over ENTRIES - a shadowed stale row keeps the
       gate green over a live contradiction.
     consequence: runs[] rows are list items, so the strict loader's DuplicateKeyError
-      (check-state.sh:1446-1455) never fires on two rows sharing an id, and no invariant
+      (check-state.py:1446-1455) never fires on two rows sharing an id, and no invariant
       checks runs[] id uniqueness (INV-8's set at :823-826 only tests directory existence).
       A corrective row appended beside a wrong one leaves both on disk; the dict keeps
       the last, INV-37 stays silent, and a consumer reading the first row still sees
@@ -230,15 +230,15 @@ panel:
     by the orchestrator on 2026-09-06.'
 tasks:
   - id: T-01
-    title: Add INV-37 to check-state.sh - a completed lead run's digest verdict must equal its feature.json entry
+    title: Add INV-37 to check-state.py - a completed lead run's digest verdict must equal its feature.json entry
     traces: [REQ-01, REQ-02, REQ-03, REQ-04]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - check-state.sh is the state gate run at every /harness entry and its own tests ride the carve-out with it; the harness plans changes to its enforcement layer and does not dispatch them to a squad."
+    execution_reason: "DEC-174 carve-out - check-state.py is the state gate run at every /harness entry and its own tests ride the carve-out with it; the harness plans changes to its enforcement layer and does not dispatch them to a squad."
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - tests/integration/test-check-state.py
       - .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md
     verify: |
@@ -256,9 +256,9 @@ tasks:
       the 298 contradict their entry. Nothing compares them today.
 
       ORDER OF WORK, and it is not negotiable: write the test case FIRST, observe it RED against the
-      pre-change check-state.sh, record that red proof, and only then add the check.
+      pre-change check-state.py, record that red proof, and only then add the check.
 
-      ---- 1. THE SIDE STRUCTURE (check-state.sh, the feature.json loop at :604-666)
+      ---- 1. THE SIDE STRUCTURE (check-state.py, the feature.json loop at :604-666)
 
       Before the loop, initialise `run_verdicts = {}`.
 
@@ -291,7 +291,7 @@ tasks:
       feature name: the INV-15 loop's glob is `H + "/*/features/*/runs/*/state.yaml"`, so two repos
       under one control plane can carry the same feature name.
 
-      ---- 2. THE CHECK (check-state.sh, inside the INV-15 branch at :1516-1535)
+      ---- 2. THE CHECK (check-state.py, inside the INV-15 branch at :1516-1535)
 
       In that branch, `complete` and `_host in LEADS` are already computed, `dg` is already resolved,
       and the digest is already read and validated. Two changes:
@@ -361,7 +361,7 @@ tasks:
       exists in a worktree (run directories are untracked; this worktree's feature tree has none).
       Build the digest text in the test, import validate-digest.py from `_anchor_bin` the way this
       file already imports siblings, and ASSERT `validate("lead", text) == []` for both the PASS and
-      FAIL variants before asserting anything about check-state.sh. Without that assertion a fixture
+      FAIL variants before asserting anything about check-state.py. Without that assertion a fixture
       that drifts out of validity makes the whole case vacuously green. The lead schema fields are
       branch, cycles_used, escalations, members, must_fix, sc_status, steps_run, team plus the
       universal contract fields; derive the minimal passing text by running
@@ -395,9 +395,9 @@ tasks:
 
       Prove the new case FAILS against the pre-change script. Use `isolated_bin(dest_root)`
       (.claude/skills/harness/bin/isolated_bin.py:8-14) to copy the whole bin tree into a temp root so
-      sibling imports resolve, then overwrite THAT COPY's check-state.sh with
-      `git show 772790be52774eafe2971f9c44400e18b2d54275:.claude/skills/harness/bin/check-state.sh`,
-      captured through python and written with python - bash-write-guard.sh denies shell redirects,
+      sibling imports resolve, then overwrite THAT COPY's check-state.py with
+      `git show 772790be52774eafe2971f9c44400e18b2d54275:.claude/skills/harness/bin/check-state.py`,
+      captured through python and written with python - bash-write-guard.py denies shell redirects,
       cp and mv. NEVER write the mutant into the live .claude/skills/harness/bin/. Run the new case
       with `CHECK_STATE_BIN` (read at test-check-state.py:22) pointed at the copied script.
 
@@ -407,5 +407,5 @@ tasks:
       `CHECK_STATE_BIN` invocation, the VERBATIM failing output, and - at column 0, on its own line - a
       line beginning exactly `RESULT: RED` that then names the case and the value it returned, e.g.
       `RESULT: RED - case_bug440_digest_verdict_reconciliation() returned False against the pre-change
-      check-state.sh`. The task `verify:` greps for all four, so a heading-only stub no longer passes
+      check-state.py`. The task `verify:` greps for all four, so a heading-only stub no longer passes
       the task's own gate; write the line only if the run was genuinely red. Leave no temp copy behind in the repo before review_sha is pinned.

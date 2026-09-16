@@ -46,8 +46,8 @@ python3 .agents/skills/harness/bin/gen-decisions-index.py --check
 `.agents/skills/harness/bin/` and `.claude/skills/harness/bin/`). It was deliberately deleted:
 `DECISIONS.md` **DEC-188** ("A contradicted decision is struck, not marked: detection is replaced by
 deletion") states plainly "`bin/check-docs.sh` is deleted, the INV-10 block is out of
-`check-state.sh`... and there is no replacement mechanism — 'the repo loses the only mechanism' that
-detected stale cross-references." `check-state.sh` itself confirms at its own INV-10 removal comment:
+`check-state.py`... and there is no replacement mechanism — 'the repo loses the only mechanism' that
+detected stale cross-references." `check-state.py` itself confirms at its own INV-10 removal comment:
 "It ran check-docs.sh, the propagation checker, which no longer exists."
 
 Separately, `gen-decisions-index.py --check` is also broken on its own terms: the script's module

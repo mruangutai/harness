@@ -10,7 +10,7 @@ order, no `verify:` asserting something a predecessor deletes.
 
 **1. `_checkout_root` correctness across the four cases, named callers.**
 Confirmed correct. There is exactly one call site of `shape_problems` — the loop at
-`check-domain.sh:2255-2257` — fed by five `targets`-construction sites, and **all five pass a real,
+`check-domain.py:2255-2257` — fed by five `targets`-construction sites, and **all five pass a real,
 non-`None` `absolute_path`**, never a literal `None`: the Edit-identity-witness branch
 (`:2044`, `_claimed_abs(target)`), the Edit-reconstructed-content branch (`:2073`,
 `_claimed_abs(target)`), the PRE Write branch (`:2077-2078`, `_claimed_abs(target)`), the POST-with-

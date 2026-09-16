@@ -70,6 +70,6 @@ Available Tools (default-enabled unless noted):
   ask           - Ask user questions (interactive mode only)
 ```
 
-The statement at `check-domain.sh:1931` that POST sees `NotebookEdit` is vacuous on this host:
+The statement at `check-domain.py:1931` that POST sees `NotebookEdit` is vacuous on this host:
 the host cannot emit that tool name. No `## Reported` section is owed because the measured result
 is an absent route, not a reachable unguarded route.

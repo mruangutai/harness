@@ -4,7 +4,7 @@
   `gen-decisions-index.py --check` through a full plan cycle and an architecture review; the tool
   answers `unrecognized argument(s): --check`, exits 2, and prints the real form
   (`--stdout | diff - docs/harness/DECISIONS-INDEX.md`). Nothing in check-plan-routes.py or
-  check-state.sh executes a `verify:` string, so a non-existent flag is invisible until the doer
+  check-state.py executes a `verify:` string, so a non-existent flag is invisible until the doer
   runs it. Running each new verify block before shipping the plan is what caught it.
 - 2026-08-11: a multi-clause `verify:` block separated by newlines reports only the LAST clause's
   status if the runner executes it as one shell invocation without `set -e`. On T-07 that would
@@ -16,7 +16,7 @@
   distribution. Replaced with one `grep -E "^- DEC-NNN " file | grep -q PHRASE` per row.
 - 2026-08-11: `lanes.resolved_at` was `d97f5ea`, which `git merge-base --is-ancestor` says is NOT an
   ancestor of HEAD (`a29ad06`) — it exists in the object store but is off this line. `git diff`
-  between the two over `check-domain.sh` and `check-state.sh` is empty, so the decision resting on
+  between the two over `check-domain.py` and `check-state.py` is empty, so the decision resting on
   those files survived, but the sha would not have resolved for a later reader on this branch.
   SC-03's board measurement is still labelled `d97f5ea` by operator instruction: that one is a
   timestamp for a live `gh` measurement, not a code anchor.

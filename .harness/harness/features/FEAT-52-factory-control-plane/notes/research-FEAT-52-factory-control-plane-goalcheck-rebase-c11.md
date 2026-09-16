@@ -13,12 +13,12 @@ The rebase that closed the collision opened a bigger one. `DEC-213` makes the te
 kind, and FEAT-52's two test files are still under `bin/`:
 
 ```
-run-unit-tests.sh --check-layout  -> exit 2
+run-unit-tests.py --check-layout  -> exit 2
 MISCONFIGURED: test-shaped file remains under bin: .claude/skills/harness/bin/test-anchor-directions.py
 MISCONFIGURED: test-shaped file remains under bin: .claude/skills/harness/bin/test-check-instruction-paths.py
 ```
 
-The layout delegation runs **before any test** (`run-unit-tests.sh:33-42`), so at HEAD **no kind
+The layout delegation runs **before any test** (`run-unit-tests.py:33-42`), so at HEAD **no kind
 runs at all** — unit, integration or all. Five criteria (SC-03, SC-04, SC-05, SC-06, SC-11) name
 those two files as their carriers, and the qa gate cannot pass for any change type while the tree is
 MISCONFIGURED. Both suites are green when invoked by hand (`test-check-instruction-paths.py` 16 PASS,
@@ -52,8 +52,8 @@ kind, so the declared label is false at HEAD. Substance is proven; the label is 
 Suites run by me at HEAD (tracked tree clean apart from my own notes/observations,
 `HARNESS_AGENT_TYPE` unset): `test-inject-expertise.py` 21 ok, `test-dispatch-guard.py` 48 ok,
 `test-inflight-registry.py` 126 ok, `test-check-domain.py` 301 ok, `test-suite-layout.py` 20 PASS —
-all exit 0. `test-gen-decisions-index.py` **exit 1**, one FAIL. `run-unit-tests.sh --check-layout`
-**exit 2**. `check-state.sh` exit 1, but both VIOLATIONs are FEAT-51's; FEAT-52 carries notes only
+all exit 0. `test-gen-decisions-index.py` **exit 1**, one FAIL. `run-unit-tests.py --check-layout`
+**exit 2**. `check-state.py` exit 1, but both VIOLATIONs are FEAT-51's; FEAT-52 carries notes only
 (five unrecorded run dirs).
 
 ## Blockers, criterion-level
@@ -72,7 +72,7 @@ all exit 0. `test-gen-decisions-index.py` **exit 1**, one FAIL. `run-unit-tests.
 
 ## REQ coverage
 
-REQ-01 → T-03/T-14 (`inject-expertise.sh` control-plane block; proven). REQ-02 → T-04..T-08, T-10,
+REQ-01 → T-03/T-14 (`inject-expertise.py` control-plane block; proven). REQ-02 → T-04..T-08, T-10,
 T-11 — the five canonical sites are correctly anchored at HEAD (`test-anchor-directions.py` 7/7 by
 hand), but its family-5 half is still the one SC-06 cannot prove. REQ-03 → SC-07. REQ-04 → T-02,
 T-12 (checker + enforced `integration` step; the checker's own suite is currently outside every
@@ -83,7 +83,7 @@ blockers are evidence, location and record defects.
 
 1. Move both test files into `tests/unit/` (their criteria declare `unit`, and `unit`/`integration`
    is the only discoverable pair), fix their `HERE`-relative `CHECK`/`REPO_ROOT` constants for the
-   new depth, and confirm `run-unit-tests.sh --check-layout` exits 0.
+   new depth, and confirm `run-unit-tests.py --check-layout` exits 0.
 2. Restore SC-06's deleted half in `test-check-instruction-paths.py`: the `product_cwd`
    product-shaped temp checkout, and the placeholder-stripped
    `not os.path.exists(<product_cwd>/.agents/skills/harness-systematic-debugging/SKILL.md)`
@@ -96,7 +96,7 @@ blockers are evidence, location and record defects.
 5. Re-pin `review_sha` to the resulting HEAD and re-take **SC-03, SC-04, SC-05, SC-06, SC-09,
    SC-11, SC-12, SC-14** only.
 
-Advisory, not gating, not covered by any SC: `dispatch-guard.sh:175-176` carries the
+Advisory, not gating, not covered by any SC: `dispatch-guard.py:175-176` carries the
 `AmbiguousWorktree` refusal branch, and `test-dispatch-guard.py` still has no case for it — the
 resolver side is covered (`test-inflight-registry.py:1041`), the guard side is not. Worth folding
 into step 3.

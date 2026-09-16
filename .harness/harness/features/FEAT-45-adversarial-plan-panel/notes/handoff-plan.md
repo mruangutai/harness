@@ -13,7 +13,7 @@ the main session does T-01 (harness-documentor, `depends_on: []`) become dispatc
 
 - The guard blocks a lead from PASSING `model:` and does NOT strip a dispatched agent's own
   frontmatter pin; it exits 0 for any non-`harness-` target. So a lead spawning a self-pinning
-  reader without passing `model:` gets that reader's model — `dispatch-guard.sh:41-51` and its own
+  reader without passing `model:` gets that reader's model — `dispatch-guard.py:41-51` and its own
   comment "that pin is org design" — verified-at b8777df. THIS REVERSES the old note's line
 - `fable-advisor` self-pins `model: anthropic/claude-fable-5` and is read-only —
   `~/.omp/agent/agents/fable-advisor.md` frontmatter — verified-at b8777df
@@ -49,7 +49,7 @@ the main session does T-01 (harness-documentor, `depends_on: []`) become dispatc
 - Do NOT use `plan-merge.py` to CHANGE a value — exit 8 on an `approval:` key, exit 7 on any
   differing task; it is ADD-ONLY — pm measured across all three cycles
 - Do NOT site the panel RESULT under `approval:` — `approval_guard` spans the whole YAML key range
-  and locks pm out of every sub-key — `check-domain.sh:571-575` — eng-squad measured
+  and locks pm out of every sub-key — `check-domain.py:571-575` — eng-squad measured
 
 ## Working set
 

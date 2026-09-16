@@ -8,9 +8,9 @@ security-reviewer or ui-reviewer artifact exists anywhere in the feature dir bef
 
 ## 1. The regex/segment-filter claim — verified TRUE, not over- or understated
 
-`inject-expertise.sh:27` (`^harness-[a-z0-9-]+$`) rejects every character that traversal or
+`inject-expertise.py:27` (`^harness-[a-z0-9-]+$`) rejects every character that traversal or
 injection needs: `/`, `.`, `*`, `;`, `` ` ``, `$`, space, quotes are all outside `[a-z0-9-]`. Traced
-every use of `$agent` (grep, 5 sites, `inject-expertise.sh:27,32,33,68`) — all quoted, none reach
+every use of `$agent` (grep, 5 sites, `inject-expertise.py:27,32,33,68`) — all quoted, none reach
 `eval`/subprocess. **Path traversal and glob/command injection via `$agent` are closed**, not by
 convention but by the character class being mathematically incompatible with the needed
 metacharacters. Confirmed against `test-inject-expertise.py` case12's four hostile values
@@ -27,7 +27,7 @@ stray such as `.harness/backup/expertise/harness-qa.md` from being injected into
 I verified this independently before reading D-01 (same conclusion, same file). **The claim is
 accurate as stated — neither overstated nor understated.** This is an authorization question, not a
 character-hygiene question, and the two are correctly kept separate in the comments at
-`inject-expertise.sh:22-26`.
+`inject-expertise.py:22-26`.
 
 ## 2. Ordering — validation runs before any path is built. No bug.
 
@@ -40,21 +40,21 @@ validate-before-construct question the dispatch asked about, and it holds.
 ## 3. Write authorization — the 16 new grants do NOT create a cross-agent escalation
 
 Each new `team-config.yaml` line is `.harness/*/expertise/harness-<own-name>.md` — wildcard on the
-*repository segment*, literal on the agent name. `check-domain.sh` delegates matching to
+*repository segment*, literal on the agent name. `check-domain.py` delegates matching to
 `harness_boundary.py:glob_to_re`, which translates bare `*` to `[^/]*` (does not cross `/`) —
 confirmed by that file's own comment (`:43-46`) explaining why `fnmatch` was rejected for exactly
 this reason. So the wildcard can only ever match **one** path segment (the repo name), never a
 deeper path, and the agent-name field of every grant is a literal string. Result: agent X can write
 `.harness/<any-single-segment>/expertise/harness-X.md` and nothing else — it cannot write another
 agent's file, craft or repository tier. **No grant is wider than intended; this is not an
-authorization defect.** (`dev-ops`'s pre-existing Bash bypass of `check-domain.sh` entirely, DEC-85,
+authorization defect.** (`dev-ops`'s pre-existing Bash bypass of `check-domain.py` entirely, DEC-85,
 is unchanged by this diff — it already had unrestricted write power before repository tier existed,
 so the new file class doesn't meaningfully widen that specific sharp edge.)
 
 ## 4. Context poisoning / cross-repository bleed — real, tested, and already a signed decision (D-01)
 
 Because a lower-trust agent cannot write a higher-trust agent's Expertise file (§3), there is no
-new **cross-agent** poisoning path. There is a real **cross-repository** one: `inject-expertise.sh`
+new **cross-agent** poisoning path. There is a real **cross-repository** one: `inject-expertise.py`
 globs `.harness/*/expertise/<agent>.md` and injects **every** matching segment on **every** spawn,
 with no way to know which repository the spawn is for (`SPEC.md` says this explicitly). Proven live
 by `test-inject-expertise.py` case2: two segments ("harness" and "kaya") both fire simultaneously
@@ -81,7 +81,7 @@ entry (`.harness/harness/expertise/harness-orchestrator.md` O-01, moved verbatim
 `OQ-02`) already states there is **no lineage protection** on any Expertise file — "an undeclared
 edit... rides any cluster commit and only a human notices" — and repository tier multiplies the
 count of such files per agent from 1 to 1+N without closing that gap. Human diff review remains the
-only backstop for content-level (semantic) poisoning; `check-expertise.sh` checks structure/budget
+only backstop for content-level (semantic) poisoning; `check-expertise.py` checks structure/budget
 only, never meaning.
 
 ## 5. Fail-open cost — unchanged, inherited, correctly scoped
@@ -94,9 +94,9 @@ as a finding.
 
 ## 6. Data exposure via stdout/stderr — none beyond intended consumer
 
-`inject-expertise.sh` emits only the querying agent's own craft + its own repository-tier files +
+`inject-expertise.py` emits only the querying agent's own craft + its own repository-tier files +
 the codebase index — the injected consumer is exactly the spawned agent (by design). No path,
-secret, or unrelated-agent content in its output. `check-expertise.sh`'s new advisory lines
+secret, or unrelated-agent content in its output. `check-expertise.py`'s new advisory lines
 (`:150-156`) print only the path already supplied as an argv by the caller and a token already
 present in the file being linted — nothing new is disclosed to a party who didn't already have read
 access. Grepped the full diff for credential-shaped strings (API keys, tokens, private-key headers)
@@ -104,7 +104,7 @@ access. Grepped the full diff for credential-shaped strings (API keys, tokens, p
 
 ## 7. Advisory scan never gates — confirmed in code
 
-`check-expertise.sh`'s repository-token advisory list is appended to a separate `advisories` list,
+`check-expertise.py`'s repository-token advisory list is appended to a separate `advisories` list,
 never to `problems`, and `sys.exit(1 if failed else 0)` reads only `failed`. The advisory scan
 structurally cannot flip the exit code — confirmed by reading the control flow, not by re-running
 the (already green) test suite.
@@ -114,10 +114,10 @@ the (already green) test suite.
 | boundary | STRIDE | mitigated |
 |---|---|---|
 | `SubagentStart` payload `agent_type` -> path construction / header | T, I | true — regex closes metacharacter classes; validated before any path use |
-| `team-config.yaml` repository-tier grant -> `check-domain.sh` write | E | true — `[^/]*` single-segment match verified in `harness_boundary.py`, agent-name field literal |
+| `team-config.yaml` repository-tier grant -> `check-domain.py` write | E | true — `[^/]*` single-segment match verified in `harness_boundary.py`, agent-name field literal |
 | Repository-tier files -> injected across all segments into every spawn | I | false, precondition-absent — mechanism proven live (case2), signed accepted risk (D-01), only 1 real segment exists today |
 | Expertise file content -> semantic/prompt injection into a future spawn | T, I | false, pre-existing (O-01), blast radius widened by file count, sole control is human PR review |
-| `dev-ops` Bash bypass of `check-domain.sh` | E | false, pre-existing (DEC-85), unchanged by this diff |
+| `dev-ops` Bash bypass of `check-domain.py` | E | false, pre-existing (DEC-85), unchanged by this diff |
 
 ## Not re-derived (already settled per dispatch)
 

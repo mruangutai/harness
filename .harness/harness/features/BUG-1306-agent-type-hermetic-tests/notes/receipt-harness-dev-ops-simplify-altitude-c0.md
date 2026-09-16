@@ -7,7 +7,7 @@
 `tests/integration/test-plan-merge.py` is started by `.claude/skills/harness/bin/run_pool.py:59-63`
 (`run_one`): `subprocess.run([sys.executable, path], stdout=..., stderr=..., text=True)` — **no
 `env=` kwarg**, so it inherits the calling process's full ambient environment for every unit and
-integration test file. `run_pool.py` is invoked by `.claude/skills/harness/bin/run-unit-tests.sh:47`
+integration test file. `run_pool.py` is invoked by `.claude/skills/harness/bin/run-unit-tests.py:47`
 (`exec python3 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]}"`), which is
 itself the sole `KIND=all|unit|integration` entry point (lines 16-31). This is the one place all
 test processes actually start; it is not scrubbing `HARNESS_AGENT_TYPE` or anything else.

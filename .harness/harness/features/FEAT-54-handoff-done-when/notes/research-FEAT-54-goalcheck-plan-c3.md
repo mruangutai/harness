@@ -49,7 +49,7 @@ builds its own fixture root … No case in this file runs a gate over the real r
 none compares the mtime or bytes of a real feature note."*
 `BRIEF.md:89-99` SC-04: claim text `:89-91` **byte-identical** (the diff's only removed line is the
 old `verify: automated        evidence: integration`); now *"Verified at REVIEW TIME, not by a
-permanent suite case: at `review_sha` … the reviewer runs `bash …/check-state.sh` and records in the
+permanent suite case: at `review_sha` … the reviewer runs `python3 …/check-state.py` and records in the
 review record its exit status and that no reported line names `Done when`"*, `verify: inspection`.
 
 **My own independent sweep** (regex over both files for `mtime|byte-identical|real repository|real
@@ -59,7 +59,7 @@ corpus|live corpus|real tree|real feature note`), reported as mine, not inherite
 |---|---|---|
 | `plan.yaml:519-531` T-06(g) | fixture-root scan + fixture-note mtime/byte identity | no — this is the remedy |
 | `plan.yaml:543` T-06 tail | negative assertion | no |
-| `plan.yaml:566` T-07 `verify` | runs `check-state.sh` over the real tree | **no — a one-shot task verify, not a permanent suite case.** PF-570b9c87's subject was *"the permanent integration suite"*; T-07's verify runs once when the task lands |
+| `plan.yaml:566` T-07 `verify` | runs `check-state.py` over the real tree | **no — a one-shot task verify, not a permanent suite case.** PF-570b9c87's subject was *"the permanent integration suite"*; T-07's verify runs once when the task lands |
 | `plan.yaml:783-803` T-11 `verify` | reads this feature's own real notes | no — no gate run over the corpus, no mtime/byte comparison |
 | `plan.yaml:725` T-09 | *"byte-identical"* of two `harness.json` keys | no — not a note, not a scan |
 | `plan.yaml:869` T-12(a) *"REGISTERED ON THE REAL TREE"* | reads the real `harness.json` config | no — config, not the handoff corpus; pre-existing `case_1` shape |
@@ -134,7 +134,7 @@ lines are the expected DEC-174 carve-out output.
 | §5 every cited anchor live | **holds** — no anchor was edited; `omp_session_accessor.exclude` re-verified today at source |
 | F-01 PF-4205e7e2 `disposition: open` | **stale** — now reads `ACCEPTED by the operator … implemented as decision D-10` (`plan.yaml:29-32`). Not `resolved`/`resolved_by` in schema form; the `panel:` key is out of scope this run |
 | F-02 the ruling is nowhere in `approval.rulings` | **still holds** — `approval:` is `status: pending` and nothing else. Main-session write |
-| F-03 REQ-09 uncarried for `check-domain.sh`'s normative comment | **resolved** — T-04 `plan.yaml:408-423` now names both prose sites by content |
+| F-03 REQ-09 uncarried for `check-domain.py`'s normative comment | **resolved** — T-04 `plan.yaml:408-423` now names both prose sites by content |
 | F-04 T-04 double-reports a missing section | **still holds**, advisory (`plan.yaml:399-400` + `:401-404`) |
 | F-05 `research-FEAT-54-planrevision-c2.md:66` stale on `FEAT-52` | **still holds**, advisory, outside my write scope |
 | F-06 three panel findings open | **partly stale** — PF-570b9c87 and PF-918326 are now ruled and implemented, but their `disposition:` still reads `open - no operator ruling exists`, as does PF-d0ea19ff's and PF-bd92960a's. Expected: `panel:` transcription is a later run |

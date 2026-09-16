@@ -25,7 +25,7 @@
   precisely the "provably in flight" marker the team-runner defines, and I read it as stale rather
   than as current. Cost: one full member run (~100k tokens) duplicating work already done.
 
-- 2026-08-19: I passed `model: opus` in the T-03 dispatch and `dispatch-guard.sh` blocked it
+- 2026-08-19: I passed `model: opus` in the T-03 dispatch and `dispatch-guard.py` blocked it
   (DEC-152/155). My predecessor lead made the identical error on the identical dispatch one run
   earlier (recorded in `runs/2026-08-19-05-eng/digest.md`, "Dispatch note"), and my own Expertise
   already carries G-16 telling me to audit dispatch parameters before sending. A gotcha I hold
@@ -54,7 +54,7 @@
   on a re-dispatch of the same task, two agents share that path.
 
 - 2026-08-19 (run 08, c4): THIRD consecutive `model:` block on this same T-03 dispatch — I passed
-  `model: sonnet` and `dispatch-guard.sh` blocked it, after two prior leads did the same with
+  `model: sonnet` and `dispatch-guard.py` blocked it, after two prior leads did the same with
   `model: opus`. The discriminating fact I can now add: the two earlier occurrences are recorded
   ONLY in this observations log and in a run digest, and **observations are never injected at
   spawn** — so a fresh lead cannot be warned by them. What IS injected is Expertise G-16 ("audit

@@ -205,7 +205,7 @@ the six D-14 baseline cases in `test-check-plan-routes.py` (`case_04_all_granted
 `case_17_midpattern_wildcard_grant_exits_0`, `case_19d_explicit_path_unaffected_by_the_root_guard`,
 `case_19d2_explicit_path_with_no_tasks_still_exits_0`), confirmed name-for-name by an isolated run
 of that file, plus `test-check-omp-port.py`'s `case_live_tree_passes` — no eighth failure.
-`run-unit-tests.sh --kind integration` → **EXIT=1**.
+`run-unit-tests.py --kind integration` → **EXIT=1**.
 
 **6. `git status --porcelain`** → only `.claude/skills/harness/bin/sync-command-adapters.py`,
 `tests/integration/test-check-omp-port.py`, `tests/integration/test-sync-command-adapters.py`

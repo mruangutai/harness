@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-32, INV-33, INV-36 and INV-37: the validator run record.
+"""check-state.py INV-32, INV-33, INV-36 and INV-37: the validator run record.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). A plan approved with
 no complete panel result (INV-32, plus BUG-1071's era guard), a review_sha that is stale
@@ -253,7 +253,7 @@ def _inv33_repo(tmp):
     """A real git repository at `tmp`, onboarded, with a validator run recorded.
 
     THE VALIDATOR RUN AND THE harness.json ARE BOTH REQUIRED, and neither is decoration:
-    check-state.sh exits 1 with "project not onboarded" before ANY invariant runs, so a bare
+    check-state.py exits 1 with "project not onboarded" before ANY invariant runs, so a bare
     directory would exit non-zero while printing no invariant line at all — and these cases
     would then be unfalsifiable.
     """
@@ -273,30 +273,33 @@ def _inv33_commit(tmp, message="c"):
 
 
 def _inv33_set_sha(feat_dir, sha, validator_run=True):
-    """Append the pin to the fixture's feature.json as TEXT.
-
-    make_fixture writes that file in YAML (harness_yaml is what check-state.sh reads it with),
-    so a json.load round-trip raises — measured, not guessed. Appending keys is also the only
-    edit that leaves the builder's own shape untouched.
-
-    THE VALIDATOR RUN IS WHAT MAKES INV-6 SILENT HERE. INV-6 fires when a validator run exists
-    and the pin is missing; these cases carry a real pin, so INV-6 stays quiet either way — but
-    including the run keeps the fixture a realistic document rather than one that avoids INV-6
-    by having no runs at all.
-    """
+    """Set the pin and optional validator run in the strict JSON fixture."""
     fj = os.path.join(feat_dir, "feature.json")
-    extra = f"review_sha: {sha}\n"
+    with open(fj, encoding="utf-8") as source:
+        document = json.load(source)
+    document["review_sha"] = sha
     if validator_run:
-        extra += "runs:\n  - id: r1\n    squad: validator\n    verdict: PASS\n"
-    with open(fj, "a") as f:
-        f.write(extra)
+        document["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS"}]
+    with open(fj, "w", encoding="utf-8") as target:
+        json.dump(document, target)
+        target.write("\n")
 
 
 def _inv33_plan(feat_dir, body, station=None):
     lines = ["schema: plan/1", "feature: FEAT-TEST"]
     if station is not None:
         lines.append(f"status: {station}")
-    lines += ["tasks:", "  - id: T-01", f"    change_type: {body}"]
+    lines += [
+        "tasks:",
+        "  - id: T-01",
+        "    title: fixture task",
+        f"    change_type: {body}",
+        "    execution_mode: main-session-direct",
+        "    status: building",
+        "    files: [fixture.py]",
+        "    verify: run it",
+        "    intent: exercise INV-33",
+    ]
     with open(os.path.join(feat_dir, "plan.yaml"), "w") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -363,7 +366,7 @@ def case_inv33c_terminal_is_silent():
     Same construction as (inv33.a) — the pinned bytes genuinely DIFFER — but the feature sits at
     a terminal station, in the place T-07 leaves it: plan.yaml's own top-level status.
 
-    WHAT THIS CASE DOES AND DOES NOT PROVE. Against an unmodified check-state.sh it passes
+    WHAT THIS CASE DOES AND DOES NOT PROVE. Against an unmodified check-state.py it passes
     VACUOUSLY, because nothing emits INV-33 at all, so its green there is worth nothing. Its
     DISCRIMINATING run is against an implementation that already reports (inv33.a) but carries no
     terminal scope, where it must be RED. That run belongs in the receipt.
@@ -528,7 +531,7 @@ def case_inv32_patch_mission_exempts_only_one_task():
 def case_inv32_undated_approval_fails():
     """An approved plan with NO approval.date cannot be placed in an era, and that is a
     VIOLATION, not a note (panel finding F1). Warning here was a fail-open on a
-    fail-closed invariant: nothing else in check-state.sh or harness_yaml requires the
+    fail-closed invariant: nothing else in check-state.py or harness_yaml requires the
     key, so omitting one line bought permanent silence from INV-32. The message must name
     approval.date, not the panel, because that is the defect and the remedy."""
     _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date=None),
@@ -670,10 +673,18 @@ def _bug1305_invariant_feature(tmp, h, names):
     with open(os.path.join(fdir, "plan.yaml"), "w") as fh:
         fh.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: plan\n"
                  "station_only: true\ntasks: []\n")
+    document = {
+        "feature_id": "FEAT-TEST",
+        "review_sha": "none",
+        "cycles_used": 0,
+        "runs": [
+            {"id": name, "squad": "product", "verdict": "PASS"}
+            for name in names
+        ],
+    }
     with open(os.path.join(fdir, "feature.json"), "w") as fh:
-        fh.write("feature_id: FEAT-TEST\nreview_sha: none\ncycles_used: 0\nruns:\n")
-        for name in names:
-            fh.write(f"  - id: {name}\n    squad: product\n    verdict: PASS\n")
+        json.dump(document, fh)
+        fh.write("\n")
     settings_src = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "..",
         ".claude", "settings.json")

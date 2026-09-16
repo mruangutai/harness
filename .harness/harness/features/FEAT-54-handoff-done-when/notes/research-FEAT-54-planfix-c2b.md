@@ -2,7 +2,7 @@
 
 ## BLUF
 
-**F-03 is closed.** T-04's intent now instructs the doer to bring `check-domain.sh`'s own prose into
+**F-03 is closed.** T-04's intent now instructs the doer to bring `check-domain.py`'s own prose into
 the five-section contract — both live four-section claims named by CONTENT, not line number — and
 BRIEF SC-08 is widened so a surviving four-section claim anywhere in either gate script (comments and
 user-facing messages included) is caught rather than assumed. REQ-09's "no live document **or gate**"
@@ -12,7 +12,7 @@ Read/written at worktree `FEAT-54-handoff-done-when`. F-01 remains open by desig
 mapping is rewritten wholesale by the c2 panel transcription); F-02, F-04, F-05, F-06 untouched.
 
 **Cycle 2 (2026-09-02):** SC-08 as landed in cycle 1 was ungradeable — it quantified over dated
-historical prose in `check-state.sh` that rule 15 protects. It has been rewritten in place with a
+historical prose in `check-state.py` that rule 15 protects. It has been rewritten in place with a
 mechanical historical exemption; Q1 is CLOSED. Nothing else moved and `plan.yaml` was not touched.
 
 ## What changed
@@ -53,7 +53,7 @@ ungradeable and has been rewritten. Read the cycle-2 section for the criterion n
 ```
 - SC-08: Read at `review_sha` (`git show <review_sha>:<path>`), no four-section assertion survives
   in `.claude/skills/harness/templates/HANDOFF.md`, `.claude/skills/harness/SKILL.md`, the DEC
-  record, or ANYWHERE in `check-domain.sh` or `check-state.sh` — required-section lists, heading
+  record, or ANYWHERE in `check-domain.py` or `check-state.py` — required-section lists, heading
   constants, normative comments AND user-facing refusal or cap messages alike; each states five and
   names `## Done when`. Falsified by: any line in either gate script enumerating four sections, or
   any cap or refusal message listing intent, trust, dead ends and a working set without
@@ -61,7 +61,7 @@ ungradeable and has been rewritten. Read the cycle-2 section for the criterion n
   verify: inspection
 ```
 
-The old scope was "`check-domain.sh`'s required-section list" and "`check-state.sh`'s handoff heading
+The old scope was "`check-domain.py`'s required-section list" and "`check-state.py`'s handoff heading
 constants" — exactly the two places T-04/T-07 already edit, so the criterion was satisfiable while a
 comment and a refusal message still taught four sections. The new falsifier names the concrete
 surviving line shapes.
@@ -90,9 +90,9 @@ surviving line shapes.
   name it) is advisory and was NOT fixed — the dispatch scoped this cycle to F-03, and de-duplicating
   the message would change a clause I was told to keep byte-identical. Whoever runs the next fix
   cycle should decide it.
-- **`check-state.sh:1188` / `:1201-1204`** four-section-flavoured comments: **RESOLVED in cycle 2,
+- **`check-state.py:1188` / `:1201-1204`** four-section-flavoured comments: **RESOLVED in cycle 2,
   Q1 CLOSED.** Cycle 1 raised them as Q1 because SC-08 as widened then quantified over ANY
-  four-section assertion in `check-state.sh` and so the grader would meet them. The ruling: they
+  four-section assertion in `check-state.py` and so the grader would meet them. The ruling: they
   are dated historical measurement and incident narrative that rule 15 protects, so SC-08 — not
   the record — was amended to exempt them mechanically. See the cycle-2 section.
 - Neither approval block was touched; both remain `pending`.
@@ -100,7 +100,7 @@ surviving line shapes.
 ## Cycle 2 — SC-08 made gradeable; Q1 CLOSED
 
 **The ruling (product lead, implemented not re-litigated).** The two four-section mentions in
-`check-state.sh` — `:1188` "All 74 carry the four headings and are within the cap" and `:1203`
+`check-state.py` — `:1188` "All 74 carry the four headings and are within the cap" and `:1203`
 "a note carrying all four headings and nothing under any of them passed" — are DATED HISTORICAL
 MEASUREMENT and incident narrative, each anchored to a past sha and a past feature, not statements
 of the live contract. PRINCIPLES rule 15 forbids rewriting the record to look better, so they
@@ -118,15 +118,15 @@ scope, unchanged.
 ```
 - SC-08: Read at `review_sha` (`git show <review_sha>:<path>`), no assertion about the CURRENT
   contract survives as four sections in `.claude/skills/harness/templates/HANDOFF.md`,
-  `.claude/skills/harness/SKILL.md`, the DEC record, or ANYWHERE in `check-domain.sh` or
-  `check-state.sh` — required-section lists, heading constants, normative comments AND user-facing
+  `.claude/skills/harness/SKILL.md`, the DEC record, or ANYWHERE in `check-domain.py` or
+  `check-state.py` — required-section lists, heading constants, normative comments AND user-facing
   refusal or cap messages alike; each states five and names `## Done when`.
   EXEMPT, and to be left byte-identical: a comment that reports a PAST MEASUREMENT or a past
   incident rather than the live contract, identified mechanically by BOTH naming a specific past
   commit sha or a past feature id AND reporting what was observed at that point — a count taken
   then, or the behaviour of the code as it stood then. PRINCIPLES rule 15 forbids rewriting the
   record, so such a line is not a defect and no task orders it edited. The
-  two known exempt sites, named by content because line numbers move, both in `check-state.sh`:
+  two known exempt sites, named by content because line numbers move, both in `check-state.py`:
   the FEAT-31 74-note migration measurement ("Measured at cf51dce ... All 74 carry the four
   headings and are within the cap") and the INV-17 empty-body-check narrative (FEAT-31 T-10, "a
   note carrying all four headings and nothing under any of them passed").
@@ -143,23 +143,23 @@ counts (required-section lists, heading constants, normative comments AND user-f
 cap messages), "each states five and names `## Done when`", and `verify: inspection`. Two things
 are added: the subject is narrowed to claims about the CURRENT contract with the exemption test
 spelled out, and the falsifier now reads "any line, or any comment wrapped across lines" — needed
-because the live `check-domain.sh` DEC-159 claim wraps ("four fixed" on `:1512`, "sections" on
+because the live `check-domain.py` DEC-159 claim wraps ("four fixed" on `:1512`, "sections" on
 `:1513`), so a line-only falsifier would have missed the very site F-03 was raised about.
 
 ### Proof — the new falsifier applied to both gates at HEAD
 
-Gates unmodified this cycle (`git diff --name-only -- check-domain.sh check-state.sh` empty), so
+Gates unmodified this cycle (`git diff --name-only -- check-domain.py check-state.py` empty), so
 the working tree IS HEAD for them. Candidate sites, from
 `git grep -nE 'four (fixed )?sections|four headings|intent, trust|"## Next", "## Trust"'`:
 
 | site | file:line | live contract? | names past sha / feature id + observed? | verdict |
 |---|---|---|---|---|
-| A | `check-state.sh:1188` | no — reports a migration count | yes: `cf51dce`, `FEAT-31`, "74 notes match" (`:1184-1191`) | **EXEMPT, not flagged** |
-| B | `check-state.sh:1203` | no — narrates the pre-change behaviour | yes: `FEAT-31 T-10` (`:1200`), "Until now it could not be ... passed" | **EXEMPT, not flagged** |
-| C | `check-domain.sh:1512-1513` | yes — normative `DEC-159:` comment above the `RE_HANDOFF` branch, "four fixed / sections" | no past sha, no feature id anywhere in `:1511-1525` (only `DEC-160`, a decision id) | **FLAGGED** |
-| D | `check-domain.sh:1517-1518` | yes — the 60-line cap's user-facing message, "It is intent, trust, dead ends and a working set" | no | **FLAGGED** |
-| E | `check-domain.sh:1519` | yes — `required = ["## Next", "## Trust", "## Dead ends", "## Working set"]` | no | **FLAGGED** |
-| F | `check-domain.sh:1523` | yes — refusal message "the four sections are the contract" | no | **FLAGGED** |
+| A | `check-state.py:1188` | no — reports a migration count | yes: `cf51dce`, `FEAT-31`, "74 notes match" (`:1184-1191`) | **EXEMPT, not flagged** |
+| B | `check-state.py:1203` | no — narrates the pre-change behaviour | yes: `FEAT-31 T-10` (`:1200`), "Until now it could not be ... passed" | **EXEMPT, not flagged** |
+| C | `check-domain.py:1512-1513` | yes — normative `DEC-159:` comment above the `RE_HANDOFF` branch, "four fixed / sections" | no past sha, no feature id anywhere in `:1511-1525` (only `DEC-160`, a decision id) | **FLAGGED** |
+| D | `check-domain.py:1517-1518` | yes — the 60-line cap's user-facing message, "It is intent, trust, dead ends and a working set" | no | **FLAGGED** |
+| E | `check-domain.py:1519` | yes — `required = ["## Next", "## Trust", "## Dead ends", "## Working set"]` | no | **FLAGGED** |
+| F | `check-domain.py:1523` | yes — refusal message "the four sections are the contract" | no | **FLAGGED** |
 
 So the criterion still catches exactly what F-03 was raised about — C and D, the two sites T-04's
 amended intent orders fixed, plus the required-list/refusal pair E and F that T-04 already

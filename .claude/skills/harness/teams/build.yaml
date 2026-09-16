@@ -65,7 +65,7 @@ steps_from:
   # BOTH reasons this exact shape is required; each is independently fatal.
   # (i) The `harness-` prefix is what makes the rendered path match a receipt grant.
   #     All five grants in team-config.yaml (:144, :158, :171, :184, :199) require
-  #     `receipt-harness-`, and check-domain.sh:242-248 BLOCKS an unmatched path at
+  #     `receipt-harness-`, and check-domain.py:242-248 BLOCKS an unmatched path at
   #     exit 2 rather than warning. So `personas:` stays SHORT (`dev-ops`) while
   #     `outputs:` renders FULL — the same mixed convention validate.yaml already uses
   #     (`persona: code-reviewer`, `outputs: review-harness-code-reviewer-c{{cycle}}.md`).

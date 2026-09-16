@@ -11,7 +11,7 @@ throughout (no `git show` needed).
 |---|---|---|
 | A1 | VERIFIED | `team-config.yaml` has exactly 5 `receipt-*` grants, one per **FULL** agent name: :144 `receipt-harness-frontend-dev-*.md`, :158 `receipt-harness-backend-dev-*.md`, :171 `receipt-harness-ai-dev-*.md`, :184 `receipt-harness-data-engineer-*.md`, :199 `receipt-harness-dev-ops-*.md` |
 | A2 | FALSIFIED (the PLAN's SHORT-form premise) | `receipt-dev-ops-T-01.md` (SHORT) matches **none** of the 5 grants — the pattern literally requires the `receipt-harness-` prefix. `receipt-harness-dev-ops-T-01.md` (FULL) **does** match the :199 grant. The PLAN's template renders `{{persona}}` from the SHORT list (`personas: [frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops]`), which produces exactly the non-matching form. |
-| A3 | VERIFIED | `check-domain.sh:228-229` (glob match → allow), `:231-236` (shared match → allow, warn), `:242-248` (no match → BLOCKED, `sys.exit(2)`, prints permitted globs). An unmatched path under `.harness/features/*/notes/` is **BLOCKED**, not allowed — there is no notes/-wide catch-all grant observed in A1. |
+| A3 | VERIFIED | `check-domain.py:228-229` (glob match → allow), `:231-236` (shared match → allow, warn), `:242-248` (no match → BLOCKED, `sys.exit(2)`, prints permitted globs). An unmatched path under `.harness/features/*/notes/` is **BLOCKED**, not allowed — there is no notes/-wide catch-all grant observed in A1. |
 | A4 | VERIFIED, but not as asked — no `outputs:`/artifact field exists in either file | Both `.harness/features/FEAT-03-subissue-mirror/runs/2026-07-31-09-eng/state.yaml` and `.../2026-07-31-10-eng/state.yaml` record `persona:` per step but **no output/artifact path at all** (fields present: `id, persona, depends_on, mutates_repo, dispatched_at, completed_at, status, verdict, cycles, members_spawned, note`). Where persona appears it is the **FULL** agent name (`harness-dev-ops`, `harness-backend-dev`), never the short form. No cycle marker on any artifact path either, because no artifact path is recorded here. |
 
 **A is the load-bearing finding**: the PLAN's template renders paths that do not match any existing
@@ -31,7 +31,7 @@ a bug in the PLAN's template or a needed grant addition is an architecture call,
 | id | result | observed |
 |---|---|---|
 | C1 | VERIFIED | `grep -rn 'gate-probe' .claude/ \| wc -l` → **3**, all three in **one file**: `.claude/skills/harness/teams/gate-probe.yaml` (lines 21, 43, 45 — `name: gate-probe`, and two comment-string mentions of the `# gate-probe:` PR-comment token). |
-| C2 | VERIFIED — no hits anywhere else | `gate-probe` appears in none of `docs/harness/SPEC.md`, `check-docs.sh`, `run-unit-tests.sh`, or any file under `.claude/skills/harness/bin/`. |
+| C2 | VERIFIED — no hits anywhere else | `gate-probe` appears in none of `docs/harness/SPEC.md`, `check-docs.sh`, `run-unit-tests.py`, or any file under `.claude/skills/harness/bin/`. |
 | C3 | VERIFIED | `ls -1 .claude/skills/harness/teams/` → exactly 2 files: `gate-probe.yaml`, `review.yaml`. |
 
 ## D — placeholder-vocabulary single-source claim
@@ -48,7 +48,7 @@ a bug in the PLAN's template or a needed grant addition is an architecture call,
 
 | id | result | observed |
 |---|---|---|
-| E1 | VERIFIED | `run-unit-tests.sh:6` `SCRIPTS=(...)` includes both `"test-harness-yaml-corpus.py"` and `"test-check-state.py"` (12 entries total). `:9-22` is the drift detector: any `test-*.py` under `BIN_DIR` not in `SCRIPTS` → `exit 2` "MISCONFIGURED". |
+| E1 | VERIFIED | `run-unit-tests.py:6` `SCRIPTS=(...)` includes both `"test-harness-yaml-corpus.py"` and `"test-check-state.py"` (12 entries total). `:9-22` is the drift detector: any `test-*.py` under `BIN_DIR` not in `SCRIPTS` → `exit 2` "MISCONFIGURED". |
 | E2 | VERIFIED, minor line offset from claim | `scan()` def starts `:55` (not 56) with docstring `:56` and body `:57-58` — functionally as claimed. Call sites (`grep -n 'scan('`): `:55` (def), `:110`, `:138`, `:144`, `:149`. `check(...)` calls: `:111` `check(f"every .harness YAML parses ({n} files scanned)", not bad, ...)`, `:113-114` `check("the corpus is not empty (a glob that matches nothing passes vacuously)", n > 0, f"scanned {n} files under {os.path.join(REPO, '.harness')}")`. `_fixture` helper `:82-88` (claim said 83-86; body is 83-88, def line 82). |
 | E3 | VERIFIED | `load_file(path)` defined at `:205` in `harness_yaml.py`; duplicate-key rejection happens in the custom loader's `_construct_mapping` (`:146-150`, raising `DuplicateKeyError` at `:149` on a repeated key), which `load_str` (called by `load_file`) uses via `_StrictSafeLoader`. |
 | E4 | VERIFIED — both team YAML files currently FAIL `harness_yaml.load_file` | Ran `harness_yaml.load_file()` directly (read-only import, no write): `.claude/skills/harness/teams/review.yaml` → `YamlParseError` at `:26:33` "expected ',' or ']', but got '{'"; `.claude/skills/harness/teams/gate-probe.yaml` → `YamlParseError` at `:32:37` "expected ',' or ']', but got '{'". **Neither is covered by the corpus gate** — `scan()` only globs under `<root>/.harness/**`, and these team files live under `.claude/skills/harness/teams/`, outside that glob. The corpus test currently gives no signal on these two files. |

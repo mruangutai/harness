@@ -75,7 +75,7 @@ a shrunken persona census.
   should grade the mutation cases as the RED evidence; a witness that cannot fail is exactly the
   defect #442 names.
 - No criterion rests on a null-runner test kind. `integration` is active
-  (`.agents/skills/harness/bin/run-unit-tests.sh --kind integration`) and its detect glob
+  (`.agents/skills/harness/bin/run-unit-tests.py --kind integration`) and its detect glob
   `tests/integration/**` matches the changed file.
 - **Residual, stated rather than hidden:** the census walk parses the manifest with the same loader
   the grant lookup uses, so a parser bug that hides a *newly added* persona would hide it from both.

@@ -17,18 +17,18 @@ false as delivered.
 
 - Mutating the CI rendering alone (`layout_migration.render` drops the last blamed reader) reddens
   4 of case 20's assertions. Correct.
-- Mutating the session-entry rendering alone (`check-state.sh`'s INV-27 `CANNOT_VERIFY` composition,
+- Mutating the session-entry rendering alone (`check-state.py`'s INV-27 `CANNOT_VERIFY` composition,
   the `_named` line, same drop) leaves case 20 **fully green — 0 FAIL**.
 
-Cause, at source: case 20 does not execute `check-state.sh`. Its `_inv27_text` helper is a *copy* of
-check-state.sh's composition inside `test-layout-migration.py`, self-described as "mirrored". A copy
+Cause, at source: case 20 does not execute `check-state.py`. Its `_inv27_text` helper is a *copy* of
+check-state.py's composition inside `test-layout-migration.py`, self-described as "mirrored". A copy
 cannot detect drift in the thing it copies.
 
 Mitigation, so the fix is scoped correctly rather than over-scoped: that same mutation **did** redden
 `test-check-state.py` case x.2, which asserts the `[neither]` form tag reaches the session-entry
 line. So the session-entry blame path is not uncovered — what is uncovered is *parity* between the
 two sides in that direction. The remedy is to have case 20 read the real session-entry text (run
-`check-state.sh` against a fixture tree), or to move the INV-27 composition into `layout_migration`
+`check-state.py` against a fixture tree), or to move the INV-27 composition into `layout_migration`
 so both call sites share one owner and parity becomes structural rather than asserted.
 
 ## Verdicts, and the sha each ran at
@@ -37,7 +37,7 @@ so both call sites share one owner and parity becomes structural rather than ass
 |---|---|---|---|
 | SC-01 | met | d033b9d | detector exit 0; unit case 1 scans `REPO_ROOT`, asserts non-zero feature-dir and reader counts (`test-layout-migration.py:122-133`); unit suite PASS |
 | SC-02 | met | d033b9d, 5afa7e3, ea937b1 | re-derived verbatim at both sides; see the wording note below |
-| SC-03 | met | d033b9d | `check-state.sh` exit 0, `grep -c INV-27` = 0 |
+| SC-03 | met | d033b9d | `check-state.py` exit 0, `grep -c INV-27` = 0 |
 | SC-04 | met | d033b9d | unit 97 PASS exit 0; integration 89 PASS exit 0; all six named suites PASS by name |
 | SC-05 | met | 5c39f8c (live checkout, deliberately not a worktree) | `.harness/features` absent to `test -e` and to `find`; T-08's verify asserts `[ -e ]`'s exit status, not a line count |
 | SC-06 | met | d033b9d | `--resolve` on the migrated receipt path names `harness-backend-dev`; the pre-move shape prints `NOBODY`; the grant is pinned *exactly* by `test-harness-yaml.py`'s `COLLECT_FIXTURE`, which would redden if widened |
@@ -97,7 +97,7 @@ Survivors and their justifications:
   and fixtures. It cannot detect a legacy layout without spelling it.
 - `check-plan-routes.py:226,:431,:463`, `gh-sync.py:730` — narratives of past defects or explicit
   legacy/migrated contrasts; historical by content.
-- `merge-gitignore.sh:6`, `test-factory-claim.py:5`, `test-factory-integration.py:668` — the factory
+- `merge-gitignore.py:6`, `test-factory-claim.py:5`, `test-factory-integration.py:668` — the factory
   lane and onboarded-product layout, deferred to unit 9 by the BRIEF's Out section.
 - `test-validate-digest.py` (9 sites), `test-harness-yaml-corpus.py:232` — synthetic fixture strings
   fed to parsers; no file is opened at those paths.
@@ -108,7 +108,7 @@ Survivors and their justifications:
   reads any real file under `.harness/*/features/*/`. Any string would do. Justified.
 
 Two I name as the weakest, both advisory, neither a goal failure: `check-plan-routes.py:15` uses a
-legacy-shaped grant as its illustrative example of a wildcard-segment bug, and `check-state.sh:62`
+legacy-shaped grant as its illustrative example of a wildcard-segment bug, and `check-state.py:62`
 is a DEC-129 rationale comment whose path spelling is now stale while the glob beneath it carries the
 segment. Neither instructs an agent where to write. A one-line follow-up, not a fix cycle.
 
@@ -134,6 +134,6 @@ segment. Neither instructs an agent where to write. A one-line follow-up, not a 
 - **Q2 (non-blocking, to the operator):** SC-02's "committed with their commit sha" is
   self-referential for the post-move capture. Met on the record as it stands; the phrasing should not
   be reused.
-- **Q3 (non-blocking):** no SC covers what STATE.md's Q-D raises — that both `check-state.sh` and
+- **Q3 (non-blocking):** no SC covers what STATE.md's Q-D raises — that both `check-state.py` and
   `check-plan-routes.py` exited 0 mid-cluster while examining nothing. That is out of this run's
   scope by dispatch and stays with the operator.

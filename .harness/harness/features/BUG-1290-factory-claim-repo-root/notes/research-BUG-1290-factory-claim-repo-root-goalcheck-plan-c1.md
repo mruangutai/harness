@@ -68,7 +68,7 @@ ticket must map the two themselves.
 | `layout_migration.py` + `layout_fixtures.py` (`T-04` steps 1-2) | FORCED | Confirmed at source: the row at `layout_migration.py:92-94` keys on `factory_claim.py`'s literal `".harness", "features"` join, which `T-03` deletes; DEC-194 makes a reader matching neither form cannot-verify, and INV-27 reports that as failure. *The MOVE rather than the removal is adopted-within-forced* (`D-04`) |
 | `tests/integration/test-layout-migration.py` case 22 comment (`T-04` step 3) | **ADOPTED** | Comment only; `:422-425` becomes false but nothing executes it. Already raised as Q2. F-08 |
 
-Parked items: `post-merge-sweep.sh:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`,
+Parked items: `post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`,
 `feature_schema.py:231` appear in the plan **only** at `plan.yaml:244-245` as an explicit do-not-touch,
 and in no task's `files:`. **None has crept back.**
 

@@ -155,7 +155,7 @@ so the green run is this task's work and not a pre-landed change.
 All seven of my `files:` are present and nothing outside them is mine. The nine other entries are the
 concurrent siblings T-15 (`.omp/agents/**`, `.claude/agents/**`), T-18 (`.harness/harness.json`) and
 T-19 (`.harness/team-config.yaml`, `templates/**`); I left every one untouched. Nothing was committed.
-`check-state.sh` was not run, as instructed, and no project-wide suite, formatter or linter was run.
+`check-state.py` was not run, as instructed, and no project-wide suite, formatter or linter was run.
 
 ## Write refusals encountered
 

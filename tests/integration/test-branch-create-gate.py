@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for branch-create-gate.sh (FEAT-18 T-05).
+"""Tests for branch-create-gate.py (FEAT-18 T-05).
 
 SC-07's second half is why this file exists: "a deletion that also disabled
 the gate would pass an absence check on its own." An absence grep alone is
@@ -31,7 +31,7 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(
-    HERE, "branch-create-gate.sh")
+    HERE, "branch-create-gate.py")
 # HERE = <repo>/.agents/skills/harness/bin — four levels up is the repo root.
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
@@ -44,11 +44,21 @@ def check(name, ok, detail=""):
 
 def fire(cmd, root=REPO_ROOT, gh_bin=None):
     payload = json.dumps({"tool_input": {"command": cmd}})
-    # BOTH NAMES, ONE VALUE (FEAT-42 T-14). branch-create-gate.sh resolves through
+    # BOTH NAMES, ONE VALUE (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name; the
     # reverted sha-3952814 copy the parity proof diffs against reads HARNESS first and the
     # host-owned name second. Setting only the host-owned name points the new copy at the
     # live checkout, and three self-gate cases read the real github block that way.
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    if gh_bin is not None:
+        env["GH_BIN"] = gh_bin
+    else:
+        env.pop("GH_BIN", None)
+    return subprocess.run([GATE], input=payload, capture_output=True,
+                          text=True, env=env)
+
+
+def fire_raw(payload, root, gh_bin=None):
     env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
     if gh_bin is not None:
         env["GH_BIN"] = gh_bin
@@ -124,7 +134,7 @@ def _fixture(github_block):
     doc = {} if github_block is None else {"github": github_block}
     with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
         json.dump(doc, f)
-    # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.sh resolves through
+    # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which honours the override only when
     # .harness/team-config.yaml is readable underneath it. A fixture holding only
     # harness.json is discarded and the gate falls back to the LIVE checkout, reading the
@@ -192,12 +202,35 @@ def run_assertion_5():
           f"decision={decision!r} reason={reason!r}")
 
 
+def run_assertion_6():
+    cmd = "git check" + "out -b feat/FEAT-99-nope"
+
+    config_root = _fixture(None)
+    with open(os.path.join(config_root, ".harness", "harness.json"), "w") as stream:
+        stream.write(
+            '{"github":{"sync":false},"github":{"sync":true,"repo":"acme/widgets"}}')
+    config_result = fire(cmd, root=config_root)
+    if config_result.stdout.strip():
+        check("duplicate harness.json keys disable branch policy rather than choosing one",
+              False, f"stdout={config_result.stdout!r} stderr={config_result.stderr!r}")
+
+    payload_root = _fixture({"sync": True, "repo": "acme/widgets"})
+    payload = (
+        '{"tool_input":{"command":"git status"},'
+        '"tool_input":{"command":"git checkout -b feat/FEAT-99-nope"}}')
+    payload_result = fire_raw(payload, payload_root)
+    if payload_result.stdout.strip():
+        check("duplicate hook-payload keys are rejected before branch policy evaluation",
+              False, f"stdout={payload_result.stdout!r} stderr={payload_result.stderr!r}")
+
+
 def main():
     run_assertion_1()
     run_assertion_2()
     run_assertion_3()
     run_assertion_4()
     run_assertion_5()
+    run_assertion_6()
 
     fails = 0
     for name, ok, detail in RESULTS:

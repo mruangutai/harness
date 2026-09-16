@@ -28,7 +28,7 @@ def repository_state_gate_is_runnable(workflow):
     commands = [line.strip() for line in gate.splitlines()]
     try:
         setup_index = commands.index(setup)
-        check_index = next(i for i, line in enumerate(commands) if "check-state.sh" in line)
+        check_index = next(i for i, line in enumerate(commands) if "check-state.py" in line)
     except (ValueError, StopIteration):
         return False
     return setup_index < check_index and 'exit "$rc"' in gate

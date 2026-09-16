@@ -26,7 +26,7 @@ artifact written to `.harness/notes/`. Its answers seed the repository's own `ha
 ## Preflight — stop if any of these fails
 
 - **Configured control plane** — `.harness/harness.json` must exist here and
-  `python3 .claude/skills/harness/bin/check-state.sh` must not report an unconfigured clone. If it
+  `python3 .claude/skills/harness/bin/check-state.py` must not report an unconfigured clone. If it
   is unconfigured, STOP and route to `harness-init`: registration into an unconfigured control
   plane produces artifacts nothing reads.
 - **Templates** — `test -d .agents/skills/harness/templates` must succeed. If the templates directory
@@ -145,7 +145,7 @@ operator to do it, then re-run the audit. Registration is not finished until it 
 enabled.
 
 **Accepted cost, ruled by the operator:** this check runs ONCE, here, and never in
-`check-state.sh` — that gate runs at every `/harness` door and before every commit, so a network
+`check-state.py` — that gate runs at every `/harness` door and before every commit, so a network
 call there would fire dozens of times per build. The consequence is real: a workflow switched off
 after registration is invisible until the next registration run.
 

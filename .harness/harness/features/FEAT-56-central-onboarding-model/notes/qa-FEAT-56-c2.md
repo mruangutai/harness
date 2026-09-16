@@ -14,7 +14,7 @@ under D-14's own terms rests with whoever reads that citation.
 `bin/validate-digest.py`'s `GATE_FAIL_VALUES` for the `qa` persona is `{"suite": "fail",
 "matrix_ok": False}`, checked unconditionally whenever `VERDICT: PASS` is claimed — there is no
 field or carve-out for a cited plan.yaml decision like D-14. An independent re-run hook confirmed my
-own measurement (`run-unit-tests.sh` combined exits 1, entirely from the D-14-scoped
+own measurement (`run-unit-tests.py` combined exits 1, entirely from the D-14-scoped
 `test-check-plan-routes.py` cases) and rejected my first submission's `suite: pass`. Nothing here is
 actually broken — D-14 explicitly rules "Neither the gate nor T-19 is touched," and the condition
 "clears at merge, when the owner manifest becomes the branch's manifest." Reporting `suite: fail`
@@ -48,8 +48,8 @@ every qa report on an unmerged feature into a mechanical `FAIL` it does not dese
 
 | kind | required by | state | evidence |
 |---|---|---|---|
-| unit | `logic`(T-04), `cross_module`(T-17), `bugfix`(T-02/T-03, `touches_runtime_code`) | **satisfied** | `run-unit-tests.sh --kind unit` **exit 0**. 4 `FAIL ` lines, all from `test-factory-claim-mutation.py` itself (which PASSES) — its own by-design mutation-proof output (`FAIL BUG-1290 5a/5b/5c` ×2 for 5b). Zero genuine unit failures. |
-| integration | `cross_module`(T-17), `bugfix`(T-03, `fix_confined_to_tests_and_contract_docs`), `config`(T-14/T-18/T-19 not `touches_config_shape` but exercised anyway) | **satisfied (D-14 exception, cited)** | `run-unit-tests.sh --kind integration` **exit 1**. 7 `^FAIL ` lines: 6 named cases + 1 aggregate `FAIL test-check-plan-routes.py` summary line (not a 7th defect — same root cause). No case reports a skip for a missing skill anchor (`grep`-checked). |
+| unit | `logic`(T-04), `cross_module`(T-17), `bugfix`(T-02/T-03, `touches_runtime_code`) | **satisfied** | `run-unit-tests.py --kind unit` **exit 0**. 4 `FAIL ` lines, all from `test-factory-claim-mutation.py` itself (which PASSES) — its own by-design mutation-proof output (`FAIL BUG-1290 5a/5b/5c` ×2 for 5b). Zero genuine unit failures. |
+| integration | `cross_module`(T-17), `bugfix`(T-03, `fix_confined_to_tests_and_contract_docs`), `config`(T-14/T-18/T-19 not `touches_config_shape` but exercised anyway) | **satisfied (D-14 exception, cited)** | `run-unit-tests.py --kind integration` **exit 1**. 7 `^FAIL ` lines: 6 named cases + 1 aggregate `FAIL test-check-plan-routes.py` summary line (not a 7th defect — same root cause). No case reports a skip for a missing skill anchor (`grep`-checked). |
 
 `matrix_ok: true` — every required kind is either green or green-except-the-one-cited,
 operator-accepted exception. Nothing was narrowed to reach this.
@@ -118,8 +118,8 @@ to re-pin.
 | SC-01 | met | T-10's verify block, run verbatim | exit 0 |
 | SC-02 | met | grep both commands + `test-hooks-install.py` | both lines present; suite exit 0 |
 | SC-05 | met | `tests/unit/test-fleet-product-config.py` | 18/18, exit 0 |
-| SC-06 | met | `run-unit-tests.sh --kind unit` | exit 0 |
-| SC-07 | **met (D-14 exception, cited)** | `run-unit-tests.sh --kind integration` | exit 1; all 6 named failures inside D-14 (§3); no skip-for-missing-anchor case found |
+| SC-06 | met | `run-unit-tests.py --kind unit` | exit 0 |
+| SC-07 | **met (D-14 exception, cited)** | `run-unit-tests.py --kind integration` | exit 1; all 6 named failures inside D-14 (§3); no skip-for-missing-anchor case found |
 | SC-08 | met | `check-instruction-paths.py` + `check-omp-port.py` | `0 violation(s)`; `OMP port surface: ok` |
 | SC-10 | met | `python3 -c "import yaml;yaml.safe_load(...)"` | exit 0 |
 | SC-13 | met | 4 clauses run individually | `sync-command-adapters.py --check` exit 0; all 4 `.omp/commands/*.md` present; `test-sync-command-adapters.py` 12/12; `test-check-omp-port.py` 23/23 (§4) |
@@ -129,13 +129,13 @@ to re-pin.
 ## 6. Discovery-volume regression check (base `4b5dbb23` vs HEAD)
 
 Base copies obtained via a disposable `git worktree add --detach .claude/worktrees/harness/qa-base-4b5dbb23 4b5dbb23`
-(removed after use — `git worktree remove`, no `--force`, tree was clean) because `check-state.sh` and
+(removed after use — `git worktree remove`, no `--force`, tree was clean) because `check-state.py` and
 `check-plan-routes.py` both resolve their root from their own script location, so a bare `git show`
 extract to `/tmp` cannot discover this project's tree.
 
 | script | base (4b5dbb23) | HEAD | drop? |
 |---|---|---|---|
-| `check-state.sh` | 190 `INV-`-prefixed note lines, 1333 total lines, exit 1 | 210 `INV-`-prefixed note lines, 1377 total lines, exit 1 | **no** — increase, driven by this feature's own board/review-sha bookkeeping notes (INV-26/INV-33), not a loss of discovery |
+| `check-state.py` | 190 `INV-`-prefixed note lines, 1333 total lines, exit 1 | 210 `INV-`-prefixed note lines, 1377 total lines, exit 1 | **no** — increase, driven by this feature's own board/review-sha bookkeeping notes (INV-26/INV-33), not a loss of discovery |
 | `check-instruction-paths.py` | `scanned 62 file(s)` | `scanned 62 file(s)` | no change |
 | `check-decision-anchors.py` | `examined 33 anchor(s)` | `examined 34 anchor(s)` | **no** — +1 (DEC-83 amendment) |
 | `check-omp-port.py` | `OMP port surface: ok` (no numeric subject count printed by this script; existence-only comparison) | `OMP port surface: ok` | no printed volume metric to compare; both exit 0 |

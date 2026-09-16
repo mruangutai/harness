@@ -10,8 +10,8 @@ Before source access, `BRIEF.md` and `plan.yaml` required unit coverage for shar
 
 | Kind | State | Exact command | Exit | Discovery |
 |---|---|---|---:|---:|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | `pool: 8 workers, 25 files` |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | `pool: 8 workers, 44 files` |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | `pool: 8 workers, 25 files` |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | `pool: 8 workers, 44 files` |
 | handoff_comprehension | locally-run, deliberately not executed | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a |
 
 Neither configured run had an assertion, import, load, collection, or syntax failure. The non-zero file counts establish that neither successful exit was a zero-discovery pass.

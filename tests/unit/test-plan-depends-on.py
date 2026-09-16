@@ -19,6 +19,7 @@ import os
 import tempfile
 
 try:
+    import artifact_accessors
     import harness_yaml
 except ModuleNotFoundError:
     print("test-plan-depends-on: harness_yaml is not importable from this interpreter "
@@ -162,13 +163,13 @@ check("6c: integer ids with a genuinely absent integer dependency (3) is rejecte
 
 # --- walk(root): shared by case A (the live corpus) and case B (the paired
 # detector). Returns (files_found, failures) where failures is a list of
-# (path, message) for every plan.yaml that raised under harness_yaml.load_plan.
+# (path, message) for every plan.yaml that raised under artifact_accessors.load_plan.
 def walk(root):
     paths = glob.glob(os.path.join(root, ".harness", "harness", "features", "*", "plan.yaml"))
     failures = []
     for path in paths:
         try:
-            harness_yaml.load_plan(path)
+            artifact_accessors.load_plan(path)
         except Exception as e:  # noqa: BLE001 — every path that raised must be named
             failures.append((path, str(e)))
     return len(paths), failures

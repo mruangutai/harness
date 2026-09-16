@@ -1,18 +1,18 @@
 # Receipt — harness-dev-ops — T-02 — cycle 1
 
-**BLUF: PASS.** Repository tier added to `inject-expertise.sh`, header/precedence wording
+**BLUF: PASS.** Repository tier added to `inject-expertise.py`, header/precedence wording
 changed per 1a, `cap_body` budget-parameterized, agent-name and segment-name validation added,
 18-assertion test suite written and registered, verify green, RED proof shows six failing
 cases against b4659cd (not the caller's expected four/five), tree diff clean.
 
 ## STEP 1 — baseline (pre-edit)
 
-1. `git show b4659cd:.../inject-expertise.sh | diff - .../inject-expertise.sh` → **empty, exit
+1. `git show b4659cd:.../inject-expertise.py | diff - .../inject-expertise.py` → **empty, exit
    0.** RED baseline tree matches ada8e99 pin, no ESCALATE needed.
-2. `run-unit-tests.sh --kind unit` → exit 0, **16/16** script-level PASS (`grep -c
+2. `run-unit-tests.py --kind unit` → exit 0, **16/16** script-level PASS (`grep -c
    '^PASS test-'`), no `^FAIL `. `--kind integration` → exit 0, **12/12** script-level PASS, no
    `^FAIL `. No drift-detector exit 2. No pre-existing suite failure.
-3. `check-expertise.sh .harness/expertise/` → exit 0, all 15 files `OK`, no `^ADVISORY ` line.
+3. `check-expertise.py .harness/expertise/` → exit 0, all 15 files `OK`, no `^ADVISORY ` line.
 4. `git status --porcelain` snapshot: 3 modified (`STATE.md`, `feature.json`, `plan.yaml` under
    FEAT-27), 4 untracked (`FEAT-26-pr-linkage-recorded/`, two FEAT-27 notes files, one
    observations file) — all pre-existing, none of mine, none touched.
@@ -22,29 +22,29 @@ cases against b4659cd (not the caller's expected four/five), tree diff clean.
 Line anchors below are `grep -n` results against the FINAL (post-edit) file — not the
 pre-edit read-out lines.
 
-- `inject-expertise.sh:27` — agent-name gate now `grep -Eq '^harness-[a-z0-9-]+$'` before any
+- `inject-expertise.py:27` — agent-name gate now `grep -Eq '^harness-[a-z0-9-]+$'` before any
   path is built (1c), replacing the old `case ... harness-*)`.
-- `inject-expertise.sh:103` — project header text changed to `## Your Expertise — this
+- `inject-expertise.py:103` — project header text changed to `## Your Expertise — this
   checkout's craft (project tier)`, "authoritative on conflict" removed entirely (verified:
-  `grep -c "authoritative on conflict" inject-expertise.sh` → 0).
-- `inject-expertise.sh:66-92` — repository-tier discovery: glob
+  `grep -c "authoritative on conflict" inject-expertise.py` → 0).
+- `inject-expertise.py:66-92` — repository-tier discovery: glob
   `$root/.harness/*/expertise/$agent.md`, `[ -r ]` guard (no nullglob needed), segment derived
   and filtered `^[a-z0-9-]+$` (1d), sorted by segment name via a shell sort at line 83
   (`sorted_idx=()` onward) — no `declare -A` (Expertise G-03). Confirmed under the machine's
   actual `/bin/bash` (3.2.57, not just `env bash`'s 5.3.15): ran the script under `/bin/bash`
   directly with a repository fixture, exit 0, correct output.
-- `inject-expertise.sh:95-118` — emit group: global, project, then (only if ≥1 repo hit) the
+- `inject-expertise.py:95-118` — emit group: global, project, then (only if ≥1 repo hit) the
   precedence line once (line 110), then each repository block sorted, then the index —
   repository blocks emitted with `cap_body <file> 40`, craft blocks with `cap_body <file> 150`
   (budget is now `cap_body`'s 2nd arg, per the intent).
-- `inject-expertise.sh:95-97` — stale ordering-encodes-precedence comment replaced; new comment
+- `inject-expertise.py:95-97` — stale ordering-encodes-precedence comment replaced; new comment
   (line 97: "...ordering here is presentation only, not the precedence rule") states precedence
   is stated explicitly in the emitted line.
 - `test-inject-expertise.py` — new file, 12 numbered cases (some producing multiple assertions:
   5a/5b, 7a/7b, 9a/9b, 12×4 values) = **18 total assertions**, all PASS post-edit. Shape follows
   `test-check-expertise.py`: plain python3, `INJECT_EXPERTISE_BIN` env override, temp dirs per
   case, printed PASS/FAIL, `sys.exit(1)` on any fail.
-- `run-unit-tests.sh:17` — `"test-inject-expertise.py"` appended to `UNIT_SCRIPTS`.
+- `run-unit-tests.py:17` — `"test-inject-expertise.py"` appended to `UNIT_SCRIPTS`.
 
 ## STEP 2b — hermeticity decision
 
@@ -113,13 +113,13 @@ The dispatch's quoted verify was byte-`diff`'d against `plan.yaml`'s T-02 `verif
 - **Final line: `PASS test-inject-expertise.py`**
 
 `git status --porcelain` re-run and diffed against STEP 1 snapshot: **exactly my three files**
-— `inject-expertise.sh` (M), `run-unit-tests.sh` (M), `test-inject-expertise.py` (??) — added.
+— `inject-expertise.py` (M), `run-unit-tests.py` (M), `test-inject-expertise.py` (??) — added.
 Nothing else changed; no tidy/revert performed on the pre-existing FEAT-26/FEAT-27 dirt noted
 in STEP 1.
 
 ## Full-suite sanity (script-level PASS/FAIL lines only, `grep -c '^PASS test-'`)
 
-`run-unit-tests.sh --kind unit` → exit 0, **17/17** script-level PASS (16 pre-existing +
+`run-unit-tests.py --kind unit` → exit 0, **17/17** script-level PASS (16 pre-existing +
 `test-inject-expertise.py`), 0 `^FAIL `. `--kind integration` → exit 0, **12/12** script-level
 PASS, 0 `^FAIL `. Drift detector did not fire (exit 2 not observed on either run) —
 `test-inject-expertise.py` is registered in `UNIT_SCRIPTS` in the same change as its creation,

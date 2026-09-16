@@ -62,4 +62,4 @@ the operator has confirmed that reading rather than leaving it as an orchestrato
 
 - 21 residual findings filed as #677 through #697. The twenty-second row was the two stray files in
   the main checkout; those were deleted rather than filed.
-- `check-state.sh`: one violation, FEAT-26's unapproved BRIEF — a different flow.
+- `check-state.py`: one violation, FEAT-26's unapproved BRIEF — a different flow.

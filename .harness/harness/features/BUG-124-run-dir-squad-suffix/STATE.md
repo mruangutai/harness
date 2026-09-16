@@ -80,7 +80,7 @@ Dead ends for the next phase:
   behavioural-equivalence rulings. All closed across cycles 1–4.
 - Do NOT hand T-03 to a squad, and do NOT mark it `done` to satisfy the mirror.
 - Do NOT rewrite `qa-c3.md`. The corrected attribution lives in the 3-eng digest and `qa-c4.md`.
-- Do NOT `cp` a fixture into `/tmp` or a scratch worktree for an A/B — `bash-write-guard.sh` refuses
+- Do NOT `cp` a fixture into `/tmp` or a scratch worktree for an A/B — `bash-write-guard.py` refuses
   it. Pointing `DISPATCH_GUARD_BIN` at the main checkout's pre-change guard is the working route.
 - Do NOT re-pin `review_sha` unless a commit lands that touches a reviewed code path OR changes
   `plan.yaml`. A STATE.md or feature.json commit alone does not move it.
@@ -90,7 +90,7 @@ Dead ends for the next phase:
 
 Working set: runs/panel-c4-validator/digest.md, notes/review-harness-code-reviewer-c4.md,
 plan.yaml (T-03 at 491), .claude/skills/harness/bin/harness_boundary.py,
-.claude/skills/harness/bin/dispatch-guard.sh
+.claude/skills/harness/bin/dispatch-guard.py
 
 ## Open Questions
 
@@ -104,7 +104,7 @@ plan.yaml (T-03 at 491), .claude/skills/harness/bin/harness_boundary.py,
   features are graded against the OWNER checkout root. (a) `handoff_done_when.problems()` receives
   the owner root while the note's prefix comes from its own worktree-relative path
   (handoff_done_when.py:11,51-54) and an absolute pointer is refused as "is absolute" (:69-70), so
-  there is NO legal spelling and no handoff note can be written at all. (b) `check-state.sh` globs
+  there is NO legal spelling and no handoff note can be written at all. (b) `check-state.py` globs
   the owner checkout's `.harness/*/features/*` (:118-120), so a full run from inside this worktree
   cannot grade this feature. (c) observed this cycle: `gh-sync.py` must be invoked from the WORKTREE
   for `status` and from the MAIN checkout for `ship`, so two subcommands disagree about the root.

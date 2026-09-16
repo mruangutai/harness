@@ -1,7 +1,7 @@
 # Code Review — FEAT-41-one-station-vocabulary — c0
 
 Both stages run unconditionally per dispatch. Baseline reproduced: unit exit 0, integration exit
-0 (194s), `check-state.sh` exit 0 with 0 `VIOLATION` lines. `code-grade.py` run against the pin
+0 (194s), `check-state.py` exit 0 with 0 `VIOLATION` lines. `code-grade.py` run against the pin
 (never HEAD): 9 gated HIGH records, 5 gated grade-2 (MED) records → `code_grade: fail`.
 
 ## MUST_FIX (blocks ship)
@@ -23,7 +23,7 @@ station whitelist), so this is scoped to `sign-approval`'s free-text `--by`/`--d
 set-feature-station exited N: ...") never contain the literal `SKIP` or `FAILED`.
 `cmd_ship`'s tail (`gh-sync.py:1613`) only calls `_commit_terminal_station` when
 `_record_station` returns `True`, so a write failure correctly skips the commit — but
-`post-merge-sweep.sh`'s positive-signal gate (`:186-195`) greps ship's combined output for
+`post-merge-sweep.py`'s positive-signal gate (`:186-195`) greps ship's combined output for
 exactly those two literals to decide whether the terminal write is proof enough to remove the
 worktree. A `_record_station` failure (lock contention, transient I/O, a corrupted plan.yaml)
 prints neither literal, so if the worktree happens to be otherwise clean the gate sails through
@@ -81,7 +81,7 @@ CONSEQUENCE THE TASK DID NOT NAME"), so this is a traceability gap, not a wrong-
 but `harness-spec-driven`'s every-file-to-a-task discipline is the thing that makes a diff this
 size auditable at all, and these 9 paths were not.
 
-**F6 — stage 2, MED, non-blocking.** `check-domain.sh`'s `RE_PLAN_YAML` (`:1044`) and its four
+**F6 — stage 2, MED, non-blocking.** `check-domain.py`'s `RE_PLAN_YAML` (`:1044`) and its four
 pre-existing `SHAPE_PATTERNS` siblings all require exactly one path segment between `.harness/`
 and `features/` (`^\.harness/[^/]+/features/[^/]+/plan\.yaml$`). `plan-merge.py`'s own `PLAN_TAIL`
 (`:90`) documents a SHALLOWER legal destination as equally valid — its `require_destination`
@@ -145,7 +145,7 @@ alone as closing it. Non-blocking on its own.
   confirmed on disk) — all mechanically checked, all honoured.
 - SC-01/SC-02/SC-04/SC-08 reproduced directly (grep + Python checks): 0 capitalised literals
   outside tests, 0 `feature.json` status keys, exactly 4 non-test `gh_board.set_station(` sites.
-- Baseline suites reproduced at the pin: unit exit 0, integration exit 0 (194s), `check-state.sh`
+- Baseline suites reproduced at the pin: unit exit 0, integration exit 0 (194s), `check-state.py`
   exit 0 / 0 `VIOLATION` lines — matches the claimed measurement, no disagreement.
 
 ## Not examined

@@ -12,14 +12,14 @@ nothing. No `cross_module`/`config`/`api` task in this plan, so no extra kind is
 
 | kind | state | cmd | evidence |
 |---|---|---|---|
-| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind all` | rc=0; below |
+| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind all` | rc=0; below |
 
 `matrix_ok: true`.
 
 ## 1. Suite actually runs and can report red
 
 ```
-env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind all > /tmp/bug1304-unit.log 2>&1; rc=$?
+env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind all > /tmp/bug1304-unit.log 2>&1; rc=$?
 ```
 `rc=0`. `grep -c '^FAIL ' /tmp/bug1304-unit.log` → **0**. `grep -c 'checks passed' /tmp/bug1304-unit.log`
 → **20**, matching the baseline of 20 exactly (no discovery-count drop, no silent coverage
@@ -37,8 +37,8 @@ prep) → `5a106acd`(test) → `5facdf5e`(test) → `83d17657`(fix) → `fb76221
   `harness_boundary.py` + `inflight_registry.py` (impl-only). **T-01 before T-02: holds.**
 - `5a106acd` touches only the fixture + `tests/integration/test-check-domain.py` (tests-only);
   `5facdf5e` touches only the fixture + `tests/integration/test-bash-write-guard.py`
-  (tests-only). Both precede `fb762215` (impl-only, `bash-write-guard.sh`) and `62e5bf6d`
-  (impl-only, `check-domain.sh`). **T-03/T-05 before T-04/T-06: holds.**
+  (tests-only). Both precede `fb762215` (impl-only, `bash-write-guard.py`) and `62e5bf6d`
+  (impl-only, `check-domain.py`). **T-03/T-05 before T-04/T-06: holds.**
 
 Ordering holds on all four pairs named in the dispatch, by file-touch inspection alone (no
 implementation file appears in any test-labeled commit or vice versa).

@@ -42,7 +42,7 @@ orphan REQ; both tasks trace all six (plan.yaml:35,147).
 | ignored-only NOT refused | SC-02 | **yes** — case 4 asserts exit 0, `junk/scratch.txt` present, HEAD on `factory/issue-42` (109-114); a `--ignored` defect reddens |
 | self-path refused even when clean | SC-03 | **yes, post-T-02 only** — case 5 exercises the refusal with `_control_plane_root` substituted; case 6 pins the real identity. See G2: case 6 asserts equality with the exact expression T-02 is told to write (plan.yaml:132-133 vs 169-170) — implementation restatement, not a consumer observable; it is case 5 that observes behaviour |
 | clean scratch refreshes exactly as today | SC-04 | **partial** — G3: nothing asserts the `fetch → checkout <default> → reset --hard` order that SC-04 names |
-| `run-unit-tests.sh` exits 0 | SC-05 | **not as drafted** — G1 makes the suite unable to reach green |
+| `run-unit-tests.py` exits 0 | SC-05 | **not as drafted** — G1 makes the suite unable to reach green |
 
 No SC's evidence is a restatement of the plan's own instruction except case 6 as noted; SC-06 is
 `inspection` (BRIEF.md:77-80), so case 7's source-text assertions are a tripwire, not the evidence.
@@ -90,7 +90,7 @@ Measurements asserted in `intent:`, each opened and measured:
 | `harness_boundary.MARKER = .harness/team-config.yaml`; `resolve_root(bin_dir, strict=True)` | CONFIRMED (harness_boundary.py:54,66 — `strict=False` is a real keyword) |
 | insertion point: after `path`/`branch`, before the `.git` isdir branch | CONFIRMED (factory_workspace.py:117-120) |
 | `factory_cli.refuse` prints one `factory: <tool>: ...` line and exits 2; `run` traps the wordier "unexpected failure" | CONFIRMED (factory_cli.py:43,50-52,90) |
-| `run-unit-tests.sh --kind unit` is a real invocation | CONFIRMED (run-unit-tests.sh:18,23,30) |
+| `run-unit-tests.py --kind unit` is a real invocation | CONFIRMED (run-unit-tests.py:18,23,30) |
 
 Aside, not a plan defect: the intake's own item 5 puts `workspace_path` at `factory_config.py:399-404`;
 it is at **394-399**. The plan repeats no line range from it.

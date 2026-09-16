@@ -85,11 +85,11 @@ unverified.
 
 ## Re-run: unit and integration suites — MATCH claimed evidence
 
-- `run-unit-tests.sh --kind unit`: exit 0, all 29 of the 29 `UNIT_SCRIPTS` entries individually
+- `run-unit-tests.py --kind unit`: exit 0, all 29 of the 29 `UNIT_SCRIPTS` entries individually
   confirmed `PASS <script>` in the output (a stray grep for `PASS .*\.py$` at 30 was a false
   positive — `case_floor_inflight_registry.py` is an internal per-case label printed by
   `test-inflight-registry.py`, not a 30th script). **29/29, matches claim.**
-- `run-unit-tests.sh --kind integration`: exit 0, all 28 of the 28 `INTEGRATION_SCRIPTS` entries
+- `run-unit-tests.py --kind integration`: exit 0, all 28 of the 28 `INTEGRATION_SCRIPTS` entries
   (27 base + `test-code-grade-cli.py` appended) individually confirmed `PASS <script>`.
   **28/28, matches claim.**
 - Did not re-run the full 955-suite repository suite; the one known failure

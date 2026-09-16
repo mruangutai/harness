@@ -34,7 +34,7 @@ Measured on the file at `digest.md` (153 lines):
 | `safe_load` of the block at 120–152 | `adequacy_notes` → **`list`, 6 items** |
 
 Line 79 (the superseded block) still carries the prose scalar — correctly preserved. The correction is
-an append, not a rewrite, so `check-domain.sh`'s #1058 extends-only guard is satisfied and
+an append, not a rewrite, so `check-domain.py`'s #1058 extends-only guard is satisfied and
 `validate-digest.py`'s last-`VERDICT:`-onward rule lands on the list form.
 
 ## 3. `state.yaml` — CLEAN

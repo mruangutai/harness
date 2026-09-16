@@ -72,7 +72,7 @@ nobody a way around it. A clean scratch checkout is prepared exactly as it is to
   the default branch, hard reset, then the issue branch — and a missing checkout still clones,
   with no extra destructive command and no change of order.
   verify: automated        evidence: unit
-- SC-05: `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` exits 0.
+- SC-05: `.agents/skills/harness/bin/run-unit-tests.py --kind unit` exits 0.
   verify: automated        evidence: unit
 - SC-06: No bypass exists: a reviewer reading the shipped diff finds no flag, argument or
   environment variable that skips either refusal, and cites `file:line` for the refusal sites and

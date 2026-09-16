@@ -103,7 +103,7 @@ PASS test-validate-feature-json.py
 
 **3. `--kind integration` — covering the verify-clause hole (see Open Question below):**
 ```
-$ CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 Exit code: **0**. Tail (last lines):
 ```
@@ -159,15 +159,15 @@ this basis.
 
 ## Open questions
 
-1. The verify clause as written (`run-unit-tests.sh --kind unit`) never executes
+1. The verify clause as written (`run-unit-tests.py --kind unit`) never executes
    `test-check-plan-routes.py` — it is registered in `INTEGRATION_SCRIPTS`
-   (`run-unit-tests.sh:17-18`), not `UNIT_SCRIPTS`. Confirmed by running both kinds separately (both
+   (`run-unit-tests.py:17-18`), not `UNIT_SCRIPTS`. Confirmed by running both kinds separately (both
    exit 0 above); the gap is real regardless. Per dispatch instruction, did not edit the `verify:`
    clause — it is approved plan text — and ran both kinds instead. Raised for the plan owner to
    decide whether the task's `verify:` should be corrected to `--kind integration` or `--kind all`
    in a later revision.
 
-2. `bash-write-guard.sh` denied a `>` redirect targeting the session's own designated scratchpad
+2. `bash-write-guard.py` denied a `>` redirect targeting the session's own designated scratchpad
    directory (`/private/tmp/claude-501/.../scratchpad/...`), reporting it as "outside your domain."
    A `tee` redirect to `/tmp/integ_out.txt` succeeded moments later on the same command shape. A
    guard that blocks the harness's own assigned scratchpad is a harness defect, not a domain

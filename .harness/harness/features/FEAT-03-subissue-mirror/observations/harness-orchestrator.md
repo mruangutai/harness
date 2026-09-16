@@ -1,7 +1,7 @@
 # Observations — harness-orchestrator — FEAT-03-subissue-mirror
 
 - 2026-07-31 (fix cycle 3): the DEC-159 handoff cap (60 lines) and DEC-150 STATE.md cap (120 lines) are
-  enforced by `check-domain.sh` as a PreToolUse BLOCK, and my only write tool is `Write` — so every
+  enforced by `check-domain.py` as a PreToolUse BLOCK, and my only write tool is `Write` — so every
   overrun costs a full-file rewrite, not an edit. I burned SIX rejected writes (handoff 71 -> 68 -> 65 ->
   63 -> 62 -> 61 -> 60, STATE 131 -> 122 -> 120) because I drafted at the cap instead of under it. Draft
   the handoff at ~52 lines and STATE at ~105, then spend the slack. Cheap check before the first write:

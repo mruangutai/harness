@@ -11,8 +11,8 @@ one.** Condition 2 excludes nobody in today's corpus. See below.
 ## The mechanical gate — actual output, run at the revised plan
 
 ```
-DEVIATION T-04 .claude/skills/harness/bin/bash-write-guard.sh, .claude/skills/harness/bin/test-bash-write-guard.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
-DEVIATION T-05 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-04 .claude/skills/harness/bin/bash-write-guard.py, .claude/skills/harness/bin/test-bash-write-guard.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-05 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 DEVIATION T-06 .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-before.md, .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-after.md granted to harness-orchestrator but declared main-session-direct
 OK T-07 granted to harness-documentor
 0 violation(s) across 12 plan(s)

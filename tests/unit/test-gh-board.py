@@ -27,6 +27,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 
+import artifact_accessors  # noqa: E402
 import gh_board  # noqa: E402
 import factory_gh  # noqa: E402
 import factory_config  # noqa: E402
@@ -87,7 +88,7 @@ def raised_exc(root):
     """Call load_board(root), returning the raised FleetError, or None if it did not raise."""
     try:
         gh_board.load_board(root)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         return exc
     return None
 
@@ -205,7 +206,7 @@ for _statuses, _want in ((("done", "building", "done"), "building"),
           _got == _want and _got != factory_config.station_column(_want), _got)
 
 # The board parameter is GONE, not merely unused: a two-argument call must fail loudly rather
-# than be tolerated, or check-state.sh and board_lifecycle could keep passing a board forever.
+# than be tolerated, or check-state.py and board_lifecycle could keep passing a board forever.
 try:
     gh_board.derive_station(plan("done"), full_board())
     check("derive_station rejects a second board argument", False, "accepted two arguments")
@@ -397,7 +398,7 @@ try:
         )
         check("set_station raises FleetError on a capitalised station and writes nothing",
               False, "did not raise")
-    except factory_config.FleetError:
+    except artifact_accessors.FleetError:
         check("set_station raises FleetError on a capitalised station and writes nothing",
               "value" not in _captured, _captured)
 finally:
@@ -433,7 +434,7 @@ check("project: each task card gets its own task's station",
       _p[11] == "building" and _p[12] == "ready" and _p[13] == "done", repr(_p))
 
 # --- THE DELETED EXCEPTION (D-11). A task at ready projects to READY, never to backlog. This
-# --- is the rule the old check-state.sh _EXPECT comment carried on the grounds that gh-sync
+# --- is the rule the old check-state.py _EXPECT comment carried on the grounds that gh-sync
 # --- open lands every sub-issue in backlog. It is gone, and T-10 settles the consequence.
 _p = gh_board.project(_plan("ready", "ready"), _rec(issues={"T-01": 21, "T-02": 22}))
 check("project: a ready task projects to ready, NOT to backlog",
@@ -486,7 +487,7 @@ for _bad in ("pending", "Building", "shipped"):
     _raised = None
     try:
         gh_board.project(_plan(_bad), _rec(issues={"T-01": 31}))
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         _raised = str(exc)
     check(f"project: task station {_bad!r} raises FleetError naming the task and the value",
           _raised is not None and "T-01" in _raised and _bad in _raised, repr(_raised))

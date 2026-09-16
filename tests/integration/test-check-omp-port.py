@@ -66,10 +66,48 @@ def case_symlink_topology():
     ]
 
 
+# GRADE-2 REASON: the strict-reader contract is one ordered integration scenario across
+# config, agent frontmatter, and provider YAML; each mutation requires a fresh fixture.
 def case_live_tree_passes():
     clean = run(ROOT)
-    # FEAT-56 T-14 (F4): EXPECTED TO FAIL until the main session regenerates
-    # .claude/commands/** via sync-command-adapters.py --apply (new banner text).
+    td, strict_root = fixture()
+    try:
+        config = strict_root / ".omp" / "config.yml"
+        config.write_text(
+            config.read_text(encoding="utf-8")
+            + "\nasync:\n  enabled: true\n",
+            encoding="utf-8",
+        )
+        duplicate_config = run(strict_root)
+        assert duplicate_config.returncode == 1 and "duplicate key" in (
+            duplicate_config.stderr), duplicate_config.stderr
+
+        td.cleanup()
+        td, strict_root = fixture()
+        agent = strict_root / ".omp" / "agents" / "harness-backend-dev.md"
+        text = agent.read_text(encoding="utf-8")
+        agent.write_text(
+            text.replace(
+                "name: harness-backend-dev",
+                "name: harness-backend-dev\nname: harness-backend-dev",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        duplicate_frontmatter = run(strict_root)
+        assert duplicate_frontmatter.returncode == 1 and "duplicate key" in (
+            duplicate_frontmatter.stderr), duplicate_frontmatter.stderr
+
+        td.cleanup()
+        td, strict_root = fixture()
+        provider = strict_root / ".omp" / "providers" / "openai.yml"
+        text = provider.read_text(encoding="utf-8")
+        provider.write_text(text + "\n" + text, encoding="utf-8")
+        duplicate_provider = run(strict_root)
+        assert duplicate_provider.returncode == 1 and "duplicate key" in (
+            duplicate_provider.stderr), duplicate_provider.stderr
+    finally:
+        td.cleanup()
     return [("live provider-neutral tree passes", clean.returncode == 0, clean.stderr)]
 
 
@@ -157,7 +195,7 @@ def case_missing_lifecycle_wiring_fails():
 
 
 def case_missing_sign_gate_wiring_fails():
-    """BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120) is wired into `.claude/settings.json` for
+    """BUG-1132: plan-sign-gate.py (REQ-05/DEC-120) is wired into `.claude/settings.json` for
     native Claude Code, and was silently absent from harness-hooks.ts's own bash gate list
     until this fix — invisible to this checker because the script was never in
     `required_wiring`. This proves the checker would now catch that class of gap recurring
@@ -165,11 +203,11 @@ def case_missing_sign_gate_wiring_fails():
     td, root = fixture()
     try:
         extension = root / ".omp" / "extensions" / "harness-hooks.ts"
-        extension.write_text(extension.read_text().replace("plan-sign-gate.sh", "plan-sign-gate-REMOVED.sh"))
+        extension.write_text(extension.read_text().replace("plan-sign-gate.py", "plan-sign-gate-REMOVED.sh"))
         result = run(root)
         return [
-            ("missing plan-sign-gate.sh wiring fails", result.returncode == 1, ""),
-            ("sign-gate wiring gap is named", "plan-sign-gate.sh" in result.stderr, ""),
+            ("missing plan-sign-gate.py wiring fails", result.returncode == 1, ""),
+            ("sign-gate wiring gap is named", "plan-sign-gate.py" in result.stderr, ""),
         ]
     finally:
         td.cleanup()

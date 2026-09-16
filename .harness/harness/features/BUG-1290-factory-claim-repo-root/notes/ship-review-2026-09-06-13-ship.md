@@ -151,7 +151,7 @@ cite. The paths: `runs/2026-09-06-08-eng/digest.md`, `runs/2026-09-06-09-validat
 briefing, `notes/ship-review-2026-09-06-07-ship.md`, which this one supersedes rather than replaces.
 
 The four-arm table, the empty production diff, the removed scratch worktree and every
-`check-state.sh` finding below are **my own measurements**. Everything else is attributed.
+`check-state.py` finding below are **my own measurements**. Everything else is attributed.
 
 ---
 
@@ -170,7 +170,7 @@ is carried forward verbatim; anything not listed here dies silently.
 | B-4 | chore | **`factory_claim.py:38` `_BIN_DIR` is dead within its module.** Its only reader is unit case `5d`, via `claim._BIN_DIR`. A later cleanup deletes it and reddens `5d` for a reason unrelated to what `5d` tests. Repoint `5d` at `fc._BIN_DIR`. |
 | B-5 | chore | **`features_root`'s join is not traversal-safe in isolation.** `"owner/../../etc/passwd"` escapes the harness root; `"owner/"` collapses the segment. **Not attacker-reachable today** — candidate filtering matches exact `fleet.yaml` membership first. Defence in depth only. |
 | B-6 | bug | **The `feature`-label-derived join is unvalidated, and `feature` *is* attacker-influenced** (`factory_claim.py:170,190`). **Pre-existing**; belongs to the factory owner, not this diff. |
-| B-7 | chore | **`segment_of`'s docstring claims to be "the one home of that rule" and the tree disagrees.** Four identical derivations survive (`post-merge-sweep.sh:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`). Correctly out of scope; nothing indexes them. |
+| B-7 | chore | **`segment_of`'s docstring claims to be "the one home of that rule" and the tree disagrees.** Four identical derivations survive (`post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`). Correctly out of scope; nothing indexes them. |
 | B-8 | chore | `_BlockerCache._plan` and `.issue_number` build the `(repo, feature)` key inline in two places rather than through one accessor. Declined at the pin boundary. |
 | B-9 | chore | `features_root(repo)` is resolved at three call sites in `_BlockerCache`. Measured inert (13.32 µs per call, at most twice per unique pair per poll). Shape note only. |
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You declined to rule on it twice; queued here so it survives. |
@@ -184,7 +184,7 @@ is carried forward verbatim; anything not listed here dies silently.
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-23 | bug | **The plan-panel record is incomplete and `check-state.sh` INV-32 is red on it** — readers `scope`, `should-not-exist` and `goalcheck` are all unrecorded. Re-measured today: still red, unchanged. `plan.yaml` is byte-identical to the approval commit, so this predates every cycle since. Only the product manager may write `panel:`. |
+| B-23 | bug | **The plan-panel record is incomplete and `check-state.py` INV-32 is red on it** — readers `scope`, `should-not-exist` and `goalcheck` are all unrecorded. Re-measured today: still red, unchanged. `plan.yaml` is byte-identical to the approval commit, so this predates every cycle since. Only the product manager may write `panel:`. |
 | B-24 | chore | **No `notes/handoff-build.md` exists** — the build seam was crossed without one, by a predecessor. Still flagged. Deliberately **not** fabricated after the fact; writing a "working memory" note for a phase nobody ran would falsify the record. |
 | B-25 | chore | **Run bookkeeping fails its own contracts, and it recurred today.** All five of this cycle's `state.yaml` files carry the forbidden `run_uid` key; five older run digests still fail the lead digest contract (today's five do **not** — that part improved). Systemic lead behaviour across three cycles. |
 
@@ -207,7 +207,7 @@ Defects in the factory itself, not in the change. Listed because this repository
 | B-26 | chore | **Agent scratch worktrees are not cleaned up and escape the invariant's naming. Recurred today**: a qa dispatch created `/private/tmp/qa-b16-proof-worktree`, outside the segment layout, which tripped INV-25 *and* an INV-29 the invariant could not compose a removal command for. **I removed it** (clean, no unlanded work). `qa-bug440-c3-probe` and the `qa-c2-*` trees from earlier panels still stand. |
 | B-31 | chore | **`test_matrix.bugfix` carries a permanently inert leg.** `match_bug_class` has no bug-class taxonomy anywhere in this repository, so it can never fire. An inert predicate in an auditable matrix reads as coverage that does not exist. Retire the leg or supply the taxonomy. Raised by qa. |
 
-**Unrelated to this feature, seen while measuring:** `check-state.sh` also reports a standing
+**Unrelated to this feature, seen while measuring:** `check-state.py` also reports a standing
 worktree for `FEAT-55-issue-types-created-work`, whose feature reached a terminal state on the
 default branch (INV-29). Not mine to remove — it belongs to that flow — but it is red now.
 

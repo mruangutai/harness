@@ -122,17 +122,17 @@ guard).
 
 **F-01 (low) — T-05's chained `verify:` string is fragile under `pipefail`, a false-negative risk,
 not exploited today.** Running the literal three-command `&&`-chain from `plan.yaml` under `bash -uo
-pipefail` (the exact flags `run-unit-tests.sh` itself sets at its line 2) reproduces a
+pipefail` (the exact flags `run-unit-tests.py` itself sets at its line 2) reproduces a
 `BrokenPipeError` on legs 2 and 3 that changes the **pipe's** exit code from 0 to 1: `grep -q`
 closes its stdin the instant it matches, and the producer's later `print()` calls throw
 `BrokenPipeError`, which is unhandled and makes the python process itself exit non-zero; under
 `pipefail` that propagates to the whole pipe. Concrete scenario: if any future automation invokes
 plan.yaml's literal `verify:` string under a strict shell (rather than running the file directly,
-which is what `run-unit-tests.sh --kind integration` actually does, and which is unaffected — I
+which is what `run-unit-tests.py --kind integration` actually does, and which is unaffected — I
 confirmed `python3 tests/integration/test-station-argument-spelling.py` alone exits 0 cleanly), it
 would report this passing task as FAILED. Not exploited by anything in this diff: default bash (no
 pipefail) takes the last command's exit code, so the literal chain exits 0 as intended, and I
-confirmed `run-unit-tests.sh`'s own kind-runner calls the script directly, never through this piped
+confirmed `run-unit-tests.py`'s own kind-runner calls the script directly, never through this piped
 string. `qa-BUG-1507-build.md` independently observed and recorded the same `BrokenPipeError`
 without flagging the pipefail exposure — recording it here per P-15/G-10 rather than letting it
 recur unremarked.

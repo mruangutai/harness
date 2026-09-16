@@ -10,7 +10,7 @@ confirmed present and correctly numbered via `bash`; treat this as a session-too
 finding against the feature (see Open questions).
 
 **BLUF: FAIL.** Every T-19/C2-02/C2-03 guard the dispatch named IS pinned by mutation, with one
-exception downgraded to a live-but-non-exploitable dead-code finding: `check-domain.sh`'s
+exception downgraded to a live-but-non-exploitable dead-code finding: `check-domain.py`'s
 `_resolved_rel`'s fail-closed branch cannot fire under the actual Python runtime (3.14; `strict`
 defaults `False` since 3.10), because `os.path.realpath` no longer raises `OSError` on a symlink
 loop — measured live, not inferred. The write path stays safe in practice because the underlying
@@ -25,7 +25,7 @@ predicted. Baseline suites match the reported green; SC-08 is now **literally tr
 |---|---|---|
 | `--kind unit` | exit 0, 505 PASS | **matches**: exit 0, 505 `^PASS ` lines, 0 FAIL, 32 script markers (31 declared + 1 subcase name, same shape cycle 2 noted). 23.5s. |
 | `--kind integration` | exit 0, 819 PASS | **exit 0, 0 FAIL confirmed** (the part that matters). Raw `^PASS ` count is **696**, not 819 — but this is a metric artifact, not a regression: 28 declared scripts == 28 discovered script-level markers (set-equal), and this run's per-script conventions split across `^PASS ` (696), `^ok` (1271), and `^PASS:` (123) lines depending on which convention each script uses internally (e.g. `test-plan-sign-gate.py`'s whole C2-03/H-02/F-03 block prints `ok`, not `PASS`). Raw PASS-line totals are not comparable across runs when scripts' internal conventions differ — this is exactly my own Expertise G-04, reconfirmed live. 3m26s. |
-| `check-state.sh` | exit 0, 0 violations, 0 tracebacks | **matches**: exit 0, 0/0. 12.7s. |
+| `check-state.py` | exit 0, 0 violations, 0 tracebacks | **matches**: exit 0, 0/0. 12.7s. |
 
 **Coverage gap named per dispatch step 1.** `--kind unit`'s 31-script list contains **zero** of the
 guard scripts this cycle's mutations target. Cross-referencing this feature's 17 changed non-test
@@ -41,14 +41,14 @@ GREEN. This is the same shape as the four-task blind spot the handoff's own Dead
 
 | guard | file:line @5dc7710 | mutation | suite | result |
 |---|---|---|---|---|
-| T-19 exemption widen | `check-state.sh:201` `if not doc["tasks"]:` | `if True:` (exempt every plan, tasks or not) | `test-check-state.py` (`python3` direct) | **RED** — 3 fails: `(inv34.d)` (the control), plus `(q/pending)` INV-3 and `(q/inv5)` STATE.md-task, both collateral since the mutation skips the whole loop |
-| T-19 approval-check delete | `check-state.sh:203-208` (the `_appr =` block) | deleted entirely, exemption line untouched | same | **RED** — 2 fails: `(inv34.d)` + `(q/pending)`; `(inv34.d)` confirmed as the load-bearing control both ways |
+| T-19 exemption widen | `check-state.py:201` `if not doc["tasks"]:` | `if True:` (exempt every plan, tasks or not) | `test-check-state.py` (`python3` direct) | **RED** — 3 fails: `(inv34.d)` (the control), plus `(q/pending)` INV-3 and `(q/inv5)` STATE.md-task, both collateral since the mutation skips the whole loop |
+| T-19 approval-check delete | `check-state.py:203-208` (the `_appr =` block) | deleted entirely, exemption line untouched | same | **RED** — 2 fails: `(inv34.d)` + `(q/pending)`; `(inv34.d)` confirmed as the load-bearing control both ways |
 | harness_yaml station guard | `harness_yaml.py:326` `if not tasks and not str(doc.get("status") or "").strip():` | `if not tasks and "status" not in doc:` | `test-harness-yaml.py` | **RED** — 1 fail: `test_load_plan_accepts_a_station_only_record_and_only_with_a_station` (`ACCEPTED what it must reject: empty tasks and a blank status`) — the negative-half case with `status: '   '` now wrongly passes |
-| INV-34 isfile invert | `check-state.sh:1105` `if not os.path.isfile(...):` | inverted to `if os.path.isfile(...):` | `test-check-state.py` | **RED** — 2 fails: `(inv34.a)`, `(inv34.b)` |
-| INV-34 live deletion | (live tree, not the fixture) | `mv`'d `FEAT-45-adversarial-plan-panel/plan.yaml` out of the tracked tree, ran `check-state.sh` over the real corpus | `check-state.sh` | **RED** — `VIOLATION INV-34: FEAT-45-adversarial-plan-panel has no plan.yaml...`; restored via `git checkout --` (the write-guard denied `mv`-ing it back — see Open questions), re-ran, confirmed 0 violations again |
-| hardlink cap `< 2` → `< 1` | `check-domain.sh:1524` `if st.st_nlink < 2:` | literal mutation as specified | `run_t09()` isolated | **GREEN, 0 fails** — see finding below: the literal mutation is a no-op for correctness |
+| INV-34 isfile invert | `check-state.py:1105` `if not os.path.isfile(...):` | inverted to `if os.path.isfile(...):` | `test-check-state.py` | **RED** — 2 fails: `(inv34.a)`, `(inv34.b)` |
+| INV-34 live deletion | (live tree, not the fixture) | `mv`'d `FEAT-45-adversarial-plan-panel/plan.yaml` out of the tracked tree, ran `check-state.py` over the real corpus | `check-state.py` | **RED** — `VIOLATION INV-34: FEAT-45-adversarial-plan-panel has no plan.yaml...`; restored via `git checkout --` (the write-guard denied `mv`-ing it back — see Open questions), re-ran, confirmed 0 violations again |
+| hardlink cap `< 2` → `< 1` | `check-domain.py:1524` `if st.st_nlink < 2:` | literal mutation as specified | `run_t09()` isolated | **GREEN, 0 fails** — see finding below: the literal mutation is a no-op for correctness |
 | hardlink cap, "never scans" variant | same line | `if True: return None` (the behavior the dispatch's parenthetical actually describes) | `run_t09()` isolated | **RED** — 1 fail: `T-09 11: a Write through a hardlink to plan.yaml is DENIED` |
-| islink fail-closed branch, deleted | `check-domain.sh:1543-1551` (`if resolved is None: ... return None`) | deleted entirely (8 lines) | `run_t09()` isolated | **GREEN, 0 fails, and no crash** — see finding below: the branch is unreachable, not merely untested |
+| islink fail-closed branch, deleted | `check-domain.py:1543-1551` (`if resolved is None: ... return None`) | deleted entirely (8 lines) | `run_t09()` isolated | **GREEN, 0 fails, and no crash** — see finding below: the branch is unreachable, not merely untested |
 | `as_bash_reads_it` identity | `plan-sign-gate.py:133-147` | body replaced with `return line` | `test-plan-sign-gate.py` | **RED** — 6 fails: 2× H-02 (both scanners) + 4× C2-03 (both scanners × plain-and-doubled `${IFS}`; the precision-control and one text-fallback case were unaffected as expected) |
 
 **Baseline assertion counts, confirmed by direct isolated runs before mutating (answers dispatch
@@ -60,7 +60,7 @@ as strings.
 
 ### Two findings the literal mutation instructions surfaced, not just confirmed
 
-**[med] `check-domain.sh:1524`'s `st_nlink < 2` → `< 1` literal mutation is a no-op, and the
+**[med] `check-domain.py:1524`'s `st_nlink < 2` → `< 1` literal mutation is a no-op, and the
 dispatch's own "(never scans)" framing of it is wrong.** `< 1` is true only when `nlink == 0`,
 which never happens for a `stat`-able file — so the mutated guard **never** returns early; it
 makes *every* file (not just hardlinks) fall through to the glob scan, which is a performance
@@ -71,11 +71,11 @@ describes (an unconditional `return None`, i.e. genuinely disabling the scan) an
 `T-09 11`'s hardlink case as expected. Both are reported; the second is the one that matches the
 BRIEF's intent, the first is what was literally specified.
 
-**[med] `check-domain.sh:1543-1551`'s fail-closed `islink` branch is unreachable in
+**[med] `check-domain.py:1543-1551`'s fail-closed `islink` branch is unreachable in
 `_plan_route`'s own fixture world AND under the actual Python runtime — measured both ways, not
 inferred.** Deleting the branch produces 0 test failures. I did not stop there: `_resolved_rel`'s
 `except OSError: return None` (the only way `resolved is None` can happen) depends on
-`os.path.realpath` raising `OSError` on a symlink loop — the comment at `check-domain.sh:1502`
+`os.path.realpath` raising `OSError` on a symlink loop — the comment at `check-domain.py:1502`
 says exactly this ("realpath follows a chain of ANY length, and raises on a loop"). **That claim
 is false for the Python version actually running this code.** `os.path.realpath` has taken
 `strict=False` as its default since Python 3.10 (this repo runs 3.14), and under `strict=False`
@@ -95,9 +95,9 @@ evades detection through this specific path today.
 ## 3. Test-first audit (commit messages; DEC-174 carve-out — no per-task specialist notes expected)
 
 `80a919e` (T-19/D-17) and `e071509` (C2-02+C2-03) — the two commits closing every cycle-2 HIGH —
-each lands production fix and test in the same commit: `80a919e` touches `check-state.sh` +
+each lands production fix and test in the same commit: `80a919e` touches `check-state.py` +
 `harness_yaml.py` alongside `test-check-state.py` (+121) and `test-harness-yaml.py` (+46) in one
-diff; `e071509` touches `check-domain.sh` + `plan-sign-gate.py` alongside `test-check-domain.py`
+diff; `e071509` touches `check-domain.py` + `plan-sign-gate.py` alongside `test-check-domain.py`
 (+72) and `test-plan-sign-gate.py` (+62) in one diff. Both commit bodies state the exact
 new-assertion counts (`4 T-09 11, 6 C2-03, 9 T-09 10`), independently reproduced in §2. No
 test-after violation in the cycle-2→cycle-3 delta.
@@ -125,13 +125,13 @@ new T-19 (`change_type: logic`): config×4, cross_module×4, api×1, docs×2, bu
 
 SC-05/SC-12 remain struck (unchanged); SC-06/SC-07/SC-09/SC-10/SC-13 unchanged from cycle 2's
 inspection, not independently re-run this cycle (no dispatch line named them, and nothing in
-`39477a5..5dc7710` touches their surfaces except T-19, which SC-09's `check-state.sh` full run in
+`39477a5..5dc7710` touches their surfaces except T-19, which SC-09's `check-state.py` full run in
 §1 already re-covers with 0 `INV-26` lines).
 
 ## 6. Final clean-checkout confirmation
 
 `git status --porcelain` on the whole worktree: **empty**, after every mutation above
-(`check-state.sh`×3, `harness_yaml.py`, `check-domain.sh`×2, `plan-sign-gate.py`) was restored via
+(`check-state.py`×3, `harness_yaml.py`, `check-domain.py`×2, `plan-sign-gate.py`) was restored via
 `git checkout --`. The one live-tree mutation (§2, INV-34 deletion) was restored the same way
 after the domain hook denied restoring it by `mv`. All scratch fixtures (symlink loops, the
 `$TMPDIR/loop_test*` dirs) live outside the tracked tree; two could not be `rm`'d because the
@@ -141,7 +141,7 @@ harmless, outside git.
 ## Open questions
 
 - This session's `read`/`grep` tools returned stale/incorrect content and false "no matches" for
-  `check-state.sh`, `check-domain.sh`, and `plan-sign-gate.py` — files confirmed present, correctly
+  `check-state.py`, `check-domain.py`, and `plan-sign-gate.py` — files confirmed present, correctly
   numbered, and byte-identical to their `git show` content via `bash sed`/`grep -n`. All
   ground-truth line numbers and mutations in this report used `bash` exclusively once the
   discrepancy was found. Likely a stale index for this worktree; flagged for the harness owner, not
@@ -154,7 +154,7 @@ harmless, outside git.
 
 ## Findings
 
-- **[med] `check-domain.sh:1543-1551`'s fail-closed `islink` branch is dead code under the
+- **[med] `check-domain.py:1543-1551`'s fail-closed `islink` branch is dead code under the
   project's actual Python runtime** — `_resolved_rel`'s justifying comment ("realpath... raises on
   a loop") is false for Python ≥3.10's default `strict=False`; measured live with a genuine
   symlink loop, a 500-hop chain, and a permission-denied component, none raised. Not independently
@@ -162,7 +162,7 @@ harmless, outside git.
   denies via a different path, and any real write through a loop fails at the OS layer regardless.
   Fix: either delete the dead branch and its comment, or replace the `except OSError` premise with
   a check that can actually fire under this Python version.
-- **[med] `check-domain.sh:1524`'s `st_nlink < 2` guard's literal `< 1` mutation is a no-op; the
+- **[med] `check-domain.py:1524`'s `st_nlink < 2` guard's literal `< 1` mutation is a no-op; the
   dispatch's own framing of it ("never scans") describes a different mutation.** Not a defect in
   the shipped code — reported so the dispatch's premise isn't silently carried forward as fact.
   The guard IS load-bearing (confirmed via the `if True: return None` variant, which correctly
@@ -180,20 +180,20 @@ harmless, outside git.
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: Every named T-19/C2-02/C2-03 guard reddens under its intended mutation except one — check-domain.sh's fail-closed islink branch is dead code under the project's actual Python runtime (os.path.realpath's strict=False default since 3.10 never raises on a symlink loop, measured live), not merely untested; not independently exploitable today, but the C2-02 commit's own "correction that matters most" claim does not hold. All other guards, baselines, and SC-08 (now literally true) confirm clean. Both stages ran.
+  headline: Every named T-19/C2-02/C2-03 guard reddens under its intended mutation except one — check-domain.py's fail-closed islink branch is dead code under the project's actual Python runtime (os.path.realpath's strict=False default since 3.10 never raises on a symlink loop, measured live), not merely untested; not independently exploitable today, but the C2-02 commit's own "correction that matters most" claim does not hold. All other guards, baselines, and SC-08 (now literally true) confirm clean. Both stages ran.
   suite: pass
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 505 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 696 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 505 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 696 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }
     - { kind: typecheck, state: not_applicable, cmd: null }
   coverage_gaps:
     - "--kind unit (31 scripts) covers none of this cycle's 11 mutated-guard test files (test-check-domain.py, test-check-state.py, test-harness-yaml.py, test-plan-sign-gate.py, plus 7 more) — all 11 live in --kind integration only; running unit alone hides every mutation in this report"
-    - "check-domain.sh: the fail-closed islink branch (1543-1551) is unreachable under Python >=3.10's realpath(strict=False) default — dead code, not merely an untested branch"
+    - "check-domain.py: the fail-closed islink branch (1543-1551) is unreachable under Python >=3.10's realpath(strict=False) default — dead code, not merely an untested branch"
   sc_evidence:
     - { id: SC-01, test: "criterion's own grep verbatim — 0 hits" }
     - { id: SC-02, test: "criterion's own quoted-literal grep verbatim — 0 lines" }
@@ -203,7 +203,7 @@ DIGEST:
     - { id: SC-11, test: "check-plan-routes.py full run — exit 0, 0 violations across 3 plans" }
     - { id: SC-14, test: "grep -c FEAT-41-one-station-vocabulary DECISIONS.md — 3" }
   open_questions:
-    - { id: Q1, question: "This session's read/grep tools served stale content and false negatives for check-state.sh, check-domain.sh, and plan-sign-gate.py despite bash confirming correct, current content at the same line numbers. Worked around with bash throughout. Is this a known worktree-indexing issue?", blocking: false }
+    - { id: Q1, question: "This session's read/grep tools served stale content and false negatives for check-state.py, check-domain.py, and plan-sign-gate.py despite bash confirming correct, current content at the same line numbers. Worked around with bash throughout. Is this a known worktree-indexing issue?", blocking: false }
     - { id: Q2, question: "The bash-write-guard denied mv-ing a moved-out file back into place (a live-tree INV-34 mutation restore), forcing a git checkout -- workaround. Same asymmetry cycle 1's Q-01 flagged. Should the guard treat a restore-to-original-content as distinct from an arbitrary out-of-domain write?", blocking: false }
   files_touched: []
   expertise_update: []

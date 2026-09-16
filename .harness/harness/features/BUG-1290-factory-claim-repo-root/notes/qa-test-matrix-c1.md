@@ -21,15 +21,15 @@ Floor from `bugfix` alone: `unit` only. **QA adds `integration`** (floor is a fl
 REQ-07/SC-07/SC-09 explicitly require `tests/integration/test-factory-integration.py` and
 `test-layout-migration.py`, and `test-feature-worktree.py` drives `resolve_repo` through the CLI as a
 subprocess — behavior a source scan cannot see. All three are `tests/integration/**`, which the
-`integration` kind's `detect` already covers and `run-unit-tests.sh --kind integration` already lists
+`integration` kind's `detect` already covers and `run-unit-tests.py --kind integration` already lists
 (confirmed by running it, see below) — no gap between "should run" and "kind command runs it."
 
 ## Required kinds — resolved states
 
 | kind | state | evidence |
 |---|---|---|
-| `unit` | **satisfied** | `run-unit-tests.sh --kind unit` exit 0; `test-factory-claim.py` 124/124 ok, `test-factory-claim-mutation.py` both markers present (its 3 `FAIL` lines are the mutation proof's *own* expected reddening, not real failures — verified in raw output at `/tmp/qa_kind_unit.out:751-756`) |
-| `integration` | **satisfied** | `run-unit-tests.sh --kind integration` exit 0, zero `^FAIL ` lines, 46 files, 65.4s wall |
+| `unit` | **satisfied** | `run-unit-tests.py --kind unit` exit 0; `test-factory-claim.py` 124/124 ok, `test-factory-claim-mutation.py` both markers present (its 3 `FAIL` lines are the mutation proof's *own* expected reddening, not real failures — verified in raw output at `/tmp/qa_kind_unit.out:751-756`) |
+| `integration` | **satisfied** | `run-unit-tests.py --kind integration` exit 0, zero `^FAIL ` lines, 46 files, 65.4s wall |
 | `component`/`ui`/`typecheck` | not applicable | `unresolved` in `test_kinds`, not in the `bugfix` floor, diff touches no `.tsx`/e2e/component surface |
 | `functional`/`eval` | not applicable | `status: excluded`, signed `DEC-187`; not in `bugfix` floor either |
 | `omp_session_accessor`/`handoff_comprehension` | not applicable | `locally_run`; diff does not touch `inflight_registry.py` session-file resolution or the handoff contract — outside their `detect` surface |
@@ -59,10 +59,10 @@ $ env -u HARNESS_AGENT_TYPE python3 tests/integration/test-layout-migration.py
 $ env -u HARNESS_AGENT_TYPE python3 tests/integration/test-feature-worktree.py
 ... all PASS lines, ends "PASS test-feature-worktree.py"
 
-$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
 EXIT=0; grep -c '^FAIL ' = 3 (all three are the mutation proof's own reddening, confirmed by line context)
 
-$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration
 EXIT=0; grep -c '^FAIL ' = 0; 46 files, 65.7s wall
 ```
 

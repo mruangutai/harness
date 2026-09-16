@@ -33,7 +33,7 @@ nothing else. The index is therefore a deliverable of T-19, written only by re-r
 
 ## Lane grant — verified against the live guard, not the plan
 
-`check-domain.sh --resolve` returns `harness-documentor` for both
+`check-domain.py --resolve` returns `harness-documentor` for both
 `.harness/harness/docs/DECISIONS.md` and `.harness/harness/docs/DECISIONS-INDEX.md`. That agrees
 with `plan.yaml`'s `lanes:` rows. `check-plan-routes.py` reports `OK T-19 granted to
 harness-documentor`, 0 violations across the plan.
@@ -56,7 +56,7 @@ must be non-zero.
 
 - **Approval.** The task set changed after signature. `harness-spec-driven` says that resets
   approval; the `approval:` block is not mine to write. It is byte-identical to HEAD.
-- **Board.** `check-state.sh` INV-26 now wants issue #672 (T-19, auto-created on write) moved off
+- **Board.** `check-state.py` INV-26 now wants issue #672 (T-19, auto-created on write) moved off
   Backlog. Orchestrator's.
-- **Pre-existing, not mine:** `check-domain.sh --post` reports undeclared `agent` keys at
-  `feature.json` `/runs/9-12`, and `check-state.sh` flags FEAT-26's unapproved BRIEF.
+- **Pre-existing, not mine:** `check-domain.py --post` reports undeclared `agent` keys at
+  `feature.json` `/runs/9-12`, and `check-state.py` flags FEAT-26's unapproved BRIEF.

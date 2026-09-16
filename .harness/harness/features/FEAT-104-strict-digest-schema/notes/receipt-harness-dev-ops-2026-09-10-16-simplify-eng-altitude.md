@@ -68,7 +68,7 @@ schema yet); worth a line in the next simplify/eng briefing.
 
 ## Recommended fix (one, prose diff, NOT applied)
 
-In `check-domain.sh` `shape_problems`, ~1648-1659, replace the validator-name dispatch with a
+In `check-domain.py` `shape_problems`, ~1648-1659, replace the validator-name dispatch with a
 path-first dispatch so a *future* empty-path keyword degrades to a generic message instead of
 silence:
 
@@ -97,7 +97,7 @@ that new bucket (acceptable: it still names the failure instead of staying silen
   `repr()`-quoted form the code actually emits, matching G-arguments elsewhere in this repo about
   precise substring assertions. See test-delta grade below for why it is not required.
 - Q2's pre-existing evidence-convention prose duplication (schema `description`/`propertyNames`
-  vs. check-domain.sh's remedy sentence) — real, but outside this delta's changed lines.
+  vs. check-domain.py's remedy sentence) — real, but outside this delta's changed lines.
 
 ## Test-delta grade
 
@@ -111,7 +111,7 @@ that new bucket (acceptable: it still names the failure instead of staying silen
   (DEC-174 already settles that the *existence* of the distinct heads is not up for
   re-litigation).
 - **`"status" in missing.stderr` is loose but not incidental here.** Read literally
-  (`check-domain.sh:1660-1668`): the new message is `f"  missing key(s): {_missing_names}. ..."`
+  (`check-domain.py:1660-1668`): the new message is `f"  missing key(s): {_missing_names}. ..."`
   where `_missing_names = ", ".join(repr(key) for key in sorted(_missing_required))`. For this
   fixture `_missing_required == {"status"}`, so `_missing_names == "'status'"` (single-quoted via
   `repr`) — the substring `status` is embedded in `'status'`, so the assertion passes, but it
@@ -127,7 +127,7 @@ that new bucket (acceptable: it still names the failure instead of staying silen
   diff to tighten it: change `and "status" in missing.stderr` to
   `and "'status'" in missing.stderr` at test-check-domain.py:95.
 - **Would this test pass against the reverted fix? No — traced from literal strings, not
-  executed** (DEC-174: file is read-only; reasoning from `git show 790023f0:...check-domain.sh`
+  executed** (DEC-174: file is read-only; reasoning from `git show 790023f0:...check-domain.py`
   lines 1630-1658, not invoked). Under the pre-fix code, the single unconditional block computes
   `_offending` from `_path = list(_error.path)`; for a `required` error `error.path` is empty
   (jsonschema reports `required` failures against the *containing* object, not a child key), so
@@ -158,7 +158,7 @@ Ran `git -C <worktree> status --porcelain` at the end of this run:
 All four are untracked sibling receipts from concurrent parallel readers (this run's own prior
 receipt and three siblings' outputs); none of them are the two protected delta files. The
 tree is otherwise clean — no tracked file, and none of the three DEC-174 protected paths
-(`check-domain.sh`, `run-state-schema.json`, `test-check-domain.py`), show any modification. I
+(`check-domain.py`, `run-state-schema.json`, `test-check-domain.py`), show any modification. I
 wrote no probe files and created no `mktemp -d` scratch root — all reasoning above is static,
 from the literal message-construction code and `git show`, per the dispatch's explicit
 allowance to reason from literal strings instead of invoking the fixture.

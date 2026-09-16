@@ -65,7 +65,7 @@ in section 2 I measured myself in this worktree today and cite by line.
   (`feature_id: F1\ngithub:\n  parent: 40\n`) and JSON-with-a-`#`-comment. `yaml.safe_load` returns
   the same dict for both; `json.loads` raises `JSONDecodeError` on both. Either satisfies the
   operator's criterion; the choice is the planner's.
-- Route resolution for the one file in scope: `check-domain.sh --resolve
+- Route resolution for the one file in scope: `check-domain.py --resolve
   tests/integration/test-gh-sync.py` prints `harness-backend-dev`, `harness-dev-ops`, `harness-qa`
   — a team lane, not main-session-direct.
 - `.agents/skills` is a symlink to `.claude/skills` in this checkout (same inode for

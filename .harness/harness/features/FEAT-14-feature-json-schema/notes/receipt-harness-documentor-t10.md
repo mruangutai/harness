@@ -21,7 +21,7 @@ single hunk of three added lines and nothing else.
 - **DEC-190** — ``jsonschema` is a required dependency, declared in `harness-init`'s prerequisite
   gate and CI rather than a manifest; a missing import is a loud error, never a quieter mode.`
 - **DEC-191** — `A feature's execution state has a closed key set — eleven top-level keys,
-  `additionalProperties: false`, eight required — enforced on `check-domain.sh`'s write path and in
+  `additionalProperties: false`, eight required — enforced on `check-domain.py`'s write path and in
   CI.`
 - **DEC-192** — ``phase` and `status` collapse into one `status` field whose six case-sensitive
   values are the GitHub board's column names; no alias, no translation, and `blocked` is
@@ -29,7 +29,7 @@ single hunk of three added lines and nothing else.
 
 Each is drawn from its entry: DEC-190's "declared in exactly the two places PyYAML is" (the
 `harness-init` prerequisite gate and `.github/workflows/tests.yml`) and its "no `requirements.txt`
-and no `pyproject.toml`"; DEC-191's key counts and its enforcement point on `check-domain.sh`'s
+and no `pyproject.toml`"; DEC-191's key counts and its enforcement point on `check-domain.py`'s
 write-payload path plus the required CI job; DEC-192's six board column names, its "case sensitive,
 no lowercase alias", "no translation function, no alias table", and its explicit dropping of
 `blocked`.
@@ -60,7 +60,7 @@ rewritten at all.
 ## Out of scope, seen but not touched
 
 - Run by me at this checkout, not quoted from the dispatch: `check-plan-routes.py` prints
-  `35 violation(s) across 16 plan(s)`, `exit=1`. `check-state.sh` exits 1 with 15 `VIOLATION` lines,
+  `35 violation(s) across 16 plan(s)`, `exit=1`. `check-state.py` exits 1 with 15 `VIOLATION` lines,
   every one of them `has runs/ but no feature.json`. Both close at T-08. Observed, not chased.
 - The regenerated index still carries `feature.yaml` in historical rows. By design (rule 15, R-01).
   Not cleaned.

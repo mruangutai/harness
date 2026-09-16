@@ -369,7 +369,7 @@ def case_second_repo():
     """(g) SECOND REPOSITORY: a real second git repo, fleet-resolved (never the hard-coded
     "harness" literal), with its own default branch, its own Done feature landed on it and a
     real `git worktree add`. classify() is called directly on that repository's own root — the
-    same call shape post-merge-sweep.sh's contract (T-03) makes per repository — and must
+    same call shape post-merge-sweep.py's contract (T-03) makes per repository — and must
     classify that worktree terminal.
 
     Fleet resolution requires factory_config.FLEET_PATH, computed at IMPORT time from
@@ -679,7 +679,7 @@ def case_classify_all_fleet_unloadable():
     """(l) FLEET UNLOADABLE: overwrite the probe root's fleet.yaml with bytes load_fleet
     rejects. classify_all still returns the harness root's own records AND returns one
     repository-level unresolved record whose path is the fleet path — two assertions. RED PROOF:
-    a second, independent producer — a local stub that attempts factory_config.load_fleet(),
+    a second, independent producer — a local stub that attempts artifact_accessors.load_fleet(),
     catches the failure, and returns only the harness half's classify(root) records — is run in
     the SAME subprocess against the SAME unloadable fleet.yaml. It never emits a fleet-path
     record; the real classify_all does. Loop-back cycle 1 (T-02): the prior form compared the
@@ -696,7 +696,7 @@ def case_classify_all_fleet_unloadable():
             f.write("key: [unclosed\n  - broken: yaml: syntax\n")  # load_fleet must reject this
 
         # Second producer, same subprocess, same fixture: a DELIBERATELY WRONG stub that
-        # attempts factory_config.load_fleet(), catches the failure, and returns ONLY the
+        # attempts artifact_accessors.load_fleet(), catches the failure, and returns ONLY the
         # harness half's classify(root) records — no fleet-path record at all. Independent of
         # classify_all's own code path (it never calls classify_all), in the same spirit as
         # _stub_skip_both/_stub_reports_both above.
@@ -704,11 +704,11 @@ def case_classify_all_fleet_unloadable():
             "import json, sys\n"
             f"sys.path.insert(0, {BIN_DIR!r})\n"
             "import worktree_terminal as w\n"
-            "factory_config = w._import_factory_config()\n"
+            "import artifact_accessors\n"
             f"real = w.classify_all({probe_root!r})\n"
             f"stub = list(w.classify({probe_root!r}))\n"
             "try:\n"
-            "    factory_config.load_fleet()\n"
+            "    artifact_accessors.load_fleet()\n"
             "except Exception:\n"
             "    pass\n"  # swallowed: no fleet-path record appended, unlike classify_all
             "print(json.dumps({'real': real, 'stub': stub}))\n"
@@ -931,7 +931,7 @@ def case_direct_build_brief_is_terminal():
 def case_plan_station_scan_without_pyyaml():
     """FEAT-41 T-07: the station is still readable when PyYAML is NOT importable.
 
-    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.sh runs `python3 -I`, and
+    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.py runs `python3 -I`, and
     isolated mode ignores user site-packages — where PyYAML lives on a stock macOS install. This
     module read only JSON until T-07, so it had no third-party dependency; moving the station
     into plan.yaml gave the sweep one it could not satisfy, and EVERY worktree came back

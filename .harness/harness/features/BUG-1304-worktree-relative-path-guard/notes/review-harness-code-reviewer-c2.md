@@ -17,10 +17,10 @@ build, but its presence means the correct enum value is `grade_2`, not `pass`).
 
 ### F-01 (REQ-06/D-08 spec violation) — CLOSED
 
-Diffed `af5ddd7a..c5869301` for `bash-write-guard.sh` directly (`git show <sha>:<path>`, not
+Diffed `af5ddd7a..c5869301` for `bash-write-guard.py` directly (`git show <sha>:<path>`, not
 working tree).
 
-- **(a) `deny_bare()` exists, no Write-tool advice.** `bash-write-guard.sh:655-659` (at c5869301):
+- **(a) `deny_bare()` exists, no Write-tool advice.** `bash-write-guard.py:655-659` (at c5869301):
   ```
   def deny_bare(reason):
       print(f"bash-write-guard: BLOCKED — {reason}", file=sys.stderr)
@@ -42,10 +42,10 @@ working tree).
   digest/state.yaml guard (`:804`), the two out-of-place/wrong-checkout worktree-pointer denials
   (`:843`, `:850`, `:864` — pre-existing D-03 logic), and the final domain deny (`:902`). None of
   these is one of the three claim-refusal sites; all three claim sites use `deny_bare`.
-- **(d) both routes' vocabulary now MATCHES.** Read `check-domain.sh`'s three call sites at
+- **(d) both routes' vocabulary now MATCHES.** Read `check-domain.py`'s three call sites at
   c5869301 (`:761-816`, unchanged since af5ddd7a — not in this diff's file list): each prints
   `"check-domain: BLOCKED — " + harness_boundary.claim_set_refusal(...)` (or the ambiguous/
-  unreadable variants) then `sys.exit(2)`, no second line. `bash-write-guard.sh`'s three sites now
+  unreadable variants) then `sys.exit(2)`, no second line. `bash-write-guard.py`'s three sites now
   print `f"bash-write-guard: BLOCKED — {reason}"` where `reason` is the identical
   `claim_set_refusal()` text, then exit 2, no second line. The only difference remaining is the
   route-name prefix (`check-domain:` vs `bash-write-guard:`), which is pre-existing and expected.
@@ -173,8 +173,8 @@ prints `destination`) is OUT OF SCOPE for this dispatch (my two jobs are F-01/F-
 the record rather than silently passed over: D-02's new clause (`plan.yaml:459-462`, landed
 `e9dbc91d`) states the ambiguous-claim refusal need only name "the candidate worktrees the resolver
 declined to choose between," not the destination — narrower than REQ-06's general "names ... the
-destination" language — and the shipped code (`check-domain.sh:775-779`,
-`bash-write-guard.sh:744`) matches that narrower, Advisor-ratified clause exactly. Whether that
+destination" language — and the shipped code (`check-domain.py:775-779`,
+`bash-write-guard.py:744`) matches that narrower, Advisor-ratified clause exactly. Whether that
 plan amendment fully discharges the ui-reviewer's finding is that reviewer's own call to make in
 their own cycle-2 pass, not mine.
 

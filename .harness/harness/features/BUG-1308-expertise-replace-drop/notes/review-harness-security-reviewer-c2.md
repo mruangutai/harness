@@ -33,7 +33,7 @@ resolve_ops(base_sections, base_order, ops)
 in the real CLI). In-memory Gotchas length stays 15 (cap check passes). `render()` writes the U+2028
 literally inline in the G-08 line. Re-parsing that rendered text with the tool's own `parse_expertise`
 yields **16** Gotchas entries — a phantom `G-16` — i.e. VL-01's symptom, reproduced through a different
-character, cap violated in what every consumer (this tool on the next invocation, `check-expertise.sh`,
+character, cap violated in what every consumer (this tool on the next invocation, `check-expertise.py`,
 a human) actually reads.
 
 **Escalated reproduction, cross-section (worse than P1 as framed):** a `replace` on a `Patterns` entry
@@ -53,11 +53,11 @@ entry at proposal-parse time (verified: `prop_sections == {'Gotchas': [('G-99','
 `splitlines()` would later do to it — the asymmetry is the root cause, not a JSON-specific one.
 
 **Abuse scenario:** any producer of an `expertise_update` ops payload — a compromised/prompt-injected
-distilling agent, or a careless one that skips SKILL.md's instructed (not enforced) `check-expertise.sh`
+distilling agent, or a careless one that skips SKILL.md's instructed (not enforced) `check-expertise.py`
 step — smuggles arbitrary extra "governing" bullets, or reclassifies existing ones into a section whose
 rules they did not originate from, into a file injected verbatim into every future spawn of that agent
-as instructions. `check-expertise.sh` (same `splitlines()` parser) *would* catch this on inspection —
-but nothing in `expertise-merge.py` or `inject-expertise.sh` calls it; it is honor-system, run only if
+as instructions. `check-expertise.py` (same `splitlines()` parser) *would* catch this on inspection —
+but nothing in `expertise-merge.py` or `inject-expertise.py` calls it; it is honor-system, run only if
 the same agent that just forged the file chooses to run it and to honor a `FAIL`.
 
 **Fix shape (not prescribed, but the gate is what's missing):** `_reject_multiline` must refuse the
@@ -76,7 +76,7 @@ still matches — accepted — because it ends in a legal-looking tail; likewise
 `cmd_ops` calls the identical, already-existing `require_expertise_destination` the `apply` path has
 called since FEAT-30/27; the gap (documented by the function's own docstring as deliberately partial —
 it checks WHERE, never WHO) is not new and not introduced by `ops`. Matches the already-signed D-01
-risk (repository Expertise entry P-03: `inject-expertise.sh` globs any `.harness/<segment>/expertise/`
+risk (repository Expertise entry P-03: `inject-expertise.py` globs any `.harness/<segment>/expertise/`
 with no per-repo isolation). Not this cycle's defect; noted so a later reviewer doesn't re-raise it.
 
 ## Finding SEC-03 (info, backlog, chore) — JSON-decode-error byte-identity is asserted only by code reading, not by a test
@@ -110,7 +110,7 @@ coverage gap for QA, not a security defect: routed as a `chore`, not gating this
 | `.claude/skills/harness/bin/expertise-merge.py` | SEC-01: validator/parser alphabet mismatch reopens VL-01's class via 8 other line-breaking chars; falsifies REQ-03. In scope, gating. |
 | `tests/unit/test-expertise-ops.py` | u17/u18 assert only `\n`/`\r` reject; no case for `\v \f \x1c \x1d \x1e \x85 \u2028 \u2029`. Coverage gap, not this panel's gate (QA's domain), noted under SEC-01. |
 | `tests/integration/test-expertise-merge.py` | case21/22 same `\n`/`\r`-only coverage; cases 14/15/20/23/24 do assert byte-identity correctly for every OTHER refusal stage; no invalid-JSON-syntax case (SEC-03); case18 corroborates shared locking (SEC-04). |
-| `.claude/skills/harness-distill/SKILL.md` | Documents the `ops` mechanism and exit table accurately; instructs `check-expertise.sh` as a step (not enforced elsewhere). Nothing in it instructs an unsafe action — the gap is the tool's, not the instruction's. |
+| `.claude/skills/harness-distill/SKILL.md` | Documents the `ops` mechanism and exit table accurately; instructs `check-expertise.py` as a step (not enforced elsewhere). Nothing in it instructs an unsafe action — the gap is the tool's, not the instruction's. |
 | `.harness/harness/docs/SPEC.md` §5.3 | Describes the mechanism (base-snapshot rebuild, caps checked once on final state) accurately as *implemented* — but the underlying REQ-03 guarantee it documents is false per SEC-01. Nothing here instructs unsafe use. |
 | `.harness/harness/docs/DECISIONS.md` DEC-219 | Same: accurate description of the chosen mechanism; makes no claim about the newline/line-separator alphabet either way, so not itself false — the code beneath it is. |
 | `.harness/harness/docs/DECISIONS-INDEX.md` row 219 | One-line summary, consistent with the full entry. Nothing in my lens. |

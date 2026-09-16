@@ -78,8 +78,8 @@ Both match `plan.yaml` exactly (lines 354/540). Both ran clean:
 
 Both suites, verbatim commands:
 ```
-.agents/skills/harness/bin/run-unit-tests.sh --kind unit          # exit 0, 28 files, 0 ^FAIL
-.agents/skills/harness/bin/run-unit-tests.sh --kind integration   # exit 0, 46 files, 0 ^FAIL
+.agents/skills/harness/bin/run-unit-tests.py --kind unit          # exit 0, 28 files, 0 ^FAIL
+.agents/skills/harness/bin/run-unit-tests.py --kind integration   # exit 0, 46 files, 0 ^FAIL
 ```
 
 ## REQ-07 — `apply` path unchanged

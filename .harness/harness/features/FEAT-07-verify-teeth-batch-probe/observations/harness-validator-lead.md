@@ -15,7 +15,7 @@
   detail is that both findings were things I had NOT said, which is the signal OQ-01 asks for and
   which a pure acceptance rate cannot show.
 
-- 2026-08-04: My own `state.yaml` was BLOCKED by `check-domain.sh` on the first write — I had added
+- 2026-08-04: My own `state.yaml` was BLOCKED by `check-domain.py` on the first write — I had added
   a top-level `pre_dispatch:` key holding my verified pre-dispatch facts. DEC-154: state.yaml is a
   checkpoint, not a notebook. The hook was right and it caught a lead doing exactly what the rule
   names. Verified facts belong in `digest.md`; the step `note:` is the prose ceiling.

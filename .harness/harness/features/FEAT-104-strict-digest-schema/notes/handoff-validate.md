@@ -22,7 +22,7 @@ hand it to pm as gradeable. The UAT script and the CEO briefing follow, in that 
 - `abff2a84` (a FEAT-56 `plan.yaml` station flip) is the CHILD of merge-base `78e34f06`, so it is this
   branch's root commit and ships with the PR while `code-grade.py`'s merge-base range cannot see it —
   `git rev-list origin/main..168f875f`, `git show --format=%P abff2a84` — verified-at 168f875f
-- CF-1 is real at source: `check-state.sh:1525-1526` interpolates `run_id` and `_step_id` bare while
+- CF-1 is real at source: `check-state.py:1525-1526` interpolates `run_id` and `_step_id` bare while
   `_names` beside them is a list repr — read at the pin — verified-at 168f875f
 - `cycles_used` stays 8 of 10; `len(runs)` is 20 of 20, informational and stops nothing —
   `feature.json`, `validate-feature-json.py` exit 0 — verified-at 168f875f
@@ -33,7 +33,7 @@ hand it to pm as gradeable. The UAT script and the CEO briefing follow, in that 
 
 - Do not re-run the reviewer panel, qa or simplify at `168f875f`: all three ran at this exact tip —
   `feature.json` `runs:` — verified-at 168f875f
-- Do not route Q1–Q7 or F2 to any lead: every remedy edits `check-domain.sh`, `check-state.sh`,
+- Do not route Q1–Q7 or F2 to any lead: every remedy edits `check-domain.py`, `check-state.py`,
   `validate-digest.py`, their tests, or an approved plan — DEC-174 — same digest — verified-at 168f875f
 - Do not re-raise F2, and do not re-open c7's F4 or F5: F2's declination is upheld on reproduced
   evidence, F4's premise no longer holds, F5 is what signed T-03 required — same digest — verified-at

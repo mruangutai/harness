@@ -15,7 +15,7 @@ Per constraints this returns to the lead; I am not accepting risk on it.
    plan-only cycle), and the constraints/verification-gaps sections.
 3. `notes/research-...-goalcheck-plan-c1.md` — read. A prior PASS re-grade; I independently
    re-verified its G1–G5/A1 closure claims (DEC-216 free slot, SKILL.md:112/116 anchors,
-   SPEC.md:904 anchor, check-expertise.sh CAPS/arg-loop) rather than trusting them, per G-01/P-03.
+   SPEC.md:904 anchor, check-expertise.py CAPS/arg-loop) rather than trusting them, per G-01/P-03.
 4. `expertise-merge.py` (full, all elided ranges re-read) — confirmed `compute_union`,
    `cmd_apply`, `parse_expertise`, `render`, `CAPS = {"Patterns":15,"Gotchas":15,"Outcomes":10,
    "Open":5}`, `require_expertise_destination`, and exit codes 0/6/7/8/9 exist exactly as the

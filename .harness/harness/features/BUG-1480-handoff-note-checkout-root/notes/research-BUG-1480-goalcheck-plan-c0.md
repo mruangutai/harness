@@ -2,7 +2,7 @@
 
 **YES — the plan as drafted delivers the operator's stated intent.** The single most important gap is
 on the EVIDENCE side, not the behaviour side: `SC-05`'s line anchors (`BRIEF.md:88`) are pre-fix
-positions that T-02's insertion at `check-domain.sh:1149` shifts by ~14, so the reviewer reads
+positions that T-02's insertion at `check-domain.py:1149` shifts by ~14, so the reviewer reads
 unrelated code at review time. No finding is `high`.
 
 ## Item verdicts
@@ -53,7 +53,7 @@ Suite crashes before the group → no FAIL line → verify FAILS. It fails close
 **6. Minimal — MET.** The change set is one sibling helper, one changed argument
 (`plan.yaml:146-149`), and one case group. The only thing beyond the literal ask is negative-control
 row 3 (`plan.yaml:93-95`), which traces to `REQ-04`; that is defensible, not creep. `D-02` is
-bookkeeping. Nothing touches `_norm`'s contract, `bash-write-guard.sh`, or BUG-1290.
+bookkeeping. Nothing touches `_norm`'s contract, `bash-write-guard.py`, or BUG-1290.
 
 **7. SC discrimination — PARTIAL.** `SC-01` discriminates (revert the fix → row 1 red → `main()`
 returns non-zero → `sys.exit(1)`, `test-check-domain.py:5228,5235`). `SC-02` MET (each pre-existing

@@ -88,7 +88,7 @@ learns otherwise the way B-11 was learned — by noticing a record is gone.
 
 ### F-05 · low · SC-01's excluded-route anchor carries no sha
 
-BRIEF SC-01 and REQ-01 cite `bash-write-guard.sh`'s `_run_artifact_guard (:744-767)` with no
+BRIEF SC-01 and REQ-01 cite `bash-write-guard.py`'s `_run_artifact_guard (:744-767)` with no
 observation sha, while every other pinned claim in the brief carries `c369fb1f`. No task touches that
 file and nothing is graded on the anchor, so the cost is a reader sent to the wrong lines after an
 unrelated edit — not a wrong verdict.
@@ -105,7 +105,7 @@ grammar. T-07's `files:` covers every site that must change.
 
 ### F-07 · info · T-06 and T-09 edit the same two files with no ordering edge
 
-Both touch `check-domain.sh` and `tests/integration/test-check-domain.py` in different regions, and
+Both touch `check-domain.py` and `tests/integration/test-check-domain.py` in different regions, and
 neither depends on the other. Both are `main-session-direct`, which serialises them by construction,
 so this is a note rather than a risk.
 
@@ -114,7 +114,7 @@ so this is a note rather than a risk.
 Both applied under compare-and-swap, exit 0. `T-09.traces` is now `[REQ-01, REQ-07]`; `T-08.depends_on`
 is now `[T-02, T-03, T-05, T-06, T-09]`; order preserved, one element added each.
 
-They close the ordering gap on the merits. T-09 edits `check-domain.sh` and
+They close the ordering gap on the merits. T-09 edits `check-domain.py` and
 `tests/integration/test-check-domain.py`, so its changes fall inside REQ-07's scope and now trace it;
 and T-08 — the sole producer of the `notes/regression-delta-BUG-1305.md` that SC-07 is graded on —
 can no longer be written before T-09's changes exist. The resulting chain

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pins dispatch-guard.sh's refusal set BEFORE T-08 changes it (FEAT-32 T-07).
+"""Pins dispatch-guard.py's refusal set BEFORE T-08 changes it (FEAT-32 T-07).
 
 WHY THIS EXISTS. T-08 cuts this gate over to also refuse a second concurrent single-flight
 dispatch, and will claim the existing refusal set is unchanged. Without this file that claim
@@ -32,7 +32,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 # DISPATCH_GUARD_BIN lets T-08 point this suite at a COPIED bin tree whose
 # inflight_registry.py has been sabotaged. The guard resolves its own library from
 # BASH_SOURCE, so the copy imports the copy.
-GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(BIN_DIR, "dispatch-guard.sh")
+GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(BIN_DIR, "dispatch-guard.py")
 
 RESULTS = []
 
@@ -349,7 +349,7 @@ def case_10_library_missing():
         mbin = os.path.join(tmp, "bin")
         shutil.copytree(BIN_DIR, mbin)
         os.remove(os.path.join(mbin, "inflight_registry.py"))
-        r = subprocess.run([os.path.join(mbin, "dispatch-guard.sh")],
+        r = subprocess.run([os.path.join(mbin, "dispatch-guard.py")],
                            input=json.dumps(_task("harness-pm", "harness-product-lead", root)),
                            capture_output=True, text=True,
                            env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
@@ -676,6 +676,18 @@ def case_23_broken_derivation_distinguished_from_grant_less():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_24_duplicate_hook_keys_are_rejected():
+    payload = (
+        '{"agent_type":"main","agent_type":"harness-eng-lead",'
+        '"tool_input":{"model":"opus","subagent_type":"harness-backend-dev",'
+        '"prompt":"' + FEATURE_LINE + '"}}'
+    )
+    result = fire(payload)
+    if result.returncode != 0:
+        check("case 24: duplicate hook-payload keys are rejected before dispatch policy",
+              False, result.stderr)
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -702,7 +714,7 @@ def main():
     os.environ["CLAUDE_PROJECT_DIR"] = _iso
 
     if not os.path.exists(GUARD):
-        print(f"FAIL  dispatch-guard.sh not found at {GUARD}")
+        print(f"FAIL  dispatch-guard.py not found at {GUARD}")
         return 1
     case_1_governed_agent_passing_a_model()
     case_2_governed_agent_no_model()
@@ -727,6 +739,7 @@ def main():
     case_21_grant_less_manifest_fails_open_and_says_so()
     case_22_derived_vocabulary_matches_invented_squad()
     case_23_broken_derivation_distinguished_from_grant_less()
+    case_24_duplicate_hook_keys_are_rejected()
 
     failed = 0
     for name, ok, detail in RESULTS:

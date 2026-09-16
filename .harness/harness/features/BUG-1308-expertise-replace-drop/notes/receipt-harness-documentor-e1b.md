@@ -72,4 +72,4 @@ editing — this is the second realignment in one feature, and the `apply`-side 
 drift nobody has caught. Durable fix: cite **stable symbol names** (`_check_base_ambiguity`, no
 range) and add a generated citation check — a script that resolves every `file:line` cite in
 `docs/**` to the symbol the prose names and fails when they disagree, run in the same gate as
-`check-expertise.sh`.
+`check-expertise.py`.

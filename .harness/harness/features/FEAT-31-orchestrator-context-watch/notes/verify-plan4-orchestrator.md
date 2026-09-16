@@ -10,8 +10,8 @@ is a check on this one rather than a restatement of it.
 |---|---|---|
 | Eight `INTEGRATION_SCRIPTS` entries absent from `test_kinds.integration.detect` | C-2 / D-4 | **CONFIRMED, exactly 8 of 12** |
 | Four files sit in both `unit.detect` and `integration.detect` | Q-B | **CONFIRMED, exactly 4** |
-| `RE_HANDOFF` at `check-domain.sh:665` in this worktree (not `:706`) | C-6 | **CONFIRMED** |
-| `SEAM_NOTES` at `check-state.sh:495` | C-6 | **CONFIRMED** |
+| `RE_HANDOFF` at `check-domain.py:665` in this worktree (not `:706`) | C-6 | **CONFIRMED** |
+| `SEAM_NOTES` at `check-state.py:495` | C-6 | **CONFIRMED** |
 | `tests.yml` runs both kinds as required steps (`:78`, `:84`) | C-1 | **CONFIRMED**, no `continue-on-error` |
 | One loop both builds the required path AND shape-checks it | C-3 | **CONFIRMED structurally** |
 | The three non-seam notes' `## Next` bodies hold 13, 6, 8 non-blank lines | C-5 | **CONFIRMED exactly** |
@@ -31,7 +31,7 @@ point.
 ## A-2's migration cost is ZERO across the WHOLE corpus, not just the three measured
 
 The operator measured the 3 non-seam notes. The glob widens INV-17's reach to **all 69**, so all
-69 are what must pass. Applying `check-state.sh`'s exact predicates —
+69 are what must pass. Applying `check-state.py`'s exact predicates —
 `HANDOFF_HEADINGS = ["## next","## trust","## dead ends","## working set"]` matched as
 `l.strip().lower()`, the 60-line cap, and T-10's proposed empty-`## Next` rule:
 

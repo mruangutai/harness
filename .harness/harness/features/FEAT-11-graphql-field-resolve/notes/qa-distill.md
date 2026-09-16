@@ -34,7 +34,7 @@ actually would have prevented the over-broad claim.
 
 **C3 — accepted.** Added `G-04`. Directly matches my own two run notes: the prior gate's Q1 flagged
 that the matrix was bound only via the task's local `verify:`, and this run's own step explicitly
-ran `run-unit-tests.sh --kind integration` as the standing bucket command, separate from task
+ran `run-unit-tests.py --kind integration` as the standing bucket command, separate from task
 verify, and reported the real 97/97 count. That distinction (task verify vs. kind command) is not
 yet in Expertise as its own rule — P-04's denominator framing is adjacent but doesn't say to run
 the second command. Kept as a Gotcha since it's a concrete "do this specific extra step," not a
@@ -49,7 +49,7 @@ new entries are additions covering gaps those two didn't reach, not replacements
 
 ## Harness defect noted, not distilled
 
-`review-harness-qa-c0.md` records a `bash-write-guard.sh` false-positive on `cp ... 2>/dev/null`
+`review-harness-qa-c0.md` records a `bash-write-guard.py` false-positive on `cp ... 2>/dev/null`
 (redirect target misread as a `cp` destination). That was already correctly routed as an
 `open_question` in that run's DIGEST, not into Expertise — a workaround entry here would outlive
 the fix. Not re-raised in this distillation; it belongs to whoever reads that run's DIGEST, not to
@@ -89,4 +89,4 @@ No displacement — Patterns was 9/15, now 10/15; nothing else changed.
 | Outcomes | 2 | 2 |
 | Open | 0 | 0 |
 
-`check-expertise.sh .harness/expertise/harness-qa.md` — OK.
+`check-expertise.py .harness/expertise/harness-qa.md` — OK.

@@ -45,7 +45,7 @@ Three measured obstacles, all beyond the one-word swap:
    `/Users/molchairuangutai/GitHub/harness-factories/`. A merge landing in kaya-ai fires no harness
    hook at all. Cross-repo removal would only ever happen opportunistically, on the next *harness*
    merge.
-2. **The landed feature directory would not resolve.** `post-merge-sweep.sh:163` builds
+2. **The landed feature directory would not resolve.** `post-merge-sweep.py:163` builds
    `main_checkout_root/.harness/<repo_segment>/features/<id>`. Measured: the harness checkout's
    `.harness/` holds `harness/` and `factory/` only — no `kaya-ai/`; kaya-ai's features live in
    kaya-ai's own checkout. Every served-repo record would hit the `:164` SKIP path.
@@ -61,7 +61,7 @@ So the qa finding, taken literally, would be a green-looking swap that changes n
 > Sweeping all makes the hook compute the SAME predicate as INV-29, so the hook and the invariant
 > can never disagree about what is eligible.
 
-Since `D-10`, `check-state.sh:1237` calls `classify_all` and `post-merge-sweep.sh:234` calls
+Since `D-10`, `check-state.py:1237` calls `classify_all` and `post-merge-sweep.py:234` calls
 `classify`. They **do** disagree, on the repository dimension. The clause was true when signed and
 is now partly falsified by a later signed decision. D-01's other two grounds — post-merge receives
 only the squash flag, and one pull can land several merges — are untouched and still carry the
@@ -76,7 +76,7 @@ operator has to amend it deliberately.
 
 ```
 - id: D-11
-  choice: The post-merge sweep is HARNESS-CHECKOUT-ONLY for this feature. post-merge-sweep.sh
+  choice: The post-merge sweep is HARNESS-CHECKOUT-ONLY for this feature. post-merge-sweep.py
     keeps calling worktree_terminal.classify(root); it does not call classify_all. REQ-07 is
     read as scoped to the checkout whose merge fired the hook. A served repository's terminal
     worktree stays reported-not-removed, by INV-29, until a future feature gives fleet repos
@@ -84,7 +84,7 @@ operator has to amend it deliberately.
   because: three facts measured at 4c7b650 make classify_all at the sweep a no-op rather than a
     fix. First, no served checkout carries .claude/skills/harness/hooks, and the shim resolves
     its root from its own file location, so a merge in a served repository fires no harness hook
-    and REQ-07's own trigger never occurs there. Second, post-merge-sweep.sh:163 resolves the
+    and REQ-07's own trigger never occurs there. Second, post-merge-sweep.py:163 resolves the
     landed feature directory under the harness main checkout, while a served repository's feature
     directories live in that repository's own .harness/<repo>/features, so every served-repo
     record would take the :164 SKIP. Third, D-03's gh-sync.py ship invocation has no parameter

@@ -22,8 +22,8 @@ own independent number is the discriminating check requested.
 ## Commands run, actual exit codes
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit          -> exit 0
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration   -> exit 1
+.claude/skills/harness/bin/run-unit-tests.py --kind unit          -> exit 0
+.claude/skills/harness/bin/run-unit-tests.py --kind integration   -> exit 1
 ```
 
 `--kind unit`: every script listed PASS, including `test-layout-migration.py` and

@@ -58,13 +58,13 @@ decisions:
       set over the live corpus is identical before and after.
       DEC-174's own list settles the rest, and it is cited by its anchor text rather than
       paraphrased: the paragraph in .harness/harness/docs/DECISIONS.md whose first words are "The
-      enforcement layer, enumerated:" names check-domain.sh, bash-write-guard.sh, validate-digest.py,
-      check-state.sh, check-plan-routes.py, dispatch-guard.sh, and the test file of each. NONE of the
+      enforcement layer, enumerated:" names check-domain.py, bash-write-guard.py, validate-digest.py,
+      check-state.py, check-plan-routes.py, dispatch-guard.py, and the test file of each. NONE of the
       five surfaces this plan now touches appears in it - harness_yaml.py (T-03), factory_claim.py
       and gh-sync.py (T-06), and the two test trees, neither of which holds the test file of a gate
       in that enumeration.
       The two consumer surfaces T-06 adds sit in the SAME lane as the surfaces already here, measured
-      rather than assumed: check-domain.sh --resolve, run once per path from the main checkout on
+      rather than assumed: check-domain.py --resolve, run once per path from the main checkout on
       2026-09-07, returns harness-backend-dev and harness-dev-ops for harness_yaml.py,
       factory_claim.py and gh-sync.py alike. The widened scope therefore needs no second lane and no
       second agent, and this stays one recorded reading carried by the one signature. Recorded here
@@ -133,12 +133,12 @@ panel:
     severity: med
     summary: 'V-1 (SNE-C1-1): REQ-04''s second-half proof bound three of the four
       consumers PF-e9eff4 named - factory_decompose.py:471 calls load_plan and tests/integration/test-factory-decompose.py
-      existed unbound, and check-state.sh:140 is the same shape with test-check-state.py
+      existed unbound, and check-state.py:140 is the same shape with test-check-state.py
       likewise unbound, so a T-03 regression reddening only those paths would ship
       with every verify green. REPAIRED before signature: both suites are now named
       in BRIEF SC-07 and appended to T-03''s and T-06''s verify blocks (ten suites
       each), and SC-07 now carries the two consumer anchors factory_decompose.py:471
-      and check-state.sh:140 plus the closed six-file consumer enumeration, so a reader
+      and check-state.py:140 plus the closed six-file consumer enumeration, so a reader
       can check it rather than trust it.'
     disposition: repaired
     resolved_by: none - repaired in the specification itself (BRIEF SC-07 and the

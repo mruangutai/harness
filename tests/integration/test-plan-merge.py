@@ -24,6 +24,7 @@ import sys
 import tempfile
 
 import yaml
+import artifact_accessors
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -1169,7 +1170,7 @@ def case_1103_sign_approval_negative_control_absent_is_main_session():
     """NEGATIVE CONTROL for the case above: an ABSENT HARNESS_AGENT_TYPE is the main session,
     the same exemption plan-sign-gate.py's own hook already uses (`if not (payload.get
     ("agent_type") or ""): sys.exit(0)`), and one this whole codebase applies consistently
-    (dispatch-guard.sh, bash-write-guard.sh, check-domain.sh, validate-digest.py). Refusing on
+    (dispatch-guard.py, bash-write-guard.py, check-domain.py, validate-digest.py). Refusing on
     absence here would refuse the main session's own legitimate signature — a stricter check
     that is provably wrong, not merely untested."""
     root, plan = fixture_root()
@@ -2068,7 +2069,7 @@ def case_amend_duplicate_id_is_refused():
 
 
 def _bug201_base_plan():
-    """A LEGAL plan per harness_yaml.load_plan: schema, feature, plan status, approval
+    """A LEGAL plan per artifact_accessors.load_plan: schema, feature, plan status, approval
     status pending, and two COMPLETE tasks (every REQUIRED_TASK_FIELDS field) with no
     dangling depends_on edge — T-02 depends on T-01, which is present.
 
@@ -2142,17 +2143,16 @@ def case_bug201_apply_refuses_dangling_depends_on():
        its own fresh copy of the same base. Exit 0, T-03 lands. Without this half, a
        plan-merge that refused every apply would pass (a) vacuously.
     """
-    import harness_yaml
 
     root_a, plan_a = fixture_root(prefix="plan-merge-test-bug201a-")
     try:
         base = write(plan_a, _bug201_base_plan())
         loads_clean = True
         try:
-            harness_yaml.load_plan(plan_a)
+            artifact_accessors.load_plan(plan_a)
         except Exception:
             loads_clean = False
-        check("bug201: the fixture base is a LEGAL plan (harness_yaml.load_plan accepts it)",
+        check("bug201: the fixture base is a LEGAL plan (artifact_accessors.load_plan accepts it)",
               loads_clean, "load_plan raised on the fixture base — this case would prove nothing")
 
         proposal_a = os.path.join(root_a, "proposal-dangling.yaml")
@@ -2453,7 +2453,7 @@ def case_delete_items_refuses_a_dangling_depends_on():
         before = write(plan_a, _delete_dangling_plan())
         legal = True
         try:
-            harness_yaml.load_plan(plan_a)
+            artifact_accessors.load_plan(plan_a)
         except Exception:  # noqa: BLE001
             legal = False
         check("delete-dangling: the fixture base IS a legal plan (or (a) proves nothing)",
@@ -2474,7 +2474,7 @@ def case_delete_items_refuses_a_dangling_depends_on():
         before = write(plan_b, _delete_dangling_plan(legal=False))
         already_illegal = False
         try:
-            harness_yaml.load_plan(plan_b)
+            artifact_accessors.load_plan(plan_b)
         except harness_yaml.PlanSchemaError:
             already_illegal = True
         check("delete-dangling b: the fixture base is ALREADY schema-illegal, so do-no-harm "
@@ -3009,7 +3009,7 @@ def case_f59_set_lanes_writes_and_validates():
         value = os.path.join(root, "lanes.yaml")
         lanes = {"resolved_at": "abc123", "rows": [
             {"surface": ".claude/skills/harness/bin/**", "lane": "team", "agent": "harness-backend-dev"},
-            {"surface": ".claude/skills/harness/bin/check-domain.sh", "lane": "main-session-direct",
+            {"surface": ".claude/skills/harness/bin/check-domain.py", "lane": "main-session-direct",
              "reason": "DEC-174 carve-out"}]}
         write(value, yaml.safe_dump(lanes, sort_keys=False))
         r = run_verb("set-lanes", "--file", plan, "--value-file", value)

@@ -69,9 +69,9 @@ NEVER RAISES AND NEVER BLOCKS," fail-silent on every error path, PostToolUse (to
 `exit 2` used only to place text on stderr, never to gate. It enforces nothing.
 
 Read `.claude/settings.json` at `7ebfc9e`: the `PostToolUse` block on the `Write|Edit|Bash` matcher
-holds **two separate hook objects** — `check-domain.sh --post` (lines 58-61) and
+holds **two separate hook objects** — `check-domain.py --post` (lines 58-61) and
 `context-watch-hook.py` (lines 62-65). T-04's intent names the exact line range to remove (62-65)
-and explicitly instructs "Keep the check-domain.sh --post entry at 58 to 61 and keep the matcher."
+and explicitly instructs "Keep the check-domain.py --post entry at 58 to 61 and keep the matcher."
 This is the correct, narrowly-scoped edit — removing only the advisory entry, leaving the
 security-relevant domain-guard entry and the matcher untouched. Confirmed no security-relevant check
 is disabled by this task.
@@ -130,7 +130,7 @@ source-code bug, an already-pushed git blob cannot be un-shipped by a follow-up 
 | `getSessionFile()` return → `readContextAnchor` file read | Tampering | true | host-controlled value, capped consequence (single numeric field extracted); precondition-absent for any real attacker |
 | transcript content (model/tool output) → `contextSnapshot` acceptance | Tampering | true | verified schema: field is host-authored telemetry, structurally unreachable from message/tool content |
 | repeated full-file scan on drifted transcript | Denial of Service | true | precondition-absent — no attacker action makes drift happen; self-inflicted by host schema change only, not exploitable |
-| `.claude/settings.json` hook removal (T-04) | Elevation of Privilege | true | removed hook was fail-open/advisory-only by design; enforcement hook (`check-domain.sh --post`) confirmed to survive as a separate JSON object |
+| `.claude/settings.json` hook removal (T-04) | Elevation of Privilege | true | removed hook was fail-open/advisory-only by design; enforcement hook (`check-domain.py --post`) confirmed to survive as a separate JSON object |
 | real captured transcript → committed fixture (T-01) | Information disclosure | false | scrub instruction underspecified against verified real schema; no pre-commit check specified |
 
 ## Nits (non-gating)

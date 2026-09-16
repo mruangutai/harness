@@ -91,7 +91,7 @@ tests. 24 + 14 = **38**, which matches T-03's `grep -qE "[3-9][0-9] pass"` (two 
 threshold is achievable, provided T-02/T-03 add zero further test cases (they don't; they're
 implementation-only tasks). No defect here.
 
-Also verified: `run-unit-tests.sh`'s `UNIT_SCRIPTS` includes `test-omp-hooks.py`, a thin Python
+Also verified: `run-unit-tests.py`'s `UNIT_SCRIPTS` includes `test-omp-hooks.py`, a thin Python
 wrapper that shells out to `bun test omp-hooks.test.ts` (`.claude/skills/harness/bin/test-omp-hooks.py`).
 So the standing `unit` test_kind's `cmd` genuinely exercises the bun suite T-01–T-03 write, not merely
 a detect-glob false positive (P-14 checked and satisfied, not violated).
@@ -147,7 +147,7 @@ claims it does — it simply never considers this drift class.
   only the mechanical guards (`--check-kinds`, `test-run-unit-tests-kinds.py`, grep/ls-files); the
   full green-suite claim (both kinds) is explicitly deferred to a manual post-task run and to the qa
   gate — disclosed in the intent, not silently dropped. Floor is satisfiable provided the gate agent
-  actually runs `run-unit-tests.sh` with no `--kind` at review time.
+  actually runs `run-unit-tests.py` with no `--kind` at review time.
 - `docs` (T-05,T-06): floor is empty (`always: []`). Both tasks carry guard tests exceeding the floor
   (`test-orchestrator-playbook.py`, `test-gen-decisions-index.py` + index diff). No gap.
 - The known `typecheck: cmd: null` gap is disclosed in the BRIEF and is not re-reported here.
@@ -182,7 +182,7 @@ DIGEST:
     - { id: SC-04, test: "T-01 intent, describe(context advisory injection) cases 1-4 (not yet written)" }
     - { id: SC-05, test: "T-01 intent, describe(context advisory injection) cases 1 and 5 (not yet written)" }
     - { id: SC-06, test: "T-01 intent, describe(contextAdvisoryText) + describe(resolveContextWarnTokens) (not yet written)" }
-    - { id: SC-07, test: "T-04 verify block + manual run-unit-tests.sh at gate time" }
+    - { id: SC-07, test: "T-04 verify block + manual run-unit-tests.py at gate time" }
     - { id: SC-08, test: "inspection at git show <review_sha>:.claude/skills/harness/SKILL.md" }
     - { id: SC-09, test: "inspection at git show <review_sha>:.harness/harness/docs/DECISIONS.md" }
   open_questions:

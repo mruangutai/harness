@@ -89,7 +89,7 @@ Matches the acceptance criteria exactly: owner `mruangutai`, number 2, `station_
 five stations, and `board_station(..., "ready")` returns `Ready`. `board_for`/`board_station` no
 longer raise `FleetError: product config unreadable`.
 
-## Full-suite red set (`.claude/skills/harness/bin/run-unit-tests.sh`, run from the worktree)
+## Full-suite red set (`.claude/skills/harness/bin/run-unit-tests.py`, run from the worktree)
 
 **Red set is EMPTY.** `rc=0`, zero `^FAIL` lines anywhere, all 28 test files report
 `PASS test-*.py` in their header line (`grep -cE "^(PASS|FAIL) test-"` → 28, `grep -E "^FAIL

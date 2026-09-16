@@ -20,8 +20,8 @@ before `resolve_root` is ever called.
 
 | file | exit | failures | first failure (verbatim) |
 |---|---|---|---|
-| `test-run-unit-tests-kinds.py` | 1 | 2 | `FAIL --kind all excludes comprehension probe run-unit-tests.sh: no harness root could be resolved from <tmp>/.claude/skills/harness/bin — refusing to run` |
-| `test-run-unit-tests-layout.py` | 1 | 13 | `FAIL clean layout run-unit-tests.sh: no harness root could be resolved from <tmp>/.claude/skills/harness/bin — refusing to run` |
+| `test-run-unit-tests-kinds.py` | 1 | 2 | `FAIL --kind all excludes comprehension probe run-unit-tests.py: no harness root could be resolved from <tmp>/.claude/skills/harness/bin — refusing to run` |
+| `test-run-unit-tests-layout.py` | 1 | 13 | `FAIL clean layout run-unit-tests.py: no harness root could be resolved from <tmp>/.claude/skills/harness/bin — refusing to run` |
 | `test-check-plan-routes.py` | 1 | 2 | `FAIL case_19b_unresolvable_root_exits_2_not_0 exit 1 stdout='' stderr='Traceback (most recent call last):\n  File ".../check-plan-routes.py", line 34, in <module>\n    import harness_boundary  # noqa: E4` (truncated by the test's own `[:200]` slice) |
 | `test-check-domain.py` | 1 | 1 | `FAIL  sweep/clean-tracked RED: the mutant reported no more than the original, so case A does not discriminate the fix from its absence.` |
 
@@ -30,8 +30,8 @@ before `resolve_root` is ever called.
 **Mechanism explains (3 of 4 files):**
 
 - `test-run-unit-tests-kinds.py:49-52` and `test-run-unit-tests-layout.py:19-22` copy exactly
-  `run-unit-tests.sh, harness_boundary.py, run_identity.py, suite_layout.py, run_pool.py` —
-  `harness_yaml.py` omitted. `run-unit-tests.sh:4` runs `python3 -I -c '... import
+  `run-unit-tests.py, harness_boundary.py, run_identity.py, suite_layout.py, run_pool.py` —
+  `harness_yaml.py` omitted. `run-unit-tests.py:4` runs `python3 -I -c '... import
   harness_boundary; print(harness_boundary.resolve_root(...))' 2>/dev/null`. Under `-I`,
   `harness_yaml` is not importable from the fixture bin dir; `import harness_boundary` raises
   `ModuleNotFoundError` before `resolve_root` runs; stderr is swallowed by `2>/dev/null`; `_ROOT`

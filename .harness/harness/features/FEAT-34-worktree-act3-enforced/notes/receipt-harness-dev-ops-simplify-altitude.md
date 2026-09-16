@@ -4,7 +4,7 @@ Two findings. Both concrete cost + alternative + severity + call + altitude word
 
 ## F1 — `_repo_arg_for_segment` is duplicated instead of exported from the shared predicate
 
-**File** `.claude/skills/harness/bin/post-merge-sweep.sh:104-115` duplicates
+**File** `.claude/skills/harness/bin/post-merge-sweep.py:104-115` duplicates
 `.claude/skills/harness/bin/worktree_terminal.py:102-115` (`_repo_arg_for_segment`) — identical
 branching (literal `"harness"` short-circuit, then `fleet.load_fleet()` + trailing-segment
 match), differing only in parameter shape (the sweep drops the `factory_config` argument,
@@ -31,7 +31,7 @@ own framing puts it, and here it applies to code, not a spelling.
 
 **Alternative.** Export `repo_arg_for_segment(repo_segment)` from `worktree_terminal.py`
 (folding the `factory_config` import inside it, as `classify()` already does for its own
-imports) and have `post-merge-sweep.sh` import it. Widens the module's declared public surface
+imports) and have `post-merge-sweep.py` import it. Widens the module's declared public surface
 by one function; does not touch `classify`/`classify_all`'s contract that T-02's 19 green cases
 pin.
 
@@ -73,30 +73,30 @@ severity: info · backlog row after ship · **leave**
 
 ## Checked, no finding
 
-- **The three-layer hook stack** (`hooks/post-merge` shim → `post-merge-sweep.sh` body →
+- **The three-layer hook stack** (`hooks/post-merge` shim → `post-merge-sweep.py` body →
   `worktree_terminal.py` predicate). Each layer earns its slot: the shim is a path and nothing
   else (`hooks/post-merge:1-36`, deliberately, per its own comment — `test-hooks-install.py`
   case (e)'s RED PROOF repoints the shim and shows the sweep silently not running is exactly
   what a fused shim+body would hide); the body owns process orchestration (ship-then-remove,
   self-exclusion, dry-run) that is genuinely per-hook, not shared; the predicate owns
   classification only. Not a pass-through chain.
-- **`core.hooksPath` as an init *procedure* step, not a gated check.** `check-state.sh` (the
+- **`core.hooksPath` as an init *procedure* step, not a gated check.** `check-state.py` (the
   pre-commit gate) has zero references to `hooksPath` or `hooks/post-merge` — confirmed by grep.
   This is a real residual: nothing detects a clone that skipped T-12's manual step or had
   `core.hooksPath` reset later, other than INV-29 catching the *downstream symptom* (a worktree
   still standing) well after the fact, and that symptom-level backstop is explicitly named in
   `harness/SKILL.md:439-442` — "the hook removes the checkout when the merge lands, and
-  `check-state.sh`'s INV-29 REFUSES while a worktree is still standing." So the residual is
+  `check-state.py`'s INV-29 REFUSES while a worktree is still standing." So the residual is
   accepted **with** a compensating control named, just not a control that diagnoses the actual
   cause. Judged not worth a fold-in: adding a `git config --get core.hooksPath` check to
-  `check-state.sh` trades a one-line diagnostic convenience against widening a pre-commit gate's
+  `check-state.py` trades a one-line diagnostic convenience against widening a pre-commit gate's
   scope into git-config auditing, and the existing backstop (INV-29) already makes the failure
   loud rather than silent, which is what the angle's "compensating control named" test asks for.
   Recorded here as a candidate backlog row, not raised as a finding: severity too low to earn
   one of the three parts (no observed drift, no double-authority).
 - **Tests cross the interface, not past it.** `test-worktree-terminal.py` calls only
   `w.classify` / `w.classify_all` throughout (grepped) — no test reaches a private helper. This
-  sharpens F1: the duplication in `post-merge-sweep.sh` is a real gap in the module's declared
+  sharpens F1: the duplication in `post-merge-sweep.py` is a real gap in the module's declared
   surface, not something the test suite forced by needing private access.
 
 ```yaml

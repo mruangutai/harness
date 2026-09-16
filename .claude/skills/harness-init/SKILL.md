@@ -43,12 +43,12 @@ These prerequisites and the per-checkout hooks step belong to this harness check
 product repository. They register hooks and invoke scripts under `.claude/skills/harness/bin/` here;
 a product repository has no `bin/`, so hooks installed there would point at files that do not exist.
 Nothing distributes `bin/` any more (DEC-113). The enforcing hooks are registered in this harness
-checkout's `.claude/settings.json`, resolve this checkout's manifest, and `check-state.sh` INV-9 and
+checkout's `.claude/settings.json`, resolve this checkout's manifest, and `check-state.py` INV-9 and
 INV-31 grade this checkout against the step on every run.
 ```bash
 .agents/skills/harness/bin/merge-settings.py . \
   --template .agents/skills/harness/templates/settings.snippet.json
-.agents/skills/harness/bin/merge-gitignore.sh .
+.agents/skills/harness/bin/merge-gitignore.py .
 .agents/skills/harness/bin/merge-settings.py . --check   # must exit 0 before you go on
 python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING          # the 7th prerequisite
 python3 -c 'import jsonschema' 2>/dev/null && echo OK || echo MISSING   # the 8th prerequisite
@@ -98,7 +98,7 @@ harness directory will do to it:
 into `.claude/skills/harness/hooks/` or they stop firing — say that too, rather than leaving them
 to discover it at the next merge.
 
-**A clone that skipped this step is caught, not left silent.** `check-state.sh`'s **INV-31** reports
+**A clone that skipped this step is caught, not left silent.** `check-state.py`'s **INV-31** reports
 an uninstalled merge hook on every run — separately for a `core.hooksPath` that does not resolve
 here, and for a `post-merge` that is missing or not executable. That matters because this document
 is read once, at onboarding, and an already-onboarded clone never comes back to it: a doc step
@@ -128,7 +128,7 @@ That is the content of `harness_yaml.INSTALL_COMMAND`. **Quote it from there rat
 re-typing it** — D-07 makes the module the single source of truth, and two hand-maintained copies of
 an install command is exactly the divergence class this prerequisite exists to prevent.
 
-**This check is the LOUD EARLY warning; `check-domain.sh` is the AUTHORITATIVE one.** It runs in the
+**This check is the LOUD EARLY warning; `check-domain.py` is the AUTHORITATIVE one.** It runs in the
 user's interactive shell, whose `PATH` is not proven identical to a hook subprocess's — so the write
 hooks additionally self-report `MISSING` from inside their own environment on first invocation, which
 is the same code path the one-session bootstrap escape already needs. Treat a green check here as
@@ -193,7 +193,7 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
 Replace every glob marked `# SEED` in this control plane's `.harness/team-config.yaml` with the real
 path from dev-ops's report. **You** write this file — it is not in any agent's domain.
 
-`check-domain.sh` reads only the control plane's manifest. The live grants are repo-agnostic globs,
+`check-domain.py` reads only the control plane's manifest. The live grants are repo-agnostic globs,
 and per-repository isolation is unbuilt (issue 495): `harness_boundary.glob_to_re` supports only
 `**`, `*`, `?`, and literals, so a per-repository glob is inexpressible today.
 
@@ -214,13 +214,12 @@ same file. **Keep it if the project colocates tests**; drop it only if the proje
 a separate root. It is the one exception to the disjointness rule above, and it is not an oversight.
 ### 6. Verify, then warn about the restart
 
-```bash
-.agents/skills/harness/bin/check-state.sh                 # this harness checkout
+```python3 .agents/skills/harness/bin/check-state.py                 # this harness checkout
 .agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
 python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
 ```
 
-`check-state.sh` must exit 0. The fleet check reads every declared member and must also exit 0. Either
+`check-state.py` must exit 0. The fleet check reads every declared member and must also exit 0. Either
 will fail if the settings merge was skipped; these are real failures, not noise to talk past.
 
 Then say this, explicitly, as the last thing — **but only if agent definitions were installed or
@@ -245,7 +244,7 @@ fleet member, run it in that member's checkout and land its merged `harness.json
 .agents/skills/harness/bin/upgrade-config.py .
 .agents/skills/harness/bin/merge-settings.py . \
   --template .agents/skills/harness/templates/settings.snippet.json
-.agents/skills/harness/bin/merge-gitignore.sh .
+.agents/skills/harness/bin/merge-gitignore.py .
 ```
 
 - `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
@@ -257,8 +256,8 @@ fleet member, run it in that member's checkout and land its merged `harness.json
   is more comment than data — every `domain` glob is justified in prose beside it. Round-tripping it
   would silently delete the reasoning that makes the harness's only write-scope guarantee auditable.
   `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
-- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.sh .`** (it is in the
-  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.sh --check` reads
+- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.py .`** (it is in the
+  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.py --check` reads
   its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
   project** until it is re-run. The script is idempotent and preserves the project's own rules. Skipping
   it means the write hooks' bootstrap marker lands untracked, dirtying the tree, and a dirty tree halts

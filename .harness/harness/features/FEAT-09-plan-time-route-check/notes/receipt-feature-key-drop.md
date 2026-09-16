@@ -42,14 +42,14 @@ backlog:
     CORRECT. Modes differ on normalisation
   b4_false_positive_rate: MEASURED 2026-08-05, no longer unknown — 2 false positives
     + 35 format artifacts across 5 legacy plans. notes/does-it-pay-back.md
-  b5_stale_anchor: Cites check-domain.sh:190-197; real record :61-69. PLAN.md:210
+  b5_stale_anchor: Cites check-domain.py:190-197; real record :61-69. PLAN.md:210
     is the origin — a PLANNING defect
   b6_team_token_unvalidated: LEGAL_TOKENS is display-only. Within the approved intent
     — a design limit, not a defect
   b7_argvless_glob: 'No argv globs relative to CWD: 0 violations across 0 plans, exit
     0. BECOMES BLOCKING if b8 lands'
-  b8_promote_invariant: Promote the route checker to a check-state.sh invariant?
-  b9_shared_regex: The checker copies check-state.sh's task-block regex (D-08). Consolidate?
+  b8_promote_invariant: Promote the route checker to a check-state.py invariant?
+  b9_shared_regex: The checker copies check-state.py's task-block regex (D-08). Consolidate?
   detail: notes/backlog-detail.md — one line each here, rationale there (DEC-150 routing)
 baseline:
   base_sha: 47ed11f
@@ -61,7 +61,7 @@ baseline:
   briefing: notes/ship-review-close.md
   closes_issues: '#20'
   commits:
-  - 6792331 — [harness:t-01] check-domain.sh --resolve + 8 cases
+  - 6792331 — [harness:t-01] check-domain.py --resolve + 8 cases
   - e355401 — [harness:t-03] templates/PLAN.md Lanes + execution_mode
   - 358fd36 — [harness:t-04] harness-spec-driven routing rule
   - ae28daf — [harness:t-02] check-plan-routes.py + 17-case test + runner registration
@@ -84,7 +84,7 @@ filed_not_fixed:
     fixed inline and this was not. Write exits 2; Edit and Bash exit 0. Domain enforcement
     is unaffected on all three routes. Costs: notes/vf2-shape-gate-edit-bypass.md.'
 gate_status:
-  distillation: DONE across 10 agents. All 12 expertise files pass check-expertise.sh
+  distillation: DONE across 10 agents. All 12 expertise files pass check-expertise.py
     exit 0, RE-RUN BY ME because leads hold no Bash and two flagged their own files
     unverified.
   docs: PASS — check-docs.sh exit 0, re-run by me
@@ -105,7 +105,7 @@ gate_status:
     to high
   ship_refresh: SKIP — .harness/codebase/ does not exist in this tree, so no map to
     refresh
-  state: PASS — check-state.sh exit 0, re-run by me
+  state: PASS — check-state.py exit 0, re-run by me
   uat: NOT_REQUIRED — nothing here is operated by hand
   ui: PASS — self-scoped out ON MEASUREMENT, not prediction. No rendered surface
   unit: 'PASS — re-run by ME: exit 0, 32 PASS, 0 FAIL, 13 scripts'
@@ -141,7 +141,7 @@ receipts:
   t02: 'Re-run by me. 17 distinct cases, 19 PASS lines. On FEAT-09''s own PLAN: 0
     violations, exit 0, exactly ONE DEVIATION naming T-01'
   t02_no_reimplementation: 'Verified STRUCTURALLY, not by grep: every literal entry
-    goes to the check-domain.sh subprocess and :64 parses its OUTPUT'
+    goes to the check-domain.py subprocess and :64 parses its OUTPUT'
   t02_scripts_array: THE SHARED-ARRAY HAZARD DID NOT FIRE. SCRIPTS is 13 elements;
     test-cost-report.py appears NOWHERE. FEAT-08's removal preserved
 review_sha_note: 'THE PIN MOVED THREE TIMES AND THERE IS NOW UNREVIEWED SOURCE PAST
@@ -183,7 +183,7 @@ sc_status:
     surface. The user ruled the change directly, so it is authorised — but it is recorded
     as a deviation, not as a normal edit.
   sc08_residual_weakness: 'SAID PLAINLY RATHER THAN CLOSED OVER. Clauses 8, 9 and
-    16 remain source greps for the literal strings check-domain.sh, fnmatch and glob_to_re;
+    16 remain source greps for the literal strings check-domain.py, fnmatch and glob_to_re;
     a differently-spelled reimplementation passes all three. SC-08''s strength now
     rests on case 17b alone. This is issue #74 mode 3 and stays on the backlog as
     B-2.'
@@ -193,15 +193,15 @@ tasks:
   T-03: DONE
   T-04: DONE
 trigger_gap:
-  finding: 'NOTHING MECHANICAL INVOKES check-plan-routes.py. Verified by grep: check-state.sh
-    0 hits, check-docs.sh 0, settings.json 0 hooks, and run-unit-tests.sh runs only
+  finding: 'NOTHING MECHANICAL INVOKES check-plan-routes.py. Verified by grep: check-state.py
+    0 hits, check-docs.sh 0, settings.json 0 hooks, and run-unit-tests.py runs only
     the TEST. The sole invocation is a SENTENCE — harness-spec-driven/SKILL.md:39
     telling harness-pm to run it. So FEAT-09 moves routing from build-time discovery
     to plan-time detection ONLY FOR PLANNERS THAT RUN THE SCRIPT. That is prose-only
     enforcement — the shape this feature''s own BRIEF rejected. It is backlog items
     b4 and b8 converging.'
   ordering_trap: b7 MUST land before b8. An argv-less invocation globs relative to
-    CWD and returns "0 violations across 0 plans, exit 0", so wiring it into check-state.sh
+    CWD and returns "0 violations across 0 plans, exit 0", so wiring it into check-state.py
     naively yields an invariant that passes by checking nothing — the same failure
     class a third time.
   raised_by: THE USER, during the SC-08 ruling, from first principles — and it is

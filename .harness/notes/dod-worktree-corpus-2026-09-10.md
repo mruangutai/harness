@@ -50,7 +50,7 @@ feature. The 88-wide sweep was a convenient glob, never a requirement. The corpu
 **planning** time — precedent and prior decisions — which is a read, not an audit.
 
 Measured cost of the sweep that was never earning anything: 89 feature directories, 60 with no
-commit in over 7 days, 454 of `check-state.sh`'s 1181 finding lines naming one of those 60 — all
+commit in over 7 days, 454 of `check-state.py`'s 1181 finding lines naming one of those 60 — all
 re-derived every run about records nothing writes.
 
 An earlier idea of mine — an incremental sweep with a content+checker-version cache key — is
@@ -104,10 +104,10 @@ so it travels with a clone". That conflated the tracked hook scripts with the `c
 config pointing at them, which is LOCAL git config and is NOT cloned — measured:
 `git ls-files | grep -c gitconfig` returns 0. The mechanism does travel, but by two other means, and
 they should be cited rather than assumed: `harness-init/SKILL.md:81` sets `core.hooksPath` as an
-onboarding step, and `check-state.sh:2607` is INV-31, which REFUSES a clone whose `core.hooksPath`
+onboarding step, and `check-state.py:2607` is INV-31, which REFUSES a clone whose `core.hooksPath`
 is wrong ("no harness hook runs on this clone"). A fresh clone missing the config is therefore a
 named and gated state, not a silent hole. `post-merge` there is a deliberate shim whose
-body lives in `bin/post-merge-sweep.sh` so a test can reach it (FEAT-34 T-11, D-08), and that sweep
+body lives in `bin/post-merge-sweep.py` so a test can reach it (FEAT-34 T-11, D-08), and that sweep
 already walks every linked worktree — its `SKIP … not under WORKTREES_SEGMENT` lines appeared in
 the probe above.
 
@@ -151,7 +151,7 @@ the thing being probed. A disposable probe carries a faithful full checkout. Wha
 claim is the part that was never about QA: the hook fires whoever creates the worktree, so the
 mechanism does not depend on anyone remembering a rule.
 
-A creation door already exists and stays: `bash-write-guard.sh:512` refuses `git worktree add`
+A creation door already exists and stays: `bash-write-guard.py:512` refuses `git worktree add`
 outside the sanctioned location, and refuses a destination it cannot parse rather than permitting
 it. That guard was added because both hooks were measured exiting 0 on
 `git worktree add --detach ~/GitHub/harness-SIBLING HEAD` at a29ad06. Trust is not the mechanism;
@@ -268,7 +268,7 @@ synthetic fixture; the real host is measured once, by hand, and recorded.
   it — a call-count or an opened-path assertion — rather than inferring it from output.
 - **Mutation, fail-closed:** break what the audit expects to reach and assert a **non-zero exit
   whose message carries the counts**. The measured pre-change behaviour is the baseline this must
-  contradict: `check-state.sh` in a sparse worktree swept **1 of 88** and **exited 0**. A test that
+  contradict: `check-state.py` in a sparse worktree swept **1 of 88** and **exited 0**. A test that
   cannot distinguish those two states is not testing anything.
 
 ### D-4 — branch uniqueness
@@ -328,9 +328,9 @@ than its own. Strong form: not "the citations resolve", but "nothing was altered
 ## Carried forward from the halted plan — evidence, not decisions
 
 - Three live defects it surfaced, all independent of this DoD: `merge-gate.py:169`
-  (`if not owners: return`) silently ALLOWS a merge it cannot resolve; `branch-create-gate.sh`
+  (`if not owners: return`) silently ALLOWS a merge it cannot resolve; `branch-create-gate.py`
   would deny branch creation for every non-materialised flow post-convergence, with a false
-  message; `check-domain.sh:2150`'s worktree tier has been reaching nothing whenever the hook fires
+  message; `check-domain.py:2150`'s worktree tier has been reaching nothing whenever the hook fires
   from inside a worktree, because `.git` is a file there and the `OSError` is swallowed. The third
   matters most: the claim that the corpus is read-only inside a worktree rests on that tier.
 - `settings.json` registers nine hook commands, all through `${CLAUDE_PROJECT_DIR}`, and the five
@@ -374,7 +374,7 @@ never folded back.
 1. **D-3 is narrowed by SUBJECT, not by LOCATION.** The rule stated above reads "only audit the
    active worktree". What was signed is narrower in what an audit examines and explicit about where
    it runs: a feature worktree's audit covers its own feature, and the four repo-level record audits
-   — `board_lifecycle.py`, `check-plan-routes.py`, `validate-feature-json.py`, `check-domain.sh`'s
+   — `board_lifecycle.py`, `check-plan-routes.py`, `validate-feature-json.py`, `check-domain.py`'s
    peer sweep — read **the owner root** (N-10, behind one `feature_corpus` seam). That follows this
    note's own altitude reasoning, that a repo-wide record audit belongs where the record is
    complete; the original sentence just did not say it. Read D-3 as: no audit sweeps the corpus
@@ -382,7 +382,7 @@ never folded back.
 
 2. **M-1's gate behaviour: exits 3-7 gate, exit 8 reports.** The mechanism section above says
    `--verify` "fails loudly" when a gate calls it. Amended at cycle 6 on finding PL-02: gating on
-   the dirty-tree exit would make `check-state.sh` — the canonical pre-commit gate for the whole
+   the dirty-tree exit would make `check-state.py` — the canonical pre-commit gate for the whole
    repository — refuse in every dirty feature worktree, which is the normal mid-task state, and
    refuse ahead of the very commit that is exit 8's own stated remedy. The structural exits (3-7)
    gate; the dirty tree is reported and non-gating. SC-09 carries the reason inline.

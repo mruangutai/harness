@@ -33,7 +33,7 @@ FAIL  [bug1305-artifact] existing run directory without digest is refused
       | expected exit 2, got 0
       | stderr should mention '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-00ezp0b8/.claude/worktrees/FEAT-X/runs/r1'
       | stderr should mention 'missing'
-      | check-digest: harness-eng-lead's artifact runs/r1/digest.md not found from the hook's vantage — file-shape check skipped; check-state.sh INV-15 will audit it from repo root.
+      | check-digest: harness-eng-lead's artifact runs/r1/digest.md not found from the hook's vantage — file-shape check skipped; check-state.py INV-15 will audit it from repo root.
 ```
 
 The non-compliant fixture is the resolved, existing run directory with no durable `digest.md`; the old hook passed it with exit 0.
@@ -54,7 +54,7 @@ FAIL case_run_identity_pattern_did_not_crash raised AttributeError("module '_hb_
 
 ## SC-10
 
-Command with `CHECK_DOMAIN_BIN` pointed at `check-domain.sh` from `c369fb1f` in an isolated bin:
+Command with `CHECK_DOMAIN_BIN` pointed at `check-domain.py` from `c369fb1f` in an isolated bin:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.run_bug1305_marker_cases()'
@@ -83,7 +83,7 @@ The pinned hook allowed a foreign first `Write` because no prior `state.yaml` ex
 
 ## SC-02
 
-Command with `CHECK_STATE_BIN` pointed at `check-state.sh` from `c369fb1f` in an isolated bin:
+Command with `CHECK_STATE_BIN` pointed at `check-state.py` from `c369fb1f` in an isolated bin:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-state.py"; s=importlib.util.spec_from_file_location("cs", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(0 if m.case_bug1305_run_identity_invariant() else 1)'
@@ -103,7 +103,7 @@ The pinned checker reported none of the three witness disagreements; it only rej
 baseline_sha: 592e88dcf0b6dfcd75ca4c1d49451fa9003d2802
 
 Command with `CHECK_DOMAIN_BIN` pointed at the isolated-bin copy of
-`592e88dcf0b6dfcd75ca4c1d49451fa9003d2802:.claude/skills/harness/bin/check-domain.sh`:
+`592e88dcf0b6dfcd75ca4c1d49451fa9003d2802:.claude/skills/harness/bin/check-domain.py`:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_identity_cases())'
@@ -148,7 +148,7 @@ the Edit as a routine checkpoint update.
 ## SC-05
 
 Command with `CHECK_DOMAIN_BIN` pointed at
-`c369fb1f:.claude/skills/harness/bin/check-domain.sh` in an isolated bin:
+`c369fb1f:.claude/skills/harness/bin/check-domain.py` in an isolated bin:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_digest_repair_cases())'
@@ -177,7 +177,7 @@ The Bash witness refusals were replayed from the current test against the pinned
 Command:
 
 ```text
-BASH_WRITE_GUARD_BIN=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/qa-redproof-sc13-c11/.claude/skills/harness/bin/bash-write-guard.sh python3 -c 'import importlib.util; p="tests/integration/test-bash-write-guard.py"; s=importlib.util.spec_from_file_location("bg", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1106_bash_route())'
+BASH_WRITE_GUARD_BIN=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/qa-redproof-sc13-c11/.claude/skills/harness/bin/bash-write-guard.py python3 -c 'import importlib.util; p="tests/integration/test-bash-write-guard.py"; s=importlib.util.spec_from_file_location("bg", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1106_bash_route())'
 ```
 
 Verbatim discriminating output (the six unaffected passing cases are omitted outside this fence;

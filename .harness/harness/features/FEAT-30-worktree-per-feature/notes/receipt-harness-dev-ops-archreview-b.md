@@ -1,6 +1,6 @@
-# FEAT-30 archreview S-B — is `run-unit-tests.sh` inside DEC-174's enforcement carve-out
+# FEAT-30 archreview S-B — is `run-unit-tests.py` inside DEC-174's enforcement carve-out
 
-**BLUF: T-08 is correctly laned `team`/`harness-dev-ops`. `run-unit-tests.sh` and
+**BLUF: T-08 is correctly laned `team`/`harness-dev-ops`. `run-unit-tests.py` and
 `.harness/harness.json`'s `test_kinds` are outside DEC-174's enforcement category as it
 currently stands — not "close but arguable," genuinely outside on the evidence below. I would
 sign this.**
@@ -8,30 +8,30 @@ sign this.**
 ## 1. DEC-174 text (`.harness/harness/docs/DECISIONS.md:4655`, index row `DECISIONS-INDEX.md:192`)
 
 Original table names the category **"hooks, validators, gate scripts"** with examples
-`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` — all four police
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` — all four police
 an agent's *live actions* mid-run (write domain, bash guard, digest shape, state invariants).
 
 **am.4 (2026-08-19, one day before this dispatch), quoted exactly:**
 > "The category governs. The parenthetical is examples, and it is now stale."
-> "So the enforcement layer is: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-> `check-state.sh`, `check-plan-routes.py`, and the test file of each. A script that becomes a
+> "So the enforcement layer is: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
+> `check-state.py`, `check-plan-routes.py`, and the test file of each. A script that becomes a
 > gate joins the list on the day it becomes one, and this entry is amended when that happens —
 > the category decides, the list records."
 
 am.4 promoted `check-plan-routes.py` because DEC-183 made it a required-CI-job step *after*
 DEC-174 was written, so the original list could not have named it.
 
-**Load-bearing fact: am.4's own prose already discusses `run-unit-tests.sh` by name**
-(`tests.yml:97`'s comment, quoted inline in am.4: *"run-unit-tests.sh runs its TEST, never the
+**Load-bearing fact: am.4's own prose already discusses `run-unit-tests.py` by name**
+(`tests.yml:97`'s comment, quoted inline in am.4: *"run-unit-tests.py runs its TEST, never the
 checker"*) — the author had it in view, the category is declared non-exhaustive and
 self-amending on exactly this trigger, and still did not add it. That reads as a considered
 omission, not an oversight.
 
-## 2. `run-unit-tests.sh` characterised
+## 2. `run-unit-tests.py` characterised
 
 - **Not a hook.** `.claude/settings.json` lists exactly 7 hook registrations
-  (`inject-expertise.sh`, `check-domain.sh` PreToolUse+PostToolUse, `branch-create-gate.sh`,
-  `bash-write-guard.sh`, `dispatch-guard.sh`, `validate-digest.py --hook`). `run-unit-tests.sh`
+  (`inject-expertise.py`, `check-domain.py` PreToolUse+PostToolUse, `branch-create-gate.py`,
+  `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py --hook`). `run-unit-tests.py`
   is not among them — confirmed by grep.
 - **Is a required-CI-job step**, same job as `check-plan-routes.py`: `.github/workflows/tests.yml:75-84`
   ("Unit suite" / "Integration suite"), inside job `integration`, the one branch-protection
@@ -39,7 +39,7 @@ omission, not an oversight.
   (2026-08-03) but the script itself dates to 2026-07-31 — created before DEC-174, wired into CI
   after.
 - **What it does**: runs each `test-*.py` under `bin/` via `python3`, reports PASS/FAIL, and
-  carries a drift detector (`run-unit-tests.sh:41-56`) that exits 2 ("MISCONFIGURED") if any
+  carries a drift detector (`run-unit-tests.py:41-56`) that exits 2 ("MISCONFIGURED") if any
   `test-*.py` file isn't registered in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`. That drift check is
   the closest thing to a "validator" in the file — but it validates the test suite's own
   completeness, not the harness's write/digest/state/plan-route control plane. It has **no
@@ -49,12 +49,12 @@ omission, not an oversight.
   (`test-check-domain.py`, `test-bash-write-guard.py`, `test-validate-digest.py`,
   `test-check-state.py`, `test-check-plan-routes.py`) — already named individually. The other 25
   test ordinary application logic (`factory_cli`, `gh_board`, `layout_migration`, etc.).
-  `run-unit-tests.sh` is a generic runner that happens to execute those five among many; it does
+  `run-unit-tests.py` is a generic runner that happens to execute those five among many; it does
   not itself decide any harness-control-plane pass/fail.
 
 ## 3. `.harness/harness.json` `test_kinds` characterised
 
-- Read by `upgrade-config.py` (config-merge tool, project always wins) and by `check-state.sh:843`
+- Read by `upgrade-config.py` (config-merge tool, project always wins) and by `check-state.py:843`
   for **INV-20, warn-level only** — flags a `cmd: null` kind against a codebase surface map, never
   blocks. No PreToolUse/SubagentStop hook reads it. It is config in the DEC-100 sense
   (`test_matrix` maps `config` → `[]`, TDD-exempt) — the field this task edits is exactly that
@@ -63,7 +63,7 @@ omission, not an oversight.
 ## 4. Precedent (evidence, not authority)
 
 Grepped every `plan.yaml` under `.harness/harness/features/*` for tasks whose `files:` include
-`run-unit-tests.sh` or `harness.json`. Dominant pattern, all post-DEC-174 (2026-08-03):
+`run-unit-tests.py` or `harness.json`. Dominant pattern, all post-DEC-174 (2026-08-03):
 `team`/`harness-backend-dev` or `team`/`harness-dev-ops` for registering new test files and
 editing `harness.json`'s `test_kinds.cmd` — FEAT-10 (7 tasks), FEAT-12, FEAT-19, FEAT-23, FEAT-27,
 FEAT-29, all shipped. A minority (FEAT-18 T-02, FEAT-20 T-01) laned the same shape as
@@ -99,7 +99,7 @@ this is exactly why it needed an archreview.
 
 ## Open question
 
-am.4 discussed `run-unit-tests.sh` by name and did not add it to the enumerated five, under a rule
+am.4 discussed `run-unit-tests.py` by name and did not add it to the enumerated five, under a rule
 that says a script "joins the list on the day it becomes one." Worth a short amendment (am.5, or a
 line in DEC-174's table) recording that omission as deliberate, so this exact question does not
 recur on the next feature that touches this file — non-blocking, T-08 does not need to wait on it.

@@ -41,7 +41,7 @@ Confirmed by direct object check, not inferred from the feature's nature.
 
 Read verbatim at the pin.
 
-**`check-domain.sh:1698-1704`:**
+**`check-domain.py:1698-1704`:**
 ```
 check-domain: BLOCKED — {file} is canonical, but {agent} holds no live claim for {feature}.
 Its parent is gone and a replacement may already be writing.
@@ -79,12 +79,12 @@ own header (lines ~53-55) says: *"ONE refusal text, used verbatim for EVERY deni
 wording would drift and the operator would learn two different answers to one question."* That
 rule is written about the pre-existing `sign-approval` `REASON` constant, but the same file now
 carries a second, freshly-added refusal (the FEAT-51 quarantine block) that does not match
-`check-domain.sh`'s wording for the *identical* situation:
+`check-domain.py`'s wording for the *identical* situation:
 - lead word differs: `check-domain: BLOCKED —` vs `Refused:` — a different severity-word for the
   same event depending on which tool an operator was using when the write failed.
-- trailing sentence differs: `...adopt on that file.` (check-domain.sh) vs `...adopt.` (plan-sign-
+- trailing sentence differs: `...adopt on that file.` (check-domain.py) vs `...adopt.` (plan-sign-
   gate.py, no `on that file`).
-- indentation differs (2-space continuation lines in check-domain.sh, flush-left in
+- indentation differs (2-space continuation lines in check-domain.py, flush-left in
   plan-sign-gate.py) — cosmetic only.
 
 The shared middle sentence (`is canonical, but {agent} holds no live claim for {feature}. Its

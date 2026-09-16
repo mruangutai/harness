@@ -60,7 +60,7 @@ Same prototype approach as the c9 goal-check; deleted after the run.
 | `plan.yaml` loads; `status: plan`; `approval.status: pending`, `rulings` absent | PASS |
 | `panel:` and `decisions:` identical to pre-edit; T-01 the only task changed; T-01's ten non-`intent` fields identical | PASS |
 | `check-plan-routes.py` | `0 violation(s) across 1 plan(s)`; all five tasks OK; 11 keys on every task |
-| `check-state.sh` | no `INV-35`; the only VIOLATION for this feature is the expected unsigned BRIEF |
+| `check-state.py` | no `INV-35`; the only VIOLATION for this feature is the expected unsigned BRIEF |
 | 11 AC rows, 9 REQ, 19 SC unchanged; `SC-19 \| REQ-09` intact (`BRIEF.md:255`) | PASS |
 
 ## Open

@@ -25,7 +25,7 @@ checkout; it refuses at exit 1 when the feature dir resolves inside `.claude/wor
 - plan.yaml `panel.readers` carries all three INV-32 readers with `approval:` and `status:`
   byte-unchanged; the re-pin covers it — `git diff ac8dd671 d5dbb9da -- tests/ .claude/` is empty
   — verified-at 1361c0a1
-- `check-state.sh` exits 0 with ZERO violations tree-wide — run at the orchestrator tier from this
+- `check-state.py` exits 0 with ZERO violations tree-wide — run at the orchestrator tier from this
   worktree, which is the only checkout whose working tree holds this feature — verified-at 1361c0a1
 - runs/2026-09-05-1-eng/digest.md now satisfies the DEC-156 contract; the lead's original 6339 bytes
   are preserved byte-identically — `validate-digest.py lead` exits 0, head -c 6339 md5
@@ -37,7 +37,7 @@ checkout; it refuses at exit 1 when the feature dir resolves inside `.claude/wor
   and qa already produced the evidence out-of-tree — BRIEF.md ## Constraints — verified-at ac8dd671
 - REPLACING a recorded run digest — check-domain refuses it and permits only an EXTEND, so a
   malformed digest is repaired by appending, never by rewriting —
-  check-domain.sh refusal observed this run — verified-at 1361c0a1
+  check-domain.py refusal observed this run — verified-at 1361c0a1
 - `brief-sc:` and `plan-task:` authority pointers from inside a worktree — they resolve against the
   main checkout, where this feature dir does not exist; briefing row B-4 — verified-at 1361c0a1
 - Re-running the plan panel — it ran at cycle 1 and all four PF- findings are recorded `resolved`;

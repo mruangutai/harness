@@ -141,7 +141,7 @@ briefing, `notes/ship-review-2026-09-06-13-ship.md`, which this supersedes rathe
 The five-arm table, the empty production diff and the budget figures are **my own measurements**.
 Everything else is attributed.
 
-**One thing I cannot tell you from here.** `check-state.sh` resolves features through the project
+**One thing I cannot tell you from here.** `check-state.py` resolves features through the project
 root — the main checkout — where this feature's directory does not exist on `main`. Run from this
 worktree it therefore says **nothing at all** about BUG-1290 (814 lines of output, zero mentions).
 That is not a clean bill of health; it is a measurement I could not take. The standing INV-29
@@ -177,7 +177,7 @@ unstruck row is carried forward verbatim; anything not listed here dies silently
 | B-4 | chore | **`factory_claim.py:38` `_BIN_DIR` is dead within its module.** Its only reader is unit case `5d`. A later cleanup deletes it and reddens `5d` for an unrelated reason. Repoint `5d` at `fc._BIN_DIR`. |
 | B-5 | chore | **`features_root`'s join is not traversal-safe in isolation.** `"owner/../../etc/passwd"` escapes the harness root. **Not attacker-reachable today** — candidate filtering matches exact `fleet.yaml` membership first. Defence in depth only. |
 | B-6 | bug | **The `feature`-label-derived join is unvalidated, and `feature` IS attacker-influenced** (`factory_claim.py:170,190`). **Pre-existing**; belongs to the factory owner, not this diff. |
-| B-7 | chore | **`segment_of`'s docstring claims to be "the one home of that rule" and the tree disagrees.** Four identical derivations survive (`post-merge-sweep.sh:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`). |
+| B-7 | chore | **`segment_of`'s docstring claims to be "the one home of that rule" and the tree disagrees.** Four identical derivations survive (`post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`). |
 | B-8 | chore | `_BlockerCache._plan` and `.issue_number` build the `(repo, feature)` key inline in two places rather than through one accessor. |
 | B-9 | chore | `features_root(repo)` is resolved at three call sites in `_BlockerCache`. Measured inert (13.32 µs per call). Shape note only. |
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You have declined to rule on it three times; queued here so it survives. |

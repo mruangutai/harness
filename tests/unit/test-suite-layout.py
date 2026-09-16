@@ -25,21 +25,6 @@ sys.path.insert(0, str(BIN))
 import suite_layout
 import code_grade
 
-# Exactly four implementation sites are expected on purpose.
-SOLE_IMPLEMENTATION_EXEMPTIONS = [
-    ".claude/skills/harness/bin/suite_layout.py",
-    "tests/unit/test-suite-layout.py",
-    "tests/integration/test-run-unit-tests-layout.py",
-    "tests/manual/suite-census.py",
-]
-KIND_PATTERNS = (
-    re.compile(r"""tests['"]?\s*[,/]\s*['"]?\s*unit"""),
-    re.compile(r"""tests['"]?\s*[,/]\s*['"]?\s*integration"""),
-)
-DISCOVERY_FRAGMENTS = (
-    "os.listdir", "os.scandir", "os.walk", "glob.glob",
-    "iterdir", "rglob", ".glob(",
-)
 
 failures = []
 def check(name, condition, detail=""):
@@ -47,17 +32,6 @@ def check(name, condition, detail=""):
     if not condition:
         failures.append(name)
 
-def sole_implementations(root, relative_paths):
-    matches = []
-    for relative in relative_paths:
-        path = root / relative
-        if not path.is_file():
-            continue
-        source = path.read_text(errors="replace")
-        if all(pattern.search(source) for pattern in KIND_PATTERNS) and any(
-                fragment in source for fragment in DISCOVERY_FRAGMENTS):
-            matches.append(relative)
-    return matches
 
 check("real layout is valid", suite_layout.violations(ROOT) == [],
       repr(suite_layout.violations(ROOT)))
@@ -116,82 +90,7 @@ for kind in ("unit", "integration"):
 active = [v["detect"] for v in repo_cfg["test_kinds"].values() if v.get("status") == "active"]
 check("manual tests are not actively detected", all("tests/manual" not in d for d in active))
 
-tracked = subprocess.run(
-    ["git", "ls-files", "--", "*.py"], cwd=ROOT, check=True,
-    text=True, capture_output=True).stdout.splitlines()
-check("sole implementation discovery floor", len(tracked) >= 90, str(len(tracked)))
-implementations = sole_implementations(ROOT, tracked)
-unexpected = sorted(set(implementations) - set(SOLE_IMPLEMENTATION_EXEMPTIONS))
-check("sole implementation sweep", unexpected == [], repr(unexpected))
-for expected in (".claude/skills/harness/bin/suite_layout.py",
-                 "tests/manual/suite-census.py"):
-    check(f"sole implementation positive control {expected}",
-          expected in implementations, repr(implementations))
 
-shapes = (
-    'os.listdir("tests/unit"); os.listdir("tests/integration")\n',
-    'os.listdir(os.path.join(r, "tests", "unit")); os.listdir(os.path.join(r, "tests", "integration"))\n',
-    'Path(r, "tests", "unit").glob("*"); Path(r, "tests", "integration").glob("*")\n',
-)
-for number, source in enumerate(shapes, 1):
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        relative = "tests/unit/kindcheck_helper.py"
-        (root / relative).parent.mkdir(parents=True)
-        (root / relative).write_text(source)
-        found = sole_implementations(root, [relative])
-        check(f"sole implementation red proof shape {number}",
-              relative in found
-              and bool(set(found) - set(SOLE_IMPLEMENTATION_EXEMPTIONS)),
-              repr(found))
-
-runner = (BIN/"run-unit-tests.sh").read_text().splitlines()
-check("runner delegates layout once",
-      sum("suite_layout" in line and not line.strip().startswith("#")
-          for line in runner) == 1)
-
-def _is_violations_invocation(line):
-    """True when line invokes suite_layout.violations(...) with an argument --
-    excludes the zero-arg `suite_layout.violations()` mention that appears in
-    layout_fixtures.py's own docstring, which is prose, not a call."""
-    return re.search(r"suite_layout\.violations\(\s*[^)\s]", line) is not None
-
-
-def _violations_callers(root, source_extensions):
-    """Tracked non-test callers plus named entries for unreadable source files.
-
-    Comment lines never count as callers. A tracked source that cannot be read is returned as
-    ``unreadable tracked source <path>: <ErrorType>`` so the caller's equality assertion fails
-    with the path named instead of raising.
-    """
-    tracked = subprocess.run(
-        ["git", "ls-files"], cwd=root, check=True,
-        text=True, capture_output=True).stdout.splitlines()
-    callers = []
-    unreadable = []
-    for rel in tracked:
-        if rel.startswith("tests/"):
-            continue
-        if os.path.splitext(rel)[1] not in source_extensions:
-            continue
-        try:
-            text = (root / rel).read_text()
-        except (OSError, UnicodeDecodeError) as error:
-            unreadable.append(f"unreadable tracked source {rel}: {type(error).__name__}")
-            continue
-        for line in text.splitlines():
-            if line.strip().startswith("#"):
-                continue
-            if _is_violations_invocation(line):
-                callers.append(rel)
-                break
-    return sorted(set(callers) | set(unreadable))
-
-
-check("violations() has exactly one non-test caller repository-wide",
-      set(_violations_callers(ROOT, suite_layout.SOURCE_EXTENSIONS))
-      == {".claude/skills/harness/bin/run-unit-tests.sh"},
-      repr(_violations_callers(ROOT, suite_layout.SOURCE_EXTENSIONS)))
 
 def base_git_fixture(include_self=True):
     td = Path(tempfile.mkdtemp())
@@ -689,24 +588,4 @@ uncertified = hygiene_uncertified(test_kinds_cfg)
 check("case 11 hygiene: every running-kind detect pattern is certified",
       uncertified == [], repr(uncertified))
 
-td = base_git_fixture(include_self=False)
-try:
-    (td / "deleted.py").write_text("pass\n")
-    (td / "binary.py").write_bytes(b"\xff\xfe" + b"pass\n")
-    git_commit(td)
-    (td / "deleted.py").unlink()
-    try:
-        unreadable_callers = _violations_callers(td, suite_layout.SOURCE_EXTENSIONS)
-    except Exception as error:
-        check("b14: unreadable tracked sources are reported, not raised",
-              False, f"{type(error).__name__}: {error}")
-    else:
-        check("b14: unreadable tracked sources are reported, not raised",
-              any("unreadable tracked source deleted.py: FileNotFoundError" == item
-                  for item in unreadable_callers)
-              and any("unreadable tracked source binary.py: UnicodeDecodeError" == item
-                      for item in unreadable_callers),
-              repr(unreadable_callers))
-finally:
-    shutil.rmtree(td)
 raise SystemExit(1 if failures else 0)

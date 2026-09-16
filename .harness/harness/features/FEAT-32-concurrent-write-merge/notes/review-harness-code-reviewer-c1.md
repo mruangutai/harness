@@ -12,7 +12,7 @@ guard it exists to enforce.
 
 All work done via `python3` (heredoc / `-c`) writing only to mktemp dirs outside the repo, or plain
 `subprocess.run` invocations of the unmodified in-repo hooks as read-only executables. No repo file was
-written, edited, or staged. `bash-write-guard.sh` (I am `harness-code-reviewer`, a `REVIEWERS` entry)
+written, edited, or staged. `bash-write-guard.py` (I am `harness-code-reviewer`, a `REVIEWERS` entry)
 denies every bash redirect/cp/mv/rm/tee/sed-i pattern unconditionally regardless of target — confirmed
 live (`echo hi > /tmp/x` was denied) — so all scratch I/O went through Python's own `open()`/`shutil`,
 which the guard's regex scanner does not pattern-match (this is the documented "unparseable passes"
@@ -22,14 +22,14 @@ carve-out, not evasion: nothing in the repo was touched).
 
 ## PREDICTION 1 — LIMB EVASION BY QUOTED KEY + OFF-INDENT CHILDREN — **HOLDS**
 
-`check-domain.sh`'s `approval_guard()` Edit branch, `check-domain.sh:606` (LIMB A) and `:613-628`
+`check-domain.py`'s `approval_guard()` Edit branch, `check-domain.py:606` (LIMB A) and `:613-628`
 (LIMB B), pinned SHA.
 
 Fixture: `APPROVAL_MANIFEST`/`PLAN_ON_DISK` copied verbatim from `test-check-domain.py:2344-2380`
 (never imported `FIXTURE_MANIFEST` — that grants only `harness-documentor` and would produce an
 ordinary domain denial before the guard is ever reached).
 
-Payload fired as `harness-pm` via `check-domain.sh` directly (`subprocess.run([HOOK], ...,
+Payload fired as `harness-pm` via `check-domain.py` directly (`subprocess.run([HOOK], ...,
 env={"CLAUDE_PROJECT_DIR": root})`):
 
 ```
@@ -76,7 +76,7 @@ Same hook, same fixture shape, two sequential real `Edit` fires against one fixt
 **Edit 1** (delete the approval block): `old_string` = `"feature: FEAT-99-fixture\n\napproval:\n
 status: pending\n  approved_by: <name>\n  date: <YYYY-MM-DD>"`, `new_string` = `"feature:
 FEAT-99-fixture"`.
-Fired at `check-domain.sh`: **exit 0**, empty stdout/stderr. LIMB A misses (spans the block, not a
+Fired at `check-domain.py`: **exit 0**, empty stdout/stderr. LIMB A misses (spans the block, not a
 substring of it); LIMB B(a) misses (no `approval:` at col 0 in `new_string`); LIMB B(b) misses
 (`new_string` has no line at indent 2). Applied for real to the fixture file — confirmed
 `"approval:" not in` the resulting text, and `yaml.safe_load` on it succeeds with keys
@@ -89,7 +89,7 @@ approval block at column zero is DENIED").
 Fired: **exit 0**, empty stdout/stderr. Applied for real: `yaml.safe_load` succeeds,
 `approval == {'status': 'approved', 'approved_by': 'operator', 'date': date(2026, 8, 22)}`.
 
-Root cause, `check-domain.sh:552-554`: `rng = _yaml_key_range(lines, frag); if rng is None: continue`
+Root cause, `check-domain.py:552-554`: `rng = _yaml_key_range(lines, frag); if rng is None: continue`
 — once the key is genuinely absent from disk, the loop over `main_session.writes` entries skips this
 fragment before either limb runs. 5d denies the *introduction* payload only because in that test the
 `approval:` key is *still on disk elsewhere* in the file (5d's `old_string` is `"tasks:"`, and the
@@ -109,7 +109,7 @@ invisible to `test-check-domain.py` as it stands.
 
 ## PREDICTION 3 — ROOT-PROBE WALK IS DEAD CODE UNDER ITS OWN SUITE — **HOLDS**
 
-`dispatch-guard.sh:75-92` (`_root_from`), pinned SHA. `test-dispatch-guard.py:120-124` (`_checkout`).
+`dispatch-guard.py:75-92` (`_root_from`), pinned SHA. `test-dispatch-guard.py:120-124` (`_checkout`).
 
 Copied `.claude/skills/harness/bin/` via `shutil.copytree` to a mktemp dir (not `cp` — the guard
 blocks that pattern for me unconditionally). Mutated the copy's `_root_from` to delete the entire
@@ -124,7 +124,7 @@ by string search).
 
 Ran `test-dispatch-guard.py` twice, unmodified test file both times, only `DISPATCH_GUARD_BIN` env
 var changed:
-- **Baseline** (original `dispatch-guard.sh`): `24 of 24 cases passed`, exit 0.
+- **Baseline** (original `dispatch-guard.py`): `24 of 24 cases passed`, exit 0.
 - **Mutant** (walk-loop deleted): `24 of 24 cases passed`, exit 0 — byte-identical pass/fail set,
   same 24 assertions.
 
@@ -150,7 +150,7 @@ warns about).
   `CLAUDE_PROJECT_DIR` fallback outright, or the fixture at `start` already satisfies the probe on the
   zeroth iteration. **The suite never constructs a case where `cwd` is a genuine subdirectory of a
   root that itself lacks `team-config.yaml`** — the one shape that would actually exercise upward
-  directory traversal, which is the scenario `dispatch-guard.sh:78-81`'s own docstring says the walk
+  directory traversal, which is the scenario `dispatch-guard.py:78-81`'s own docstring says the walk
   exists for (payload `cwd` is a feature worktree, not the checkout root).
 
 Answering the secondary question directly: **no case in `test-dispatch-guard.py` creates a
@@ -216,10 +216,10 @@ to an operator specifically because something is already wrong.
 
 ### 4c — malformed registry: hook fails open correctly, but that is exactly how #551 goes silently unenforced; CLI crashes outright
 
-Three malformed shapes, each fed to (i) `dispatch-guard.sh` dispatching a fresh `harness-pm` (the
+Three malformed shapes, each fed to (i) `dispatch-guard.py` dispatching a fresh `harness-pm` (the
 single-flight persona) against that root, and (ii) `inflight_registry.py list --root <root>`:
 
-| registry content | hook (`dispatch-guard.sh`) | `list` |
+| registry content | hook (`dispatch-guard.py`) | `list` |
 |---|---|---|
 | `{"harness-pm": [{"started_at": null}]}` | exit 0, stderr: `claim step failed (TypeError: unsupported operand type(s) for -: 'float' and 'NoneType')` | exit 1, raw traceback |
 | `{"harness-pm": ["notadict"]}` | exit 0, stderr: `claim step failed (AttributeError: 'str' object has no attribute 'get')` | exit 1, raw traceback |
@@ -228,14 +228,14 @@ single-flight persona) against that root, and (ii) `inflight_registry.py list --
 The crash originates in `_expire` (`inflight_registry.py`, `c.get("started_at", 0)` — `.get` returns
 the *stored* `None`, not the default, when the key is present with value `null`; or `c.get` raising
 outright when `c` is a string) inside `reg.live_claim(root, dispatched)`, called from
-`dispatch-guard.sh:110`, inside the broad `try/except Exception` at `:109/124-130`.
+`dispatch-guard.py:110`, inside the broad `try/except Exception` at `:109/124-130`.
 
 **For the hook this is exactly correct per DEC-100** — exit 0, loud stderr naming the exception,
 dispatch not blocked. That is the intended fail-open shape and I am not raising it as a defect on its
 own.
 
 **But it answers the "silently disables #551" question affirmatively.** The exception happens inside
-`reg.live_claim(...)` at `dispatch-guard.sh:110`, *before* the single-flight check at `:115` (`if
+`reg.live_claim(...)` at `dispatch-guard.py:110`, *before* the single-flight check at `:115` (`if
 reg.is_single_flight(dispatched) and existing:`) is ever reached — so for as long as the registry
 carries one malformed `harness-pm` claim, *every* `harness-pm` dispatch, including a real second
 concurrent one that should be refused, takes this same except-and-pass-through branch and is allowed
@@ -268,7 +268,7 @@ for an *unrelated* reason, and the CLI that could diagnose it crashes too.
 4. **P4a/4b** (MED, bundled) — the operator's stated recovery commands (`release-all`, `list`,
    the literal `RELEASE_ALL_CMD` string) all fail with raw tracebacks or launcher errors in the states
    that require them.
-5. **P3** (MED) — the root-probe walk that `dispatch-guard.sh` docstrings as the fix for a
+5. **P3** (MED) — the root-probe walk that `dispatch-guard.py` docstrings as the fix for a
    worktree-vs-checkout root mismatch has no case in its own suite that constructs that mismatch.
 
 `severity_max = high` (P1, P2, P4c). Findings are reported for the other reviewer's/orchestrator's
@@ -282,8 +282,8 @@ disposition — I did not fix or suggest a diff; per role I am execution-only on
 - P3: adding a `_checkout()` variant whose `cwd` is a real subdirectory two or more levels below a
   root carrying `team-config.yaml` only at the top would exercise the walk for the first time.
 - P4a/b: wrapping `main()`'s three CLI branches in `try/except MergeRefusal` (matching
-  `dispatch-guard.sh`'s own pattern) and making `RELEASE_ALL_CMD` carry `--root {root}` at
-  print-time would close 4a/4b. Reordering `dispatch-guard.sh`'s single-flight check ahead of (or
+  `dispatch-guard.py`'s own pattern) and making `RELEASE_ALL_CMD` carry `--root {root}` at
+  print-time would close 4a/4b. Reordering `dispatch-guard.py`'s single-flight check ahead of (or
   independent of) the code path that can raise inside `_expire` — or making `_expire`/`live_claim`
   themselves tolerant of malformed claim shapes — would close 4c's silent-disable, while presumably
   still needing SOME correct handling for a claim it cannot make sense of (repair it, drop it loudly,

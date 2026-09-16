@@ -32,9 +32,9 @@ test script; `GEN_DECISIONS_INDEX_BIN` and `PYTHONPATH` pointed at the real gene
 by absolute path; control run first confirmed 14 ok, matching live). Rig deleted after; worktree and
 main-checkout status confirmed clean of it.
 
-**Probe A — delete `plan-sign-gate.sh` from the DEC-210 region only:**
+**Probe A — delete `plan-sign-gate.py` from the DEC-210 region only:**
 ```
-FAIL - test_dec_210_entry_names_both_enforcement_points: 'plan-sign-gate.sh' not found in the DEC-210 region of <rig>/.harness/harness/docs/DECISIONS.md
+FAIL - test_dec_210_entry_names_both_enforcement_points: 'plan-sign-gate.py' not found in the DEC-210 region of <rig>/.harness/harness/docs/DECISIONS.md
 ```
 Test 1 red on that clause alone; tests 2 and 3 stayed `ok`.
 
@@ -86,6 +86,6 @@ The `plan.yaml` line is the orchestrator's own station bump (`status: ready` →
 on T-08), confirmed via `git diff` — not written by me, and I wrote no other file.
 
 Main checkout (`git -C /Users/molchairuangutai/GitHub/harness status --porcelain`): dirty, but with
-changes unrelated to this task (`run-unit-tests.sh`, `harness.json`, several other features' notes
+changes unrelated to this task (`run-unit-tests.py`, `harness.json`, several other features' notes
 and logs) — pre-existing from other concurrent work in that checkout, not touched by me; I performed
 zero writes there. The rig lived entirely under `mktemp -d` (outside both trees) and was deleted.

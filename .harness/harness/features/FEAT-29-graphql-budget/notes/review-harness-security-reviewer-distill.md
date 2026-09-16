@@ -53,7 +53,7 @@ discarded.
 
 No changes. None of the three candidates turn on a fact true of only this repository — all
 generalize to "how a security reviewer works," which is the craft-tier test. Repository file
-(`P-01`–`P-03`, 3/15 Patterns, 21 lines) is unmodified and still passes `check-expertise.sh`.
+(`P-01`–`P-03`, 3/15 Patterns, 21 lines) is unmodified and still passes `check-expertise.py`.
 
 ## Rejections
 

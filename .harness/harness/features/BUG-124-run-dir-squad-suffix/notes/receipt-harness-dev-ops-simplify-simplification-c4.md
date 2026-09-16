@@ -8,7 +8,7 @@ stale-narration comment, no simplifiable pipeline beyond the one below.**
 
 ### F-1: duplicated `refs` guard across the `if`/`elif` in the run-dir shape check
 
-- **file**: `.claude/skills/harness/bin/dispatch-guard.sh`
+- **file**: `.claude/skills/harness/bin/dispatch-guard.py`
 - **line**: 158 and 166 (HEAD `dac8f099`)
 - **summary**: `if refs and not globs:` / `elif refs and globs:` re-checks `refs` truthiness
   in both branches instead of nesting once.

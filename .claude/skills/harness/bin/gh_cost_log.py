@@ -6,7 +6,7 @@ the commit it was measured at. A figure without them cannot be re-derived and th
 be shown to be wrong, which is how a 31-point figure survived nine days and had an exclusion
 decision built on it (.harness/notes/grilling-graphql-cost-2026-08-10.md).
 
-WHY: check-state.sh's INV-26 read burned 506 GraphQL points -- board 3, 486 items, commit
+WHY: check-state.py's INV-26 read burned 506 GraphQL points -- board 3, 486 items, commit
 `e1bcdc1`, 2026-08-19 -- before T-01/T-02 made it cheap
 (.harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md). This module is
 the record that would have made that burn visible as it happened instead of after the fact.

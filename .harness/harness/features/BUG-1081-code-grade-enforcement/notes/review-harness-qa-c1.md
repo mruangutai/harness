@@ -15,12 +15,12 @@ non-firing shape as every prior feature's gate, DEC-35/DEC-187); `docs → {}`. 
 T-02=bugfix, T-03/T-04=docs. **Union required = {unit, integration}.**
 
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .agents/skills/harness/bin/run-unit-tests.py --kind unit
 exit=0   grep -c '^FAIL ' = 0
 33 scripts run (distinct "PASS <name>.py" lines), ~924 "ok " lines + ~440 "PASS <case>" lines
 ≈ 1364 individual assertions
 
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .agents/skills/harness/bin/run-unit-tests.py --kind integration
 exit=0   grep -c '^FAIL ' = 0
 32 scripts run, ~1163 "ok " lines + ~556 "PASS <case>" lines ≈ 1719 individual assertions,
 includes test-code-grade-cli.py and test-validate-digest.py
@@ -41,7 +41,7 @@ is the intended shape for one seam with no second implementation (D-03), not a g
 
 **`validate-digest.py`** (11 new functions). **0 are called by name from any unit-kind test** —
 `test-validate-digest.py` is registered under `INTEGRATION_SCRIPTS` only (confirmed by reading
-`run-unit-tests.sh`'s arrays directly, not the `detect` glob). All 11 are reached only
+`run-unit-tests.py`'s arrays directly, not the `detect` glob). All 11 are reached only
 transitively, through ~12 `check_*` fixture functions driving real `validator.validate()`/
 `--hook` calls over purpose-built git repos (D-07's black-box strategy: re-execution over a
 second implementation). I independently measured 3 of the 11 are genuinely reachable and
@@ -52,7 +52,7 @@ not by running a mutation against each — reasoned, not measured, for those 7.
 
 ### 2b. Discovery count vs. exit code — the real finding
 
-**Finding — severity: low.** `run-unit-tests.sh`'s raw output aggregates **all ~12** of
+**Finding — severity: low.** `run-unit-tests.py`'s raw output aggregates **all ~12** of
 BUG-1081's `check_*` fixture functions (covering pass/fail/grade_2/n_a × multiple availability
 and precedence scenarios — dozens of underlying assertions) into **one single line**:
 `ok    code-grade and review-policy gates` (integration output, line 73). I traced the call graph
@@ -144,7 +144,7 @@ that generalizes across sessions.
 
 ## 4. T-01..T-04 `verify:` clauses — re-run directly, can-fail confirmed
 
-- **T-01/T-02**: re-run the standing kind command wholesale (`run-unit-tests.sh --kind unit`/
+- **T-01/T-02**: re-run the standing kind command wholesale (`run-unit-tests.py --kind unit`/
   `--kind integration`) — not a token grep, genuinely fails on any regression. Re-run this
   session: both exit 0, 0 FAIL (§1).
 - **T-03**: `python3 -c "...assert all(x in t for x in (...))"` over `SKILL.md`. Re-run: pass.

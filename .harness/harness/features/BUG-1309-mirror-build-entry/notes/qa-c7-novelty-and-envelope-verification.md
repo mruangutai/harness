@@ -23,7 +23,7 @@ Result: `6ad7233f5014c9488228154335fb16295b6f65bc` — **equals** the canonical 
 given in the contract (`6ad7233f5014c9488228154335fb16295b6f65bc..894adc0f08c71c108ef8432f1f7a3cc8a2a763c0`).
 Confirmed, not assumed.
 
-### 2. `merge-gate.py` / `merge-gate.sh` existence at the base
+### 2. `merge-gate.py` / `merge-gate.py` existence at the base
 
 ```
 $ git -C <wt> cat-file -e 6ad7233f...:.claude/skills/harness/bin/merge-gate.py
@@ -38,18 +38,18 @@ is-ancestor-of-base exit=1
 ```
 
 ```
-$ git -C <wt> cat-file -e 6ad7233f...:.claude/skills/harness/bin/merge-gate.sh
-fatal: path '.claude/skills/harness/bin/merge-gate.sh' exists on disk, but not in '6ad7233f5014c9488228154335fb16295b6f65bc'
+$ git -C <wt> cat-file -e 6ad7233f...:.claude/skills/harness/bin/merge-gate.py
+fatal: path '.claude/skills/harness/bin/merge-gate.py' exists on disk, but not in '6ad7233f5014c9488228154335fb16295b6f65bc'
 cat-file -e exit=128
 
-$ git -C <wt> log --oneline --diff-filter=A -- .claude/skills/harness/bin/merge-gate.sh
+$ git -C <wt> log --oneline --diff-filter=A -- .claude/skills/harness/bin/merge-gate.py
 4338ee44 [harness:t-05] gate merges on Build-entry receipt
 
 $ git -C <wt> merge-base --is-ancestor 4338ee4464255b49ce0735451eea005cc3651ca9 6ad7233f5014c9488228154335fb16295b6f65bc
 is-ancestor-of-base exit=1
 ```
 
-Both `merge-gate.py` and `merge-gate.sh` were **added by the same commit** `4338ee44 [harness:t-05]
+Both `merge-gate.py` and `merge-gate.py` were **added by the same commit** `4338ee44 [harness:t-05]
 gate merges on Build-entry receipt`, and `merge-base --is-ancestor 4338ee44 <base>` exits **1**
 (not an ancestor of the base) — i.e. commit `4338ee44` sits inside `<base>..894adc0f`, the
 feature's own range. Neither file exists at the base at all (`cat-file -e` fatal/128), which by

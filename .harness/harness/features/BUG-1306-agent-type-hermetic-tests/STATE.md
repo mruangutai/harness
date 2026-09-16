@@ -9,7 +9,7 @@
 
 Validate phase COMPLETE, no fix cycle required. `cycles_used` stays 1 of 8: every segment
 returned PASS with zero send-backs. Feature station is `review`; the GitHub mirror is open
-(parent #1309, T-01 #1310, milestone 45). `check-state.sh` now exits **0 with zero violations
+(parent #1309, T-01 #1310, milestone 45). `check-state.py` now exits **0 with zero violations
 repo-wide**. Handoff at `notes/handoff-validate.md`. Nothing merged, shipped, or pushed.
 
 The pin moved twice, both times for paperwork, never for code. `536afda3` → `da05ea28` closed
@@ -80,7 +80,7 @@ Log:
   the bug for agents alone. pm recommends a separate dev-ops ticket adding a governed-identity
   leg to the integration job; BRIEF's Advisor-set constraints put it out of scope here, and
   adopting an emergent criterion is not the orchestrator's to do.
-- Harness defect, WORKED AROUND in the data but NOT fixed in the tool: `check-state.sh` INV-35
+- Harness defect, WORKED AROUND in the data but NOT fixed in the tool: `check-state.py` INV-35
   is line-based and cannot see a quoted multi-line scalar, so it reported a VIOLATION for a
   ` #1103` that `yaml.safe_load` returned intact. The owner resolved this feature's instance by
   rewording the panel text to `issue 1103`; the checker will false-positive again on the next

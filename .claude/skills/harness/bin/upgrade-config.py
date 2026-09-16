@@ -43,6 +43,7 @@ import sys
 #
 # This file runs as a script, so its own directory is already sys.path[0]; no
 # PYTHONPATH is needed, unlike the hooks' heredocs.
+import artifact_accessors
 import harness_yaml
 
 # Keys whose value is per-project by nature. Never overwritten once set, even if the
@@ -61,8 +62,7 @@ TEMPLATE_ONLY = ("_template",)
 
 
 def load_json(path):
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return artifact_accessors.load_harness_json(path)
 
 
 def merge(project, template, path=(), added=None):
@@ -216,12 +216,7 @@ def main():
         for p in preserved:
             print(f"  = preserved {p}")
         if not check_only:
-            shutil.copyfile(p_json, p_json + ".harness-bak")
-            tmp = p_json + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(merged, f, indent=2)
-                f.write("\n")
-            os.replace(tmp, p_json)
+            artifact_accessors.write_harness_json(p_json, merged)
             print(f"  written (backup at {os.path.basename(p_json)}.harness-bak)")
     else:
         print(f"harness.json: up to date (schema_version {pv}).")
@@ -231,7 +226,7 @@ def main():
     t_yaml = os.path.join(tdir, "team-config.yaml")
     if not os.path.isfile(p_yaml):
         print(f"team-config.yaml: MISSING at {p_yaml} — domain enforcement is off "
-              f"(check-domain.sh fails open without a manifest). A team-config.yaml exists "
+              f"(check-domain.py fails open without a manifest). A team-config.yaml exists "
               f"only in the control plane, so this message is about this clone. Run "
               f"/harness-init.")
         gaps.append("team-config.yaml")
@@ -252,7 +247,7 @@ def main():
         except harness_yaml.YamlParseError as e:
             print(f"team-config.yaml: DOES NOT PARSE — {e}")
             print("  The upgrade cannot compare a manifest it cannot read. Fix the file "
-                  "first; `check-domain.sh` is failing closed on it too (DEC-171).")
+                  "first; `check-domain.py` is failing closed on it too (DEC-171).")
             gaps.append("team-config.yaml")
         try:
             tver, tnames = yaml_version(tt), yaml_names(tt)
@@ -286,7 +281,7 @@ def main():
     if "team-config.yaml" in gaps:
         print("\nMANUAL STEP REQUIRED — team-config.yaml was NOT changed. "
               "Until the entries above are added by hand, any new agent has no "
-              "declared domain and check-domain.sh will block all of its writes.")
+              "declared domain and check-domain.py will block all of its writes.")
         return 1
     return 0
 

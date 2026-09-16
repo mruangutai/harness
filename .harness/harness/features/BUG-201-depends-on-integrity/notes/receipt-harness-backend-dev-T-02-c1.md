@@ -62,7 +62,7 @@ which landed correctly and is what this receipt reports. `git status --porcelain
 worktree and the main checkout confirms only the intended file changed, and the main checkout
 is clean.
 
-Separately, this receipt write was first BLOCKED by `check-domain.sh`'s claim-checkout guard:
+Separately, this receipt write was first BLOCKED by `check-domain.py`'s claim-checkout guard:
 `.harness/.inflight-claims.json` at the owner root held only `harness-eng-lead`'s claim for
 BUG-201, not one for this `harness-backend-dev` dispatch, while an unrelated CONCURRENT
 `harness-backend-dev` session on feature `BUG-1309-mirror-build-entry` held a live claim — the

@@ -26,7 +26,7 @@ deliberately stopped after the panel returned and did NOT run ship.**
   GRADE 1 at ABC 47.9); **`_assert_case27_ambiguous` GRADE 3** (cyc 6 / cog 5 / ABC 25.2, bar 3);
   `_check_proposal_duplicate_ids` GRADE 4 (bar 4, production, untouched). `PASSING: 3`.
   **No grade-1 function remains in the graded range.**
-- SUITES: `run-unit-tests.sh` bare is `--kind all`, so BOTH trees ran: **exit 0, `^FAIL ` count 0**,
+- SUITES: `run-unit-tests.py` bare is `--kind all`, so BOTH trees ran: **exit 0, `^FAIL ` count 0**,
   80 files, 86.6s; `test-expertise-merge.py (exit 0, 11.02s)` inside it. Standalone the file reports
   219 PASS / 0 FAIL — the SAME 219 as before the refactor, so no check was dropped.
 - **MUTATION PROOF — THE INHERITED `UNVERIFIED` IS NOW CLOSED for case27.** c0 measured
@@ -78,7 +78,7 @@ code-reviewer's finding that all six assertions bind observable behaviour rather
 
 DEAD ENDS for validate, all signed, none re-raised: D-07 (the `parse_expertise`/`render` silent drop
 stays unfixed — separate defect), D-09 (no exit-11 row in `harness-distill/SKILL.md`; lane NOBODY),
-D-04 (`check-expertise.sh` untouched), D-05 (no codes 10 or 12 in the docstring — adding them FAILS
+D-04 (`check-expertise.py` untouched), D-05 (no codes 10 or 12 in the docstring — adding them FAILS
 SC-06), and `case27b` stays.
 WORKING SET: `tests/integration/test-expertise-merge.py` (`:1310-1371`),
 `notes/review-harness-code-reviewer-c1.md`, `notes/receipt-harness-backend-dev-t02-fix-grade1.md`,
@@ -105,7 +105,7 @@ None blocking. The eight standing items are unchanged by this fix cycle; all are
   worktree. `check-domain`'s handoff-shape check resolves every authority pointer against the MAIN
   checkout — `brief-sc:SC-06`/`SC-03` came back ENOENT because the feature dir exists only in the
   worktree, so no pointer set can pass. STATE.md `## Current` carries the handoff (DEC-159).
-- Q5 (harness defect): `check-domain.sh`'s worktree-claim guard matches a live claim by agent-type
+- Q5 (harness defect): `check-domain.py`'s worktree-claim guard matches a live claim by agent-type
   STRING alone, never by session or feature, so a concurrent unrelated harness-qa gate for BUG-240
   became this qa session's entire allowed claim set.
 - Q6: `test_matrix`'s `__bug_class__`/`match_bug_class` predicate is an unresolvable placeholder with
