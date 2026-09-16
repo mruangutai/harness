@@ -1,0 +1,31 @@
+{
+  "feature_id": "BUG-1756-qa-reverify-bash",
+  "branch": "none",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T12:22:05+00:00",
+      "ended_at": "2026-09-16T12:33:25+00:00",
+      "cycles_used": 1,
+      "tokens": null,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T12:22:05+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause known: #1674 renamed the runner to Python while _reverify_suite still invokes bash; fix is bounded to one function and its integration test with no new interface, schema, or enforcement surface"
+    }
+  ],
+  "mission": "patch"
+}
