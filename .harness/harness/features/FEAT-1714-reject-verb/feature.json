@@ -42,6 +42,15 @@
       "started_at": "2026-09-16T06:34:32+00:00",
       "ended_at": "2026-09-16T07:04:48+00:00",
       "tokens": null
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T07:29:06+00:00",
+      "ended_at": "2026-09-16T07:51:40+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -79,6 +88,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "build-to-validate handoff seq-3 taken up: 3 runs, 80 minutes, 0 rework cycles; pinned validation is next"
+    },
+    {
+      "at": "2026-09-16T07:28:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "validate c1 takes up Main's VAL-01..VAL-06 direct fixes at pinned review_sha 8090ce0b; cumulative spend is 4 runs, 110 minutes, 1 cycle"
+    },
+    {
+      "at": "2026-09-16T07:28:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate-c1",
+      "reason": "Main applied the six validate c0 findings directly under DEC-174 and pinned the corrected tree for one independent validator regate"
     }
   ],
   "mission": "plan",
