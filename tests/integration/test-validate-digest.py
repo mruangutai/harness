@@ -2177,10 +2177,15 @@ artifact: a.md
 
 def _bug919_stub_script(root, exit_code):
     """A fast run-unit-tests.py stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
-    minutes; this proves the wiring (which script ran, what its exit code did) instead."""
-    path = os.path.join(root, "stub-run-unit-tests-%d.sh" % exit_code)
+    minutes; this proves the wiring (which script ran, with which argv, what its exit
+    code did) instead. It is a PYTHON file, as the real runner has been since #1674
+    (BUG-1756): a spawn that hands it to bash cannot run it, so the agree case goes red
+    on the defect. Every invocation appends its argv to `<stub>.argv`, one line each."""
+    path = os.path.join(root, "stub-run-unit-tests-%d.py" % exit_code)
     with open(path, "w") as f:
-        f.write("#!/usr/bin/env bash\necho STUB_RAN\nexit %d\n" % exit_code)
+        f.write("#!/usr/bin/env python3\nimport sys\n"
+                "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
+                "print('STUB_RAN')\nsys.exit(%d)\n" % exit_code)
     os.chmod(path, 0o755)
     return path
 
@@ -2257,6 +2262,113 @@ def _bug919_red_case(red):
             ok, detail)
 
 
+QA_PASS_WITH_KINDS = QA_UNCONDITIONAL_PASS.replace(
+    "  matrix_ok: true\n",
+    "  matrix_ok: true\n"
+    "  kinds:\n"
+    "    - { kind: unit, state: satisfied, cmd: \"python3 x --kind unit\", named_tests: 40 }\n"
+    "    - { kind: integration, state: satisfied, cmd: \"python3 x --kind integration\", named_tests: 72 }\n")
+
+
+def _bug1756_argv(stub):
+    """The argv lines the Python stub recorded, one per invocation."""
+    try:
+        with open(stub + ".argv") as f:
+            return [l.rstrip("\n") for l in f if l.strip() or l == "\n"]
+    except FileNotFoundError:
+        return []
+
+
+def _bug1756_kinds_forwarded_case(green):
+    """SC-01: each claimed kind is one `--kind <k>` run of the Python runner, in order."""
+    r = _bug919_fire(green, text=QA_PASS_WITH_KINDS)
+    argv = _bug1756_argv(green)
+    ok = r.returncode == 0 and argv == ["--kind unit", "--kind integration"]
+    return ("BUG-1756 SC-01: a claim naming unit+integration runs the Python runner once per kind",
+            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+
+
+def _bug1756_first_failure_stops_case(tmp):
+    """SC-02: a runner that fails on the FIRST kind stops the rerun there — the second kind
+    never runs — and the refusal carries the runner's real tail."""
+    stub = os.path.join(tmp, "stub-fails-on-unit.py")
+    with open(stub, "w") as f:
+        f.write("#!/usr/bin/env python3\nimport sys\n"
+                "open(sys.argv[0] + '.argv', 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
+                "print('UNIT_TAIL_LINE' if 'unit' in sys.argv else 'INTEGRATION_RAN')\n"
+                "sys.exit(1 if 'unit' in sys.argv else 0)\n")
+    os.chmod(stub, 0o755)
+    r = _bug919_fire(stub, text=QA_PASS_WITH_KINDS)
+    argv = _bug1756_argv(stub)
+    ok = (r.returncode == 2 and argv == ["--kind unit"] and "UNIT_TAIL_LINE" in r.stderr
+          and "INTEGRATION_RAN" not in r.stderr)
+    return ("BUG-1756 SC-02: the first failing kind stops the rerun and its real tail is reported",
+            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+
+
+def _bug1756_default_set_case(green):
+    """SC-03: a claim naming no kinds runs the runner once, bare, so its default set governs."""
+    r = _bug919_fire(green)
+    argv = _bug1756_argv(green)
+    ok = r.returncode == 0 and argv and argv[-1] == ""
+    return ("BUG-1756 SC-03: a claim naming no kinds runs the Python runner once with no --kind",
+            ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
+
+
+def _bug1756_in_process_reverify(green, raising):
+    """SC-04 at the exact seam: load the validator, make `subprocess.run` raise `raising`
+    when it is handed the runner, and call `check_qa_matrix_claim` directly. The directory
+    fixture the c0 review struck never reached `subprocess.run` (os.path.isfile refused it
+    first); this does. Returns (exit_code, stderr_text)."""
+    import importlib.util
+    import io
+    import contextlib
+    spec = importlib.util.spec_from_file_location("_bug1756_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    real_run = validator.subprocess.run
+
+    def run_or_raise(argv, **kw):
+        if len(argv) > 1 and argv[1] == green:
+            raise raising
+        return real_run(argv, **kw)
+
+    validator.subprocess.run = run_or_raise
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        try:
+            code = validator.check_qa_matrix_claim(
+                "harness-qa", QA_PASS_WITH_KINDS, {"harness_feature": None})
+        except Exception as exc:  # the fail-open contract broken: a crash, not a verdict
+            return None, f"{err.getvalue()}RAISED {type(exc).__name__}: {exc}"
+    return code, err.getvalue()
+
+
+def _bug1756_spawn_error_case(green):
+    """SC-04: an OSError raised BY the spawn (not by a missing file) fails OPEN with the
+    'could not independently re-run' line and exit 0, never a block or a traceback."""
+    os.environ["RUN_UNIT_TESTS_BIN"] = green
+    try:
+        code, err = _bug1756_in_process_reverify(green, OSError(8, "Exec format error"))
+    finally:
+        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    ok = code == 0 and "could not independently re-run" in err.lower()
+    return ("BUG-1756 SC-04: a spawn OSError fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
+
+
+def _bug1756_timeout_case(green):
+    """SC-04: a runner that exceeds the re-run timeout (subprocess.TimeoutExpired) fails
+    OPEN the same way — the gate never hangs the return and never blocks on its own gap."""
+    os.environ["RUN_UNIT_TESTS_BIN"] = green
+    try:
+        code, err = _bug1756_in_process_reverify(
+            green, subprocess.TimeoutExpired([sys.executable, green], 1800))
+    finally:
+        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    ok = code == 0 and "could not independently re-run" in err.lower()
+    return ("BUG-1756 SC-04: a re-run timeout fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
+
+
 def _report_bug919_results(cases):
     fails = 0
     for name, ok, detail in cases:
@@ -2274,6 +2386,7 @@ def run_bug919_qa_matrix_cases():
     true) is independently re-verified against a real run of the suite, rather than
     trusted on the strength of the self-report alone."""
     tmp = tempfile.mkdtemp(prefix="vd-bug919-")
+    os.makedirs(os.path.join(tmp, "k"))
     green = _bug919_stub_script(tmp, 0)
     red = _bug919_stub_script(tmp, 1)
     cases = [
@@ -2282,6 +2395,11 @@ def run_bug919_qa_matrix_cases():
         _bug919_non_pass_case(green),
         _bug919_missing_script_case(tmp),
         _bug919_red_case(red),
+        _bug1756_default_set_case(green),
+        _bug1756_kinds_forwarded_case(_bug919_stub_script(os.path.join(tmp, "k"), 0)),
+        _bug1756_first_failure_stops_case(tmp),
+        _bug1756_spawn_error_case(green),
+        _bug1756_timeout_case(green),
     ]
     return _report_bug919_results(cases)
 
@@ -4649,6 +4767,59 @@ def check_review_sha_binding(validator, config, feature_dir, td, failures):
     check_review_sha_binding_other_personas(validator, config, feature_dir, failures)
 
 
+def _pin_errors(validator, config, feature_dir, digest, review_pin=None):
+    return validator.validate("harness-code-reviewer", digest, config, feature_dir,
+                              review_pin=review_pin)
+
+
+def check_dispatch_pin_stands_in_for_an_unpinned_feature(validator, config, feature_dir, failures):
+    """#1677: an operator-supplied pin (`HARNESS-REVIEW-PIN:` in the dispatch, forwarded
+    as `review_pin`) satisfies the binding when feature.json has none — a frozen
+    `review_sha: none`, or no feature at all — without weakening it: `review_sha: none`
+    alone still refuses, and the head must still equal the pin. Fixtures live in the
+    hermetic repo `feature_dir` belongs to, so the pins resolve."""
+    repo = validator._repo_root_for_feature(feature_dir)
+    honest = reviewer_digest("pass", reviewed=f"{PRE_FEATURE_REVISION}..{REVIEW_SHA}")
+    frozen = make_feature_dir(repo, review_sha="none", feat="FEAT-FROZEN")
+    errors = _pin_errors(validator, config, frozen, honest)
+    if not any("no pinned review_sha" in error for error in errors):
+        failures.append(f"review_sha: none with no dispatch pin must still refuse: {errors}")
+    errors = _pin_errors(validator, config, frozen, honest, REVIEW_SHA)
+    if errors:
+        failures.append(f"a dispatch pin must satisfy the binding on a frozen feature: {errors}")
+    forged = reviewer_digest("n_a", reviewed="HEAD..HEAD")
+    errors = _pin_errors(validator, config, frozen, forged, REVIEW_SHA)
+    if not any("HARNESS-REVIEW-PIN" in error for error in errors):
+        failures.append(f"a head that is not the dispatch pin must refuse, naming the pin "
+                        f"source: {errors}")
+    # No feature at all: the artifact resolves to no feature directory, so the checkout
+    # root is the validator's own vantage — pointed at the hermetic repo here.
+    original_root_fn = validator._root_or_none
+    validator._root_or_none = lambda: repo
+    try:
+        errors = _pin_errors(validator, config, None, honest, REVIEW_SHA)
+    finally:
+        validator._root_or_none = original_root_fn
+    if errors:
+        failures.append(f"a dispatch pin must satisfy the binding with no feature at all "
+                        f"(a DEC-174 direct patch): {errors}")
+
+
+def check_dispatch_pin_never_overrides_a_recorded_one(validator, config, feature_dir, failures):
+    """#1677's limit: feature.json's recorded review_sha stays authoritative. A dispatch pin
+    equal to it is accepted; one that differs is refused naming both."""
+    repo = validator._repo_root_for_feature(feature_dir)
+    honest = reviewer_digest("pass", reviewed=f"{PRE_FEATURE_REVISION}..{REVIEW_SHA}")
+    recorded = make_feature_dir(repo, review_sha=REVIEW_SHA, feat="FEAT-RECORDED")
+    errors = _pin_errors(validator, config, recorded, honest, REVIEW_SHA)
+    if errors:
+        failures.append(f"a dispatch pin equal to the recorded one must accept: {errors}")
+    errors = _pin_errors(validator, config, recorded, honest, PRE_FEATURE_REVISION)
+    if not any("never overridden" in error for error in errors):
+        failures.append(f"a dispatch pin disagreeing with the recorded one must refuse, "
+                        f"naming both: {errors}")
+
+
 def check_review_sha_binding_unconditional(validator, config, feature_dir, failures):
     """The forged no-op range must reject regardless of `code_grade`'s own
     value — UNCONDITIONAL, not only for `n_a` (the branch the live bypass
@@ -4922,6 +5093,8 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_reviewed_range(validator, config, feature_dir, td, failures)
     check_resolve_reviewed_commit_guard(validator, td, failures)
     check_review_sha_binding(validator, config, feature_dir, td, failures)
+    check_dispatch_pin_stands_in_for_an_unpinned_feature(validator, config, feature_dir, failures)
+    check_dispatch_pin_never_overrides_a_recorded_one(validator, config, feature_dir, failures)
     check_resolve_review_sha_artifact_path(validator, td, failures)
     check_resolve_review_sha_feature_json(validator, td, failures)
     check_pending_plan_review(validator, config, td, failures)

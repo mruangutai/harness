@@ -1,0 +1,83 @@
+schema: plan/1
+feature: BUG-1129-validate-handoff-sweep
+approval:
+  date: '2026-09-16'
+  approved_by: mruangutai
+  status: approved
+status: done
+source_issues: [1129]
+lanes:
+  resolved_at: 142026456c64c80c3dd3aa776636dadbc0e21881
+  rows:
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: main-session-direct
+      reason: DEC-174 reserves the terminal lifecycle enforcement writer for direct execution
+    - surface: .claude/skills/harness/bin/handoff_policy.py
+      lane: main-session-direct
+      reason: DEC-174 reserves a shared library that controls the check-state gate predicate for direct execution
+    - surface: .claude/skills/harness/bin/check-state.py
+      lane: main-session-direct
+      reason: DEC-174 reserves the state gate for direct execution
+    - surface: tests/integration/gh_sync_support.py
+      lane: main-session-direct
+      reason: DEC-174 keeps fixtures that directly vouch for enforcement-writer behavior with direct execution
+    - surface: tests/integration/test-gh-sync-ship.py
+      lane: main-session-direct
+      reason: DEC-174 keeps the terminal enforcement writer's focused test with direct execution
+    - surface: tests/integration/test-post-merge-sweep.py
+      lane: main-session-direct
+      reason: DEC-174 keeps the post-merge enforcement path's focused test with direct execution
+    - surface: tests/integration/test-gh-sync-abandon.py
+      lane: main-session-direct
+      reason: DEC-174 keeps the terminal lifecycle fixture regression with direct execution
+decisions: []
+tasks:
+  - id: T-01
+    title: Refuse unvalidated shipping before GitHub writes
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct execution because this task changes check-state enforcement, its shared predicate, the terminal lifecycle writer, and their gate-facing tests
+    depends_on: []
+    status: done
+    files:
+    - path: .claude/skills/harness/bin/gh-sync.py
+      quote: validation incomplete
+    - path: .claude/skills/harness/bin/handoff_policy.py
+      quote: 'def exempt_reason(fdir):'
+    - path: .claude/skills/harness/bin/check-state.py
+      quote: handoff_policy.exempt_reason
+    - path: tests/integration/gh_sync_support.py
+      quote: 'def write_validate_handoff(feat_dir):'
+    - path: tests/integration/test-gh-sync-ship.py
+      quote: 'BUG-1129: ship REFUSES'
+    - path: tests/integration/test-post-merge-sweep.py
+      quote: case_unvalidated_feature_is_not_shipped
+    - path: tests/integration/test-gh-sync-abandon.py
+      quote: write_validate_handoff
+    - path: tests/integration/test-hooks-install.py
+      quote: 'BUG-1129: ship refuses a feature with no validate handoff'
+    - path: tests/unit/test-handoff-policy.py
+      quote: import handoff_policy
+    verify: |
+      python3 tests/integration/test-gh-sync-ship.py &&
+      python3 tests/integration/test-post-merge-sweep.py &&
+      python3 tests/integration/test-gh-sync-record.py &&
+      python3 tests/integration/test-gh-sync-open.py &&
+      python3 tests/integration/test-gh-sync-abandon.py &&
+      python3 tests/integration/test-check-state-handoff.py &&
+      python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
+    intent: |
+      Add handoff_policy.py with exempt_reason(fdir), extracting check-state.py's existing INV-17 all-direct exemption without changing its behavior or result shape. Preserve all three conjuncts: plan.yaml exists and loads as a mapping, tasks is a non-empty list, and every task is a mapping whose explicit execution_mode is exactly main-session-direct. Preserve the reason text for an exemption and the diagnostic detail for a plan that cannot be evaluated; any absent, unreadable, unparsable, non-mapping, empty-task, malformed-task, missing-mode, or mixed-mode plan must grant no exemption.
+
+      Import handoff_policy in check-state.py, replace the INV-17 call with handoff_policy.exempt_reason, and remove the duplicated local predicate so check-state and ship have one authority. Keep INV-17's literal exemptions, note requirements, reporting text, and every existing case unchanged.
+
+      In gh-sync.py cmd_ship, after the existing worktree-path refusal and before body posting, board mutation, milestone closure, plan station recording, or any other irreversible GitHub write, require notes/handoff-validate.md unless handoff_policy.exempt_reason grants the all-direct exemption. For a missing note and no exemption, call die() so the command exits 1 with a message containing validation incomplete and the exact missing notes/handoff-validate.md path, including any fail-closed plan diagnostic. Do not call skip() and do not print gh-sync: SKIP. Refusal must make no card, issue, parent, or milestone write and must not change plan.yaml. An all-direct plan must continue through the existing ship path without the note.
+
+      In gh_sync_support.py add write_validate_handoff(feat_dir), creating the notes directory and a valid handoff-validate.md fixture, and make stage_ship write it by default. Add an explicit validated flag whose false value is used only by the refusal case. Update every validated fixture path in the named ship, record, open, abandon, and sweep regressions to write the note without weakening their existing assertions.
+
+      In test-gh-sync-ship.py add the BUG-1129: ship REFUSES focused cases. Prove a non-exempt missing-note ship exits 1, names validation incomplete and notes/handoff-validate.md, contains no gh-sync: SKIP, emits no GitHub write, closes no milestone, and leaves the plan station unchanged. Also prove a non-empty all-main-session-direct plan ships without the note and an unreadable plan fails closed before writes. Exercise the shared predicate rather than duplicating exemption logic in the test.
+
+      In test-post-merge-sweep.py add case_unvalidated_feature_is_not_shipped. Stage a landed terminal feature with no validate handoff, run the real fixture-local sweep and ship path, and prove the worktree remains standing and no GitHub write is logged. Keep the existing positive-signal and root-safety assertions intact. In test-gh-sync-abandon.py use write_validate_handoff for existing ship paths so abandon behavior is unchanged. Keep all existing ship, record, open, abandon, sweep, and INV-17 cases green.
+
+      Do not change whether the sweep runs on git pull, do not change INV-17's wording, do not add a second ship-only exemption predicate, and do not broaden lifecycle, retry, rollback, telemetry, or GitHub behavior beyond issue 1129.

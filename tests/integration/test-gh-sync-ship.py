@@ -455,6 +455,95 @@ def main():
               rS.returncode == 0 and "gh-sync: SKIP" in (rS.stdout + rS.stderr),
               f"exit {rS.returncode}; out={(rS.stdout + rS.stderr)[-400:]!r}")
 
+    # ---- BUG-1129: SHIP REFUSES A FEATURE WITH NO VALIDATE HANDOFF ------------------------
+    # The post-merge sweep fires on `git pull` the moment a PR merges, which can be while the
+    # validate is still in flight. The cards it lands at Done and the milestone it closes are
+    # irreversible, so the refusal sits in ship itself, before the first write.
+    with tempfile.TemporaryDirectory() as tmpH:
+        install_gh(tmpH, FAKE_GH_STATIONS)
+        featH = stage_ship(tmpH, "FEAT-56-unvalidated", {"T-01": 41}, parent=40,
+                           validated=False)
+        check("BUG-1129 fixture: validated=False writes NO note (the case below is about "
+              "its absence)",
+              not os.path.isfile(os.path.join(featH, "notes", "handoff-validate.md")))
+        stationH_before = read_plan_station(featH)
+        planH_before = open(os.path.join(featH, "plan.yaml")).read()
+        bodyH = os.path.join(tmpH, "body.md")
+        open(bodyH, "w").write("a ship comment that must never be posted")
+        rH = run(["ship", featH, "--body-file", bodyH], tmpH,
+                 ship_env(tmpH, "40=Review 41=Review", children={40: [41]}))
+        outH = rH.stdout + rH.stderr
+        check("BUG-1129: ship REFUSES (exit 1) a feature with no notes/handoff-validate.md, "
+              "saying `validation incomplete` and naming the missing note",
+              rH.returncode == 1 and "validation incomplete" in outH
+              and "handoff-validate.md" in outH,
+              f"exit {rH.returncode}; out={outH[-500:]!r}")
+        # THE WHOLE WRITE BOUNDARY: load_config's `gh auth status` is the only call ship makes
+        # before the refusal, so every other gh invocation — card edit, milestone PATCH,
+        # comment, issue close — is a write that leaked past it.
+        writesH = [l for l in calls(tmpH) if l and not l.startswith("auth")]
+        check("BUG-1129: the refusal made NO GitHub write of any kind — no card, milestone, "
+              "comment or close", writesH == [], repr(writesH))
+        check("BUG-1129: it is a REFUSAL, not a SKIP — the sweep must not read it as permission "
+              "to remove the worktree",
+              "gh-sync: SKIP" not in outH, f"out={outH[-300:]!r}")
+        check("BUG-1129: plan.yaml is byte-identical after the refusal (station "
+              f"{stationH_before!r} preserved, nothing else written)",
+              open(os.path.join(featH, "plan.yaml")).read() == planH_before
+              and read_plan_station(featH) == stationH_before,
+              f"before={stationH_before!r} after={read_plan_station(featH)!r}")
+
+    # AN UNREADABLE PLAN IS NOT EXEMPT (fail-closed through the verb, not only the predicate):
+    # the note is absent AND the plan cannot be evaluated, so ship must refuse and say both.
+    with tempfile.TemporaryDirectory() as tmpU:
+        install_gh(tmpU, FAKE_GH_STATIONS)
+        featU = stage_ship(tmpU, "FEAT-58-unparsable", {"T-01": 41}, parent=40,
+                           validated=False)
+        planU = os.path.join(featU, "plan.yaml")
+        open(planU, "a").write("tasks: [\n  - broken\n")
+        rU = run(["ship", featU], tmpU, ship_env(tmpU, "40=Review 41=Review",
+                                                  children={40: [41]}))
+        outU = rU.stdout + rU.stderr
+        writesU = [l for l in calls(tmpU) if l and not l.startswith("auth")]
+        check("BUG-1129: a plan that cannot be evaluated grants no exemption — ship refuses "
+              "(exit 1) naming the note and the parse failure, with no GitHub write",
+              rU.returncode == 1 and "handoff-validate.md" in outU
+              and "does not parse" in outU and writesU == [],
+              f"exit {rU.returncode}; writes={writesU!r}; out={outU[-500:]!r}")
+
+    # SC-04, the fixture contract itself: the default `stage_ship` models a VALIDATED feature
+    # and therefore carries the note ship now demands. Before the fixture migration this
+    # assertion is red; it is what keeps every other ship case honest rather than incidentally
+    # green.
+    with tempfile.TemporaryDirectory() as tmpV:
+        featV = stage_ship(tmpV, "FEAT-59-validated", {"T-01": 41}, parent=40)
+        noteV = os.path.join(featV, "notes", "handoff-validate.md")
+        check("BUG-1129 fixture: the default ship fixture writes notes/handoff-validate.md with "
+              "every handoff section",
+              os.path.isfile(noteV) and all(h in open(noteV).read() for h in
+                                            ("## next", "## trust", "## dead ends",
+                                             "## working set", "## done when")),
+              f"exists={os.path.isfile(noteV)}")
+
+    # A plan built entirely main-session-direct crossed no squad seam (DEC-174) and owes no
+    # note: the same exemption INV-17 applies, so ship must not demand what INV-17 does not.
+    with tempfile.TemporaryDirectory() as tmpX:
+        install_gh(tmpX, FAKE_GH_STATIONS)
+        featX = stage_ship(tmpX, "FEAT-57-all-direct", {"T-01": 41}, parent=40,
+                           validated=False)
+        planX = os.path.join(featX, "plan.yaml")
+        textX = open(planX).read()
+        assert "    execution_mode: team\n" in textX
+        open(planX, "w").write(textX.replace("    execution_mode: team\n",
+                                             "    execution_mode: main-session-direct\n"))
+        rX = run(["ship", featX], tmpX, ship_env(tmpX, "40=Review 41=Review",
+                                                  children={40: [41]}))
+        check("BUG-1129: an all-main-session-direct plan ships WITHOUT the note (DEC-174 "
+              "exemption shared with INV-17)",
+              rX.returncode == 0 and read_plan_station(featX) == "done",
+              f"exit {rX.returncode}; station={read_plan_station(featX)!r}; "
+              f"out={(rX.stdout + rX.stderr)[-400:]!r}")
+
     # NO GIT REPOSITORY AT ALL: the commit cannot succeed, and the sweep's two signal words must
     # still be absent from the output so the failure stays confined to this one line.
     with tempfile.TemporaryDirectory() as tmpN:

@@ -116,6 +116,7 @@ import gh_board
 import gh_cost_log
 import harness_yaml
 import harness_boundary
+import handoff_policy
 
 GH = os.environ.get("GH_SYNC_GH", "gh")
 
@@ -2125,6 +2126,26 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         die(f"this feature directory resolves inside a worktree which is about to be deleted, "
             f"so a terminal station written here would not survive: {_resolved}.{_hint} "
             f"Run ship against the main checkout's copy.")
+
+    # BUG-1129: SHIP IS THE WRITER OF IRREVERSIBLE TERMINAL STATE, so the validate handoff is
+    # checked HERE, not only in the sweep that happens to call it. A `git pull` fires the
+    # post-merge sweep the moment a feature's PR merges — while its validate may still be in
+    # flight — and the cards it moves to Done and the milestone it closes cannot be unwritten.
+    # INV-17 demands notes/handoff-validate.md at done; refusing before the first write is the
+    # only ordering under which that invariant is preventive rather than forensic. The DEC-174
+    # exemption is the same predicate INV-17 applies, imported rather than restated.
+    #
+    # A REFUSAL (exit 1), NOT A SKIP, for the reason given above the worktree check: the sweep
+    # reads a SKIP as "nothing went wrong" and removes the worktree.
+    _handoff = os.path.join(feat_dir, "notes", "handoff-validate.md")
+    if not os.path.isfile(_handoff):
+        _why, _detail = handoff_policy.exempt_reason(feat_dir)
+        if not _why:
+            die(f"validation incomplete: {_handoff} does not exist{_detail}, so this feature "
+                f"has not reached the validate seam and ship would record a terminal station "
+                f"for work never validated. No GitHub state was changed. Land the validate "
+                f"handoff (or, for a plan built entirely main-session-direct, mark every task "
+                f"execution_mode: main-session-direct) and ship again.")
 
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
