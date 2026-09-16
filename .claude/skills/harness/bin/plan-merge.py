@@ -19,6 +19,7 @@ lock stays the one shared with every other write route in this feature.
     plan-merge.py set-key           --file <plan.yaml> --key <top-level key> --value-file <value.yaml>
     plan-merge.py check             --file <plan.yaml> --root <checkout root>
     plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]... [--rework rounds=N,minutes=M --decision <path>]
+    plan-merge.py revoke-approval   --file <plan.yaml> --by <name> --reason "<text>"
     plan-merge.py delete-items      --file <plan.yaml> --task T-NN [--task T-NN]... [--decision D-NN]... --reason "<text>"
 
 FEAT-59 (measured on FEAT-54's 23 pre-build runs, BRIEF ## Problem) retired four write
@@ -64,12 +65,14 @@ factory_config declares — MANDATED_STATIONS plus TERMINAL_STATIONS, imported, 
 resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
 BEFORE the lock is taken, so a refused value never opens the file.
 
-`approval:` has three controlled write paths: `apply` seeds a brand-new plan with the
+`approval:` has four controlled write paths: `apply` seeds a brand-new plan with the
 unsigned `status: pending` mapping, `sign-approval` is the only path that can transition it
-to approved or append an attributed risk acceptance to `approval.rulings`, and the task-changing
+to approved or append an attributed risk acceptance to `approval.rulings`, the task-changing
 verbs (`apply`, `add-tasks`, `amend --key tasks`, `delete-items --task`) RESET an approved plan
-to pending — never the other way. Every other verb operating on an existing plan leaves its
-approval bytes byte for byte. The main session — nobody else — signs approval through this tool
+to pending — never the other way — and `revoke-approval` writes that same reset record on an
+operator's word when no task changed (#1675: a signature withdrawn without a task-set change
+was unrepresentable). Every other verb operating on an existing plan leaves its approval bytes
+byte for byte. The main session — nobody else — signs or revokes approval through this tool
 rather than by hand. A proposal that carries an approval mapping which PARSES differently from
 the base's is a REFUSAL (exit 8), not a silent drop: `apply` must be INCAPABLE of writing a
 signature (step 7) and must also NOTICE a caller that tried to sneak one past it (step 7b) —
@@ -105,6 +108,7 @@ Exit codes are the interface:
        a proposal's fields replace the base's)
     8  the proposal's approval mapping parses differently from the base's
     9  --file does not resolve to a plan.yaml this tool owns
+    10 `sign-approval` / `revoke-approval` invoked by a governed agent rather than the main session
 
 python3 stdlib plus PyYAML (DEC-171 requires it here). Reads go through harness_yaml.py, same as
 every other harness tool (issue #720): a duplicate mapping key refuses here exactly as it would
@@ -795,7 +799,7 @@ RESET_FIELDS = ("reset_at", "reset_reason")
 _RESET_LINE_RE = re.compile(r"^  (reset_at|reset_reason):")
 
 
-def _reset_approval_lines(lines, verb, ids):
+def _reset_approval_lines(lines, reason):
     """`lines` with approval.status rewritten to pending and reset_at/reset_reason recorded.
 
     C4 / SC-08, narrowed by BUG-1716 D-04: a signature is a statement about ONE task set. A
@@ -818,7 +822,6 @@ def _reset_approval_lines(lines, verb, ids):
     if status_at is None:
         return lines
     stale = {i for key, i in keyed if key in RESET_FIELDS}
-    reason = f"{verb} {', '.join(str(i) for i in ids)}"
     record = [_field_lines(indent, "status", "pending"),
               _field_lines(indent, "reset_at", _now_iso()),
               _field_lines(indent, "reset_reason", reason)]
@@ -856,7 +859,8 @@ def _maybe_reset_approval(text, base_doc, verb, task_ids):
     if not task_ids or _approval_status(base_doc) != "approved":
         return text, False
     lines = text.splitlines(keepends=True)
-    reset_text = "".join(_reset_approval_lines(lines, verb, task_ids))
+    reason = f"{verb} {', '.join(str(i) for i in task_ids)}"
+    reset_text = "".join(_reset_approval_lines(lines, reason))
     _verify_reset(reset_text, verb)
     return reset_text, True
 
@@ -2013,16 +2017,7 @@ def cmd_sign_approval(args):
     # guardrail against a signature written out of over-eagerness, NOT a security boundary."
     # This closes the four DEMONSTRATED shell-syntax leaks and needs no new case when a fifth
     # surfaces; it does not claim to close deliberate sabotage of its own identity signal.
-    _signing_agent = os.environ.get("HARNESS_AGENT_TYPE") or ""
-    if _signing_agent:
-        for line in (
-            f"REFUSED: {_signing_agent} may not sign an approval — only the main session may "
-            "(REQ-05/DEC-120).",
-            "This is enforced from inside cmd_sign_approval itself, not only by the calling "
-            "hook, so no shell form of this call can reach a write.",
-        ):
-            print(line, file=sys.stderr)
-        sys.exit(10)
+    _refuse_governed_agent("sign", "cmd_sign_approval")
     resolved = _resolve_plan(args.file)
     ruling, feature_json = _rework_ruling(args, resolved)
     # THE RULING IS RECORDED BEFORE THE SIGNATURE (review F4). feature_json_write can still
@@ -2052,6 +2047,65 @@ def cmd_sign_approval(args):
                          "without a signature is harmless — re-run sign-approval to sign.")
         _die(refusal.code, *lines)
     print(f"SIGNED {resolved} by {args.by} on {args.date}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+def _refuse_governed_agent(action, where):
+    """Exit 10 unless the caller is the main session — the identity rule cmd_sign_approval
+    documents, shared by every verb that writes the signature in either direction."""
+    agent = os.environ.get("HARNESS_AGENT_TYPE") or ""
+    if not agent:
+        return
+    _die(10, f"REFUSED: {agent} may not {action} an approval — only the main session may "
+             "(REQ-05/DEC-120).",
+         f"This is enforced from inside {where} itself, not only by the calling hook, so no "
+         "shell form of this call can reach a write.")
+
+
+# ---------------------------------------------------------------------------
+# `revoke-approval` — the signature's one downward verb (#1675).
+#
+# The template promised "any change to the task set resets this to pending" and FEAT-59
+# delivered it (DEC-229): add-tasks, apply and delete-items void an approved plan
+# automatically. What that left unrepresentable is a signature withdrawn WITHOUT a task-set
+# change — an operator ruling that the signed scope no longer holds, a plan signed in error.
+# BUG-285 sat in that state: four tasks under a signature that covered one, and the only way
+# to stop claiming the stale signature was a new one. `sign-approval` writes `approved` and
+# nothing else; `amend` refuses `approval:`; the shape gate refuses every editor.
+#
+# ONE STATE, TWO TRIGGERS. This verb writes exactly the record the automatic reset writes —
+# `status: pending`, `reset_at`, `reset_reason` — so every reader that already understands a
+# voided signature understands a revoked one; `reset_reason` says which it was. It is the
+# main session's alone, as the signature is (DEC-120), and it refuses a plan that is not
+# approved: revoking nothing is a mistaken command, not a no-op.
+
+
+def cmd_revoke_approval(args):
+    _refuse_governed_agent("revoke", "cmd_revoke_approval")
+    resolved = _resolve_plan(args.file)
+    why = " ".join(args.reason.split())
+    if not why:
+        _die(2, "plan-merge: revoke-approval needs a non-empty --reason; it is written into "
+                "approval.reset_reason so the record says why the signature was withdrawn.")
+    reason = f"revoke-approval {args.by}: {why}"
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        status = _approval_status(_load_base_doc(text))
+        if status != "approved":
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {resolved} approval.status is {status!r}, not approved — "
+                    "there is no signature to revoke."])
+        revoked = "".join(_reset_approval_lines(text.splitlines(keepends=True), reason))
+        _verify_reset(revoked, "revoke-approval")
+        return revoked.encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+    print(f"REVOKED {resolved} by {args.by}: {why}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
 
@@ -3441,6 +3495,10 @@ VERBS = (
                 "tasks, decisions and status, which name their own verb",
      (_FILE, ("--key", "the top-level key name"),
       ("--value-file", "YAML file holding the key's replacement value")), cmd_set_key),
+    ("revoke-approval", "withdraw a standing signature: approval.status approved -> pending with "
+                        "reset_at and reset_reason; main session only",
+     (_FILE, ("--by", "the operator withdrawing the signature"),
+      ("--reason", "why, one clause; written to approval.reset_reason")), cmd_revoke_approval),
     ("check", "resolve every files: anchor, execution_agent route and traces: id; writes nothing",
      (_FILE, ("--root", "the checkout root anchors and routes resolve against")), cmd_check),
     ("record-amendments", "splice an engineering lead's digest amendments into the named task "
