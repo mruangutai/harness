@@ -1,0 +1,56 @@
+schema: plan/1
+feature: BUG-1724-run-end-tokens
+approval:
+  date: '2026-09-15'
+  approved_by: mruangutai
+  status: approved
+status: building
+source_issues: [1724]
+lanes:
+  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  rows:
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 keeps the host hook that stamps and reads spend outside self-hosted execution.
+    - surface: .claude/skills/harness/bin/feature-record.py
+      lane: main-session-direct
+      reason: DEC-174 keeps the ledger writer and spend reader outside self-hosted execution.
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: The orchestrator completion contract changes with the DEC-174 enforcement path.
+    - surface: tests/unit/omp-hooks.test.ts
+      lane: main-session-direct
+      reason: DEC-174 places the hook test inside the same enforcement line.
+    - surface: tests/unit/test-omp-hooks.py
+      lane: main-session-direct
+      reason: DEC-174 places the hook test runner inside the same enforcement line.
+    - surface: tests/unit/test-feature-record.py
+      lane: main-session-direct
+      reason: DEC-174 places the ledger and spend reader test inside the same enforcement line.
+decisions: []
+tasks:
+  - id: T-01
+    title: Stamp host-reported tokens before run completion
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires main-session-direct because the hook and feature-record.py are what spend and advisories read, and their tests lie inside that enforcement line.
+    depends_on: []
+    status: building
+    files:
+      - .omp/extensions/harness-hooks.ts
+      - .claude/skills/harness/bin/feature-record.py
+      - .claude/skills/harness/SKILL.md
+      - tests/unit/omp-hooks.test.ts
+      - tests/unit/test-omp-hooks.py
+      - tests/unit/test-feature-record.py
+    verify: |
+      python3 tests/unit/test-feature-record.py && python3 tests/unit/test-omp-hooks.py
+    intent: |
+      Work test-first and demonstrate the new focused cases failing before production changes. Add feature-record.py stamp-tokens --file <feature.json> --tokens N. It must identify open runs as entries carrying started_at and no ended_at, write the non-negative integer tokens value only when exactly one open run exists, and otherwise exit 2 without changing the file; the no-open diagnostic must state that none is open, and the multiple-open diagnostic must name every conflicting run id.
+
+      In the OMP hook's orchestrator task-result path, read event.details.results entries that carry integer tokens, sum those values for the one task call, and invoke stamp-tokens exactly once on the current feature before invoking feature-record.py spend. When no result carries an integer token count, do not stamp a value. Preserve the existing non-blocking advisory behavior and the existing feature-root resolution rather than deriving a second feature.json location.
+
+      Keep run-end's current preservation contract: a call without --tokens must not replace a pre-stamped value with null. Keep run-end --tokens N as the explicit override only when a host reported no figure. Update the orchestrator playbook so normal OMP completion uses bare run-end and never asks the orchestrator to transcribe task-result tokens; retain the explicit override for the no-host-figure case.
+
+      Extend the bounded unit suites to prove the single-open-run write, no-open and multiple-open refusals with byte preservation and named diagnostics, summing of several task-result token counts, stamp-before-spend ordering, preservation through bare run-end, measured spend and advisory output, no stamping plus null on the compatibility/no-token path, and the explicit run-end override. Do not backfill historical feature records, read context tokens from session JSONL, change spend summation, or change any orchestrator decision made from the advisory.

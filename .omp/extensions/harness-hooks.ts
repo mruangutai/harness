@@ -364,6 +364,28 @@ function taskIdentities(details: unknown): TaskIdentity[] {
   return [...identities.values()].sort((a, b) => a.index - b.index);
 }
 
+// BUG-1724 (DEC-227): the tokens the host measured for one `task` call — the sum over
+// every result carrying a non-negative integer `tokens`. `undefined` when none does, so
+// the caller writes nothing rather than zero: null on the run means "unmeasured", and
+// a host that reported nothing (the Claude Code compatibility host, DEC-210) must leave
+// it that way.
+export function taskResultTokens(details: unknown): number | undefined {
+  if (!details || typeof details !== "object") return undefined;
+  const results = (details as Dict).results;
+  if (!Array.isArray(results)) return undefined;
+  let sum = 0;
+  let measured = false;
+  for (const row of results) {
+    if (!row || typeof row !== "object") continue;
+    const tokens = (row as Dict).tokens;
+    if (typeof tokens === "number" && Number.isInteger(tokens) && tokens >= 0) {
+      sum += tokens;
+      measured = true;
+    }
+  }
+  return measured ? sum : undefined;
+}
+
 function releaseClaim(
   runner: PolicyRunner,
   cwd: string,
@@ -992,6 +1014,17 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           if (featureRoot) spendFeatureJson = featureJsonPath(featureRoot, currentFeature);
         }
         if (spendFeatureJson) {
+          // BUG-1724: stamp what the host measured onto the open run BEFORE spend reads
+          // it, so the figure the orchestrator was asked to transcribe (and never did,
+          // 0 of 26 times on BUG-285) is written by the host that computed it. A refusal
+          // (no open run, two open runs) is stamp-tokens' own exit 2 and costs nothing
+          // here: spend still runs and the gate below is untouched.
+          const tokens = taskResultTokens(event.details);
+          if (tokens !== undefined) {
+            policyRunner(ctx.cwd, "feature-record.py", [
+              "stamp-tokens", "--file", spendFeatureJson, "--tokens", String(tokens),
+            ], {});
+          }
           const measured = policyRunner(ctx.cwd, "feature-record.py", [
             "spend", "--file", spendFeatureJson,
           ], {});

@@ -1174,3 +1174,110 @@ describe("spend advisory injection", () => {
     expect(calls.some((call) => call.script === "feature-record.py")).toBe(false);
   });
 });
+
+// BUG-1724 (DEC-227): the HOST stamps the figure it measured onto the open run, on the
+// same wake that reads spend, so the orchestrator never transcribes it. Measured on
+// BUG-285-canonical-reader: 19/19 task results carried `details.results[i].tokens`,
+// 0/26 `run-end` calls passed it. The real feature-record.py runs through the gate path,
+// so what is asserted is the file on disk, not a recorded argv.
+describe("host-stamped tokens", () => {
+  const FEATURE = "FEAT-99-stamp";
+
+  function openRun(id = "r1") {
+    return [{ id, squad: "eng", verdict: "PENDING", agent: "harness-eng-lead",
+      started_at: "2026-09-11T10:00:00+00:00" }];
+  }
+
+  function checkout(runs: unknown[]) {
+    const root = mkdtempSync(join(tmpdir(), "bug1724-"));
+    const dir = join(root, ".harness", "harness", "features", FEATURE);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "feature.json"), JSON.stringify({
+      feature_id: FEATURE, branch: "none", pr: null, review_sha: "none",
+      cycles_used: 0, max_total_cycles: 10, runs,
+    }, null, 2) + "\n");
+    return { root, featureJson: join(dir, "feature.json") };
+  }
+
+  function fixture(root: string) {
+    const handlers = new Map<string, Function>();
+    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const calls: Array<{ script: string; args: string[] }> = [];
+    const runner = (_cwd: string, script: string, args: string[]) => {
+      calls.push({ script, args });
+      if (script === "inflight_registry.py" && args[0] === "feature-root") {
+        return { blocked: false, stdout: `${root}\n` };
+      }
+      if (script === "feature-record.py") {
+        const proc = spawnSync("python3", [gatePath(script), ...args], { encoding: "utf8" });
+        return { blocked: false, stdout: proc.stdout || "", reason: proc.stderr || undefined };
+      }
+      return { blocked: false, stdout: "" };
+    };
+    registerHarnessHooks(pi, runner);
+    const ctx = {
+      cwd: root,
+      sessionManager: { getSessionId: () => "own-session", getSessionFile: () => ANCHORED_FIXTURE },
+    };
+    return { handlers, ctx, calls };
+  }
+
+  async function asOrchestratorOn(handlers: Map<string, Function>, ctx: unknown) {
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-orchestrator", `HARNESS-FEATURE: ${FEATURE}`],
+    }, ctx);
+  }
+
+  const wakeWith = (details: unknown) => ({ toolName: "task", toolCallId: "call-1", input: {},
+    details, content: [{ type: "text", text: "lead digest" }] });
+
+  const tokensOf = (featureJson: string, index = 0) =>
+    JSON.parse(readFileSync(featureJson, "utf8")).runs[index].tokens;
+
+  test("sums every result's integer tokens and stamps the open run BEFORE spend is read", async () => {
+    const { root, featureJson } = checkout(openRun());
+    const { handlers, ctx, calls } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    await handlers.get("tool_result")?.(wakeWith({
+      results: [{ index: 0, exitCode: 0, tokens: 135888 }, { index: 1, exitCode: 0, tokens: 68447 }],
+    }), ctx);
+    expect(tokensOf(featureJson)).toBe(204335);
+    const verbs = calls.filter((c) => c.script === "feature-record.py").map((c) => c.args[0]);
+    expect(verbs.indexOf("stamp-tokens")).toBeGreaterThanOrEqual(0);
+    expect(verbs.indexOf("stamp-tokens")).toBeLessThan(verbs.indexOf("spend"));
+    expect(verbs.filter((v) => v === "stamp-tokens").length).toBe(1);
+  });
+
+  test("no result carries a figure: nothing is stamped and the run stays unmeasured (DEC-210)", async () => {
+    const { root, featureJson } = checkout(openRun());
+    const { handlers, ctx, calls } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    await handlers.get("tool_result")?.(wakeWith({ results: [{ index: 0, exitCode: 0 }] }), ctx);
+    expect(JSON.parse(readFileSync(featureJson, "utf8")).runs[0]).not.toHaveProperty("tokens");
+    expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "stamp-tokens")).toBe(false);
+    // A bare run-end then records null: the host reported nothing, and nothing was invented.
+    spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
+      "--id", "r1", "--verdict", "PASS"], { encoding: "utf8" });
+    expect(tokensOf(featureJson)).toBeNull();
+  });
+
+  test("a non-integer or negative figure is not a figure", async () => {
+    const { root, featureJson } = checkout(openRun());
+    const { handlers, ctx } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    await handlers.get("tool_result")?.(wakeWith({
+      results: [{ index: 0, tokens: "135888" }, { index: 1, tokens: -5 }, { index: 2, tokens: 12.5 }],
+    }), ctx);
+    expect(JSON.parse(readFileSync(featureJson, "utf8")).runs[0]).not.toHaveProperty("tokens");
+  });
+
+  test("a refused stamp (two open runs) never costs the wake: the advisory path still runs", async () => {
+    const { root, featureJson } = checkout([...openRun("r1"), ...openRun("r2")]);
+    const { handlers, ctx, calls } = fixture(root);
+    await asOrchestratorOn(handlers, ctx);
+    const result = await handlers.get("tool_result")?.(wakeWith({ results: [{ index: 0, tokens: 7 }] }), ctx);
+    expect(JSON.parse(readFileSync(featureJson, "utf8")).runs.every((r: any) => !("tokens" in r))).toBe(true);
+    expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "spend")).toBe(true);
+    expect(result === undefined || !("isError" in result)).toBe(true);
+  });
+});

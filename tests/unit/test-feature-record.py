@@ -134,6 +134,62 @@ class RunStartEndTest(FeatureRecordCase):
         self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertFalse(self.path.exists())
 
+class StampTokensTest(FeatureRecordCase):
+    """`stamp-tokens` (BUG-1724): the HOST writes the measured figure onto the one open run,
+    so the orchestrator never transcribes it. Open = has started_at and no ended_at. Anything
+    other than exactly one open run is refused, naming the state, with bytes untouched."""
+
+    OPEN = {"id": "r2", "squad": "eng", "verdict": "PENDING", "agent": "harness-eng-lead",
+            "started_at": "2026-09-11T11:00:00+00:00"}
+    CLOSED = {"id": "r1", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead",
+              "started_at": "2026-09-11T10:00:00+00:00", "ended_at": "2026-09-11T10:30:00+00:00",
+              "tokens": 100}
+
+    def test_stamps_the_one_open_run_and_a_bare_run_end_preserves_it(self):
+        self.write(base_doc(runs=[dict(self.CLOSED), dict(self.OPEN)]))
+        self.assert_ok(self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "135888"))
+        runs = self.load()["runs"]
+        self.assertEqual(100, runs[0]["tokens"], "the closed run is untouched")
+        self.assertEqual(135888, runs[1]["tokens"])
+        self.assertNotIn("ended_at", runs[1], "stamping does not close the run")
+        # SC-01: the normal close carries no --tokens and must not null the stamped figure.
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
+                                    "--verdict", "PASS"))
+        self.assertEqual(135888, self.load()["runs"][1]["tokens"])
+        self.assert_clean()
+
+    def test_refuses_when_no_run_is_open(self):
+        before = self.write(base_doc(runs=[dict(self.CLOSED)]))
+        result = self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "5")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("no run is open", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_refuses_when_more_than_one_run_is_open_naming_each(self):
+        second = dict(self.OPEN, id="r3")
+        before = self.write(base_doc(runs=[dict(self.OPEN), second]))
+        result = self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "5")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("r2", result.stderr)
+        self.assertIn("r3", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_a_run_started_without_a_timestamp_is_not_open(self):
+        """A pre-FEAT-59 entry with no started_at is not a run the host can be measuring."""
+        before = self.write(base_doc(runs=[{"id": "r0", "squad": "eng", "verdict": "PENDING",
+                                            "agent": "harness-eng-lead"}]))
+        result = self.run_cli("stamp-tokens", "--file", str(self.path), "--tokens", "5")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_tokens_remains_the_explicit_override(self):
+        """SC-03: a host that reported nothing leaves the orchestrator `run-end --tokens N`."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
+                                    "--verdict", "PASS", "--tokens", "42"))
+        self.assertEqual(42, self.load()["runs"][0]["tokens"])
+
+
 
 class JudgementTest(FeatureRecordCase):
     def test_judgement_appends_in_order_with_all_five_keys(self):
