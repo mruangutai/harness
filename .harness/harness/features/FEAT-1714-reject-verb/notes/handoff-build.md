@@ -1,4 +1,4 @@
-# Handoff — FEAT-1714-reject-verb, build → validate — written at 51e605f9b6a5be3bda667d2d3c62439fd4ab2434, seq-5
+# Handoff — FEAT-1714-reject-verb, build → validate — written at 51e605f9b6a5be3bda667d2d3c62439fd4ab2434, seq-3
 
 ## Next
 
