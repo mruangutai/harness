@@ -142,7 +142,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps the approval enforcement writer and its focused enforcement test in the main session
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/plan-merge.py#_maybe_reset_approval
       - tests/integration/test-plan-merge.py#case_f59_approval_auto_reset_on_every_task_changing_verb

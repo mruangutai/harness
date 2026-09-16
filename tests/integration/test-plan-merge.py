@@ -3212,6 +3212,51 @@ def _approved_plan():
 def _approval_of(plan):
     return yaml.safe_load(read(plan)).get("approval") or {}
 
+def _resume_plan(feature_status, task_statuses, approval_status="approved",
+                 resume_station=None):
+    approval = (
+        "approval:\n"
+        f"  status: {approval_status}\n"
+        "  approved_by: X\n"
+        "  date: 2026-01-01\n"
+    )
+    if resume_station is not None:
+        approval += (
+            "  reset_at: 2026-01-02T00:00:00+00:00\n"
+            "  reset_reason: earlier mutation\n"
+            f"  resume_station: {resume_station}\n"
+        )
+    tasks = "".join(
+        f"  - id: T-{index:02d}\n"
+        f"    title: Task T-{index:02d}\n"
+        f"    status: {status}\n"
+        for index, status in enumerate(task_statuses, start=1)
+    )
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        f"status: {feature_status}\n"
+        f"{approval}"
+        "tasks:\n"
+        f"{tasks}"
+        "decisions:\n"
+        "  - id: D-01\n"
+        "    choice: keep me byte-identical\n"
+    )
+
+
+def _assert_resume_reset(label, plan, result, station):
+    doc = yaml.safe_load(read(plan))
+    approval = doc["approval"]
+    check(f"{label}: feature returns to plan while approval is pending",
+          doc.get("status") == "plan" and approval.get("status") == "pending", repr(doc))
+    check(f"{label}: reset records the classified resume station",
+          approval.get("resume_station") == station, repr(approval))
+    check(f"{label}: reset receipt is emitted only after the reset lands",
+          "APPROVAL-RESET" in result.stdout, result.stdout)
+
+
+
 
 def case_f59_approval_auto_reset_on_every_task_changing_verb():
     """SC-08 / C4, narrowed by BUG-1716 D-04: a verb that ADDS or DELETES a task on an
@@ -3282,6 +3327,115 @@ def case_f59_approval_auto_reset_on_every_task_changing_verb():
               and "reset_reason" not in a, f"rc={r.returncode} {a!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+def _delete_t02_with_resume(plan, feature_status, task_statuses, expected_station):
+    write(plan, _resume_plan(feature_status, task_statuses))
+    result = run_verb(
+        "delete-items", "--file", plan, "--task", "T-02", "--reason", "scope cut",
+    )
+    _assert_resume_reset(f"resume/{feature_status}", plan, result, expected_station)
+    return result
+
+
+def case_bug1699_approval_reset_classifies_active_station():
+    """BUG-1699 T-02: phase and resulting task state classify the saved resume station."""
+    root, plan = fixture_root(prefix="plan-merge-b1699-")
+    try:
+        before_task = (
+            "  - id: T-01\n"
+            "    title: Task T-01\n"
+            "    status: ready\n"
+        )
+        _delete_t02_with_resume(plan, "plan", ["ready", "ready"], "ready")
+        after = read(plan)
+        check("resume/ready: unrelated bytes survive the combined locked splice",
+              before_task in after and "choice: keep me byte-identical" in after, after)
+        _delete_t02_with_resume(plan, "building", ["ready", "ready"], "building")
+        _delete_t02_with_resume(plan, "ready", ["done", "ready"], "building")
+        _delete_t02_with_resume(plan, "review", ["done", "abandoned"], "review")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_bug1699_reapproval_restores_recorded_station():
+    """BUG-1699 T-02: signing emits the saved station and removes all reset metadata."""
+    root, plan = fixture_root(prefix="plan-merge-b1699-")
+    try:
+        _delete_t02_with_resume(plan, "review", ["done", "abandoned"], "review")
+        result = run_verb(
+            "sign-approval", "--file", plan, "--by", "X", "--date", "2026-02-02",
+        )
+        signed = _approval_of(plan)
+        reset_fields = {"reset_at", "reset_reason", "resume_station"}
+        check("resume/review: reapproval emits the stored station and clears reset metadata",
+              result.returncode == 0 and "RESUME: review" in result.stdout
+              and not reset_fields & set(signed),
+              f"{result.stdout!r} {signed!r}")
+
+        write(plan, render_plan(ids(1, 2)))
+        initial = run_verb(
+            "sign-approval", "--file", plan, "--by", "X", "--date", "2026-02-02",
+        )
+        check("resume/initial: an initial signature emits ready",
+              initial.returncode == 0 and "RESUME: ready" in initial.stdout, initial.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_bug1699_pending_mutation_recomputes_resume_station():
+    """BUG-1699 T-02: later task changes replace a stale review target without a second reset."""
+    root, plan = fixture_root(prefix="plan-merge-b1699-")
+    proposal = os.path.join(root, "proposal.yaml")
+    try:
+        _delete_t02_with_resume(plan, "review", ["done", "abandoned"], "review")
+        write(
+            proposal,
+            "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+            "  - id: T-03\n    title: new work\n    status: ready\n",
+        )
+        result = run_verb("add-tasks", "--file", plan, "--proposal", proposal)
+        pending = yaml.safe_load(read(plan))
+        approval = pending["approval"]
+        check("resume/pending: new ready work demotes a stale review target to building",
+              result.returncode == 0
+              and approval.get("resume_station") == "building"
+              and approval.get("reset_reason") == "add-tasks T-03"
+              and "APPROVAL-RESET" not in result.stdout,
+              f"{result.stdout!r} {pending!r}")
+        signed = run_verb(
+            "sign-approval", "--file", plan, "--by", "X", "--date", "2026-02-02",
+        )
+        check("resume/pending: reapproval emits the recomputed target",
+              "RESUME: building" in signed.stdout, signed.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_bug1699_terminal_features_stay_terminal():
+    """BUG-1699 T-02: task mutation never reopens done or abandoned features."""
+    root, plan = fixture_root(prefix="plan-merge-b1699-")
+    proposal = os.path.join(root, "proposal.yaml")
+    try:
+        write(
+            proposal,
+            "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+            "  - id: T-03\n    title: new work\n    status: ready\n",
+        )
+        for terminal in ("done", "abandoned"):
+            write(plan, _resume_plan(terminal, ["done"]))
+            result = run_verb("add-tasks", "--file", plan, "--proposal", proposal)
+            doc = yaml.safe_load(read(plan))
+            approval = doc["approval"]
+            check(f"resume/{terminal}: task mutation does not reopen a terminal feature",
+                  result.returncode == 0 and doc.get("status") == terminal
+                  and approval.get("status") == "approved"
+                  and "resume_station" not in approval
+                  and "APPROVAL-RESET" not in result.stdout,
+                  f"{result.stdout!r} {doc!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 
 
 def case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone():
@@ -4111,6 +4265,10 @@ CASES = (
     case_1683_set_key_refuses_owned_keys_by_name,
     case_f59_set_panel_keeps_an_untouched_finding_byte_identical,
     case_f59_approval_auto_reset_on_every_task_changing_verb,
+    case_bug1699_approval_reset_classifies_active_station,
+    case_bug1699_reapproval_restores_recorded_station,
+    case_bug1699_pending_mutation_recomputes_resume_station,
+    case_bug1699_terminal_features_stay_terminal,
     case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone,
     case_f59_sign_approval_rework_writes_feature_json,
     case_f59_review_f3_approval_reset_is_verified_not_reported,

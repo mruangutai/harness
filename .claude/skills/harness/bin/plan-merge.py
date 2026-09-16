@@ -791,12 +791,25 @@ def _approval_status(doc):
     return approval.get("status") if isinstance(approval, dict) else None
 
 
-RESET_FIELDS = ("reset_at", "reset_reason")
-_RESET_LINE_RE = re.compile(r"^  (reset_at|reset_reason):")
+RESET_FIELDS = ("reset_at", "reset_reason", "resume_station")
+_RESET_LINE_RE = re.compile(r"^\s+(reset_at|reset_reason|resume_station):")
 
 
-def _reset_approval_lines(lines, verb, ids):
-    """`lines` with approval.status rewritten to pending and reset_at/reset_reason recorded.
+def _replace_approval_reset(body, status_at, stale, record):
+    """Replace one status line and discard prior reset metadata without moving other bytes."""
+    out = []
+    for index, line in enumerate(body):
+        if index in stale:
+            continue
+        if index == status_at:
+            out.extend(record)
+            continue
+        out.append(line)
+    return out
+
+
+def _reset_approval_lines(lines, verb, ids, resume_station):
+    """`lines` with approval.status rewritten to pending and its resume context recorded.
 
     C4 / SC-08, narrowed by BUG-1716 D-04: a signature is a statement about ONE task set. A
     verb that ADDS or DELETES a task on an approved plan voids it — downward only;
@@ -805,60 +818,108 @@ def _reset_approval_lines(lines, verb, ids):
     (`record-amendments`) is the sanctioned change, and an unledgered one is INV-40's to
     refuse rather than this verb's to authorize. The signer and date are kept so the operator
     can see what was voided and by which verb; a prior reset record is replaced, not stacked.
-    The caller has already established that the parsed approval.status is `approved`, so the
-    status key is found BY NAME at the mapping's own indent, never by a regex on its value:
-    `status: "approved"` and a four-space body parsed as approved just the same (review F3).
-    A shape with no status line to rewrite is returned unchanged, and `_verify_reset` refuses it."""
+    The caller has already established that the parsed approval.status is `approved` or that a
+    pending reset carries resume metadata, so the status key is found BY NAME at the mapping's
+    own indent. A shape with no status line is returned unchanged and `_verify_reset` refuses it."""
     start, end = _approval_span(lines)
     if start is None:
         return lines
     body = lines[start + 1:end]
     keyed, indent = _sub_key_lines(body, 0, len(body))
-    status_at = next((i for key, i in keyed if key == "status"), None)
+    positions = dict(keyed)
+    status_at = positions.get("status")
     if status_at is None:
         return lines
-    stale = {i for key, i in keyed if key in RESET_FIELDS}
+    stale = {positions[key] for key in RESET_FIELDS if key in positions}
     reason = f"{verb} {', '.join(str(i) for i in ids)}"
     record = [_field_lines(indent, "status", "pending"),
               _field_lines(indent, "reset_at", _now_iso()),
-              _field_lines(indent, "reset_reason", reason)]
-    out = []
-    for index, line in enumerate(body):
-        if index == status_at:
-            out.extend(record)
-        elif index not in stale:
-            out.append(line)
+              _field_lines(indent, "reset_reason", reason),
+              _field_lines(indent, "resume_station", resume_station)]
+    out = _replace_approval_reset(body, status_at, stale, record)
     return lines[:start + 1] + out + lines[end:]
 
 
-def _verify_reset(text, verb):
-    """Refuse rather than write a task change under a signature the splice could not void.
+def _task_statuses(resulting_doc):
+    tasks = resulting_doc.get("tasks") if isinstance(resulting_doc, dict) else None
+    if not isinstance(tasks, list):
+        return []
+    return [task.get("status", "ready") for task in tasks if isinstance(task, dict)]
 
-    `_verify_signature`'s rule from the other direction, same exit 5: the RELOADED value is
-    what check-state.py and the operator read, so it — not the splice's own report — decides
-    whether APPROVAL-RESET is true. Proven before this check (review F3): a flow-style approval
-    printed the receipt, exited 0 and reloaded as approved."""
-    got = _approval_status(_reload_or_refuse(text.encode("utf-8")))
-    if got != "pending":
+
+def _review_complete(statuses):
+    return bool(statuses) and set(statuses).issubset({"done", "abandoned"})
+
+
+def _work_started(statuses):
+    return not set(statuses).isdisjoint({"building", "review", "done"})
+
+
+def _resume_station(interrupted_phase, resulting_doc):
+    """Classify the active station reapproval should restore after a task-set mutation."""
+    statuses = _task_statuses(resulting_doc)
+    if interrupted_phase == "review":
+        return "review" if _review_complete(statuses) else "building"
+    if interrupted_phase == "building":
+        return "building"
+    return "building" if _work_started(statuses) else "ready"
+
+
+def _verify_reset(text, verb, resume_station):
+    """Refuse rather than write a task change unless every reset field reloads as intended."""
+    doc = _reload_or_refuse(text.encode("utf-8"))
+    approval = doc.get("approval") if isinstance(doc, dict) else None
+    got_status = approval.get("status") if isinstance(approval, dict) else None
+    got_resume = approval.get("resume_station") if isinstance(approval, dict) else None
+    got_phase = doc.get("status") if isinstance(doc, dict) else None
+    if (got_status, got_resume, got_phase) != ("pending", resume_station, "plan"):
         raise harness_merge.MergeRefusal(
-            5, [f"REFUSED: {verb} changes a task on an approved plan, but approval.status would "
-                "not reload as pending — REFUSING to write it.",
-                f"  reloads as: {got!r}",
-                "  the splice could not void the signature (approval is not a block mapping "
-                "with its own status line), so the change is refused rather than written "
-                "under a standing signature (SC-08)."])
+            5, [f"REFUSED: {verb} changes a task on an approved plan, but the lifecycle reset "
+                "would not reload as requested — REFUSING to write it.",
+                f"  approval.status reloads as: {got_status!r}",
+                f"  approval.resume_station reloads as: {got_resume!r}",
+                f"  feature status reloads as: {got_phase!r}",
+                "  expected pending approval, the classified resume station, and feature "
+                "status plan in one locked update (SC-06/SC-07)."])
+
+
+def _approval_reset_context(base_doc):
+    """Return interrupted phase plus whether this mutation first voids an approval."""
+    if not isinstance(base_doc, dict):
+        return None
+    interrupted_phase = base_doc.get("status") or "plan"
+    if interrupted_phase not in {"plan", "ready", "building", "review"}:
+        return None
+    approval = base_doc.get("approval")
+    if not isinstance(approval, dict):
+        return None
+    if approval.get("status") == "approved":
+        return interrupted_phase, True
+    if approval.get("status") == "pending" and approval.get("resume_station"):
+        return approval["resume_station"], False
+    return None
 
 
 def _maybe_reset_approval(text, base_doc, verb, task_ids):
-    """(text, reset) — the text with approval reset when the base was approved and `task_ids`
-    names at least one changed task; `reset` says whether it happened, for the receipt. A
-    claimed reset is verified on reload or refused: the receipt is never ahead of the file."""
-    if not task_ids or _approval_status(base_doc) != "approved":
+    """Pause an active feature at plan and retain the station reapproval must restore."""
+    context = _approval_reset_context(base_doc) if task_ids else None
+    if context is None:
         return text, False
-    lines = text.splitlines(keepends=True)
-    reset_text = "".join(_reset_approval_lines(lines, verb, task_ids))
-    _verify_reset(reset_text, verb)
-    return reset_text, True
+    interrupted_phase, reset = context
+    resulting_doc = _reload_or_refuse(text.encode("utf-8"))
+    resume_station = _resume_station(interrupted_phase, resulting_doc)
+    lines = _reset_approval_lines(
+        text.splitlines(keepends=True), verb, task_ids, resume_station,
+    )
+    reset_bytes = _splice_top_level_status(lines, "plan")
+    if reset_bytes is None:
+        raise harness_merge.MergeRefusal(
+            5, [f"REFUSED: {verb} cannot pause the feature because its plan carries no "
+                "top-level feature: key to anchor status to"],
+        )
+    reset_text = reset_bytes.decode("utf-8")
+    _verify_reset(reset_text, verb, resume_station)
+    return reset_text, reset
 
 
 class MergeResult:
@@ -1963,6 +2024,21 @@ def _updated_approval_body(body, fields):
         return _splice_approval_rulings(output, fields["rulings"])
     return output
 
+def _approval_resume_station(base_bytes):
+    """Return the one lower-case station sign-approval must emit for its caller."""
+    doc = _reload_or_refuse(base_bytes)
+    approval = doc.get("approval") if isinstance(doc, dict) else None
+    station = approval.get("resume_station") if isinstance(approval, dict) else None
+    station = station or "ready"
+    if station not in {"ready", "building", "review"}:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: approval.resume_station is {station!r}; expected ready, "
+                "building, or review before signing"],
+        )
+    return station
+
+
+
 
 def _signed_approval_bytes(base_bytes, resolved, args):
     lines = base_bytes.decode("utf-8").splitlines(keepends=True)
@@ -2034,7 +2110,10 @@ def cmd_sign_approval(args):
         print(f"REWORK rounds={ruling['rounds']} minutes={ruling['wall_clock_minutes']} "
               f"decision={ruling['decision']} -> {feature_json}")
 
+    resume = {}
+
     def transform(base_bytes):
+        resume["station"] = _approval_resume_station(base_bytes)
         signed = _signed_approval_bytes(base_bytes, resolved, args)
         # THE HASHES ARE WRITTEN UNDER THE PLAN LOCK, BEFORE THE SIGNATURE LANDS (BUG-1716
         # D-03): they are computed from the very bytes being signed, and a feature.json refusal
@@ -2051,6 +2130,7 @@ def cmd_sign_approval(args):
             lines.append(f"  the rework ruling was already recorded in {feature_json}; a ruling "
                          "without a signature is harmless — re-run sign-approval to sign.")
         _die(refusal.code, *lines)
+    print(f"RESUME: {resume['station']}")
     print(f"SIGNED {resolved} by {args.by} on {args.date}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
