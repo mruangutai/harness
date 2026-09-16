@@ -27,4 +27,3 @@ Authority: brief-perspective:.harness/harness/features/BUG-1129-validate-handoff
 Authority: brief-sc:SC-01
 Authority: brief-sc:SC-02
 Authority: brief-sc:SC-03
-Authority: brief-sc:SC-04

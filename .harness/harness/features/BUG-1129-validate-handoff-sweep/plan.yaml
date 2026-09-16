@@ -39,7 +39,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires direct execution because this task changes check-state enforcement, its shared predicate, the terminal lifecycle writer, and their gate-facing tests
     depends_on: []
-    status: done
+    status: building
     files:
     - path: .claude/skills/harness/bin/gh-sync.py
       quote: validation incomplete
