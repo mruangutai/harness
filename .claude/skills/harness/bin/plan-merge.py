@@ -110,7 +110,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import yaml
 
@@ -787,14 +787,17 @@ _RESET_LINE_RE = re.compile(r"^  (reset_at|reset_reason):")
 def _reset_approval_lines(lines, verb, ids):
     """`lines` with approval.status rewritten to pending and reset_at/reset_reason recorded.
 
-    C4 / SC-08: a signature is a statement about ONE task set. Any verb that changes that set
-    or a task's field on an approved plan voids it — downward only; `sign-approval` is the only
-    writer of `approved`. The signer and date are kept so the operator can see what was voided
-    and by which verb; a prior reset record is replaced, not stacked. The caller has already
-    established that the parsed approval.status is `approved`, so the status key is found BY
-    NAME at the mapping's own indent, never by a regex on its value: `status: "approved"` and a
-    four-space body parsed as approved just the same (review F3). A shape with no status line
-    to rewrite is returned unchanged, and `_verify_reset` refuses it."""
+    C4 / SC-08, narrowed by BUG-1716 D-04: a signature is a statement about ONE task set. A
+    verb that ADDS or DELETES a task on an approved plan voids it — downward only;
+    `sign-approval` is the only writer of `approved`. Replacing text on an existing task does
+    NOT: the signed text is hashed into feature.json at signature, a ledgered amendment
+    (`record-amendments`) is the sanctioned change, and an unledgered one is INV-40's to
+    refuse rather than this verb's to authorize. The signer and date are kept so the operator
+    can see what was voided and by which verb; a prior reset record is replaced, not stacked.
+    The caller has already established that the parsed approval.status is `approved`, so the
+    status key is found BY NAME at the mapping's own indent, never by a regex on its value:
+    `status: "approved"` and a four-space body parsed as approved just the same (review F3).
+    A shape with no status line to rewrite is returned unchanged, and `_verify_reset` refuses it."""
     start, end = _approval_span(lines)
     if start is None:
         return lines
@@ -1019,8 +1022,9 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
                 if not changes:
                     continue
                 replaced.append((key, iid, item, changes))
-                if key == "tasks":
-                    changed_tasks.append(iid)
+                # A REPLACED task field no longer voids the signature (BUG-1716 D-04): the
+                # signed text is hashed in feature.json at signature, and an unledgered change
+                # to it is INV-40's to refuse. Only the TASK SET resets approval now.
             # THE ADDITION IS RE-INDENTED TO THE BASE'S LIST, never appended verbatim. When
             # the base has no items of its own there is nothing to match, and the key head came
             # from the proposal too, so its own indentation is already consistent.
@@ -1928,7 +1932,13 @@ def cmd_sign_approval(args):
               f"decision={ruling['decision']} -> {feature_json}")
 
     def transform(base_bytes):
-        return _signed_approval_bytes(base_bytes, resolved, args)
+        signed = _signed_approval_bytes(base_bytes, resolved, args)
+        # THE HASHES ARE WRITTEN UNDER THE PLAN LOCK, BEFORE THE SIGNATURE LANDS (BUG-1716
+        # D-03): they are computed from the very bytes being signed, and a feature.json refusal
+        # here aborts the signature, so a signed plan never exists without the hashes INV-40
+        # grades its task text against. Hashes without a signature are harmless (re-sign).
+        _record_signed_task_hashes(resolved, _reload_or_refuse(signed))
+        return signed
 
     try:
         harness_merge.locked_update(resolved, transform)
@@ -2011,6 +2021,272 @@ def _record_rework(feature_json, ruling):
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
 
+
+
+SIGNED_TASK_FIELDS = ("files", "intent", "verify")
+
+
+def signed_task_hash(task):
+    """BUG-1716 D-03: lowercase SHA-256 over the canonical UTF-8 JSON of a task's
+    {files, intent, verify} — keys sorted recursively, `,`/`:` separators, ensure_ascii off.
+    Presentation differences in the YAML (quoting, folding, ordering) hash the same; a
+    changed value does not. check-state.py's INV-40 recomputes with THIS function."""
+    doc = {field: task.get(field) for field in SIGNED_TASK_FIELDS}
+    canonical = json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def signed_task_hashes(plan_doc):
+    """{T-NN: hash} for every task in `plan_doc` that carries a string id."""
+    return {str(task["id"]): signed_task_hash(task)
+            for task in (plan_doc.get("tasks") or []) if isinstance(task, dict) and task.get("id")}
+
+
+def _record_signed_task_hashes(resolved, plan_doc):
+    """Write `signed_task_hashes` for the plan being signed onto the sibling feature.json.
+
+    Absent feature.json: loud on stderr and the signature proceeds — a plan with no ledger is
+    not a harness feature INV-40 will ever grade (fixtures and pre-ledger plans), and refusing
+    would make sign-approval unusable exactly there. Any other refusal aborts the signature."""
+    feature_json = os.path.join(os.path.dirname(resolved), "feature.json")
+    if not os.path.isfile(feature_json):
+        print(f"plan-merge: NO-HASHES — {feature_json} is absent, so signed_task_hashes were "
+              "not recorded and INV-40 cannot grade this plan's task text.", file=sys.stderr)
+        return
+    hashes = signed_task_hashes(plan_doc)
+
+    def transform(base):
+        doc = feature_json_write.parse_doc(base, feature_json)
+        if doc is None:
+            raise harness_merge.MergeRefusal(
+                feature_json_write.SCHEMA_REFUSAL_CODE,
+                [f"REFUSED: {feature_json} vanished between the existence check and the write."])
+        doc["signed_task_hashes"] = hashes
+        return json.dumps(doc, indent=2) + "\n"
+
+    feature_json_write.write_feature_json(feature_json, transform)
+    print(f"HASHED {len(hashes)} task(s) -> {feature_json}")
+
+
+# ---------------------------------------------------------------------------
+# BUG-1716 — `record-amendments`: the engineering lead's in-build corrections to a signed
+# task's HOW, transcribed from its digest in ONE command (D-04). BUG-285 spent three blocked
+# runs, three product amendment runs and three operator round-trips applying three
+# recommendations the operator adopted every time; this verb is that transcript.
+#
+# IT IS A COMPARE-AND-SPLICE, NOT A WRITE. Every entry names `was`; the current field must
+# equal it (parsed value, so YAML presentation is not the question) or the whole invocation
+# refuses — before the lock for a fast answer, under the lock for the guarantee. A rerun is
+# therefore refused by construction: the field now equals `now`, not `was`. One judgement
+# per entry lands in feature.json; `signed_task_hashes` is NOT revised, because the hash is
+# what lets INV-40 tell a ledgered amendment from an unrecorded edit.
+AMENDMENT_KEYS = ("task", "field", "was", "now", "reason")
+AMENDMENT_FIELDS = ("intent", "files", "verify")
+_AMENDMENT_TASK_RE = re.compile(r"^T-\d{2,}$")
+
+
+def _amendment_entry(raw, index):
+    """One validated {task, field, was, now, reason}, or a MergeRefusal(5) naming the index and
+    the bad key. Shape only; the plan-dependent checks are `_amendment_against_plan`'s."""
+    where = f"amendments[{index}]"
+    if not isinstance(raw, dict):
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {where} is not a mapping."])
+    extra, missing = sorted(set(raw) - set(AMENDMENT_KEYS)), [k for k in AMENDMENT_KEYS if k not in raw]
+    if extra or missing:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} must carry exactly {list(AMENDMENT_KEYS)} — "
+                f"unknown {extra}, missing {missing}."])
+    task, field, reason = raw["task"], raw["field"], raw["reason"]
+    if not (isinstance(task, str) and _AMENDMENT_TASK_RE.match(task)):
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where}.task={task!r} is not a plan task id (T-NN) — an SC or "
+                "decision is never amended by a lead; that change is BLOCKED with a recommendation."])
+    if field not in AMENDMENT_FIELDS:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where}.field={field!r} — only {list(AMENDMENT_FIELDS)} are a "
+                "task's HOW."])
+    if not (isinstance(reason, str) and reason.strip() and len(reason) <= 240):
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where}.reason must be one non-empty line of at most 240 "
+                "characters — it becomes the ledger entry's reason."])
+    for key in ("was", "now"):
+        value = raw[key]
+        if field == "files":
+            if not isinstance(value, list):
+                raise harness_merge.MergeRefusal(
+                    5, [f"plan-merge: {where}.{key}: a files amendment carries a LIST of plan "
+                        f"file entries, not {type(value).__name__}."])
+            faults = plan_anchors.refusals(value)
+            if faults:
+                raise harness_merge.MergeRefusal(
+                    5, [f"plan-merge: {where}.{key}: {msg}" for msg in faults])
+        elif not isinstance(value, str):
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {where}.{key}: a {field} amendment carries text, not "
+                    f"{type(value).__name__}."])
+    return {"task": task, "field": field, "was": raw["was"], "now": raw["now"],
+            "reason": reason.strip()}
+
+
+def _digest_amendments(digest):
+    """The digest's amendments, validated and refused on a repeated (task, field)."""
+    raw = digest.get("amendments")
+    if not isinstance(raw, list) or not raw:
+        raise harness_merge.MergeRefusal(
+            2, ["plan-merge: the digest carries no amendments to record — `amendments:` is "
+                "absent or empty, so there is nothing to transcribe."])
+    entries = [_amendment_entry(item, i) for i, item in enumerate(raw)]
+    seen = set()
+    for entry in entries:
+        target = (entry["task"], entry["field"])
+        if target in seen:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {entry['task']}.{entry['field']} is amended twice in one "
+                    "digest — one target, one entry; the second would overwrite the first's "
+                    "`was`."])
+        seen.add(target)
+    return entries
+
+
+def _amendment_against_plan(entry, plan_doc, what):
+    """Refuse unless `entry.task` exists in `plan_doc` and its field equals `entry.was`."""
+    task = next((t for t in (plan_doc.get("tasks") or [])
+                 if isinstance(t, dict) and t.get("id") == entry["task"]), None)
+    if task is None:
+        raise harness_merge.MergeRefusal(
+            3, [f"plan-merge: {entry['task']} is not a task in the plan ({what}); an "
+                "amendment corrects an EXISTING task and never adds one."])
+    current = task.get(entry["field"])
+    if current != entry["was"]:
+        already = (" — the field already equals `now`, so this amendment was recorded before"
+                   if current == entry["now"] else "")
+        raise harness_merge.MergeRefusal(
+            6, [f"plan-merge: {entry['task']}.{entry['field']} does not equal the amendment's "
+                f"`was` ({what}){already}.",
+                f"  current: {current!r}", f"  was:     {entry['was']!r}",
+                "  record-amendments is a compare-and-splice; re-read the field and re-derive."])
+
+
+def _amendment_judgement(entry, at):
+    return {"at": at, "by": "harness-orchestrator", "kind": "amendment",
+            "decision": f"{entry['task']}.{entry['field']}", "reason": entry["reason"]}
+
+
+def _distinct_instants(count):
+    """`count` strictly increasing ISO instants. `overrule-amendment` selects an entry by its
+    exact `at`, so two amendments recorded in one act must not share one; microseconds keep
+    them apart and a same-tick collision is bumped rather than left equal."""
+    out, last = [], None
+    for _ in range(count):
+        now = datetime.now(timezone.utc)
+        if last is not None and now <= last:
+            now = last + timedelta(microseconds=1)
+        out.append(now.isoformat(timespec="microseconds"))
+        last = now
+    return out
+
+
+def _splice_amendments(cur, entries):
+    """The plan lines with every entry's `now` spliced over its field block, task by task.
+    Entries are applied in digest order; each splice re-locates its field because earlier
+    splices move lines. Text fields keep the original form (`|` body reused); a files list is
+    rendered the way `amend --yaml-value` renders one. Nothing outside the named field blocks
+    is re-rendered."""
+    for entry in entries:
+        start, end, indent = _item_range(cur, "tasks", entry["task"])
+        if start is None:
+            raise harness_merge.MergeRefusal(
+                3, [f"plan-merge: {entry['task']} vanished from tasks: under the lock."])
+        located = _field_block(cur, start, end, indent, entry["field"])
+        if located is None:
+            raise harness_merge.MergeRefusal(
+                4, [f"plan-merge: {entry['task']} carries no {entry['field']}: field under "
+                    "the lock; an amendment replaces a field and never adds one."])
+        first, last, field_indent = located
+        if entry["field"] == "files":
+            rendered = _structured_field_lines(field_indent, "files", entry["now"])
+        else:
+            rendered = _render_field(field_indent, entry["field"], entry["now"], cur[first:last])
+        cur = cur[:first] + rendered + cur[last:]
+    return cur
+
+
+def _record_amendment_judgements(feature_json, judgements):
+    def transform(base):
+        doc = feature_json_write.parse_doc(base, feature_json)
+        if doc is None:
+            raise harness_merge.MergeRefusal(
+                feature_json_write.SCHEMA_REFUSAL_CODE,
+                [f"REFUSED: {feature_json} vanished between the preflight and the write."])
+        ledger = doc.get("judgements")
+        doc["judgements"] = (list(ledger) if isinstance(ledger, list) else []) + judgements
+        return json.dumps(doc, indent=2) + "\n"
+
+    feature_json_write.write_feature_json(feature_json, transform)
+
+
+def cmd_record_amendments(args):
+    """`record-amendments --file <plan.yaml> --digest <eng-lead digest.md>` (BUG-1716 T-04)."""
+    resolved = _resolve_plan(args.file)
+    feature_json = os.path.join(os.path.dirname(resolved), "feature.json")
+    try:
+        entries = _digest_amendments(_lead_digest(args.digest))
+        # PREFLIGHT, BEFORE ANY LOCK: every entry against the plan as it is now, and the
+        # ledger's existence and shape — a refusal here leaves both documents byte-identical.
+        with open(resolved, "rb") as fh:
+            plan_doc = _reload_or_refuse(fh.read())
+        for entry in entries:
+            _amendment_against_plan(entry, plan_doc, "preflight")
+        if not os.path.isfile(feature_json):
+            raise harness_merge.MergeRefusal(
+                2, [f"plan-merge: {feature_json} does not exist, so the amendment judgements "
+                    "have nowhere to go — REFUSING to amend the plan without its ledger."])
+        with open(feature_json, "rb") as fh:
+            if feature_json_write.parse_doc(fh.read(), feature_json) is None:
+                raise harness_merge.MergeRefusal(
+                    feature_json_write.SCHEMA_REFUSAL_CODE, [f"plan-merge: {feature_json} is empty."])
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+
+    def transform(base_bytes):
+        raw = base_bytes.decode("utf-8")
+        base_doc = _reload_or_refuse(base_bytes)
+        # THE LOAD-BEARING CHECK: `was` still equals the field under the lock.
+        for entry in entries:
+            _amendment_against_plan(entry, base_doc, "under the lock")
+        spliced = "".join(_splice_amendments(raw.splitlines(keepends=True), entries))
+        reloaded = _reload_or_refuse(spliced.encode("utf-8"))
+        for entry in entries:
+            got = _sole_item(reloaded, "tasks", entry["task"]).get(entry["field"])
+            if got != entry["now"]:
+                raise harness_merge.MergeRefusal(
+                    5, [f"plan-merge: {entry['task']}.{entry['field']} reloads as {got!r}, not "
+                        "the amendment's `now` — REFUSING to write a splice that lies."])
+        if _schema_error(base_doc) is None:
+            err = _schema_error(reloaded)
+            if err:
+                raise harness_merge.MergeRefusal(
+                    8, [f"plan-merge: the amended plan would not be legal — {err}"])
+        if reloaded.get("approval") != base_doc.get("approval"):
+            raise harness_merge.MergeRefusal(
+                8, ["plan-merge: the splice touched approval: — REFUSING (DEC-120)."])
+        # THE LEDGER IS WRITTEN BEFORE THE PLAN LANDS, under the plan's lock: a refusal here
+        # aborts the splice, so the plan never changes without its judgements; a judgement
+        # whose splice then failed to land is harmless (the text still hashes as signed).
+        _record_amendment_judgements(
+            feature_json, [_amendment_judgement(e, at)
+                           for e, at in zip(entries, _distinct_instants(len(entries)))])
+        return spliced.encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+    for entry in entries:
+        print(f"AMENDED {entry['task']}.{entry['field']} judgement=amendment")
+    print(f"APPLIED {resolved}")
+    print(f"APPLIED {feature_json}")
+    sys.exit(0)
 
 # ---------------------------------------------------------------------------
 # BUG-1128 — `amend`, the route that did not exist.
@@ -2371,16 +2647,14 @@ def _amended_text(cur, first, last, rendered, want, args, base_doc, result):
     """The plan text with the field spliced in, the C4 guards applied.
 
     A `files:` replacement is held to plan_anchors' grammar — a line-number anchor is refused
-    here as it is in `apply`. A TASK field is part of the signed contract, so amending one on
-    an approved plan voids the signature; a decision's field is not the task set and leaves it
-    standing. `result` learns whether that happened, for the receipt."""
+    here as it is in `apply`. Replacing a field on an existing item leaves the signature
+    standing (BUG-1716 D-04): the task set is unchanged, and a task-text change without a
+    ledgered amendment is INV-40's finding. `result["reset"]` stays False for the receipt."""
     if args.field == "files":
         _refuse_illegal_anchors({"tasks": [{"id": args.id, "files": want}]},
                                 f"the replacement for {args.id}.files")
-    spliced = "".join(cur[:first] + rendered + cur[last:])
-    task_ids = [args.id] if args.key == "tasks" else []
-    spliced, result["reset"] = _maybe_reset_approval(spliced, base_doc, "amend", task_ids)
-    return spliced
+    result["reset"] = False
+    return "".join(cur[:first] + rendered + cur[last:])
 
 
 def cmd_amend(args):
@@ -3048,6 +3322,11 @@ VERBS = (
      (_FILE, ("--value-file", "YAML file holding the replacement lanes mapping")), cmd_set_lanes),
     ("check", "resolve every files: anchor, execution_agent route and traces: id; writes nothing",
      (_FILE, ("--root", "the checkout root anchors and routes resolve against")), cmd_check),
+    ("record-amendments", "splice an engineering lead's digest amendments into the named task "
+                          "fields and ledger one amendment judgement per entry — compare-and-"
+                          "splice on `was`, all-or-nothing across plan.yaml and feature.json",
+     (_FILE, ("--digest", "the engineering lead's digest.md — its fenced DIGEST block is parsed")),
+     cmd_record_amendments),
 )
 
 

@@ -191,7 +191,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 reserves plan-merge.py and its integration test to the main session.
     depends_on: [T-02, T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/plan-merge.py#cmd_record_panel
       - .claude/skills/harness/bin/plan-merge.py#cmd_sign_approval
