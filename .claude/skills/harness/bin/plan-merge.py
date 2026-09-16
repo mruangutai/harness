@@ -110,12 +110,14 @@ import json
 import os
 import re
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
 
 import yaml
 
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BIN_DIR)
+import amendment_contract  # noqa: E402
 import artifact_accessors  # noqa: E402
 import factory_config  # noqa: E402  (local import, after sys.path fix-up)
 import feature_json_write  # noqa: E402
@@ -2080,52 +2082,16 @@ def _record_signed_task_hashes(resolved, plan_doc):
 # therefore refused by construction: the field now equals `now`, not `was`. One judgement
 # per entry lands in feature.json; `signed_task_hashes` is NOT revised, because the hash is
 # what lets INV-40 tell a ledgered amendment from an unrecorded edit.
-AMENDMENT_KEYS = ("task", "field", "was", "now", "reason")
-AMENDMENT_FIELDS = ("intent", "files", "verify")
-_AMENDMENT_TASK_RE = re.compile(r"^T-\d{2,}$")
-
-
 def _amendment_entry(raw, index):
-    """One validated {task, field, was, now, reason}, or a MergeRefusal(5) naming the index and
-    the bad key. Shape only; the plan-dependent checks are `_amendment_against_plan`'s."""
-    where = f"amendments[{index}]"
+    """One validated, normalized {task, field, was, now, reason}, or a MergeRefusal(5) naming
+    the index and the bad key. The rules are amendment_contract's — the same ones
+    validate-digest.py graded the lead's return with, so a return that validated records."""
     if not isinstance(raw, dict):
-        raise harness_merge.MergeRefusal(5, [f"plan-merge: {where} is not a mapping."])
-    extra, missing = sorted(set(raw) - set(AMENDMENT_KEYS)), [k for k in AMENDMENT_KEYS if k not in raw]
-    if extra or missing:
-        raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: {where} must carry exactly {list(AMENDMENT_KEYS)} — "
-                f"unknown {extra}, missing {missing}."])
-    task, field, reason = raw["task"], raw["field"], raw["reason"]
-    if not (isinstance(task, str) and _AMENDMENT_TASK_RE.match(task)):
-        raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: {where}.task={task!r} is not a plan task id (T-NN) — an SC or "
-                "decision is never amended by a lead; that change is BLOCKED with a recommendation."])
-    if field not in AMENDMENT_FIELDS:
-        raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: {where}.field={field!r} — only {list(AMENDMENT_FIELDS)} are a "
-                "task's HOW."])
-    if not (isinstance(reason, str) and reason.strip() and len(reason) <= 240):
-        raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: {where}.reason must be one non-empty line of at most 240 "
-                "characters — it becomes the ledger entry's reason."])
-    for key in ("was", "now"):
-        value = raw[key]
-        if field == "files":
-            if not isinstance(value, list):
-                raise harness_merge.MergeRefusal(
-                    5, [f"plan-merge: {where}.{key}: a files amendment carries a LIST of plan "
-                        f"file entries, not {type(value).__name__}."])
-            faults = plan_anchors.refusals(value)
-            if faults:
-                raise harness_merge.MergeRefusal(
-                    5, [f"plan-merge: {where}.{key}: {msg}" for msg in faults])
-        elif not isinstance(value, str):
-            raise harness_merge.MergeRefusal(
-                5, [f"plan-merge: {where}.{key}: a {field} amendment carries text, not "
-                    f"{type(value).__name__}."])
-    return {"task": task, "field": field, "was": raw["was"], "now": raw["now"],
-            "reason": reason.strip()}
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: amendments[{index}] is not a mapping."])
+    faults = amendment_contract.entry_errors(raw, index)
+    if faults:
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {msg}" for msg in faults])
+    return amendment_contract.normalized(raw)
 
 
 def _digest_amendments(digest):
@@ -2136,15 +2102,12 @@ def _digest_amendments(digest):
             2, ["plan-merge: the digest carries no amendments to record — `amendments:` is "
                 "absent or empty, so there is nothing to transcribe."])
     entries = [_amendment_entry(item, i) for i, item in enumerate(raw)]
-    seen = set()
-    for entry in entries:
-        target = (entry["task"], entry["field"])
-        if target in seen:
-            raise harness_merge.MergeRefusal(
-                5, [f"plan-merge: {entry['task']}.{entry['field']} is amended twice in one "
-                    "digest — one target, one entry; the second would overwrite the first's "
-                    "`was`."])
-        seen.add(target)
+    targets = [(e["task"], e["field"]) for e in entries]
+    repeated = next((t for i, t in enumerate(targets) if t in targets[:i]), None)
+    if repeated:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {repeated[0]}.{repeated[1]} is amended twice in one digest — one "
+                "target, one entry; the second would overwrite the first's `was`."])
     return entries
 
 
@@ -2211,7 +2174,55 @@ def _splice_amendments(cur, entries):
     return cur
 
 
+def _amended_plan_bytes(base_bytes, entries):
+    """The spliced plan bytes, every guard applied, or a refusal. Pure: no write here."""
+    base_doc = _reload_or_refuse(base_bytes)
+    # THE LOAD-BEARING CHECK: `was` still equals the field under the lock.
+    for entry in entries:
+        _amendment_against_plan(entry, base_doc, "under the lock")
+    lines = base_bytes.decode("utf-8").splitlines(keepends=True)
+    spliced = "".join(_splice_amendments(lines, entries)).encode("utf-8")
+    reloaded = _reload_or_refuse(spliced)
+    _verify_amendments_landed(reloaded, entries)
+    if _schema_error(base_doc) is None:
+        err = _schema_error(reloaded)
+        if err:
+            raise harness_merge.MergeRefusal(
+                8, [f"plan-merge: the amended plan would not be legal — {err}"])
+    if reloaded.get("approval") != base_doc.get("approval"):
+        raise harness_merge.MergeRefusal(
+            8, ["plan-merge: the splice touched approval: — REFUSING (DEC-120)."])
+    return spliced
+
+
+def _verify_amendments_landed(reloaded, entries):
+    for entry in entries:
+        got = _sole_item(reloaded, "tasks", entry["task"]).get(entry["field"])
+        if got != entry["now"]:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {entry['task']}.{entry['field']} reloads as {got!r}, not the "
+                    "amendment's `now` — REFUSING to write a splice that lies."])
+
+
+def _replace_bytes(path, data):
+    """Atomic whole-file replace, the same tempfile+os.replace shape locked_update uses."""
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=directory)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.remove(tmp_path)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def _record_amendment_judgements(feature_json, judgements):
+    """Append `judgements` to feature.json's ledger via feature_json_write (its own lock,
+    schema check and refusal)."""
     def transform(base):
         doc = feature_json_write.parse_doc(base, feature_json)
         if doc is None:
@@ -2225,61 +2236,53 @@ def _record_amendment_judgements(feature_json, judgements):
     feature_json_write.write_feature_json(feature_json, transform)
 
 
+def _record_amendments_locked(resolved, feature_json, entries):
+    """Both writes under the PLAN's lock, plan first, ledger second, and the plan RESTORED if
+    the ledger refuses (validate c0 V-01). Before this the ledger landed first, so a plan write
+    that failed afterwards left a judgement for an amendment that never reached the plan —
+    the audit trail lying in the direction nothing detects. Now the only window is the
+    restore itself failing, which raises loudly with both paths named."""
+    with harness_merge.acquire(resolved + ".lock"):
+        with open(resolved, "rb") as fh:
+            base_bytes = fh.read()
+        spliced = _amended_plan_bytes(base_bytes, entries)
+        judgements = [_amendment_judgement(e, at)
+                      for e, at in zip(entries, _distinct_instants(len(entries)))]
+        _replace_bytes(resolved, spliced)
+        try:
+            _record_amendment_judgements(feature_json, judgements)
+        except harness_merge.MergeRefusal as refusal:
+            _replace_bytes(resolved, base_bytes)
+            raise harness_merge.MergeRefusal(
+                refusal.code, list(refusal.lines)
+                + [f"  the plan splice was restored byte for byte in {resolved}; nothing landed."])
+
+
+def _record_amendments_preflight(resolved, feature_json, entries):
+    """Every refusal that needs no lock: each entry against the plan as it is now, and the
+    ledger's existence and shape. A refusal here leaves both documents byte-identical."""
+    with open(resolved, "rb") as fh:
+        plan_doc = _reload_or_refuse(fh.read())
+    for entry in entries:
+        _amendment_against_plan(entry, plan_doc, "preflight")
+    if not os.path.isfile(feature_json):
+        raise harness_merge.MergeRefusal(
+            2, [f"plan-merge: {feature_json} does not exist, so the amendment judgements have "
+                "nowhere to go — REFUSING to amend the plan without its ledger."])
+    with open(feature_json, "rb") as fh:
+        if feature_json_write.parse_doc(fh.read(), feature_json) is None:
+            raise harness_merge.MergeRefusal(
+                feature_json_write.SCHEMA_REFUSAL_CODE, [f"plan-merge: {feature_json} is empty."])
+
+
 def cmd_record_amendments(args):
     """`record-amendments --file <plan.yaml> --digest <eng-lead digest.md>` (BUG-1716 T-04)."""
     resolved = _resolve_plan(args.file)
     feature_json = os.path.join(os.path.dirname(resolved), "feature.json")
     try:
         entries = _digest_amendments(_lead_digest(args.digest))
-        # PREFLIGHT, BEFORE ANY LOCK: every entry against the plan as it is now, and the
-        # ledger's existence and shape — a refusal here leaves both documents byte-identical.
-        with open(resolved, "rb") as fh:
-            plan_doc = _reload_or_refuse(fh.read())
-        for entry in entries:
-            _amendment_against_plan(entry, plan_doc, "preflight")
-        if not os.path.isfile(feature_json):
-            raise harness_merge.MergeRefusal(
-                2, [f"plan-merge: {feature_json} does not exist, so the amendment judgements "
-                    "have nowhere to go — REFUSING to amend the plan without its ledger."])
-        with open(feature_json, "rb") as fh:
-            if feature_json_write.parse_doc(fh.read(), feature_json) is None:
-                raise harness_merge.MergeRefusal(
-                    feature_json_write.SCHEMA_REFUSAL_CODE, [f"plan-merge: {feature_json} is empty."])
-    except harness_merge.MergeRefusal as refusal:
-        _die(refusal.code, *refusal.lines)
-
-    def transform(base_bytes):
-        raw = base_bytes.decode("utf-8")
-        base_doc = _reload_or_refuse(base_bytes)
-        # THE LOAD-BEARING CHECK: `was` still equals the field under the lock.
-        for entry in entries:
-            _amendment_against_plan(entry, base_doc, "under the lock")
-        spliced = "".join(_splice_amendments(raw.splitlines(keepends=True), entries))
-        reloaded = _reload_or_refuse(spliced.encode("utf-8"))
-        for entry in entries:
-            got = _sole_item(reloaded, "tasks", entry["task"]).get(entry["field"])
-            if got != entry["now"]:
-                raise harness_merge.MergeRefusal(
-                    5, [f"plan-merge: {entry['task']}.{entry['field']} reloads as {got!r}, not "
-                        "the amendment's `now` — REFUSING to write a splice that lies."])
-        if _schema_error(base_doc) is None:
-            err = _schema_error(reloaded)
-            if err:
-                raise harness_merge.MergeRefusal(
-                    8, [f"plan-merge: the amended plan would not be legal — {err}"])
-        if reloaded.get("approval") != base_doc.get("approval"):
-            raise harness_merge.MergeRefusal(
-                8, ["plan-merge: the splice touched approval: — REFUSING (DEC-120)."])
-        # THE LEDGER IS WRITTEN BEFORE THE PLAN LANDS, under the plan's lock: a refusal here
-        # aborts the splice, so the plan never changes without its judgements; a judgement
-        # whose splice then failed to land is harmless (the text still hashes as signed).
-        _record_amendment_judgements(
-            feature_json, [_amendment_judgement(e, at)
-                           for e, at in zip(entries, _distinct_instants(len(entries)))])
-        return spliced.encode("utf-8")
-
-    try:
-        harness_merge.locked_update(resolved, transform)
+        _record_amendments_preflight(resolved, feature_json, entries)
+        _record_amendments_locked(resolved, feature_json, entries)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
     for entry in entries:

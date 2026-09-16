@@ -3630,90 +3630,166 @@ def _record(plan, digest_text, root):
     return run_verb("record-amendments", "--file", plan, "--digest", digest)
 
 
-def case_b1716_sign_writes_deterministic_task_hashes():
-    """D-03: sign-approval hashes every task's {files, intent, verify} as canonical JSON —
-    presentation differences in the YAML hash the same, a value change does not — and writes
-    them to feature.json; a refused signature writes no hashes."""
-    root, plan, fj = _amend_fixture(plan_text=_AMEND_PLAN.replace("status: approved", "status: pending"))
+_PENDING_PLAN = _AMEND_PLAN.replace("status: approved", "status: pending")
+_REFLOWED_PLAN = _PENDING_PLAN.replace(
+    "    intent: untouched\n    files: [a.py]\n    verify: python3 a.py\n",
+    "    verify: 'python3 a.py'\n    files:\n      - a.py\n    intent: \"untouched\"\n")
+
+
+def _sign(plan):
+    return run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-15")
+
+
+def _hashes(fj):
+    return _json.loads(read(fj)).get("signed_task_hashes")
+
+
+def case_b1716_sign_writes_canonical_task_hashes():
+    """D-03: sign-approval writes one lowercase sha256 per task over the canonical JSON of
+    {files, intent, verify} to feature.json."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
     try:
-        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-15")
-        doc = _json.loads(read(fj))
-        hashes = doc.get("signed_task_hashes")
+        r = _sign(plan)
+        hashes = _hashes(fj)
         check("b1716/sign: exits 0 and prints HASHED", r.returncode == 0 and "HASHED 2" in r.stdout,
               f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
-        tasks = {t["id"]: t for t in yaml.safe_load(read(plan))["tasks"]}
-        check("b1716/sign: one hash per task, lowercase sha256 of the canonical JSON",
-              hashes == {tid: _canonical_hash(t) for tid, t in tasks.items()}
-              and all(len(h) == 64 and h == h.lower() for h in hashes.values()), repr(hashes))
-        reflowed = _AMEND_PLAN.replace("status: approved", "status: pending").replace(
-            "    intent: untouched\n    files: [a.py]\n    verify: python3 a.py\n",
-            "    verify: 'python3 a.py'\n    files:\n      - a.py\n    intent: \"untouched\"\n")
-        write(plan, reflowed)
-        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-15")
+        tasks = yaml.safe_load(read(plan))["tasks"]
+        check("b1716/sign: one hash per task, sha256 of the canonical JSON",
+              hashes == {t["id"]: _canonical_hash(t) for t in tasks}, repr(hashes))
+        check("b1716/sign: hashes are 64 lowercase hex characters",
+              all(len(h) == 64 and h == h.lower() for h in (hashes or {}).values()), repr(hashes))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_sign_hashes_value_not_presentation():
+    """D-03: quoting, key order and list form hash identically; a changed value changes only
+    that task's hash."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN)
+    try:
+        _sign(plan)
+        hashes = _hashes(fj) or {}
+        write(plan, _REFLOWED_PLAN)
+        r = _sign(plan)
         check("b1716/sign: a reflowed plan (quoting, order, list form) hashes identically",
-              r.returncode == 0 and _json.loads(read(fj)).get("signed_task_hashes") == hashes,
-              repr(_json.loads(read(fj)).get("signed_task_hashes")))
-        write(plan, reflowed.replace("untouched", "touched"))
-        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-15")
-        h2 = _json.loads(read(fj)).get("signed_task_hashes") or {}
-        check("b1716/sign: a changed value changes only that task's hash",
-              h2.get("T-03") == (hashes or {}).get("T-03") and h2.get("T-01") != (hashes or {}).get("T-01") and h2, repr(h2))
-        # A refused signature (unparseable plan) writes no hashes.
-        write(plan, reflowed + "tasks: [\n")
+              r.returncode == 0 and _hashes(fj) == hashes, repr(_hashes(fj)))
+        write(plan, _REFLOWED_PLAN.replace("untouched", "touched"))
+        _sign(plan)
+        h2 = _hashes(fj) or {}
+        check("b1716/sign: a changed value changes that task's hash",
+              h2 and h2.get("T-01") != hashes.get("T-01"), repr(h2))
+        check("b1716/sign: the other task's hash is unchanged",
+              h2.get("T-03") == hashes.get("T-03"), repr(h2))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_refused_signature_writes_no_hashes():
+    """A refused signature (unparseable plan) leaves feature.json byte-identical."""
+    root, plan, fj = _amend_fixture(plan_text=_PENDING_PLAN + "tasks: [\n")
+    try:
         before = read(fj)
-        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-15")
+        r = _sign(plan)
         check("b1716/sign: a refused signature leaves feature.json byte-identical",
               r.returncode != 0 and read(fj) == before, f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
 
-def case_b1716_record_amendments_applies_the_bug285_three():
-    """SC-06: the three BUG-285 T-03 recommendations land in ONE invocation — no proposal, no
-    task dispatch. Field bytes are spliced in place; approval and every other byte survive;
-    three judgements land in digest order with distinct `at`s; signed hashes are untouched."""
+def _bug285_applied():
+    """A signed fixture with the BUG-285 three recorded: (root, plan, fj, run, plan_before)."""
     root, plan, fj = _amend_fixture()
+    run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-01-01")
+    before = read(plan)
+    return root, plan, fj, _record(plan, _BUG285_DIGEST, root), before
+
+
+def _t03(plan):
+    return {t["id"]: t for t in yaml.safe_load(read(plan))["tasks"]}["T-03"]
+
+
+def case_b1716_record_amendments_splices_the_bug285_three():
+    """SC-06: the three BUG-285 T-03 recommendations land in ONE invocation — no proposal, no
+    task dispatch — each field carrying the digest's `now`, the `|` body keeping its form."""
+    root, plan, fj, r, _ = _bug285_applied()
     try:
-        run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-01-01")
-        signed = _json.loads(read(fj)).get("signed_task_hashes")
-        before = read(plan)
-        r = _record(plan, _BUG285_DIGEST, root)
-        after = read(plan)
-        doc = yaml.safe_load(after)
-        t3 = {t["id"]: t for t in doc["tasks"]}["T-03"]
+        t3, after = _t03(plan), read(plan)
         check("b1716/285: exits 0 naming each target", r.returncode == 0
               and r.stdout.count("AMENDED T-03.") == 3, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
-        check("b1716/285: intent, verify and files carry the digest's now values",
-              t3["intent"] == "Keep the keyword-only text source; no second accessor and no exemption"
-              and t3["verify"] == "parse_gh_json accepts any JSON value\n"
-              and t3["files"] == [{"path": ".claude/skills/harness/bin/check-domain.py",
-                                   "quote": "def manifest_domains(agent=None)"}], repr(t3))
+        check("b1716/285: intent carries the digest's now",
+              t3["intent"] == "Keep the keyword-only text source; no second accessor and no exemption", repr(t3))
+        check("b1716/285: verify carries the digest's now",
+              t3["verify"] == "parse_gh_json accepts any JSON value\n", repr(t3))
+        check("b1716/285: files carries the digest's now",
+              t3["files"] == [{"path": ".claude/skills/harness/bin/check-domain.py",
+                               "quote": "def manifest_domains(agent=None)"}], repr(t3))
         check("b1716/285: the `|` verify body keeps its block form",
               "    verify: |\n      parse_gh_json accepts any JSON value\n" in after, after)
-        head, tail = before.split("tasks:\n", 1)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_touches_only_the_named_fields():
+    """Approval, the preamble comment, T-01, decisions, and T-03's own title/status are
+    byte-identical after the splice."""
+    root, plan, fj, _, before = _bug285_applied()
+    try:
+        after, t3 = read(plan), _t03(plan)
+        head = before.split("tasks:\n", 1)[0]
         check("b1716/285: approval and the preamble are byte-identical, comment included",
               after.startswith(head) and "  # kept byte for byte\n" in after, after)
-        check("b1716/285: T-01 and decisions are byte-identical",
+        check("b1716/285: T-01 is byte-identical",
               "  - id: T-01\n    title: keep\n    status: pending\n    intent: untouched\n"
-              "    files: [a.py]\n    verify: python3 a.py\n" in after
-              and after.endswith("decisions:\n  - id: D-01\n    choice: keep me\n"), after)
+              "    files: [a.py]\n    verify: python3 a.py\n" in after, after)
+        check("b1716/285: decisions are byte-identical",
+              after.endswith("decisions:\n  - id: D-01\n    choice: keep me\n"), after)
         check("b1716/285: T-03's title and status are untouched",
               t3["title"] == "canonical reader" and t3["status"] == "building", repr(t3))
-        fdoc = _json.loads(read(fj))
-        js = fdoc.get("judgements") or []
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+_BUG285_DECISIONS = ("T-03.intent", "T-03.verify", "T-03.files")
+
+
+def case_b1716_record_amendments_ledgers_three_judgements():
+    """Three `amendment` judgements by the orchestrator land in digest order with the digest's
+    reasons and distinct increasing `at`s."""
+    root, plan, fj, _, _ = _bug285_applied()
+    try:
+        js = _json.loads(read(fj)).get("judgements") or []
         check("b1716/285: three amendment judgements in digest order, by the orchestrator",
               [(j["kind"], j["by"], j["decision"]) for j in js]
-              == [("amendment", "harness-orchestrator", d) for d in ("T-03.intent", "T-03.verify", "T-03.files")],
-              repr(js))
-        check("b1716/285: reasons are the digest's, and every `at` is distinct and increasing",
-              [j["reason"] for j in js][1:2] == ["gh api returns arrays for list endpoints"]
-              and len({j["at"] for j in js}) == 3 and [j["at"] for j in js] == sorted(j["at"] for j in js),
-              repr(js))
+              == [("amendment", "harness-orchestrator", d) for d in _BUG285_DECISIONS], repr(js))
+        check("b1716/285: reasons are the digest's",
+              [j["reason"] for j in js][1:2] == ["gh api returns arrays for list endpoints"], repr(js))
+        ats = [j["at"] for j in js]
+        check("b1716/285: every `at` is distinct and increasing",
+              len(set(ats)) == 3 and ats == sorted(ats), repr(ats))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_keeps_the_ledger_valid_and_signed():
+    """The amendment never re-signs — signed_task_hashes are the signature's — and the
+    record still validates against feature-schema.json."""
+    root, plan, fj, _, _ = _bug285_applied()
+    try:
+        fdoc = _json.loads(read(fj))
+        expected = {t["id"]: _canonical_hash(t) for t in yaml.safe_load(_AMEND_PLAN)["tasks"]}
         check("b1716/285: signed_task_hashes are not revised by the amendment",
-              fdoc.get("signed_task_hashes") == signed, repr(fdoc.get("signed_task_hashes")))
-        check("b1716/285: the ledger still validates", read(fj).strip().endswith("}")
-              and not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
-        # RERUN: refused explicitly — the field now equals `now`, not `was`.
+              fdoc.get("signed_task_hashes") == expected, repr(fdoc.get("signed_task_hashes")))
+        check("b1716/285: the ledger still validates",
+              not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_record_amendments_rerun_is_refused():
+    """A rerun of the same digest is refused (exit 6): the field now equals `now`, not `was`;
+    neither file changes."""
+    root, plan, fj, _, _ = _bug285_applied()
+    try:
         plan_bytes, fj_bytes = read(plan), read(fj)
         r = _record(plan, _BUG285_DIGEST, root)
         check("b1716/285: a rerun is refused (exit 6) naming the already-applied state",
@@ -3735,7 +3811,7 @@ def case_b1716_record_amendments_refusals_are_byte_identical():
             ("no amendments", "  amendments: []\n", 2, "no amendments"),
             ("absent amendments", "", 2, "no amendments"),
             ("not a mapping", "  amendments: [T-03.intent]\n", 5, "not a mapping"),
-            ("extra key", '  amendments:\n    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r", by: me }\n', 5, "unknown ['by']"),
+            ("extra key", '  amendments:\n    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r", by: me }\n', 5, "['by']"),
             ("missing key", '  amendments:\n    - { task: T-03, field: intent, was: "x", reason: "r" }\n', 5, "missing ['now']"),
             ("SC id", '  amendments:\n    - { task: SC-01, field: intent, was: "x", now: "n", reason: "r" }\n', 5, "SC-01"),
             ("decision id", '  amendments:\n    - { task: D-01, field: intent, was: "keep me", now: "n", reason: "r" }\n', 5, "D-01"),
@@ -3766,32 +3842,49 @@ def case_b1716_record_amendments_refusals_are_byte_identical():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def case_b1716_approval_survives_amendment_and_resets_only_on_task_set_change():
-    """D-04: replacing text on an existing task keeps the signature (bytes and all); adding or
-    deleting a task still resets it. `amend` follows the same rule."""
+_T01_AMENDMENT = '  amendments:\n    - { task: T-01, field: intent, was: untouched, now: amended, reason: "r" }\n'
+_TWO_ENTRY_AMENDMENTS = (
+    _T01_AMENDMENT
+    + '    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r" }\n')
+
+
+def _approved(plan):
+    return _approval_of(plan).get("status") == "approved"
+
+
+def case_b1716_approval_survives_record_amendments_and_amend():
+    """D-04: replacing text on an existing task — by record-amendments or by `amend` — keeps
+    the signature, bytes and all."""
     root, plan, fj = _amend_fixture()
     try:
         approval = read(plan).split("tasks:\n", 1)[0]
-        r = _record(plan, _digest_with(
-            '  amendments:\n    - { task: T-01, field: intent, was: untouched, now: amended, reason: "r" }\n'), root)
+        r = _record(plan, _digest_with(_T01_AMENDMENT), root)
         check("b1716/approval: record-amendments exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
         check("b1716/approval: the approved block survives byte for byte",
-              read(plan).startswith(approval) and _approval_of(plan).get("status") == "approved",
-              read(plan))
+              read(plan).startswith(approval) and _approved(plan), read(plan))
         sha, _ = _sha_of(plan, "tasks", "T-01", "title")
         value = os.path.join(root, "title.txt")
         write(value, "renamed\n")
         r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01", "--field", "title",
                      "--expect-sha256", sha or "x", "--value-file", value)
         check("b1716/approval: amend on an existing task no longer resets the signature",
-              r.returncode == 0 and _approval_of(plan).get("status") == "approved"
-              and "APPROVAL-RESET" not in r.stdout, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+              r.returncode == 0 and _approved(plan) and "APPROVAL-RESET" not in r.stdout,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_b1716_approval_resets_only_on_task_set_change():
+    """D-04: `apply` replacing a field on an existing task keeps the signature; adding a task
+    still resets it to pending with the reason recorded."""
+    root, plan, fj = _amend_fixture()
+    try:
         prop = os.path.join(root, "prop.yaml")
         write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n  - id: T-01\n    title: again\n")
         r = run_verb("apply", "--file", plan, "--proposal", prop)
         check("b1716/approval: apply replacing a field on an existing task keeps the signature",
-              r.returncode == 0 and _approval_of(plan).get("status") == "approved"
-              and "APPROVAL-RESET" not in r.stdout, f"rc={r.returncode} {r.stdout!r}")
+              r.returncode == 0 and _approved(plan) and "APPROVAL-RESET" not in r.stdout,
+              f"rc={r.returncode} {r.stdout!r}")
         write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-07"))
         r = run_verb("apply", "--file", plan, "--proposal", prop)
         check("b1716/approval: adding a task still resets approval to pending",
@@ -3801,32 +3894,34 @@ def case_b1716_approval_survives_amendment_and_resets_only_on_task_set_change():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _record_with_ledger_locked(plan, fj, root, amendments):
+    """Run record-amendments while another writer holds feature.json's lock."""
+    import fcntl
+    holder = open(fj + ".lock", "w")
+    fcntl.flock(holder, fcntl.LOCK_EX)
+    try:
+        return _record(plan, _digest_with(amendments), root)
+    finally:
+        fcntl.flock(holder, fcntl.LOCK_UN)
+        holder.close()
+
+
 def case_b1716_record_amendments_is_all_or_nothing():
     """A refusal under the plan lock — here the ledger's own lock held by another writer, so
     the judgement write refuses LOCKED — leaves the plan untouched: a multi-entry digest lands
-    every entry or none, across both files."""
-    import fcntl
+    every entry or none, across both files. The plan is spliced first and restored on the
+    ledger's refusal (validate c0 V-01), so a judgement never outlives its splice."""
     root, plan, fj = _amend_fixture()
     try:
         plan_bytes, fj_bytes = read(plan), read(fj)
-        holder = open(fj + ".lock", "w")
-        fcntl.flock(holder, fcntl.LOCK_EX)
-        try:
-            r = _record(plan, _digest_with(
-                '  amendments:\n    - { task: T-01, field: intent, was: untouched, now: amended, reason: "r" }\n'
-                '    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r" }\n'),
-                root)
-        finally:
-            fcntl.flock(holder, fcntl.LOCK_UN)
-            holder.close()
+        r = _record_with_ledger_locked(plan, fj, root, _TWO_ENTRY_AMENDMENTS)
         check("b1716/atomic: a ledger refusal under the lock exits nonzero naming LOCKED",
               r.returncode != 0 and "LOCKED" in r.stderr, f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("b1716/atomic: the refusal says the plan splice was restored",
+              "restored byte for byte" in r.stderr, r.stderr)
         check("b1716/atomic: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
               read(plan))
-        r = _record(plan, _digest_with(
-            '  amendments:\n    - { task: T-01, field: intent, was: untouched, now: amended, reason: "r" }\n'
-            '    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r" }\n'),
-            root)
+        r = _record(plan, _digest_with(_TWO_ENTRY_AMENDMENTS), root)
         doc = yaml.safe_load(read(plan))
         check("b1716/atomic: released, the same two-entry digest lands both entries",
               r.returncode == 0 and [t["intent"] for t in doc["tasks"]] == ["amended", "n"]
@@ -3926,10 +4021,17 @@ CASES = (
     case_f59_review_f7_apply_never_writes_a_task_status,
     case_f59_review_f8_record_panel_opens_every_new_finding,
     case_f59_review_f10_panel_splice_keeps_a_comment_with_the_finding_it_followed,
-    case_b1716_sign_writes_deterministic_task_hashes,
-    case_b1716_record_amendments_applies_the_bug285_three,
+    case_b1716_sign_writes_canonical_task_hashes,
+    case_b1716_sign_hashes_value_not_presentation,
+    case_b1716_refused_signature_writes_no_hashes,
+    case_b1716_record_amendments_splices_the_bug285_three,
+    case_b1716_record_amendments_touches_only_the_named_fields,
+    case_b1716_record_amendments_ledgers_three_judgements,
+    case_b1716_record_amendments_keeps_the_ledger_valid_and_signed,
+    case_b1716_record_amendments_rerun_is_refused,
     case_b1716_record_amendments_refusals_are_byte_identical,
-    case_b1716_approval_survives_amendment_and_resets_only_on_task_set_change,
+    case_b1716_approval_survives_record_amendments_and_amend,
+    case_b1716_approval_resets_only_on_task_set_change,
     case_b1716_record_amendments_is_all_or_nothing,
 )
 

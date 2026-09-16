@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
 import artifact_accessors
-import plan_anchors
+import amendment_contract
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
@@ -383,73 +383,43 @@ DOCUMENTED_OPTIONAL = {
 }
 
 
-AMENDMENT_KEYS = ("task", "field", "was", "now", "reason")
-AMENDMENT_FIELDS = ("intent", "files", "verify")
-_AMENDMENT_TASK_RE = re.compile(r"^T-\d{2,}$")
+def _parsed_members(value):
+    """A `files` value's members with inline `{ ... }` mappings parsed; parse_digest keeps them
+    as text, and the shared contract expects the shape plan-merge.py's YAML loader hands it."""
+    if not isinstance(value, list):
+        return value
+    return [parse_member_entry(m) if isinstance(m, str) and m.strip().startswith("{") else m
+            for m in value]
 
 
-def _amendment_files_errors(entry, key, index):
-    """`was`/`now` for a `files` amendment: a list whose every member plan_anchors accepts."""
-    val = entry.get(key)
-    if not isinstance(val, list):
-        return [f"amendments[{index}].{key}: a files amendment carries a LIST of plan file "
-                f"entries, not {type(val).__name__}."]
-    members = [parse_member_entry(m) if isinstance(m, str) and m.strip().startswith("{") else m
-               for m in val]
-    return [f"amendments[{index}].{key}: {msg}" for msg in plan_anchors.refusals(members)]
-
-
-def _amendment_entry_errors(raw, index):
-    """Every fault in ONE amendment entry, each naming its index and the bad key."""
+def _amendment_mapping(raw):
+    """The parsed mapping for one `amendments` entry, or None. parse_digest keeps an inline
+    `{ ... }` as text and a block mapping as joined text; parse_member_entry reads both."""
     entry = parse_member_entry(raw) if isinstance(raw, str) else None
     if not entry:
-        return [f"amendments[{index}] is not a mapping — each entry is exactly "
-                f"{{{', '.join(AMENDMENT_KEYS)}}}."]
-    err = []
-    extra = sorted(set(entry) - set(AMENDMENT_KEYS))
-    missing = [k for k in AMENDMENT_KEYS if k not in entry]
-    if extra:
-        err.append(f"amendments[{index}] carries unknown key(s) {extra} — an entry is exactly "
-                   f"{list(AMENDMENT_KEYS)}.")
-    if missing:
-        err.append(f"amendments[{index}] is missing {missing} — an entry is exactly "
-                   f"{list(AMENDMENT_KEYS)}.")
-    task = entry.get("task")
-    if "task" in entry and not (isinstance(task, str) and _AMENDMENT_TASK_RE.match(task)):
-        err.append(f"amendments[{index}].task={task!r} — an amendment targets one PLAN task "
-                   f"(T-NN); a success criterion or decision is never amended by a lead "
-                   f"(that is BLOCKED with a recommendation).")
-    field = entry.get("field")
-    if "field" in entry and field not in AMENDMENT_FIELDS:
-        err.append(f"amendments[{index}].field={field!r} — only {list(AMENDMENT_FIELDS)} are "
-                   f"a task's HOW; anything else changes what was signed.")
-    reason = entry.get("reason")
-    if "reason" in entry and not (isinstance(reason, str) and reason.strip()
-                                  and len(reason) <= 240):
-        err.append(f"amendments[{index}].reason must be one non-empty line of at most 240 "
-                   f"characters — it becomes the ledger entry's reason (DEC-230).")
-    if field in AMENDMENT_FIELDS:
-        for key in ("was", "now"):
-            if key not in entry:
-                continue
-            if field == "files":
-                err.extend(_amendment_files_errors(entry, key, index))
-            elif not isinstance(entry[key], str):
-                err.append(f"amendments[{index}].{key}: a {field} amendment carries the text "
-                           f"as a string, not {type(entry[key]).__name__}.")
-    return err
+        return None
+    return {k: _parsed_members(v) if k in ("was", "now") else v for k, v in entry.items()}
 
 
 def _amendments_errors(seen):
     """BUG-1716 SC-01: grade `amendments` when present — absent is legal, `[]` is legal, and
-    every list member must be a closed {task, field, was, now, reason} mapping."""
+    every list member must be a closed {task, field, was, now, reason} mapping. The rules are
+    amendment_contract's, shared with plan-merge.py record-amendments."""
     if "amendments" not in seen:
         return []
     val = seen["amendments"]
     if not isinstance(val, list):
-        return ["amendments must be a LIST of {task, field, was, now, reason} entries "
+        return [f"amendments must be a LIST of {{{', '.join(amendment_contract.KEYS)}}} entries "
                 "([] when the run amended nothing)."]
-    return [e for i, raw in enumerate(val) for e in _amendment_entry_errors(raw, i)]
+    err = []
+    for index, raw in enumerate(val):
+        entry = _amendment_mapping(raw)
+        if entry is None:
+            err.append(f"amendments[{index}] is not a mapping — each entry is exactly "
+                       f"{{{', '.join(amendment_contract.KEYS)}}}.")
+            continue
+        err.extend(amendment_contract.entry_errors(entry, index))
+    return err
 
 
 def review_config_path(config_path=None):

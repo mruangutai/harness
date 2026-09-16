@@ -211,18 +211,23 @@ def cmd_judgement(args):
     sys.exit(0)
 
 
-def _select_amendment(ledger, at):
-    """BUG-1716 D-05: the ONE live amendment judgement stamped `at`. Selection is by the
-    exact timestamp because two amendments on one task field are individually selectable
-    only by when they were made; every other dimension can repeat."""
-    hits = [(i, e) for i, e in enumerate(ledger) if isinstance(e, dict) and e.get("at") == at]
+def _sole_judgement_at(ledger, at):
+    """The index of the ONE judgement stamped `at`. Selection is by the exact timestamp
+    because two amendments on one task field are individually selectable only by when they
+    were made; every other dimension can repeat."""
+    hits = [i for i, e in enumerate(ledger) if isinstance(e, dict) and e.get("at") == at]
+    if len(hits) == 1:
+        return hits[0]
     if not hits:
         _refuse([f"REFUSED: no judgement is recorded at {at!r}.",
                  "  overrule-amendment selects by the entry's exact `at`; copy it from the ledger."])
-    if len(hits) > 1:
-        _refuse([f"REFUSED: {len(hits)} judgements share at={at!r}; the selection is ambiguous.",
-                 "  " + "; ".join(f"[{i}] {e.get('kind')}: {e.get('decision')}" for i, e in hits)])
-    index, entry = hits[0]
+    _refuse([f"REFUSED: {len(hits)} judgements share at={at!r}; the selection is ambiguous.",
+             "  " + "; ".join(f"[{i}] {ledger[i].get('kind')}: {ledger[i].get('decision')}"
+                              for i in hits)])
+
+
+def _refuse_unless_live_amendment(entry, at):
+    """BUG-1716 D-05: only a live (not yet overruled) amendment can be overruled."""
     if entry.get("kind") != "amendment":
         _refuse([f"REFUSED: the judgement at {at!r} is kind {entry.get('kind')!r}, not an "
                  "amendment.", "  Only an amendment can be overruled (DEC-230); other kinds "
@@ -230,6 +235,12 @@ def _select_amendment(ledger, at):
     if "overruled" in entry:
         _refuse([f"REFUSED: the amendment at {at!r} ({entry.get('decision')}) is already "
                  "overruled.", "  The ledger is append-only; there is nothing further to record."])
+
+
+def _select_amendment(ledger, at):
+    """The index of the ONE live amendment judgement stamped `at`, or a refusal."""
+    index = _sole_judgement_at(ledger, at)
+    _refuse_unless_live_amendment(ledger[index], at)
     return index
 
 

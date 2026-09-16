@@ -2925,32 +2925,45 @@ except Exception as _pme40:
                "unreported. The module ships with this repository.")
 
 
-def _unledgered_task_edits(doc, plan_doc):
-    """INV-40 (d): one (short, full) hit per task whose current hash differs from its signed
-    hash with no amendment judgement naming that task."""
+def _signed_hashes_to_grade(doc, plan_doc):
+    """The signed_task_hashes mapping when INV-40 (d) applies, else None: the hash module
+    imported, the record carries hashes, and the plan's approval is `approved`."""
     signed = doc.get("signed_task_hashes")
     approval = plan_doc.get("approval") if isinstance(plan_doc, dict) else None
     approved = isinstance(approval, dict) and str(approval.get("status", "")).strip() == "approved"
     if _signed_task_hash is None or not isinstance(signed, dict) or not approved:
+        return None
+    return signed
+
+
+def _amended_task_ids(doc):
+    """Every task id an amendment judgement names, overruled or not."""
+    return {str(e.get("decision", "")).split(".", 1)[0]
+            for e in (doc.get("judgements") or [])
+            if isinstance(e, dict) and str(e.get("kind", "")).strip() == "amendment"}
+
+
+def _unledgered_edit_hit(tid, current, signed):
+    return ("INV-40", f"{tid}'s signed text changed with no amendment judgement",
+            f"{tid}'s intent/files/verify hash to {current[:12]}… but were signed as "
+            f"{str(signed)[:12]}…, and judgements[] carries no entry of kind amendment for "
+            f"{tid} — the signed text was edited outside the ledger (SC-21, DEC-229); record "
+            f"it with plan-merge.py record-amendments --file plan.yaml --digest "
+            f"<engineering-lead digest>, or restore the signed text")
+
+
+def _unledgered_task_edits(doc, plan_doc):
+    """INV-40 (d): one (short, full) hit per task whose current hash differs from its signed
+    hash with no amendment judgement naming that task."""
+    signed = _signed_hashes_to_grade(doc, plan_doc)
+    if signed is None:
         return []
-    covered = {str(e.get("decision", "")).split(".", 1)[0]
-               for e in (doc.get("judgements") or [])
-               if isinstance(e, dict) and str(e.get("kind", "")).strip() == "amendment"}
-    hits = []
-    for task in (plan_doc.get("tasks") or []):
-        tid = str(task.get("id", "")) if isinstance(task, dict) else ""
-        if tid not in signed or tid in covered:
-            continue
-        current = _signed_task_hash(task)
-        if current != signed[tid]:
-            hits.append(("INV-40", f"{tid}'s signed text changed with no amendment judgement",
-                         f"{tid}'s intent/files/verify hash to {current[:12]}… but were signed "
-                         f"as {str(signed[tid])[:12]}…, and judgements[] carries no entry of "
-                         f"kind amendment for {tid} — the signed text was edited outside the "
-                         f"ledger (SC-21, DEC-229); record it with plan-merge.py "
-                         f"record-amendments --file plan.yaml --digest <engineering-lead "
-                         f"digest>, or restore the signed text"))
-    return hits
+    graded = {str(t.get("id", "")): t for t in (plan_doc.get("tasks") or [])
+              if isinstance(t, dict)}
+    unledgered = set(signed) & set(graded) - _amended_task_ids(doc)
+    changed = [(tid, _signed_task_hash(graded[tid])) for tid in sorted(unledgered)]
+    return [_unledgered_edit_hit(tid, current, signed[tid])
+            for tid, current in changed if current != signed[tid]]
 
 
 for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
