@@ -386,15 +386,15 @@ def _stage(name, argv):
     return proc.stdout
 
 
-def cmd_close_run(args):
+def _close_run_agent(args, judgement):
+    """Every refusal that needs no stage: argument shape, unknown run, run with no agent.
+    Returns the run's recorded agent — the persona whose digest contract applies."""
     if (args.task is None) != (args.station is None):
         _exit_refused(["REFUSED: --task and --station are a pair; give both or neither."])
-    judgement = _parse_judgement(args.judgement) if args.judgement else None
     if args.judgement and judgement is None:
         _exit_refused([f"REFUSED: --judgement must read kind=<{'|'.join(JUDGEMENT_KINDS)}>,"
                        "decision=...,reason=... — got " + repr(args.judgement)])
-    doc = _read_doc(args.file)
-    entry = _find_run(_runs(doc), args.id)
+    entry = _find_run(_runs(_read_doc(args.file)), args.id)
     if entry is None:
         _exit_refused([f"REFUSED at stage run-end: runs[] carries no entry with id {args.id!r}.",
                        "  close-run closes an entry run-start opened; later stages were not run."])
@@ -402,23 +402,45 @@ def cmd_close_run(args):
     if not isinstance(agent, str) or not agent:
         _exit_refused([f"REFUSED at stage digest: run {args.id!r} records no agent, so no "
                        "persona can validate its digest."])
-    _stage("digest", [os.path.join(_HERE, "validate-digest.py"), agent, args.digest])
-    run_end = [__file__, "run-end", "--file", args.file, "--id", args.id, "--verdict", args.verdict]
-    if args.code_grade:
-        run_end += ["--code-grade", args.code_grade]
-    _stage("run-end", run_end)
-    summary = [f"CLOSED run {args.id!r} verdict={args.verdict}"]
+    return agent
+
+
+def _close_run_stages(args, agent, judgement):
+    """The ordered (name, argv, summary-fragment) plan, D-01's order: digest, run-end,
+    station, judgement, spend. Optional stages are simply absent from the list."""
+    grade = ["--code-grade", args.code_grade] if args.code_grade else []
+    plan_yaml = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
+    stages = [
+        ("digest", [os.path.join(_HERE, "validate-digest.py"), agent, args.digest], None),
+        ("run-end", [__file__, "run-end", "--file", args.file, "--id", args.id,
+                     "--verdict", args.verdict, *grade], None),
+    ]
     if args.task is not None:
-        plan = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
-        _stage("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
-                           "--file", plan, "--task", args.task, "--station", args.station])
-        summary.append(f"{args.task}={args.station}")
+        stages.append(("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
+                                   "--file", plan_yaml, "--task", args.task,
+                                   "--station", args.station],
+                       f"{args.task}={args.station}"))
     if judgement:
-        _stage("judgement", [__file__, "judgement", "--file", args.file,
-                             "--by", "harness-orchestrator", "--kind", judgement["kind"],
-                             "--decision", judgement["decision"], "--reason", judgement["reason"]])
-        summary.append(f"judgement={judgement['kind']}:{judgement['decision']}")
-    spend = _stage("spend", [__file__, "spend", "--file", args.file]).strip()
+        stages.append(("judgement", [__file__, "judgement", "--file", args.file,
+                                     "--by", "harness-orchestrator", "--kind", judgement["kind"],
+                                     "--decision", judgement["decision"],
+                                     "--reason", judgement["reason"]],
+                       f"judgement={judgement['kind']}:{judgement['decision']}"))
+    stages.append(("spend", [__file__, "spend", "--file", args.file], None))
+    return stages
+
+
+def cmd_close_run(args):
+    judgement = _parse_judgement(args.judgement) if args.judgement else None
+    agent = _close_run_agent(args, judgement)
+    summary = [f"CLOSED run {args.id!r} verdict={args.verdict}"]
+    spend = ""
+    for name, argv, fragment in _close_run_stages(args, agent, judgement):
+        out = _stage(name, argv)
+        if fragment:
+            summary.append(fragment)
+        if name == "spend":
+            spend = out.strip()
     print(" ".join(summary) + f" spend={spend}")
     sys.exit(0)
 

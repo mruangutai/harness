@@ -2854,6 +2854,20 @@ def _int_field(v):
     return None
 
 
+def _iso_instant(v):
+    """An aware datetime, or None. Accepts the two spellings the ledger writes — feature-record
+    writes `+00:00`, older fixtures and gh write `Z` — and refuses a naive value rather than
+    guessing its zone, since INV-43 compares instants across two writers."""
+    if not isinstance(v, str) or not v.strip():
+        return None
+    from datetime import datetime
+    try:
+        parsed = datetime.fromisoformat(v.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
 # INV-39 (SC-15, DEC-157): the cycle budget is a bound, and a raise is a recorded decision.
 #
 # TODAY NOTHING ENFORCES `cycles_used <= max_total_cycles`. INV-7 bounds cycles_used from
@@ -2878,6 +2892,16 @@ def _int_field(v):
 # read as the ordinal of the run that wrote it; run N+1 onward is the successor's. An in-era
 # note with no marker is refused rather than skipped, because a note that cannot be placed
 # cannot be matched -- the same posture INV-32 takes on an undated approval.
+#
+# INV-43 (BUG-1723 SC-03, D-02): the succession judgement for a handoff at seq-N is recorded
+# NO LATER than run N+1 started. INV-40(c) asks whether it exists; this asks WHEN. A
+# succession whose `at` postdates the successor's first run is a retrospective correction --
+# the shape #1713 measured twice on BUG-285-canonical-reader, where one context ran plan,
+# build and validate and wrote "seam correction" judgements after the fact. Matching is
+# INV-40's own: the k-th qualifying handoff (by seq) takes the k-th succession entry (by
+# ledger order). A timestamp that is present but unreadable is CANNOT VERIFY naming the
+# field, never a silent pass; a missing succession is INV-40's finding and is not repeated.
+# Chronology is compared on ISO-8601 instants, so `Z` and `+00:00` agree.
 _default_cycles = (_int_field((cj.get("budgets") or {}).get("max_total_cycles"))
                    if isinstance(cj, dict) else None)
 
@@ -2999,11 +3023,48 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                         f"({_succ59} recorded for {len(_need_succ)} handoff(s) with a successor "
                         f"run) — the successor's continue/downgrade/stop decision is unrecorded "
                         f"(SC-20/SC-21)"))
+    _succ_entries = [e for e in _j59 if isinstance(e, dict)
+                     and str(e.get("kind", "")).strip() == "succession"]
+    for _k43, (_seq43, _note43, _) in enumerate(_need_succ):
+        if _k43 >= len(_succ_entries):
+            break  # INV-40 names the missing one
+        _run43 = _runs59[_seq43] if _seq43 < len(_runs59) and isinstance(_runs59[_seq43], dict) else {}
+        _rid43 = _run43.get("id", f"runs[{_seq43}]")
+        _at43 = _iso_instant(_succ_entries[_k43].get("at"))
+        _st43 = _iso_instant(_run43.get("started_at"))
+        if _at43 is None:
+            _hits59.append(("INV-43", f"succession for notes/{_note43}: `at` unreadable",
+                            f"CANNOT VERIFY the seam for notes/{_note43}: the matching succession "
+                            f"judgement's `at` ({_succ_entries[_k43].get('at')!r}) is not an "
+                            f"ISO-8601 instant, so it cannot be placed against run {_rid43}"))
+            continue
+        if _st43 is None:
+            _hits59.append(("INV-43", f"run {_rid43}: started_at unreadable",
+                            f"CANNOT VERIFY the seam for notes/{_note43}: run {_rid43} — the first "
+                            f"run after seq-{_seq43} — has no readable `started_at` "
+                            f"({_run43.get('started_at')!r}), so the succession cannot be placed "
+                            f"against it"))
+            continue
+        if _at43 > _st43:
+            _hits59.append(("INV-43", f"retrospective succession for notes/{_note43}",
+                            f"the succession judgement for notes/{_note43} (seq-{_seq43}) is "
+                            f"recorded at {_succ_entries[_k43].get('at')}, AFTER run {_rid43} "
+                            f"started at {_run43.get('started_at')} — a retrospective seam "
+                            f"correction: the successor must append its succession no later "
+                            f"than its first run (DEC-159, BUG-1723)"))
 
     if not _hits59:
         continue
     if _era59:
-        bad.extend(f"{_inv} {_feat59}: {_full}." for _inv, _, _full in _hits59)
+        # INV-43 on a feature already at a terminal station is HISTORY, not a live seam: the
+        # violation stays readable (SC-05's census reads it) but no longer gates a commit or
+        # CI, since the record is not going to change (DEC-227's historical-values rule).
+        _terminal59 = station_of(os.path.dirname(_fy59)) in ("done", TERMINAL_MARKER, "rejected")
+        for _inv, _short, _full in _hits59:
+            if _inv == "INV-43" and _terminal59:
+                warn.append(f"INV-43 {_feat59}: terminal, not gated — {_full}.")
+            else:
+                bad.append(f"{_inv} {_feat59}: {_full}.")
     else:
         # ONE note per legacy feature, both invariants together, short forms only. It says
         # what was not graded so a wrongly granted exemption is visible (INV-17's rule), and

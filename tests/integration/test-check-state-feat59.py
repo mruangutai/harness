@@ -9,6 +9,10 @@ INV-40 judgement-ledger (SC-21): mission, re-gate and succession each leave a ju
 entry; a record that predates the ledger is NOTED, never failed.
 INV-41 sc-repo-wide (SC-16): an SC that invokes check-state.py / check-domain.py with no
 feature-scoped argument is refused.
+INV-43 succession-seam (BUG-1723 SC-03): the succession judgement for a handoff at seq-N is
+recorded no later than run N+1 started; one recorded AFTER that run is a retrospective
+correction, which means one context crossed the seam DEC-159 draws; an unreadable timestamp
+is CANNOT VERIFY, never a silent pass.
 
 Every case is a fixture tree under tmp; nothing reads the live corpus. Each rule carries a
 positive (fires) and a negative (silent) case, filtered on its own INV tag so a sibling
@@ -85,9 +89,10 @@ HANDOFF_SEQ = ("# Handoff — FEAT-TEST, build → review — written at abc1234
                "## Done when\nPointer: brief-sc:SC-01\n")
 
 
-def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON):
+def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON, station=None):
     """One feature at .harness/harness/features/FEAT-TEST with the given feature.json
-    mapping, an optional BRIEF.md text and optional notes/{name: text}."""
+    mapping, an optional BRIEF.md text, optional notes/{name: text}, and — when `station` is
+    given — a minimal plan.yaml carrying that top-level status."""
     h = os.path.join(tmp, ".harness")
     fdir = os.path.join(h, "harness", "features", FEAT)
     os.makedirs(fdir, exist_ok=True)
@@ -102,6 +107,10 @@ def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON):
         os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
         with open(os.path.join(fdir, "notes", name), "w") as f:
             f.write(text)
+    if station is not None:
+        with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+            f.write(f"schema: plan/1\nfeature: {FEAT}\napproval:\n  status: approved\n"
+                    f"status: {station}\nstation_only: true\ntasks: []\n")
     return fdir
 
 
@@ -117,9 +126,9 @@ def _notes(out, tag):
     return [l for l in _lines(out, tag) if l.startswith("  note")]
 
 
-def _check(feature, brief=None, notes=None, harness_json=HARNESS_JSON):
+def _check(feature, brief=None, notes=None, harness_json=HARNESS_JSON, station=None):
     with tempfile.TemporaryDirectory() as tmp:
-        _fixture(tmp, feature, brief, notes, harness_json)
+        _fixture(tmp, feature, brief, notes, harness_json, station)
         return run(tmp)
 
 
@@ -359,6 +368,97 @@ def case_inv40():
     return results
 
 
+# ----------------------------------------------------------------------------- INV-43 ---
+
+def _timed(rid, started, verdict="PASS"):
+    return {"id": rid, "squad": "eng", "verdict": verdict, "started_at": started,
+            "ended_at": started}
+
+
+def _succ_at(at):
+    return {"at": at, "by": "harness-orchestrator", "kind": "succession",
+            "decision": "continue", "reason": "fixture"}
+
+
+# BUG-1723 SC-03 / D-02: a succession judgement whose `at` postdates the first run after its
+# handoff is a retrospective seam correction — the trace #1713 measured twice on
+# BUG-285-canonical-reader. INV-40 already demands the judgement EXIST; INV-43 grades WHEN.
+_SEQ1 = {"handoff-build.md": HANDOFF_SEQ.format(n=1)}
+_RUNS43 = [_timed("r1", "2026-09-11T10:00:00+00:00"), _timed("r2", "2026-09-11T12:00:00+00:00")]
+
+
+def _seam(succession_at, runs=_RUNS43, notes=_SEQ1, **extra):
+    """One INV-43 fixture: an in-era record with `runs`, one succession at `succession_at`."""
+    judgements = [] if succession_at is None else [_succ_at(succession_at)]
+    return _check(_in_era(runs=runs, judgements=judgements), notes=notes, **extra)
+
+
+def case_inv43_chronology():
+    """Later than the successor's first run fires; earlier or equal is silent."""
+    results = []
+    _, out = _seam("2026-09-11T13:00:00+00:00")
+    v = _violations(out, "INV-43")
+    results.append(("(43.a) succession recorded AFTER run 2 started is a VIOLATION naming both",
+                    len(v) == 1 and "handoff-build.md" in v[0] and "r2" in v[0]
+                    and "retrospective" in v[0], out[:500]))
+    _, out = _seam("2026-09-11T11:00:00+00:00")
+    results.append(("(43.b) succession recorded before run 2 started is silent",
+                    not _lines(out, "INV-43"), out[:400]))
+    _, out = _seam("2026-09-11T12:00:00+00:00")
+    results.append(("(43.c) succession at exactly run 2's start is silent (no later than)",
+                    not _lines(out, "INV-43"), out[:400]))
+    three = _RUNS43 + [_timed("r3", "2026-09-11T15:00:00+00:00")]
+    _, out = _check(_in_era(runs=three, judgements=[_succ_at("2026-09-11T11:00:00+00:00"),
+                                                     _succ_at("2026-09-11T16:00:00+00:00")]),
+                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=1),
+                           "handoff-validate.md": HANDOFF_SEQ.format(n=2)})
+    v = _violations(out, "INV-43")
+    results.append(("(43.h) two handoffs match two successions in order; only the second is retrospective",
+                    len(v) == 1 and "handoff-validate.md" in v[0] and "r3" in v[0], out[:500]))
+    return results
+
+
+def case_inv43_unreadable():
+    """A present-but-unreadable timestamp is CANNOT VERIFY naming the field, never silence."""
+    results = []
+    _, out = _seam("not-a-time")
+    v = _violations(out, "INV-43")
+    results.append(("(43.d) an unparseable succession `at` is CANNOT VERIFY naming the field",
+                    len(v) == 1 and "CANNOT VERIFY" in v[0] and "at" in v[0], out[:500]))
+    _, out = _seam("2026-09-11T11:00:00+00:00",
+                   runs=[_timed("r1", "2026-09-11T10:00:00+00:00"), _run("r2")])
+    v = _violations(out, "INV-43")
+    results.append(("(43.e) a successor run with no started_at is CANNOT VERIFY naming started_at",
+                    len(v) == 1 and "CANNOT VERIFY" in v[0] and "started_at" in v[0]
+                    and "r2" in v[0], out[:500]))
+    return results
+
+
+def case_inv43_scope():
+    """What INV-43 leaves alone: a missing succession (INV-40's), no successor run yet, a
+    legacy record; and a terminal feature's retrospective succession is a NOTE — still said
+    for SC-05's census, never a permanent red on main (DEC-227: history stays as recorded)."""
+    results = []
+    _, out = _seam(None)
+    results.append(("(43.f) a MISSING succession is INV-40's finding, not INV-43's",
+                    not _lines(out, "INV-43") and _violations(out, "INV-40"), out[:400]))
+    _, out = _seam(None, runs=_RUNS43[:1])
+    results.append(("(43.g) a handoff with no successor run yet has nothing to grade",
+                    not _lines(out, "INV-43"), out[:400]))
+    _, out = _check(_legacy(runs=_RUNS43, judgements=None), BRIEF_OLD, notes=_SEQ1)
+    results.append(("(43.i) a legacy record is never graded by INV-43",
+                    not _violations(out, "INV-43"), out[:400]))
+    _, out = _seam("2026-09-11T13:00:00+00:00", station="done")
+    notes = _notes(out, "INV-43")
+    results.append(("(43.j) on a terminal feature the retrospective succession is a NOTE, not a violation",
+                    not _violations(out, "INV-43") and len(notes) == 1
+                    and "retrospective" in notes[0], out[:500]))
+    _, out = _seam("2026-09-11T13:00:00+00:00", station="review")
+    results.append(("(43.k) on a live feature at review the same record is a VIOLATION",
+                    len(_violations(out, "INV-43")) == 1, out[:400]))
+    return results
+
+
 # ----------------------------------------------------------------------------- INV-41 ---
 
 def _brief_with_sc02(text):
@@ -426,7 +526,9 @@ def _report(results):
 
 
 def main():
-    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv41()) else 1
+    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv41()
+                        + case_inv43_chronology() + case_inv43_unreadable()
+                        + case_inv43_scope()) else 1
 
 
 if __name__ == "__main__":
