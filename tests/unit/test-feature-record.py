@@ -324,25 +324,45 @@ class CloseRunTest(FeatureRecordCase):
         self.assertNotIn("judgements", doc, "the refused judgement must not have landed")
         self.assertNotIn("spend=", result.stdout, "spend runs after judgement, never before")
 
-    def test_spend_stage_refusal_names_it_and_exits_with_the_authority_code(self):
-        """SC-02 at the spend stage. Reachable only when the document spend reads back is
-        refused — which the earlier stages' validated writes make impossible on real data — so
-        the composition seam itself is exercised: `_stage("spend", …)` over an authority that
-        exits 3 must name the stage and exit 3, not swallow it into success or REFUSAL_CODE."""
+    def test_spend_stage_refusal_through_close_run_names_spend_keeps_earlier_writes(self):
+        """SC-02 at the spend stage, THROUGH close-run's public entry. A data-driven spend refusal
+        is unreachable after the earlier stages' validated writes, so the spend authority is
+        made to refuse at the subprocess seam: every other stage runs for real, the one whose
+        argv is `spend` returns exit 3. close-run must exit 3 naming `spend` as the stage, keep
+        run-end's and the judgement's writes, and print no success summary — and it must do so
+        through `_close_run_stages`' real tuple, so a renamed or reordered stage fails here."""
+        import argparse
+        import contextlib
         import importlib.util
+        import io
+        from unittest import mock
         spec = importlib.util.spec_from_file_location("feature_record_cli", CLI)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        failing = self.tmp / "spend-refuses.py"
-        failing.write_text("import sys; print('REFUSED: ledger unreadable', file=sys.stderr); "
-                           "sys.exit(3)\n", encoding="utf-8")
-        import io, contextlib
-        err = io.StringIO()
-        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
-            mod._stage("spend", [str(failing)])
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        real_run = subprocess.run
+
+        def run_or_refuse_spend(argv, **kw):
+            if "spend" in argv:
+                return subprocess.CompletedProcess(argv, 3, stdout="",
+                                                   stderr="REFUSED: ledger unreadable\n")
+            return real_run(argv, **kw)
+
+        args = argparse.Namespace(file=str(self.path), id="r1", digest=str(self.digest),
+                                  verdict="PASS", task=None, station=None,
+                                  judgement="kind=regate,decision=x,reason=y", code_grade=None)
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch("subprocess.run", side_effect=run_or_refuse_spend), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
+                self.assertRaises(SystemExit) as stop:
+            mod.cmd_close_run(args)
         self.assertEqual(3, stop.exception.code)
         self.assertIn("REFUSED at stage spend", err.getvalue())
         self.assertIn("ledger unreadable", err.getvalue())
+        self.assertNotIn("CLOSED run", out.getvalue(), "no success summary after a refusal")
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertEqual("regate", doc["judgements"][-1]["kind"], "the judgement stage ran first")
 
 
 

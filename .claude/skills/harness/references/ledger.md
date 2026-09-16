@@ -53,8 +53,10 @@ they verify after the fact, from the reason line, never by ruling in-flight (SC-
 BEFORE any run of the later phase exists; the successor appends its `succession` judgement before
 or with its first run. INV-43 reports a `succession` whose `at` is later than the started_at of
 the first run after that handoff's `seq-N` — a retrospective correction, which means one context
-kept going across the seam and wrote the judgement after the fact. On a feature already at a
-terminal station it is a note; on a live one it is a violation.
+kept going across the seam and wrote the judgement after the fact. It is a violation at every
+station, `done` included: shipping does not change what the ledger says happened, and the two
+BUG-285-canonical-reader records that carry one are the honest census, not noise to silence.
+An unreadable `at` or `started_at` is CANNOT VERIFY, never a pass.
 
 ## Spend
 
