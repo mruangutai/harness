@@ -1,0 +1,9 @@
+{
+  "feature_id": "FIX-SHIPPED",
+  "branch": "feature/shipped",
+  "pr": 1,
+  "review_sha": "abc",
+  "cycles_used": 2,
+  "max_total_cycles": 5,
+  "runs": [{"id": "r1", "squad": "build", "verdict": "PASS"}, {"id": "r2", "squad": "review", "verdict": "PASS"}]
+}
