@@ -380,30 +380,21 @@ def _landed_direct_build(owner_root, default_branch, features_rel, resolved_id):
     return err is None and _is_direct_build_brief(text)
 
 
-def _landed_station_record(path, dirty, resolved):
-    """The record for a worktree whose landed directory resolved, or None when it is omitted.
-
-    None means the lookup succeeded and the landed station is simply not terminal — that
-    worktree is live work and belongs in nobody's report.
-    """
-    owner_root, repo_segment, default_branch, features_rel, resolved_id = resolved
-
+def _landed_classification(resolved):
+    """(klass, reason) for a worktree whose landed directory resolved, or None when the landed
+    station is simply not terminal — live work that belongs in nobody's report."""
+    owner_root, _repo_segment, default_branch, features_rel, resolved_id = resolved
     feature_json_rel = os.path.join(features_rel, resolved_id, "feature.json")
     _data, err = _read_landed_feature_json(owner_root, default_branch, feature_json_rel)
     if err == "missing" and _landed_direct_build(owner_root, default_branch, features_rel,
                                                  resolved_id):
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-            "reason": f"landed BRIEF is a signed DEC-174 direct build on {default_branch}",
-            "repo": repo_segment,
-        }
+        return "terminal", f"landed BRIEF is a signed DEC-174 direct build on {default_branch}"
     if err is not None:
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
-            "reason": f"landed feature.json for {resolved_id} is {err}",
-            "repo": repo_segment,
-        }
+        return "unresolved", f"landed feature.json for {resolved_id} is {err}"
+    return _landed_plan_classification(owner_root, default_branch, features_rel, resolved_id)
 
+
+def _landed_plan_classification(owner_root, default_branch, features_rel, resolved_id):
     # THE STATION COMES FROM THE LANDED plan.yaml (FEAT-41 T-07), read at the SAME ref by
     # the same blob helper. The feature.json read above stays: it is what decides
     # "unresolved" for a missing or unparseable landed record, and that classification is
@@ -416,24 +407,25 @@ def _landed_station_record(path, dirty, resolved):
     plan_rel = os.path.join(features_rel, resolved_id, "plan.yaml")
     plan_doc, plan_err = _read_landed_plan_yaml(owner_root, default_branch, plan_rel)
     if plan_err is not None:
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
-            "reason": f"landed plan.yaml for {resolved_id} is {plan_err}",
-            "repo": repo_segment,
-        }
-
+        return "unresolved", f"landed plan.yaml for {resolved_id} is {plan_err}"
     station = str((plan_doc or {}).get("status", "")).split()
     landed = station[0] if station else ""
     # `done` and every TERMINAL_STATIONS name are terminal on the default branch (FEAT-1714
     # T-03): a rejected or abandoned feature whose record has landed will never build, so its
     # worktree is exactly what INV-29 exists to reclaim.
     if landed == "done" or landed in _import_factory_config().TERMINAL_STATIONS:
-        return {
-            "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-            "reason": f"landed station is {landed} on {default_branch}",
-            "repo": repo_segment,
-        }
+        return "terminal", f"landed station is {landed} on {default_branch}"
     return None
+
+
+def _landed_station_record(path, dirty, resolved):
+    """The record for a worktree whose landed directory resolved, or None when it is omitted."""
+    classified = _landed_classification(resolved)
+    if classified is None:
+        return None
+    klass, reason = classified
+    return {"path": path, "feature_id": resolved[4], "klass": klass, "dirty": dirty,
+            "reason": reason, "repo": resolved[1]}
 
 
 def classify(root):

@@ -741,71 +741,74 @@ def _rejected(feature, plan=_REJECTED_PLAN, brief=_BRIEF_DRAFT):
         return run(tmp)
 
 
-def case_inv44():
-    """FEAT-1714 T-03: a rejected record is one orchestrator run, zero cycles, one reject
-    judgement, nothing signed, no panel — each dimension its own violation; a conforming
-    record is silent AND exempt from the approval demand only by being at this station."""
-    results = []
+def _inv44(feature, plan=_REJECTED_PLAN, brief=_BRIEF_DRAFT):
+    """INV-44 violation lines for a rejected fixture, plus the raw output."""
+    _, out = _rejected(feature, plan=plan, brief=brief)
+    return _violations(out, "INV-44"), out
+
+
+def _one_saying(v, needle):
+    return len(v) == 1 and needle in v[0]
+
+
+def case_inv44_run_shape():
+    """FEAT-1714 T-03: a rejected record is one orchestrator run at zero cycles — each
+    dimension its own violation; a conforming record is silent AND exempt from the approval
+    demand only by being at this station."""
     _, out = _rejected(_rejected_doc())
-    results.append(("(44.a) a conforming rejected record is silent on INV-44 and on the approval gate",
-                    not _lines(out, "INV-44") and not _lines(out, "is NOT approved"), out[:600]))
-
-    _, out = _rejected(_rejected_doc(cycles_used=1))
-    v = _violations(out, "INV-44")
-    results.append(("(44.b) cycles_used other than integer 0 is a VIOLATION naming cycles",
-                    len(v) == 1 and "cycles_used=1" in v[0], out[:400]))
-
-    _, out = _rejected(_rejected_doc(runs=[]))
-    v = _violations(out, "INV-44")
-    results.append(("(44.c) zero runs is a VIOLATION naming the count",
-                    len(v) == 1 and "0 run(s)" in v[0], out[:400]))
-
+    silent = ("(44.a) a conforming rejected record is silent on INV-44 and on the approval gate",
+              not _lines(out, "INV-44") and not _lines(out, "is NOT approved"), out[:600])
+    v, out = _inv44(_rejected_doc(cycles_used=1))
+    cycles = ("(44.b) cycles_used other than integer 0 is a VIOLATION naming cycles",
+              _one_saying(v, "cycles_used=1"), out[:400])
+    v, out = _inv44(_rejected_doc(runs=[]))
+    none = ("(44.c) zero runs is a VIOLATION naming the count", _one_saying(v, "0 run(s)"), out[:400])
     two = _rejected_doc()["runs"] + [{"id": "build-eng", "squad": "eng", "verdict": "PASS",
                                        "agent": "harness-eng-lead"}]
-    _, out = _rejected(_rejected_doc(runs=two))
-    v = _violations(out, "INV-44")
-    results.append(("(44.d) two runs is a VIOLATION naming the count",
-                    len(v) == 1 and "2 run(s)" in v[0], out[:400]))
-
+    v, out = _inv44(_rejected_doc(runs=two))
+    pair = ("(44.d) two runs is a VIOLATION naming the count", _one_saying(v, "2 run(s)"), out[:400])
     lead = [dict(_rejected_doc()["runs"][0], agent="harness-product-lead")]
-    _, out = _rejected(_rejected_doc(runs=lead))
-    v = _violations(out, "INV-44")
-    results.append(("(44.e) the one run owned by a lead is a VIOLATION naming the agent",
-                    len(v) == 1 and "harness-product-lead" in v[0], out[:400]))
+    v, out = _inv44(_rejected_doc(runs=lead))
+    owner = ("(44.e) the one run owned by a lead is a VIOLATION naming the agent",
+             _one_saying(v, "harness-product-lead"), out[:400])
+    return [silent, cycles, none, pair, owner]
 
-    _, out = _rejected(_rejected_doc(judgements=[_j("mission", "plan")]))
-    v = _violations(out, "INV-44")
-    results.append(("(44.f) no reject judgement is a VIOLATION naming the kind and remedy",
-                    len(v) == 1 and "kind reject" in v[0] and "feature-record.py" in v[0], out[:400]))
 
-    _, out = _rejected(_rejected_doc(),
-                       plan=_REJECTED_PLAN.replace("status: rejected\n",
-                                                   "approval:\n  status: approved\n  approved_by: X\n"
-                                                   "  date: 2026-09-16\nstatus: rejected\n"))
-    v = _violations(out, "INV-44")
-    results.append(("(44.g) an approved plan under a rejected station is a VIOLATION",
-                    len(v) == 1 and "approval is approved" in v[0], out[:400]))
+def case_inv44_ledger_and_signatures():
+    """A rejected record carries a reject judgement and nothing signed — no approved plan,
+    no signed BRIEF, no panel."""
+    v, out = _inv44(_rejected_doc(judgements=[_j("mission", "plan")]))
+    judgement = ("(44.f) no reject judgement is a VIOLATION naming the kind and remedy",
+                 _one_saying(v, "kind reject") and "feature-record.py" in v[0], out[:400])
+    approved = _REJECTED_PLAN.replace(
+        "status: rejected\n",
+        "approval:\n  status: approved\n  approved_by: X\n  date: 2026-09-16\nstatus: rejected\n")
+    v, out = _inv44(_rejected_doc(), plan=approved)
+    plan = ("(44.g) an approved plan under a rejected station is a VIOLATION",
+            _one_saying(v, "approval is approved"), out[:400])
+    v, out = _inv44(_rejected_doc(), brief=BRIEF_NEW)
+    brief = ("(44.h) a signed BRIEF under a rejected station is a VIOLATION",
+             _one_saying(v, "BRIEF.md"), out[:400])
+    panel = _REJECTED_PLAN + "panel:\n  last_run: x\n  cycle: 0\n  readers: []\n  findings: []\n"
+    v, out = _inv44(_rejected_doc(), plan=panel)
+    paneled = ("(44.i) a panel mapping under a rejected station is a VIOLATION",
+               _one_saying(v, "panel"), out[:400])
+    return [judgement, plan, brief, paneled]
 
-    _, out = _rejected(_rejected_doc(), brief=BRIEF_NEW)
-    v = _violations(out, "INV-44")
-    results.append(("(44.h) a signed BRIEF under a rejected station is a VIOLATION",
-                    len(v) == 1 and "BRIEF.md" in v[0], out[:400]))
 
-    _, out = _rejected(_rejected_doc(),
-                       plan=_REJECTED_PLAN + "panel:\n  last_run: x\n  cycle: 0\n  readers: []\n  findings: []\n")
-    v = _violations(out, "INV-44")
-    results.append(("(44.i) a panel mapping under a rejected station is a VIOLATION",
-                    len(v) == 1 and "panel" in v[0], out[:400]))
-
-    _, out = _rejected(_rejected_doc(cycles_used=2, runs=[], judgements=[]))
-    results.append(("(44.j) every bad dimension is reported separately",
-                    len(_violations(out, "INV-44")) == 3, out[:600]))
-
+def case_inv44_scope():
+    """Every bad dimension reports separately; the same record at another station is not
+    INV-44's to grade."""
+    v, out = _inv44(_rejected_doc(cycles_used=2, runs=[], judgements=[]))
+    separate = ("(44.j) every bad dimension is reported separately", len(v) == 3, out[:600])
     _, out = _check(_rejected_doc(cycles_used=2), BRIEF_NEW)
-    results.append(("(44.k) the same record at any other station is not INV-44's to grade",
-                    not _lines(out, "INV-44"), out[:400]))
-    return results
+    elsewhere = ("(44.k) the same record at any other station is not INV-44's to grade",
+                 not _lines(out, "INV-44"), out[:400])
+    return [separate, elsewhere]
 
+
+def case_inv44():
+    return case_inv44_run_shape() + case_inv44_ledger_and_signatures() + case_inv44_scope()
 
 
 def main():

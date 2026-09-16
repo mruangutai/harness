@@ -1826,70 +1826,145 @@ def _reject_reason_file(reason_file, successor):
         handle.close()
 
 
-def _reject_plan(rec, successor):
-    """The report and execution share this ordered parent-only lifecycle."""
-    parent = rec["parent"]
-    if parent is None:
-        die("reject needs a recorded parent")
-    disposition = (f"link parent #{parent} to superseding issue #{successor}"
-                   if successor is not None else
-                   f"record that parent #{parent} has no named successor")
-    plan = [
-        f"close parent #{parent} (not_planned)",
-        f"post comment on parent #{parent}: {disposition}",
-    ]
+class _RejectHalt(Exception):
+    """One required reject mutation failed; carries the stderr line."""
+
+
+def _must(ok, out, what):
+    if not ok:
+        raise _RejectHalt(f"{what}: {out.strip() or '(no output)'}")
+
+
+class _RejectWrites:
+    """The five GitHub writes reject can make, each raising _RejectHalt on failure."""
+
+    def __init__(self, repo, board, comment_file):
+        self.repo, self.board, self.comment_file = repo, board, comment_file
+
+    def close(self, num):
+        ok, out = gh_try(["api", "-X", "PATCH", f"repos/{self.repo}/issues/{num}",
+                          "-f", "state=closed", "-f", "state_reason=not_planned"])
+        _must(ok, out, f"could not close parent #{num}")
+        print(f"gh-sync: parent #{num} closed (not_planned)")
+
+    def comment(self, num):
+        ok, out = gh_try(["issue", "comment", str(num), "--repo", self.repo,
+                          "--body-file", self.comment_file])
+        _must(ok, out, f"reason not posted on #{num}")
+
+    def label(self, num):
+        ensure_labels(self.repo, {"superseded"})
+        ok, out = gh_try(["issue", "edit", str(num), "--repo", self.repo,
+                          "--add-label", "superseded"])
+        _must(ok, out, f"#{num} not labelled `superseded`")
+
+    def backlog(self, num):
+        if self.board is None:
+            return
+        if not _place(self.board, self.repo, num, "backlog", note=" (rejected, not done)"):
+            raise _RejectHalt(f"card #{num} not returned to backlog")
+
+    def milestone(self, num):
+        ok, out = gh_try(["api", "-X", "PATCH", f"repos/{self.repo}/milestones/{num}",
+                          "-f", "state=closed"])
+        _must(ok, out, f"milestone #{num} not closed")
+
+
+def _parent_reject_steps(parent, successor, disposition, w):
+    """With a recorded parent (the harness's own epic, `gh-sync.py open` ran): close it
+    not_planned, comment, label `superseded` when a successor is named, reseat the card to
+    backlog AFTER the close (probe #860)."""
+    steps = [(f"close parent #{parent} (not_planned)", lambda: w.close(parent)),
+             (f"post comment on parent #{parent}: {disposition}", lambda: w.comment(parent))]
     if successor is not None:
-        plan.append(f"ensure and add superseded label to parent #{parent}")
-    plan.append(f"return parent #{parent} to backlog")
+        steps.append((f"ensure and add superseded label to parent #{parent}",
+                      lambda: w.label(parent)))
+    steps.append((f"return parent #{parent} to backlog", lambda: w.backlog(parent)))
+    return steps
+
+
+def _source_reject_steps(feat_dir, disposition, w):
+    """With NO recorded parent — the legitimate first-sync record, `load_recorded`'s all-None
+    default, which is exactly where a first-run intake rejects — there is no harness-created
+    card to close: the disposition is the reason posted on each `source_issues` ticket (the
+    ticket the harness was pointed at) and that card returned to backlog, undoing the kickoff
+    move. The harness closes only cards it created (harness-plan KICKOFF), so a source ticket
+    is never closed or labelled. The plan is the truth for source_issues; the feature.json
+    mirror is refreshed only by `open`, which has not run on a first-sync record."""
+    steps = []
+    for num in parse_source_issues(feat_dir):
+        steps.append((f"post comment on source ticket #{num}: {disposition} "
+                      "(no parent is recorded — first-sync record; the ticket is not closed)",
+                      lambda num=num: w.comment(num)))
+        steps.append((f"return source ticket #{num} to backlog", lambda num=num: w.backlog(num)))
+    return steps
+
+
+def _reject_steps(feat_dir, rec, successor, repo, board, comment_file):
+    """THE ordered reject lifecycle as (line, action) pairs; the report prints the lines and
+    the execution runs the actions in that order — one renderer, so the operator confirms the
+    list that executes (the `abandon` rule)."""
+    w = _RejectWrites(repo, board, comment_file)
+    disposition = (f"link to superseding issue #{successor}" if successor is not None
+                   else "record that no successor was named")
+    if rec["parent"] is not None:
+        steps = _parent_reject_steps(rec["parent"], successor, disposition, w)
+    else:
+        steps = _source_reject_steps(feat_dir, disposition, w)
     if rec["milestone"] is not None:
-        plan.append(f"close milestone #{rec['milestone']}")
-    if successor is not None:
-        plan.append("record feature station rejected")
-    return plan
+        steps.append((f"close milestone #{rec['milestone']}", lambda: w.milestone(rec["milestone"])))
+    if not steps:
+        die("reject needs a recorded parent or at least one plan.yaml source_issues entry — "
+            "nothing on GitHub names this feature, so there is nothing to dispose")
+    return steps
+
+
+def _report_reject_halt(halt, steps, landed):
+    print(f"gh-sync: ERROR - {halt}", file=sys.stderr)
+    for done in landed:
+        print(f"gh-sync: landed before the failure: {done}", file=sys.stderr)
+    for line, _ in steps[len(landed) + 1:]:
+        print(f"gh-sync: NOT run: {line}", file=sys.stderr)
+    print("gh-sync: the station was NOT written; the rejection is incomplete on GitHub — "
+          "fix the failed step and re-run (landed steps are idempotent)", file=sys.stderr)
+
+
+def _run_reject_steps(steps):
+    """Run every step in order. The first failure exits 1 naming the step, what landed
+    before it (irreversible — a closed issue stays closed), and what did not run; the
+    station is NOT written on this path, by either the numeric path here or the `none`
+    path's caller, because the record must not claim a disposition GitHub does not carry."""
+    landed = []
+    for line, action in steps:
+        try:
+            action()
+        except _RejectHalt as halt:
+            _report_reject_halt(halt, steps, landed)
+            sys.exit(1)
+        landed.append(line)
 
 
 def cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes=False):
-    """Reject only the recorded parent; a numeric successor owns the final station write."""
+    """Reject only the recorded parent (or, on a first-sync record, dispose the source
+    tickets); a numeric successor owns the final station write, as the last mutation and
+    only after every GitHub mutation landed."""
     successor = _reject_successor(successor_arg)
     comment_file = _reject_reason_file(reason_file, successor)
     try:
         rec = load_recorded(feat_dir)
-        plan = _reject_plan(rec, successor)
+        steps = _reject_steps(feat_dir, rec, successor, repo, board, comment_file)
+        lines = [line for line, _ in steps]
+        if successor is not None:
+            lines.append("record feature station rejected")
         if not yes:
-            for line in plan:
+            for line in lines:
                 print(f"gh-sync: would {line}")
             print("gh-sync: reject is a decision the operator makes — re-run with --yes to "
-                  "close the parent listed above")
+                  "perform the mutations listed above")
             return
-
-        parent = rec["parent"]
-        if successor is not None:
-            ensure_labels(repo, {"superseded"})
-        ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/issues/{parent}",
-                          "-f", "state=closed", "-f", "state_reason=not_planned"])
-        if not ok:
-            print(f"gh-sync: ERROR - could not close parent #{parent}: {out}", file=sys.stderr)
-            return
-        print(f"gh-sync: parent #{parent} closed (not_planned)")
-        _to_backlog(board, repo, parent)
-        ok, out = gh_try(["issue", "comment", str(parent), "--repo", repo,
-                          "--body-file", comment_file])
-        if not ok:
-            print(f"gh-sync: ERROR - reason not posted on parent #{parent}: {out}", file=sys.stderr)
-        if successor is not None:
-            ok, out = gh_try(["issue", "edit", str(parent), "--repo", repo,
-                              "--add-label", "superseded"])
-            if not ok:
-                print(f"gh-sync: ERROR - parent #{parent} not labelled `superseded`: {out}",
-                      file=sys.stderr)
-        if rec["milestone"] is not None:
-            ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
-                              "-f", "state=closed"])
-            if not ok:
-                print(f"gh-sync: ERROR - milestone #{rec['milestone']} not closed: {out}",
-                      file=sys.stderr)
-        if successor is not None:
-            _record_station(feat_dir, "rejected")
+        _run_reject_steps(steps)
+        if successor is not None and not _record_station(feat_dir, "rejected"):
+            sys.exit(1)
     finally:
         os.unlink(comment_file)
 
