@@ -2977,6 +2977,24 @@ def _check_all(tasks, root, brief_text, routes):
     return failures, total
 
 
+def _overlap_lines(tasks):
+    """BUG-1725: one ADVISORY line per normalized path that two or more tasks name. Every
+    anchor form reduces to its path, so `a.py#foo` in T-01 and `{path: a.py, quote}` in T-02
+    are the same shared file. Advisory because a shared file is sometimes right (a fixture two
+    tasks extend) — but a plan whose tasks are LAYERS over the same files gates each one against
+    a tree the next one will move, and BUG-285-canonical-reader paid five of ten cycles for
+    exactly that before anything said so."""
+    owners = {}
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        tid = str(task.get("id") or "<no id>")
+        for path in dict.fromkeys(_literal_paths(task)):
+            owners.setdefault(path, []).append(tid)
+    return [f"OVERLAP {path}: {', '.join(tids)}"
+            for path, tids in sorted(owners.items()) if len(tids) > 1]
+
+
 def cmd_check(args):
     resolved_plan, root, tasks = _check_inputs(args)
     routes = _Routes(root)
@@ -2986,6 +3004,8 @@ def cmd_check(args):
     task_failures, total = _check_all(tasks, root, brief_text, routes)
     failures = preface + task_failures
     for line in failures:
+        print(line)
+    for line in _overlap_lines(tasks):
         print(line)
     print(f"CHECK {resolved_plan} against {root}: {len(tasks)} task(s), {total} anchor(s) "
           f"resolved, {len(failures)} failure(s)")

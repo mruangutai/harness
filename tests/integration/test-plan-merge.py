@@ -2951,6 +2951,61 @@ def case_f59_check_lists_each_failure_on_its_own_line():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+def case_bug1725_check_names_files_shared_by_tasks():
+    """BUG-1725 (#1713 Finding 3): five of BUG-285-canonical-reader's ten cycles were one task's
+    gate tripping on another task's half-built tree, because the plan layered tasks over shared
+    files and nothing said so at draft. `check` now prints ONE `OVERLAP <path>: T-a, T-b` line
+    per normalized path named by two or more tasks — every anchor form reduces to its path — and
+    the line is ADVISORY: it never changes the exit code in either direction."""
+    root, plan = _check_root()
+    try:
+        # T-01 names a.py three ways; T-02 names it once more; T-03 names only new_module.py,
+        # which T-01 also names. The BRIEF has SC-01 and SC-02, so traces resolve.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01",
+                                  "      - .claude/skills/harness/bin/a.py#foo\n"
+                                  "      - { path: .claude/skills/harness/bin/a.py, quote: \"return 1\" }\n"
+                                  "      - .claude/skills/harness/bin/a.py\n"
+                                  "      - .claude/skills/harness/bin/new_module.py\n")
+                    + _check_task("T-02", "      - .claude/skills/harness/bin/a.py#Bar\n", traces="[SC-02]")
+                    + _check_task("T-03", "      - .claude/skills/harness/bin/new_module.py\n"
+                                          "      - .claude/skills/harness/bin/only_here.py\n"))
+        r = run_verb("check", "--file", plan, "--root", root)
+        overlaps = [ln for ln in r.stdout.splitlines() if ln.startswith("OVERLAP")]
+        check("check: an otherwise valid plan with shared files still exits 0 (SC-02)",
+              r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+        check("check: exactly one OVERLAP line per shared path — two here, not one per anchor (SC-01)",
+              len(overlaps) == 2, r.stdout)
+        check("check: a.py named three ways by T-01 and once by T-02 is ONE line naming both, once each",
+              "OVERLAP .claude/skills/harness/bin/a.py: T-01, T-02" in overlaps, r.stdout)
+        check("check: new_module.py shared by T-01 and T-03",
+              "OVERLAP .claude/skills/harness/bin/new_module.py: T-01, T-03" in overlaps, r.stdout)
+        check("check: a file one task names is never an overlap",
+              not any("only_here.py" in ln for ln in overlaps), r.stdout)
+        # A plan whose only repetition is INSIDE one task has no overlap at all.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01",
+                                  "      - .claude/skills/harness/bin/a.py#foo\n"
+                                  "      - .claude/skills/harness/bin/a.py\n"))
+        r1 = run_verb("check", "--file", plan, "--root", root)
+        check("check: repeated anchors confined to one task print no OVERLAP",
+              r1.returncode == 0 and "OVERLAP" not in r1.stdout, r1.stdout)
+        # Overlap beside a real failure: the failure still exits 1, and the overlap is still shown.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
+                    "tasks:\n"
+                    + _check_task("T-01", "      - .claude/skills/harness/bin/a.py\n", traces="[SC-09]")
+                    + _check_task("T-02", "      - .claude/skills/harness/bin/a.py\n"))
+        r2 = run_verb("check", "--file", plan, "--root", root)
+        check("check: an existing failure keeps its exit 1 when overlap is also present",
+              r2.returncode == 1 and "FAIL T-01 traces: SC-09" in r2.stdout, f"rc={r2.returncode} {r2.stdout!r}")
+        check("check: the overlap is still reported beside the failure",
+              "OVERLAP .claude/skills/harness/bin/a.py: T-01, T-02" in r2.stdout, r2.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 
 def case_f59_line_number_anchor_is_refused_at_write():
     """C4: `path:NN` is refused at WRITE with exit 2 naming the entry — by apply (creating and
@@ -3572,6 +3627,7 @@ CASES = (
     case_f59_record_panel_refuses_a_finding_without_kind,
     case_f59_check_passes_on_every_anchor_form,
     case_f59_check_lists_each_failure_on_its_own_line,
+    case_bug1725_check_names_files_shared_by_tasks,
     case_f59_line_number_anchor_is_refused_at_write,
     case_f59_set_lanes_writes_and_validates,
     case_f59_set_panel_keeps_an_untouched_finding_byte_identical,

@@ -1,0 +1,48 @@
+schema: plan/1
+feature: BUG-1725-task-file-overlap
+approval:
+  date: '2026-09-15'
+  approved_by: mruangutai
+  status: approved
+status: building
+source_issues: [1725]
+lanes:
+  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  rows:
+    - surface: .claude/skills/harness/bin/plan-merge.py
+      lane: main-session-direct
+      reason: DEC-174 places the plan-exit gate in the direct lane
+    - surface: tests/integration/test-plan-merge.py
+      lane: main-session-direct
+      reason: DEC-174 includes a gate script's own test in the direct lane
+    - surface: .agents/skills/harness-spec-driven/SKILL.md
+      lane: main-session-direct
+      reason: bounded prose edit folded into the same direct task
+    - surface: .agents/skills/harness/teams/plan.yaml
+      lane: main-session-direct
+      reason: bounded prose edit folded into the same direct task
+decisions: []
+tasks:
+  - id: T-01
+    title: Report task file overlaps and prevent shared-file slicing
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 places plan-merge.py and its integration test in the direct lane; the two bounded skill and team prompt edits are folded into the same task
+    depends_on: []
+    status: building
+    files:
+      - .claude/skills/harness/bin/plan-merge.py
+      - tests/integration/test-plan-merge.py
+      - .agents/skills/harness-spec-driven/SKILL.md
+      - .agents/skills/harness/teams/plan.yaml
+    verify: |
+      python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py check --file /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1725-task-file-overlap/.harness/harness/features/BUG-1725-task-file-overlap/plan.yaml --root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1725-task-file-overlap
+    intent: |
+      Extend plan-merge.py check to normalize every task files anchor through the existing anchor path extraction for path, path#symbol, and {path, quote} forms. Group distinct task ids by normalized path and print exactly one advisory line, OVERLAP <path>: <task ids>, for every path named by more than one task. Do not add overlap to the failure list and do not otherwise change the check result: an otherwise valid plan with shared files still exits 0, while existing failures retain their existing nonzero exit.
+
+      Add focused integration coverage in tests/integration/test-plan-merge.py that fails against the pre-fix checker and passes after the fix. Cover plain, symbol, and quote anchors normalizing to one file, one advisory per shared file with the task ids, no overlap from repeated anchors confined to one task, successful exit for an otherwise valid overlapping plan, and preservation of an existing failing exit when overlap is also present.
+
+      Update harness-spec-driven so a task owns its files: slice multi-file work by assigning each file to exactly one task, or keep the work in one task with a per-file checklist, never layer tasks over shared files. State that a whole-tree verify belongs to the last task that touches those files or to validate.
+
+      Update the plan team's scope reader prompt to ask which tasks share files and whose gate the later task will break, and classify an answer as a substance finding. Keep both prose edits in this direct task; do not add readers, panel work, design, UAT, goal-check work, schema changes, overlap refusal, cycle-count changes, tree pinning, or changes to the shipped BUG-285-canonical-reader plan.
