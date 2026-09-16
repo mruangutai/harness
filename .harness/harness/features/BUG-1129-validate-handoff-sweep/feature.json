@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-1129-validate-handoff-sweep",
   "branch": "feat/BUG-1129-validate-handoff-sweep",
-  "pr": null,
+  "pr": 1783,
   "review_sha": "499eaf0b9c1eb04e0f51dcfec47fab9ea50abd54",
   "cycles_used": 2,
   "max_total_cycles": 10,
@@ -102,6 +102,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "recorded late by Main: the c1 orchestrator's succession for the fix seam"
+    },
+    {
+      "at": "2026-09-16T15:58:41+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "ship-on-pinned-evidence",
+      "reason": "c1 red was qa's pin diffing team-config.yaml against the owner's dirty tree (FEAT-53 line); substance PASS; see handoff-validate.md"
     }
   ],
   "mission": "patch",
