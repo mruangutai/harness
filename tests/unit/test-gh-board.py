@@ -405,11 +405,6 @@ finally:
     gh_board.factory_gh.project_field_set = _orig_field_set
     gh_board.factory_gh.issue_board_item_id = _orig_item_id
 
-print()
-if FAILURES:
-    print(f"{len(FAILURES)} FAIL")
-    sys.exit(1)
-print("all pass")
 
 
 # --------------------------------------------------------------- project (FEAT-41 T-06) ------
@@ -469,3 +464,8 @@ for _bad in ("pending", "Building", "shipped"):
 _p = gh_board.project(_plan("review"), _rec(issues={"T-01": 41}))
 check("project: the value is a station, never a column",
       _p[41] == "review" and _p[41] != factory_config.station_column("review"), repr(_p))
+print()
+if FAILURES:
+    print(f"{len(FAILURES)} FAIL")
+    sys.exit(1)
+print("all pass")
