@@ -18,13 +18,25 @@ Read this when one of the three triggers fires: `ship-feature` completes · a le
    the evidence pointer for each. The operator signed the seats; this is the seats coming back
    graded, before anything else. Then each lead's summary cited to its digest by path, all open questions,
    resolved escalations, the feature's spend
-   (`feature-record.py spend`) and judgement count, the UAT if required, and a **proposed
+   (`feature-record.py spend`) and judgement count, **the amendments** (below), the UAT if
+   required, and a **proposed
    backlog** table with an `ID` column (`B-1`, `B-2`, …) — one row per residual finding that
    survived collation but does not gate, each with its nature (`bug`/`chore`/enhancement). The
    IDs let the user strike rows by name. Unstruck rows become backlog issues on ship acceptance
    (DEC-138), and **anything not listed dies silently — list them all.** When `len(runs)` has
    passed `max_total_runs`, say so here: the count, the budget, and your one-line read on whether
    the runs still earn their place. Never as an apology.
+
+   **Amendments (DEC-229/DEC-230).** One table from `feature.json` `judgements[]` of kind
+   `amendment`: the entry's `at`, its `decision` (`T-NN.intent|files|verify`), the reason, and
+   whether it is `overruled`. That is every departure from the signed task text the build made
+   on its own authority, shown to the operator once, here. Close the table with one line —
+   `overrule rate: <overruled>/<total>` — as a count over a count, `0/0` when the build amended
+   nothing (never a division). When the operator overrules one, the main session runs
+   `feature-record.py overrule-amendment --file <feature.json> --at <that entry's exact at>`
+   BEFORE the ship record is finalized; the entry stays in the ledger, marked. No build advisor
+   seat and no fresh approval question comes of this: the signature stands, the ledger is the
+   audit.
 4. **Write it** to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md`
    — plain English, conclusions first, the one artifact addressed to a human. Then
    `bin/render-brief.py <that path>` renders the reading view; the markdown stays the record and

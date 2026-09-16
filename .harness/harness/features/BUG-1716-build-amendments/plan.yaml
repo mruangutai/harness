@@ -231,7 +231,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The orchestrator playbook and ship briefing resolve to no team grant and must be updated together as one operating flow.
     depends_on: [T-03, T-04]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/SKILL.md
         quote: "**Authority boundary:**"
