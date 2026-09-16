@@ -3,11 +3,11 @@
 ## Current
 
 - feature: BUG-1716-build-amendments
-- run: .harness/harness/features/BUG-1716-build-amendments/runs/fix-c1-validator/digest.md
+- run: .harness/harness/features/BUG-1716-build-amendments/runs/fix-c2-validator/digest.md
 - squad: validator
-- status: validate c1 failed; awaiting Main fix for V-01; V-02 through V-08 closed
-- review_sha: f602c7eee7761ce4325accba7a04678794c7ed69
+- status: validate c2 passed; all seven success criteria met; V-01 closed; ready for ship review
+- review_sha: e348b40d5bba915a6131be37de728947da990deb
 
 ## Open Questions
 
-- V-01 (T-04): Restore plan bytes for every ledger-write failure after plan replacement, preserve or explicitly report rollback failure, and prove an ordinary post-plan-write I/O exception leaves both plan.yaml and feature.json byte-identical.
+- none
