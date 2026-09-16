@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1716-build-amendments",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -65,5 +65,35 @@
     "rounds": 2,
     "wall_clock_minutes": 90,
     "decision": ".harness/harness/features/BUG-1716-build-amendments/notes/answers-2026-09-15-sign.md"
+  },
+  "github": {
+    "milestone": 76,
+    "parent": 1744,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 1745,
+      "T-02": 1746,
+      "T-03": 1747,
+      "T-04": 1748,
+      "T-05": 1749,
+      "T-06": 1750,
+      "T-07": 1751,
+      "T-08": 1752,
+      "T-09": 1753
+    },
+    "source_issues": [
+      1716
+    ],
+    "build_entry": "opened"
   }
 }
