@@ -455,6 +455,50 @@ def main():
               rS.returncode == 0 and "gh-sync: SKIP" in (rS.stdout + rS.stderr),
               f"exit {rS.returncode}; out={(rS.stdout + rS.stderr)[-400:]!r}")
 
+    # ---- BUG-1129: SHIP REFUSES A FEATURE WITH NO VALIDATE HANDOFF ------------------------
+    # The post-merge sweep fires on `git pull` the moment a PR merges, which can be while the
+    # validate is still in flight. The cards it lands at Done and the milestone it closes are
+    # irreversible, so the refusal sits in ship itself, before the first write.
+    with tempfile.TemporaryDirectory() as tmpH:
+        install_gh(tmpH, FAKE_GH_STATIONS)
+        featH = stage_ship(tmpH, "FEAT-56-unvalidated", {"T-01": 41}, parent=40,
+                           validated=False)
+        rH = run(["ship", featH], tmpH, ship_env(tmpH, "40=Review 41=Review",
+                                                  children={40: [41]}))
+        outH = rH.stdout + rH.stderr
+        check("BUG-1129: ship REFUSES (exit 1) a feature with no notes/handoff-validate.md, "
+              "naming the missing note",
+              rH.returncode == 1 and "handoff-validate.md" in outH,
+              f"exit {rH.returncode}; out={outH[-500:]!r}")
+        check("BUG-1129: the refusal moved no card and closed no milestone",
+              not moved_to_done(calls(tmpH))
+              and not any("milestones/" in l for l in calls(tmpH)),
+              repr(calls(tmpH)))
+        check("BUG-1129: it is a REFUSAL, not a SKIP — the sweep must not read it as permission "
+              "to remove the worktree",
+              "gh-sync: SKIP" not in outH, f"out={outH[-300:]!r}")
+        check("BUG-1129: the plan.yaml station is untouched by the refusal",
+              read_plan_station(featH) != "done", read_plan_station(featH))
+
+    # A plan built entirely main-session-direct crossed no squad seam (DEC-174) and owes no
+    # note: the same exemption INV-17 applies, so ship must not demand what INV-17 does not.
+    with tempfile.TemporaryDirectory() as tmpX:
+        install_gh(tmpX, FAKE_GH_STATIONS)
+        featX = stage_ship(tmpX, "FEAT-57-all-direct", {"T-01": 41}, parent=40,
+                           validated=False)
+        planX = os.path.join(featX, "plan.yaml")
+        textX = open(planX).read()
+        assert "    execution_mode: team\n" in textX
+        open(planX, "w").write(textX.replace("    execution_mode: team\n",
+                                             "    execution_mode: main-session-direct\n"))
+        rX = run(["ship", featX], tmpX, ship_env(tmpX, "40=Review 41=Review",
+                                                  children={40: [41]}))
+        check("BUG-1129: an all-main-session-direct plan ships WITHOUT the note (DEC-174 "
+              "exemption shared with INV-17)",
+              rX.returncode == 0 and read_plan_station(featX) == "done",
+              f"exit {rX.returncode}; station={read_plan_station(featX)!r}; "
+              f"out={(rX.stdout + rX.stderr)[-400:]!r}")
+
     # NO GIT REPOSITORY AT ALL: the commit cannot succeed, and the sweep's two signal words must
     # still be absent from the output so the failure stays confined to this one line.
     with tempfile.TemporaryDirectory() as tmpN:
