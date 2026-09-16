@@ -77,8 +77,11 @@ never at startup (DEC-150, DEC-158):
    weight it by how far past you are (DEC-201). No line, nothing to weigh — one sentence and on.
    Never guess a figure; a reported number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now, and close the run
-   with `feature-record.py run-end --file <feature.json> --id <run-id> --verdict <V> [--tokens N]`
-   (`N` only from the tool result's `details.results[i].tokens`, never estimated). `cycles_used`
+   with `feature-record.py run-end --file <feature.json> --id <run-id> --verdict <V>`. You do not
+   pass `--tokens`: under OMP the host hook already stamped the measured figure onto the open run
+   on your wake, and a bare `run-end` preserves it (BUG-1724). Only when the host reported nothing
+   — the run entry still has no `tokens` — may you add `--tokens N` from
+   `details.results[i].tokens`; never an estimate. `cycles_used`
    comes from the lead's reported SEND-BACKS: a clean first-pass run adds ZERO cycles (DEC-157).
    **The `plan` run graded a document and no code**: close it with `run-end --code-grade n_a`,
    which writes `code_grade: n_a` on the run entry so INV-6 demands no `review_sha` for it

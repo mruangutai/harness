@@ -7319,6 +7319,17 @@ no `feature.json` on disk changes validity.
 **Record:** amends DEC-178, which keeps the removal of the money meter, the `cost_model` block,
 INV-11 and the historical-figures rule. Refs: DEC-134, DEC-159, DEC-178, DEC-226, DEC-230.
 
+**One mechanism clause (BUG-1724, 2026-09-15).** The figure is stamped by the HOST, never
+transcribed by the orchestrator. Measured on BUG-285-canonical-reader, the first `plan` mission
+carried through ship: 19 of 19 task results carried `details.results[i].tokens`, 0 of 26 `run-end`
+calls passed `--tokens`, and every one of the 28 runs read `null` — the meter recorded nothing on
+the feature it was built to see. The OMP hook that already runs `feature-record.py spend` on the
+orchestrator's wake now first sums the integer `tokens` over that task call's results and runs
+`feature-record.py stamp-tokens` on the one open run; a bare `run-end` preserves it. `run-end
+--tokens N` remains only as the explicit override for a host that reported nothing (the Claude
+Code compatibility host, DEC-210), where `null` stays correct. A prose rule asking a model to copy
+a number the host already computed was a script's job (DEC-156).
+
 ## DEC-228 — The pre-build panel is not universal: `patch` has none, `plan` runs it inside the one plan run, and a `proportionality` finding downgrades the mission
 
 **Chose:** DEC-207's rule — a plan-phase gate on every plan, with no threshold, its findings routed

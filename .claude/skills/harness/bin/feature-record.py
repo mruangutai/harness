@@ -11,6 +11,8 @@ VERBS
                 when an entry with that id already exists.
   run-end       stamp ended_at, verdict and optionally tokens / code_grade on the entry with
                 that id; refuses (exit 2) when there is none.
+  stamp-tokens  write the host-measured tokens onto the ONE open run (started_at set, ended_at
+                absent); refuses (exit 2) when no run or more than one is open (BUG-1724).
   judgement     append one {at, by, kind, decision, reason} to judgements[] (SC-21).
   set-rework    write the operator's one rework ruling (SC-15); --decision must be a file
                 under the feature's own directory (refuses exit 2 otherwise).
@@ -33,12 +35,14 @@ runs. This CLI adds the second half — `--decision` must resolve to an existing
 feature directory — so the record a ruling rests on is a document, not a string INV-39 would
 accept on the strength of its own syntax.
 
-TOKENS ARE MEASURED BY THE CALLER, OR NULL — THIS TOOL NEVER ESTIMATES (SC-18). `run-end
---tokens N` records a figure the caller read off the OMP transcript on disk; a run-end that
-carries none writes null, and `spend` prints null when no run carries an integer, so a reader
-can always tell "unmeasured" from "zero". Wall-clock minutes are likewise a sum of recorded
-ended_at - started_at spans, floored to whole minutes; an open run, or one predating FEAT-59,
-contributes zero rather than a guess.
+TOKENS ARE MEASURED BY THE HOST, OR NULL — THIS TOOL NEVER ESTIMATES (SC-18). Under OMP the
+harness hook reads the figure off the orchestrator's task result and runs `stamp-tokens` on the
+open run before that run is closed; a bare `run-end` then preserves it (BUG-1724). `run-end
+--tokens N` remains the explicit override for a host that reported nothing. A run that reaches
+run-end with no figure is written null, and `spend` prints null when no run carries an integer,
+so a reader can always tell "unmeasured" from "zero". Wall-clock minutes are likewise a sum of
+recorded ended_at - started_at spans, floored to whole minutes; an open run, or one predating
+FEAT-59, contributes zero rather than a guess.
 
 EXIT CODES: 0 on success; 2 for this CLI's own refusals (unknown id, duplicate id, non-raise,
 argparse); feature_json_write / harness_merge codes propagate unchanged (11 schema or missing
@@ -145,6 +149,38 @@ def cmd_run_end(args):
 
     _apply(args.file, mutate)
     print(f"ENDED run {args.id!r} verdict={args.verdict} tokens={json.dumps(args.tokens)}")
+    print(f"APPLIED {args.file}")
+    sys.exit(0)
+
+
+def _open_runs(runs):
+    """Open = started and not ended. An entry with no started_at predates FEAT-59's timing
+    and is not a run any host is measuring now."""
+    return [entry for entry in runs
+            if isinstance(entry, dict) and entry.get("started_at") and not entry.get("ended_at")]
+
+
+def cmd_stamp_tokens(args):
+    """BUG-1724: the HOST stamps the figure it measured onto the one open run, before that run
+    is closed, so the orchestrator never transcribes it. Refuses anything but exactly one open
+    run — with none there is nothing being measured; with several the figure is ambiguous."""
+    def mutate(doc):
+        runs = _runs(doc)
+        open_runs = _open_runs(runs)
+        if not open_runs:
+            _refuse(["REFUSED: no run is open (started_at set, ended_at absent).",
+                     "  stamp-tokens writes the host's figure onto the run being measured;",
+                     "  run-start one first, or use `run-end --tokens N` on a closed run."])
+        if len(open_runs) > 1:
+            ids = ", ".join(repr(entry.get("id")) for entry in open_runs)
+            _refuse([f"REFUSED: {len(open_runs)} runs are open at once: {ids}.",
+                     "  The figure cannot be attributed; close all but one with run-end."])
+        open_runs[0]["tokens"] = args.tokens
+        doc["runs"] = runs
+        return doc
+
+    _apply(args.file, mutate)
+    print(f"STAMPED tokens={args.tokens}")
     print(f"APPLIED {args.file}")
     sys.exit(0)
 
@@ -414,6 +450,12 @@ def main():
                    help="tokens MEASURED from the transcript; omit when unmeasured (null)")
     p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
     p.set_defaults(func=cmd_run_end)
+
+    p = with_file(sub.add_parser("stamp-tokens",
+                                 help="write the host-measured tokens onto the ONE open run"))
+    p.add_argument("--tokens", required=True, type=_int_at_least(0),
+                   help="tokens the host reported for the dispatch this run records")
+    p.set_defaults(func=cmd_stamp_tokens)
 
     p = with_file(sub.add_parser("judgement", help="append one judgement to the ledger"))
     p.add_argument("--by", required=True)
