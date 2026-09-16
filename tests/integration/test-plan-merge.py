@@ -3041,6 +3041,69 @@ def case_f59_set_lanes_writes_and_validates():
         shutil.rmtree(root, ignore_errors=True)
 
 
+SET_KEY_PLAN = ("schema: plan/1\nfeature: FEAT-99-fixture\n\n"
+                "# planned from\nsource_issues: [285]\n\n"
+                "# approval header comment\n" + APPROVED_APPROVAL + "\n"
+                "tasks:\n" + task_block("T-01"))
+
+
+def set_key(plan, value_path, key, value_text):
+    write(value_path, value_text)
+    return run_verb("set-key", "--file", plan, "--key", key, "--value-file", value_path)
+
+
+def case_1683_set_key_writes_any_top_level_key():
+    """#1683: write coverage is per document, not per key. BUG-285 could not correct
+    `source_issues` by any route; `set-lanes` had fixed the previous instance for one key only.
+    `set-key` replaces or inserts any top-level key and keeps the bytes of everything else —
+    the comment that introduces the NEXT key included."""
+    root, plan = fixture_root()
+    try:
+        write(plan, SET_KEY_PLAN)
+        value = os.path.join(root, "value.yaml")
+        r = set_key(plan, value, "source_issues", "[285, 1594]\n")
+        after = read(plan)
+        check("set-key replaces an existing scalar-list key", r.returncode == 0
+              and yaml.safe_load(after)["source_issues"] == [285, 1594],
+              f"rc={r.returncode} {r.stderr!r} {after}")
+        check("set-key keeps the comment introducing the next key, the approval bytes and the "
+              "tasks", "# approval header comment\n" + APPROVED_APPROVAL in after
+              and task_block("T-01") in after and after.count("source_issues:") == 1, after)
+        r = set_key(plan, value, "notes_ref", "notes/research-BUG-285.md\n")
+        after = read(plan)
+        check("set-key inserts an absent key before tasks: and it reloads",
+              r.returncode == 0 and yaml.safe_load(after)["notes_ref"] == "notes/research-BUG-285.md"
+              and after.index("notes_ref:") < after.index("tasks:"), f"rc={r.returncode} {after}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1683_set_key_refuses_owned_keys_by_name():
+    """#1683 with #1675: the general verb cannot become the fifth way to step around a rule.
+    The keys another verb owns are refused naming that verb — writing `tasks:` whole would keep
+    a signature the task set no longer has — a keyed validator still runs, and a key name the
+    indexer could not find again is refused before the lock. Every refusal writes nothing."""
+    root, plan = fixture_root()
+    try:
+        write(plan, SET_KEY_PLAN)
+        value = os.path.join(root, "value.yaml")
+        r = set_key(plan, value, "lanes",
+                    yaml.safe_dump({"resolved_at": "x", "rows": [{"surface": "a", "lane": "bus"}]}))
+        check("set-key runs the lanes validator rather than bypassing it",
+              r.returncode == 5 and "bus" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        for key, route in (("approval", "sign-approval"), ("tasks", "delete-items"),
+                           ("decisions", "amend"), ("status", "set-feature-station")):
+            r = set_key(plan, value, key, "{}\n")
+            check(f"set-key refuses {key} (exit 2) and names its route",
+                  r.returncode == 2 and route in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        r = set_key(plan, value, "bad key", "1\n")
+        check("set-key refuses a key name the indexer could not find again",
+              r.returncode == 2 and "bad key" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("set-key refusals leave the plan byte-identical", read(plan) == SET_KEY_PLAN)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_f59_set_panel_keeps_an_untouched_finding_byte_identical():
     """SC-08: `set-panel` used to re-render the whole mapping through yaml.safe_dump, so every
     call re-wrapped every finding and a review diff could not tell a carried finding from a
@@ -3574,6 +3637,8 @@ CASES = (
     case_f59_check_lists_each_failure_on_its_own_line,
     case_f59_line_number_anchor_is_refused_at_write,
     case_f59_set_lanes_writes_and_validates,
+    case_1683_set_key_writes_any_top_level_key,
+    case_1683_set_key_refuses_owned_keys_by_name,
     case_f59_set_panel_keeps_an_untouched_finding_byte_identical,
     case_f59_approval_auto_reset_on_every_task_changing_verb,
     case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone,

@@ -26,6 +26,7 @@
 #   plan-merge.py set-task-station    --file <plan.yaml> --task T-NN --station <name>
 #   plan-merge.py set-feature-station --file <plan.yaml> --station <name>
 #   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]...
+#   plan-merge.py set-key             --file <plan.yaml> --key <top-level key> --value-file <value.yaml>
 #
 # A hand edit is what #628 was: two whole-file writes, the second silently losing what the
 # first added. The verbs splice text under a lock instead, and a station outside the declared
