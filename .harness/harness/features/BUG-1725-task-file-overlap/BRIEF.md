@@ -14,11 +14,11 @@ A drafted plan can assign the same file to multiple tasks without showing that o
 
 - SC-01 (operator): `plan-merge.py check` emits exactly one `OVERLAP <path>: <task ids>` advisory for each normalized file path named by at least two tasks, treating `path`, `path#symbol`, and `{path, quote}` anchors for the same path as one shared file; the integration test demonstrates the assertion failing before the fix and passing after it.
   verify: automated        evidence: integration
-- SC-02 (operator): An overlap advisory alone does not change `plan-merge.py check`'s exit code, so a plan with shared files remains legal; the integration test demonstrates the exit-code assertion failing before the fix and passing after it.
+- SC-02 (operator): An overlap advisory alone does not change `plan-merge.py check`'s exit code, so a plan with shared files remains legal, and an existing failure keeps its nonzero exit when overlap is also present; the integration test asserts both, and fail-first evidence attaches to the overlap-beside-failure assertion (the exit-0 half preserves behaviour that predates the fix and cannot redden).
   verify: automated        evidence: integration
-- SC-03 (code maintainer): At the pinned `review_sha`, inspection of `git show <review_sha>:.agents/skills/harness-spec-driven/SKILL.md` confirms that tasks own their files, multi-file work is sliced by exclusive file ownership or kept as one task with a per-file checklist, layering over shared files is rejected, and a whole-tree verify belongs to the final touching task or validate.
+- SC-03 (code maintainer): At the pinned `review_sha`, inspection of `git show <review_sha>:.claude/skills/harness-spec-driven/SKILL.md` confirms that tasks own their files, multi-file work is sliced by exclusive file ownership or kept as one task with a per-file checklist, layering over shared files is rejected, and a whole-tree verify belongs to the final touching task or validate.
   verify: inspection
-- SC-04 (code maintainer): At the pinned `review_sha`, inspection of `git show <review_sha>:.agents/skills/harness/teams/plan.yaml` confirms that the scope reader asks which tasks share files and whose gate the later task will break, with an answer classified as a `substance` finding.
+- SC-04 (code maintainer): At the pinned `review_sha`, inspection of `git show <review_sha>:.claude/skills/harness/teams/plan.yaml` confirms that the scope reader asks which tasks share files and whose gate the later task will break, with an answer classified as a `substance` finding.
   verify: inspection
 
 ## Verification gaps

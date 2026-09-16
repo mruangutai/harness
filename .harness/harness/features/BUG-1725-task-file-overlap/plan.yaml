@@ -3,24 +3,26 @@ feature: BUG-1725-task-file-overlap
 approval:
   date: '2026-09-15'
   approved_by: mruangutai
-  status: approved
+  status: pending
+  reset_at: '2026-09-16T05:16:23+00:00'
+  reset_reason: amend T-01
 status: review
 source_issues: [1725]
 lanes:
-  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  resolved_at: 1a1c1925171803db8ac7f7464560a3767fa902a8
   rows:
-    - surface: .claude/skills/harness/bin/plan-merge.py
-      lane: main-session-direct
-      reason: DEC-174 places the plan-exit gate in the direct lane
-    - surface: tests/integration/test-plan-merge.py
-      lane: main-session-direct
-      reason: DEC-174 includes a gate script's own test in the direct lane
-    - surface: .agents/skills/harness-spec-driven/SKILL.md
-      lane: main-session-direct
-      reason: bounded prose edit folded into the same direct task
-    - surface: .agents/skills/harness/teams/plan.yaml
-      lane: main-session-direct
-      reason: bounded prose edit folded into the same direct task
+  - surface: .claude/skills/harness/bin/plan-merge.py
+    lane: main-session-direct
+    reason: DEC-174 places the plan-exit gate in the direct lane
+  - surface: tests/integration/test-plan-merge.py
+    lane: main-session-direct
+    reason: DEC-174 includes a gate script's own test in the direct lane
+  - surface: .claude/skills/harness-spec-driven/SKILL.md
+    lane: main-session-direct
+    reason: bounded prose edit folded into the same direct task
+  - surface: .claude/skills/harness/teams/plan.yaml
+    lane: main-session-direct
+    reason: bounded prose edit folded into the same direct task
 decisions: []
 tasks:
   - id: T-01
@@ -32,12 +34,12 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/plan-merge.py
-      - tests/integration/test-plan-merge.py
-      - .agents/skills/harness-spec-driven/SKILL.md
-      - .agents/skills/harness/teams/plan.yaml
+    - .claude/skills/harness/bin/plan-merge.py
+    - tests/integration/test-plan-merge.py
+    - .claude/skills/harness-spec-driven/SKILL.md
+    - .claude/skills/harness/teams/plan.yaml
     verify: |
-      python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py check --file /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1725-task-file-overlap/.harness/harness/features/BUG-1725-task-file-overlap/plan.yaml --root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1725-task-file-overlap
+      python3 .claude/skills/harness/bin/plan-merge.py check --file .harness/harness/features/BUG-1725-task-file-overlap/plan.yaml --root .
     intent: |
       Extend plan-merge.py check to normalize every task files anchor through the existing anchor path extraction for path, path#symbol, and {path, quote} forms. Group distinct task ids by normalized path and print exactly one advisory line, OVERLAP <path>: <task ids>, for every path named by more than one task. Do not add overlap to the failure list and do not otherwise change the check result: an otherwise valid plan with shared files still exits 0, while existing failures retain their existing nonzero exit.
 
