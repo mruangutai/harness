@@ -310,6 +310,40 @@ class CloseRunTest(FeatureRecordCase):
         self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
         self.assertNotIn("judgements", doc, "the judgement stage was never invoked")
 
+    def test_judgement_stage_refusal_names_it_keeps_run_end_and_never_reaches_spend(self):
+        """SC-02 at the judgement stage: a reason over the ledger's 240-character cap is the
+        schema's refusal, propagated with the schema's own code; run-end's write stays, no
+        judgement lands, and the one-line success summary (which carries spend) is not printed."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--judgement", "kind=regate,decision=x,reason=" + "r" * 241)
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertIn("REFUSED at stage judgement", result.stderr)
+        self.assertIn("reason", result.stderr)
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertNotIn("judgements", doc, "the refused judgement must not have landed")
+        self.assertNotIn("spend=", result.stdout, "spend runs after judgement, never before")
+
+    def test_spend_stage_refusal_names_it_and_exits_with_the_authority_code(self):
+        """SC-02 at the spend stage. Reachable only when the document spend reads back is
+        refused — which the earlier stages' validated writes make impossible on real data — so
+        the composition seam itself is exercised: `_stage("spend", …)` over an authority that
+        exits 3 must name the stage and exit 3, not swallow it into success or REFUSAL_CODE."""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("feature_record_cli", CLI)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        failing = self.tmp / "spend-refuses.py"
+        failing.write_text("import sys; print('REFUSED: ledger unreadable', file=sys.stderr); "
+                           "sys.exit(3)\n", encoding="utf-8")
+        import io, contextlib
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
+            mod._stage("spend", [str(failing)])
+        self.assertEqual(3, stop.exception.code)
+        self.assertIn("REFUSED at stage spend", err.getvalue())
+        self.assertIn("ledger unreadable", err.getvalue())
+
 
 
 class JudgementTest(FeatureRecordCase):

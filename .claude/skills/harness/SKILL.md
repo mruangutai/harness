@@ -87,8 +87,8 @@ never at startup (DEC-150, DEC-158):
    carries none may you add `run-end --tokens N` from `details.results[i].tokens`, never an
    estimate. `cycles_used` comes from the lead's reported SEND-BACKS: a clean first-pass run adds
    ZERO cycles (DEC-157). **The `plan` run graded a document and no code**: close it with
-   `--code-grade n_a`, so INV-6 demands no `review_sha` for it (BUG-1080); every other run omits
-   it. **Three writes stay yours and separate, after close-run:** REPLACE `STATE.md`'s
+   `--code-grade n_a`, which records `code_grade: n_a` on the run so INV-6 demands no `review_sha`
+   for it (BUG-1080); every other run omits it. **Three writes stay yours and separate, after close-run:** REPLACE `STATE.md`'s
    `## Current` (values, never narrative, DEC-150); the phase handoff note at a seam; the commit.
    Quarantine is inspected at WAKE (step 4), never here. Then route (below).
 7. **Advance until DONE — and done means the success criteria are met, not the tasks exhausted.**

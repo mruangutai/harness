@@ -3056,15 +3056,12 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
     if not _hits59:
         continue
     if _era59:
-        # INV-43 on a feature already at a terminal station is HISTORY, not a live seam: the
-        # violation stays readable (SC-05's census reads it) but no longer gates a commit or
-        # CI, since the record is not going to change (DEC-227's historical-values rule).
-        _terminal59 = station_of(os.path.dirname(_fy59)) in ("done", TERMINAL_MARKER, "rejected")
+        # INV-43 gates on a terminal feature too (SC-03/D-02): a retrospective succession is
+        # the record of work that crossed the seam unhanded, and shipping does not change what
+        # the ledger says happened. Validate c0 struck the terminal downgrade this branch first
+        # carried; the two BUG-285-canonical-reader hits are the honest census.
         for _inv, _short, _full in _hits59:
-            if _inv == "INV-43" and _terminal59:
-                warn.append(f"INV-43 {_feat59}: terminal, not gated — {_full}.")
-            else:
-                bad.append(f"{_inv} {_feat59}: {_full}.")
+            bad.append(f"{_inv} {_feat59}: {_full}.")
     else:
         # ONE note per legacy feature, both invariants together, short forms only. It says
         # what was not graded so a wrongly granted exemption is visible (INV-17's rule), and

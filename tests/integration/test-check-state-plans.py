@@ -554,7 +554,7 @@ def case_inv6_producer_is_documented():
         print(f"FAIL - INV-6's producer is documented: SKILL.md unreadable ({exc})")
         return False
     # Step 6 runs from its own numbered heading to the next top-level numbered step.
-    step6 = re.search(r"^6\. \*\*Adjust and record\*\*(.*?)^7\. ", text, re.S | re.M)
+    step6 = re.search(r"^6\. \*\*Adjust and record\b[^\n]*(.*?)^7\. ", text, re.S | re.M)
     ok = bool(step6) and "code_grade: n_a" in step6.group(1)
     print(f"{'ok' if ok else 'FAIL'} - INV-6's exemption has a documented producer "
           f"(SKILL.md step 6 names code_grade: n_a)")

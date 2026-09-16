@@ -436,8 +436,9 @@ def case_inv43_unreadable():
 
 def case_inv43_scope():
     """What INV-43 leaves alone: a missing succession (INV-40's), no successor run yet, a
-    legacy record; and a terminal feature's retrospective succession is a NOTE — still said
-    for SC-05's census, never a permanent red on main (DEC-227: history stays as recorded)."""
+    legacy record. What it does NOT leave alone: a terminal station — a retrospective
+    succession is graded the same at done as at review (SC-03/D-02; validate c0 struck the
+    terminal downgrade)."""
     results = []
     _, out = _seam(None)
     results.append(("(43.f) a MISSING succession is INV-40's finding, not INV-43's",
@@ -448,14 +449,12 @@ def case_inv43_scope():
     _, out = _check(_legacy(runs=_RUNS43, judgements=None), BRIEF_OLD, notes=_SEQ1)
     results.append(("(43.i) a legacy record is never graded by INV-43",
                     not _violations(out, "INV-43"), out[:400]))
-    _, out = _seam("2026-09-11T13:00:00+00:00", station="done")
-    notes = _notes(out, "INV-43")
-    results.append(("(43.j) on a terminal feature the retrospective succession is a NOTE, not a violation",
-                    not _violations(out, "INV-43") and len(notes) == 1
-                    and "retrospective" in notes[0], out[:500]))
-    _, out = _seam("2026-09-11T13:00:00+00:00", station="review")
-    results.append(("(43.k) on a live feature at review the same record is a VIOLATION",
-                    len(_violations(out, "INV-43")) == 1, out[:400]))
+    for station in ("done", "review"):
+        _, out = _seam("2026-09-11T13:00:00+00:00", station=station)
+        v = _violations(out, "INV-43")
+        results.append((f"(43.j) at station {station} the retrospective succession is a VIOLATION",
+                        len(v) == 1 and "retrospective" in v[0] and not _notes(out, "INV-43"),
+                        out[:500]))
     return results
 
 
