@@ -13,6 +13,12 @@ VERBS
                 that id; refuses (exit 2) when there is none.
   stamp-tokens  write the host-measured tokens onto the ONE open run (started_at set, ended_at
                 absent); refuses (exit 2) when no run or more than one is open (BUG-1724).
+  close-run     ONE close-out (BUG-1723): validate-digest.py <run's agent> <digest>, then
+                run-end, then plan-merge.py set-task-station when --task/--station are given,
+                then judgement (as harness-orchestrator) when --judgement is given, then spend
+                — composed as subprocesses so each keeps its own refusal; the first refusal
+                stops the sequence naming its stage, earlier durable writes stay. Prints ONE
+                line on success. Never takes --tokens: the host hook stamps those.
   judgement     append one {at, by, kind, decision, reason} to judgements[] (SC-21).
   set-rework    write the operator's one rework ruling (SC-15); --decision must be a file
                 under the feature's own directory (refuses exit 2 otherwise).
@@ -338,6 +344,85 @@ def cmd_spend(args):
     sys.exit(0)
 
 
+# close-run (BUG-1723 T-01, D-01): ONE command for the close-out the orchestrator used to spend
+# ~11 model calls on. It COMPOSES the existing authorities as subprocesses — validate-digest.py,
+# this file's run-end and judgement, plan-merge.py set-task-station, this file's spend — so each
+# keeps its own validation, lock and refusal text. Stages run in that order; the first refusal
+# stops the sequence, names its stage, and leaves every earlier durable write in place (no
+# rollback: a closed run is a fact, and hiding it would be worse than a half-finished close-out).
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _parse_judgement(text):
+    """`kind=K,decision=D,reason=R` -> dict, else None. `reason` is last and may hold commas."""
+    parts = text.split(",", 2)
+    if len(parts) != 3:
+        return None
+    pairs = {}
+    for expected, part in zip(("kind", "decision", "reason"), parts):
+        key, sep, value = part.partition("=")
+        if not sep or key.strip() != expected or not value.strip():
+            return None
+        pairs[expected] = value.strip()
+    return pairs if pairs["kind"] in JUDGEMENT_KINDS else None
+
+
+def _exit_refused(lines):
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(REFUSAL_CODE)
+
+
+def _stage(name, argv):
+    """Run one composed authority; on refusal print its stderr under the stage name and exit
+    with ITS code, so the orchestrator reads the same refusal it would have read by hand."""
+    import subprocess
+    proc = subprocess.run([sys.executable, *argv], stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, text=True)
+    if proc.returncode != 0:
+        print(f"REFUSED at stage {name}: later stages were not run.", file=sys.stderr)
+        sys.stderr.write(proc.stderr or proc.stdout)
+        sys.exit(proc.returncode or REFUSAL_CODE)
+    return proc.stdout
+
+
+def cmd_close_run(args):
+    if (args.task is None) != (args.station is None):
+        _exit_refused(["REFUSED: --task and --station are a pair; give both or neither."])
+    judgement = _parse_judgement(args.judgement) if args.judgement else None
+    if args.judgement and judgement is None:
+        _exit_refused([f"REFUSED: --judgement must read kind=<{'|'.join(JUDGEMENT_KINDS)}>,"
+                       "decision=...,reason=... — got " + repr(args.judgement)])
+    doc = _read_doc(args.file)
+    entry = _find_run(_runs(doc), args.id)
+    if entry is None:
+        _exit_refused([f"REFUSED at stage run-end: runs[] carries no entry with id {args.id!r}.",
+                       "  close-run closes an entry run-start opened; later stages were not run."])
+    agent = entry.get("agent")
+    if not isinstance(agent, str) or not agent:
+        _exit_refused([f"REFUSED at stage digest: run {args.id!r} records no agent, so no "
+                       "persona can validate its digest."])
+    _stage("digest", [os.path.join(_HERE, "validate-digest.py"), agent, args.digest])
+    run_end = [__file__, "run-end", "--file", args.file, "--id", args.id, "--verdict", args.verdict]
+    if args.code_grade:
+        run_end += ["--code-grade", args.code_grade]
+    _stage("run-end", run_end)
+    summary = [f"CLOSED run {args.id!r} verdict={args.verdict}"]
+    if args.task is not None:
+        plan = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
+        _stage("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
+                           "--file", plan, "--task", args.task, "--station", args.station])
+        summary.append(f"{args.task}={args.station}")
+    if judgement:
+        _stage("judgement", [__file__, "judgement", "--file", args.file,
+                             "--by", "harness-orchestrator", "--kind", judgement["kind"],
+                             "--decision", judgement["decision"], "--reason", judgement["reason"]])
+        summary.append(f"judgement={judgement['kind']}:{judgement['decision']}")
+    spend = _stage("spend", [__file__, "spend", "--file", args.file]).strip()
+    print(" ".join(summary) + f" spend={spend}")
+    sys.exit(0)
+
+
 def _read_doc(path):
     """The parsed feature.json, or a refusal — shared by the read-only verbs."""
     try:
@@ -456,6 +541,18 @@ def main():
     p.add_argument("--tokens", required=True, type=_int_at_least(0),
                    help="tokens the host reported for the dispatch this run records")
     p.set_defaults(func=cmd_stamp_tokens)
+    p = with_file(sub.add_parser("close-run",
+                                 help="ONE close-out: validate the digest, run-end, optional "
+                                      "task station, optional judgement, then print spend"))
+    p.add_argument("--id", required=True, help="the run to close")
+    p.add_argument("--digest", required=True, help="the lead's digest.md for that run")
+    p.add_argument("--verdict", required=True)
+    p.add_argument("--task", help="with --station: the task whose station to set")
+    p.add_argument("--station", help="with --task: the station to set")
+    p.add_argument("--judgement", help="kind=<kind>,decision=<d>,reason=<r>, recorded as "
+                                       "harness-orchestrator")
+    p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
+    p.set_defaults(func=cmd_close_run)
 
     p = with_file(sub.add_parser("judgement", help="append one judgement to the ledger"))
     p.add_argument("--by", required=True)
