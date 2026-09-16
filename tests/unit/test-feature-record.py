@@ -147,6 +147,20 @@ class RunStartEndTest(FeatureRecordCase):
         self.assertIn("exceeds feature cycles_used", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
+    def test_run_end_refuses_aggregate_cycle_attribution_above_feature_total(self):
+        before = self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2},
+            {"id": "r2", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2},
+        ]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1",
+            "--verdict", "PASS", "--cycles-used", "2")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("attributed cycles_used=4 exceeds feature cycles_used=3", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
     def test_run_end_requires_explicit_cycle_accounting(self):
         before = self.write(base_doc(runs=[
             {"id": "r1", "squad": "eng", "verdict": "PENDING",

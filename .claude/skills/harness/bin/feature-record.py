@@ -125,6 +125,16 @@ def _cycle_count(value, label):
     return value
 
 
+def _attributed_cycles(runs):
+    total = 0
+    for index, entry in enumerate(runs):
+        if not isinstance(entry, dict):
+            _refuse([f"REFUSED: runs[{index}] must be a mapping, got {type(entry).__name__}."])
+        label = f"run {entry.get('id', index)!r} cycles_used"
+        total += _cycle_count(entry.get("cycles_used", 0), label)
+    return total
+
+
 def cmd_run_start(args):
     def mutate(doc):
         runs = _runs(doc)
@@ -153,15 +163,15 @@ def cmd_run_end(args):
         if entry is None:
             _refuse([f"REFUSED: runs[] carries no entry with id {args.id!r}.",
                      "  run-end closes an entry run-start opened; start it first."])
-        previous_cycles = _cycle_count(
-            entry.get("cycles_used", 0), f"run {args.id!r} cycles_used")
         feature_cycles = _cycle_count(doc.get("cycles_used"), "feature cycles_used")
-        if previous_cycles > feature_cycles:
+        attributed_cycles = _attributed_cycles(runs)
+        if attributed_cycles > feature_cycles:
             _refuse([
-                f"REFUSED: run {args.id!r} cycles_used={previous_cycles} exceeds "
+                f"REFUSED: attributed cycles_used={attributed_cycles} exceeds "
                 f"feature cycles_used={feature_cycles}.",
                 "  repair the inconsistent ledger before recording another run result.",
             ])
+        previous_cycles = entry.get("cycles_used", 0)
         entry["verdict"] = args.verdict
         entry["ended_at"] = now_iso()
         entry["cycles_used"] = args.cycles_used
