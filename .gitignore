@@ -44,3 +44,12 @@ __pycache__/
 # registry. All four live under .harness/, so this covers exactly them. A COMMITTED lock is
 # worse than none: it never expires and wedges the next write on a fresh checkout.
 .harness/**/*.lock
+
+# --- harness ---
+# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these
+# must be ignored or the harness deadlocks itself. Everything else under
+# .harness/ is committed on purpose — it is the record of what shipped.
+.harness/features/*/runs/**
+.claude/skills/harness/bin/dashboard/client/node_modules/
+.claude/skills/harness/bin/dashboard/client/.vite/
+# --- end harness ---

@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-53-metrics-dashboard
-status: ready
+status: building
 source_issues: []
 
 approval:
@@ -332,7 +332,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: team-config.yaml is the file the domain hook reads to decide every route, so no agent may widen its own grant
     depends_on: []
-    status: ready
+    status: done
     files:
       - .harness/team-config.yaml
     verify: |
@@ -354,12 +354,12 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .gitignore and templates/gitignore.snippet are granted to no agent
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/templates/gitignore.snippet
       - .gitignore
     verify: |
-      bash .claude/skills/harness/bin/merge-gitignore.sh . --check && git check-ignore -q .claude/skills/harness/bin/dashboard/client/node_modules/react/package.json && git check-ignore -q .claude/skills/harness/bin/dashboard/client/.vite/x && grep -q instrumented_at .claude/skills/harness/templates/gitignore.snippet && grep -q 'touchpoints[.]jsonl' .claude/skills/harness/templates/gitignore.snippet && python3 -c "import subprocess,sys;bad=[p for p in ('.harness/metrics/instrumented_at','.harness/harness/features/FEAT-53-metrics-dashboard/touchpoints.jsonl') if subprocess.run(['git','check-ignore','-q',p]).returncode!=1];sys.exit('ignored or unresolvable, must stay committed records (D-22): '+repr(bad) if bad else 0)"
+      python3 .claude/skills/harness/bin/merge-gitignore.py . --check && git check-ignore -q .claude/skills/harness/bin/dashboard/client/node_modules/react/package.json && git check-ignore -q .claude/skills/harness/bin/dashboard/client/.vite/x && grep -q instrumented_at .claude/skills/harness/templates/gitignore.snippet && grep -q 'touchpoints[.]jsonl' .claude/skills/harness/templates/gitignore.snippet && python3 -c "import subprocess,sys;bad=[p for p in ('.harness/metrics/instrumented_at','.harness/harness/features/FEAT-53-metrics-dashboard/touchpoints.jsonl') if subprocess.run(['git','check-ignore','-q',p]).returncode!=1];sys.exit('ignored or unresolvable, must stay committed records (D-22): '+repr(bad) if bad else 0)"
     intent: |
       Add exactly two rules to .claude/skills/harness/templates/gitignore.snippet, with a comment
       saying an installed dependency tree dirties the working tree and a dirty tree halts the next
@@ -390,7 +390,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: ready
+    status: building
     files:
       - .harness/harness.json
     verify: |
@@ -565,7 +565,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/dashboard/kpi.py
       - .claude/skills/harness/bin/test-metrics-kpi.py
@@ -1675,7 +1675,7 @@ tasks:
     traces:
       - SC-21
     depends_on: []
-    status: ready
+    status: building
     execution_mode: team
     execution_agent: harness-backend-dev
     execution_reason: >-

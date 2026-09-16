@@ -5,6 +5,17 @@
 # notes, logs, expertise and features/*/feature.json are the record of what shipped,
 # and reviewers auditing the PR diff need to see plan and state changes.
 .harness/features/*/runs/**
+# The metrics dashboard's installed dependency tree and Vite cache (FEAT-53). An installed
+# dependency tree dirties the working tree, and a dirty tree halts the next team run — the
+# same reason the run-dir rule above exists. dist/ is NOT ignored: the built bundle is
+# committed on purpose (D-04).
+.claude/skills/harness/bin/dashboard/client/node_modules/
+.claude/skills/harness/bin/dashboard/client/.vite/
+# Deliberately NOT ignored (D-22): .harness/metrics/instrumented_at and each feature's
+# touchpoints.jsonl are committed records. An ignore rule over the epoch would let a second
+# clone write a later instant, and a feature starting after that fabricated epoch would
+# report a measured zero — exactly what D-21 exists to prevent. No rule for either path;
+# this comment is the whole of it.
 # The one-session PyYAML bootstrap marker (DEC-171). Written by the write hooks
 # when PyYAML is missing, so the FIRST session can still recover; untracked, it would
 # dirty the tree and deadlock the next run on the very rule above.
