@@ -28,5 +28,27 @@
       "reason": "Cause known from #1129; bounded writer refusal, shared INV-17 predicate, and validated-feature fixtures."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-1129-validate-handoff-sweep/notes/answers-2026-09-16-sign.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8e8d39c52aad352d7c2780529b1251dd49da43222e9d5524981efb52a2f2bd5c"
+  },
+  "github": {
+    "milestone": 79,
+    "parent": 1781,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1782
+    },
+    "source_issues": [
+      1129
+    ],
+    "build_entry": "opened"
+  }
 }
