@@ -6,6 +6,11 @@ is each segment's procedure. Evidence and history: DEC-224, DEC-226, DEC-232.
 A `build` team is single-squad by construction (DEC-118), so it is only the eng segment; `validate`
 and `fix` each host every reader in one run. In this order.
 
+**Every run in this phase closes the same way:** one `feature-record.py close-run` (the playbook's
+step 6; `ledger.md` has the stage order and the first-refusal rule). What stays outside it and
+yours, as separate writes after the close: `STATE.md`'s `## Current`, the handoff note at a
+seam, and the commit. The quarantine list is inspected at wake, never at close (DEC-204).
+
 1. **Build entry.** Immediately after signed approval and before dispatching any task, run
    `gh-sync.py open <feature-dir>`. It records `feature.json` `github.build_entry`; Build does not
    start without one because `gh-sync.py start-task` refuses at exit 2 when it is absent.
@@ -59,5 +64,10 @@ and `fix` each host every reader in one run. In this order.
    (SC-15) — without asking. `substance` findings are fixed inside it; only a NEW finding class (a
    scope change, an emergent SC) or budget exhaustion ends it early, and each of those is a
    `continue` judgement before it is a return.
+7. **The seam out of this phase.** Build ends at the pin, validate ends at a clean panel, and each
+   is a handoff (DEC-159): write `notes/handoff-<phase>.md` with its `seq-N` BEFORE any run of the
+   next phase is recorded, and hand off. The successor's `succession` judgement is its first act,
+   recorded no later than its first run; INV-43 reports one recorded after that run as a
+   retrospective seam correction (BUG-1723).
 
 Documentation is a product segment, sequenced the same way once validate is clean.
