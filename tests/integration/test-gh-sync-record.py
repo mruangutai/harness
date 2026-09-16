@@ -240,120 +240,73 @@ def main():
               read_plan_station(featSt1) == "building",
               read_feature_json(os.path.join(featSt1, "feature.json")))
 
-    # --- status Ready on a signed plan moves every recorded T-NN sub-issue to the declared
-    #     ready station and touches the parent NOWHERE (D-18) — assert the EXACT SET, never a
-    #     count: a count of three is satisfied by two sub-issues plus the parent.
-    with tempfile.TemporaryDirectory() as tmpSt2:
-        install_gh(tmpSt2, FAKE_GH_STATIONS)
-        featSt2 = stage_station(
-            tmpSt2, "FEAT-33-status-ready",
-            [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
-            issues={"T-01": 41, "T-02": 42, "T-03": 43},
-            parent=40,
-            approval={"status": "approved"},
-        )
-        r = run(["status", featSt2, "ready"], tmpSt2, {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
-        logSt2 = calls(tmpSt2)
-        editsSt2 = [l for l in logSt2 if "project item-edit" in l]
-        ids_written = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt2}
-        check("status Ready: exits 0", r.returncode == 0, r.stdout + r.stderr)
-        check("status Ready: writes exactly the three sub-issues, never the parent",
-              ids_written == {"ITEM_41", "ITEM_42", "ITEM_43"}, str(editsSt2))
-        # EACH CARD CARRIES ITS OWN TASK'S WORD (FEAT-41 T-06, D-11). This asserted that every write
-        # selected OPT_READY, because the transition used to write one station to every sub-issue.
-        # The plan here is deliberately MIXED — done, building, ready — and under D-11 a card whose
-        # task says building must READ building; writing `ready` over it is precisely the
-        # two-words-two-meanings disagreement this feature deletes.
-        #
-        # WHY THIS DIFFERS FROM THE Review TRANSITION, which DOES still write one station to every
-        # card: Review has an operator ruling behind it (D-23) and an INV-26 widening that exists to
-        # tolerate the resulting disagreement. Ready has neither, so there is nothing to justify
-        # overwriting a task's own word here.
-        _want_by_item = {"ITEM_41": "OPT_DONE", "ITEM_42": "OPT_BUILDING", "ITEM_43": "OPT_READY"}
-        _got_by_item = {next(p for p in l.split() if p.startswith("ITEM_")):
-                        l.split("--single-select-option-id ")[1].split()[0].strip("\x01")
-                        for l in editsSt2}
-        check("status Ready: each sub-issue card gets ITS OWN task's station, not one blanket value",
-              _got_by_item == _want_by_item, f"got {_got_by_item}, want {_want_by_item}")
-        check("status Ready: feature.json status recorded as Ready",
-              read_plan_station(featSt2) == "ready",
-              read_feature_json(os.path.join(featSt2, "feature.json")))
-
-    # --- status Review moves the PARENT and every recorded T-NN sub-issue, and only those.
-    with tempfile.TemporaryDirectory() as tmpSt3:
-        install_gh(tmpSt3, FAKE_GH_STATIONS)
-        featSt3 = stage_station(
-            tmpSt3, "FEAT-33-status-review",
-            [("T-01", "done"), ("T-02", "done")],
-            issues={"T-01": 41, "T-02": 42},
-            parent=40,
-        )
-        r = run(["status", featSt3, "review"], tmpSt3, {"FACTORY_GH": os.path.join(tmpSt3, "gh")})
-        logSt3 = calls(tmpSt3)
-        editsSt3 = [l for l in logSt3 if "project item-edit" in l]
-        ids_written3 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt3}
-        check("status Review: exits 0", r.returncode == 0, r.stdout + r.stderr)
-        check("status Review: writes exactly the parent plus every sub-issue",
-              ids_written3 == {"ITEM_40", "ITEM_41", "ITEM_42"}, str(editsSt3))
-        check("status Review: every write selects the declared Review option",
-              all("--single-select-option-id OPT_REVIEW" in l for l in editsSt3), str(editsSt3))
-
-    # --- status Review treats abandoned as finished, while still refusing unfinished work.
-    with tempfile.TemporaryDirectory() as tmpSt3b:
-        install_gh(tmpSt3b, FAKE_GH_STATIONS)
-        featSt3b = stage_station(
-            tmpSt3b, "FEAT-48-status-review-abandoned",
-            [("T-01", "done"), ("T-07", "abandoned")],
-            issues={"T-01": 41},
-            parent=40,
-        )
-        r = run(["status", featSt3b, "review"], tmpSt3b,
-                {"FACTORY_GH": os.path.join(tmpSt3b, "gh")})
-        check("status Review accepts done plus abandoned tasks as finished",
-              r.returncode == 0 and read_plan_station(featSt3b) == "review",
-              r.stdout + r.stderr)
-
-    # --- status Plan, Done and Abandoned each write NO station at all — the harness never
-    #     writes those three columns (Plan is board-station.py's, Done is `ship`'s alone -- ship
-    #     is the only writer of the done station -- and Abandoned has no column at all,
-    #     D-03/DEC-203).
-    for _st3_status in ("plan", "done", "abandoned"):
-        with tempfile.TemporaryDirectory() as tmpSt4:
-            install_gh(tmpSt4, FAKE_GH_STATIONS)
-            featSt4 = stage_station(
-                tmpSt4, f"FEAT-33-status-{_st3_status}",
-                [("T-01", "done")],
-                issues={"T-01": 41},
-                parent=40,
+    # --- Every active feature phase writes the one shared projection: source, parent, and
+    # --- non-abandoned task cards exactly once, even when record numbers overlap.
+    for _phase, _tasks, _approval in (
+            ("plan", [("T-01", "done"), ("T-02", "building"), ("T-03", "abandoned")], None),
+            ("ready", [("T-01", "done"), ("T-02", "building"), ("T-03", "abandoned")],
+             {"status": "approved"}),
+            ("building", [("T-01", "done"), ("T-02", "building"), ("T-03", "abandoned")],
+             None),
+            ("review", [("T-01", "done"), ("T-02", "done"), ("T-03", "abandoned")], None),
+    ):
+        with tempfile.TemporaryDirectory() as tmpSt2:
+            install_gh(tmpSt2, FAKE_GH_STATIONS)
+            featSt2 = stage_station(
+                tmpSt2, f"FEAT-33-status-{_phase}", _tasks,
+                issues={"T-01": 41, "T-02": 42, "T-03": 43}, parent=40,
+                approval=_approval, plan_station="plan",
             )
-            r = run(["status", featSt4, _st3_status], tmpSt4,
-                    {"FACTORY_GH": os.path.join(tmpSt4, "gh")})
-            logSt4 = calls(tmpSt4)
-            check(f"status {_st3_status}: exits 0", r.returncode == 0, r.stdout + r.stderr)
-            check(f"status {_st3_status}: writes NO station at all",
-                  not any("item-edit" in l for l in logSt4), str(logSt4))
-            check(f"status {_st3_status}: plan.yaml station recorded",
-                  read_plan_station(featSt4) == _st3_status,
-                  read_plan_station(featSt4))
+            pathSt2 = os.path.join(featSt2, "feature.json")
+            docSt2 = read_feature_json(pathSt2)
+            docSt2["github"]["source_issues"] = [90, 40, 90, 41]
+            write_feature_json(pathSt2, **docSt2)
+            r = run(["status", featSt2, _phase], tmpSt2,
+                    {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
+            editsSt2 = [l for l in calls(tmpSt2) if "project item-edit" in l]
+            idsSt2 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt2}
+            optionsSt2 = {l.split("--single-select-option-id ")[1].split()[0].strip("\x01")
+                          for l in editsSt2}
+            check(f"status {_phase}: exits 0 and records local station first",
+                  r.returncode == 0 and read_plan_station(featSt2) == _phase,
+                  r.stdout + r.stderr)
+            check(f"status {_phase}: writes the exact shared projection without duplicates",
+                  idsSt2 == {"ITEM_90", "ITEM_40", "ITEM_41", "ITEM_42"}, str(editsSt2))
+            check(f"status {_phase}: every card selects the declared phase",
+                  optionsSt2 == {f"OPT_{_phase.upper()}"}, str(editsSt2))
 
-    # --- SC-14's fixture: status Ready on a feature with ZERO recorded sub-issues writes
-    #     nothing and prints one line — proves there is no fallback to the parent.
+    # --- Board configuration may be absent or sync may be disabled: local state still moves,
+    # --- while no remote item-edit reaches the fake.
+    for _label, _board, _sync in (("no-board", False, True), ("sync-off", True, False)):
+        with tempfile.TemporaryDirectory() as tmpStLocal:
+            install_gh(tmpStLocal, FAKE_GH_STATIONS)
+            featStLocal = stage_station(
+                tmpStLocal, f"FEAT-33-status-local-{_label}", [("T-01", "building")],
+                board=_board, sync=_sync, issues={"T-01": 41}, parent=40,
+                approval={"status": "approved"}, plan_station="plan",
+            )
+            r = run(["status", featStLocal, "ready"], tmpStLocal,
+                    {"FACTORY_GH": os.path.join(tmpStLocal, "gh")})
+            check(f"status Ready, {_label}: retains local station and makes no remote write",
+                  r.returncode == 0 and read_plan_station(featStLocal) == "ready"
+                  and not any("item-edit" in line for line in calls(tmpStLocal)),
+                  r.stdout + r.stderr)
+
+    # --- A feature with no task cards still moves its recorded parent through the shared
+    # --- projection; there is no task-only fallback policy.
     with tempfile.TemporaryDirectory() as tmpSt5:
         install_gh(tmpSt5, FAKE_GH_STATIONS)
         featSt5 = stage_station(
             tmpSt5, "FEAT-33-status-ready-zero-subissues",
-            [("T-01", "pending")],
-            issues={},
-            parent=40,
+            [("T-01", "building")], issues={}, parent=40,
             approval={"status": "approved"},
         )
         r = run(["status", featSt5, "ready"], tmpSt5, {"FACTORY_GH": os.path.join(tmpSt5, "gh")})
-        logSt5 = calls(tmpSt5)
+        editsSt5 = [l for l in calls(tmpSt5) if "project item-edit" in l]
+        idsSt5 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt5}
         check("status Ready, zero sub-issues: exits 0", r.returncode == 0, r.stdout + r.stderr)
-        check("status Ready, zero sub-issues: no set_station call at all — no parent fallback",
-              not any("item-edit" in l for l in logSt5), str(logSt5))
-        check("status Ready, zero sub-issues: prints one line saying there is nothing to move",
-              "no sub-issues recorded" in r.stdout, r.stdout)
+        check("status Ready, zero sub-issues: moves the recorded parent through projection",
+              idsSt5 == {"ITEM_40"}, str(editsSt5))
 
     # --- refusal: status Ready with an UNSIGNED plan (no approval.status: approved) is
     #     refused, exit 2, and nothing is recorded or written.
@@ -423,6 +376,10 @@ def main():
             parent=40,
             approval={"status": "approved"},
         )
+        pathSt8 = os.path.join(featSt8, "feature.json")
+        docSt8 = read_feature_json(pathSt8)
+        docSt8["github"]["source_issues"] = [90]
+        write_feature_json(pathSt8, **docSt8)
         r = run(["status", featSt8, "ready"], tmpSt8, {"FACTORY_GH": os.path.join(tmpSt8, "gh")})
         logSt8 = calls(tmpSt8)
         editsSt8 = [l for l in logSt8 if "project item-edit" in l]
@@ -431,11 +388,11 @@ def main():
               r.stdout + r.stderr)
         check("status Ready, one write raises: ITEM_41's write was attempted (and is what failed)",
               "ITEM_41" in ids8, str(editsSt8))
-        check("status Ready, one write raises: the REMAINING sub-issues were still written",
-              {"ITEM_42", "ITEM_43"}.issubset(ids8), str(editsSt8))
+        check("status Ready, one write raises: every later projected card is still attempted",
+              {"ITEM_42", "ITEM_43", "ITEM_40", "ITEM_90"}.issubset(ids8), str(editsSt8))
         check("status Ready, one write raises: one stderr ERROR line naming the issue",
               "gh-sync: ERROR" in r.stderr and "41" in r.stderr, r.stderr)
-        check("status Ready, one write raises: feature.json status still recorded as Ready",
+        check("status Ready, one write raises: local station remains recorded",
               read_plan_station(featSt8) == "ready",
               read_feature_json(os.path.join(featSt8, "feature.json")))
 

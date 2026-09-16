@@ -171,6 +171,7 @@ teams:
           browser behavior, responsive layout.
         domain:
           - { path: web/src/**, upsert: true }            # seeded by /harness-init
+          - { path: .claude/skills/harness/bin/dashboard/client/**, upsert: true }   # metrics dashboard client, control-plane source under FEAT-53 D-01
           - { path: .harness/*/features/*/notes/receipt-harness-frontend-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
           - { path: .harness/*/expertise/harness-frontend-dev.md, upsert: true }  # repository tier, 40-line budget

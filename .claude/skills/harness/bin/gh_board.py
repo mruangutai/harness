@@ -124,67 +124,38 @@ def derive_station(plan_doc):
 
 
 def project(plan_doc, rec):
-    """Return {issue number: lowercase station} for every card this feature records.
+    """Return {issue number: lowercase station} for every recorded card placement.
 
-    THE STATION POLICY LIVES HERE AND NOWHERE ELSE — which card goes where, and when. plan.yaml
-    is the only input to the answer. It DERIVES NOTHING for a task: it SELECTS. The word in
-    plan.yaml and the column on the board are the same word with the same meaning, which is the
-    whole point of FEAT-41.
-
-    NO `board` PARAMETER, deliberately: every value returned is a lowercase station, and
-    factory_config.station_column is the one place a column name is produced — once, at the
-    moment a value is actually written.
-
-    `rec` is what gh-sync.load_recorded returns: `rec["issues"]` maps task id to sub-issue
-    number, `rec["source_issues"]` is a list, `rec["parent"]` is a number or None.
-
-    THE RULES:
-
-    - Each task sub-issue gets its own task's station, VERBATIM AND WITH NO EXCEPTION. A task at
-      the ready station projects to the ready station. The old ready-to-backlog exception —
-      carried from check-state.py's `_EXPECT` comment on the grounds that `gh-sync open` lands
-      every sub-issue in backlog — is DELETED by D-11. T-10's one-time board pass settles the
-      consequence.
-
-    - THE PARENT'S RULE IS TERMINAL FIRST, and this ordering is load-bearing. When the feature's
-      top-level station is `done` or one of TERMINAL_STATIONS, that wins outright and derive_station
-      is NOT consulted. MEASURED at 8f8a6a3 against live board 3 on 2026-08-25: every shipped
-      feature has all tasks done, so derive_station returns `review` for all of them, and
-      derive-first would project 22 of the 23 parent cards to Review while they sit correctly at
-      Done — T-10's pass would then drag 22 shipped parents backwards. Terminal first makes that
-      count zero. DEC-203 says the harness writes Done at ship; derive_station is an in-flight
-      review detector and was never meant to outrank a recorded terminal station.
-
-    - A CARD WHOSE STATION IS ONE OF TERMINAL_STATIONS IS ABSENT FROM THE MAPPING, never placed. D-05
-      says the marker names no column and never reaches the board; this is where that becomes
-      true rather than merely stated. Without this clause FEAT-28 — abandoned, with its card at
-      Done — becomes a write of a column that does not exist.
-
-    - Each source issue gets the parent's station.
-
-    - ABSENT AND ILLEGAL ARE DIFFERENT OUTCOMES AND DO NOT SHARE A CODE PATH. A station that is
-      legal but not derivable — the parent with no derivation and no top-level station — is
-      ABSENT, never guessed; an absent key means no write, the same silence derive_station
-      already returns. A station OUTSIDE the vocabulary raises FleetError naming the task id and
-      the value, because a vocabulary miss is the defect this feature exists to end and is the
-      one case that must not be silent.
-
-    Pure: no I/O, no gh binary, unit-testable.
+    Active feature phases are a single lifecycle projection: plan, ready, building, and review
+    place every unique source, parent, and non-terminal task card at that phase. Terminal done
+    and absent-phase behavior retain their established task and parent rules.
     """
     legal = frozenset(factory_config.MANDATED_STATIONS) | frozenset(factory_config.TERMINAL_STATIONS)
     placed = _task_cards(plan_doc, rec, legal)
-
     parent_station = _parent_station(plan_doc, legal)
-    if parent_station is None:
-        # No verdict and no write — for the parent AND for its source issues, which take the
-        # parent's station or nothing. Absent, never guessed.
-        return placed
+    active_station = _active_lifecycle_station(plan_doc)
+    if active_station is not None:
+        placed = {number: active_station for number in placed}
+        parent_station = active_station
+    return _place_parent_and_sources(placed, rec, parent_station)
 
-    parent = (rec or {}).get("parent")
+
+def _active_lifecycle_station(plan_doc):
+    """The active feature station shared by all recorded cards, or None."""
+    top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
+    return top if top in ("plan", "ready", "building", "review") else None
+
+
+def _place_parent_and_sources(placed, rec, station):
+    """Add the recorded parent and sources at station when that station needs a write."""
+    if station is None:
+        return placed
+    record = rec or {}
+    parent = record.get("parent")
     if parent is not None:
-        placed[parent] = parent_station
-    for number in (rec or {}).get("source_issues") or []:
-        placed[number] = parent_station
+        placed[parent] = station
+    for number in record.get("source_issues") or []:
+        placed[number] = station
     return placed
 
 

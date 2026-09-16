@@ -183,6 +183,9 @@ export function hollowYieldValue(value: unknown): boolean {
 }
 
 export function normalizeYieldInput(input: Dict, fallback: string): Dict {
+  // Current OMP yields `{data|error}` directly; older hosts wrap that envelope in `result`.
+  // Preserve either explicit form. Only synthesize legacy `result` data for an empty yield.
+  if ("data" in input || "error" in input) return input;
   const result = input.result;
   if (result && typeof result === "object" && !Array.isArray(result)) {
     const envelope = result as Dict;
@@ -944,7 +947,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     if (!reason && toolName === "yield") {
       const normalized = normalizeYieldInput(input, lastAssistantMessage);
-      const contract = yieldContractText(normalized.result, lastAssistantMessage);
+      const payload = ("data" in normalized || "error" in normalized)
+        ? normalized : normalized.result;
+      const contract = yieldContractText(payload, lastAssistantMessage);
       // The two outcomes #1676 asks to tell apart. No fallback and no payload: nothing
       // was produced, and the block below says so. A payload repaired from the assistant
       // text: a digest WAS produced and the envelope dropped it — repaired here, named

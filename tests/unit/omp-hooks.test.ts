@@ -102,6 +102,11 @@ describe("yieldContractText", () => {
     expect(normalizeYieldInput(input, "ignored")).toEqual(input);
   });
 
+  test("keeps the current top-level yield envelope unchanged", () => {
+    const input = { data: { VERDICT: "PASS" } };
+    expect(normalizeYieldInput(input, "ignored")).toEqual(input);
+  });
+
   // #1676: the five "yield with null data" exits. The digest was complete in the assistant
   // text; the envelope named `data` and carried nothing under it, and the repair keyed on the
   // key rather than the value, so the host settled a finished run as failed.
@@ -427,7 +432,7 @@ describe("OMP task lifecycle adapter", () => {
       call.script === "inflight_registry.py" && call.args[0] === "attach"
     )).toHaveLength(0);
     expect(await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+      toolName: "yield", input: { data: { content: "VERDICT: PASS" } },
     }, ctx)).toBeUndefined();
   });
 

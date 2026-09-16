@@ -16,8 +16,8 @@ VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line — what now works, not what you did>
   tests_added: <n>
-  suite: pass|fail|n/a         # n/a ONLY if no tests ran at all (refused/blocked task).
-                               # n/a with VERDICT: PASS is rejected — DEC-173
+  suite: pass|fail|n/a         # n/a + PASS requires task: none and files_touched: [];
+                               # otherwise rejected — DEC-173/175
   task: T-NN|none              # your task's id, verbatim from your dispatch. `none` ONLY when
                                # this dispatch carries no PLAN task at all (DEC-175)
   task_verify: pass|fail|n/a   # your TASK's declared verify: command — NOT your test suite.
@@ -27,7 +27,7 @@ DIGEST:
   blocked_on: <text|none>
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
+  files_touched: [<work paths>]   # exclude the required `artifact:` receipt
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
 artifact: <path>
 ```
@@ -35,6 +35,7 @@ artifact: <path>
 
 **Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar.
 The `SubagentStop` hook rejects a return missing any of them.
+
 
 ## Run your task's `verify:` before you return
 

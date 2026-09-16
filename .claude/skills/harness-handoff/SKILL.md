@@ -19,7 +19,7 @@ DIGEST:
   <your role's fields — see your role rule>
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }
-  files_touched: [<paths>]        # [] if you changed none
+  files_touched: [<work paths>]   # excludes the required artifact receipt; [] for read-only work
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
 artifact: <path to what you wrote>
 ```
@@ -38,6 +38,7 @@ parsed (DEC-172).
 **`bin/validate-digest.py` is the contract** — exact tokens and field names, since the runner routes
 on them; every field present, "nothing" as an explicit `[]` or `none`, never an omitted key;
 `findings` and `fail_first` checked inside the list. Violation → `BLOCKED (contract violation)`.
+
 
 **Never invent a verdict** — undeterminable is `BLOCKED`, with why.
 

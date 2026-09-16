@@ -65,13 +65,10 @@ RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the S
     definition already null) gets state_reason=completed.
   - LABEL: creates the `abandoned` label directly (never through a helper — see below), then
     `gh issue edit <n> --add-label abandoned`.
-  - STATUS, for every recorded status EXCEPT Done: moves the PARENT card (never the other
-    way — feature.json is the authority, DEC-138, and this must never rewrite feature.json) to
-    the station its status maps to. A Done-status STATUS finding is a genuine finding (D-22,
-    no Done exemption in detection) but reconcile does not move a card to the done station on
-    its say alone, so it is left for a human exactly like DECLARATION and WORKFLOW — the SAME
-    "counts only what it can fix" principle that excludes those two, applied to one status
-    value inside a class that is otherwise fixable.
+  - STATUS, for active features at plan, ready, building, or review: moves every unique source,
+    parent, and non-abandoned task card to the feature's recorded plan station. `plan.yaml` is
+    the authority (DEC-138); this never rewrites a Harness artifact. Done remains ship-only,
+    and terminal features never enter automatic reconciliation.
 DECLARATION and WORKFLOW are never attempted: the declaration is a file a human signs, and no
 API can enable a workflow (D-09).
 
@@ -94,28 +91,22 @@ call in this module that is not routed through `factory_gh.run_gh` — and swall
 exactly as gh-sync.py's own `ensure_labels` does: "label already exists" is the common case.
 
 RECONCILE'S NETWORK-CALL COST is NOT covered by AUDIT's four-call count above, which is audit's
-own contract and nothing else's. `--dry-run` (the default) costs exactly the SAME four calls
-audit makes — detection only, nothing more. `--apply` costs those four, PLUS one write per
-fixed finding (two for LABEL: the label create and the issue edit), PLUS a second, identical
-four-call detection pass afterward to compute the residual truthfully rather than assume the
-writes landed.
+own contract and nothing else's. `--dry-run` and `--apply` each take one bounded detection
+snapshot. Apply adds one write per fixed finding (two for LABEL: the label create and issue
+edit), but never performs a second board read in the same invocation. Successful writes are
+removed from the residual report; a per-card write failure preserves that finding while later
+cards are still attempted.
 
-RECONCILE'S EXIT CODES: 4 on a `GhError` from EITHER detection pass (the run could not
-complete — never conflated with 0 or 1, DEC-203's inverse-of-the-mirror posture, same as
-audit). Under `--dry-run`, always 0 once detection succeeds — a preview attempts nothing, so
-nothing can be reported as "surviving" a fix it never tried. Under `--apply`: 0 when no
-STATION, REASON, LABEL or STATUS(non-Done) finding survives the post-fix re-detection; 1 with
-the full residual list otherwise. DECLARATION, WORKFLOW and STATUS(Done) residuals are always
-printed in full and NEVER counted toward this exit code — counting an unfixable-by-design class
-would mean reconcile could never exit 0 on a board carrying one, permanently gating T-11 and
-T-12 (which require exit 0) on a finding no write of this tool's can resolve. A bulk fix that
-stops at the first failure and reports 0 leaves the board silently half migrated, so a failed
-write for one card is caught, printed, and the run continues to the rest; the failed card's
-finding survives into the residual list and the exit code reflects that.
+RECONCILE'S EXIT CODES: 4 when initial detection cannot complete (DEC-203's
+inverse-of-the-mirror posture, same as audit). Under `--dry-run`, always 0 once detection
+succeeds. Under `--apply`: 0 when no attempted write failed; 1 with every failed fixable finding
+listed otherwise. DECLARATION and WORKFLOW findings remain visible but never count toward this
+exit code because this tool cannot repair them. A bulk fix that stops at the first failure and
+reports 0 leaves the board silently half migrated, so each failed write is caught, printed, and
+retained while reconciliation continues.
 
-IDEMPOTENCE: re-running `reconcile --apply` against an already-correct board performs the
-SAME detection-only four calls both passes always cost, finds nothing fixable, attempts zero
-writes, and exits 0 — a no-op in effect, not merely in outcome.
+IDEMPOTENCE: re-running `reconcile --apply` against an already-correct board performs the same
+single detection snapshot, attempts zero writes, and exits 0.
 
 AUDIT (T-05) — read-only, exits 0/1/4, never 2 or 3 (those are provision's own codes for a
 caller/declaration error and the new-project race). It performs EXACTLY FOUR network calls, one
@@ -447,23 +438,14 @@ def _declared_stations(board):
             for s in factory_config.station_names(board)]
 
 
-# THE FEATURE'S STATION, READ FROM plan.yaml (FEAT-41 T-07). This replaces the
-# `_STATUS_TO_STATION_KEY` table that mapped feature.json's capitalised status values onto
-# lowercase station names. Once the recorded value IS a station, that table was an identity map
-# — six keys whose only remaining purpose was to be a place the two vocabularies could drift.
-#
-# Returns "" for no plan, an unparseable plan, a non-mapping document, or a plan carrying no
-# station. The CALLER distinguishes those from an unrecognised station, which is a finding: the
-# old table folded both into a single `None` and so exempted a typo from the audit.
-def _plan_station(feat_dir):
+# Load the feature plan once: STATUS needs both its top-level phase and the task statuses consumed
+# by gh_board.project. An absent, malformed, or non-mapping plan has no lifecycle projection.
+def _plan_doc(feat_dir):
     try:
         doc = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml")) or {}
     except harness_yaml.YamlParseError:
-        return ""
-    if not isinstance(doc, dict):
-        return ""
-    token = str(doc.get("status", "")).split()
-    return token[0] if token else ""
+        return {}
+    return doc if isinstance(doc, dict) else {}
 
 
 def _feature_dirs(root):
@@ -474,109 +456,76 @@ def _feature_dirs(root):
     return sorted(os.path.dirname(p) for p in glob.glob(pattern))
 
 
-def _status_findings(root, board, stations):
-    """Class 6 -- STATUS (T-15). No network call: reads each feature's `feature.json` off disk
-    and reuses `stations`, the SAME station map class 2 (STATION) already fetched for this repo.
+_ACTIVE_FEATURE_STATIONS = frozenset(("plan", "ready", "building", "review"))
 
-    CALLED ONLY WHEN THE AUDITED REPO IS THIS CHECKOUT'S OWN REPO (#783's fix) -- see
-    `_audit_findings`'s Class 6 section for the caller-side check and why it lives there rather
-    than in here.
 
-    THE RULING (#783), stated once here because it has to be explicit rather than implied by a
-    filter: `_feature_dirs` walks `<root>/.harness/*/features/*` -- ALWAYS this checkout's own
-    on-disk tree, regardless of which repo `--repo` names. A served fleet repository's features
-    are never there; its own `.harness/harness.json` is read REMOTELY
-    (`factory_config.product_config` -> `factory_gh.file_at_ref`), never from a directory in
-    this checkout, and no feature.json anywhere records a `github.repo` field to filter by
-    (checked: none of this tree's feature.json files carry one). Scoping this class to
-    "features whose recorded repo matches the audited one" would mean inventing a field that
-    does not exist on disk. Self-skip is the honest alternative, and it is what `_audit_findings`
-    does: this class runs ONLY for this checkout's own repo, and prints one line saying so for
-    any other `--repo`, rather than silently comparing this checkout's features against a
-    foreign board (the live defect measured on board 2 with `--repo mruangutai/kaya-ai`: 18 of
-    29 findings were this checkout's own harness issues compared against kaya-ai's board).
+def _invalid_status_finding(feat_dir, station):
+    return _finding(
+        "STATUS",
+        f"STATUS: {os.path.basename(feat_dir)} records station {station!r} in plan.yaml, "
+        f"which is not in the station vocabulary "
+        f"({', '.join(factory_config.MANDATED_STATIONS)}) — so it cannot be compared against "
+        f"its cards. Set it with `plan-merge.py set-feature-station`, which validates before "
+        f"it writes.",
+        feature=feat_dir, station=station,
+    )
 
-    feature.json's `status` IS THE AUTHORITY here, never the card (T-13's outbound posture,
-    DEC-138) -- a disagreement means the card drifted, not that the recorded status is wrong.
 
-    THREE exemptions, and only three (T-15 intent):
-    - status `Abandoned` -- DEC-203 gives it no board column to compare against.
-    - no recorded `github.parent` -- INV-21 already reports that shape.
-    - issues recorded under `factory.issues` rather than `github.issues` -- that feature's cards
-      live on the PRODUCT's board, not this one (the same carve-out check-state.py's INV-26
-      already makes for the factory lane).
-    There is NO Done exemption (D-22): a status of Done whose parent is not at the done station
-    is a finding whether the parent issue is open or closed.
-    """
+def _active_plan(feat_dir):
+    """Return an active plan plus no error, or no plan plus an optional vocabulary finding."""
+    plan_doc = _plan_doc(feat_dir)
+    station_tokens = str(plan_doc.get("status", "")).split()
+    station = station_tokens[0] if station_tokens else ""
+    if not station or station in factory_config.TERMINAL_STATIONS:
+        return None, None
+    if station not in factory_config.MANDATED_STATIONS:
+        return None, _invalid_status_finding(feat_dir, station)
+    if station not in _ACTIVE_FEATURE_STATIONS:
+        return None, None
+    return plan_doc, None
+
+
+def _feature_projection(feat_dir, feature_doc):
+    """Return an active feature's projected cards and any invalid-station finding."""
+    plan_doc, invalid = _active_plan(feat_dir)
+    if plan_doc is None:
+        return {}, invalid
+    github = feature_doc.get("github")
+    github = github if isinstance(github, dict) else {}
+    factory_block = feature_doc.get("factory")
+    factory_block = factory_block if isinstance(factory_block, dict) else {}
+    if not github.get("issues") and factory_block.get("issues"):
+        return {}, None
+    return gh_board.project(plan_doc, github), None
+
+
+def _projection_findings(feat_dir, board, stations, projection):
     findings = []
-    for feat_dir in _feature_dirs(root):
-        try:
-            fj = artifact_accessors.load_feature_json(
-                os.path.join(feat_dir, "feature.json"))
-        except artifact_accessors.ArtifactAccessError:
-            continue
-
-        # THE STATION COMES FROM plan.yaml (FEAT-41 T-07), and `_STATUS_TO_STATION_KEY` is gone
-        # with the read: once the recorded value IS a lowercase station, that table was an
-        # identity map, and an identity map is a place for the two vocabularies to disagree.
-        station_key = _plan_station(feat_dir)
-
-        # THE EXEMPTION AND THE UNRECOGNISED VALUE NO LONGER SHARE A CODE PATH (D-11's shape,
-        # applied here). They did: `station_key is None` covered the terminal marker, an absent
-        # status AND a value nobody recognised, so a typo was silently exempt from the only
-        # class that compares a feature against its parent card. Each is now its own branch.
-        if station_key in factory_config.TERMINAL_STATIONS:
-            continue  # terminal stations name no board column to compare against.
-        if not station_key:
-            # No plan, or a plan carrying no station: nothing to compare, and INV-3 already
-            # reports a plan that should exist and does not.
-            continue
-        if station_key not in factory_config.MANDATED_STATIONS:
-            findings.append(Finding(
-                kind="STATUS",
-                message=(f"STATUS: {os.path.basename(feat_dir)} records station "
-                         f"'{station_key}' in plan.yaml, which is not in the station "
-                         f"vocabulary ({', '.join(factory_config.MANDATED_STATIONS)}) — so it "
-                         f"cannot be compared against its parent card. Set it with "
-                         f"`plan-merge.py set-feature-station`, which validates before it "
-                         f"writes."),
-                data={"feature": os.path.basename(feat_dir), "station": station_key},
-            ))
-            continue
-
-        github = fj.get("github")
-        github = github if isinstance(github, dict) else {}
-        parent = github.get("parent")
-        if not isinstance(parent, int):
-            continue  # exemption 2 -- no recorded parent; INV-21's finding, not this one.
-
-        if not github.get("issues"):
-            factory_block = fj.get("factory")
-            factory_block = factory_block if isinstance(factory_block, dict) else {}
-            if factory_block.get("issues"):
-                continue  # exemption 3 -- this feature's cards live on the PRODUCT's board.
-
-        # BOTH SIDES LOWERCASE (FEAT-41 T-02/T-07). `stations` came from gh_board.board_stations,
-        # which lowercases what the board returned, and the recorded side is now plan.yaml's own
-        # lowercase station — so the two are directly comparable and no lookup is needed. The
-        # message still names the COLUMN, derived here, because that is what the operator sees on
-        # the board when they go to look.
-        #
-        # THE RECORDED VALUE AND THE STATION ARE ONE THING NOW, so the message no longer prints
-        # both. It used to print the recorded status AND the station it mapped to — two
-        # spellings of one fact, which is exactly the duplication this feature removes. The old
-        # text is described rather than quoted: SC-02 greps for quoted station literals and
-        # cannot tell a historical note from live code.
-        expected = station_key
-        actual = stations.get(parent)
+    for issue_number, expected in projection.items():
+        actual = stations.get(issue_number)
         if actual != expected:
             findings.append(_finding(
                 "STATUS",
-                f"STATUS: {feat_dir} records station {expected!r} (column "
-                f"{factory_config.station_column(expected)!r}) but its parent #{parent} reads "
-                f"{actual!r}",
-                parent=parent, expected=expected, status=station_key,
+                f"STATUS: {feat_dir} projects card #{issue_number} to station {expected!r} "
+                f"(column {factory_config.station_column(expected)!r}) but it reads {actual!r}",
+                issue_number=issue_number, expected=expected, actual=actual, feature=feat_dir,
             ))
+    return findings
+
+
+def _status_findings(root, board, stations):
+    """Compare active feature cards using the one supplied board snapshot and shared policy."""
+    findings = []
+    for feat_dir in _feature_dirs(root):
+        try:
+            feature_doc = artifact_accessors.load_feature_json(
+                os.path.join(feat_dir, "feature.json"))
+        except artifact_accessors.ArtifactAccessError:
+            continue
+        projection, invalid = _feature_projection(feat_dir, feature_doc)
+        if invalid is not None:
+            findings.append(invalid)
+        findings.extend(_projection_findings(feat_dir, board, stations, projection))
     return findings
 
 
@@ -1025,30 +974,16 @@ def cmd_audit(repo_arg):
 
 # ---------------- reconcile (T-06) -- the write side of audit ----------------
 
-# STATION, REASON and LABEL are always attempted; STATUS is attempted for every status except
-# Done (see the module docstring's RECONCILE section for why). DECLARATION and WORKFLOW never
-# are -- neither reaches this set.
-_ALWAYS_FIXABLE_KINDS = {"STATION", "REASON", "LABEL"}
+# Every emitted STATUS finding is active and therefore fixable. DECLARATION and WORKFLOW never
+# reach this set because neither has a safe write this command can perform.
+_FIXABLE_KINDS = {"STATION", "REASON", "LABEL", "STATUS"}
 
 _ABANDONED_LABEL_COLOR = "b60205"  # MUST match gh-sync.py's own colour for this label (D-04).
 
 
 def _fixable(finding):
-    """Whether `reconcile` attempts this finding's fix, and whether it counts toward the exit
-    code. STATUS is fixable for every recorded station except `done` -- done and the terminal
-    marker are T-15's own exemptions; the marker never reaches here at all
-    (`_status_findings` skips it), so only `done` needs an explicit check.
-
-    LOWERCASE AS OF FEAT-41 T-07, and this line is why the station read and the vocabulary had
-    to move together: comparing against the old capitalised spelling would be TRUE for every
-    finding once the station is lowercase, which would have made every shipped feature's STATUS
-    finding fixable and had reconcile write a done parent's card backwards. That spelling is
-    described, not quoted, so SC-02's grep does not read this note as a dependency on it."""
-    if finding.kind in _ALWAYS_FIXABLE_KINDS:
-        return True
-    if finding.kind == "STATUS":
-        return finding.data.get("status") != "done"
-    return False
+    """Return whether reconcile has a safe write for this finding class."""
+    return finding.kind in _FIXABLE_KINDS
 
 
 def _ensure_abandoned_label(repo_name):
@@ -1076,7 +1011,7 @@ def _apply_fix(finding, board, repo_name):
             board, repo_name, finding.data["issue_number"], finding.data["expected"])
     elif finding.kind == "STATUS":
         gh_board.set_station(
-            board, repo_name, finding.data["parent"], finding.data["expected"])
+            board, repo_name, finding.data["issue_number"], finding.data["expected"])
     elif finding.kind == "REASON":
         num = finding.data["issue_number"]
         reason = "not_planned" if finding.data["abandoned"] else "completed"
@@ -1092,11 +1027,54 @@ def _apply_fix(finding, board, repo_name):
         ])
 
 
+def _detect_reconcile_findings(root, board, repo_name):
+    try:
+        return _audit_findings(root, board, repo_name)
+    except factory_gh.GhError as exc:
+        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
+        sys.exit(4)
+
+
+def _preview_reconcile(findings):
+    for finding in findings:
+        disposition = ("would fix" if _fixable(finding)
+                       else "cannot fix, needs a human")
+        _out(f"DRY-RUN {disposition} -- {finding.message}")
+    fixable_count = sum(1 for finding in findings if _fixable(finding))
+    human_count = len(findings) - fixable_count
+    _out(f"{fixable_count} fixable finding(s) previewed; {human_count} finding(s) require a "
+         f"human (see above) -- re-run with --apply to write")
+
+
+def _apply_reconcile_findings(findings, board, repo_name):
+    """Attempt every safe write once and retain non-fixable or failed findings."""
+    residual = [finding for finding in findings if not _fixable(finding)]
+    for finding in findings:
+        if not _fixable(finding):
+            continue
+        try:
+            _apply_fix(finding, board, repo_name)
+        except (gh_board.BoardError, factory_gh.GhError) as exc:
+            print(f"factory: {_TOOL}: fix failed -- {exc}", file=sys.stderr)
+            residual.append(finding)
+    return residual
+
+
+def _report_reconcile_residual(residual):
+    for finding in residual:
+        _out(finding.message)
+    fixable = [finding for finding in residual if _fixable(finding)]
+    human = [finding for finding in residual if not _fixable(finding)]
+    _out(f"{len(fixable)} fixable finding(s) remain; {len(human)} "
+         f"finding(s) require a human (see above)")
+    if fixable:
+        sys.exit(1)
+
+
 def cmd_reconcile(repo_arg, apply):
     root = harness_boundary.resolve_root(_BIN_DIR)
     repo_name, board = _resolve_board(root, repo_arg)
     if board is None:
-        # D-07: an explicit `github.board: null` is a declaration, not a misconfiguration.
         _out("no board declared -- nothing to reconcile")
         return
     if not repo_name:
@@ -1105,62 +1083,15 @@ def cmd_reconcile(repo_arg, apply):
             "pin github.repo in harness.json before reconciling",
         )
 
-    try:
-        findings, notes = _audit_findings(root, board, repo_name)
-    except factory_gh.GhError as exc:
-        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
-        sys.exit(4)
-
-    # T-04: the workflow header and the STATUS skip line used to be printed from inside the
-    # detection. They are printed here, in the same place in the output, so `reconcile`'s own
-    # stdout is unchanged.
+    findings, notes = _detect_reconcile_findings(root, board, repo_name)
     for note in notes:
         _out(note)
-
     if not apply:
-        # --dry-run (the default): preview only, zero writes, zero risk of a half-applied
-        # bulk write against the operator's live tracker. Always exits 0 once detection has
-        # succeeded -- a preview attempts nothing, so nothing it lists can be reported as
-        # having "survived" a fix it never tried.
-        for f in findings:
-            if _fixable(f):
-                _out(f"DRY-RUN would fix -- {f.message}")
-            else:
-                _out(f"DRY-RUN cannot fix, needs a human -- {f.message}")
-        fixable_n = sum(1 for f in findings if _fixable(f))
-        human_n = len(findings) - fixable_n
-        _out(f"{fixable_n} fixable finding(s) previewed; {human_n} finding(s) require a "
-             f"human (see above) -- re-run with --apply to write")
+        _preview_reconcile(findings)
         return
 
-    # --apply: attempt every fixable finding's write, continuing past a single failure.
-    for f in findings:
-        if not _fixable(f):
-            continue
-        try:
-            _apply_fix(f, board, repo_name)
-        except (gh_board.BoardError, factory_gh.GhError) as exc:
-            print(f"factory: {_TOOL}: fix failed -- {exc}", file=sys.stderr)
-
-    # Re-run the SAME detection in this process to report the residual state truthfully,
-    # rather than assume every write landed.
-    try:
-        residual, residual_notes = _audit_findings(root, board, repo_name)
-    except factory_gh.GhError as exc:
-        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
-        sys.exit(4)
-
-    for note in residual_notes:
-        _out(note)
-
-    for f in residual:
-        _out(f.message)
-    fixable_residual = [f for f in residual if _fixable(f)]
-    human_residual = [f for f in residual if not _fixable(f)]
-    _out(f"{len(fixable_residual)} fixable finding(s) remain; {len(human_residual)} "
-         f"finding(s) require a human (see above)")
-    if fixable_residual:
-        sys.exit(1)
+    residual = _apply_reconcile_findings(findings, board, repo_name)
+    _report_reconcile_residual(residual)
 
 
 # ---------------- retitle (T-17) -- the one-time task-ticket title backfill ----------------

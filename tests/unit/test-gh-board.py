@@ -405,11 +405,6 @@ finally:
     gh_board.factory_gh.project_field_set = _orig_field_set
     gh_board.factory_gh.issue_board_item_id = _orig_item_id
 
-print()
-if FAILURES:
-    print(f"{len(FAILURES)} FAIL")
-    sys.exit(1)
-print("all pass")
 
 
 # --------------------------------------------------------------- project (FEAT-41 T-06) ------
@@ -427,64 +422,31 @@ def _plan(*statuses, top=None):
     return doc
 
 
-# --- each task sub-issue gets ITS OWN task's station, verbatim ---
-_p = gh_board.project(_plan("building", "ready", "done"),
-                      _rec(issues={"T-01": 11, "T-02": 12, "T-03": 13}))
-check("project: each task card gets its own task's station",
-      _p[11] == "building" and _p[12] == "ready" and _p[13] == "done", repr(_p))
+# --- every active feature phase is one projection for every unique recorded card. A mixed
+# --- task list proves task-local statuses cannot leak back into active board placement.
+for _phase in ("plan", "ready", "building", "review"):
+    _p = gh_board.project(
+        _plan("done", "building", "ready", "abandoned", top=_phase),
+        _rec(issues={"T-01": 11, "T-02": 12, "T-03": 13, "T-04": 14},
+             parent=12, source_issues=[91, 12, 91, 11]),
+    )
+    check(f"project: active {_phase} projects every unique source, parent, and live task",
+          _p == {91: _phase, 11: _phase, 12: _phase, 13: _phase}, repr(_p))
 
-# --- THE DELETED EXCEPTION (D-11). A task at ready projects to READY, never to backlog. This
-# --- is the rule the old check-state.py _EXPECT comment carried on the grounds that gh-sync
-# --- open lands every sub-issue in backlog. It is gone, and T-10 settles the consequence.
-_p = gh_board.project(_plan("ready", "ready"), _rec(issues={"T-01": 21, "T-02": 22}))
-check("project: a ready task projects to ready, NOT to backlog",
-      _p[21] == "ready" and _p[22] == "ready" and "backlog" not in _p.values(), repr(_p))
+# --- terminal Done still places every non-abandoned card at done, while abandoned task cards
+# --- stay absent. This is deliberately distinct from active projection above.
+_p = gh_board.project(
+    _plan("done", "abandoned", top="done"),
+    _rec(issues={"T-01": 21, "T-02": 22}, parent=20, source_issues=[19, 20]),
+)
+check("project: done preserves terminal placement and excludes abandoned tasks",
+      _p == {21: "done", 20: "done", 19: "done"}, repr(_p))
 
-# --- TERMINAL FIRST, and the ordering is load-bearing. Every shipped feature has all tasks
-# --- done, so derive_station returns review for all of them; derive-first would drag 22
-# --- shipped parents backwards off Done. Measured at 8f8a6a3 against live board 3.
-_p = gh_board.project(_plan("done", "done", top="done"), _rec(issues={}, parent=99))
-check("project: a done top-level station beats derive_station's review (terminal first)",
-      _p.get(99) == "done", repr(_p))
-
-# --- A TERMINAL_STATIONS card is ABSENT, never placed. D-05 says the marker names no column;
-# --- this is where that becomes true. Without it FEAT-28 — abandoned, card at Done — becomes
-# --- a write of a column that does not exist.
-_p = gh_board.project(_plan("done", "done", top=factory_config.TERMINAL_STATIONS[0]),
-                      _rec(issues={}, parent=98))
-check("project: an abandoned (TERMINAL_STATIONS[0]) feature places NO parent card",
-      98 not in _p, repr(_p))
-
-_p = gh_board.project(_plan("done", "done", top="rejected"),
-                      _rec(issues={}, parent=100))
-check("project: a rejected terminal feature places NO parent card",
-      100 not in _p, repr(_p))
-
-# --- the parent, when not terminal, takes derive_station ---
-_p = gh_board.project(_plan("done", "building"), _rec(issues={}, parent=97))
-check("project: a non-terminal parent takes derive_station",
-      _p.get(97) == "building", repr(_p))
-
-# --- top-level station when there is no derivation ---
-_p = gh_board.project(_plan("done", "ready", top="plan"), _rec(issues={}, parent=96))
-check("project: with no derivation the parent takes the top-level station",
-      _p.get(96) == "plan", repr(_p))
-
-# --- ABSENT and ILLEGAL are DIFFERENT outcomes and must not share a code path. No derivation
-# --- and no top-level station means the parent is absent — the same silence derive_station
-# --- already returns — never a guess.
-_p = gh_board.project(_plan("done", "ready"), _rec(issues={}, parent=95))
-check("project: no derivation and no top-level station leaves the parent ABSENT",
-      95 not in _p, repr(_p))
-
-# --- source issues take the parent's station ---
-_p = gh_board.project(_plan("building"), _rec(issues={}, parent=94, source_issues=[901, 902]))
-check("project: each source issue takes the parent's station",
-      _p.get(901) == "building" and _p.get(902) == "building", repr(_p))
-
-_p = gh_board.project(_plan("done", "ready"), _rec(issues={}, source_issues=[903]))
-check("project: with no parent station the source issues are absent too",
-      903 not in _p, repr(_p))
+# --- absent remains absent: no top-level phase and no derivation must not invent a placement.
+_p = gh_board.project(_plan("done", "ready"), _rec(issues={"T-01": 31}, parent=30,
+                                                   source_issues=[29]))
+check("project: absent phase leaves only the task-local non-terminal card",
+      _p == {31: "done"}, repr(_p))
 
 # --- A VOCABULARY MISS IS THE ONE CASE THAT MUST NOT BE SILENT: it is the defect this feature
 # --- exists to end. It names the task id AND the value.
@@ -502,3 +464,8 @@ for _bad in ("pending", "Building", "shipped"):
 _p = gh_board.project(_plan("review"), _rec(issues={"T-01": 41}))
 check("project: the value is a station, never a column",
       _p[41] == "review" and _p[41] != factory_config.station_column("review"), repr(_p))
+print()
+if FAILURES:
+    print(f"{len(FAILURES)} FAIL")
+    sys.exit(1)
+print("all pass")
