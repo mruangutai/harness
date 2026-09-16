@@ -12,9 +12,9 @@
       "agent": "harness-product-lead",
       "verdict": "PASS",
       "started_at": "2026-09-16T12:22:05+00:00",
-      "ended_at": "2026-09-16T12:33:25+00:00",
+      "ended_at": "2026-09-16T12:37:20+00:00",
       "cycles_used": 1,
-      "tokens": null,
+      "tokens": 79678,
       "code_grade": "n_a"
     }
   ],
@@ -27,5 +27,27 @@
       "reason": "cause known: #1674 renamed the runner to Python while _reverify_suite still invokes bash; fix is bounded to one function and its integration test with no new interface, schema, or enforcement surface"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-1756-qa-reverify-bash/notes/answers-2026-09-16-sign.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "995d8ccc7a054b332f89173c4f27edc3ef73e3dc4d5384fef2bce65edd9df7a2"
+  },
+  "github": {
+    "milestone": 78,
+    "parent": 1769,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1770
+    },
+    "source_issues": [
+      1756
+    ],
+    "build_entry": "opened"
+  }
 }
