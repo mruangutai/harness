@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-1723-orchestrator-closeout
 approval:
-  status: pending
+  date: '2026-09-15'
+  approved_by: mruangutai
+  status: approved
 status: plan
 source_issues: [1723]
 panel:

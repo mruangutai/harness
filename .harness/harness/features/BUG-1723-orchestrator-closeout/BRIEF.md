@@ -48,4 +48,6 @@ None. Unit and integration suites cover the deterministic contracts; SC-05 delib
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: mruangutai
+date: 2026-09-15

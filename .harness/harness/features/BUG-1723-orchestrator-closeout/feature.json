@@ -27,5 +27,10 @@
       "reason": "new verb composing four existing writers plus a new check-state.py invariant \u2014 a new enforcement surface; cause and files are known"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1723-orchestrator-closeout/notes/answers-2026-09-15-sign.md"
+  }
 }
