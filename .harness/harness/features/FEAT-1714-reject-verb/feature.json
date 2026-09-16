@@ -31,5 +31,27 @@
     "rounds": 2,
     "wall_clock_minutes": 90,
     "decision": ".harness/harness/features/FEAT-1714-reject-verb/notes/answers-2026-09-15-sign.md"
+  },
+  "github": {
+    "milestone": 75,
+    "parent": 1736,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1737,
+      "T-02": 1738,
+      "T-03": 1739,
+      "T-04": 1740,
+      "T-05": 1741
+    },
+    "source_issues": [
+      1714
+    ],
+    "build_entry": "opened"
   }
 }

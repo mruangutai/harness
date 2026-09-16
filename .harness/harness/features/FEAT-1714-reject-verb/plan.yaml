@@ -4,7 +4,7 @@ approval:
   date: '2026-09-15'
   approved_by: mruangutai
   status: approved
-status: plan
+status: building
 source_issues: [1714]
 panel:
   last_run: plan-product
