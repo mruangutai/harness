@@ -1,0 +1,5 @@
+# Main fix receipt — validate c1
+
+- V-01 (qa): fail-first receipt added at `notes/receipt-main-session-T-01-fail-first.md`, capturing the new cases red against the parent commit.
+- Code-review high (unbindable `_quoted_scalar_closed`): the worktree was cut from LOCAL `main` (`c280792f`), which carried an unpushed BUG-1563 landing, so `merge-base(origin/main, review_sha)` spanned that change. Rebased the four BUG-1724 commits onto `origin/main`; the range now holds only T-01.
+- Live observation: the validate run at c0 still read `tokens: null` although its task result carried `tokens: 106997`. Cause: the host loads `.omp/extensions/harness-hooks.ts` from the PROCESS project root (the main checkout), not from the feature worktree, so the changed hook cannot run live before merge. The pre-merge proof is `tests/unit/omp-hooks.test.ts` "host-stamped tokens", which drives the real `feature-record.py` through the gate path and asserts the file on disk. Post-merge, the first orchestrator dispatch under a reloaded host is the live check.
