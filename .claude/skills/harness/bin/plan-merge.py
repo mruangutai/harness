@@ -812,7 +812,7 @@ def _replace_approval_reset(body, status_at, stale, record):
     return out
 
 
-def _reset_approval_lines(lines, verb, ids, resume_station):
+def _reset_approval_lines(lines, reason, resume_station):
     """`lines` with approval.status rewritten to pending and its resume context recorded.
 
     C4 / SC-08, narrowed by BUG-1716 D-04: a signature is a statement about ONE task set. A
@@ -835,7 +835,6 @@ def _reset_approval_lines(lines, verb, ids, resume_station):
     if status_at is None:
         return lines
     stale = {positions[key] for key in RESET_FIELDS if key in positions}
-    reason = f"{verb} {', '.join(str(i) for i in ids)}"
     record = [_field_lines(indent, "status", "pending"),
               _field_lines(indent, "reset_at", _now_iso()),
               _field_lines(indent, "reset_reason", reason),
@@ -912,8 +911,9 @@ def _maybe_reset_approval(text, base_doc, verb, task_ids):
     interrupted_phase, reset = context
     resulting_doc = _reload_or_refuse(text.encode("utf-8"))
     resume_station = _resume_station(interrupted_phase, resulting_doc)
+    reason = f"{verb} {', '.join(str(i) for i in task_ids)}"
     lines = _reset_approval_lines(
-        text.splitlines(keepends=True), verb, task_ids, resume_station,
+        text.splitlines(keepends=True), reason, resume_station,
     )
     reset_bytes = _splice_top_level_status(lines, "plan")
     if reset_bytes is None:
@@ -2173,14 +2173,30 @@ def cmd_revoke_approval(args):
 
     def transform(base_bytes):
         text = base_bytes.decode("utf-8")
-        status = _approval_status(_load_base_doc(text))
+        doc = _load_base_doc(text)
+        status = _approval_status(doc)
         if status != "approved":
             raise harness_merge.MergeRefusal(
                 5, [f"plan-merge: {resolved} approval.status is {status!r}, not approved — "
                     "there is no signature to revoke."])
-        revoked = "".join(_reset_approval_lines(text.splitlines(keepends=True), reason))
-        _verify_reset(revoked, "revoke-approval")
-        return revoked.encode("utf-8")
+        context = _approval_reset_context(doc)
+        if context is None:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {resolved} is terminal and cannot be reopened by revoking "
+                    "its approval."])
+        interrupted_phase, _ = context
+        resume_station = _resume_station(interrupted_phase, doc)
+        lines = _reset_approval_lines(
+            text.splitlines(keepends=True), reason, resume_station,
+        )
+        reset_bytes = _splice_top_level_status(lines, "plan")
+        if reset_bytes is None:
+            raise harness_merge.MergeRefusal(
+                5, [f"REFUSED: revoke-approval cannot pause the feature because its plan "
+                    "carries no top-level feature: key to anchor status to"])
+        revoked = reset_bytes.decode("utf-8")
+        _verify_reset(revoked, "revoke-approval", resume_station)
+        return reset_bytes
 
     try:
         harness_merge.locked_update(resolved, transform)

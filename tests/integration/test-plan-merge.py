@@ -3526,9 +3526,9 @@ def _outside_approval(text):
 def case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word():
     """#1675: a signature withdrawn WITHOUT a task-set change was unrepresentable — the only
     way to stop claiming a stale signature was a new one. `revoke-approval` writes the same
-    record the automatic reset writes (pending, reset_at, reset_reason naming the operator and
-    why), keeps signer and date so the voided signature stays visible, touches nothing else,
-    and a fresh signature supersedes it."""
+    lifecycle reset as an automatic task-set reset: pending approval, reset metadata, the
+    interrupted station to resume, and a top-level Plan pause. It keeps signer and date so
+    the voided signature stays visible, and a fresh signature supersedes it."""
     root, plan = fixture_root()
     try:
         ruling = "  rulings:\n    - finding: PF-1\n      who: X\n  # kept with the signature\n"
@@ -3536,13 +3536,18 @@ def case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word():
         r = revoke(plan, "  scope amended:  four tasks under a one-task signature ")
         approval = _approval_of(plan)
         after = read(plan)
-        check("revoke-approval flips approved -> pending with the reset record", r.returncode == 0
+        check("revoke-approval pauses at Plan with the reset and resume record", r.returncode == 0
               and _is_revoked(approval, "revoke-approval mru: scope amended: four tasks under a "
-                                        "one-task signature"),
+                                        "one-task signature")
+              and approval.get("resume_station") == "ready"
+              and yaml.safe_load(after).get("status") == "plan",
               f"rc={r.returncode} {r.stderr!r} {approval!r}")
-        check("revoke-approval keeps the voided signer and date, the rulings, and every other byte",
+        before_outside, after_outside = _outside_approval(before), _outside_approval(after)
+        check("revoke-approval keeps the voided signer, date, rulings, and unrelated bytes",
               approval.get("approved_by") == "X" and str(approval.get("date")) == "2026-01-01"
-              and ruling in after and _outside_approval(after) == _outside_approval(before), after)
+              and ruling in after
+              and after_outside[0] == before_outside[0] + "status: plan\n"
+              and after_outside[1] == before_outside[1], after)
         r = run_verb("sign-approval", "--file", plan, "--by", "mru", "--date", "2026-09-16")
         approval = _approval_of(plan)
         check("a fresh signature supersedes a revocation's reset record", r.returncode == 0
