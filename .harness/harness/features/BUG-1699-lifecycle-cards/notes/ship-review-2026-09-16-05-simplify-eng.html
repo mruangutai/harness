@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>BUG-1699 lifecycle cards — blocked ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="bug-1699-lifecycle-cards-blocked-ship-review">BUG-1699 lifecycle cards — blocked ship review</h1>
+<h2 id="decision-first">Decision first</h2>
+<p>Do not ship yet. The signed implementation tasks are complete and their focused gates passed, but the mandatory simplify segment returned <code>BLOCKED</code> before <code>review_sha</code> could be pinned or the independent validation panel could run. The block is procedural rather than a product finding: the read-only REUSE reader completed its inspection and supplied a concrete finding, but the engineering-member digest schema would not permit a truthful <code>PASS</code> without a test suite. The orchestrator playbook requires a stop on any lead <code>BLOCKED</code> verdict.</p>
+<h2 id="definition-of-done-graded">Definition of done — graded</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed definition</th><th>Verdict</th><th>Success criteria</th><th>Evidence</th></tr></thead><tbody><tr><td>operator</td><td>Every recorded source, parent, and eligible task card follows Plan, Ready, Building, Review, and ship-owned Done; reset/resume and bounded reconciliation preserve the signed contracts.</td><td><strong>unmet — not independently validated</strong></td><td>SC-01–SC-03, SC-06–SC-09</td><td>Build implementation and focused task gates completed; see the T-01 build digests, commits <code>0d56eb7b</code>, <code>c67347cb</code>, and the T-05 digest. No pinned validator goal-check exists.</td></tr><tr><td>orchestrator</td><td>Every lifecycle checkpoint has one explicit caller; the existing rework flow remains bounded and GitHub writes remain best-effort outbound synchronization.</td><td><strong>unmet — not independently validated</strong></td><td>SC-04, SC-05, SC-10</td><td>The T-03 signed gate passed at commit <code>6e7440e8</code>, and the build-entry transition ran. No pinned validator goal-check exists.</td></tr><tr><td>code maintainer</td><td>One projection policy is reused by mutation, drift detection, and reconciliation while legacy terminal, closure, discovery, and documentation contracts remain intact.</td><td><strong>unmet — not independently validated</strong></td><td>SC-11–SC-16</td><td>T-01&#x27;s seven focused runners and T-05&#x27;s decision/index check passed; the simplify apply reran the exact T-01 gate successfully. The simplify digest records two residual quality rows. No pinned code-review or goal-check exists.</td></tr></tbody></table></div>
+<p>These rows say <strong>unmet</strong> because the signed definition requires the final pinned inspection and goal-check, not because a validation panel found a product failure. Validation never started.</p>
+<h2 id="what-completed">What completed</h2>
+<ul><li>Planning produced an approved five-task contract after one plan cycle. The panel&#x27;s two high substance findings and one proportionality finding were applied before signature.</li><li>T-01 established complete active-card projection through the shared lifecycle policy. A focused fail-first correction restored the intended no-mirror eligibility boundary; the exact seven-runner gate passed.</li><li>Main-session-direct T-02 preserved reset/resume station metadata and passed <code>tests/integration/test-plan-merge.py</code> at commit <code>0d56eb7b</code>.</li><li>Main-session-direct T-04 reconciled every eligible active lifecycle card and passed <code>tests/integration/test-board-lifecycle.py</code> at commit <code>c67347cb</code>.</li><li>Main-session-direct T-03 wired the explicit lifecycle phase checkpoints and passed its three signed checks at commit <code>6e7440e8</code>.</li><li>T-05 refreshed the governing decisions and generated index. Its exact check examined 40 decision anchors with zero failures and a zero-byte generated-index diff.</li><li>The four simplify angles all completed. One eligible simplification removed a dead derived-status branch in <code>check-state.py</code>; the exact signed T-01 gate then passed in 57.27 seconds. No formatter, linter, project-wide build, or project-wide test suite ran.</li></ul>
+<h2 id="why-the-run-stopped">Why the run stopped</h2>
+<p>The simplify lead was required to propagate its worst member verdict. The REUSE reader returned canonical <code>BLOCKED</code> even though its read-only inspection and finding were complete, because the engineering digest contract rejects <code>PASS</code> with a suite result of <code>n/a</code>. The lead therefore returned <code>BLOCKED</code> with no product <code>must_fix</code> findings. Under the orchestrator playbook, a blocked member is not retried and the feature cannot advance to pinning or validation.</p>
+<p>Required unblock: repair or explicitly rule the read-only engineering-reader digest contract so a complete inspection can return <code>PASS</code> without inventing a test run, then resume at the simplify boundary. This is a Harness process defect outside the signed BUG-1699 task scope.</p>
+<h2 id="lead-summaries">Lead summaries</h2>
+<div class="scroll"><table><thead><tr><th>Run</th><th>Verdict</th><th>Summary</th></tr></thead><tbody><tr><td><code>2026-09-15-01-plan-product</code></td><td>PASS</td><td>The lifecycle-card plan became signable after all panel findings were applied; the targeted plan check and perspective goal-check passed.</td></tr><tr><td><code>2026-09-16-02-build-eng</code></td><td>PASS</td><td>T-01 implemented all-card active-phase projection through one policy and passed seven focused runners.</td></tr><tr><td><code>2026-09-16-03-build-eng</code></td><td>PASS</td><td>The fail-first no-mirror regression was fixed without weakening eligible-record projection; the seven-runner gate passed again.</td></tr><tr><td><code>2026-09-16-04-build-product</code></td><td>PASS</td><td>Lifecycle authority and the generated decision index were updated, with 40 anchors passing and no generated diff.</td></tr><tr><td><code>2026-09-16-05-simplify-eng</code></td><td>BLOCKED</td><td>All four angles completed and one eligible simplification passed its signed gate, but the read-only reader digest-schema conflict forced the lead&#x27;s procedural block.</td></tr></tbody></table></div>
+<h2 id="open-blocker">Open blocker</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Blocking</th><th>Question</th></tr></thead><tbody><tr><td>Q1</td><td>yes</td><td>What sanctioned digest result should a read-only engineering simplify reader use when the inspection is complete but no test suite is permitted? The current development digest contract rejects a truthful <code>PASS</code> with suite <code>n/a</code>.</td></tr></tbody></table></div>
+<h2 id="spend-and-ledger">Spend and ledger</h2>
+<ul><li>Runs: 5</li><li>Wall-clock run time: 158 minutes</li><li>Feature cycles used: 2 of 10</li><li>Rework ruling consumed: 0 of 2 rounds; 0 of 90 minutes</li><li>Judgements recorded: 3</li><li>Review SHA: not pinned</li><li>Validation runs: 0</li><li>UAT: not required by the signed success criteria; all criteria are automated or code-review evidence.</li></ul>
+<h2 id="amendments">Amendments</h2>
+<div class="scroll"><table><thead><tr><th>At</th><th>Decision</th><th>Reason</th><th>Overruled</th></tr></thead><tbody><tr><td><code>2026-09-16T12:40:59.303279+00:00</code></td><td><code>T-01.files</code></td><td>The signed intent required INV-26 to consume the projection and required the start-task regression to remain green; both omitted sites were added without changing an SC, task, or decision.</td><td>no</td></tr></tbody></table></div>
+<p>Overrule rate: 0/1.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual</th></tr></thead><tbody><tr><td>B-1</td><td>enhancement</td><td>Consolidate the active feature-phase set now respelled across <code>gh_board.py</code>, <code>gh-sync.py</code>, <code>board_lifecycle.py</code>, and <code>plan-merge.py</code> behind one authoritative constant or predicate. The simplify readers disagreed on the best authority, so this intentionally stayed outside the one-fix pass.</td></tr><tr><td>B-2</td><td>chore</td><td>Fold the identical <code>STATION</code> and <code>STATUS</code> repair branches in <code>board_lifecycle.py</code> into one membership branch. It stayed unapplied because T-04 is a signed main-session-direct lane and the simplify one-apply ceiling was already consumed.</td></tr></tbody></table></div>
+<h2 id="sources">Sources</h2>
+<p>No report round was spawned. This briefing was assembled from these on-disk lead digests:</p>
+<ul><li><code>.harness/harness/features/BUG-1699-lifecycle-cards/runs/2026-09-15-01-plan-product/digest.md</code></li><li><code>.harness/harness/features/BUG-1699-lifecycle-cards/runs/2026-09-16-02-build-eng/digest.md</code></li><li><code>.harness/harness/features/BUG-1699-lifecycle-cards/runs/2026-09-16-03-build-eng/digest.md</code></li><li><code>.harness/harness/features/BUG-1699-lifecycle-cards/runs/2026-09-16-04-build-product/digest.md</code></li><li><code>.harness/harness/features/BUG-1699-lifecycle-cards/runs/2026-09-16-05-simplify-eng/digest.md</code></li></ul><p class='derived'>Derived from <code>ship-review-2026-09-16-05-simplify-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

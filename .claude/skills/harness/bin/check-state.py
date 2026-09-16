@@ -2302,31 +2302,6 @@ if _inv26_board:
             if station_of(_fp) in FINISHED_STATIONS:
                 continue
 
-            _derived = _gb.derive_station(_pdoc)
-
-            # A None derivation silences the PARENT claim ONLY. It used to `continue` here
-            # and skip the whole feature, which took the per-task comparison with it — and
-            # that comparison never needed the parent derivation, since project places each
-            # task's card from that task's own status. The cost was exact: a plan with one task
-            # `done` and
-            # the rest `pending` derives None, so the mis-columned `done` card SC-05 names
-            # went unreported. That is the ordinary window between two tasks, not a corner,
-            # and every INV-26 fixture was single-task so the suite could not see it.
-            # An absent status reads as the NOT-STARTED STATION (FEAT-41 T-04). The PLAN.md
-            # corpus predates the field, so absence still has to mean something, and what it
-            # means is `ready`.
-            _statuses = [(_t.get("status") or "ready")
-                         for _t in (_pdoc.get("tasks") or [])
-                         if isinstance(_t, dict) and _t.get("id")]
-            # THIS GUARD INVERTS UNDER THE RENAME IF IT IS COPIED LITERALLY (FEAT-41 T-04).
-            # It read `not any(_s != "pending")` — true only when every task is unstarted. The
-            # migration rewrote every such task to `ready`, so a literal rename would leave the
-            # test comparing against a word no file carries: `_s != "pending"` is true for
-            # EVERY task, `not any(...)` is false for every feature, and the skip would stop
-            # firing everywhere at once. Written against the not-started station instead.
-            if _derived is None and all(_s == "ready" for _s in _statuses):
-                # Active feature phases now project cards even before task-local work begins.
-                pass
 
             # INV-26 only compares cards recorded by the GitHub mirror. A feature with no
             # mirrored task issue has no board projection to verify; mirror opening owns its
