@@ -1,0 +1,7 @@
+# Fix c4 — BUG-1723 (CI corpus gate on PR #1757) — by Main, main-session-direct (DEC-174)
+
+- PR #1757's `integration` check runs `check-state.py` over the whole corpus; INV-43 as validated reddened three landed records (BUG-1723's own first validate, two on BUG-285-canonical-reader) that cannot be re-recorded (DEC-227), so the feature could not merge under its own invariant.
+- BUG-1071's rule for INV-32, applied: `_era_start_for(inv, key, what)` resolves both `panel_era_start` and the new per-project `seam_era_start` (template null; this project `2026-09-17`); a retrospective succession before it is a note "predates seam_era_start …; not graded — would fail: …". The boundary is by DATE, never by station — the terminal-note exemption validate c0 struck stays struck (43.m proves the date rule at `done`).
+- Cases 43.k–43.o (note / on-date violation / terminal-by-date / missing key names upgrade / unreadable exempts nothing); fixtures carry the key. `ledger.md` and DEC-159 say it; index regenerated. T-02 `files` amended to declare harness.json, the template and test-check-state-records.py; re-signed (sign note, "Re-signature after the CI corpus gate").
+- Rebased onto origin/main `33f45262` (BUG-1725): feature-record.py / test-feature-record.py additive conflicts (stamp-tokens beside close-run), SKILL.md step 6 takes BUG-1723's text (it already carries BUG-1724's host-stamping sentence).
+- Live corpus: 0 violations (3 INV-43 notes). `code-grade.py --base origin/main --head HEAD`: 0 FAIL. Matrix: unit OK, integration OK.

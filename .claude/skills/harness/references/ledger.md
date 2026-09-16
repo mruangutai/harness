@@ -54,9 +54,12 @@ BEFORE any run of the later phase exists; the successor appends its `succession`
 or with its first run. INV-43 reports a `succession` whose `at` is later than the started_at of
 the first run after that handoff's `seq-N` — a retrospective correction, which means one context
 kept going across the seam and wrote the judgement after the fact. It is a violation at every
-station, `done` included: shipping does not change what the ledger says happened, and the two
-BUG-285-canonical-reader records that carry one are the honest census, not noise to silence.
-An unreadable `at` or `started_at` is CANNOT VERIFY, never a pass.
+station, `done` included: shipping does not change what the ledger says happened. The one
+boundary is by DATE, never by station — harness.json `seam_era_start` (the same shape as
+`panel_era_start`, BUG-1071): a succession recorded before the seam was graded is reported as a
+note saying what it would fail, because a record cannot be re-recorded to satisfy a rule that
+did not exist when it was written (DEC-227). An unreadable `at` or `started_at` is CANNOT
+VERIFY, never a pass.
 
 ## Spend
 

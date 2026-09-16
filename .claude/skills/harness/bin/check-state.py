@@ -418,44 +418,44 @@ for feat, doc in plan_docs.items():
 # per plan. A config defect is one finding.
 _era_cfg = read(os.path.join(H, "harness.json"))
 _MISSING = object()
-if not _era_cfg:
-    # NO CONFIG AT ALL IS NOT THIS CHECK'S FINDING. INV-1 above already reports "not
-    # onboarded" by name, and a second violation for the same cause is noise. With no
-    # project to speak for, there is no pre-panel era to honour: grade everything, which
-    # is the fail-CLOSED direction.
-    _era_start = None
-else:
+
+
+def _era_start_for(inv, key, what):
+    """The YYYY-MM-DD boundary before which `inv` grades nothing, or None: no config at all
+    (INV-1 reports that; grade everything, the fail-CLOSED direction), null (this project has
+    no pre-`what` era — the template default), or an unreadable value (reported, exempts
+    nothing). A config that predates the key is a VIOLATION, not a silent default: defaulting
+    to "grade everything" reddens every pre-era record in an un-upgraded project, and
+    defaulting to "exempt everything" disables the invariant there without saying so; so it
+    says so, once, and names the command that fixes it."""
+    if not _era_cfg:
+        return None
     try:
-        _era_raw = artifact_accessors.load_harness_json(
-            text=_era_cfg, context=os.path.join(H, "harness.json")
-        ).get("panel_era_start", _MISSING)
+        raw = artifact_accessors.load_harness_json(
+            text=_era_cfg, context=os.path.join(H, "harness.json")).get(key, _MISSING)
     except Exception:
-        # The JSON-validity violation is raised on its own merit further down (`cj`), so
-        # this only decides what INV-32 does meanwhile. Unparseable config cannot exempt.
-        _era_raw = None
-    if _era_raw is _MISSING:
-        # A CONFIG THAT PREDATES THIS KEY IS A VIOLATION, NOT A SILENT DEFAULT. Either
-        # answer picked here would be wrong for somebody: defaulting to "grade
-        # everything" reddens every pre-panel plan in an un-upgraded project, and
-        # defaulting to "exempt everything" disables INV-32 there without saying so. So
-        # it says so, once, and names the command that fixes it.
-        bad.append("INV-32: .harness/harness.json has no `panel_era_start`, so no panel "
-                   "era can be resolved. Run /harness-init --upgrade (upgrade-config.py) "
-                   "against this clone's own harness.json, then set it to the date the "
-                   "adversarial panel became available here, or null if this project never "
-                   "predated it.")
-        _era_start = None
-    elif _era_raw is None:
-        # null means THIS PROJECT HAS NO PRE-PANEL ERA -- the template default, and the
-        # truth for a project onboarded after FEAT-45. Every approved plan is graded.
-        _era_start = None
-    elif isinstance(_era_raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", _era_raw.strip()):
-        _era_start = _era_raw.strip()
-    else:
-        bad.append(f"INV-32: .harness/harness.json `panel_era_start` is {_era_raw!r}, "
-                   f"which is neither null nor a YYYY-MM-DD date. Nothing is exempted "
-                   f"while it is unreadable.")
-        _era_start = None
+        # The JSON-validity violation is raised on its own merit further down (`cj`).
+        return None
+    if raw is _MISSING:
+        bad.append(f"{inv}: .harness/harness.json has no `{key}`, so no {what} era can be "
+                   f"resolved. Run /harness-init --upgrade (upgrade-config.py) against this "
+                   f"clone's own harness.json, then set it to the date the {what} became available "
+                   f"here, or null if this project never predated it.")
+        return None
+    if raw is None:
+        return None
+    if isinstance(raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw.strip()):
+        return raw.strip()
+    bad.append(f"{inv}: .harness/harness.json `{key}` is {raw!r}, which is neither null nor a "
+               f"YYYY-MM-DD date. Nothing is exempted while it is unreadable.")
+    return None
+
+
+_era_start = _era_start_for("INV-32", "panel_era_start", "adversarial panel")
+# INV-43 (BUG-1723) has the same shape of boundary for the same reason: a succession recorded
+# before the seam was graded cannot be re-recorded to satisfy it (history stays as recorded,
+# DEC-227), and an invariant that reddens the whole corpus trains its reader to ignore it.
+_seam_era_start = _era_start_for("INV-43", "seam_era_start", "graded seam")
 # INV-32 ERA RESOLUTION END (BUG-1071)
 
 # INV-32 BEGIN (FEAT-45 T-07)
@@ -3046,12 +3046,19 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                             f"against it"))
             continue
         if _at43 > _st43:
-            _hits59.append(("INV-43", f"retrospective succession for notes/{_note43}",
-                            f"the succession judgement for notes/{_note43} (seq-{_seq43}) is "
-                            f"recorded at {_succ_entries[_k43].get('at')}, AFTER run {_rid43} "
-                            f"started at {_run43.get('started_at')} — a retrospective seam "
-                            f"correction: the successor must append its succession no later "
-                            f"than its first run (DEC-159, BUG-1723)"))
+            _full43 = (f"the succession judgement for notes/{_note43} (seq-{_seq43}) is "
+                       f"recorded at {_succ_entries[_k43].get('at')}, AFTER run {_rid43} "
+                       f"started at {_run43.get('started_at')} — a retrospective seam "
+                       f"correction: the successor must append its succession no later "
+                       f"than its first run (DEC-159, BUG-1723)")
+            if _seam_era_start and _at43.date().isoformat() < _seam_era_start:
+                # BEFORE THE SEAM WAS GRADED (BUG-1071's rule for INV-32, same reason):
+                # the record cannot be re-recorded to satisfy a rule that did not exist
+                # when it was written (DEC-227). A note, so the exemption is visible.
+                warn.append(f"INV-43 {_feat59}: predates seam_era_start {_seam_era_start}; "
+                            f"not graded — would fail: {_full43}.")
+                continue
+            _hits59.append(("INV-43", f"retrospective succession for notes/{_note43}", _full43))
 
     if not _hits59:
         continue
@@ -3059,7 +3066,7 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
         # INV-43 gates on a terminal feature too (SC-03/D-02): a retrospective succession is
         # the record of work that crossed the seam unhanded, and shipping does not change what
         # the ledger says happened. Validate c0 struck the terminal downgrade this branch first
-        # carried; the two BUG-285-canonical-reader hits are the honest census.
+        # carried; the boundary above is by DATE, not by station.
         for _inv, _short, _full in _hits59:
             bad.append(f"{_inv} {_feat59}: {_full}.")
     else:

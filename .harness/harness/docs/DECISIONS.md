@@ -3815,11 +3815,14 @@ handoff note and the commit stay the orchestrator's separate writes; quarantine 
 act (DEC-204). (2) **The seam is graded.** `check-state.py` INV-43: the `succession` for a handoff
 at `seq-N` must be recorded no later than run N+1 started; later is a retrospective correction —
 a violation at every station, `done` included (validate c0 struck a first draft's terminal-note
-exemption: shipping does not change what the ledger says happened, and the two
-BUG-285-canonical-reader records that carry one are the honest census). An unreadable timestamp is
-CANNOT VERIFY naming the field. Matching is INV-40's own, so no `feature.json` field is added and
-nothing depends on `run_uid` (#1708). The first post-ship `plan` mission is the acceptance
-measurement (BUG-1723 SC-05).
+exemption: shipping does not change what the ledger says happened). The one boundary is by date,
+never by station: harness.json `seam_era_start`, BUG-1071's shape for INV-32 — a succession
+recorded before the seam was graded is a note saying what it would fail, since a record cannot be
+re-recorded to satisfy a rule that did not exist when it was written (DEC-227); the three such
+records at landing (BUG-1723's own first validate, two on BUG-285-canonical-reader) are the honest
+census. An unreadable timestamp is CANNOT VERIFY naming the field. Matching is INV-40's own, so
+no `feature.json` field is added and nothing depends on `run_uid` (#1708). The first post-ship
+`plan` mission is the acceptance measurement (BUG-1723 SC-05).
 
 ## DEC-160 — First live handoff: the cap was tight, the sweep does not deter, and deploy cannot ship config
 

@@ -148,10 +148,16 @@ tasks:
     depends_on: []
     status: done
     files:
-      - path: .claude/skills/harness/bin/check-state.py
-        quote: INV-40
-      - path: tests/integration/test-check-state-feat59.py
-        quote: INV-40 judgement-ledger
+    - path: .claude/skills/harness/bin/check-state.py
+      quote: INV-40
+    - path: tests/integration/test-check-state-feat59.py
+      quote: INV-40 judgement-ledger
+    - path: .harness/harness.json
+      quote: '"seam_era_start"'
+    - path: .claude/skills/harness/templates/harness.json
+      quote: '"seam_era_start"'
+    - path: tests/integration/test-check-state-records.py
+      quote: '"seam_era_start"'
     verify: |
       python3 tests/integration/test-check-state-feat59.py
     intent: |

@@ -324,13 +324,11 @@ class CloseRunTest(FeatureRecordCase):
         self.assertNotIn("judgements", doc, "the refused judgement must not have landed")
         self.assertNotIn("spend=", result.stdout, "spend runs after judgement, never before")
 
-    def test_spend_stage_refusal_through_close_run_names_spend_keeps_earlier_writes(self):
-        """SC-02 at the spend stage, THROUGH close-run's public entry. A data-driven spend refusal
-        is unreachable after the earlier stages' validated writes, so the spend authority is
-        made to refuse at the subprocess seam: every other stage runs for real, the one whose
-        argv is `spend` returns exit 3. close-run must exit 3 naming `spend` as the stage, keep
-        run-end's and the judgement's writes, and print no success summary — and it must do so
-        through `_close_run_stages`' real tuple, so a renamed or reordered stage fails here."""
+    def close_in_process_with_spend_refused(self):
+        """Run cmd_close_run IN PROCESS with `subprocess.run` patched so every stage runs for
+        real except the one whose argv is `spend`, which returns exit 3. Returns
+        (exit_code, stdout, stderr). Through `_close_run_stages`' real tuple, so a renamed or
+        reordered stage fails the caller."""
         import argparse
         import contextlib
         import importlib.util
@@ -339,7 +337,6 @@ class CloseRunTest(FeatureRecordCase):
         spec = importlib.util.spec_from_file_location("feature_record_cli", CLI)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        self.write(base_doc(runs=[dict(self.OPEN)]))
         real_run = subprocess.run
 
         def run_or_refuse_spend(argv, **kw):
@@ -356,10 +353,19 @@ class CloseRunTest(FeatureRecordCase):
                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
                 self.assertRaises(SystemExit) as stop:
             mod.cmd_close_run(args)
-        self.assertEqual(3, stop.exception.code)
-        self.assertIn("REFUSED at stage spend", err.getvalue())
-        self.assertIn("ledger unreadable", err.getvalue())
-        self.assertNotIn("CLOSED run", out.getvalue(), "no success summary after a refusal")
+        return stop.exception.code, out.getvalue(), err.getvalue()
+
+    def test_spend_stage_refusal_through_close_run_names_spend_keeps_earlier_writes(self):
+        """SC-02 at the spend stage, THROUGH close-run's public entry. A data-driven spend refusal
+        is unreachable after the earlier stages' validated writes, so the spend authority is
+        made to refuse at the subprocess seam. close-run must exit 3 naming `spend` as the
+        stage, keep run-end's and the judgement's writes, and print no success summary."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        code, out, err = self.close_in_process_with_spend_refused()
+        self.assertEqual(3, code)
+        self.assertIn("REFUSED at stage spend", err)
+        self.assertIn("ledger unreadable", err)
+        self.assertNotIn("CLOSED run", out, "no success summary after a refusal")
         doc = self.load()
         self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
         self.assertEqual("regate", doc["judgements"][-1]["kind"], "the judgement stage ran first")
