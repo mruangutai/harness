@@ -12,3 +12,7 @@ Validate c2 BLOCKED on two questions; both are Main's to answer, not the operato
 ## Rework ruling: one further round (2026-09-16)
 
 `spend` reads rework_rounds 2 / 60 min of the 2 / 90 ruling after fix-c2. c2 was BLOCKED on questions, not FAILed on a gate, and both answers were facts already on disk. Main authorizes exactly one more validate round (fix-c3-validator) on the operator's blanket authorization for this session and records it as a `continue` judgement; a FAIL there returns `awaiting_user` for a real ruling.
+
+## Validate c3 ruling: ship (2026-09-16)
+
+At the pin `69992277`: code-reviewer PASS (both stages, full feature range), security-reviewer PASS, ui-reviewer self-scoped out, goal-check PASS (SC-01..SC-04 met; SC-05 is the post-ship measurement by design), qa matrix PASS in a detached checkout at the exact pin (unit 40 files, integration 72 files). The run is recorded BLOCKED for one reason: `validate-digest.py`'s #919 re-verification spawns `bash run-unit-tests.py` — a Python file since #1674 — and reads its exit 2 as a red matrix. That is a defect in the gate hook on `origin/main`, outside this feature's declared surface, filed as #1756 (DEC-174 main-session-direct). The evidence the gate exists to demand is on disk; Main rules the validate outcome PASS on that evidence and ships. The run record stays BLOCKED as the orchestrator wrote it — history stays as recorded (DEC-227).

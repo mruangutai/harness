@@ -5,7 +5,7 @@
 - feature: BUG-1723-orchestrator-closeout
 - run: .harness/harness/features/BUG-1723-orchestrator-closeout/runs/fix-c3-validator/state.yaml
 - squad: none
-- status: awaiting-user
+- status: in_review
 - review_sha: 6999227750f68b3ec9c8f77a3ae4f281310742a9
 
 ## Open Questions
