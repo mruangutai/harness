@@ -1447,6 +1447,69 @@ DIGEST:
 artifact: .harness/features/FEAT-01/feature.json
 """, True)
 
+# FEAT-1714 T-01 (SC-01): `status: rejected` is a terminal return an orchestrator makes at
+# first-run intake — "this ticket is wrong, here is the right one" — and it carries exactly
+# one `judgement:` mapping {kind: reject, superseded_by: <positive int | none>, reason: <one
+# line, ≤240>} with `cycles_used: 0`. BUG-285 spent seven cycles amending a ticket its own
+# comments said was superseded, because no such return existed (#1684, #1714).
+def _reject_digest(judgement_yaml, cycles=0, status="rejected"):
+    return f"""
+VERDICT: PASS
+DIGEST:
+  headline: superseded by the canonical-reader ticket
+  feature: BUG-285-yaml-loader-pin
+  status: {status}
+  runs: [plan-product]
+  cycles_used: {cycles}
+  briefing: none
+{judgement_yaml}  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/features/BUG-285-yaml-loader-pin/feature.json
+"""
+
+
+case("rejected: reject judgement with a superseding issue is accepted", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"#285 superseded by #1594 on 2026-09-10\" }\n"),
+     True)
+case("rejected: superseded_by none (should not be planned) is accepted", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: none, reason: \"already fixed on main\" }\n"),
+     True)
+case("rejected: no judgement mapping is refused naming it", "harness-orchestrator",
+     _reject_digest(""), False, "judgement")
+case("rejected: kind other than reject is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: succession, superseded_by: 1594, reason: \"x\" }\n"),
+     False, "kind")
+case("rejected: superseded_by zero is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 0, reason: \"x\" }\n"),
+     False, "superseded_by")
+case("rejected: superseded_by negative is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: -3, reason: \"x\" }\n"),
+     False, "superseded_by")
+case("rejected: superseded_by boolean is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: true, reason: \"x\" }\n"),
+     False, "superseded_by")
+case("rejected: empty reason is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"\" }\n"),
+     False, "reason")
+case("rejected: reason over 240 characters is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"" + "x" * 241 + "\" }\n"),
+     False, "reason")
+case("rejected: multiline reason is refused", "harness-orchestrator",
+     _reject_digest("  judgement:\n    kind: reject\n    superseded_by: 1594\n    reason: |\n      one\n      two\n"),
+     False, "reason")
+case("rejected: a missing key is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, reason: \"x\" }\n"), False, "superseded_by")
+case("rejected: an extra key is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\", by: me }\n"),
+     False, "by")
+case("rejected: cycles_used must be integer zero", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\" }\n", cycles=1),
+     False, "cycles_used")
+case("a judgement mapping on any other status is refused", "harness-orchestrator",
+     _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\" }\n", status="shipped"),
+     False, "judgement")
+
 
 
 # =====================================================================
