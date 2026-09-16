@@ -509,7 +509,7 @@ check("F6: feature-record.py through xargs is DENIED — the verb is undetermina
 # spend and propose-rework — are its legal routes and must stay open, or the ledger goes
 # unwritten by the one persona whose job it is to write it.
 for _open in ("run-start --file f.json --id 2026-09-11-05-validate-validator --squad validator",
-              "run-end --file f.json --id x --verdict PASS --tokens 100",
+              "run-end --file f.json --id x --verdict PASS --cycles-used 0 --tokens 100",
               "judgement --file f.json --by harness-orchestrator --kind regate --decision T-01 "
               "--reason r",
               "set-mission --file f.json --mission patch --by harness-orchestrator --reason r",

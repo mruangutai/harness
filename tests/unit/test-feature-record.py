@@ -95,10 +95,13 @@ class RunStartEndTest(FeatureRecordCase):
                                    "agent": "harness-product-lead",
                                    "started_at": "2026-09-11T10:00:00+00:00"}]))
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
-                                    "--verdict", "PASS", "--tokens", "48213",
-                                    "--code-grade", "n_a"))
-        entry = self.load()["runs"][0]
+                                    "--verdict", "PASS", "--cycles-used", "2",
+                                    "--tokens", "48213", "--code-grade", "n_a"))
+        doc = self.load()
+        entry = doc["runs"][0]
         self.assertEqual("PASS", entry["verdict"])
+        self.assertEqual(2, entry["cycles_used"])
+        self.assertEqual(2, doc["cycles_used"])
         self.assertEqual(48213, entry["tokens"])
         self.assertEqual("n_a", entry["code_grade"])
         self.assertEqual("2026-09-11T10:00:00+00:00", entry["started_at"])
@@ -112,18 +115,67 @@ class RunStartEndTest(FeatureRecordCase):
                                    "agent": "harness-eng-lead",
                                    "started_at": "2026-09-11T10:00:00+00:00"}]))
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r1",
-                                    "--verdict", "FAIL"))
+                                    "--verdict", "FAIL", "--cycles-used", "0"))
         entry = self.load()["runs"][0]
+        self.assertEqual(0, entry["cycles_used"])
         self.assertIn("tokens", entry)
         self.assertIsNone(entry["tokens"])
         self.assertNotIn("code_grade", entry)
         self.assert_clean()
 
+    def test_run_end_cycle_accounting_is_idempotent_and_preserves_legacy_baseline(self):
+        self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PENDING",
+             "agent": "harness-eng-lead"}]))
+        for reported, expected_total in ((2, 5), (2, 5), (1, 4)):
+            self.assert_ok(self.run_cli(
+                "run-end", "--file", str(self.path), "--id", "r1",
+                "--verdict", "PASS", "--cycles-used", str(reported)))
+            doc = self.load()
+            self.assertEqual(reported, doc["runs"][0]["cycles_used"])
+            self.assertEqual(expected_total, doc["cycles_used"])
+        self.assert_clean()
+
+    def test_run_end_refuses_cycle_attribution_above_feature_total(self):
+        before = self.write(base_doc(cycles_used=1, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2}]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1",
+            "--verdict", "PASS", "--cycles-used", "0")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("exceeds feature cycles_used", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_refuses_aggregate_cycle_attribution_above_feature_total(self):
+        before = self.write(base_doc(cycles_used=3, runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2},
+            {"id": "r2", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "cycles_used": 2},
+        ]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1",
+            "--verdict", "PASS", "--cycles-used", "2")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("attributed cycles_used=4 exceeds feature cycles_used=3", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_end_requires_explicit_cycle_accounting(self):
+        before = self.write(base_doc(runs=[
+            {"id": "r1", "squad": "eng", "verdict": "PENDING",
+             "agent": "harness-eng-lead"}]))
+        result = self.run_cli(
+            "run-end", "--file", str(self.path), "--id", "r1", "--verdict", "PASS")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("--cycles-used", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
     def test_run_end_refuses_an_unknown_id(self):
         before = self.write(base_doc(runs=[{"id": "r1", "squad": "eng", "verdict": "PENDING",
                                             "agent": "harness-eng-lead"}]))
         result = self.run_cli("run-end", "--file", str(self.path), "--id", "r9",
-                              "--verdict", "PASS")
+                              "--verdict", "PASS", "--cycles-used", "0")
         self.assertEqual(2, result.returncode, result.stderr)
         self.assertIn("r9", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
@@ -154,7 +206,7 @@ class StampTokensTest(FeatureRecordCase):
         self.assertNotIn("ended_at", runs[1], "stamping does not close the run")
         # SC-01: the normal close carries no --tokens and must not null the stamped figure.
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
-                                    "--verdict", "PASS"))
+                                    "--verdict", "PASS", "--cycles-used", "0"))
         self.assertEqual(135888, self.load()["runs"][1]["tokens"])
         self.assert_clean()
 
@@ -186,7 +238,7 @@ class StampTokensTest(FeatureRecordCase):
         """SC-03: a host that reported nothing leaves the orchestrator `run-end --tokens N`."""
         self.write(base_doc(runs=[dict(self.OPEN)]))
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
-                                    "--verdict", "PASS", "--tokens", "42"))
+                                    "--verdict", "PASS", "--cycles-used", "0", "--tokens", "42"))
         self.assertEqual(42, self.load()["runs"][0]["tokens"])
 LEAD_DIGEST = """```yaml
 VERDICT: PASS
@@ -231,7 +283,8 @@ class CloseRunTest(FeatureRecordCase):
 
     def close(self, *extra):
         return self.run_cli("close-run", "--file", str(self.path), "--id", "r1",
-                            "--digest", str(self.digest), "--verdict", "PASS", *extra)
+                            "--digest", str(self.digest), "--verdict", "PASS",
+                            "--cycles-used", "0", *extra)
 
     def test_success_closes_the_run_and_prints_one_line_with_spend(self):
         self.write(base_doc(runs=[dict(self.OPEN)]))
@@ -291,7 +344,7 @@ class CloseRunTest(FeatureRecordCase):
         before = self.write(base_doc(runs=[dict(self.OPEN)]))
         result = self.run_cli("close-run", "--file", str(self.path), "--id", "r9",
                               "--digest", str(self.digest), "--verdict", "PASS",
-                              "--task", "T-01", "--station", "done")
+                              "--cycles-used", "0", "--task", "T-01", "--station", "done")
         self.assertEqual(2, result.returncode, result.stderr)
         self.assertIn("r9", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
@@ -346,7 +399,7 @@ class CloseRunTest(FeatureRecordCase):
             return real_run(argv, **kw)
 
         args = argparse.Namespace(file=str(self.path), id="r1", digest=str(self.digest),
-                                  verdict="PASS", task=None, station=None,
+                                  verdict="PASS", cycles_used=0, task=None, station=None,
                                   judgement="kind=regate,decision=x,reason=y", code_grade=None)
         out, err = io.StringIO(), io.StringIO()
         with mock.patch("subprocess.run", side_effect=run_or_refuse_spend), \

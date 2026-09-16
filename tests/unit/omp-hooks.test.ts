@@ -1257,7 +1257,7 @@ describe("host-stamped tokens", () => {
     expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "stamp-tokens")).toBe(false);
     // A bare run-end then records null: the host reported nothing, and nothing was invented.
     spawnSync("python3", [gatePath("feature-record.py"), "run-end", "--file", featureJson,
-      "--id", "r1", "--verdict", "PASS"], { encoding: "utf8" });
+      "--id", "r1", "--verdict", "PASS", "--cycles-used", "0"], { encoding: "utf8" });
     expect(tokensOf(featureJson)).toBeNull();
   });
 

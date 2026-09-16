@@ -9,13 +9,14 @@ byte-for-byte unchanged, and this CLI prints the refusal lines and exits its cod
 VERBS
   run-start     append a runs[] entry with started_at and verdict PENDING; refuses (exit 2)
                 when an entry with that id already exists.
-  run-end       stamp ended_at, verdict and optionally tokens / code_grade on the entry with
-                that id; refuses (exit 2) when there is none.
+  run-end       stamp ended_at, verdict, the lead-reported run cycles, and optionally tokens /
+                code_grade on an existing entry; refuses (exit 2) when there is none.
   stamp-tokens  write the host-measured tokens onto the ONE open run (started_at set, ended_at
                 absent); refuses (exit 2) when no run or more than one is open (BUG-1724).
   close-run     ONE close-out (BUG-1723): validate-digest.py <run's agent> <digest>, then
                 run-end, then plan-merge.py set-task-station when --task/--station are given,
-                then judgement (as harness-orchestrator) when --judgement is given, then spend
+                then judgement (as harness-orchestrator) when --judgement is given, then spend;
+                --cycles-used is forwarded to run-end
                 — composed as subprocesses so each keeps its own refusal; the first refusal
                 stops the sequence naming its stage, earlier durable writes stay. Prints ONE
                 line on success. Never takes --tokens: the host hook stamps those.
@@ -49,6 +50,10 @@ run-end with no figure is written null, and `spend` prints null when no run carr
 so a reader can always tell "unmeasured" from "zero". Wall-clock minutes are likewise a sum of
 recorded ended_at - started_at spans, floored to whole minutes; an open run, or one predating
 FEAT-59, contributes zero rather than a guess.
+
+CYCLES ARE REPORTED BY THE LEAD, NEVER INFERRED. `run-end --cycles-used C` records C on the
+run and adjusts the feature-level total by the difference from that run's prior value. Repeating
+the same cycle report leaves the total unchanged while preserving legacy unattributed cycles.
 
 EXIT CODES: 0 on success; 2 for this CLI's own refusals (unknown id, duplicate id, non-raise,
 argparse); feature_json_write / harness_merge codes propagate unchanged (11 schema or missing
@@ -114,6 +119,22 @@ def _find_run(runs, run_id):
     return None
 
 
+def _cycle_count(value, label):
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        _refuse([f"REFUSED: {label} must be a non-negative integer, got {value!r}."])
+    return value
+
+
+def _attributed_cycles(runs):
+    total = 0
+    for index, entry in enumerate(runs):
+        if not isinstance(entry, dict):
+            _refuse([f"REFUSED: runs[{index}] must be a mapping, got {type(entry).__name__}."])
+        label = f"run {entry.get('id', index)!r} cycles_used"
+        total += _cycle_count(entry.get("cycles_used", 0), label)
+    return total
+
+
 def cmd_run_start(args):
     def mutate(doc):
         runs = _runs(doc)
@@ -142,19 +163,31 @@ def cmd_run_end(args):
         if entry is None:
             _refuse([f"REFUSED: runs[] carries no entry with id {args.id!r}.",
                      "  run-end closes an entry run-start opened; start it first."])
+        feature_cycles = _cycle_count(doc.get("cycles_used"), "feature cycles_used")
+        attributed_cycles = _attributed_cycles(runs)
+        if attributed_cycles > feature_cycles:
+            _refuse([
+                f"REFUSED: attributed cycles_used={attributed_cycles} exceeds "
+                f"feature cycles_used={feature_cycles}.",
+                "  repair the inconsistent ledger before recording another run result.",
+            ])
+        previous_cycles = entry.get("cycles_used", 0)
         entry["verdict"] = args.verdict
         entry["ended_at"] = now_iso()
+        entry["cycles_used"] = args.cycles_used
         # A measured figure is never overwritten with null; null is written only when
         # the entry has no figure at all, so "unmeasured" is recorded rather than implied.
         if args.tokens is not None or "tokens" not in entry:
             entry["tokens"] = args.tokens
         if args.code_grade:
             entry["code_grade"] = args.code_grade
+        doc["cycles_used"] = feature_cycles - previous_cycles + args.cycles_used
         doc["runs"] = runs
         return doc
 
     _apply(args.file, mutate)
-    print(f"ENDED run {args.id!r} verdict={args.verdict} tokens={json.dumps(args.tokens)}")
+    print(f"ENDED run {args.id!r} verdict={args.verdict} "
+          f"cycles_used={args.cycles_used} tokens={json.dumps(args.tokens)}")
     print(f"APPLIED {args.file}")
     sys.exit(0)
 
@@ -468,7 +501,8 @@ def _close_run_stages(args, agent, judgement):
     stages = [
         ("digest", [os.path.join(_HERE, "validate-digest.py"), agent, args.digest], None),
         ("run-end", [__file__, "run-end", "--file", args.file, "--id", args.id,
-                     "--verdict", args.verdict, *grade], None),
+                     "--verdict", args.verdict, "--cycles-used", str(args.cycles_used), *grade],
+         None),
     ]
     if args.task is not None:
         stages.append(("station", [os.path.join(_HERE, "plan-merge.py"), "set-task-station",
@@ -608,6 +642,8 @@ def main():
     p = with_file(sub.add_parser("run-end", help="close a runs[] entry"))
     p.add_argument("--id", required=True)
     p.add_argument("--verdict", required=True)
+    p.add_argument("--cycles-used", required=True, type=_int_at_least(0),
+                   help="send-backs REPORTED by this run's lead; never inferred")
     p.add_argument("--tokens", type=_int_at_least(0),
                    help="tokens MEASURED from the transcript; omit when unmeasured (null)")
     p.add_argument("--code-grade", choices=["n_a"], dest="code_grade")
@@ -624,6 +660,8 @@ def main():
     p.add_argument("--id", required=True, help="the run to close")
     p.add_argument("--digest", required=True, help="the lead's digest.md for that run")
     p.add_argument("--verdict", required=True)
+    p.add_argument("--cycles-used", required=True, type=_int_at_least(0),
+                   help="the lead DIGEST's reported send-back count for this run, forwarded to run-end")
     p.add_argument("--task", help="with --station: the task whose station to set")
     p.add_argument("--station", help="with --task: the station to set")
     p.add_argument("--judgement", help="kind=<kind>,decision=<d>,reason=<r>, recorded as "
