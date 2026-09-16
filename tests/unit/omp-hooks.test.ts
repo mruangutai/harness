@@ -431,6 +431,41 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx)).toBeUndefined();
   });
 
+  // #1677: the operator's pin rides in the assignment message — the one text the reviewer
+  // does not author — and reaches validate-digest.py as harness_review_pin. A pin in a
+  // later user turn is not a source.
+  test("forwards the assignment's HARNESS-REVIEW-PIN to the digest validator", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-code-reviewer"],
+    }, ctx);
+    await handlers.get("message_end")?.({
+      message: { role: "user", content: [{ type: "text",
+        text: "HARNESS-FEATURE: FEAT-43-long-run\nHARNESS-REVIEW-PIN: ab0c9987\nreview it" }] },
+    }, ctx);
+    await handlers.get("message_end")?.({
+      message: { role: "user", content: [{ type: "text", text: "HARNESS-REVIEW-PIN: deadbeef" }] },
+    }, ctx);
+    await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx);
+    const validation = calls.find((call) => call.script === "validate-digest.py");
+    expect(validation?.payload.harness_review_pin).toBe("ab0c9987");
+    expect(validation?.payload.harness_feature).toBe("FEAT-43-long-run");
+  });
+
+  test("forwards no pin when the assignment carries none", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    await start(handlers);
+    await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx);
+    const validation = calls.find((call) => call.script === "validate-digest.py");
+    expect(validation?.payload.harness_review_pin).toBeUndefined();
+  });
+
   test("attaches task identities and releases each terminal child", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);

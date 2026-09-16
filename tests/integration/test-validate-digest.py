@@ -4767,6 +4767,59 @@ def check_review_sha_binding(validator, config, feature_dir, td, failures):
     check_review_sha_binding_other_personas(validator, config, feature_dir, failures)
 
 
+def _pin_errors(validator, config, feature_dir, digest, review_pin=None):
+    return validator.validate("harness-code-reviewer", digest, config, feature_dir,
+                              review_pin=review_pin)
+
+
+def check_dispatch_pin_stands_in_for_an_unpinned_feature(validator, config, feature_dir, failures):
+    """#1677: an operator-supplied pin (`HARNESS-REVIEW-PIN:` in the dispatch, forwarded
+    as `review_pin`) satisfies the binding when feature.json has none — a frozen
+    `review_sha: none`, or no feature at all — without weakening it: `review_sha: none`
+    alone still refuses, and the head must still equal the pin. Fixtures live in the
+    hermetic repo `feature_dir` belongs to, so the pins resolve."""
+    repo = validator._repo_root_for_feature(feature_dir)
+    honest = reviewer_digest("pass", reviewed=f"{PRE_FEATURE_REVISION}..{REVIEW_SHA}")
+    frozen = make_feature_dir(repo, review_sha="none", feat="FEAT-FROZEN")
+    errors = _pin_errors(validator, config, frozen, honest)
+    if not any("no pinned review_sha" in error for error in errors):
+        failures.append(f"review_sha: none with no dispatch pin must still refuse: {errors}")
+    errors = _pin_errors(validator, config, frozen, honest, REVIEW_SHA)
+    if errors:
+        failures.append(f"a dispatch pin must satisfy the binding on a frozen feature: {errors}")
+    forged = reviewer_digest("n_a", reviewed="HEAD..HEAD")
+    errors = _pin_errors(validator, config, frozen, forged, REVIEW_SHA)
+    if not any("HARNESS-REVIEW-PIN" in error for error in errors):
+        failures.append(f"a head that is not the dispatch pin must refuse, naming the pin "
+                        f"source: {errors}")
+    # No feature at all: the artifact resolves to no feature directory, so the checkout
+    # root is the validator's own vantage — pointed at the hermetic repo here.
+    original_root_fn = validator._root_or_none
+    validator._root_or_none = lambda: repo
+    try:
+        errors = _pin_errors(validator, config, None, honest, REVIEW_SHA)
+    finally:
+        validator._root_or_none = original_root_fn
+    if errors:
+        failures.append(f"a dispatch pin must satisfy the binding with no feature at all "
+                        f"(a DEC-174 direct patch): {errors}")
+
+
+def check_dispatch_pin_never_overrides_a_recorded_one(validator, config, feature_dir, failures):
+    """#1677's limit: feature.json's recorded review_sha stays authoritative. A dispatch pin
+    equal to it is accepted; one that differs is refused naming both."""
+    repo = validator._repo_root_for_feature(feature_dir)
+    honest = reviewer_digest("pass", reviewed=f"{PRE_FEATURE_REVISION}..{REVIEW_SHA}")
+    recorded = make_feature_dir(repo, review_sha=REVIEW_SHA, feat="FEAT-RECORDED")
+    errors = _pin_errors(validator, config, recorded, honest, REVIEW_SHA)
+    if errors:
+        failures.append(f"a dispatch pin equal to the recorded one must accept: {errors}")
+    errors = _pin_errors(validator, config, recorded, honest, PRE_FEATURE_REVISION)
+    if not any("never overridden" in error for error in errors):
+        failures.append(f"a dispatch pin disagreeing with the recorded one must refuse, "
+                        f"naming both: {errors}")
+
+
 def check_review_sha_binding_unconditional(validator, config, feature_dir, failures):
     """The forged no-op range must reject regardless of `code_grade`'s own
     value — UNCONDITIONAL, not only for `n_a` (the branch the live bypass
@@ -5040,6 +5093,8 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_reviewed_range(validator, config, feature_dir, td, failures)
     check_resolve_reviewed_commit_guard(validator, td, failures)
     check_review_sha_binding(validator, config, feature_dir, td, failures)
+    check_dispatch_pin_stands_in_for_an_unpinned_feature(validator, config, feature_dir, failures)
+    check_dispatch_pin_never_overrides_a_recorded_one(validator, config, feature_dir, failures)
     check_resolve_review_sha_artifact_path(validator, td, failures)
     check_resolve_review_sha_feature_json(validator, td, failures)
     check_pending_plan_review(validator, config, td, failures)
