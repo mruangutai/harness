@@ -11,12 +11,16 @@ Every write goes through `feature-record.py`; you never edit `feature.json` by h
 Before every dispatch:
 `feature-record.py run-start --file <feature.json> --id <run-id> --squad <squad> --agent <lead>`.
 After every return, ONE command:
-`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
+`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
 — in order: the digest is validated against the run's recorded persona; `run-end`; the task
 station when `--task`/`--station` are paired; the judgement, recorded as you; `spend`. **The first
 refusal stops it, names its stage, and keeps every earlier durable write** — fix what the named
 stage refused; never re-issue the later stages by hand (BUG-1723). On success it prints one line
-carrying the spend figure, which every return of yours reports.
+carrying the spend figure, which every return of yours reports. `C` is the non-negative
+`cycles_used` the lead DIGEST reports, **never estimated**: run-end writes the run's cycle
+attribution and adjusts the feature total so repeating the same report leaves it unchanged;
+tokens are the host's (BUG-1724), `null` when unmeasured so a reader can tell unmeasured from
+zero (SC-18).
 
 Tokens are the host's, not yours: the hook stamps `details.results[i].tokens` onto the open run
 on your wake (BUG-1724), and a bare close-out preserves it. Only a run whose entry still carries

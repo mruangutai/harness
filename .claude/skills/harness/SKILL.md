@@ -106,7 +106,7 @@ never at startup (DEC-150, DEC-158):
    weight it by how far past you are (DEC-201). No line, nothing to weigh — one sentence and on.
    Never guess a figure; a reported number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record — ONE command closes the run.**
-   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
+   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
    runs, in order: validate the lead's digest against its persona; `run-end`; the task station
    (paired `--task`/`--station`); the judgement, recorded as you; `spend`. The first refusal
    stops it, names its stage, and leaves every earlier durable write in place — read the named
@@ -114,8 +114,9 @@ never at startup (DEC-150, DEC-158):
    it prints one line with the spend figure. You never pass tokens: the host hook stamped the
    measured figure onto the open run on your wake (BUG-1724), and only when the run entry still
    carries none may you add `run-end --tokens N` from `details.results[i].tokens`, never an
-   estimate. `cycles_used` comes from the lead's reported SEND-BACKS: a clean first-pass run adds
-   ZERO cycles (DEC-157). **The `plan` run graded a document and no code**: close it with
+   estimate. `C` is the lead DIGEST's reported non-negative send-back count, written on the run;
+   the feature total is adjusted so repeating the same report leaves it unchanged, and a clean
+   first-pass run reports ZERO (DEC-157). **The `plan` run graded a document and no code**: close it with
    `--code-grade n_a`, which records `code_grade: n_a` on the run so INV-6 demands no `review_sha`
    for it (BUG-1080); every other run omits it. **Three writes stay yours and separate, after close-run:** REPLACE `STATE.md`'s
    `## Current` (values, never narrative, DEC-150); the phase handoff note at a seam; the commit.
