@@ -188,6 +188,187 @@ class StampTokensTest(FeatureRecordCase):
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
                                     "--verdict", "PASS", "--tokens", "42"))
         self.assertEqual(42, self.load()["runs"][0]["tokens"])
+LEAD_DIGEST = """```yaml
+VERDICT: PASS
+DIGEST:
+  headline: "one task built"
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: T-01, persona: harness-backend-dev, verdict: PASS, headline: "done", files_touched: [] }
+  must_fix: []
+  files_touched: []
+  branch: none
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  adequacy_notes: []
+artifact: /tmp/x/digest.md
+```
+"""
+
+
+class CloseRunTest(FeatureRecordCase):
+    """`close-run` (BUG-1723 T-01, D-01): ONE command composes the existing authorities in
+    order — validate-digest, run-end, plan-merge set-task-station (paired --task/--station),
+    judgement (as harness-orchestrator), spend — retains any stage that completed, stops at
+    the FIRST refusal naming its stage, and on success prints ONE line carrying spend.
+    Measured on BUG-285-canonical-reader: ~11 orchestrator model calls per dispatch went to
+    exactly this sequence, each at ~125k context."""
+
+    OPEN = {"id": "r1", "squad": "eng", "verdict": "PENDING", "agent": "harness-eng-lead",
+            "started_at": "2026-09-11T10:00:00+00:00"}
+
+    def setUp(self):
+        super().setUp()
+        self.digest = self.path.parent / "digest.md"
+        self.digest.write_text(LEAD_DIGEST, encoding="utf-8")
+        self.plan = self.path.parent / "plan.yaml"
+        self.plan.write_text("schema: plan/1\nfeature: FEAT-77-record\napproval:\n  status: approved\n"
+                             "status: building\ntasks:\n  - id: T-01\n    title: t\n    status: building\n",
+                             encoding="utf-8")
+
+    def close(self, *extra):
+        return self.run_cli("close-run", "--file", str(self.path), "--id", "r1",
+                            "--digest", str(self.digest), "--verdict", "PASS", *extra)
+
+    def test_success_closes_the_run_and_prints_one_line_with_spend(self):
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close()
+        self.assert_ok(result)
+        entry = self.load()["runs"][0]
+        self.assertEqual("PASS", entry["verdict"])
+        self.assertRegex(entry["ended_at"], ISO_UTC)
+        self.assertNotIn("--tokens", result.stdout)
+        lines = [ln for ln in result.stdout.splitlines() if ln.strip()]
+        self.assertEqual(1, len(lines), result.stdout)
+        self.assertIn("r1", lines[0])
+        self.assertIn("spend", lines[0])
+        self.assert_clean()
+
+    def test_paired_task_station_and_judgement_land_in_one_act(self):
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--task", "T-01", "--station", "done",
+                            "--judgement", "kind=regate,decision=continue,reason=gate passed on retry",
+                            "--code-grade", "n_a")
+        self.assert_ok(result)
+        doc = self.load()
+        self.assertEqual("n_a", doc["runs"][0]["code_grade"])
+        j = doc["judgements"][-1]
+        self.assertEqual({"by": "harness-orchestrator", "kind": "regate", "decision": "continue",
+                          "reason": "gate passed on retry"},
+                         {k: j[k] for k in ("by", "kind", "decision", "reason")})
+        self.assertIn("status: done", self.plan.read_text(encoding="utf-8"))
+        line = result.stdout.strip()
+        self.assertIn("T-01", line)
+        self.assertIn("regate", line)
+        self.assert_clean()
+
+    def test_argument_shape_is_refused_before_any_stage_runs(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        for extra, needle in (
+            (("--task", "T-01"), "station"),
+            (("--station", "done"), "task"),
+            (("--code-grade", "pass"), "code-grade"),
+            (("--judgement", "kind=regate,decision=x"), "judgement"),
+            (("--judgement", "kind=bogus,decision=x,reason=y"), "judgement"),
+        ):
+            result = self.close(*extra)
+            self.assertEqual(2, result.returncode, f"{extra}: {result.stderr}")
+            self.assertIn(needle, result.stderr, f"{extra}: {result.stderr}")
+            self.assertEqual(before, self.path.read_bytes(), f"{extra} moved bytes")
+
+    def test_invalid_digest_stops_before_run_end(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        self.digest.write_text("no fenced block\n", encoding="utf-8")
+        result = self.close()
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("digest", result.stderr)
+        self.assertEqual(before, self.path.read_bytes(), "run-end must not have run")
+
+    def test_unknown_run_is_refused_naming_the_run_end_stage_with_no_later_stage(self):
+        before = self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.run_cli("close-run", "--file", str(self.path), "--id", "r9",
+                              "--digest", str(self.digest), "--verdict", "PASS",
+                              "--task", "T-01", "--station", "done")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("r9", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+        self.assertIn("status: building", self.plan.read_text(encoding="utf-8"),
+                      "set-task-station must not have run")
+
+    def test_a_later_refusal_keeps_the_earlier_completed_stage(self):
+        """D-01: no rollback. run-end succeeds, set-task-station refuses an unknown task; the
+        run stays closed, the refusal names the station stage, and the judgement never runs."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--task", "T-99", "--station", "done",
+                            "--judgement", "kind=regate,decision=x,reason=y")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("station", result.stderr)
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertNotIn("judgements", doc, "the judgement stage was never invoked")
+
+    def test_judgement_stage_refusal_names_it_keeps_run_end_and_never_reaches_spend(self):
+        """SC-02 at the judgement stage: a reason over the ledger's 240-character cap is the
+        schema's refusal, propagated with the schema's own code; run-end's write stays, no
+        judgement lands, and the one-line success summary (which carries spend) is not printed."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        result = self.close("--judgement", "kind=regate,decision=x,reason=" + "r" * 241)
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertIn("REFUSED at stage judgement", result.stderr)
+        self.assertIn("reason", result.stderr)
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertNotIn("judgements", doc, "the refused judgement must not have landed")
+        self.assertNotIn("spend=", result.stdout, "spend runs after judgement, never before")
+
+    def close_in_process_with_spend_refused(self):
+        """Run cmd_close_run IN PROCESS with `subprocess.run` patched so every stage runs for
+        real except the one whose argv is `spend`, which returns exit 3. Returns
+        (exit_code, stdout, stderr). Through `_close_run_stages`' real tuple, so a renamed or
+        reordered stage fails the caller."""
+        import argparse
+        import contextlib
+        import importlib.util
+        import io
+        from unittest import mock
+        spec = importlib.util.spec_from_file_location("feature_record_cli", CLI)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        real_run = subprocess.run
+
+        def run_or_refuse_spend(argv, **kw):
+            if "spend" in argv:
+                return subprocess.CompletedProcess(argv, 3, stdout="",
+                                                   stderr="REFUSED: ledger unreadable\n")
+            return real_run(argv, **kw)
+
+        args = argparse.Namespace(file=str(self.path), id="r1", digest=str(self.digest),
+                                  verdict="PASS", task=None, station=None,
+                                  judgement="kind=regate,decision=x,reason=y", code_grade=None)
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch("subprocess.run", side_effect=run_or_refuse_spend), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
+                self.assertRaises(SystemExit) as stop:
+            mod.cmd_close_run(args)
+        return stop.exception.code, out.getvalue(), err.getvalue()
+
+    def test_spend_stage_refusal_through_close_run_names_spend_keeps_earlier_writes(self):
+        """SC-02 at the spend stage, THROUGH close-run's public entry. A data-driven spend refusal
+        is unreachable after the earlier stages' validated writes, so the spend authority is
+        made to refuse at the subprocess seam. close-run must exit 3 naming `spend` as the
+        stage, keep run-end's and the judgement's writes, and print no success summary."""
+        self.write(base_doc(runs=[dict(self.OPEN)]))
+        code, out, err = self.close_in_process_with_spend_refused()
+        self.assertEqual(3, code)
+        self.assertIn("REFUSED at stage spend", err)
+        self.assertIn("ledger unreadable", err)
+        self.assertNotIn("CLOSED run", out, "no success summary after a refusal")
+        doc = self.load()
+        self.assertEqual("PASS", doc["runs"][0]["verdict"], "run-end's write is retained")
+        self.assertEqual("regate", doc["judgements"][-1]["kind"], "the judgement stage ran first")
 
 
 

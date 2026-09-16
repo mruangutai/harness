@@ -9,6 +9,10 @@ INV-40 judgement-ledger (SC-21): mission, re-gate and succession each leave a ju
 entry; a record that predates the ledger is NOTED, never failed.
 INV-41 sc-repo-wide (SC-16): an SC that invokes check-state.py / check-domain.py with no
 feature-scoped argument is refused.
+INV-43 succession-seam (BUG-1723 SC-03): the succession judgement for a handoff at seq-N is
+recorded no later than run N+1 started; one recorded AFTER that run is a retrospective
+correction, which means one context crossed the seam DEC-159 draws; an unreadable timestamp
+is CANNOT VERIFY, never a silent pass.
 
 Every case is a fixture tree under tmp; nothing reads the live corpus. Each rule carries a
 positive (fires) and a negative (silent) case, filtered on its own INV tag so a sibling
@@ -29,7 +33,7 @@ from check_state_support import run
 
 FEAT = "FEAT-TEST"
 
-HARNESS_JSON = ('{\n  "github": {"sync": false, "repo": null},\n'
+HARNESS_JSON = ('{\n  "github": {"sync": false, "repo": null},\n  "seam_era_start": null,\n'
                 '  "budgets": {"max_total_cycles": 10, "max_total_runs": 20}\n}\n')
 
 # The new shape (C5): the heading, perspectives as `**name**` lines under it, SCs tagged
@@ -85,9 +89,10 @@ HANDOFF_SEQ = ("# Handoff — FEAT-TEST, build → review — written at abc1234
                "## Done when\nPointer: brief-sc:SC-01\n")
 
 
-def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON):
+def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON, station=None):
     """One feature at .harness/harness/features/FEAT-TEST with the given feature.json
-    mapping, an optional BRIEF.md text and optional notes/{name: text}."""
+    mapping, an optional BRIEF.md text, optional notes/{name: text}, and — when `station` is
+    given — a minimal plan.yaml carrying that top-level status."""
     h = os.path.join(tmp, ".harness")
     fdir = os.path.join(h, "harness", "features", FEAT)
     os.makedirs(fdir, exist_ok=True)
@@ -102,6 +107,10 @@ def _fixture(tmp, feature, brief=None, notes=None, harness_json=HARNESS_JSON):
         os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
         with open(os.path.join(fdir, "notes", name), "w") as f:
             f.write(text)
+    if station is not None:
+        with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+            f.write(f"schema: plan/1\nfeature: {FEAT}\napproval:\n  status: approved\n"
+                    f"status: {station}\nstation_only: true\ntasks: []\n")
     return fdir
 
 
@@ -117,9 +126,9 @@ def _notes(out, tag):
     return [l for l in _lines(out, tag) if l.startswith("  note")]
 
 
-def _check(feature, brief=None, notes=None, harness_json=HARNESS_JSON):
+def _check(feature, brief=None, notes=None, harness_json=HARNESS_JSON, station=None):
     with tempfile.TemporaryDirectory() as tmp:
-        _fixture(tmp, feature, brief, notes, harness_json)
+        _fixture(tmp, feature, brief, notes, harness_json, station)
         return run(tmp)
 
 
@@ -359,6 +368,141 @@ def case_inv40():
     return results
 
 
+# ----------------------------------------------------------------------------- INV-43 ---
+
+def _timed(rid, started, verdict="PASS"):
+    return {"id": rid, "squad": "eng", "verdict": verdict, "started_at": started,
+            "ended_at": started}
+
+
+def _succ_at(at):
+    return {"at": at, "by": "harness-orchestrator", "kind": "succession",
+            "decision": "continue", "reason": "fixture"}
+
+
+# BUG-1723 SC-03 / D-02: a succession judgement whose `at` postdates the first run after its
+# handoff is a retrospective seam correction — the trace #1713 measured twice on
+# BUG-285-canonical-reader. INV-40 already demands the judgement EXIST; INV-43 grades WHEN.
+_SEQ1 = {"handoff-build.md": HANDOFF_SEQ.format(n=1)}
+_RUNS43 = [_timed("r1", "2026-09-11T10:00:00+00:00"), _timed("r2", "2026-09-11T12:00:00+00:00")]
+
+
+def _seam(succession_at, runs=_RUNS43, notes=_SEQ1, **extra):
+    """One INV-43 fixture: an in-era record with `runs`, one succession at `succession_at`."""
+    judgements = [] if succession_at is None else [_succ_at(succession_at)]
+    return _check(_in_era(runs=runs, judgements=judgements), notes=notes, **extra)
+
+
+def case_inv43_chronology():
+    """Later than the successor's first run fires; earlier or equal is silent."""
+    results = []
+    _, out = _seam("2026-09-11T13:00:00+00:00")
+    v = _violations(out, "INV-43")
+    results.append(("(43.a) succession recorded AFTER run 2 started is a VIOLATION naming both",
+                    len(v) == 1 and "handoff-build.md" in v[0] and "r2" in v[0]
+                    and "retrospective" in v[0], out[:500]))
+    _, out = _seam("2026-09-11T11:00:00+00:00")
+    results.append(("(43.b) succession recorded before run 2 started is silent",
+                    not _lines(out, "INV-43"), out[:400]))
+    _, out = _seam("2026-09-11T12:00:00+00:00")
+    results.append(("(43.c) succession at exactly run 2's start is silent (no later than)",
+                    not _lines(out, "INV-43"), out[:400]))
+    return results
+
+
+def case_inv43_matching():
+    """Matching is INV-40's own: the k-th handoff by seq takes the k-th succession by ledger
+    order, so only the retrospective one is named."""
+    three = _RUNS43 + [_timed("r3", "2026-09-11T15:00:00+00:00")]
+    _, out = _check(_in_era(runs=three, judgements=[_succ_at("2026-09-11T11:00:00+00:00"),
+                                                     _succ_at("2026-09-11T16:00:00+00:00")]),
+                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=1),
+                           "handoff-validate.md": HANDOFF_SEQ.format(n=2)})
+    v = _violations(out, "INV-43")
+    return [("(43.h) two handoffs match two successions in order; only the second is retrospective",
+             len(v) == 1 and "handoff-validate.md" in v[0] and "r3" in v[0], out[:500])]
+
+
+def case_inv43_unreadable():
+    """A present-but-unreadable timestamp is CANNOT VERIFY naming the field, never silence."""
+    results = []
+    _, out = _seam("not-a-time")
+    v = _violations(out, "INV-43")
+    results.append(("(43.d) an unparseable succession `at` is CANNOT VERIFY naming the field",
+                    len(v) == 1 and "CANNOT VERIFY" in v[0] and "at" in v[0], out[:500]))
+    _, out = _seam("2026-09-11T11:00:00+00:00",
+                   runs=[_timed("r1", "2026-09-11T10:00:00+00:00"), _run("r2")])
+    v = _violations(out, "INV-43")
+    results.append(("(43.e) a successor run with no started_at is CANNOT VERIFY naming started_at",
+                    len(v) == 1 and "CANNOT VERIFY" in v[0] and "started_at" in v[0]
+                    and "r2" in v[0], out[:500]))
+    return results
+
+
+def case_inv43_scope():
+    """What INV-43 leaves alone: a missing succession (INV-40's), no successor run yet, a
+    legacy record. What it does NOT leave alone: a terminal station — a retrospective
+    succession is graded the same at done as at review (SC-03/D-02; validate c0 struck the
+    terminal downgrade)."""
+    results = []
+    _, out = _seam(None)
+    results.append(("(43.f) a MISSING succession is INV-40's finding, not INV-43's",
+                    not _lines(out, "INV-43") and _violations(out, "INV-40"), out[:400]))
+    _, out = _seam(None, runs=_RUNS43[:1])
+    results.append(("(43.g) a handoff with no successor run yet has nothing to grade",
+                    not _lines(out, "INV-43"), out[:400]))
+    _, out = _check(_legacy(runs=_RUNS43, judgements=None), BRIEF_OLD, notes=_SEQ1)
+    results.append(("(43.i) a legacy record is never graded by INV-43",
+                    not _violations(out, "INV-43"), out[:400]))
+    for station in ("done", "review"):
+        _, out = _seam("2026-09-11T13:00:00+00:00", station=station)
+        v = _violations(out, "INV-43")
+        results.append((f"(43.j) at station {station} the retrospective succession is a VIOLATION",
+                        len(v) == 1 and "retrospective" in v[0] and not _notes(out, "INV-43"),
+                        out[:500]))
+    return results
+
+
+def _seam_era_json(value):
+    return HARNESS_JSON.replace('"seam_era_start": null', '"seam_era_start": ' + value)
+
+
+_LATE43 = "2026-09-11T13:00:00+00:00"
+
+
+def _seam_era(era, **extra):
+    """INV-43 (violations, notes) for a retrospective succession under `seam_era_start: era`."""
+    _, out = _seam(_LATE43, harness_json=_seam_era_json(era), **extra)
+    return _violations(out, "INV-43"), _notes(out, "INV-43"), out
+
+
+def case_inv43_era_boundary():
+    """The boundary is by DATE, never by station (BUG-1071's rule for INV-32): a retrospective
+    succession recorded before `seam_era_start` is a note that says what it would fail; on or
+    after it is a violation; at a terminal station the same date rule applies."""
+    v, n, out = _seam_era('"2026-09-12"')
+    before = ("(43.k) before seam_era_start the retrospective succession is a NOTE naming would-fail",
+              not v and len(n) == 1 and "would fail" in n[0] and "retrospective" in n[0], out[:600])
+    v, n, out = _seam_era('"2026-09-11"')
+    on = ("(43.l) on the seam_era_start date it is graded — a VIOLATION", len(v) == 1 and not n, out[:500])
+    v, n, out = _seam_era('"2026-09-12"', station="done")
+    terminal = ("(43.m) the boundary is by date at a terminal station too", not v and len(n) == 1, out[:500])
+    return [before, on, terminal]
+
+
+def case_inv43_era_config():
+    """A config without the key names the key and the upgrade; an unreadable value exempts
+    nothing and is named."""
+    _, out = _seam(_LATE43, harness_json=HARNESS_JSON.replace('  "seam_era_start": null,\n', ""))
+    v = [x for x in _violations(out, "INV-43") if "seam_era_start" in x]
+    missing = ("(43.n) a config without seam_era_start is a VIOLATION naming the key and the upgrade",
+               len(v) == 1 and "upgrade-config.py" in v[0], out[:600])
+    v, _, out = _seam_era('"yesterday"')
+    unreadable = ("(43.o) an unreadable seam_era_start exempts nothing and is named",
+                  len(v) == 2 and any("yesterday" in x for x in v), out[:600])
+    return [missing, unreadable]
+
+
 # ----------------------------------------------------------------------------- INV-41 ---
 
 def _brief_with_sc02(text):
@@ -426,7 +570,10 @@ def _report(results):
 
 
 def main():
-    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv41()) else 1
+    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv41()
+                        + case_inv43_chronology() + case_inv43_unreadable()
+                        + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
+                        + case_inv43_era_config()) else 1
 
 
 if __name__ == "__main__":

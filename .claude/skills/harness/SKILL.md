@@ -76,16 +76,21 @@ never at startup (DEC-150, DEC-158):
    the decision is yours** (DEC-198): crossing is normal; hand off at a seam, never mid-phase, and
    weight it by how far past you are (DEC-201). No line, nothing to weigh — one sentence and on.
    Never guess a figure; a reported number is a claim until disk confirms it (DEC-199).
-6. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now, and close the run
-   with `feature-record.py run-end --file <feature.json> --id <run-id> --verdict <V>`. You do not
-   pass `--tokens`: under OMP the host hook already stamped the measured figure onto the open run
-   on your wake, and a bare `run-end` preserves it (BUG-1724). Only when the host reported nothing
-   — the run entry still has no `tokens` — may you add `--tokens N` from
-   `details.results[i].tokens`; never an estimate. `cycles_used`
-   comes from the lead's reported SEND-BACKS: a clean first-pass run adds ZERO cycles (DEC-157).
-   **The `plan` run graded a document and no code**: close it with `run-end --code-grade n_a`,
-   which writes `code_grade: n_a` on the run entry so INV-6 demands no `review_sha` for it
-   (BUG-1080); every other run omits it. Values, never narrative (DEC-150). Then route (below).
+6. **Adjust and record — ONE command closes the run.**
+   `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
+   runs, in order: validate the lead's digest against its persona; `run-end`; the task station
+   (paired `--task`/`--station`); the judgement, recorded as you; `spend`. The first refusal
+   stops it, names its stage, and leaves every earlier durable write in place — read the named
+   stage's refusal and fix THAT; do not re-issue the later stages by hand (BUG-1723). On success
+   it prints one line with the spend figure. You never pass tokens: the host hook stamped the
+   measured figure onto the open run on your wake (BUG-1724), and only when the run entry still
+   carries none may you add `run-end --tokens N` from `details.results[i].tokens`, never an
+   estimate. `cycles_used` comes from the lead's reported SEND-BACKS: a clean first-pass run adds
+   ZERO cycles (DEC-157). **The `plan` run graded a document and no code**: close it with
+   `--code-grade n_a`, which records `code_grade: n_a` on the run so INV-6 demands no `review_sha`
+   for it (BUG-1080); every other run omits it. **Three writes stay yours and separate, after close-run:** REPLACE `STATE.md`'s
+   `## Current` (values, never narrative, DEC-150); the phase handoff note at a seam; the commit.
+   Quarantine is inspected at WAKE (step 4), never here. Then route (below).
 7. **Advance until DONE — and done means the success criteria are met, not the tasks exhausted.**
    Each wake advances the plan by exactly one step. **There is no waiting anywhere in this loop.**
    The goal-check grades the SCs **twice per feature and never per cycle** (SC-09): inside the

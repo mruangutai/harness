@@ -645,6 +645,7 @@ def _bug1305_invariant_scaffold(tmp):
         json.dump({
             "github": {"sync": False, "repo": None},
             "panel_era_start": None,
+            "seam_era_start": None,
             "budgets": {"max_total_runs": 20, "max_total_cycles": 20},
         }, fh)
     fleet_dir = os.path.join(h, "factory")

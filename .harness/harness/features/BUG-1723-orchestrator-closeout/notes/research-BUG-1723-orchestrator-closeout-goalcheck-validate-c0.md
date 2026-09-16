@@ -1,0 +1,38 @@
+# BUG-1723 final goal-check
+
+## Conclusion
+
+FAIL — the orchestrator and operator outcomes are satisfied at the pinned tree, with SC-05 correctly deferred by design, but the code-maintainer outcome is partial because SC-02 requires fail-first regression evidence for each composed-writer refusal and the pinned tests omit judgement- and spend-stage refusals. Separately, T-02's approved plan contract is not delivered because terminal features downgrade retrospective INV-43 hits from violations to notes, and the required integration matrix is red after T-03 changed the Step 6 heading without updating its documentation-binding test.
+
+## Authority and scope
+
+- review_sha: `e23646776b1cf1d1833ca0b7cab5da12272eba7b`
+- merge_base: `1a1c1925171803db8ac7f7464560a3767fa902a8`
+- range: `1a1c1925171803db8ac7f7464560a3767fa902a8..e23646776b1cf1d1833ca0b7cab5da12272eba7b`
+- The range contains the close-run source/tests, INV-43 source/tests, three playbook updates, decisions, and the feature records. The pinned tree, not the later checkout tip, is the evidence source.
+- Both `BRIEF.md` and `plan.yaml` are approved. `needs_approval: false`.
+- Provenance caveat: at the pinned SHA, `feature.json review_sha` is `none`, `plan.yaml status` is `building`, and T-01/T-02 are `building`; the dispatch supplies the review SHA. This is a pinned record inconsistency, not evidence that an SC outcome is absent.
+
+## Perspective grades — exactly one per declared perspective
+
+- **PASS — orchestrator** — SC-01 is met by the pinned `CloseRunTest` success, paired optional-input, invalid-digest, argument-shape, and unknown-run cases plus the T-01 fail-first receipt; SC-04 is met by the `Adjust and record`, build-phase close-out, and ledger `Runs` instructions, which prescribe one `close-run`, name first refusal, preserve separate `STATE.md`/handoff/commit writes, and keep quarantine at wake.
+- **PASS — operator** — SC-03 is met by the pinned INV-43 chronology, equality, ordering, and unverifiable-timestamp cases plus the T-02 fail-first receipt: even on a terminal feature the retrospective correction is exposed as a note. T-02 nevertheless has a separate approved-plan mismatch because it required an INV-43 violation without a terminal exemption. SC-05 is **deferred / not yet verifiable by design** until the first complete post-shipment plan mission; that designed deferral does not downgrade this perspective and is not an unmet criterion.
+- **PARTIAL — code maintainer** — SC-02's generic implementation contract is present and focused tests cover digest refusal, run preflight, and station refusal while retaining earlier writes, and SC-03 has focused seam regression evidence. The promised SC-02 evidence is incomplete because no pinned test or fail-first receipt drives a judgement-stage or spend-stage refusal; the T-02 terminal test codifies behavior contrary to the approved task contract; and the required integration matrix fails on T-03's stale Step 6 documentation binding.
+
+## Success-criterion status
+
+- **SC-01 — met.** `e2364677:tests/unit/test-feature-record.py#CloseRunTest` covers one-line spend success, paired task/station and judgement, `n_a`, digest validation/refusal, and argument validation. Fail-first: `e2364677:.harness/harness/features/BUG-1723-orchestrator-closeout/notes/receipt-main-session-T-01-fail-first.md` records all six close-run cases red against the pre-change command. QA's targeted unit evidence passes: `notes/review-harness-qa-c0.md:15,20,33`.
+- **SC-02 — partial.** `e2364677:.claude/skills/harness/bin/feature-record.py#_stage` propagates the first stage's exit and refusal text, and `#cmd_close_run` stops iteration on that exit. `e2364677:tests/unit/test-feature-record.py#CloseRunTest` covers digest and station refusal paths and retention of an earlier run-end write, but not judgement or spend refusal paths; the T-01 fail-first receipt therefore cannot establish the criterion's each-refusal-case clause. Independent review: `notes/review-harness-code-reviewer-c0.md:14`.
+- **SC-03 — met.** `e2364677:tests/integration/test-check-state-feat59.py#case_inv43_chronology`, `#case_inv43_unreadable`, and `#case_inv43_scope` cover later/before/equal chronology, multiple ordered handoffs, unreadable judgement/run timestamps, and missing/legacy/terminal boundaries. Fail-first: `e2364677:.harness/harness/features/BUG-1723-orchestrator-closeout/notes/receipt-main-session-T-02-fail-first.md` records the retrospective, unreadable, and ordering cases red before INV-43. The terminal path still reports the retrospective correction, satisfying SC-03's exposure wording, but its note-only behavior violates T-02's stronger approved instruction.
+- **SC-04 — met.** Inspection at the pin: `e2364677:.claude/skills/harness/SKILL.md` under `The loop` steps 4 and 6; `e2364677:.claude/skills/harness/references/build-phase.md` under the opening close-out rule and `The seam out of this phase`; `e2364677:.claude/skills/harness/references/ledger.md` under `Runs` and `Judgements`. Independent inspection: `notes/review-harness-code-reviewer-c0.md:16`.
+- **SC-05 — deferred / not yet verifiable by design.** The BRIEF explicitly reserves its OMP JSONL call-count, median-context, and retrospective-succession measurement for the first complete plan mission after shipment. That evidence does not exist yet and the status is neither met nor unmet.
+
+## Findings
+
+- **GC-01 — kind: substance; severity: high; T-02.** `e2364677:.claude/skills/harness/bin/check-state.py` sends every terminal-feature INV-43 hit to `warn`, and `e2364677:tests/integration/test-check-state-feat59.py#case_inv43_scope` expects the downgrade. Concrete failure: a feature records succession after its first later-phase run and later reaches `done`; the state gate exits clean, although T-02 required an INV-43 violation for every applicable postdated judgement and authorized no terminal exemption. This is a runtime enforcement shortfall even though the emitted note still satisfies SC-03's narrower exposure outcome. Independent review: `notes/review-harness-code-reviewer-c0.md:13`.
+- **GC-02 — kind: substance; severity: med; SC-02 / T-01.** A judgement with a valid shape but a schema-invalid reason (for example, more than 240 characters) can make the judgement writer refuse after run-end and optional station have completed. A regression that swallowed that refusal, mislabeled its stage, or continued to spend would leave the current pinned tests green because no test reaches that stage refusal; spend-stage refusal has the same unexercised stop contract. Add discriminating fail-first cases for the omitted composed-writer stages before treating SC-02 as met.
+- **GC-03 — kind: substance; severity: med; T-03.** The required integration matrix command fails at `tests/integration/test-check-state-plans.py` because its documented-producer assertion still requires the Step 6 `Adjust and record` form while T-03 changed that heading. Concrete failure: `.agents/skills/harness/bin/run-unit-tests.py --kind integration` exits 1 even though the targeted T-03 inspection passes, so the pinned change cannot clear the required matrix. Evidence: `notes/review-harness-qa-c0.md:38`.
+
+## Product shortfall
+
+The terminal INV-43 downgrade is a genuine product enforcement shortfall against the approved T-02 contract. The other gate failures are incomplete acceptance evidence for SC-02 and a broken integration documentation binding from T-03, not established failures of the close-run runtime behavior or SC-04's user-facing instructions. The pinned feature record is also internally behind the externally supplied review pin as noted above.
