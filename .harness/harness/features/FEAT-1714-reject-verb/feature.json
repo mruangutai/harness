@@ -26,5 +26,10 @@
       "reason": "new schema surfaces span digest validation, judgement and station gates, state invariants, and GitHub sync"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-1714-reject-verb/notes/answers-2026-09-15-sign.md"
+  }
 }

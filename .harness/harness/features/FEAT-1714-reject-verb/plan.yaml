@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-1714-reject-verb
 approval:
-  status: pending
+  date: '2026-09-15'
+  approved_by: mruangutai
+  status: approved
 status: plan
 source_issues: [1714]
 panel:
@@ -25,30 +27,30 @@ panel:
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: T-03 deletes TERMINAL_MARKER while gh-sync.py retains live references
-      not assigned to any migration task.
-    disposition: open
+    summary: T-03 deletes TERMINAL_MARKER while gh-sync.py retains live references not assigned to any migration task.
+    disposition: resolved
+    resolved_by: T-02, T-03
   - id: PF-030315cd6111f7532d9c7d8e0efec0e5
     severity: high
     reader: should-not-exist
     kind: substance
-    summary: "T-03/T-04 build \"INV-42\", but INV-42 already exists \u2014 check-state.py:2605\
-      \ (FEAT-60 SC-08, preload weight)"
-    disposition: open
+    summary: T-03/T-04 build "INV-42", but INV-42 already exists — check-state.py:2605 (FEAT-60 SC-08, preload weight)
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-6857940d2701d0e6110d6cc456e810f4
     severity: high
     reader: should-not-exist
     kind: substance
-    summary: T-03 deletes TERMINAL_MARKER while six gh-sync.py sites no task names
-      still consume it (gh-sync.py:137,343,953,985,1150,1557)
-    disposition: open
+    summary: T-03 deletes TERMINAL_MARKER while six gh-sync.py sites no task names still consume it (gh-sync.py:137,343,953,985,1150,1557)
+    disposition: resolved
+    resolved_by: T-02, T-03
   - id: PF-3461fd65e08eabba0f76fe267bf4a8dd
     severity: med
     reader: should-not-exist
     kind: substance
-    summary: superseded_by:none is a legal terminal return with no GitHub disposition
-      and no legal close path for the parent
-    disposition: open
+    summary: superseded_by:none is a legal terminal return with no GitHub disposition and no legal close path for the parent
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-a92e4d4ad8b6e33d4804b64bb190400a
     severity: low
     reader: should-not-exist
@@ -69,32 +71,37 @@ panel:
     reader: should-not-exist
     kind: substance
     summary: T-03/T-04 build INV-42, but INV-42 already exists.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-507f6fec7915867514a0612bf14a6487
     severity: high
     reader: should-not-exist
     kind: substance
     summary: T-03 deletes TERMINAL_MARKER while six gh-sync.py sites still consume it.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02, T-03
   - id: PF-8705e38904a0ee5ac54b9c719cf7c6e0
     severity: med
     reader: should-not-exist
     kind: substance
     summary: superseded_by:none lacks a legal GitHub parent disposition.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-3a4f2b39dc96ea45bbd0319aea3e06e9
     severity: low
     reader: should-not-exist
     kind: form
     summary: Two writers perform the one rejected station write.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-5abd3fd4e11b73c0116f8810412db6f3
     severity: low
     reader: should-not-exist
     kind: proportionality
     summary: The BRIEF byte-stability station test is a non-path.
-    disposition: open
+    disposition: resolved
     scope: task
+    resolved_by: T-03
 lanes:
   resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
   rows:
