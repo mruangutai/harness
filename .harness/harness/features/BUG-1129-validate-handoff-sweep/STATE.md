@@ -3,7 +3,7 @@
 ## Current
 
 - feature: BUG-1129-validate-handoff-sweep
-- run: .harness/harness/features/BUG-1129-validate-handoff-sweep/runs/validate-validator/state.yaml
+- run: .harness/harness/features/BUG-1129-validate-handoff-sweep/runs/fix-c1-validator/state.yaml
 - squad: validator
 - status: awaiting_user
 - verdict: FAIL
@@ -15,6 +15,4 @@
 
 ## Open Questions
 
-- Q1 (blocking): T-01 (substance, SC-01/SC-02): strengthen the focused refusal regressions to assert `validation incomplete`, exact pre-call/post-call plan-station equality, and zero GitHub writes across the full write boundary, including body/comment writes.
-- Q2 (blocking): T-01 (substance, SC-03): add fail-closed shared-predicate regression coverage through ship and INV-17 for unreadable, unparsable, non-mapping, empty, malformed-task, missing-mode, and mixed-mode plans, with credible fail-first evidence.
-- Q3 (blocking): T-01 (substance, SC-04): add a discriminating validated-fixture note assertion and record its pre-migration fail-first evidence.
+- Q1 (blocking): QA's required integration matrix is red because test-check-plan-routes.py compares the detached pin's .harness/team-config.yaml with the newer owning-checkout manifest; no signed T-01 file owns this harness-dev-ops infrastructure remedy. Route this scope change before re-validation.

@@ -27,6 +27,16 @@
       "tokens": 101005,
       "ended_at": "2026-09-16T15:27:33+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T15:37:56+00:00",
+      "tokens": 96897,
+      "ended_at": "2026-09-16T15:52:34+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -71,6 +81,20 @@
       "kind": "regate",
       "decision": "fix-c1-validator",
       "reason": "validate c0 FAIL Q1/Q2/Q3 fixed direct by Main (DEC-174): receipt-main-session-fix-c1.md; re-gate over the re-pinned sha"
+    },
+    {
+      "at": "2026-09-16T15:37:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Fix-c1 addresses the three c0 findings at the pinned review SHA with 15 of 45 rework minutes spent; proceed to the one allowed re-gate."
+    },
+    {
+      "at": "2026-09-16T15:52:34+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The allowed rework round is spent and the mandatory integration matrix remains red on an unowned manifest-parity scope change."
     }
   ],
   "mission": "patch",
