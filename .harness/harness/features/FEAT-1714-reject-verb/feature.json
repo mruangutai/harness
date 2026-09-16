@@ -1,0 +1,30 @@
+{
+  "feature_id": "FEAT-1714-reject-verb",
+  "branch": "feat/FEAT-1714-reject-verb",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T04:28:06+00:00",
+      "ended_at": "2026-09-16T05:12:37+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T04:27:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new schema surfaces span digest validation, judgement and station gates, state invariants, and GitHub sync"
+    }
+  ],
+  "mission": "plan"
+}
