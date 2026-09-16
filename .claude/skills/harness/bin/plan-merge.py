@@ -1989,12 +1989,13 @@ def _signed_approval_bytes(base_bytes, resolved, args):
 
 
 def cmd_sign_approval(args):
-    """THE ONLY WAY THE APPROVAL MAPPING IS EVER WRITTEN (D-04, FEAT-41 T-03).
+    """THE ONLY WAY A SIGNATURE IS EVER WRITTEN (D-04, FEAT-41 T-03).
 
-    Every other verb leaves the base's approval bytes byte-identical and `apply` still exits 8
-    on a proposal carrying a different one. That prohibition and this verb are the same rule seen
-    from two sides: approval is written HERE, deliberately, by the main session, and nowhere
-    else by accident."""
+    Every verb but the reset writers — the task-changing verbs and `revoke-approval`, which
+    only move approved to pending — leaves the base's approval bytes byte-identical, and
+    `apply` still exits 8 on a proposal carrying a different one. That prohibition and this
+    verb are the same rule seen from two sides: `approved` is written HERE, deliberately, by
+    the main session, and nowhere else by accident."""
     # #1103: a structural identity check INSIDE this verb, not only plan-sign-gate.py's hook.
     # That hook must PARSE untrusted shell text to predict whether a command will reach here,
     # and four shell forms have evaded that prediction across three review cycles (FEAT-41

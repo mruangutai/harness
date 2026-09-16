@@ -3344,7 +3344,8 @@ def case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word():
     and a fresh signature supersedes it."""
     root, plan = fixture_root()
     try:
-        before = write(plan, _approved_plan())
+        ruling = "  rulings:\n    - finding: PF-1\n      who: X\n  # kept with the signature\n"
+        before = write(plan, _approved_plan().replace("tasks:\n", ruling + "tasks:\n", 1))
         r = revoke(plan, "  scope amended:  four tasks under a one-task signature ")
         approval = _approval_of(plan)
         after = read(plan)
@@ -3352,9 +3353,9 @@ def case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word():
               and _is_revoked(approval, "revoke-approval mru: scope amended: four tasks under a "
                                         "one-task signature"),
               f"rc={r.returncode} {r.stderr!r} {approval!r}")
-        check("revoke-approval keeps the voided signer and date, and every other byte",
+        check("revoke-approval keeps the voided signer and date, the rulings, and every other byte",
               approval.get("approved_by") == "X" and str(approval.get("date")) == "2026-01-01"
-              and _outside_approval(after) == _outside_approval(before), after)
+              and ruling in after and _outside_approval(after) == _outside_approval(before), after)
         r = run_verb("sign-approval", "--file", plan, "--by", "mru", "--date", "2026-09-16")
         approval = _approval_of(plan)
         check("a fresh signature supersedes a revocation's reset record", r.returncode == 0
@@ -3370,10 +3371,11 @@ def case_1675_revoke_approval_refuses_nothing_to_revoke_and_governed_agents():
     is. Every refusal writes nothing."""
     root, plan = fixture_root()
     try:
-        write(plan, render_plan(ids(1, 2)))                    # pending
+        pending = write(plan, render_plan(ids(1, 2)))
         r = revoke(plan, "again")
         check("revoke-approval refuses a plan that is not approved (exit 5, names the status)",
-              r.returncode == 5 and "'pending'" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+              r.returncode == 5 and "'pending'" in r.stderr and read(plan) == pending,
+              f"rc={r.returncode} {r.stderr!r}")
         write(plan, _approved_plan())
         r = revoke(plan, "   ")
         check("revoke-approval refuses an empty reason (exit 2)", r.returncode == 2
