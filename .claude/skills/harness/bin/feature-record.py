@@ -66,7 +66,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_json_write  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
-JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession")
+JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment")
 MISSIONS = ("patch", "plan")
 REFUSAL_CODE = 2
 
@@ -207,6 +207,61 @@ def cmd_judgement(args):
     record = _judgement(args.by, args.kind, args.decision, args.reason)
     _apply(args.file, lambda doc: _append_judgement(doc, record))
     print(f"RECORDED judgement {args.kind}: {args.decision}")
+    print(f"APPLIED {args.file}")
+    sys.exit(0)
+
+
+def _sole_judgement_at(ledger, at):
+    """The index of the ONE judgement stamped `at`. Selection is by the exact timestamp
+    because two amendments on one task field are individually selectable only by when they
+    were made; every other dimension can repeat."""
+    hits = [i for i, e in enumerate(ledger) if isinstance(e, dict) and e.get("at") == at]
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        _refuse([f"REFUSED: no judgement is recorded at {at!r}.",
+                 "  overrule-amendment selects by the entry's exact `at`; copy it from the ledger."])
+    _refuse([f"REFUSED: {len(hits)} judgements share at={at!r}; the selection is ambiguous.",
+             "  " + "; ".join(f"[{i}] {ledger[i].get('kind')}: {ledger[i].get('decision')}"
+                              for i in hits)])
+
+
+def _refuse_unless_live_amendment(entry, at):
+    """BUG-1716 D-05: only a live (not yet overruled) amendment can be overruled."""
+    if entry.get("kind") != "amendment":
+        _refuse([f"REFUSED: the judgement at {at!r} is kind {entry.get('kind')!r}, not an "
+                 "amendment.", "  Only an amendment can be overruled (DEC-230); other kinds "
+                 "are answered by a new judgement, never rewritten."])
+    if "overruled" in entry:
+        _refuse([f"REFUSED: the amendment at {at!r} ({entry.get('decision')}) is already "
+                 "overruled.", "  The ledger is append-only; there is nothing further to record."])
+
+
+def _select_amendment(ledger, at):
+    """The index of the ONE live amendment judgement stamped `at`, or a refusal."""
+    index = _sole_judgement_at(ledger, at)
+    _refuse_unless_live_amendment(ledger[index], at)
+    return index
+
+
+def cmd_overrule_amendment(args):
+    """The operator's ship-time rejection of one in-build amendment (BUG-1716 T-03). Adds
+    `overruled: true` to exactly that entry, preserving every other value and the ledger's
+    order; every refusal leaves the file byte-identical (the write happens under `_apply`'s
+    lock only after selection succeeds)."""
+    selected = {}
+
+    def mutate(doc):
+        ledger = doc.get("judgements")
+        ledger = list(ledger) if isinstance(ledger, list) else []
+        index = _select_amendment(ledger, args.at)
+        ledger[index] = {**ledger[index], "overruled": True}
+        doc["judgements"] = ledger
+        selected["decision"] = ledger[index].get("decision")
+        return doc
+
+    _apply(args.file, mutate)
+    print(f"OVERRULED amendment {selected['decision']} at {args.at}")
     print(f"APPLIED {args.file}")
     sys.exit(0)
 
@@ -582,6 +637,12 @@ def main():
     p.add_argument("--decision", required=True)
     p.add_argument("--reason", required=True, help="one line, at most 240 characters")
     p.set_defaults(func=cmd_judgement)
+
+    p = with_file(sub.add_parser("overrule-amendment",
+                                 help="mark ONE amendment judgement overruled by the operator"))
+    p.add_argument("--at", required=True,
+                   help="the amendment's exact `at` timestamp, copied from the ledger")
+    p.set_defaults(func=cmd_overrule_amendment)
 
     p = with_file(sub.add_parser("set-rework", help="write the operator's rework ruling"))
     p.add_argument("--rounds", required=True, type=_int_at_least(0))

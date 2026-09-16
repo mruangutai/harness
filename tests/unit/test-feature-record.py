@@ -410,6 +410,65 @@ class JudgementTest(FeatureRecordCase):
         self.assertEqual(before, self.path.read_bytes())
 
 
+AMEND_AT = "2026-09-15T12:00:00+00:00"
+
+
+def amendment(at=AMEND_AT, decision="T-02.intent", **extra):
+    entry = {"at": at, "by": "harness-eng-lead", "kind": "amendment",
+             "decision": decision, "reason": "the file was already split"}
+    entry.update(extra)
+    return entry
+
+
+class AmendmentTest(FeatureRecordCase):
+    """BUG-1716 T-03: the sixth kind, and the ship-time overrule route (D-05, DEC-230)."""
+
+    def test_judgement_accepts_the_amendment_kind_with_a_task_field_decision(self):
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path),
+                                    "--by", "harness-eng-lead", "--kind", "amendment",
+                                    "--decision", "T-02.files",
+                                    "--reason", "helper lives in plan_merge_core.py"))
+        entry = self.load()["judgements"][-1]
+        self.assertEqual(("amendment", "T-02.files"), (entry["kind"], entry["decision"]))
+        self.assertNotIn("overruled", entry)
+        self.assert_clean()
+
+    def test_overrule_selects_exactly_the_entry_at_that_timestamp(self):
+        other = "2026-09-15T12:05:00+00:00"
+        self.write(base_doc(judgements=[
+            amendment(), amendment(at=other, decision="T-02.verify"),
+            {"at": "2026-09-15T12:06:00+00:00", "by": "harness-orchestrator",
+             "kind": "continue", "decision": "continue", "reason": "r"}]))
+        result = self.run_cli("overrule-amendment", "--file", str(self.path), "--at", other)
+        self.assert_ok(result)
+        self.assertIn("T-02.verify", result.stdout)
+        ledger = self.load()["judgements"]
+        self.assertEqual([None, True, None], [j.get("overruled") for j in ledger])
+        self.assertEqual(["T-02.intent", "T-02.verify", "continue"], [j["decision"] for j in ledger])
+        self.assertEqual(amendment(at=other, decision="T-02.verify", overruled=True), ledger[1])
+        self.assert_clean()
+
+    def test_overrule_refuses_no_match_a_non_amendment_and_a_repeat_without_writing(self):
+        regate = {"at": "2026-09-15T12:06:00+00:00", "by": "harness-orchestrator",
+                  "kind": "regate", "decision": "T-01", "reason": "r"}
+        before = self.write(base_doc(judgements=[amendment(overruled=True), regate]))
+        for at, word in ((("2026-09-15T13:00:00+00:00"), "no"),
+                         ((regate["at"]), "amendment"),
+                         ((AMEND_AT), "already")):
+            result = self.run_cli("overrule-amendment", "--file", str(self.path), "--at", at)
+            self.assertEqual(2, result.returncode, (at, result.stdout, result.stderr))
+            self.assertIn(word, result.stderr)
+            self.assertEqual(before, self.path.read_bytes(), at)
+
+    def test_overrule_refuses_two_amendments_at_one_timestamp_without_writing(self):
+        before = self.write(base_doc(judgements=[amendment(), amendment(decision="T-02.verify")]))
+        result = self.run_cli("overrule-amendment", "--file", str(self.path), "--at", AMEND_AT)
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("2", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+
 class RulingsTest(FeatureRecordCase):
     """set-rework and raise-cycles are the OPERATOR'S rulings (SC-15, DEC-157). `--decision`
     names where the ruling is recorded, and this CLI refuses a record that is not a file
@@ -744,6 +803,25 @@ class SchemaTest(unittest.TestCase):
     def test_judgement_at_must_be_an_iso_timestamp(self):
         problems = self.problems(base_doc(judgements=[self.judgement(at="yesterday")]))
         self.assertTrue(problems and any("/judgements/0/at" in p for p in problems), problems)
+
+    def test_amendment_kind_is_valid_and_overruled_true_only_on_it(self):
+        self.assertEqual([], self.problems(base_doc(judgements=[amendment()])))
+        self.assertEqual([], self.problems(base_doc(judgements=[amendment(overruled=True)])))
+        for bad in (base_doc(judgements=[amendment(overruled=False)]),
+                    base_doc(judgements=[self.judgement(overruled=True)]),
+                    base_doc(judgements=[self.judgement(kind="regate", overruled=True)])):
+            problems = self.problems(bad)
+            self.assertTrue(problems and any("overruled" in p for p in problems), problems)
+
+    def test_signed_task_hashes_is_a_t_nn_to_sha256_map(self):
+        good = {"T-01": "a" * 64, "T-12": "0123456789abcdef" * 4}
+        self.assertEqual([], self.problems(base_doc(signed_task_hashes=good)))
+        self.assertEqual([], self.problems(base_doc(signed_task_hashes={})))
+        for bad in ({"SC-01": "a" * 64}, {"T-01": "A" * 64}, {"T-01": "a" * 63},
+                    {"T-01": "g" * 64}, {"T-01": 1}, ["a" * 64]):
+            problems = self.problems(base_doc(signed_task_hashes=bad))
+            self.assertTrue(problems and any("signed_task_hashes" in p for p in problems),
+                            (bad, problems))
 
     def test_mission_outside_the_two_lanes_is_rejected(self):
         problems = self.problems(base_doc(mission="epic"))

@@ -1,0 +1,170 @@
+{
+  "feature_id": "BUG-1716-build-amendments",
+  "branch": "feat/BUG-1716-build-amendments",
+  "pr": null,
+  "review_sha": "e348b40d5bba915a6131be37de728947da990deb",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T04:27:53+00:00",
+      "ended_at": "2026-09-16T05:12:29+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-product-correction",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T05:19:19+00:00",
+      "ended_at": "2026-09-16T05:21:23+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-correction-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T05:21:23+00:00",
+      "ended_at": "2026-09-16T05:30:25+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-t01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-09-16T05:37:13+00:00",
+      "ended_at": "2026-09-16T05:42:41+00:00",
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T06:25:55+00:00",
+      "ended_at": "2026-09-16T06:52:50+00:00",
+      "tokens": null
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T07:12:23+00:00",
+      "ended_at": "2026-09-16T07:28:31+00:00",
+      "tokens": null
+    },
+    {
+      "id": "fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T07:37:31+00:00",
+      "ended_at": "2026-09-16T07:51:01+00:00",
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T04:27:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new schema surface (a digest field, a sixth judgement kind, a plan-merge verb, per-task text hashes) and a new INV-40 trigger \u2014 fails rule 3 of the patch test; cause and files are known."
+    },
+    {
+      "at": "2026-09-16T05:19:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator authorized the bounded targeted PM correction in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1716-build-amendments/.harness/harness/features/BUG-1716-build-amendments/notes/answers-plan-product.md"
+    },
+    {
+      "at": "2026-09-16T05:21:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan-correction-product",
+      "reason": "Dispatch guard rejected the first run slug before any lead or PM started; retry with the required squad-suffixed run slug."
+    },
+    {
+      "at": "2026-09-16T06:25:26+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue into the pinned validate cycle: all nine tasks are done, station is review, the pin is an ancestor of tip, cumulative spend is within the 2-round/90-minute rework ruling, and no handoff note exists."
+    },
+    {
+      "at": "2026-09-16T07:12:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue with validate c1 at pinned f602c7ee: Main's fix receipt covers V-01 through V-08, spend is 2/10 cycles and 26/90 rework minutes, and the pin is an ancestor of tip."
+    },
+    {
+      "at": "2026-09-16T07:36:05+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix-c1-validator",
+      "reason": "validate c0 FAIL (V-01..V-08) fixed direct per DEC-174 (receipt-main-session-fix-c1.md); re-gated as fix-c1-validator \u2014 recorded late: the c1 orchestrator omitted it before its run"
+    },
+    {
+      "at": "2026-09-16T07:37:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue validate round 2 at pinned e348b40d: Main's c2 receipt answers V-01, the pin is an ancestor of tip, and cumulative spend is 3/10 cycles, 1/2 rework rounds, and 43/90 rework minutes."
+    },
+    {
+      "at": "2026-09-16T07:37:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c2-validator",
+      "reason": "fix-c1-validator FAIL V-01 was fixed main-session-direct per DEC-174 and notes/receipt-main-session-fix-c2.md; re-gate once over pinned e348b40d."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1716-build-amendments/notes/answers-2026-09-15-sign.md"
+  },
+  "github": {
+    "milestone": 76,
+    "parent": 1744,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 1745,
+      "T-02": 1746,
+      "T-03": 1747,
+      "T-04": 1748,
+      "T-05": 1749,
+      "T-06": 1750,
+      "T-07": 1751,
+      "T-08": 1752,
+      "T-09": 1753
+    },
+    "source_issues": [
+      1716
+    ],
+    "build_entry": "opened"
+  }
+}

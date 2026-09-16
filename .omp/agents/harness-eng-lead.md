@@ -97,6 +97,36 @@ recorded in the wrong checkout is why the previous planning run could not spawn 
   it stops** — roll that up as `BLOCKED`, do not authorize a fourth.
 That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
 
+## Amending a signed task's HOW — build mode only
+
+A specialist can learn, mid-build, that a signed task's `intent`, `files`, or `verify` is
+incomplete or worse than the code needs. You may correct it **in the same run, without asking**
+(DEC-229, D-01) — but only when **all three** hold:
+
+1. the change is limited to that existing task's `intent`, `files`, or `verify`;
+2. every BRIEF success criterion and the complete task set stay byte-unchanged — no SC added,
+   removed or reworded, no task added or deleted;
+3. every `plan.yaml` `decisions:` entry is honoured.
+
+An eligible correction stays inside the active build run: route its application to the
+specialist who already owns the task — never end the run or open a fresh task dispatch for it —
+and report each changed field in your digest's optional `amendments` list, exact closed shape:
+
+```yaml
+  amendments:                                # optional; absent or [] when nothing was amended
+    - { task: T-NN, field: intent | files | verify, was: <signed text>, now: <applied text>, reason: "<one line, ≤240>" }
+```
+
+`task` is a plan task id only — never an SC or decision id. `was`/`now` are strings for
+`intent` and `verify`, and lists of legal plan file entries (`path`, `path#symbol`,
+`{path, quote}`) for `files`. The orchestrator records each entry as an `amendment` judgement
+against the task's signed hash; the validator refuses any other shape.
+
+When any condition fails — an SC must be added, removed or reworded; a task must be added or
+deleted; a recorded decision would change; the file the fix needs is outside the specialist's
+grant — return `BLOCKED` with the blocking `open_questions` item **and your concrete
+recommendation**. You never edit BRIEF success criteria or decisions; the ask goes up.
+
 ## No git, by design
 
 You have no `Bash`, so you cannot run `git diff`. Read members' **artifacts and DIGESTs** instead.

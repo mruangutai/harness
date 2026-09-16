@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
 import artifact_accessors
+import amendment_contract
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
@@ -373,7 +374,52 @@ DOCUMENTED_OPTIONAL = {
         "why": str,
         "prototype": str,
     },
+    # BUG-1716 D-02: the engineering lead's in-build corrections to a signed task's HOW.
+    # Keyed to the RAW eng-lead type on purpose — a product or validator lead amends nothing,
+    # so on those the key stays undeclared and the closed-contract gate refuses it.
+    "harness-eng-lead": {
+        "amendments": list,
+    },
 }
+
+
+def _parsed_members(value):
+    """A `files` value's members with inline `{ ... }` mappings parsed; parse_digest keeps them
+    as text, and the shared contract expects the shape plan-merge.py's YAML loader hands it."""
+    if not isinstance(value, list):
+        return value
+    return [parse_member_entry(m) if isinstance(m, str) and m.strip().startswith("{") else m
+            for m in value]
+
+
+def _amendment_mapping(raw):
+    """The parsed mapping for one `amendments` entry, or None. parse_digest keeps an inline
+    `{ ... }` as text and a block mapping as joined text; parse_member_entry reads both."""
+    entry = parse_member_entry(raw) if isinstance(raw, str) else None
+    if not entry:
+        return None
+    return {k: _parsed_members(v) if k in ("was", "now") else v for k, v in entry.items()}
+
+
+def _amendments_errors(seen):
+    """BUG-1716 SC-01: grade `amendments` when present — absent is legal, `[]` is legal, and
+    every list member must be a closed {task, field, was, now, reason} mapping. The rules are
+    amendment_contract's, shared with plan-merge.py record-amendments."""
+    if "amendments" not in seen:
+        return []
+    val = seen["amendments"]
+    if not isinstance(val, list):
+        return [f"amendments must be a LIST of {{{', '.join(amendment_contract.KEYS)}}} entries "
+                "([] when the run amended nothing)."]
+    err = []
+    for index, raw in enumerate(val):
+        entry = _amendment_mapping(raw)
+        if entry is None:
+            err.append(f"amendments[{index}] is not a mapping — each entry is exactly "
+                       f"{{{', '.join(amendment_contract.KEYS)}}}.")
+            continue
+        err.extend(amendment_contract.entry_errors(entry, index))
+    return err
 
 
 def review_config_path(config_path=None):
@@ -1661,6 +1707,8 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     if isinstance(oq_val, int) and not isinstance(oq_val, bool):
         err.append("open_questions is a COUNT; it must be a list of structured items — "
                    "it is an active routing signal, not a tally.")
+    if raw_persona == "harness-eng-lead":
+        err.extend(_amendments_errors(seen))
     return err
 
 

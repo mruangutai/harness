@@ -103,7 +103,10 @@ never at startup (DEC-150, DEC-158):
    yourself.**
 
 **Authority boundary:** execution-time adjustments are yours — loop back, insert a review, reorder,
-escalate. Plan-level changes are pm's: delegate re-planning, never edit the plan yourself.
+escalate. Plan-level scope and decisions are pm's: delegate re-planning, never edit the plan
+yourself. The ONE builder-learned change you record without pm is an engineering lead's eligible
+amendment to a signed task's `intent`, `files`, or `verify` (DEC-32/DEC-229), and only through
+`plan-merge.py record-amendments` — never `amend`, never an edit.
 
 **Your writes to `plan.yaml` are verbs, never edits:** `plan-merge.py set-task-station --file
 <plan.yaml> --task T-NN --station <name>`, `set-feature-station`, and `record-panel` after a plan
@@ -128,7 +131,13 @@ byte-verified before any commit.
   (SC-03); `scope: task` findings never do, however many (DEC-228). Procedure:
   `plan-phase.md`.
 - **Build** — `gh-sync.py open`; the `build` team to `harness-eng-lead` (single-squad, DEC-118),
-  `set-feature-station building` as it starts; SIMPLIFY last, before the pin; pin `review_sha` and
+  `set-feature-station building` as it starts. **A `PASS` carrying `amendments:` is transcribed
+  FIRST**: `plan-merge.py record-amendments --file <plan.yaml> --digest <lead digest.md>` inside the
+  same build run, before any task or feature station moves — no product dispatch, no separate
+  transcript run, no re-dispatch of the task, no `cycles_used` increment (no gate failed, DEC-157).
+  A lead that could not amend returns `BLOCKED` with the question and its recommendation — an SC
+  change, a task added or deleted, a decision changed, a file outside grants — and that routes as
+  `BLOCKED` below. SIMPLIFY last, before the pin; pin `review_sha` and
   `gh-sync.py status <feature-dir> review`; then ONE `validate` dispatch to `harness-validator-lead` over that sha —
   `qa` enforces the `test_matrix` gate with `fail_first` evidence; a qa FAIL is a `loop_back` to the
   owning dev through a `fix` run, never a second qa run over the same sha — beside `code`,
@@ -141,7 +150,7 @@ byte-verified before any commit.
 
 | It returned | You do |
 |---|---|
-| `PASS` | record, next step in PLAN |
+| `PASS` | record, next step in PLAN — after `record-amendments` when the digest carries `amendments:` (build only) |
 | `FAIL` with `must_fix` | one `fix` run to `harness-validator-lead` naming the `execution_agent` of the task each finding cites; a finding citing no owned task is a new class → `awaiting_user`; increment `cycles_used`; a `regate` judgement |
 | `BLOCKED` | stop — a blocked member cannot be fixed by retrying. Return `BLOCKED` up |
 | `ESCALATE`, domain belongs to a peer squad | route it laterally to the owning lead — rung 2 below. If it changes the plan, send pm |

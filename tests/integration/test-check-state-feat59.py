@@ -25,6 +25,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+import io
 import json
 import os
 import sys
@@ -368,6 +369,151 @@ def case_inv40():
     return results
 
 
+# ------------------------------------------------------------------ INV-40 (d), BUG-1716 ---
+
+_SIGNED_PLAN = ("schema: plan/1\nfeature: FEAT-TEST\n"
+                "approval:\n  status: approved\n  approved_by: X\n  date: 2026-09-15\n"
+                "status: building\n"
+                "tasks:\n"
+                "  - id: T-01\n    title: a\n    traces: [SC-01]\n    change_type: logic\n"
+                "    execution_mode: main-session-direct\n    depends_on: []\n    status: building\n"
+                "    intent: one\n    files: [a.py]\n    verify: python3 a.py\n"
+                "  - id: T-02\n    title: b\n    traces: [SC-01]\n    change_type: logic\n"
+                "    execution_mode: main-session-direct\n    depends_on: []\n    status: ready\n"
+                "    intent: two\n    files: [b.py#f]\n    verify: python3 b.py\n")
+_PLAN_MERGE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                           ".claude", "skills", "harness", "bin", "plan-merge.py")
+
+
+def _amend_j(decision, **extra):
+    entry = {"at": "2026-09-15T12:00:00+00:00", "by": "harness-orchestrator", "kind": "amendment",
+             "decision": decision, "reason": "fixture"}
+    entry.update(extra)
+    return entry
+
+
+def _sign_through_plan_merge(plan):
+    """Sign `plan` THROUGH plan-merge.py sign-approval so the hashes are the real ones."""
+    import subprocess
+    env = dict(os.environ)
+    env.pop("HARNESS_AGENT_TYPE", None)
+    r = subprocess.run([sys.executable, _PLAN_MERGE, "sign-approval", "--file", plan,
+                        "--by", "X", "--date", "2026-09-15"],
+                       capture_output=True, text=True, env=env)
+    assert r.returncode == 0, r.stderr
+
+
+def _rewrite(path, transform):
+    with open(path) as f:
+        text = f.read()
+    with open(path, "w") as f:
+        f.write(transform(text))
+
+
+def _signed(plan_text=_SIGNED_PLAN, mutate=None, judgements=(), sign=True):
+    """A feature signed through sign-approval, then `mutate(plan_text) -> plan_text` applied
+    and `judgements` appended; returns check-state's (code, out)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
+        plan = os.path.join(fdir, "plan.yaml")
+        with open(plan, "w") as f:
+            f.write(plan_text.replace("status: approved", "status: pending") if sign else plan_text)
+        if sign:
+            _sign_through_plan_merge(plan)
+        if mutate is not None:
+            _rewrite(plan, mutate)
+        _rewrite(os.path.join(fdir, "feature.json"),
+                 lambda text: json.dumps(dict(json.load(io.StringIO(text)),
+                                              judgements=list(judgements)), indent=1) + "\n")
+        return run(tmp)
+
+
+def _change_intent(t):
+    return t.replace("intent: one", "intent: one, revised")
+
+
+def _inv40_after(mutate=None, judgements=(), sign=True):
+    """INV-40 violation lines after a signed fixture is mutated, plus the raw output."""
+    _, out = _signed(mutate=mutate, judgements=judgements, sign=sign)
+    return _violations(out, "INV-40"), out
+
+
+def _one_naming(v, task):
+    return len(v) == 1 and task in v[0]
+
+
+def _tasks_named(v):
+    return {tid for tid in ("T-01", "T-02") if any(tid in x for x in v)}
+
+
+def case_inv40_signed_text_detects_unledgered_edits():
+    """BUG-1716 T-05: an edit to a signed task's intent with no amendment judgement naming
+    that task is ONE INV-40 violation naming the task and the remedy; a fresh plan is silent."""
+    _, out = _signed()
+    fresh = ("(40d.a) a freshly signed plan is silent — the hashes agree with sign-approval",
+             not _lines(out, "INV-40") and "plan.yaml does not load" not in out, out[:400])
+    v, out = _inv40_after(_change_intent)
+    intent = ("(40d.b) an unledgered intent change is ONE violation naming the task and the remedy",
+              _one_naming(v, "T-01") and "record-amendments" in v[0] and "T-02" not in v[0], out[:500])
+    return [fresh, intent]
+
+
+def case_inv40_signed_text_grades_every_signed_field():
+    """files and verify changes are caught on the task they belong to; two independently
+    changed tasks are two violations."""
+    v, out = _inv40_after(lambda t: t.replace("files: [a.py]", "files: [a.py, c.py]"))
+    files = ("(40d.g) a files change is caught", len(v) == 1, out[:400])
+    v, out = _inv40_after(lambda t: t.replace("verify: python3 b.py", "verify: python3 b.py -v"))
+    verify = ("(40d.h) a verify change is caught, on the task it belongs to", _one_naming(v, "T-02"), out[:400])
+    v, out = _inv40_after(lambda t: _change_intent(t).replace("intent: two", "intent: two, revised"))
+    both = ("(40d.i) two independently changed tasks are two violations",
+            len(v) == 2 and _tasks_named(v) == {"T-01", "T-02"}, out[:500])
+    return [files, verify, both]
+
+
+def case_inv40_signed_text_amendment_coverage():
+    """Only an `amendment` judgement whose decision names THAT task covers the edit —
+    overruled or not; another task's, or another kind's, does not."""
+    v, out = _inv40_after(_change_intent, [_amend_j("T-01.intent")])
+    matching = ("(40d.c) the matching amendment judgement silences it", not v, out[:400])
+    v, out = _inv40_after(_change_intent, [_amend_j("T-01.intent", overruled=True)])
+    overruled = ("(40d.d) an OVERRULED matching amendment still covers — the ledger is the record",
+                 not v, out[:400])
+    v, out = _inv40_after(_change_intent, [_amend_j("T-02.intent")])
+    other_task = ("(40d.e) an amendment for ANOTHER task does not cover", _one_naming(v, "T-01"), out[:400])
+    v, out = _inv40_after(_change_intent, [dict(_amend_j("T-01.intent"), kind="regate")])
+    other_kind = ("(40d.f) another judgement kind naming the task does not cover",
+                  _one_naming(v, "T-01"), out[:400])
+    return [matching, overruled, other_task, other_kind]
+
+
+def case_inv40_signed_text_scope():
+    """Presentation-only rewrites hash the same; plans without hashes or with pending approval
+    are not graded; the text trigger reports beside the other INV-40 triggers."""
+    v, out = _inv40_after(lambda t: t.replace("intent: one\n", "intent: 'one'\n")
+                          .replace("files: [a.py]", "files:\n      - a.py"))
+    reflow = ("(40d.j) a presentation-only rewrite (quoting, list form) hashes the same — silent",
+              not v, out[:400])
+    v, out = _inv40_after(_change_intent, sign=False)
+    unsigned = ("(40d.k) a plan with no signed_task_hashes (signed before BUG-1716) is not graded",
+                not v, out[:400])
+    v, out = _inv40_after(lambda t: _change_intent(t).replace("status: approved", "status: pending"))
+    pending = ("(40d.l) a pending approval is not graded by this trigger", not v, out[:400])
+    v, out = _inv40_after(_change_intent)
+    beside = ("(40d.m) the text trigger reports beside, not instead of, the other triggers",
+              len(v) == 1, out[:400])
+    return [reflow, unsigned, pending, beside]
+
+
+def case_inv40_signed_text():
+    return (case_inv40_signed_text_detects_unledgered_edits()
+            + case_inv40_signed_text_grades_every_signed_field()
+            + case_inv40_signed_text_amendment_coverage()
+            + case_inv40_signed_text_scope())
+
+
+
+
 # ----------------------------------------------------------------------------- INV-43 ---
 
 def _timed(rid, started, verdict="PASS"):
@@ -570,8 +716,8 @@ def _report(results):
 
 
 def main():
-    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv41()
-                        + case_inv43_chronology() + case_inv43_unreadable()
+    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
+                        + case_inv41() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv43_era_config()) else 1
 

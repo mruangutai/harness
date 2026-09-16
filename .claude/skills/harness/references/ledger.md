@@ -1,8 +1,8 @@
 # The ledger — feature.json is the record of judgement, not a summary of it
 
 Read this on your first cycle, and again before any raise, stop or succession. The playbook
-carries the verbs and the five kinds; this is what each means and why. Evidence and history:
-DEC-227, DEC-230, DEC-157.
+carries the verbs and the six kinds; this is what each means and why. Evidence and history:
+DEC-227, DEC-229, DEC-230, DEC-157.
 
 Every write goes through `feature-record.py`; you never edit `feature.json` by hand.
 
@@ -43,11 +43,32 @@ Every autonomous judgement is one line in `judgements[]`:
 | `regate` | a FAIL is followed by another run — every `fix` round, every substance re-panel |
 | `continue` | you decide to keep going or to stop — `--decision continue` or `--decision stop` — at a budget line, a new finding class, or exhaustion |
 | `succession` | your first act on waking as a successor — `continue`, `downgrade` or `stop` — and **no later than your first run** |
+| `amendment` | the engineering lead changed a signed task's `intent`, `files` or `verify` inside the same build run (DEC-32/DEC-229) — written FOR you by `plan-merge.py record-amendments`, one entry per changed field, never by hand |
+
+**An amendment's identity is its `decision`: `T-NN.intent`, `T-NN.files` or `T-NN.verify`** — the
+task and the field, nothing added, so a field amended twice is two entries told apart by `at`.
+`record-amendments` writes each entry from the lead's digest (`by: harness-orchestrator`, the
+digest's one-line reason) in the same act that splices the text, and stamps every entry a
+distinct microsecond instant so the operator can name exactly one. **Overruling is by that exact
+`at`:** at ship, the operator reads the amendment table in the briefing and, for any departure
+they reject, the main session runs `feature-record.py overrule-amendment --file <feature.json>
+--at <the entry's at>`; the verb selects the one live amendment at that instant and adds
+`overruled: true`, refusing zero matches, two matches, a non-amendment, or a repeat. `overruled`
+is ABSENT on an amendment that stands and `true` on one the operator rejected — never `false`,
+never on any other kind (the schema refuses both). The operator's trust rate in builder-side
+amendments is derived from the ledger, never recorded separately: `overruled / total` over all
+`amendment` entries, `0/0` when there were none.
 
 **A judgement not written is a judgement not made.** `check-state.py` INV-40 refuses a `mission`
-with no `mission` entry, a FAIL run followed by another with no `regate`, and a handoff note with
-runs after its `seq-N` and no `succession`. The ledger is the whole basis of the operator's trust:
-they verify after the fact, from the reason line, never by ruling in-flight (SC-21).
+with no `mission` entry, a FAIL run followed by another with no `regate`, a handoff note with
+runs after its `seq-N` and no `succession`, and — on a signed plan — a task whose current
+`intent`/`files`/`verify` no longer hash to the `signed_task_hashes` `sign-approval` wrote to
+`feature.json` (SHA-256 over canonical JSON of the three fields, DEC-229) with no `amendment`
+entry naming that task. The remedy it prints is the route: `plan-merge.py record-amendments
+--file <plan.yaml> --digest <engineering-lead digest>`, or restore the signed text. The signed
+hashes are never revised by an amendment; that is what lets the gate tell a ledgered departure
+from an unrecorded edit. The ledger is the whole basis of the operator's trust: they verify after
+the fact, from the reason line, never by ruling in-flight (SC-21).
 
 **The seam has an order (DEC-159, BUG-1723).** The outgoing orchestrator writes the handoff note
 BEFORE any run of the later phase exists; the successor appends its `succession` judgement before
@@ -82,7 +103,10 @@ If no line arrives there is nothing to weigh.
 | `len(runs)` / `max_total_runs` | **INFORMATIONAL** — notices a long feature, never stops one | INV-22 emits a NOTE. Keep going; a high count is not a defect |
 
 **What counts as rework** (DEC-157): a FAIL routed back, an unmet-SC re-dispatch, or a send-back a
-lead reports from inside a run. A clean first-pass run adds ZERO cycles. Counting forward runs
+lead reports from inside a run. A clean first-pass run adds ZERO cycles. **Continuing a task after
+an eligible amendment is the same run, not a cycle**: no gate failed and nothing was routed
+back — the lead corrected the task's HOW and the owning specialist carried on; `record-amendments`
+is transcription, and `cycles_used` does not move for it. Counting forward runs
 instead is how a healthy feature goes BLOCKED with nothing wrong. The defaults are
 `budgets.max_total_cycles` and `budgets.max_total_runs` in harness.json, never a figure in prose.
 A main-session-direct segment is not a run and never appears in `runs:`.

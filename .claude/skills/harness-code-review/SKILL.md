@@ -31,9 +31,23 @@ a `file:line` citation.
 
 Report per violation: the path, the `SC`/`D` it relates to, and which of the three kinds it is.
 
+**Amendments are the map of departures, never the anchor (DEC-229/DEC-230).** Read the build
+lead's digest `amendments:` list — each entry names a task field (`intent`, `files`, `verify`)
+the lead changed on its own authority, with `was`, `now` and a reason. For every entry, compare
+the resulting diff against the BRIEF's success criteria and `plan.yaml`'s `decisions:` ONLY: a
+departure that serves both passes without comment; one that weakens, contradicts, or escapes a
+criterion or a decision is a `substance` finding with a concrete failure scenario, cited to the
+`SC`/`D` it fails. Stage 1 never uses a task's `intent`, `files` or `verify` — signed or amended —
+as its compliance anchor: the task text is the builder's HOW, and grading the diff against the
+HOW the builder just rewrote would make the amendment its own reviewer. The reason on an
+amendment is a claim, not evidence; Stage 2 recomputes.
+
 ## Stage 2 — code quality
 
 Only after Stage 1. Judge against the conventions **already in this codebase**, not an abstract ideal.
+Stage 2 examines the pinned diff and recomputes code quality on its own — `code-grade.py` over
+every changed Python path included — and inherits nothing from an amendment's reason: a lead
+that amended `verify` "for efficiency" has asserted it, and this stage measures it.
 
 Look for: correctness bugs · unhandled errors · **silent failure paths** · missing input validation ·
 dropped async rejections · boundary and off-by-one conditions · resource leaks · dead code left behind ·

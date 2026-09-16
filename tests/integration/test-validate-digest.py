@@ -582,6 +582,74 @@ artifact: .harness/features/FEAT-01/runs/r1/digest.md
 """
 case("lead, block-style members + bare empty key", "harness-eng-lead", LEAD_BLOCK, True)
 
+
+# BUG-1716 T-02 (SC-01/SC-06, D-02): `amendments` — the eng-lead's optional list of in-build
+# corrections to a signed task's HOW. Each entry is exactly {task, field, was, now, reason};
+# task is T-NN, field is intent|files|verify, reason ≤240 one-liner, and was/now are strings
+# for intent/verify, lists of legal anchored plan file entries for files. Declared for
+# harness-eng-lead only: a product or validator lead amends nothing.
+def _amended(entries, persona="harness-eng-lead"):
+    return LEAD_BLOCK.replace("  adequacy_notes: []\n", f"  amendments: {entries}\n  adequacy_notes: []\n") \
+        if isinstance(entries, str) and entries.startswith("[") \
+        else LEAD_BLOCK.replace("  adequacy_notes: []\n", f"  amendments:\n{entries}  adequacy_notes: []\n")
+
+
+# The three BUG-285 T-03 recommendations, as the amendments they would have been (SC-06).
+BUG285_AMENDMENTS = """\
+    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "Keep the keyword-only text source; no second accessor and no exemption", reason: "the exemption would let a caller bypass the accessor the task exists to make canonical" }
+    - { task: T-03, field: verify, was: "parse_gh_json accepts objects only", now: "parse_gh_json accepts any JSON value", reason: "gh api returns arrays for list endpoints; an object-only reader refuses real output" }
+    - { task: T-03, field: files, was: [.claude/skills/harness/bin/check-domain.py#manifest_domains], now: [{ path: .claude/skills/harness/bin/check-domain.py, quote: "def manifest_domains(agent=None)" }], reason: "the symbol anchor moved to a content anchor once the signature gained agent=None" }
+"""
+case("amendments: the three BUG-285 recommendations are accepted eng-lead amendments",
+     "harness-eng-lead", _amended(BUG285_AMENDMENTS), True)
+case("amendments: absent is legal", "harness-eng-lead", LEAD_BLOCK, True)
+case("amendments: empty list is legal", "harness-eng-lead", _amended("[]"), True)
+case("amendments: inline mappings for all three fields",
+     "harness-eng-lead", _amended(
+         '[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }, '
+         '{ task: T-01, field: verify, was: "python3 x.py", now: "python3 y.py", reason: "r" }, '
+         '{ task: T-02, field: files, was: [a.py], now: [a.py#f, { path: b.py, quote: "q" }], reason: "r" }]'),
+     True)
+case("amendments: block mapping entry", "harness-eng-lead", _amended(
+    "    - task: T-04\n      field: intent\n      was: old text\n      now: new text\n      reason: shorter\n"), True)
+case("amendments: unknown key is refused naming index and key", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r", by: me }]'), False, "by")
+case("amendments: missing key is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", reason: "r" }]'), False, "now")
+# A scalar, not a block mapping: parse_digest reads a nested block mapping under a list-typed
+# key as `[]` (the same limit the members roll-up lives with), so the type gate is pinned on
+# the shape the parser CAN distinguish.
+case("amendments: not a list is refused", "harness-eng-lead",
+     LEAD_BLOCK.replace("  adequacy_notes: []\n", "  amendments: none\n  adequacy_notes: []\n"),
+     False, "amendments")
+case("amendments: entry that is not a mapping is refused", "harness-eng-lead",
+     _amended("[T-01.intent]"), False, "amendments[0]")
+case("amendments: SC id as task is refused", "harness-eng-lead",
+     _amended('[{ task: SC-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "task")
+case("amendments: decision id as task is refused", "harness-eng-lead",
+     _amended('[{ task: D-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "task")
+case("amendments: field outside intent/files/verify is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: title, was: "a", now: "b", reason: "r" }]'), False, "field")
+case("amendments: empty reason is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "" }]'), False, "reason")
+case("amendments: reason over 240 is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "' + "x" * 241 + '" }]'), False, "reason")
+case("amendments: intent with a list value is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: [a], now: "b", reason: "r" }]'), False, "was")
+case("amendments: files with a string value is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: files, was: [a.py], now: "b.py", reason: "r" }]'), False, "now")
+case("amendments: files with a line-number anchor is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: files, was: [a.py], now: [a.py:12], reason: "r" }]'), False, "now")
+case("amendments: files with a bad mapping entry is refused", "harness-eng-lead",
+     _amended('[{ task: T-01, field: files, was: [a.py], now: [{ path: a.py, line: 3 }], reason: "r" }]'), False, "now")
+case("amendments: second entry's fault is reported at its index", "harness-eng-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }, '
+              '{ task: T-02, field: intent, was: "a", now: "b" }]'), False, "amendments[1]")
+case("amendments: a product lead may not carry the field", "harness-product-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "amendments")
+case("amendments: a validator lead may not carry the field", "harness-validator-lead",
+     _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r" }]'), False, "amendments")
+
 # Every list inline. Both styles are legal YAML and agents write both.
 #
 # NOTE the members entries are still STRUCTURED. An earlier version of this case used
