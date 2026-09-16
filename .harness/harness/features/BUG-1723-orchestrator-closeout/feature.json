@@ -2,7 +2,7 @@
   "feature_id": "BUG-1723-orchestrator-closeout",
   "branch": "feat/BUG-1723-orchestrator-closeout",
   "pr": null,
-  "review_sha": "ec24ca35e889da3032f05cf83ee07b3937553a7a",
+  "review_sha": "972d5c054e6a1dbab811f957ff5d5186a7445f63",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "max_total_runs": 20,
