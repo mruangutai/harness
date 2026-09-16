@@ -515,6 +515,46 @@ def case_accepted_github_block_without_source_issues():
     problems = clean(doc)
     check("accepted_github_block_without_source_issues", problems == [], problems)
 
+# ---------------------------------------------------------------------------
+# BUG-1716 T-03 — signed_task_hashes (D-03) and the amendment judgement's
+# conditional `overruled` (D-05). Standalone fixtures: the strict schema is
+# what plan-merge.py and check-state.py will read these through, so the
+# boundary is pinned here, not only in feature-record's own unit suite.
+
+def _amendment(**extra):
+    entry = {"at": "2026-09-15T12:00:00+00:00", "by": "harness-eng-lead",
+             "kind": "amendment", "decision": "T-02.intent", "reason": "split"}
+    entry.update(extra)
+    return entry
+
+
+def case_accepted_signed_task_hashes_and_amendment_judgement():
+    doc = full_doc()
+    doc["signed_task_hashes"] = {"T-01": "0" * 64, "T-02": "abcdef0123456789" * 4}
+    doc["judgements"] = [_amendment(), _amendment(decision="T-02.files", overruled=True)]
+    problems = clean(doc)
+    check("accepted_signed_task_hashes_and_amendment_judgement", problems == [], problems)
+
+
+def case_rejected_signed_task_hash_shapes():
+    for label, bad in (("sc_key", {"SC-01": "0" * 64}), ("uppercase", {"T-01": "A" * 64}),
+                       ("short", {"T-01": "0" * 63}), ("list", ["0" * 64])):
+        doc = full_doc()
+        doc["signed_task_hashes"] = bad
+        problems = clean(doc)
+        check(f"rejected_signed_task_hash_{label}",
+              any("signed_task_hashes" in p for p in problems), problems)
+
+
+def case_rejected_overruled_outside_a_live_amendment():
+    for label, entry in (("false", _amendment(overruled=False)),
+                         ("regate", _amendment(kind="regate", decision="T-01", overruled=True))):
+        doc = full_doc()
+        doc["judgements"] = [entry]
+        problems = clean(doc)
+        check(f"rejected_overruled_{label}", any("overruled" in p for p in problems), problems)
+
+
 
 # ---------------------------------------------------------------------------
 # BUG-1309 T-01 — github.build_entry, the root of the mirror-build DAG. The
@@ -801,6 +841,11 @@ def main():
     case_rejected_source_issues_quoted_number()
     case_rejected_undeclared_sibling_of_source_issues()
     case_accepted_github_block_without_source_issues()
+
+    # BUG-1716 T-03 — signed_task_hashes and the amendment judgement
+    case_accepted_signed_task_hashes_and_amendment_judgement()
+    case_rejected_signed_task_hash_shapes()
+    case_rejected_overruled_outside_a_live_amendment()
 
     # BUG-1309 T-01 — github.build_entry
     case_accepted_github_build_entry_each_legal_value()

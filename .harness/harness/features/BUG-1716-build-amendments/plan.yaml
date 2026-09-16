@@ -4,7 +4,7 @@ approval:
   date: '2026-09-15'
   approved_by: mruangutai
   status: approved
-status: plan
+status: building
 source_issues: [1716]
 panel:
   last_run: plan-product
@@ -170,7 +170,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 reserves feature-record.py, the feature schema, and their tests to the main session.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/feature-record.py#JUDGEMENT_KINDS
       - path: .claude/skills/harness/bin/feature-schema.json
