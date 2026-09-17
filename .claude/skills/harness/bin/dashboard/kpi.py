@@ -11,6 +11,7 @@ import brief_approval
 import defects
 import grading
 import harness_yaml
+import trend
 
 _SCHEMA = "kpi/1"
 _NOT_IMPLEMENTED = "not yet implemented"
@@ -22,7 +23,8 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
     root = Path(project_root).resolve()
     generated = _as_utc(generated_at or datetime.now(timezone.utc))
     start, end = resolve_window(window, generated)
-    records = _trend_records(root)
+    trend_payload = trend.read(root, window, generated)
+    records = trend_payload["records"]
     default_branch = _default_branch(root)
     features = [_feature(path, root, records, default_branch) for path in _feature_dirs(root)]
     selected = [item for item in features if _in_window(item["shipped_at"], start, end)]
@@ -33,7 +35,7 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
         "generated_at": _timestamp(generated),
         "features": selected,
         "aggregate": _aggregate(selected, root, window, generated),
-        "trend": {"points": [], "unavailable": {"points": _NOT_IMPLEMENTED}},
+        "trend": trend_payload,
     }
 
 
@@ -59,7 +61,8 @@ def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str |
     approved_on, approval_reason = brief_approval.approval_date(feature_dir)
     if approval_reason is not None:
         unavailable["approved_on"] = approval_reason
-    shipped_at = records.get(document["feature_id"])
+    record = records.get(document["feature_id"])
+    shipped_at = record.get("shipped_at") if record else None
     if shipped_at is None:
         unavailable["shipped_at"] = _NO_SHIP
     cycle_time = _cycle_time(approved_on, shipped_at)
@@ -82,6 +85,7 @@ def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str |
         "deletions": deletions,
         "files_changed": files_changed,
         "touchpoints": None,
+        "trend": _feature_trend(record),
         "unavailable": unavailable,
     }
 
@@ -96,16 +100,26 @@ def _plan_unavailability(feature_dir: Path) -> dict:
     return {}
 
 
-def _trend_records(root: Path) -> dict:
-    path = root / ".harness" / "metrics" / "trend.jsonl"
-    if not path.is_file():
-        return {}
-    records = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        record = json.loads(line)
-        if record.get("schema") == "trend/1":
-            records[record["feature_id"]] = record.get("shipped_at")
-    return records
+def _feature_trend(record: dict | None) -> dict:
+    if record is None:
+        return {
+            field: None for field in (
+                "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
+                "insertions", "deletions", "files_changed", "touchpoints",
+                "grade", "attribution",
+            )
+        } | {"unavailable": {field: "shipped before metrics existed" for field in (
+            "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
+            "insertions", "deletions", "files_changed", "touchpoints",
+            "grade", "attribution",
+        )}}
+    return {
+        field: record.get(field) for field in (
+            "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
+            "insertions", "deletions", "files_changed", "touchpoints",
+            "grade", "attribution",
+        )
+    } | {"unavailable": record.get("unavailable", {})}
 
 
 def _default_branch(root: Path) -> str | None:
