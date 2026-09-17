@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('@tanstack/react-router', () => ({ Link: ({ children }: { children: string }) => <a href="/kpi/">{children}</a> }));
 import { KpiTiles } from './tiles';
@@ -12,7 +12,7 @@ const payload = {
     grading: { at_or_above_share: 0.5, unavailable: {} },
     attribution: { attributable_share: 0.5, unattributed: 2, total_commits: 4, unavailable: {} },
   },
-  trend: { weekly: { week_count: 4, empty_bucket_count: 1, unavailable: {}, sourcing_rule: 'Weekly counts are shipped features read from the durable ship record; each shipped feature represents one merged PR under DEC-200; nullable pr fields do not affect the count.' } },
+  trend: { weekly: { week_count: 4, empty_bucket_count: 1, unavailable: {}, sourcing_rule: 'KPI 7 test sentinel: weekly counts come from the supplied dashboard payload.' } },
 };
 
 describe('KpiTiles', () => {
@@ -22,6 +22,7 @@ describe('KpiTiles', () => {
     expect(screen.getAllByRole('link')).toHaveLength(7);
     expect(screen.getAllByText('0').length).toBeGreaterThan(0);
     expect(screen.queryByText('unavailable')).toBeNull();
-    expect(screen.getByRole('button', { name: 'About Merged PRs Over Time' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'About Merged PRs Over Time' }));
+    expect(screen.getByText('KPI 7 test sentinel: weekly counts come from the supplied dashboard payload.')).toBeTruthy();
   });
 });
