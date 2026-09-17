@@ -2,7 +2,7 @@
   "feature_id": "FEAT-53-metrics-dashboard",
   "branch": "feat/FEAT-53",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "9b34c65246136666bc69f220824bb262965e75c0",
   "cycles_used": 28,
   "max_total_cycles": 30,
   "max_total_runs": 20,
@@ -264,6 +264,36 @@
       "tokens": 111301,
       "ended_at": "2026-09-17T09:49:45+00:00",
       "cycles_used": 2
+    },
+    {
+      "id": "2026-09-17-14-validate",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-17T09:51:32+00:00",
+      "tokens": 74550,
+      "ended_at": "2026-09-17T09:54:02+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-09-17-14-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-17T09:54:02+00:00",
+      "tokens": 146494,
+      "ended_at": "2026-09-17T10:17:35+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-09-17-15-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-17T10:19:16+00:00",
+      "tokens": 105399,
+      "ended_at": "2026-09-17T10:41:31+00:00",
+      "cycles_used": 0
     }
   ],
   "mission": "plan",
@@ -680,6 +710,34 @@
       "kind": "continue",
       "decision": "pre-review gates clean; pin review_sha",
       "reason": "Run 2026-09-17-13-eng repaired all eight measured groups and passed 42 unit files, 77 integration files, and 20 component tests with two cycles, leaving two cycles under the hard ceiling."
+    },
+    {
+      "at": "2026-09-17T09:51:32+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "validate pinned SHA while T-17 remains deferred",
+      "reason": "gh-sync.py status review refused because T-17 is not done; the operator-mandated sequence places docs after validation, the GitHub mirror is non-gating, and review_sha 9b34c65246136666bc69f220824bb262965e75c0 is pinned."
+    },
+    {
+      "at": "2026-09-17T09:54:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "redispatch validation under permitted 2026-09-17-14-validator run id",
+      "reason": "The first dispatch spawned zero readers because runs/*-validate is outside validator-lead's enforced domain; runs/*-validator is the manifest-authorized path and the pin is unchanged."
+    },
+    {
+      "at": "2026-09-17T10:17:35+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix V-01 through V-20 within the two remaining cycles",
+      "reason": "Pinned validation found high-severity UI, Host, fail-open, coverage and mechanical-grade defects; T-25 direct surfaces are routed to Main and all other findings to the validator fix team."
+    },
+    {
+      "at": "2026-09-17T10:41:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "escalate NEW-fixed-dark-document before the next frontend fix",
+      "reason": "Fix-cycle UI review found a new fixed-dark document-state class: color-scheme computes normal and body background transparent; protocol requires operator scope ruling before adding it under T-13."
     }
   ],
   "rework": {

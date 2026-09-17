@@ -6,3 +6,4 @@
 - 2026-09-16: Runtime-literal scans over TSX must exclude test modules when those tests intentionally preserve retired literals as negative-route assertions.
 - 2026-09-17: Dashboard client dist resolves outside the FEAT-53 worktree; running the signed Vite build mutates it but the write guard prevents restoring its tracked baseline from this task worktree.
 - 2026-09-17: Vitest 5's JSON reporter wrote only client/.vitest/json/output.json while the signed T-21 command expected JSON on stdout; report a configuration mismatch rather than substituting a grep.
+- 2026-09-17: Vite must be launched with its client directory as cwd; npm --prefix exec started from the worktree returned 404 for the source root.

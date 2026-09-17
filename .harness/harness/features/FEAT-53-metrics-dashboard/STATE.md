@@ -3,13 +3,15 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-13-eng/digest.md
-- squad: engineering
-- status: in_review
+- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-15-validator/digest.md
+- squad: validator
+- status: awaiting_user
+- review_sha: 9b34c65246136666bc69f220824bb262965e75c0
 - tasks_done: T-01..T-16, T-18..T-31
-- next_gate: pin review_sha and run one validator squad
+- validation: failed; original V-01..V-20 fixes remain in progress
+- direct_lane_fixes: V-09(T-24/T-25/T-30), V-10, V-11, V-16, V-20 committed
+- blocking_new_finding: NEW-fixed-dark-document
 - deferred_until_validate_clean: T-17
-- pre_review_gate: unit 42/42; integration 77/77; component 20/20
 - cycles_used: 28
 - max_total_cycles: 30
 - rework_rounds: 10
@@ -26,4 +28,4 @@
 
 ## Open Questions
 
-- none
+- Q1 (blocking): Should NEW-fixed-dark-document be added to the next frontend rework scope under T-13, requiring the document to expose a fixed-dark color scheme and non-transparent body background?
