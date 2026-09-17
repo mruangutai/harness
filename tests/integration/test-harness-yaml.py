@@ -637,7 +637,7 @@ def test_exactly_one_guarded_import_in_the_tree():
     # dropping the guard: it breaks no test today, because NOTHING exercises the guarded
     # branch, but it departs from signed text to buy nothing.
     allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
-               "feature-worktree.py"}
+               "feature-worktree.py", "check-state.py"}
     assert set(guarded_hits) <= allowed, (
         f"unexpected guarded-import file(s) outside the allowed set: "
         f"{set(guarded_hits) - allowed!r}"

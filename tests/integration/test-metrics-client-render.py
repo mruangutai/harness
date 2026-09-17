@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 """Gate the dashboard's three rendered chart assertions through Vitest JSON."""
 import json
+import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CLIENT = ROOT / ".claude/skills/harness/bin/dashboard/client"
-CARRIER = CLIENT / ".vitest/json/output.json"
 REMEDY = "npm ci --prefix .claude/skills/harness/bin/dashboard/client"
 REQUIRED_LABELS = (
     "grading panel mounts the Shape A histogram",
     "trend panel mounts the Shape B time series",
     "merged PR panel mounts the Shape B weekly line",
 )
-VITEST_CACHE = CLIENT / "node_modules/.vite/vitest"
-
 
 def fail(message):
     print(f"FAIL: {message}", file=sys.stderr)
@@ -41,21 +40,23 @@ def environment_error():
     return None
 
 
-def load_report():
+def load_report(carrier, cache_dir):
+    environment = dict(os.environ)
+    environment["VITEST_CACHE_DIR"] = str(cache_dir)
     completed = subprocess.run(
         ["npm", "--prefix", str(CLIENT), "run", "--silent", "test", "--",
-         "--reporter=json", "--outputFile=.vitest/json/output.json"],
-        cwd=ROOT, text=True, capture_output=True)
+         "--reporter=json", f"--outputFile={carrier}"],
+        cwd=ROOT, text=True, capture_output=True, env=environment)
     if completed.returncode:
         print(completed.stdout, end="")
         print(completed.stderr, end="", file=sys.stderr)
         fail(f"Vitest exited {completed.returncode}")
         return None
-    if not CARRIER.is_file():
+    if not carrier.is_file():
         fail("Vitest did not write JSON carrier; run " + REMEDY)
         return None
     try:
-        return json.loads(CARRIER.read_text())
+        return json.loads(carrier.read_text())
     except (OSError, json.JSONDecodeError) as error:
         fail(f"malformed Vitest JSON carrier: {error}")
         return None
@@ -76,15 +77,12 @@ def grade_report(report):
 
 
 def main():
-    try:
-        CARRIER.unlink(missing_ok=True)
-        if error := environment_error():
-            return fail(error)
-        report = load_report()
+    if error := environment_error():
+        return fail(error)
+    with tempfile.TemporaryDirectory() as temporary:
+        carrier = Path(temporary) / "output.json"
+        report = load_report(carrier, Path(temporary) / "vite-cache")
         return 1 if report is None else grade_report(report)
-    finally:
-        shutil.rmtree(CARRIER.parent.parent, ignore_errors=True)
-        shutil.rmtree(VITEST_CACHE, ignore_errors=True)
 
 
 if __name__ == "__main__":

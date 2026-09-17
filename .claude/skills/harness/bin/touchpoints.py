@@ -43,7 +43,7 @@ def record(project_root: Path, feature_id: str, event: str, note: str | None = N
 
 def instrumentation_epoch(project_root: Path) -> datetime | None:
     """Return the one-time instrumentation instant, if this project has one."""
-    path = Path(project_root) / ".harness" / "metrics" / "instrumented_at"
+    path = _epoch_path(Path(project_root))
     if not path.is_file():
         return None
     return _parse_timestamp(path.read_text(encoding="utf-8").splitlines()[0])
@@ -76,12 +76,15 @@ def count(project_root: Path, feature_id: str) -> tuple[int | None, str | None]:
 
 
 def _write_epoch(root: Path) -> None:
-    path = root / ".harness" / "metrics" / "instrumented_at"
+    path = _epoch_path(root)
     if path.exists():
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(_timestamp() + "\n", encoding="utf-8")
 
+
+def _epoch_path(root: Path) -> Path:
+    return root / ".harness" / "metrics" / "instrumented_at"
 
 def _feature_dir(root: Path, feature_id: str) -> Path:
     matches = sorted(root.glob(f".harness/*/features/{feature_id}"))
@@ -147,7 +150,10 @@ def _root_from_cwd() -> Path:
     )
     if result.returncode != 0:
         raise ValueError("current directory is not inside a git repository")
-    return Path(result.stdout.strip())
+    marker = Path(result.stdout.strip()) / ".harness" / "team-config.yaml"
+    if not marker.is_file():
+        raise ValueError(f"repository is missing required harness manifest: {marker}")
+    return marker.parents[1]
 
 
 def main() -> int:

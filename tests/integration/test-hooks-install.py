@@ -51,6 +51,8 @@ import tempfile
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
 REAL_ROOT = _anchor_root
+DASHBOARD_DIR = os.path.join(BIN_DIR, "dashboard")
+
 SKILL_MD = os.path.join(REAL_ROOT, ".claude", "skills", "harness-init", "SKILL.md")
 REAL_SHIM = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "hooks", "post-merge")
 
@@ -109,16 +111,18 @@ def _repo(path, branch="main"):
 
 
 def _install_real_bin_and_hook(root):
-    """REAL COPIES (never symlinks) of every file under the real BIN_DIR, plus the real,
-    UNMODIFIED T-11 shim — so the origin repository this builds is self-contained and a plain
-    local `git clone` carries a real, working `.claude/skills/harness/bin/` and
-    `.claude/skills/harness/hooks/post-merge` with no dependency on anything outside the clone."""
+    """Install real bin files, the dashboard trend dependency seam, and the T-11 hook."""
     bin_dst = os.path.join(root, ".claude", "skills", "harness", "bin")
     os.makedirs(bin_dst, exist_ok=True)
     for name in BIN_ENTRIES:
         dst = os.path.join(bin_dst, name)
         shutil.copy2(os.path.join(BIN_DIR, name), dst)
         os.chmod(dst, 0o755)
+    dashboard_dst = os.path.join(bin_dst, "dashboard")
+    os.makedirs(dashboard_dst, exist_ok=True)
+    for name in os.listdir(DASHBOARD_DIR):
+        if name.endswith(".py"):
+            shutil.copy2(os.path.join(DASHBOARD_DIR, name), os.path.join(dashboard_dst, name))
     hooks_dst_dir = os.path.join(root, ".claude", "skills", "harness", "hooks")
     os.makedirs(hooks_dst_dir, exist_ok=True)
     hook_dst = os.path.join(hooks_dst_dir, "post-merge")
@@ -424,33 +428,34 @@ def _run_merge_and_check(tmp, origin, label, expect_removed):
     dest = _add_wt(clone, f"FEAT-90-{label}-thing", ref="topic", new_branch=f"wt-{label}")
     _git(["checkout", "-q", "main"], cwd=clone)
 
-    r = subprocess.run(["git", "merge", "topic"], cwd=clone, capture_output=True, text=True,
-                        env=env)
-    results.append((f"({label}) real merge succeeds",
-                     r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} "
-                     f"stderr={r.stderr!r}"))
-    combined = (r.stdout or "") + (r.stderr or "")
+    try:
+        r = subprocess.run(["git", "merge", "topic"], cwd=clone, capture_output=True, text=True,
+                           env=env)
+        results.append((f"({label}) real merge succeeds",
+                        r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} "
+                        f"stderr={r.stderr!r}"))
+        combined = (r.stdout or "") + (r.stderr or "")
 
-    if expect_removed:
-        _assert_resolved_root_in_fixture(results, f"({label})", combined, clone)
-        results.append((f"({label}) SC-14: the terminal feature's worktree is gone after a "
-                         "real merge, with NOTHING hand-installed into .git/hooks/",
-                         not os.path.isdir(dest), f"dest={dest} stdout+stderr={combined!r}"))
-        results.append((f"({label}) the sweep removed the worktree by the normal path, never the "
-                         "build-entry retention branch",
-                        "post-merge-sweep: removed" in combined
-                        and "records github.build_entry" not in combined,
-                        f"stdout+stderr={combined!r}"))
-    else:
-        # The mutated shim execs a sweep that does not exist, so the shim itself reports that
-        # and returns before the sweep (and its root-resolution print) ever runs — there is no
-        # "resolved repository root" line to extract in this branch, by construction.
-        results.append((f"({label}) RED PROOF: the shim reports the missing sweep rather than "
-                         "silently doing nothing",
-                         "missing or not executable" in combined, f"combined={combined!r}"))
-        results.append((f"({label}) RED PROOF: with the shim repointed at a nonexistent sweep, "
-                         "the worktree SURVIVES the merge",
-                         os.path.isdir(dest), f"dest={dest} stdout+stderr={combined!r}"))
+        if expect_removed:
+            _assert_resolved_root_in_fixture(results, f"({label})", combined, clone)
+            results.append((f"({label}) SC-14: the terminal feature's worktree is gone after a "
+                            "real merge, with NOTHING hand-installed into .git/hooks/",
+                            not os.path.isdir(dest), f"dest={dest} stdout+stderr={combined!r}"))
+            results.append((f"({label}) the sweep removed the worktree by the normal path, never the "
+                            "build-entry retention branch",
+                            "post-merge-sweep: removed" in combined
+                            and "records github.build_entry" not in combined,
+                            f"stdout+stderr={combined!r}"))
+        else:
+            results.append((f"({label}) RED PROOF: the shim reports the missing sweep rather than "
+                            "silently doing nothing",
+                            "missing or not executable" in combined, f"combined={combined!r}"))
+            results.append((f"({label}) RED PROOF: with the shim repointed at a nonexistent sweep, "
+                            "the worktree SURVIVES the merge",
+                            os.path.isdir(dest), f"dest={dest} stdout+stderr={combined!r}"))
+    finally:
+        if os.path.isdir(dest):
+            _git(["worktree", "remove", "--force", dest], cwd=clone)
     return results, clone
 
 
