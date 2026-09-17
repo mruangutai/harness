@@ -7,3 +7,4 @@
 - 2026-09-16: Attribution plan reads must be cached by feature ID because multiple task-prefixed commits can map to one plan.
 - 2026-09-16: touchpoints count must bind subprocess.run at import time so kpi unit tests that patch kpi.subprocess.run do not corrupt feature-start git fallback.
 - 2026-09-16: Dashboard phase boundaries can be derived deterministically from handoff header seq-N and completed run ended_at values; current phase must not be inferred from station.
+- 2026-09-16: T-12 still names retired run-unit-tests.sh plus INTEGRATION_SCRIPTS, while the native run-unit-tests.py migration has directory-only discovery; execution needs a plan amendment rather than recreating the retired wrapper.
