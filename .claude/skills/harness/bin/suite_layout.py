@@ -170,6 +170,16 @@ def _is_untracked_exclusion(rel, planted_rel, exception_paths):
     )
 
 
+def _is_registered_vitest_test(rel, tracked):
+    """Allow a tracked Vitest source test only with its tracked config carrier."""
+    root = ".claude/skills/harness/bin/dashboard/client/"
+    return (
+        rel.startswith(root + "src/")
+        and rel.endswith(".test.tsx")
+        and root + "vitest.config.ts" in tracked
+    )
+
+
 def _tracked_outside_tests_findings(root, tracked, planted):
     exception_paths = {entry[0] for entry in DOCUMENTED_EXCEPTIONS}
     planted_rel = {p.relative_to(root).as_posix() for p in planted}
@@ -177,6 +187,7 @@ def _tracked_outside_tests_findings(root, tracked, planted):
         f"tracked test-shaped file outside tests/: {rel}"
         for rel in sorted(tracked)
         if not _is_untracked_exclusion(rel, planted_rel, exception_paths)
+        and not _is_registered_vitest_test(rel, tracked)
         and is_test_shaped(rel)
     ]
 

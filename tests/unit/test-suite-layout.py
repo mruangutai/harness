@@ -117,6 +117,30 @@ def git_commit(td, message="fixture"):
         cwd=td, check=True)
 
 
+# Case 0: the registered dashboard Vitest source root is legal, while a
+# test-shaped file outside any registered root remains a layout violation.
+td = base_git_fixture()
+try:
+    client_src = td / ".claude/skills/harness/bin/dashboard/client/src"
+    client_src.mkdir(parents=True)
+    (client_src / "panels.test.tsx").write_text("export {};\n")
+    (td / ".claude/skills/harness/bin/dashboard/client/vitest.config.ts").write_text(
+        "export default {};\n")
+    (td / ".harness/tools").mkdir(parents=True)
+    (td / ".harness/tools/test_rogue.py").write_text("pass\n")
+    git_commit(td)
+    saved_exceptions = suite_layout.DOCUMENTED_EXCEPTIONS
+    suite_layout.DOCUMENTED_EXCEPTIONS = ()
+    try:
+        got = suite_layout.violations(td)
+    finally:
+        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    check("case 0: registered Vitest tests are permitted but rogue tests are refused",
+          got == ["tracked test-shaped file outside tests/: .harness/tools/test_rogue.py"],
+          repr(got))
+finally:
+    shutil.rmtree(td)
+
 # Case 1: rogue tracked file outside tests/ is refused, and the exact-equality
 # assertion that grades SC-06's first clause once DOCUMENTED_EXCEPTIONS is cleared.
 td = base_git_fixture()

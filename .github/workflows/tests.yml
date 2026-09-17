@@ -64,8 +64,8 @@ jobs:
       # the suite exercise a degraded path that does not exist. jsonschema is REQUIRED
       # too (DEC-189): FEAT-14's feature.json schema checker fails loudly, never silently,
       # when it is absent, and CI must carry the same dependency it demands locally.
-      - name: Install PyYAML and jsonschema
-        run: python3 -m pip install --upgrade pyyaml jsonschema
+      - name: Install PyYAML, jsonschema, and Flask
+        run: python3 -m pip install --upgrade pyyaml jsonschema flask
 
       # TWO SEPARATE STEPS, NOT `--kind all` IN ONE. Keeping unit and integration as
       # distinct steps gives each its own pass/fail attribution in the Actions log,
@@ -84,6 +84,9 @@ jobs:
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: .agents/skills/harness/bin/run-unit-tests.py --kind unit
+
+      - name: Install the dashboard client dependencies
+        run: npm ci --prefix .claude/skills/harness/bin/dashboard/client
 
       # Integration kind measured at 12 scripts, ~15s.
       - name: Integration suite
