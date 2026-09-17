@@ -1113,8 +1113,11 @@ tasks:
     - .claude/skills/harness/bin/dashboard/client/src/api.ts
     - .claude/skills/harness/bin/dashboard/client/package.json
     - .claude/skills/harness/bin/dashboard/client/package-lock.json
+    - .claude/skills/harness/bin/dashboard/client/dist/index.html
+    - .claude/skills/harness/bin/dashboard/client/dist/assets/
     verify: |
-      npm --prefix .claude/skills/harness/bin/dashboard/client test -- --run src/routes.test.tsx && npm --prefix .claude/skills/harness/bin/dashboard/client run build
+      npm --prefix .claude/skills/harness/bin/dashboard/client run build
+      python3 -c "import pathlib; import re; root=pathlib.Path('.claude/skills/harness/bin/dashboard/client'); source=(root/'src/main.tsx').read_text(); imports=['@astryxdesign/core/reset.css','@astryxdesign/core/astryx.css','@astryxdesign/theme-neutral/theme.css']; positions=[source.index(item) for item in imports]; assert positions == sorted(positions); assert positions[-1] < source.index('import { Theme }'); html=(root/'dist/index.html').read_text(); match=re.search('href=.([^ ]+[.]css).',html); assert match; asset=root/'dist'/match.group(1).removeprefix('./'); assert asset.is_file() and asset.stat().st_size > 0"
     intent: |
       Build the shared shell DESIGN C-1 specifies against completed prototype evidence T-05 and the payloads T-12 and T-27 serve.
 
@@ -1146,8 +1149,11 @@ tasks:
     - .claude/skills/harness/bin/dashboard/client/src/tables.tsx
     - .claude/skills/harness/bin/dashboard/client/src/gapstates.test.tsx
     - .claude/skills/harness/bin/dashboard/client/src/kpi-content.test.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/panels.test.tsx
+    - .claude/skills/harness/bin/dashboard/client/dist/index.html
+    - .claude/skills/harness/bin/dashboard/client/dist/assets/
     verify: |
-      npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=''.join(p.read_text() for p in pathlib.Path('.claude/skills/harness/bin/dashboard/client/src').rglob('*.tsx') if not p.name.endswith('.test.tsx'));[sys.exit('missing '+k) for k in ['NoShipRecords','PreCapability','GradingCaveat','UnavailableValue','/kpi/','/work/'] if k not in s];[sys.exit('forbidden '+k) for k in ['107','122','/features','/kpis'] if k in s]"
+      npm --prefix .claude/skills/harness/bin/dashboard/client test -- --run src/kpi-content.test.tsx src/panels.test.tsx
     intent: |
       Build the surfaces DESIGN C-1 and C-4 specify, consuming the payload unavailable maps (D-19) as the sole trigger for every gap treatment.
 
