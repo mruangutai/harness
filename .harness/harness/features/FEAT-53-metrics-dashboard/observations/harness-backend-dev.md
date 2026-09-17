@@ -10,3 +10,7 @@
 - 2026-09-16: T-12 still names retired run-unit-tests.sh plus INTEGRATION_SCRIPTS, while the native run-unit-tests.py migration has directory-only discovery; execution needs a plan amendment rather than recreating the retired wrapper.
 - 2026-09-16: T-12 server integration must exercise kpi.compute against both fixture and worktree roots; current grading invocation and binary numstat parsing raise rather than producing a payload, so serving code must not catch them as empty KPI data.
 - 2026-09-16: Ship-time trend persistence must compute cycle time against its newly generated shipped_at; the prior per-feature read has no existing ship record and therefore cannot supply the measured duration.
+- 2026-09-16: DEC-229 narrowed T-06 verification to its KPI suite because the shared layout preflight fails on three unrelated frontend-owned colocated tests.
+- 2026-09-16: code-grade.py rejects --json without paths or paired --base/--head with exit 2 and the explicit provide PATH message; a real-CLI fixture regression is required to catch an omission that a subprocess mock misses.
+- 2026-09-16: code-grade.py rejects an empty PATH list; dashboard grading must pass identical --base and --head revisions to obtain its genuine empty JSON payload for projects with no tracked Python files.
+- 2026-09-17: A direct Flask test-client request to kpi.compute-driven /api/kpis on this worktree completed in 4.251s; scoped API proof avoids unrelated frontend layout failures.

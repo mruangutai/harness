@@ -572,7 +572,7 @@ tasks:
     - .claude/skills/harness/bin/dashboard/fixtures/project-a/
     - .claude/skills/harness/bin/brief_approval.py
     verify: |
-      python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 tests/unit/test-metrics-kpi.py
+      python3 tests/unit/test-metrics-kpi.py
     intent: |
       Write the failing tests first, then the module. Create kpi.py exposing
       compute(project_root: Path, window: str) -> dict, where window is one of 30d, 90d, all.
@@ -1083,12 +1083,12 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03, T-08, T-10, T-11]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/dashboard/serve.py
     - tests/integration/test-metrics-dashboard.py
     verify: |
-      python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 tests/integration/test-metrics-dashboard.py
+      python3 tests/integration/test-metrics-dashboard.py
     intent: |
       Write the failing tests first. serve.py is the Flask entry point (D-17): one WSGI app object with Flask routing decorators and no handwritten route table (D-03). CLI: python3 .agents/skills/harness/bin/dashboard/serve.py [--root <project>] [--port <n>] [--check]. Root defaults to cwd's git root; bind only 127.0.0.1 (D-05), default port 8971, and fail non-zero naming a busy port. Run app.run(host="127.0.0.1", port=<port>, threaded=True, debug=False, use_reloader=False); loopback-only unbounded one-thread-per-request concurrency is accepted and no cap, queue, semaphore or production WSGI server belongs here.
 
