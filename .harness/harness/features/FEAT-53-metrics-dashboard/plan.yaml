@@ -765,7 +765,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/dashboard/attribution.py
       - .claude/skills/harness/bin/dashboard/kpi.py
@@ -1684,19 +1684,18 @@ tasks:
     intent: |-
       Add a pure attention derivation layer over T-23's item records and put dashboard.stalled_minutes=45, dashboard.stale_days=7 and dashboard.over_budget_remaining_cycles=1 in both the active control-plane .harness/harness.json and the distribution template. Advance the configuration schema version once so upgrade-config.py carries the block into existing installations; reject booleans, non-integers and non-positive values rather than silently substituting defaults. For a feature or bug, needs-you is true when the selected copy has an awaiting_user current run, at least one substantive line in STATE.md Open Questions, or plan approval is pending; an open grilling note is needs-you. blocked comes from run state blocked. A running run is stalled when the later of STATE.md and its current run state.yaml is at least 45 minutes old, otherwise it is running. The over-budget condition is max_total_cycles minus cycles_used less than or equal to one and is evaluated after stalled. Stale applies to other non-terminal items whose newest selected-copy STATE.md, plan.yaml, feature.json or current run state write is at least seven days old. Terminal items and worktree rows with no matched active feature have no attention state. Apply the exact precedence from D-25 and sort ties by oldest relevant write and stable id. Extend T-23's deterministic clock tests across both sides of every boundary and conflicting simultaneous conditions. Register test-work-dashboard.py in run-unit-tests.sh and add its exact integration detector literal to the active and template harness.json without changing any existing detector literal or command.
     files:
-      - .claude/skills/harness/bin/dashboard/attention.py
-      - .claude/skills/harness/bin/test-work-dashboard.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
-      - .harness/harness.json
-      - .claude/skills/harness/templates/harness.json
+    - .claude/skills/harness/bin/dashboard/attention.py
+    - tests/integration/test-work-dashboard.py
+    - .harness/harness.json
+    - .claude/skills/harness/templates/harness.json
     verify: >-
-      python3 .claude/skills/harness/bin/test-work-dashboard.py --case attention && python3 .claude/skills/harness/bin/check-kinds.py --files .claude/skills/harness/bin/test-work-dashboard.py
+      python3 tests/integration/test-work-dashboard.py --case attention && python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 .claude/skills/harness/bin/upgrade-config.py . --check
     change_type: cross_module
     traces:
       - SC-22
     depends_on:
       - T-23
-    status: ready
+    status: done
     execution_mode: main-session-direct
     execution_reason: >-
       The configuration template has no team-member grant, so the schema, template, registration and derivation must land as one main-session cutover.
