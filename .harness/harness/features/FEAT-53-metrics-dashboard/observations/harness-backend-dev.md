@@ -15,3 +15,6 @@
 - 2026-09-16: code-grade.py rejects an empty PATH list; dashboard grading must pass identical --base and --head revisions to obtain its genuine empty JSON payload for projects with no tracked Python files.
 - 2026-09-17: A direct Flask test-client request to kpi.compute-driven /api/kpis on this worktree completed in 4.251s; scoped API proof avoids unrelated frontend layout failures.
 - 2026-09-17: T-27 can reuse the T-23 collector and T-24 ranker at the Flask boundary; request-time config validation turns malformed fleet or thresholds into a single JSON 500 without changing static routes.
+- 2026-09-17: A collector fixture that keys rows by display_name must exclude worktree rows because linked worktree names collide with feature names; otherwise a new run-all mode hides feature assertions behind worktree entries.
+- 2026-09-17: KPI window selection can use feature.json identity plus trend shipped_at before invoking per-feature diff and touchpoint enrichment; preserve the legacy _feature wrapper for trend record creation.
+- 2026-09-17: A single git for-each-ref availability sweep can fail closed for missing feature refs and lets all-window KPI enrichment run one diff per distinct available branch.

@@ -3,13 +3,14 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-12-eng/digest.md
+- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-13-eng/digest.md
 - squad: engineering
-- status: repairing
+- status: in_review
 - tasks_done: T-01..T-16, T-18..T-31
-- next_gate: repair simplify verification failures, rerun relevant suites, then pin review_sha
+- next_gate: pin review_sha and run one validator squad
 - deferred_until_validate_clean: T-17
-- cycles_used: 26
+- pre_review_gate: unit 42/42; integration 77/77; component 20/20
+- cycles_used: 28
 - max_total_cycles: 30
 - rework_rounds: 10
 - rework_wall_clock_minutes: 450
