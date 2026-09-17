@@ -1,19 +1,7 @@
 export type SharedSearch = { window: string; repo: string };
-
-function query(search: SharedSearch): string {
-  return new URLSearchParams({ window: search.window, repo: search.repo }).toString();
-}
-
-async function request<T>(path: string, search: SharedSearch): Promise<T> {
-  const response = await fetch(`${path}?${query(search)}`);
-  if (!response.ok) throw new Error(`Dashboard request failed: ${response.status}`);
-  return response.json() as Promise<T>;
-}
-
-export function fetchKpis(search: SharedSearch) {
-  return request<{ kpis: Array<{ id: number; label: string }> }>('/api/kpis', search);
-}
-
-export function fetchWork(search: SharedSearch) {
-  return request<{ items: Array<{ id: string; kind: string; name: string }> }>('/api/work', search);
-}
+export type WorkItem = { id: string; kind: 'feature' | 'bug' | 'grilling' | 'worktree'; name: string; repository: string; station: string | null; phase: string | null; attention: 'needs-you' | 'blocked' | 'stalled' | 'over-budget' | 'running' | 'stale' | null; attention_reasons: string[]; elapsed_total: number | null; elapsed_by_phase: Record<string, number | null>; runs: number | null; cycles_used: number | null; max_total_cycles: number | null; tokens: { measured_total: number | null; measured_runs: number; total_runs: number; unmeasured_runs: number } | null; source_path: string; main_path?: string | null; worktree_path?: string | null; detail?: Record<string, unknown> };
+export type WorkPayload = { schema?: string; items: WorkItem[]; errors: Array<{ source_path: string; reason: string }> };
+function query(search: SharedSearch): string { return new URLSearchParams({ window: search.window, repo: search.repo }).toString(); }
+async function request<T>(path: string, search: SharedSearch): Promise<T> { const response = await fetch(`${path}?${query(search)}`); if (!response.ok) throw new Error(`Dashboard request failed: ${response.status}`); return response.json() as Promise<T>; }
+export function fetchKpis(search: SharedSearch) { return request<{ kpis: Array<{ id: number; label: string }> }>('/api/kpis', search); }
+export function fetchWork(search: SharedSearch) { return request<WorkPayload>('/api/work', search); }
