@@ -94,6 +94,31 @@ def tool_cases():
         check("apply refuses an unreviewed manifest", applied.returncode != 0 and "REFUSED" in (applied.stderr + applied.stdout))
 
 
+def propose_cases():
+    """The backfill proposal rule, on a fixture where each branch fires: unique citation →
+    handed-off, none → abandoned, several → conflict (V-09 T-25 slice: this case discriminates
+    a citation scan that matched nothing, matched everything, or dropped the conflict branch)."""
+    import yaml
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / ".harness" / "notes").mkdir(parents=True)
+        for feature, artifact, text in (("FEAT-1-a", "BRIEF.md", "input: .harness/notes/grilling-one-2026-09-16.md"),
+                                        ("FEAT-2-b", "plan.yaml", "source: grilling-two-2026-09-16.md"),
+                                        ("BUG-3-c", "plan.yaml", "source: grilling-two-2026-09-16.md")):
+            (root / ".harness" / "harness" / "features" / feature).mkdir(parents=True)
+            (root / ".harness" / "harness" / "features" / feature / artifact).write_text(text, encoding="utf-8")
+        for name in ("one", "two", "three"):
+            write_note(root, f"grilling-{name}-2026-09-16.md", BODY)
+        write_note(root, "grilling-four-2026-09-16.md", gs.mark(BODY, "abandoned"))
+        out = root / "m.yaml"
+        done = subprocess.run([sys.executable, str(BIN / "backfill-grilling-status.py"), "propose", "--root", str(root), "--out", str(out), "--observed", "2026-09-16"], capture_output=True, text=True)
+        entries = {os.path.basename(e["path"]).split("-")[1]: e for e in yaml.safe_load(out.read_text())["notes"]} if done.returncode == 0 else {}
+        check("propose hands off a uniquely cited note", entries.get("one", {}).get("status") == "handed-off" and entries["one"]["became"] == "FEAT-1-a")
+        check("propose abandons an uncited note", entries.get("three", {}).get("status") == "abandoned" and entries["three"]["became"] is None)
+        check("propose flags a multiply cited note as conflict", entries.get("two", {}).get("status") == "conflict" and entries["two"]["evidence"] == ["BUG-3-c", "FEAT-2-b"])
+        check("propose skips an already-marked note", "four" not in entries and all(e["reviewed"] is False for e in entries.values()))
+
+
 def repository_cases():
     manifest = ROOT / ".harness" / "notes" / "grilling-status-backfill-2026-09-15.yaml"
     code, out = backfill_check(ROOT, manifest)
@@ -106,6 +131,7 @@ def main():
     lifecycle_cases()
     invariant_cases()
     tool_cases()
+    propose_cases()
     repository_cases()
     raise SystemExit(1 if FAILURES else 0)
 

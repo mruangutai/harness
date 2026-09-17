@@ -28,20 +28,24 @@ def notes(root):
     return sorted(glob.glob(os.path.join(root, ".harness", "notes", "grilling-*.md")))
 
 
+def _read_or_none(path):
+    try:
+        return open(path, encoding="utf-8").read()
+    except OSError:
+        return None
+
+
+def _cites(feat_dir, needles):
+    """True when the feature's BRIEF.md or plan.yaml mentions any needle."""
+    texts = (_read_or_none(os.path.join(feat_dir, name)) for name in ("BRIEF.md", "plan.yaml"))
+    return any(needle in text for text in texts if text is not None for needle in needles)
+
+
 def citations(root, note_path):
     """Feature directory names whose BRIEF.md or plan.yaml cite this note's path or filename."""
-    rel = os.path.relpath(note_path, root)
-    name = os.path.basename(note_path)
-    hits = set()
-    for feat_dir in glob.glob(os.path.join(root, ".harness", "*", "features", "*")):
-        for artifact in ("BRIEF.md", "plan.yaml"):
-            try:
-                text = open(os.path.join(feat_dir, artifact), encoding="utf-8").read()
-            except OSError:
-                continue
-            if rel in text or name in text:
-                hits.add(os.path.basename(feat_dir))
-    return sorted(hits)
+    needles = (os.path.relpath(note_path, root), os.path.basename(note_path))
+    feature_dirs = glob.glob(os.path.join(root, ".harness", "*", "features", "*"))
+    return sorted(os.path.basename(d) for d in feature_dirs if _cites(d, needles))
 
 
 def propose(root, observed):
@@ -65,9 +69,13 @@ def propose(root, observed):
     return {"schema": "grilling-status-backfill/1", "observed": observed, "notes": entries}
 
 
+def _unresolved(manifest):
+    return [e["path"] for e in manifest["notes"]
+            if e.get("status") == "conflict" or e.get("reviewed") is not True]
+
+
 def apply(root, manifest):
-    unresolved = [e["path"] for e in manifest["notes"]
-                  if e.get("status") == "conflict" or e.get("reviewed") is not True]
+    unresolved = _unresolved(manifest)
     if unresolved:
         sys.exit("REFUSED: unresolved manifest entries (conflict or reviewed != true): " + ", ".join(unresolved))
     changed = 0
@@ -81,26 +89,41 @@ def apply(root, manifest):
     print(f"applied: {changed} note(s) written, {len(manifest['notes']) - changed} already current")
 
 
+def _note_fault(root, path):
+    """One fault line for a note that fails the lifecycle rule, else None."""
+    rel = os.path.relpath(path, root)
+    try:
+        status, became = grilling_status.parse(open(path, encoding="utf-8").read())
+    except grilling_status.GrillingStatusError as exc:
+        return f"{rel}: {exc}"
+    if status == "handed-off" and not grilling_status.check_exists(became, root):
+        return f"{rel}: handed-off to {became}, which is not a feature directory"
+    return None
+
+
 def check(root, manifest):
-    faults = []
-    for path in notes(root):
-        try:
-            status, became = grilling_status.parse(open(path, encoding="utf-8").read())
-        except grilling_status.GrillingStatusError as exc:
-            faults.append(f"{os.path.relpath(path, root)}: {exc}")
-            continue
-        if status == "handed-off" and not grilling_status.check_exists(became, root):
-            faults.append(f"{os.path.relpath(path, root)}: handed-off to {became}, which is not a feature directory")
+    paths = notes(root)
+    faults = [f for f in (_note_fault(root, p) for p in paths) if f is not None]
     if manifest is not None:
-        faults += [f"manifest: {e['path']} unresolved" for e in manifest["notes"]
-                   if e.get("status") == "conflict" or e.get("reviewed") is not True]
+        faults += [f"manifest: {p} unresolved" for p in _unresolved(manifest)]
     for fault in faults:
         print("FAIL " + fault)
-    print(f"checked {len(notes(root))} note(s); {len(faults)} fault(s)")
+    print(f"checked {len(paths)} note(s); {len(faults)} fault(s)")
     return 1 if faults else 0
 
 
-def main():
+def _write_proposal(root, args, parser):
+    if not args.out:
+        parser.error("propose requires --out")
+    import datetime
+    import yaml
+    doc = propose(root, args.observed or datetime.date.today().isoformat())
+    with open(args.out, "w", encoding="utf-8") as fh:
+        yaml.safe_dump(doc, fh, sort_keys=False, allow_unicode=True)
+    print(f"proposed {len(doc['notes'])} note(s) -> {args.out}")
+
+
+def _parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", nargs="?", choices=("propose", "apply"))
     parser.add_argument("--root", required=True)
@@ -108,27 +131,22 @@ def main():
     parser.add_argument("--manifest")
     parser.add_argument("--observed", default=None, help="observation date recorded in a proposed manifest")
     parser.add_argument("--check", action="store_true")
+    return parser
+
+
+def main():
+    parser = _parser()
     args = parser.parse_args()
     root = os.path.abspath(args.root)
     manifest = harness_yaml.load_file(args.manifest) if args.manifest else None
     if args.check:
         sys.exit(check(root, manifest))
     if args.command == "propose":
-        if not args.out:
-            parser.error("propose requires --out")
-        import datetime
-        observed = args.observed or datetime.date.today().isoformat()
-        doc = propose(root, observed)
-        with open(args.out, "w", encoding="utf-8") as fh:
-            import yaml
-            yaml.safe_dump(doc, fh, sort_keys=False, allow_unicode=True)
-        print(f"proposed {len(doc['notes'])} note(s) -> {args.out}")
-    elif args.command == "apply":
-        if manifest is None:
-            parser.error("apply requires --manifest")
+        _write_proposal(root, args, parser)
+    elif args.command == "apply" and manifest is not None:
         apply(root, manifest)
     else:
-        parser.error("choose propose, apply, or --check")
+        parser.error("apply requires --manifest" if args.command == "apply" else "choose propose, apply, or --check")
 
 
 if __name__ == "__main__":
