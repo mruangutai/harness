@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Loopback-only Flask server for the metrics dashboard."""
+from __future__ import annotations
+
 import argparse
 from datetime import datetime, timezone
 import importlib
@@ -78,7 +80,7 @@ def create_app(root: Path):
         selection = _selection_or_error(project_root, require_all=False)
         if isinstance(selection, tuple):
             return jsonify(selection[0]), selection[1]
-        window, _repo, selected_root = selection
+        window, _repo, selected_root, _errors = selection
         try:
             return jsonify(kpi.compute(selected_root, window))
         except Exception as error:
@@ -89,13 +91,13 @@ def create_app(root: Path):
         selection = _selection_or_error(project_root)
         if isinstance(selection, tuple):
             return jsonify(selection[0]), selection[1]
-        window, repo, _selected_root = selection
+        window, repo, _selected_root, fleet_errors = selection
         try:
             config = artifact_accessors.load_harness_json(project_root / ".harness" / "harness.json")
             limits = attention.thresholds(config)
             items = _selected_items(work.collect(project_root), repo, window, kpi.resolve_window)
             ranked = attention.rank(items, datetime.now(timezone.utc), limits)
-            return jsonify(_work_payload(ranked, limits, window, repo))
+            return jsonify(_work_payload(ranked, limits, window, repo, fleet_errors))
         except Exception as error:
             return _unavailable(error)
 
@@ -145,28 +147,36 @@ def _selection_or_error(root: Path, require_all: bool = True):
         if isinstance(window, tuple):
             return window
         repo = request.args.get("repo", "all")
-        repositories = _repository_roots(root, require_all=require_all or repo != "all")
-        if repo not in ("all", *repositories):
-            return {"error": f"repo must be one of {', '.join(('all', *repositories))}"}, 400
-        return [window, repo, root if repo == "all" else repositories[repo]]
+        repositories, unavailable = _repository_roots(root, require_all=require_all or repo != "all")
+        known = (*repositories, *unavailable)
+        if repo not in ("all", *known):
+            return {"error": f"repo must be one of {', '.join(('all', *known))}"}, 400
+        if repo in unavailable:
+            return {"error": f"dashboard unavailable: {unavailable[repo]['reason']}"}, 500
+        return [window, repo, root if repo == "all" else repositories[repo], list(unavailable.values())]
     except Exception as error:
         return {"error": f"dashboard unavailable: {error}"}, 500
 
 
-def _repository_roots(root: Path, require_all: bool = True) -> dict[str, Path]:
+def _repository_roots(root: Path, require_all: bool = True) -> tuple[dict[str, Path], dict[str, dict]]:
     import artifact_accessors
     fleet_path = root / ".harness" / "factory" / "fleet.yaml"
     repositories = {"harness": root}
+    unavailable = {}
     if not require_all or not fleet_path.is_file():
-        return repositories
+        return repositories, unavailable
     fleet = artifact_accessors.load_fleet(fleet_path)
     for entry in fleet["repos"]:
         name = entry["name"].rsplit("/", 1)[-1]
         path = Path(fleet["workspace_root"]) / name
-        if name in repositories or not path.is_dir():
+        if name in repositories:
             raise ValueError(f"configured repository {name} cannot be enumerated at {path}")
+        if not path.is_dir():
+            reason = f"configured repository {name} cannot be enumerated at {path}"
+            unavailable[name] = {"repo": name, "path": str(path), "reason": reason}
+            continue
         repositories[name] = path
-    return repositories
+    return repositories, unavailable
 
 
 def _selected_items(items, repo: str, window: str, resolve_window):
@@ -187,7 +197,7 @@ def _item_updated_at(item):
         return None
 
 
-def _work_payload(ranked, limits, window: str, repo: str) -> dict:
+def _work_payload(ranked, limits, window: str, repo: str, fleet_errors: list[dict]) -> dict:
     items = [_serialize_work_item(item, attention) for item, attention in ranked]
     return {
         "schema": "harness-work/1",
@@ -200,8 +210,8 @@ def _work_payload(ranked, limits, window: str, repo: str) -> dict:
             "over_budget_remaining_cycles": limits.over_budget_remaining_cycles,
         },
         "items": items,
-        "errors": [{"source_path": item.source_path, "reason": item.error}
-                   for item, _attention in ranked if item.error is not None],
+        "errors": fleet_errors + [{"source_path": item.source_path, "reason": item.error}
+                                  for item, _attention in ranked if item.error is not None],
     }
 
 

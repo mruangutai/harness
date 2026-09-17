@@ -115,6 +115,29 @@ class MetricsDashboardIntegrationTest(unittest.TestCase):
         _assert_selection_errors(self, client, control, alpha)
         _assert_client_routes(self, client)
 
+
+    def test_absent_fleet_clone_degrades_work_payload(self):
+        control, alpha = _operational_fixture(self)
+        shutil.rmtree(control / ".harness" / "alpha")
+        shutil.rmtree(alpha)
+        client = self.serve.create_app(control).test_client()
+        response = client.get("/api/work?window=all&repo=all")
+        self.assertEqual(200, response.status_code)
+        payload = response.get_json()
+        self.assertTrue(any(item["name"] == "FEAT-101-harness" for item in payload["items"]))
+        self.assertEqual([{
+            "repo": "alpha",
+            "path": str(alpha),
+            "reason": f"configured repository alpha cannot be enumerated at {alpha}",
+        }], payload["errors"])
+        work_unavailable = client.get("/api/work?window=all&repo=alpha")
+        self.assertEqual(500, work_unavailable.status_code)
+        self.assertIn("configured repository alpha cannot be enumerated",
+                      work_unavailable.get_json()["error"])
+        kpi_unavailable = client.get("/api/kpis?window=all&repo=alpha")
+        self.assertEqual(500, kpi_unavailable.status_code)
+        self.assertIn("configured repository alpha cannot be enumerated",
+                      kpi_unavailable.get_json()["error"])
     def test_untrusted_host_cannot_read_dashboard_routes(self):
         client = self.serve.create_app(self.project).test_client()
         for route in ("/", "/api/work", "/api/kpis"):
@@ -282,7 +305,11 @@ def _assert_selection_errors(test, client, control, alpha):
     test.assertIn("dashboard unavailable:", unavailable.get_json()["error"])
     shutil.copy(ROOT / ".harness" / "harness.json", control / ".harness" / "harness.json")
     shutil.rmtree(alpha)
-    enumeration = client.get("/api/work")
+    degraded = client.get("/api/work")
+    test.assertEqual(200, degraded.status_code)
+    test.assertIn("configured repository alpha cannot be enumerated",
+                  degraded.get_json()["errors"][0]["reason"])
+    enumeration = client.get("/api/work?repo=alpha")
     test.assertEqual(500, enumeration.status_code)
     test.assertIn("configured repository alpha cannot be enumerated", enumeration.get_json()["error"])
 
