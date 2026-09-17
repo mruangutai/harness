@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-53",
   "pr": null,
   "review_sha": "ebce36e77769a64ac0e302692d8aa350dceca0e4",
-  "cycles_used": 38,
+  "cycles_used": 39,
   "max_total_cycles": 40,
   "max_total_runs": 20,
   "runs": [
@@ -412,6 +412,16 @@
       "verdict": "PASS",
       "started_at": "2026-09-17T20:49:32+00:00",
       "ended_at": "2026-09-17T21:07:07+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "2026-09-17-28-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-17T21:08:45+00:00",
+      "ended_at": "2026-09-17T21:19:34+00:00",
       "cycles_used": 1,
       "tokens": null
     }
@@ -1012,6 +1022,13 @@
       "kind": "amendment",
       "decision": "T-14.verify",
       "reason": "Focused observable-text cases independently prove KPI 6 tile and panel totals plus the exact KPI 1 unavailable reason."
+    },
+    {
+      "at": "2026-09-17T21:20:12+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "stop after final authorized frontend validation; await operator ruling",
+      "reason": "Code passed and real-browser evidence proved the three fixes, but source errors remain visually concatenated without per-entry boundaries."
     }
   ],
   "rework": {
