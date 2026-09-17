@@ -95,12 +95,6 @@ RECORD_TOOL = "feature-record.py"
 # THE MAIN-SESSION-ONLY VERBS, PER TOOL. A tool absent here is never this gate's business; a
 # verb absent under its tool is open. Adding a row is the whole act of gating a new verb.
 GATED = {TOOL: (VERB,), RECORD_TOOL: ("raise-cycles", "set-rework")}
-MUTATING_VERBS = ("apply", "add-tasks", "set-task-station", "set-feature-station")
-ADOPT_TOOL = "quarantine.py"
-# D-18 deliberately omits discard: it cannot make content canonical, and an orphan can
-# already remove a quarantine directory with plain `rm -rf` because D-06's shared glob
-# legalises that path. Covering only the CLI would advertise a protection the tree lacks.
-ADOPT_VERB = "adopt"
 
 # THE REFUSAL NAMES A COMMAND THE READER CAN RUN. The native bootstrap resolves the
 # harness root through this file's own directory, so when the tool is confirmed on disk
@@ -378,6 +372,14 @@ def _raw_denial(line):
     return None
 
 
+def _verb_after(toks, index):
+    """Return the verb after one tool and any end-of-options separators."""
+    index += 1
+    while toks[index:index + 1] == [SEP]:
+        index += 1
+    return toks[index] if index < len(toks) else None
+
+
 def _direct_denial(toks):
     """Find a gated verb directly following its tool and separators."""
     for index, token in enumerate(toks):
@@ -417,151 +419,9 @@ def denies(line, depth=0):
     return _direct_denial(toks) or _nested_denial(toks, depth)
 
 
-def _verb_after(toks, index):
-    """Return the verb after one tool and any end-of-options separators."""
-    index += 1
-    while toks[index:index + 1] == [SEP]:
-        index += 1
-    return toks[index] if index < len(toks) else None
-
-
-def _mutates_canonical_artifact(tool, verb):
-    """Whether this tool/verb pair can make a quarantined artifact canonical."""
-    return ((tool == TOOL and verb in MUTATING_VERBS)
-            or (tool == ADOPT_TOOL and verb == ADOPT_VERB))
-
-
-def _invocation(toks):
-    for index, token in enumerate(toks):
-        tool = _basename(token)
-        if (tool in (TOOL, ADOPT_TOOL)
-                and _mutates_canonical_artifact(
-                    tool, _verb_after(toks, index))):
-            return index, tool
-    return None
-
-
-def _file_arg(toks, start):
-    for i in range(start + 1, len(toks)):
-        if toks[i] == "--file":
-            return toks[i + 1] if i + 1 < len(toks) else None
-        if toks[i].startswith("--file="):
-            return toks[i][len("--file="):]
-    return None
-
-
-def _checkout_rel(value):
-    marker = ".harness/"
-    index = value.rfind(marker)
-    return value[index:] if index >= 0 else None
-
-
-def _quarantine_artifact(value, canonical_artifacts):
-    resolved_root = os.path.realpath(ROOT)
-    candidate = value if os.path.isabs(value) else os.path.join(resolved_root, value)
-    resolved = os.path.realpath(candidate)
-    rel = os.path.relpath(resolved, resolved_root).replace(os.sep, "/")
-    match = re.fullmatch(
-        r"\.harness/[^/]+/features/([^/]+)/quarantine/[^/]+/([^/]+)",
-        rel,
-    )
-    if match is None or match.group(2) not in canonical_artifacts:
-        return None
-    return rel, match.group(1)
-
-
-def _nested_quarantine(toks, agent, session, depth):
-    """Re-scan command lines carried inside one shell token."""
-    if depth >= MAX_DEPTH:
-        return None
-    for token in toks:
-        if len(token.split()) >= 3:
-            nested = quarantines(token, agent, session, depth + 1)
-            if nested is not None:
-                return nested
-    return None
-
-
-def _quarantine_target(registry, tool, value, agent, session):
-    """Resolve one plan mutation or adoption to its feature and quarantine."""
-    if tool == TOOL:
-        rel = _checkout_rel(value)
-        if rel is None:
-            return None
-        artifact = registry.canonical_artifact(rel)
-        if artifact is None:
-            return None
-        feature, _basename_value = artifact
-        quarantine_rel = registry.quarantine_rel(rel, agent, session)
-        return rel, feature, quarantine_rel, tool
-    artifact = _quarantine_artifact(value, registry.CANONICAL_ARTIFACTS)
-    if artifact is None:
-        return None
-    rel, feature = artifact
-    return rel, feature, rel, tool
-
-
-def _enforce_quarantine(toks, found, agent, session):
-    """Return a refused orphan write, failing open on boundary errors."""
-    start, tool = found
-    value = _file_arg(toks, start)
-    if value is None:
-        return None
-    try:
-        import inflight_registry as registry
-        target = _quarantine_target(
-            registry, tool, value, agent, session)
-        if target is None:
-            return None
-        rel, feature, quarantine_rel, _tool = target
-        if not registry.orphan_write(ROOT, agent, feature, session):
-            return None
-        return rel, feature, quarantine_rel, tool
-    except Exception as exc:
-        print(
-            f"plan-sign-gate: quarantine boundary was not enforced ({exc!r}) — "
-            "passing through.",
-            file=sys.stderr,
-        )
-        return None
-
-
-def quarantines(line, agent, session, depth=0):
-    line = as_bash_reads_it(line)
-    toks = words(line)
-    if toks is None:
-        # There is no raw-text fallback: this rule needs the value of --file, and
-        # quoting makes that value unknowable when the command will not lex (D-13).
-        return None
-    found = _invocation(toks)
-    if found is None:
-        return _nested_quarantine(toks, agent, session, depth)
-    return _enforce_quarantine(toks, found, agent, session)
-
-
 
 _denied = denies(cmd)
 if _denied:
     sys.stderr.write(reason(*_denied) + "\n")
-    sys.exit(2)
-
-agent = payload.get("agent_type") or ""
-session = payload.get("session_id")
-quarantine = quarantines(cmd, agent, session) if agent.startswith("harness-") else None
-if quarantine is not None:
-    rel, feature, quarantine_rel, tool = quarantine
-    if tool == ADOPT_TOOL:
-        remedy = (
-            "Adoption is the resumed parent's act; this caller is not that parent."
-        )
-    else:
-        remedy = f"Write the completed result to {quarantine_rel} instead."
-    sys.stderr.write(
-        f"Refused: {rel} is canonical, but {agent} holds no live claim for "
-        f"{feature}. Its parent is gone and a replacement may already be writing.\n"
-        f"{remedy}\n"
-        "A quarantined result becomes canonical only when a resumed parent runs "
-        "quarantine.py adopt.\n"
-    )
     sys.exit(2)
 sys.exit(0)

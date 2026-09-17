@@ -1240,19 +1240,32 @@ def _bug1304_bash_existing_guards(results, context):
 
 
 def _bug1304_bash_aged_claim(results, context, inflight_registry, time):
+    """DEC-204/DEC-233: a claim binds for exactly as long as its OMP supervisor lives. Age
+    alone never releases it; a dead supervisor always does."""
     registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
     data = json.load(open(registry, encoding="utf-8"))
-    data["claims"][0]["started_at"] = (
-        time.time() - inflight_registry.CLAIM_TTL_SECONDS - 5)
+    data["claims"][0]["started_at"] = time.time() - 10 * 86400
     with open(registry, "w", encoding="utf-8") as handle:
         json.dump(data, handle)
     command = "echo x > .harness/allowed/main.md"
     _bug1304_bash_expect(
         results, context["root"], context["agent"],
-        "aged compatibility claim still refuses", command, 2, context["first"])
+        "ten-day-old claim with a live supervisor still refuses", command, 2, context["first"])
     bug1304_assert_pre_change_allows(
         results, "aged claim", context["root"], command,
         context["agent"], context["control"])
+    dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
+                          capture_output=True, text=True, check=True)
+    data["claims"][0]["supervisor_pid"] = int(dead.stdout)
+    data["claims"][0].pop("supervisor_started_at", None)
+    data["claims"][0]["started_at"] = time.time()
+    with open(registry, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+    response = _bug1304_bash_fire(context["root"], command, context["agent"])
+    results.append((
+        "fresh claim whose supervisor has exited no longer binds",
+        context["first"] not in response.stdout + response.stderr,
+        f"exit={response.returncode} output={(response.stdout + response.stderr)[:180]!r}"))
 
 
 def _bug1304_bash_unreadable(results, context, inflight_registry):

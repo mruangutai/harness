@@ -2198,18 +2198,13 @@ def hook_mode():
             print("check-digest: no checkout root from this vantage — the #551 claim was "
                   "neither released nor checked.", file=sys.stderr)
         else:
-            # Read the return contract before releasing the parent's claim: an accepted
-            # suspension is nonterminal and therefore still owns that claim.
+            # Read the return contract before releasing the parent's claim: a return with
+            # live children is nonterminal and therefore still owns that claim.
             _feature = d.get("harness_feature")
             _kids = []
             if norm(agent) in ("lead", "orchestrator"):
                 try:
-                    _kids = _reg.live_children(
-                        _root,
-                        agent,
-                        session=d.get("session_id"),
-                        feature=_feature,
-                    )
+                    _kids = _reg.live_children(_root, agent, feature=_feature)
                 except Exception as _e:
                     print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
                           f"#551 return contract is not enforced for this return.",
@@ -2220,29 +2215,9 @@ def hook_mode():
             _return_tail = _raw_return[_anchors[-1].start():] if _anchors else _raw_return
             _verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail, re.M)
             _return_verdict = _verdict_match.group(1) if _verdict_match else None
-            _suspension_error = None
-            if _return_verdict == "SUSPENDED" and _kids:
-                _actual_children = {persona for persona, _claim in _kids}
-                _awaiting = parse_digest(_return_tail).get("awaiting")
-                if not isinstance(_awaiting, list):
-                    _suspension_error = "DIGEST.awaiting is not a YAML list"
-                elif not all(isinstance(persona, str) for persona in _awaiting):
-                    _suspension_error = "DIGEST.awaiting contains a non-string persona"
-                elif set(_awaiting) != _actual_children:
-                    _suspension_error = (
-                        f"DIGEST.awaiting names {sorted(set(_awaiting))}, expected "
-                        f"{sorted(_actual_children)}"
-                    )
-                else:
-                    print(
-                        f"check-digest: {agent} is suspended on "
-                        f"{', '.join(sorted(_actual_children))}.",
-                        file=sys.stderr,
-                    )
-                    return 0
-
-            # Terminal returns release. An unvalidated return with live children does not:
-            # the parent is still the only owner able to resume those children safely.
+            # Terminal returns release. A return with live children does not: under a blocking
+            # host a parent cannot yield while a child runs (DEC-204), so the parent is still
+            # the only owner able to resume those children safely (DEC-233).
             _keep_parent = bool(_kids and _return_verdict not in VERDICTS)
             if not _keep_parent:
                 _agent_id = d.get("harness_agent_id")
@@ -2262,15 +2237,6 @@ def hook_mode():
                     print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
                           f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
                           file=sys.stderr)
-
-            if _suspension_error is not None:
-                print(
-                    f"check-digest: REFUSED SUSPENDED return from {agent}: "
-                    f"{_suspension_error}; live children are "
-                    f"{sorted(persona for persona, _claim in _kids)}.",
-                    file=sys.stderr,
-                )
-                return 2
 
             if _kids:
                 if _return_verdict not in VERDICTS:

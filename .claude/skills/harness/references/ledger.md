@@ -32,8 +32,7 @@ declares the run reviewed code, and INV-6 then demands a `review_sha` that canno
 Building → Review seam (BUG-1080). Every other run omits it.
 
 **Three writes are yours and stay separate from close-run:** `STATE.md`'s `## Current` (DEC-150),
-the phase handoff note, and the commit. Quarantine (`quarantine.py list`) is a wake-time act
-(DEC-204), never part of close-out.
+the phase handoff note, and the commit.
 
 ## Judgements
 
