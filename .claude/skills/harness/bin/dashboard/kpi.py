@@ -17,6 +17,12 @@ import trend
 _SCHEMA = "kpi/1"
 _NOT_IMPLEMENTED = "not yet implemented"
 _NO_SHIP = "no ship record for this feature"
+_TREND_FIELDS = (
+    "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
+    "insertions", "deletions", "files_changed", "touchpoints",
+    "grade", "attribution",
+)
+
 
 
 def compute(project_root: Path, window: str, generated_at=None) -> dict:
@@ -107,22 +113,10 @@ def _plan_unavailability(feature_dir: Path) -> dict:
 def _feature_trend(record: dict | None) -> dict:
     if record is None:
         return {
-            field: None for field in (
-                "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
-                "insertions", "deletions", "files_changed", "touchpoints",
-                "grade", "attribution",
-            )
-        } | {"unavailable": {field: "shipped before metrics existed" for field in (
-            "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
-            "insertions", "deletions", "files_changed", "touchpoints",
-            "grade", "attribution",
-        )}}
+            field: None for field in _TREND_FIELDS
+        } | {"unavailable": {field: "shipped before metrics existed" for field in _TREND_FIELDS}}
     return {
-        field: record.get(field) for field in (
-            "cycle_time_days", "runs", "cycles_used", "max_total_cycles",
-            "insertions", "deletions", "files_changed", "touchpoints",
-            "grade", "attribution",
-        )
+        field: record.get(field) for field in _TREND_FIELDS
     } | {"unavailable": record.get("unavailable", {})}
 
 

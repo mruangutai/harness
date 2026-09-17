@@ -190,7 +190,6 @@ def _duplicate_reason(discarded: dict, kept: dict) -> str:
 
 
 def _window(window: str, generated_at: datetime) -> tuple[datetime | None, datetime]:
-    import kpi
     return kpi.resolve_window(window, generated_at)
 
 
