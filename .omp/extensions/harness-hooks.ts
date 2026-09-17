@@ -357,15 +357,6 @@ function parseClaimReceipt(stdout: string): ClaimReceipt | undefined {
   return undefined;
 }
 
-function sessionId(ctx: any): string | undefined {
-  try {
-    const value = ctx.sessionManager?.getSessionId?.();
-    return typeof value === "string" && value ? value : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 type TaskIdentity = { index: number; agentId?: string; jobId?: string; settled: boolean };
 
 function taskIdentities(details: unknown): TaskIdentity[] {
@@ -915,7 +906,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
             ...basePayload(currentAgent, "PreToolUse", ctx.cwd),
             tool_name: "Task",
             tool_input: dispatch,
-            session_id: sessionId(ctx),
             harness_runtime: "omp",
             supervisor_pid: process.pid,
           });

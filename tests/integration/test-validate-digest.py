@@ -1829,38 +1829,19 @@ def run_t09():
         len(claims(root, "harness-backend-dev")) == 1,
         repr(claims(root, "harness-backend-dev")))
 
-    # 10. children_in_flight_stale_claim — THE CASCADE (FEAT-42 T-17, issue #742/#866).
-    #     A claim left behind by a DIFFERENT session is not a live child of this return.
-    #     MEASURED 2026-08-26 and written up in
-    #     runs/2026-08-26-2-plan-product/digest.md: one stranded pm claim refused the pm
-    #     spawn at dispatch-guard, then refused the LEAD's return here, then refused the
-    #     ORCHESTRATOR's return here again — three tiers locked out of reporting by one
-    #     strand, each stranding creating the next. The payload carries session_id; the
-    #     registry entry carries the session that made the claim; a mismatch means the
-    #     claim belongs to somebody else's run and this return must be ADMITTED.
+    # 10. A live child refuses the parent's return, and the refusal names the precise
+    #     single-agent release command rather than release-all, which wipes every claim of
+    #     every agent (following the old advice on 2026-08-26 would have destroyed a live
+    #     one). The former "foreign session is admitted" case is gone with DEC-233: a claim
+    #     is scoped by its OMP supervisor's liveness (DEC-204), not by a session id.
     root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root, session="THIS-SESSION")
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root, session="OTHER-SESSION")
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, session_id="THIS-SESSION")
-    t09("10: children_in_flight_stale_claim — a FOREIGN session's claim does not refuse "
-        "this return", r.returncode == 0,
-        f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
-    t09("10: children_in_flight_stale_claim — and no children marker is printed",
-        CHILD_MARK not in r.stderr, r.stderr.strip()[:240])
-
-    # 11. THE OTHER HALF, so 10 cannot pass by never refusing anyone. Same shape, same
-    #     session on both claims: this one MUST still refuse, and the refusal must name the
-    #     precise single-agent release command rather than release-all, which wipes every
-    #     claim of every agent (following the old advice on 2026-08-26 would have destroyed
-    #     a live one).
-    root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root, session="THIS-SESSION")
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root, session="THIS-SESSION")
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, session_id="THIS-SESSION")
-    t09("11: a SAME-session child still refuses, so case 10 is not a blanket pass",
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
+    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    t09("10: a live child refuses the parent's return",
         r.returncode == 2 and CHILD_MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
-    t09("11: and the refusal names the single-agent release command for that child",
+    t09("10: and the refusal names the single-agent release command for that child",
         "--agent harness-backend-dev" in r.stderr and "release-all" not in r.stderr,
         r.stderr.strip()[:400])
 
@@ -1880,10 +1861,10 @@ def _t51_fixture(reg, parent="harness-product-lead", children=("harness-pm",)):
     root = _t09_root()
     session = "feat51-session"
     reg.claim_with_receipt(
-        root, parent, "harness-orchestrator", root, session=session
+        root, parent, "harness-orchestrator", root
     )
     for child in children:
-        reg.claim_with_receipt(root, child, parent, root, session=session)
+        reg.claim_with_receipt(root, child, parent, root)
     return root, session
 
 
@@ -1903,7 +1884,7 @@ def _t51_suspended_refused(reg):
         "VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n    - harness-pm\n",
         session_id=session,
     )
-    parent, _ = reg.live_claim(root, "harness-product-lead", session=session)
+    parent, _ = reg.live_claim(root, "harness-product-lead")
     return [
         _t51_result("a SUSPENDED return with a live child is refused", result, 2),
         ("the refused SUSPENDED return leaves the parent claim live",
@@ -1937,7 +1918,7 @@ def _t51_missing_message(reg):
                      HARNESS_PROJECT_DIR=root),
         )
         parent, _ = reg.live_claim(
-            root, "harness-product-lead", session=session
+            root, "harness-product-lead"
         )
         results.extend([
             _t51_result(

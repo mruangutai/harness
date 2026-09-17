@@ -2215,7 +2215,6 @@
     ".claude/skills/harness/bin/plan-sign-gate.py",
     ".claude/skills/harness/bin/plan_anchors.py",
     ".claude/skills/harness/bin/post-merge-sweep.py",
-    ".claude/skills/harness/bin/quarantine.py",
     ".claude/skills/harness/bin/render-brief.py",
     ".claude/skills/harness/bin/run-unit-tests.py",
     ".claude/skills/harness/bin/run_identity.py",

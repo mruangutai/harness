@@ -2204,12 +2204,7 @@ def hook_mode():
             _kids = []
             if norm(agent) in ("lead", "orchestrator"):
                 try:
-                    _kids = _reg.live_children(
-                        _root,
-                        agent,
-                        session=d.get("session_id"),
-                        feature=_feature,
-                    )
+                    _kids = _reg.live_children(_root, agent, feature=_feature)
                 except Exception as _e:
                     print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
                           f"#551 return contract is not enforced for this return.",

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse guard for merges while a Build-entry mirror receipt is owed.
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude
-Code's compatibility registration lives in `.claude/settings.json`.
+Registered in `.omp/extensions/harness-hooks.ts`.
 
 WAS A .sh WRAPPER (issue #1674). This native entry point preserves the wrapper's
 isolated root resolution, refusal behavior and hook stream contracts while
