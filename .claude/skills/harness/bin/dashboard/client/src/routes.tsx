@@ -10,8 +10,8 @@ import { WorkView, type WorkSearch } from './work-view';
 
 export const productPaths = ['/', '/kpi/$n', '/work/$id'];
 type Search = WorkSearch;
-type Kpi = { id: number; label: string; aggregate?: Record<string, unknown>; features?: Array<Record<string, unknown>>; trend?: Record<string, unknown> };
-type KpiPayload = { kpis: Kpi[]; aggregate?: Record<string, unknown>; trend?: Record<string, unknown> };
+type KpiPayload = { aggregate?: Record<string, unknown>; features?: Array<Record<string, unknown>>; trend?: Record<string, unknown> };
+const kpiLabels = ['Throughput', 'Rework', 'Blocking Human Touchpoints', 'Escaped Defects', 'Code Grading', 'Usage by Agent / Model Tier', 'Merged PRs Over Time'];
 let routeFocusTarget: string | undefined;
 
 function sharedSearch(search: Record<string, unknown>): Search {
@@ -45,7 +45,7 @@ function SharedHeader({ search }: { search: Search }) {
   return <Card padding={4}><Stack gap={3}><Text as="h1" type="display-2">Operations Dashboard</Text><RadioList label="Window" value={search.window} onChange={(window) => replace({ window })} orientation="horizontal"><RadioListItem label="30d" value="30d" /><RadioListItem label="90d" value="90d" /><RadioListItem label="All" value="all" /></RadioList><Selector label="Repository" value={search.repo} options={[{ label: 'All', value: 'all' }, { label: 'Alpha', value: 'alpha' }]} onChange={(repo) => replace({ repo: String(repo) })} /></Stack></Card>;
 }
 function Shell({ search, children }: { search: SharedSearch; children: React.ReactNode }) {
-  return <><style>{`.dashboard-shell{max-width:1600px;margin:0 auto;padding:24px}.dashboard-shell :focus-visible{outline:2px solid var(--color-text);outline-offset:2px}.dashboard-shell [data-route-title]:focus,.dashboard-shell [data-route-title]:focus-visible{outline:none}@media (max-width: 831px){.dashboard-shell{padding:16px}}`}</style><Stack as="main" className="dashboard-shell" gap={6}><SharedHeader search={search as Search} />{children}</Stack></>;
+  return <><style>{`:root{color-scheme:dark}body{margin:0;background:rgb(27,27,27)}.dashboard-shell{max-width:1600px;margin:0 auto;padding:24px}.dashboard-shell table{width:100%;min-width:0!important;max-width:100%;table-layout:fixed}.dashboard-shell th,.dashboard-shell td{overflow-wrap:anywhere}.dashboard-shell :focus-visible{outline:2px solid var(--color-text-primary);outline-offset:2px}.dashboard-shell [data-route-title]:focus,.dashboard-shell [data-route-title]:focus-visible{outline:none}@media (max-width: 831px){.dashboard-shell{padding:16px}}`}</style><Stack as="main" className="dashboard-shell" gap={6}><SharedHeader search={search as Search} />{children}</Stack></>;
 }
 function LoadingRegion() { return <Card padding={4}><Skeleton height={96} /></Card>; }
 function FailedRegion({ title, error, retry }: { title: string; error: Error; retry: () => void }) {
@@ -68,8 +68,9 @@ function KpiRoute() {
   const title = useRef<HTMLHeadingElement>(null);
   const kpis = useQuery<KpiPayload>({ queryKey: ['kpis', search.window, search.repo], queryFn: () => fetchKpis(search) as Promise<KpiPayload>, retry: false });
   useRouteLanding(`/kpi/${n}`, title);
-  const kpi = kpis.data?.kpis.find((candidate) => String(candidate.id) === n);
-  return <Shell search={search}>{kpi ? <Stack gap={4}><Text as="h1" type="large" tabIndex={-1} data-route-title ref={title}>{kpi.label}</Text><KpiPanel id={kpi.id} payload={kpi} search={search} /></Stack> : kpis.error ? <FailedRegion title="KPI panel unavailable" error={kpis.error} retry={() => void kpis.refetch()} /> : <LoadingRegion />}</Shell>;
+  const id = Number(n);
+  const label = kpiLabels[id - 1];
+  return <Shell search={search}>{kpis.data && label ? <Stack gap={4}><Text as="h1" type="large" tabIndex={-1} data-route-title ref={title}>{label}</Text><KpiPanel id={id} payload={kpis.data} search={search} /></Stack> : kpis.error ? <FailedRegion title="KPI panel unavailable" error={kpis.error} retry={() => void kpis.refetch()} /> : <LoadingRegion />}</Shell>;
 }
 function WorkRoute() {
   const search = useSearch({ from: '/work/$id' });

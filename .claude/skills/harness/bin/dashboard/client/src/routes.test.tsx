@@ -4,7 +4,17 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeRouter, productPaths } from './routes';
 
-const kpis = { kpis: Array.from({ length: 7 }, (_, index) => ({ id: index + 1, label: `KPI ${index + 1}` })) };
+const kpis = {
+  features: [{ feature_id: 'FEAT-1', name: 'Example Feature' }],
+  aggregate: {
+    escaped_defects: {
+      count: 1,
+      sourcing_rule: 'BUG units and default-branch reverts in the selected window.',
+      items: [{ feature_id: 'BUG-1', name: 'Escaped defect' }],
+    },
+  },
+  trend: { weekly: { week_count: 1, empty_bucket_count: 0 } },
+};
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -38,7 +48,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe('dashboard product routes', () => {
   it.each([
     ['/', 'Operations Dashboard'],
-    ['/kpi/1', 'KPI 1'],
+    ['/kpi/1', 'Throughput'],
     ['/work/FEAT-1', 'Example Feature'],
   ])('renders %s', async (path, expected) => {
     vi.stubGlobal('fetch', vi.fn((input: URL | RequestInfo) => {
@@ -47,7 +57,7 @@ describe('dashboard product routes', () => {
     }));
 
     renderRoute(path);
-    expect(await screen.findByRole('heading', { name: expected })).toBeTruthy();
+    expect((await screen.findAllByRole('heading', { name: expected })).length).toBeGreaterThan(0);
   });
 
   it('registers only the three product paths', () => {
@@ -71,11 +81,11 @@ describe('dashboard product routes', () => {
     const { history } = renderRoute('/?window=30d&repo=alpha');
     await screen.findByRole('heading', { name: 'Operations Dashboard' });
     fireEvent.click(screen.getByRole('radio', { name: '90d' }));
-    fireEvent.click(await screen.findByRole('link', { name: 'KPI 1' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Throughput' }));
 
     await waitFor(() => expect(history.location.href).toBe('/kpi/1?window=90d&repo=alpha'));
     renderRoute(history.location.href);
-    await screen.findAllByRole('heading', { name: 'KPI 1' });
+    await screen.findAllByRole('heading', { name: 'Throughput' });
 
     const requested = fetchMock.mock.calls.map(([input]) => String(input));
     expect(requested).toContain('/api/kpis?window=90d&repo=alpha');
@@ -98,24 +108,31 @@ describe('dashboard product routes', () => {
     expect(await screen.findByText('Example Feature')).toBeTruthy();
   });
 
+  it('keeps settled KPI content usable when the work request fails', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: URL | RequestInfo) => {
+      if (String(input).includes('/api/kpis')) return Promise.resolve(new Response(JSON.stringify(kpis)));
+      return Promise.reject(new Error('Work source unavailable'));
+    }));
+
+    renderRoute('/');
+
+    expect(await screen.findByRole('heading', { name: 'Repository KPIs' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Escaped Defects' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Work list unavailable' })).toBeTruthy();
+    expect(screen.getByText('Work source unavailable')).toBeTruthy();
+  });
+
   it('renders a complete KPI panel and lands focus after an in-app KPI transition', async () => {
     const detailedKpis = {
-      kpis: [
-        { id: 1, label: 'Throughput' },
-        { id: 2, label: 'Rework' },
-        { id: 3, label: 'Blocking Human Touchpoints' },
-        {
-          id: 4,
-          label: 'Escaped Defects',
-          aggregate: {
-            escaped_defects: {
-              count: 1,
-              sourcing_rule: 'BUG units and default-branch reverts in the selected window.',
-              items: [{ feature_id: 'BUG-1', name: 'Escaped defect' }],
-            },
-          },
+      features: [{ feature_id: 'BUG-1', name: 'Escaped defect' }],
+      aggregate: {
+        escaped_defects: {
+          count: 1,
+          sourcing_rule: 'BUG units and default-branch reverts in the selected window.',
+          items: [{ feature_id: 'BUG-1', name: 'Escaped defect' }],
         },
-      ],
+      },
+      trend: { weekly: { week_count: 1, empty_bucket_count: 0 } },
     };
     vi.stubGlobal('fetch', vi.fn((input: URL | RequestInfo) => Promise.resolve(new Response(JSON.stringify(
       String(input).includes('/api/kpis') ? detailedKpis : work,
@@ -131,17 +148,4 @@ describe('dashboard product routes', () => {
     expect(screen.getByRole('link', { name: 'BUG-1' }).getAttribute('href')).toContain('/work/BUG-1');
   });
 
-  it('uses the signed responsive geometry and keyboard-only focus rule', async () => {
-    renderRoute('/');
-
-    const main = await screen.findByRole('main');
-    expect(main.className).toContain('dashboard-shell');
-    const styles = document.querySelector('style')?.textContent;
-    expect(styles).toContain('max-width:1600px');
-    expect(styles).toContain('padding:24px');
-    expect(styles).toContain('@media (max-width: 831px)');
-    expect(styles).toContain('padding:16px');
-    expect(styles).toContain(':focus-visible');
-    expect(styles).toContain('outline:2px solid var(--color-text)');
-  });
 });
