@@ -15,13 +15,18 @@ CASE_NAMES = (
     "malformed worktree plan is source-specific", "multiple segments", "no GitHub dependency",
 )
 
+METRICS_CASES = (
+    "shipped elapsed phases", "in-progress elapsed phases", "missing boundaries stay null",
+    "all measured tokens", "none measured tokens", "mixed token coverage presentation",
+    "no dollar cost",
+)
+
 WORKTREE_CASES = (
     "worktrees include every canonical path exactly once",
     "worktrees retain primary linked detached orphan terminal and error rows",
     "only linked worktrees override feature copies",
     "worktrees use terminal classification and repository identity",
 )
-
 
 def check(name, condition, detail=""):
     print(f"{'PASS ' if condition else 'FAIL '} {name}{' — ' + detail if detail else ''}")
@@ -127,6 +132,65 @@ def collector_case():
         rows, calls = collect_rows(work, root, worktrees)
         assert_cases(rows, calls, main, bad, worktrees)
 
+
+# ---- metrics (T-31, DEC-229) ---------------------------------------------------------------
+def metric_feature(main, name, station, runs, handoffs=()):
+    path = main / name
+    write_feature(path, name, station, runs)
+    (path / "BRIEF.md").write_text("## Approval\nstatus: approved\ndate: 2026-09-10\n",
+                                  encoding="utf-8")
+    notes = path / "notes"; notes.mkdir()
+    for phase, seq in handoffs:
+        (notes / f"handoff-{phase}.md").write_text(
+            f"# Handoff — {name}, {phase} → next — written at sha, seq-{seq}\n",
+            encoding="utf-8")
+
+
+def metrics_case():
+    from datetime import datetime, timezone
+    work = importlib.import_module("dashboard.work")
+    now = datetime(2026, 9, 14, 12, 0, tzinfo=timezone.utc)
+    runs = [
+        {"id": "p", "squad": "product", "started_at": "2026-09-10T01:00:00Z",
+         "ended_at": "2026-09-10T02:00:00Z", "tokens": 3},
+        {"id": "b", "squad": "eng", "started_at": "2026-09-11T02:00:00Z",
+         "ended_at": "2026-09-11T05:00:00Z", "tokens": 7},
+        {"id": "v", "squad": "validator", "started_at": "2026-09-12T05:00:00Z",
+         "ended_at": "2026-09-12T07:00:00Z", "tokens": 11},
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "control"; main = root / ".harness" / "harness" / "features"
+        (root / ".harness" / "factory").mkdir(parents=True)
+        (root / ".harness" / "factory" / "fleet.yaml").write_text(
+            "schema: factory-fleet/1\nworkspace_root: /nonexistent\nrepos: []\n", encoding="utf-8")
+        metric_feature(main, "FEAT-80-shipped", "done", runs, (("plan", 1), ("build", 2), ("validate", 3)))
+        metric_feature(main, "BUG-81-progress", "review", runs[:2], (("plan", 1), ("build", 2)))
+        metric_feature(main, "FEAT-82-missing", "building", runs[:1])
+        metric_feature(main, "FEAT-83-none", "building", [{**runs[0], "tokens": None}])
+        metric_feature(main, "FEAT-84-mixed", "building", [{**runs[0], "tokens": 5}, {**runs[1], "tokens": None}], (("plan", 1),))
+        original_now = work._now
+        work._now = lambda: now
+        try:
+            rows = {row.display_name: row for row in work.collect(root)}
+        finally:
+            work._now = original_now
+        shipped, progress, missing, measured, none, mixed = (rows[name] for name in (
+            "FEAT-80-shipped", "BUG-81-progress", "FEAT-82-missing", "FEAT-80-shipped",
+            "FEAT-83-none", "FEAT-84-mixed"))
+        check("shipped elapsed phases", matches(shipped, phase="done", elapsed_total=198000,
+              elapsed_plan=7200, elapsed_build=97200, elapsed_validate=93600), repr(shipped))
+        check("in-progress elapsed phases", matches(progress, phase="validate", elapsed_total=388800,
+              elapsed_plan=7200, elapsed_build=97200, elapsed_validate=284400), repr(progress))
+        check("missing boundaries stay null", missing.phase == "plan" and missing.elapsed_plan == 388800
+              and missing.elapsed_build is None and missing.elapsed_validate is None, repr(missing))
+        check("all measured tokens", measured.tokens == {"total": 21, "measured_runs": 3,
+              "total_runs": 3, "unmeasured_runs": 0, "by_phase": {"plan": 3, "build": 7, "validate": 11},
+              "presentation": "unmeasured 0 of 3 runs"}, repr(measured.tokens))
+        check("none measured tokens", none.tokens == {"total": None, "measured_runs": 0,
+              "total_runs": 1, "unmeasured_runs": 1, "by_phase": {"plan": None, "build": None, "validate": None},
+              "presentation": "unmeasured 1 of 1 runs"}, repr(none.tokens))
+        check("mixed token coverage presentation", mixed.tokens["presentation"] == "unmeasured 1 of 2 runs")
+        check("no dollar cost", "cost" not in shipped.to_dict() and "cost" not in shipped.tokens)
 
 # ---- worktrees (T-26, DEC-229) -------------------------------------------------------------
 def worktree_case():
@@ -269,10 +333,11 @@ def attention_case():
 
 def main():
     cases = {"collector": (collector_case, len(CASE_NAMES)),
+             "metrics": (metrics_case, len(METRICS_CASES)),
              "attention": (attention_case, len(ATTENTION_CASES)),
              "worktrees": (worktree_case, len(WORKTREE_CASES))}
     if len(sys.argv) != 3 or sys.argv[1] != "--case" or sys.argv[2] not in cases:
-        raise SystemExit("usage: test-work-dashboard.py --case collector|attention|worktrees")
+        raise SystemExit("usage: test-work-dashboard.py --case collector|metrics|attention|worktrees")
     fn, count = cases[sys.argv[2]]
     fn()
     print(f"Executed {count} {sys.argv[2]} assertions; discovered {count} {sys.argv[2]} assertions.")

@@ -1,16 +1,21 @@
 """Offline disk collection of fleet work for the dashboard operational lane."""
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import re
 
 import artifact_accessors
+import brief_approval
 import factory_config
 import grilling_status
 import harness_yaml
 import worktree_terminal
 
 _PREFIX = re.compile(r"^(?:FEAT|BUG)-\d+")
+
+_PHASES = ("plan", "build", "validate")
+_SQUADS = {"product": "plan", "eng": "build", "validator": "validate"}
 
 
 @dataclass(frozen=True)
@@ -25,6 +30,13 @@ class WorkItem:
     run_status: str | None
     run_started_at: str | None
     run_ended_at: str | None
+    elapsed_total: int | None
+    elapsed_plan: int | None
+    elapsed_build: int | None
+    elapsed_validate: int | None
+    phase: str | None
+    run_count: int | None
+    tokens: dict | None
     updated_at: str | None
     cycles_used: int | None
     max_total_cycles: int | None
@@ -97,8 +109,10 @@ def _worktree_item(entry: tuple[Path, str, str], classifications: dict[Path, dic
     return WorkItem(
         id=f"worktree:{repository}:{path}", kind="worktree", segment=repository.rsplit("/", 1)[-1],
         display_name=path.name, station=None, grilling_status=None, run_status=None,
-        run_started_at=None, run_ended_at=None, updated_at=None, cycles_used=None,
-        max_total_cycles=None, main_path=None, worktree_path=None, source_path=str(path),
+        run_started_at=None, run_ended_at=None, elapsed_total=None, elapsed_plan=None,
+        elapsed_build=None, elapsed_validate=None, phase=None, run_count=None, tokens=None,
+        updated_at=None, cycles_used=None, max_total_cycles=None, main_path=None,
+        worktree_path=None, source_path=str(path),
         error=record.get("reason") if record.get("klass") == "unresolved" else None,
         repository=record.get("repo") or repository, canonical_path=str(path),
         checkout_role=role, head=_head_identity(path), feature_id=feature_id,
@@ -184,11 +198,15 @@ def _read_feature(source: Path, name: str, segment: str, main_path: str,
 def _loaded_feature(source: Path, name: str, segment: str, main_path: str,
                     worktree_path: str | None, document: dict) -> WorkItem:
     run = _latest_run(document)
+    timing = _timing(source, document)
     return WorkItem(
         id=f"{_kind(name)}:{segment}:{name}", kind=_kind(name), segment=segment,
         display_name=name, station=_station(source), grilling_status=None,
         run_status=run.get("verdict"), run_started_at=run.get("started_at"),
-        run_ended_at=run.get("ended_at"), updated_at=_updated_at(document),
+        run_ended_at=run.get("ended_at"), elapsed_total=timing["total"],
+        elapsed_plan=timing["plan"], elapsed_build=timing["build"],
+        elapsed_validate=timing["validate"], phase=timing["phase"],
+        run_count=timing["run_count"], tokens=timing["tokens"], updated_at=_updated_at(document),
         cycles_used=_int_or_none(document.get("cycles_used")),
         max_total_cycles=_int_or_none(document.get("max_total_cycles")),
         main_path=main_path, worktree_path=worktree_path,
@@ -201,9 +219,11 @@ def _feature_error(source: Path, name: str, segment: str, main_path: str,
     return WorkItem(
         id=f"{_kind(name)}:{segment}:{name}", kind=_kind(name), segment=segment,
         display_name=name, station=None, grilling_status=None, run_status=None,
-        run_started_at=None, run_ended_at=None, updated_at=None, cycles_used=None,
-        max_total_cycles=None, main_path=main_path, worktree_path=worktree_path,
-        source_path=str(source.resolve()), error=f"{source_name}: {error}",
+        run_started_at=None, run_ended_at=None, elapsed_total=None, elapsed_plan=None,
+        elapsed_build=None, elapsed_validate=None, phase=None, run_count=None, tokens=None,
+        updated_at=None, cycles_used=None, max_total_cycles=None, main_path=main_path,
+        worktree_path=worktree_path, source_path=str(source.resolve()),
+        error=f"{source_name}: {error}",
     )
 
 
@@ -239,6 +259,97 @@ def _int_or_none(value) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _timing(source: Path, document: dict) -> dict:
+    runs = [run for run in document.get("runs", []) if isinstance(run, dict)]
+    approval, _reason = brief_approval.approval_date(source)
+    start = _instant(f"{approval}T00:00:00Z") if approval else None
+    boundaries = _boundaries(source, runs)
+    phase = _phase(boundaries)
+    end = _terminal_end(runs) if _station(source) == "done" else _now()
+    total = _seconds(start, end)
+    elapsed = _phase_elapsed(start, boundaries, phase, end)
+    return {"total": total, **elapsed, "phase": phase, "run_count": len(runs),
+            "tokens": _tokens(runs)}
+
+
+def _boundaries(source: Path, runs: list[dict]) -> dict:
+    result = {}
+    for phase in _PHASES:
+        note = source / "notes" / f"handoff-{phase}.md"
+        if not note.is_file():
+            continue
+        match = re.search(r"\bseq-(\d+)\b", note.read_text(encoding="utf-8"))
+        if match is None:
+            continue
+        index = int(match.group(1)) - 1
+        if 0 <= index < len(runs):
+            result[phase] = _instant(runs[index].get("ended_at"))
+    return result
+
+
+def _phase(boundaries: dict) -> str:
+    for phase in _PHASES:
+        if phase not in boundaries:
+            return phase
+    return "done"
+
+
+def _terminal_end(runs: list[dict]) -> datetime | None:
+    for run in reversed(runs):
+        end = _instant(run.get("ended_at"))
+        if end is not None:
+            return end
+    return None
+
+
+def _phase_elapsed(start: datetime | None, boundaries: dict, phase: str,
+                   end: datetime | None) -> dict:
+    result = {}
+    prior = start
+    for name in _PHASES:
+        boundary = boundaries.get(name)
+        if boundary is not None:
+            result[name] = _seconds(prior, boundary)
+            prior = boundary
+        elif name == phase:
+            result[name] = _seconds(prior, end)
+        else:
+            result[name] = None
+    return result
+
+
+def _tokens(runs: list[dict]) -> dict:
+    measured = [run for run in runs if _int_or_none(run.get("tokens")) is not None]
+    by_phase = {}
+    for phase in _PHASES:
+        values = [_int_or_none(run.get("tokens")) for run in runs
+                  if _SQUADS.get(run.get("squad")) == phase]
+        known = [value for value in values if value is not None]
+        by_phase[phase] = sum(known) if known else None
+    total_runs = len(runs)
+    return {"total": sum(_int_or_none(run.get("tokens")) for run in measured) if measured else None,
+            "measured_runs": len(measured), "total_runs": total_runs,
+            "unmeasured_runs": total_runs - len(measured), "by_phase": by_phase,
+            "presentation": f"unmeasured {total_runs - len(measured)} of {total_runs} runs"}
+
+
+def _instant(value) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _seconds(start: datetime | None, end: datetime | None) -> int | None:
+    return int((end - start).total_seconds()) if start is not None and end is not None else None
+
+
 def _grilling_items(root: Path) -> list[WorkItem]:
     notes = root / ".harness" / "notes"
     items = []
@@ -253,7 +364,8 @@ def _grilling_items(root: Path) -> list[WorkItem]:
         items.append(WorkItem(
             id=f"grilling:harness:{name}", kind="grilling", segment="harness",
             display_name=name, station=None, grilling_status=status, run_status=None,
-            run_started_at=None, run_ended_at=None,
+            run_started_at=None, run_ended_at=None, elapsed_total=None, elapsed_plan=None,
+            elapsed_build=None, elapsed_validate=None, phase=None, run_count=None, tokens=None,
             updated_at=_mtime(path), cycles_used=None, max_total_cycles=None,
             main_path=str(path.resolve()), worktree_path=None, source_path=str(path.resolve()),
             error=error,
