@@ -3,11 +3,12 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-10-eng/digest.md
+- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-11-eng/digest.md
 - squad: engineering
-- status: building
-- tasks_done: T-01..T-15, T-18..T-31
-- next_task: T-16
+- status: simplifying
+- tasks_done: T-01..T-16, T-18..T-31
+- next_gate: simplify
+- deferred_until_validate_clean: T-17
 - cycles_used: 26
 - max_total_cycles: 30
 - rework_rounds: 10

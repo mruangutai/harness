@@ -1183,7 +1183,7 @@ tasks:
     - T-15
     - T-21
     - T-28
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/dist/index.html
       - .claude/skills/harness/bin/dashboard/client/dist/assets/
