@@ -126,22 +126,25 @@ class MetricsDashboardIntegrationTest(unittest.TestCase):
             self.assertEqual(200, client.get("/", headers={"Host": host}).status_code, host)
 
     def test_kpi_route_isolated_from_fixture_for_all_output(self):
+        expected = json.loads((self.project / "expected.json").read_text(encoding="utf-8"))
         fixture_client = self.serve.create_app(self.project).test_client()
-        fixture_payload = fixture_client.get("/api/kpis?window=all").get_json()
-        repository_client = self.serve.create_app(ROOT).test_client()
-        with patch("kpi.grading.distribution", return_value={"fixture-isolation": "stable"}):
-            response = repository_client.get("/api/kpis?window=all")
-            self.assertEqual(200, response.status_code)
-            actual = response.get_json()
-            expected = sys.modules["kpi"].compute(
-                ROOT, "all", generated_at=datetime.fromisoformat(actual["generated_at"].replace("Z", "+00:00"))
-            )
-        self.assertNotEqual(fixture_payload["project"]["root"], actual["project"]["root"])
-        self.assertEqual(expected["features"], actual["features"])
-        self.assertEqual(expected["aggregate"], actual["aggregate"])
-        self.assertEqual(expected["trend"], actual["trend"])
+        harness_client = self.serve.create_app(ROOT).test_client()
+        with patch("kpi.subprocess.run", side_effect=_fixture_diff_result), patch(
+            "kpi.grading.distribution", return_value=expected["grading"]
+        ), patch("kpi.defects.escaped", return_value={"count": 0}), patch(
+            "kpi.attribution.by_tier", return_value={"value": None, "unavailable": {"value": "not yet implemented"}}
+        ):
+            fixture_payload = _kpi_payload(fixture_client)
+            harness_payload = _kpi_payload(harness_client)
+            _assert_fixture_kpis(self, fixture_payload, self.project, expected)
+            _assert_harness_route(self, harness_payload, fixture_payload)
+            original_compute = sys.modules["kpi"].compute
+            with patch.object(sys.modules["kpi"], "compute", side_effect=_systemic_project_leak(original_compute, ROOT)):
+                leaked_payload = _kpi_payload(fixture_client)
+        with self.assertRaises(AssertionError):
+            _assert_fixture_kpis(self, leaked_payload, self.project, expected)
         _assert_kpi_shape(self, fixture_payload)
-        _assert_kpi_shape(self, actual)
+        _assert_kpi_shape(self, harness_payload)
 
     def test_repository_api_request_is_kpi_payload_under_ceiling(self):
         before = _git(ROOT, "status", "--porcelain=v1").stdout
@@ -320,14 +323,65 @@ def _assert_work_payload(test, payload, repository):
             test.assertEqual({"measured_total", "measured_runs", "total_runs", "unmeasured_runs", "by_phase"},
                              set(item["tokens"]))
             test.assertEqual({"plan", "build", "validate"}, set(item["tokens"]["by_phase"]))
+def _kpi_payload(client):
+    response = client.get("/api/kpis?window=all")
+    try:
+        if response.status_code != 200:
+            raise AssertionError(f"kpi response was {response.status_code}: {response.get_json()}")
+        return response.get_json()
+    finally:
+        response.close()
+
+
 def _assert_fixture_payload(test, payload, project):
     test.assertEqual("kpi/1", payload["schema"])
     test.assertEqual(str(project.resolve()), payload["project"]["root"])
-    test.assertEqual("project-a", payload["project"]["name"])
+    test.assertEqual(project.name, payload["project"]["name"])
     test.assertNotEqual(str(ROOT.resolve()), payload["project"]["root"])
     test.assertEqual("all", payload["window"])
-    shipped = next(item for item in payload["features"] if item["feature_id"] == "FIX-SHIPPED")
-    test.assertEqual("FIX-SHIPPED", shipped["feature_id"])
+    test.assertEqual("FIX-SHIPPED", _feature_kpi(payload, "FIX-SHIPPED")["feature_id"])
+
+
+def _assert_fixture_kpis(test, payload, project, expected):
+    _assert_fixture_payload(test, payload, project)
+    for label, actual, bound in _bound_fixture_kpis(payload, expected):
+        with test.subTest(kpi=label):
+            test.assertEqual(bound, actual)
+
+
+def _assert_harness_route(test, payload, fixture_payload):
+    test.assertEqual(str(ROOT.resolve()), payload["project"]["root"])
+    test.assertNotEqual(fixture_payload["project"]["root"], payload["project"]["root"])
+
+def _bound_fixture_kpis(payload, expected):
+    touchpoints = expected["touchpoints"]
+    return [
+        ("feature_ids", [feature["feature_id"] for feature in payload["features"]], expected["feature_ids"]),
+        ("shipped", _selected_kpi(_feature_kpi(payload, expected["shipped"]["feature_id"])), expected["shipped"]),
+        ("throughput", payload["aggregate"]["throughput"], expected["throughput"]),
+        ("rework", payload["aggregate"]["rework"], expected["rework"]),
+        ("feature_touchpoints", _feature_kpi(payload, touchpoints["feature"]).get("touchpoints"), touchpoints["value"]),
+        ("aggregate_touchpoints", {key: payload["aggregate"]["touchpoints"][key]
+                                   for key in ("mean", "zero_count", "not_tracked_count")},
+         {key: touchpoints[key] for key in ("mean", "zero_count", "not_tracked_count")}),
+    ]
+
+
+def _feature_kpi(payload, feature_id):
+    return next((feature for feature in payload["features"] if feature["feature_id"] == feature_id), {})
+
+
+def _selected_kpi(feature):
+    return {key: feature.get(key) for key in (
+        "feature_id", "approved_on", "shipped_at", "cycle_time_days", "runs",
+        "cycles_used", "max_total_cycles", "insertions", "deletions", "files_changed",
+    )}
+
+
+def _systemic_project_leak(original_compute, leaked_root):
+    def compute(_project_root, window, generated_at=None):
+        return original_compute(leaked_root, window, generated_at)
+    return compute
 
 
 def _assert_client_routes(test, client):
@@ -335,7 +389,7 @@ def _assert_client_routes(test, client):
     test.assertEqual([200, 200, 200], [route.status_code for route in routes])
     for route in routes:
         route.close()
-    asset = client.get("/assets/index-hkwR5g06.js")
+    asset = client.get(f"/assets/{_bundle_asset().name}")
     test.assertEqual(200, asset.status_code)
     test.assertNotEqual("text/plain", asset.mimetype)
     test.assertIn("javascript", asset.mimetype)
@@ -346,12 +400,37 @@ def _assert_client_routes(test, client):
     _assert_api_errors(test, client)
 
 
+def _bundle_asset():
+    return next((DASHBOARD / "client" / "dist" / "assets").glob("index-*.js"))
+
+
 def _assert_api_errors(test, client):
     for endpoint in ("/api/kpis?window=nope", "/api/unknown"):
         error = client.get(endpoint)
         test.assertIn(error.status_code, {400, 404})
         test.assertTrue(error.is_json)
         test.assertIn("error", error.get_json())
+
+
+def _fixture_diff_result(command, **_kwargs):
+    if command[1:3] == ["symbolic-ref", "--short"]:
+        return _command_result("origin/main\n")
+    if command[1] == "for-each-ref":
+        return _command_result(
+            "refs/heads/feature/shipped\nrefs/heads/feature/pre\nrefs/heads/feature/pending\n"
+            "refs/heads/feature/noapproval\nrefs/heads/feature/nobrief\nrefs/heads/feature/noship\n"
+            "refs/heads/feature/emptydate\n"
+        )
+    return _command_result("3\t2\talpha.py\n1\t0\tbeta.py\n")
+
+
+def _command_result(stdout):
+    class Result:
+        returncode = 0
+    result = Result()
+    result.stdout = stdout
+    result.stderr = ""
+    return result
 
 def _importer_missing(missing):
     def importer(name):

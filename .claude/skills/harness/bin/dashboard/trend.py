@@ -152,31 +152,47 @@ def _feature_ids(contents: bytes) -> set[str]:
 def _records(contents: str) -> tuple[dict, dict]:
     records, unavailable = {}, {}
     for number, line in enumerate(contents.splitlines(), start=1):
-        try:
-            record = json.loads(line)
-        except json.JSONDecodeError:
-            unavailable[f"line_{number}"] = "trend record line does not parse"
-            continue
-        if record.get("schema") != _SCHEMA:
-            unavailable[f"line_{number}"] = f"trend record schema is {record.get('schema')!r}, not {_SCHEMA}"
-            continue
-        if not record.get("feature_id"):
-            unavailable[f"line_{number}"] = "trend record has no feature_id"
-            continue
-        try:
-            _timestamp(record["shipped_at"])
-        except (KeyError, ValueError):
-            unavailable[f"line_{number}"] = "trend record has invalid shipped_at"
-            continue
-        _atomic_nested(record, unavailable, number)
-        prior = records.get(record["feature_id"])
-        if prior is None or _timestamp(record["shipped_at"]) > _timestamp(prior["shipped_at"]):
-            if prior is not None:
-                unavailable[record["feature_id"]] = _duplicate_reason(prior, record)
-            records[record["feature_id"]] = record
-        else:
-            unavailable[record["feature_id"]] = _duplicate_reason(record, prior)
+        record = _record_or_reason(line, number, unavailable)
+        if record is not None:
+            _keep_record(records, unavailable, record)
     return records, unavailable
+
+
+def _record_or_reason(line: str, number: int, unavailable: dict) -> dict | None:
+    try:
+        record = json.loads(line)
+    except json.JSONDecodeError:
+        unavailable[f"line_{number}"] = "trend record line does not parse"
+        return None
+    reason = _record_reason(record)
+    if reason is not None:
+        unavailable[f"line_{number}"] = reason
+        return None
+    _atomic_nested(record, unavailable, number)
+    return record
+
+
+def _record_reason(record: dict) -> str | None:
+    if record.get("schema") != _SCHEMA:
+        return f"trend record schema is {record.get('schema')!r}, not {_SCHEMA}"
+    if not record.get("feature_id"):
+        return "trend record has no feature_id"
+    try:
+        _timestamp(record["shipped_at"])
+    except (KeyError, ValueError):
+        return "trend record has invalid shipped_at"
+    return None
+
+
+def _keep_record(records: dict, unavailable: dict, record: dict) -> None:
+    feature_id = record["feature_id"]
+    prior = records.get(feature_id)
+    if prior is None or _timestamp(record["shipped_at"]) > _timestamp(prior["shipped_at"]):
+        if prior is not None:
+            unavailable[feature_id] = _duplicate_reason(prior, record)
+        records[feature_id] = record
+    else:
+        unavailable[feature_id] = _duplicate_reason(record, prior)
 
 
 def _atomic_nested(record: dict, unavailable: dict, number: int) -> None:

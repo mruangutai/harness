@@ -279,26 +279,37 @@ class TrendTest(unittest.TestCase):
             print("ok record_ship FAILURE-BRANCH appends despite commit failure")
 
     def test_cmd_ship_records_trend_before_board_writes_and_handles_failure(self):
-        source = (BIN / "gh-sync.py").read_text(encoding="utf-8")
-        module = ast.parse(source)
-        cmd_ship = next(node for node in module.body if isinstance(node, ast.FunctionDef) and node.name == "cmd_ship")
-        calls = [
-            (node.lineno, getattr(node.func, "attr", getattr(node.func, "id", "")))
-            for node in ast.walk(cmd_ship) if isinstance(node, ast.Call)
-        ]
-        record_lines = [line for line, name in calls if name == "record_ship"]
-        board_lines = [line for line, name in calls if name == "board_stations_for"]
+        cmd_ship = _cmd_ship()
+        record_lines, board_lines = _call_lines(cmd_ship)
         self.assertEqual(1, len(record_lines))
         self.assertTrue(board_lines)
         self.assertLess(record_lines[0], min(board_lines))
-        record_try = next(
-            node for node in ast.walk(cmd_ship)
-            if isinstance(node, ast.Try) and any(
-                getattr(call.func, "attr", "") == "record_ship" for call in ast.walk(node)
-                if isinstance(call, ast.Call)
-            )
+        self.assertTrue(_record_ship_try(cmd_ship).handlers)
+
+
+def _cmd_ship():
+    source = (BIN / "gh-sync.py").read_text(encoding="utf-8")
+    module = ast.parse(source)
+    return next(node for node in module.body if isinstance(node, ast.FunctionDef) and node.name == "cmd_ship")
+
+
+def _call_lines(function):
+    calls = [
+        (node.lineno, getattr(node.func, "attr", getattr(node.func, "id", "")))
+        for node in ast.walk(function) if isinstance(node, ast.Call)
+    ]
+    return ([line for line, name in calls if name == "record_ship"],
+            [line for line, name in calls if name == "board_stations_for"])
+
+
+def _record_ship_try(function):
+    return next(
+        node for node in ast.walk(function)
+        if isinstance(node, ast.Try) and any(
+            getattr(call.func, "attr", "") == "record_ship" for call in ast.walk(node)
+            if isinstance(call, ast.Call)
         )
-        self.assertTrue(record_try.handlers)
+    )
 
 def _commit_trend(project: Path, message: str):
     _git(project, "add", ".harness/metrics/trend.jsonl")

@@ -40,45 +40,12 @@ class KpiCoreTest(unittest.TestCase):
         self.tempdir.cleanup()
 
     def test_hand_labelled_feature_and_aggregate_values(self):
-        generated_at = datetime(2026, 9, 16, tzinfo=timezone.utc)
-        with patch("kpi.subprocess.run", side_effect=_diff_result) as diff, patch(
-            "kpi.grading.distribution", return_value=_grading_expected(self.expected["grading"])
-        ):
-            result = kpi.compute(self.project, "all", generated_at=generated_at)
-        self.assertEqual(self.expected["schema"], result["schema"])
-        self.assertEqual(str(self.project.resolve()), result["project"]["root"])
-        self.assertEqual("project-a", result["project"]["name"])
-        self.assertEqual("2026-09-16T00:00:00Z", result["generated_at"])
-        self.assertEqual(self.expected["feature_ids"], [item["feature_id"] for item in result["features"]])
-        shipped = _feature(result, "FIX-SHIPPED")
-        self.assertEqual(self.expected["shipped"], _selected(shipped))
-        self.assertEqual(self.expected["throughput"], result["aggregate"]["throughput"])
-        self.assertEqual(self.expected["rework"], result["aggregate"]["rework"])
-        self.assertEqual(
-            {"git diff --numstat main...feature/shipped"},
-            {" ".join(call.args[0]) for call in diff.call_args_list
-             if call.args[0][-1] == "main...feature/shipped"},
-        )
-        self.assertEqual(
-            self.expected["touchpoints"]["value"],
-            _feature(result, self.expected["touchpoints"]["feature"])["touchpoints"],
-        )
-        self.assertEqual(
-            {
-                key: self.expected["touchpoints"][key]
-                for key in ("mean", "zero_count", "not_tracked_count")
-            },
-            result["aggregate"]["touchpoints"],
-        )
-        self.assertIsNone(result["aggregate"]["attribution"]["value"])
-        self.assertEqual("not yet implemented", result["aggregate"]["attribution"]["unavailable"]["value"])
-        self.assertEqual(0, result["aggregate"]["escaped_defects"]["count"])
-        self.assertEqual("all", result["aggregate"]["escaped_defects"]["window"])
-        self.assertEqual(
-            "BUG-NN feature units first added in the selected window and Revert commits are counted; "
-            "subjects beginning with fix are excluded because they are usually within-feature repairs.",
-            result["aggregate"]["escaped_defects"]["sourcing_rule"],
-        )
+        result, diff = _hand_labelled_result(self.project, self.expected)
+        _assert_hand_labelled_header(self, result, self.project, self.expected)
+        _assert_hand_labelled_kpis(self, result, self.expected)
+        _assert_hand_labelled_diff(self, diff)
+
+
 
     def test_grading_distribution_uses_grader_payload_and_live_file_mix(self):
         payload = self.expected["grading_payload"]
@@ -613,6 +580,58 @@ def _selected(feature):
         "feature_id", "approved_on", "shipped_at", "cycle_time_days", "runs",
         "cycles_used", "max_total_cycles", "insertions", "deletions", "files_changed",
     )}
+
+
+def _hand_labelled_result(project, expected):
+    generated_at = datetime(2026, 9, 16, tzinfo=timezone.utc)
+    with patch("kpi.subprocess.run", side_effect=_diff_result) as diff, patch(
+        "kpi.grading.distribution", return_value=_grading_expected(expected["grading"])
+    ):
+        return kpi.compute(project, "all", generated_at=generated_at), diff
+
+
+def _assert_hand_labelled_header(test, result, project, expected):
+    test.assertEqual(expected["schema"], result["schema"])
+    test.assertEqual(str(project.resolve()), result["project"]["root"])
+    test.assertEqual(project.name, result["project"]["name"])
+    test.assertEqual("2026-09-16T00:00:00Z", result["generated_at"])
+    test.assertEqual(expected["feature_ids"], [item["feature_id"] for item in result["features"]])
+
+
+def _assert_hand_labelled_kpis(test, result, expected):
+    test.assertEqual(expected["shipped"], _selected(_feature(result, "FIX-SHIPPED")))
+    test.assertEqual(expected["throughput"], result["aggregate"]["throughput"])
+    test.assertEqual(expected["rework"], result["aggregate"]["rework"])
+    test.assertEqual(
+        expected["touchpoints"]["value"],
+        _feature(result, expected["touchpoints"]["feature"])["touchpoints"],
+    )
+    test.assertEqual(
+        {key: expected["touchpoints"][key] for key in ("mean", "zero_count", "not_tracked_count")},
+        result["aggregate"]["touchpoints"],
+    )
+    _assert_unavailable_aggregate_kpis(test, result)
+
+
+def _assert_unavailable_aggregate_kpis(test, result):
+    aggregate = result["aggregate"]
+    test.assertIsNone(aggregate["attribution"]["value"])
+    test.assertEqual("not yet implemented", aggregate["attribution"]["unavailable"]["value"])
+    test.assertEqual(0, aggregate["escaped_defects"]["count"])
+    test.assertEqual("all", aggregate["escaped_defects"]["window"])
+    test.assertEqual(
+        "BUG-NN feature units first added in the selected window and Revert commits are counted; "
+        "subjects beginning with fix are excluded because they are usually within-feature repairs.",
+        aggregate["escaped_defects"]["sourcing_rule"],
+    )
+
+
+def _assert_hand_labelled_diff(test, diff):
+    test.assertEqual(
+        {"git diff --numstat main...feature/shipped"},
+        {" ".join(call.args[0]) for call in diff.call_args_list
+         if call.args[0][-1] == "main...feature/shipped"},
+    )
 
 
 if __name__ == "__main__":
