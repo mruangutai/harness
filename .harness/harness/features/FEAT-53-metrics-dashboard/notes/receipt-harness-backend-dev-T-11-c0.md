@@ -30,6 +30,25 @@ Output summary: pass; 11 integration tests ran, both required labels were presen
 
 Additional scoped proof: `python3 tests/unit/test-metrics-kpi.py` passed 14 tests; `python3 .claude/skills/harness/bin/touchpoints.py count --root .claude/skills/harness/bin/dashboard/fixtures/project-a --feature FIX-NOSHIP` printed `0`.
 
+## Commits
+
+- Implementation: `3c967ebdceae3d6c817fb398f533899023d9a93c`
+- Initial receipt: `09592e98765c1ffd3abc33b052a200a03c1e4b31`
+
+## Files touched
+
+- `.claude/skills/harness/bin/touchpoints.py`
+- `.claude/skills/harness/bin/dashboard/kpi.py`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-a/expected.json`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/metrics/instrumented_at`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-PRE/BRIEF.md`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-PRE/feature.json`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-PRE/plan.yaml`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-SHIPPED/touchpoints.jsonl`
+- `.claude/skills/harness/bin/dashboard/fixtures/project-uninstrumented/.harness/demo/features/FIX-ONE/feature.json`
+- `tests/integration/test-metrics-trend.py`
+- `tests/unit/test-metrics-kpi.py`
+
 ## Amendment
 
 No discrepancy: the authorized test-path amendment was used (`tests/integration/test-metrics-trend.py`, `tests/unit/test-metrics-kpi.py`) while the signed plan itself was not edited.
