@@ -7029,7 +7029,7 @@ not complete. Ordinary Build requires that receipt rather than opening the mirro
 `Building` to the complete card set before task dispatch, and uses idempotent `open` only as the
 explicit recovery path. `gh-sync.py start-task` refuses on absence and proceeds on
 `recovery-required`, which instead gates the merge through the registered PreToolUse Bash gate
-`merge-gate.py` (`.claude/settings.json:48`). A partial remote write and a caller or contract error
+`merge-gate.py` (wired in `.omp/extensions/harness-hooks.ts`). A partial remote write and a caller or contract error
 record nothing (`gh-sync.py:289`), so both leave the receipt absent and block Build.
 
 **Recovery is explicit and never retroactive.** An already-merged sync-enabled feature whose mirror

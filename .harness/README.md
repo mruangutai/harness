@@ -28,7 +28,7 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
 | `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
-| `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. `.claude/agents/` contains generated Claude Code adapters. | **you** (main session) |
+| `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. | **you** (main session) |
 
 **Committed**, except `features/*/runs/**`, which is ephemeral scratch — and must be git-ignored, or
 a dirty tree deadlocks the next run.

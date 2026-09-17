@@ -1686,32 +1686,6 @@
       "task": "T-06"
     },
     {
-      "artifact": "settings JSON",
-      "category": "json_file",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/merge-settings.py",
-      "id": ".claude/skills/harness/bin/merge-settings.py::main::json_file#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "main",
-      "task": "T-03"
-    },
-    {
-      "artifact": "settings JSON",
-      "category": "json_string",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/merge-settings.py",
-      "id": ".claude/skills/harness/bin/merge-settings.py::main::json_string#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "main",
-      "task": "T-03"
-    },
-    {
       "artifact": "plan.yaml",
       "category": "harness_yaml_string",
       "dec174_category": "none",
@@ -1987,19 +1961,6 @@
       "task": "T-03"
     },
     {
-      "artifact": "agent frontmatter",
-      "category": "pyyaml",
-      "dec174_category": "none",
-      "disposition": "canonical",
-      "execution_route": "team",
-      "file": ".claude/skills/harness/bin/sync-agent-adapters.py",
-      "id": ".claude/skills/harness/bin/sync-agent-adapters.py::parse_canonical::pyyaml#1",
-      "reason": "",
-      "remedy": "artifact_accessors.load_frontmatter",
-      "symbol": "parse_canonical",
-      "task": "T-03"
-    },
-    {
       "artifact": "harness.json migration input",
       "category": "json_file",
       "dec174_category": "none",
@@ -2248,7 +2209,6 @@
     ".claude/skills/harness/bin/layout_migration.py",
     ".claude/skills/harness/bin/merge-gate.py",
     ".claude/skills/harness/bin/merge-gitignore.py",
-    ".claude/skills/harness/bin/merge-settings.py",
     ".claude/skills/harness/bin/observations-merge.py",
     ".claude/skills/harness/bin/panel_findings.py",
     ".claude/skills/harness/bin/plan-merge.py",
@@ -2261,8 +2221,6 @@
     ".claude/skills/harness/bin/run_identity.py",
     ".claude/skills/harness/bin/run_pool.py",
     ".claude/skills/harness/bin/suite_layout.py",
-    ".claude/skills/harness/bin/sync-agent-adapters.py",
-    ".claude/skills/harness/bin/sync-command-adapters.py",
     ".claude/skills/harness/bin/upgrade-config.py",
     ".claude/skills/harness/bin/validate-digest.py",
     ".claude/skills/harness/bin/validate-feature-json.py",

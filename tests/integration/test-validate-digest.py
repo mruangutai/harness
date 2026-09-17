@@ -115,28 +115,27 @@ def _reviewer_severity_expected(validator):
 
 
 def _reviewer_template_paths(validator):
-    """(path, persona) for every reviewer-schema agent template in BOTH
-    trees, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
+    """(path, persona) for every reviewer-schema agent template under
+    `.omp/agents`, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
     so a fourth reviewer persona cannot silently escape this check.
 
-    A missing `agents_dir` yields zero paths from that tree rather than
-    raising — `_report_missing_templates` is what turns that into a loud,
-    named failure instead of a silent empty discovery (c22 send-back).
+    A missing `agents_dir` yields zero paths rather than raising —
+    `_report_missing_templates` is what turns that into a loud, named failure
+    instead of a silent empty discovery (c22 send-back).
     """
     paths = []
-    for agents_dir in (os.path.join(REPO_ROOT, ".claude", "agents"),
-                        os.path.join(REPO_ROOT, ".omp", "agents")):
-        try:
-            fnames = sorted(os.listdir(agents_dir))
-        except FileNotFoundError:
-            continue
-        for fname in fnames:
-            if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
-                paths.append((os.path.join(agents_dir, fname), fname[:-3]))
+    agents_dir = os.path.join(REPO_ROOT, ".omp", "agents")
+    try:
+        fnames = sorted(os.listdir(agents_dir))
+    except FileNotFoundError:
+        return paths
+    for fname in fnames:
+        if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
+            paths.append((os.path.join(agents_dir, fname), fname[:-3]))
     return paths
 
 
-# The reviewer personas already shipped in BOTH trees — the floor
+# The reviewer personas already shipped — the floor
 # `_reviewer_template_paths`'s discovery must clear. Not an equality: a
 # legitimately-added fourth persona is still picked up by that mechanical
 # discovery and never fails this check; it only catches discovery finding
@@ -145,10 +144,9 @@ _EXPECTED_REVIEWER_PERSONAS = ("code", "security", "ui")
 
 
 def _expected_reviewer_template_paths():
-    """Every (tree, persona) path discovery must find at minimum."""
+    """Every persona path discovery must find at minimum."""
     return [
-        os.path.join(REPO_ROOT, tree, "agents", f"harness-{persona}-reviewer.md")
-        for tree in (".claude", ".omp")
+        os.path.join(REPO_ROOT, ".omp", "agents", f"harness-{persona}-reviewer.md")
         for persona in _EXPECTED_REVIEWER_PERSONAS
     ]
 
@@ -208,7 +206,7 @@ def run_reviewer_severity_enum_cases():
 
     FEAT-43 narrowed `SEV` (dropped `info`) inside its own reviewed range and
     only harness-code-reviewer.md followed; harness-security-reviewer.md and
-    harness-ui-reviewer.md (both `.claude/agents` and `.omp/agents`) kept
+    harness-ui-reviewer.md (`.omp/agents`) kept
     instructing the old vocabulary, which the validator then rejects as a
     contract violation the moment a reviewer's worst finding is `info`.
 
@@ -429,7 +427,6 @@ def _derive_plan_mode_code_grade(validator):
 
 def _reviewer_plan_mode_results(validator):
     reviewer_sources = (
-        ".claude/agents/harness-code-reviewer.md",
         ".omp/agents/harness-code-reviewer.md",
         ".claude/skills/harness-code-review/SKILL.md",
     )
@@ -1702,7 +1699,7 @@ def _t09_fire(root, agent, text, hook=None, **extra):
                           # BOTH NAMES, ONE VALUE (FEAT-42 T-17). The hook resolves through
                           # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR
                           # and no other name, and payload cwd is no longer a root input.
-                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+                          env=dict(os.environ, 
                                    HARNESS_PROJECT_DIR=root))
 
 
@@ -1936,7 +1933,7 @@ def _t51_missing_message(reg):
         result = subprocess.run(
             [VALIDATE, "--hook"], input=json.dumps(payload),
             capture_output=True, text=True,
-            env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+            env=dict(os.environ, 
                      HARNESS_PROJECT_DIR=root),
         )
         parent, _ = reg.live_claim(
@@ -2046,7 +2043,6 @@ def run_hook_cases():
         _root = payload.pop("_root", None) or _isolated_root()
         env = dict(os.environ)
         env["HARNESS_PROJECT_DIR"] = _root
-        env["CLAUDE_PROJECT_DIR"] = _root
         r = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
                            capture_output=True, text=True, env=env)
         bad = []
@@ -2082,7 +2078,6 @@ def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
     if not feature:
         env.pop("HARNESS_PROJECT_DIR", None)
-        env.pop("CLAUDE_PROJECT_DIR", None)
     return subprocess.run(
         [binary, "--hook"], input=json.dumps(payload), capture_output=True,
         text=True, env=env)
@@ -4068,7 +4063,6 @@ def _run_hook(root, agent_type, text):
     only 2 rejects and a crash exits 1 while the digest ships unvalidated (DEC-127)."""
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = root
-    env["CLAUDE_PROJECT_DIR"] = root
     payload = {"agent_type": agent_type, "last_assistant_message": text}
     result = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
                             capture_output=True, text=True, env=env)

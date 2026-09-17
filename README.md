@@ -146,9 +146,13 @@ still due; do not poll GitHub while a child runs and do not create replacement i
 | Project state and durable artifacts | `.harness/` |
 | Organization, routing, and write domains | `.harness/team-config.yaml` |
 
-`.claude/skills/` is the single authored skill tree used directly by Claude Code. `.agents/skills` is a compatibility symlink to that tree, giving OMP the standard Agent Skills path without a second copy. `CLAUDE.md`, `.claude/agents/`, and `.claude/settings.json` remain Claude Code adapters; `sync-agent-adapters.py` generates Claude role files from the OMP definitions.
+`.claude/skills/` is the authored skill tree; `.agents/skills` is a symlink to it, giving OMP the
+standard Agent Skills path without a second copy. `CLAUDE.md` imports `AGENTS.md` for a user
+running Claude Code against this repository; Harness itself runs only under OMP (DEC-233).
 
-OMP project configuration disables Claude-format discovery. Skills remain available through `.agents/skills`, proving that OMP discovery does not depend on enabling the Claude provider even though the shared files are authored under `.claude/skills`.
+OMP project configuration disables Claude-format discovery. Skills remain available through
+`.agents/skills`, so OMP discovery does not depend on enabling the Claude provider even though
+the shared files are authored under `.claude/skills`.
 
 ## Guardrails
 
@@ -189,19 +193,15 @@ Run:
 # Complete suite
 python3 .agents/skills/harness/bin/run-unit-tests.py
 
-# Provider-neutral surface and adapter drift
+# Provider-neutral surface
 python3 .agents/skills/harness/bin/check-omp-port.py
 
 # Project invariants
 python3 .agents/skills/harness/bin/check-state.py
 ```
 
-To change a role, edit `.omp/agents/<name>.md`, then regenerate and check Claude compatibility:
-
-```bash
-python3 .agents/skills/harness/bin/sync-agent-adapters.py --apply
-python3 .agents/skills/harness/bin/sync-agent-adapters.py --check
-```
+To change a role, edit `.omp/agents/<name>.md` and restart the OMP session: agent definitions
+are loaded at session start (DEC-100a).
 
 To add a skill, create `.claude/skills/harness-<name>/SKILL.md` and add its name to the applicable agents' `autoloadSkills` lists. OMP discovers it through the `.agents/skills` symlink.
 

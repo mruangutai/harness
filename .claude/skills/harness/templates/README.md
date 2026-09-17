@@ -5,7 +5,6 @@ exactly one file in a product repository — that repository's own harness.json,
 
 | Template | Instantiated to | By | When |
 |---|---|---|---|
-| `settings.snippet.json` | `<HARNESS_CONTROL_PLANE_ROOT>/.claude/settings.json` | `harness-init` via `bin/merge-settings.py` | init — **merged**, never clobbered |
 | `harness.json` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` for the control plane; a fleet member's own copy on its default branch | `harness-init` for the control plane; `harness-add-repo` for a fleet member, then `dev-ops` fills `test_kinds.cmd` | configure or register |
 | `team-config.yaml` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` only; a product repository never carries one | `harness-init`, seeding `# SEED` globs from detection | configure |
 | `BRIEF.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/BRIEF.md` | `/harness-plan` drafts; `harness-pm` owns thereafter | plan |
