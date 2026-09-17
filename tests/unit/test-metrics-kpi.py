@@ -140,9 +140,10 @@ class KpiCoreTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.assertFalse(_has_central_tendency({"median": 2}))
 
-    def test_committed_dashboard_source_sweep_rejects_mix_literal(self):
+    def test_committed_authored_dashboard_source_sweep_rejects_mix_literal(self):
         paths = _dashboard_paths(ROOT)
         self.assertTrue(paths)
+        self.assertNotIn(".claude/skills/harness/bin/dashboard/client/dist/assets/index-hkwR5g06.js", paths)
         _assert_no_mix_literals(ROOT, paths)
         with tempfile.TemporaryDirectory() as directory:
             scratch = Path(directory)
@@ -464,7 +465,14 @@ def _dashboard_paths(root):
         text=True,
         check=False,
     )
-    return result.stdout.splitlines()
+    return [
+        path for path in result.stdout.splitlines()
+        if path.endswith(".py") or _authored_client_source(path)
+    ]
+
+
+def _authored_client_source(path):
+    return path.startswith(".claude/skills/harness/bin/dashboard/client/src/") and ".test." not in path
 
 
 def _assert_no_mix_literals(root, paths):

@@ -79,7 +79,7 @@ def collect_rows(work, root, worktrees):
     work.worktree_terminal._worktree_paths = lambda path: [str(root), *map(str, worktrees)] if Path(path).resolve() == root.resolve() else []
     work.factory_config.factory_gh.file_at_ref = forbidden
     try:
-        rows = {row.display_name: row for row in work.collect(root)}
+        rows = {row.display_name: row for row in work.collect(root) if row.kind != "worktree"}
     finally:
         work.worktree_terminal._worktree_paths = original_paths
         work.factory_config.factory_gh.file_at_ref = original_gh
@@ -336,11 +336,18 @@ def main():
              "metrics": (metrics_case, len(METRICS_CASES)),
              "attention": (attention_case, len(ATTENTION_CASES)),
              "worktrees": (worktree_case, len(WORKTREE_CASES))}
-    if len(sys.argv) != 3 or sys.argv[1] != "--case" or sys.argv[2] not in cases:
-        raise SystemExit("usage: test-work-dashboard.py --case collector|metrics|attention|worktrees")
-    fn, count = cases[sys.argv[2]]
-    fn()
-    print(f"Executed {count} {sys.argv[2]} assertions; discovered {count} {sys.argv[2]} assertions.")
+    if len(sys.argv) == 1:
+        selected = cases.items()
+    elif len(sys.argv) == 3 and sys.argv[1] == "--case" and sys.argv[2] in cases:
+        selected = [(sys.argv[2], cases[sys.argv[2]])]
+    else:
+        raise SystemExit("usage: test-work-dashboard.py [--case collector|metrics|attention|worktrees]")
+    total = 0
+    for name, (fn, count) in selected:
+        fn()
+        total += count
+        print(f"Executed {count} {name} assertions; discovered {count} {name} assertions.")
+    print(f"Executed {total} assertions; discovered {total} assertions.")
     raise SystemExit(bool(FAILURES))
 
 

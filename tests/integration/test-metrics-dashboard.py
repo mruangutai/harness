@@ -263,7 +263,7 @@ def _assert_client_routes(test, client):
     test.assertEqual([200, 200, 200], [route.status_code for route in routes])
     for route in routes:
         route.close()
-    asset = client.get("/assets/index-DzoXKmQ_.js")
+    asset = client.get("/assets/index-hkwR5g06.js")
     test.assertEqual(200, asset.status_code)
     test.assertNotEqual("text/plain", asset.mimetype)
     test.assertIn("javascript", asset.mimetype)
