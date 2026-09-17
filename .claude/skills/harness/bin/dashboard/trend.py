@@ -2,6 +2,94 @@
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
+import subprocess
+import sys
+
+import attribution
+import grading
+import kpi
+import touchpoints
+
+_COMMIT_MESSAGE = "metrics: record ship trend"
+
+
+def record_ship(project_root: Path, feature_dir: Path) -> None:
+    """Append and commit one feature's trend record without blocking a ship."""
+    try:
+        root = Path(project_root).resolve()
+        record = _ship_record(root, Path(feature_dir))
+        append(root, record)
+    except Exception as error:
+        print(f"trend: ERROR - ship record append failed: {error}", file=sys.stderr)
+        return
+    try:
+        _commit(root)
+    except Exception as error:
+        print(f"trend: ERROR - ship record commit failed: {error}", file=sys.stderr)
+
+
+def _ship_record(project_root: Path, feature_dir: Path) -> dict:
+    feature = kpi._feature(feature_dir, project_root, {}, kpi._default_branch(project_root))
+    unavailable = dict(feature["unavailable"])
+    touchpoint_count, touchpoint_reason = touchpoints.count(project_root, feature["feature_id"])
+    if touchpoint_reason is not None:
+        unavailable["touchpoints"] = touchpoint_reason
+    else:
+        unavailable.pop("touchpoints", None)
+    grade = _measurement("grade", grading.distribution, (project_root,), unavailable)
+    attribution_value = _measurement(
+        "attribution", attribution.by_tier, (project_root, "all", datetime.now(timezone.utc)), unavailable
+    )
+    shipped_at = _render(datetime.now(timezone.utc))
+    cycle_time_days = kpi._cycle_time(feature["approved_on"], shipped_at)
+    if cycle_time_days is None:
+        unavailable["cycle_time_days"] = unavailable.get(
+            "approved_on", "cycle time cannot be measured without an approval date"
+        )
+    else:
+        unavailable.pop("cycle_time_days", None)
+    return {
+        "schema": _SCHEMA,
+        "feature_id": feature["feature_id"],
+        "shipped_at": shipped_at,
+        "approved_on": feature["approved_on"],
+        "cycle_time_days": cycle_time_days,
+        "runs": feature["runs"],
+        "cycles_used": feature["cycles_used"],
+        "max_total_cycles": feature["max_total_cycles"],
+        "insertions": feature["insertions"],
+        "deletions": feature["deletions"],
+        "files_changed": feature["files_changed"],
+        "touchpoints": touchpoint_count,
+        "grade": grade,
+        "attribution": attribution_value,
+        "unavailable": unavailable,
+    }
+
+
+def _measurement(field: str, measure, args: tuple, unavailable: dict) -> dict | None:
+    try:
+        return measure(*args)
+    except Exception as error:
+        unavailable[field] = f"{field} could not be computed: {error}"
+        return None
+
+
+def _commit(project_root: Path) -> None:
+    path = _PATH.as_posix()
+    _git(project_root, "add", "--", path)
+    _git(project_root, "commit", "-m", _COMMIT_MESSAGE, "--", path)
+
+
+def _git(project_root: Path, *args: str) -> None:
+    result = subprocess.run(
+        ["git", "-C", str(project_root), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git command failed")
 
 _SCHEMA = "trend/1"
 _PATH = Path(".harness/metrics/trend.jsonl")

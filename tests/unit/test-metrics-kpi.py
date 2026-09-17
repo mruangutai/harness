@@ -20,6 +20,7 @@ import attribution  # noqa: E402
 import defects  # noqa: E402
 import grading  # noqa: E402
 import kpi  # noqa: E402
+import trend  # noqa: E402
 
 
 class KpiCoreTest(unittest.TestCase):
@@ -293,6 +294,81 @@ class KpiCoreTest(unittest.TestCase):
                 )
             self.assertEqual(7, len(result["features"]))
             self.assertTrue(all("plan" in item["unavailable"] for item in result["features"]))
+
+    def test_record_ship_copies_each_feature_measurement_and_marks_unavailable_values(self):
+        feature = {
+            "feature_id": "FIX-NOSHIP",
+            "approved_on": "2026-09-01",
+            "cycle_time_days": 15.5,
+            "runs": 3,
+            "cycles_used": 2,
+            "max_total_cycles": 5,
+            "insertions": 7,
+            "deletions": 4,
+            "files_changed": 2,
+            "touchpoints": 0,
+            "unavailable": {},
+        }
+        grade = {"graded_functions": 3}
+        attribution_result = {"by_tier": {"backend": 2}, "unattributed": {}}
+        with patch.object(trend.kpi, "_feature", return_value=feature), patch.object(
+            trend.kpi, "_cycle_time", return_value=15.5
+        ), patch.object(trend.grading, "distribution", return_value=grade), patch.object(
+            trend.attribution, "by_tier", return_value=attribution_result
+        ), patch.object(trend.touchpoints, "count", return_value=(0, None)), patch.object(
+            trend, "append"
+        ) as append, patch.object(trend, "_commit"):
+            trend.record_ship(self.project, self.project / ".harness/demo/features/FIX-NOSHIP")
+        record = append.call_args.args[1]
+        self.assertEqual("trend/1", record["schema"])
+        self.assertEqual("FIX-NOSHIP", record["feature_id"])
+        self.assertEqual("2026-09-01", record["approved_on"])
+        self.assertEqual(15.5, record["cycle_time_days"])
+        self.assertEqual(3, record["runs"])
+        self.assertEqual(2, record["cycles_used"])
+        self.assertEqual(5, record["max_total_cycles"])
+        self.assertEqual(7, record["insertions"])
+        self.assertEqual(4, record["deletions"])
+        self.assertEqual(2, record["files_changed"])
+        self.assertEqual(0, record["touchpoints"])
+        self.assertEqual(grade, record["grade"])
+        self.assertEqual(attribution_result, record["attribution"])
+        self.assertEqual({}, record["unavailable"])
+
+    def test_record_ship_marks_missing_approval_and_cycle_time_unavailable(self):
+        feature = {
+            "feature_id": "FIX-NOAPPROVAL",
+            "approved_on": None,
+            "cycle_time_days": None,
+            "runs": 0,
+            "cycles_used": 0,
+            "max_total_cycles": 1,
+            "insertions": None,
+            "deletions": None,
+            "files_changed": None,
+            "touchpoints": None,
+            "unavailable": {
+                "approved_on": "BRIEF.md has no Approval section",
+                "cycle_time_days": "BRIEF.md has no Approval section",
+                "insertions": "git default branch is unavailable",
+                "deletions": "git default branch is unavailable",
+                "files_changed": "git default branch is unavailable",
+                "touchpoints": "touchpoints were not tracked in this project",
+            },
+        }
+        with patch.object(trend.kpi, "_feature", return_value=feature), patch.object(
+            trend.grading, "distribution", return_value={"graded_functions": 0}
+        ), patch.object(trend.attribution, "by_tier", return_value={}), patch.object(
+            trend.touchpoints, "count", return_value=(None, "touchpoints were not tracked in this project")
+        ), patch.object(trend, "append") as append, patch.object(trend, "_commit"):
+            trend.record_ship(self.project, self.project / ".harness/demo/features/FIX-NOAPPROVAL")
+        record = append.call_args.args[1]
+        self.assertIsNone(record["approved_on"])
+        self.assertIsNone(record["cycle_time_days"])
+        self.assertNotEqual(0, record["approved_on"])
+        self.assertNotEqual(0, record["cycle_time_days"])
+        self.assertEqual("BRIEF.md has no Approval section", record["unavailable"]["approved_on"])
+        self.assertEqual("BRIEF.md has no Approval section", record["unavailable"]["cycle_time_days"])
 
 _TRACKED_FILES = ["alpha.py", "broken.py", "script.sh", "README"]
 def _attribution_plan(root, feature_id, task_id, agent):

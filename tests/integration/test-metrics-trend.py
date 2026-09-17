@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Hand-labelled integration contracts for append-only trend persistence."""
+import ast
+from contextlib import redirect_stderr
 from datetime import datetime, timezone
 import hashlib
 import json
+import io
 from pathlib import Path
 import shutil
 import subprocess
@@ -201,6 +204,100 @@ class TrendTest(unittest.TestCase):
         self.assertIn("2 touchpoints", reason)
         self.assertNotIn("never tracked", reason)
 
+
+    def test_record_ship_duplicate_refusal_and_commit_success_branch(self):
+        with _fixture_copy() as project:
+            _baseline_commit(project)
+            path = project / ".harness/metrics/trend.jsonl"
+            before_count = len(path.read_text(encoding="utf-8").splitlines())
+            feature_dir = project / ".harness/demo/features/FIX-NOSHIP"
+            with patch.object(trend.kpi, "_feature", return_value=_ship_feature()), patch.object(
+                trend.grading, "distribution", return_value={"graded_functions": 1}
+            ), patch.object(trend.attribution, "by_tier", return_value={"by_tier": {}, "unattributed": {}}), patch.object(
+                trend.touchpoints, "count", return_value=(0, None)
+            ):
+                trend.record_ship(project, feature_dir)
+                trend.record_ship(project, feature_dir)
+            rows = path.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(before_count + 1, len(rows))
+            self.assertEqual("FIX-NOSHIP", json.loads(rows[-1])["feature_id"])
+            self.assertEqual(0, json.loads(rows[-1])["touchpoints"])
+            self.assertEqual("", _git(project, "status", "--porcelain"))
+            self.assertEqual(
+                ".harness/metrics/trend.jsonl",
+                _git(project, "ls-files", "--error-unmatch", ".harness/metrics/trend.jsonl"),
+            )
+            print("ok record_ship succeeding commit branch is clean and tracked")
+
+    def test_record_ship_failure_branch_appends_without_a_git_repository(self):
+        with _fixture_copy() as project:
+            feature_dir = project / ".harness/demo/features/FIX-NOSHIP"
+            path = project / ".harness/metrics/trend.jsonl"
+            before_count = len(path.read_text(encoding="utf-8").splitlines())
+            stderr = io.StringIO()
+            with patch.object(trend.kpi, "_feature", return_value=_ship_feature()), patch.object(
+                trend.grading, "distribution", return_value={"graded_functions": 1}
+            ), patch.object(trend.attribution, "by_tier", return_value={"by_tier": {}, "unattributed": {}}), patch.object(
+                trend.touchpoints, "count", return_value=(0, None)
+            ), redirect_stderr(stderr):
+                trend.record_ship(project, feature_dir)
+            self.assertEqual(before_count + 1, len(path.read_text(encoding="utf-8").splitlines()))
+            self.assertIn("trend: ERROR - ship record commit failed", stderr.getvalue())
+            print("ok record_ship FAILURE-BRANCH appends despite commit failure")
+
+    def test_cmd_ship_records_trend_before_board_writes_and_handles_failure(self):
+        source = (BIN / "gh-sync.py").read_text(encoding="utf-8")
+        module = ast.parse(source)
+        cmd_ship = next(node for node in module.body if isinstance(node, ast.FunctionDef) and node.name == "cmd_ship")
+        calls = [
+            (node.lineno, getattr(node.func, "attr", getattr(node.func, "id", "")))
+            for node in ast.walk(cmd_ship) if isinstance(node, ast.Call)
+        ]
+        record_lines = [line for line, name in calls if name == "record_ship"]
+        board_lines = [line for line, name in calls if name == "board_stations_for"]
+        self.assertEqual(1, len(record_lines))
+        self.assertTrue(board_lines)
+        self.assertLess(record_lines[0], min(board_lines))
+        record_try = next(
+            node for node in ast.walk(cmd_ship)
+            if isinstance(node, ast.Try) and any(
+                getattr(call.func, "attr", "") == "record_ship" for call in ast.walk(node)
+                if isinstance(call, ast.Call)
+            )
+        )
+        self.assertTrue(record_try.handlers)
+
+def _ship_feature():
+    return {
+        "feature_id": "FIX-NOSHIP",
+        "approved_on": "2026-09-01",
+        "cycle_time_days": None,
+        "runs": 1,
+        "cycles_used": 2,
+        "max_total_cycles": 5,
+        "insertions": 3,
+        "deletions": 1,
+        "files_changed": 2,
+        "touchpoints": 0,
+        "unavailable": {"cycle_time_days": "no ship record for this feature"},
+    }
+
+
+def _baseline_commit(project: Path):
+    for command in (
+        ("init", "-q"),
+        ("config", "user.name", "Trend Test"),
+        ("config", "user.email", "trend@example.test"),
+        ("add", "-A"),
+        ("commit", "-q", "-m", "baseline"),
+    ):
+        subprocess.run(["git", "-C", str(project), *command], check=True, capture_output=True)
+
+
+def _git(project: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(project), *args], check=True, capture_output=True, text=True
+    ).stdout.strip()
 
 def _fixtures_root() -> Path:
     return ROOT / ".claude/skills/harness/bin/dashboard/fixtures"

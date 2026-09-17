@@ -101,6 +101,8 @@ import sys
 
 _BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, _BIN_DIR)
+sys.path.insert(0, os.path.join(_BIN_DIR, "dashboard"))
+import trend
 from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
 import gh_issue_types
@@ -2155,6 +2157,11 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
              f"there is nothing to close. Run gh-sync.py recover-terminal "
              f"{os.path.abspath(feat_dir)} --yes to create the terminal receipt, then "
              f"ship again.")
+
+    try:
+        trend.record_ship(harness_boundary.resolve_root(feat_dir), feat_dir)
+    except Exception as error:
+        print(f"gh-sync: ERROR - trend record failed; ship continues: {error}", file=sys.stderr)
 
     # The comment is UNCONDITIONAL: posts on any recorded parent whatever its origin.
     if body_file is not None and rec["parent"] is not None:
