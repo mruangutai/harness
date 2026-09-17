@@ -148,8 +148,10 @@ def _change_size(root: Path, default_branch: str | None, branch: str) -> tuple[i
     insertions, deletions, names = 0, 0, set()
     for line in result.stdout.splitlines():
         added, removed, name = line.split("\t", 2)
-        insertions += int(added)
-        deletions += int(removed)
+        if added != "-":
+            insertions += int(added)
+        if removed != "-":
+            deletions += int(removed)
         names.add(name)
     return insertions, deletions, len(names), None
 

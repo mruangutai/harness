@@ -144,6 +144,22 @@ class KpiCoreTest(unittest.TestCase):
         self.assertTrue(all(command[-1].startswith("trunk...") for command in diffs))
 
 
+    def test_change_size_counts_binary_file_without_inventing_lines(self):
+        def git_run(command, **_kwargs):
+            if command[1:3] == ["symbolic-ref", "--short"]:
+                return _git_result("origin/main\n")
+            return _git_result("3\t2\talpha.py\n-\t-\timage.png\n")
+
+        with patch("kpi.subprocess.run", side_effect=git_run), patch(
+            "kpi.grading.distribution", return_value={}
+        ):
+            result = kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
+
+        for feature in result["features"]:
+            self.assertEqual(3, feature["insertions"])
+            self.assertEqual(2, feature["deletions"])
+            self.assertEqual(2, feature["files_changed"])
+
     def test_missing_project_default_branch_does_not_use_feature_diffs(self):
         def git_run(command, **_kwargs):
             return _git_result("", returncode=1)
