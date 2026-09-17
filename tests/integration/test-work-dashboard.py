@@ -15,6 +15,13 @@ CASE_NAMES = (
     "malformed worktree plan is source-specific", "multiple segments", "no GitHub dependency",
 )
 
+WORKTREE_CASES = (
+    "worktrees include every canonical path exactly once",
+    "worktrees retain primary linked detached orphan terminal and error rows",
+    "only linked worktrees override feature copies",
+    "worktrees use terminal classification and repository identity",
+)
+
 
 def check(name, condition, detail=""):
     print(f"{'PASS ' if condition else 'FAIL '} {name}{' — ' + detail if detail else ''}")
@@ -121,6 +128,60 @@ def collector_case():
         assert_cases(rows, calls, main, bad, worktrees)
 
 
+# ---- worktrees (T-26, DEC-229) -------------------------------------------------------------
+def worktree_case():
+    work = importlib.import_module("dashboard.work")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "control"
+        _main, _bad, worktrees = setup(root)
+        workspace = root / "workspace" / "widget"
+        workspace.mkdir(parents=True)
+        orphan = root / ".claude" / "worktrees" / "harness" / "FEAT-61-orphan"
+        orphan.mkdir(parents=True)
+        paths = [root, *worktrees, orphan, workspace]
+        original_paths = work.worktree_terminal._worktree_paths
+        original_classify = work.worktree_terminal.classify_all
+        work.worktree_terminal._worktree_paths = lambda path: (
+            [str(root), *map(str, worktrees), str(orphan)]
+            if Path(path).resolve() == root.resolve() else [str(workspace)]
+        )
+        work.worktree_terminal.classify_all = lambda path: [
+            {"path": str(worktrees[2]), "feature_id": "FEAT-73-divergent",
+             "klass": "terminal", "repo": "harness", "reason": "landed"},
+            {"path": str(orphan), "feature_id": None, "klass": "exempt_absent",
+             "repo": "harness", "reason": "absent"},
+        ]
+        try:
+            rows = work.collect(root)
+        finally:
+            work.worktree_terminal._worktree_paths = original_paths
+            work.worktree_terminal.classify_all = original_classify
+        worktree_rows = [row for row in rows if row.kind == "worktree"]
+        row_paths = [row.canonical_path for row in worktree_rows]
+        check("worktrees include every canonical path exactly once",
+              sorted(row_paths) == sorted(str(path.resolve()) for path in paths)
+              and len(row_paths) == len(set(row_paths)))
+        by_path = {row.canonical_path: row for row in worktree_rows}
+        primary = by_path.get(str(root.resolve()))
+        linked = by_path.get(str(worktrees[0].resolve()))
+        orphan_row = by_path.get(str(orphan.resolve()))
+        terminal = by_path.get(str(worktrees[2].resolve()))
+        check("worktrees retain primary linked detached orphan terminal and error rows",
+              primary is not None and primary.checkout_role == "primary"
+              and linked is not None and linked.checkout_role == "linked"
+              and linked.feature_id == "FEAT-71-long-id"
+              and linked.feature_status == "active"
+              and orphan_row is not None and orphan_row.feature_status == "absent"
+              and terminal is not None and terminal.feature_status == "terminal")
+        feature = next((row for row in rows if row.display_name == "FEAT-71-long-id"), None)
+        check("only linked worktrees override feature copies",
+              feature is not None and feature.worktree_path == str(worktrees[0].resolve())
+              and primary is not None and primary.feature_id is None)
+        check("worktrees use terminal classification and repository identity",
+              terminal is not None and terminal.repository == "harness"
+              and terminal.feature_id == "FEAT-73-divergent")
+
+
 # ---- attention (T-24, D-25) ---------------------------------------------------------------
 ATTENTION_CASES = (
     "needs-you awaiting_user", "needs-you open questions", "needs-you pending approval",
@@ -207,9 +268,11 @@ def attention_case():
 
 
 def main():
-    cases = {"collector": (collector_case, len(CASE_NAMES)), "attention": (attention_case, len(ATTENTION_CASES))}
+    cases = {"collector": (collector_case, len(CASE_NAMES)),
+             "attention": (attention_case, len(ATTENTION_CASES)),
+             "worktrees": (worktree_case, len(WORKTREE_CASES))}
     if len(sys.argv) != 3 or sys.argv[1] != "--case" or sys.argv[2] not in cases:
-        raise SystemExit("usage: test-work-dashboard.py --case collector|attention")
+        raise SystemExit("usage: test-work-dashboard.py --case collector|attention|worktrees")
     fn, count = cases[sys.argv[2]]
     fn()
     print(f"Executed {count} {sys.argv[2]} assertions; discovered {count} {sys.argv[2]} assertions.")
