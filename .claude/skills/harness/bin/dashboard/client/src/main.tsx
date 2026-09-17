@@ -1,3 +1,7 @@
+import '@astryxdesign/core/reset.css';
+import '@astryxdesign/core/astryx.css';
+import '@astryxdesign/theme-neutral/theme.css';
+
 import { Theme } from '@astryxdesign/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';

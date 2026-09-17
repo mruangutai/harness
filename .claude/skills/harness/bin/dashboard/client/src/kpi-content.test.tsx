@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('@tanstack/react-router', () => ({ Link: ({ children }: { children: string }) => <a href="/kpi/">{children}</a> }));
 import { KpiTiles } from './tiles';
@@ -24,5 +24,20 @@ describe('KpiTiles', () => {
     expect(screen.queryByText('unavailable')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'About Merged PRs Over Time' }));
     expect(screen.getByText('KPI 7 test sentinel: weekly counts come from the supplied dashboard payload.')).toBeTruthy();
+  });
+
+  it('sums unattributed breakdown values for the KPI 6 tile without stringifying the breakdown', () => {
+    render(<KpiTiles payload={{ ...payload, aggregate: { ...payload.aggregate, attribution: { attributable_share: 0.5, unattributed: { feature_only: 3, human: 5, no_prefix: 7, unresolvable_step_id: 11 }, total_commits: 40, unavailable: {} } } }} search={{ window: 'all', repo: 'all' }} />);
+
+    expect(screen.getByText('26 of 40 commits unattributed')).toBeTruthy();
+    expect(screen.queryByText('[object Object]')).toBeNull();
+  });
+
+  it('renders Throughput as unavailable when zero measured features carry an exclusion reason', () => {
+    render(<KpiTiles payload={{ ...payload, aggregate: { ...payload.aggregate, throughput: { median_cycle_time_days: 0, measured_features: 0, unavailable: { excluded_features: '91 features lack a ship record or approval date' } } } }} search={{ window: 'all', repo: 'all' }} />);
+
+    expect(screen.getByText('91 features lack a ship record or approval date')).toBeTruthy();
+    const throughputTile = screen.getByRole('link', { name: 'Throughput' }).closest('[data-elevation]');
+    expect(within(throughputTile!).queryByText('0')).toBeNull();
   });
 });

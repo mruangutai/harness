@@ -11,6 +11,15 @@ function asRecord(value: unknown): RecordValue | undefined { return value !== nu
 function asString(value: unknown): string | undefined { return typeof value === 'string' ? value : undefined; }
 function asNumber(value: unknown): number { return typeof value === 'number' ? value : 0; }
 
+export function unattributedTotal(unattributed: unknown): number {
+  if (typeof unattributed === 'number') return unattributed;
+  const breakdown = asRecord(unattributed);
+  if (!breakdown) return 0;
+  let total = 0;
+  for (const value of Object.values(breakdown)) if (typeof value === 'number') total += value;
+  return total;
+}
+
 export function InfoDisclosure({ title, lines }: { title: string; lines: string[] }) {
   return <Popover label={`About ${title}`} placement="below" alignment="end" width={320} content={<Stack gap={2}><Text type="label">{title}</Text>{lines.map((line) => <Text key={line} type="supporting">{line}</Text>)}</Stack>}><IconButton label={`About ${title}`} variant="ghost" size="sm" icon={<Icon icon="info" size="sm" />} /></Popover>;
 }
@@ -82,7 +91,7 @@ export function KpiPanel({ id, payload, search }: { id: number; payload: Payload
     {id === 3 ? <>{touchpoints ? <ShapeB series={touchpoints} /> : null}<FeatureTable features={features} search={search} /></> : null}
     {id === 4 ? <Card padding={3}><Stack gap={2}><Text type="display-1">{asNumber(defects?.count)}</Text>{asString(asRecord(defects?.unavailable)?.count) ? <UnavailableValue reason={asString(asRecord(defects?.unavailable)?.count) ?? ''} /> : null}<FeatureTable features={defectItems} search={search} /></Stack></Card> : null}
     {id === 5 ? <Stack direction="horizontal" gap={4} wrap="wrap"><Card padding={3}><Text type="label">Grade Distribution</Text>{hasBins ? <ShapeA bins={bins} /> : null}</Card>{gradeShare ? <ShapeB series={gradeShare} /> : null}<Card padding={3}><GradeOutlierTable outliers={outliers} search={search} /></Card><GradingCaveat ungraded={asNumber(fileMix?.ungraded_files)} tracked={asNumber(fileMix?.tracked_files)} share={asNumber(fileMix?.ungraded_share)} /></Stack> : null}
-    {id === 6 ? <Card padding={3}><Stack gap={2}><Badge label="S-5" /><Text type="body">{asNumber(attribution?.unattributed)} of {asNumber(attribution?.total_commits)} commits unattributed — a measurement, not a hole</Text></Stack></Card> : null}
+    {id === 6 ? <Card padding={3}><Stack gap={2}><Badge label="S-5" /><Text type="body">{unattributedTotal(attribution?.unattributed)} of {asNumber(attribution?.total_commits)} commits unattributed — a measurement, not a hole</Text></Stack></Card> : null}
     {id === 7 ? <Stack gap={3}>{weekly ? <ShapeB series={weekly} /> : null}<TrendRegion trend={merged ? { unavailable: merged.unavailable } : undefined} /><Text type="supporting">{asNumber(merged?.week_count)} weeks · {asNumber(merged?.empty_bucket_count)} unavailable buckets</Text><ShippedFeatureTable features={features} search={search} /></Stack> : null}
   </Stack>;
 }

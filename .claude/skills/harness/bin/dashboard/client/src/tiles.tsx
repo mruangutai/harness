@@ -2,8 +2,7 @@ import { Card, Stack, Text } from '@astryxdesign/core';
 import { Link } from '@tanstack/react-router';
 import type { SharedSearch } from './api';
 import { UnavailableValue } from './gapstates';
-import { InfoDisclosure } from './panels';
-
+import { InfoDisclosure, unattributedTotal } from './panels';
 type RecordValue = Record<string, unknown>;
 type Payload = { aggregate?: RecordValue; trend?: { weekly?: RecordValue } };
 const labels = ['Throughput', 'Rework', 'Blocking Human Touchpoints', 'Escaped Defects', 'Code Grading', 'Usage by Agent / Model Tier', 'Merged PRs Over Time'];
@@ -13,13 +12,14 @@ export function KpiTiles({ payload, search, onKpiNavigate }: { payload: Payload;
   const records = ['throughput', 'rework', 'touchpoints', 'escaped_defects', 'grading', 'attribution'].map((key) => { const value = aggregate[key]; return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {}; });
   const [throughput, rework, touchpoints, defects, grading, attribution] = records;
   const weekly = payload.trend?.weekly ?? {};
+  const throughputUnavailable = throughput.measured_features === 0 ? (throughput.unavailable as Record<string, string> | undefined)?.excluded_features : undefined;
   const values: Array<[unknown, string, string | undefined]> = [
-    [throughput.median_cycle_time_days, `${String(throughput.measured_features ?? 0)} measured features`, (throughput.unavailable as Record<string, string> | undefined)?.median_cycle_time_days],
+    [throughput.median_cycle_time_days, `${String(throughput.measured_features ?? 0)} measured features`, throughputUnavailable],
     [rework.cycles_used, `${String(rework.max_total_cycles ?? 0)} maximum cycles`, (rework.unavailable as Record<string, string> | undefined)?.cycles_used],
     [touchpoints.mean, `${String(touchpoints.zero_count ?? 0)} measured zero touchpoints`, (touchpoints.unavailable as Record<string, string> | undefined)?.mean],
     [defects.count, 'Escaped defects in this window', (defects.unavailable as Record<string, string> | undefined)?.count],
     [grading.at_or_above_share, 'At or above the configured bar', (grading.unavailable as Record<string, string> | undefined)?.at_or_above_share],
-    [attribution.attributable_share, `${String(attribution.unattributed ?? 0)} of ${String(attribution.total_commits ?? 0)} commits unattributed`, (attribution.unavailable as Record<string, string> | undefined)?.attributable_share],
+    [attribution.attributable_share, `${unattributedTotal(attribution.unattributed)} of ${String(attribution.total_commits ?? 0)} commits unattributed`, (attribution.unavailable as Record<string, string> | undefined)?.attributable_share],
     [weekly.week_count, `${String(weekly.empty_bucket_count ?? 0)} unavailable weekly buckets`, (weekly.unavailable as Record<string, string> | undefined)?.weekly],
   ];
   const kpiLabels = labels;

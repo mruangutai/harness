@@ -82,4 +82,11 @@ describe('KpiPanel chart mounts', () => {
     render(<KpiPanel id={7} payload={mergedPayload} search={search} />);
     expectShapeB(screen.getByTestId('chart-shape-b'), 'Merged PRs: 3');
   });
+
+  it('sums unattributed breakdown values for the KPI 6 panel without stringifying the breakdown', () => {
+    render(<KpiPanel id={6} payload={{ aggregate: { attribution: { unattributed: { feature_only: 3, human: 5, no_prefix: 7, unresolvable_step_id: 11 }, total_commits: 40 } }, features: [], trend: {} }} search={search} />);
+
+    expect(screen.getByText(/26 of 40 commits unattributed/)).toBeTruthy();
+    expect(screen.queryByText('[object Object]')).toBeNull();
+  });
 });
