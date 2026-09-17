@@ -8,3 +8,5 @@
 - 2026-09-16: touchpoints count must bind subprocess.run at import time so kpi unit tests that patch kpi.subprocess.run do not corrupt feature-start git fallback.
 - 2026-09-16: Dashboard phase boundaries can be derived deterministically from handoff header seq-N and completed run ended_at values; current phase must not be inferred from station.
 - 2026-09-16: T-12 still names retired run-unit-tests.sh plus INTEGRATION_SCRIPTS, while the native run-unit-tests.py migration has directory-only discovery; execution needs a plan amendment rather than recreating the retired wrapper.
+- 2026-09-16: T-12 server integration must exercise kpi.compute against both fixture and worktree roots; current grading invocation and binary numstat parsing raise rather than producing a payload, so serving code must not catch them as empty KPI data.
+- 2026-09-16: Ship-time trend persistence must compute cycle time against its newly generated shipped_at; the prior per-feature read has no existing ship record and therefore cannot supply the measured duration.

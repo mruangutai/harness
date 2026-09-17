@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-53",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 20,
+  "cycles_used": 22,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -184,6 +184,16 @@
       "tokens": 171106,
       "ended_at": "2026-09-17T05:54:51+00:00",
       "cycles_used": 1
+    },
+    {
+      "id": "2026-09-17-06-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-17T05:55:51+00:00",
+      "tokens": 136659,
+      "ended_at": "2026-09-17T06:35:31+00:00",
+      "cycles_used": 2
     }
   ],
   "mission": "plan",
@@ -453,6 +463,55 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Closed 2026-09-17-05-eng with component verbs for validate-digest.py #1819; T-16 owns the generated dist output, so no separate pre-T-16 cleanup fix is required."
+    },
+    {
+      "at": "2026-09-17T06:35:24.453078+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-12.files",
+      "reason": "The native runner cutover relocated integration tests and removed the shell registry, so discovery needs no runner edit."
+    },
+    {
+      "at": "2026-09-17T06:35:24.453246+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-12.verify",
+      "reason": "run-unit-tests.sh and --check-kinds were retired; --check-layout proves native directory discovery before the scoped integration script runs."
+    },
+    {
+      "at": "2026-09-17T06:35:24.453248+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-14.files",
+      "reason": "Focused render tests were required to prove observable gap-state and KPI-link behavior that the signed literal scan does not exercise."
+    },
+    {
+      "at": "2026-09-17T06:35:24.453250+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-14.verify",
+      "reason": "T-13's regression test must name retired routes; excluding test modules keeps T-14's forbidden-route assertion scoped to runtime code."
+    },
+    {
+      "at": "2026-09-17T06:35:24.453251+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-19.files",
+      "reason": "The native runner cutover relocated the trend integration and KPI unit scripts without changing their behavioral contract."
+    },
+    {
+      "at": "2026-09-17T06:35:24.453254+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-19.verify",
+      "reason": "The amended command preserves both scoped suites and the AST call-site proof at their migrated paths."
+    },
+    {
+      "at": "2026-09-17T06:35:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "repair T-08/T-10 dependency defects and rerun T-12",
+      "reason": "Both failures are measured backend defects in approved task-owned files; run 2026-09-17-06-eng closed with component verbs under validate-digest.py #1819 before routing the repairs."
     }
   ],
   "rework": {

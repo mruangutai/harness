@@ -1085,11 +1085,10 @@ tasks:
     depends_on: [T-03, T-08, T-10, T-11]
     status: ready
     files:
-      - .claude/skills/harness/bin/dashboard/serve.py
-      - .claude/skills/harness/bin/test-metrics-dashboard.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+    - .claude/skills/harness/bin/dashboard/serve.py
+    - tests/integration/test-metrics-dashboard.py
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-dashboard.py
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 tests/integration/test-metrics-dashboard.py
     intent: |
       Write the failing tests first. serve.py is the Flask entry point (D-17): one WSGI app object with Flask routing decorators and no handwritten route table (D-03). CLI: python3 .agents/skills/harness/bin/dashboard/serve.py [--root <project>] [--port <n>] [--check]. Root defaults to cwd's git root; bind only 127.0.0.1 (D-05), default port 8971, and fail non-zero naming a busy port. Run app.run(host="127.0.0.1", port=<port>, threaded=True, debug=False, use_reloader=False); loopback-only unbounded one-thread-per-request concurrency is accepted and no cap, queue, semaphore or production WSGI server belongs here.
 
@@ -1139,14 +1138,16 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-13]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/client/src/tiles.tsx
-      - .claude/skills/harness/bin/dashboard/client/src/panels.tsx
-      - .claude/skills/harness/bin/dashboard/client/src/gapstates.tsx
-      - .claude/skills/harness/bin/dashboard/client/src/tables.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/tiles.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/panels.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/gapstates.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/tables.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/gapstates.test.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/kpi-content.test.tsx
     verify: |
-      npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=''.join(p.read_text() for p in pathlib.Path('.claude/skills/harness/bin/dashboard/client/src').rglob('*.tsx'));[sys.exit('missing '+k) for k in ['NoShipRecords','PreCapability','GradingCaveat','UnavailableValue','/kpi/','/work/'] if k not in s];[sys.exit('forbidden '+k) for k in ['107','122','/features','/kpis'] if k in s]"
+      npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=''.join(p.read_text() for p in pathlib.Path('.claude/skills/harness/bin/dashboard/client/src').rglob('*.tsx') if not p.name.endswith('.test.tsx'));[sys.exit('missing '+k) for k in ['NoShipRecords','PreCapability','GradingCaveat','UnavailableValue','/kpi/','/work/'] if k not in s];[sys.exit('forbidden '+k) for k in ['107','122','/features','/kpis'] if k in s]"
     intent: |
       Build the surfaces DESIGN C-1 and C-4 specify, consuming the payload unavailable maps (D-19) as the sole trigger for every gap treatment.
 
@@ -1250,14 +1251,14 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-10, T-11]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/trend.py
-      - .claude/skills/harness/bin/gh-sync.py
-      - .claude/skills/harness/bin/test-metrics-trend.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
+    - .claude/skills/harness/bin/dashboard/trend.py
+    - .claude/skills/harness/bin/gh-sync.py
+    - tests/integration/test-metrics-trend.py
+    - tests/unit/test-metrics-kpi.py
     verify: |
-      python3 .claude/skills/harness/bin/test-metrics-kpi.py && python3 .claude/skills/harness/bin/test-metrics-trend.py && python3 -c "import ast,sys;m=ast.parse(open('.claude/skills/harness/bin/gh-sync.py').read());f=[n for n in ast.walk(m) if isinstance(n,ast.FunctionDef) and n.name=='cmd_ship'];sys.exit('cmd_ship absent from gh-sync.py') if not f else None;names={getattr(c.func,'attr',getattr(c.func,'id','')) for c in ast.walk(f[0]) if isinstance(c,ast.Call)};sys.exit(0 if 'record_ship' in names else 'cmd_ship never calls record_ship')"
+      python3 tests/unit/test-metrics-kpi.py && python3 tests/integration/test-metrics-trend.py && python3 -c "import ast,sys;m=ast.parse(open('.claude/skills/harness/bin/gh-sync.py').read());f=[n for n in ast.walk(m) if isinstance(n,ast.FunctionDef) and n.name=='cmd_ship'];sys.exit('cmd_ship absent from gh-sync.py') if not f else None;names={getattr(c.func,'attr',getattr(c.func,'id','')) for c in ast.walk(f[0]) if isinstance(c,ast.Call)};sys.exit(0 if 'record_ship' in names else 'cmd_ship never calls record_ship')"
     intent: |
       trend.py's append() has NO CALLER anywhere in this plan: T-10 defines it and nothing invokes it.
       Left as drafted, trend.jsonl stays permanently empty, and DESIGN's S-1 - no axes at all - is not
