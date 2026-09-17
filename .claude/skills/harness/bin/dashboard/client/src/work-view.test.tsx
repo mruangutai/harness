@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeRouter, productPaths } from './routes';
 
@@ -19,6 +19,21 @@ function respond(work = { items, errors: [] }) { vi.stubGlobal('fetch', vi.fn((i
 afterEach(() => vi.unstubAllGlobals());
 describe('operational work view', () => {
   it('renders all statuses, kinds, fields, source errors, and both layouts', async () => { respond({ items, errors: [{ source_path: '/bad', reason: 'bad YAML' }] }); renderRoute(); await screen.findAllByText('6 of 6 items'); for (const label of ['Needs You', 'Blocked', 'Stalled', 'Over Budget', 'Running', 'Stale']) expect(screen.getAllByText(label).length).toBeGreaterThan(0); expect(screen.getByText('Some sources could not be read')).toBeTruthy(); expect(screen.getByText(/bad YAML/)).toBeTruthy(); expect(screen.getAllByText('unmeasured 1 of 2 runs').length).toBeGreaterThan(0); expect(screen.getByRole('columnheader', { name: 'Status' })).toBeTruthy(); fireEvent.click(screen.getByRole('button', { name: 'Kanban' })); expect(await screen.findByText('building (1)')).toBeTruthy(); });
+  it('renders each source error as a distinct readable item', async () => {
+    const errors = [
+      { source_path: '/missing/feature.json', reason: 'file does not exist' },
+      { source_path: '/notes/FEAT-2', reason: 'feature metadata is absent' },
+    ];
+    respond({ items, errors });
+    renderRoute();
+    const sourceErrors = await screen.findByRole('list', { name: 'Unreadable sources' });
+    const entries = within(sourceErrors).getAllByRole('listitem');
+    expect(entries).toHaveLength(errors.length);
+    errors.forEach(({ source_path, reason }, index) => {
+      expect(entries[index].textContent).toContain(source_path);
+      expect(entries[index].textContent).toContain(reason);
+    });
+  });
   it('filters via selectors and status shortcut then clears only list state', async () => { respond(); renderRoute('/?window=30d&repo=alpha&layout=table&status=needs-you&kind=bug'); await screen.findByText('No work matches these filters'); expect(screen.getByText('Clear Station, Status, or Kind to see work.')).toBeTruthy(); fireEvent.click(screen.getAllByRole('button', { name: 'Clear Filters' })[0]); await screen.findAllByText('6 of 6 items'); expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Work List' })); });
   it('expands inline rows and routes feature detail header before KPIs', async () => { respond(); renderRoute(); await screen.findByRole('button', { name: 'Grilling' }); fireEvent.click(screen.getByRole('button', { name: 'Grilling' })); expect(screen.getByText('/grilling')).toBeTruthy(); fireEvent.click(screen.getByRole('link', { name: 'FEAT-1' })); expect(await screen.findByRole('heading', { name: 'Feature' })).toBeTruthy(); expect(screen.getByText('Feature KPIs')).toBeTruthy(); });
   it('handles initial and stale refresh failures with retry', async () => { vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline')))); renderRoute(); expect(await screen.findByText('Work list unavailable')).toBeTruthy(); expect(screen.getAllByText('offline').length).toBeGreaterThan(0); respond(); fireEvent.click(screen.getAllByRole('button', { name: 'Retry' })[1]); await screen.findByText('6 of 6 items'); });
