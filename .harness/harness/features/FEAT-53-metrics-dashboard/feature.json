@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-53",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 24,
+  "cycles_used": 25,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -204,6 +204,26 @@
       "tokens": 110251,
       "ended_at": "2026-09-17T07:05:11+00:00",
       "cycles_used": 2
+    },
+    {
+      "id": "2026-09-17-08-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-17T07:05:47+00:00",
+      "tokens": 81658,
+      "ended_at": "2026-09-17T07:21:15+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-09-17-09-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-17T07:21:31+00:00",
+      "tokens": 115595,
+      "ended_at": "2026-09-17T07:42:47+00:00",
+      "cycles_used": 1
     }
   ],
   "mission": "plan",
@@ -543,6 +563,41 @@
       "kind": "continue",
       "decision": "continue dependency-ordered build after T-12",
       "reason": "Run 2026-09-17-07-eng repaired T-06/T-07 defects and passed T-12; component verbs close the run under validate-digest.py #1819."
+    },
+    {
+      "at": "2026-09-17T07:21:02.123820+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-27.files",
+      "reason": "The native runner cutover relocated the integration test; recreating the retired bin path would reverse that migration."
+    },
+    {
+      "at": "2026-09-17T07:21:02.123983+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-27.verify",
+      "reason": "The scoped proof must invoke the integration test at its native-runner path."
+    },
+    {
+      "at": "2026-09-17T07:21:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue with T-21 and T-28; route newly-ready T-29 to main session",
+      "reason": "Run 2026-09-17-08-eng passed both tasks at zero cycles; component verbs retain the #1819-safe close path."
+    },
+    {
+      "at": "2026-09-17T07:42:35.542074+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-21.verify",
+      "reason": "Vitest 5 writes the JSON reporter to the configured .vitest/json/output.json carrier and leaves stdout non-JSON; the amended proof removes stale output, runs the same tests, and grades only the fresh reporter file."
+    },
+    {
+      "at": "2026-09-17T07:42:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue with T-22 and T-16",
+      "reason": "Run 2026-09-17-09-eng passed both frontend integrations with one rework cycle; component verbs retain the #1819-safe close path."
     }
   ],
   "rework": {

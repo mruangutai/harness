@@ -1377,13 +1377,13 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-14, T-15]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/src/panels.tsx
       - .claude/skills/harness/bin/dashboard/client/src/charts.tsx
       - .claude/skills/harness/bin/dashboard/client/src/panels.test.tsx
     verify: |
-      out="$(npm --prefix .claude/skills/harness/bin/dashboard/client run --silent test -- --reporter=json 2>/dev/null)" && printf '%s' "$out" | python3 -c 'import json,sys;s=sys.stdin.read();d=json.JSONDecoder().raw_decode(s[s.index("{"):])[0];p={a.get("fullName","") for t in d["testResults"] for a in t["assertionResults"] if a.get("status")=="passed"};w=["grading panel mounts the Shape A histogram","trend panel mounts the Shape B time series","merged PR panel mounts the Shape B weekly line"];m=[c for c in w if not any(c in n for n in p)];sys.exit(0 if not m else "not passed: "+", ".join(m))' && python3 -c "import pathlib,sys;s=pathlib.Path('.claude/skills/harness/bin/dashboard/client/src/panels.tsx').read_text();[sys.exit('retired route '+k) for k in ['/features','/kpis'] if k in s]"
+      rm -f .claude/skills/harness/bin/dashboard/client/.vitest/json/output.json && npm --prefix .claude/skills/harness/bin/dashboard/client run --silent test -- --reporter=json >/dev/null 2>&1 && python3 -c 'import json,pathlib,sys;s=pathlib.Path(".claude/skills/harness/bin/dashboard/client/.vitest/json/output.json").read_text();d=json.JSONDecoder().raw_decode(s[s.index("{"):])[0];p={a.get("fullName","") for t in d["testResults"] for a in t["assertionResults"] if a.get("status")=="passed"};w=["grading panel mounts the Shape A histogram","trend panel mounts the Shape B time series","merged PR panel mounts the Shape B weekly line"];m=[c for c in w if not any(c in n for n in p)];sys.exit(0 if not m else "not passed: "+", ".join(m))' && python3 -c "import pathlib,sys;s=pathlib.Path('.claude/skills/harness/bin/dashboard/client/src/panels.tsx').read_text();[sys.exit('retired route '+k) for k in ['/features','/kpis'] if k in s]"
     intent: |
       T-14 creates panels.tsx and T-15 creates charts.tsx after it, and no task otherwise wires the two. Write the failing tests first and demonstrate that charts.tsx exists but is unimported before adding the mount.
 
@@ -1814,7 +1814,7 @@ tasks:
     - T-05
     - T-13
     - T-27
-    status: ready
+    status: done
     execution_mode: team
     execution_agent: harness-frontend-dev
     execution_reason: >-
