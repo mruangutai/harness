@@ -8,6 +8,7 @@ import subprocess
 import artifact_accessors
 import brief_approval
 import harness_yaml
+import grading
 
 _SCHEMA = "kpi/1"
 _NOT_IMPLEMENTED = "not yet implemented"
@@ -29,7 +30,7 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
         "window": window,
         "generated_at": _timestamp(generated),
         "features": selected,
-        "aggregate": _aggregate(selected),
+        "aggregate": _aggregate(selected, root),
         "trend": {"points": [], "unavailable": {"points": _NOT_IMPLEMENTED}},
     }
 
@@ -139,7 +140,7 @@ def _cycle_time(approved_on: str | None, shipped_at: str | None) -> float | None
     return (_parse_timestamp(shipped_at) - datetime.fromisoformat(approved_on).replace(tzinfo=timezone.utc)).total_seconds() / 86400
 
 
-def _aggregate(features: list[dict]) -> dict:
+def _aggregate(features: list[dict], root: Path) -> dict:
     measurements = [item["cycle_time_days"] for item in features if item["cycle_time_days"] is not None]
     excluded = len(features) - len(measurements)
     return {
@@ -151,7 +152,7 @@ def _aggregate(features: list[dict]) -> dict:
         },
         "touchpoints": _unimplemented(),
         "escaped_defects": _unimplemented(),
-        "grading": _unimplemented(),
+        "grading": grading.distribution(root),
         "attribution": _unimplemented(),
         "unavailable": {},
     }

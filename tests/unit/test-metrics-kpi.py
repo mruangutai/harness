@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -15,6 +16,7 @@ FIXTURE = BIN / "dashboard" / "fixtures" / "project-a"
 sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(BIN / "dashboard"))
 
+import grading  # noqa: E402
 import kpi  # noqa: E402
 
 
@@ -24,13 +26,18 @@ class KpiCoreTest(unittest.TestCase):
         self.project = Path(self.tempdir.name) / "project-a"
         shutil.copytree(FIXTURE, self.project)
         self.expected = json.loads((self.project / "expected.json").read_text())
+        shutil.copy(ROOT / ".harness/harness.json", self.project / ".harness/harness.json")
+        (self.project / "probe.py").write_text("def probe():\n    return 1\n", encoding="utf-8")
+        _commit_scratch(self.project)
 
     def tearDown(self):
         self.tempdir.cleanup()
 
     def test_hand_labelled_feature_and_aggregate_values(self):
         generated_at = datetime(2026, 9, 16, tzinfo=timezone.utc)
-        with patch("kpi.subprocess.run", side_effect=_diff_result) as diff:
+        with patch("kpi.subprocess.run", side_effect=_diff_result) as diff, patch(
+            "kpi.grading.distribution", return_value=_grading_expected(self.expected["grading"])
+        ):
             result = kpi.compute(self.project, "all", generated_at=generated_at)
         self.assertEqual(self.expected["schema"], result["schema"])
         self.assertEqual(str(self.project.resolve()), result["project"]["root"])
@@ -47,9 +54,42 @@ class KpiCoreTest(unittest.TestCase):
              if call.args[0][-1] == "main...feature/shipped"},
         )
         self.assertEqual(7, diff.call_count)
-        for key in ("touchpoints", "escaped_defects", "grading", "attribution"):
+        for key in ("touchpoints", "escaped_defects", "attribution"):
             self.assertIsNone(result["aggregate"][key]["value"])
             self.assertEqual("not yet implemented", result["aggregate"][key]["unavailable"]["value"])
+
+    def test_grading_distribution_uses_grader_payload_and_live_file_mix(self):
+        payload = self.expected["grading_payload"]
+        with patch("grading.subprocess.run", side_effect=_grading_result(payload, _TRACKED_FILES)):
+            result = grading.distribution(self.project)
+        self.assertEqual(_grading_expected(self.expected["grading"]), result)
+        with patch("grading.subprocess.run", side_effect=_grading_result(payload, _TRACKED_FILES + ["new.ts"])):
+            changed = grading.distribution(self.project)
+        self.assertNotEqual(result["file_mix"]["ungraded_share"], changed["file_mix"]["ungraded_share"])
+
+    def test_kpi_uses_grading_distribution(self):
+        grading_result = _grading_expected(self.expected["grading"])
+        with patch("kpi.grading.distribution", return_value=grading_result):
+            result = kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
+        self.assertEqual(grading_result, result["aggregate"]["grading"])
+
+    def test_grading_payload_has_no_central_tendency(self):
+        result = self.expected["grading"]
+        self.assertFalse(_has_central_tendency(result))
+        self.assertTrue(_has_central_tendency({"median": 2}))
+
+    def test_committed_dashboard_source_sweep_rejects_mix_literal(self):
+        paths = _dashboard_paths(ROOT)
+        self.assertTrue(paths)
+        _assert_no_mix_literals(ROOT, paths)
+        with tempfile.TemporaryDirectory() as directory:
+            scratch = Path(directory)
+            seeded_path = scratch / ".claude/skills/harness/bin/dashboard/seed.py"
+            seeded_path.parent.mkdir(parents=True)
+            seeded_path.write_text("mix = 107\n", encoding="utf-8")
+            _commit_scratch(scratch)
+            with self.assertRaisesRegex(AssertionError, "107"):
+                _assert_no_mix_literals(scratch, _dashboard_paths(scratch))
 
     def test_change_size_uses_project_default_branch_once(self):
         calls = []
@@ -60,7 +100,9 @@ class KpiCoreTest(unittest.TestCase):
                 return _git_result("origin/trunk\n")
             return _diff_result(command)
 
-        with patch("kpi.subprocess.run", side_effect=git_run):
+        with patch("kpi.subprocess.run", side_effect=git_run), patch(
+            "kpi.grading.distribution", return_value={}
+        ):
             kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
 
         diffs = [command for command, _kwargs in calls if command[1:3] == ["diff", "--numstat"]]
@@ -77,7 +119,9 @@ class KpiCoreTest(unittest.TestCase):
         def git_run(command, **_kwargs):
             return _git_result("", returncode=1)
 
-        with patch("kpi.subprocess.run", side_effect=git_run) as git:
+        with patch("kpi.subprocess.run", side_effect=git_run) as git, patch(
+            "kpi.grading.distribution", return_value={}
+        ):
             result = kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
 
         self.assertEqual(1, git.call_count)
@@ -128,6 +172,61 @@ class KpiCoreTest(unittest.TestCase):
                 )
             self.assertEqual(6, len(result["features"]))
             self.assertTrue(all("plan" in item["unavailable"] for item in result["features"]))
+
+_TRACKED_FILES = ["alpha.py", "broken.py", "script.sh", "README"]
+
+
+def _grading_expected(value):
+    expected = dict(value)
+    expected["bins"] = {int(grade): count for grade, count in value["bins"].items()}
+    return expected
+
+
+def _grading_result(payload, paths):
+    def run(command, **kwargs):
+        if command[:2] == ["git", "-C"]:
+            return _git_result("\n".join(paths) + "\n")
+        return _git_result(json.dumps(payload), returncode=1)
+    return run
+
+
+def _dashboard_paths(root):
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", ".claude/skills/harness/bin/dashboard/"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout.splitlines()
+
+
+def _assert_no_mix_literals(root, paths):
+    for path in paths:
+        result = subprocess.run(
+            ["git", "-C", str(root), "show", f"HEAD:{path}"],
+            capture_output=True,
+            check=False,
+        )
+        assert result.returncode == 0, path
+        assert b"107" not in result.stdout, f"107 in {path}"
+        assert b"122" not in result.stdout, f"122 in {path}"
+
+def _commit_scratch(root):
+    for command in (
+        ["git", "init"],
+        ["git", "add", "."],
+        ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-m", "seed"],
+    ):
+        subprocess.run(command, cwd=root, check=True, capture_output=True)
+
+
+def _has_central_tendency(value):
+    if isinstance(value, dict):
+        return any(key in {"mean", "median"} or _has_central_tendency(item)
+                   for key, item in value.items())
+    if isinstance(value, list):
+        return any(_has_central_tendency(item) for item in value)
+    return False
 
 def _diff_result(command, **_kwargs):
     if command[1:3] == ["symbolic-ref", "--short"]:
