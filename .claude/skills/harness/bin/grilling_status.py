@@ -24,8 +24,8 @@ class GrillingStatusError(ValueError):
     """The front-matter is missing, malformed, or violates the lifecycle rule."""
 
 
-def parse(text):
-    """(status, became) from a note's text; raises GrillingStatusError naming the fault."""
+def _fields(text):
+    """The front-matter mapping, exactly {status, became}; raises on any other shape."""
     match = _FRONT.match(text)
     if match is None:
         raise GrillingStatusError("no front-matter block (---/status/became/---) at the top of the note")
@@ -37,16 +37,27 @@ def parse(text):
         fields[entry.group(1)] = entry.group(2)
     if set(fields) != {"status", "became"}:
         raise GrillingStatusError(f"front-matter keys must be exactly status and became, got {sorted(fields)}")
-    status = fields["status"]
-    if status not in STATUSES:
-        raise GrillingStatusError(f"status {status!r} is not one of {', '.join(STATUSES)}")
-    became = None if fields["became"] in ("null", "~", "") else fields["became"].strip("'\"")
+    return fields
+
+
+def _became(status, raw):
+    """The became value checked against the status: a full id for handed-off, null otherwise."""
+    became = None if raw in ("null", "~", "") else raw.strip("'\"")
     if status == "handed-off":
         if became is None or not FEATURE_ID.match(became):
             raise GrillingStatusError(f"handed-off requires became to be a full FEAT-NN-slug or BUG-NN-slug id, got {became!r}")
     elif became is not None:
         raise GrillingStatusError(f"status {status} must carry became: null, got {became!r}")
-    return status, became
+    return became
+
+
+def parse(text):
+    """(status, became) from a note's text; raises GrillingStatusError naming the fault."""
+    fields = _fields(text)
+    status = fields["status"]
+    if status not in STATUSES:
+        raise GrillingStatusError(f"status {status!r} is not one of {', '.join(STATUSES)}")
+    return status, _became(status, fields["became"])
 
 
 def render(status, became):

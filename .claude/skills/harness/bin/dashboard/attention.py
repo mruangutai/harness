@@ -73,37 +73,65 @@ def derive(item, now: datetime, limits: Thresholds) -> Attention:
     return _feature_attention(item, now, limits)
 
 
+@dataclass(frozen=True)
+class _Activity:
+    """The selected copy's run status and write times, read once per item."""
+    run_status: str | None
+    live_at: datetime | None      # newest of STATE.md and the current run's state.yaml
+    newest_at: datetime | None    # newest of every governed file
+
+
+def _activity(source):
+    run_status, run_state_at = _current_run_state(source)
+    state_md_at = _stat_time(source / "STATE.md")
+    live_at = _latest(state_md_at, run_state_at)
+    newest_at = _latest(live_at, _stat_time(source / "plan.yaml"), _stat_time(source / "feature.json"))
+    return _Activity(run_status, live_at, newest_at)
+
+
+def _run_states(activity, now, limits):
+    """(states, reasons) contributed by the current run: blocked, stalled or running."""
+    if activity.run_status == "blocked":
+        return ["blocked"], ["current run is blocked"]
+    if activity.run_status != "running":
+        return [], []
+    idle = now - activity.live_at if activity.live_at is not None else None
+    if idle is not None and idle >= timedelta(minutes=limits.stalled_minutes):
+        return ["stalled"], [f"running with no state write for {_minutes(idle)} min"]
+    return ["running"], ["current run is running"]
+
+
+def _stale(activity, now, limits):
+    if activity.newest_at is None:
+        return False
+    return now - activity.newest_at >= timedelta(days=limits.stale_days)
+
+
+def _budget_and_stale(item, activity, states, now, limits):
+    """(states, reasons) for over-budget, then stale only when nothing else applies."""
+    extra_states, reasons = [], []
+    if _over_budget(item, limits):
+        extra_states.append("over-budget")
+        reasons.append(f"cycles {item.cycles_used}/{item.max_total_cycles}")
+    if not states and not extra_states and _stale(activity, now, limits):
+        extra_states.append("stale")
+        reasons.append(f"no write for {(now - activity.newest_at).days} days")
+    return extra_states, reasons
+
+
 def _feature_attention(item, now, limits):
     if item.station in TERMINAL_STATIONS:
         return Attention(None, (), None)
     source = Path(item.source_path)
-    run_status, run_state_at = _current_run_state(source)
-    state_md_at = _stat_time(source / "STATE.md")
-    states = []
-    reasons = _needs_you_reasons(source, run_status)
-    if reasons:
-        states.append("needs-you")
-    if run_status == "blocked":
-        states.append("blocked")
-        reasons.append("current run is blocked")
-    if run_status == "running":
-        activity = _latest(state_md_at, run_state_at)
-        if activity is not None and now - activity >= timedelta(minutes=limits.stalled_minutes):
-            states.append("stalled")
-            reasons.append(f"running with no state write for {_minutes(now - activity)} min")
-        else:
-            states.append("running")
-            reasons.append("current run is running")
-    if _over_budget(item, limits):
-        states.append("over-budget")
-        reasons.append(f"cycles {item.cycles_used}/{item.max_total_cycles}")
-    newest = _latest(state_md_at, run_state_at, _stat_time(source / "plan.yaml"),
-                     _stat_time(source / "feature.json"))
-    if not states and newest is not None and now - newest >= timedelta(days=limits.stale_days):
-        states.append("stale")
-        reasons.append(f"no write for {(now - newest).days} days")
+    activity = _activity(source)
+    reasons = _needs_you_reasons(source, activity.run_status)
+    states = ["needs-you"] if reasons else []
+    for more_states, more_reasons in (_run_states(activity, now, limits),
+                                      _budget_and_stale(item, activity, states, now, limits)):
+        states += more_states
+        reasons += more_reasons
     state = min(states, key=ORDER.index) if states else None
-    relevant = newest if state in ("stale", None) else _latest(state_md_at, run_state_at) or newest
+    relevant = activity.newest_at if state in ("stale", None) else activity.live_at or activity.newest_at
     return Attention(state, tuple(reasons), relevant)
 
 
