@@ -6,6 +6,7 @@ import statistics
 import subprocess
 
 import artifact_accessors
+import attribution
 import brief_approval
 import defects
 import grading
@@ -154,7 +155,7 @@ def _aggregate(features: list[dict], root: Path, window: str, generated_at: date
         "touchpoints": _unimplemented(),
         "escaped_defects": defects.escaped(root, window, generated_at),
         "grading": grading.distribution(root),
-        "attribution": _unimplemented(),
+        "attribution": attribution.by_tier(root, window, generated_at),
         "unavailable": {},
     }
 

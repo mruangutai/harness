@@ -16,6 +16,7 @@ FIXTURE = BIN / "dashboard" / "fixtures" / "project-a"
 sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(BIN / "dashboard"))
 
+import attribution  # noqa: E402
 import defects  # noqa: E402
 import grading  # noqa: E402
 import kpi  # noqa: E402
@@ -30,8 +31,11 @@ class KpiCoreTest(unittest.TestCase):
         shutil.copy(ROOT / ".harness/harness.json", self.project / ".harness/harness.json")
         (self.project / "probe.py").write_text("def probe():\n    return 1\n", encoding="utf-8")
         _commit_scratch(self.project)
+        self.attribution = patch("kpi.attribution.by_tier", return_value=_unimplemented_attribution())
+        self.attribution.start()
 
     def tearDown(self):
+        self.attribution.stop()
         self.tempdir.cleanup()
 
     def test_hand_labelled_feature_and_aggregate_values(self):
@@ -114,7 +118,6 @@ class KpiCoreTest(unittest.TestCase):
             if command[1:3] == ["symbolic-ref", "--short"]:
                 return _git_result("origin/trunk\n")
             return _diff_result(command)
-
         with patch("kpi.subprocess.run", side_effect=git_run), patch(
             "kpi.grading.distribution", return_value={}
         ):
@@ -133,7 +136,6 @@ class KpiCoreTest(unittest.TestCase):
     def test_missing_project_default_branch_does_not_use_feature_diffs(self):
         def git_run(command, **_kwargs):
             return _git_result("", returncode=1)
-
         with patch("kpi.subprocess.run", side_effect=git_run) as git, patch(
             "kpi.grading.distribution", return_value={}
         ):
@@ -215,6 +217,56 @@ class KpiCoreTest(unittest.TestCase):
         self.assertEqual([], result["items"])
         self.assertIn("git history cannot be read", result["unavailable"]["count"])
 
+
+    def test_attribution_resolves_model_tiers_and_accounts_for_every_commit(self):
+        self.attribution.stop()
+        _attribution_plan(self.project, "FEAT-101", "T-01", "alpha-agent")
+        _attribution_plan(self.project, "FEAT-202", "T-02", "beta-agent")
+        _attribution_plan(self.project, "FEAT-404", "T-03", "missing-model-agent")
+        agents = self.project / ".claude" / "agents"
+        agents.mkdir(parents=True)
+        (agents / "alpha-agent.md").write_text("---\nmodel: opus\n---\n", encoding="utf-8")
+        (agents / "beta-agent.md").write_text("---\nmodel: haiku\n---\n", encoding="utf-8")
+        (agents / "missing-model-agent.md").write_text("---\nname: missing\n---\n", encoding="utf-8")
+        history = "\n".join((
+            "a1\t2026-09-16T00:00:00+00:00\t[harness:t-01] alpha",
+            "a2\t2026-09-16T00:00:00+00:00\t[harness:t-01] alpha again",
+            "b1\t2026-09-16T00:00:00+00:00\t[harness:t-02] beta",
+            "b2\t2026-09-16T00:00:00+00:00\t[harness:unknown,t-02] beta fallback",
+            "x1\t2026-09-16T00:00:00+00:00\t[harness:t-99] absent",
+            "m1\t2026-09-16T00:00:00+00:00\t[harness:t-03] missing model",
+            "h1\t2026-09-16T00:00:00+00:00\t[harness:human] human",
+            "f1\t2026-09-16T00:00:00+00:00\t[harness:FEAT-303] feature",
+            "n1\t2026-09-16T00:00:00+00:00\tunprefixed",
+        ))
+        branches = {
+            "a1": "feat/FEAT-101\n",
+            "a2": "feat/FEAT-101\n",
+            "b1": "feat/FEAT-202\n",
+            "b2": "feat/FEAT-202\n",
+            "x1": "feat/FEAT-101\n",
+            "m1": "feat/FEAT-404\n",
+        }
+
+        def git_history(_root, arguments):
+            if arguments[0] == "log":
+                return history
+            return branches.get(arguments[2], "")
+
+        with patch("attribution._git", side_effect=git_history), patch(
+            "attribution.artifact_accessors.load_plan",
+            wraps=attribution.artifact_accessors.load_plan,
+        ) as load_plan:
+            result = attribution.by_tier(self.project, "all")
+
+        self.assertEqual({"opus": 2, "haiku": 2}, result["by_tier"])
+        self.assertEqual(
+            {"no_prefix": 1, "human": 1, "feature_only": 1, "unresolvable_step_id": 2},
+            result["unattributed"],
+        )
+        self.assertEqual(4 / 9, result["attributable_share"])
+        self.assertEqual(9, result["total_commits"])
+        self.assertEqual(3, load_plan.call_count)
     def test_plan_parse_failures_are_unavailable_not_crashes(self):
         import harness_yaml
         failures = (
@@ -233,6 +285,28 @@ class KpiCoreTest(unittest.TestCase):
             self.assertTrue(all("plan" in item["unavailable"] for item in result["features"]))
 
 _TRACKED_FILES = ["alpha.py", "broken.py", "script.sh", "README"]
+def _attribution_plan(root, feature_id, task_id, agent):
+    plan = root / ".harness" / "demo" / "features" / feature_id / "plan.yaml"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        f"""tasks:
+  - id: {task_id}
+    title: attribution fixture
+    change_type: logic
+    execution_mode: team
+    files: [fixture.py]
+    verify: python3 fixture.py
+    intent: fixture
+    execution_agent: {agent}
+""",
+        encoding="utf-8",
+    )
+
+
+def _unimplemented_attribution():
+    return {"value": None, "unavailable": {"value": "not yet implemented"}}
+
+
 
 
 def _grading_expected(value):
