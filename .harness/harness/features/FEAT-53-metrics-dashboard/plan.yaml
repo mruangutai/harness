@@ -390,11 +390,11 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: building
+    status: done
     files:
       - .harness/harness.json
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 -c "import json;d=json.load(open('.harness/harness.json'));s={p.strip() for p in d['test_kinds']['integration']['detect'].split('|')};assert '.claude/skills/harness/bin/test-metrics-dashboard.py' in s;assert '.claude/skills/harness/bin/test-metrics-trend.py' in s;assert '.claude/skills/harness/bin/test-metrics-client-render.py' in s" && python3 -c "import json;d=json.load(open('.harness/harness.json'));c=d['test_kinds']['component'];assert c['status']=='resolved',c;assert c['cmd'] and 'run test' in c['cmd'],c;assert '.test.tsx' in c['detect'],c"
+      python3 -c "import json;d=json.load(open('.harness/harness.json'));s={p.strip() for p in d['test_kinds']['integration']['detect'].split('|')};assert '.claude/skills/harness/bin/test-metrics-dashboard.py' in s;assert '.claude/skills/harness/bin/test-metrics-trend.py' in s;assert '.claude/skills/harness/bin/test-metrics-client-render.py' in s" && python3 -c "import json;d=json.load(open('.harness/harness.json'));c=d['test_kinds']['component'];assert c['status']=='resolved',c;assert c['cmd'] and 'run test' in c['cmd'],c;assert '.test.tsx' in c['detect'],c"
     intent: |
       Append three literal paths to the pipe-separated string at
       .harness/harness.json test_kinds.integration.detect, keeping the existing entries and their
@@ -565,15 +565,14 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: building
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
-      - .claude/skills/harness/bin/dashboard/fixtures/project-a/
-      - .claude/skills/harness/bin/brief_approval.py
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - tests/unit/test-metrics-kpi.py
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/
+    - .claude/skills/harness/bin/brief_approval.py
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-kpi.py
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 tests/unit/test-metrics-kpi.py
     intent: |
       Write the failing tests first, then the module. Create kpi.py exposing
       compute(project_root: Path, window: str) -> dict, where window is one of 30d, 90d, all.
@@ -657,7 +656,7 @@ tasks:
       cycle_time_days are null and its unavailable map carries THAT gap's own distinct sentence, and the
       four sentences are asserted to differ from one another. Never one aggregate assertion over the four,
       and never a count of unavailable entries - a shared or copy-pasted sentence would pass both.
-      Register test-metrics-kpi.py in run-unit-tests.sh UNIT_SCRIPTS. Do not add it to harness.json.
+      Place test-metrics-kpi.py at tests/unit/test-metrics-kpi.py where the directory-selected runner discovers it automatically. Do not edit run-unit-tests.py or harness.json.
       Every function must grade at or above its bar under code-grade.py.
   - id: T-07
     title: Add the grading distribution KPI and the per-project ungraded share
@@ -1667,15 +1666,15 @@ tasks:
     intent: |-
       Add the disk collector behind the operational lane. Use the fleet and workspace loaders already present in factory_config.py and factory_workspace.py and reuse the worktree enumeration seam in worktree_terminal.py rather than introducing a second configuration parser or git-worktree scanner. Starting from the control-plane root, discover every .harness/<segment>/features/<feature> directory and every .harness/notes/grilling-*.md file. Match feature directories to registered worktrees by exact full directory name first and by the FEAT-N or BUG-N prefix only when that match is unique. Emit one typed, serializable item per feature, bug and grilling note with a stable id, kind, segment, display name, station or grilling status, run status, relevant timestamps, cycle counters, canonical main_path, nullable worktree_path and canonical source_path. A readable worktree copy supplies the entire item; the main copy is only fallback and fields are never merged across copies. A discovered but unreadable or malformed source remains represented with its path and a specific error. Read the uncommitted /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-61-observe-dashboard/.claude/skills/harness/bin/harness-observe.py as design input for record parsing and restartable collection, but do not copy its fixed-width rendering, Herdr plugin, special-case roots or hard-coded rank table. Add deterministic fixtures proving both short and long id matching, divergent main and worktree copies, worktree-only state, malformed input, multiple segments and no GitHub dependency; demonstrate those fixture assertions failing before production code.
     files:
-      - .claude/skills/harness/bin/dashboard/work.py
-      - .claude/skills/harness/bin/test-work-dashboard.py
+    - .claude/skills/harness/bin/dashboard/work.py
+    - tests/integration/test-work-dashboard.py
     verify: >-
-      python3 .claude/skills/harness/bin/test-work-dashboard.py --case collector
+      python3 tests/integration/test-work-dashboard.py --case collector
     change_type: cross_module
     traces:
       - SC-21
     depends_on: []
-    status: building
+    status: done
     execution_mode: team
     execution_agent: harness-backend-dev
     execution_reason: >-
