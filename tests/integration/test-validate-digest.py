@@ -1875,10 +1875,6 @@ def run_t09():
     print("\n%d/%d T-09 cases passed." % (len(T09) - fails, len(T09)))
     return fails
 
-def _t51_suspended(awaiting):
-    rows = "".join(f"    - {persona}\n" for persona in awaiting)
-    return f"VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n{rows}"
-
 
 def _t51_fixture(reg, parent="harness-product-lead", children=("harness-pm",)):
     root = _t09_root()
@@ -1897,16 +1893,20 @@ def _t51_result(name, result, expected):
     )
 
 
-def _t51_accepted(reg):
+def _t51_suspended_refused(reg):
+    """DEC-233: under a blocking host a parent never yields with a live child, so the
+    nonterminal SUSPENDED turn-end DEC-210 accepted is now refused like any other
+    return with a live child, and the parent's claim is left in place."""
     root, session = _t51_fixture(reg)
     result = _t09_fire(
-        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
+        root, "harness-product-lead",
+        "VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n    - harness-pm\n",
         session_id=session,
     )
     parent, _ = reg.live_claim(root, "harness-product-lead", session=session)
     return [
-        _t51_result("a SUSPENDED return with a live child is accepted", result, 0),
-        ("a SUSPENDED return leaves the parent claim live",
+        _t51_result("a SUSPENDED return with a live child is refused", result, 2),
+        ("the refused SUSPENDED return leaves the parent claim live",
          parent is not None, repr(parent)),
     ]
 
@@ -1951,45 +1951,13 @@ def _t51_missing_message(reg):
 
 
 
-def _t51_no_child():
-    root = _t09_root()
-    result = _t09_fire(
-        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
-        session_id="empty-session",
-    )
-    return [_t51_result("a SUSPENDED return with no live child is refused", result, 2)]
-
-
-def _t51_omitted_child(reg):
-    root, session = _t51_fixture(reg, children=("harness-pm", "harness-qa"))
-    result = _t09_fire(
-        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
-        session_id=session,
-    )
-    return [_t51_result("a SUSPENDED return omitting a live child is refused", result, 2)]
-
-
-def _t51_member(reg):
-    root, session = _t51_fixture(
-        reg, parent="harness-pm", children=("harness-documentor",)
-    )
-    result = _t09_fire(
-        root, "harness-pm", _t51_suspended(["harness-documentor"]),
-        session_id=session,
-    )
-    return [_t51_result("a SUSPENDED return from a member persona is refused", result, 2)]
-
-
 def run_t51_suspension_cases():
     reg = _reg_module()
     results = []
     for case in (
-        _t51_accepted(reg),
+        _t51_suspended_refused(reg),
         _t51_terminal(reg),
         _t51_missing_message(reg),
-        _t51_no_child(),
-        _t51_omitted_child(reg),
-        _t51_member(reg),
     ):
         results.extend(case)
     fails = 0

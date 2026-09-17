@@ -1003,8 +1003,8 @@ def case_34_children_refusal_names_suspension():
         })],
     )
     joined = "\n".join(lines)
-    check("the children refusal names SUSPENDED and never says a repeated return ships",
-          "SUSPENDED" in joined and "identical return ships" not in joined, joined)
+    check("the children refusal names the blocking rule and never says a repeated return ships",
+          "cannot yield while a child is live" in joined and "identical return ships" not in joined, joined)
 
 
 

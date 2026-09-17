@@ -403,8 +403,7 @@ function taskIdentities(details: unknown): TaskIdentity[] {
 // BUG-1724 (DEC-227): the tokens the host measured for one `task` call — the sum over
 // every result carrying a non-negative integer `tokens`. `undefined` when none does, so
 // the caller writes nothing rather than zero: null on the run means "unmeasured", and
-// a host that reported nothing (the Claude Code compatibility host, DEC-210) must leave
-// it that way.
+// a host that reported nothing must leave it that way.
 export function taskResultTokens(details: unknown): number | undefined {
   if (!details || typeof details !== "object") return undefined;
   const results = (details as Dict).results;
@@ -964,7 +963,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
           stop_hook_active: false,
           last_assistant_message: contract,
-          harness_runtime: "omp",
           harness_feature: currentFeature,
           harness_review_pin: currentReviewPin,
           harness_agent_id: text(ctx.agentId) || undefined,
@@ -1166,7 +1164,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
       stop_hook_active: true,
       last_assistant_message: finalText,
-      harness_runtime: "omp",
       harness_feature: currentFeature,
       harness_review_pin: currentReviewPin,
     });

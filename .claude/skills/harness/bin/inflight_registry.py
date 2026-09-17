@@ -658,8 +658,8 @@ def children_refusal_lines(agent, children):
         "something the reporter cannot see."
     )
     lines.append(
-        "  the legal turn-end for a lead or orchestrator whose child is live is VERDICT "
-        "SUSPENDED with an awaiting list naming every live child."
+        "  a lead or orchestrator cannot yield while a child is live: the host holds the "
+        "task call until every child is terminal (DEC-204, DEC-233)."
     )
     return lines
 
