@@ -122,6 +122,15 @@ class TrendTest(unittest.TestCase):
         self.assertIn("2026-08-24", weekly["points"][2]["reason"])
         self.assertEqual([[point["week"] for point in run] for run in weekly["segments"]], [["2026-08-17"], ["2026-09-14"]])
 
+    def test_weekly_sourcing_rule_covers_available_and_no_record_states(self):
+        path = self.directory / ".harness/metrics/trend.jsonl"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps(record("FEATURE", "2026-09-14T00:00:00Z", pr=None)) + "\n", encoding="utf-8")
+        expected = "Weekly counts are shipped features read from the durable ship record; each shipped feature represents one merged PR under DEC-200; nullable pr fields do not affect the count."
+        self.assertEqual(trend.read(self.directory, "all", NOW)["weekly"]["sourcing_rule"], expected)
+        self.assertEqual(trend._weekly({}, {}, None, NOW)["sourcing_rule"], expected)
+        self.assertEqual(trend.read(self.directory / "missing", "all", NOW)["weekly"]["sourcing_rule"], expected)
+
     def test_all_anchor_and_monday_boundary(self):
         path = self.directory / ".harness/metrics/trend.jsonl"
         path.parent.mkdir(parents=True)

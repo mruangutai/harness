@@ -94,6 +94,8 @@ def _git(project_root: Path, *args: str) -> None:
 _SCHEMA = "trend/1"
 _PATH = Path(".harness/metrics/trend.jsonl")
 _FIELDS = ("cycle_time_days", "runs", "cycles_used", "max_total_cycles", "insertions", "deletions", "files_changed", "touchpoints", "grade", "attribution")
+_WEEKLY_SOURCING_RULE = "Weekly counts are shipped features read from the durable ship record; each shipped feature represents one merged PR under DEC-200; nullable pr fields do not affect the count."
+
 
 
 def append(project_root: Path, record: dict) -> None:
@@ -219,11 +221,11 @@ def _series(records: dict) -> dict:
 
 def _weekly(records: dict, all_records: dict, start: datetime | None, end: datetime) -> dict:
     if not all_records:
-        return {"points": [], "segments": [], "week_count": 0, "empty_bucket_count": 0, "unavailable": {"weekly": "no ship records exist"}}
+        return {"points": [], "segments": [], "week_count": 0, "empty_bucket_count": 0, "sourcing_rule": _WEEKLY_SOURCING_RULE, "unavailable": {"weekly": "no ship records exist"}}
     first = _monday(min(_timestamp(item["shipped_at"]) for item in all_records.values())) if start is None else _monday(start)
     last = _monday(end)
     points = [_bucket(first + timedelta(days=7 * offset), records, start, end) for offset in range(((last - first).days // 7) + 1)]
-    return {"points": points, "segments": _segments(points), "week_count": len(points), "empty_bucket_count": sum(point["value"] is None for point in points), "unavailable": {}}
+    return {"points": points, "segments": _segments(points), "week_count": len(points), "empty_bucket_count": sum(point["value"] is None for point in points), "sourcing_rule": _WEEKLY_SOURCING_RULE, "unavailable": {}}
 
 
 def _bucket(week: datetime, records: dict, start: datetime | None, end: datetime) -> dict:
@@ -256,8 +258,7 @@ def _segments(points: list[dict]) -> list[list[dict]]:
 
 
 def _empty(reason: str) -> dict:
-    return {"records": {}, "unavailable": {"records": reason}, "series": {}, "weekly": {"points": [], "segments": [], "week_count": 0, "empty_bucket_count": 0, "unavailable": {"weekly": reason}}}
-
+    return {"records": {}, "unavailable": {"records": reason}, "series": {}, "weekly": {"points": [], "segments": [], "week_count": 0, "empty_bucket_count": 0, "sourcing_rule": _WEEKLY_SOURCING_RULE, "unavailable": {"weekly": reason}}}
 
 def _timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
