@@ -37,6 +37,11 @@ Executed 4 worktrees assertions; discovered 4 worktrees assertions.
 
 No formatter, linter, project-wide build, or project-wide test suite was run.
 
+## Commits
+
+- Implementation and tests: `9e49fc351c15f5e7e894444706653199a9e4537b`
+- Initial receipt: `35b37ac1db31fde86dab734b38c06e3f9fd4ae19`
+
 ## Files
 
 - `.claude/skills/harness/bin/dashboard/work.py`
