@@ -16,6 +16,7 @@ FIXTURE = BIN / "dashboard" / "fixtures" / "project-a"
 sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(BIN / "dashboard"))
 
+import defects  # noqa: E402
 import grading  # noqa: E402
 import kpi  # noqa: E402
 
@@ -53,10 +54,16 @@ class KpiCoreTest(unittest.TestCase):
             {" ".join(call.args[0]) for call in diff.call_args_list
              if call.args[0][-1] == "main...feature/shipped"},
         )
-        self.assertEqual(7, diff.call_count)
-        for key in ("touchpoints", "escaped_defects", "attribution"):
+        for key in ("touchpoints", "attribution"):
             self.assertIsNone(result["aggregate"][key]["value"])
             self.assertEqual("not yet implemented", result["aggregate"][key]["unavailable"]["value"])
+        self.assertEqual(0, result["aggregate"]["escaped_defects"]["count"])
+        self.assertEqual("all", result["aggregate"]["escaped_defects"]["window"])
+        self.assertEqual(
+            "BUG-NN feature units first added in the selected window and Revert commits are counted; "
+            "subjects beginning with fix are excluded because they are usually within-feature repairs.",
+            result["aggregate"]["escaped_defects"]["sourcing_rule"],
+        )
 
     def test_grading_distribution_uses_grader_payload_and_live_file_mix(self):
         payload = self.expected["grading_payload"]
@@ -164,6 +171,50 @@ class KpiCoreTest(unittest.TestCase):
         self.assertEqual(["FIX-SHIPPED"], [f["feature_id"] for f in kpi.compute(self.project, "30d", generated_at=generated_at)["features"]])
 
 
+    def test_escaped_defects_count_bug_units_and_reverts_not_fixes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            (project / "seed.txt").write_text("seed\n", encoding="utf-8")
+            _commit_scratch(project)
+            _commit_history(project, "add BUG-101", {
+                ".harness/demo/features/BUG-101/feature.json": "{}\n",
+            })
+            _commit_history(project, "fix BUG-101 repair", {"repair-1.txt": "one\n"})
+            _commit_history(project, "add BUG-202", {
+                ".harness/demo/features/BUG-202/feature.json": "{}\n",
+            })
+            _commit_history(project, "fix BUG-202 repair", {"repair-2.txt": "two\n"})
+            revert_id = _commit_history(project, "Revert \"release regression\"", {
+                "revert.txt": "reverted\n",
+            })
+
+            result = defects.escaped(project, "all")
+
+        self.assertEqual(3, result["count"])
+        self.assertEqual("all", result["window"])
+        self.assertEqual(
+            ["BUG-101", "BUG-202", revert_id],
+            [item["id"] for item in result["items"]],
+        )
+        self.assertEqual(
+            ["bug_unit", "bug_unit", "revert"],
+            [item["kind"] for item in result["items"]],
+        )
+        self.assertTrue(all(not item["subject"].startswith("fix") for item in result["items"]))
+        self.assertEqual(
+            "BUG-NN feature units first added in the selected window and Revert commits are counted; "
+            "subjects beginning with fix are excluded because they are usually within-feature repairs.",
+            result["sourcing_rule"],
+        )
+
+    def test_escaped_defects_report_unavailable_when_git_history_cannot_be_read(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = defects.escaped(Path(directory), "all")
+
+        self.assertIsNone(result["count"])
+        self.assertEqual([], result["items"])
+        self.assertIn("git history cannot be read", result["unavailable"]["count"])
+
     def test_plan_parse_failures_are_unavailable_not_crashes(self):
         import harness_yaml
         failures = (
@@ -226,6 +277,26 @@ def _commit_scratch(root):
         ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-m", "seed"],
     ):
         subprocess.run(command, cwd=root, check=True, capture_output=True)
+
+def _commit_history(root, subject, files):
+    for relative, contents in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contents, encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-m", subject],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
 def _has_central_tendency(value):
