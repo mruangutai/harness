@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Loopback-only Flask server for the metrics dashboard."""
 import argparse
+from datetime import datetime, timezone
 import importlib
 import mimetypes
 from pathlib import Path
@@ -58,17 +59,39 @@ def _module_errors(importer) -> list[str]:
 def create_app(root: Path):
     """Create the dashboard WSGI application rooted at one project."""
     from flask import Flask, jsonify, send_file, send_from_directory
+    import attention
+    import artifact_accessors
     import kpi
+    import work
 
     project_root = Path(root).resolve()
     app = Flask(__name__)
 
     @app.get("/api/kpis")
     def kpis():
-        window = _window_or_error()
-        if isinstance(window, tuple):
-            return jsonify(window[0]), window[1]
-        return jsonify(kpi.compute(project_root, window))
+        selection = _selection_or_error(project_root, require_all=False)
+        if isinstance(selection, tuple):
+            return jsonify(selection[0]), selection[1]
+        window, _repo, selected_root = selection
+        try:
+            return jsonify(kpi.compute(selected_root, window))
+        except Exception as error:
+            return _unavailable(error)
+
+    @app.get("/api/work")
+    def work_items():
+        selection = _selection_or_error(project_root)
+        if isinstance(selection, tuple):
+            return jsonify(selection[0]), selection[1]
+        window, repo, _selected_root = selection
+        try:
+            config = artifact_accessors.load_harness_json(project_root / ".harness" / "harness.json")
+            limits = attention.thresholds(config)
+            items = _selected_items(work.collect(project_root), repo, window, kpi.resolve_window)
+            ranked = attention.rank(items, datetime.now(timezone.utc), limits)
+            return jsonify(_work_payload(ranked, limits, window, repo))
+        except Exception as error:
+            return _unavailable(error)
 
     @app.get("/assets/<path:asset_path>")
     def assets(asset_path):
@@ -98,6 +121,140 @@ def _window_or_error():
 def _asset_mimetype(asset_path: str) -> str | None:
     suffix = Path(asset_path).suffix.lower()
     return MIME_FALLBACKS.get(suffix) or mimetypes.guess_type(asset_path)[0]
+
+
+def _selection_or_error(root: Path, require_all: bool = True):
+    from flask import request
+    try:
+        window = _window_or_error()
+        if isinstance(window, tuple):
+            return window
+        repo = request.args.get("repo", "all")
+        repositories = _repository_roots(root, require_all=require_all or repo != "all")
+        if repo not in ("all", *repositories):
+            return {"error": f"repo must be one of {', '.join(('all', *repositories))}"}, 400
+        return [window, repo, root if repo == "all" else repositories[repo]]
+    except Exception as error:
+        return {"error": f"dashboard unavailable: {error}"}, 500
+
+
+def _repository_roots(root: Path, require_all: bool = True) -> dict[str, Path]:
+    import artifact_accessors
+    fleet_path = root / ".harness" / "factory" / "fleet.yaml"
+    repositories = {"harness": root}
+    if not require_all or not fleet_path.is_file():
+        return repositories
+    fleet = artifact_accessors.load_fleet(fleet_path)
+    for entry in fleet["repos"]:
+        name = entry["name"].rsplit("/", 1)[-1]
+        path = Path(fleet["workspace_root"]) / name
+        if name in repositories or not path.is_dir():
+            raise ValueError(f"configured repository {name} cannot be enumerated at {path}")
+        repositories[name] = path
+    return repositories
+
+
+def _selected_items(items, repo: str, window: str, resolve_window):
+    start, end = resolve_window(window, datetime.now(timezone.utc))
+    selected = [item for item in items if repo == "all" or item.segment == repo]
+    if window == "all":
+        return selected
+    return [item for item in selected if _in_window(_item_updated_at(item), start, end)]
+
+
+def _in_window(updated, start, end):
+    return updated is None or (updated <= end and (start is None or updated >= start))
+
+def _item_updated_at(item):
+    try:
+        return datetime.fromtimestamp(Path(item.source_path).stat().st_mtime, timezone.utc)
+    except OSError:
+        return None
+
+
+def _work_payload(ranked, limits, window: str, repo: str) -> dict:
+    items = [_serialize_work_item(item, attention) for item, attention in ranked]
+    return {
+        "schema": "harness-work/1",
+        "window": window,
+        "repo": repo,
+        "attention_order": ["needs-you", "blocked", "stalled", "over-budget", "running", "stale"],
+        "effective_thresholds": {
+            "stalled_minutes": limits.stalled_minutes,
+            "stale_days": limits.stale_days,
+            "over_budget_remaining_cycles": limits.over_budget_remaining_cycles,
+        },
+        "items": items,
+        "errors": [{"source_path": item.source_path, "reason": item.error}
+                   for item, _attention in ranked if item.error is not None],
+    }
+
+
+def _serialize_work_item(item, item_attention) -> dict:
+    return {
+        "id": item.id,
+        "kind": item.kind,
+        "attention": item_attention.state,
+        "attention_reasons": list(item_attention.reasons),
+        "name": item.display_name,
+        "repository": item.repository or item.segment,
+        "segment": item.segment,
+        "station": item.station,
+        "phase": item.phase,
+        "run_status": item.run_status,
+        "updated_at": _updated_at(item),
+        "elapsed_total": item.elapsed_total,
+        "elapsed_by_phase": {
+            "plan": item.elapsed_plan,
+            "build": item.elapsed_build,
+            "validate": item.elapsed_validate,
+        },
+        "runs": item.run_count,
+        "cycles_used": item.cycles_used,
+        "max_total_cycles": item.max_total_cycles,
+        "tokens": _tokens(item.tokens),
+        "main_path": item.main_path,
+        "worktree_path": item.worktree_path,
+        "source_path": item.source_path,
+        "detail": _detail(item),
+    }
+
+
+def _updated_at(item):
+    updated = _item_updated_at(item)
+    return updated.isoformat().replace("+00:00", "Z") if updated is not None else item.updated_at
+
+
+def _tokens(tokens):
+    if tokens is None:
+        return None
+    return {
+        "measured_total": tokens.get("total"),
+        "measured_runs": tokens.get("measured_runs"),
+        "total_runs": tokens.get("total_runs"),
+        "unmeasured_runs": tokens.get("unmeasured_runs"),
+        "by_phase": tokens.get("by_phase"),
+    }
+
+
+def _detail(item):
+    if item.kind == "worktree":
+        return {
+            "canonical_path": item.canonical_path,
+            "checkout_role": item.checkout_role,
+            "head": item.head,
+            "feature_id": item.feature_id,
+            "feature_status": item.feature_status,
+        }
+    if item.kind == "grilling":
+        return {"status": item.grilling_status}
+    return {"run_started_at": item.run_started_at, "run_ended_at": item.run_ended_at}
+
+
+def _unavailable(error):
+    from flask import jsonify
+    return jsonify(error=f"dashboard unavailable: {error}"), 500
+ 
 
 
 def _git_root(cwd: Path) -> Path:
