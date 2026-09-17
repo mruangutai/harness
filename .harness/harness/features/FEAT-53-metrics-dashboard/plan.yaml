@@ -946,14 +946,21 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-10]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/touchpoints.py
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-trend.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
+    - .claude/skills/harness/bin/touchpoints.py
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/expected.json
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/metrics/instrumented_at
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-PRE/BRIEF.md
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-PRE/feature.json
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-PRE/plan.yaml
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/.harness/demo/features/FIX-SHIPPED/touchpoints.jsonl
+    - .claude/skills/harness/bin/dashboard/fixtures/project-uninstrumented/.harness/demo/features/FIX-ONE/feature.json
+    - tests/integration/test-metrics-trend.py
+    - tests/unit/test-metrics-kpi.py
     verify: |
-      out="$(python3 .claude/skills/harness/bin/test-metrics-trend.py)" \
+      out="$(python3 tests/integration/test-metrics-trend.py)" \
         && printf '%s\n' "$out" | grep -q 'touchpoints post-instrumentation absent file is zero' \
         && printf '%s\n' "$out" | grep -q 'touchpoints pre-instrumentation is unavailable not zero' \
         && ! printf '%s\n' "$out" | grep -q 'FAIL'
@@ -1098,13 +1105,15 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-01, T-04, T-05, T-18]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/client/src/main.tsx
-      - .claude/skills/harness/bin/dashboard/client/src/routes.tsx
-      - .claude/skills/harness/bin/dashboard/client/src/routes.test.tsx
-      - .claude/skills/harness/bin/dashboard/client/src/theme.ts
-      - .claude/skills/harness/bin/dashboard/client/src/api.ts
+    - .claude/skills/harness/bin/dashboard/client/src/main.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/routes.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/routes.test.tsx
+    - .claude/skills/harness/bin/dashboard/client/src/theme.ts
+    - .claude/skills/harness/bin/dashboard/client/src/api.ts
+    - .claude/skills/harness/bin/dashboard/client/package.json
+    - .claude/skills/harness/bin/dashboard/client/package-lock.json
     verify: |
       npm --prefix .claude/skills/harness/bin/dashboard/client test -- --run src/routes.test.tsx && npm --prefix .claude/skills/harness/bin/dashboard/client run build
     intent: |
@@ -1862,10 +1871,10 @@ tasks:
     intent: >-
       After T-26, extend the fleet work collector's feature and bug records with current phase, elapsed total, elapsed plan, build and validate, run count, and token measurement summary. Total elapsed starts at BRIEF approval and ends at ship or now. Derive phase boundaries once from DEC-159 seam handoff notes and the run ledger's squad, started_at and ended_at timestamps: completed phases stop at handoff, completed runs contribute their interval, and the current phase accrues through now. Never substitute station for phase. Sum only integer run tokens per item and phase, expose measured_runs, total_runs and unmeasured_runs, use null when no run is measured, and never emit a dollar-cost field. Preserve T-26's worktree identity, reconciliation and malformed-source behavior and rerun its worktree cases after the extension. Add deterministic-clock fixtures for shipped and in-progress items, missing boundaries, all-measured, none-measured and a mixed two-run item whose presentation source is “unmeasured 1 of 2 runs”.
     files:
-      - .claude/skills/harness/bin/dashboard/work.py
-      - .claude/skills/harness/bin/test-work-dashboard.py
+    - .claude/skills/harness/bin/dashboard/work.py
+    - tests/integration/test-work-dashboard.py
     verify: >-
-      python3 .claude/skills/harness/bin/test-work-dashboard.py --case metrics && python3 .claude/skills/harness/bin/test-work-dashboard.py --case worktrees
+      python3 tests/integration/test-work-dashboard.py --case metrics && python3 tests/integration/test-work-dashboard.py --case worktrees
     change_type: logic
     traces:
       - SC-27
@@ -1875,7 +1884,7 @@ tasks:
     - T-23
     - T-26
     - T-30
-    status: ready
+    status: done
     execution_mode: team
     execution_agent: harness-backend-dev
     execution_reason: >-
