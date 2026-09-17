@@ -11,6 +11,7 @@ import brief_approval
 import defects
 import grading
 import harness_yaml
+import touchpoints
 import trend
 
 _SCHEMA = "kpi/1"
@@ -73,6 +74,9 @@ def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str |
         unavailable["insertions"] = diff_reason
         unavailable["deletions"] = diff_reason
         unavailable["files_changed"] = diff_reason
+    touchpoint_count, touchpoint_reason = touchpoints.count(root, document["feature_id"])
+    if touchpoint_reason is not None:
+        unavailable["touchpoints"] = touchpoint_reason
     return {
         "feature_id": document["feature_id"],
         "approved_on": approved_on,
@@ -84,7 +88,7 @@ def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str |
         "insertions": insertions,
         "deletions": deletions,
         "files_changed": files_changed,
-        "touchpoints": None,
+        "touchpoints": touchpoint_count,
         "trend": _feature_trend(record),
         "unavailable": unavailable,
     }
@@ -166,7 +170,7 @@ def _aggregate(features: list[dict], root: Path, window: str, generated_at: date
             "max_total_cycles": sum(item["max_total_cycles"] for item in features),
             "unavailable": {},
         },
-        "touchpoints": _unimplemented(),
+        "touchpoints": _touchpoint_aggregate(features),
         "escaped_defects": defects.escaped(root, window, generated_at),
         "grading": grading.distribution(root),
         "attribution": attribution.by_tier(root, window, generated_at),
@@ -174,6 +178,14 @@ def _aggregate(features: list[dict], root: Path, window: str, generated_at: date
     }
 
 
+
+def _touchpoint_aggregate(features: list[dict]) -> dict:
+    tracked = [item["touchpoints"] for item in features if item["touchpoints"] is not None]
+    return {
+        "mean": statistics.mean(tracked) if tracked else None,
+        "zero_count": sum(value == 0 for value in tracked),
+        "not_tracked_count": len(features) - len(tracked),
+    }
 def _throughput(measurements: list[float], excluded: int) -> dict:
     unavailable = {}
     if excluded:

@@ -58,9 +58,19 @@ class KpiCoreTest(unittest.TestCase):
             {" ".join(call.args[0]) for call in diff.call_args_list
              if call.args[0][-1] == "main...feature/shipped"},
         )
-        for key in ("touchpoints", "attribution"):
-            self.assertIsNone(result["aggregate"][key]["value"])
-            self.assertEqual("not yet implemented", result["aggregate"][key]["unavailable"]["value"])
+        self.assertEqual(
+            self.expected["touchpoints"]["value"],
+            _feature(result, self.expected["touchpoints"]["feature"])["touchpoints"],
+        )
+        self.assertEqual(
+            {
+                key: self.expected["touchpoints"][key]
+                for key in ("mean", "zero_count", "not_tracked_count")
+            },
+            result["aggregate"]["touchpoints"],
+        )
+        self.assertIsNone(result["aggregate"]["attribution"]["value"])
+        self.assertEqual("not yet implemented", result["aggregate"]["attribution"]["unavailable"]["value"])
         self.assertEqual(0, result["aggregate"]["escaped_defects"]["count"])
         self.assertEqual("all", result["aggregate"]["escaped_defects"]["window"])
         self.assertEqual(
@@ -129,7 +139,7 @@ class KpiCoreTest(unittest.TestCase):
               "capture_output": True, "text": True, "check": False})],
             [(command, kwargs) for command, kwargs in calls if command[1] == "symbolic-ref"],
         )
-        self.assertEqual(6, len(diffs))
+        self.assertEqual(7, len(diffs))
         self.assertTrue(all(command[-1].startswith("trunk...") for command in diffs))
 
 
@@ -281,7 +291,7 @@ class KpiCoreTest(unittest.TestCase):
                     self.project, "all",
                     generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc),
                 )
-            self.assertEqual(6, len(result["features"]))
+            self.assertEqual(7, len(result["features"]))
             self.assertTrue(all("plan" in item["unavailable"] for item in result["features"]))
 
 _TRACKED_FILES = ["alpha.py", "broken.py", "script.sh", "README"]

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Hand-labelled integration contracts for append-only trend persistence."""
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 from unittest.mock import patch
@@ -15,6 +17,7 @@ sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(BIN / "dashboard"))
 
 import kpi  # noqa: E402
+import touchpoints  # noqa: E402
 import trend  # noqa: E402
 
 NOW = datetime(2026, 9, 15, 12, tzinfo=timezone.utc)
@@ -34,6 +37,15 @@ def record(feature_id, shipped_at, **changes):
 
 
 class TrendTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fixture_digest = _digest(_fixtures_root())
+
+    @classmethod
+    def tearDownClass(cls):
+        if _digest(_fixtures_root()) != cls.fixture_digest:
+            raise AssertionError("committed dashboard fixtures changed during the test run")
+
     def setUp(self):
         self.directory = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.directory)
@@ -112,6 +124,121 @@ class TrendTest(unittest.TestCase):
         missing = next(item for item in result["features"] if item["feature_id"] == "FIX-NOSHIP")
         self.assertIsNone(missing["trend"]["cycle_time_days"])
         self.assertEqual(missing["trend"]["unavailable"]["cycle_time_days"], "shipped before metrics existed")
+
+    def test_touchpoints_post_instrumentation_absent_file_is_zero(self):
+        with patch.object(kpi, "_aggregate", return_value={}):
+            result = kpi.compute(_touchpoint_fixture(), "all", NOW)
+        feature = _feature(result, "FIX-NOSHIP")
+        self.assertEqual(0, feature["touchpoints"])
+        self.assertNotIn("touchpoints", feature["unavailable"])
+        print("ok touchpoints post-instrumentation absent file is zero")
+
+    def test_touchpoints_pre_instrumentation_is_unavailable_not_zero(self):
+        with patch.object(kpi, "_aggregate", return_value={}):
+            result = kpi.compute(_touchpoint_fixture(), "all", NOW)
+        feature = _feature(result, "FIX-PRE")
+        self.assertIsNone(feature["touchpoints"])
+        self.assertNotEqual(0, feature["touchpoints"])
+        self.assertNotEqual("0", feature["touchpoints"])
+        self.assertEqual(
+            "this feature predates touchpoint instrumentation in this project - "
+            "touchpoints were never tracked for it",
+            feature["unavailable"]["touchpoints"],
+        )
+        print("ok touchpoints pre-instrumentation is unavailable not zero")
+
+    def test_two_touchpoint_run_is_counted_and_shipped(self):
+        with _fixture_copy() as project:
+            touchpoints.record(project, "FIX-NOSHIP", "approval_request")
+            touchpoints.record(project, "FIX-NOSHIP", "uat_request")
+            self.assertEqual((2, None), touchpoints.count(project, "FIX-NOSHIP"))
+            trend.append(project, record("FIX-NOSHIP", "2026-09-15T12:00:00Z", touchpoints=2))
+            self.assertEqual(2, trend.read(project, "all", NOW)["records"]["FIX-NOSHIP"]["touchpoints"])
+
+    def test_touchpoint_epoch_is_written_once_and_invalid_event_writes_nothing(self):
+        with _fixture_copy() as project:
+            epoch = project / ".harness/metrics/instrumented_at"
+            epoch.unlink()
+            touchpoints.record(project, "FIX-NOSHIP", "escalation")
+            first = epoch.read_bytes()
+            touchpoints.record(project, "FIX-NOSHIP", "uat_request")
+            self.assertEqual(first, epoch.read_bytes())
+            before = _digest(project)
+            result = subprocess.run(
+                [sys.executable, str(BIN / "touchpoints.py"), "record", "--root", str(project),
+                 "--feature", "FIX-NOSHIP", "--event", "unknown"],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(0, result.returncode)
+            self.assertTrue(all(event in result.stderr for event in ("approval_request", "escalation", "uat_request")))
+            self.assertEqual(before, _digest(project))
+
+    def test_touchpoint_unavailable_branches_and_same_day_boundary(self):
+        uninstrumented = _fixtures_root() / "project-uninstrumented"
+        for feature_dir in uninstrumented.glob(".harness/*/features/*"):
+            feature_id = feature_dir.name
+            self.assertEqual(
+                (None, "touchpoints were not tracked in this project - no .harness/metrics/"
+                 "instrumented_at epoch exists, so no count here is a measurement"),
+                touchpoints.count(uninstrumented, feature_id),
+            )
+        fixture = _touchpoint_fixture()
+        with patch("touchpoints._first_feature_commit", return_value=None):
+            self.assertEqual(
+                (None, "touchpoints cannot be dated for this feature - it has neither an approval "
+                 "date in its BRIEF.md nor a commit that added its directory, so pre-instrumentation "
+                 "and post-instrumentation cannot be told apart"),
+                touchpoints.count(fixture, "FIX-NOBRIEF"),
+            )
+        self.assertEqual((0, None), touchpoints.count(fixture, "FIX-NOSHIP"))
+
+    def test_touchpoint_transition_window_has_incomplete_reason(self):
+        feature = _touchpoint_fixture() / ".harness/demo/features/FIX-SHIPPED"
+        log = feature / "touchpoints.jsonl"
+        self.assertEqual(2, len(log.read_text(encoding="utf-8").splitlines()))
+        value, reason = touchpoints.count(_touchpoint_fixture(), "FIX-SHIPPED")
+        self.assertIsNone(value)
+        self.assertIn("2 touchpoints", reason)
+        self.assertNotIn("never tracked", reason)
+
+
+def _fixtures_root() -> Path:
+    return ROOT / ".claude/skills/harness/bin/dashboard/fixtures"
+
+def _touchpoint_fixture() -> Path:
+    return ROOT / ".claude/skills/harness/bin/dashboard/fixtures/project-a"
+
+
+def _fixture_copy():
+    directory = tempfile.TemporaryDirectory()
+    project = Path(directory.name) / "project-a"
+    shutil.copytree(_touchpoint_fixture(), project)
+    return _temporary_project(directory, project)
+
+
+class _temporary_project:
+    def __init__(self, directory, project):
+        self.directory = directory
+        self.project = project
+
+    def __enter__(self):
+        return self.project
+
+    def __exit__(self, *_args):
+        self.directory.cleanup()
+
+
+def _digest(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        if path.is_file():
+            digest.update(str(path.relative_to(root)).encode())
+            digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def _feature(payload: dict, feature_id: str) -> dict:
+    return next(item for item in payload["features"] if item["feature_id"] == feature_id)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,10 @@
 {
   "schema": "kpi/1",
-  "feature_ids": ["FIX-EMPTYDATE", "FIX-NOAPPROVAL", "FIX-NOBRIEF", "FIX-NOSHIP", "FIX-PENDING", "FIX-SHIPPED"],
+  "feature_ids": ["FIX-EMPTYDATE", "FIX-NOAPPROVAL", "FIX-NOBRIEF", "FIX-NOSHIP", "FIX-PENDING", "FIX-PRE", "FIX-SHIPPED"],
   "shipped": {"feature_id": "FIX-SHIPPED", "approved_on": "2026-09-01", "shipped_at": "2026-09-11T00:00:00Z", "cycle_time_days": 10.0, "runs": 2, "cycles_used": 2, "max_total_cycles": 5, "insertions": 4, "deletions": 2, "files_changed": 2},
-  "throughput": {"median_cycle_time_days": 10.0, "measured_features": 1, "excluded_features": 5, "unavailable": {"excluded_features": "5 features lack a ship record or approval date"}},
-  "rework": {"cycles_used": 2, "max_total_cycles": 12, "unavailable": {}},
+  "throughput": {"median_cycle_time_days": 10.0, "measured_features": 1, "excluded_features": 6, "unavailable": {"excluded_features": "6 features lack a ship record or approval date"}},
+  "rework": {"cycles_used": 2, "max_total_cycles": 13, "unavailable": {}},
+  "touchpoints": {"feature": "FIX-NOSHIP", "value": 0, "mean": 0, "zero_count": 5, "not_tracked_count": 2},
   "gaps": {
     "FIX-NOBRIEF": "BRIEF.md is absent",
     "FIX-NOAPPROVAL": "BRIEF.md has no Approval section",
