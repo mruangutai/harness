@@ -522,7 +522,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-01, T-04]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/CAP-probe.md
     verify: |
@@ -814,14 +814,13 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03, T-07, T-09]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/trend.py
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-trend.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+    - .claude/skills/harness/bin/dashboard/trend.py
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - tests/integration/test-metrics-trend.py
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-trend.py
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 tests/integration/test-metrics-trend.py
     intent: |
       Write the failing tests first. trend.py owns the only write in this whole feature.
       RECORD (D-18), one JSON object per line, keys sorted, no trailing spaces, exactly one newline:
@@ -905,9 +904,8 @@ tasks:
       BOUNDS alongside the series: the week count and the count of empty buckets, so the tile's
       secondary line "n merged PRs over w weeks - k weeks with no ship record" and the week date
       inside each empty bucket's reason are computable by the client without it re-deriving any
-      boundary (DESIGN open question Q4). Create test-metrics-trend.py and register it in
-      run-unit-tests.sh INTEGRATION_SCRIPTS - T-03 has already declared its literal in harness.json,
-      so add it to the bash array only. It must assert: one append adds exactly one line with every
+      boundary (DESIGN open question Q4). Create test-metrics-trend.py under tests/integration/. The Python runner discovers
+      tests/integration/test-*.py automatically, so no runner edit is required. It must assert: one append adds exactly one line with every
       prior byte unchanged (compare the whole file bytes before and after); THREE records appended in
       three separate git worktrees and landed by TWO SEQUENTIAL MERGES all survive, none dropped and
       none reordered - two worktrees is git's easy case and proves less than it looks; two lines
@@ -1734,17 +1732,17 @@ tasks:
     intent: |-
       Extend T-23's collector to emit one worktree item for every entry returned by git worktree list --porcelain for the control-plane repository and each repository under the configured workspace_root, including each repository's primary checkout, and deduplicate canonical paths. Include stable id, repository name, canonical path, checkout role as primary or linked, branch or detached-head identity, matched full feature id when unique, and whether that feature is active, terminal or absent. Only a non-primary worktree can override a feature's main copy; the primary entry remains a worktree row without becoming worktree_path. Do not suppress orphaned worktrees, terminal-feature worktrees, detached heads, primary checkouts or worktrees whose selected feature source has an error. Reuse worktree_terminal.py's fleet enumeration and id classifier so dashboard and hygiene reach the same population. Extend the no-GitHub fixture with multiple repositories and assert every porcelain path appears exactly once as a worktree row, including primary, FEAT-61-shaped orphan and terminal cases.
     files:
-      - .claude/skills/harness/bin/dashboard/work.py
-      - .claude/skills/harness/bin/test-work-dashboard.py
+    - .claude/skills/harness/bin/dashboard/work.py
+    - tests/integration/test-work-dashboard.py
     verify: >-
-      python3 .claude/skills/harness/bin/test-work-dashboard.py --case worktrees
+      python3 tests/integration/test-work-dashboard.py --case worktrees
     change_type: logic
     traces:
       - SC-21
     depends_on:
       - T-23
       - T-24
-    status: ready
+    status: done
     execution_mode: team
     execution_agent: harness-backend-dev
     execution_reason: >-
