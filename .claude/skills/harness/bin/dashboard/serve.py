@@ -147,7 +147,10 @@ def _selection_or_error(root: Path, require_all: bool = True):
         if isinstance(window, tuple):
             return window
         repo = request.args.get("repo", "all")
-        repositories, unavailable = _repository_roots(root, require_all=require_all or repo != "all")
+        import work
+        repositories, errors = work.fleet_repositories(
+            root, require_all=require_all or repo != "all")
+        unavailable = {error["repo"]: error for error in errors}
         known = (*repositories, *unavailable)
         if repo not in ("all", *known):
             return {"error": f"repo must be one of {', '.join(('all', *known))}"}, 400
@@ -158,25 +161,6 @@ def _selection_or_error(root: Path, require_all: bool = True):
         return {"error": f"dashboard unavailable: {error}"}, 500
 
 
-def _repository_roots(root: Path, require_all: bool = True) -> tuple[dict[str, Path], dict[str, dict]]:
-    import artifact_accessors
-    fleet_path = root / ".harness" / "factory" / "fleet.yaml"
-    repositories = {"harness": root}
-    unavailable = {}
-    if not require_all or not fleet_path.is_file():
-        return repositories, unavailable
-    fleet = artifact_accessors.load_fleet(fleet_path)
-    for entry in fleet["repos"]:
-        name = entry["name"].rsplit("/", 1)[-1]
-        path = Path(fleet["workspace_root"]) / name
-        if name in repositories:
-            raise ValueError(f"configured repository {name} cannot be enumerated at {path}")
-        if not path.is_dir():
-            reason = f"configured repository {name} cannot be enumerated at {path}"
-            unavailable[name] = {"repo": name, "path": str(path), "reason": reason}
-            continue
-        repositories[name] = path
-    return repositories, unavailable
 
 
 def _selected_items(items, repo: str, window: str, resolve_window):

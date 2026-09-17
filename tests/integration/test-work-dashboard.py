@@ -13,6 +13,7 @@ CASE_NAMES = (
     "short id matching", "long id matching", "divergent main and worktree copies",
     "worktree-only state", "malformed input", "unreadable worktree falls back to main",
     "malformed worktree plan is source-specific", "multiple segments", "no GitHub dependency",
+    "absent configured clone preserves readable rows and reports one fleet error",
 )
 
 METRICS_CASES = (
@@ -119,6 +120,23 @@ def assert_cases(rows, calls, main, bad, worktrees):
     assert_regression_cases(rows, main, worktrees)
     assert_environment_cases(rows, calls)
 
+def assert_absent_clone_case(work, root):
+    try:
+        rows, errors = work.collect_fleet(root)
+    except Exception as error:
+        check("absent configured clone preserves readable rows and reports one fleet error", False,
+              repr(error))
+        return
+    path = str(root / "workspace" / "widget")
+    expected = {
+        "repo": "widget",
+        "path": path,
+        "reason": f"configured repository widget cannot be enumerated at {path}",
+    }
+    readable = any(row.display_name == "FEAT-71-long-id" for row in rows)
+    check("absent configured clone preserves readable rows and reports one fleet error",
+          readable and errors == [expected], repr(([row.display_name for row in rows], errors)))
+
 
 def collector_case():
     try:
@@ -131,6 +149,7 @@ def collector_case():
         main, bad, worktrees = setup(root)
         rows, calls = collect_rows(work, root, worktrees)
         assert_cases(rows, calls, main, bad, worktrees)
+        assert_absent_clone_case(work, root)
 
 
 # ---- metrics (T-31, DEC-229) ---------------------------------------------------------------

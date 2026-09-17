@@ -58,8 +58,13 @@ class WorkItem:
 
 def collect(root: Path | str) -> list[WorkItem]:
     """Collect feature, grilling, and registered-worktree rows from disk."""
+    return collect_fleet(root)[0]
+
+
+def collect_fleet(root: Path | str) -> tuple[list[WorkItem], list[dict]]:
+    """Collect fleet rows and configured clones that could not be enumerated."""
     root = Path(root).resolve()
-    entries = _registered_worktree_entries(root)
+    entries, errors = _registered_worktree_entries(root)
     linked_worktrees = [entry[0] for entry in entries if entry[2] == "linked"]
     classifications = _worktree_classifications(root)
     items = []
@@ -70,24 +75,45 @@ def collect(root: Path | str) -> list[WorkItem]:
                          if item.worktree_path is not None}
     items.extend(_worktree_item(entry, classifications, feature_worktrees) for entry in entries)
     items.extend(_grilling_items(root))
-    return sorted(items, key=lambda item: item.id)
+    return sorted(items, key=lambda item: item.id), errors
 
 
-def _registered_worktree_entries(root: Path) -> list[tuple[Path, str, str]]:
+def _registered_worktree_entries(root: Path) -> tuple[list[tuple[Path, str, str]], list[dict]]:
     entries = _repository_worktree_entries(root, "harness")
-    try:
-        fleet = artifact_accessors.load_fleet(root / ".harness" / "factory" / "fleet.yaml")
-    except Exception:
-        fleet = None
-    if fleet is not None:
-        for entry in fleet["repos"]:
-            repository = entry["name"]
-            workspace = Path(factory_config.workspace_path(fleet, repository))
+    repositories, errors = fleet_repositories(root)
+    for repository, workspace in repositories.items():
+        if repository != "harness":
             entries.extend(_repository_worktree_entries(workspace, repository))
     unique = {}
     for path, repository, role in entries:
         unique.setdefault(path, (path, repository, role))
-    return sorted(unique.values(), key=lambda entry: str(entry[0]))
+    return sorted(unique.values(), key=lambda entry: str(entry[0])), errors
+
+
+def fleet_repositories(root: Path | str, require_all: bool = True) -> tuple[dict[str, Path], list[dict]]:
+    """Return readable fleet roots and configured clones unavailable on disk."""
+    root = Path(root).resolve()
+    repositories = {"harness": root}
+    fleet_path = root / ".harness" / "factory" / "fleet.yaml"
+    if not require_all or not fleet_path.is_file():
+        return repositories, []
+    fleet = artifact_accessors.load_fleet(fleet_path)
+    errors = []
+    for entry in fleet["repos"]:
+        configured = entry["name"]
+        repository = factory_config.segment_of(configured)
+        workspace = Path(factory_config.workspace_path(fleet, configured))
+        if repository in repositories:
+            raise ValueError(f"configured repository {repository} cannot be enumerated at {workspace}")
+        if workspace.is_dir():
+            repositories[repository] = workspace
+        else:
+            errors.append({
+                "repo": repository,
+                "path": str(workspace),
+                "reason": f"configured repository {repository} cannot be enumerated at {workspace}",
+            })
+    return repositories, errors
 
 
 def _repository_worktree_entries(root: Path, repository: str) -> list[tuple[Path, str, str]]:
