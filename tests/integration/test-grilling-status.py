@@ -71,52 +71,76 @@ def backfill_check(root, manifest=None):
     return done.returncode, done.stdout
 
 
+def _marked_corpus(tmp):
+    root = checkout(tmp)
+    write_note(root, "grilling-a-2026-09-16.md", gs.mark(BODY, "handed-off", "FEAT-90-thing"))
+    write_note(root, "grilling-b-2026-09-16.md", gs.mark(BODY, "abandoned"))
+    return root
+
+
+def _check_mode_cases(root):
+    code, out = backfill_check(root)
+    check("check mode passes a marked corpus", code == 0 and "0 fault(s)" in out, out.strip().splitlines()[-1])
+    check("check mode is idempotent", backfill_check(root) == (code, out))
+    write_note(root, "grilling-c-2026-09-16.md", gs.mark(BODY, "handed-off", "FEAT-99-ghost"))
+    code, out = backfill_check(root)
+    check("check mode fails a hand-off to a missing feature", code == 1 and "FEAT-99-ghost" in out)
+    write_note(root, "grilling-c-2026-09-16.md", BODY)
+    code, out = backfill_check(root)
+    check("check mode fails an unmarked note", code == 1 and "no front-matter" in out)
+
+
+def _manifest_cases(root):
+    manifest = root / "m.yaml"
+    manifest.write_text("schema: grilling-status-backfill/1\nnotes:\n  - path: .harness/notes/grilling-c-2026-09-16.md\n    status: conflict\n    became: null\n    reviewed: false\n", encoding="utf-8")
+    _, out = backfill_check(root, manifest)
+    check("check mode reports an unresolved manifest entry", "unresolved" in out)
+    applied = subprocess.run([sys.executable, str(BIN / "backfill-grilling-status.py"), "apply", "--root", str(root), "--manifest", str(manifest)], capture_output=True, text=True)
+    check("apply refuses an unreviewed manifest", applied.returncode != 0 and "REFUSED" in (applied.stderr + applied.stdout))
+
+
 def tool_cases():
     with tempfile.TemporaryDirectory() as tmp:
-        root = checkout(tmp)
-        write_note(root, "grilling-a-2026-09-16.md", gs.mark(BODY, "handed-off", "FEAT-90-thing"))
-        write_note(root, "grilling-b-2026-09-16.md", gs.mark(BODY, "abandoned"))
-        code, out = backfill_check(root)
-        check("check mode passes a marked corpus", code == 0 and "0 fault(s)" in out, out.strip().splitlines()[-1])
-        code2, out2 = backfill_check(root)
-        check("check mode is idempotent", (code2, out2) == (code, out))
-        write_note(root, "grilling-c-2026-09-16.md", gs.mark(BODY, "handed-off", "FEAT-99-ghost"))
-        code, out = backfill_check(root)
-        check("check mode fails a hand-off to a missing feature", code == 1 and "FEAT-99-ghost" in out)
-        write_note(root, "grilling-c-2026-09-16.md", BODY)
-        code, out = backfill_check(root)
-        check("check mode fails an unmarked note", code == 1 and "no front-matter" in out)
-        manifest = root / "m.yaml"
-        manifest.write_text("schema: grilling-status-backfill/1\nnotes:\n  - path: .harness/notes/grilling-c-2026-09-16.md\n    status: conflict\n    became: null\n    reviewed: false\n", encoding="utf-8")
-        code, out = backfill_check(root, manifest)
-        check("check mode reports an unresolved manifest entry", "unresolved" in out)
-        applied = subprocess.run([sys.executable, str(BIN / "backfill-grilling-status.py"), "apply", "--root", str(root), "--manifest", str(manifest)], capture_output=True, text=True)
-        check("apply refuses an unreviewed manifest", applied.returncode != 0 and "REFUSED" in (applied.stderr + applied.stdout))
+        root = _marked_corpus(tmp)
+        _check_mode_cases(root)
+        _manifest_cases(root)
+
+
+def _citation_fixture(root):
+    """Three unmarked notes: one cited once, one cited twice, one uncited; plus one already marked."""
+    (root / ".harness" / "notes").mkdir(parents=True)
+    for feature, artifact, text in (("FEAT-1-a", "BRIEF.md", "input: .harness/notes/grilling-one-2026-09-16.md"),
+                                    ("FEAT-2-b", "plan.yaml", "source: grilling-two-2026-09-16.md"),
+                                    ("BUG-3-c", "plan.yaml", "source: grilling-two-2026-09-16.md")):
+        (root / ".harness" / "harness" / "features" / feature).mkdir(parents=True)
+        (root / ".harness" / "harness" / "features" / feature / artifact).write_text(text, encoding="utf-8")
+    for name in ("one", "two", "three"):
+        write_note(root, f"grilling-{name}-2026-09-16.md", BODY)
+    write_note(root, "grilling-four-2026-09-16.md", gs.mark(BODY, "abandoned"))
+
+
+def _proposed_entries(root):
+    import yaml
+    out = root / "m.yaml"
+    done = subprocess.run([sys.executable, str(BIN / "backfill-grilling-status.py"), "propose", "--root", str(root), "--out", str(out), "--observed", "2026-09-16"], capture_output=True, text=True)
+    if done.returncode != 0:
+        return {}
+    return {os.path.basename(e["path"]).split("-")[1]: e for e in yaml.safe_load(out.read_text())["notes"]}
 
 
 def propose_cases():
     """The backfill proposal rule, on a fixture where each branch fires: unique citation →
     handed-off, none → abandoned, several → conflict (V-09 T-25 slice: this case discriminates
     a citation scan that matched nothing, matched everything, or dropped the conflict branch)."""
-    import yaml
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        (root / ".harness" / "notes").mkdir(parents=True)
-        for feature, artifact, text in (("FEAT-1-a", "BRIEF.md", "input: .harness/notes/grilling-one-2026-09-16.md"),
-                                        ("FEAT-2-b", "plan.yaml", "source: grilling-two-2026-09-16.md"),
-                                        ("BUG-3-c", "plan.yaml", "source: grilling-two-2026-09-16.md")):
-            (root / ".harness" / "harness" / "features" / feature).mkdir(parents=True)
-            (root / ".harness" / "harness" / "features" / feature / artifact).write_text(text, encoding="utf-8")
-        for name in ("one", "two", "three"):
-            write_note(root, f"grilling-{name}-2026-09-16.md", BODY)
-        write_note(root, "grilling-four-2026-09-16.md", gs.mark(BODY, "abandoned"))
-        out = root / "m.yaml"
-        done = subprocess.run([sys.executable, str(BIN / "backfill-grilling-status.py"), "propose", "--root", str(root), "--out", str(out), "--observed", "2026-09-16"], capture_output=True, text=True)
-        entries = {os.path.basename(e["path"]).split("-")[1]: e for e in yaml.safe_load(out.read_text())["notes"]} if done.returncode == 0 else {}
-        check("propose hands off a uniquely cited note", entries.get("one", {}).get("status") == "handed-off" and entries["one"]["became"] == "FEAT-1-a")
-        check("propose abandons an uncited note", entries.get("three", {}).get("status") == "abandoned" and entries["three"]["became"] is None)
-        check("propose flags a multiply cited note as conflict", entries.get("two", {}).get("status") == "conflict" and entries["two"]["evidence"] == ["BUG-3-c", "FEAT-2-b"])
-        check("propose skips an already-marked note", "four" not in entries and all(e["reviewed"] is False for e in entries.values()))
+        _citation_fixture(root)
+        entries = _proposed_entries(root)
+    one, two, three = (entries.get(k, {}) for k in ("one", "two", "three"))
+    check("propose hands off a uniquely cited note", one.get("status") == "handed-off" and one.get("became") == "FEAT-1-a")
+    check("propose abandons an uncited note", three.get("status") == "abandoned" and three.get("became") is None)
+    check("propose flags a multiply cited note as conflict", two.get("status") == "conflict" and two.get("evidence") == ["BUG-3-c", "FEAT-2-b"])
+    check("propose skips an already-marked note", "four" not in entries and all(e["reviewed"] is False for e in entries.values()))
 
 
 def repository_cases():
