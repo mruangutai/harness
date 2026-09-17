@@ -22,3 +22,5 @@
 - 2026-09-17: C4 mutation evidence is reviewable only when the receipt names a live source mutant, exact one-test command, non-zero assertion, exact restored-green rerun, and final SHA.
 - 2026-09-17: A weekly payload-wide sourcing rule must be emitted by both normal weekly construction and empty/unavailable constructors; otherwise a consumer that already reads the field cannot disclose it.
 - 2026-09-17: KPI disclosure payload-consumption tests need a sentinel distinct from production prose and an interaction that opens the disclosure; a temporary hard-coded-rule mutation then produces a named assertion failure.
+- 2026-09-17: Dashboard fleet enumeration must retain missing configured clone metadata through the selection seam so all-repo payloads can preserve readable work and surface one repo/path/reason error; a selected unreadable repo remains unavailable.
+- 2026-09-17: Fleet enumeration should retain configured-but-missing workspace paths as structured collector errors so HTTP adaptation cannot discard readable control rows.

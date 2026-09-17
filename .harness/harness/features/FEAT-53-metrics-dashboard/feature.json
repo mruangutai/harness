@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-53",
   "pr": null,
   "review_sha": "93785232ac32ae4fecc0a456d286e772ad15eb82",
-  "cycles_used": 35,
+  "cycles_used": 36,
   "max_total_cycles": 40,
   "max_total_runs": 20,
   "runs": [
@@ -364,6 +364,16 @@
       "tokens": 64218,
       "ended_at": "2026-09-17T16:15:30+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "2026-09-17-23-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-17T17:25:19+00:00",
+      "ended_at": "2026-09-17T18:00:32+00:00",
+      "cycles_used": 1,
+      "tokens": null
     }
   ],
   "mission": "plan",
@@ -885,6 +895,34 @@
       "kind": "continue",
       "decision": "accept broad QA gate at 93785232 and hand off ready UAT",
       "reason": "Main measured 119/119 broad files exit 0 and 23/23 components; the lone pooled timing flake passed 3/3 isolated and is CPU-contention sensitivity, not a product defect."
+    },
+    {
+      "at": "2026-09-17T17:24:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix U-01; U-02 through U-07 not attempted",
+      "reason": "Operator UAT round 1 observed /api/work HTTP 500 from one absent fleet clone; ruling requires readable segments plus one errors[] entry and leaves U-02..U-07 blank."
+    },
+    {
+      "at": "2026-09-17T18:00:24.425406+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-27.intent",
+      "reason": "U-01 requires partial fleet loss to degrade at the collector seam while preserving readable rows and every ruled 500 case."
+    },
+    {
+      "at": "2026-09-17T18:00:24.425740+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-27.files",
+      "reason": "The ruled degradation belongs in work.py and requires a collector fixture in test-work-dashboard.py in addition to the existing endpoint files."
+    },
+    {
+      "at": "2026-09-17T18:00:24.425743+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-27.verify",
+      "reason": "Verification must prove both collector ownership and the retained end-to-end Flask behavior."
     }
   ],
   "rework": {
