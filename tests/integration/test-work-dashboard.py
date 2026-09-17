@@ -253,18 +253,22 @@ ATTENTION_CASES = (
     "stale after seven days", "terminal has no attention", "open grilling is needs-you",
     "source error has no attention", "precedence and tie order", "thresholds reject bool",
     "thresholds reject zero", "thresholds reject missing block",
+    "stalled at exactly 45 minutes", "running at 44m59s", "stale at exactly seven days",
+    "fresh at seven days minus one second", "precedence follows ORDER under mutation",
+    "tie order is oldest write then id",
 )
-NOW = None
+MINUTE = 60
+DAY = 24 * 60 * MINUTE
 
 
-def touch(path, minutes_ago, now):
+def touch(path, seconds_ago, now):
     import os
-    stamp = (now.timestamp() - minutes_ago * 60)
+    stamp = now.timestamp() - seconds_ago
     os.utime(path, (stamp, stamp))
 
 
 def attention_feature(main, name, station="building", run_status=None, cycles=(2, 7), questions=0,
-                      approval="approved", age_minutes=1, now=None):
+                      approval="approved", age_seconds=MINUTE, now=None):
     d = main / name
     runs = [{"id": "r1", "squad": "eng", "verdict": "PASS"}] if run_status else []
     d.mkdir(parents=True, exist_ok=True)
@@ -277,8 +281,85 @@ def attention_feature(main, name, station="building", run_status=None, cycles=(2
         (d / "runs" / "r1").mkdir(parents=True)
         (d / "runs" / "r1" / "state.yaml").write_text(f"schema_version: 2\nrun_id: r1\nstatus: {run_status}\n", encoding="utf-8")
     for f in (d / "feature.json", d / "plan.yaml", d / "STATE.md", *([d / "runs" / "r1" / "state.yaml"] if run_status else [])):
-        touch(f, age_minutes, now)
+        touch(f, age_seconds, now)
     return d
+
+
+def _attention_fixture(root, now):
+    """One feature per state, the two exact boundaries on each side, a broken one, an open note."""
+    main = root / ".harness" / "harness" / "features"
+    (root / ".harness" / "factory").mkdir(parents=True)
+    (root / ".harness" / "factory" / "fleet.yaml").write_text("schema: factory-fleet/1\nworkspace_root: /nonexistent\nrepos: []\n", encoding="utf-8")
+    attention_feature(main, "FEAT-01-await", run_status="awaiting_user", now=now)
+    attention_feature(main, "FEAT-02-questions", questions=2, now=now)
+    attention_feature(main, "FEAT-03-pending", approval="pending", now=now)
+    attention_feature(main, "FEAT-04-blocked", run_status="blocked", now=now)
+    attention_feature(main, "FEAT-05-stalled", run_status="running", age_seconds=46 * MINUTE, now=now)
+    attention_feature(main, "FEAT-06-running", run_status="running", age_seconds=44 * MINUTE, now=now)
+    attention_feature(main, "FEAT-07-budget", run_status="running", cycles=(6, 7), age_seconds=46 * MINUTE, now=now)
+    attention_feature(main, "FEAT-08-stale", station="ready", age_seconds=7 * DAY + MINUTE, now=now)
+    attention_feature(main, "FEAT-09-done", station="done", age_seconds=30 * DAY, now=now)
+    attention_feature(main, "FEAT-10-fresh", station="ready", age_seconds=60 * MINUTE, now=now)
+    attention_feature(main, "FEAT-12-overbudget", run_status="running", cycles=(6, 7), age_seconds=5 * MINUTE, now=now)
+    attention_feature(main, "FEAT-13-stall-edge", run_status="running", age_seconds=45 * MINUTE, now=now)
+    attention_feature(main, "FEAT-14-run-edge", run_status="running", age_seconds=45 * MINUTE - 1, now=now)
+    attention_feature(main, "FEAT-15-stale-edge", station="ready", age_seconds=7 * DAY, now=now)
+    attention_feature(main, "FEAT-16-fresh-edge", station="ready", age_seconds=7 * DAY - 1, now=now)
+    bad = main / "FEAT-11-broken"; bad.mkdir(parents=True); (bad / "feature.json").write_text("{broken")
+    notes = root / ".harness" / "notes"; notes.mkdir(); (notes / "grilling-x-2026-09-16.md").write_text("---\nstatus: open\nbecame: null\n---\n# Grilling\n")
+
+
+def _assert_needs_you(a):
+    check("needs-you awaiting_user", a["FEAT-01-await"].state == "needs-you" and any("awaiting" in r for r in a["FEAT-01-await"].reasons))
+    check("needs-you open questions", a["FEAT-02-questions"].state == "needs-you" and any("2 open question" in r for r in a["FEAT-02-questions"].reasons))
+    check("needs-you pending approval", a["FEAT-03-pending"].state == "needs-you")
+    check("open grilling is needs-you", a["grilling-x-2026-09-16"].state == "needs-you")
+
+
+def _assert_states(a):
+    _assert_needs_you(a)
+    check("blocked run", a["FEAT-04-blocked"].state == "blocked")
+    check("stalled after threshold", a["FEAT-05-stalled"].state == "stalled")
+    check("running before threshold", a["FEAT-06-running"].state == "running")
+    check("over-budget after stalled", a["FEAT-07-budget"].state == "stalled" and "cycles 6/7" in a["FEAT-07-budget"].reasons and a["FEAT-12-overbudget"].state == "over-budget")
+    check("stale after seven days", a["FEAT-08-stale"].state == "stale" and a["FEAT-10-fresh"].state is None)
+    check("terminal has no attention", a["FEAT-09-done"].state is None and a["FEAT-09-done"].reasons == ())
+    check("source error has no attention", a["FEAT-11-broken"].state is None and a["FEAT-11-broken"].reasons and "source error" in a["FEAT-11-broken"].reasons[0])
+
+
+def _assert_boundaries(a):
+    """V-20: the thresholds are inclusive at exactly 45 minutes and exactly seven days."""
+    check("stalled at exactly 45 minutes", a["FEAT-13-stall-edge"].state == "stalled")
+    check("running at 44m59s", a["FEAT-14-run-edge"].state == "running")
+    check("stale at exactly seven days", a["FEAT-15-stale-edge"].state == "stale")
+    check("fresh at seven days minus one second", a["FEAT-16-fresh-edge"].state is None)
+
+
+def _assert_ranking(att, rows, now, limits):
+    ranked = [item.display_name for item, _ in att.rank(rows.values(), now, limits)]
+    expected_head = ["FEAT-01-await", "FEAT-02-questions", "FEAT-03-pending", "grilling-x-2026-09-16", "FEAT-04-blocked",
+                     "FEAT-05-stalled", "FEAT-07-budget", "FEAT-13-stall-edge", "FEAT-12-overbudget",
+                     "FEAT-14-run-edge", "FEAT-06-running", "FEAT-08-stale", "FEAT-15-stale-edge"]
+    check("precedence and tie order", ranked[:len(expected_head)] == expected_head, str(ranked))
+    stalled = [n for n in ranked if n in ("FEAT-05-stalled", "FEAT-07-budget", "FEAT-13-stall-edge")]
+    check("tie order is oldest write then id", stalled == ["FEAT-05-stalled", "FEAT-07-budget", "FEAT-13-stall-edge"], str(stalled))
+    original = att.ORDER
+    att.ORDER = tuple(reversed(original))
+    try:
+        mutated = [item.display_name for item, _ in att.rank(rows.values(), now, limits)]
+    finally:
+        att.ORDER = original
+    states_in_order = [att.derive(rows[n], now, limits).state for n in mutated if att.derive(rows[n], now, limits).state]
+    check("precedence follows ORDER under mutation", states_in_order == sorted(states_in_order, key=lambda s: tuple(reversed(original)).index(s)) and mutated[0] == "FEAT-08-stale", str(mutated[:4]))
+
+
+def _assert_thresholds(att):
+    for name, block in (("thresholds reject bool", {"stalled_minutes": True, "stale_days": 7, "over_budget_remaining_cycles": 1}),
+                        ("thresholds reject zero", {"stalled_minutes": 45, "stale_days": 0, "over_budget_remaining_cycles": 1})):
+        try: att.thresholds({"dashboard": block}); check(name, False)
+        except ValueError: check(name, True)
+    try: att.thresholds({}); check("thresholds reject missing block", False)
+    except ValueError: check("thresholds reject missing block", True)
 
 
 def attention_case():
@@ -291,44 +372,14 @@ def attention_case():
     now = datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc)
     limits = att.thresholds({"dashboard": {"stalled_minutes": 45, "stale_days": 7, "over_budget_remaining_cycles": 1}})
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp) / "control"; main = root / ".harness" / "harness" / "features"
-        (root / ".harness" / "factory").mkdir(parents=True)
-        (root / ".harness" / "factory" / "fleet.yaml").write_text("schema: factory-fleet/1\nworkspace_root: /nonexistent\nrepos: []\n", encoding="utf-8")
-        attention_feature(main, "FEAT-01-await", run_status="awaiting_user", now=now)
-        attention_feature(main, "FEAT-02-questions", questions=2, now=now)
-        attention_feature(main, "FEAT-03-pending", approval="pending", now=now)
-        attention_feature(main, "FEAT-04-blocked", run_status="blocked", now=now)
-        attention_feature(main, "FEAT-05-stalled", run_status="running", age_minutes=46, now=now)
-        attention_feature(main, "FEAT-06-running", run_status="running", age_minutes=44, now=now)
-        attention_feature(main, "FEAT-07-budget", run_status="running", cycles=(6, 7), age_minutes=46, now=now)
-        attention_feature(main, "FEAT-08-stale", station="ready", age_minutes=7 * 24 * 60, now=now)
-        attention_feature(main, "FEAT-09-done", station="done", age_minutes=30 * 24 * 60, now=now)
-        attention_feature(main, "FEAT-10-fresh", station="ready", age_minutes=60, now=now)
-        attention_feature(main, "FEAT-12-overbudget", run_status="running", cycles=(6, 7), age_minutes=5, now=now)
-        bad = main / "FEAT-11-broken"; bad.mkdir(parents=True); (bad / "feature.json").write_text("{broken")
-        notes = root / ".harness" / "notes"; notes.mkdir(); (notes / "grilling-x-2026-09-16.md").write_text("---\nstatus: open\nbecame: null\n---\n# Grilling\n")
+        root = Path(tmp) / "control"
+        _attention_fixture(root, now)
         rows, _ = collect_rows(work, root, [])
         a = {name: att.derive(item, now, limits) for name, item in rows.items()}
-        check("needs-you awaiting_user", a["FEAT-01-await"].state == "needs-you" and any("awaiting" in r for r in a["FEAT-01-await"].reasons))
-        check("needs-you open questions", a["FEAT-02-questions"].state == "needs-you" and any("2 open question" in r for r in a["FEAT-02-questions"].reasons))
-        check("needs-you pending approval", a["FEAT-03-pending"].state == "needs-you")
-        check("blocked run", a["FEAT-04-blocked"].state == "blocked")
-        check("stalled after threshold", a["FEAT-05-stalled"].state == "stalled")
-        check("running before threshold", a["FEAT-06-running"].state == "running")
-        check("over-budget after stalled", a["FEAT-07-budget"].state == "stalled" and "cycles 6/7" in a["FEAT-07-budget"].reasons and a["FEAT-12-overbudget"].state == "over-budget")
-        check("stale after seven days", a["FEAT-08-stale"].state == "stale" and a["FEAT-10-fresh"].state is None)
-        check("terminal has no attention", a["FEAT-09-done"].state is None and a["FEAT-09-done"].reasons == ())
-        check("open grilling is needs-you", a["grilling-x-2026-09-16"].state == "needs-you")
-        check("source error has no attention", a["FEAT-11-broken"].state is None and a["FEAT-11-broken"].reasons and "source error" in a["FEAT-11-broken"].reasons[0])
-        ranked = [item.display_name for item, _ in att.rank(rows.values(), now, limits)]
-        expected_head = ["FEAT-01-await", "FEAT-02-questions", "FEAT-03-pending", "grilling-x-2026-09-16", "FEAT-04-blocked", "FEAT-05-stalled", "FEAT-07-budget", "FEAT-12-overbudget", "FEAT-06-running", "FEAT-08-stale"]
-        check("precedence and tie order", ranked[:len(expected_head)] == expected_head, str(ranked))
-    for name, block in (("thresholds reject bool", {"stalled_minutes": True, "stale_days": 7, "over_budget_remaining_cycles": 1}),
-                        ("thresholds reject zero", {"stalled_minutes": 45, "stale_days": 0, "over_budget_remaining_cycles": 1})):
-        try: att.thresholds({"dashboard": block}); check(name, False)
-        except ValueError: check(name, True)
-    try: att.thresholds({}); check("thresholds reject missing block", False)
-    except ValueError: check("thresholds reject missing block", True)
+        _assert_states(a)
+        _assert_boundaries(a)
+        _assert_ranking(att, rows, now, limits)
+    _assert_thresholds(att)
 
 
 def main():
