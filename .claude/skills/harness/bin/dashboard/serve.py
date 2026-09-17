@@ -67,6 +67,12 @@ def create_app(root: Path):
     project_root = Path(root).resolve()
     app = Flask(__name__)
 
+    @app.before_request
+    def require_loopback_host():
+        from flask import request
+        if not _trusted_host(request.host):
+            return jsonify(error="dashboard is available only to loopback hosts"), 400
+
     @app.get("/api/kpis")
     def kpis():
         selection = _selection_or_error(project_root, require_all=False)
@@ -108,6 +114,15 @@ def create_app(root: Path):
         return send_file(CLIENT_INDEX, mimetype="text/html")
 
     return app
+
+
+def _trusted_host(host: str) -> bool:
+    value = host.lower()
+    if value.startswith("[::1]"):
+        suffix = value.removeprefix("[::1]")
+        return suffix == "" or (suffix.startswith(":") and suffix[1:].isdigit())
+    name, separator, port = value.partition(":")
+    return name in {"localhost", "127.0.0.1"} and (separator == "" or port.isdigit())
 
 
 def _window_or_error():

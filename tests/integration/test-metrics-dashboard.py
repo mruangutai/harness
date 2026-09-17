@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Behavioral integration coverage for the loopback metrics dashboard API."""
 import importlib.util
+from datetime import datetime
 import json
 from pathlib import Path
 import shutil
@@ -108,77 +109,57 @@ class MetricsDashboardIntegrationTest(unittest.TestCase):
     def test_work_api_filters_live_disk_payload_and_preserves_static_routes(self):
         control, alpha = _operational_fixture(self)
         client = self.serve.create_app(control).test_client()
-        default_kpis = client.get("/api/kpis")
-        default_work = client.get("/api/work")
-        alpha_kpis = client.get("/api/kpis?window=30d&repo=alpha")
-        alpha_work = client.get("/api/work?window=30d&repo=alpha")
-        self.assertEqual(200, default_kpis.status_code)
-        self.assertEqual(200, default_work.status_code)
-        self.assertEqual(200, alpha_kpis.status_code)
-        self.assertEqual(200, alpha_work.status_code)
-        self.assertEqual("all", default_kpis.get_json()["window"])
-        self.assertEqual(str(control.resolve()), default_kpis.get_json()["project"]["root"])
-        self.assertEqual("all", default_work.get_json()["window"])
-        self.assertEqual("all", default_work.get_json()["repo"])
-        self.assertEqual("30d", alpha_kpis.get_json()["window"])
-        self.assertEqual(str(alpha.resolve()), alpha_kpis.get_json()["project"]["root"])
-        payload = alpha_work.get_json()
-        _assert_work_payload(self, payload, "alpha")
-        self.assertTrue(any(error["source_path"].endswith("FEAT-203-malformed") for error in payload["errors"]))
-        feature = next(item for item in payload["items"] if item["kind"] == "bug")
-        self.assertEqual(2, feature["cycles_used"])
-        self.assertIsNone(feature["elapsed_by_phase"]["build"])
-        self.assertIsNone(feature["elapsed_by_phase"]["validate"])
-        self.assertEqual({"measured_total": 3, "measured_runs": 1, "total_runs": 2,
-                          "unmeasured_runs": 1, "by_phase": {"plan": 3, "build": None, "validate": None}},
-                         feature["tokens"])
-        feature_json = Path(feature["source_path"]) / "feature.json"
-        feature_json.write_text(json.dumps({"feature_id": "BUG-202-alpha", "branch": "main",
-            "cycles_used": 6, "max_total_cycles": 7,
-            "runs": [{"squad": "eng", "tokens": None}]}), encoding="utf-8")
-        refreshed = client.get("/api/work?window=30d&repo=alpha")
-        self.assertEqual(200, refreshed.status_code)
-        refreshed_feature = next(item for item in refreshed.get_json()["items"] if item["id"] == feature["id"])
-        self.assertEqual(6, refreshed_feature["cycles_used"])
-        work_module = sys.modules["work"]
-        original_run = subprocess.run
-        def no_github(command, *args, **kwargs):
-            self.assertNotEqual("gh", command[0])
-            return original_run(command, *args, **kwargs)
-        with patch.object(work_module.factory_config.factory_gh, "file_at_ref",
-                          side_effect=AssertionError("dashboard reached GitHub")):
-            with patch("subprocess.run", side_effect=no_github):
-                isolated = client.get("/api/work?window=30d&repo=alpha")
-        self.assertEqual(200, isolated.status_code)
-        self.assertEqual({"error": "window must be one of 30d, 90d, all"},
-                         client.get("/api/work?window=invalid").get_json())
-        self.assertEqual({"error": "repo must be one of all, harness, alpha"},
-                         client.get("/api/kpis?repo=missing").get_json())
-        (control / ".harness" / "harness.json").write_text("{}", encoding="utf-8")
-        unavailable = client.get("/api/work")
-        self.assertEqual(500, unavailable.status_code)
-        self.assertTrue(unavailable.is_json)
-        self.assertIn("dashboard unavailable:", unavailable.get_json()["error"])
-        shutil.copy(ROOT / ".harness" / "harness.json", control / ".harness" / "harness.json")
-        shutil.rmtree(alpha)
-        enumeration = client.get("/api/work")
-        self.assertEqual(500, enumeration.status_code)
-        self.assertIn("configured repository alpha cannot be enumerated", enumeration.get_json()["error"])
+        _assert_selected_payloads(self, client, control, alpha)
+        _assert_live_work_refresh(self, client)
+        _assert_work_is_disk_only(self, client)
+        _assert_selection_errors(self, client, control, alpha)
         _assert_client_routes(self, client)
+
+    def test_untrusted_host_cannot_read_dashboard_routes(self):
+        client = self.serve.create_app(self.project).test_client()
+        for route in ("/", "/api/work", "/api/kpis"):
+            blocked = client.get(route, headers={"Host": "attacker.example"})
+            self.assertEqual(400, blocked.status_code, route)
+            self.assertTrue(blocked.is_json, route)
+        for host in ("localhost", "localhost:8971", "127.0.0.1", "127.0.0.1:8971",
+                     "[::1]", "[::1]:8971"):
+            self.assertEqual(200, client.get("/", headers={"Host": host}).status_code, host)
+
+    def test_kpi_route_isolated_from_fixture_for_all_output(self):
+        fixture_client = self.serve.create_app(self.project).test_client()
+        fixture_payload = fixture_client.get("/api/kpis?window=all").get_json()
+        repository_client = self.serve.create_app(ROOT).test_client()
+        with patch("kpi.grading.distribution", return_value={"fixture-isolation": "stable"}):
+            response = repository_client.get("/api/kpis?window=all")
+            self.assertEqual(200, response.status_code)
+            actual = response.get_json()
+            expected = sys.modules["kpi"].compute(
+                ROOT, "all", generated_at=datetime.fromisoformat(actual["generated_at"].replace("Z", "+00:00"))
+            )
+        self.assertNotEqual(fixture_payload["project"]["root"], actual["project"]["root"])
+        self.assertEqual(expected["features"], actual["features"])
+        self.assertEqual(expected["aggregate"], actual["aggregate"])
+        self.assertEqual(expected["trend"], actual["trend"])
+        _assert_kpi_shape(self, fixture_payload)
+        _assert_kpi_shape(self, actual)
 
     def test_repository_api_request_is_kpi_payload_under_ceiling(self):
         before = _git(ROOT, "status", "--porcelain=v1").stdout
         app = self.serve.create_app(ROOT)
-        started = time.monotonic()
-        response = app.test_client().get("/api/kpis?window=all")
-        elapsed = time.monotonic() - started
-        print(f"full repository /api/kpis elapsed: {elapsed:.3f}s")
-        self.assertEqual(200, response.status_code, response.get_json())
-        self.assertEqual("kpi/1", response.get_json()["schema"])
-        self.assertLess(elapsed, 8.0)
+        samples = [_kpi_request_seconds(app) for _ in range(3)]
+        print("full repository /api/kpis elapsed: " + ", ".join(f"{sample:.3f}s" for sample in samples))
+        self.assertTrue(all(sample < 8.0 for sample in samples), samples)
+        self.assertGreater(8.0 - max(samples), 1.0, samples)
         self.assertEqual(before, _git(ROOT, "status", "--porcelain=v1").stdout)
 
 
+def _kpi_request_seconds(app):
+    started = time.monotonic()
+    response = app.test_client().get("/api/kpis?window=all")
+    elapsed = time.monotonic() - started
+    if response.status_code != 200:
+        raise AssertionError(response.get_json())
+    return elapsed
 
 
 def _operational_fixture(test):
@@ -222,6 +203,97 @@ def _write_operational_feature(path, feature_id, station, cycles):
     (path / "BRIEF.md").write_text("## Approval\nstatus: approved\ndate: 2026-09-16\n",
                                    encoding="utf-8")
 
+
+def _assert_selected_payloads(test, client, control, alpha):
+    default_kpis = client.get("/api/kpis")
+    default_work = client.get("/api/work")
+    alpha_kpis = client.get("/api/kpis?window=30d&repo=alpha")
+    alpha_work = client.get("/api/work?window=30d&repo=alpha")
+    _assert_ok(test, default_kpis, default_work, alpha_kpis, alpha_work)
+    _assert_default_selection(test, default_kpis, default_work, control)
+    _assert_alpha_selection(test, alpha_kpis, alpha_work, alpha)
+
+
+def _assert_ok(test, *responses):
+    for response in responses:
+        test.assertEqual(200, response.status_code)
+
+
+def _assert_default_selection(test, kpis, work, control):
+    test.assertEqual("all", kpis.get_json()["window"])
+    test.assertEqual(str(control.resolve()), kpis.get_json()["project"]["root"])
+    test.assertEqual("all", work.get_json()["window"])
+    test.assertEqual("all", work.get_json()["repo"])
+
+
+def _assert_alpha_selection(test, kpis, work, alpha):
+    test.assertEqual("30d", kpis.get_json()["window"])
+    test.assertEqual(str(alpha.resolve()), kpis.get_json()["project"]["root"])
+    payload = work.get_json()
+    _assert_work_payload(test, payload, "alpha")
+    test.assertTrue(any(error["source_path"].endswith("FEAT-203-malformed")
+                        for error in payload["errors"]))
+
+
+def _assert_live_work_refresh(test, client):
+    payload = client.get("/api/work?window=30d&repo=alpha").get_json()
+    feature = next(item for item in payload["items"] if item["kind"] == "bug")
+    test.assertEqual(2, feature["cycles_used"])
+    test.assertIsNone(feature["elapsed_by_phase"]["build"])
+    test.assertIsNone(feature["elapsed_by_phase"]["validate"])
+    test.assertEqual({"measured_total": 3, "measured_runs": 1, "total_runs": 2,
+                      "unmeasured_runs": 1, "by_phase": {"plan": 3, "build": None, "validate": None}},
+                     feature["tokens"])
+    feature_json = Path(feature["source_path"]) / "feature.json"
+    feature_json.write_text(json.dumps({"feature_id": "BUG-202-alpha", "branch": "main",
+        "cycles_used": 6, "max_total_cycles": 7,
+        "runs": [{"squad": "eng", "tokens": None}]}), encoding="utf-8")
+    refreshed = client.get("/api/work?window=30d&repo=alpha")
+    test.assertEqual(200, refreshed.status_code)
+    refreshed_feature = next(item for item in refreshed.get_json()["items"] if item["id"] == feature["id"])
+    test.assertEqual(6, refreshed_feature["cycles_used"])
+
+
+def _assert_work_is_disk_only(test, client):
+    work_module = sys.modules["work"]
+    original_run = subprocess.run
+    def no_github(command, *args, **kwargs):
+        test.assertNotEqual("gh", command[0])
+        return original_run(command, *args, **kwargs)
+    with patch.object(work_module.factory_config.factory_gh, "file_at_ref",
+                      side_effect=AssertionError("dashboard reached GitHub")):
+        with patch("subprocess.run", side_effect=no_github):
+            response = client.get("/api/work?window=30d&repo=alpha")
+    test.assertEqual(200, response.status_code)
+
+
+def _assert_selection_errors(test, client, control, alpha):
+    test.assertEqual({"error": "window must be one of 30d, 90d, all"},
+                     client.get("/api/work?window=invalid").get_json())
+    test.assertEqual({"error": "repo must be one of all, harness, alpha"},
+                     client.get("/api/kpis?repo=missing").get_json())
+    (control / ".harness" / "harness.json").write_text("{}", encoding="utf-8")
+    unavailable = client.get("/api/work")
+    test.assertEqual(500, unavailable.status_code)
+    test.assertTrue(unavailable.is_json)
+    test.assertIn("dashboard unavailable:", unavailable.get_json()["error"])
+    shutil.copy(ROOT / ".harness" / "harness.json", control / ".harness" / "harness.json")
+    shutil.rmtree(alpha)
+    enumeration = client.get("/api/work")
+    test.assertEqual(500, enumeration.status_code)
+    test.assertIn("configured repository alpha cannot be enumerated", enumeration.get_json()["error"])
+
+
+def _assert_kpi_shape(test, payload):
+    test.assertEqual({"schema", "project", "window", "generated_at", "features", "aggregate", "trend"},
+                     set(payload))
+    for feature in payload["features"]:
+        test.assertEqual({"feature_id", "approved_on", "shipped_at", "cycle_time_days", "runs",
+                          "cycles_used", "max_total_cycles", "insertions", "deletions",
+                          "files_changed", "touchpoints", "trend", "unavailable"}, set(feature))
+        test.assertEqual({"cycle_time_days", "runs", "cycles_used", "max_total_cycles", "insertions",
+                          "deletions", "files_changed", "touchpoints", "grade", "attribution", "unavailable"},
+                         set(feature["trend"]))
 
 def _assert_work_payload(test, payload, repository):
     expected = {

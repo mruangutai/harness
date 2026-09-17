@@ -29,16 +29,22 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
     """Compute the first KPI payload solely from the supplied project root."""
     root = Path(project_root).resolve()
     generated = _as_utc(generated_at or datetime.now(timezone.utc))
-    start, end = resolve_window(window, generated)
     trend_payload = trend.read(root, window, generated)
-    records = trend_payload["records"]
+    features = _selected_features(root, window, generated, trend_payload["records"])
+    return _payload(root, window, generated, features, trend_payload)
+
+
+def _selected_features(root: Path, window: str, generated: datetime, records: dict) -> list[dict]:
+    start, end = resolve_window(window, generated)
     metadata = [_feature_metadata(path, records) for path in _feature_dirs(root)]
-    selected_metadata = [item for item in metadata if _in_window(item[2], start, end)]
+    selected = [item for item in metadata if _in_window(item[2], start, end)]
     default_branch = _default_branch(root)
-    change_sizes = _change_sizes(root, default_branch, [document["branch"] for _, document, _, _ in selected_metadata])
-    features = [_feature_from_metadata(path, root, document, record, default_branch,
-                                       change_sizes[document["branch"]])
-                for path, document, _shipped_at, record in selected_metadata]
+    sizes = _change_sizes(root, default_branch, [document["branch"] for _, document, _, _ in selected])
+    return [_feature_from_metadata(path, root, document, record, default_branch, sizes[document["branch"]])
+            for path, document, _shipped_at, record in selected]
+
+
+def _payload(root: Path, window: str, generated: datetime, features: list[dict], trend_payload: dict) -> dict:
     return {
         "schema": _SCHEMA,
         "project": {"root": str(root), "name": root.name},

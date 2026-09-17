@@ -65,6 +65,26 @@ class TrendTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FEAT-ONE"):
             trend.append(self.directory, first)
 
+    def test_separate_worktrees_preserve_three_records_through_two_merges(self):
+        (self.directory / "baseline").write_text("base", encoding="utf-8")
+        _baseline_commit(self.directory)
+        baseline = record("FEAT-BASE", "2026-09-01T10:00:00Z")
+        trend.append(self.directory, baseline)
+        _commit_trend(self.directory, "base trend")
+        first, second = _trend_worktrees(self.directory, self.directory.parent)
+        try:
+            _append_and_commit(first, record("FEAT-FIRST", "2026-09-02T10:00:00Z"))
+            _append_and_commit(second, record("FEAT-SECOND", "2026-09-03T10:00:00Z"))
+            _merge_trend_worktree(self.directory, first, second)
+            result = trend.read(self.directory, "all", NOW)
+        finally:
+            _remove_worktree(self.directory, first)
+            _remove_worktree(self.directory, second)
+        self.assertEqual(["FEAT-BASE", "FEAT-FIRST", "FEAT-SECOND"], list(result["records"]))
+        self.assertEqual(["FEAT-BASE", "FEAT-FIRST", "FEAT-SECOND"],
+                         [json.loads(line)["feature_id"] for line in
+                          (self.directory / ".harness/metrics/trend.jsonl").read_text().splitlines()])
+
     def test_reader_rejects_schema_and_resolves_merged_duplicates(self):
         path = self.directory / ".harness/metrics/trend.jsonl"
         path.parent.mkdir(parents=True)
@@ -127,6 +147,19 @@ class TrendTest(unittest.TestCase):
         missing = next(item for item in result["features"] if item["feature_id"] == "FIX-NOSHIP")
         self.assertIsNone(missing["trend"]["cycle_time_days"])
         self.assertEqual(missing["trend"]["unavailable"]["cycle_time_days"], "shipped before metrics existed")
+
+    def test_kpi_reports_every_missing_trend_field_unavailable_not_zero(self):
+        fixture = ROOT / ".claude/skills/harness/bin/dashboard/fixtures/project-a"
+        root = self.directory / "project"
+        shutil.copytree(fixture, root)
+        with patch.object(kpi, "_aggregate", return_value={}):
+            result = kpi.compute(root, "all", NOW)
+        missing = next(item for item in result["features"] if item["feature_id"] == "FIX-NOSHIP")
+        for field in ("cycle_time_days", "runs", "cycles_used", "max_total_cycles", "insertions",
+                      "deletions", "files_changed", "touchpoints", "grade", "attribution"):
+            self.assertIsNone(missing["trend"][field], field)
+            self.assertNotEqual(0, missing["trend"][field], field)
+            self.assertEqual("shipped before metrics existed", missing["trend"]["unavailable"][field])
 
     def test_touchpoints_post_instrumentation_absent_file_is_zero(self):
         with patch.object(kpi, "_aggregate", return_value={}):
@@ -266,6 +299,42 @@ class TrendTest(unittest.TestCase):
             )
         )
         self.assertTrue(record_try.handlers)
+
+def _commit_trend(project: Path, message: str):
+    _git(project, "add", ".harness/metrics/trend.jsonl")
+    _git(project, "commit", "-qm", message)
+
+
+def _trend_worktrees(project: Path, parent: Path):
+    first, second = parent / "first", parent / "second"
+    _git(project, "worktree", "add", "-q", "-b", "trend-first", str(first))
+    _git(project, "worktree", "add", "-q", "-b", "trend-second", str(second))
+    return first, second
+
+
+def _append_and_commit(project: Path, value: dict):
+    trend.append(project, value)
+    _commit_trend(project, value["feature_id"])
+
+
+def _merge_trend_worktree(project: Path, first: Path, second: Path):
+    _git(project, "merge", "--no-ff", "-m", "merge first", "trend-first")
+    conflict = subprocess.run(["git", "-C", str(project), "merge", "--no-ff", "-m", "merge second",
+                               "trend-second"], capture_output=True, text=True)
+    if conflict.returncode == 0:
+        return
+    second_line = (second / ".harness/metrics/trend.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+    merged = _git(project, "show", "HEAD:.harness/metrics/trend.jsonl")
+    path = project / ".harness/metrics/trend.jsonl"
+    path.write_text(merged + "\n" + second_line + "\n", encoding="utf-8")
+    _git(project, "add", ".harness/metrics/trend.jsonl")
+    _git(project, "commit", "-qm", "merge second")
+
+
+def _remove_worktree(project: Path, worktree: Path):
+    subprocess.run(["git", "-C", str(project), "worktree", "remove", "--force", str(worktree)],
+                   check=False, capture_output=True)
+
 
 def _ship_feature():
     return {

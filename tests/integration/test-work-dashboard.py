@@ -198,52 +198,93 @@ def worktree_case():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "control"
         _main, _bad, worktrees = setup(root)
-        workspace = root / "workspace" / "widget"
-        workspace.mkdir(parents=True)
-        orphan = root / ".claude" / "worktrees" / "harness" / "FEAT-61-orphan"
-        orphan.mkdir(parents=True)
-        paths = [root, *worktrees, orphan, workspace]
-        original_paths = work.worktree_terminal._worktree_paths
-        original_classify = work.worktree_terminal.classify_all
-        work.worktree_terminal._worktree_paths = lambda path: (
-            [str(root), *map(str, worktrees), str(orphan)]
-            if Path(path).resolve() == root.resolve() else [str(workspace)]
-        )
-        work.worktree_terminal.classify_all = lambda path: [
-            {"path": str(worktrees[2]), "feature_id": "FEAT-73-divergent",
-             "klass": "terminal", "repo": "harness", "reason": "landed"},
-            {"path": str(orphan), "feature_id": None, "klass": "exempt_absent",
-             "repo": "harness", "reason": "absent"},
-        ]
-        try:
-            rows = work.collect(root)
-        finally:
-            work.worktree_terminal._worktree_paths = original_paths
-            work.worktree_terminal.classify_all = original_classify
-        worktree_rows = [row for row in rows if row.kind == "worktree"]
-        row_paths = [row.canonical_path for row in worktree_rows]
-        check("worktrees include every canonical path exactly once",
-              sorted(row_paths) == sorted(str(path.resolve()) for path in paths)
-              and len(row_paths) == len(set(row_paths)))
-        by_path = {row.canonical_path: row for row in worktree_rows}
-        primary = by_path.get(str(root.resolve()))
-        linked = by_path.get(str(worktrees[0].resolve()))
-        orphan_row = by_path.get(str(orphan.resolve()))
-        terminal = by_path.get(str(worktrees[2].resolve()))
-        check("worktrees retain primary linked detached orphan terminal and error rows",
-              primary is not None and primary.checkout_role == "primary"
-              and linked is not None and linked.checkout_role == "linked"
-              and linked.feature_id == "FEAT-71-long-id"
-              and linked.feature_status == "active"
-              and orphan_row is not None and orphan_row.feature_status == "absent"
-              and terminal is not None and terminal.feature_status == "terminal")
-        feature = next((row for row in rows if row.display_name == "FEAT-71-long-id"), None)
-        check("only linked worktrees override feature copies",
-              feature is not None and feature.worktree_path == str(worktrees[0].resolve())
-              and primary is not None and primary.feature_id is None)
-        check("worktrees use terminal classification and repository identity",
-              terminal is not None and terminal.repository == "harness"
-              and terminal.feature_id == "FEAT-73-divergent")
+        rows, paths = _collect_worktree_rows(work, root, worktrees)
+        _assert_worktree_paths(rows, paths)
+        _assert_worktree_kinds(rows, worktrees)
+        _assert_worktree_precedence(rows, worktrees)
+        _assert_worktree_identity(rows, worktrees)
+
+
+def _collect_worktree_rows(work, root, worktrees):
+    workspace = root / "workspace" / "widget"
+    workspace.mkdir(parents=True)
+    orphan = root / ".claude" / "worktrees" / "harness" / "FEAT-61-orphan"
+    orphan.mkdir(parents=True)
+    paths = [root, *worktrees, orphan, workspace]
+    original_paths = work.worktree_terminal._worktree_paths
+    original_classify = work.worktree_terminal.classify_all
+    work.worktree_terminal._worktree_paths = _worktree_paths(root, worktrees, orphan, workspace)
+    work.worktree_terminal.classify_all = _worktree_classifications(worktrees, orphan)
+    try:
+        return work.collect(root), paths
+    finally:
+        work.worktree_terminal._worktree_paths = original_paths
+        work.worktree_terminal.classify_all = original_classify
+
+
+def _worktree_paths(root, worktrees, orphan, workspace):
+    def paths(path):
+        return ([str(root), *map(str, worktrees), str(orphan)]
+                if Path(path).resolve() == root.resolve() else [str(workspace)])
+    return paths
+
+
+def _worktree_classifications(worktrees, orphan):
+    return lambda path: [
+        {"path": str(worktrees[2]), "feature_id": "FEAT-73-divergent",
+         "klass": "terminal", "repo": "harness", "reason": "landed"},
+        {"path": str(orphan), "feature_id": None, "klass": "exempt_absent",
+         "repo": "harness", "reason": "absent"},
+    ]
+
+
+def _worktree_only(rows):
+    return [row for row in rows if row.kind == "worktree"]
+
+
+def _assert_worktree_paths(rows, paths):
+    row_paths = [row.canonical_path for row in _worktree_only(rows)]
+    check("worktrees include every canonical path exactly once",
+          sorted(row_paths) == sorted(str(path.resolve()) for path in paths)
+          and len(row_paths) == len(set(row_paths)))
+
+
+def _assert_worktree_kinds(rows, worktrees):
+    primary, linked, orphan, terminal = _worktree_kind_rows(rows, worktrees)
+    check("worktrees retain primary linked detached orphan terminal and error rows",
+          _assert_primary_and_linked(primary, linked) and _assert_orphan_and_terminal(orphan, terminal))
+
+
+def _worktree_kind_rows(rows, worktrees):
+    worktree_rows = _worktree_only(rows)
+    by_path = {row.canonical_path: row for row in worktree_rows}
+    return (next(row for row in worktree_rows if row.checkout_role == "primary"),
+            by_path[str(worktrees[0].resolve())],
+            next(row for row in worktree_rows if row.feature_status == "absent"),
+            by_path[str(worktrees[2].resolve())])
+
+
+def _assert_primary_and_linked(primary, linked):
+    return (primary.checkout_role == "primary" and linked.checkout_role == "linked"
+            and linked.feature_id == "FEAT-71-long-id" and linked.feature_status == "active")
+
+
+def _assert_orphan_and_terminal(orphan, terminal):
+    return orphan.feature_status == "absent" and terminal.feature_status == "terminal"
+
+
+def _assert_worktree_precedence(rows, worktrees):
+    feature = next(row for row in rows if row.display_name == "FEAT-71-long-id")
+    primary = next(row for row in _worktree_only(rows) if row.checkout_role == "primary")
+    check("only linked worktrees override feature copies",
+          feature.worktree_path == str(worktrees[0].resolve()) and primary.feature_id is None)
+
+
+def _assert_worktree_identity(rows, worktrees):
+    terminal = next(row for row in _worktree_only(rows)
+                    if row.canonical_path == str(worktrees[2].resolve()))
+    check("worktrees use terminal classification and repository identity",
+          terminal.repository == "harness" and terminal.feature_id == "FEAT-73-divergent")
 
 
 # ---- attention (T-24, D-25) ---------------------------------------------------------------

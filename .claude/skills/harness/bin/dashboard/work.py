@@ -323,18 +323,30 @@ def _phase_elapsed(start: datetime | None, boundaries: dict, phase: str,
 
 
 def _tokens(runs: list[dict]) -> dict:
-    measured = [run for run in runs if _int_or_none(run.get("tokens")) is not None]
-    by_phase = {}
-    for phase in _PHASES:
-        values = [_int_or_none(run.get("tokens")) for run in runs
-                  if _SQUADS.get(run.get("squad")) == phase]
-        known = [value for value in values if value is not None]
-        by_phase[phase] = sum(known) if known else None
+    measured = _measured_tokens(runs)
     total_runs = len(runs)
-    return {"total": sum(_int_or_none(run.get("tokens")) for run in measured) if measured else None,
-            "measured_runs": len(measured), "total_runs": total_runs,
-            "unmeasured_runs": total_runs - len(measured), "by_phase": by_phase,
-            "presentation": f"unmeasured {total_runs - len(measured)} of {total_runs} runs"}
+    unmeasured = total_runs - len(measured)
+    return {
+        "total": sum(measured) if measured else None,
+        "measured_runs": len(measured),
+        "total_runs": total_runs,
+        "unmeasured_runs": unmeasured,
+        "by_phase": _tokens_by_phase(runs),
+        "presentation": f"unmeasured {unmeasured} of {total_runs} runs",
+    }
+
+
+def _measured_tokens(runs: list[dict]) -> list[int]:
+    return [value for run in runs if (value := _int_or_none(run.get("tokens"))) is not None]
+
+
+def _tokens_by_phase(runs: list[dict]) -> dict:
+    return {phase: _phase_tokens(runs, phase) for phase in _PHASES}
+
+
+def _phase_tokens(runs: list[dict], phase: str) -> int | None:
+    values = _measured_tokens([run for run in runs if _SQUADS.get(run.get("squad")) == phase])
+    return sum(values) if values else None
 
 
 def _instant(value) -> datetime | None:
