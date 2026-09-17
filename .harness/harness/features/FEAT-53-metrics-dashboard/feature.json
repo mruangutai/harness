@@ -144,6 +144,14 @@
       "cycles_used": 3,
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-16-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-09-16T23:22:40+00:00",
+      "tokens": 390597
     }
   ],
   "mission": "plan",
@@ -175,6 +183,41 @@
       "kind": "continue",
       "decision": "KPI-first root order",
       "reason": "Binding dispatch context sets Header then Repository KPIs then Work List with Status cards opening that section."
+    },
+    {
+      "at": "2026-09-16T23:20:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "2026-09-01-01-validator design findings routed to product rework",
+      "reason": "Historical pre-ledger FAIL was followed by the recorded product specification correction runs."
+    },
+    {
+      "at": "2026-09-16T23:20:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "2026-09-01-05-validator digest contract repair",
+      "reason": "Historical pre-ledger FAIL was followed by successor run 2026-09-01-06-validator to preserve the same panel result in a valid digest."
+    },
+    {
+      "at": "2026-09-16T23:20:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "2026-09-01-06-validator plan findings routed to product rework",
+      "reason": "Historical pre-ledger FAIL was followed by the recorded product task-graph and specification corrections."
+    },
+    {
+      "at": "2026-09-16T23:20:30+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "2026-09-01-08-validator bundle ordering finding routed to product rework",
+      "reason": "Historical pre-ledger FAIL was followed by the recorded product correction that made the shipped bundle depend on the chart mount."
+    },
+    {
+      "at": "2026-09-17T00:08:16+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Build run cannot close: record-amendments rejects the append-only two-block digest that validate-digest accepts, and DEC-174 forbids repairing gate tooling inside FEAT-53."
     }
   ],
   "rework": {
@@ -214,5 +257,77 @@
     "T-29": "722035a29b5d53398e6d7532f9a72beadf399995b4504d8ac38c67a6b598d29e",
     "T-30": "4e5cbc2e80d32211562f25716dd580a1b6811e1976073565d008a66bc037c7cd",
     "T-31": "37f99661e27e9b69582ef51bc8b81acce28b3919e2cd4fd41ed483d8dcecfb51"
+  },
+  "github": {
+    "milestone": 80,
+    "parent": 1787,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-18",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-19",
+      "T-20",
+      "T-21",
+      "T-22",
+      "T-23",
+      "T-24",
+      "T-25",
+      "T-26",
+      "T-27",
+      "T-28",
+      "T-29",
+      "T-30",
+      "T-31"
+    ],
+    "issues": {
+      "T-01": 1788,
+      "T-02": 1789,
+      "T-03": 1790,
+      "T-04": 1791,
+      "T-05": 1792,
+      "T-06": 1794,
+      "T-07": 1795,
+      "T-08": 1796,
+      "T-09": 1797,
+      "T-10": 1798,
+      "T-11": 1799,
+      "T-12": 1800,
+      "T-13": 1801,
+      "T-14": 1802,
+      "T-15": 1803,
+      "T-16": 1804,
+      "T-17": 1805,
+      "T-18": 1793,
+      "T-19": 1806,
+      "T-20": 1807,
+      "T-21": 1808,
+      "T-22": 1809,
+      "T-23": 1810,
+      "T-24": 1811,
+      "T-25": 1812,
+      "T-26": 1813,
+      "T-27": 1814,
+      "T-28": 1815,
+      "T-29": 1816,
+      "T-30": 1817,
+      "T-31": 1818
+    },
+    "source_issues": [],
+    "build_entry": "opened"
   }
 }

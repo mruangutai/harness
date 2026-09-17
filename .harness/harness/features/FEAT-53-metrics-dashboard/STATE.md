@@ -3,17 +3,17 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-16-01-product/digest.md
-- squad: none
+- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-16-02-eng/digest.md
+- squad: engineering
 - status: awaiting-user
 
-Plan panel cycle 8 reviewed the amended BRIEF, plan, DESIGN, and accepted prototype as one bundle. Scope, should-not-exist, and design all ran. PM applied every reported finding: all 12 original findings and the 12 semantically duplicate findings created by the required final `record-panel` pass are resolved, with no open panel finding. The prototype and approval were not changed.
+Build entry is open and projected to Building. T-01 and T-05 are recorded done; main-session-direct T-02 is committed at `6f214eea`. The first engineering segment committed T-03, T-06 and T-23 and its checkpoint is complete with PASS. Its lead reports three internal send-backs, so closing the run would move recorded cycles from 14 to 17 of 20.
 
-The binding root order is Header, Repository KPIs, then Work List, with Status cards opening the Work List before filters, the Kanban/Table toggle, and rows. The single goal-check ran once after apply and grades all six Done-when perspectives pass. The product remains exactly three routes (`/`, `/kpi/$n`, `/work/$id`), disk-only, null-aware for run-end token measurement, and without dollar cost.
+The run cannot legally close. Its append-only digest contains the original and corrected fenced returns. `validate-digest.py harness-eng-lead` accepts the last block, but `plan-merge.py record-amendments` exits 5 claiming there is no DIGEST mapping. The signed-task amendments must be transcribed before any station moves, while check-domain intentionally forbids replacing the recorded digest. DEC-174 forbids changing that tooling inside FEAT-53. A `continue: stop` judgement records this new harness finding class.
 
-Signature is not ready. The mandatory `plan-merge.py check` resolved 62 anchors over 31 tasks but exited 1 with 63 pre-build failures: 45 anchors name files in the future dashboard subtree and 18 frontend routes depend on T-01's planned grant, while the checker evaluates only the current filesystem and live manifest. Resolving that gate requires either checker semantics for planned paths/grants or explicit authorization to execute prerequisites before signature. The historical cycle ceiling is 20 without a recorded budget decision; current use is 14. Run count is 21 against informational `max_total_runs: 20`. Host token measurement was unavailable, so the run records `tokens: null`.
+Historical ledger backfill is recorded for every 2026-09-01 FAIL run, and `notes/handoff-plan.md` now carries the required `## Done when` shape. The historical cycle ceiling remains 20 without a `budget_decisions` entry; the instructed retain ruling is rejected by `raise-cycles`, so INV-39 remains a known tool contradiction rather than a hand edit.
 
 ## Open Questions
 
-- Blocking: should the mandatory checker gain planned future-subtree and planned-grant semantics, or may T-01 plus parent-directory prerequisites execute before the pre-signature check?
-- Blocking: may the main session record the operator's approval for retaining the historical `max_total_cycles: 20` ceiling? Current use is 14 and the ledger has no budget decision for that ceiling.
+- Blocking: may the harness owner repair `plan-merge.py record-amendments` to select the last valid fenced digest block, matching `validate-digest.py`, outside FEAT-53 and then resume this open run? Recommendation: yes; do not rewrite the append-only digest or weaken DEC-174.
+- Blocking before ship: how should the operator-approved historical `max_total_cycles: 20` ceiling be ledgered when `raise-cycles --to 20` refuses a retain ruling? Recommendation: repair the ledger verb to accept the existing signed decision path, then record it without hand-editing `feature.json`.
