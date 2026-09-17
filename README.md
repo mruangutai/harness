@@ -195,6 +195,7 @@ python3 .agents/skills/harness/bin/check-omp-port.py
 # Project invariants
 python3 .agents/skills/harness/bin/check-state.py
 ```
+For local dashboard startup, prerequisites, metrics, and work-status rules, see [`.harness/harness/docs/METRICS.md`](.harness/harness/docs/METRICS.md).
 
 To change a role, edit `.omp/agents/<name>.md`, then regenerate and check Claude compatibility:
 
