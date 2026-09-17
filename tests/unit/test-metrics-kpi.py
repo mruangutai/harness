@@ -60,8 +60,15 @@ class KpiCoreTest(unittest.TestCase):
 
     def test_grading_distribution_uses_grader_payload_and_live_file_mix(self):
         payload = self.expected["grading_payload"]
-        with patch("grading.subprocess.run", side_effect=_grading_result(payload, _TRACKED_FILES)):
+        with patch("grading.subprocess.run", side_effect=_grading_result(payload, _TRACKED_FILES)) as run:
             result = grading.distribution(self.project)
+        grader_call = run.call_args_list[1]
+        self.assertEqual(
+            ["python3", str(BIN / "code-grade.py"), "--json",
+             str(self.project.resolve() / "alpha.py"), str(self.project.resolve() / "broken.py")],
+            grader_call.args[0],
+        )
+        self.assertEqual(self.project.resolve(), grader_call.kwargs["cwd"])
         self.assertEqual(_grading_expected(self.expected["grading"]), result)
         with patch("grading.subprocess.run", side_effect=_grading_result(payload, _TRACKED_FILES + ["new.ts"])):
             changed = grading.distribution(self.project)
@@ -76,7 +83,8 @@ class KpiCoreTest(unittest.TestCase):
     def test_grading_payload_has_no_central_tendency(self):
         result = self.expected["grading"]
         self.assertFalse(_has_central_tendency(result))
-        self.assertTrue(_has_central_tendency({"median": 2}))
+        with self.assertRaises(AssertionError):
+            self.assertFalse(_has_central_tendency({"median": 2}))
 
     def test_committed_dashboard_source_sweep_rejects_mix_literal(self):
         paths = _dashboard_paths(ROOT)
