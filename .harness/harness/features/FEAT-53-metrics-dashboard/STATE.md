@@ -3,11 +3,11 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-11-eng/digest.md
+- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-12-eng/digest.md
 - squad: engineering
-- status: simplifying
+- status: repairing
 - tasks_done: T-01..T-16, T-18..T-31
-- next_gate: simplify
+- next_gate: repair simplify verification failures, rerun relevant suites, then pin review_sha
 - deferred_until_validate_clean: T-17
 - cycles_used: 26
 - max_total_cycles: 30
