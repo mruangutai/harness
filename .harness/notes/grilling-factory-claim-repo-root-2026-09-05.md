@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-1290-factory-claim-repo-root
+---
 # Grilling — factory claim resolves the feature repository root (#1290) — 2026-09-05
 
 Source ticket: https://github.com/mruangutai/harness/issues/1290 (body rewritten this sitting; it is

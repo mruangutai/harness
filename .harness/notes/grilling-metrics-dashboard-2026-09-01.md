@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-53-metrics-dashboard
+---
 # Grilling — self-visibility metrics dashboard — 2026-09-01
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-201-depends-on-integrity
+---
 # Grilling — depends_on integrity — 2026-09-06
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-13-single-issue-board-lookup
+---
 # Grilling — issue #217, the whole-board reads that answer single-issue questions — 2026-08-10
 
 ## Destination

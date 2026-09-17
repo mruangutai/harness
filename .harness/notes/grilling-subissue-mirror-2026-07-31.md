@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-03-subissue-mirror
+---
 # Grilling — sub-issue mirror migration — 2026-07-31
 
 ## Destination

@@ -45,7 +45,7 @@ def setup(root):
     write_feature(main / "FEAT-78-malformed-worktree", "FEAT-78-malformed-worktree", "main",
                   [{"verdict": "MAIN"}])
     write_feature(root / ".harness" / "widget" / "features" / "FEAT-76-widget", "FEAT-76-widget", "plan")
-    notes = root / ".harness" / "notes"; notes.mkdir(); (notes / "grilling-dashboard-2026-09-16.md").write_text("# Grilling\n\n## Status\nopen\n")
+    notes = root / ".harness" / "notes"; notes.mkdir(); (notes / "grilling-dashboard-2026-09-16.md").write_text("---\nstatus: open\nbecame: null\n---\n# Grilling\n")
     worktrees = []
     for label, name, station, runs in (("FEAT-71", "FEAT-71-long-id", "building", []), ("BUG-72-regression", "BUG-72-regression", "building", []), ("FEAT-73-divergent", "FEAT-73-divergent", "done", [{"verdict": "PASS"}]), ("FEAT-74", "FEAT-74-worktree-state", "review", [{"verdict": "PENDING"}]), ("FEAT-77", "FEAT-77-main-fallback", "ignored", []), ("FEAT-78", "FEAT-78-malformed-worktree", "worktree", [{"verdict": "WORKTREE"}])):
         worktree = root / ".claude" / "worktrees" / "harness" / label
@@ -181,7 +181,7 @@ def attention_case():
         attention_feature(main, "FEAT-10-fresh", station="ready", age_minutes=60, now=now)
         attention_feature(main, "FEAT-12-overbudget", run_status="running", cycles=(6, 7), age_minutes=5, now=now)
         bad = main / "FEAT-11-broken"; bad.mkdir(parents=True); (bad / "feature.json").write_text("{broken")
-        notes = root / ".harness" / "notes"; notes.mkdir(); (notes / "grilling-x-2026-09-16.md").write_text("---\nstatus: open\n---\n# Grilling\n\n## Status\nopen\n")
+        notes = root / ".harness" / "notes"; notes.mkdir(); (notes / "grilling-x-2026-09-16.md").write_text("---\nstatus: open\nbecame: null\n---\n# Grilling\n")
         rows, _ = collect_rows(work, root, [])
         a = {name: att.derive(item, now, limits) for name, item in rows.items()}
         check("needs-you awaiting_user", a["FEAT-01-await"].state == "needs-you" and any("awaiting" in r for r in a["FEAT-01-await"].reasons))

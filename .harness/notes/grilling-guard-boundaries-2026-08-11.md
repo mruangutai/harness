@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-17-guard-boundaries
+---
 # Grilling — issues #261 and #103, the guards' boundary rules — 2026-08-11
 
 ## Destination

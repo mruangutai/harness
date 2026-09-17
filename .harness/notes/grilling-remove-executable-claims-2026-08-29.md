@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-38-decisions-current-knowledge
+---
 # Grilling — remove executable claims from FEAT-38 — 2026-08-29
 
 Supplements `.harness/notes/grilling-decisions-current-knowledge-2026-08-24.md`, which remains valid

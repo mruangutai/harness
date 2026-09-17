@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-41-one-station-vocabulary
+---
 # Grilling — #845 one vocabulary from harness.json — 2026-08-25
 
 ## Destination

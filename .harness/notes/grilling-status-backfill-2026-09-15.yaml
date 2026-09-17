@@ -1,0 +1,307 @@
+schema: grilling-status-backfill/1
+observed: '2026-09-15'
+notes:
+- path: .harness/notes/grilling-845-one-vocabulary-2026-08-25.md
+  status: handed-off
+  became: FEAT-41-one-station-vocabulary
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-41-one-station-vocabulary'
+  reviewed: true
+- path: .harness/notes/grilling-923-omp-context-advisory-2026-08-28.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+- path: .harness/notes/grilling-adversarial-plan-panel-2026-08-29.md
+  status: handed-off
+  became: FEAT-45-adversarial-plan-panel
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-45-adversarial-plan-panel'
+  reviewed: true
+- path: .harness/notes/grilling-board-done-and-parent-close-2026-08-25.md
+  status: handed-off
+  became: FEAT-40-harness-writes-done
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-40-harness-writes-done'
+  reviewed: true
+- path: .harness/notes/grilling-board-lifecycle-2026-08-22.md
+  status: handed-off
+  became: FEAT-33-board-lifecycle-native
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-33-board-lifecycle-native'
+  reviewed: true
+- path: .harness/notes/grilling-board-read-lookups-2026-08-10.md
+  status: handed-off
+  became: FEAT-13-single-issue-board-lookup
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-13-single-issue-board-lookup'
+  reviewed: true
+- path: .harness/notes/grilling-board-truth-2026-08-12.md
+  status: handed-off
+  became: FEAT-18-board-truth
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-18-board-truth'
+  reviewed: true
+- path: .harness/notes/grilling-bug-1699-lifecycle-cards-2026-09-15.md
+  status: handed-off
+  became: BUG-1699-lifecycle-cards
+  evidence:
+  - feature directory cites the note body; name match
+  reviewed: true
+- path: .harness/notes/grilling-central-product-config-2026-08-12.md
+  status: handed-off
+  became: FEAT-19-central-product-config
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-19-central-product-config'
+  reviewed: true
+- path: .harness/notes/grilling-claude-code-lifecycle-safety-2026-09-01.md
+  status: handed-off
+  became: FEAT-51-claude-code-lifecycle-safety
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-51-claude-code-lifecycle-safety'
+  reviewed: true
+- path: .harness/notes/grilling-code-risk-grading-2026-08-27.md
+  status: handed-off
+  became: FEAT-43-code-risk-grading
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-43-code-risk-grading'
+  reviewed: true
+- path: .harness/notes/grilling-decision-standard-2026-08-30.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+- path: .harness/notes/grilling-decisions-current-knowledge-2026-08-24.md
+  status: handed-off
+  became: FEAT-38-decisions-current-knowledge
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-38-decisions-current-knowledge'
+  reviewed: true
+- path: .harness/notes/grilling-decisions-index-2026-08-01.md
+  status: handed-off
+  became: FEAT-04-decisions-index
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-04-decisions-index'
+  reviewed: true
+- path: .harness/notes/grilling-depends-on-integrity-2026-09-06.md
+  status: handed-off
+  became: BUG-201-depends-on-integrity
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: BUG-201-depends-on-integrity'
+  reviewed: true
+- path: .harness/notes/grilling-digest-verdict-reconciliation-2026-09-06.md
+  status: handed-off
+  became: BUG-440-digest-verdict-reconciliation
+  evidence:
+  - 'feature directory name matches the note slug: BUG-440-digest-verdict-reconciliation'
+  reviewed: true
+- path: .harness/notes/grilling-domain-product-base-2026-08-10.md
+  status: handed-off
+  became: FEAT-15-domain-product-base
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-15-domain-product-base'
+  reviewed: true
+- path: .harness/notes/grilling-end-distribution-2026-08-10.md
+  status: handed-off
+  became: FEAT-12-end-copy-distribution
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-12-end-copy-distribution'
+  reviewed: true
+- path: .harness/notes/grilling-factory-claim-repo-root-2026-09-05.md
+  status: handed-off
+  became: BUG-1290-factory-claim-repo-root
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: BUG-1290-factory-claim-repo-root'
+  reviewed: true
+- path: .harness/notes/grilling-factory-control-plane-root-2026-09-01.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+- path: .harness/notes/grilling-factory-per-repo-board-2026-08-11.md
+  status: handed-off
+  became: FEAT-16-factory-per-repo-board
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-16-factory-per-repo-board'
+  reviewed: true
+- path: .harness/notes/grilling-feature-json-schema-2026-08-10.md
+  status: handed-off
+  became: FEAT-14-feature-json-schema
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-14-feature-json-schema'
+  reviewed: true
+- path: .harness/notes/grilling-graphql-cost-2026-08-10.md
+  status: handed-off
+  became: FEAT-29-graphql-budget
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-29-graphql-budget'
+  reviewed: true
+- path: .harness/notes/grilling-guard-boundaries-2026-08-11.md
+  status: handed-off
+  became: FEAT-17-guard-boundaries
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-17-guard-boundaries'
+  reviewed: true
+- path: .harness/notes/grilling-handoff-done-when-2026-09-02.md
+  status: handed-off
+  became: FEAT-54-handoff-done-when
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-54-handoff-done-when'
+  reviewed: true
+- path: .harness/notes/grilling-issue-types-2026-09-04.md
+  status: handed-off
+  became: FEAT-55-issue-types-created-work
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-55-issue-types-created-work'
+  reviewed: true
+- path: .harness/notes/grilling-merge-gitignore-coverage-2026-08-24.md
+  status: handed-off
+  became: FEAT-36-merge-gitignore-coverage
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-36-merge-gitignore-coverage'
+  reviewed: true
+- path: .harness/notes/grilling-metrics-dashboard-2026-09-01.md
+  status: handed-off
+  became: FEAT-53-metrics-dashboard
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-53-metrics-dashboard'
+  reviewed: true
+- path: .harness/notes/grilling-mirror-build-entry-2026-09-06.md
+  status: handed-off
+  became: BUG-1309-mirror-build-entry
+  evidence:
+  - 'feature directory name matches the note slug: BUG-1309-mirror-build-entry'
+  reviewed: true
+- path: .harness/notes/grilling-orchestrator-stop-and-wake-2026-08-23.md
+  status: handed-off
+  became: FEAT-35-orchestrator-stop-and-wake
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-35-orchestrator-stop-and-wake'
+  reviewed: true
+- path: .harness/notes/grilling-perf-batch-1-2026-08-04.md
+  status: handed-off
+  became: FEAT-07-verify-teeth-batch-probe
+  evidence:
+  - FEAT-07 notes cite the grilling; log 2026-08-04
+  reviewed: true
+- path: .harness/notes/grilling-prose-truth-2026-08-13.md
+  status: handed-off
+  became: FEAT-18-board-truth
+  evidence:
+  - FEAT-18 notes cite the grilling (second sitting of board-truth)
+  reviewed: true
+- path: .harness/notes/grilling-qa-reverify-bash-2026-09-16.md
+  status: handed-off
+  became: BUG-1756-qa-reverify-bash
+  evidence:
+  - 'feature directory name matches the note slug: BUG-1756-qa-reverify-bash'
+  reviewed: true
+- path: .harness/notes/grilling-remove-cost-2026-08-05.md
+  status: handed-off
+  became: FEAT-08-remove-cost-tracking
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-08-remove-cost-tracking'
+  reviewed: true
+- path: .harness/notes/grilling-remove-executable-claims-2026-08-29.md
+  status: handed-off
+  became: FEAT-38-decisions-current-knowledge
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-38-decisions-current-knowledge'
+  reviewed: true
+- path: .harness/notes/grilling-review-latency-2026-09-09.md
+  status: abandoned
+  became: null
+  evidence:
+  - successor FEAT-57-review-latency exists only on its worktree branch (.claude/worktrees/harness/FEAT-57-review-latency),
+    not under this checkout's features/; recorded abandoned here so INV-45 holds on
+    main — re-mark handed-off when FEAT-57 lands
+  reviewed: true
+- path: .harness/notes/grilling-root-resolution-2026-08-26.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+- path: .harness/notes/grilling-routing-wall-2026-08-05.md
+  status: handed-off
+  became: FEAT-09-plan-time-route-check
+  evidence:
+  - FEAT-09 notes cite the grilling; log 2026-08-05
+  reviewed: true
+- path: .harness/notes/grilling-six-residual-bugs-2026-09-05.md
+  status: handed-off
+  became: BUG-1302-suite-layout-fail-closed
+  evidence:
+  - one sitting spawned three patches (BUG-1302, BUG-1303, BUG-1306); the lifecycle
+    carries one successor, the first is recorded and the others are named here
+  reviewed: true
+- path: .harness/notes/grilling-strict-digest-schema-2026-09-09.md
+  status: handed-off
+  became: FEAT-104-strict-digest-schema
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-104-strict-digest-schema'
+  reviewed: true
+- path: .harness/notes/grilling-subissue-mirror-2026-07-31.md
+  status: handed-off
+  became: FEAT-03-subissue-mirror
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-03-subissue-mirror'
+  reviewed: true
+- path: .harness/notes/grilling-team-layer-and-inv6-2026-08-04.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+- path: .harness/notes/grilling-test-tree-enforcement-2026-09-04.md
+  status: handed-off
+  became: BUG-1286-test-tree-enforcement
+  evidence:
+  - 'feature directory name matches the note slug: BUG-1286-test-tree-enforcement'
+  reviewed: true
+- path: .harness/notes/grilling-tests-layout-2026-08-31.md
+  status: handed-off
+  became: FEAT-47-tests-layout
+  evidence:
+  - 'feature directory name matches the note slug: FEAT-47-tests-layout'
+  reviewed: true
+- path: .harness/notes/grilling-work-dashboard-2026-09-15.md
+  status: handed-off
+  became: FEAT-53-metrics-dashboard
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-53-metrics-dashboard'
+  reviewed: true
+- path: .harness/notes/grilling-worktree-act3-2026-08-23.md
+  status: handed-off
+  became: FEAT-34-worktree-act3-enforced
+  evidence:
+  - 'BRIEF.md/plan.yaml citation: FEAT-34-worktree-act3-enforced'
+  reviewed: true
+- path: .harness/notes/grilling-worktree-corpus-2026-09-09.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+- path: .harness/notes/grilling-yaml-parser-sweep-2026-08-02.md
+  status: abandoned
+  became: null
+  evidence:
+  - no BRIEF/plan citation, no feature directory matching the slug, no successor found
+    in feature notes or logs
+  reviewed: true
+review:
+  by: operator via main session
+  date: '2026-09-16'
+  note: '48 notes present at review (46 observed 2026-09-15 plus two written since).
+    Rule: unique BRIEF/plan citation -> handed-off; else unique feature-directory
+    slug match -> handed-off; else manual evidence; else abandoned.'

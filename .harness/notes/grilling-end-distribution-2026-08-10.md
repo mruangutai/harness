@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-12-end-copy-distribution
+---
 # Grilling — end copy-based distribution (issue #203) — 2026-08-10
 
 ## Destination

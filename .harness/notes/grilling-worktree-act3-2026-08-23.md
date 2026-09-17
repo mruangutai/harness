@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-34-worktree-act3-enforced
+---
 # Grilling — enforce act 3 of the worktree lifecycle (#728) — 2026-08-23
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-07-verify-teeth-batch-probe
+---
 # Grilling — performance levers, batch 1 (issues #18, #19, #22) — 2026-08-04
 
 ## Destination

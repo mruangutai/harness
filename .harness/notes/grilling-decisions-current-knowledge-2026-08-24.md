@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-38-decisions-current-knowledge
+---
 # Grilling — DECISIONS.md states current knowledge only — 2026-08-24
 
 Source tickets: **#615** (fold amendment sub-sections) and **#78** (delete superseded decisions

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-104-strict-digest-schema
+---
 # Grilling — strict digest and checkpoint schemas — 2026-09-09
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — factory control-plane path — 2026-09-01
 
 ## Destination

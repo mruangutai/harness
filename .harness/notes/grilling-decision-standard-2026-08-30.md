@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — a standard for what constitutes a decision (FEAT-46)
 
 Origin: the operator read `DECISIONS.md` and judged that FEAT-38, which folded amendments into their

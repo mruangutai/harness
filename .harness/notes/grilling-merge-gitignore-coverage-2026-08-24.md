@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-36-merge-gitignore-coverage
+---
 # Grilling — merge-gitignore behavioral coverage — 2026-08-24
 
 ## Destination

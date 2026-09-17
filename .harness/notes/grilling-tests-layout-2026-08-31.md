@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-47-tests-layout
+---
 # Grilling — harness's own tests move to `tests/**` — 2026-08-31
 
 Entered as `/harness-plan issue://979` ("verification that verifies nothing"). Grilling

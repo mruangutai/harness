@@ -13,6 +13,12 @@ Read `.omp/commands/harness.md` and follow it with **mission: plan**. The differ
   back to step zero; `mission: patch` → this is `/harness-patch`'s feature, not yours. The
   judgement is the harness's and the confirmation is the operator's; you do not re-derive either
   here, and you never pick `plan` because it is the safer-looking route (SC-22).
+- **The grilling note is handed off the moment pm coins the id** (D-26, INV-45). As soon as the
+  orchestrator's return names the full `FEAT-NN-slug`, and never before, mark the source note:
+  `python3 -c "import sys; sys.path.insert(0, '.claude/skills/harness/bin'); import grilling_status as g; p = sys.argv[1]; open(p, 'w').write(g.mark(open(p).read(), 'handed-off', sys.argv[2]))" <note-path> <FEAT-NN-slug>`.
+  Idempotent on re-runs; a note already handed off to a *different* id refuses, which is the
+  signal that two features claim one sitting — stop and ask. A wayfinding MAP.md hand-off has no
+  note to mark.
 - **KICKOFF: the source ticket moves to Plan** — before the BRIEF work begins, run
   `python3 .claude/skills/harness/bin/board-station.py <issue-number> plan` from the repo root.
   The ticket is the issue the user names in the opening ask or in answer to step zero; no separate

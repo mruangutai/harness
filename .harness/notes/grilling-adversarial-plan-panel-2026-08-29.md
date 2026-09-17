@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-45-adversarial-plan-panel
+---
 # Grilling — a standing adversarial panel for /harness-plan — 2026-08-29
 
 Origin: run once by hand against FEAT-38's SIGNED plan. Three readers found what two prior review

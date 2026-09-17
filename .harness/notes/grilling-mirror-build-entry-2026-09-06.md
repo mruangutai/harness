@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-1309-mirror-build-entry
+---
 # Grilling — mirror build entry and terminal recovery — 2026-09-06
 
 ## Destination

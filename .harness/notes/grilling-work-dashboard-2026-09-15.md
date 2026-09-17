@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-53-metrics-dashboard
+---
 # Grilling — fleet-wide work dashboard (operational view, as a FEAT-53 amendment) — 2026-09-15
 
 ## Destination

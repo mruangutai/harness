@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — how the harness decides which checkout it is looking at — 2026-08-26
 
 ## Destination

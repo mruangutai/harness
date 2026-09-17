@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-43-code-risk-grading
+---
 # Grilling — code risk grading — 2026-08-27
 
 Source ticket **#910**. The full research, the measured distribution and the band table also live in

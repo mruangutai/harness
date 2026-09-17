@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-19-central-product-config
+---
 # Grilling — #206, harness-init for the central model — 2026-08-12
 
 Run in the main session. The output is decisions, not a plan.

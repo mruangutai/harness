@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-18-board-truth
+---
 # Grilling — prose truth has no gate (issue #247) — 2026-08-13
 
 ## Destination

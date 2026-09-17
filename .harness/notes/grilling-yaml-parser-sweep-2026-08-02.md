@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — replace hand-rolled YAML regex with a real parser — 2026-08-02
 
 ## Destination

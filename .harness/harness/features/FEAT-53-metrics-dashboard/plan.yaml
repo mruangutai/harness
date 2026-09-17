@@ -1704,26 +1704,27 @@ tasks:
     intent: |-
       Extend the grilling skill so each newly created note begins with YAML front-matter status: open and became: null, preserves that block on later writes, and records status: abandoned with became: null when the user abandons the exploration. Extend harness-plan and harness-patch intake so, only after a full FEAT-N or BUG-N id is coined, they atomically mark the selected source note handed-off with became equal to that full id; the same transition is idempotent and a conflicting existing id is an error. Add check-state invariant INV-36: status must be open, handed-off or abandoned; became must resolve to an existing feature only for handed-off and must be null otherwise. Add a one-shot backfill tool and a dated YAML manifest containing the 46 note paths observed on 2026-09-15, proposed status, became value, citation evidence and reviewed: true. A unique BRIEF.md or plan.yaml citation proposes handed-off to that feature; no citation proposes abandoned; multiple feature matches remain an error until manually resolved. Apply the reviewed manifest once, leave the tool's check mode idempotent, and make check-state use the same parser instead of duplicating front-matter rules. Add integration fixtures for creation, both intake paths, abandonment, idempotence, conflict and each invariant failure, and register the test without removing an existing suite member or detector.
     files:
-      - .claude/skills/harness-grilling/SKILL.md
-      - .claude/commands/harness-plan.md
-      - .claude/commands/harness-patch.md
-      - .claude/skills/harness/bin/check-state.sh
-      - .claude/skills/harness/bin/grilling_status.py
-      - .claude/skills/harness/bin/backfill-grilling-status.py
-      - .claude/skills/harness/bin/test-grilling-status.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
-      - .harness/harness.json
-      - .claude/skills/harness/templates/harness.json
-      - .harness/notes/grilling-*.md
-      - .harness/notes/grilling-status-backfill-2026-09-15.yaml
+    - .claude/skills/harness-grilling/SKILL.md
+    - .omp/commands/harness-plan.md
+    - .omp/commands/harness-patch.md
+    - .claude/commands/harness-plan.md
+    - .claude/commands/harness-patch.md
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/grilling_status.py
+    - .claude/skills/harness/bin/backfill-grilling-status.py
+    - .claude/skills/harness/bin/dashboard/work.py
+    - tests/integration/test-grilling-status.py
+    - tests/integration/test-work-dashboard.py
+    - .harness/notes/grilling-*.md
+    - .harness/notes/grilling-status-backfill-2026-09-15.yaml
     verify: >-
-      python3 .claude/skills/harness/bin/test-grilling-status.py && python3 .claude/skills/harness/bin/backfill-grilling-status.py --check --root .
+      python3 tests/integration/test-grilling-status.py && python3 .claude/skills/harness/bin/backfill-grilling-status.py --check --root . --manifest .harness/notes/grilling-status-backfill-2026-09-15.yaml && python3 .claude/skills/harness/bin/sync-command-adapters.py --check && python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout
     change_type: cross_module
     traces:
       - SC-23
     depends_on:
       - T-24
-    status: ready
+    status: done
     execution_mode: main-session-direct
     execution_reason: >-
       The note corpus, grilling skill, command intake files and distribution template have no single team-member grant and must change atomically with the invariant.

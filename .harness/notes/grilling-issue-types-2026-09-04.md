@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-55-issue-types-created-work
+---
 # Grilling — GitHub Issue Types for created work — 2026-09-04
 
 ## Destination

@@ -3137,6 +3137,37 @@ for _fd44 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
 # removed. The replacement rule holds only while the striking really happens every
 # time, and its enforcement is a human reading a diff.
 
+# --- INV-45 (FEAT-53 T-25, D-26): every grilling note carries lifecycle front-matter.
+#
+# `status` is open, handed-off or abandoned; `became` is a full feature id only for
+# handed-off, and that id must be a feature directory under .harness/*/features/. The rule
+# is spelled ONCE, in grilling_status.parse, which the dashboard collector and the backfill
+# tool read through as well — this invariant does not re-derive it. A note without the
+# block is a violation, not a note: the 2026-09-15 backfill manifest gave every existing
+# note one, so an unmarked note can only be a new one written outside the grilling skill.
+try:
+    import grilling_status as _gs45
+    for _note45 in sorted(glob.glob(os.path.join(root, ".harness", "notes", "grilling-*.md"))):
+        _rel45 = os.path.relpath(_note45, root)
+        _text45 = read(_note45)
+        if _text45 is None:
+            bad.append(f"INV-45 {_rel45}: unreadable, so its lifecycle status cannot be checked.")
+            continue
+        try:
+            _status45, _became45 = _gs45.parse(_text45)
+        except _gs45.GrillingStatusError as _exc45:
+            bad.append(f"INV-45 {_rel45}: {_exc45} — a grilling note carries `status:` and "
+                       f"`became:` front-matter (D-26); the grilling skill writes it, "
+                       f"backfill-grilling-status.py repairs it.")
+            continue
+        if _status45 == "handed-off" and not _gs45.check_exists(_became45, root):
+            bad.append(f"INV-45 {_rel45}: handed-off to {_became45}, which is not a feature "
+                       f"directory under .harness/*/features/ — a hand-off names the feature "
+                       f"that exists, never one that might.")
+except ImportError as _exc45:
+    bad.append(f"INV-45 CANNOT RUN: grilling_status.py did not import ({_exc45}); the grilling "
+               f"lifecycle is unchecked.")
+
 for m in bad:  print(f"  VIOLATION  {m}")
 for m in warn: print(f"  note       {m}")
 if not bad and not warn:

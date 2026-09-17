@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-440-digest-verdict-reconciliation
+---
 # Grilling — digest verdict reconciliation — 2026-09-06
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-04-decisions-index
+---
 # Grilling — DECISIONS.md index — 2026-08-01
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-1286-test-tree-enforcement
+---
 # Grilling — repository-wide Harness test-tree enforcement — 2026-09-04
 
 ## Destination

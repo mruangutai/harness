@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-51-claude-code-lifecycle-safety
+---
 # Grilling — Claude Code lifecycle safety — 2026-09-01
 
 ## Destination

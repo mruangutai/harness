@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-1302-suite-layout-fail-closed
+---
 # Grilling — six residual Harness bugs — 2026-09-05
 
 ## Destination

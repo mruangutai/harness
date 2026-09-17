@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-33-board-lifecycle-native
+---
 # Grilling — the board's whole lifecycle, native-first — 2026-08-22
 
 ## Destination

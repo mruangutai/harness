@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-18-board-truth
+---
 # Grilling — #277, the board stops telling the truth during a build — 2026-08-12
 
 Main session, with the operator. **COMPLETE** — the frontier is empty and the fog is clear, so this

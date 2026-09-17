@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-35-orchestrator-stop-and-wake
+---
 # Grilling — the orchestrator playbook cannot survive its own loop — 2026-08-23
 
 ## Destination

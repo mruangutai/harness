@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-09-plan-time-route-check
+---
 # Grilling — the routing wall, plan-time route resolution (issue #20) — 2026-08-05
 
 ## Destination

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-54-handoff-done-when
+---
 # Grilling — Handoff Done When contract — 2026-09-02
 
 ## Destination

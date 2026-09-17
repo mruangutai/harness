@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — the feature corpus must not be replicated into a worktree — 2026-09-09
 
 Source ticket: issue #1559. Two measurement/design comments on that ticket are part of this

@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-16-factory-per-repo-board
+---
 # Grilling — issue #262, the factory's station board — 2026-08-11
 
 ## Destination

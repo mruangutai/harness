@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-40-harness-writes-done
+---
 # Grilling — the harness writes Done, and a parent closes on no open children — 2026-08-25
 
 ## Destination

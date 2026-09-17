@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-08-remove-cost-tracking
+---
 # Grilling — remove cost tracking entirely (issue #58) — 2026-08-05
 
 ## Destination

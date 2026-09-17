@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-14-feature-json-schema
+---
 # Grilling — issue #204, feature.yaml becomes feature.json with an enforced schema — 2026-08-10
 
 ## Destination

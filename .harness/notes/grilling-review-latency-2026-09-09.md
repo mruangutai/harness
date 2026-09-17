@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — reducing wall-clock time spent in review without lowering review quality — 2026-09-09
 
 ## Destination

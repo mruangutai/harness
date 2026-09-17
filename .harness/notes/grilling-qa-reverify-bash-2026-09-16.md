@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-1756-qa-reverify-bash
+---
 # Grilling — validate-digest re-verifies a qa PASS by running run-unit-tests.py under bash (#1756) — 2026-09-16
 
 ## Destination

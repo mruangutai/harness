@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — the team-definition layer and INV-6's truthy hole — 2026-08-04
 
 ## Destination

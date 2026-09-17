@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-15-domain-product-base
+---
 # Grilling — issue #239, domain enforcement across the factory's two roots — 2026-08-10
 
 ## Destination

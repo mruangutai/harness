@@ -94,6 +94,10 @@ lane (SC-22). `/harness-plan` and `/harness-patch` refuse to start without this 
 Write `.harness/notes/grilling-<slug>-<date>.md`, and hand pm its **path** — never the transcript:
 
 ```markdown
+---
+status: open
+became: null
+---
 # Grilling — <what this is about> — <date>
 
 ## Destination
@@ -120,6 +124,21 @@ confirmed-by: operator | overridden-by: operator (<one line>)
 Bounded, one screen or so. `## Destination` and `## Settled` are what BRIEF's perspectives are
 authored from; `## Mission` is the lane pm writes for; `## Facts` is what saves pm a research
 pass; the other two are what stop scope creep mid-build.
+
+**The front-matter is the note's lifecycle, and it is machine-read (D-26, INV-45).** A new note
+is `status: open` / `became: null`; every later write of the note preserves the block. Only two
+things ever change it: `/harness-plan` or `/harness-patch` marks it `handed-off` with `became:`
+the full `FEAT-NN-slug` / `BUG-NN-slug` once pm has coined the id, and **you** mark it
+`abandoned` (`became: null`) when the user drops the exploration — say so in the same turn. Never
+hand-edit the block; write it through `grilling_status.mark`:
+
+```
+python3 -c "import sys; sys.path.insert(0, '.claude/skills/harness/bin'); import grilling_status as g; p = sys.argv[1]; open(p, 'w').write(g.mark(open(p).read(), sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None))" <note> abandoned
+```
+
+`check-state` INV-45 refuses a note with no block, an unknown status, a hand-off to a feature
+that does not exist, or a `became` on anything but `handed-off`. The dashboard's work list shows
+an `open` note as `needs-you`, which is why an abandoned sitting must be marked, not left.
 
 ## Done, and what follows
 

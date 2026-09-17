@@ -6,11 +6,11 @@ import re
 
 import artifact_accessors
 import factory_config
+import grilling_status
 import harness_yaml
 import worktree_terminal
 
 _PREFIX = re.compile(r"^(?:FEAT|BUG)-\d+")
-_GRILLING_STATUS = re.compile(r"^## Status\s*$\n+([^\n]+)", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -187,8 +187,7 @@ def _grilling_items(root: Path) -> list[WorkItem]:
     for path in sorted(notes.glob("grilling-*.md")):
         name = path.stem
         try:
-            text = path.read_text(encoding="utf-8")
-            status = _grilling_status(text)
+            status, _became = grilling_status.parse(path.read_text(encoding="utf-8"))
             error = None
         except Exception as exc:
             status = None
@@ -202,11 +201,6 @@ def _grilling_items(root: Path) -> list[WorkItem]:
             error=error,
         ))
     return items
-
-
-def _grilling_status(text: str) -> str | None:
-    matched = _GRILLING_STATUS.search(text)
-    return matched.group(1).strip() if matched else None
 
 
 def _mtime(path: Path) -> str | None:

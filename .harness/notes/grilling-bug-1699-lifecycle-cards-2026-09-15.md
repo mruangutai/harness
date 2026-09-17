@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: BUG-1699-lifecycle-cards
+---
 # Grilling — BUG-1699 lifecycle cards — 2026-09-15
 
 ## Destination

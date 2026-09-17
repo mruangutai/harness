@@ -1,3 +1,7 @@
+---
+status: handed-off
+became: FEAT-29-graphql-budget
+---
 # Grilling — the GraphQL cost fix in factory_gh.py (issue #211) — 2026-08-10
 
 ## Destination

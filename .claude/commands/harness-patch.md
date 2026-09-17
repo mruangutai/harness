@@ -14,6 +14,11 @@ Read `.omp/commands/harness.md` and follow it with **mission: patch**. The diffe
   `mission: plan` → this is `/harness-plan`'s feature, not yours. You do not re-derive the
   judgement here, and you never upgrade to `plan` because it feels safer (SC-22): a known-cause
   bug reaches a signed intake in one run and ships in about four.
+- **The grilling note is handed off the moment pm coins the id** (D-26, INV-45). As soon as the
+  orchestrator's return names the full `BUG-NN-slug`, and never before, mark the source note:
+  `python3 -c "import sys; sys.path.insert(0, '.claude/skills/harness/bin'); import grilling_status as g; p = sys.argv[1]; open(p, 'w').write(g.mark(open(p).read(), 'handed-off', sys.argv[2]))" <note-path> <BUG-NN-slug>`.
+  Idempotent on re-runs; a note already handed off to a *different* id refuses — one sitting that
+  spawns several patches names the first and the rest are recorded in that intake's BRIEF.
 - **KICKOFF: the source ticket moves to Plan** — before the BRIEF work begins, run
   `python3 .claude/skills/harness/bin/board-station.py <issue-number> plan` from the repo root.
   The ticket is the issue the user names in the opening ask or in answer to step zero; no separate

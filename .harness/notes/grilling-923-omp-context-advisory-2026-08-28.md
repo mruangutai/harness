@@ -1,3 +1,7 @@
+---
+status: abandoned
+became: null
+---
 # Grilling — OMP-native orchestrator context advisory (issue #923) — 2026-08-28
 
 ## Destination
