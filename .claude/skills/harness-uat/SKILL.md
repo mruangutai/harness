@@ -72,6 +72,13 @@ Write to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/uat
 
 ### 4. Hand it over
 
+Before you address the user, record the touchpoint — this is one of the three blocking human
+touchpoints (FEAT-53 D-16), and it is written at the moment, never reconstructed:
+`python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/touchpoints.py record --feature <FEAT> --event uat_request`,
+then `git add <HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/touchpoints.jsonl <HARNESS_CONTROL_PLANE_ROOT>/.harness/metrics/instrumented_at`
+(the second path exists from the project's first recorded touchpoint onward) and commit, so the
+record never sits untracked (D-22).
+
 Present it in plain English with a time estimate. Then stop and wait — do not proceed to ship.
 
 ### 5. Record the result

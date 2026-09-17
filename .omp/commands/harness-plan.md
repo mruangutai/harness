@@ -39,7 +39,13 @@ Read `.omp/commands/harness.md` and follow it with **mission: plan**. The differ
   a `scope: mission` proportionality finding no reader opposes downgrades the mission to `patch` inside the
   orchestrator, and you see it at signature, not as a question (SC-03).
 - **Terminus:** ONE approval, taken by you — the user signs PLAN **and** the prototype (if the
-  feature needs one) together, and **the same signature carries the rework ruling**:
+  feature needs one) together, and **the same signature carries the rework ruling**.
+  **Before the sign-off question is put to the user, record the touchpoint** — one of the three
+  blocking human touchpoints (FEAT-53 D-16), written at the moment and never reconstructed:
+  `python3 .claude/skills/harness/bin/touchpoints.py record --feature <FEAT> --event approval_request`,
+  then `git add .harness/<segment>/features/<FEAT>/touchpoints.jsonl .harness/metrics/instrumented_at`
+  (the second path exists from the project's first recorded touchpoint onward) and commit, so the
+  record never sits untracked (D-22). Then the signature:
   `plan-merge.py sign-approval --file <plan.yaml> --by <you> --date <YYYY-MM-DD> --rework rounds=N,minutes=M --decision <path>`
   writes `approval.status: approved` and `feature.json` `rework` in one act (SC-15); the
   orchestrator's build-phase fix loop runs inside that ruling and does not ask again. Findings the

@@ -1323,11 +1323,13 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: all three moments live in .claude/commands/ and .claude/skills/harness-uat/, every one of which check-domain.sh --resolve reports as NOBODY
     depends_on: [T-11]
-    status: ready
+    status: done
     files:
-      - .claude/commands/harness-plan.md
-      - .claude/commands/harness.md
-      - .claude/skills/harness-uat/SKILL.md
+    - .omp/commands/harness-plan.md
+    - .omp/commands/harness.md
+    - .claude/commands/harness-plan.md
+    - .claude/commands/harness.md
+    - .claude/skills/harness-uat/SKILL.md
     verify: |
       python3 -c "import pathlib,sys;m={'.claude/commands/harness-plan.md':'approval_request','.claude/commands/harness.md':'escalation','.claude/skills/harness-uat/SKILL.md':'uat_request'};bad=[p for p,e in m.items() if any(s not in pathlib.Path(p).read_text() for s in ('touchpoints.py record', e, 'git add', 'instrumented_at'))];sys.exit('no record-and-commit instruction (D-22) in: '+repr(bad) if bad else 0)"
     intent: |
