@@ -1163,7 +1163,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-14, T-18]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/src/charts.tsx
     verify: |
@@ -1764,10 +1764,10 @@ tasks:
     intent: |-
       Mount GET /api/work on T-12's Flask application without adding a process or changing bind, port, startup or static-file behavior. Recompute from disk on each request. Make GET /api/work and the existing GET /api/kpis accept the same window and repo query parameters, default both to all, reject unsupported values with the existing JSON 400 shape, and return only the selected repository and time slice. Return JSON schema harness-work/1 with attention_order, effective thresholds, items and errors. Every item exposes id, kind, attention, attention_reasons, name, repository, segment, station, phase, run_status, updated_at, elapsed_total, elapsed_by_phase with plan, build and validate, runs, cycles_used, max_total_cycles, tokens, main_path, worktree_path, source_path and a kind-specific detail object; absent values are JSON null. The token object preserves measured_total, measured_runs, total_runs, unmeasured_runs and by_phase and never exposes a dollar-cost field. Return items in D-25 order and preserve explicit source errors instead of dropping rows. An invalid dashboard configuration or failure to enumerate a configured repository returns HTTP 500 with one specific unavailable reason; a malformed individual item remains in the successful response and the errors list names its path. Extend the existing Flask integration script to build a two-segment temporary control plane, request both APIs with default and explicit window/repo pairs, prove the selected slice and defaults, request /api/work twice around a disk mutation to prove no startup snapshot, assert the complete schema and row order, assert null-aware token and phase fields including the absence of cost, prove all prior static routes still behave identically, and make any GitHub executable or import fail the test if touched.
     files:
-      - .claude/skills/harness/bin/dashboard/serve.py
-      - .claude/skills/harness/bin/test-metrics-dashboard.py
+    - .claude/skills/harness/bin/dashboard/serve.py
+    - tests/integration/test-metrics-dashboard.py
     verify: >-
-      python3 .claude/skills/harness/bin/test-metrics-dashboard.py
+      python3 tests/integration/test-metrics-dashboard.py
     change_type: api
     traces:
     - SC-25
@@ -1781,7 +1781,7 @@ tasks:
     - T-25
     - T-26
     - T-31
-    status: ready
+    status: done
     execution_mode: team
     execution_agent: harness-backend-dev
     execution_reason: >-
@@ -1834,7 +1834,7 @@ tasks:
       - T-23
       - T-26
       - T-27
-    status: ready
+    status: done
     execution_mode: main-session-direct
     execution_reason: >-
       Removing an external dirty worktree is destructive fleet administration outside every member grant and must remain with the main session.
