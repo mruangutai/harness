@@ -177,10 +177,57 @@ class KpiCoreTest(unittest.TestCase):
         self.assertTrue(all(command[-1].startswith("trunk...") for command in diffs))
 
 
+    def test_unavailable_and_duplicate_branches_avoid_repeated_diffs(self):
+        branches = {
+            "FIX-SHIPPED": "feature/reused",
+            "FIX-NOSHIP": "feature/reused",
+            "FIX-PRE": "feature/unavailable",
+        }
+        for feature_id, branch in branches.items():
+            path = self.project / ".harness/demo/features" / feature_id / "feature.json"
+            document = json.loads(path.read_text(encoding="utf-8"))
+            document["branch"] = branch
+            path.write_text(json.dumps(document), encoding="utf-8")
+        calls = []
+
+        def git_run(command, **kwargs):
+            calls.append((command, kwargs))
+            if command[1:3] == ["symbolic-ref", "--short"]:
+                return _git_result("origin/main\n")
+            if command[1] == "for-each-ref":
+                return _git_result("refs/heads/main\nrefs/heads/feature/reused\n")
+            if command[1:3] == ["diff", "--numstat"]:
+                if command[-1] == "main...feature/reused":
+                    return _git_result("3\t2\talpha.py\n")
+                return _git_result("", returncode=1)
+            raise AssertionError(command)
+
+        with patch("kpi.subprocess.run", side_effect=git_run), patch(
+            "kpi.grading.distribution", return_value={}
+        ), patch("kpi.defects.escaped", return_value={}), patch(
+            "kpi.attribution.by_tier", return_value={}
+        ):
+            result = kpi.compute(self.project, "all", generated_at=datetime(2026, 9, 16, tzinfo=timezone.utc))
+
+        feature = _feature(result, "FIX-PRE")
+        self.assertEqual("feature branch is unavailable", feature["unavailable"]["insertions"])
+        for feature_id in ("FIX-SHIPPED", "FIX-NOSHIP"):
+            feature = _feature(result, feature_id)
+            self.assertEqual(3, feature["insertions"])
+            self.assertEqual(2, feature["deletions"])
+            self.assertEqual(1, feature["files_changed"])
+        self.assertEqual(1, len([command for command, _ in calls if command[1] == "for-each-ref"]))
+        self.assertEqual(
+            [["git", "diff", "--numstat", "main...feature/reused"]],
+            [command for command, _ in calls if command[1:3] == ["diff", "--numstat"]],
+        )
+
     def test_change_size_counts_binary_file_without_inventing_lines(self):
         def git_run(command, **_kwargs):
             if command[1:3] == ["symbolic-ref", "--short"]:
                 return _git_result("origin/main\n")
+            if command[1] == "for-each-ref":
+                return _diff_result(command)
             return _git_result("3\t2\talpha.py\n-\t-\timage.png\n")
 
         with patch("kpi.subprocess.run", side_effect=git_run), patch(
@@ -234,7 +281,11 @@ class KpiCoreTest(unittest.TestCase):
 
     def test_window_discards_records_before_expensive_enrichment(self):
         generated_at = datetime(2026, 9, 16, tzinfo=timezone.utc)
-        with patch("kpi._change_size", return_value=(3, 2, 1, None)) as change_size, patch(
+        with patch("kpi._default_branch", return_value="main"), patch(
+            "kpi._available_branches", return_value={"feature/shipped"}
+        ), patch(
+            "kpi._change_size", return_value=(3, 2, 1, None)
+        ) as change_size, patch(
             "kpi.touchpoints.count", return_value=(0, None)
         ) as touchpoint_count:
             result = kpi.compute(self.project, "30d", generated_at=generated_at)
@@ -536,6 +587,12 @@ def _has_central_tendency(value):
 def _diff_result(command, **_kwargs):
     if command[1:3] == ["symbolic-ref", "--short"]:
         return _git_result("origin/main\n")
+    if command[1] == "for-each-ref":
+        return _git_result(
+            "refs/heads/feature/shipped\nrefs/heads/feature/pre\nrefs/heads/feature/pending\n"
+            "refs/heads/feature/noapproval\nrefs/heads/feature/nobrief\nrefs/heads/feature/noship\n"
+            "refs/heads/feature/emptydate\n"
+        )
     return _git_result("3\t2\talpha.py\n1\t0\tbeta.py\n")
 
 def _git_result(stdout, returncode=0):

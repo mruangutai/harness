@@ -35,7 +35,9 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
     metadata = [_feature_metadata(path, records) for path in _feature_dirs(root)]
     selected_metadata = [item for item in metadata if _in_window(item[2], start, end)]
     default_branch = _default_branch(root)
-    features = [_feature_from_metadata(path, root, document, record, default_branch)
+    change_sizes = _change_sizes(root, default_branch, [document["branch"] for _, document, _, _ in selected_metadata])
+    features = [_feature_from_metadata(path, root, document, record, default_branch,
+                                       change_sizes[document["branch"]])
                 for path, document, _shipped_at, record in selected_metadata]
     return {
         "schema": _SCHEMA,
@@ -72,11 +74,13 @@ def _feature_metadata(feature_dir: Path, records: dict) -> tuple[Path, dict, str
 
 def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str | None) -> dict:
     path, document, _shipped_at, record = _feature_metadata(feature_dir, records)
-    return _feature_from_metadata(path, root, document, record, default_branch)
+    return _feature_from_metadata(path, root, document, record, default_branch,
+                                  _change_size(root, default_branch, document["branch"]))
 
 
 def _feature_from_metadata(feature_dir: Path, root: Path, document: dict, record: dict | None,
-                           default_branch: str | None) -> dict:
+                           default_branch: str | None,
+                           change_size: tuple[int | None, int | None, int | None, str | None]) -> dict:
     unavailable = _plan_unavailability(feature_dir)
     approved_on, approval_reason = brief_approval.approval_date(feature_dir)
     if approval_reason is not None:
@@ -87,7 +91,7 @@ def _feature_from_metadata(feature_dir: Path, root: Path, document: dict, record
     cycle_time = _cycle_time(approved_on, shipped_at)
     if cycle_time is None:
         unavailable["cycle_time_days"] = approval_reason or _NO_SHIP
-    insertions, deletions, files_changed, diff_reason = _change_size(root, default_branch, document["branch"])
+    insertions, deletions, files_changed, diff_reason = change_size
     if diff_reason is not None:
         unavailable["insertions"] = diff_reason
         unavailable["deletions"] = diff_reason
@@ -140,6 +144,45 @@ def _default_branch(root: Path) -> str | None:
     if result.returncode != 0 or not result.stdout.startswith("origin/"):
         return None
     return result.stdout.strip().removeprefix("origin/")
+
+
+def _change_sizes(root: Path, default_branch: str | None, branches: list[str]) -> dict:
+    """Resolve each requested branch once, avoiding diffs for absent refs."""
+    if default_branch is None:
+        unavailable = (None, None, None, "project default branch is unavailable")
+        return {branch: unavailable for branch in branches}
+    available = _available_branches(root)
+    unavailable = (None, None, None, "feature branch is unavailable")
+    return {
+        branch: _change_size(root, default_branch, branch) if branch in available else unavailable
+        for branch in dict.fromkeys(branches)
+    }
+
+
+def _available_branches(root: Path) -> set[str]:
+    result = subprocess.run(
+        ["git", "for-each-ref", "--format=%(refname)", "refs/heads/", "refs/remotes/"], cwd=root,
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        return set()
+    available = set()
+    for ref in result.stdout.splitlines():
+        available.update(_branch_names(ref))
+    return available
+
+
+def _branch_names(ref: str) -> set[str]:
+    if ref.startswith("refs/heads/"):
+        return {ref.removeprefix("refs/heads/")}
+    if not ref.startswith("refs/remotes/"):
+        return set()
+    remote_ref = ref.removeprefix("refs/remotes/")
+    remote, separator, branch = remote_ref.partition("/")
+    if not separator or branch == "HEAD":
+        return {remote_ref}
+    return {remote_ref, branch}
+    return available
 
 
 def _change_size(root: Path, default_branch: str | None, branch: str) -> tuple[int | None, int | None, int | None, str | None]:
