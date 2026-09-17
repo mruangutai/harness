@@ -18,10 +18,10 @@ Implementation committed at `dfd897fed306ad6501a875325df975bb6cc8de1d` (`[harnes
 
 Lead-authorized same-task HOW amendment under DEC-229:
 
-- exact field: `T-07.files[2]`
-- signed was value: `.claude/skills/harness/bin/test-metrics-kpi.py`
-- applied now value: `tests/unit/test-metrics-kpi.py`
-- reason: the signed file target is absent; T-06 explicitly established `tests/unit/test-metrics-kpi.py` as the runner-discovered KPI test. This preserves all T-07 success criteria.
+- exact field: `T-07.files`
+- signed was value: `[.claude/skills/harness/bin/dashboard/grading.py, .claude/skills/harness/bin/dashboard/kpi.py, .claude/skills/harness/bin/test-metrics-kpi.py]`
+- applied now value: `[.claude/skills/harness/bin/dashboard/grading.py, .claude/skills/harness/bin/dashboard/kpi.py, .claude/skills/harness/bin/dashboard/fixtures/project-a/expected.json, tests/unit/test-metrics-kpi.py]`
+- reason: the signed test target is absent while T-06 established the runner-discovered test path; T-07 requires fixture project-a hand-labelled values, so its expectation file is required evidence. This preserves all success criteria.
 - exact field: `T-07.verify`
 - signed was value: `python3 .claude/skills/harness/bin/test-metrics-kpi.py`
 - applied now value: `python3 tests/unit/test-metrics-kpi.py`
