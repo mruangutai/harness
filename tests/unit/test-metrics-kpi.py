@@ -103,6 +103,31 @@ class KpiCoreTest(unittest.TestCase):
         self.assertEqual([], result["outliers"])
         self.assertEqual(0, result["file_mix"]["ungraded_files"])
 
+    def test_grading_distribution_runs_real_cli_with_no_tracked_python_paths(self):
+        subprocess.run(["git", "rm", "probe.py"], cwd=self.project, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-c", "user.name=test", "-c", "user.email=test@example.com",
+             "commit", "-m", "remove Python input"],
+            cwd=self.project,
+            check=True,
+            capture_output=True,
+        )
+        result = grading.distribution(self.project)
+        self.assertEqual(0, result["graded_functions"])
+        self.assertEqual(0, result["at_or_above_bar"])
+        self.assertEqual(0.0, result["at_or_above_bar_share"])
+        self.assertEqual({grade: 0 for grade in range(1, 6)}, result["bins"])
+        self.assertEqual([], result["outliers"])
+        tracked = subprocess.run(
+            ["git", "-C", str(self.project), "ls-files"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(len(tracked), result["file_mix"]["tracked_files"])
+        self.assertEqual(0, result["file_mix"]["graded_files"])
+        self.assertEqual(0, result["file_mix"]["ungraded_files"])
+
     def test_kpi_uses_grading_distribution(self):
         grading_result = _grading_expected(self.expected["grading"])
         with patch("kpi.grading.distribution", return_value=grading_result):

@@ -39,8 +39,12 @@ def _tracked_files(root: Path) -> list[str]:
 
 def _grader_payload(root: Path, paths: list[str]) -> dict:
     python_paths = [str(root / path) for path in paths if path.endswith(".py")]
+    command = ["python3", str(_CODE_GRADE), "--json", *python_paths]
+    if not python_paths:
+        revision = _revision(root)
+        command.extend(["--base", revision, "--head", revision])
     result = subprocess.run(
-        ["python3", str(_CODE_GRADE), "--json", *python_paths],
+        command,
         cwd=root,
         capture_output=True,
         text=True,
@@ -50,6 +54,18 @@ def _grader_payload(root: Path, paths: list[str]) -> dict:
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:
         raise RuntimeError(result.stderr.strip() or "code-grade.py returned invalid JSON") from error
+
+
+def _revision(root: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or "git rev-parse HEAD failed")
+    return result.stdout.strip()
 
 
 def _bins(records: list[dict]) -> dict[int, int]:
