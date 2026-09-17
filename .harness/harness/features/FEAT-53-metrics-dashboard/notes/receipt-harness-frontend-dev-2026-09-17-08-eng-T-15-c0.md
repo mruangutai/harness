@@ -6,7 +6,7 @@
 - **Changed source:** `.claude/skills/harness/bin/dashboard/client/src/charts.tsx` only. It exports `ShapeA` and `ShapeB`; Shape A is `aria-hidden`, has `keyboard: false`, fixed grades 1–5, datum-derived grade-token fills and no global bar line. Shape B uses `scaleUtc`, emits one `lineY` mark per supplied contiguous run, sets each mark's `strokeDasharray`, and carries circle, square, and triangle marker forms with direct end labels.
 - **CAP-08 composition:** Shape B stacks the cycle-time, touchpoints, and grade-share single-series plots under one window. Each series provides its KPI identity hue, dash, marker, label, and unit; no `series-1`, `series-2`, or `series-3` role exists.
 - **Implementation commit:** `495987fde0293a95dc6b6383a5b7e8718d7c3d3c` (`[harness:t-15] render chart shapes`).
-- **Generated dist:** not staged or committed by this task. The signed build generated client dist output through a path resolved outside this worktree; the write guard denied restoring its tracked `.gitkeep` baseline. This has been escalated to the lead for restoration before T-16; this task cannot truthfully claim an unchanged generated dist tree.
+- **Generated dist:** never staged or committed by this task. After the signed build, an authorized main session restored client dist to its tracked `assets/.gitkeep`-only baseline and removed untracked generated output; its status is clean.
 
 ## Signed verification
 
