@@ -441,7 +441,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/package.json
       - .claude/skills/harness/bin/dashboard/client/tsconfig.json
@@ -665,13 +665,14 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: building
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/grading.py
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
+    - .claude/skills/harness/bin/dashboard/grading.py
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/expected.json
+    - tests/unit/test-metrics-kpi.py
     verify: |
-      python3 .claude/skills/harness/bin/test-metrics-kpi.py
+      python3 tests/unit/test-metrics-kpi.py
     intent: |
       Write the failing tests first. grading.py exposes
       distribution(project_root: Path) -> dict, computed live at call time for the project passed in.
@@ -730,13 +731,13 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: building
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/defects.py
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
+    - .claude/skills/harness/bin/dashboard/defects.py
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - tests/unit/test-metrics-kpi.py
     verify: |
-      python3 .claude/skills/harness/bin/test-metrics-kpi.py
+      python3 tests/unit/test-metrics-kpi.py
     intent: |
       Write the failing tests first. defects.py exposes
       escaped(project_root: Path, window) -> dict implementing D-15 exactly:
@@ -765,13 +766,13 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: building
+    status: done
     files:
-      - .claude/skills/harness/bin/dashboard/attribution.py
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
+    - .claude/skills/harness/bin/dashboard/attribution.py
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - tests/unit/test-metrics-kpi.py
     verify: |
-      python3 .claude/skills/harness/bin/test-metrics-kpi.py
+      python3 tests/unit/test-metrics-kpi.py
     intent: |
       Write the failing tests first. This is the join the grilling refused to assume was free.
       attribution.py exposes by_tier(project_root: Path, window) -> dict.
