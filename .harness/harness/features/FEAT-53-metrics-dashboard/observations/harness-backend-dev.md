@@ -18,3 +18,7 @@
 - 2026-09-17: A collector fixture that keys rows by display_name must exclude worktree rows because linked worktree names collide with feature names; otherwise a new run-all mode hides feature assertions behind worktree entries.
 - 2026-09-17: KPI window selection can use feature.json identity plus trend shipped_at before invoking per-feature diff and touchpoint enrichment; preserve the legacy _feature wrapper for trend record creation.
 - 2026-09-17: A single git for-each-ref availability sweep can fail closed for missing feature refs and lets all-window KPI enrichment run one diff per distinct available branch.
+- 2026-09-17: Flask loopback binding alone does not reject hostile Host headers; a before_request host allowlist is needed before every dashboard route.
+- 2026-09-17: C4 mutation evidence is reviewable only when the receipt names a live source mutant, exact one-test command, non-zero assertion, exact restored-green rerun, and final SHA.
+- 2026-09-17: A weekly payload-wide sourcing rule must be emitted by both normal weekly construction and empty/unavailable constructors; otherwise a consumer that already reads the field cannot disclose it.
+- 2026-09-17: KPI disclosure payload-consumption tests need a sentinel distinct from production prose and an interaction that opens the disclosure; a temporary hard-coded-rule mutation then produces a named assertion failure.

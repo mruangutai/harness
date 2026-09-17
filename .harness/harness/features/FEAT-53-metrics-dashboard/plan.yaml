@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-53-metrics-dashboard
-status: building
+status: review
 source_issues: []
 
 approval:
@@ -1234,7 +1234,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-16]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/METRICS.md
       - README.md
