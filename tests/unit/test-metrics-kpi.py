@@ -232,6 +232,16 @@ class KpiCoreTest(unittest.TestCase):
         self.assertEqual((None, generated_at), kpi.resolve_window("all", generated_at))
         self.assertEqual(["FIX-SHIPPED"], [f["feature_id"] for f in kpi.compute(self.project, "30d", generated_at=generated_at)["features"]])
 
+    def test_window_discards_records_before_expensive_enrichment(self):
+        generated_at = datetime(2026, 9, 16, tzinfo=timezone.utc)
+        with patch("kpi._change_size", return_value=(3, 2, 1, None)) as change_size, patch(
+            "kpi.touchpoints.count", return_value=(0, None)
+        ) as touchpoint_count:
+            result = kpi.compute(self.project, "30d", generated_at=generated_at)
+        self.assertEqual(["FIX-SHIPPED"], [item["feature_id"] for item in result["features"]])
+        self.assertEqual(["feature/shipped"], [call.args[2] for call in change_size.call_args_list])
+        self.assertEqual(["FIX-SHIPPED"], [call.args[1] for call in touchpoint_count.call_args_list])
+
 
     def test_escaped_defects_count_bug_units_and_reverts_not_fixes(self):
         with tempfile.TemporaryDirectory() as directory:

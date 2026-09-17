@@ -32,16 +32,18 @@ def compute(project_root: Path, window: str, generated_at=None) -> dict:
     start, end = resolve_window(window, generated)
     trend_payload = trend.read(root, window, generated)
     records = trend_payload["records"]
+    metadata = [_feature_metadata(path, records) for path in _feature_dirs(root)]
+    selected_metadata = [item for item in metadata if _in_window(item[2], start, end)]
     default_branch = _default_branch(root)
-    features = [_feature(path, root, records, default_branch) for path in _feature_dirs(root)]
-    selected = [item for item in features if _in_window(item["shipped_at"], start, end)]
+    features = [_feature_from_metadata(path, root, document, record, default_branch)
+                for path, document, _shipped_at, record in selected_metadata]
     return {
         "schema": _SCHEMA,
         "project": {"root": str(root), "name": root.name},
         "window": window,
         "generated_at": _timestamp(generated),
-        "features": selected,
-        "aggregate": _aggregate(selected, root, window, generated),
+        "features": features,
+        "aggregate": _aggregate(features, root, window, generated),
         "trend": trend_payload,
     }
 
@@ -62,13 +64,23 @@ def _feature_dirs(root: Path) -> list[Path]:
     return sorted(path.parent for path in root.glob(".harness/*/features/*/feature.json"))
 
 
-def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str | None) -> dict:
+def _feature_metadata(feature_dir: Path, records: dict) -> tuple[Path, dict, str | None, dict | None]:
     document = json.loads((feature_dir / "feature.json").read_text(encoding="utf-8"))
+    record = records.get(document["feature_id"])
+    return feature_dir, document, record.get("shipped_at") if record else None, record
+
+
+def _feature(feature_dir: Path, root: Path, records: dict, default_branch: str | None) -> dict:
+    path, document, _shipped_at, record = _feature_metadata(feature_dir, records)
+    return _feature_from_metadata(path, root, document, record, default_branch)
+
+
+def _feature_from_metadata(feature_dir: Path, root: Path, document: dict, record: dict | None,
+                           default_branch: str | None) -> dict:
     unavailable = _plan_unavailability(feature_dir)
     approved_on, approval_reason = brief_approval.approval_date(feature_dir)
     if approval_reason is not None:
         unavailable["approved_on"] = approval_reason
-    record = records.get(document["feature_id"])
     shipped_at = record.get("shipped_at") if record else None
     if shipped_at is None:
         unavailable["shipped_at"] = _NO_SHIP
