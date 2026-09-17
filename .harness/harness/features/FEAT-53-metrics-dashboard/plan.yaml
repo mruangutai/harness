@@ -1403,13 +1403,15 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-03, T-21]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/test-metrics-client-render.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
-      - .github/workflows/tests.yml
+    - tests/integration/test-metrics-client-render.py
+    - .claude/skills/harness/bin/run-unit-tests.py
+    - .claude/skills/harness/bin/suite_layout.py
+    - tests/unit/test-suite-layout.py
+    - .github/workflows/tests.yml
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-client-render.py
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout && python3 tests/integration/test-metrics-client-render.py && python3 -c 'import subprocess,sys;p=subprocess.run(["python3",".claude/skills/harness/bin/run-unit-tests.py","--kind","integration"],text=True,capture_output=True);o=p.stdout+p.stderr;print(o,end="");w=["PASS test-metrics-client-render.py","passed: grading panel mounts the Shape A histogram","passed: trend panel mounts the Shape B time series","passed: merged PR panel mounts the Shape B weekly line"];m=[x for x in w if x not in o];sys.exit(0 if not m else "integration render gate missing: "+", ".join(m))'
     intent: |
       T-21's render assertion runs only when someone types its verify by hand. run-unit-tests.sh's
       two arrays hold test-*.py BASENAMES ONLY and its drift detector globs $BIN_DIR/test-*.py

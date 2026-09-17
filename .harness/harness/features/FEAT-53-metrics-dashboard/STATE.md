@@ -3,12 +3,12 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-09-eng/digest.md
+- run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-10-eng/digest.md
 - squad: engineering
 - status: building
-- tasks_done: T-01..T-15, T-18..T-21, T-23..T-31
-- next_tasks: T-22, T-16
-- cycles_used: 25
+- tasks_done: T-01..T-15, T-18..T-31
+- next_task: T-16
+- cycles_used: 26
 - max_total_cycles: 30
 - rework_rounds: 10
 - rework_wall_clock_minutes: 450

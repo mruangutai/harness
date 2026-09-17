@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-53",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 25,
+  "cycles_used": 26,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -223,6 +223,16 @@
       "started_at": "2026-09-17T07:21:31+00:00",
       "tokens": 115595,
       "ended_at": "2026-09-17T07:42:47+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "2026-09-17-10-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-17T07:43:40+00:00",
+      "tokens": 159693,
+      "ended_at": "2026-09-17T08:35:19+00:00",
       "cycles_used": 1
     }
   ],
@@ -598,6 +608,27 @@
       "kind": "continue",
       "decision": "continue with T-22 and T-16",
       "reason": "Run 2026-09-17-09-eng passed both frontend integrations with one rework cycle; component verbs retain the #1819-safe close path."
+    },
+    {
+      "at": "2026-09-17T08:35:08.449836+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-22.files",
+      "reason": "Native directory discovery retired both signed paths; the classifier and focused regression file were required when layout rejected the intended colocated Vitest tests."
+    },
+    {
+      "at": "2026-09-17T08:35:08.449999+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-22.verify",
+      "reason": "The native runner replaced the shell registry and Vitest 5 uses a file carrier; this proof requires native discovery plus runner-observed passing statuses while CI retains the unmasked full integration exit."
+    },
+    {
+      "at": "2026-09-17T08:35:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue with final build artifact T-16",
+      "reason": "Run 2026-09-17-10-eng passed native client gating in one rework cycle; component verbs retain the #1819-safe close path and full-pool failures remain for the pre-review suite gate."
     }
   ],
   "rework": {
