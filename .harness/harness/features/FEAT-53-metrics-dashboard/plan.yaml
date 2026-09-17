@@ -441,7 +441,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/dashboard/client/package.json
       - .claude/skills/harness/bin/dashboard/client/tsconfig.json
@@ -665,7 +665,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/dashboard/grading.py
       - .claude/skills/harness/bin/dashboard/kpi.py
@@ -730,7 +730,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/dashboard/defects.py
       - .claude/skills/harness/bin/dashboard/kpi.py
@@ -1853,7 +1853,7 @@ tasks:
     traces:
       - SC-29
     depends_on: []
-    status: ready
+    status: done
     execution_mode: main-session-direct
     execution_reason: >-
       The host extension, top-level orchestrator skill and run ledger must change atomically, and no
