@@ -96,6 +96,13 @@ class KpiCoreTest(unittest.TestCase):
             changed = grading.distribution(self.project)
         self.assertNotEqual(result["file_mix"]["ungraded_share"], changed["file_mix"]["ungraded_share"])
 
+    def test_grading_distribution_runs_real_cli_with_tracked_python_paths(self):
+        result = grading.distribution(self.project)
+        self.assertEqual(1, result["graded_functions"])
+        self.assertEqual(1, result["at_or_above_bar"])
+        self.assertEqual([], result["outliers"])
+        self.assertEqual(0, result["file_mix"]["ungraded_files"])
+
     def test_kpi_uses_grading_distribution(self):
         grading_result = _grading_expected(self.expected["grading"])
         with patch("kpi.grading.distribution", return_value=grading_result):
