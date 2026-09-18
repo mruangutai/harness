@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-1821-ui-verification-lane
-- run: none
-- squad: none
-- status: blocked
+- run: amend-product-t03-split-resume
+- squad: product
+- status: awaiting_user
 
 ## Open Questions
 
-- The extended five-round rework ruling is spent. T03-F1, T03-F2, and T03-F4 remain open; operator direction is required before another repair attempt.
+- Q1 (blocking): Main must re-sign the reset plan from notes/answers-fix-c3-split.md with rework 7/315.

@@ -3,8 +3,11 @@ feature: FEAT-1821-ui-verification-lane
 approval:
   date: '2026-09-17'
   approved_by: operator
-  status: approved
-status: building
+  status: pending
+  reset_at: '2026-09-18T04:09:03+00:00'
+  reset_reason: add-tasks T-08, T-09, T-10, T-11, T-12, T-13
+  resume_station: building
+status: plan
 source_issues: [1821]
 panel:
   last_run: plan-product
@@ -254,21 +257,19 @@ tasks:
     depends_on: [T-01, T-02]
     status: building
     files:
-      - .claude/skills/harness/bin/dashboard/client/package.json
-      - .claude/skills/harness/bin/dashboard/client/package-lock.json
-      - .claude/skills/harness/bin/dashboard/client/playwright.config.ts
-      - .claude/skills/harness/bin/dashboard/client/ui-manifest.ts
-      - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
-      - .claude/skills/harness/bin/dashboard/client/fixture.ts
-      - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
+    - .claude/skills/harness/bin/dashboard/client/package.json
+    - .claude/skills/harness/bin/dashboard/client/package-lock.json
+    - .claude/skills/harness/bin/dashboard/client/playwright.config.ts
+    - .claude/skills/harness/bin/dashboard/client/ui-manifest.ts
+    - .claude/skills/harness/bin/dashboard/client/fixture.ts
     verify: |
       HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=plan-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list
     intent: |
-      Add exact-version dev dependencies @playwright/test and @axe-core/playwright with a lockfile-pinned browser revision, plus test:ui; do not add sharp or another image dependency. Configure pinned Chromium projects desktop-1440 at 1440x1100 and desktop-1920 at 1920x1100, device scale factor 1, UTC, en-US, dark colour scheme, reduced motion, and frozen browser time 2026-09-17T12:00:00Z. Before webServer starts, copy fixtures/project-a to ignored test-results storage and extend only that copy with deterministic attention states, grilling and worktree rows, unavailable KPIs, filtered zero, valid rows plus source errors, initial and refresh failures, overflow, and long content. Run python3 ../serve.py --root <generated fixture> on a fixed local port and exercise only the committed client/dist bundle.
+      Preserve the T-03 foundation already delivered: exact-version @playwright/test and @axe-core/playwright dependencies and lockfile-pinned Chromium; test:ui; desktop-1440 and desktop-1920 configuration at 1100px height, device scale factor 1, UTC, en-US, dark colour scheme, reduced motion, and frozen time 2026-09-17T12:00:00Z; a pre-webServer temporary copy of fixtures/project-a extended with deterministic attention, grilling, worktree, unavailable, filtered-zero, mixed valid-row/source-error, request-failure, overflow, and long-content states; fixed-port serving of only the committed client/dist bundle; and ui-manifest.ts consumption of the normalized T-01 ui_contract.py output without Markdown parsing or duplicated contract policy.
 
-      Invoke the T-01 ui_contract.py CLI to produce the normalized manifest. ui-manifest.ts may validate and consume that JSON but must not parse Markdown or reimplement duplicate/title/method/applicability policy. Generate or annotate tests from the manifest and use exactly the twelve titles pinned in T-02. Implement every objective predicate and C3-KEYBOARD transition named in T-02. Execute automated-each-project and inspection-each-project rows in both projects; execute automated-once SRC-TOKENS only in desktop-1440. Capture screenshot evidence after every execution and every inspection-manifest setup. Use Playwright's pinned Chromium session inside the configured runner to call Page.captureScreenshot with format webp and captureBeyondViewport, writing the returned bytes directly; this is runner-owned evidence capture, not Mode B reviewer scripting. Refuse empty or non-WebP output. Disable animations and transitions before capture. The two inspection rows collect every manifest-labelled screenshot without converting reader judgment into a pass. Pixel comparisons remain disabled because no row opts in.
+      Preserve rather than discard the delivered baseline in the transferred files: the existing SRC-TOKENS execution, all VIS-DENSITY and VIS-PROTOTYPE evidence captures, WebP capture through the pinned Chromium session, and the harness-ui-results/1 reporter foundation. The delivered reporter foundation includes feature and run identity, DESIGN path, served_bundle_commit, configured projects and viewports, listed, applicable, observed, and missing check accounting, checks, summary, repository-relative screenshot evidence metadata, and committable results and WebPs while local reports, traces, generated fixtures, and test-results remain ignored.
 
-      Write runs/<run-id>/ui/results.json with schema harness-ui-results/1, feature, run_id, DESIGN path, served_bundle_commit, projects with viewports, listed_check_ids, applicable_check_ids by project, observed_check_ids, missing_check_ids, checks, and summary. Each check carries check_id, exact spec_title, method, surface, project, status from passed, failed, or evidence, screenshot evidence objects with repository-relative path, route, fixture_state, interaction and evidence_label, and errors. Overall status fails for an automated failure, missing applicable record, duplicate, title mismatch, absent screenshot evidence, parser or reporter error, or incomplete accounting. HTML reports, traces, generated fixtures and test-results stay local and ignored; results and WebPs remain committable. The specs expose current FEAT-53 behavior without normalization, special cases, or production edits.
+      The signed residual boundary is exactly the ruling in notes/answers-fix-c3-split.md. T-08 owns trimming feat-53.e2e.spec.ts to SRC-TOKENS, VIS-DENSITY, and VIS-PROTOTYPE plus C1-HEADER-GEOMETRY and KPI-R1 in geometry.e2e.spec.ts. T-09 owns DIR-KPI-IDENTITY and DIR-STATUS-LABEL. T-10 owns C3-KEYBOARD. T-11 owns C3-CONTRAST and C4-HATCH. T-12 owns TBL-DESKTOP and A11Y-AXE. T-13 owns ui-reporter.ts hardening and the seven two-stage fail-closed probes. Those six tasks preserve the twelve exact T-02 titles and predicates, named test.step coverage for every predicate clause, soft expectations, mandatory screenshots, inspection evidence without reader-judgment conversion, no pixel comparison unless a row opts in, no FEAT-53 production edits or behavioral normalization, and exactly twenty-three listed executions. T-03 owns no implementation or verification residual assigned to T-08 through T-13.
 
   - id: T-04
     title: Install package-pinned Chromium in CI
@@ -333,3 +334,126 @@ tasks:
       python3 tests/unit/test-suite-layout.py && HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=activation-smoke npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list
     intent: |
       First add failing unit cases for the activation and layout rules. Only now that T-03 has created a listable test:ui runner, change test_kinds.ui from unresolved to active with a non-null npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui command and a detect pattern covering the package e2e specs; remove the obsolete soft-skip reason. Extend suite_layout only for Playwright e2e specs inside a package with both @playwright/test and a test:ui script, while preserving every existing Vitest and integration rule. Update .gitignore so Playwright HTML reports, traces, generated fixtures and test-results remain ignored, but runs/<id>/ui/results.json and WebP evidence are not ignored. The verify must prove both suite-layout behavior and that the command being activated actually lists the FEAT-53 specs at this task boundary.
+  - id: T-08
+    title: Split source, inspection, and geometry checks
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
+      - .claude/skills/harness/bin/dashboard/client/e2e/geometry.e2e.spec.ts
+    verify: |
+      sh -c '
+      out=$(HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t08-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list feat-53.e2e.spec.ts e2e/geometry.e2e.spec.ts) &&
+      printf "%s\n" "$out" &&
+      test "$(printf "%s\n" "$out" | sed -n "s/^Total: \([0-9][0-9]*\) tests.*/\1/p")" = 9 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "shared header geometry matches DESIGN")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "overview KPI grid is 4 plus 3")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "component source uses only theme tokens")" = 1 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "dense hierarchy and qualitative states match DESIGN")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "rendered routes and interactions match approved prototype")" = 2
+      '
+    intent: |
+      Trim feat-53.e2e.spec.ts so it owns only SRC-TOKENS, VIS-DENSITY, and VIS-PROTOTYPE, preserving SRC-TOKENS once at desktop-1440 and both inspection rows at desktop-1440 and desktop-1920 with their existing required evidence captures. Create e2e/geometry.e2e.spec.ts as the sole owner of C1-HEADER-GEOMETRY with exact title shared header geometry matches DESIGN and KPI-R1 with exact title overview KPI grid is 4 plus 3, each in both projects. C1 must separately check minimum 72px header height, left and right composition, window controls before a 180px Repository selector, and aligned container edges. KPI-R1 must separately check seven tiles in DOM order and equal-width rows of 4 plus 3 at both widths. Make every predicate clause a named test.step and use soft expectations so a failed clause does not prevent later clauses from reporting. Keep screenshot evidence after every execution. These two files contribute exactly nine of the shared twenty-three listed tests and must not define or edit any check owned by T-09 through T-12.
+
+  - id: T-09
+    title: Split KPI and status colour placement checks
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/colour-placement.e2e.spec.ts
+    verify: |
+      sh -c '
+      out=$(HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t09-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list e2e/colour-placement.e2e.spec.ts) &&
+      printf "%s\n" "$out" &&
+      test "$(printf "%s\n" "$out" | sed -n "s/^Total: \([0-9][0-9]*\) tests.*/\1/p")" = 4 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "KPI identity hues stay on identity marks")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "status hue stays on attention labels")" = 2
+      '
+    intent: |
+      Create e2e/colour-placement.e2e.spec.ts as the sole owner of DIR-KPI-IDENTITY with exact title KPI identity hues stay on identity marks and DIR-STATUS-LABEL with exact title status hue stays on attention labels, each in desktop-1440 and desktop-1920. DIR-KPI-IDENTITY must separately verify that computed identity colours occur only on each KPI dot, sparkline stroke, sparkline fill, sparkline end dot, panel accent, Shape B line, Shape B y-title, and column dot. DIR-STATUS-LABEL must separately verify that each status colour occurs only on its matching attention-label text while the icon, count, background, border, top line, and selection remain neutral. Make every predicate clause a named test.step and use soft expectations so a failed clause does not prevent later clauses from reporting. Keep screenshot evidence after every execution. This file contributes exactly four of the shared twenty-three listed tests and must not define or edit any other check.
+
+  - id: T-10
+    title: Split the keyboard contract check
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/keyboard.e2e.spec.ts
+    verify: |
+      sh -c '
+      out=$(HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t10-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list e2e/keyboard.e2e.spec.ts) &&
+      printf "%s\n" "$out" &&
+      test "$(printf "%s\n" "$out" | sed -n "s/^Total: \([0-9][0-9]*\) tests.*/\1/p")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "keyboard focus transitions and restoration match DESIGN")" = 2
+      '
+    intent: |
+      Create e2e/keyboard.e2e.spec.ts as the sole owner of C3-KEYBOARD with exact title keyboard focus transitions and restoration match DESIGN in desktop-1440 and desktop-1920. Execute the full T-02 C-3 contract: exact Tab order on overview, KPI, and work-detail routes; charts and noncontrols absent from Tab order; a 2px text-token focus-visible ring at 2px offset for keyboard and no pointer outline; fresh loads do not focus h1; in-app route transitions focus a tabIndex -1 h1 without a ring; pointer-opened Selector selection and Escape restore the trigger without a ring; keyboard-opened selection and Escape restore it with a ring; attention activation lands on Status; filter and layout updates retain the initiating control after settled results; grilling and worktree disclosure return to their row button; browser Back restores the exact initiating card, tile, or row link; and InfoDisclosure open focuses its first control while Escape and outside click restore its icon. Compare document.activeElement and computed outline state after every settled transition. Make every predicate clause a named test.step and use soft expectations so a failed clause does not prevent later clauses from reporting. Keep screenshot evidence after each execution. This file contributes exactly two of the shared twenty-three listed tests and must not define or edit any other check.
+
+  - id: T-11
+    title: Split contrast and hatch checks
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/contrast-hatch.e2e.spec.ts
+    verify: |
+      sh -c '
+      out=$(HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t11-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list e2e/contrast-hatch.e2e.spec.ts) &&
+      printf "%s\n" "$out" &&
+      test "$(printf "%s\n" "$out" | sed -n "s/^Total: \([0-9][0-9]*\) tests.*/\1/p")" = 4 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "dark tokens meet DESIGN contrast floors")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "unavailable hatch uses 45 degree 1 pixel 6 pixel stops")" = 2
+      '
+    intent: |
+      Create e2e/contrast-hatch.e2e.spec.ts as the sole owner of C3-CONTRAST with exact title dark tokens meet DESIGN contrast floors and C4-HATCH with exact title unavailable hatch uses 45 degree 1 pixel 6 pixel stops, each in desktop-1440 and desktop-1920. C3-CONTRAST must separately check the DESIGN token table's twenty 3:1 non-text floors, nineteen 4.5:1 informational floors, and unavailable stroke at least 3:1 on hatch ground. C4-HATCH must separately check computed 45 degree angle, 1px stroke, 6px repeat stops, and the visible em-dash, badge, and reason wherever required. Make every predicate clause a named test.step and use soft expectations so a failed clause does not prevent later clauses from reporting. Keep screenshot evidence after every execution. This file contributes exactly four of the shared twenty-three listed tests and must not define or edit any other check.
+
+  - id: T-12
+    title: Split table and accessibility checks
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/tables-a11y.e2e.spec.ts
+    verify: |
+      sh -c '
+      out=$(HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t12-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list e2e/tables-a11y.e2e.spec.ts) &&
+      printf "%s\n" "$out" &&
+      test "$(printf "%s\n" "$out" | sed -n "s/^Total: \([0-9][0-9]*\) tests.*/\1/p")" = 4 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "desktop tables contain overflow and keep ID sticky")" = 2 &&
+      test "$(printf "%s\n" "$out" | grep -F -c "routes pass axe and expose non-colour equivalents")" = 2
+      '
+    intent: |
+      Create e2e/tables-a11y.e2e.spec.ts as the sole owner of TBL-DESKTOP with exact title desktop tables contain overflow and keep ID sticky and A11Y-AXE with exact title routes pass axe and expose non-colour equivalents, each in desktop-1440 and desktop-1920. TBL-DESKTOP must separately check real tables, contained horizontal overflow, a sticky ID column while scrolled, no page overflow, sortable headers, denominators, and adjacent text equivalents. A11Y-AXE must separately check no WCAG A or AA axe violations on the T-02 named routes and states, charts hidden with adjacent real tables, every status carrying an icon plus printed label or reason, and every gap treatment carrying visible text. Make every predicate clause a named test.step and use soft expectations so a failed clause does not prevent later clauses from reporting. Keep screenshot evidence after every execution. This file contributes exactly four of the shared twenty-three listed tests and must not define or edit any other check.
+
+  - id: T-13
+    title: Prove reporter bundles fail closed
+    traces: [SC-05, SC-06, SC-10, SC-11]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/ui-reporter.probe.spec.ts
+      - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
+    verify: |
+      node --experimental-strip-types --test .claude/skills/harness/bin/dashboard/client/ui-reporter.probe.spec.ts
+    intent: |
+      Create ui-reporter.probe.spec.ts and harden ui-reporter.ts. The probe must define exactly seven named cases: missing record, duplicate, mismatched title, empty WebP, parser error, reporter error, and incomplete accounting. For every case, construct the smallest isolated bundle that reaches that failure, run the real reporter path and assert ui-reporter.ts emits a results.json summary with status fail and a case-specific error, then invoke python3 .claude/skills/harness/bin/ui_contract.py gate on that emitted bundle and assert a nonzero refusal naming the same defect. A case passes only when both stages reject; a uniform early guard, mocked summary, source-text assertion, or one-stage proof is insufficient. Keep fixtures temporary and deterministic. Name this Node probe outside Playwright's e2e testMatch so it adds no listed browser test and the split lane remains exactly twenty-three tests. Do not edit browser specs, manifest parsing, configuration, or production FEAT-53 code.

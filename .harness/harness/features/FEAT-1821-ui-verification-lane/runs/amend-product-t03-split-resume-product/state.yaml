@@ -1,0 +1,40 @@
+schema_version: 2
+run_id: amend-product-t03-split-resume
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: amendment
+    persona: harness-pm
+    task: amendment
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/feature.json
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t03-split.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: consult-when
+    note: Six disjoint residual tasks and the T-03 delivered-residual boundary landed through governed plan-merge verbs.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t03-split.md
+    evidence:
+      authorization: normal_approval_reset_authorized
+      source_ruling: notes/answers-fix-c3-split.md
+      task_ids: [T-08, T-09, T-10, T-11, T-12, T-13]
+      approval_status: pending
+      scoped_check: 26_anchors_resolved
+      scoped_check_baseline_failure: T-05_missing_generated_adapter_directory
+cycles_used: 0
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/amend-product-t03-split-resume-product/digest.md
+run_uid: 524aabf6bd93448194617f0361389e15
