@@ -1,0 +1,337 @@
+schema: plan/1
+feature: FEAT-1821-ui-verification-lane
+approval:
+  status: pending
+status: plan
+source_issues: [1821]
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-8c743f9ae181255e6f14eab1d91c63e1
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01 activates a test:ui command before T-03 creates that script and
+      runner.
+    disposition: open
+  - id: PF-9e8a17dd19505737534ab737eb389cb8
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-04 does not bind npx playwright to the dashboard package containing
+      the pinned dependency.
+    disposition: open
+  - id: PF-0c43f86f75ca51386bac57f904eda8da
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-05 verifies Mode B through nondiscriminating token presence.
+    disposition: open
+  - id: PF-0471bc40402d71bd6eb08096b37783e2
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-02 verifies only check-id substrings rather than the Checks table contract
+      consumed by T-03.
+    disposition: open
+  - id: PF-558e387395f857be9382b61b95750564
+    severity: med
+    reader: design
+    kind: substance
+    summary: The plan names check ids but never carries the exact Playwright title
+      strings that DESIGN.md and the specs must share.
+    disposition: open
+  - id: PF-833dbdf85aece9be52e774c56c57ea6c
+    severity: high
+    reader: design
+    kind: substance
+    summary: C3-KEYBOARD does not explicitly automate focus preservation across state
+      changes, routes, and disclosure close.
+    disposition: open
+  - id: PF-4df536c305395b2433276f545d1f3935
+    severity: high
+    reader: design
+    kind: substance
+    summary: The two inspection rows do not prescribe which routes, states, or interactions
+      their screenshots must expose.
+    disposition: open
+  - id: PF-f5014ed1c5285bbe38bb97ad35528eb9
+    severity: med
+    reader: design
+    kind: substance
+    summary: The automated row set collapses broad contracts without defining each
+      row's observable predicates.
+    disposition: open
+  - id: PF-c356d4b2307ac578b02f0240e54b2f23
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: D-04/SC-11 route-vs-shared surface resolution is machinery the grilling
+      suggested skipping; the simple "any client change requires all listed checks
+      present" rule covers today's single package and single Checks table.
+    disposition: open
+    scope: task
+  - id: PF-70a3b79ff61d008d90977628ed8e3965
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: "Checks-table policy enforcement is built twice \u2014 ui-contract.ts\
+      \ refuses duplicates/title drift/unlisted specs (T-03) and the Python gate fails\
+      \ on the identical conditions (T-01) \u2014 yielding two independent markdown-table\
+      \ parsers."
+    disposition: open
+    scope: task
+  - id: PF-c6c508320ccce66f393c164b0bb1c5c8
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The sharp native dependency exists solely to transcode Playwright PNG
+      buffers to WebP (T-03).
+    disposition: open
+    scope: task
+  - id: PF-d8bec751b88cadf75d1c614d6e90c9ea
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The uniform "every check, both projects, one screenshot each" rule (SC-02,
+      T-02 intent) forces viewport-independent checks like SRC-TOKENS to run twice
+      and commit two near-identical full-page WebPs that depict nothing about the
+      check.
+    disposition: open
+    scope: task
+  - id: PF-309b20d676787a23543b1cc8e9fb9af2
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: "T-06 hard-codes four check ids as must-fail and defines a green result\
+      \ as task failure, on the assumption the committed dist still exhibits the defects\
+      \ the operator saw \u2014 but the current committed dist links a CSS bundle\
+      \ (client/dist/index.html:8), so the observed state has already moved since\
+      \ \"shipped no CSS\"."
+    disposition: open
+lanes:
+  resolved_at: cdd81a4e03c0016f0a1fd0ba09092858cf1f6630
+  rows:
+  - surface: .harness/harness.json
+    lane: main-session-direct
+    reason: DEC-174 enforcement configuration is an explicit main-session carve-out
+  - surface: .gitignore
+    lane: main-session-direct
+    reason: route resolution grants no specialist and the evidence exception is part of the gate cutover
+  - surface: .claude/skills/harness-qa-gate/SKILL.md
+    lane: main-session-direct
+    reason: DEC-174 enforcement rule is an explicit main-session carve-out
+  - surface: .claude/skills/harness-verification-rules/SKILL.md
+    lane: main-session-direct
+    reason: DEC-174 enforcement rule is an explicit main-session carve-out
+  - surface: .claude/skills/harness/bin/ui_contract.py
+    lane: main-session-direct
+    reason: DEC-174 gate script is an explicit main-session carve-out
+  - surface: .claude/skills/harness/bin/suite_layout.py
+    lane: main-session-direct
+    reason: DEC-174 gate script is an explicit main-session carve-out
+  - surface: tests/unit/test-suite-layout.py
+    lane: main-session-direct
+    reason: DEC-174 includes a gate's own tests in the enforcement boundary
+  - surface: tests/unit/test-ui-verification-contract.py
+    lane: main-session-direct
+    reason: DEC-174 includes enforcement contract tests in the main-session boundary
+  - surface: tests/unit/test-ui-reviewer-policy.py
+    lane: main-session-direct
+    reason: DEC-174 includes the reader enforcement contract test in the main-session boundary
+  - surface: .harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md
+    lane: team
+    agent: harness-visual-designer
+    reason: visual-designer owns the DESIGN.md verification contract
+  - surface: .claude/skills/harness/bin/dashboard/client/**
+    lane: team
+    agent: harness-frontend-dev
+    reason: frontend-dev owns Playwright configuration, fixture support, and browser specs
+  - surface: .github/workflows/tests.yml
+    lane: team
+    agent: harness-dev-ops
+    reason: dev-ops owns CI dependency and browser installation
+  - surface: .omp/agents/harness-ui-reviewer.md
+    lane: main-session-direct
+    reason: DEC-174 canonical reader enforcement surface is an explicit main-session carve-out
+  - surface: .claude/agents/harness-ui-reviewer.md
+    lane: main-session-direct
+    reason: DEC-174 generated reader enforcement adapter is an explicit main-session carve-out
+  - surface: .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui
+    lane: main-session-direct
+    reason: no specialist owns cross-feature committed validation evidence and the main session records the first consumer result
+
+decisions:
+  - id: D-01
+    choice: Automate objective browser and source-contract checks, record screenshot evidence for qualitative checks, and reserve pixel-baseline gating for rows that explicitly opt in.
+    because: Numeric geometry, computed colour, keyboard, contrast, accessibility, hatch, and source constraints have deterministic predicates, while dense visual hierarchy and holistic prototype fidelity require reader judgment and global baselines would add an approval workflow that is out of scope.
+    dec: none
+  - id: D-02
+    choice: Use schema harness-ui-results/1 with one record and WebP evidence per check at every project declared applicable by the Checks table; viewport-sensitive and inspection rows apply to both desktop projects, while viewport-independent source checks run once at desktop-1440. Exact spec titles are byte-matched between the plan-pinned DESIGN rows and Playwright.
+    because: Stable ids and exact titles keep failures human-locatable, applicability avoids duplicate viewport-independent execution, and mandatory screenshots preserve the operator-set evidence rule for every execution.
+    dec: none
+  - id: D-03
+    choice: Build each browser run from a temporary copy of dashboard fixtures/project-a extended by committed Playwright fixture support, with clock and browser rendering inputs fixed.
+    because: The existing fixture does not supply every attention, grilling, worktree, unavailable, and error state needed for deterministic screenshots, while production-only fixture routes would create a gallery that is out of scope.
+    dec: none
+  - id: D-04
+    choice: Treat any change under the dashboard client package as requiring the package's complete DESIGN Checks table and all applicable specs; do not classify diffs by route or infer affected surfaces.
+    because: The current package has one Checks table, so full-contract fallback is simpler, fail-closed for shared components, and cannot silently evade a route when files move.
+    dec: DEC-35
+
+tasks:
+  - id: T-01
+    title: Define and enforce the UI evidence contract
+    traces: [SC-05, SC-06, SC-10, SC-11]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires main-session execution for gate scripts, enforcement rules, and their tests
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness-qa-gate/SKILL.md
+      - .claude/skills/harness-verification-rules/SKILL.md
+      - .claude/skills/harness/bin/ui_contract.py
+      - tests/unit/test-ui-verification-contract.py
+    verify: |
+      python3 tests/unit/test-ui-verification-contract.py
+    intent: |
+      Test first with one failing case per refusal and a positive complete contract. Add ui_contract.py as the only parser and policy authority for DESIGN.md Checks tables. Its CLI must emit a normalized JSON manifest and fail on malformed columns, unknown methods or projects, duplicate ids or titles, missing predicates, incomplete inspection evidence manifests, and plan-supplied expected-row mismatches. The Playwright runner and QA gate consume this emitted manifest; neither implements another Markdown-table parser.
+
+      Update QA and verification rules so the ui gate binds the current feature and validate run id, invokes the configured command, and independently invokes ui_contract.py against the committed DESIGN.md before trusting reporter output. Fail on a missing runner, parser error, missing or duplicate applicable check/project records, exact-title mismatch, absent or empty WebP evidence, stale served_bundle_commit, incomplete listed/applicable/observed/missing accounting, or a has_interaction_flow change under the dashboard client package when its single complete Checks contract or any required spec is absent. Do not classify client diffs by route: every client-package change requires the whole table, which keeps shared components fail-closed. Tests must mutate every required and prohibited condition, including a shared-component path, a missing row, wrong title, wrong project applicability, an empty WebP, and a second parser-like acceptance path.
+
+  - id: T-02
+    title: Publish the executable FEAT-53 Checks contract
+    traces: [SC-05, SC-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-visual-designer
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md
+    verify: |
+      python3 .claude/skills/harness/bin/ui_contract.py check --design .harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md --require-predicates --require-inspection-evidence \
+        --expect 'C1-HEADER-GEOMETRY|shared header geometry matches DESIGN|shared-header|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'KPI-R1|overview KPI grid is 4 plus 3|overview-kpis|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'DIR-KPI-IDENTITY|KPI identity hues stay on identity marks|all-routes|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'DIR-STATUS-LABEL|status hue stays on attention labels|overview-attention|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'C3-KEYBOARD|keyboard focus transitions and restoration match DESIGN|all-routes|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'C3-CONTRAST|dark tokens meet DESIGN contrast floors|all-routes|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'C4-HATCH|unavailable hatch uses 45 degree 1 pixel 6 pixel stops|all-routes|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'TBL-DESKTOP|desktop tables contain overflow and keep ID sticky|work-and-kpi-tables|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'SRC-TOKENS|component source uses only theme tokens|client-source|automated-once|desktop-1440' \
+        --expect 'A11Y-AXE|routes pass axe and expose non-colour equivalents|all-routes|automated-each-project|desktop-1440,desktop-1920' \
+        --expect 'VIS-DENSITY|dense hierarchy and qualitative states match DESIGN|all-routes|inspection-each-project|desktop-1440,desktop-1920' \
+        --expect 'VIS-PROTOTYPE|rendered routes and interactions match approved prototype|all-routes|inspection-each-project|desktop-1440,desktop-1920'
+    intent: |
+      Add one DESIGN.md Checks contract with columns Check ID, exact Spec title, Surface, Method, Projects, and Predicate or evidence. Preserve every existing directive. Copy these exact id/title/surface/method/project tuples byte for byte from the verify command. Define automated-each-project, automated-once, and inspection-each-project; screenshots remain mandatory evidence for every execution, including SRC-TOKENS, while SRC-TOKENS runs only once at desktop-1440. Pixel baseline remains an explicit opt-in method and no FEAT-53 row uses it.
+
+      Write executable predicates, not category labels. C1-HEADER-GEOMETRY asserts minimum 72px header height, left/right composition, window controls before a 180px Repository selector, and aligned container edges. KPI-R1 asserts seven tiles in DOM order as equal-width 4 plus 3 rows at both widths. DIR-KPI-IDENTITY asserts computed identity colours only on each KPI's dot, sparkline stroke/fill/end dot, panel accent, Shape B line/y-title and column dot. DIR-STATUS-LABEL asserts each status colour only on its matching attention-label text and neutral icon/count/background/border/top-line/selection. C3-CONTRAST asserts the DESIGN token table's twenty 3:1 non-text floors, nineteen 4.5:1 informational floors, and unavailable stroke at least 3:1 on hatch ground. C4-HATCH asserts computed 45 degree, 1px stroke and 6px repeat stops plus visible em-dash, badge and reason where required. TBL-DESKTOP asserts real tables, contained horizontal overflow, sticky ID column while scrolled, no page overflow, sortable headers, denominators, and adjacent text equivalents. SRC-TOKENS asserts raw hex only in the defineTheme token declaration, no component fontSize literal, and every chart colour supplied by a theme token. A11Y-AXE asserts no WCAG A or AA axe violations on the named routes and states, charts hidden with adjacent real tables, every status has icon plus printed label/reason, and every gap treatment has visible text.
+
+      C3-KEYBOARD must execute the full DESIGN C-3 contract: exact Tab order on overview, KPI and work-detail routes; charts and noncontrols absent from Tab order; 2px text-token focus-visible ring at 2px offset for keyboard but no pointer outline; fresh loads do not focus h1, in-app route transitions focus tabIndex -1 h1 without a ring; pointer-opened Selector selection and Escape restore the trigger without a ring while keyboard-opened selection and Escape restore it with a ring; attention activation lands on Status, filter and layout updates retain the initiating control after settled results, grilling/worktree disclosure returns to its row button, browser Back restores the exact initiating card/tile/row link, and InfoDisclosure open focuses its first control while Escape and outside click restore its icon. Assertions must compare document.activeElement and computed outline state after each settled transition.
+
+      Add an inspection evidence manifest whose every entry names check id, evidence label, route, fixture state, setup or interaction, project, and required screenshot. For both desktop-1440 and desktop-1920, VIS-DENSITY requires overview-default, KPI-unavailable with InfoDisclosure open, work-detail-long-content, filtered-zero after a filter, source-error-with-valid-rows, initial-request-error with Retry focused, and table-overflow after horizontal scroll with the sticky ID visible. For both projects, VIS-PROTOTYPE requires overview-default, KPI-drill after activating a tile, work-drill after activating a FEAT or BUG row, and disclosure-open after keyboard opening the KPI 7 InfoDisclosure. Each item must point to the approved FEAT-53 prototype comparison surface; no generic homepage screenshot satisfies another item.
+
+  - id: T-03
+    title: Implement the Playwright lane and FEAT-53 specs
+    traces: [SC-01, SC-02, SC-04, SC-05, SC-06, SC-07, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/package.json
+      - .claude/skills/harness/bin/dashboard/client/package-lock.json
+      - .claude/skills/harness/bin/dashboard/client/playwright.config.ts
+      - .claude/skills/harness/bin/dashboard/client/ui-manifest.ts
+      - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
+      - .claude/skills/harness/bin/dashboard/client/fixture.ts
+      - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
+    verify: |
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=plan-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list
+    intent: |
+      Add exact-version dev dependencies @playwright/test and @axe-core/playwright with a lockfile-pinned browser revision, plus test:ui; do not add sharp or another image dependency. Configure pinned Chromium projects desktop-1440 at 1440x1100 and desktop-1920 at 1920x1100, device scale factor 1, UTC, en-US, dark colour scheme, reduced motion, and frozen browser time 2026-09-17T12:00:00Z. Before webServer starts, copy fixtures/project-a to ignored test-results storage and extend only that copy with deterministic attention states, grilling and worktree rows, unavailable KPIs, filtered zero, valid rows plus source errors, initial and refresh failures, overflow, and long content. Run python3 ../serve.py --root <generated fixture> on a fixed local port and exercise only the committed client/dist bundle.
+
+      Invoke the T-01 ui_contract.py CLI to produce the normalized manifest. ui-manifest.ts may validate and consume that JSON but must not parse Markdown or reimplement duplicate/title/method/applicability policy. Generate or annotate tests from the manifest and use exactly the twelve titles pinned in T-02. Implement every objective predicate and C3-KEYBOARD transition named in T-02. Execute automated-each-project and inspection-each-project rows in both projects; execute automated-once SRC-TOKENS only in desktop-1440. Capture screenshot evidence after every execution and every inspection-manifest setup. Use Playwright's pinned Chromium session inside the configured runner to call Page.captureScreenshot with format webp and captureBeyondViewport, writing the returned bytes directly; this is runner-owned evidence capture, not Mode B reviewer scripting. Refuse empty or non-WebP output. Disable animations and transitions before capture. The two inspection rows collect every manifest-labelled screenshot without converting reader judgment into a pass. Pixel comparisons remain disabled because no row opts in.
+
+      Write runs/<run-id>/ui/results.json with schema harness-ui-results/1, feature, run_id, DESIGN path, served_bundle_commit, projects with viewports, listed_check_ids, applicable_check_ids by project, observed_check_ids, missing_check_ids, checks, and summary. Each check carries check_id, exact spec_title, method, surface, project, status from passed, failed, or evidence, screenshot evidence objects with repository-relative path, route, fixture_state, interaction and evidence_label, and errors. Overall status fails for an automated failure, missing applicable record, duplicate, title mismatch, absent screenshot evidence, parser or reporter error, or incomplete accounting. HTML reports, traces, generated fixtures and test-results stay local and ignored; results and WebPs remain committable. The specs expose current FEAT-53 behavior without normalization, special cases, or production edits.
+
+  - id: T-04
+    title: Install package-pinned Chromium in CI
+    traces: [SC-12]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .github/workflows/tests.yml
+    verify: |
+      python3 -c "import pathlib,yaml; d=yaml.safe_load(pathlib.Path('.github/workflows/tests.yml').read_text()); steps=[s for j in d['jobs'].values() for s in j.get('steps',[])]; i=next(i for i,s in enumerate(steps) if s.get('name')=='Install the dashboard Chromium'); s=steps[i]; assert steps[i-1].get('run')=='npm ci --prefix .claude/skills/harness/bin/dashboard/client' and s.get('working-directory')=='.claude/skills/harness/bin/dashboard/client' and s.get('run')=='npx playwright install --with-deps chromium'"
+    intent: |
+      Immediately after the existing dashboard client npm ci step, add a step named Install the dashboard Chromium with working-directory .claude/skills/harness/bin/dashboard/client and exact command npx playwright install --with-deps chromium. The working directory is required so npx resolves the package-lock-pinned @playwright/test and Chromium revision instead of downloading from repository root. Do not add another npm install, change Node setup, run the UI lane in CI, or alter unrelated job steps.
+
+  - id: T-05
+    title: Make UI reviewer Mode B evidence-driven
+    traces: [SC-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires the UI reviewer enforcement surface, canonical agent source, generated adapter, and contract test to be edited by the main session
+    depends_on: [T-01, T-03]
+    status: ready
+    files:
+      - .omp/agents/harness-ui-reviewer.md
+      - .claude/agents/harness-ui-reviewer.md
+      - tests/unit/test-ui-reviewer-policy.py
+    verify: |
+      python3 tests/unit/test-ui-reviewer-policy.py && python3 .claude/skills/harness/bin/sync-agent-adapters.py --root . --check
+    intent: |
+      Test first with a focused policy-contract test that extracts Mode B, accepts the complete rule, and fails separately when each required clause is deleted or inverted. Edit the canonical .omp/agents/harness-ui-reviewer.md, run sync-agent-adapters.py --root . --apply to regenerate .claude/agents/harness-ui-reviewer.md, and require the adapter check to remain clean. Replace source-only assurance with harness-ui-results/1 evidence. Require the reviewer to read results.json and every referenced WebP at pinned review_sha against DESIGN.md and the approved prototype; require served_bundle_commit equality, both configured projects for each-project rows, the declared project for once rows, complete id accounting, and every inspection evidence label with its route, fixture state, interaction and viewport. Missing, unreadable, stale, mismatched or incomplete evidence is FAIL. Permit rerunning only the configured test_kinds.ui command with the same feature and run context. Explicitly prohibit ad-hoc CDP and alternate browser scripts as substitutes. The test must mutant-check pin equality, project applicability, inspection labels, unreadable evidence, configured-command-only reruns, FAIL behavior, and both prohibitions; token presence alone is not sufficient. Keep Mode A and unrelated output fields unchanged.
+
+  - id: T-06
+    title: Record the current FEAT-53 RED evidence
+    traces: [SC-01, SC-02, SC-03, SC-06]
+    change_type: frontend
+    execution_mode: main-session-direct
+    execution_reason: cross-feature run evidence has no specialist write grant and must be committed even though the honest first result is red
+    depends_on: [T-04, T-05, T-07]
+    status: ready
+    files:
+    - .harness/harness/features/FEAT-53-metrics-dashboard/runs
+    verify: |
+      sh -c 'HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=FEAT-1821-initial-red npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui; rc=$?; test "$rc" -ne 0' && python3 -c "import json,pathlib; p=pathlib.Path('.harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/results.json'); d=json.loads(p.read_text()); named={'C1-HEADER-GEOMETRY','DIR-KPI-IDENTITY','DIR-STATUS-LABEL','TBL-DESKTOP'}; byid={x['check_id'] for x in d['checks']}; shots=[pathlib.Path(s['path']) for x in d['checks'] for s in x['screenshot_evidence']]; assert d['schema']=='harness-ui-results/1' and d['summary']['status']=='fail' and named<=byid and not d['missing_check_ids'] and shots and all(x.stat().st_size>12 and x.read_bytes()[8:12]==b'WEBP' for x in shots)"
+    intent: |
+      Run the configured lane once against the unchanged FEAT-53 committed dist bundle with feature FEAT-53-metrics-dashboard and run id FEAT-1821-initial-red. Let the executable predicates observe current behavior; do not predeclare all four historical divergences failed. Commit only results.json and its referenced WebP screenshots. The result must record pass or fail status for each named header geometry, KPI identity-hue, status-label-colour and table check at every applicable project, identify whichever current measurable predicates are RED, preserve complete check-id and project accounting, and remain overall RED on the current FEAT-53 bundle. The task does not require a stale named defect to keep failing merely because it was once observed. A missing named record, absent applicable project, incomplete evidence, or FEAT-53 production edit is failure. Do not fix, suppress, mark expected, special-case, or weaken any assertion; if current behavior differs, the evidence records it and resumed FEAT-53 owns repairs.
+  - id: T-07
+    title: Activate the implemented UI runner
+    traces: [SC-10]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires main-session execution for harness configuration, suite layout enforcement, and their tests
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .harness/harness.json
+      - .gitignore
+      - .claude/skills/harness/bin/suite_layout.py
+      - tests/unit/test-suite-layout.py
+    verify: |
+      python3 tests/unit/test-suite-layout.py && HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=activation-smoke npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list
+    intent: |
+      First add failing unit cases for the activation and layout rules. Only now that T-03 has created a listable test:ui runner, change test_kinds.ui from unresolved to active with a non-null npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui command and a detect pattern covering the package e2e specs; remove the obsolete soft-skip reason. Extend suite_layout only for Playwright e2e specs inside a package with both @playwright/test and a test:ui script, while preserving every existing Vitest and integration rule. Update .gitignore so Playwright HTML reports, traces, generated fixtures and test-results remain ignored, but runs/<id>/ui/results.json and WebP evidence are not ignored. The verify must prove both suite-layout behavior and that the command being activated actually lists the FEAT-53 specs at this task boundary.
