@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""PreToolUse Task/Agent hook — enforce governed dispatch contracts.
+"""OMP task preflight — enforce governed dispatch contracts.
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
-compatibility registration lives in `.claude/settings.json`. The guard rejects model
+Registered in `.omp/extensions/harness-hooks.ts`. The guard rejects model
 overrides, validates feature/run-directory routing, and records single-flight claims.
 
 WAS A .sh (issue #1674). The Python policy previously ran behind two shell-launched
@@ -289,18 +288,21 @@ if not has_bash:
                   % (declared_root, expected_root), file=sys.stderr)
             sys.exit(2)
 
-runtime = d.get("harness_runtime") or "claude"
-supervisor_pid = d.get("supervisor_pid") if runtime == "omp" else None
-if runtime == "omp" and (not isinstance(supervisor_pid, int) or supervisor_pid <= 0):
-    print("dispatch-guard: OMP dispatch has no valid supervisor pid — passing through "
-          "without a claim.", file=sys.stderr)
-    sys.exit(0)
+# OMP is the only host (DEC-233). A dispatch that does not identify itself as OMP-supervised,
+# or carries no supervisor pid, cannot be claimed and so cannot be tracked: single-flight and
+# child liveness would be silently off for it. Refuse rather than pass through.
+if d.get("harness_runtime") != "omp":
+    print("dispatch-guard: BLOCKED — dispatch payload carries no `harness_runtime: omp`; "
+          "only the OMP host may dispatch a governed persona (DEC-233).", file=sys.stderr)
+    sys.exit(2)
+supervisor_pid = d.get("supervisor_pid")
+if not isinstance(supervisor_pid, int) or isinstance(supervisor_pid, bool) or supervisor_pid <= 0:
+    print("dispatch-guard: BLOCKED — OMP dispatch has no valid supervisor pid, so its claim "
+          "could never be verified live (DEC-204).", file=sys.stderr)
+    sys.exit(2)
 
 try:
-    session = d.get("session_id")
-    existing, expired = reg.live_claim(
-        root, dispatched, session=session, feature=declared
-    )
+    existing, expired = reg.live_claim(root, dispatched, feature=declared)
     if expired:
         print("dispatch-guard: expired %d stale claim(s) for %s."
               % (expired, dispatched), file=sys.stderr)
@@ -314,9 +316,7 @@ try:
         dispatched,
         agent,
         d.get("cwd") or "",
-        session=session,
         feature=declared,
-        runtime=runtime,
         supervisor_pid=supervisor_pid,
     )
     if receipt is None:

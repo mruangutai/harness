@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from pathlib import Path
 
@@ -27,7 +26,15 @@ EXPECTED_AGENTS = {
     "harness-validator-lead",
     "harness-visual-designer",
 }
-CAPABILITIES = {"@deep", "@strong", "@standard", "@review"}
+# The one place a role's reasoning effort is bound to its capability alias (DEC-233).
+THINKING_FOR_CAPABILITY = {
+    "@deep": "high",
+    "@strong": "medium",
+    "@standard": "medium",
+    "@review": "high",
+}
+CAPABILITIES = set(THINKING_FOR_CAPABILITY)
+REQUIRED_DOORS = ("harness", "harness-plan", "harness-patch", "harness-ship", "harness-grilling")
 PROVIDER_PREFIX = {
     "openai.yml": "openai-codex/",
     "anthropic.yml": "anthropic/",
@@ -43,11 +50,8 @@ def frontmatter(path: Path) -> dict:
 def check(root: Path) -> list[str]:
     errors: list[str] = []
     agents_md = root / "AGENTS.md"
-    claude_md = root / "CLAUDE.md"
     if not agents_md.is_file():
         errors.append("AGENTS.md is missing; OMP has no provider-neutral project guidance")
-    if not claude_md.is_file() or "@AGENTS.md" not in claude_md.read_text(encoding="utf-8"):
-        errors.append("CLAUDE.md does not import AGENTS.md")
 
     config_path = root / ".omp" / "config.yml"
     try:
@@ -75,8 +79,14 @@ def check(root: Path) -> list[str]:
             continue
         name = str(meta.get("name") or "")
         actual_names.add(name)
-        if meta.get("model") not in CAPABILITIES:
+        model = meta.get("model")
+        if model not in CAPABILITIES:
             errors.append(f"{path.relative_to(root)} must use a provider-neutral model alias")
+        elif meta.get("thinking-level") != THINKING_FOR_CAPABILITY[model]:
+            errors.append(
+                f"{path.relative_to(root)}: {model} requires thinking-level "
+                f"{THINKING_FOR_CAPABILITY[model]!r}, got {meta.get('thinking-level')!r}"
+            )
         if name == "harness-orchestrator":
             if meta.get("blocking"):
                 errors.append(f"{path.relative_to(root)} must remain background-dispatched from main")
@@ -118,13 +128,11 @@ def check(root: Path) -> list[str]:
 
     claude_skills = root / ".claude" / "skills"
     agent_skills = root / ".agents" / "skills"
-    if not claude_skills.is_dir() or claude_skills.is_symlink():
-        errors.append(".claude/skills must be the real authored skill directory")
     try:
         if not agent_skills.is_symlink() or agent_skills.resolve() != claude_skills.resolve():
-            errors.append(".agents/skills must be a symlink to .claude/skills")
+            errors.append(".agents/skills must be a symlink to the authored tree at .claude/skills")
     except OSError as exc:
-        errors.append(f"cannot resolve .agents/skills compatibility link: {exc}")
+        errors.append(f"cannot resolve .agents/skills link: {exc}")
 
     extension = root / ".omp" / "extensions" / "harness-hooks.ts"
     if not extension.is_file():
@@ -147,33 +155,10 @@ def check(root: Path) -> list[str]:
             if marker not in source:
                 errors.append(f".omp/extensions/harness-hooks.ts lacks {purpose} ({marker})")
 
-    sync = root / ".agents" / "skills" / "harness" / "bin" / "sync-agent-adapters.py"
-    if sync.is_file():
-        result = subprocess.run(
-            [sys.executable, str(sync), "--root", str(root), "--check"],
-            text=True,
-            capture_output=True,
-        )
-        if result.returncode != 0:
-            errors.append(result.stderr.strip() or "Claude agent adapters are stale")
-    else:
-        errors.append("sync-agent-adapters.py is missing")
-
     command_dir = root / ".omp" / "commands"
-    for door in ("harness", "harness-plan", "harness-patch", "harness-ship", "harness-grilling"):
+    for door in REQUIRED_DOORS:
         if not (command_dir / f"{door}.md").is_file():
             errors.append(f".omp/commands/{door}.md is missing; {door} has no provider-neutral door")
-    command_sync = root / ".agents" / "skills" / "harness" / "bin" / "sync-command-adapters.py"
-    if command_sync.is_file():
-        result = subprocess.run(
-            [sys.executable, str(command_sync), "--root", str(root), "--check"],
-            text=True,
-            capture_output=True,
-        )
-        if result.returncode != 0:
-            errors.append(result.stderr.strip() or "Claude command adapters are stale")
-    else:
-        errors.append("sync-command-adapters.py is missing")
     return errors
 
 

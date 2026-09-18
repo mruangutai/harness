@@ -5,7 +5,7 @@ This module owns feature.json, plan.yaml, manifest-domain, fleet.yaml, frontmatt
 OMP-config, hook-payload, GitHub-JSON, and harness.json reads.
 
 Sanctioned routes are write_feature_json, write_harness_json, plan-merge.py verbs,
-sync-agent-adapters.py, main-session-owned files, and the sole state.yaml reader trip-wire.
+main-session-owned files, and the sole state.yaml reader trip-wire.
 """
 from __future__ import annotations
 

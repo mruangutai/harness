@@ -6,8 +6,8 @@ adversarial plan panel into ONE product-lead run (`plan.yaml`), the reviewer pan
 pm's goal-check into ONE validator-lead run (`validate.yaml`), and the fix cycle into a
 validator-lead run hosting the owning dev (`fix.yaml`). This grades the team definitions,
 their playbook wiring (`SKILL.md`, `harness-plan.md`), their domain grants
-(`team-config.yaml`), the roster census (`.omp/agents/`, `.claude/agents/`), and the spawn
-allowlists (lead frontmatter `spawns:`, `sync-agent-adapters.py`). It runs no agent and
+(`team-config.yaml`), the roster census (`.omp/agents/`), and the spawn
+allowlists (lead frontmatter `spawns:`). It runs no agent and
 asserts nothing about finding quality — that is qa's job at review time, not this file's.
 
 Case 8 is the one thing no other case can catch: without it a team's first failure
@@ -42,18 +42,16 @@ except ModuleNotFoundError:
 
 import yaml  # noqa: E402  (harness_yaml import above establishes PyYAML is present)
 
-REPO = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
+REPO = os.environ.get("HARNESS_PROJECT_DIR") or os.getcwd()
 TEAMS = os.path.join(REPO, ".claude", "skills", "harness", "teams")
 BIN = os.path.join(REPO, ".claude", "skills", "harness", "bin")
 SKILL_MD = os.path.join(REPO, ".claude", "skills", "harness", "SKILL.md")
 # The plan-phase procedure moved out of the playbook into a reference read at that seam
 # (FEAT-59 playbook split, DEC-158); the verbatim goal-check question lives there now.
 PLAN_PHASE_MD = os.path.join(REPO, ".claude", "skills", "harness", "references", "plan-phase.md")
-PLAN_MD = os.path.join(REPO, ".claude", "commands", "harness-plan.md")
+PLAN_MD = os.path.join(REPO, ".omp", "commands", "harness-plan.md")
 TEAM_CONFIG = os.path.join(REPO, ".harness", "team-config.yaml")
 AGENTS_OMP = os.path.join(REPO, ".omp", "agents")
-AGENTS_CLAUDE = os.path.join(REPO, ".claude", "agents")
-SYNC_ADAPTERS = os.path.join(BIN, "sync-agent-adapters.py")
 CHECK_DOMAIN = os.path.join(BIN, "check-domain.py")
 PLAN_YAML = os.path.join(TEAMS, "plan.yaml")
 VALIDATE_YAML = os.path.join(TEAMS, "validate.yaml")
@@ -96,7 +94,7 @@ def _resolve(path):
     return subprocess.run(
         [CHECK_DOMAIN, "--resolve", path], capture_output=True, text=True,
         stdin=subprocess.DEVNULL, timeout=20, cwd=REPO,
-        env=dict(os.environ, CLAUDE_PROJECT_DIR=REPO, HARNESS_PROJECT_DIR=REPO),
+        env=dict(os.environ, HARNESS_PROJECT_DIR=REPO),
     )
 
 
@@ -303,19 +301,13 @@ try:
 except Exception as e:
     check("(4c) squad membership of the borrowed personas", False, e)
 
-# --- 5. the roster census is unchanged: sixteen and sixteen, by the same names ------
+# --- 5. the roster census is unchanged: sixteen, by name -----------------------------
 try:
     omp_files = sorted(f for f in os.listdir(AGENTS_OMP) if re.match(r"^harness-.*\.md$", f))
-    claude_files = sorted(f for f in os.listdir(AGENTS_CLAUDE) if re.match(r"^harness-.*\.md$", f))
     check("(5) .omp/agents/ holds exactly sixteen harness-*.md files",
           len(omp_files) == 16, omp_files)
-    check("(5) .claude/agents/ holds exactly sixteen harness-*.md files",
-          len(claude_files) == 16, claude_files)
-    check("(5) .omp/agents/ and .claude/agents/ name the same sixteen files",
-          set(omp_files) == set(claude_files),
-          f"omp={sorted(omp_files)} claude={sorted(claude_files)}")
 except Exception as e:
-    check("(5) the roster census is unchanged: sixteen and sixteen", False, e)
+    check("(5) the roster census is unchanged: sixteen", False, e)
 
 # --- 6. no halt at the cap; every loop_back escalates with a max_cycles -------------
 for team_name, path, team_steps in (("plan", PLAN_YAML, steps), ("fix", FIX_YAML, f_steps)):
@@ -349,18 +341,6 @@ try:
 except Exception as e:
     check("(7a) harness-plan.md has a Target state bullet", False, e)
 
-# --- 8. every team is SPAWNABLE — the one thing no other case here can catch --------
-# Personas are READ FROM THE TEAM FILES, never hardcoded. The fix dev is templated, so
-# every Engineering member must be on the validator lead's allowlist.
-try:
-    spec = importlib.util.spec_from_file_location("sync_agent_adapters_under_test",
-                                                    SYNC_ADAPTERS)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    spawns_map = getattr(mod, "SPAWNS")
-except Exception as e:
-    spawns_map = {}
-    check("(8) SPAWNS is importable from sync-agent-adapters.py", False, e)
 
 hosted = {
     "harness-product-lead": {s["persona"] for s in steps},
@@ -379,13 +359,6 @@ for lead, personas in hosted.items():
               not (set(allow) & LEADS), allow)
     except Exception as e:
         check(f"(8a) {lead}.md's frontmatter spawns: allowlist is readable", False, e)
-    try:
-        const = spawns_map.get(lead, [])
-        for p in sorted(personas):
-            check(f"(8b) {p} is in SPAWNS[{lead!r}] in sync-agent-adapters.py",
-                  any(_agrees(p, a) for a in const), const)
-    except Exception as e:
-        check(f"(8b) SPAWNS[{lead!r}] is readable", False, e)
 
 # --- 9. a superseded run's record survives the re-run (DEC-117): rendering the same
 #        cycle-bearing outputs entry at cycle 0 and cycle 1 must not collapse onto one

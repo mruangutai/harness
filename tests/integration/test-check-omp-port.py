@@ -8,7 +8,6 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 
-import importlib.util
 import shutil
 import subprocess
 import sys
@@ -17,17 +16,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECK = ROOT / ".claude/skills/harness/bin/check-omp-port.py"
-SYNC_COMMAND_ADAPTERS = ROOT / ".claude/skills/harness/bin/sync-command-adapters.py"
-
-
-def _sync_command_adapters_module():
-    """Load sync-command-adapters.py's own REQUIRED_DOORS list at runtime — pins this file's
-    door names to that module's list behaviourally, never by grepping either source's text."""
-    spec = importlib.util.spec_from_file_location("_sync_command_adapters_under_test", SYNC_COMMAND_ADAPTERS)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
 
 def run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, str(CHECK), str(root)], text=True, capture_output=True)
@@ -45,7 +33,6 @@ def fixture() -> tuple[tempfile.TemporaryDirectory, Path]:
         src = ROOT / rel
         shutil.copytree(src, dst / rel, symlinks=True, ignore=skip_worktrees)
     shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
-    shutil.copy2(ROOT / "CLAUDE.md", dst / "CLAUDE.md")
     return td, dst
 
 
@@ -54,12 +41,7 @@ def case_symlink_topology():
     canonical_link = ROOT / ".agents" / "skills"
     return [
         (
-            "Claude skills remain a real directory",
-            claude_skills.is_dir() and not claude_skills.is_symlink(),
-            "",
-        ),
-        (
-            "Agent Skills path links to Claude skills",
+            "Agent Skills path links to the authored skills tree",
             canonical_link.is_symlink() and canonical_link.resolve() == claude_skills.resolve(),
             "",
         ),
@@ -138,15 +120,17 @@ def case_concrete_model_in_canonical_fails():
         td.cleanup()
 
 
-def case_stale_claude_adapter_fails():
+def case_thinking_level_disagrees_with_alias_fails():
+    """DEC-233: the alias↔thinking-level pairing was enforced only by the deleted
+    sync-agent-adapters.py. A `@review` role at `medium` must be refused here, naming both."""
     td, root = fixture()
     try:
-        adapter = root / ".claude" / "agents" / "harness-backend-dev.md"
-        adapter.write_text(adapter.read_text() + "drift\n")
+        agent = root / ".omp" / "agents" / "harness-code-reviewer.md"
+        agent.write_text(agent.read_text().replace("thinking-level: high", "thinking-level: medium"))
         result = run(root)
         return [
-            ("stale Claude adapter fails", result.returncode == 1, ""),
-            ("adapter drift is named", "adapters are stale" in result.stderr, ""),
+            ("thinking-level disagreeing with alias fails", result.returncode == 1, result.stderr),
+            ("both values are named", "@review" in result.stderr and "medium" in result.stderr, result.stderr),
         ]
     finally:
         td.cleanup()
@@ -195,11 +179,10 @@ def case_missing_lifecycle_wiring_fails():
 
 
 def case_missing_sign_gate_wiring_fails():
-    """BUG-1132: plan-sign-gate.py (REQ-05/DEC-120) is wired into `.claude/settings.json` for
-    native Claude Code, and was silently absent from harness-hooks.ts's own bash gate list
-    until this fix — invisible to this checker because the script was never in
-    `required_wiring`. This proves the checker would now catch that class of gap recurring
-    for ANY gate script, not just this one instance."""
+    """BUG-1132: plan-sign-gate.py (REQ-05/DEC-120) was silently absent from
+    harness-hooks.ts's own bash gate list until this fix — invisible to this checker because
+    the script was never in `required_wiring`. This proves the checker would now catch that
+    class of gap recurring for ANY gate script, not just this one instance."""
     td, root = fixture()
     try:
         extension = root / ".omp" / "extensions" / "harness-hooks.ts"
@@ -257,56 +240,13 @@ def case_absent_canonical_command_root_fails():
         td.cleanup()
 
 
-def case_required_doors_pinned_to_sync_command_adapters():
-    """F3/T-14: sync-command-adapters.py's REQUIRED_DOORS is a second copy of this file's own
-    door tuple (check-omp-port.py:169). Load it at runtime and prove, one door at a time, that
-    deleting any single required door is still caught here — pins the two lists together
-    behaviourally instead of trusting them to stay hand-synchronized."""
-    results = []
-    for door in _sync_command_adapters_module().REQUIRED_DOORS:
-        td, root = fixture()
-        try:
-            (root / ".omp" / "commands" / door).unlink()
-            result = run(root)
-            results.append((f"check-omp-port also reports {door} missing", result.returncode == 1, ""))
-            results.append((f"{door} missing is named in check-omp-port output", door in result.stderr, ""))
-        finally:
-            td.cleanup()
-    return results
-
-
-def case_no_canonical_door_delegates_to_adapter():
-    """F2: a canonical door under `.omp/commands/` must never reference `.claude/commands` —
-    adapters are GENERATED from canon and banner-marked do-not-edit, so a canonical door
-    pointing at an adapter makes the source depend on its own output, and every door breaks
-    silently the moment an adapter moves. Per-file, one assertion per door: a directory-wide
-    `any()` would be satisfied by three conforming doors and blind to the fourth."""
-    command_dir = ROOT / ".omp" / "commands"
-    doors = sorted(command_dir.glob("*.md"))
-    required = set(_sync_command_adapters_module().REQUIRED_DOORS)
-    results = [
-        (
-            "canonical command doors are discovered and cover the required set",
-            bool(doors) and required.issubset({p.name for p in doors}),
-            f"found: {sorted(p.name for p in doors)}",
-        )
-    ]
-    for door in doors:
-        text = door.read_text(encoding="utf-8")
-        results.append((
-            f".omp/commands/{door.name} does not delegate to .claude/commands",
-            ".claude/commands" not in text,
-            f".omp/commands/{door.name} references .claude/commands",
-        ))
-    return results
-
 
 CASES = (
     case_symlink_topology,
     case_live_tree_passes,
     case_missing_agents_md_fails,
     case_concrete_model_in_canonical_fails,
-    case_stale_claude_adapter_fails,
+    case_thinking_level_disagrees_with_alias_fails,
     case_missing_async_enablement_fails,
     case_task_wall_clock_limit_fails,
     case_missing_lifecycle_wiring_fails,
@@ -314,8 +254,6 @@ CASES = (
     case_nonblocking_nested_agent_fails,
     case_missing_command_door_fails,
     case_absent_canonical_command_root_fails,
-    case_required_doors_pinned_to_sync_command_adapters,
-    case_no_canonical_door_delegates_to_adapter,
 )
 
 

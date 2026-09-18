@@ -686,12 +686,6 @@ def _bug1305_invariant_feature(tmp, h, names):
     with open(os.path.join(fdir, "feature.json"), "w") as fh:
         json.dump(document, fh)
         fh.write("\n")
-    settings_src = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "..",
-        ".claude", "settings.json")
-    settings_dst = os.path.join(tmp, ".claude", "settings.json")
-    os.makedirs(os.path.dirname(settings_dst), exist_ok=True)
-    shutil.copy2(settings_src, settings_dst)
     hooks_dir = os.path.join(tmp, _HOOKS_REL_T)
     os.makedirs(hooks_dir, exist_ok=True)
     post_merge = os.path.join(hooks_dir, "post-merge")

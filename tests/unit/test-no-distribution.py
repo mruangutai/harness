@@ -71,23 +71,18 @@ def case1():
           f"deploy.sh still tracked at: {deploy_sh_hits}")
 
     check("case1_absence_no_harness_deploy_command",
-          not os.path.exists(os.path.join(ROOT, ".claude", "commands", "harness-deploy.md")),
-          ".claude/commands/harness-deploy.md still exists")
+          not os.path.exists(os.path.join(ROOT, ".omp", "commands", "harness-deploy.md")),
+          ".omp/commands/harness-deploy.md still exists")
 
-    cmd_dir = os.path.join(ROOT, ".claude", "commands")
-    other_cmds = [f for f in os.listdir(cmd_dir) if f.startswith("harness") and f.endswith(".md")]
     canonical_dir = os.path.join(ROOT, ".omp", "commands")
     canonical_cmds = [f for f in os.listdir(canonical_dir)
                        if f.startswith("harness") and f.endswith(".md")]
     # Four doors, not six: /harness-map and /harness-deepen were deleted when the
     # codebase map tier was retired (DEC-149 records the removal). After the onboarding
-    # split (DEC-222) the four canonical doors live under .omp/commands, and
-    # .claude/commands holds four generated adapters pointing at them — the guard is that
-    # a distribution sweep does not take either root's doors with it.
+    # split (DEC-222) the canonical doors live under .omp/commands — the guard is that
+    # a distribution sweep does not take them with it.
     check("case1_presence_canonical_four_doors_survive", len(canonical_cmds) >= 4,
           f"only {len(canonical_cmds)} harness*.md commands under .omp/commands: {canonical_cmds}")
-    check("case1_presence_adapter_four_doors_survive", len(other_cmds) >= 4,
-          f"only {len(other_cmds)} harness*.md commands under .claude/commands: {other_cmds}")
 
     bin_dir = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
     check("case1_presence_check_plan_routes_survives",

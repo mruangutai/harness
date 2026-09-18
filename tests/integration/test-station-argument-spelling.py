@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tests/integration/test-station-argument-spelling.py — witnesses that every
 `gh-sync.py status` / `board-station.py` invocation quoted in the instruction
-scope (.claude/commands/*.md and .claude/skills/**/*.md) names a station both
+scope (.omp/commands/*.md and .claude/skills/**/*.md) names a station both
 tools actually accept.
 
 WHY THIS FILE EXISTS: FEAT-41 D-14 migrated the station CLI argument to
@@ -200,11 +200,11 @@ TOKEN_PATTERN = re.compile(r"(gh-sync\.py status|board-station\.py) \S+ ([A-Za-z
 
 
 def scope_files(root):
-    """Every instruction file in the sweep's scope: .claude/commands/*.md plus every
+    """Every instruction file in the sweep's scope: .omp/commands/*.md plus every
     .claude/skills/**/*.md. Nothing else (plan D-05): gh-sync.py quotes the old
     capitalized spelling as history, and .harness/harness/features is an immutable
     record, so a wider sweep would redden on text that must not change."""
-    commands = glob.glob(os.path.join(root, ".claude", "commands", "*.md"))
+    commands = glob.glob(os.path.join(root, ".omp", "commands", "*.md"))
     skills = glob.glob(os.path.join(root, ".claude", "skills", "**", "*.md"), recursive=True)
     return sorted(set(commands) | set(skills))
 
@@ -254,7 +254,7 @@ def case_every_argument_is_accepted():
 def case_reddens_on_a_reintroduced_capital():
     with tempfile.TemporaryDirectory() as tmp:
         originals = (
-            os.path.join(".claude", "commands", "harness-plan.md"),
+            os.path.join(".omp", "commands", "harness-plan.md"),
             os.path.join(".claude", "skills", "harness", "references", "github-mirror.md"),
         )
         copies = {}
@@ -269,7 +269,7 @@ def case_reddens_on_a_reintroduced_capital():
         check("the unmutated scratch copy reports no offender", clean == [],
               "; ".join(f"{path}:{tool}:{token}" for path, tool, token in clean))
 
-        plan_copy = copies[os.path.join(".claude", "commands", "harness-plan.md")]
+        plan_copy = copies[os.path.join(".omp", "commands", "harness-plan.md")]
         with open(plan_copy, encoding="utf-8") as handle:
             before = handle.read()
         after = before.replace('status <feature-dir> "$resume_station"', "status <feature-dir> Ready")

@@ -41,7 +41,6 @@ MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
 # (see above): this must catch harness_yaml disagreeing with the manifest, never agree with
 # it by construction.
 SHARED_MANIFEST_PATHS = [
-    ".harness/*/features/*/quarantine/**",
     "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
     "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
 ]

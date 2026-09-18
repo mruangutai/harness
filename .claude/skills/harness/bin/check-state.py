@@ -900,134 +900,16 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                         f"record it — orphaned work (interrupted flow?). A resume must "
                         f"reconcile it, not rediscover it by luck.")
 
-# --- INV-9: platform prerequisites that fail SILENTLY if absent (DEC-100).
-sett = None
-for p in (".claude/settings.json", ".claude/settings.local.json"):
-    t = read(os.path.join(root, p))
-    if t:
-        try:
-            # DEEP merge, one level into hooks/env. A shallow `|` let any `hooks` key
-            # in settings.local.json wholesale shadow settings.json's, so INV-9 then
-            # reported every OTHER hook as missing and blocked /harness entry on a
-            # correctly configured project -- a false diagnosis sending the reader to
-            # re-run merge-settings for hooks already present (review of PR #4).
-            nxt = artifact_accessors.load_harness_json(text=t, context=p)
-            if sett is None:
-                sett = nxt
-            else:
-                for k, v in nxt.items():
-                    if k in ("hooks", "env") and isinstance(v, dict) and isinstance(sett.get(k), dict):
-                        for ek, ev in v.items():
-                            # union the per-event lists: presence anywhere is what INV-9 asks
-                            if isinstance(ev, list) and isinstance(sett[k].get(ek), list):
-                                sett[k][ek] = sett[k][ek] + ev
-                            else:
-                                sett[k][ek] = ev
-                    else:
-                        sett[k] = v
-        except Exception: warn.append(f"{p} is not valid JSON.")
-if sett is None:
-    bad.append("No .claude/settings.json — the spawn-depth and Expertise-injection "
-               "prerequisites are unset, and both degrade silently.")
-else:
-    depth = (sett.get("env") or {}).get("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH")
-    if depth != "3":
-        bad.append(f"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH is {depth!r}, expected \"3\". "
-                   f"The org needs 3 layers below the main session: orchestrator, lead, "
-                   f"member (DEC-120). At 2 the members layer cannot be reached.")
-    hooks = sett.get("hooks") or {}
-    if not hooks.get("SubagentStart"):
-        bad.append("No SubagentStart hook — every agent starts with NO Expertise, "
-                   "and no error is raised.")
-    # Agent-frontmatter PreToolUse does not fire (DEC-110), so this registration is
-    # the ONLY thing enforcing domains. Its absence is silent and fail-open.
-    stop = hooks.get("SubagentStop") or []
-    if not any("validate-digest" in str(h) for h in stop):
-        bad.append("No SubagentStop validate-digest hook — malformed digests are accepted "
-                   "silently and the runner routes on fields that are not there (DEC-122).")
-    pre = hooks.get("PreToolUse") or []
-    if not any("branch-create-gate" in str(h) for h in pre):
-        bad.append("No PreToolUse branch-create-gate hook — branch creation is ungated "
-                   "(self-gating on github.sync, so registration is safe everywhere; DEC-144).")
-    if not any("dispatch-guard" in str(h) for h in pre):
-        bad.append("No PreToolUse dispatch-guard hook — a lead can silently override a "
-                   "member's pinned model per-dispatch (DEC-155/156); the org's tier "
-                   "design is unenforced.")
-    if not any("check-domain" in str(h) for h in pre):
-        bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "
-                   "and every agent can write anywhere. Frontmatter hooks do not "
-                   "fire (DEC-110), so settings.json is the only place this works.")
-    # SEPARATE EVENT, SEPARATE ASSERTION (issue #132). The PreToolUse check above passes
-    # on a tree where the PostToolUse half was never installed — and that half is the
-    # only one covering Edit, Bash and the main session, so its absence restores the
-    # 1-of-4 coverage the issue measured while every other line here stays green.
-    # THE MATCHER IS PART OF THE ASSERTION, not decoration. A reviewer narrowed this
-    # registration to `Write` in all three copies and every gate stayed green, which
-    # reverts issue #132 entirely while the tree reports itself correct: `Write` alone is
-    # the ONE route that already worked. So name the tools and check for them.
-    # EXISTENTIAL, NOT FIRST-MATCH. `next(...)` read only the FIRST entry mentioning
-    # check-domain, so prepending a compliant decoy and narrowing the real registration
-    # back to `Write` passed all four gates while restoring the 1-of-4 coverage issue #132
-    # measured — two lines in one file, defeating the assertion this change added. Coverage
-    # is unioned across every entry that runs the script, the same shape merge-settings.py's
-    # hook_present uses, because a project may legitimately split one requirement in two.
-    post = hooks.get("PostToolUse") or []
-    def _runs_cd(entry):
-        # TOKEN, not substring — `check-domain.py.disabled` contains the name and runs
-        # nothing. A decoy entry naming a disabled copy widened this check's coverage set
-        # and let the real registration be narrowed to `Write` with all four gates green.
-        for _h in (entry.get("hooks") or []):
-            for _tok in str(_h.get("command", "")).split():
-                if os.path.basename(_tok) == "check-domain.py":
-                    return True
-        return False
-
-    _pts = [e for e in post if _runs_cd(e)]
-    _want = {"Write", "Edit", "Bash"}
-    _have = set()
-    for _e in _pts:
-        _m = str(_e.get("matcher", "")).strip()
-        if _m in ("", "*", ".*"):
-            _have |= _want
-        else:
-            # A matcher is user-authored text, not a guaranteed regex — `Bash(git:*)` is
-            # the permission-rule form people paste in, and it raises. An UNCAUGHT raise
-            # here exits 1 with EMPTY stdout, which the /harness gate reads as "violations
-            # found" with nothing to read, and every invariant below this line never runs.
-            # A bad matcher is a finding, not a crash: it matches no tool, so report it AND
-            # leave those tools uncovered.
-            try:
-                _have |= {t for t in _want if re.search(_m, t)}
-            except re.error as _re:
-                bad.append(f"INV-9: the PostToolUse check-domain matcher {_m!r} is not a "
-                           f"valid regular expression ({_re}) — Claude Code matches nothing "
-                           f"with it, so the shape gate covers no tool through this entry. "
-                           f"Correct the matcher in .claude/settings.json.")
-    _pt = _pts[0] if _pts else None
-    if _pt is None:
-        bad.append("No PostToolUse check-domain hook — the DEC-150 state-file SHAPE "
-                   "budgets bind only a `Write` by a harness agent (1 of 4 routes); "
-                   "Edit, Bash and the main session write over budget in silence "
-                   "(issue #132). INV-23 below still sweeps, one entry late.")
-    elif not _want <= _have:
-        bad.append(f"PostToolUse check-domain is registered across {len(_pts)} entry/entries "
-                   f"but nothing matches {sorted(_want - _have)}. "
-                   f"The shape gate only reaches the tools it matches, so a narrowed "
-                   f"matcher restores the 1-of-4 coverage issue #132 measured, silently.")
-    elif not any(" --post" in str(_e) for _e in _pts):
-        bad.append("PostToolUse check-domain is registered without ` --post`. Mode also "
-                   "resolves from hook_event_name, so this is not fatal — but the flag is "
-                   "the half we control, and a registration missing it degrades to "
-                   "pre-mode the moment the platform field changes (issue #132).")
-
-# OMP-native port invariant. Legacy/consumer projects without `.omp/config.yml`
-# continue through the Claude compatibility checks above; once a project opts into
-# the native surface, every canonical source and adapter must stay coherent.
+# --- INV-9 retired under DEC-233; the number is never reused (DEC-205). Host enforcement is
+# `.omp/extensions/harness-hooks.ts`, and its wiring is graded by check-omp-port.py. The
+# gate keys on `.omp/config.yml` so a scratch tree that carries no OMP surface (every
+# fixture in tests/) grades its own invariants without the whole port surface.
 _omp_cfg = os.path.join(root, ".omp", "config.yml")
 if os.path.isfile(_omp_cfg):
     _omp_check = os.path.join(root, ".agents", "skills", "harness", "bin", "check-omp-port.py")
     if not os.path.isfile(_omp_check):
-        bad.append("OMP port is configured but check-omp-port.py is missing.")
+        bad.append("OMP is configured but check-omp-port.py is missing — nothing grades the "
+                   "roster, hook wiring or provider overlays.")
     else:
         _omp_result = subprocess.run(
             [sys.executable, _omp_check, root],
@@ -1333,8 +1215,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.py enforces the same numbers on a WRITE payload, which is
 # where they can still be prevented; this reads the file as it actually is, so no tool and
-# no author identity can route around it — including a session where the PostToolUse half
-# of that hook was never registered, which is the case INV-9 above reports.
+# no author identity can route around it.
 #
 # WARN, not bad, and the reason is measured rather than tidy: run against this tree the
 # day it landed, it found FEAT-05/STATE.md at 165 lines against a 120 budget and five

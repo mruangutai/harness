@@ -31,10 +31,10 @@ def run(root, *args):
 
 
 def case_path_directions():
-    root, _ = make_root("` .harness/harness.json`\n```\n.claude/agents/harness-pm.md\n```\n")
+    root, _ = make_root("` .harness/harness.json`\n```\n.omp/agents/harness-pm.md\n```\n")
     red = run(root)
     check("inline and fenced relative paths are both violations", red.returncode == 1 and ":1:" in red.stdout and ":3:" in red.stdout and "2 violation(s)" in red.stdout, red.stdout + red.stderr)
-    root, _ = make_root("`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`\n```\n<HARNESS_CONTROL_PLANE_ROOT>/.claude/agents/harness-pm.md\n```\n")
+    root, _ = make_root("`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`\n```\n<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-pm.md\n```\n")
     green = run(root)
     check("control-plane anchored paths are clean", green.returncode == 0 and "0 violation(s)" in green.stdout, green.stdout + green.stderr)
     for body, label, detail in (

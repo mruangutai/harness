@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse Bash hook — close the casual shell-write bypass (DEC-151).
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
-compatibility registration lives in `.claude/settings.json`. The payload supplies the
+Registered in `.omp/extensions/harness-hooks.ts`. The payload supplies the
 agent identity and Bash command.
 
 Detected common write shapes are refused for reviewers and checked against every other

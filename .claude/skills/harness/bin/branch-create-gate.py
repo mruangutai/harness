@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse Bash hook — require branch creation to name tracked work.
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
-compatibility registration lives in `.claude/settings.json`. New branches must name
+Registered in `.omp/extensions/harness-hooks.ts`. New branches must name
 either an existing Harness flow or an open issue in the pinned GitHub repository
 (DEC-144). The gate self-disables when GitHub synchronization is off or unpinned.
 

@@ -20,13 +20,6 @@ import harness_boundary
 import harness_merge
 
 SINGLE_FLIGHT_AGENTS = ("harness-pm",)
-CANONICAL_ARTIFACTS = ("plan.yaml", "BRIEF.md", "feature.json", "STATE.md")
-_CANONICAL_ARTIFACT_RE = re.compile(
-    r"^\.harness/[^/]+/features/([^/]+)/(plan\.yaml|BRIEF\.md|feature\.json|STATE\.md)$"
-)
-# Claude Code exposes no durable child-process owner. FEAT-37 deliberately shortened this to one
-# normal PM cycle so an interrupted compatibility-host run does not strand a tier for an hour.
-CLAIM_TTL_SECONDS = 1200
 # An OMP claim is owned by a supervisor process, not by a clock — a verified one is live at
 # ANY age, which is what lets a leaf run for hours. This backstop applies ONLY to a claim
 # whose supervisor identity cannot be PROVEN (no recorded start time, or the OS would not
@@ -91,7 +84,6 @@ def _parse(base, path):
             migrated.setdefault("claim_id", uuid.uuid4().hex)
             migrated.setdefault("agent", agent)
             migrated.setdefault("feature", LEGACY_FEATURE)
-            migrated.setdefault("runtime", "claude")
             claims.append(migrated)
     return {"schema_version": SCHEMA_VERSION, "claims": claims}
 
@@ -214,6 +206,8 @@ def _is_number(value):
 
 
 def _expire(claims, now):
+    """A claim is live only while its OMP supervisor is (DEC-204). Any claim that carries
+    another runtime, or none, is expired: there is no other host (DEC-233)."""
     live = []
     expired = 0
     for claim in claims:
@@ -224,31 +218,15 @@ def _expire(claims, now):
         if not isinstance(started, (int, float)) or isinstance(started, bool):
             expired += 1
             continue
-        if claim.get("runtime") == "omp":
-            if _omp_claim_live(claim, now):
-                live.append(claim)
-            else:
-                expired += 1
-            continue
-        if now - started > CLAIM_TTL_SECONDS:
-            expired += 1
-        else:
+        if claim.get("runtime") == "omp" and _omp_claim_live(claim, now):
             live.append(claim)
+        else:
+            expired += 1
     return live, expired
 
-def _binding_retained(claim, now):
-    """Whether an expired dispatch claim must remain available to write guards."""
-    if not isinstance(claim, dict):
-        return False
-    started = claim.get("started_at")
-    if not _is_number(started):
-        return False
-    if claim.get("runtime") == "omp":
-        return _omp_claim_live(claim, now)
-    return now - started <= OMP_UNVERIFIED_TTL_SECONDS
-
-
 def _expire_where(claims, now, predicate):
+    """Expire the claims `predicate` selects; the rest pass through untouched.
+    Returns (answer_live, retained, expired): `retained` is what stays on disk."""
     answer_live = []
     retained = []
     expired = 0
@@ -259,9 +237,8 @@ def _expire_where(claims, now, predicate):
             continue
         live, count = _expire([claim], now)
         answer_live.extend(live)
+        retained.extend(live)
         expired += count
-        if live or _binding_retained(claim, now):
-            retained.append(claim)
     return answer_live, retained, expired
 
 
@@ -277,14 +254,8 @@ def _matches(claim, agent=None, feature=None, claim_id=None, agent_id=None, job_
     )
 
 
-def _visible(claim, feature=None, session=None):
-    if feature is not None and claim.get("feature", LEGACY_FEATURE) != feature:
-        return False
-    # OMP child and parent sessions differ. Process ownership + feature identity is its liveness
-    # boundary; the compatibility host retains FEAT-42's session filter.
-    if session is not None and claim.get("runtime") != "omp":
-        return claim.get("session") in (None, session)
-    return True
+def _visible(claim, feature=None):
+    return feature is None or claim.get("feature", LEGACY_FEATURE) == feature
 
 
 def live_claims(root, agent, now=None):
@@ -316,21 +287,10 @@ def live_claims(root, agent, now=None):
     if not (is_v2 or is_v1):
         raise UnreadableRegistry(path)
 
-    claims = _parse(text, path)["claims"]
-    current = time.time() if now is None else now
-    live = []
-    for claim in claims:
-        if not _matches(claim, agent=agent) or not _visible(claim):
-            continue
-        started = claim.get("started_at")
-        if not _is_number(started):
-            continue
-        if claim.get("runtime") == "omp":
-            binding_live = _omp_claim_live(claim, current)
-        else:
-            binding_live = current - started <= OMP_UNVERIFIED_TTL_SECONDS
-        if binding_live:
-            live.append(claim)
+    live, _expired = _expire(
+        [c for c in _parse(text, path)["claims"] if _matches(c, agent=agent) and _visible(c)],
+        time.time() if now is None else now,
+    )
     return sorted(live, key=lambda claim: claim["started_at"])
 
 
@@ -346,49 +306,7 @@ def feature_root(owner_root, feature):
     return resolved if resolved is not None else owner_root
 
 
-def canonical_artifact(rel):
-    match = _CANONICAL_ARTIFACT_RE.fullmatch(rel)
-    return match.groups() if match else None
-
-
-def quarantine_rel(rel, agent, session):
-    artifact = canonical_artifact(rel)
-    if artifact is None:
-        return None
-    feature, basename = artifact
-    session_key = session[:8] if session else "nosession"
-    return (
-        f".harness/harness/features/{feature}/quarantine/"
-        f"{agent}-{session_key}/{basename}"
-    )
-
-
-def orphan_write(root, agent, feature, session, now=None):
-    now = now if now is not None else time.time()
-    if not os.path.exists(_registry_path(root)):
-        return False
-
-    def mutator(data):
-        live, retained, _expired = _expire_where(
-            data.get("claims", []),
-            now,
-            lambda claim: _matches(claim, feature=feature),
-        )
-        data["claims"] = retained
-        feature_claims = [claim for claim in live if _matches(claim, feature=feature)]
-        has_compatibility_claim = any(
-            claim.get("runtime") != "omp" for claim in feature_claims
-        )
-        writer_is_live = any(
-            _matches(claim, agent=agent, feature=feature)
-            and _visible(claim, feature, session)
-            for claim in feature_claims
-        )
-        return data, has_compatibility_claim and not writer_is_live
-
-    return _update_registry(root, mutator)
-
-def live_claim(root, agent, now=None, session=None, feature=None):
+def live_claim(root, agent, now=None, feature=None):
     now = now if now is not None else time.time()
     path = _registry_path(root)
     if not os.path.exists(path):
@@ -401,14 +319,14 @@ def live_claim(root, agent, now=None, session=None, feature=None):
             lambda claim: _matches(claim, agent=agent, feature=feature),
         )
         data["claims"] = retained
-        visible = [c for c in live if _matches(c, agent=agent) and _visible(c, feature, session)]
+        visible = [c for c in live if _matches(c, agent=agent) and _visible(c, feature)]
         oldest = min(visible, key=lambda c: c["started_at"]) if visible else None
         return data, (oldest, expired)
 
     return _update_registry(root, mutator)
 
 
-def live_children(root, dispatcher, now=None, session=None, feature=None):
+def live_children(root, dispatcher, now=None, feature=None):
     now = now if now is not None else time.time()
     path = _registry_path(root)
     if not os.path.exists(path):
@@ -426,7 +344,7 @@ def live_children(root, dispatcher, now=None, session=None, feature=None):
         children = [
             (c.get("agent"), c)
             for c in live
-            if c.get("dispatcher") == dispatcher and _visible(c, feature, session)
+            if c.get("dispatcher") == dispatcher and _visible(c, feature)
         ]
         return data, children
 
@@ -439,12 +357,14 @@ def claim_with_receipt(
     dispatcher,
     cwd,
     now=None,
-    session=None,
     feature=LEGACY_FEATURE,
-    runtime="claude",
     supervisor_pid=None,
 ):
+    """Record a claim owned by `supervisor_pid` — the OMP process that holds the dispatching
+    `task` call (DEC-204). Absent, the claiming process is the supervisor: that is what a
+    direct caller (the CLI, a test) is. dispatch-guard.py always passes the host's pid."""
     now = now if now is not None else time.time()
+    supervisor_pid = os.getpid() if supervisor_pid is None else supervisor_pid
 
     def mutator(data):
         live, retained, _expired = _expire_where(
@@ -464,18 +384,15 @@ def claim_with_receipt(
             "agent": agent,
             "dispatcher": dispatcher,
             "cwd": cwd,
-            "runtime": runtime,
+            "runtime": "omp",
+            "supervisor_pid": supervisor_pid,
         }
-        if session is not None:
-            entry["session"] = session
-        if runtime == "omp":
-            entry["supervisor_pid"] = supervisor_pid
-            # Pinned at claim time so a later recycled pid can be told apart from this one.
-            # Absent when the OS declines to report it; `_omp_claim_live` then falls back
-            # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
-            started_at = _process_start_time(supervisor_pid)
-            if started_at is not None:
-                entry["supervisor_started_at"] = started_at
+        # Pinned at claim time so a later recycled pid can be told apart from this one.
+        # Absent when the OS declines to report it; `_omp_claim_live` then falls back
+        # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
+        started_at = _process_start_time(supervisor_pid)
+        if started_at is not None:
+            entry["supervisor_started_at"] = started_at
         live.append(entry)
         retained.append(entry)
         data["claims"] = retained
@@ -484,17 +401,14 @@ def claim_with_receipt(
     return _update_registry(root, mutator)
 
 
-def claim(root, agent, dispatcher, cwd, now=None, session=None, feature=LEGACY_FEATURE,
-          runtime="claude", supervisor_pid=None):
+def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE, supervisor_pid=None):
     return claim_with_receipt(
         root,
         agent,
         dispatcher,
         cwd,
         now=now,
-        session=session,
         feature=feature,
-        runtime=runtime,
         supervisor_pid=supervisor_pid,
     ) is not None
 
@@ -590,21 +504,17 @@ def reconcile(root, feature=None, now=None):
         return 0
 
     def mutator(data):
-        claims = data.get("claims", [])
         kept = []
         removed = 0
-        for claim_entry in claims:
+        for claim_entry in data.get("claims", []):
             live, expired = _expire([claim_entry], now)
             claim_feature = (
                 claim_entry.get("feature", LEGACY_FEATURE)
                 if isinstance(claim_entry, dict)
                 else None
             )
-            selected = feature is None or claim_feature == feature
-            if expired and selected:
+            if expired and (feature is None or claim_feature == feature):
                 removed += expired
-                if _binding_retained(claim_entry, now):
-                    kept.append(claim_entry)
             else:
                 kept.extend(live or [claim_entry])
         data["claims"] = kept
@@ -658,8 +568,8 @@ def children_refusal_lines(agent, children):
         "something the reporter cannot see."
     )
     lines.append(
-        "  the legal turn-end for a lead or orchestrator whose child is live is VERDICT "
-        "SUSPENDED with an awaiting list naming every live child."
+        "  a lead or orchestrator cannot yield while a child is live: the host holds the "
+        "task call until every child is terminal (DEC-204, DEC-233)."
     )
     return lines
 

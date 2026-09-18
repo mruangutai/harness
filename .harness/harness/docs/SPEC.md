@@ -291,7 +291,7 @@ orchestrator:
     - { path: ".", read: true }
 
 paths:
-  agents: .claude/agents/
+  agents: .omp/agents/
   teams:  .claude/skills/harness/teams/    # the repository's own team definitions — the default set
   team_overrides: .harness/teams/          # project-owned; resolved FIRST (DEC-113)
   features: .harness/features/
@@ -494,7 +494,7 @@ which merges new entries while preserving your `domain` values.
 
 **This table is the 15 squad agents — the org is 16.** `harness-orchestrator` (§10) is the
 sixteenth and is deliberately absent here: it belongs to no squad. Its definition is
-`.claude/agents/harness-orchestrator.md` (landed with BUILD task 14, DEC-128); its playbook is the
+`.omp/agents/harness-orchestrator.md` (landed with BUILD task 14, DEC-128); its playbook is the
 `harness` skill, which it preloads. Where a sentence
 below says 15 it means this table; where it says 16 it means the org including the orchestrator.
 

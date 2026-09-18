@@ -779,7 +779,7 @@ teams:
     # ---- THE SYMLINK ESCAPE, surfaced by the review panel 2026-08-11 ----
     #
     # A link inside a granted directory pointing OUT of it: <granted docs>/<link> ->
-    # ../../.claude let harness-documentor write .claude/agents/*. Reproduced against
+    # ../../.omp let harness-documentor write .omp/agents/*. Reproduced against
     # the live tree before the fix — through the link exit 0, the same file named
     # directly exit 2.
     #
@@ -798,8 +798,8 @@ teams:
           - { path: .harness/*/docs/**, upsert: true }
 """)
     os.makedirs(os.path.join(esc_root, ".harness", "harness", "docs"))
-    os.makedirs(os.path.join(esc_root, ".claude", "agents"))
-    os.symlink(os.path.join(esc_root, ".claude"),
+    os.makedirs(os.path.join(esc_root, ".omp", "agents"))
+    os.symlink(os.path.join(esc_root, ".omp"),
                os.path.join(esc_root, ".harness", "harness", "docs", "esc"))
     esc = fire_abs(esc_root, os.path.join(esc_root, ".harness", "harness", "docs", "esc",
                                           "agents", "pwned.md"), "harness-documentor")
@@ -809,12 +809,12 @@ teams:
         "SYMLINK PAIR: a link out of a granted directory is REFUSED at its real "
         "target, and the ordinary granted write still PASSES",
         esc.returncode == 2 and legit.returncode == 0,
-        f"escape got {esc.returncode} (want 2 — the write lands in .claude/agents/), "
+        f"escape got {esc.returncode} (want 2 — the write lands in .omp/agents/), "
         f"legitimate got {legit.returncode} (want 0)")
     fleet_case(
         "SYMLINK: the refusal names the REAL target, not the link path — an agent "
         "told it may not write the docs path would file a bug against the wrong file",
-        ".claude/agents/pwned.md" in esc.stderr,
+        ".omp/agents/pwned.md" in esc.stderr,
         f"stderr={esc.stderr.strip()[:200]!r}")
 
     print("--- FEAT-15 T-01..T-04 + symlink escape: fleet, bases, mirror, resolve ---")

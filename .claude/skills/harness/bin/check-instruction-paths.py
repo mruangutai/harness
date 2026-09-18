@@ -49,7 +49,6 @@ def scope(root):
     paths = []
     for directory, pattern in (
         (".omp/agents", "*.md"),
-        (".claude/agents", "*.md"),
         (".claude/skills", "harness-*/SKILL.md"),
         (".claude/skills/harness/references", "*.md"),
         (".claude/skills/harness/templates", "*.md"),
