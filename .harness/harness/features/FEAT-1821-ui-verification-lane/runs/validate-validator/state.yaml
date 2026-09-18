@@ -1,0 +1,112 @@
+schema_version: 2
+run_uid: b6bd9996d1114ea1b17f88bd62e8b8a9
+run_id: validate-validator
+feature: FEAT-1821-ui-verification-lane
+squad: validator
+host: harness-validator-lead
+team: validate
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+review_sha: 711ba16227eda39ddb397ed574e4ca199fbc5984
+pinned_sha: 711ba16227eda39ddb397ed574e4ca199fbc5984
+status: blocked
+verdict: BLOCKED
+severity_max: critical
+cycles_used: 0
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/validate-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c0.md
+    note: Component collection and fail-first evidence block the matrix; the review-pin comparison was dismissed.
+    evidence:
+      matrix_ok: false
+      required_kinds: [unit, component, ui]
+      ui_discovery_count: 23
+  - id: code
+    persona: harness-code-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c0.md
+    note: Stage 1 found a fail-open inspection contract and the canonical Python grade failed.
+    evidence:
+      code_grade: fail
+      severity_max: high
+  - id: security
+    persona: harness-security-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-security-reviewer-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-security-reviewer-c0.md
+    note: Eleven changed paths were censused with no exploitable capability delta.
+    evidence:
+      in_scope: true
+      changed_paths: 11
+      severity_max: none
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c0.md
+    note: Mode B inspected 41 of 41 WebPs and found failed setups published as evidence.
+    evidence:
+      mode: B
+      webps_inspected: 41
+      webps_referenced: 41
+      served_bundle_commit: 0ef52107fde67b1f42cb51a16c773635dc73a408
+      severity_max: critical
+  - id: goalcheck
+    persona: harness-pm
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-ui-verification-lane-goalcheck-validate-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-ui-verification-lane-goalcheck-validate-c0.md
+    note: All four perspectives and all twelve criteria were graded; the provenance question was resolved by dispatch.
+    evidence:
+      perspectives: [operator, code_maintainer, reader, orchestrator]
+      sc_count: 12
