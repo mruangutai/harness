@@ -1,0 +1,133 @@
+schema_version: 2
+run_id: simplify-eng
+run_uid: 4671ea79df934838aa168805a4760c8d
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: reuse
+    persona: harness-backend-dev
+    task: simplify-reuse
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-backend-dev-simplify-reuse.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: consult_when
+    note: Two reuse findings; capture and loader duplication identified.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-backend-dev-simplify-reuse.md
+    evidence:
+      findings: 2
+  - id: simplification
+    persona: harness-frontend-dev
+    task: simplify-simplification
+    seq: 2
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-simplify-simplification.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: consult_when
+    note: One simplification finding duplicating the reuse capture mechanism.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-simplify-simplification.md
+    evidence:
+      findings: 1
+  - id: efficiency
+    persona: harness-dev-ops
+    task: simplify-efficiency
+    seq: 3
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-dev-ops-simplify-efficiency.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: consult_when
+    note: No efficiency finding; candidate overhead was negligible or deliberate evidence.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-dev-ops-simplify-efficiency.md
+    evidence:
+      findings: 0
+  - id: altitude
+    persona: harness-data-engineer
+    task: simplify-altitude
+    seq: 4
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-data-engineer-simplify-altitude.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: consult_when
+    note: No altitude finding; contract and evidence responsibilities have authoritative homes.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-data-engineer-simplify-altitude.md
+    evidence:
+      findings: 0
+  - id: apply-capture-helper
+    persona: harness-frontend-dev
+    task: simplify-apply-capture-helper
+    seq: 5
+    depends_on: [reuse, simplification, efficiency, altitude]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-simplify-apply.md]
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: consult_when
+    note: One shared hard-failure WebP capture helper applied; keyboard soft assertions preserved.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-simplify-apply.md
+    evidence:
+      discovery_tests: 21
+      affected_specs: 5
+      targeted_checks: 2
+      valid_webps: 2
+      assertions_changed: 0
+      scratch_remaining: 0
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/simplify-eng/digest.md
