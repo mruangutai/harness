@@ -199,7 +199,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main-session execution for gate scripts, enforcement rules, and their tests
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness-qa-gate/SKILL.md
       - .claude/skills/harness-verification-rules/SKILL.md
