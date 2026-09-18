@@ -1,0 +1,43 @@
+schema_version: 2
+run_id: fix-c5-eng
+run_uid: 076bc2a7c9d84953a0273890fc400ae0
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: fix-c5
+    persona: harness-frontend-dev
+    task: fix-c5
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c5-eng.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: consult_when
+    note: Four-worker 23-execution smoke completed without ENOTEMPTY, ENOENT, or ReferenceError; honest predicate failures remained visible.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c5-eng.md
+    evidence:
+      list_command: HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=fix-c5-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list
+      list_exit: 0
+      listed_tests: 23
+      smoke_command: HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=fix-c5-smoke npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --workers=4
+      smoke_exit: 1
+      result_records: 23
+      missing_check_ids: 0
+      forbidden_error_matches: 0
+      honest_predicate_failures: 18
+      cleanup_absent: [fix-c5-list, fix-c5-smoke, client-test-results]
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/fix-c5-eng/digest.md
