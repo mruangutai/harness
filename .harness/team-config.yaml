@@ -52,7 +52,6 @@ orchestrator:
 # `.omp/agents/**` IS DELIBERATELY UNOWNED — no agent may write it.
 # Canonical role definitions are the organization's constitution. Changing what
 # the organization is stays with the main session; agents raise `open_questions`.
-# `.claude/agents/**` is generated compatibility output and is equally unowned.
 # (Decided after a review panel found harness-ui-reviewer.md's output template packs two fields
 # per line — the exact defect its own validator rejects — and no domain covered the file.)
 
@@ -74,8 +73,6 @@ universal_rules:
 # (DEC-85), so pretending otherwise would either void the parallel-safety claim
 # or block routine work on files nobody may touch.
 shared:
-  # FEAT-51: quarantined content is inert until explicit adoption.
-  - { path: .harness/*/features/*/quarantine/** }
   - { path: package.json }
   - { path: package-lock.json }
   - { path: pnpm-lock.yaml }
