@@ -65,6 +65,36 @@ async function normalRecord(reporter: Reporter, webp = true): Promise<void> {
   );
 }
 
+async function inspectionSetupFailure(reporter: Reporter): Promise<void> {
+  reporter.onBegin({});
+  const contract = reporter.manifest!.checks.find((check) => String(check.method).startsWith('inspection'))!;
+  const attachments = await Promise.all(
+    Array.from({ length: 7 }, async (_, index) => {
+      const evidence = resolve(tmpdir(), `ui-reporter-inspection-${Date.now()}-${index}.webp`);
+      await writeFile(evidence, Buffer.from('RIFF0000WEBPpayload'));
+      return { name: `evidence:${contract.check_id}:${['overview-default', 'kpi-unavailable', 'work-detail-long-content', 'filtered-zero', 'source-error-with-valid-rows', 'initial-request-error', 'table-overflow'][index]}`, path: evidence };
+    }),
+  );
+  reporter.onTestEnd(
+    { title: contract.spec_title, parent: { project: () => ({ name: 'desktop-1440' }) } },
+    { status: 'passed', attachments, errors: [{ message: 'inspection setup failure' }] },
+  );
+}
+
+async function assertInspectionSetupFailure(): Promise<void> {
+  const runId = `probe-inspection-setup-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const reporter = await reporterFor(runId);
+  await inspectionSetupFailure(reporter);
+  await reporter.onEnd({ status: 'passed' });
+  const results = resultPath(runId);
+  const emitted = JSON.parse(await readFile(results, 'utf8'));
+  assert.equal(emitted.summary.status, 'failed');
+  assert.equal(emitted.checks[0].status, 'evidence');
+  assert.match(emitted.checks[0].errors.join('\n'), /inspection setup failure/);
+  assert.match(runGate(results, runId), /inspection setup failure/);
+  await rm(dirname(dirname(results)), { recursive: true, force: true });
+}
+
 function runGate(results: string, runId: string): string {
   try {
     execFileSync('python3', [gate, 'gate', '--design', design, '--results', results, '--feature', feature, '--run-id', runId, '--served-bundle-commit', commit, '--repo-root', root, '--client-package', packageDir], { cwd: root, encoding: 'utf8', stdio: 'pipe' });
@@ -122,4 +152,5 @@ test('reporter error', async () => {
 
 test('incomplete accounting', async () => {
   await assertDefect('incomplete accounting', async (reporter) => { await normalRecord(reporter); reporter.checks[0].screenshots = []; }, /no screenshot evidence/);
+  await assertInspectionSetupFailure();
 });

@@ -1,0 +1,65 @@
+schema_version: 2
+run_id: fix-c7-eng
+run_uid: 60301b41a54a4e06a203c20d43502d30
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: blocked
+steps:
+  - id: T-13
+    persona: harness-backend-dev
+    task: T-13
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-backend-dev-fix-c7-eng-T-13.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Reporter summary fails on inspection execution errors and the real gate refuses the named setup failure; all seven probes pass.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-backend-dev-fix-c7-eng-T-13.md
+    evidence:
+      named_probe_cases: 7
+      probe_passed: 7
+      probe_failed: 0
+      inspection_summary_status: failed
+      inspection_gate_exit: nonzero
+      inspection_gate_named_failure: inspection setup failure
+  - id: T-03
+    persona: harness-frontend-dev
+    task: T-03
+    seq: 2
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c7-eng-T-03.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Exact DOM peer removes the pinned import failure, but component collection next stops at the undeclared Astryx StyleX peer outside authorized scope.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c7-eng-T-03.md
+    evidence:
+      dom_version: 10.4.1
+      component_files_failed: 5
+      remaining_missing_peer: '@stylexjs/stylex@^0.19.0'
+      ui_list_tests: 23
+      ui_list_files: 6
+      ui_list_exit: 0
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: BLOCKED
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/fix-c7-eng/digest.md
