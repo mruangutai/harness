@@ -339,8 +339,9 @@ tasks:
     depends_on: [T-03]
     status: building
     files:
-      - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
-      - .claude/skills/harness/bin/dashboard/client/e2e/geometry.e2e.spec.ts
+    - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
+    - .claude/skills/harness/bin/dashboard/client/e2e/geometry.e2e.spec.ts
+    - .claude/skills/harness/bin/dashboard/client/playwright.config.ts
     verify: |
       sh -c '
       out=$(HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t08-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list feat-53.e2e.spec.ts e2e/geometry.e2e.spec.ts) &&

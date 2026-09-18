@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-1821-ui-verification-lane
-- run: build-eng-t08-t13
+- run: fix-c4-eng
 - squad: eng
-- status: blocked
+- status: building
 
 ## Open Questions
 
-- none; Main authorized T-08 discovery ownership amendment and one fix round.
+- none
