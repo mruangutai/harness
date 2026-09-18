@@ -27,16 +27,14 @@ panel:
     severity: high
     reader: scope
     kind: substance
-    summary: T-01 activates a test:ui command before T-03 creates that script and
-      runner.
-    disposition: open
+    summary: T-01 activates a test:ui command before T-03 creates that script and runner.
+    disposition: resolved
   - id: PF-9e8a17dd19505737534ab737eb389cb8
     severity: high
     reader: scope
     kind: substance
-    summary: T-04 does not bind npx playwright to the dashboard package containing
-      the pinned dependency.
-    disposition: open
+    summary: T-04 does not bind npx playwright to the dashboard package containing the pinned dependency.
+    disposition: resolved
   - id: PF-0c43f86f75ca51386bac57f904eda8da
     severity: med
     reader: scope
@@ -61,16 +59,14 @@ panel:
     severity: high
     reader: design
     kind: substance
-    summary: C3-KEYBOARD does not explicitly automate focus preservation across state
-      changes, routes, and disclosure close.
-    disposition: open
+    summary: C3-KEYBOARD does not explicitly automate focus preservation across state changes, routes, and disclosure close.
+    disposition: resolved
   - id: PF-4df536c305395b2433276f545d1f3935
     severity: high
     reader: design
     kind: substance
-    summary: The two inspection rows do not prescribe which routes, states, or interactions
-      their screenshots must expose.
-    disposition: open
+    summary: The two inspection rows do not prescribe which routes, states, or interactions their screenshots must expose.
+    disposition: resolved
   - id: PF-f5014ed1c5285bbe38bb97ad35528eb9
     severity: med
     reader: design

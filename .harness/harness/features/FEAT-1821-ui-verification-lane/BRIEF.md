@@ -67,4 +67,7 @@ The operator and reviewers cannot rely on the current UI gate to catch visible d
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: operator (Mike Ruangutai), via main session
+date: 2026-09-17
+scope: BRIEF + plan.yaml signed as drafted after the plan panel (scope, should-not-exist, design, goalcheck). Rework ruling rounds=3, minutes=135.
