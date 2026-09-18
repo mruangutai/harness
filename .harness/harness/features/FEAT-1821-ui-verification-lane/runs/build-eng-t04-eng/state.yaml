@@ -1,0 +1,42 @@
+schema_version: 2
+run_id: build-eng-t04
+run_uid: 220d7fdcf9054ebf94e9486c8728f9db
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: T-04
+    persona: harness-dev-ops
+    task: T-04
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-dev-ops-T-04-c0.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Exact signed YAML assertion is green; scoped diff contains only the required adjacent Chromium install step.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-dev-ops-T-04-c0.md
+    evidence:
+      prerequisite_t03: assigned_complete
+      fail_first_exit: 1
+      fail_first_reason: missing_step_stopiteration
+      task_verify_exit: 0
+      changed_paths:
+        - .github/workflows/tests.yml
+      browser_download_ran: false
+      broad_validation_ran: false
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/build-eng-t04-eng/digest.md
