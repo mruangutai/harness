@@ -32,34 +32,26 @@ git rev-parse --show-toplevel 2>/dev/null || echo "NOT A GIT REPO"
 - **Not a git repo** → warn but continue. Commit attribution and `review_sha` pinning will not work.
 - **`.harness/` already exists** → this harness checkout is initialised. Route to `--upgrade`, do not re-run fresh.
 
-You will need permission to run the scripts in `.agents/skills/harness/bin/` and to write
-`.claude/settings.json`, which many setups gate as a sensitive file. Ask for it up front rather than
-discovering it at step 1 — a denial there is a **stop**, not a detour (see below).
+You will need permission to run the scripts in `.agents/skills/harness/bin/`. Ask for it up front
+rather than discovering it at step 1 — a denial there is a **stop**, not a detour (see below).
 
 
-### 1. Install the eight prerequisites in this harness checkout — HARD GATE, do this first
+### 1. Install the two prerequisites in this harness checkout — HARD GATE, do this first
 
-These prerequisites and the per-checkout hooks step belong to this harness checkout, never to a
-product repository. They register hooks and invoke scripts under `.claude/skills/harness/bin/` here;
-a product repository has no `bin/`, so hooks installed there would point at files that do not exist.
-Nothing distributes `bin/` any more (DEC-113). The enforcing hooks are registered in this harness
-checkout's `.claude/settings.json`, resolve this checkout's manifest, and `check-state.py` INV-9 and
-INV-31 grade this checkout against the step on every run.
+Enforcement under OMP is `.omp/extensions/harness-hooks.ts`, loaded with the session; nothing is
+merged into a settings file (DEC-233). What a checkout needs installed is two Python packages
+and the ignore rules:
 ```bash
-.agents/skills/harness/bin/merge-settings.py . \
-  --template .agents/skills/harness/templates/settings.snippet.json
 .agents/skills/harness/bin/merge-gitignore.py .
-.agents/skills/harness/bin/merge-settings.py . --check   # must exit 0 before you go on
-python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING          # the 7th prerequisite
-python3 -c 'import jsonschema' 2>/dev/null && echo OK || echo MISSING   # the 8th prerequisite
+python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING          # PyYAML
+python3 -c 'import jsonschema' 2>/dev/null && echo OK || echo MISSING   # jsonschema
 ```
 
 #### The per-checkout step: point git at the tracked hooks directory
 
-**This is NOT a ninth prerequisite and the count above does not change.** The eight are settings
-and packages a script merges into this harness checkout. This one is a git config a checkout carries,
-so a fresh checkout of an already-onboarded Harness repository still needs it and the eight will
-already be in place.
+**This is NOT a third prerequisite and the count above does not change.** The two are packages a
+checkout needs importable. This one is a git config a checkout carries, so a fresh checkout of an
+already-onboarded Harness repository still needs it and the packages will already be in place.
 
 **Why it is needed at all.** The harness ships a tracked `post-merge` hook at
 `.claude/skills/harness/hooks/`, and git ignores it until `core.hooksPath` points there. Measured
@@ -134,16 +126,12 @@ hooks additionally self-report `MISSING` from inside their own environment on fi
 is the same code path the one-session bootstrap escape already needs. Treat a green check here as
 "probably fine", never as proof.
 
-**Use the scripts. Do not hand-edit `.claude/settings.json`, and do not hand-replicate a script that
-was denied.** All eight entries degrade *silently* — no error, no warning — and a project that already
-has its own hooks is exactly where one of the eight goes missing during a hand-merge. Both scripts
-preserve what is there and are safe to re-run.
+**If the packages cannot be installed, STOP HERE and tell the user.** A half-installed init looks
+finished but has no domain enforcement, which is worse than a refused one (observed in testing).
 
-**If either script cannot run, STOP HERE and tell the user what to approve.** A half-installed init
-looks finished but has no domain enforcement, which is worse than a refused one (observed in testing).
-
-The hooks are live **immediately, in this session** — steps 4 and 5 below run *with* enforcement
-on; nothing here waits on a restart (step 6 has the one real restart caveat).
+Enforcement is live **immediately, in this session** — `harness-hooks.ts` is loaded with the OMP
+session and its wiring is graded by `check-omp-port.py` on every run. Steps 4 and 5 below run *with*
+enforcement on; nothing here waits on a restart (step 6 has the one real restart caveat).
 ### 2. Instantiate this checkout's own config
 
 For the control plane itself, instantiate its own `.harness/harness.json` and
@@ -215,24 +203,23 @@ a separate root. It is the one exception to the disjointness rule above, and it 
 ### 6. Verify, then warn about the restart
 
 ```python3 .agents/skills/harness/bin/check-state.py                 # this harness checkout
-.agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
+python3 .agents/skills/harness/bin/check-omp-port.py              # OMP hook wiring and roster
 python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
 ```
 
-`check-state.py` must exit 0. The fleet check reads every declared member and must also exit 0. Either
-will fail if the settings merge was skipped; these are real failures, not noise to talk past.
+All three must exit 0. The fleet check reads every declared member. These are real failures, not
+noise to talk past.
 
 Then say this, explicitly, as the last thing — **but only if agent definitions were installed or
 updated during this same session:**
 
-> **Restart Claude Code before running a team.** Agent definitions are not live-reloaded (DEC-100a), so
-> agents installed in this session are not spawnable yet. Without a restart the first team fails with
-> "Agent type not found" and no explanation.
+> **Restart the OMP session before running a team.** Agent definitions are loaded at session start
+> (DEC-100a), so agents installed in this session are not spawnable yet. Without a restart the first
+> team fails with "Agent type not found" and no explanation.
 
-**Do not overstate this.** The hooks written in step 1 *are* live immediately — verified — and agents
-that deploy installed before this session started are spawnable now, which is why steps 4 and 5 work.
-The restart is about **newly written agent files**, nothing else. Telling a user their harness is inert
-when it is not is its own kind of wrong.
+**Do not overstate this.** Hooks and skills are live immediately; agents that were installed before
+this session started are spawnable now. The restart is about **newly written agent files**, nothing
+else. Telling a user their harness is inert when it is not is its own kind of wrong.
 
 ## `--upgrade`
 
@@ -242,8 +229,6 @@ fleet member, run it in that member's checkout and land its merged `harness.json
 
 ```bash
 .agents/skills/harness/bin/upgrade-config.py .
-.agents/skills/harness/bin/merge-settings.py . \
-  --template .agents/skills/harness/templates/settings.snippet.json
 .agents/skills/harness/bin/merge-gitignore.py .
 ```
 
@@ -269,8 +254,8 @@ fleet member, run it in that member's checkout and land its merged `harness.json
 
 | Thought | Reality |
 |---|---|
-| "I'll just add the hook to settings.json myself" | That is how one of the eight goes missing. Run the script; it preserves the project's own hooks |
-| "The script was denied, I'll replicate what it does" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
+| "I'll wire a hook into a settings file myself" | Enforcement is `harness-hooks.ts`, loaded with the OMP session and graded by `check-omp-port.py`; there is no settings file to edit |
+| "The package install was denied, I'll work around it" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
 | "They must restart before anything works" | The hooks are live now. Only newly-written agent files need the restart |
 | "The project has no `evals/`, I'll point ai-dev at `src/**`" | Now two devs share a writable path. Drop the glob instead |
 | "The agent got blocked, I'll widen its domain" | Fail-closed is the design working. Fix the glob to the real path, never to `**` |

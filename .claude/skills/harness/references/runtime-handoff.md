@@ -17,9 +17,9 @@ member's transcript is not the record; the file at its `artifact:` path is.
 
 ## Terminal signals
 
-`yield` is the terminal Harness handoff; `agent_end` is notification-only. Claude Code keeps its
-measured end-turn/wake compatibility rule (DEC-201/204) — under that host, never wait for a member;
-suspend the turn (harness-team carries the `SUSPENDED` shape).
+`yield` is the terminal Harness handoff; `agent_end` is notification-only. A parent never yields
+with a live child: the host holds its `task` call until the child is terminal (DEC-204), and the
+digest gate refuses any return that arrives with children in flight (DEC-233).
 
 ## Personas without a shell
 

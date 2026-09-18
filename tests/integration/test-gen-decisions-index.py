@@ -876,10 +876,7 @@ def test_no_amendment_construct_survives_in_the_authority():
         return False
 
 
-# T-06 lands the Claude Code lifecycle-safety decision as DEC-210; if that number is
-# already taken when T-06 runs, T-06 takes the next free number and this constant
-# moves with it.
-QUARANTINE_DEC = "DEC-210"
+HOST_REMOVAL_DEC = "DEC-233"
 
 
 def _dec_region(text, dec):
@@ -909,102 +906,28 @@ def _dec_region(text, dec):
     return "\n".join(lines[start:])
 
 
-def test_dec_210_entry_names_both_enforcement_points():
-    """T-08 (SC-09): a DEC-210 entry that omits the plan-sign-gate.py half ships
-    graded met unless something asserts its content. Guards the LIVE authority, not a
-    fixture, and checks each clause separately so the clauses that hold never blind
-    the check to the one that does not."""
-    name = "test_dec_210_entry_names_both_enforcement_points"
+def test_dec_233_entry_names_every_removed_enforcement_point():
+    """DEC-233 deleted DEC-210 whole (DEC-205: supersession is deletion). The live
+    authority must carry no DEC-210 heading, and the DEC-233 region must name each
+    enforcement point it removed, so a re-added branch has a recorded ruling to
+    contradict. Each clause is checked separately."""
+    name = "test_dec_233_entry_names_every_removed_enforcement_point"
     try:
         path = os.path.join(REPO_ROOT, gdi.DECISIONS_PATH)
         text = open(path, encoding="utf-8").read()
-        region = _dec_region(text, QUARANTINE_DEC)
+        if _dec_region(text, "DEC-210") is not None:
+            print(f"FAIL - {name}: '## DEC-210' still has a live heading in {path}")
+            return False
+        region = _dec_region(text, HOST_REMOVAL_DEC)
         if region is None:
-            print(f"FAIL - {name}: no '## {QUARANTINE_DEC}' heading found in {path}")
+            print(f"FAIL - {name}: no '## {HOST_REMOVAL_DEC}' heading found in {path}")
             return False
-
-        if "check-domain.py" not in region:
-            print(f"FAIL - {name}: 'check-domain.py' not found in the "
-                  f"{QUARANTINE_DEC} region of {path}")
-            return False
-
-        if "plan-sign-gate.py" not in region:
-            print(f"FAIL - {name}: 'plan-sign-gate.py' not found in the "
-                  f"{QUARANTINE_DEC} region of {path}")
-            return False
-
-        if "quarantine.py adopt" not in region:
-            print(f"FAIL - {name}: 'quarantine.py adopt' not found in the "
-                  f"{QUARANTINE_DEC} region of {path}")
-            return False
-
-        print(f"ok - {name}")
-        return True
-    except Exception as e:
-        print(f"FAIL - {name}: {type(e).__name__}: {e}")
-        return False
-
-
-def test_dec_210_entry_states_the_bash_write_route_for_plan_yaml():
-    """Same region as test_dec_210_entry_names_both_enforcement_points, newlines
-    collapsed to single spaces so a sentence wrapped across lines still matches.
-    Requires 'plan.yaml' and 'plan-merge.py' to occur in ONE sentence — a
-    whole-region search for both names is satisfied by two unrelated sentences,
-    which is exactly the entry this test exists to reject."""
-    name = "test_dec_210_entry_states_the_bash_write_route_for_plan_yaml"
-    try:
-        path = os.path.join(REPO_ROOT, gdi.DECISIONS_PATH)
-        text = open(path, encoding="utf-8").read()
-        region = _dec_region(text, QUARANTINE_DEC)
-        if region is None:
-            print(f"FAIL - {name}: no '## {QUARANTINE_DEC}' heading found in {path}")
-            return False
-
-        collapsed = re.sub(r"\n+", " ", region)
-
-        if not re.search(r"\bBash\b", collapsed):
-            print(f"FAIL - {name}: 'Bash' not found as a whole word in the "
-                  f"{QUARANTINE_DEC} region of {path}")
-            return False
-
-        sentences = collapsed.split(". ")
-        if not any("plan.yaml" in s and "plan-merge.py" in s for s in sentences):
-            print(f"FAIL - {name}: no single sentence in the {QUARANTINE_DEC} "
-                  f"region of {path} names both 'plan.yaml' and 'plan-merge.py'")
-            return False
-
-        print(f"ok - {name}")
-        return True
-    except Exception as e:
-        print(f"FAIL - {name}: {type(e).__name__}: {e}")
-        return False
-
-
-def test_dec_210_index_row_names_the_compatibility_host_in_the_ruling():
-    """Closes SC-09's last ungraded clause: the DECISIONS-INDEX.md row must name the
-    compatibility host in the hand-written ruling half, ROW_RE group(2) — not merely
-    anywhere in the row, since the generated left half (group(1) onward, before the
-    ' :: ' separator) is a failure a whole-row search cannot see."""
-    name = "test_dec_210_index_row_names_the_compatibility_host_in_the_ruling"
-    try:
-        lines = open(REAL_INDEX, encoding="utf-8").read().splitlines()
-        row = None
-        for line in lines:
-            m = ROW_RE.match(line)
-            if m and m.group(1) == QUARANTINE_DEC:
-                row = m
-                break
-        if row is None:
-            print(f"FAIL - {name}: no ROW_RE row for {QUARANTINE_DEC} found in "
-                  f"{REAL_INDEX}")
-            return False
-
-        ruling = row.group(2)
-        if "Claude Code" not in ruling:
-            print(f"FAIL - {name}: 'Claude Code' not found in the ruling half of "
-                  f"the {QUARANTINE_DEC} row in {REAL_INDEX}")
-            return False
-
+        for needle in ("check-domain.py", "plan-sign-gate.py", "validate-digest.py",
+                       "quarantine.py", "dispatch-guard.py", "SUSPENDED", "INV-9"):
+            if needle not in region:
+                print(f"FAIL - {name}: '{needle}' not found in the "
+                      f"{HOST_REMOVAL_DEC} region of {path}")
+                return False
         print(f"ok - {name}")
         return True
     except Exception as e:
@@ -1024,9 +947,7 @@ TESTS = [
     test_orphaned_ruling_is_reported_not_silently_dropped,
     test_root_resolves_through_harness_boundary_not_the_retired_variable,
     test_no_amendment_construct_survives_in_the_authority,
-    test_dec_210_entry_names_both_enforcement_points,
-    test_dec_210_entry_states_the_bash_write_route_for_plan_yaml,
-    test_dec_210_index_row_names_the_compatibility_host_in_the_ruling,
+    test_dec_233_entry_names_every_removed_enforcement_point,
 ]
 
 

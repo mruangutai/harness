@@ -684,7 +684,7 @@ def check_worked_examples():
 def check_delivery():
     repo_root = Path(__file__).resolve().parents[2]
     failures = 0
-    for tree in (".omp/agents", ".claude/agents"):
+    for tree in (".omp/agents",):
         for agent in (
             "harness-frontend-dev",
             "harness-backend-dev",

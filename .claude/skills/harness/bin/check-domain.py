@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Pre/PostToolUse hook — enforce write domains and state-file shape.
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
-compatibility registrations live in `.claude/settings.json`. One global hook serves all
+Registered in `.omp/extensions/harness-hooks.ts`. One global hook serves all
 Harness agents and reads `agent_type` from the payload (DEC-110/202).
 
 Exit 2 blocks a pre-tool call. Exit 1 does not, so every enforcement failure below must
@@ -123,11 +122,9 @@ except Exception:
 
 # Agent identity: prefer `agent_type` from the hook payload, fall back to $1.
 #
-# WHY BOTH: agent-frontmatter PreToolUse hooks DO NOT FIRE for spawned subagents in
-# this environment — verified three times with three command forms, zero executions
-# (DEC-110). So the hook is registered in settings.json instead, where it does fire,
-# and identity has to come from the payload because one global registration serves
-# every agent.
+# WHY BOTH: agent-frontmatter PreToolUse hooks DO NOT FIRE for spawned subagents
+# (DEC-110). So the hook is registered once, globally, in `harness-hooks.ts`, and
+# identity has to come from the payload because one registration serves every agent.
 agent = (d.get("agent_type") or "") or argv_agent
 runtime_agent_id = d.get("harness_agent_id") or None
 runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
@@ -2073,40 +2070,6 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
         f"  Apply a proposal:             python3 .claude/skills/harness/bin/{_writer} "
         f"apply --file <plan.yaml> --proposal <path>\n")
     sys.exit(2)
-
-# FEAT-51: a Claude Code child whose parent is gone may finish analysis, but it may
-# not race a replacement writer onto a canonical feature artifact. The explicit
-# quarantine path is inert until the resumed parent adopts it.
-if (_governed and not _post and _tool in ("Write", "Edit", "NotebookEdit")
-        and target):
-    _orphan_rel = _norm(target)
-    _orphan_basename = os.path.basename(_orphan_rel)
-    if _orphan_basename in ("plan.yaml", "BRIEF.md", "feature.json", "STATE.md"):
-        try:
-            import inflight_registry as _reg
-            _artifact = _reg.canonical_artifact(_orphan_rel)
-            if _artifact is not None:
-                _feature, _basename = _artifact
-                _session = d.get("session_id")
-                if _reg.orphan_write(root, agent, _feature, _session):
-                    _quarantine = _reg.quarantine_rel(
-                        _orphan_rel, agent, _session
-                    )
-                    sys.stderr.write(
-                        f"check-domain: BLOCKED — {_show(target)} is canonical, but "
-                        f"{agent} holds no live claim for {_feature}. Its parent is gone "
-                        f"and a replacement may already be writing.\n"
-                        f"  Write the completed result to {_quarantine} instead.\n"
-                        f"  It becomes canonical only when the resumed parent runs "
-                        f"quarantine.py adopt on that file.\n"
-                    )
-                    sys.exit(2)
-        except Exception as _e:
-            print(
-                f"check-domain: quarantine boundary was not enforced ({_e!r}) — "
-                "passing through.",
-                file=sys.stderr,
-            )
 
 _UNREADABLE_EDIT = object()
 

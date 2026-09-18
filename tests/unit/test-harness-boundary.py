@@ -272,7 +272,8 @@ def live_claim(agent, feature):
         "dispatcher": "harness-orchestrator",
         "cwd": "/fixture",
         "feature": feature,
-        "runtime": "claude",
+        "runtime": "omp",
+        "supervisor_pid": os.getpid(),
         "started_at": time.time(),
     }
 

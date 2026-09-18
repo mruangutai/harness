@@ -373,8 +373,8 @@ def matches(path, pat):
 # Harness-owned paths with product-shaped names must be explicit. Hidden
 # control-plane roots are additionally recognized by `is_control_plane_glob`
 # below so their grants never bleed into a product checkout. Provider-neutral
-# OMP adds `.agents`, `.omp`, and `AGENTS.md`; the older `.claude` root remains
-# a compatibility surface.
+# OMP adds `.agents`, `.omp`, and `AGENTS.md`; `.claude` holds the authored
+# skills tree and the development worktrees.
 HARNESS_CONTROL_PLANE = [
     ".harness/*/docs/**",
     "docs/PRINCIPLES.md",
@@ -391,7 +391,7 @@ def is_control_plane_glob(pat):
     """Whether a grant belongs only to the Harness checkout.
 
     Hidden Harness roots must not reach a product checkout's same-named
-    directory. `.claude` remains included for compatibility while `.agents`
+    directory. `.claude` holds the authored skills and worktrees; `.agents`
     and `.omp` are the provider-neutral OMP surfaces.
     """
     p = pat.lstrip("/")
@@ -404,8 +404,8 @@ def real(path):
     """Absolute AND symlink-resolved.
 
     `abspath` alone normalises `..` textually but follows no link, so
-    `.harness/harness/docs/<link>/agents/x.md` with `<link> -> ../../../.claude` stayed inside
-    `.harness/` for every comparison while the write landed in `.claude/agents/`.
+    `.harness/harness/docs/<link>/agents/x.md` with `<link> -> ../../../.omp` stayed inside
+    `.harness/` for every comparison while the write landed in `.omp/agents/`.
     Reproduced before this fix: through the link exit 0, the same file named directly
     exit 2. The gap predates the two-base rule — `docs/**` matched with no target-side
     test — so this closes a live escape rather than a regression.

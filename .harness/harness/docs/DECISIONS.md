@@ -5847,10 +5847,10 @@ is what "on one checkout" means: a shared registry would refuse a second feature
 live.
 
 **Issue #551's dispatch cause is closed, and so is the first of its two reporting consequences.** A lead emitting a
-terminal verdict about members it cannot see is closed by DEC-210: a lead or orchestrator whose children are live has a
-legal NONTERMINAL turn-end, `VERDICT: SUSPENDED` carrying an `awaiting` list naming every live child, accepted at exit 0
-inside `validate-digest.py`'s `hook_mode` (`.agents/skills/harness/bin/validate-digest.py:1662`), so no parent is forced
-to grade work it has not seen. The second consequence — an orchestrator inferring run verdicts from disk — is NOT
+terminal verdict about members it cannot see is closed by the held-child gate in `validate-digest.py`'s `hook_mode`: a
+lead or orchestrator whose children are live is refused any return, so no parent is forced
+to grade work it has not seen (DEC-233 removed the nonterminal `SUSPENDED` turn-end DEC-210 once
+allowed here). The second consequence — an orchestrator inferring run verdicts from disk — is NOT
 closed, and nothing in this file closes it. No wait closes either: the `SubagentStop` hook passes through on
 `stop_hook_active` to avoid an infinite stop loop, so a stop refusal fires at most once per consecutive stop sequence and
 re-fires on each later wake while a child is still live. What ships is aimed at the false REPORT — a lead or
@@ -5866,9 +5866,9 @@ that only expires stale claims — so a wake that finds a child still live is re
 on the code path the lead tier uses carries two stop refusals naming DIFFERENT child sets, which is a distinct refusal
 event and not replayed context (`agent-a89be3fd837d1b779`). Ending a lead's turn after every dispatch raises the rate of
 stop attempts made with children live, so each attempt risks its own refusal rather than there being one per return.
-`inflight_registry.py`'s refusal message carries no once-only bound; it ends by naming the legal turn-end for a lead or
-orchestrator whose child is live — `VERDICT: SUSPENDED` with an awaiting list naming every live child
-(`.agents/skills/harness/bin/inflight_registry.py:579-582`).
+`inflight_registry.py`'s refusal message carries no once-only bound; it ends by naming the rule for a lead or
+orchestrator whose child is live — under a blocking host the parent cannot yield until the child is terminal
+(DEC-204, DEC-233).
 
 **#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
 during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven
@@ -6104,8 +6104,8 @@ feature; the branch is not to be merged or revived.
 - OMP's canonical skill access path is `.agents/skills`, a symlink to the single authored tree at `.claude/skills/`;
 - lifecycle enforcement is `.omp/extensions/harness-hooks.ts`;
 - concrete model selections live only in `.omp/providers/*.yml` as `modelRoles`;
-- `.claude/agents/`, `CLAUDE.md`, and `.claude/settings.json` are Claude Code compatibility
-  adapters, not policy authorities; `.claude/skills/` is shared authored source consumed by both runtimes.
+- `CLAUDE.md` imports `AGENTS.md` for a user running Claude Code against this repository; it is not
+  a policy authority. `.claude/skills/` is the authored skill tree.
 
 **Why this is forced by the goal rather than preferred syntax.** A role whose frontmatter says `opus`
 or `sonnet` cannot run unchanged on OpenAI, and a hook present only in Claude settings is absent when
@@ -6144,28 +6144,21 @@ normative digest text. The TypeScript layer owns no domain, branch, Expertise or
 repository's same-named directories. `.claude/worktrees/` remains the sanctioned development
 location, because this port changes runtime discovery, not DEC-193's worktree placement ruling.
 
-**Claude Code stays usable during and after the port.** `sync-agent-adapters.py` generates Claude
-role frontmatter and identical bodies from canonical OMP agents. `.claude/skills` remains a real
-directory for Claude Code discovery, while `.agents/skills` symlinks to it for OMP Agent Skills
-discovery. `CLAUDE.md` imports `AGENTS.md` and states only Claude-specific delivery.
-`check-omp-port.py` rejects adapter drift, a reversed or broken skills link, concrete provider IDs
-in canonical agents, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
-The reverse — the authored tree at `.agents/skills` with `.claude/skills` a symlink — was tried and
-measured to fail: local filesystem reads succeeded, but that is not Claude Code's discovery
-contract, which requires the real directory at its native path. OMP discovery of the shipped
-direction was measured with Claude-provider discovery disabled.
+**`check-omp-port.py` is the port gate.** It rejects a reversed or broken `.agents/skills` link,
+concrete provider IDs in canonical agents, a role whose `thinking-level` disagrees with its `model`
+alias, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
 
-**Cost accepted:** OMP runs require an explicit provider overlay, the OMP extension is a maintained
-host adapter, and Claude Code compatibility adds generated files. The alternative is cheaper only by
-keeping provider coupling and silently losing guardrails under a non-Claude host.
+**Cost accepted:** OMP runs require an explicit provider overlay and the OMP extension is a maintained
+host adapter. The alternative is cheaper only by keeping provider coupling and silently losing
+guardrails under a non-Claude host.
 
 **DEC-174 governs the cutover.** Agent prompts, skills and Expertise may be migrated normally, but
 changes to hooks, validators, gate scripts and their tests are direct main-session work with explicit
 tests and human diff review. The Harness enforcement path never certifies its own replacement.
 
 This decision supersedes the Claude-only conclusions of DEC-63, DEC-64, DEC-100, DEC-108,
-DEC-110, DEC-111 and DEC-122 for the canonical OMP runtime. Their measured Claude Code behavior
-remains true for the compatibility adapter and their historical evidence remains authoritative.
+DEC-110, DEC-111 and DEC-122 for the canonical OMP runtime; their historical evidence remains
+authoritative. DEC-233 removed the Claude Code compatibility adapters this entry once kept.
 
 ## DEC-203 — A ticket is open until its card reaches `Done`, the harness writes `Done` at ship, and a parent waits for its children
 
@@ -6397,10 +6390,8 @@ lineage fails rather than skips.
 
 **OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
 live for any age while its recorded supervisor PID exists and becomes stale immediately when that
-PID is gone. Parent and child sessions differ, so the Claude session filter does not hide a live OMP
-child. Claude Code remains a compatibility host and keeps FEAT-37's measured 1200-second TTL; this
-decision does not restore DEC-199's historical one-hour value. The difference is forced by host
-capability: Claude Code exposes no equivalent process-owned async job identity.
+PID is gone. Parent and child sessions differ, so no session filter applies. A claim whose `runtime`
+is anything but `omp` is expired (DEC-233).
 Expiry is query-scoped. Looking up or dispatching one feature never sweeps a dead claim owned by
 another feature; only that feature's query or an explicit targeted reconcile removes it. This keeps
 crash recovery from changing an unrelated flow merely because both claims share one registry.
@@ -6456,8 +6447,8 @@ lifecycle wiring, or the GitHub close gate.
 
 This decision supersedes DEC-199 only for claim schema, key, liveness, and automated recovery. It
 supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
-evidence standard. DEC-202 still owns canonical paths, provider overlays, and compatibility
-adapters. DEC-203 still owns issue/card lifecycle and command ownership.
+evidence standard. DEC-202 still owns canonical paths and provider overlays. DEC-203 still owns
+issue/card lifecycle and command ownership.
 
 ## DEC-205 — This file states current truth: no amendments, supersession is deletion, and one mechanical check guards it
 
@@ -6676,74 +6667,6 @@ would still have to parse a presentation-oriented record to recover the result.
 
 **Plan reviews are untouched.** DEC-207's `reviewed: plan:<path>` target has no code diff and no
 pinned `review_sha`, and never invokes the grader.
-
-## DEC-210 — On the Claude Code compatibility host a parent with live children suspends rather than completes, and an orphaned writer is quarantined at two governed write routes rather than killed
-
-**Chose:** A lead or orchestrator return with live children has THREE answers on the compatibility
-host, not two: an accepted nonterminal suspension — `VERDICT: SUSPENDED` carrying an `awaiting` list
-that names every live child — which exits 0; a refused terminal verdict, exit 2, while any child is
-still live; and the unchanged validation path when no child is live
-(`.claude/skills/harness/bin/validate-digest.py`, `hook_mode`). `SUSPENDED` is recognised ONLY inside
-`hook_mode` and is NOT a member of `VERDICTS`, so no member persona and no written digest can carry
-it. Origin: `FEAT-51-claude-code-lifecycle-safety`.
-
-**A suspension is not a completion: the suspending parent's claim is NOT released.** The accepted
-suspension returns ahead of the release step, so the parent still owns its claim while its children
-run. Every terminal or invalid return releases first, exactly as before.
-
-**Quarantine is a WRITE boundary, not a kill.** A governed writer holding no live claim for the
-feature it is writing, while some other live claim for that feature exists, is refused and told the
-exact quarantine path to write instead. An orphan may still finish its work: reads, greps, and writes
-to `notes/`, `observations/` and `runs/` are untouched, because the refusal keys on the four
-canonical artifact paths alone.
-
-**The four canonical artifacts are `plan.yaml`, `BRIEF.md`, `feature.json` and `STATE.md`, and the
-boundary is enforced at TWO registered gates.** `check-domain.py`, on PreToolUse for Write and Edit,
-bites on `BRIEF.md`, `feature.json` and `STATE.md`. `plan-sign-gate.py`, on PreToolUse for Bash,
-bites on the four mutating `plan-merge.py` verbs — `apply`, `add-tasks`, `set-task-station` and
-`set-feature-station` — and on `quarantine.py adopt`. Two gates because the two write routes are
-disjoint and neither can see the other's traffic. All three scripts sit in the enforcement layer
-DEC-174 keeps out of self-hosted execution, so each is verified by its own explicit test script
-rather than by the gates under change.
-
-**`plan.yaml` is covered by the `plan-sign-gate.py` half, and NOT by FEAT-41's editor-route
-denial.** Its only write route is `plan-merge.py` invoked through Bash. That denial — exit 2 on an
-editor write of any `plan.yaml`, for every author, under DEC-182's reversal — is a second and
-independent refusal on a route nobody may use; the `check-domain.py` quarantine branch sits AFTER it
-and defers to it, so the more fundamental refusal keeps its message.
-
-**What the boundary does NOT cover, stated as plainly as what it does.** `quarantine.py discard` is
-deliberately uncovered, so nothing here proves that an orphan cannot destroy a quarantined result: a
-rule on that verb, while a plain `rm -rf` of the same directory stays legal under the shared sandbox
-glob, would record a protection the tree does not have. And the boundary bounds those two GOVERNED
-routes alone — a generic Bash write (`cp`, `cat`, `tee`, `mv`, `sed -i`, `python3 -c`) to a canonical
-artifact INSIDE the writer's own domain reaches neither gate and is not refused, because
-`bash-write-guard.py` passes an in-domain write and `check-domain.py` is registered for Write and
-Edit only. That was measured: exit 0 on all three gates. Generic write-route enforcement needs a
-generic write-route gate, which is a different feature and goes to the backlog rather than being
-built here.
-
-**Adoption and discard are the only two explicit acts.** A quarantined result becomes canonical only
-when a resumed parent runs `quarantine.py adopt`; `discard` is the other explicit act. Neither is a
-default and neither is a timeout — quarantined content is inert until a parent acts on it. Adoption
-of `plan.yaml` goes through the locked union merge DEC-199 put behind `plan-merge.py`.
-
-**The quarantine sandbox is ONE shared glob**, `.harness/*/features/*/quarantine/**` in
-`team-config.yaml`'s `shared:` list, rather than twelve per-persona domain grants. One glob is what
-makes every persona's own quarantine directory writable without a grant of its own, and it is also
-why the `discard` gap above cannot be closed by a CLI rule.
-
-**OMP behaviour is unchanged.** The boundary fires only where a live claim for the feature has a
-runtime that is not `omp`; blocking nested edges, process-owned liveness and every OMP-path
-assertion in DEC-204 continue to hold. This entry supersedes nothing in DEC-204 and narrows nothing
-in DEC-201.
-
-**The honest bound.** Claude Code exposes no durable child-process owner, so beyond
-`CLAIM_TTL_SECONDS` — 1200 seconds, one normal PM cycle — a suspended parent cannot be distinguished
-from an interrupted one, and the boundary fails safe by treating the parent as gone. A member running
-longer than that TTL therefore meets the quarantine path on a NORMAL run. That is a cost of the
-compatibility host and does not exist on OMP, where a claim is owned by a supervisor process and a
-verified one is live at any age.
 
 ## DEC-211 — The suite runs in parallel, and no test mutates state another test can see
 
@@ -7141,7 +7064,7 @@ not complete. Ordinary Build requires that receipt rather than opening the mirro
 `Building` to the complete card set before task dispatch, and uses idempotent `open` only as the
 explicit recovery path. `gh-sync.py start-task` refuses on absence and proceeds on
 `recovery-required`, which instead gates the merge through the registered PreToolUse Bash gate
-`merge-gate.py` (`.claude/settings.json:48`). A partial remote write and a caller or contract error
+`merge-gate.py` (wired in `.omp/extensions/harness-hooks.ts`). A partial remote write and a caller or contract error
 record nothing (`gh-sync.py:289`), so both leave the receipt absent and block Build.
 
 **Recovery is explicit and never retroactive.** An already-merged sync-enabled feature whose mirror
@@ -7435,8 +7358,8 @@ calls passed `--tokens`, and every one of the 28 runs read `null` — the meter 
 the feature it was built to see. The OMP hook that already runs `feature-record.py spend` on the
 orchestrator's wake now first sums the integer `tokens` over that task call's results and runs
 `feature-record.py stamp-tokens` on the one open run; a bare `run-end` preserves it. `run-end
---tokens N` remains only as the explicit override for a host that reported nothing (the Claude
-Code compatibility host, DEC-210), where `null` stays correct. A prose rule asking a model to copy
+--tokens N` remains only as the explicit override for a run whose host reported nothing, where
+`null` stays correct. A prose rule asking a model to copy
 a number the host already computed was a script's job (DEC-156).
 
 ## DEC-228 — The pre-build panel is not universal: `patch` has none, `plan` runs it inside the one plan run, and a `proportionality` finding downgrades the mission
@@ -7681,3 +7604,77 @@ symbol renamed after plan exit; the builder's re-resolution is the second and la
 **Record:** refs DEC-177, DEC-179, DEC-205, DEC-228, DEC-229.
 
 **The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on kaya FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.py exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
+
+## DEC-233 — OMP is the only Harness host; the Claude Code compatibility layer is removed
+
+**Chose:** Harness runs under OMP alone. Every file, script, test and protocol that existed solely so
+Claude Code could host the organization is deleted, not retained as an unsynced fallback. Origin:
+the operator's direct ruling, 2026-09-17, after the DEC-202 port had landed and run.
+
+**What is removed, by category (DEC-174: the category governs, not the enumeration).**
+
+- *Generated adapters.* `.claude/agents/harness-*.md` and `.claude/commands/harness*.md`. Their only
+  reader was Claude Code's discovery; `.omp/config.yml` disables the `claude` provider, so under OMP
+  they were inert.
+- *Generators.* `sync-agent-adapters.py`, `sync-command-adapters.py`, `merge-settings.py` and their
+  tests. The `SPAWNS` constant in the agent generator — a second copy of every lead's `spawns:`
+  frontmatter — goes with it; the frontmatter is the one copy. The generator's one non-adapter check,
+  that a role's `thinking-level` matches its `model` alias (`@deep`→high, `@strong`→medium,
+  `@standard`→medium, `@review`→high), moves into `check-omp-port.py`, which already owns the alias set.
+- *Host hook wiring.* `.claude/settings.json` and `check-state.py`'s INV-9, which graded that file. The
+  scripts it named stay: they are the policy `harness-hooks.ts` adapts to OMP events (DEC-202); the
+  OMP wiring is graded by `check-omp-port.py`. INV-9 is retired; the number is never reused (DEC-205).
+- *The `VERDICT: SUSPENDED` turn-end.* DEC-210 gave a parent with live children a legal nonterminal
+  return because Claude Code could not block on a child. The branch in `validate-digest.py hook_mode`
+  is reachable from OMP's `yield` path too, but it names a state a blocking host never produces: under
+  DEC-204 a parent's `task` call holds in the host until its children are terminal, so a parent that
+  yields with a live child is a defect, not a suspension. The branch, its `awaiting` list, its tests
+  and its doctrine in `harness/SKILL.md`, `harness-team/SKILL.md` and `runtime-handoff.md` are
+  deleted. Such a return is now refused at exit 2 by the held-child gate that already refuses a
+  terminal verdict with a live child. Every lead carries one supervision protocol.
+- *The quarantine write boundary.* DEC-210's orphan-writer refusal fired only where a live claim's
+  runtime was not `omp` (`inflight_registry.orphan_write`). With one host that condition is
+  unreachable, and it was measured returning `False` on every OMP write. `quarantine.py`, the orphan
+  branches in `check-domain.py` and `plan-sign-gate.py`, `orphan_write`, `quarantine_rel`,
+  `canonical_artifact`, `CLAIM_TTL_SECONDS`, the compatibility session filter in `_visible`, the
+  `.harness/*/features/*/quarantine/**` shared glob, and the orchestrator's wake-time
+  `quarantine.py list / adopt / discard` step are removed. A claim's `runtime` field stays with the one
+  value `omp`; a claim carrying any other value, or none, is expired. `dispatch-guard.py` no longer
+  defaults a missing `harness_runtime` to `claude`: a dispatch payload without `harness_runtime: omp`
+  and a `supervisor_pid` is refused.
+- *Docs and doctrine.* `CLAUDE.md`'s adapter section; `README.md`'s adapter rows and "To change a
+  role" procedure; `.harness/README.md`; `SPEC.md`'s `paths.agents`; the `team-config.yaml` comment
+  naming `.claude/agents/**`; `harness-init`'s "Restart Claude Code" note; the `harness-pm` and
+  `harness-security-reviewer` Expertise entries that instruct agents to sync or diff both twins.
+
+**What is NOT removed.** `.claude/skills/` stays the authored tree with `.agents/skills` linking to
+it. DEC-202 measured the reverse direction failing only against Claude Code's discovery contract,
+which no longer applies, so flipping the link is now possible; it is a separate decision because every
+`.claude/skills/harness/bin/` citation in tests, `inject-expertise.py` and `check-state.py`'s
+`core.hooksPath` would move with it. `.claude/worktrees/` stays the sanctioned development location
+(DEC-193). `.omp/agents/**` stays unowned by every agent. `disabledProviders: [claude]` stays in
+`.omp/config.yml` and `check-omp-port.py` still asserts it.
+
+**Why now.** Two hosts cost more than the second host earned. Every lead preloaded two supervision
+protocols; every agent-file change was two files plus a generator run; two gates and one validator
+carried branches reachable only under a host nobody runs, and each was a separately tested surface.
+The compatibility layer was the port's safety net. The port landed; the net is weight.
+
+**Cost accepted.** Claude Code can no longer host a Harness team. A user launching `claude` in this
+repository gets `AGENTS.md` via `CLAUDE.md` and the skills tree, and no `harness-*` agents. Re-adding a
+host means re-adding an adapter generator, the same work DEC-202 did once. The one behaviour change
+under OMP is the SUSPENDED refusal above, and it is stricter, never looser.
+
+**Execution.** Direct main-session work in a `.claude/worktrees/` checkout, per DEC-174, as six
+verified units on one branch: record; adapters and generators; INV-9; SUSPENDED; quarantine and
+registry; close. Each unit ends with the unit suite, `check-omp-port.py`, `check-state.py` and the
+decision-index diff green, and each behaviour change carries a test recorded failing before the unit
+and passing after.
+
+**Supersession, applied in the same commit (DEC-205).** DEC-202 loses its `.claude/agents` /
+`settings.json` adapter bullet and its "Claude Code stays usable" paragraph. Its reverse-symlink
+measurement is preserved here: the authored tree at `.agents/skills` with `.claude/skills` a symlink
+was tried and failed only because Claude Code's discovery requires the real directory at its native
+path. DEC-210 is deleted whole: both of its rulings were compatibility-host behaviour. DEC-199's and
+DEC-227's references to the SUSPENDED turn-end and to the compatibility host are rewritten to point
+here. DEC-204 and DEC-201 are unchanged.

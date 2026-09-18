@@ -51,12 +51,18 @@ def check(name, ok, detail=""):
     RESULTS.append((name, ok, detail))
 
 
-def fire(payload, env=None):
+def fire(payload, env=None, host=True):
     """Run the guard as a SUBPROCESS with payload on stdin. A subprocess, not an import,
     because the thing under test is a shell script whose contract IS its exit code.
 
+    `harness-hooks.ts` stamps `harness_runtime: omp` and `supervisor_pid` on every dispatch
+    payload (DEC-204), so a dict payload gets the same stamp here unless it already carries
+    the key or `host=False` — the two DEC-233 fail-closed cases opt out to prove the refusal.
+
     `env` is additive and OPTIONAL so the five pre-cutover cases keep byte-identical
     behaviour; T-08 needs it to point each new case at its own throwaway checkout."""
+    if isinstance(payload, dict) and host:
+        payload = {"harness_runtime": "omp", "supervisor_pid": os.getpid(), **payload}
     body = json.dumps(payload) if not isinstance(payload, str) else payload
     e = dict(os.environ, **(env or {}))
     return subprocess.run([GUARD], input=body, capture_output=True, text=True, env=e)
@@ -206,10 +212,13 @@ def _claims_for(data, agent=None, feature=None):
 
 def _task(dispatched, dispatcher="harness-orchestrator", cwd=None):
     """The payload shape MEASURED off a live governed dispatch, not invented:
-    agent_type is the dispatcher, tool_input.subagent_type is the dispatched persona.
+    agent_type is the dispatcher, tool_input.subagent_type is the dispatched persona,
+    and harness-hooks.ts stamps `harness_runtime: omp` and the supervising pid (DEC-204).
     See notes/research-FEAT-32-hook-payloads.md."""
     return {"agent_type": dispatcher, "tool_name": "Agent", "hook_event_name": "PreToolUse",
             "cwd": cwd,
+            "harness_runtime": "omp",
+            "supervisor_pid": os.getpid(),
             # THE DECLARATION IS PART OF A GOVERNED DISPATCH NOW (FEAT-42 T-18). Every case
             # built by this helper is a legitimate dispatch and must carry it; case 11 strips
             # it deliberately to prove the refusal.
@@ -228,13 +237,13 @@ def case_6_single_flight_refusal():
     reg = _load_registry_module()
     root = _checkout()
     try:
-        # RECENT, deliberately. A fixed epoch literal is older than CLAIM_TTL_SECONDS, so
-        # the guard expires it and ALLOWS the dispatch — which is correct behaviour and
-        # would make this case test the expiry path while claiming to test the refusal.
+        # OWNED BY THIS PROCESS, deliberately: a claim whose supervisor is gone is expired
+        # (DEC-204), and the guard would ALLOW the dispatch — which is correct behaviour
+        # and would make this case test the expiry path while claiming to test the refusal.
         started = time.time() - 60
         reg.claim(
             root, "harness-pm", "harness-product-lead", root, now=started,
-            feature="FEAT-42-one-root-resolver",
+            feature="FEAT-42-one-root-resolver", supervisor_pid=os.getpid(),
         )
         r = fire(_task("harness-pm", "harness-product-lead", root),
                  env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
@@ -314,20 +323,23 @@ def case_8_parallel_squad_stays_legal():
 def case_9_stale_claim():
     """A STALE CLAIM YIELDS, LOUDLY. D-07: the release runs in a hook process that can die,
     and a leaked claim with no expiry would refuse every later pm dispatch on that checkout --
-    a fix that bricks the factory is worse than the defect. So an expired claim must ALLOW and
-    SAY it expired. MF-4: mandated by plan.yaml:1245-1248 and never written."""
+    a fix that bricks the factory is worse than the defect. Under DEC-204/DEC-233 a claim is
+    stale the moment its supervisor process is gone, so the fixture's claim is owned by a
+    process that has already exited. It must ALLOW and SAY it expired."""
     reg = _load_registry_module()
     root = _checkout()
     try:
-        stale = time.time() - (reg.CLAIM_TTL_SECONDS + 60)
+        dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
+                              capture_output=True, text=True, check=True)
+        dead_pid = int(dead.stdout.strip())
         reg.claim(
-            root, "harness-pm", "harness-product-lead", root, now=stale,
-            feature="FEAT-42-one-root-resolver",
+            root, "harness-pm", "harness-product-lead", root, now=time.time() - 60,
+            feature="FEAT-42-one-root-resolver", supervisor_pid=dead_pid,
         )
         r = fire(_task("harness-pm", "harness-product-lead", root),
                  env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
-        check("case 9: a claim past its TTL does NOT refuse the dispatch", r.returncode == 0,
-              f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        check("case 9: a claim whose supervisor is gone does NOT refuse the dispatch",
+              r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         check("case 9: and stderr SAYS it expired, so the leak is visible",
               "expired" in r.stderr.lower(), r.stderr.strip()[:200])
     finally:
@@ -460,8 +472,6 @@ def case_15_omp_dispatch_records_supervisor_and_receipt():
     root = _checkout()
     payload = _task("harness-backend-dev", "harness-eng-lead", root)
     payload["tool_input"]["prompt"] = "HARNESS-FEATURE: FEAT-43-alpha\nbuild"
-    payload["harness_runtime"] = "omp"
-    payload["supervisor_pid"] = os.getpid()
     result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
     claims = _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev", "FEAT-43-alpha")
     check("case 15: OMP governed dispatch is allowed", result.returncode == 0, result.stderr)
@@ -503,6 +513,49 @@ def case_15b_omp_main_dispatch_records_top_level_claim():
     )
 
 
+def case_25_non_omp_dispatch_refused():
+    """DEC-233: there is one host. A dispatch payload that does not identify itself as
+    OMP-supervised is refused, not passed through unclaimed — a pass-through would leave
+    single-flight and child liveness silently off for that persona."""
+    root = _checkout()
+    try:
+        payload = _task("harness-backend-dev", "harness-eng-lead", root)
+        del payload["harness_runtime"]
+        r = fire(payload, env={"HARNESS_PROJECT_DIR": root}, host=False)
+        check("case 25: a dispatch with no harness_runtime exits 2", r.returncode == 2,
+              f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        check("case 25: stderr names the missing runtime and DEC-233",
+              "harness_runtime" in r.stderr and "DEC-233" in r.stderr, r.stderr.strip()[:200])
+        payload["harness_runtime"] = "claude"
+        r = fire(payload, env={"HARNESS_PROJECT_DIR": root}, host=False)
+        check("case 25: a dispatch naming another runtime exits 2", r.returncode == 2,
+              f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        check("case 25: no claim was recorded on either refusal",
+              _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev") == [],
+              "a refused dispatch must not leave a claim behind")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_26_omp_dispatch_without_supervisor_pid_refused():
+    """DEC-233: an OMP dispatch with no valid supervisor pid used to pass through WITHOUT a
+    claim (fail open). Its claim could never be verified live, so it is refused."""
+    root = _checkout()
+    try:
+        for label, pid in (("absent", None), ("zero", 0), ("bool", True), ("string", "12")):
+            payload = _task("harness-backend-dev", "harness-eng-lead", root)
+            if pid is None:
+                del payload["supervisor_pid"]
+            else:
+                payload["supervisor_pid"] = pid
+            r = fire(payload, env={"HARNESS_PROJECT_DIR": root}, host=False)
+            check(f"case 26: an OMP dispatch with {label} supervisor_pid exits 2",
+                  r.returncode == 2, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        check("case 26: no claim was recorded on any refusal",
+              _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev") == [],
+              "a refused dispatch must not leave a claim behind")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 def case_16_system_python_compatibility():
     root = _checkout()
     result = fire(
@@ -760,6 +813,8 @@ def main():
     case_14_single_flight_is_per_feature()
     case_15_omp_dispatch_records_supervisor_and_receipt()
     case_15b_omp_main_dispatch_records_top_level_claim()
+    case_25_non_omp_dispatch_refused()
+    case_26_omp_dispatch_without_supervisor_pid_refused()
     case_16_system_python_compatibility()
     case_17_shell_less_persona_requires_matching_feature_root()
     case_18_inverted_slug_refused_no_claim_and_paste_back_safe()
