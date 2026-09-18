@@ -1,0 +1,154 @@
+schema_version: 2
+run_id: build-eng-t08-t13
+run_uid: ec61bf86e01f43cba2698e1e1333ce62
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: blocked
+steps:
+  - id: T-08
+    persona: harness-frontend-dev
+    task: T-08
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-08-c0.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 2
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Geometry split landed, but configured testMatch excludes its e2e spec and immutable scope forbids the required config edit.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-08-c0.md
+    evidence:
+      task_verify: fail
+      listed_executions: 5
+      expected_executions: 9
+      blocker: playwright_config_testmatch
+  - id: T-09
+    persona: harness-frontend-dev
+    task: T-09
+    seq: 2
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-09-c0.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 2
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Colour split landed, but configured testMatch excludes its e2e spec and immutable scope forbids the required config edit.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-09-c0.md
+    evidence:
+      task_verify: fail
+      expected_executions: 4
+      blocker: playwright_config_testmatch
+  - id: T-10
+    persona: harness-frontend-dev
+    task: T-10
+    seq: 3
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-10-c0.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 2
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Keyboard split landed, but configured testMatch excludes its e2e spec and immutable scope forbids the required config edit.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-10-c0.md
+    evidence:
+      task_verify: not_run
+      expected_executions: 2
+      blocker: playwright_config_testmatch
+  - id: T-11
+    persona: harness-frontend-dev
+    task: T-11
+    seq: 4
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-11-c0.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 2
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Contrast and hatch split landed, but configured testMatch excludes its e2e spec and immutable scope forbids the required config edit.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-11-c0.md
+    evidence:
+      task_verify: fail
+      expected_executions: 4
+      blocker: playwright_config_testmatch
+  - id: T-12
+    persona: harness-frontend-dev
+    task: T-12
+    seq: 5
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-12-c0.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: blocked
+    verdict: FAIL
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 2
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Table and accessibility split landed; lead classifies the failed verify as blocked because immutable config scope makes retry futile.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-12-c0.md
+    evidence:
+      task_verify: fail
+      expected_executions: 4
+      blocker: playwright_config_testmatch
+  - id: T-13
+    persona: harness-backend-dev
+    task: T-13
+    seq: 6
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-backend-dev-T-13-c0.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 2
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: All seven named probes passed both real reporter summary and real Python gate refusal stages.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-backend-dev-T-13-c0.md
+    evidence:
+      task_verify: pass
+      probe_cases: 7
+      reporter_failures: 7
+      gate_refusals: 7
+      browser_tests_added: 0
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: BLOCKED
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/build-eng-t08-t13-eng/digest.md

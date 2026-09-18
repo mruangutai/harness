@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { loadManifest, type InspectionEvidence, type UiManifest } from './ui-manifest.js';
+import { loadManifest, type InspectionEvidence, type UiManifest } from './ui-manifest.ts';
 
 const root = resolve(import.meta.dirname, '..', '..', '..', '..', '..', '..');
 const runId = process.env.HARNESS_UI_RUN_ID ?? 'local';
@@ -37,18 +37,18 @@ export default class UiReporter implements Reporter {
 
   onBegin(_config: FullConfig): void {
     try { this.manifest = loadManifest(); }
-    catch (error) { this.reporterErrors.push(`manifest parser error: ${error instanceof Error ? error.message : String(error)}`); }
+    catch (error) { this.reporterErrors.push(`parser error: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
     const project = test.parent.project()?.name;
     if (!this.manifest || !project) {
-      this.reporterErrors.push(`reporter cannot map test result: ${project ?? 'unknown project'} / ${test.title}`);
+      this.reporterErrors.push(`reporter error: cannot map test result: ${project ?? 'unknown project'} / ${test.title}`);
       return;
     }
     const contract = this.manifest.checks.find((check) => check.spec_title === test.title);
     if (!contract) {
-      this.reporterErrors.push(`unlisted test result: ${project} / ${test.title}`);
+      this.reporterErrors.push(`reporter error: unlisted test result: ${project} / ${test.title}`);
       return;
     }
     const expected = expectedLabels(this.manifest, contract.check_id, project);
@@ -60,7 +60,7 @@ export default class UiReporter implements Reporter {
       const label = attachment.name.slice(`evidence:${contract.check_id}:`.length);
       const row = evidenceRows(this.manifest!, contract.check_id, project).find((entry) => entry.evidence_label === label);
       if (!attachment.path || !webp(attachment.path) || !expected.includes(label)) {
-        this.reporterErrors.push(`invalid WebP evidence for ${project}/${contract.check_id}/${label}`);
+        this.reporterErrors.push(`empty WebP evidence for ${project}/${contract.check_id}/${label}`);
         return null;
       }
       return {
@@ -83,7 +83,11 @@ export default class UiReporter implements Reporter {
     const duplicate = this.checks.some((check, index) => this.checks.findIndex((other) => other.check_id === check.check_id && other.project === check.project) !== index);
     const titleMismatch = this.checks.some((check) => manifest?.checks.find((contract) => contract.check_id === check.check_id)?.spec_title !== check.spec_title);
     const incomplete = missing.length > 0 || this.checks.some((check) => !check.screenshots.length);
-    const failed = result.status !== 'passed' || this.reporterErrors.length > 0 || duplicate || titleMismatch || incomplete;
+    if (missing.length) this.reporterErrors.push(`missing record: ${missing.join(',')}`);
+    if (duplicate) this.reporterErrors.push('duplicate record');
+    if (titleMismatch) this.reporterErrors.push('mismatched title');
+    if (incomplete) this.reporterErrors.push('incomplete accounting');
+    const failed = result.status !== 'passed' || this.reporterErrors.length > 0;
     await mkdir(resolve(output, '..'), { recursive: true });
     await writeFile(output, JSON.stringify({ schema: 'harness-ui-results/1', feature, run_id: runId, design: '.harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md', served_bundle_commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), projects: { 'desktop-1440': { viewport: { width: 1440, height: 1100 } }, 'desktop-1920': { viewport: { width: 1920, height: 1100 } } }, listed_check_ids: manifest?.listed_check_ids ?? [], applicable_check_ids: applicable, observed_check_ids: observed, missing_check_ids: missing, checks: this.checks, summary: { status: failed ? 'failed' : 'passed', check_count: this.checks.length, errors: this.reporterErrors } }, null, 2));
   }
