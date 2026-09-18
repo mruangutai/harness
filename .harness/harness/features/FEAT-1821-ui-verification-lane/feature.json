@@ -25,6 +25,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "three enforcement surfaces change \u2014 harness.json's ui kind and the matrix gate, the harness-ui-reviewer agent definition, and CI \u2014 so the patch test fails on rule 3 outright."
+    },
+    {
+      "at": "2026-09-18T01:08:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "The operator approved the plan and rework ruling; enter build in signed dependency order."
     }
   ],
   "mission": "plan",
