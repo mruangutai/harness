@@ -40,6 +40,12 @@ async function capture(page: Page, testInfo: TestInfo, contract: UiCheck): Promi
   await testInfo.attach(`evidence:${contract.check_id}:execution`, { path, contentType: 'image/webp' });
 }
 
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.title !== check.spec_title || !check.applicable_projects.includes(testInfo.project.name)) return;
+  await capture(page, testInfo, check);
+});
+
+
 async function expectFocused(locator: Locator, ring: 'keyboard' | 'pointer' | 'none', message: string): Promise<void> {
   await expect.soft(locator, `${message}: activeElement`).toBeFocused();
   const width = ring === 'keyboard' ? '2px' : '0px';
@@ -226,6 +232,5 @@ test('keyboard focus transitions and restoration match DESIGN', async ({ page },
     await expectFocused(disclosure, 'pointer', 'InfoDisclosure after outside click');
   }, failures);
 
-  try { expect.soft(failures, 'all C3 keyboard clauses execute before reporting product divergence').toEqual([]); }
-  finally { await capture(page, testInfo, check); }
+  expect.soft(failures, 'all C3 keyboard clauses execute before reporting product divergence').toEqual([]);
 });

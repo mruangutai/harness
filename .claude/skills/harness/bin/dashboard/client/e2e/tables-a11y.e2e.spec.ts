@@ -37,6 +37,13 @@ async function capture(page: Page, testInfo: TestInfo, check: UiCheck): Promise<
   await testInfo.attach(`evidence:${check.check_id}:execution`, { path, contentType: 'image/webp' });
 }
 
+test.afterEach(async ({ page }, testInfo) => {
+  const check = manifest.checks.find((candidate) => candidate.spec_title === testInfo.title);
+  if (!check || !check.applicable_projects.includes(testInfo.project.name)) return;
+  await capture(page, testInfo, check);
+});
+
+
 async function clause(name: string, action: () => Promise<void>): Promise<void> {
   await test.step(name, async () => {
     try { await action(); }
@@ -114,7 +121,6 @@ for (const check of [
           }
         });
       }
-      await test.step('TBL-DESKTOP: capture horizontally scrolled sticky table evidence', async () => { await capture(page, testInfo, check); });
       return;
     }
 
@@ -162,6 +168,5 @@ for (const check of [
       const inaccessibleGap = page.locator('[title], [aria-label]').filter({ hasText: /^$/ });
       expect.soft(await inaccessibleGap.count()).toBe(0);
     });
-    await test.step('A11Y-AXE: capture non-colour-equivalent surface evidence', async () => { await capture(page, testInfo, check); });
   });
 }

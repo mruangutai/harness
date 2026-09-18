@@ -75,6 +75,13 @@ async function capture(page: Page, testInfo: TestInfo, check: UiCheck): Promise<
   await testInfo.attach(`evidence:${check.check_id}:execution`, { path, contentType: 'image/webp' });
 }
 
+test.afterEach(async ({ page }, testInfo) => {
+  const check = manifest.checks.find((candidate) => candidate.spec_title === testInfo.title);
+  if (!check || !check.applicable_projects.includes(testInfo.project.name)) return;
+  await capture(page, testInfo, check);
+});
+
+
 async function kpiIdentity(page: Page): Promise<void> {
   for (let kpi = 1; kpi <= 7; kpi += 1) {
     const token = `--color-metrics-kpi-${kpi}`;
@@ -121,12 +128,8 @@ async function statusLabels(page: Page): Promise<void> {
 for (const check of manifest.checks.filter((entry) => entry.check_id === 'DIR-KPI-IDENTITY' || entry.check_id === 'DIR-STATUS-LABEL')) {
   test(check.spec_title, async ({ page }, testInfo) => {
     test.skip(!check.applicable_projects.includes(testInfo.project.name), `${check.check_id} is not applicable to ${testInfo.project.name}`);
-    await load(page, overview);
-    try {
+      await load(page, overview);
       if (check.check_id === 'DIR-KPI-IDENTITY') await kpiIdentity(page);
       else await statusLabels(page);
-    } finally {
-      await capture(page, testInfo, check);
-    }
   });
 }
