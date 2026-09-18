@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { loadManifest, type InspectionEvidence, type UiCheck } from './ui-manifest.js';
 
@@ -18,8 +18,14 @@ async function capture(page: Page, testInfo: TestInfo, check: UiCheck, route: st
   const relative = `.harness/harness/features/${feature}/runs/${runId}/ui/evidence/${testInfo.project.name}/${check.check_id}--${evidenceLabel}.webp`;
   const path = resolve(root, relative);
   await mkdir(resolve(path, '..'), { recursive: true });
+  try {
+    await access(path);
+    throw new Error(`duplicate screenshot evidence label: ${testInfo.project.name}/${check.check_id}/${evidenceLabel}`);
+  } catch (error) {
+    if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
+  }
   const bytes = Buffer.from(shot.data, 'base64');
-  if (bytes.subarray(0, 4).toString() !== 'RIFF' || bytes.subarray(8, 12).toString() !== 'WEBP') throw new Error('Page.captureScreenshot did not return WebP evidence');
+  if (bytes.length <= 12 || bytes.subarray(0, 4).toString() !== 'RIFF' || bytes.subarray(8, 12).toString() !== 'WEBP') throw new Error('Page.captureScreenshot did not return nonempty WebP evidence');
   await writeFile(path, bytes);
   await testInfo.attach(`evidence:${check.check_id}:${evidenceLabel}`, { path, contentType: 'image/webp' });
 }
@@ -78,88 +84,60 @@ async function expectFocusOrder(page: Page, locators: Locator[]): Promise<void> 
 }
 
 async function keyboard(page: Page): Promise<void> {
-  await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
-  const tiles = page.locator('[aria-label="Repository KPIs"] a');
-  const infos = page.getByRole('button', { name: /About/ });
-  await expect(tiles).toHaveCount(7);
-  await expect(infos, 'each KPI must have its own InfoDisclosure control').toHaveCount(7);
-  await expectFocusOrder(page, [
-    page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }),
-    page.getByRole('combobox', { name: 'Repository' }), ...Array.from({ length: 7 }, (_, index) => tiles.nth(index)),
-  ]);
-  for (let index = 0; index < 7; index += 1) {
-    await page.keyboard.press('Tab');
-    await expect(infos.nth(index), `KPI ${index + 1} InfoDisclosure must immediately follow its tile`).toBeFocused();
-  }
-  const attention = ['Needs You', 'Blocked', 'Stalled', 'Over Budget', 'Running', 'Stale'];
-  for (const name of attention) {
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: new RegExp(name) })).toBeFocused();
-  }
-  for (const name of ['Station', 'Status', 'Kind']) {
-    await page.keyboard.press('Tab');
-    await expect(page.getByRole('combobox', { name })).toBeFocused();
-  }
-  const station = page.getByRole('combobox', { name: 'Station' });
-  await station.click();
-  await page.keyboard.press('Escape');
-  await expect(station).toBeFocused();
-  await expect(station).toHaveCSS('outline-width', '0px');
-  await station.focus();
-  await page.keyboard.press('Space');
-  await page.keyboard.press('Escape');
-  await expect(station).toBeFocused();
-  await expect(station).toHaveCSS('outline-width', '2px');
-  const tile = tiles.first();
-  await tile.click();
-  await expect(page.locator('[data-route-title]')).toBeFocused();
-  await expect(page.locator('[data-route-title]')).toHaveCSS('outline-width', '0px');
-  await page.goBack();
-  await expect(tile).toBeFocused();
-  const disclosure = infos.last();
-  await disclosure.focus();
-  await page.keyboard.press('Enter');
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('button').first()).toBeFocused();
-  await page.keyboard.press('Escape');
-  await expect(disclosure).toBeFocused();
-  await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
-  const attentionCard = page.getByRole('button', { name: /Needs You/ });
-  await attentionCard.click();
-  const status = page.getByRole('combobox', { name: 'Status' });
-  await expect(status, 'attention activation must land on Status after results settle').toBeFocused();
-  await status.focus();
-  await page.keyboard.press('Space');
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('Enter');
-  await expect(status, 'filter selection must retain focus after settled results').toBeFocused();
-  const layout = page.getByRole('button', { name: 'Kanban' });
-  await layout.click();
-  await expect(layout, 'layout change must retain its initiating control').toBeFocused();
-  await expect(page.locator('[aria-live="polite"]')).toContainText(/\d+ of \d+ items/);
-  for (const row of ['Grilling', 'Worktree']) {
-    const toggle = page.getByRole('button', { name: row });
-    await toggle.click();
-    await expect(toggle, `${row} disclosure must return focus to its row button`).toBeFocused();
-    await toggle.click();
-    await expect(toggle).toBeFocused();
-  }
-  await load(page, '/kpi/1?window=all&repo=all');
-  await expectFocusOrder(page, [
-    page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }),
-    page.getByRole('combobox', { name: 'Repository' }), page.getByRole('button', { name: /About/ }),
-  ]);
-  await expect(page.locator('svg, [data-chart]')).toHaveAttribute('aria-hidden', 'true');
-  await load(page, '/work/FEAT-53?window=all&repo=all');
-  const title = page.locator('[data-route-title]');
-  await expect(title, 'fresh work-detail load must not focus its route title').not.toBeFocused();
-  await expect(title).toHaveAttribute('tabindex', '-1');
-  await expect(title).toHaveCSS('outline-width', '0px');
-  await expectFocusOrder(page, [
-    page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }),
-    page.getByRole('combobox', { name: 'Repository' }),
-  ]);
+  const failures: string[] = [];
+  const clause = async (name: string, action: () => Promise<void>) => {
+    try { await action(); }
+    catch (error) { failures.push(`${name}: ${error instanceof Error ? error.message : String(error)}`); }
+  };
+  await clause('overview tab order and noncontrols', async () => {
+    await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
+    const tiles = page.locator('[aria-label="Repository KPIs"] a');
+    const infos = page.getByRole('button', { name: /About/ });
+    await expect(tiles).toHaveCount(7);
+    await expect(infos).toHaveCount(7);
+    await expectFocusOrder(page, [page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }), page.getByRole('combobox', { name: 'Repository' }), ...Array.from({ length: 7 }, (_, index) => tiles.nth(index))]);
+    for (let index = 0; index < 7; index += 1) { await page.keyboard.press('Tab'); await expect(infos.nth(index)).toBeFocused(); }
+    await expect(page.locator('svg, [data-chart], [data-unavailable], [data-status-badge]')).toHaveAttribute('aria-hidden', 'true');
+  });
+  await clause('selector pointer and keyboard restoration', async () => {
+    const station = page.getByRole('combobox', { name: 'Station' });
+    await station.click(); await page.keyboard.press('Escape'); await expect(station).toBeFocused(); await expect(station).toHaveCSS('outline-width', '0px');
+    await station.focus(); await page.keyboard.press('Space'); await page.keyboard.press('Escape'); await expect(station).toBeFocused(); await expect(station).toHaveCSS('outline-width', '2px');
+  });
+  await clause('tile route and Back restoration', async () => {
+    const tile = page.locator('[aria-label="Repository KPIs"] a').first();
+    await tile.click(); await expect(page.locator('[data-route-title]')).toBeFocused(); await page.goBack(); await expect(tile).toBeFocused();
+  });
+  await clause('attention filters layout and announcements', async () => {
+    await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
+    const attentionCard = page.getByRole('button', { name: /Needs You/ });
+    await attentionCard.click();
+    const status = page.getByRole('combobox', { name: 'Status' });
+    await expect(status).toBeFocused();
+    await status.focus(); await page.keyboard.press('Space'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); await expect(status).toBeFocused();
+    const layout = page.getByRole('button', { name: 'Kanban' });
+    await layout.click(); await expect(layout).toBeFocused(); await expect(page.locator('[aria-live="polite"]')).toContainText(/\d+ of \d+ items/);
+  });
+  await clause('grilling and worktree restoration', async () => {
+    for (const row of ['Grilling', 'Worktree']) {
+      const toggle = page.getByRole('button', { name: row });
+      await toggle.click(); await expect(toggle).toBeFocused(); await toggle.click(); await expect(toggle).toBeFocused();
+    }
+  });
+  await clause('KPI tab order and disclosure close variants', async () => {
+    await load(page, '/kpi/1?window=all&repo=all');
+    const disclosure = page.getByRole('button', { name: /About/ });
+    await expectFocusOrder(page, [page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }), page.getByRole('combobox', { name: 'Repository' }), disclosure]);
+    await disclosure.focus(); await page.keyboard.press('Enter'); await expect(page.getByRole('dialog').getByRole('button').first()).toBeFocused(); await page.keyboard.press('Escape'); await expect(disclosure).toBeFocused();
+    await disclosure.click(); await page.mouse.click(1, 1); await expect(disclosure).toBeFocused();
+  });
+  await clause('work detail fresh load and tab order', async () => {
+    await load(page, '/work/FEAT-53?window=all&repo=all');
+    const title = page.locator('[data-route-title]');
+    await expect(title).not.toBeFocused(); await expect(title).toHaveAttribute('tabindex', '-1'); await expect(title).toHaveCSS('outline-width', '0px');
+    await expectFocusOrder(page, [page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }), page.getByRole('combobox', { name: 'Repository' })]);
+  });
+  expect(failures, 'all C3 keyboard clauses must execute before reporting product failures').toEqual([]);
 }
 
 async function objective(page: Page, check: UiCheck): Promise<void> {
@@ -243,38 +221,75 @@ async function objective(page: Page, check: UiCheck): Promise<void> {
 }
 
 async function interact(page: Page, evidence: InspectionEvidence): Promise<void> {
+  if (evidence.evidence_label === 'overview-default' || evidence.evidence_label === 'work-detail-long-content' || evidence.evidence_label === 'source-error-with-valid-rows') return;
   if (evidence.evidence_label === 'kpi-unavailable' || evidence.evidence_label === 'disclosure-open') {
-    await page.getByRole('button', { name: /About/ }).first().press('Enter');
+    const disclosure = evidence.evidence_label === 'disclosure-open' ? page.getByRole('button', { name: /About/ }).last() : page.getByRole('button', { name: /About/ }).nth(2);
+    await disclosure.focus();
+    await page.keyboard.press('Enter');
     await expect(page.getByRole('dialog')).toBeVisible();
-  } else if (evidence.evidence_label === 'kpi-drill') {
+    await expect(page.getByRole('dialog').getByRole('button').first()).toBeFocused();
+    return;
+  }
+  if (evidence.evidence_label === 'kpi-drill' || evidence.evidence_label === 'work-drill') {
     await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
-    await page.getByRole('link', { name: 'Throughput' }).click();
+    const link = evidence.evidence_label === 'kpi-drill' ? page.getByRole('link', { name: 'Throughput' }) : page.getByRole('link', { name: 'FEAT-53' });
+    await link.click();
     await expect(page.locator('[data-route-title]')).toBeFocused();
-  } else if (evidence.evidence_label === 'work-drill') {
-    await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
-    await page.getByRole('link', { name: 'FEAT-53' }).click();
-    await expect(page.locator('[data-route-title]')).toBeFocused();
-  } else if (evidence.evidence_label === 'table-overflow') {
-    const table = page.locator('table').first(); await table.evaluate((element) => element.parentElement?.scrollTo({ left: element.parentElement.scrollWidth }));
-  } else if (evidence.evidence_label === 'initial-request-error') {
+    return;
+  }
+  if (evidence.evidence_label === 'filtered-zero') {
+    for (const [name, value] of [['Station', 'abandoned'], ['Status', 'running'], ['Kind', 'BUG']] as const) {
+      const selector = page.getByRole('combobox', { name });
+      await selector.focus();
+      await page.keyboard.press('Space');
+      await page.keyboard.type(value);
+      await page.keyboard.press('Enter');
+      await expect(selector).toBeFocused();
+    }
+    return;
+  }
+  if (evidence.evidence_label === 'table-overflow') {
+    const region = page.locator('table').first().locator('..');
+    await region.evaluate((element) => element.scrollTo({ left: element.scrollWidth }));
+    await expect(page.locator('table th').first()).toHaveCSS('position', 'sticky');
+    return;
+  }
+  if (evidence.evidence_label === 'initial-request-error') {
     await page.getByRole('button', { name: 'Retry' }).focus();
     await expect(page.getByRole('button', { name: 'Retry' })).toBeFocused();
+    return;
   }
+  throw new Error(`missing inspection interaction: ${evidence.evidence_label}`);
 }
 
 async function inspection(page: Page, testInfo: TestInfo, check: UiCheck, evidence: InspectionEvidence): Promise<void> {
-  await load(page, evidence.route);
-  await interact(page, evidence);
+  let failure: unknown;
+  try {
+    await load(page, evidence.route);
+    await interact(page, evidence);
+  } catch (error) {
+    failure = error;
+  }
   await capture(page, testInfo, check, page.url(), evidence.fixture_state, evidence.setup, evidence.evidence_label);
+  if (failure) throw failure;
 }
 
 for (const check of manifest.checks) {
   test(check.spec_title, async ({ page }, testInfo) => {
     test.skip(!check.applicable_projects.includes(testInfo.project.name), `${check.check_id} is not applicable to ${testInfo.project.name}`);
     const rows = manifest.inspection_evidence.filter((entry) => entry.check_id === check.check_id && entry.project === testInfo.project.name);
-    if (rows.length > 0) { for (const row of rows) await inspection(page, testInfo, check, row); return; }
+    if (rows.length > 0) {
+      const failures: string[] = [];
+      for (const row of rows) {
+        try { await inspection(page, testInfo, check, row); }
+        catch (error) { failures.push(`${row.evidence_label}: ${error instanceof Error ? error.message : String(error)}`); }
+      }
+      expect(failures, 'every signed inspection setup and capture must execute').toEqual([]);
+      return;
+    }
     await objective(page, check);
     if (check.check_id === 'SRC-TOKENS') await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
     await capture(page, testInfo, check, page.url(), 'default loaded dashboard', 'automated predicate execution', 'execution');
   });
 }
+

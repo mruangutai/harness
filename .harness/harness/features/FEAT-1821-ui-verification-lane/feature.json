@@ -2,8 +2,8 @@
   "feature_id": "FEAT-1821-ui-verification-lane",
   "branch": "feat/FEAT-1821-ui-verification-lane",
   "pr": null,
-  "review_sha": "none",
-  "cycles_used": 3,
+  "review_sha": "a71ea2a9c294aa1326f101493a2a5b6709a25334",
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -26,6 +26,36 @@
       "tokens": 91360,
       "ended_at": "2026-09-18T01:28:16+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "build-eng-t03",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-18T01:29:09+00:00",
+      "tokens": 91187,
+      "ended_at": "2026-09-18T01:49:06+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-18T01:49:48+00:00",
+      "tokens": 117526,
+      "ended_at": "2026-09-18T02:29:27+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "fix-c2-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-18T02:29:34+00:00",
+      "tokens": 78678,
+      "ended_at": "2026-09-18T02:43:51+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -42,6 +72,27 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "The operator approved the plan and rework ruling; enter build in signed dependency order."
+    },
+    {
+      "at": "2026-09-18T01:49:06+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c1",
+      "reason": "T-03 signed browser predicates and deterministic interactions remain incomplete"
+    },
+    {
+      "at": "2026-09-18T02:29:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c2",
+      "reason": "T-03 still has four substantive signed-contract findings at pinned tip a71ea2a9"
+    },
+    {
+      "at": "2026-09-18T02:43:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The signed three-round rework ruling is spent with T03-F1 T03-F2 and T03-F4 still open"
     }
   ],
   "mission": "plan",
