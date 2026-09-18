@@ -165,6 +165,24 @@
       "cycles_used": 0,
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "amend-product-t06-verify",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-18T13:53:52+00:00",
+      "ended_at": "2026-09-18T14:02:21+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "fix-c6-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-09-18T14:02:22+00:00"
     }
   ],
   "judgements": [
@@ -272,6 +290,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Main reproduced split-lane worker races and an undefined overview reference, deleted the invalid evidence bundle, and authorized a scoped fixture/config/spec repair before retrying T-06."
+    },
+    {
+      "at": "2026-09-18T13:57:59.671260+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-06.verify",
+      "reason": "contract drift. Main's full discarded run confirmed the implemented T-01 gate and T-03 reporter form uses per-record screenshots and summary status failed."
+    },
+    {
+      "at": "2026-09-18T14:02:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Main discarded the incomplete RED bundle and authorized fix round 6/7 so every executed check captures evidence independent of predicate completion and header failures remain bounded."
     }
   ],
   "mission": "plan",
