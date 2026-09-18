@@ -132,6 +132,8 @@ def segments(text):
 
 
 agent = d.get("agent_type") or ""
+runtime_agent_id = d.get("harness_agent_id") or None
+runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
 if not agent:
     sys.exit(0)
 
@@ -831,7 +833,13 @@ def claim_checkout_guard(destination):
     if not harness_boundary.inside(destination, harness_boundary.real(root)):
         return []
     try:
-        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
+        claim_set = harness_boundary.claim_worktrees(
+            root,
+            agent,
+            destination,
+            agent_id=runtime_agent_id,
+            parent_agent_id=runtime_parent_agent_id,
+        )
     except harness_boundary.AmbiguousWorktree as exc:
         deny_bare(f"{agent} has an ambiguous worktree claim: {exc}")
     except Exception as exc:

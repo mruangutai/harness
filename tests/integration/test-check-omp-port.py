@@ -33,6 +33,13 @@ def fixture() -> tuple[tempfile.TemporaryDirectory, Path]:
         src = ROOT / rel
         shutil.copytree(src, dst / rel, symlinks=True, ignore=skip_worktrees)
     shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
+    manual = dst / "tests" / "manual"
+    manual.mkdir(parents=True)
+    for suffix in ("py", "ts"):
+        shutil.copy2(
+            ROOT / "tests" / "manual" / f"probe-omp-runtime-lineage.{suffix}",
+            manual / f"probe-omp-runtime-lineage.{suffix}",
+        )
     return td, dst
 
 
@@ -209,6 +216,33 @@ def case_nonblocking_nested_agent_fails():
     finally:
         td.cleanup()
 
+def case_missing_runtime_pin_fails():
+    td, root = fixture()
+    try:
+        (root / ".omp" / "runtime-pin.json").unlink()
+        result = run(root)
+        return [
+            ("missing OMP runtime pin fails", result.returncode == 1, ""),
+            ("missing runtime pin is named", "runtime-pin.json" in result.stderr, result.stderr),
+        ]
+    finally:
+        td.cleanup()
+
+
+def case_malformed_runtime_pin_fails():
+    td, root = fixture()
+    try:
+        pin = root / ".omp" / "runtime-pin.json"
+        pin.write_text('{"repository":"https://example.invalid/repo.git","ref":"moving","commit":"main"}')
+        result = run(root)
+        return [
+            ("malformed OMP runtime pin fails", result.returncode == 1, ""),
+            ("immutable commit requirement is named", "40-character Git commit" in result.stderr,
+             result.stderr),
+        ]
+    finally:
+        td.cleanup()
+
 
 def case_missing_command_door_fails():
     td, root = fixture()
@@ -252,6 +286,8 @@ CASES = (
     case_missing_lifecycle_wiring_fails,
     case_missing_sign_gate_wiring_fails,
     case_nonblocking_nested_agent_fails,
+    case_missing_runtime_pin_fails,
+    case_malformed_runtime_pin_fails,
     case_missing_command_door_fails,
     case_absent_canonical_command_root_fails,
 )

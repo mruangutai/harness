@@ -100,12 +100,19 @@ except Exception as e:
     sys.exit(0)
 
 agent = d.get("agent_type") or ""
-if not agent.startswith("harness-"):
-    sys.exit(0)  # main session or a non-harness agent — not governed.
+runtime = d.get("harness_runtime") or "claude"
+omp_main = (
+    agent == "Main"
+    and runtime == "omp"
+    and d.get("harness_agent_id") == "Main"
+    and not d.get("harness_parent_agent_id")
+)
+if not agent.startswith("harness-") and not omp_main:
+    sys.exit(0)  # ungoverned host session or a non-harness agent.
 
 ti = d.get("tool_input") or {}
 model = ti.get("model")
-if model:
+if model and not omp_main:
     print(f"dispatch-guard: BLOCKED — {agent} passed model: {model!r} in a dispatch.",
           file=sys.stderr)
     print("  A member runs on the model pinned in its agent frontmatter — that pin is org design",
