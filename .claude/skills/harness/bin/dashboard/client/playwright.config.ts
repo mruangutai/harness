@@ -4,7 +4,7 @@ import { prepareFixtureSync } from './fixture.js';
 const fixture = prepareFixtureSync();
 
 export default defineConfig({
-  testMatch: 'feat-53.e2e.spec.ts',
+  testMatch: ['feat-53.e2e.spec.ts', 'e2e/*.e2e.spec.ts'],
   outputDir: 'test-results/playwright-artifacts',
   reporter: [['list'], ['./ui-reporter.ts']],
   use: {

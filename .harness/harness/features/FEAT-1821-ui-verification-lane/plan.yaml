@@ -275,7 +275,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-03]
-    status: ready
+    status: building
     files:
       - .github/workflows/tests.yml
     verify: |
@@ -337,7 +337,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
     - .claude/skills/harness/bin/dashboard/client/e2e/geometry.e2e.spec.ts
@@ -363,7 +363,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/e2e/colour-placement.e2e.spec.ts
     verify: |
@@ -384,7 +384,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/e2e/keyboard.e2e.spec.ts
     verify: |
@@ -404,7 +404,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/e2e/contrast-hatch.e2e.spec.ts
     verify: |
@@ -425,7 +425,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/e2e/tables-a11y.e2e.spec.ts
     verify: |
@@ -446,7 +446,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/ui-reporter.probe.spec.ts
       - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
