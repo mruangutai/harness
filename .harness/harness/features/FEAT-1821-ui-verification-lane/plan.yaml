@@ -290,7 +290,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires the UI reviewer enforcement surface, canonical agent source, generated adapter, and contract test to be edited by the main session
     depends_on: [T-01, T-03]
-    status: building
+    status: done
     files:
     - .omp/agents/harness-ui-reviewer.md
     - tests/unit/test-ui-reviewer-policy.py
@@ -320,7 +320,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main-session execution for harness configuration, suite layout enforcement, and their tests
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .harness/harness.json
       - .gitignore
