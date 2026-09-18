@@ -68,6 +68,28 @@ exists. Then run its `cmd`.
 **Presence is not satisfied by an unrelated existing test.** A new endpoint is not covered because some
 other endpoint has a test. Find the test that exercises the changed behavior, or the kind is missing.
 
+**The `ui` kind is an evidence gate, not a test count (FEAT-1821 SC-10/SC-11).** Its runner writes
+`<feature>/runs/<run-id>/ui/results.json` and WebP screenshots; you never trust that reporter on its
+own. For every `ui` obligation:
+
+1. Bind the feature id and the validate run id you are grading, and take the pinned `review_sha` —
+   that is the served-bundle commit the evidence must name.
+2. Run the configured `cmd` with `HARNESS_UI_FEATURE=<feature> HARNESS_UI_RUN_ID=<run-id>` so the
+   bundle lands under that run.
+3. Independently judge the bundle against the **committed** `DESIGN.md`:
+   `python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/ui_contract.py gate --design <feature>/DESIGN.md --results <feature>/runs/<run-id>/ui/results.json --feature <feature> --run-id <run-id> --served-bundle-commit <review_sha> --client-package <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/dashboard/client --changed <path>…`
+   with one `--changed` per path in the diff. It re-parses the `## Checks` table itself — a results
+   file never supplies its own list of checks — and prints `UI GATE: PASS|FAIL` with every reason.
+
+`FAIL` from the gate is the kind's result, verbatim: a missing runner, a contract-parser refusal, a
+listed check with no record or two records at an applicable project, a spec title that is not
+byte-identical to its Checks row, absent or empty or non-WebP evidence, a stale
+`served_bundle_commit`, incomplete `listed/applicable/observed/missing` accounting, an inspection row
+reported `passed` instead of `evidence`, or a summary that hides a failed record. **Any change under
+the dashboard client package requires the package's whole Checks table and every spec title present
+in its e2e specs** — a shared component is never classified by route, so it cannot evade coverage
+(D-04). No `## Checks` table for a `has_interaction_flow` change is `FAIL`, never a skip.
+
 ### 5. Resolve each kind to exactly one of FIVE states
 
 Collapsing these is how a hard gate silently becomes a no-op — or how it sends you hunting in the wrong
@@ -80,7 +102,7 @@ test* run and fail its assertion, or did the runner fall over before it could ru
 |---|---|---|
 | **satisfied** | at least one named test ran, none failed | contributes to `PASS` |
 | **missing** | required kind, and no test covers this change (detect globs find nothing relevant) | **`FAIL`** — name the kind and what needs testing |
-| **not applicable** | the tooling genuinely is not present in this project (e.g. `ui` with no Playwright installed) | **soft skip.** Report `ui: skipped (no browser target)` and do **not** FAIL |
+| **not applicable** | the tooling genuinely is not present in this project **and the kind is not `ui`** (e.g. an `eval` kind in a project with no model calls) | **soft skip.** Report `<kind>: skipped (<reason>)` and do **not** FAIL. **`ui` never soft-skips:** a `has_interaction_flow` change with no browser runner, no `## Checks` table or no evidence bundle is `FAIL` (FEAT-1821 SC-10) |
 | **locally-run** | the kind's `test_kinds` entry carries `status: "locally_run"` (issue #1187) — a real, working `cmd`, but one that structurally cannot run in CI (needs a host and live credentials the checkout does not have) | **not FAIL, not a soft skip.** Confirm the change actually touched this kind's `detect` surface, then require a recorded run: a note under the feature's `notes/` naming who ran it, when, and the result. No note for an in-scope surface is `BLOCKED — locally-run kind '<kind>' has no recorded run`, never silently PASS |
 | **misconfigured** | `cmd` is `null`/absent; **no test files matched**; or the failure is a **load / import / collection / syntax error** rather than an assertion failure | **`BLOCKED`** — never `FAIL` |
 
@@ -112,8 +134,9 @@ naming the cmd, the error, and the fix location (`<HARNESS_CONTROL_PLANE_ROOT>/.
 told you the glob is wrong, and passing on it is exactly the no-op'd hard gate this section exists to
 prevent.
 
-Blocking legitimate non-web work on a missing browser would be a bug. Passing a hard gate because its
-command was misconfigured is worse than halting.
+Blocking legitimate non-web work on a missing browser would be a bug — which is why the `ui` obligation
+only exists on a `has_interaction_flow` change. Once it exists, it is discharged by evidence or it
+fails. Passing a hard gate because its command was misconfigured is worse than halting.
 
 ### 6. Audit test-first discipline
 
@@ -144,7 +167,7 @@ Tests for this change
   component    MISSING                                the new filter control has no story test
   python       PASS       31 named tests, all passed   uv run pytest
   integration  BLOCKED    ImportError during collection — cmd misconfigured, not a code bug
-  ui           skipped    no browser target in this project
+  ui           FAIL       UI GATE: FAIL — no record for C1-HEADER-GEOMETRY at desktop-1920
   omp_session_accessor  locally-run   not on this diff's touched surface — no run required
 
 What's needed
@@ -168,7 +191,9 @@ fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]   # one per `ver
 | Thought | Reality |
 |---|---|
 | "The suite is green, so this passes" | Green proves existing tests pass. It says nothing about whether *this change* is covered |
-| "Playwright isn't installed, so I'll fail the ui kind" | Absent tooling is a soft skip, not a failure |
+| "Playwright isn't installed, so I'll skip the ui kind" | On a `has_interaction_flow` change, `ui` never skips: no runner, no `## Checks` table or no evidence bundle is `FAIL` (SC-10) |
+| "results.json says every check passed, so ui is satisfied" | The reporter is not the gate. Run `ui_contract.py gate`; it re-reads DESIGN.md and checks the WebPs and the bundle pin |
+| "Only one tile component changed, I'll require just that surface's checks" | Any change under the client package requires the whole Checks table (D-04). Shared components are why |
 | "The test command errored, I'll skip that kind" | That is `BLOCKED`, loudly. A misconfigured hard gate is worse than a halt |
 | "Non-zero exit, so the tests failed" | **Check the failure KIND first.** A load/import/collection error means your `cmd` is broken, not the code. Reporting FAIL sends the reader hunting a bug that does not exist |
 | "Zero tests collected means misconfigured" | Not a reliable signal — `node --test` reports `tests 1` for a module-load error. Read the error, not the count |

@@ -45,7 +45,7 @@ Read **two** signals, never just the exit code: what kind of failure, not merely
 |---|---|---|
 | **satisfied** | a named test ran, none failed | contributes to `PASS` |
 | **missing** | required, and nothing covers this change | **`FAIL`** |
-| **not applicable** | the tooling genuinely is absent (e.g. `ui` with no Playwright) | **soft skip.** Report it; do not FAIL |
+| **not applicable** | the tooling genuinely is absent **and the kind is not `ui`** | **soft skip.** Report it; do not FAIL. **`ui` never soft-skips** on a `has_interaction_flow` change: it is discharged only by `ui_contract.py gate` reading the committed DESIGN.md `## Checks` table against `runs/<run-id>/ui/results.json` and its WebPs at the pinned `review_sha` (FEAT-1821 SC-10/SC-11); no runner, no table or no bundle is `FAIL` |
 | **locally-run** | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials) | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
 | **misconfigured** | `cmd` is null/absent · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
 
@@ -56,8 +56,9 @@ A genuine `FAIL` looks like a **named** test with an assertion diff. Misconfigur
 `MODULE_NOT_FOUND`, `ImportError`, `No test files found`, a collection `ERROR`, or a "test" whose name is
 a file path.
 
-Blocking legitimate non-web work on a missing browser is a bug. Passing a hard gate because its command
-was broken is worse than halting.
+Blocking legitimate non-web work on a missing browser is a bug — the `ui` obligation only arises on a
+`has_interaction_flow` change. Once it arises, evidence discharges it or it fails. Passing a hard gate
+because its command was broken is worse than halting.
 
 ## Audit test-first compliance
 
@@ -121,7 +122,8 @@ specialists only; the validator refuses them on a qa return (SC-05).
 | "The suite is green, so this passes" | Green proves existing tests pass. Nothing about *this* change |
 | "I'll read the code first, it's faster" | Then Phase 1 is worthless. You will test what it does, not what was asked |
 | "Non-zero exit means the tests failed" | Check the failure kind. A load error is `BLOCKED`, not `FAIL` |
-| "Playwright is missing, so ui fails" | Absent tooling is a soft skip |
+| "Playwright is missing, so ui skips" | On a `has_interaction_flow` change `ui` never skips; missing runner, table or bundle is `FAIL` |
+| "The ui reporter says passed" | The reporter is not the gate; `ui_contract.py gate` re-reads DESIGN.md and the WebPs |
 | "The command errors, I'll skip that kind" | That is `BLOCKED`, loudly |
 | "Small change, the matrix is overkill" | The matrix is a floor. Size is not a change type |
 | "There's a test in that file already" | Does it exercise *this* behaviour? If not, missing |
