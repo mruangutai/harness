@@ -283,6 +283,22 @@ class GateEvidence(unittest.TestCase):
             [c for c in doc["checks"] if c["check_id"] == "VIS-DENSITY"][0]["status"] = "passed"
         self.failing("inspection", inspection_cannot_pass)
 
+
+    def test_gate_enforces_predicates_and_inspection_evidence(self):
+        # F-01: a DESIGN that keeps its rows but drops the inspection manifest, or blanks a
+        # predicate, must be refused by the GATE, not only by `check --require-...`.
+        self.ws.design.write_text(design_text(evidence=[]))
+        self.failing("no inspection evidence entry")
+        rows = [ROWS[0][:5] + ("",)] + ROWS[1:]
+        self.ws.design.write_text(design_text(rows=rows))
+        self.failing("no predicate")
+
+    def test_inspection_record_with_failed_setup_is_not_evidence(self):
+        def broken_setup(doc):
+            rec = [c for c in doc["checks"] if c["check_id"] == "VIS-DENSITY" and c["project"] == "desktop-1440"][0]
+            rec["errors"] = ["every signed inspection setup and capture must execute"]
+        self.failing("inspection setup failed", broken_setup)
+
     def test_client_package_change_requires_every_spec_title(self):
         (self.ws.client / "feat-53.e2e.spec.ts").write_text("test('shared header geometry matches DESIGN', async () => {});\n")
         self.failing("no spec carries", changed=["client/src/shared/Card.tsx"])
