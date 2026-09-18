@@ -306,7 +306,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: cross-feature run evidence has no specialist write grant and must be committed even though the honest first result is red
     depends_on: [T-04, T-05, T-07]
-    status: building
+    status: done
     files:
     - .harness/harness/features/FEAT-53-metrics-dashboard/runs
     verify: |
