@@ -27,5 +27,45 @@
       "reason": "three enforcement surfaces change \u2014 harness.json's ui kind and the matrix gate, the harness-ui-reviewer agent definition, and CI \u2014 so the patch test fails on rule 3 outright."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 135,
+    "decision": ".harness/harness/features/FEAT-1821-ui-verification-lane/notes/answers-plan-approval.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "470ca83143bba7ce0c27d0f073d0576d71ac32c5dff71ce6e60664a9c504e45b",
+    "T-02": "e231c93c3359205baff639614d050c80a4692ef97b94a0880c3919f220a285a2",
+    "T-03": "4ae8de857be10c083d3af019d0d7911b98b5ba2a1bd6a2eeeb9c24e90db8e285",
+    "T-04": "48f6da3c70404a6b40cfbd776cf8733cb886a6cd52207248d4c9e40bc823d155",
+    "T-05": "db6621cd6191dc3935e34173f06f1344f949a80fd15e73cb2ad70c21b5e337da",
+    "T-06": "d3ad9b803fd3ebec44f9e059b6ee79221ae0779df6a80f560956d4bd6681b5c7",
+    "T-07": "73437382407532ab829d145b952ebf0c94b882492084795d7c66440ba3f71038"
+  },
+  "github": {
+    "milestone": 81,
+    "parent": 1822,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07"
+    ],
+    "issues": {
+      "T-01": 1823,
+      "T-02": 1824,
+      "T-03": 1825,
+      "T-04": 1826,
+      "T-05": 1827,
+      "T-06": 1828,
+      "T-07": 1829
+    },
+    "source_issues": [
+      1821
+    ],
+    "build_entry": "opened"
+  }
 }
