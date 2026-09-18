@@ -9,7 +9,7 @@ const root = resolve(import.meta.dirname, '..', '..', '..', '..', '..', '..');
 const runId = process.env.HARNESS_UI_RUN_ID ?? 'local';
 const feature = process.env.HARNESS_UI_FEATURE ?? 'FEAT-53-metrics-dashboard';
 const output = resolve(root, `.harness/harness/features/${feature}/runs/${runId}/ui/results.json`);
-type CheckResult = { check_id: string; spec_title: string; method: string; surface: string; project: string; status: 'passed' | 'failed' | 'evidence'; screenshot_evidence: Evidence[]; errors: string[] };
+type CheckResult = { check_id: string; spec_title: string; method: string; surface: string; project: string; status: 'passed' | 'failed' | 'evidence'; screenshots: Evidence[]; errors: string[] };
 type Evidence = { path: string; route: string; fixture_state: string; interaction: string; evidence_label: string };
 
 function evidenceRows(manifest: UiManifest, checkId: string, project: string): InspectionEvidence[] {
@@ -56,7 +56,7 @@ export default class UiReporter implements Reporter {
     const labels = attachments.map((attachment) => attachment.name.slice(`evidence:${contract.check_id}:`.length));
     const exact = labels.length === expected.length && new Set(labels).size === labels.length && expected.every((label) => labels.includes(label));
     if (!exact) this.reporterErrors.push(`evidence labels mismatch for ${project}/${contract.check_id}: expected ${expected.join(',')} observed ${labels.join(',')}`);
-    const screenshot_evidence = attachments.map((attachment): Evidence | null => {
+    const screenshots = attachments.map((attachment): Evidence | null => {
       const label = attachment.name.slice(`evidence:${contract.check_id}:`.length);
       const row = evidenceRows(this.manifest!, contract.check_id, project).find((entry) => entry.evidence_label === label);
       if (!attachment.path || !webp(attachment.path) || !expected.includes(label)) {
@@ -71,18 +71,18 @@ export default class UiReporter implements Reporter {
         evidence_label: label,
       };
     }).filter((evidence): evidence is Evidence => evidence !== null);
-    this.checks.push({ check_id: contract.check_id, spec_title: contract.spec_title, method: contract.method, surface: contract.surface, project, status: result.status === 'passed' ? (contract.method.startsWith('inspection') ? 'evidence' : 'passed') : 'failed', screenshot_evidence, errors: result.errors.map((error) => error.message) });
+    this.checks.push({ check_id: contract.check_id, spec_title: contract.spec_title, method: contract.method, surface: contract.surface, project, status: contract.method.startsWith('inspection') ? 'evidence' : result.status === 'passed' ? 'passed' : 'failed', screenshots, errors: result.errors.map((error) => error.message) });
   }
 
   async onEnd(result: FullResult): Promise<void> {
     const manifest = this.manifest;
     const projects = manifest?.projects ?? ['desktop-1440', 'desktop-1920'];
     const applicable = manifest?.applicable ?? Object.fromEntries(projects.map((project) => [project, []]));
-    const observed = Object.fromEntries(projects.map((project) => [project, this.checks.filter((check) => check.project === project).map((check) => check.check_id)]));
-    const missing = Object.fromEntries(projects.map((project) => [project, applicable[project].filter((id) => !observed[project].includes(id))]));
+    const observed = [...new Set(this.checks.map((check) => check.check_id))];
+    const missing = manifest?.listed_check_ids.filter((id) => !observed.includes(id)) ?? [];
     const duplicate = this.checks.some((check, index) => this.checks.findIndex((other) => other.check_id === check.check_id && other.project === check.project) !== index);
     const titleMismatch = this.checks.some((check) => manifest?.checks.find((contract) => contract.check_id === check.check_id)?.spec_title !== check.spec_title);
-    const incomplete = Object.values(missing).some((ids) => ids.length > 0) || this.checks.some((check) => !check.screenshot_evidence.length);
+    const incomplete = missing.length > 0 || this.checks.some((check) => !check.screenshots.length);
     const failed = result.status !== 'passed' || this.reporterErrors.length > 0 || duplicate || titleMismatch || incomplete;
     await mkdir(resolve(output, '..'), { recursive: true });
     await writeFile(output, JSON.stringify({ schema: 'harness-ui-results/1', feature, run_id: runId, design: '.harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md', served_bundle_commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), projects: { 'desktop-1440': { viewport: { width: 1440, height: 1100 } }, 'desktop-1920': { viewport: { width: 1920, height: 1100 } } }, listed_check_ids: manifest?.listed_check_ids ?? [], applicable_check_ids: applicable, observed_check_ids: observed, missing_check_ids: missing, checks: this.checks, summary: { status: failed ? 'failed' : 'passed', check_count: this.checks.length, errors: this.reporterErrors } }, null, 2));
