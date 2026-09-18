@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Filesystem invariant for Harness's directory-driven test layout."""
 import fnmatch
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -11,6 +12,9 @@ from pathlib import Path
 # is_test_shaped, because a later census imports the tuples without the extension filter.
 RESTRICTED_NAME_PATTERNS = ("test-*", "test_*", "probe-*")
 AGNOSTIC_NAME_PATTERNS = ("*_test.*", "*.test.*")
+# Playwright e2e specs are test-shaped at exactly this extension (FEAT-1821 T-07); a plain
+# `*.spec.ts` is not, so a rogue Playwright file cannot hide behind a broader spec name.
+E2E_NAME_PATTERNS = ("*.e2e.spec.ts",)
 SOURCE_EXTENSIONS = (".py", ".sh", ".ts", ".tsx", ".js", ".mjs", ".cjs")
 
 # Documented exceptions: exact relative path plus a written reason, never a glob.
@@ -33,7 +37,7 @@ def is_test_shaped(path):
     registry self-policing clause in violations() both call this, and nothing else
     spells the expression inline."""
     basename = os.path.basename(path)
-    if any(fnmatch.fnmatch(basename, pattern) for pattern in AGNOSTIC_NAME_PATTERNS):
+    if any(fnmatch.fnmatch(basename, pattern) for pattern in AGNOSTIC_NAME_PATTERNS + E2E_NAME_PATTERNS):
         return True
     return (
         any(fnmatch.fnmatch(basename, pattern) for pattern in RESTRICTED_NAME_PATTERNS)
@@ -180,6 +184,23 @@ def _is_registered_vitest_test(rel, tracked):
     )
 
 
+def _is_declared_playwright_spec(rel, root):
+    """Allow a tracked Playwright e2e spec only inside a package whose package.json declares
+    BOTH the `@playwright/test` dependency and a `test:ui` script — the pair the `ui` kind's
+    cmd runs. Either missing, or the spec outside that package, and it is a rogue file."""
+    package = ".claude/skills/harness/bin/dashboard/client/"
+    if not rel.startswith(package) or not any(
+            fnmatch.fnmatch(os.path.basename(rel), p) for p in E2E_NAME_PATTERNS):
+        return False
+    try:
+        with open(os.path.join(root, package, "package.json"), encoding="utf-8") as handle:
+            manifest = json.load(handle)
+    except (OSError, ValueError):
+        return False
+    deps = {**manifest.get("dependencies", {}), **manifest.get("devDependencies", {})}
+    return "@playwright/test" in deps and "test:ui" in manifest.get("scripts", {})
+
+
 def _tracked_outside_tests_findings(root, tracked, planted):
     exception_paths = {entry[0] for entry in DOCUMENTED_EXCEPTIONS}
     planted_rel = {p.relative_to(root).as_posix() for p in planted}
@@ -188,6 +209,7 @@ def _tracked_outside_tests_findings(root, tracked, planted):
         for rel in sorted(tracked)
         if not _is_untracked_exclusion(rel, planted_rel, exception_paths)
         and not _is_registered_vitest_test(rel, tracked)
+        and not _is_declared_playwright_spec(rel, root)
         and is_test_shaped(rel)
     ]
 

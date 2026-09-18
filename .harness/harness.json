@@ -331,11 +331,11 @@
       "status": "resolved"
     },
     "ui": {
-      "detect": "tests/e2e/**|e2e/**|**/*.e2e.spec.ts",
-      "exclude": ".claude/worktrees/**|node_modules/**",
-      "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet. If the project has no browser-driver, leave null: qa records `ui: skipped (no browser target)` and does NOT fail.",
-      "status": "unresolved"
+      "detect": "**/*.e2e.spec.ts",
+      "exclude": ".claude/worktrees/**|node_modules/**|dist/**|test-results/**",
+      "cmd": "npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui",
+      "_reason": "FEAT-1821: Playwright lane over the served committed dashboard bundle. The runner writes runs/<run-id>/ui/results.json + WebP evidence; qa discharges the kind ONLY through ui_contract.py gate against the committed DESIGN.md `## Checks` table, and a has_interaction_flow change with no runner, table or bundle is FAIL, never a skip (SC-10/SC-11).",
+      "status": "active"
     },
     "eval": {
       "detect": "evals/**|tests/**eval**",
