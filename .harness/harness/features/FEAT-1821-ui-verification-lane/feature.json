@@ -88,6 +88,24 @@
       "cycles_used": 0,
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "amend-product-t05-anchor",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-18T12:27:16+00:00",
+      "ended_at": "2026-09-18T12:38:24+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-eng-t08-t13",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-09-18T12:38:24+00:00"
     }
   ],
   "judgements": [
@@ -160,6 +178,13 @@
       "kind": "amendment",
       "decision": "T-03.intent",
       "reason": "Signed residual split in notes/answers-fix-c3-split.md preserves delivered T-03 scope and transfers only the ruled residual to T-08 through T-13."
+    },
+    {
+      "at": "2026-09-18T12:30:43.420244+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-05.files",
+      "reason": "DEC-233: OMP is the sole host and the generated Claude agent path no longer exists."
     }
   ],
   "mission": "plan",

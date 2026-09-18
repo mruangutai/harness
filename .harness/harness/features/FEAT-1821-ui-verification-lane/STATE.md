@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-1821-ui-verification-lane
-- run: amend-product-t03-split-resume
-- squad: product
-- status: awaiting_user
+- run: build-eng-t08-t13
+- squad: eng
+- status: building
 
 ## Open Questions
 
-- Q1 (blocking): Main must re-sign the reset plan from notes/answers-fix-c3-split.md with rework 7/315.
+- none
