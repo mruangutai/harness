@@ -69,5 +69,5 @@ The operator and reviewers cannot rely on the current UI gate to catch visible d
 
 status: approved
 approved-by: operator (Mike Ruangutai), via main session
-date: 2026-09-17
-scope: BRIEF + plan.yaml signed as drafted after the plan panel (scope, should-not-exist, design, goalcheck). Rework ruling rounds=3, minutes=135.
+date: 2026-09-18
+scope: re-signed after the T-03 split amendment (T-08..T-13, notes/answers-fix-c3-split.md); BRIEF scope and SCs unchanged. Rework ruling cumulative rounds=7, minutes=315.
