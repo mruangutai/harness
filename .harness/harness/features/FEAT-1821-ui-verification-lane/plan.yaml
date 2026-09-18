@@ -295,7 +295,7 @@ tasks:
     - .omp/agents/harness-ui-reviewer.md
     - tests/unit/test-ui-reviewer-policy.py
     verify: |
-      python3 tests/unit/test-ui-reviewer-policy.py && python3 .claude/skills/harness/bin/sync-agent-adapters.py --root . --check
+      python3 tests/unit/test-ui-reviewer-policy.py
     intent: |
       Test first with a focused policy-contract test that extracts Mode B, accepts the complete rule, and fails separately when each required clause is deleted or inverted. Edit the canonical .omp/agents/harness-ui-reviewer.md, run sync-agent-adapters.py --root . --apply to regenerate .claude/agents/harness-ui-reviewer.md, and require the adapter check to remain clean. Replace source-only assurance with harness-ui-results/1 evidence. Require the reviewer to read results.json and every referenced WebP at pinned review_sha against DESIGN.md and the approved prototype; require served_bundle_commit equality, both configured projects for each-project rows, the declared project for once rows, complete id accounting, and every inspection evidence label with its route, fixture state, interaction and viewport. Missing, unreadable, stale, mismatched or incomplete evidence is FAIL. Permit rerunning only the configured test_kinds.ui command with the same feature and run context. Explicitly prohibit ad-hoc CDP and alternate browser scripts as substitutes. The test must mutant-check pin equality, project applicability, inspection labels, unreadable evidence, configured-command-only reruns, FAIL behavior, and both prohibitions; token presence alone is not sufficient. Keep Mode A and unrelated output fields unchanged.
 

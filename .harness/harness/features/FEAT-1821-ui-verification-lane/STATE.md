@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-1821-ui-verification-lane
-- run: main-session-direct-T-05
-- squad: main-session
-- status: awaiting_user
+- run: fix-c5-eng
+- squad: eng
+- status: building
 
 ## Open Questions
 
-- Q1 (blocking): Main must execute T-05 exactly as approved, verify it, commit it, and resume this orchestrator with the commit.
+- none

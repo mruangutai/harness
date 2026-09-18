@@ -143,6 +143,24 @@
       "cycles_used": 0,
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "amend-product-t05-verify",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-18T13:30:43+00:00",
+      "ended_at": "2026-09-18T13:37:33+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "fix-c5-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-09-18T13:37:33+00:00"
     }
   ],
   "judgements": [
@@ -236,6 +254,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Main authorized T-08 ownership of the minimum Playwright testMatch expansion; rerun T-08 through T-12 as one fix round while preserving T-13 PASS."
+    },
+    {
+      "at": "2026-09-18T13:33:40.426871+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-05.verify",
+      "reason": "DEC-233: sync-agent-adapters.py and the Claude adapter path were deleted; the focused policy test is now T-05's sole verify."
+    },
+    {
+      "at": "2026-09-18T13:37:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Main reproduced split-lane worker races and an undefined overview reference, deleted the invalid evidence bundle, and authorized a scoped fixture/config/spec repair before retrying T-06."
     }
   ],
   "mission": "plan",
