@@ -29,7 +29,8 @@ def bug1304_pre_change_hook(dest):
     return hook
 
 
-def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write"):
+def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write",
+                  agent_id=None, parent_agent_id=None):
     absolute = destination if os.path.isabs(destination) else os.path.join(root, destination)
     os.makedirs(os.path.dirname(absolute), exist_ok=True)
     if tool == "Edit":
@@ -39,6 +40,10 @@ def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write"):
     else:
         tool_input = {"file_path": absolute, "content": "after"}
     payload = {"agent_type": agent, "tool_name": tool, "tool_input": tool_input}
+    if agent_id:
+        payload["harness_agent_id"] = agent_id
+    if parent_agent_id:
+        payload["harness_parent_agent_id"] = parent_agent_id
     return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
                           text=True, env=_env(root))
 
@@ -167,6 +172,74 @@ def _bug1304_domain_multi_and_malformed(results, context, inflight_registry):
         results, "malformed checkout", context["root"], destination, agent)
 
 
+def _runtime_lineage_domain_routes(results, context, inflight_registry):
+    agent = context["agent"]
+    first_registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
+    first_data = json.load(open(first_registry, encoding="utf-8"))
+    first_data["claims"][0].update({
+        "agent_id": "DocumentorOne",
+        "parent_agent_id": "ProductLeadOne",
+    })
+    with open(first_registry, "w", encoding="utf-8") as handle:
+        json.dump(first_data, handle)
+
+    receipt = inflight_registry.claim_with_receipt(
+        context["second"],
+        agent,
+        "harness-product-lead",
+        context["second"],
+        feature="FEAT-1304-B-claim-guard",
+    )
+    inflight_registry.attach_runtime_identity(
+        context["second"],
+        agent,
+        "FEAT-1304-B-claim-guard",
+        claim_id=receipt["claim_id"],
+        agent_id="DocumentorTwo",
+        parent_agent_id="ProductLeadTwo",
+    )
+    first_destination = os.path.join(
+        context["first"], ".harness", "allowed", "runtime-one.md")
+    second_destination = os.path.join(
+        context["second"], ".harness", "allowed", "runtime-two.md")
+    own = _bug1304_fire(
+        context["root"],
+        first_destination,
+        agent,
+        agent_id="DocumentorOne",
+        parent_agent_id="ProductLeadOne",
+    )
+    sibling = _bug1304_fire(
+        context["root"],
+        second_destination,
+        agent,
+        agent_id="DocumentorOne",
+        parent_agent_id="ProductLeadOne",
+    )
+    second = _bug1304_fire(
+        context["root"],
+        second_destination,
+        agent,
+        agent_id="DocumentorTwo",
+        parent_agent_id="ProductLeadTwo",
+    )
+    results.append((
+        "exact runtime lineage allows its own worktree",
+        own.returncode == 0,
+        f"exit={own.returncode} output={(own.stdout + own.stderr)[:180]!r}",
+    ))
+    results.append((
+        "exact runtime lineage refuses a same-persona sibling worktree",
+        sibling.returncode == 2 and context["first"] in sibling.stderr,
+        f"exit={sibling.returncode} output={(sibling.stdout + sibling.stderr)[:180]!r}",
+    ))
+    results.append((
+        "second runtime lineage retains its own worktree",
+        second.returncode == 0,
+        f"exit={second.returncode} output={(second.stdout + second.stderr)[:180]!r}",
+    ))
+
+
 def _bug1304_domain_ambiguous(results, context, inflight_registry):
     agent = context["agent"]
     root = fixture(context["manifest"])
@@ -270,6 +343,7 @@ def run_bug1304_claim_set():
     _bug1304_domain_unbound_routes(results, context)
     _bug1304_domain_owner_claim(results, context, inflight_registry)
     _bug1304_domain_multi_and_malformed(results, context, inflight_registry)
+    _runtime_lineage_domain_routes(results, context, inflight_registry)
     _bug1304_domain_ambiguous(results, context, inflight_registry)
     _bug1304_domain_short_claim(results, context, inflight_registry)
     _bug1304_domain_aged_claim(results, context, inflight_registry)

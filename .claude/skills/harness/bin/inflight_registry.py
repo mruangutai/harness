@@ -265,7 +265,8 @@ def _expire_where(claims, now, predicate):
     return answer_live, retained, expired
 
 
-def _matches(claim, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
+def _matches(claim, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None,
+             parent_agent_id=None):
     if not isinstance(claim, dict):
         return False
     return (
@@ -274,6 +275,8 @@ def _matches(claim, agent=None, feature=None, claim_id=None, agent_id=None, job_
         and (claim_id is None or claim.get("claim_id") == claim_id)
         and (agent_id is None or claim.get("agent_id") == agent_id)
         and (job_id is None or claim.get("job_id") == job_id)
+        and (parent_agent_id is None
+             or claim.get("parent_agent_id") == parent_agent_id)
     )
 
 
@@ -287,7 +290,7 @@ def _visible(claim, feature=None, session=None):
     return True
 
 
-def live_claims(root, agent, now=None):
+def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
     """Return claims that still bind ``agent`` to worktrees, without mutating state."""
     path = _registry_path(root)
     try:
@@ -320,7 +323,12 @@ def live_claims(root, agent, now=None):
     current = time.time() if now is None else now
     live = []
     for claim in claims:
-        if not _matches(claim, agent=agent) or not _visible(claim):
+        if (not _matches(
+                claim,
+                agent=agent,
+                agent_id=agent_id,
+                parent_agent_id=parent_agent_id,
+        ) or not _visible(claim)):
             continue
         started = claim.get("started_at")
         if not _is_number(started):
@@ -499,11 +507,19 @@ def claim(root, agent, dispatcher, cwd, now=None, session=None, feature=LEGACY_F
     ) is not None
 
 
-def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None):
+def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None,
+                            parent_agent_id=None):
+    """Attach stable OMP runtime lineage to one live claim.
+
+    Repeating the same attachment is idempotent. A conflicting child, job, or
+    parent identity is refused rather than moving the claim to another runtime.
+    """
     path = _registry_path(root)
-    if not os.path.exists(path):
+    if not os.path.exists(path) or not (agent_id or job_id or parent_agent_id):
         return False
 
+    # GRADE-2 REASON: selection and identity mutation must remain inside one locked
+    # registry update; splitting them would reintroduce a claim-binding TOCTOU race.
     def mutator(data):
         live, retained, _expired = _expire_where(
             data.get("claims", []),
@@ -513,10 +529,12 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
             ),
         )
         matches = [
-            c for c in live
-            if _matches(c, agent=agent, feature=feature, claim_id=claim_id)
-            and not c.get("agent_id")
-            and not c.get("job_id")
+            claim for claim in live
+            if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
+            and (not agent_id or claim.get("agent_id") in (None, "", agent_id))
+            and (not job_id or claim.get("job_id") in (None, "", job_id))
+            and (not parent_agent_id
+                 or claim.get("parent_agent_id") in (None, "", parent_agent_id))
         ]
         if len(matches) != 1:
             data["claims"] = retained
@@ -525,6 +543,52 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
             matches[0]["agent_id"] = agent_id
         if job_id:
             matches[0]["job_id"] = job_id
+        if parent_agent_id:
+            matches[0]["parent_agent_id"] = parent_agent_id
+        data["claims"] = retained
+        return data, True
+
+    return _update_registry(root, mutator)
+
+
+def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
+    """Authorize and, when unique, bind an OMP child to its parent claim."""
+    path = _registry_path(root)
+    if not os.path.exists(path) or not all((agent, feature, agent_id, parent_agent_id)):
+        return False
+
+    # GRADE-2 REASON: exact-match selection, unique unbound fallback, and binding
+    # form one locked authorization transaction and cannot safely be split.
+    def mutator(data):
+        live, retained, _expired = _expire_where(
+            data.get("claims", []),
+            time.time(),
+            lambda claim: _matches(claim, agent=agent, feature=feature),
+        )
+        candidates = [
+            claim for claim in live
+            if _matches(
+                claim,
+                agent=agent,
+                feature=feature,
+                parent_agent_id=parent_agent_id,
+            )
+            and claim.get("runtime") == "omp"
+            and claim.get("agent_id") in (None, "", agent_id)
+        ]
+        exact = [claim for claim in candidates if claim.get("agent_id") == agent_id]
+        if len(exact) == 1:
+            selected = exact[0]
+        elif not exact:
+            unbound = [claim for claim in candidates if not claim.get("agent_id")]
+            if len(unbound) != 1:
+                data["claims"] = retained
+                return data, False
+            selected = unbound[0]
+        else:
+            data["claims"] = retained
+            return data, False
+        selected["agent_id"] = agent_id
         data["claims"] = retained
         return data, True
 
@@ -729,12 +793,98 @@ def _feature_root_command(root, rest):
     print(resolved if resolved is not None else root)
     return 0
 
+def _list_command(root, _rest):
+    _cli_list(root)
+    return 0
+
+
+def _attach_command(root, rest):
+    agent = _option(rest, "--agent")
+    feature = _option(rest, "--feature")
+    if not agent or not feature:
+        print("inflight_registry: attach requires --agent and --feature", file=sys.stderr)
+        return 1
+    ok = attach_runtime_identity(
+        root,
+        agent,
+        feature,
+        agent_id=_option(rest, "--agent-id"),
+        job_id=_option(rest, "--job-id"),
+        claim_id=_option(rest, "--claim-id"),
+        parent_agent_id=_option(rest, "--parent-agent-id"),
+    )
+    return 0 if ok else 1
+
+
+def _authorize_command(root, rest):
+    agent = _option(rest, "--agent")
+    feature = _option(rest, "--feature")
+    agent_id = _option(rest, "--agent-id")
+    parent_agent_id = _option(rest, "--parent-agent-id")
+    if not all((agent, feature, agent_id, parent_agent_id)):
+        print(
+            "inflight_registry: authorize requires --agent, --feature, "
+            "--agent-id, and --parent-agent-id",
+            file=sys.stderr,
+        )
+        return 1
+    target_root = feature_root(root, feature)
+    if authorize_runtime_identity(target_root, agent, feature, agent_id, parent_agent_id):
+        return 0
+    print(
+        "inflight_registry: BLOCKED - runtime child lineage has no matching claim",
+        file=sys.stderr,
+    )
+    return 2
+
+
+def _release_command(root, rest):
+    selector_names = ("--agent", "--claim-id", "--agent-id", "--job-id")
+    if not any(_option(rest, name) for name in selector_names):
+        print("inflight_registry: release requires a claim selector", file=sys.stderr)
+        return 1
+    removed = release(
+        root,
+        agent=_option(rest, "--agent"),
+        feature=_option(rest, "--feature"),
+        claim_id=_option(rest, "--claim-id"),
+        agent_id=_option(rest, "--agent-id"),
+        job_id=_option(rest, "--job-id"),
+    )
+    return 0 if removed is not False else 1
+
+
+def _release_all_command(root, _rest):
+    release_all(root)
+    return 0
+
+
+def _reconcile_command(root, rest):
+    feature = _option(rest, "--feature")
+    target_root = feature_root(root, feature) if feature else root
+    removed = reconcile(target_root, feature=feature)
+    print(f"RECONCILED {removed}")
+    return 0
+
+
+COMMANDS = {
+    "feature-root": _feature_root_command,
+    "list": _list_command,
+    "attach": _attach_command,
+    "authorize": _authorize_command,
+    "release": _release_command,
+    "release-all": _release_all_command,
+    "reconcile": _reconcile_command,
+}
+
+
+
 
 def main(argv=None):
     argv = list(argv) if argv is not None else sys.argv[1:]
     if not argv:
         print(
-            "usage: inflight_registry.py {list|attach|release|release-all|reconcile|feature-root} [options]",
+            "usage: inflight_registry.py {list|attach|authorize|release|release-all|reconcile|feature-root} [options]",
             file=sys.stderr,
         )
         return 1
@@ -744,54 +894,11 @@ def main(argv=None):
         print("inflight_registry: no checkout root and no --root was given", file=sys.stderr)
         return 1
 
-    if command == "feature-root":
-        return _feature_root_command(root, rest)
-    if command == "list":
-        _cli_list(root)
-        return 0
-    if command == "attach":
-        agent = _option(rest, "--agent")
-        feature = _option(rest, "--feature")
-        if not agent or not feature:
-            print("inflight_registry: attach requires --agent and --feature", file=sys.stderr)
-            return 1
-        ok = attach_runtime_identity(
-            root,
-            agent,
-            feature,
-            agent_id=_option(rest, "--agent-id"),
-            job_id=_option(rest, "--job-id"),
-            claim_id=_option(rest, "--claim-id"),
-        )
-        return 0 if ok else 1
-    if command == "release":
-        selector = any(
-            _option(rest, name)
-            for name in ("--agent", "--claim-id", "--agent-id", "--job-id")
-        )
-        if not selector:
-            print("inflight_registry: release requires a claim selector", file=sys.stderr)
-            return 1
-        removed = release(
-            root,
-            agent=_option(rest, "--agent"),
-            feature=_option(rest, "--feature"),
-            claim_id=_option(rest, "--claim-id"),
-            agent_id=_option(rest, "--agent-id"),
-            job_id=_option(rest, "--job-id"),
-        )
-        return 0 if removed is not False else 1
-    if command == "release-all":
-        release_all(root)
-        return 0
-    if command == "reconcile":
-        feature = _option(rest, "--feature")
-        target_root = feature_root(root, feature) if feature else root
-        removed = reconcile(target_root, feature=feature)
-        print(f"RECONCILED {removed}")
-        return 0
-    print(f"inflight_registry: unknown command {command!r}", file=sys.stderr)
-    return 1
+    handler = COMMANDS.get(command)
+    if handler is None:
+        print(f"inflight_registry: unknown command {command!r}", file=sys.stderr)
+        return 1
+    return handler(root, rest)
 
 
 if __name__ == "__main__":

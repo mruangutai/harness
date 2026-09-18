@@ -162,6 +162,22 @@ describe("OMP task lifecycle adapter", () => {
     const calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }> = [];
     const active = new Set(["agent-a", "agent-b"]);
     let claim = 0;
+    const lineageClaims = new Map<string, {
+      agent: string;
+      feature: string;
+      agentId?: string;
+      parentAgentId?: string;
+    }>();
+    lineageClaims.set("fixture-parent", {
+      agent: "harness-eng-lead",
+      feature: "FEAT-43-long-run",
+      agentId: "LeadOne",
+      parentAgentId: "OrchestratorOne",
+    });
+    const option = (args: string[], name: string) => {
+      const index = args.indexOf(name);
+      return index >= 0 ? args[index + 1] : undefined;
+    };
     const pi = {
       on(name: string, handler: Function) {
         handlers.set(name, handler);
@@ -192,17 +208,65 @@ describe("OMP task lifecycle adapter", () => {
         // was invisible to a green suite.
         if (task === "passthrough") return { blocked: false, stdout: "" };
         claim += 1;
+        const claimId = `claim-${claim}`;
+        const dispatchedAgent = String((payload.tool_input as Record<string, unknown>).agent);
+        lineageClaims.set(claimId, {
+          agent: dispatchedAgent,
+          feature: "FEAT-43-long-run",
+        });
         return {
           blocked: false,
           stdout: JSON.stringify({
             harness_claim: {
               root: "/repo",
               feature: "FEAT-43-long-run",
-              agent: (payload.tool_input as Record<string, unknown>).agent,
-              claim_id: `claim-${claim}`,
+              agent: dispatchedAgent,
+              claim_id: claimId,
             },
           }),
         };
+      }
+      if (script === "inflight_registry.py" && args[0] === "attach") {
+        const claimId = option(args, "--claim-id");
+        const claimRecord = claimId ? lineageClaims.get(claimId) : undefined;
+        if (!claimRecord) {
+          return { blocked: true, reason: "runtime lineage attach refused", stdout: "" };
+        }
+        const agentId = option(args, "--agent-id");
+        const parentAgentId = option(args, "--parent-agent-id");
+        if ((agentId && claimRecord.agentId && claimRecord.agentId !== agentId)
+          || (parentAgentId && claimRecord.parentAgentId
+            && claimRecord.parentAgentId !== parentAgentId)) {
+          return { blocked: true, reason: "runtime lineage attach refused", stdout: "" };
+        }
+        if (agentId) claimRecord.agentId = agentId;
+        if (parentAgentId) claimRecord.parentAgentId = parentAgentId;
+        return { blocked: false, stdout: "" };
+      }
+      if (script === "inflight_registry.py" && args[0] === "authorize") {
+        const agent = option(args, "--agent");
+        const feature = option(args, "--feature");
+        const agentId = option(args, "--agent-id");
+        const parentAgentId = option(args, "--parent-agent-id");
+        if (agentId === "AuthorizeError") {
+          return { blocked: false, reason: "authorization gate crashed", stdout: "" };
+        }
+        const candidates = [...lineageClaims.values()].filter((claimRecord) =>
+          claimRecord.agent === agent
+          && claimRecord.feature === feature
+          && claimRecord.parentAgentId === parentAgentId
+          && (!claimRecord.agentId || claimRecord.agentId === agentId));
+        const exact = candidates.filter((claimRecord) => claimRecord.agentId === agentId);
+        const selected = exact.length === 1
+          ? exact[0]
+          : exact.length === 0 && candidates.length === 1
+            ? candidates[0]
+            : undefined;
+        if (!selected || !agentId) {
+          return { blocked: true, reason: "runtime lineage not authorized", stdout: "" };
+        }
+        selected.agentId = agentId;
+        return { blocked: false, stdout: "" };
       }
       if (script === "inflight_registry.py" && args[0] === "release") {
         const agentIndex = args.indexOf("--agent-id");
@@ -227,16 +291,21 @@ describe("OMP task lifecycle adapter", () => {
       return { blocked: false, stdout: "" };
     };
     registerHarnessHooks(pi, runner);
-    return { handlers, calls };
+    return { handlers, calls, runner };
   }
 
-  async function start(handlers: Map<string, Function>) {
-    const ctx = {
+  async function start(
+    handlers: Map<string, Function>,
+    ctx: Record<string, unknown> = {
       cwd: "/repo",
+      agentId: "LeadOne",
+      parentAgentId: "OrchestratorOne",
       sessionManager: { getSessionId: () => "parent-session" },
-    };
+    },
+    agent = "harness-eng-lead",
+  ) {
     await handlers.get("before_agent_start")?.({
-      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
+      systemPrompt: [`HARNESS_AGENT_ID: ${agent}`],
     }, ctx);
     await handlers.get("message_end")?.({
       message: {
@@ -269,6 +338,267 @@ describe("OMP task lifecycle adapter", () => {
     ]);
     expect(normalizeTaskDispatches({ agent: "harness-pm", task: "plan" }))
       .toEqual([{ agent: "harness-pm", task: "plan" }]);
+  });
+
+  test("refuses task dispatch when OMP exposes no runtime identity", async () => {
+    const { handlers, calls } = fixture();
+    const unsupportedCtx = {
+      cwd: "/repo",
+      sessionManager: { getSessionId: () => "main-session" },
+    };
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, unsupportedCtx);
+    const result = await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-orchestrator",
+      input: {
+        agent: "harness-orchestrator",
+        name: "OrchestratorOne",
+        task: "HARNESS-FEATURE: FEAT-43-long-run\nrun the feature",
+      },
+    }, unsupportedCtx);
+    expect(result?.block).toBe(true);
+    expect(result?.reason).toContain("runtime lineage capability");
+    expect(calls.some((call) => call.script === "dispatch-guard.py")).toBe(false);
+  });
+
+  test("refuses governed mutation when OMP omits the parent runtime identity", async () => {
+    const { handlers, calls } = fixture();
+    const partialCtx = {
+      cwd: "/repo",
+      agentId: "OrchestratorOne",
+      sessionManager: { getSessionId: () => "orchestrator-session" },
+    };
+    await start(handlers, partialCtx, "harness-orchestrator");
+    const result = await handlers.get("tool_call")?.({
+      toolName: "write",
+      toolCallId: "call-write",
+      input: { path: "/repo/.harness/state.json", content: "{}" },
+    }, partialCtx);
+    expect(result?.block).toBe(true);
+    expect(result?.reason).toContain("runtime lineage capability");
+    expect(calls.some((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "authorize")).toBe(false);
+  });
+
+  test("claims and authorizes the Main-to-orchestrator runtime edge", async () => {
+    const { handlers, calls, runner } = fixture();
+    const mainCtx = {
+      cwd: "/repo",
+      agentId: "Main",
+      sessionManager: { getSessionId: () => "main-session" },
+    };
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx);
+    const dispatched = await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-orchestrator",
+      input: {
+        agent: "harness-orchestrator",
+        name: "OrchestratorOne",
+        task: "HARNESS-FEATURE: FEAT-43-long-run\nrun the feature",
+      },
+    }, mainCtx);
+    expect(dispatched).toBeUndefined();
+    const dispatchCall = calls.find((call) => call.script === "dispatch-guard.py");
+    expect(dispatchCall?.payload.agent_type).toBe("Main");
+    expect(dispatchCall?.payload.harness_agent_id).toBe("Main");
+    const parentAttach = calls.find((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "attach"
+      && call.args.includes("OrchestratorOne")
+      && call.args.includes("Main"));
+    expect(parentAttach).toBeDefined();
+
+    const childHandlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { childHandlers.set(name, handler); },
+    }, runner);
+    const childCtx = {
+      cwd: "/repo",
+      agentId: "OrchestratorOne",
+      parentAgentId: "Main",
+      sessionManager: { getSessionId: () => "orchestrator-session" },
+    };
+    await start(childHandlers, childCtx, "harness-orchestrator");
+    expect(await childHandlers.get("tool_call")?.({
+      toolName: "write",
+      toolCallId: "call-write",
+      input: { path: "/repo/.harness/state.json", content: "{}" },
+    }, childCtx)).toBeUndefined();
+    expect(calls.some((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "authorize"
+      && call.args.includes("OrchestratorOne")
+      && call.args.includes("Main"))).toBe(true);
+  });
+
+  test("pre-binds a named child and authorizes inherited write and Bash policy", async () => {
+    const { handlers, calls, runner } = fixture();
+    const parentCtx = {
+      cwd: "/repo",
+      agentId: "LeadOne",
+      parentAgentId: "OrchestratorOne",
+      sessionManager: { getSessionId: () => "lead-session" },
+    };
+    await start(handlers, parentCtx);
+    const dispatched = await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-child",
+      input: {
+        agent: "harness-backend-dev",
+        name: "BackendOne",
+        task: "HARNESS-FEATURE: FEAT-43-long-run\nimplement it",
+      },
+    }, parentCtx);
+    expect(dispatched).toBeUndefined();
+    const parentAttach = calls.find((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "attach"
+      && call.args.includes("--parent-agent-id"));
+    expect(parentAttach?.args).toContain("LeadOne");
+    expect(parentAttach?.args).toContain("BackendOne");
+
+    const childHandlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { childHandlers.set(name, handler); },
+    }, runner);
+    const childCtx = {
+      cwd: "/repo",
+      agentId: "BackendOne",
+      parentAgentId: "LeadOne",
+      sessionManager: { getSessionId: () => "child-session" },
+    };
+    await start(childHandlers, childCtx, "harness-backend-dev");
+
+    const beforeWrite = calls.length;
+    const writeResult = await childHandlers.get("tool_call")?.({
+      toolName: "write",
+      toolCallId: "call-write",
+      input: { path: "/repo/src/service.ts", content: "export {};" },
+    }, childCtx);
+    expect(writeResult).toBeUndefined();
+    const writeScripts = calls.slice(beforeWrite).map((call) => call.script);
+    expect(writeScripts.indexOf("inflight_registry.py")).toBeGreaterThanOrEqual(0);
+    expect(writeScripts.indexOf("inflight_registry.py"))
+      .toBeLessThan(writeScripts.indexOf("check-domain.py"));
+    const domainCall = calls.slice(beforeWrite).find((call) =>
+      call.script === "check-domain.py");
+    expect(domainCall?.payload.harness_agent_id).toBe("BackendOne");
+    expect(domainCall?.payload.harness_parent_agent_id).toBe("LeadOne");
+
+    const bashResult = await childHandlers.get("tool_call")?.({
+      toolName: "bash",
+      toolCallId: "call-bash",
+      input: { command: "printf ok", env: { EXISTING: "kept" } },
+    }, childCtx);
+    expect(bashResult?.input?.env).toEqual({
+      EXISTING: "kept",
+      HARNESS_AGENT_TYPE: "harness-backend-dev",
+    });
+    const bashGuard = calls.findLast((call) => call.script === "bash-write-guard.py");
+    expect(bashGuard?.payload.harness_agent_id).toBe("BackendOne");
+    expect(bashGuard?.payload.harness_parent_agent_id).toBe("LeadOne");
+    const authorizations = calls.filter((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "authorize"
+      && call.args.includes("BackendOne")
+      && call.args.includes("LeadOne"));
+    expect(authorizations).toHaveLength(2);
+  });
+
+  test("blocks a sibling lineage and isolates a nested child's edit claim", async () => {
+    const { handlers, runner } = fixture();
+    const parentCtx = {
+      cwd: "/repo",
+      agentId: "LeadOne",
+      parentAgentId: "OrchestratorOne",
+      sessionManager: { getSessionId: () => "lead-session" },
+    };
+    await start(handlers, parentCtx);
+    await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-child",
+      input: {
+        agent: "harness-backend-dev",
+        name: "BackendOne",
+        task: "HARNESS-FEATURE: FEAT-43-long-run\nimplement it",
+      },
+    }, parentCtx);
+
+    const childHandlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { childHandlers.set(name, handler); },
+    }, runner);
+    const childCtx = {
+      cwd: "/repo",
+      agentId: "BackendOne",
+      parentAgentId: "LeadOne",
+      sessionManager: { getSessionId: () => "child-session" },
+    };
+    await start(childHandlers, childCtx, "harness-backend-dev");
+    await childHandlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-grandchild",
+      input: {
+        agent: "harness-data-engineer",
+        name: "DataOne",
+        task: "HARNESS-FEATURE: FEAT-43-long-run\nchange the schema",
+      },
+    }, childCtx);
+
+    const goodHandlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { goodHandlers.set(name, handler); },
+    }, runner);
+    const goodCtx = {
+      cwd: "/repo",
+      agentId: "DataOne",
+      parentAgentId: "BackendOne",
+      sessionManager: { getSessionId: () => "grandchild-session" },
+    };
+    await start(goodHandlers, goodCtx, "harness-data-engineer");
+    expect(await goodHandlers.get("tool_call")?.({
+      toolName: "edit",
+      toolCallId: "call-edit-good",
+      input: { input: "[schema.sql#A1B2]\nPUT 1.=1:\n+select 1;" },
+    }, goodCtx)).toBeUndefined();
+
+    const siblingHandlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { siblingHandlers.set(name, handler); },
+    }, runner);
+    const siblingCtx = {
+      cwd: "/repo",
+      agentId: "DataOne",
+      parentAgentId: "LeadOne",
+      sessionManager: { getSessionId: () => "sibling-session" },
+    };
+    await start(siblingHandlers, siblingCtx, "harness-data-engineer");
+    const blocked = await siblingHandlers.get("tool_call")?.({
+      toolName: "edit",
+      toolCallId: "call-edit-blocked",
+      input: { input: "[schema.sql#A1B2]\nPUT 1.=1:\n+select 2;" },
+    }, siblingCtx);
+    expect(blocked).toEqual({ block: true, reason: "runtime lineage not authorized" });
+  });
+
+  test("fails closed when runtime lineage authorization cannot run", async () => {
+    const { runner } = fixture();
+    const childHandlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { childHandlers.set(name, handler); },
+    }, runner);
+    const childCtx = {
+      cwd: "/repo",
+      agentId: "AuthorizeError",
+      parentAgentId: "LeadOne",
+      sessionManager: { getSessionId: () => "child-session" },
+    };
+    await start(childHandlers, childCtx, "harness-backend-dev");
+    expect(await childHandlers.get("tool_call")?.({
+      toolName: "write",
+      toolCallId: "call-write-error",
+      input: { path: "src/x.ts", content: "unsafe" },
+    }, childCtx)).toEqual({ block: true, reason: "authorization gate crashed" });
   });
 
   test("blocks an empty structured yield instead of taking the hook's empty-message pass-through", async () => {

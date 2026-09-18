@@ -129,6 +129,8 @@ except Exception:
 # and identity has to come from the payload because one global registration serves
 # every agent.
 agent = (d.get("agent_type") or "") or argv_agent
+runtime_agent_id = d.get("harness_agent_id") or None
+runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
 
 # --- `--resolve <path>` (DEC-179): plan-time route resolution. Answers WHICH AGENT
 # may write a path, so a PLAN task can declare its lane instead of a build phase
@@ -723,7 +725,13 @@ def claim_checkout_guard(destination):
     if not harness_boundary.inside(destination, harness_boundary.real(root)):
         return
     try:
-        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
+        claim_set = harness_boundary.claim_worktrees(
+            root,
+            agent,
+            destination,
+            agent_id=runtime_agent_id,
+            parent_agent_id=runtime_parent_agent_id,
+        )
     except harness_boundary.AmbiguousWorktree as exc:
         print(
             f"check-domain: BLOCKED — {agent} has an ambiguous worktree claim: {exc}",

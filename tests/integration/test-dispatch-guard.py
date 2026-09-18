@@ -475,6 +475,34 @@ def case_15_omp_dispatch_records_supervisor_and_receipt():
     check("case 15: stdout returns a machine-readable claim receipt", "harness_claim" in result.stdout, result.stdout)
 
 
+def case_15b_omp_main_dispatch_records_top_level_claim():
+    root = _checkout()
+    payload = _task("harness-orchestrator", "Main", root)
+    payload["tool_input"]["prompt"] = "HARNESS-FEATURE: FEAT-43-alpha\nrun the feature"
+    payload["harness_runtime"] = "omp"
+    payload["harness_agent_id"] = "Main"
+    payload["supervisor_pid"] = os.getpid()
+    result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
+    claims = _claims_for(
+        _read_registry(root, _load_registry_module()),
+        "harness-orchestrator",
+        "FEAT-43-alpha",
+    )
+    check("case 15b: OMP Main dispatch is allowed", result.returncode == 0, result.stderr)
+    check(
+        "case 15b: OMP Main dispatch records an orchestrator claim",
+        len(claims) == 1
+        and claims[0].get("dispatcher") == "Main"
+        and claims[0].get("runtime") == "omp",
+        claims,
+    )
+    check(
+        "case 15b: OMP Main dispatch returns a claim receipt",
+        "harness_claim" in result.stdout,
+        result.stdout,
+    )
+
+
 def case_16_system_python_compatibility():
     root = _checkout()
     result = fire(
@@ -731,6 +759,7 @@ def main():
     case_13_feature_line_must_be_first_and_valid()
     case_14_single_flight_is_per_feature()
     case_15_omp_dispatch_records_supervisor_and_receipt()
+    case_15b_omp_main_dispatch_records_top_level_claim()
     case_16_system_python_compatibility()
     case_17_shell_less_persona_requires_matching_feature_root()
     case_18_inverted_slug_refused_no_claim_and_paste_back_safe()

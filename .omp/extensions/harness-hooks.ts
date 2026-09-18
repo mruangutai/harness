@@ -248,8 +248,16 @@ function runPolicy(
   return { blocked: false, stdout };
 }
 
-function basePayload(agent: string, eventName: string, cwd: string): Dict {
-  return { agent_type: agent, hook_event_name: eventName, cwd };
+function basePayload(agent: string, eventName: string, cwd: string, ctx?: any): Dict {
+  const agentId = text(ctx?.agentId);
+  const parentAgentId = text(ctx?.parentAgentId);
+  return {
+    agent_type: agent,
+    hook_event_name: eventName,
+    cwd,
+    ...(agentId ? { harness_agent_id: agentId } : {}),
+    ...(parentAgentId ? { harness_parent_agent_id: parentAgentId } : {}),
+  };
 }
 
 function preDomain(
@@ -258,8 +266,9 @@ function preDomain(
   toolName: string,
   input: Dict,
   runner: PolicyRunner,
+  ctx?: any,
 ): PolicyResult[] {
-  const base = basePayload(agent, "PreToolUse", cwd);
+  const base = basePayload(agent, "PreToolUse", cwd, ctx);
   if (toolName === "write") {
     return [runner(cwd, "check-domain.py", [], {
       ...base,
@@ -283,8 +292,9 @@ function postDomain(
   toolName: string,
   input: Dict,
   runner: PolicyRunner,
+  ctx?: any,
 ): PolicyResult[] {
-  const base = basePayload(agent, "PostToolUse", cwd);
+  const base = basePayload(agent, "PostToolUse", cwd, ctx);
   if (toolName === "write") {
     return [runner(cwd, "check-domain.py", ["--post"], {
       ...base,
@@ -313,7 +323,7 @@ function firstBlock(results: PolicyResult[]): string | undefined {
   return results.find((result) => result.blocked)?.reason;
 }
 
-type TaskDispatch = { agent: string; task: string; model?: unknown };
+type TaskDispatch = { agent: string; task: string; name?: string; model?: unknown };
 type ClaimReceipt = { root: string; feature: string; agent: string; claimId: string };
 
 export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
@@ -323,12 +333,24 @@ export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
       const value = item as Dict;
       const agent = text(value.agent);
       const task = text(value.task);
-      return agent && task ? [{ agent, task, ...("model" in value ? { model: value.model } : {}) }] : [];
+      const name = text(value.name);
+      return agent && task ? [{
+        agent,
+        task,
+        ...(name ? { name } : {}),
+        ...("model" in value ? { model: value.model } : {}),
+      }] : [];
     });
   }
   const agent = text(input.agent);
   const task = text(input.task);
-  return agent && task ? [{ agent, task, ...("model" in input ? { model: input.model } : {}) }] : [];
+  const name = text(input.name);
+  return agent && task ? [{
+    agent,
+    task,
+    ...(name ? { name } : {}),
+    ...("model" in input ? { model: input.model } : {}),
+  }] : [];
 }
 
 function taskModelOverride(input: Dict): string | undefined {
@@ -763,6 +785,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let pinCaptured = false;
   let claimsReconciled = false;
   let lastAssistantMessage = "";
+  let runtimeAgentId = "";
+  let runtimeParentAgentId = "";
   // FEAT-44: once-per-session cap for BOTH notice classes (inert and accessor
   // failure). Setting it skips the whole advisory path on every later wake in
   // this session, the read included, so the full scan the widening ladder
@@ -821,13 +845,15 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const detected = detectHarnessAgent(event.systemPrompt);
     const detectedFeature = detectHarnessFeature(event.systemPrompt);
     const detectedPin = detectHarnessReviewPin(event.systemPrompt);
+    runtimeAgentId = text(ctx.agentId);
+    runtimeParentAgentId = text(ctx.parentAgentId);
     if (detected) currentAgent = detected;
     if (detectedPin) currentReviewPin = detectedPin;
     setFeature(detectedFeature, ctx);
     if (!currentAgent || expertiseInjected) return;
 
     const result = policyRunner(ctx.cwd, "inject-expertise.py", [], {
-      ...basePayload(currentAgent, "SubagentStart", ctx.cwd),
+      ...basePayload(currentAgent, "SubagentStart", ctx.cwd, ctx),
     });
     if (result.blocked || !result.stdout.trim()) return;
     try {
@@ -871,15 +897,53 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   });
 
   pi.on("tool_call", async (event: Dict, ctx: any) => {
-    if (!currentAgent) return;
     const toolName = text(event.toolName);
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
-
+    const agentId = runtimeAgentId;
+    const parentAgentId = runtimeParentAgentId;
+    const runtimeCtx = { ...ctx, agentId, parentAgentId };
+    const mutates = ["write", "edit", "bash"].includes(toolName);
+    const missingCapability = "Harness requires OMP's runtime lineage capability; install the "
+      + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
+    if (toolName === "task" && !agentId) {
+      return { block: true, reason: missingCapability };
+    }
+    if (currentAgent && (toolName === "task" || mutates) && (!agentId || !parentAgentId)) {
+      return { block: true, reason: missingCapability };
+    }
+    const ompMainTask = !currentAgent
+      && toolName === "task"
+      && agentId === "Main"
+      && !parentAgentId;
+    if (!currentAgent && !ompMainTask) return;
+    const policyAgent = currentAgent || "Main";
     let revisedInput: Dict | undefined;
-    let reason = firstBlock(preDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
+    let reason: string | undefined;
+    if (mutates) {
+      if (!currentFeature) {
+        reason = "Harness child mutation policy requires runtime child, parent, and feature identity.";
+      } else {
+        const authorization = policyRunner(ctx.cwd, "inflight_registry.py", [
+          "authorize",
+          "--agent", policyAgent,
+          "--feature", currentFeature,
+          "--agent-id", agentId,
+          "--parent-agent-id", parentAgentId,
+          "--root", ctx.cwd,
+        ], {});
+        if (authorization.blocked || authorization.reason) {
+          reason = authorization.reason || "Harness runtime child lineage is not authorized.";
+        }
+      }
+    }
+    if (!reason) {
+      reason = firstBlock(preDomain(
+        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx,
+      ));
+    }
     if (!reason && toolName === "bash") {
       const payload = {
-        ...basePayload(currentAgent, "PreToolUse", ctx.cwd),
+        ...basePayload(policyAgent, "PreToolUse", ctx.cwd, runtimeCtx),
         tool_name: "Bash",
         tool_input: { command: input.command },
       };
@@ -904,16 +968,16 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // its business; this is the one key it does not get to author.
       if (!reason) {
         const existingEnv = (input.env && typeof input.env === "object" ? input.env : {}) as Dict;
-        revisedInput = { ...input, env: { ...existingEnv, HARNESS_AGENT_TYPE: currentAgent } };
+        revisedInput = { ...input, env: { ...existingEnv, HARNESS_AGENT_TYPE: policyAgent } };
       }
     }
     if (!reason && toolName === "task") {
-      reason = taskModelOverride(input);
+      reason = ompMainTask ? undefined : taskModelOverride(input);
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
           const result = policyRunner(ctx.cwd, "dispatch-guard.py", [], {
-            ...basePayload(currentAgent, "PreToolUse", ctx.cwd),
+            ...basePayload(policyAgent, "PreToolUse", ctx.cwd, ctx),
             tool_name: "Task",
             tool_input: dispatch,
             session_id: sessionId(ctx),
@@ -937,8 +1001,33 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           // deliberately records no claim for one. Whether a dispatch gets a claim is the
           // guard's decision; this caller only enforces the refusals the guard declares.
           const receipt = parseClaimReceipt(result.stdout);
-          if (receipt) receipts.push(receipt);
-          else debug(`dispatch-guard allowed ${dispatch.agent} with no claim recorded`);
+          if (receipt) {
+            receipts.push(receipt);
+            const parentAgentId = text(ctx.agentId);
+            if (parentAgentId) {
+              const args = [
+                "attach",
+                "--agent", receipt.agent,
+                "--feature", receipt.feature,
+                "--claim-id", receipt.claimId,
+                "--parent-agent-id", parentAgentId,
+                "--root", receipt.root,
+              ];
+              if (dispatch.name) args.push("--agent-id", dispatch.name);
+              const attached = policyRunner(
+                ctx.cwd, "inflight_registry.py", args, {},
+              );
+              if (attached.blocked || attached.reason) {
+                receipts.forEach((claimed) =>
+                  releaseClaim(policyRunner, ctx.cwd, claimed));
+                receipts.length = 0;
+                reason = attached.reason || "Harness could not bind the child runtime lineage.";
+                break;
+              }
+            }
+          } else {
+            debug(`dispatch-guard allowed ${dispatch.agent} with no claim recorded`);
+          }
         }
       }
       if (!reason && receipts.length) {
@@ -961,13 +1050,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; no digest was produced — neither the yield payload nor the last assistant message carries one.";
       } else {
         const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-          ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
+          ...basePayload(policyAgent, "SubagentStop", ctx.cwd, ctx),
           stop_hook_active: false,
           last_assistant_message: contract,
           harness_runtime: "omp",
           harness_feature: currentFeature,
           harness_review_pin: currentReviewPin,
-          harness_agent_id: text(ctx.agentId) || undefined,
         });
         debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
         debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
@@ -980,8 +1068,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   });
 
   pi.on("tool_result", async (event: Dict, ctx: any) => {
-    if (!currentAgent) return;
     const toolName = text(event.toolName);
+    const ompMainTask = !currentAgent
+      && toolName === "task"
+      && text(ctx.agentId) === "Main"
+      && !text(ctx.parentAgentId);
+    if (!currentAgent && !ompMainTask) return;
+    const policyAgent = currentAgent || "Main";
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
     if (toolName === "task") {
       const key = text(event.toolCallId) || "task";
@@ -1124,7 +1217,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         + "neither the pre-write nor the post-write shape check ran on any file. "
         + "This is a notice, not a refusal.");
     }
-    const reason = firstBlock(postDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
+    const reason = firstBlock(postDomain(
+      ctx.cwd, policyAgent, toolName, input, policyRunner, ctx,
+    ));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
     if (!reason) {
@@ -1163,7 +1258,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!finalText.trim()) return;
     // Notification-only backstop. Normal task agents are validated on `yield`.
     const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-      ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
+      ...basePayload(currentAgent, "SubagentStop", ctx.cwd, ctx),
       stop_hook_active: true,
       last_assistant_message: finalText,
       harness_runtime: "omp",

@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -38,6 +40,35 @@ def frontmatter(path: Path) -> dict:
     metadata, _body = artifact_accessors.load_frontmatter(
         path.read_text(encoding="utf-8"), str(path))
     return metadata
+
+def runtime_pin_errors(root: Path) -> list[str]:
+    runtime_pin = root / ".omp" / "runtime-pin.json"
+    try:
+        pin = json.loads(runtime_pin.read_text(encoding="utf-8"))
+        if not isinstance(pin, dict):
+            raise ValueError("root must be an object")
+    except Exception as exc:
+        return [f"cannot read .omp/runtime-pin.json: {exc}"]
+    requirements = (
+        (re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit") or "")) is not None,
+         ".omp/runtime-pin.json commit must be a 40-character Git commit"),
+        (str(pin.get("repository") or "").endswith("/oh-my-pi.git"),
+         ".omp/runtime-pin.json repository must identify the downstream OMP fork"),
+        (str(pin.get("ref") or "").startswith("harness-runtime-lineage-"),
+         ".omp/runtime-pin.json ref must identify an immutable Harness lineage tag"),
+        (pin.get("required_capability") == "extension-context-runtime-lineage",
+         ".omp/runtime-pin.json must require extension-context-runtime-lineage"),
+    )
+    return [message for satisfied, message in requirements if not satisfied]
+
+
+def runtime_probe_errors(root: Path) -> list[str]:
+    probes = (
+        root / "tests" / "manual" / "probe-omp-runtime-lineage.py",
+        root / "tests" / "manual" / "probe-omp-runtime-lineage.ts",
+    )
+    return [f"{probe.relative_to(root)} is missing" for probe in probes if not probe.is_file()]
+
 
 
 def check(root: Path) -> list[str]:
@@ -179,7 +210,7 @@ def check(root: Path) -> list[str]:
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[4]).resolve()
-    errors = check(root)
+    errors = check(root) + runtime_pin_errors(root) + runtime_probe_errors(root)
     if errors:
         for error in errors:
             print(f"OMP-PORT: {error}", file=sys.stderr)

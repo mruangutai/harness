@@ -6373,10 +6373,27 @@ features as one parent-child tree.
 
 **Claims use schema version 2.** The registry is one explicit `claims` list. Every entry names
 `claim_id`, `feature`, `agent`, `dispatcher`, `cwd`, `started_at`, and `runtime`; an OMP entry also
-names its supervising PID and, after spawn, its agent/job identity. Single-flight is keyed by
-`(feature, persona)`, so two PMs for one feature are refused while PMs for different features are
-legal. The version-1 persona-keyed object is read once for migration and every following write is
-version 2. There is one locked registry implementation, still `inflight_registry.py`.
+names its supervising PID. Main is not a Harness persona and remains outside persona policy, but
+the OMP adapter submits its top-level Harness task through dispatch preflight using OMP's
+host-derived `Main` runtime id; this creates the orchestrator claim without constraining the user's
+model choice. After dispatch preflight creates any OMP claim, the parent extension atomically
+attaches its host-derived runtime id and, when the task call names the child, that expected child id
+before the task call returns. Before an inherited child may use Write, Edit, or Bash, it presents
+OMP's actual child and parent ids: the registry either verifies the exact pre-bound pair or binds
+the actual child to the one unique parent-bound unnamed claim. A mismatch, ambiguity, missing
+identity, or registry error refuses before the mutation gate runs. Later task results may add job
+identity without changing the attached lineage. Single-flight is keyed by `(feature, persona)`, so
+two PMs for one feature are refused while PMs for different features are legal. The version-1
+persona-keyed object is read once for migration and every following write is version 2. There is one
+locked registry implementation, still `inflight_registry.py`.
+
+**The upstream merge is not a runtime prerequisite.** Until OMP ships the lineage context
+upstream, Harness supports the immutable downstream ref recorded in `.omp/runtime-pin.json`.
+Changing that pin requires the live `tests/manual/probe-omp-runtime-lineage.py` check: it launches
+the installed binary, observes Main's task callback, and observes one inherited extension receiving
+the child's Write, Edit, and Bash callbacks with the same child id and `Main` as immediate parent.
+The probe is manual because it makes a credentialled model call; where it runs, absence or incomplete
+lineage fails rather than skips.
 
 **OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
 live for any age while its recorded supervisor PID exists and becomes stale immediately when that
@@ -7005,34 +7022,52 @@ integration kind their observable boundary requires.
 
 **Record:** delegated Advisor ruling, 2026-09-05. Refs: DEC-35, DEC-212, DEC-213.
 
-## DEC-218 — Claim-set membership binds governed writes to assigned worktrees on both routes
+## DEC-218 — Exact OMP lineage binds governed writes; compatibility hosts use claim-set membership
 
-**Chose:** CLAIM-SET MEMBERSHIP is the binding key. For the writing `agent_type`, build $S$ from
-every live claim across every linked-worktree registry and the owner-root registry. Resolve each
-claim's own `feature` through `harness_boundary.worktree_for_feature`; it contributes to $S$ only
-when that returns a real worktree. An empty $S$ means the persona is unbound and the write is
-allowed. A non-empty $S$ permits a governed write only when the resolved destination lies inside a
-member of $S$; otherwise both Write/Edit and Bash exit 2, name the members of $S$, and name the
-destination's proper home. Origin: `BUG-1304-worktree-relative-path-guard`.
+**Chose:** EXACT RUNTIME LINEAGE is the OMP binding key. Before an inherited OMP child may use
+Write, Edit, or Bash, the extension authorizes the tuple `(feature, agent_type, child agent id,
+immediate parent agent id)` against one live claim. This includes the first orchestrator edge:
+although Main is outside persona policy, its OMP task preflight creates the orchestrator claim and
+attaches the host-authenticated `Main` parent id. On every edge, the parent id is attached
+immediately after dispatch preflight; a task `name` may pre-bind the expected child, but OMP's
+host-derived child id must still match before mutation. An unnamed child binds only when exactly one
+live, parent-bound candidate exists. Mismatch, ambiguity, missing identity, and authorization
+failure refuse; a child cannot borrow a same-persona sibling's or ancestor's claim.
+
+For an authorized OMP writer, and for a compatibility-host writer whose payload carries no runtime
+lineage, build $S$ from the matching live claims across every linked-worktree registry and the
+owner-root registry. OMP matching includes both runtime ids; compatibility matching uses
+`agent_type`. Resolve each claim's own `feature` through
+`harness_boundary.worktree_for_feature`; it contributes to $S$ only when that returns a real
+worktree. An empty $S$ means the persona is unbound and the write is allowed. A non-empty $S$
+permits a governed write only when the resolved destination lies inside a member of $S$; otherwise
+both Write/Edit and Bash exit 2, name the members of $S$, and name the destination's proper home.
+Origin: `BUG-1304-worktree-relative-path-guard`.
 
 **Destination decides; spelling does not.** Relative and absolute paths, main-checkout copies, and
 sibling worktrees receive the same answer after resolution. The host-uniform predicate lives in
-DEC-193's shared `harness_boundary.py` seam, is fed only by `agent_type`, and adds no payload
-plumbing. DEC-208's rejected payload key remains rejected: such a key exists only on routes that
-happen to carry it, while Git's worktree registry cannot drift. An unresolvable or ambiguous
-assignment refuses rather than guessing. Scratch paths, unbound agents, and DEC-193's second legal
-location, `workspace_root/<repo>` under DEC-189, retain their prior behavior. Control-plane
-Expertise distillation remains carved out by its sanctioned merge route, not by a destination glob
-(DEC-153).
+DEC-193's shared `harness_boundary.py` seam. OMP contributes its child and immediate-parent ids to
+that predicate; Claude Code retains the persona-only call because it exposes no equivalent runtime
+lineage. An unresolvable or ambiguous assignment refuses rather than guessing. Scratch paths,
+unbound agents, and DEC-193's second legal location, `workspace_root/<repo>` under DEC-189, retain
+their prior behavior. Control-plane Expertise distillation remains carved out by its sanctioned
+merge route, not by a destination glob (DEC-153).
 
-**Two identity residues are accepted, not hidden.** FALSE-ALLOW: persona P dispatched for feature A
-may write into B's worktree while a concurrent P session holds B, because B is a member of $S$.
-FALSE-REFUSE: P holding a worktree-backed claim may be refused when a concurrent P claim for a
-feature without a worktree writes the main checkout, because $S$ is non-empty. Exact dispatch
-matching is unbuildable on Claude Code: write payloads carry no feature identity. OMP could add a
-capture, but an untested current-feature capture has a wrong-feature-first branch that would both
-refuse legitimate writes and permit the sibling harm. The set rule is therefore the weakest
-host-uniform enforcement supported by durable inputs.
+**The two persona residues remain only on compatibility hosts.** On Claude Code, persona P
+dispatched for feature A may still write into B's worktree while a concurrent P session holds B,
+and P holding a worktree-backed claim may still be refused when a concurrent P claim without a
+worktree writes the main checkout. Exact dispatch matching is unbuildable there because write
+payloads carry no child or parent runtime identity. OMP's inherited extension and host-derived
+context remove both residues on its route without trusting a prompt token: forwarding a child id
+cannot change the immediate parent id OMP supplies.
+
+An OMP process without the lineage context is not a compatibility host. The project extension
+refuses Task before dispatch when no runtime agent id was supplied, and refuses every governed
+Write, Edit, Bash, or nested Task when a Harness persona lacks either its child or immediate-parent
+id. This keeps an older upstream binary from looking installed while silently taking the
+persona-only compatibility path. The supported temporary runtime is the exact downstream ref in
+`.omp/runtime-pin.json`, verified after installation by
+`tests/manual/probe-omp-runtime-lineage.py`.
 
 **Binding liveness and dispatch liveness are separate questions over one stored claim.** The
 guards' enumerator answers binding liveness: an OMP claim remains live through `_omp_claim_live`;
@@ -7060,7 +7095,7 @@ directory fixture: an existing registry path that is a directory now refuses bef
 while failures in quarantine machinery itself, including an unimportable registry module, remain
 fail-open. This scope was ruled by the Advisor and authorized by the operator without overrule.
 
-Lineage: DEC-100, DEC-110, DEC-153, DEC-174, DEC-189, DEC-193, DEC-205, and DEC-208.
+Lineage: DEC-100, DEC-110, DEC-153, DEC-174, DEC-189, DEC-193, DEC-204, DEC-205, and DEC-208.
 
 ## DEC-219 — Replace and drop are a second subcommand, `ops`, taking the contract's op objects as JSON
 
