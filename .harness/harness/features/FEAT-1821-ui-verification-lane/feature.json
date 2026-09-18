@@ -97,9 +97,9 @@
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 3,
-    "wall_clock_minutes": 135,
-    "decision": ".harness/harness/features/FEAT-1821-ui-verification-lane/notes/answers-plan-approval.md"
+    "rounds": 5,
+    "wall_clock_minutes": 225,
+    "decision": ".harness/harness/features/FEAT-1821-ui-verification-lane/notes/answers-fix-c2-rework.md"
   },
   "signed_task_hashes": {
     "T-01": "470ca83143bba7ce0c27d0f073d0576d71ac32c5dff71ce6e60664a9c504e45b",
