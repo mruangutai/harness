@@ -1,9 +1,10 @@
 import { defineConfig } from '@playwright/test';
-import { prepareFixtureSync } from './fixture.js';
+import { fixturePath } from './fixture.js';
 
-const fixture = prepareFixtureSync();
+const fixture = fixturePath();
 
 export default defineConfig({
+  globalSetup: './fixture.ts',
   testMatch: ['feat-53.e2e.spec.ts', 'e2e/*.e2e.spec.ts'],
   outputDir: 'test-results/playwright-artifacts',
   reporter: [['list'], ['./ui-reporter.ts']],
@@ -20,7 +21,7 @@ export default defineConfig({
     { name: 'desktop-1920', grepInvert: /component source uses only theme tokens/, use: { viewport: { width: 1920, height: 1100 } } },
   ],
   webServer: {
-    command: `python3 ../serve.py --root ${fixture} --port 8972`,
+    command: `mkdir -p ${fixture}/.harness && touch ${fixture}/.harness/harness.json && python3 ../serve.py --root ${fixture} --port 8972`,
     port: 8972,
     reuseExistingServer: false,
   },

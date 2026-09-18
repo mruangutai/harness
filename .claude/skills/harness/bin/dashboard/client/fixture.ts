@@ -20,7 +20,7 @@ const states = [
   ['FEAT-53-LONG-CONTENT', 'long-content', 'feature'],
 ] as const;
 
-function runDirectory(runId: string): string {
+export function fixturePath(runId = process.env.HARNESS_UI_RUN_ID ?? 'local'): string {
   if (!/^[A-Za-z0-9_-]+$/.test(runId)) throw new Error(`invalid UI fixture run id: ${runId}`);
   return resolve(fixtureBase, runId);
 }
@@ -51,7 +51,7 @@ function materializeState(destination: string, id: string, state: string, kind: 
 }
 
 export function prepareFixtureSync(runId = process.env.HARNESS_UI_RUN_ID ?? 'local'): string {
-  const fixtureRoot = runDirectory(runId);
+  const fixtureRoot = fixturePath(runId);
   const fixtureFeatures = resolve(fixtureRoot, '.harness', 'harness', 'features');
   rmSync(fixtureRoot, { force: true, recursive: true });
   cpSync(resolve(dashboard, 'fixtures', 'project-a'), fixtureRoot, { recursive: true });
@@ -64,4 +64,8 @@ export function prepareFixtureSync(runId = process.env.HARNESS_UI_RUN_ID ?? 'loc
     materializeState(destination, id, state, kind);
   }
   return fixtureRoot;
+}
+
+export default function globalSetup(): void {
+  prepareFixtureSync();
 }

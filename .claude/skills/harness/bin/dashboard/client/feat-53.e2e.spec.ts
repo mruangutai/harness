@@ -141,7 +141,7 @@ for (const check of manifest.checks.filter((candidate) => ['SRC-TOKENS', 'VIS-DE
     let failure: unknown;
     try {
       await sourceTokens();
-      await load(page, overview);
+      await load(page, '/?window=all&repo=all&station=all&status=all&kind=all&layout=table');
     } catch (error) {
       failure = error;
     } finally {
