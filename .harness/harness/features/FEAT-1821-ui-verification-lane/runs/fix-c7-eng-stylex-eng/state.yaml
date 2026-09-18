@@ -1,0 +1,34 @@
+schema_version: 2
+run_id: fix-c7-eng-stylex
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: T-03
+    persona: harness-frontend-dev
+    task: T-03
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c7-eng-stylex-T-03-c1.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    routed_by: execution_agent
+    note: "StyleX repair passes corrected component acceptance: 27/27, with UI list at 23."
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c7-eng-stylex-T-03-c1.md
+    evidence:
+      stylex_version: 0.19.1
+      component_result: "5 files, 27 passed, 0 failed"
+      ui_list_result: "23 tests in 6 files"
+      package_diff: "package.json one insertion; package-lock.json 46 insertions and one required metadata removal"
+run_uid: b29d24f249e44d7d95dc8f08e5aedd66
