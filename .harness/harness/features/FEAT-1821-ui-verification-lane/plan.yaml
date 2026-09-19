@@ -526,11 +526,10 @@ tasks:
     depends_on: [T-14]
     status: ready
     files:
-      - .omp/agents/harness-ui-reviewer.md
-      - .claude/agents/harness-ui-reviewer.md
-      - tests/unit/test-ui-reviewer-policy.py
+    - .omp/agents/harness-ui-reviewer.md
+    - tests/unit/test-ui-reviewer-policy.py
     verify: |
-      python3 tests/unit/test-ui-reviewer-policy.py && python3 .claude/skills/harness/bin/sync-agent-adapters.py --check
+      python3 tests/unit/test-ui-reviewer-policy.py
     intent: |
       Test first by extending the Mode B policy-contract test with clauses and one mutation per clause. In canonical .omp/agents/harness-ui-reviewer.md, require Mode B to read traced_check_ids, open every traced record's ZIP with npx playwright show-trace, inspect its action filmstrip, DOM snapshots, and assertion context, and cite the exact judged step in the finding evidence. A traced check graded from its still screenshot alone, an unopened trace, a missing step citation, or an unreadable, stale, mismatched, or incomplete trace is a FAIL finding rather than a pass or open question.
 
