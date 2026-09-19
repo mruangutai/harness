@@ -3,11 +3,11 @@
 ## Current
 
 - feature: FEAT-1821-ui-verification-lane
-- run: fix-c7-validator
+- run: fix-c8-validator
 - squad: validator
 - status: awaiting_user
-- review_sha: b8f96ab8e9c8168ed8389ccf4732a958e84828fd
+- review_sha: 0163657540ab3ad3be4ff5aa34f838dc4f1e17d8
 
 ## Open Questions
 
-- Q1 (blocking): Final c7 revalidation found V7-01 (the real full-client gate falsely reports eleven manifest-driven Playwright specs absent) and V7-02 (incomplete fail-first receipts for SC-02..SC-06 and SC-10..SC-11). The signed three-round rework allowance is exhausted and no further fix round is authorized. Should the operator authorize another main-session-direct T-01 fix round, explicitly waive these findings, or stop the feature blocked?
+- Q1 (blocking): Final c8 revalidation closed V7-01, but QA found V7-02 still open because SC-04 has no pinned criterion-mapped fail-first failure proving pixel baselines are opt-in. The operator authorized no further fix round. Should the operator explicitly waive this remaining evidence gap or stop the feature blocked?
