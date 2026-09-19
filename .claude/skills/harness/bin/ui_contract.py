@@ -36,6 +36,7 @@ import json
 import pathlib
 import re
 import sys
+import zipfile
 from dataclasses import dataclass, field
 
 MANIFEST_SCHEMA = "harness-ui-manifest/1"
@@ -259,8 +260,9 @@ class _Bundle:
 
 
 def _is_zip(path: pathlib.Path) -> bool:
+    """A real archive, not a magic prefix: the central directory must parse (V9-01)."""
     try:
-        return path.read_bytes()[:4] == b"PK\x03\x04"
+        return zipfile.is_zipfile(path)
     except OSError:
         return False
 

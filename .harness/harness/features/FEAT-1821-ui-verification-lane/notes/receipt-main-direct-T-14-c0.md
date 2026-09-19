@@ -25,3 +25,11 @@ code-grade.py ui_contract.py: 43 records, 0 below bar 4. `.gitignore` probe from
 - SC-02 / SC-06 (evidence and results contract) → `test_traced_results_require_replayable_zip_inside_run_ui`: valid ZIP traces PASS; absent, absolute, escaping, outside ui/, empty, non-ZIP, and trace-on-untraced-check each refused by check@project.
 - SC-10 (QA gate blocks on contract failures) → the above reasons surface through `ui_contract.py gate`, which QA runs.
 No FEAT-53 check id is hardcoded in ui_contract.py; the Traces table is the only authority.
+
+## V9-01 (validate c9) — `_is_zip` accepted any `PK\x03\x04` prefix
+fail-first at c5fab956 with the new mutant (`PK\x03\x04` + 64 bytes of 0xFF): `python3 tests/unit/test-ui-verification-contract.py` → nonzero:
+```
+FAIL: test_traced_results_require_replayable_zip_inside_run_ui (__main__.GateEvidence.test_traced_results_require_replayable_zip_inside_run_ui)
+FAILED (failures=1)
+```
+Fix: `zipfile.is_zipfile` (central directory must parse). Post-fix: 27/27 OK; grade 0 below bar; the 8 real traces in FEAT-1821-initial-red still produce 0 trace reasons. No FEAT-53 production/dist change.

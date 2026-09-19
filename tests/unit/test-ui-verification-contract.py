@@ -358,6 +358,11 @@ class GateEvidence(unittest.TestCase):
             rec(doc)["trace"] = self.ws.trace("not.zip", WEBP)
         self.failing("not a ZIP", not_zip, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
 
+        def pk_prefix_garbage(doc):
+            # V9-01: a magic prefix is not a ZIP; the central directory must parse.
+            rec(doc)["trace"] = self.ws.trace("corrupt.zip", b"PK\x03\x04" + b"\xff" * 64)
+        self.failing("not a ZIP", pk_prefix_garbage, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
         def wrong_record(doc):
             rec(doc, "VIS-DENSITY", "desktop-1440")["trace"] = self.ws.trace("VIS-DENSITY--desktop-1440.zip")
         self.failing("VIS-DENSITY@desktop-1440: trace attached to a check the Traces table does not list", wrong_record,
