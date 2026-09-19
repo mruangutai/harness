@@ -4,7 +4,7 @@
   "pr": null,
   "review_sha": "0163657540ab3ad3be4ff5aa34f838dc4f1e17d8",
   "cycles_used": 8,
-  "max_total_cycles": 10,
+  "max_total_cycles": 12,
   "runs": [
     {
       "id": "plan-product",
@@ -445,5 +445,12 @@
       1821
     ],
     "build_entry": "opened"
-  }
+  },
+  "budget_decisions": [
+    {
+      "at": "2026-09-19T14:05:02+00:00",
+      "max_total_cycles": 12,
+      "decision": ".harness/harness/features/FEAT-1821-ui-verification-lane/notes/answers-validate-c8-traces.md"
+    }
+  ]
 }
