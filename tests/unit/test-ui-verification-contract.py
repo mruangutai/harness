@@ -300,8 +300,22 @@ class GateEvidence(unittest.TestCase):
         self.failing("inspection setup failed", broken_setup)
 
     def test_client_package_change_requires_every_spec_title(self):
-        (self.ws.client / "feat-53.e2e.spec.ts").write_text("test('shared header geometry matches DESIGN', async () => {});\n")
-        self.failing("no spec carries", changed=["client/src/shared/Card.tsx"])
+        # A title is present when the source names it literally OR the bundle carries an
+        # executed record under that exact title (V7-01: specs are manifest-driven —
+        # `test(check.spec_title, …)` — so a literal grep alone finds nothing).
+        (self.ws.client / "feat-53.e2e.spec.ts").write_text("for (const c of manifest.checks) test(c.spec_title, async () => {});\n")
+        self.ws.results()
+        verdict = self.ws.gate(changed=["client/src/shared/Card.tsx"])
+        self.assertEqual(verdict.status, "PASS", verdict.reasons)
+
+        def drop_src_tokens(doc):
+            doc["checks"] = [c for c in doc["checks"] if c["check_id"] != "SRC-TOKENS"]
+        self.failing("no spec carries the title 'component source uses only theme tokens'", drop_src_tokens,
+                     changed=["client/src/shared/Card.tsx"])
+        (self.ws.client / "feat-53.e2e.spec.ts").write_text("test('component source uses only theme tokens', async () => {});\n")
+        self.ws.results(drop_src_tokens)
+        verdict = self.ws.gate(changed=["client/src/shared/Card.tsx"])
+        self.assertNotIn("no spec carries the title 'component source uses only theme tokens'", " ".join(verdict.reasons))
         self.ws.results()
         verdict = self.ws.gate(changed=[".claude/skills/harness/bin/dashboard/serve.py"])
         self.assertEqual(verdict.status, "PASS", verdict.reasons)

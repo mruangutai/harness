@@ -21,7 +21,8 @@ the committed DESIGN.md — predicates and inspection evidence REQUIRED — and 
 `runs/<run-id>/ui/results.json` (`harness-ui-results/1`) against it: a results file never
 supplies its own list of checks. Any change under the dashboard client package requires the
 package's whole table and every spec title present in its e2e specs — no classification by
-route, so a shared component cannot slip past coverage.
+route, so a shared component cannot slip past coverage. A title is present when a spec names it
+literally or the bundle carries an executed record under it (specs are manifest-driven).
 """
 from __future__ import annotations
 
@@ -376,10 +377,17 @@ def _summary_reasons(doc: dict, reasons_so_far: list[str]) -> list[str]:
     return [] if consistent else [f"summary.status {summary!r} disagrees with the records"]
 
 
-def _client_change_reasons(manifest: dict, repo_root: pathlib.Path, changed: list[str], package: pathlib.Path) -> list[str]:
-    if not any(_under(repo_root / c, package) for c in changed):
+def _executed_titles(doc: dict) -> set[str]:
+    """Titles the runner demonstrably ran: a record with screenshot evidence can only exist
+    because a test registered under that exact title executed. This is how manifest-driven
+    specs (`test(check.spec_title, …)`) satisfy the title rule; a literal grep cannot see them."""
+    return {r.get("spec_title") for r in doc.get("checks") or [] if r.get("screenshots")}
+
+
+def _client_change_reasons(manifest: dict, bundle: _Bundle, changed: list[str], package: pathlib.Path) -> list[str]:
+    if not any(_under(bundle.repo_root / c, package) for c in changed):
         return []
-    present = spec_titles(package)
+    present = spec_titles(package) | _executed_titles(bundle.doc)
     return [f"client package changed and no spec carries the title {c['spec_title']!r}"
             for c in manifest["checks"] if c["spec_title"] not in present]
 
@@ -397,7 +405,7 @@ def gate(design, results, feature: str, run_id: str, served_bundle_commit: str, 
     record_reasons, seen = _records_reasons(bundle, manifest)
     reasons += record_reasons + _coverage_reasons(manifest, seen)
     reasons += _summary_reasons(bundle.doc, reasons)
-    reasons += _client_change_reasons(manifest, repo_root, changed, package)
+    reasons += _client_change_reasons(manifest, bundle, changed, package)
     return Verdict("FAIL" if reasons else "PASS", reasons)
 
 
