@@ -14,7 +14,7 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 |---|---|---|
 | `BRIEF.md` | The **goal of record**: Goal, `REQ-NN`, Constraints, `SC-NN` (each with a `verify:` method), `## Approval`. Stable across the project. | `pm` drafts · **you** approve |
 | `PLAN.md` | Active plan: `## Decisions` (`D-NN`), `## Approval`, `## Features` (`FEAT-NN`), `## Tasks` (`T-NN`, each with `change_type:`) | `pm` — except `## Approval` |
-| `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
+| `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction, and the executable UI `## Checks` contract | `visual-designer` |
 | `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.py` on every write | `harness-init`, **in this control plane only** — no product repository has one, seeded from detection |
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `harness-init` for this control plane's own copy; `harness-add-repo` for a fleet member's, which must land on that repository's default branch · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable **craft** — how that agent works, true wherever it works. Budget **150 lines**. Injected at every OMP task-agent start; the agent never reads it itself | each agent, its own file only |
@@ -26,12 +26,40 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
 | `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |
 | `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
-| `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
+| `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md`. Run state is scratch except a real-browser lane's committed `ui/` evidence bundle. | that run's lead; the configured UI reporter publishes `ui/` evidence |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 | `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. | **you** (main session) |
 
-**Committed**, except `features/*/runs/**`, which is ephemeral scratch — and must be git-ignored, or
-a dirty tree deadlocks the next run.
+**Committed**, except ordinary `features/*/runs/**` state, which is ephemeral scratch and must be
+git-ignored or a dirty tree deadlocks the next run. A real-browser lane's reporter-published
+`runs/<run-id>/ui/` bundle is the exception: `results.json`, referenced WebPs, and manifest-listed
+trace ZIPs are committed evidence. Local Playwright output and traces for checks not listed in the
+contract remain ignored scratch.
+
+### Real-browser UI evidence
+
+`DESIGN.md` is the authority. Its `## Checks` table uses the template's six columns to declare
+check ids, byte-matched spec titles, surfaces, methods, applicable projects, and predicates or
+evidence. It may contain `### Inspection evidence` and an optional, one-column `### Traces` table:
+
+```text
+| Check ID |
+|---|
+| <an id already listed in Checks> |
+```
+
+The ids are contract data, not names built into the lane. For each listed id and each applicable
+project, the result record carries `trace` and the reporter publishes the committed,
+repository-relative file at
+`.harness/<repo>/features/<feature>/runs/<run-id>/ui/traces/<check>--<project>.zip`. Open one with
+`npx playwright show-trace <zip>`.
+
+The UI gate refuses a missing or empty contract, absent check/spec evidence, duplicate records or
+trace attachments, inspection setup errors, and `toHaveScreenshot(` without a `pixel-baseline`
+Checks row. Trace evidence also fails closed when missing, empty, unreadable, non-ZIP, absolute,
+outside the current run's `ui/` directory, attached to an unlisted check, or mismatched to its
+check or project. Mode B opens every listed trace and cites the judged action step; the final WebP
+alone is not interaction evidence.
 
 ## Who writes what
 

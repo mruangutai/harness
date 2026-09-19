@@ -183,6 +183,58 @@ Repository knowledge overrides project knowledge, which overrides global craft k
 
 See [`.harness/README.md`](.harness/README.md) for layout and writer ownership.
 
+## UI verification lane
+
+Run the configured real-browser lane from the repository root at the feature's pinned
+`review_sha`, supplying the feature and a fresh run id:
+
+```bash
+HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard \
+HARNESS_UI_RUN_ID=<run-id> \
+npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui
+```
+Always set both variables, including for discovery such as `--list`: the reporter otherwise defaults
+to the FEAT-53 feature and a `local` run id and writes a scratch bundle there.
+
+This is the repository's `test_kinds.ui.cmd`; do not replace it with an ad-hoc browser session,
+screenshot tool or dev server. It writes the bundle beneath
+`.harness/harness/features/FEAT-53-metrics-dashboard/runs/<run-id>/ui/`. The committed
+`FEAT-1821-initial-red` bundle is intentional example evidence of FEAT-53's current product
+predicates and inspection setup: its RED records are not a claim that FEAT-53 was fixed.
+
+The committed `DESIGN.md` owns the lane contract. Its `## Checks` table names every check, spec
+title, method and applicable Playwright project. An optional `### Traces` table has exactly one
+column, `Check ID`; its values are ordinary ids from `## Checks`, not a fixed vocabulary. Every
+applicable result record for a listed id must include:
+
+```text
+trace: .harness/<repo>/features/<feature>/runs/<run-id>/ui/traces/<check>--<project>.zip
+```
+
+That repository-relative, non-empty, readable ZIP is committed with `results.json` and its WebP
+evidence. Raw traces for checks not listed in `### Traces` remain local ignored Playwright scratch
+and must not appear in the results manifest.
+
+The reporter and `ui_contract.py gate` fail closed on missing or duplicate traces, empty or
+unreadable files, non-ZIP content, absolute or out-of-run paths, a trace attached to an unlisted
+check, and check/project mismatches. They also fail on a missing or empty Checks contract, an
+absent applicable record, missing spec-title coverage for a changed client package, failed
+inspection setup, and any `toHaveScreenshot(` call when no Checks row opts into
+`pixel-baseline`.
+
+For Mode B review, open **every** manifest-listed trace and cite the action index or label of the
+step that determined the finding; a final still alone cannot grade an interaction:
+
+```bash
+npx playwright show-trace <zip>
+```
+
+If evidence is doubtful, rerun only the configured command above with the same
+`HARNESS_UI_FEATURE` and `HARNESS_UI_RUN_ID`; never substitute another capture path. Contract
+parsing and gate behavior live in `.claude/skills/harness/bin/ui_contract.py`; the configured
+runner and publication path live in
+`.claude/skills/harness/bin/dashboard/client/playwright.config.ts` and `ui-reporter.ts`.
+
 ## Development
 
 Harness develops itself only in a worktree under `.claude/worktrees/`. DEC-174 requires hooks, validators, gate scripts, and their tests to be changed directly rather than through the enforcement layer being replaced.
