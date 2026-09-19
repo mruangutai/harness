@@ -521,7 +521,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires the canonical UI reviewer policy, generated adapter, and policy enforcement test to be changed by the main session
     depends_on: [T-14]
-    status: ready
+    status: done
     files:
     - .omp/agents/harness-ui-reviewer.md
     - tests/unit/test-ui-reviewer-policy.py
