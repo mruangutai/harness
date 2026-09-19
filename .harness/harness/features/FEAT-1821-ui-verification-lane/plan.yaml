@@ -3,8 +3,11 @@ feature: FEAT-1821-ui-verification-lane
 approval:
   date: '2026-09-18'
   approved_by: operator
-  status: approved
-status: review
+  status: pending
+  reset_at: '2026-09-19T14:11:21+00:00'
+  reset_reason: apply T-14, T-15, T-16, T-17, T-18
+  resume_station: building
+status: plan
 source_issues: [1821]
 panel:
   last_run: plan-product
@@ -454,3 +457,109 @@ tasks:
       node --experimental-strip-types --test .claude/skills/harness/bin/dashboard/client/ui-reporter.probe.spec.ts
     intent: |
       Create ui-reporter.probe.spec.ts and harden ui-reporter.ts. The probe must define exactly seven named cases: missing record, duplicate, mismatched title, empty WebP, parser error, reporter error, and incomplete accounting. For every case, construct the smallest isolated bundle that reaches that failure, run the real reporter path and assert ui-reporter.ts emits a results.json summary with status fail and a case-specific error, then invoke python3 .claude/skills/harness/bin/ui_contract.py gate on that emitted bundle and assert a nonzero refusal naming the same defect. A case passes only when both stages reject; a uniform early guard, mocked summary, source-text assertion, or one-stage proof is insufficient. Keep fixtures temporary and deterministic. Name this Node probe outside Playwright's e2e testMatch so it adds no listed browser test and the split lane remains exactly twenty-three tests. Do not edit browser specs, manifest parsing, configuration, or production FEAT-53 code.
+  - id: T-14
+    title: Extend the UI contract with replayable traces and pixel-baseline enforcement
+    traces: [SC-02, SC-04, SC-05, SC-06, SC-10]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires main-session execution for the UI contract gate, its enforcement tests, and the criterion-mapped fail-first receipt
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/ui_contract.py
+      - tests/unit/test-ui-verification-contract.py
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-main-direct-T-14-c0.md
+      - .gitignore
+    verify: |
+      python3 tests/unit/test-ui-verification-contract.py && python3 -c "from pathlib import Path; s=Path('.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-main-direct-T-14-c0.md').read_text(); assert all(x in s for x in ('SC-04','test_to_have_screenshot_requires_pixel_baseline_opt_in','fail-first','nonzero'))" && probe_run=".harness/harness/features/FEAT-1821-ui-verification-lane/runs/ignore-probe-$$/ui" && scratch=".claude/skills/harness/bin/dashboard/client/test-results/ignore-probe-$$" && published="$probe_run/traces/listed-check--chromium.zip" && nonlisted="$probe_run/test-results/non-listed--chromium.zip" && raw="$scratch/trace.zip" && trap 'rm -rf "$probe_run" "$scratch"' EXIT && mkdir -p "$(dirname "$published")" "$(dirname "$nonlisted")" "$(dirname "$raw")" && touch "$published" "$nonlisted" "$raw" && ! git check-ignore -q -- "$published" && git check-ignore -q -- "$nonlisted" && git check-ignore -q -- "$raw"
+    intent: |
+      Work test-first. Extend the sole DESIGN Checks parser so an optional Traces subsection directly under Checks accepts exactly a one-column Check ID table, refuses malformed columns, duplicate ids, and ids absent from the Checks table, and emits the normalized ordered list as traced_check_ids. Do not hardcode any FEAT-53 check id in ui_contract.py.
+
+      Extend gate enforcement so every applicable results record whose check id is in traced_check_ids carries one trace field. The trace value must be a repository-relative path, resolve inside the same run ui directory as results.json, name an existing non-empty ZIP file, and be rejected by check and project name when absent, absolute, escaping, outside ui, empty, non-ZIP, or attached to the wrong applicable record. A complete positive bundle with valid ZIP traces must pass this trace layer.
+
+      Add the SC-04 rule at the same enforcement boundary: scan every package e2e spec and refuse any occurrence of toHaveScreenshot( unless at least one Checks row has method pixel-baseline. Test the refusal with a mutant that inserts toHaveScreenshot( while no row opts in, and test the positive case where a Checks row explicitly opts in. This rule does not fix any FEAT-53 production defect and must not be described as a production fix.
+
+      Extend tests/unit/test-ui-verification-contract.py with focused parser and gate cases named test_traces_table_normalizes_and_rejects_invalid_rows, test_traced_results_require_replayable_zip_inside_run_ui, and test_to_have_screenshot_requires_pixel_baseline_opt_in, retaining all prior cases. Write receipt-main-direct-T-14-c0.md with the exact pre-fix tree or mutant, command, nonzero result, failing test name, post-fix green result, and explicit SC-04 mapping. The receipt must distinguish gate enforcement from FEAT-53 production behavior.
+
+      Update the existing root .gitignore rules generically so reporter-published ZIPs under .harness/harness/features/<feature>/runs/<run-id>/ui/traces/ are committable evidence while Playwright reports, test-results, raw traces, and non-published or non-listed trace artifacts remain ignored in scratch locations. The policy must be location-based and must not hardcode any FEAT-53 check id. Preserve the existing committed results.json and WebP evidence boundary.
+  - id: T-15
+    title: Declare the FEAT-53 replayable trace set
+    traces: [SC-05, SC-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-visual-designer
+    depends_on: [T-14]
+    status: ready
+    files:
+      - .harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md
+    verify: |
+      python3 -c "import json,pathlib,subprocess; d=json.loads(subprocess.check_output(['python3','.claude/skills/harness/bin/ui_contract.py','check','--design','.harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md','--require-predicates','--require-inspection-evidence'],text=True)); expected=['C3-KEYBOARD','TBL-DESKTOP','VIS-PROTOTYPE','A11Y-AXE']; assert d['traced_check_ids']==expected; assert set(expected)<=set(d['listed_check_ids']); tooling='\n'.join(pathlib.Path(p).read_text() for p in ['.claude/skills/harness/bin/ui_contract.py','.claude/skills/harness/bin/dashboard/client/ui-manifest.ts','.claude/skills/harness/bin/dashboard/client/ui-reporter.ts','.claude/skills/harness/bin/dashboard/client/playwright.config.ts']); assert all(i not in tooling for i in expected)"
+    intent: |
+      Preserve every existing DESIGN directive, Checks row, inspection-evidence row, title, predicate, method, project, and order. Under DESIGN.md section ## Checks, add the optional subsection ### Traces with a one-column table headed Check ID. Its data rows, in this exact order and with no others, are C3-KEYBOARD, TBL-DESKTOP, VIS-PROTOTYPE, and A11Y-AXE. Every row must resolve to the existing Checks table through ui_contract.py, and the generic parser, manifest consumer, reporter, and Playwright configuration must remain free of these four hardcoded ids.
+  - id: T-16
+    title: Capture and publish traces for traced checks
+    traces: [SC-02, SC-05, SC-06, SC-09]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-14]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/playwright.config.ts
+      - .claude/skills/harness/bin/dashboard/client/ui-manifest.ts
+      - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
+      - .claude/skills/harness/bin/dashboard/client/ui-reporter.probe.spec.ts
+    verify: |
+      node --experimental-strip-types --test .claude/skills/harness/bin/dashboard/client/ui-reporter.probe.spec.ts
+    intent: |
+      Consume traced_check_ids from the normalized manifest without parsing DESIGN.md or hardcoding check ids. Configure Playwright to record a trace for every test execution. In the real reporter path, for each manifest-listed traced check and each applicable project, require Playwright's trace attachment to exist and be a non-empty ZIP, copy it to the repository-relative path .harness/harness/features/<feature>/runs/<run-id>/ui/traces/<check>--<project>.zip, and set that exact path in the record's trace field. A missing, duplicate, empty, non-ZIP, mismatched-check, or mismatched-project attachment must fail reporter accounting by name. Only manifest-listed traces may be published into that T-14-governed committable path. Non-listed records must not claim or publish a committed trace, and their raw Playwright traces must remain in ignored scratch locations governed by T-14.
+
+      Update ui-manifest.ts types for traced_check_ids and the optional per-record trace contract, ui-reporter.ts for capture and results serialization, playwright.config.ts for trace recording, and ui-reporter.probe.spec.ts with observable positive and negative reporter executions using real ZIP bytes. The probes must demonstrate all applicable traced records get distinct committed paths, a traced record cannot pass without its trace, a non-traced record remains valid without one, and non-listed traces are not published; source-token or mock-echo assertions are insufficient.
+
+      Do not edit .gitignore. Do not add package dependencies, edit FEAT-53 production src or dist, change check predicates, or convert inspection judgment into automated judgment.
+  - id: T-17
+    title: Require trace replay in UI reviewer Mode B
+    traces: [SC-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires the canonical UI reviewer policy, generated adapter, and policy enforcement test to be changed by the main session
+    depends_on: [T-14]
+    status: ready
+    files:
+      - .omp/agents/harness-ui-reviewer.md
+      - .claude/agents/harness-ui-reviewer.md
+      - tests/unit/test-ui-reviewer-policy.py
+    verify: |
+      python3 tests/unit/test-ui-reviewer-policy.py && python3 .claude/skills/harness/bin/sync-agent-adapters.py --check
+    intent: |
+      Test first by extending the Mode B policy-contract test with clauses and one mutation per clause. In canonical .omp/agents/harness-ui-reviewer.md, require Mode B to read traced_check_ids, open every traced record's ZIP with npx playwright show-trace, inspect its action filmstrip, DOM snapshots, and assertion context, and cite the exact judged step in the finding evidence. A traced check graded from its still screenshot alone, an unopened trace, a missing step citation, or an unreadable, stale, mismatched, or incomplete trace is a FAIL finding rather than a pass or open question.
+
+      The policy test must reject mutants that replace every trace with a sample, replace opening with file-presence inspection, omit the judged-step citation, or permit still-only grading. Preserve every existing Mode B results, WebP, review_sha, DESIGN, prototype, rerun, and no-ad-hoc-browser clause. Author only the canonical .omp file, regenerate .claude/agents/harness-ui-reviewer.md with sync-agent-adapters.py --apply, and leave the adapter check clean.
+  - id: T-18
+    title: Rebuild the intentional FEAT-53 RED bundle with replayable traces
+    traces: [SC-01, SC-02, SC-03, SC-05, SC-06, SC-08]
+    change_type: frontend
+    execution_mode: main-session-direct
+    execution_reason: cross-feature committed validation evidence and its receipt have no specialist write grant, and the first consumer result must remain an honest RED bundle
+    depends_on: [T-15, T-16, T-17]
+    status: ready
+    files:
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/results.json
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/evidence
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/C3-KEYBOARD--desktop-1440.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/C3-KEYBOARD--desktop-1920.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/TBL-DESKTOP--desktop-1440.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/TBL-DESKTOP--desktop-1920.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/VIS-PROTOTYPE--desktop-1440.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/VIS-PROTOTYPE--desktop-1920.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/A11Y-AXE--desktop-1440.zip
+      - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/A11Y-AXE--desktop-1920.zip
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-main-direct-T-18-c0.md
+    verify: |
+      sh -c 'HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=FEAT-1821-initial-red npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui; rc=$?; test "$rc" -ne 0' && python3 -c "import json,pathlib,subprocess,zipfile; root=pathlib.Path('.').resolve(); p=pathlib.Path('.harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/results.json'); d=json.loads(p.read_text()); expected={(i,pr) for pr,ids in d['applicable_check_ids'].items() for i in ids}; actual={(r['check_id'],r['project']) for r in d['checks']}; traced={'C3-KEYBOARD','TBL-DESKTOP','VIS-PROTOTYPE','A11Y-AXE'}; assert d['schema']=='harness-ui-results/1' and d['summary']['status']=='failed' and expected==actual and not d['missing_check_ids']; rows=[r for r in d['checks'] if r['check_id'] in traced]; assert len(rows)==8; assert all(r.get('trace')==f'.harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/{r[\"check_id\"]}--{r[\"project\"]}.zip' for r in rows); assert all((root/r['trace']).stat().st_size>0 and zipfile.is_zipfile(root/r['trace']) for r in rows); cmd=['python3','.claude/skills/harness/bin/ui_contract.py','gate','--design',d['design'],'--results',str(p),'--feature',d['feature'],'--run-id',d['run_id'],'--served-bundle-commit',d['served_bundle_commit'],'--repo-root','.','--client-package','.claude/skills/harness/bin/dashboard/client']; q=subprocess.run(cmd,text=True,capture_output=True); assert q.returncode==1 and 'UI GATE: FAIL' in q.stdout and ' failed:' in q.stdout; assert not any(x in q.stdout for x in ('trace is','trace path','no record for','screenshot evidence','accounting')); receipt=pathlib.Path('.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-main-direct-T-18-c0.md').read_text(); assert all(x in receipt for x in ('FEAT-1821-initial-red','UI GATE: FAIL','C3-KEYBOARD--desktop-1440.zip','A11Y-AXE--desktop-1920.zip'))"
+    intent: |
+      Rerun the complete configured lane against the unchanged committed FEAT-53 dist with feature FEAT-53-metrics-dashboard and run id FEAT-1821-initial-red. Replace the prior intentional RED bundle atomically with the rerun's complete results.json, every referenced WebP, and exactly eight required trace ZIPs: C3-KEYBOARD, TBL-DESKTOP, VIS-PROTOTYPE, and A11Y-AXE at desktop-1440 and desktop-1920. Every applicable pair must have one record; every traced record must carry its exact repository-relative traces/<check>--<project>.zip path; listed, applicable, observed, missing, screenshot, trace, status, and error accounting must remain structurally complete.
+
+      The lane and independent ui_contract.py gate must both execute. The bundle remains intentionally overall RED only for measurable FEAT-53 behavior still failing at build time; missing results, screenshots, traces, applicable records, malformed ZIPs, or accounting defects are task failures, not acceptable RED. Record the lane command and status, gate command and complete output, results path, eight trace paths, one-line npx playwright show-trace command pattern, structural assertions, and observed product failures in receipt-main-direct-T-18-c0.md.
+
+      Do not edit or rebuild FEAT-53 production src, dist, fixtures, DESIGN outside T-15, or serve.py. Do not fix header, hue, status-label, table, keyboard, accessibility, density, or prototype defects. Record and preserve whatever the unchanged bundle honestly reports; do not predeclare a defect failed or force a green result. Final pinning, validation, documentation, and operator briefing remain orchestrator phases and are not part of this task.
