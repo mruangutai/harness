@@ -1,0 +1,37 @@
+schema_version: 2
+run_id: 2026-09-19-01-product
+run_uid: 52a855bd4ed14288bb5f273304493548
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: T-15
+    persona: harness-visual-designer
+    task: declare-replayable-trace-set
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/prototypes/receipt-harness-visual-designer-T-15-c1.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    routed_by: consult-when
+    note: exact trace table and post-T-16 scoped proof complete
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/prototypes/receipt-harness-visual-designer-T-15-c1.md
+    evidence:
+      traced_check_ids: [C3-KEYBOARD, TBL-DESKTOP, VIS-PROTOTYPE, A11Y-AXE]
+      proof_exit: 0
+      sibling_all_clear: true
+cycles_used: 1
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/2026-09-19-01-product/digest.md

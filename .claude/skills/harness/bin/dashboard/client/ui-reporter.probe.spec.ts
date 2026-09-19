@@ -14,7 +14,8 @@ const packageDir = client;
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 
 type Defect = 'missing record' | 'duplicate' | 'mismatched title' | 'empty WebP' | 'parser error' | 'reporter error' | 'incomplete accounting';
-type Reporter = { onBegin(config: object): void; onTestEnd(test: object, result: object): void; onEnd(result: object): Promise<void>; checks: Array<Record<string, unknown>>; reporterErrors: string[]; manifest?: { checks: Array<Record<string, unknown>> } };
+type ManifestCheck = { check_id: string; spec_title: string; method: string; applicable_projects: string[] };
+type Reporter = { onBegin(config: object): void; onTestEnd(test: object, result: object): void; onEnd(result: object): Promise<void>; checks: Array<Record<string, unknown>>; reporterErrors: string[]; manifest?: { checks: ManifestCheck[]; inspection_evidence: Array<{ check_id: string; project: string; evidence_label: string }>; traced_check_ids: string[] } };
 
 async function reporterFor(runId: string): Promise<Reporter> {
   process.env.HARNESS_UI_RUN_ID = runId;
@@ -52,6 +53,23 @@ async function parserFailureReporter(runId: string): Promise<{ reporter: Reporte
 
 function resultPath(runId: string): string {
   return resolve(root, `.harness/harness/features/${feature}/runs/${runId}/ui/results.json`);
+}
+
+const EMPTY_ZIP = Buffer.from('504b0506000000000000000000000000000000000000', 'hex');
+
+async function record(reporter: Reporter, check: ManifestCheck, project: string, attachments: Array<{ name: string; path: string }> = []): Promise<void> {
+  const evidence = resolve(tmpdir(), `ui-reporter-${Date.now()}-${Math.random()}.webp`);
+  await writeFile(evidence, Buffer.from('RIFF0000WEBPpayload'));
+  reporter.onTestEnd(
+    { title: check.spec_title, parent: { project: () => ({ name: project }) } },
+    { status: 'passed', attachments: [{ name: `evidence:${check.check_id}:execution`, path: evidence }, ...attachments], errors: [] },
+  );
+}
+
+async function traceAttachment(name = 'trace', bytes = EMPTY_ZIP): Promise<{ name: string; path: string }> {
+  const path = resolve(tmpdir(), `ui-reporter-trace-${Date.now()}-${Math.random()}.zip`);
+  await writeFile(path, bytes);
+  return { name, path };
 }
 
 async function normalRecord(reporter: Reporter, webp = true): Promise<void> {
@@ -153,4 +171,88 @@ test('reporter error', async () => {
 test('incomplete accounting', async () => {
   await assertDefect('incomplete accounting', async (reporter) => { await normalRecord(reporter); reporter.checks[0].screenshots = []; }, /no screenshot evidence/);
   await assertInspectionSetupFailure();
+});
+
+test('traced record requires a trace attachment', async () => {
+  const runId = `probe-missing-trace-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const reporter = await reporterFor(runId);
+  reporter.onBegin({});
+  const check = reporter.manifest!.checks.find((candidate) => !candidate.method.startsWith('inspection'))!;
+  reporter.manifest!.traced_check_ids = [check.check_id];
+  await record(reporter, check, 'desktop-1440');
+  await reporter.onEnd({ status: 'passed' });
+  const emitted = JSON.parse(await readFile(resultPath(runId), 'utf8'));
+  assert.match(emitted.summary.errors.join('\n'), new RegExp(`missing trace for desktop-1440/${check.check_id}`));
+  await rm(dirname(dirname(resultPath(runId))), { recursive: true, force: true });
+});
+
+
+async function traceDefect(name: string, attachmentFor: (check: ManifestCheck) => Promise<Array<{ name: string; path: string }>>, expected: RegExp): Promise<void> {
+  const runId = `probe-trace-${name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const reporter = await reporterFor(runId);
+  reporter.onBegin({});
+  const check = reporter.manifest!.checks.find((candidate) => !candidate.method.startsWith('inspection'))!;
+  reporter.manifest!.traced_check_ids = [check.check_id];
+  await record(reporter, check, 'desktop-1440', await attachmentFor(check));
+  await reporter.onEnd({ status: 'passed' });
+  const emitted = JSON.parse(await readFile(resultPath(runId), 'utf8'));
+  assert.match(emitted.summary.errors.join('\n'), expected);
+  await rm(dirname(dirname(resultPath(runId))), { recursive: true, force: true });
+}
+
+test('trace attachment failures are named', async (context) => {
+  await context.test('duplicate', async () => {
+    await traceDefect('duplicate', async () => [await traceAttachment(), await traceAttachment()], /duplicate trace for desktop-1440/);
+  });
+  await context.test('empty', async () => {
+    await traceDefect('empty', async () => [await traceAttachment('trace', Buffer.alloc(0))], /empty trace for desktop-1440/);
+  });
+  await context.test('non-ZIP', async () => {
+    await traceDefect('non-zip', async () => [await traceAttachment('trace', Buffer.from('not a zip'))], /non-ZIP trace for desktop-1440/);
+  });
+  await context.test('mismatched check', async () => {
+    await traceDefect('mismatched-check', async () => [await traceAttachment(), await traceAttachment('trace:wrong-check:desktop-1440')], /mismatched trace check for desktop-1440/);
+  });
+  await context.test('mismatched project', async () => {
+    await traceDefect('mismatched-project', async (check) => [await traceAttachment(), await traceAttachment(`trace:${check.check_id}:wrong-project`)], /mismatched trace project for desktop-1440/);
+  });
+});
+
+test('publishes only manifest-listed traces', async () => {
+  const runId = `probe-trace-publication-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const reporter = await reporterFor(runId);
+  reporter.onBegin({});
+  const manifest = reporter.manifest!;
+  const traced = manifest.checks.slice(0, 2).map((check) => check.check_id);
+  manifest.traced_check_ids = traced;
+  for (const check of manifest.checks) {
+    for (const project of check.applicable_projects) {
+      const labels = manifest.inspection_evidence.filter((evidence) => evidence.check_id === check.check_id && evidence.project === project).map((evidence) => evidence.evidence_label);
+      const screenshots = await Promise.all((labels.length ? labels : ['execution']).map(async (label) => {
+        const path = resolve(tmpdir(), `ui-reporter-${Date.now()}-${Math.random()}.webp`);
+        await writeFile(path, Buffer.from('RIFF0000WEBPpayload'));
+        return { name: `evidence:${check.check_id}:${label}`, path };
+      }));
+      reporter.onTestEnd(
+        { title: check.spec_title, parent: { project: () => ({ name: project }) } },
+        { status: 'passed', attachments: [...screenshots, await traceAttachment()], errors: [] },
+      );
+    }
+  }
+  await reporter.onEnd({ status: 'passed' });
+  const results = resultPath(runId);
+  const emitted = JSON.parse(await readFile(results, 'utf8'));
+  assert.equal(emitted.summary.status, 'passed');
+  const tracedRecords = emitted.checks.filter((check: { check_id: string }) => traced.includes(check.check_id));
+  assert.equal(tracedRecords.length, manifest.checks.filter((check) => traced.includes(check.check_id)).reduce((total, check) => total + check.applicable_projects.length, 0));
+  assert.equal(new Set(tracedRecords.map((check: { trace: string }) => check.trace)).size, tracedRecords.length);
+  for (const check of tracedRecords) {
+    assert.equal(check.trace, `.harness/harness/features/${feature}/runs/${runId}/ui/traces/${check.check_id}--${check.project}.zip`);
+    assert.deepEqual(await readFile(resolve(root, check.trace)), EMPTY_ZIP);
+  }
+  const untraced = emitted.checks.filter((check: { check_id: string }) => !traced.includes(check.check_id));
+  assert.ok(untraced.length > 0);
+  assert.ok(untraced.every((check: { trace?: string }) => check.trace === undefined));
+  await assert.rejects(readFile(resolve(root, `.harness/harness/features/${feature}/runs/${runId}/ui/traces/${untraced[0].check_id}--${untraced[0].project}.zip`)));
+  await rm(dirname(dirname(results)), { recursive: true, force: true });
 });

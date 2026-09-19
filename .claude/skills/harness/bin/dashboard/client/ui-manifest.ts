@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 
 export type UiCheck = { check_id: string; spec_title: string; surface: string; method: string; applicable_projects: string[] };
 export type InspectionEvidence = { check_id: string; evidence_label: string; route: string; fixture_state: string; setup: string; project: string };
-export type UiManifest = { schema: 'harness-ui-manifest/1'; design: string; projects: string[]; checks: UiCheck[]; inspection_evidence: InspectionEvidence[]; listed_check_ids: string[]; applicable: Record<string, string[]> };
+export type UiManifest = { schema: 'harness-ui-manifest/1'; design: string; projects: string[]; checks: UiCheck[]; inspection_evidence: InspectionEvidence[]; traced_check_ids: string[]; listed_check_ids: string[]; applicable: Record<string, string[]> };
+export type UiResultRecord = { check_id: string; spec_title: string; method: string; surface: string; project: string; status: 'passed' | 'failed' | 'evidence'; screenshots: { path: string; route: string; fixture_state: string; interaction: string; evidence_label: string }[]; errors: string[]; trace?: string };
 
 const root = resolve(import.meta.dirname, '..', '..', '..', '..', '..', '..');
 const design = resolve(root, '.harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md');

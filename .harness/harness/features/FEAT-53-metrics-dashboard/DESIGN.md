@@ -883,6 +883,15 @@ the named surface and state. This includes `SRC-TOKENS`: its source predicate ru
 | VIS-DENSITY | dense hierarchy and qualitative states match DESIGN | all-routes | inspection-each-project | desktop-1440,desktop-1920 | Execute every `VIS-DENSITY` Inspection evidence row at its exact route, fixture and interaction; compare only with the same approved FEAT-53 prototype route and state, and accept only when hierarchy, density, overflow and qualitative-state treatment match DESIGN. |
 | VIS-PROTOTYPE | rendered routes and interactions match approved prototype | all-routes | inspection-each-project | desktop-1440,desktop-1920 | Execute every `VIS-PROTOTYPE` Inspection evidence row at its exact route, fixture and interaction; compare only with the same approved FEAT-53 prototype route and state, and accept only when the rendered route and post-interaction surface match the approved prototype. |
 
+### Traces
+
+| Check ID |
+|---|
+| C3-KEYBOARD |
+| TBL-DESKTOP |
+| VIS-PROTOTYPE |
+| A11Y-AXE |
+
 Screenshots below are required outputs, not interchangeable examples. Each comparison opens the
 committed approved prototype at `notes/prototypes/FEAT-53/` on the same route, fixture state and
 post-interaction surface; a generic homepage capture cannot discharge another entry.

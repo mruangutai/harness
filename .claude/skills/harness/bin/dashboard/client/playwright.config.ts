@@ -15,6 +15,7 @@ export default defineConfig({
     colorScheme: 'dark',
     reducedMotion: 'reduce',
     deviceScaleFactor: 1,
+    trace: 'on',
   },
   projects: [
     { name: 'desktop-1440', use: { viewport: { width: 1440, height: 1100 } } },

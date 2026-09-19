@@ -486,7 +486,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-visual-designer
     depends_on: [T-14]
-    status: ready
+    status: done
     files:
       - .harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md
     verify: |
@@ -500,7 +500,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-frontend-dev
     depends_on: [T-14]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dashboard/client/playwright.config.ts
       - .claude/skills/harness/bin/dashboard/client/ui-manifest.ts
