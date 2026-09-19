@@ -461,7 +461,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main-session execution for the UI contract gate, its enforcement tests, and the criterion-mapped fail-first receipt
     depends_on: []
-    status: done
+    status: building
     files:
       - .claude/skills/harness/bin/ui_contract.py
       - tests/unit/test-ui-verification-contract.py

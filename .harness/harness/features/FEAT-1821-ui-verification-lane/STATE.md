@@ -3,15 +3,15 @@
 ## Current
 
 - feature: FEAT-1821-ui-verification-lane
-- completed: [T-14, T-15, T-16, T-17]
-- next_task: T-18
+- run: validate-c9-validator
+- failed_task: T-14
 - execution_mode: main-session-direct
 - status: awaiting_user
-- review_sha: 0163657540ab3ad3be4ff5aa34f838dc4f1e17d8
+- review_sha: c5fab95615c035e97109f90bd4aa91fc2e4b78a5
 - plan_station: building
 - rework_allowance: 9 rounds / 405 minutes
 - cycles_used: 11 / 12
 
 ## Open Questions
 
-- Q1 (blocking): Main must execute T-18 directly: rerun the complete configured FEAT-53 lane with `HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard` and `HARNESS_UI_RUN_ID=FEAT-1821-initial-red`, replace the intentional RED bundle with complete results/WebPs and exactly eight trace ZIPs for C3-KEYBOARD, TBL-DESKTOP, VIS-PROTOTYPE, and A11Y-AXE at desktop-1440/1920, run the independent gate, and write `notes/receipt-main-direct-T-18-c0.md`. Verify structural completeness, valid repo-relative trace paths/ZIPs, the one-line show-trace command, and honest product failures without editing or rebuilding FEAT-53 production/dist.
+- Q1 (blocking): Main must execute the authorized T-14 fix for V9-01. Replace PK-header-only trace validation with validation of a readable ZIP archive, and add a discriminating corrupt file that begins `PK\x03\x04` but is not accepted by `zipfile.is_zipfile` as the fail-first mutant. Preserve every path, non-empty, in-run, traced/untraced, SC-04, and prior fail-closed rule; run the scoped T-14 unit/complexity/receipt proof. Before editing or verifying, restore the reader-dirtied FEAT-53 `FEAT-1821-initial-red/ui/results.json` exactly from review pin c5fab95615c035e97109f90bd4aa91fc2e4b78a5 and ensure the shared dashboard service is not colliding with any scoped replay. Do not change FEAT-53 production/dist or the pinned evidence bundle's intended contents.

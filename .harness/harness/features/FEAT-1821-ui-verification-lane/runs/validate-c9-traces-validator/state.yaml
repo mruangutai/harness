@@ -1,0 +1,98 @@
+schema_version: 2
+run_uid: 96592c0316cc4741a020a84d6c9f5787
+run_id: validate-c9-traces-validator
+feature: FEAT-1821-ui-verification-lane
+squad: validator
+host: harness-validator-lead
+team: validate-amendment
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+review_sha: c5fab95615c035e97109f90bd4aa91fc2e4b78a5
+pinned_sha: c5fab95615c035e97109f90bd4aa91fc2e4b78a5
+status: blocked
+verdict: BLOCKED
+severity_max: high
+cycles_used: 0
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/validate-c9-traces-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-14..T-18
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c9.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: FAIL
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: signed-amendment-validation
+    note: Immutable bundle passes structural gate, but PK-prefix non-ZIP mutant exposes a T-14 fail-open.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c9.md
+    evidence:
+      matrix_ok: false
+      unit_tests: 27
+      reporter_probes: 15
+      policy_assertions: 50
+      webps: 41
+      trace_zips: 8
+      gate_product_reasons: 18
+      gate_inspection_reasons: 4
+      gate_forbidden_reasons: 0
+      severity_max: high
+  - id: ui
+    persona: harness-ui-reviewer
+    task: T-14..T-18
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c9.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: signed-amendment-validation
+    note: All eight traces canonically replayed with one judged-step citation each; all 41 WebPs reviewed.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c9.md
+    evidence:
+      traces_opened: 8
+      trace_step_citations: 8
+      webps_reviewed: 41
+      severity_max: none
+  - id: code
+    persona: harness-code-reviewer
+    task: T-14..T-18
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c9.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: FAIL
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: signed-amendment-validation
+    note: Stage 1 fails because four-byte ZIP magic is accepted without ZIP structure validation.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c9.md
+    evidence:
+      reviewed: 102cd2d7..c5fab95615c035e97109f90bd4aa91fc2e4b78a5
+      contract_accepts_corrupt_zip: true
+      stdlib_accepts_corrupt_zip: false
+      severity_max: high
