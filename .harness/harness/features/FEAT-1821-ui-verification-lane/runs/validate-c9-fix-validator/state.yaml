@@ -1,0 +1,68 @@
+schema_version: 2
+run_uid: a31c0dbf75d5412998a7a55b9c5b78df
+run_id: validate-c9-fix-validator
+feature: FEAT-1821-ui-verification-lane
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-14
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c9-fix.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: v9-01-revalidation
+    note: Corrupt PK-prefix mutant rejected; eight real traces and 27 scoped units pass.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c9-fix.md
+    evidence:
+      review_sha: ea4916518eea1c8f73901d372ad8e1e38595e64b
+      unit_tests: 27
+      trace_zips: 8
+      gate_predicate_reasons: 18
+      gate_inspection_reasons: 4
+      gate_forbidden_reasons: 0
+      mutant_zip_readable: false
+      mutant_gate_rejected: true
+      complexity_passing_records: 1
+  - id: code
+    persona: harness-code-reviewer
+    task: T-14
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c9-fix.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: v9-01-revalidation
+    note: Spec and quality pass; central-directory validation closes V9-01 without regressions.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c9-fix.md
+    evidence:
+      review_sha: ea4916518eea1c8f73901d372ad8e1e38595e64b
+      review_base: c5fab95615c035e97109f90bd4aa91fc2e4b78a5
+      trace_zips: 8
+      mutant_gate_rejected: true
+      substantive_findings: 0

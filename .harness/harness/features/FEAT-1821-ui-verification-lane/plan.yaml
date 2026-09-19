@@ -4,7 +4,7 @@ approval:
   date: '2026-09-19'
   approved_by: operator
   status: approved
-status: building
+status: review
 source_issues: [1821]
 panel:
   last_run: plan-product
@@ -461,7 +461,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main-session execution for the UI contract gate, its enforcement tests, and the criterion-mapped fail-first receipt
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/ui_contract.py
       - tests/unit/test-ui-verification-contract.py
