@@ -15,6 +15,11 @@ Inspection rows carry their evidence manifest in a `### Inspection evidence` tab
 
     | Check ID | Evidence label | Route | Fixture state | Setup | Project | Screenshot |
 
+An optional `### Traces` sub-table (one column, `Check ID`) names the checks whose records must
+carry a replayable Playwright `trace.zip` (`npx playwright show-trace <zip>`), committed with the
+bundle under `runs/<run-id>/ui/traces/`. Pixel baselines are opt-in: `toHaveScreenshot(` may appear
+in a spec only when some Checks row carries method `pixel-baseline` (SC-04).
+
 `check` emits the normalized manifest (`harness-ui-manifest/1`) that the Playwright runner and
 the QA gate both consume — neither parses Markdown again. `gate` recomputes that manifest from
 the committed DESIGN.md — predicates and inspection evidence REQUIRED — and judges
@@ -39,9 +44,11 @@ PROJECTS = ("desktop-1440", "desktop-1920")
 METHODS = ("automated-each-project", "automated-once", "inspection-each-project", "pixel-baseline")
 CHECK_COLUMNS = ("Check ID", "Spec title", "Surface", "Method", "Projects", "Predicate or evidence")
 EVIDENCE_COLUMNS = ("Check ID", "Evidence label", "Route", "Fixture state", "Setup", "Project", "Screenshot")
+TRACES_COLUMNS = ("Check ID",)
 STATUS_BY_METHOD = {"automated-each-project": {"passed", "failed"}, "automated-once": {"passed", "failed"},
                     "pixel-baseline": {"passed", "failed"}, "inspection-each-project": {"evidence"}}
 SPEC_GLOB = "*.e2e.spec.ts"
+_PIXEL_CALL = "toHaveScreenshot("
 _TITLE = re.compile(r"""\btest(?:\.\w+)?\(\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`)""")
 
 
@@ -157,12 +164,13 @@ def load_manifest(design: pathlib.Path, require_predicates: bool = False,
         _require_evidence_per_project(checks, evidence)
     if expect is not None:
         _match_expected(checks, expect)
-    return _manifest(design, checks, evidence)
+    return _manifest(design, checks, evidence, _traced_ids(lines, start, checks))
 
 
-def _manifest(design, checks: list[dict], evidence: list[dict]) -> dict:
+def _manifest(design, checks: list[dict], evidence: list[dict], traced: list[str]) -> dict:
     return {"schema": MANIFEST_SCHEMA, "design": str(design), "projects": list(PROJECTS), "checks": checks,
-            "inspection_evidence": evidence, "listed_check_ids": [c["check_id"] for c in checks],
+            "inspection_evidence": evidence, "traced_check_ids": traced,
+            "listed_check_ids": [c["check_id"] for c in checks],
             "applicable": {p: [c["check_id"] for c in checks if p in c["applicable_projects"]] for p in PROJECTS}}
 
 
@@ -190,6 +198,22 @@ def _inspection_evidence(lines: list[str], start: int, checks: list[dict]) -> li
     by_id = {c["check_id"]: c for c in checks}
     return [_evidence_entry(row, by_id)
             for row in _table_after(lines, sub + 1, EVIDENCE_COLUMNS, "Inspection evidence")]
+
+
+def _traced_ids(lines: list[str], start: int, checks: list[dict]) -> list[str]:
+    """The `### Traces` sub-table: an ordered list of listed check ids, each once."""
+    sub = _section(lines, "### Traces", start + 1, stop_at_h2=True)
+    if sub is None:
+        return []
+    listed = {c["check_id"] for c in checks}
+    traced: list[str] = []
+    for (cid,) in _table_after(lines, sub + 1, TRACES_COLUMNS, "Traces"):
+        if cid not in listed:
+            raise ContractError(f"Traces: {cid} is not a listed check")
+        if cid in traced:
+            raise ContractError(f"Traces: duplicate check id {cid}")
+        traced.append(cid)
+    return traced
 
 
 def _require_evidence_per_project(checks: list[dict], entries: list[dict]) -> None:
@@ -232,6 +256,13 @@ class _Bundle:
     doc: dict
     repo_root: pathlib.Path
     ui_dir: pathlib.Path
+
+
+def _is_zip(path: pathlib.Path) -> bool:
+    try:
+        return path.read_bytes()[:4] == b"PK\x03\x04"
+    except OSError:
+        return False
 
 
 def _is_webp(path: pathlib.Path) -> bool:
@@ -337,8 +368,32 @@ def _screenshot_reasons(record: dict, key: tuple[str, str], bundle: _Bundle) -> 
     return [r for r in reasons if r]
 
 
+def _trace_reason(record: dict, key: tuple[str, str], bundle: _Bundle, traced: set[str]) -> str | None:
+    """A traced check's record must carry one replayable ZIP inside this run's ui/ directory;
+    a trace on an untraced check is refused too, so the Traces table stays the only authority."""
+    rel = record.get("trace")
+    if key[0] not in traced:
+        return None if rel is None else f"{key[0]}@{key[1]}: trace attached to a check the Traces table does not list"
+    if not rel:
+        return f"{key[0]}@{key[1]}: no trace (the Traces table requires a replayable ZIP)"
+    problem = _trace_file_problem(rel, bundle)
+    return f"{key[0]}@{key[1]}: trace {rel!r} {problem}" if problem else None
+
+
+def _trace_file_problem(rel: str, bundle: _Bundle) -> str | None:
+    if pathlib.PurePosixPath(rel).is_absolute() or pathlib.Path(rel).is_absolute():
+        return "must be repository-relative"
+    path = bundle.repo_root / rel
+    if not _under(path, bundle.ui_dir):
+        return f"is outside {bundle.ui_dir.relative_to(bundle.repo_root)}"
+    if not path.is_file() or path.stat().st_size == 0:
+        return "is absent or empty"
+    return None if _is_zip(path) else "is not a ZIP"
+
+
 def _records_reasons(bundle: _Bundle, manifest: dict) -> tuple[list[str], dict[tuple[str, str], dict]]:
     by_id = {c["check_id"]: c for c in manifest["checks"]}
+    traced = set(manifest["traced_check_ids"])
     seen: dict[tuple[str, str], dict] = {}
     out: list[str] = []
     for record in bundle.doc.get("checks") or []:
@@ -353,6 +408,8 @@ def _records_reasons(bundle: _Bundle, manifest: dict) -> tuple[list[str], dict[t
         else:
             seen[key] = record
             out += _record_reasons(record, spec, key) + _screenshot_reasons(record, key, bundle)
+            trace_reason = _trace_reason(record, key, bundle, traced)
+            out += [trace_reason] if trace_reason else []
     return out, seen
 
 
@@ -384,6 +441,16 @@ def _executed_titles(doc: dict) -> set[str]:
     return {r.get("spec_title") for r in doc.get("checks") or [] if r.get("screenshots")}
 
 
+def _pixel_baseline_reasons(manifest: dict, package: pathlib.Path) -> list[str]:
+    """SC-04: pixel baselines never gate by default. `toHaveScreenshot(` may appear only when a
+    Checks row explicitly opts in with method `pixel-baseline`."""
+    if any(c["method"] == "pixel-baseline" for c in manifest["checks"]):
+        return []
+    return [f"{_PIXEL_CALL} in {spec.name} but no Checks row opts into pixel-baseline"
+            for spec in sorted(pathlib.Path(package).rglob(SPEC_GLOB))
+            if "node_modules" not in spec.parts and _PIXEL_CALL in spec.read_text(encoding="utf-8")]
+
+
 def _client_change_reasons(manifest: dict, bundle: _Bundle, changed: list[str], package: pathlib.Path) -> list[str]:
     if not any(_under(bundle.repo_root / c, package) for c in changed):
         return []
@@ -406,6 +473,7 @@ def gate(design, results, feature: str, run_id: str, served_bundle_commit: str, 
     reasons += record_reasons + _coverage_reasons(manifest, seen)
     reasons += _summary_reasons(bundle.doc, reasons)
     reasons += _client_change_reasons(manifest, bundle, changed, package)
+    reasons += _pixel_baseline_reasons(manifest, package)
     return Verdict("FAIL" if reasons else "PASS", reasons)
 
 

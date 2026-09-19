@@ -39,11 +39,16 @@ EVIDENCE = [
 ]
 
 
-def design_text(rows=ROWS, evidence=EVIDENCE, header=None):
+ZIP = b"PK\x03\x04" + b"\x00" * 26 + b"PK\x05\x06" + b"\x00" * 18
+
+
+def design_text(rows=ROWS, evidence=EVIDENCE, header=None, traces=None, traces_header="| Check ID |"):
     header = header or "| Check ID | Spec title | Surface | Method | Projects | Predicate or evidence |"
     lines = ["# DESIGN", "", "## Palette", "", "prose", "", "## Checks", "", header,
              "|---|---|---|---|---|---|"]
     lines += ["| " + " | ".join(r) + " |" for r in rows]
+    if traces is not None:
+        lines += ["", "### Traces", "", traces_header, "|---|"] + [f"| {t} |" for t in traces]
     lines += ["", "### Inspection evidence", "",
               "| Check ID | Evidence label | Route | Fixture state | Setup | Project | Screenshot |",
               "|---|---|---|---|---|---|---|"]
@@ -78,15 +83,24 @@ class Workspace:
         path.write_bytes(data)
         return self.rel(path)
 
-    def results(self, mutate=None):
+    def trace(self, name, data=ZIP):
+        path = self.ui_dir / "traces" / name
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(data)
+        return self.rel(path)
+
+    def results(self, mutate=None, traced=()):
         checks = []
         for cid, title, surface, method, projects, _ in ROWS:
             for project in projects.split(","):
                 status = "evidence" if method.startswith("inspection") else "passed"
                 shots = [{"path": self.shot(f"{cid}-{project}.webp"), "route": "/", "fixture_state": "default",
                           "interaction": "load", "evidence_label": "overview-default"}]
-                checks.append({"check_id": cid, "spec_title": title, "method": method, "surface": surface,
-                               "project": project, "status": status, "screenshots": shots, "errors": []})
+                record = {"check_id": cid, "spec_title": title, "method": method, "surface": surface,
+                          "project": project, "status": status, "screenshots": shots, "errors": []}
+                if cid in traced:
+                    record["trace"] = self.trace(f"{cid}--{project}.zip")
+                checks.append(record)
         applicable = {"desktop-1440": [r[0] for r in ROWS], "desktop-1920": [r[0] for r in ROWS if r[3] != "automated-once"]}
         doc = {"schema": "harness-ui-results/1", "feature": FEATURE, "run_id": RUN,
                "design": self.rel(self.design), "served_bundle_commit": SHA,
@@ -164,6 +178,15 @@ class CheckContract(unittest.TestCase):
         stray = EVIDENCE + [("C1-HEADER-GEOMETRY",) + EVIDENCE[0][1:]]
         self.refuses(design_text(evidence=stray), "not an inspection row", require_inspection_evidence=True)
 
+
+    def test_traces_table_normalizes_and_rejects_invalid_rows(self):
+        m = self.manifest(design_text(traces=["VIS-DENSITY", "C1-HEADER-GEOMETRY"]))
+        self.assertEqual(m["traced_check_ids"], ["VIS-DENSITY", "C1-HEADER-GEOMETRY"])
+        self.assertEqual(self.manifest(design_text())["traced_check_ids"], [])
+        self.refuses(design_text(traces=["VIS-DENSITY"], traces_header="| Check ID | Note |"), "Traces: columns")
+        self.refuses(design_text(traces=["VIS-DENSITY", "VIS-DENSITY"]), "Traces: duplicate")
+        self.refuses(design_text(traces=["NOT-A-CHECK"]), "Traces: NOT-A-CHECK is not a listed check")
+
     def test_expected_rows_must_match_byte_for_byte(self):
         expect = ["|".join(r[:5]) for r in ROWS]
         self.manifest(design_text(), expect=expect)
@@ -195,8 +218,8 @@ class GateEvidence(unittest.TestCase):
         self.ws = Workspace()
         self.addCleanup(self.ws.tmp.cleanup)
 
-    def failing(self, needle, mutate=None, **kw):
-        self.ws.results(mutate)
+    def failing(self, needle, mutate=None, traced=(), **kw):
+        self.ws.results(mutate, traced=traced)
         verdict = self.ws.gate(**kw)
         self.assertEqual(verdict.status, "FAIL", verdict.reasons)
         self.assertTrue(any(needle in r for r in verdict.reasons), verdict.reasons)
@@ -298,6 +321,72 @@ class GateEvidence(unittest.TestCase):
             rec = [c for c in doc["checks"] if c["check_id"] == "VIS-DENSITY" and c["project"] == "desktop-1440"][0]
             rec["errors"] = ["every signed inspection setup and capture must execute"]
         self.failing("inspection setup failed", broken_setup)
+
+
+    def test_traced_results_require_replayable_zip_inside_run_ui(self):
+        self.ws.design.write_text(design_text(traces=["C1-HEADER-GEOMETRY", "SRC-TOKENS"]))
+        self.ws.results(traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+        verdict = self.ws.gate()
+        self.assertEqual(verdict.status, "PASS", verdict.reasons)
+
+        def rec(doc, cid="C1-HEADER-GEOMETRY", project="desktop-1920"):
+            return [c for c in doc["checks"] if c["check_id"] == cid and c["project"] == project][0]
+
+        def absent(doc):
+            del rec(doc)["trace"]
+        self.failing("C1-HEADER-GEOMETRY@desktop-1920: no trace", absent, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+        def absolute(doc):
+            rec(doc)["trace"] = str(self.ws.ui_dir / "traces" / "C1-HEADER-GEOMETRY--desktop-1920.zip")
+        self.failing("C1-HEADER-GEOMETRY@desktop-1920: trace", absolute, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+        def escaping(doc):
+            rec(doc)["trace"] = self.ws.rel(self.ws.ui_dir) + "/traces/../../escape.zip"
+        self.failing("outside", escaping, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+        def outside(doc):
+            stray = self.ws.root / "stray.zip"
+            stray.write_bytes(ZIP)
+            rec(doc)["trace"] = "stray.zip"
+        self.failing("outside", outside, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+        def empty(doc):
+            rec(doc)["trace"] = self.ws.trace("empty.zip", b"")
+        self.failing("absent or empty", empty, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+        def not_zip(doc):
+            rec(doc)["trace"] = self.ws.trace("not.zip", WEBP)
+        self.failing("not a ZIP", not_zip, traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+        def wrong_record(doc):
+            rec(doc, "VIS-DENSITY", "desktop-1440")["trace"] = self.ws.trace("VIS-DENSITY--desktop-1440.zip")
+        self.failing("VIS-DENSITY@desktop-1440: trace attached to a check the Traces table does not list", wrong_record,
+                     traced=("C1-HEADER-GEOMETRY", "SRC-TOKENS"))
+
+    def test_to_have_screenshot_requires_pixel_baseline_opt_in(self):
+        spec = self.ws.client / "feat-53.e2e.spec.ts"
+        spec.write_text(spec.read_text() + "test('pixels', async ({ page }) => { await expect(page).toHaveScreenshot(); });\n")
+        self.failing("toHaveScreenshot( in feat-53.e2e.spec.ts but no Checks row opts into pixel-baseline")
+        rows = ROWS + [("PIX-OVERVIEW", "overview pixels match baseline", "overview", "pixel-baseline",
+                        "desktop-1440,desktop-1920", "baseline committed under e2e/__screenshots__")]
+        self.ws.design.write_text(design_text(rows=rows))
+        spec.write_text(spec.read_text() + "test('overview pixels match baseline', async () => {});\n")
+
+        def add_pix(doc):
+            for project in ("desktop-1440", "desktop-1920"):
+                doc["checks"].append({"check_id": "PIX-OVERVIEW", "spec_title": "overview pixels match baseline",
+                                      "method": "pixel-baseline", "surface": "overview", "project": project,
+                                      "status": "passed", "errors": [],
+                                      "screenshots": [{"path": self.ws.shot(f"PIX-{project}.webp"), "route": "/",
+                                                       "fixture_state": "default", "interaction": "load",
+                                                       "evidence_label": "overview-default"}]})
+            doc["listed_check_ids"].append("PIX-OVERVIEW")
+            doc["observed_check_ids"].append("PIX-OVERVIEW")
+            for project in doc["applicable_check_ids"]:
+                doc["applicable_check_ids"][project].append("PIX-OVERVIEW")
+        self.ws.results(add_pix)
+        verdict = self.ws.gate()
+        self.assertEqual(verdict.status, "PASS", verdict.reasons)
 
     def test_client_package_change_requires_every_spec_title(self):
         # A title is present when the source names it literally OR the bundle carries an
