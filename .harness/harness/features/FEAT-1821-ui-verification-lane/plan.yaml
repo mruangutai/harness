@@ -538,7 +538,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: cross-feature committed validation evidence and its receipt have no specialist write grant, and the first consumer result must remain an honest RED bundle
     depends_on: [T-15, T-16, T-17]
-    status: ready
+    status: done
     files:
       - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/results.json
       - .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/evidence
