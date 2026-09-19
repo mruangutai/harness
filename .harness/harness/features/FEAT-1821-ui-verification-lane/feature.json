@@ -420,15 +420,20 @@
     "T-02": "e231c93c3359205baff639614d050c80a4692ef97b94a0880c3919f220a285a2",
     "T-03": "b4babe5ae5313a23f0bd4fecf4de18fd75bda7c8c676922f3ec5a2ea58bdaf5c",
     "T-04": "48f6da3c70404a6b40cfbd776cf8733cb886a6cd52207248d4c9e40bc823d155",
-    "T-05": "db6621cd6191dc3935e34173f06f1344f949a80fd15e73cb2ad70c21b5e337da",
-    "T-06": "d3ad9b803fd3ebec44f9e059b6ee79221ae0779df6a80f560956d4bd6681b5c7",
+    "T-05": "c821a6b02fbc2294b24f9b27cfa7057acb68c9ac1c6a291a7713430bf7855bf2",
+    "T-06": "603ce6934d2e366261961d7317505dd84d88d8eda46ee670959c72d5e6602c9d",
     "T-07": "73437382407532ab829d145b952ebf0c94b882492084795d7c66440ba3f71038",
-    "T-08": "b172aa33fd39d6d534c23c92c7bc3a8d758760a9378e8f5adc757ddd3bbe1626",
+    "T-08": "0069a267416c96195833dc4d87c7f2ad1592089f1c0fec09bb4580ed8d3a82ef",
     "T-09": "b57581a504f76db4d2da10b04a93f0d43b9671ded81ce30e05442c5a0a4ea0ad",
     "T-10": "6b542b5ad860888b12b47e0d00cbd7507d50ef5ec52e6751362e91eaca01d0b6",
     "T-11": "021130d8b0fd2224a9b233a1782614bbf7ad3ef17c947a1620f67ba0d62a7ea4",
     "T-12": "c63e4864b92a1eec46e9c718902beed57a4d4edab29162deba0157b1049e9d52",
-    "T-13": "f22ec43f50ae7822ca54c98d57b2ba374240fb08103c2b8ac56faa7624b7a838"
+    "T-13": "f22ec43f50ae7822ca54c98d57b2ba374240fb08103c2b8ac56faa7624b7a838",
+    "T-14": "efe32b88c4427213b8158fa08d045820b9bb5c9fa0d4a42f976ed0089bcd0181",
+    "T-15": "e31c2299e3453e8a0eed36e4e43b7469b82c9cb988487ed236dc5f1bbb4501e8",
+    "T-16": "e0192874401cb94d0e3f45b5806129c56498ea460c581058f62e0611d7a8be02",
+    "T-17": "3854b76c4c021cd5c00bcb707b509c42fc0da7f4f7fb4a5ebcd921011e050ae8",
+    "T-18": "5a5e91e1e6676dc507b18f49e89b96facdc24aba3388d4075bc18a64e940bf3f"
   },
   "github": {
     "milestone": 81,
@@ -446,7 +451,12 @@
       "T-10",
       "T-11",
       "T-12",
-      "T-13"
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-18"
     ],
     "issues": {
       "T-01": 1823,
@@ -461,7 +471,12 @@
       "T-10": 1832,
       "T-11": 1833,
       "T-12": 1834,
-      "T-13": 1835
+      "T-13": 1835,
+      "T-14": 1837,
+      "T-15": 1838,
+      "T-16": 1839,
+      "T-17": 1840,
+      "T-18": 1841
     },
     "source_issues": [
       1821

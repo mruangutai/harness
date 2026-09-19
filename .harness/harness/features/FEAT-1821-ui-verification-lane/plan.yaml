@@ -1,13 +1,10 @@
 schema: plan/1
 feature: FEAT-1821-ui-verification-lane
 approval:
-  date: '2026-09-18'
+  date: '2026-09-19'
   approved_by: operator
-  status: pending
-  reset_at: '2026-09-19T14:11:21+00:00'
-  reset_reason: apply T-14, T-15, T-16, T-17, T-18
-  resume_station: building
-status: plan
+  status: approved
+status: building
 source_issues: [1821]
 panel:
   last_run: plan-product

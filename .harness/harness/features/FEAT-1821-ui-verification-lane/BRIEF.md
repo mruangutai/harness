@@ -69,5 +69,5 @@ The operator and reviewers cannot rely on the current UI gate to catch visible d
 
 status: approved
 approved-by: operator (Mike Ruangutai), via main session
-date: 2026-09-18
-scope: re-signed after the T-03 split amendment (T-08..T-13, notes/answers-fix-c3-split.md); BRIEF scope and SCs unchanged. Rework ruling cumulative rounds=7, minutes=315.
+date: 2026-09-19
+scope: re-signed after the replayable-evidence amendment (T-14..T-18, notes/answers-validate-c8-traces.md); BRIEF scope and SCs unchanged. Rework ruling cumulative rounds=9, minutes=405; cycle ceiling 12.
