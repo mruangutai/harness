@@ -68,6 +68,9 @@ Before any dimension is graded, the bundle itself must stand:
 - Once rows carry a record at its declared project only.
 - `listed`, `applicable`, `observed` and `missing` ids form complete id accounting — no id unaccounted for, `missing` empty.
 - Every inspection evidence label appears with its route, fixture state, interaction and viewport, and its screenshot opens and shows that state.
+- For every traced record — the checks the manifest's `traced_check_ids` names — you open its ZIP with `npx playwright show-trace <zip>` and inspect the action filmstrip, the DOM snapshots and the assertion context at the step that decided the outcome; a still cannot show what a keyboard sequence or a drill did.
+- Your finding for a traced check must cite the exact judged step (action index or label from the trace) alongside the screenshot path.
+- A traced check graded from its still screenshot alone, an unopened trace, a missing step citation, or an unreadable, stale, mismatched or incomplete trace is a `FAIL` finding — never a pass, never an open question.
 - **Missing, unreadable, stale, mismatched or incomplete evidence is `FAIL`** — never "human check required", never an open question. An unseen dimension is a failed dimension.
 
 Rerunning is limited to only the configured `test_kinds.ui` command with the same feature and run context (`HARNESS_UI_FEATURE`, `HARNESS_UI_RUN_ID`); do that to refresh a bundle you doubt.

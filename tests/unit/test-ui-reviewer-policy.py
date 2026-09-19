@@ -64,6 +64,18 @@ CLAUSES = {
     "no-alternate-browser-scripts": (
         r"[Nn]ever[^\n]*alternate browser script",
         (r"alternate browser script", "documented browser script")),
+    "traces-every-traced-record": (
+        r"every traced record[^\n]*`traced_check_ids`",
+        (r"every traced record", "a sample of traced records")),
+    "traces-opened-not-just-present": (
+        r"open[^\n]*`npx playwright show-trace[^`]*`[^\n]*filmstrip[^\n]*DOM snapshot[^\n]*assertion",
+        (r"open([^\n]*`npx playwright show-trace[^`]*`)", r"confirm the file is present\1")),
+    "traces-cite-judged-step": (
+        r"cite the exact (?:judged )?step",
+        (r"cite the exact (?:judged )?step", "summarise the outcome")),
+    "traces-still-only-is-fail": (
+        r"[Aa] traced check graded from its still[^\n]*(?:is|are) (?:a )?`?FAIL`?",
+        (r"(?:is|are) (?:a )?`?FAIL`?", "is acceptable")),
     "source-only-is-not-a-pass": (
         r"[Ss]ource[- ]only (?:reading|assurance|audit)[^\n]*(?:never|not) (?:a )?PASS",
         (r"(?:never|not) (?:a )?PASS", "a PASS")),
