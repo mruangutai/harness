@@ -36,6 +36,16 @@
       "tokens": 102920,
       "ended_at": "2026-09-20T23:00:21+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "amend-cr02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-20T23:27:10+00:00",
+      "tokens": 64083,
+      "ended_at": "2026-09-20T23:31:22+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -59,6 +69,27 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "The trusted answers file records the simplify fix at 4a88adb9, the worktree is clean at descendant c533a3f6, and measured rework spend is zero; continue to pin and validate."
+    },
+    {
+      "at": "2026-09-20T23:31:15.564850+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "The regression at test-gh-sync-record.py:358-378 exercises T-02's D-03 gh-sync lifecycle consumer and belongs in that task's file scope."
+    },
+    {
+      "at": "2026-09-20T23:31:15.565005+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.verify",
+      "reason": "T-02 verification must execute its D-03 gh-sync unknown-station regression; the signed command chain omitted that integration script."
+    },
+    {
+      "at": "2026-09-20T23:31:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate-c2",
+      "reason": "Validate c1 failed on VAL-01..VAL-03; the trusted operator answers resolve all three and CR-02 is now ledgered, so one pinned regate is required."
     }
   ],
   "mission": "plan",

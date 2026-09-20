@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-61-control-plane-consolidation
-status: building
+status: review
 approval:
   date: '2026-09-20'
   approved_by: Mike (main session)
@@ -187,20 +187,21 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/gh-sync.py#_feature_station
-      - .claude/skills/harness/bin/gh_board.py#_active_lifecycle_station
-      - .claude/skills/harness/bin/plan-merge.py#_review_complete
-      - .claude/skills/harness/bin/board_lifecycle.py#_active_plan
-      - .claude/skills/harness/bin/handoff_done_when.py#_satisfied_plan
-      - .claude/skills/harness/bin/worktree_terminal.py#_landed_classification
-      - tests/integration/test-plan-merge.py#case_bug1699_approval_reset_classifies_active_station
-      - tests/integration/test-board-lifecycle.py#write_feature
-      - tests/integration/test-worktree-terminal.py#case_classify
-      - tests/integration/test-gh-sync-start-task.py
-      - tests/integration/test-gh-sync-open.py
-      - tests/unit/test-gh-board.py#plan
-      - tests/unit/test-handoff-done-when.py#satisfaction_fixture
-    verify: python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/unit/test-gh-board.py && python3 tests/unit/test-handoff-done-when.py
+    - .claude/skills/harness/bin/gh-sync.py#_feature_station
+    - .claude/skills/harness/bin/gh_board.py#_active_lifecycle_station
+    - .claude/skills/harness/bin/plan-merge.py#_review_complete
+    - .claude/skills/harness/bin/board_lifecycle.py#_active_plan
+    - .claude/skills/harness/bin/handoff_done_when.py#_satisfied_plan
+    - .claude/skills/harness/bin/worktree_terminal.py#_landed_classification
+    - tests/integration/test-plan-merge.py#case_bug1699_approval_reset_classifies_active_station
+    - tests/integration/test-board-lifecycle.py#write_feature
+    - tests/integration/test-worktree-terminal.py#case_classify
+    - tests/integration/test-gh-sync-start-task.py
+    - tests/integration/test-gh-sync-open.py
+    - tests/unit/test-gh-board.py#plan
+    - tests/unit/test-handoff-done-when.py#satisfaction_fixture
+    - tests/integration/test-gh-sync-record.py
+    verify: python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/unit/test-gh-board.py && python3 tests/unit/test-handoff-done-when.py && python3 tests/integration/test-gh-sync-record.py
     intent: |
       Add fail-first cases before migrating consumers. Replace every owned literal active or finished feature-lifecycle tuple with factory_config.is_active or factory_config.is_finished, preserving exact output and route behavior on legal stations. Use harness_boundary.load_repo_module for both plan-merge.py repo-local loads and worktree_terminal.py, with register false and the existing caller-specific failure handling unchanged.
 
