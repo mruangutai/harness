@@ -1,0 +1,283 @@
+schema: plan/1
+feature: FEAT-61-control-plane-consolidation
+status: plan
+approval:
+  status: pending
+mission: plan
+source_issues: []
+baseline:
+  sha: 066638e8acf68b47e74637006a01c8823cff939c
+  branch: feat/FEAT-61-control-plane-consolidation
+panel:
+  last_run: plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Draft findings were applied and the allowed c2 re-review passed.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Necessity review produced four classified findings, all applied in-run.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: Self-scoped out because no user-facing surface is planned.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: All three declared perspectives graded pass against the grilling artifact.
+  findings:
+  - id: PF-994f9d4579eea6f6b306e427f08323f4
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-02 omits test-gh-sync-open.py from its verify chain despite changing
+      that integration surface.
+    disposition: open
+  - id: PF-2bab6a44d8346f5b0156edf6f7319532
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-05 migrates check-plan-routes.py without requiring SC-01's fail-first
+      byte comparison.
+    disposition: open
+  - id: PF-00bce73694fd52a7c4f9d82756ec21fd
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: Extending the topology check to enforce the five reciprocal bootstrap
+      comments is a third lock-in check the intent explicitly bounded out
+    disposition: open
+  - id: PF-0625d432b45f705a77044b0373062ae5
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The live plan.yaml corpus check should be a one-time verification receipt,
+      not a permanent test in T-02's suite
+    disposition: open
+    scope: task
+  - id: PF-0808837d056b1b2546ab6c975e4c13e8
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-04's permanent absence assertions for the six removed symbols and keys
+      pin non-existence and contradict the settled reintroduction posture
+    disposition: open
+    scope: task
+  - id: PF-8ff8f4245d1d3f8d730374b5a73e0cac
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: load_run_step_contract's explicit malformed-shape validation duplicates
+      Python's natural failure and creates an unruled byte divergence
+    disposition: open
+    scope: task
+lanes:
+  resolved_at: 066638e8acf68b47e74637006a01c8823cff939c
+  rows:
+    - path: .claude/skills/harness/bin/**
+      action: main-session-direct
+      agent: main-session
+      reason: DEC-174 assigns Harness hooks, validators, gates, and their supporting libraries to direct execution.
+    - path: tests/**
+      action: main-session-direct
+      agent: main-session
+      reason: DEC-174 assigns regression work for the governed control-plane category to direct execution.
+    - path: .harness/harness.json
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set feature route assigns the live control-plane configuration cutover to the main session.
+    - path: .claude/skills/harness/templates/**
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set feature route keeps the template half of the atomic configuration cutover with the main session.
+    - path: .harness/examples/**
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set feature route keeps the example half of the atomic configuration cutover with the main session.
+    - path: .harness/harness/docs/**
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set feature route keeps the bootstrap decision record with the source change it explains.
+    - path: .harness/glossary.md
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set feature route keeps the new lifecycle vocabulary with its implementation.
+decisions:
+  - id: D-01
+    choice: Land consolidation debt before extending the risk grader, as wave 1 of three, and lock each wave with its cheap regression check.
+    because: A detector calibrated against the dirty baseline would encode today's duplication as tolerated behavior; later decomposition and exception work depend on these stable seams.
+    status: accepted
+  - id: D-02
+    choice: Represent stations in one ordered STATION_ROWS tuple whose rows are name, has_board_column, and lifecycle bucket; derive MANDATED_STATIONS, TERMINAL_STATIONS, ACTIVE_STATIONS, and FINISHED_STATIONS from it while preserving the first two exports and their order.
+    because: One data row carries board and lifecycle meaning without parallel condition sets. The order is part of the live board and caller contract.
+    status: accepted
+  - id: D-03
+    choice: Keep station values as strings and make is_active and is_finished raise on empty or unknown names, matching station_column strictness.
+    because: Strings are the boundary format throughout the control plane, while permissive False hides corrupt station data and mixed Enum comparisons would fail silently.
+    status: accepted
+  - id: D-04
+    choice: Remove qa_gate, uat, and merge from gate policy code, live configuration, templates, and examples, together with evaluate_qa, QaResult, and SUITE_OUTCOMES; retain only required review policy.
+    because: These knobs have no reader. A policy option returns only with a consumer that can make it effective.
+    status: accepted
+  - id: D-05
+    choice: Put feature artifact checkout matching in one harness_boundary predicate and retain two route adapters that own their existing refusal channels, rationale, and absorbing unexpected-failure posture.
+    because: The path decision is duplicated but the tool and Bash response mechanics are load-bearing and cannot be collapsed into one literal guard.
+    status: accepted
+  - id: D-06
+    choice: Preserve exit code and stdout and stderr bytes over every available offline fixture corpus, except for explicit strict-station, rejected-review, module-registration cleanup, and missing-policy rulings, each demonstrated red-first.
+    because: Correctness is equivalence where contracts agree, not a claim of zero behavior change that would conceal known divergences.
+    status: accepted
+  - id: D-07
+    choice: Remove only the named dead policy symbols and configuration keys in this wave; do not add a bin-wide dead-symbol sweep.
+    because: Process entrypoints make broad dead-code inference exemption-heavy, and that detector belongs in the later grader feature against the cleaned baseline.
+    status: accepted
+  - id: D-08
+    choice: Add exactly two semantic AST locks, one for a feature-station literal outside factory_config.py and one for a second repo-local bin spec_from_file_location call.
+    because: These are the two high-value reintroduction paths in this wave. The station check must distinguish feature lifecycle definitions from legitimate task-status predicates rather than grep shared words.
+    status: accepted
+  - id: D-09
+    choice: Retain the five bootstrap prologues, add a reciprocal cross-reference comment to each, and record in DEC-234 that none can import a shared helper before establishing the trusted bin path.
+    because: The duplicated code creates the import seam; attempting to remove it would require the very import path it establishes.
+    status: accepted
+  - id: D-10
+    choice: The main session executes every eventual source, test, configuration, glossary, and doctrine change directly in the feature worktree; Harness performs planning, review panel, and goal-check only.
+    because: DEC-174 makes the category govern and the operator fixed this route before planning.
+    status: accepted
+  - id: D-11
+    choice: Treat rejected as review-complete, keep work_started as the historical one-off building, review, or done predicate, and require strict predicates to accept the entire live plan corpus while rejecting explicit empty and unknown controls.
+    because: Rejected and abandoned are finished under DEC-203, but neither proves execution began. The baseline corpus contains no unknown explicit station and omitted task status already reads as ready.
+    status: accepted
+tasks:
+  - id: T-01
+    title: Establish the five shared control-plane primitives
+    traces: [SC-02, SC-06]
+    change_type: code
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 and the operator-set route assign the eventual control-plane source and test diff to the main session.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/factory_config.py#station_column
+      - .claude/skills/harness/bin/artifact_accessors.py#load_harness_json
+      - .claude/skills/harness/bin/feature_json_write.py#parse_doc
+      - .claude/skills/harness/bin/harness_boundary.py#worktree_for_feature
+      - tests/unit/test-factory-config.py#full_stations
+      - tests/unit/test-artifact-accessors.py#JsonContracts
+      - tests/unit/test-feature-json-reader.py#LoadFeatureJsonTest
+      - tests/unit/test-harness-boundary.py#case_worktree_for_feature
+      - tests/integration/canonical-reader-classification.json
+    verify: python3 tests/unit/test-factory-config.py && python3 tests/unit/test-artifact-accessors.py && python3 tests/unit/test-feature-json-reader.py && python3 tests/unit/test-harness-boundary.py
+    intent: |
+      Work test-first. In factory_config.py replace the two station literal tuples with STATION_ROWS in this exact order: backlog true not_started; plan true active; ready true active; building true active; review true active; done true finished; abandoned false finished; rejected false finished. Use simple immutable string rows, not an Enum. Derive MANDATED_STATIONS from rows with a board column, TERMINAL_STATIONS from rows without one, ACTIVE_STATIONS from active rows, and FINISHED_STATIONS from finished rows. Preserve tuple type and existing order. Add is_active(name) and is_finished(name); each accepts only an exact declared string and raises FleetError with the known names for empty, non-string, or unknown input.
+
+      In artifact_accessors.py add one strict_json_loads(text) primitive using the existing duplicate-key and non-finite hooks. Make load_harness_json and the canonical feature JSON reader translate its ValueError into their current public errors without changing messages. Make feature_json_write.parse_doc call the same primitive and translate UTF-8, parse, and non-mapping failures into its existing MergeRefusal code and exact lines. Remove its duplicate hooks and direct JSON load. Update only the affected canonical-reader inventory rows.
+
+      In artifact_accessors.py add load_run_step_contract(bin_dir), the one accessor that strict-loads run-state-schema.json, navigates properties.steps.items, and returns the step schema, its declared property names, and the evidence propertyNames pattern. Use ordinary mapping access for nested navigation so malformed shapes preserve their natural KeyError or TypeError at the existing caller catch boundaries; do not wrap those failures in ArtifactAccessError.
+
+      In harness_boundary.py add feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path). It owns the feature-artifact regex and checkout comparison, returns None or the feature id and expected worktree, and lets AmbiguousWorktree and unexpected errors reach the route adapters. Also add load_repo_module(module_name, path, register=False), the sole bin implementation of spec_from_file_location. It refuses a missing spec or loader, optionally registers the module before exec for dataclasses, removes only that registration if exec fails, and re-raises the original failure. Unit cases must be red before source changes and cover table order, all derived exports, unknown and empty strictness, nested duplicate and non-finite JSON, non-mapping translations, natural malformed-run-schema failures, both checkout outcomes, missing loader, exec failure, and pre-exec registration.
+  - id: T-02
+    title: Migrate lifecycle consumers and rule the historical predicates
+    traces: [SC-01, SC-03]
+    change_type: code
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 and the operator-set route assign these gate consumers and regressions to the main session.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/gh-sync.py#_feature_station
+      - .claude/skills/harness/bin/gh_board.py#_active_lifecycle_station
+      - .claude/skills/harness/bin/plan-merge.py#_review_complete
+      - .claude/skills/harness/bin/board_lifecycle.py#_active_plan
+      - .claude/skills/harness/bin/handoff_done_when.py#_satisfied_plan
+      - .claude/skills/harness/bin/worktree_terminal.py#_landed_classification
+      - tests/integration/test-plan-merge.py#case_bug1699_approval_reset_classifies_active_station
+      - tests/integration/test-board-lifecycle.py#write_feature
+      - tests/integration/test-worktree-terminal.py#case_classify
+      - tests/integration/test-gh-sync-start-task.py
+      - tests/integration/test-gh-sync-open.py
+      - tests/unit/test-gh-board.py#plan
+      - tests/unit/test-handoff-done-when.py#satisfaction_fixture
+    verify: python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/unit/test-gh-board.py && python3 tests/unit/test-handoff-done-when.py
+    intent: |
+      Add fail-first cases before migrating consumers. Replace every owned literal active or finished feature-lifecycle tuple with factory_config.is_active or factory_config.is_finished, preserving exact output and route behavior on legal stations. Use harness_boundary.load_repo_module for both plan-merge.py repo-local loads and worktree_terminal.py, with register false and the existing caller-specific failure handling unchanged.
+
+      In plan-merge.py make _review_complete require a non-empty status list and all statuses to satisfy is_finished, so rejected now completes review. Keep _work_started as an explicitly named historical predicate over exactly building, review, and done; document beside it that abandoned can happen before execution and rejected happens at intake, so terminal is not evidence of work started. Do not derive this one-off from ACTIVE_STATIONS or FINISHED_STATIONS.
+
+      Extend the approval-reset cases to prove rejected resumes review, abandoned and rejected alone resume ready rather than building, and hermetic unknown or empty explicit task statuses raise instead of being silently classified. Treat the baseline live plan.yaml corpus result already recorded in the planning research as a one-time planning receipt; do not add a permanent test that discovers or loads the live plan corpus. Preserve fixture exit code and stdout and stderr bytes for all other covered legal inputs.
+  - id: T-03
+    title: Migrate gate adapters, run schema navigation, and module loading
+    traces: [SC-01, SC-05, SC-06]
+    change_type: code
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 directly governs check-state, check-domain, bash-write-guard, and their tests.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - path: .claude/skills/harness/bin/check-state.py
+        quote: FINISHED_STATIONS = ("done",) + TERMINAL_STATIONS
+      - .claude/skills/harness/bin/check-domain.py#feature_checkout_guard
+      - .claude/skills/harness/bin/bash-write-guard.py#feature_checkout_guard
+      - tests/integration/test-check-state-feat59.py#case_inv40
+      - tests/integration/test-check-domain.py#_full_step_state
+      - tests/integration/test-check-domain-worktree.py#run_bug895_wrong_checkout_cases
+      - tests/integration/test-bash-write-guard.py#_worktree_fixture
+    verify: python3 tests/integration/test-check-state-feat59.py && python3 tests/integration/test-check-domain.py && python3 tests/integration/test-check-domain-worktree.py && python3 tests/integration/test-bash-write-guard.py
+    intent: |
+      Add red-first route fixtures that capture each affected gate's exit code and stdout and stderr bytes before changing production code. In check-state.py derive FINISHED_STATIONS from factory_config, replace all three spec_from_file_location sequences with harness_boundary.load_repo_module, pass register true only for check-skill-weight, and preserve each current callable check, fallback assignment, finding text, and catch boundary. Replace its run-state-schema nested navigation with artifact_accessors.load_run_step_contract.
+
+      In check-domain.py and bash-write-guard.py delete their copied feature-artifact regex and path comparison. Each adapter calls harness_boundary.feature_artifact_checkout_mismatch and retains its exact current tool or Bash refusal wording, exit channel, rationale comment, AmbiguousWorktree wording, and unexpected-exception absorption. In check-domain.py also use load_run_step_contract while retaining the existing schema validator, undeclared-key messages, and evidence-name handling.
+
+      Regressions must include matching and non-matching paths, correct and wrong checkout, absent worktree, ambiguous worktree, an injected unexpected core failure that remains absorbed, malformed run schema preserving its natural exception at each existing catch boundary, a null module spec, an exec exception, and the dataclass loader observing its own name in sys.modules during exec. Outside the enumerated module cleanup and strict failure cases, the before and after fixture receipts must be byte-identical.
+  - id: T-04
+    title: Remove the unread gate policy surface atomically
+    traces: [SC-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: The operator-set DEC-174 route keeps policy code, live config, templates, examples, and tests in one main-session cutover.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/gate_policy.py#load_policy
+      - .harness/harness.json
+      - .claude/skills/harness/templates/harness.json
+      - .claude/skills/harness/templates/examples/harness.kaya-ai.json
+      - tests/unit/test-gate-policy.py#check_policy_loading
+      - tests/integration/test-validate-digest.py#check_review_policy
+    verify: python3 tests/unit/test-gate-policy.py && python3 tests/integration/test-validate-digest.py
+    intent: |
+      Write failing policy tests first. Reduce GatePolicy and load_policy to the review setting only, using the shared strict harness JSON reader. Delete SUITE_OUTCOMES, QaResult, evaluate_qa, and every test that exists only for them. Keep evaluate_review and its consumer contract unchanged. Missing gates.review, a non-string value, or a value outside the existing review vocabulary must continue to raise GatePolicyError with the current actionable wording; extra removed keys must have no policy effect.
+
+      In the same cutover delete gates.qa_gate, gates.uat, and gates.merge from the live harness.json, the install template, and the kaya example. Update validate-digest's hermetic harness JSON fixtures to the review-only shape and prove review enforcement still works through the public validator. Cover the removal behavior through review-only policy loading, ignored extra removed keys, and the existing public review-policy path; do not add permanent source-text or configuration-absence assertions for the six removed names and keys, and do not add a bin-wide dead-symbol scan.
+  - id: T-05
+    title: Lock the consolidation and document the accepted bootstrap
+    traces: [SC-01, SC-07, SC-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The operator-set DEC-174 route keeps the gate lock, bootstrap comments, doctrine, glossary, and their scoped regressions with the main session.
+    depends_on: [T-02, T-03, T-04]
+    status: ready
+    files:
+    - .claude/skills/harness/bin/check-plan-routes.py#finished_stations
+    - .claude/skills/harness/bin/branch-create-gate.py#_resolve_root
+    - .claude/skills/harness/bin/gh-close-gate.py#_resolve_root
+    - .claude/skills/harness/bin/merge-gate.py#_resolve_root
+    - .claude/skills/harness/bin/plan-sign-gate.py#_resolve_root
+    - .claude/skills/harness/bin/run-unit-tests.py#_resolve_root
+    - tests/integration/test-check-plan-routes.py#case_22
+    - path: .harness/harness/docs/DECISIONS.md
+      quote: '## DEC-233'
+    - path: .harness/harness/docs/DECISIONS-INDEX.md
+      quote: DEC-233
+    - path: .harness/glossary.md
+      quote: '# Glossary'
+    verify: python3 tests/integration/test-check-plan-routes.py && .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Before changing check-plan-routes.py, capture a fail-first lifecycle fixture receipt containing its exit code and exact stdout and stderr; after migration, require the same fixture to match all three observables byte for byte. Then migrate finished_stations to the strict factory_config predicate. Extend the existing AST machinery with exactly two consolidation findings. The feature-station finding identifies literal collections used as feature lifecycle buckets or predicates outside factory_config.py by AST context and symbol purpose; it must not match task-status predicates such as plan-merge.py _work_started. The module-loader finding permits exactly the one spec_from_file_location call inside harness_boundary.load_repo_module and reports any second call under the repo-local bin directory. Do not scan tests and do not add a generic dead-symbol rule.
+
+      Add a clean live-tree assertion and two isolated mutations: a copied active lifecycle tuple in a feature-station predicate, and a second repo-local spec_from_file_location call. Each mutant must fail for its own named finding while the unchanged tree passes. Keep the existing canonical-reader audit current for the strict JSON move and preserve its unrelated classifications.
+
+      Keep the bootstrap code in branch-create-gate.py, gh-close-gate.py, merge-gate.py, plan-sign-gate.py, and run-unit-tests.py. Immediately beside each copied prologue add a concise comment naming the other four files and pointing to DEC-234. Do not add automated enforcement of the comments or their wording. Append DEC-234 to DECISIONS.md recording that these processes cannot import a shared helper until their prologue establishes the trusted bin path, and regenerate DECISIONS-INDEX.md mechanically. Add glossary definitions for lifecycle bucket, not_started, active, and finished, including the distinction between active and the historical work_started predicate. Do not alter bootstrap behavior or message bytes.
+needs_approval: true
