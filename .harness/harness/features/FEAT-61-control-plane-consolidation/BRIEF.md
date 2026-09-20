@@ -57,6 +57,6 @@ Operators and maintainers currently encounter gate-critical rules copied across 
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike (main session)
+date: 2026-09-20

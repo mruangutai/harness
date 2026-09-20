@@ -27,5 +27,37 @@
       "reason": "bounded diff (~12 named files) but adds a new enforcement surface (two lock-in checks) and changes station-predicate semantics at ten sites \u2014 rule 3 of the patch test fails."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-61-control-plane-consolidation/notes/handoff-plan.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "37f8ba65403a53f309ee3f91313e9c57f2c7568fac938e1b45ae720fa9f240c9",
+    "T-02": "1be5606fd02ed18c839bf633e9a385078996668d6c0f5b24aa7c0a861c5e9b97",
+    "T-03": "d581796c2b9b6d1c4bcfe9ec88fd5ee50d836a48479b4aad096ef24cc7193be5",
+    "T-04": "d9ad8645528adadb3182e86d7dfe90c815eccdaea1894bbabe898da74b24f77f",
+    "T-05": "35eb309e497a973e7a8d0ffb4805a8bf42180e4d3fb67fc7001a92cd5fdce4c1"
+  },
+  "github": {
+    "milestone": 82,
+    "parent": 1842,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1843,
+      "T-02": 1844,
+      "T-03": 1845,
+      "T-04": 1846,
+      "T-05": 1847
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
 }

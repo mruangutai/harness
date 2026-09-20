@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-61-control-plane-consolidation
-status: plan
+status: ready
 approval:
-  status: pending
+  date: '2026-09-20'
+  approved_by: Mike (main session)
+  status: approved
 mission: plan
 source_issues: []
 baseline:
