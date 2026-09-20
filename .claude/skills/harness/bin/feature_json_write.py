@@ -22,12 +22,12 @@ schema-checking wrapper over harness_merge.locked_update, which already gives it
 lock on the sibling `.lock` file, the same-directory tempfile, the fsync, and the os.replace.
 python3 stdlib only, matching harness_merge.py's own constraint.
 """
-import json
 import os
 import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import artifact_accessors  # noqa: E402  (local import, after sys.path fix-up)
 import factory_cli  # noqa: E402  (local import, after sys.path fix-up)
 import feature_schema  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
@@ -65,13 +65,17 @@ def parse_doc(base, display):
 
     Raises MergeRefusal(SCHEMA_REFUSAL_CODE) when `base` is present but is not valid JSON, or
     parses to something other than a JSON mapping.
+
+    Decodes through artifact_accessors.strict_json_loads (FEAT-61 T-01): the duplicate-key
+    and non-finite rejection that used to be two private hooks copied here is the accessor's
+    one primitive, so feature.json is read to the same strictness whether it is loaded for a
+    write here or for a read anywhere else. Only the translation into this module's refusal
+    code and line shape lives here.
     """
     if base is None:
         return None
     try:
-        doc = feature_schema.json.loads(base.decode("utf-8"),
-                                        object_pairs_hook=_reject_duplicate_keys,
-                                        parse_constant=_reject_nonfinite_constant)
+        doc = artifact_accessors.strict_json_loads(base.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as e:
         raise harness_merge.MergeRefusal(
             SCHEMA_REFUSAL_CODE, [f"{display}: not valid JSON: {e}"]
@@ -83,29 +87,6 @@ def parse_doc(base, display):
         )
     return doc
 
-
-
-
-def _reject_nonfinite_constant(value):
-    """Refuse JSON's non-standard NaN and Infinity spellings."""
-    raise ValueError(f"non-finite JSON constant: {value}")
-
-
-def _reject_duplicate_keys(pairs):
-    """`object_pairs_hook` for `json.load`/`json.loads`: raise on a mapping key repeated at
-    ANY nesting depth, the same coverage harness_yaml.DuplicateKeyError already gives every
-    YAML reader in this tree. `json.load`'s own default behaviour for a repeated key is
-    silent last-wins -- switching feature.json's canonical reader from a YAML parser to the
-    stdlib json module would otherwise WEAKEN this exact strictness while the migration
-    claims to tighten it (BUG-285 property 3)."""
-    seen = set()
-    result = {}
-    for key, value in pairs:
-        if key in seen:
-            raise ValueError(f"duplicate key: {key!r}")
-        seen.add(key)
-        result[key] = value
-    return result
 
 
 

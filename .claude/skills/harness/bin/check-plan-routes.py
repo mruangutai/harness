@@ -961,8 +961,10 @@ T07_TERMINAL_REMEDIES = {
 T07_RELOCATED_IMPLEMENTATIONS = {
     ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
         ("load_fleet", "harness_yaml_file", "harness_yaml.load_file"),
+    # FEAT-61 T-01: the one json.loads behind every strict reader now lives in
+    # artifact_accessors.strict_json_loads; feature.json's canonical read decodes through it.
     ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
-        ("_parse_feature_json_text", "json_string", "json.loads"),
+        ("strict_json_loads", "json_string", "json.loads"),
     ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
         ("load_plan", "harness_yaml_file", "harness_yaml.load_file"),
     ".claude/skills/harness/bin/harness_yaml.py::manifest_domains::harness_yaml_file#1":

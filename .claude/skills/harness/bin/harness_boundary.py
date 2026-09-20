@@ -244,6 +244,77 @@ def worktree_for_feature(owner_root, feature_id):
     )
 
 
+# A governed feature artifact: `.harness/<segment>/features/<feature-id>/...`. Owned here
+# (FEAT-61 T-01) because both write routes — check-domain's tool route and bash-write-guard's
+# Bash route — ask the same checkout question of it; two copies of this regex let a fix to
+# the binding rule land on one route and leave the other permissive (the FEAT-45 shape).
+RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
+
+
+def feature_artifact_id(raw_rel):
+    """The feature id a governed artifact path belongs to, or None when it is not one."""
+    match = RE_FEATURE_ARTIFACT.match(raw_rel)
+    return None if match is None else match.group(1)
+
+
+def feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):
+    """Does a write to `raw_rel` (resolved at `target_path`) land outside the worktree its
+    feature is linked to? None when the path is not a feature artifact, when the feature has
+    no linked worktree, or when the write is already inside it; otherwise
+    `(feature_id, expected_worktree)` for the adapter to refuse in its own voice.
+
+    THE ADAPTERS OWN THE RESPONSE. `AmbiguousWorktree` and any unexpected failure propagate:
+    each route decides its refusal channel and whether to absorb, because an exit code one
+    host treats as a refusal the other treats as non-blocking. This function decides only the
+    path question, so the binding rule has one home and cannot drift between the routes.
+    """
+    feature_id = feature_artifact_id(raw_rel)
+    if feature_id is None:
+        return None
+    expected = worktree_for_feature(owner_root, feature_id)
+    if expected is None:
+        return None
+    checkout = checkout_relative(target_path)
+    if checkout is not None and real(checkout[0]) == real(expected):
+        return None
+    return feature_id, expected
+
+
+def load_repo_module(module_name, path, register=False):
+    """Load a repo-local script as a module by path — THE sole `spec_from_file_location` in
+    bin/ (FEAT-61 T-01). The kebab-case gate scripts cannot be imported by name, and six
+    hand-written copies of this sequence disagreed on two decisions this function now owns:
+
+    - `register=True` binds the module in `sys.modules` BEFORE exec. A script that declares
+      dataclasses needs it (check-skill-weight.py: dataclasses resolve their module by name
+      during class creation); a script that does not is left out so a failed load leaves no
+      half-initialised entry behind.
+    - A failed exec re-raises the ORIGINAL exception and removes only the registration this
+      call made, restoring whatever was bound under the name before.
+
+    A path that yields no spec or loader (missing file, a directory) is ImportError naming
+    the path, never an AttributeError on None three lines later.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.modules.get(module_name) if register else None
+    if register:
+        sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        if register:
+            if previous is None:
+                sys.modules.pop(module_name, None)
+            else:
+                sys.modules[module_name] = previous
+        raise
+    return module
+
+
 def inside(child, parent):
     """Whether one resolved absolute path is contained by another."""
     try:
