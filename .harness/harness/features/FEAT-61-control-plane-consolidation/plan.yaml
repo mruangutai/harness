@@ -154,7 +154,7 @@ tasks:
   - id: T-01
     title: Establish the five shared control-plane primitives
     traces: [SC-02, SC-06]
-    change_type: code
+    change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 and the operator-set route assign the eventual control-plane source and test diff to the main session.
     depends_on: []
@@ -181,7 +181,7 @@ tasks:
   - id: T-02
     title: Migrate lifecycle consumers and rule the historical predicates
     traces: [SC-01, SC-03]
-    change_type: code
+    change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 and the operator-set route assign these gate consumers and regressions to the main session.
     depends_on: [T-01]
@@ -211,7 +211,7 @@ tasks:
   - id: T-03
     title: Migrate gate adapters, run schema navigation, and module loading
     traces: [SC-01, SC-05, SC-06]
-    change_type: code
+    change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs check-state, check-domain, bash-write-guard, and their tests.
     depends_on: [T-01]

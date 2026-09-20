@@ -1,0 +1,5 @@
+# Answers — 2026-09-20 validate c2
+
+- QA-C2-01: RULED — signed-plan correction, NOT a new mapping. `change_type: code` was never a vocabulary value (three uses, all in this plan; `.harness/harness.json` test_matrix and `gh_issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE` know nothing of it). Adding `code` beside `logic`/`cross_module` would be two names for one thing — DEC-193's drift and the shape this feature exists to remove. T-01/T-02/T-03 are corrected to `cross_module` (unit + integration always), which is exactly what their signed `verify:` chains run. Applied through `plan-merge.py amend` with --expect-sha256 per task; `check-plan-routes` on the plan reports 0 violations. Approval stands (main-session signature; the classification is a record correction). Commit follows.
+- The two check-state lines now showing for FEAT-61 are the orchestrator's to clear on resume: review_sha is STALE by construction after the amendment (re-pin), and `cycles_used` must be brought to the two FAIL runs recorded (INV-39/ledger).
+- This is rework round 2 of 2 under the signed ruling.
