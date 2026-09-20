@@ -2,7 +2,7 @@
   "feature_id": "FEAT-61-control-plane-consolidation",
   "branch": "feat/FEAT-61-control-plane-consolidation",
   "pr": null,
-  "review_sha": "57ef1c5739f55dd67d9daffd5da69d7d7b980ea7",
+  "review_sha": "f3825ca1dcb1d5bb6ff6e62b876988ebd46ebb08",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -45,6 +45,16 @@
       "started_at": "2026-09-20T23:27:10+00:00",
       "tokens": 64083,
       "ended_at": "2026-09-20T23:31:22+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-20T23:32:23+00:00",
+      "tokens": 94371,
+      "ended_at": "2026-09-20T23:45:31+00:00",
       "cycles_used": 0
     }
   ],
@@ -90,6 +100,20 @@
       "kind": "regate",
       "decision": "validate-c2",
       "reason": "Validate c1 failed on VAL-01..VAL-03; the trusted operator answers resolve all three and CR-02 is now ledgered, so one pinned regate is required."
+    },
+    {
+      "at": "2026-09-20T23:46:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "form",
+      "reason": "QA-C2-01 concerns the signed task and matrix record shape; all shipped behavior, code review, fail-first evidence, success criteria, and perspectives pass at the pin."
+    },
+    {
+      "at": "2026-09-20T23:46:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "QA-C2-01 changes signed change_type fields or shared matrix/type mappings, outside eligible task HOW amendments; the operator required any further fix after this regate to return awaiting_user."
     }
   ],
   "mission": "plan",
