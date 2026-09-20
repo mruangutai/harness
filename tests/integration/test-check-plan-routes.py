@@ -2432,28 +2432,47 @@ def _consolidation_findings_for_tree(mutate=None):
         return cpr().consolidation_findings(td)
 
 
+def _append_to_gh_board(bin_dir, source):
+    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
+        stream.write(source)
+
+
 def _append_station_literal_mutant(bin_dir):
     # A predicate that respells the active bucket instead of calling is_active.
-    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
-        stream.write('\n\ndef _mutant_is_live(station):\n'
-                     '    return station in ("plan", "ready", "building", "review")\n')
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+                        '    return station in ("plan", "ready", "building", "review")\n')
+
+
+def _append_drifted_bucket_mutant(bin_dir):
+    # Validate c1 CR-01: a copied active bucket that has ALREADY drifted — `review` omitted.
+    # A feature in review is classified inactive by this predicate, and an exact-set lock
+    # never sees it. Also the finished bucket drifted to two names, assigned not compared.
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+                        '    return station in ("plan", "ready", "building")\n'
+                        '\n\n_MUTANT_OVER = frozenset({"done", "abandoned"})\n')
+
+
+def _append_work_started_control(bin_dir):
+    # D-11 negative control: the historical one-off spans both buckets and is NOT a respelling.
+    _append_to_gh_board(bin_dir, '\n\ndef _control_work_started(statuses):\n'
+                        '    return not set(statuses).isdisjoint({"building", "review", "done"})\n'
+                        '\n\ndef _control_columns():\n'
+                        '    return [k.capitalize() for k in ("ready", "building", "review")]\n')
 
 
 def _append_second_loader_mutant(bin_dir):
-    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
-        stream.write('\n\ndef _mutant_load(path):\n'
-                     '    import importlib.util\n'
-                     '    spec = importlib.util.spec_from_file_location("m", path)\n'
-                     '    return spec\n')
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_load(path):\n'
+                        '    import importlib.util\n'
+                        '    spec = importlib.util.spec_from_file_location("m", path)\n'
+                        '    return spec\n')
 
 
 def case_feat61_consolidation_locks():
     """FEAT-61 T-05 / SC-07: the two locks pass on the shipped tree and each fails on its
     own mutant — and ONLY its own, so a finding names the reintroduction path that opened.
-
-    Also the negative control D-08 demands: plan-merge.py's `_work_started` predicate over
-    {building, review, done} is a different question with its own name (D-11) and must not be
-    reported, or the lock would force a false exemption on a legitimate one-off.
+    The station lock catches a bucket copied whole AND one that has already drifted to a
+    subset (validate c1 CR-01), while the D-11 negative control — `_work_started`'s
+    cross-bucket trio, and a `for` over station keys — stays unreported.
     """
     clean = _consolidation_findings_for_tree()
     check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
@@ -2463,6 +2482,19 @@ def case_feat61_consolidation_locks():
           len(station) == 1 and "gh_board.py::_mutant_is_live" in station[0]
           and "respells factory_config.ACTIVE_STATIONS" in station[0],
           "\n".join(station))
+
+    drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
+    check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
+          len(drifted) == 2
+          and "gh_board.py::_mutant_is_live" in drifted[0]
+          and "respells factory_config.ACTIVE_STATIONS" in drifted[0]
+          and "gh_board.py::<module>" in drifted[1]
+          and "respells factory_config.FINISHED_STATIONS" in drifted[1],
+          "\n".join(drifted))
+
+    control = _consolidation_findings_for_tree(_append_work_started_control)
+    check("feat61_lock_d11_cross_bucket_predicate_and_key_iteration_are_not_flagged",
+          control == [], "\n".join(control))
 
     loader = _consolidation_findings_for_tree(_append_second_loader_mutant)
     check("feat61_lock_second_loader_mutant_fails_for_its_own_finding",

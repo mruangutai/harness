@@ -1619,11 +1619,16 @@ def _run_canonical_reader_audit(root):
 #   1. A feature-station literal outside factory_config.py. The station table is the one place
 #      a lifecycle bucket is spelled; a call site that writes `("plan", "ready", "building",
 #      "review")` or `("done",) + TERMINAL_STATIONS` again is the seventh-station-in-nine-of-ten
-#      defect this wave removed. BY BUCKET, NOT BY WORD: only a literal collection that equals a
-#      lifecycle bucket (ACTIVE_STATIONS, FINISHED_STATIONS) or concatenates a station literal
-#      with one of the table's exports is a respelling. plan-merge.py's `_work_started` predicate
-#      over {building, review, done} is a different question with its own name (D-11) and
-#      matches neither shape — a word grep would flag it and force a false exemption.
+#      defect this wave removed. BY BUCKET AND CONTEXT, NOT BY WORD. A literal collection is a
+#      respelling when it is USED AS A PREDICATE — the target of an `in`/`not in` test, a
+#      returned or assigned value — and its names all fall inside ONE lifecycle bucket
+#      (ACTIVE_STATIONS or FINISHED_STATIONS), two or more of them. Subset, not equality
+#      (validate c1, CR-01): a copied bucket that has ALREADY drifted — `("plan", "ready",
+#      "building")` missing `review` — is the most realistic recurrence, and an exact-set check
+#      waves it through. plan-merge.py's `_work_started` over {building, review, done} spans
+#      both buckets and so matches neither (D-11); a `for` over station keys to derive column
+#      names is iteration, not a predicate, and is not flagged. A single name is a station, not
+#      a bucket. The `<literal> + <export>` concatenation is flagged wherever it appears.
 #   2. A second `spec_from_file_location` under bin/. harness_boundary.load_repo_module owns
 #      the registration and failure decisions; a fresh copy re-derives them from scratch.
 #
@@ -1676,20 +1681,39 @@ def _is_station_concatenation(node):
             and any(_names_station_export(s) for s in sides))
 
 
-def _respelled_bucket(node, buckets):
-    """Which table export a literal node respells, or None: a concatenation, or a literal
-    collection equal to a bucket."""
+_PREDICATE_PARENTS = (ast.Compare, ast.Return, ast.Assign, ast.AnnAssign)
+
+
+def _respelled_bucket(node, parent, buckets):
+    """Which table export a literal node respells, or None: a concatenation anywhere, or a
+    literal collection of two or more names inside one bucket, used as a predicate."""
     if _is_station_concatenation(node):
         return "FINISHED_STATIONS by concatenation"
     values = _string_literal_collection(node)
-    return next((name for name, bucket in buckets.items() if values == bucket), None)
+    if not values or len(values) < 2 or not isinstance(parent, _PREDICATE_PARENTS):
+        return None
+    return next((name for name, bucket in buckets.items() if values <= bucket), None)
+
+
+def _parents(tree):
+    """Child → parent map, with `set(...)`/`frozenset(...)` wrappers looked through so the
+    inner tuple sees the Compare/Return the call sits in."""
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+    for child, parent in list(parents.items()):
+        if _unwrap_set_call(parent) is not parent:
+            parents[child] = parents.get(parent)
+    return parents
 
 
 def _feature_station_literal_findings(tree, relative, buckets):
     # Keyed by line so `frozenset(("plan", ...))` — a Call wrapping a Tuple — reports once.
+    parents = _parents(tree)
     findings = {}
     for node in ast.walk(tree):
-        respelled = _respelled_bucket(node, buckets)
+        respelled = _respelled_bucket(node, parents.get(node), buckets)
         if respelled is not None and node.lineno not in findings:
             findings[node.lineno] = (
                 f"{relative}::{_call_symbol(tree, node)}:{node.lineno} feature-station literal "

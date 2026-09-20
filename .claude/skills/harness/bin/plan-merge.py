@@ -2057,9 +2057,10 @@ def _approval_resume_station(base_bytes):
     approval = doc.get("approval") if isinstance(doc, dict) else None
     station = approval.get("resume_station") if isinstance(approval, dict) else None
     station = station or "ready"
-    # THE CODOMAIN OF `_resume_station`, NOT ACTIVE_STATIONS (FEAT-61 T-02): a reset never resumes
-    # at plan, so this stays a spelled trio with its own refusal rather than `is_active`.
-    if station not in {"ready", "building", "review"}:
+    # THE CODOMAIN OF `_resume_station` IS ACTIVE MINUS `plan` (FEAT-61 T-02, validate c1): a
+    # reset never resumes at plan. Derived from the table, never respelled, so a station added
+    # to the active bucket is resumable without this line learning about it.
+    if station not in set(factory_config.ACTIVE_STATIONS) - {"plan"}:
         raise harness_merge.MergeRefusal(
             5, [f"plan-merge: approval.resume_station is {station!r}; expected ready, "
                 "building, or review before signing"],
