@@ -35,16 +35,14 @@ panel:
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: T-02 omits test-gh-sync-open.py from its verify chain despite changing
-      that integration surface.
-    disposition: open
+    summary: T-02 omits test-gh-sync-open.py from its verify chain despite changing that integration surface.
+    disposition: resolved
   - id: PF-2bab6a44d8346f5b0156edf6f7319532
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: T-05 migrates check-plan-routes.py without requiring SC-01's fail-first
-      byte comparison.
-    disposition: open
+    summary: T-05 migrates check-plan-routes.py without requiring SC-01's fail-first byte comparison.
+    disposition: resolved
   - id: PF-00bce73694fd52a7c4f9d82756ec21fd
     severity: med
     reader: should-not-exist
