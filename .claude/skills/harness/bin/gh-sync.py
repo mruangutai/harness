@@ -964,13 +964,6 @@ def ensure_labels(repo, labels):
                        capture_output=True)
 
 
-def task_finished(status):
-    """Task stations that no longer represent executable work. Tasks share the feature
-    vocabulary, so this is factory_config's FINISHED bucket (FEAT-61 T-02) — STRICT (D-03): a
-    status outside it raises FleetError; the caller owns the refusal shape."""
-    return factory_config.is_finished(status)
-
-
 def detect_issue_types(repo):
     """Detect ONCE PER INVOCATION, unconditionally, whether `repo` declares native
     GitHub Issue Types (FEAT-55, REQ-05). Prints exactly one line when the state is
@@ -1533,9 +1526,10 @@ def cmd_status(feat_dir, station, repo, board):
         # gh_board.derive_station and project treat it.
         # EVERY status crosses the strict predicate (FEAT-61 T-02, D-03) — a list, not a
         # short-circuiting generator, so a status outside the vocabulary refuses naming the value
-        # whichever task carries it, instead of being blamed on "not every task is done".
+        # whichever task carries it, instead of being blamed on "not every task is done". Tasks
+        # share the feature vocabulary, so a task is finished when factory_config says so.
         try:
-            finished = [task_finished(t.get("status") or "ready") for t in tasks]
+            finished = [factory_config.is_finished(t.get("status") or "ready") for t in tasks]
         except artifact_accessors.FleetError as exc:
             refuse(f"station review refused — {exc}")
         if not (finished and all(finished)):
