@@ -329,6 +329,19 @@ def _feature_station(feat_dir):
     return station if isinstance(station, str) else None
 
 
+def _finished_or_refuse(station):
+    """`factory_config.is_finished(station)`, with a vocabulary miss turned into this tool's one
+    refusal shape (FEAT-61 T-02). The predicate is STRICT (D-03) and raises FleetError on a name
+    it does not know; a stack trace is the one posture gh-sync must never take (FEAT-41 T-16),
+    so the miss refuses exactly as `_projected_for` refuses the same miss from `project` —
+    exit 2, one line naming the value."""
+    try:
+        return factory_config.is_finished(station)
+    except artifact_accessors.FleetError as exc:
+        refuse(f"the plan carries a station outside the vocabulary, so no card can be "
+               f"placed from it — {exc}")
+
+
 def _apply_parent_rule(feat_dir, repo, board):
     """THE PARENT RULE (T-03, D-03/D-04) — called at the end of `start-task`, which is now
     its ONLY caller. The per-commit subcommand that used to be the second one was deleted
@@ -342,7 +355,8 @@ def _apply_parent_rule(feat_dir, repo, board):
     from which subcommand called it, because that would make the subcommand a second status
     record, which is exactly the drift D-03 removes.
     """
-    if _feature_station(feat_dir) in ("done",) + factory_config.TERMINAL_STATIONS:
+    station = _feature_station(feat_dir)
+    if station is not None and _finished_or_refuse(station):
         # Terminal exemption: `ship` wrote the parent's card to the done station and
         # recorded the terminal station, while the plan-derived station would still say
         # review. Without this exemption every shipped feature is a permanent false
@@ -950,9 +964,11 @@ def ensure_labels(repo, labels):
                        capture_output=True)
 
 
-def finished_stations():
-    """Task stations that no longer represent executable work."""
-    return ("done",) + factory_config.TERMINAL_STATIONS
+def task_finished(status):
+    """Task stations that no longer represent executable work. Tasks share the feature
+    vocabulary, so this is factory_config's FINISHED bucket (FEAT-61 T-02) — STRICT (D-03): a
+    status outside it raises FleetError; the caller owns the refusal shape."""
+    return factory_config.is_finished(status)
 
 
 def detect_issue_types(repo):
@@ -1515,14 +1531,21 @@ def cmd_status(feat_dir, station, repo, board):
         # a live default T-04's migration missed because T-04 grepped check-state.py and the
         # plan corpus, never this file. An absent status reads as `ready`, exactly as
         # gh_board.derive_station and project treat it.
-        all_done = bool(tasks) and all(
-            (t.get("status") or "ready") in finished_stations() for t in tasks)
-        if not all_done:
+        # EVERY status crosses the strict predicate (FEAT-61 T-02, D-03) — a list, not a
+        # short-circuiting generator, so a status outside the vocabulary refuses naming the value
+        # whichever task carries it, instead of being blamed on "not every task is done".
+        try:
+            finished = [task_finished(t.get("status") or "ready") for t in tasks]
+        except artifact_accessors.FleetError as exc:
+            refuse(f"station review refused — {exc}")
+        if not (finished and all(finished)):
             refuse("station review refused — not every task in plan.yaml is done or abandoned")
 
     _record_station(feat_dir, station)
 
-    if board is None or station not in ("plan", "ready", "building", "review"):
+    # `backlog` and every FINISHED station stop here: done is ship-only and terminal names have
+    # no board column. `station` passed STATION_VALUES above, so the strict predicate cannot raise.
+    if board is None or not factory_config.is_active(station):
         return
 
     rec = load_recorded(feat_dir)

@@ -456,9 +456,6 @@ def _feature_dirs(root):
     return sorted(os.path.dirname(p) for p in glob.glob(pattern))
 
 
-_ACTIVE_FEATURE_STATIONS = frozenset(("plan", "ready", "building", "review"))
-
-
 def _invalid_status_finding(feat_dir, station):
     return _finding(
         "STATUS",
@@ -480,7 +477,9 @@ def _active_plan(feat_dir):
         return None, None
     if station not in factory_config.MANDATED_STATIONS:
         return None, _invalid_status_finding(feat_dir, station)
-    if station not in _ACTIVE_FEATURE_STATIONS:
+    # A mandated station by now, so the strict predicate (FEAT-61 T-02) only answers: backlog
+    # and done are outside active reconciliation — done is ship-only.
+    if not factory_config.is_active(station):
         return None, None
     return plan_doc, None
 

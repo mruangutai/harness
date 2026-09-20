@@ -13,6 +13,10 @@ INV-43 succession-seam (BUG-1723 SC-03): the succession judgement for a handoff 
 recorded no later than run N+1 started; one recorded AFTER that run is a retrospective
 correction, which means one context crossed the seam DEC-159 draws; an unreadable timestamp
 is CANNOT VERIFY, never a silent pass.
+FEAT-61 T-03: the three sibling-module loads (validate-digest, check-skill-weight, plan-merge)
+go through harness_boundary.load_repo_module and the INV-16 step schema through
+artifact_accessors.load_run_step_contract; each site keeps its own catch boundary, fallback
+and finding text, which is what the cases assert.
 
 Every case is a fixture tree under tmp; nothing reads the live corpus. Each rule carries a
 positive (fires) and a negative (silent) case, filtered on its own INV tag so a sibling
@@ -29,8 +33,9 @@ import io
 import json
 import os
 import sys
+import subprocess
 import tempfile
-from check_state_support import run
+from check_state_support import run, isolated_bin, _root_env
 
 FEAT = "FEAT-TEST"
 
@@ -512,7 +517,196 @@ def case_inv40_signed_text():
             + case_inv40_signed_text_scope())
 
 
+# ------------------------------------------------------------------- FEAT-61 T-03 ---
+# Every case runs a COPY of bin/ (isolated_bin) with exactly one sibling replaced by a
+# probe, or plants validate-digest.py under the FIXTURE root where INV-15 looks for it.
+# The assertions are on the gate's own finding lines: a load failure is a CANNOT RUN
+# naming the exception's class and text, never a traceback and never silence.
 
+def _write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def _isolated(replacements):
+    """A private copy of bin/ with each `{filename: text}` sibling replaced."""
+    iso = isolated_bin(tempfile.mkdtemp())
+    for name, text in replacements.items():
+        _write(os.path.join(iso, name), text)
+    return iso
+
+
+def _run_from(bin_dir, tmp):
+    """check-state's (code, stdout, stderr) from `bin_dir`'s copy against fixture `tmp`."""
+    r = subprocess.run([os.path.join(bin_dir, "check-state.py")], cwd=tmp,
+                       capture_output=True, text=True, env=_root_env(tmp))
+    return r.returncode, r.stdout, r.stderr
+
+
+def _plain(bin_dir):
+    """A clean in-era feature checked from `bin_dir`'s copy of the gate."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _fixture(tmp, _in_era(), BRIEF_NEW)
+        return _run_from(bin_dir, tmp)
+
+
+_RAISING_MODULE = "raise RuntimeError('FEAT-61 T-03 injected exec failure')\n"
+
+# A sibling that declares a dataclass under `from __future__ import annotations`, the shape
+# check-skill-weight.py has: dataclasses resolve string annotations through
+# sys.modules[cls.__module__], so an exec that is not registered under its own name fails
+# before scan() exists. The identity check names the property directly.
+_DATACLASS_PROBE = """from __future__ import annotations
+import sys
+from dataclasses import dataclass, field
+if vars(sys.modules[__name__]) is not globals():
+    raise RuntimeError("FEAT-61 T-03: not registered under its own name during exec")
+
+
+@dataclass
+class Report:
+    errors: list[str] = field(default_factory=list)
+
+    def notes(self):
+        return []
+
+
+def scan(root):
+    return Report()
+"""
+
+# Loaded AFTER check-skill-weight (INV-40 follows INV-42), so it observes whether a failed
+# check-skill-weight exec left its half-initialised module registered.
+_REGISTRATION_OBSERVER = """import sys
+if "check_skill_weight" in sys.modules:
+    raise RuntimeError("stale check_skill_weight registration survived its failed exec")
+
+
+def signed_task_hash(task):
+    raise NotImplementedError
+"""
+
+
+def _null_spec_gate(iso):
+    """Rewrite the copied gate so importlib yields NO spec for check-skill-weight.py — the
+    one load failure a `.py` path cannot produce naturally."""
+    gate = os.path.join(iso, "check-state.py")
+    with open(gate, encoding="utf-8") as f:
+        source = f.read()
+    anchor = "harness_yaml.require_or_die()\n"
+    if source.count(anchor) != 1:
+        raise AssertionError("INCONCLUSIVE: the require_or_die anchor is absent or ambiguous")
+    with open(gate, "w", encoding="utf-8") as f:
+        f.write(source.replace(anchor, anchor + (
+            "import importlib.util as _iu61\n"
+            "_real61 = _iu61.spec_from_file_location\n"
+            "_iu61.spec_from_file_location = (lambda name, path, *a, **k: None\n"
+            "    if str(path).endswith('check-skill-weight.py') else _real61(name, path, *a, **k))\n")))
+    return iso
+
+
+def case_feat61_module_loading():
+    """load_repo_module behind INV-42 and INV-40: the finding names the original exception,
+    a null spec is an ImportError naming the path, a failed exec leaves no registration
+    behind, and the dataclass loader sees its own name while it runs."""
+    results = []
+
+    _, out, err = _plain(_isolated({"check-skill-weight.py": _RAISING_MODULE,
+                                   "plan-merge.py": _REGISTRATION_OBSERVER}))
+    v42 = _violations(out, "INV-42")
+    results.append(("(61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it",
+                    len(v42) == 1 and "did not import (RuntimeError: FEAT-61 T-03 injected "
+                    "exec failure)" in v42[0] and "restore .claude/skills/harness/bin/"
+                    "check-skill-weight.py" in v42[0] and "Traceback" not in err, out[:600]))
+    results.append(("(61.b) the failed exec leaves no check_skill_weight entry in sys.modules",
+                    not [l for l in _lines(out, "INV-40") if "plan-merge.py did not import" in l],
+                    out[:600]))
+
+    _, out, err = _plain(_null_spec_gate(_isolated({})))
+    v42 = _violations(out, "INV-42")
+    results.append(("(61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path",
+                    len(v42) == 1 and "did not import (ImportError: cannot load "
+                    "'check_skill_weight' from " in v42[0]
+                    and "check-skill-weight.py: no module spec or loader)" in v42[0]
+                    and "Traceback" not in err, out[:600]))
+
+    _, out, err = _plain(_isolated({"check-skill-weight.py": _DATACLASS_PROBE}))
+    results.append(("(61.d) the dataclass loader observes its own name in sys.modules during exec",
+                    not _lines(out, "INV-42") and "Traceback" not in err, out[:600]))
+    return results
+
+
+def _v2_run(tmp, bin_dir):
+    fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
+    _write(os.path.join(fdir, "runs", "r1", "state.yaml"),
+           "schema_version: 2\nrun_id: r1\nstatus: running\nsteps:\n"
+           "  - id: s1\n    status: pending\n")
+    return _run_from(bin_dir, tmp)
+
+
+def case_feat61_run_schema():
+    """load_run_step_contract behind INV-16: strict decode refuses a duplicate key the old
+    json.load silently resolved last-wins; a mis-shaped document keeps its natural exception
+    text at the same catch boundary."""
+    results = []
+    with open(os.path.join(_anchor_bin, "run-state-schema.json"), encoding="utf-8") as f:
+        live = f.read()
+    duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
+    if duplicate == live:
+        raise AssertionError("INCONCLUSIVE: the live schema carries no top-level title key")
+    cannot = "run-state schema CANNOT be checked: "
+
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out, _ = _v2_run(tmp, _isolated({"run-state-schema.json": duplicate}))
+    v = _violations(out, "INV-16")
+    results.append(("(61.e) a duplicate key in run-state-schema.json is INV-16 CANNOT be checked, never last-wins",
+                    len(v) == 1 and cannot + "ArtifactAccessError: " in v[0]
+                    and "invalid JSON: duplicate key: 'title'" in v[0], out[:600]))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out, _ = _v2_run(tmp, _isolated({
+            "run-state-schema.json": '{"properties": {"steps": {"items": {"type": "object"}}}}'}))
+    v = _violations(out, "INV-16")
+    results.append(("(61.f) a step schema without its properties keeps its natural KeyError",
+                    len(v) == 1 and cannot + "KeyError: 'properties'" in v[0], out[:600]))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out, _ = _v2_run(tmp, _isolated({"run-state-schema.json": '{"properties": {}}'}))
+    v = _violations(out, "INV-16")
+    results.append(("(61.g) a schema without steps keeps its natural KeyError",
+                    len(v) == 1 and cannot + "KeyError: 'steps'" in v[0], out[:600]))
+    return results
+
+
+def _digest_run(validate_digest_text):
+    """A complete lead run with a digest, and `.agents/skills/harness/bin/validate-digest.py`
+    planted under the fixture root holding `validate_digest_text`."""
+    with tempfile.TemporaryDirectory() as tmp:
+        fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
+        _write(os.path.join(fdir, "runs", "r1", "state.yaml"),
+               "run_id: r1\nstatus: complete\nhost: harness-eng-lead\n")
+        _write(os.path.join(fdir, "runs", "r1", "digest.md"), "VERDICT: PASS\n")
+        _write(os.path.join(tmp, ".agents", "skills", "harness", "bin", "validate-digest.py"),
+               validate_digest_text)
+        return run(tmp)
+
+
+def case_feat61_validate_digest():
+    """load_repo_module behind INV-15: the exec exception and the missing-validate() fallback
+    each leave digests UNCHECKED with the reason in the finding."""
+    results = []
+    _, out = _digest_run(_RAISING_MODULE)
+    v = _violations(out, "INV-15")
+    results.append(("(61.h) a validate-digest exec exception reports digests UNCHECKED naming it",
+                    len(v) == 1 and "will not import (FEAT-61 T-03 injected exec failure)" in v[0]
+                    and "Digest files are UNCHECKED" in v[0], out[:600]))
+    _, out = _digest_run("validate = None\n")
+    v = _violations(out, "INV-15")
+    results.append(("(61.i) a validate-digest without a callable validate() takes the same fallback",
+                    len(v) == 1 and "will not import (it defines no validate() function)" in v[0],
+                    out[:600]))
+    return results
 
 # ----------------------------------------------------------------------------- INV-43 ---
 
@@ -813,6 +1007,8 @@ def case_inv44():
 
 def main():
     return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
+                        + case_feat61_module_loading() + case_feat61_run_schema()
+                        + case_feat61_validate_digest()
                         + case_inv41() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv43_era_config() + case_inv44()) else 1

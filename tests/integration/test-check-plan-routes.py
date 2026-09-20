@@ -2374,6 +2374,109 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_discovery_cannot_narrow,
 )
 
+def _normalised_receipt(result, td):
+    return {"exit": result.returncode,
+            "stdout": result.stdout.replace(td, "<TD>"),
+            "stderr": result.stderr.replace(td, "<TD>")}
+
+
+def _run_with_top_level_status_receipt(status):
+    with tempfile.TemporaryDirectory() as td:
+        feature_dir = _yaml_project(td)
+        path = os.path.join(feature_dir, "plan.yaml")
+        with open(path, encoding="utf-8") as stream:
+            body = stream.read()
+        if status is not None:
+            body = body.replace("feature: FEAT-A\n",
+                                f"feature: FEAT-A\nstatus: {status}\n", 1)
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(body)
+        return _normalised_receipt(run(project_dir=td), td)
+
+
+def _run_with_task_status_receipt(status):
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status=status)
+        return _normalised_receipt(run(project_dir=td), td)
+
+
+def case_feat61_lifecycle_receipt():
+    """FEAT-61 T-05 / SC-01: the station migration changes NO byte this checker emits.
+
+    The receipt was captured against the pre-migration script (see `captured_at` in the
+    fixture) for every station in the vocabulary, the capitalised `Done` that must be
+    checked rather than skipped, and the absent-status shape — as a top-level station and as
+    a task status. Exit code, stdout and stderr are compared whole; the fixture's temp dir is
+    the only normalisation. A drift in the skip decision (`_is_shipped`), in a violation
+    line, or in the summary reddens the exact station that moved.
+    """
+    with open(os.path.join(FIXTURE_DIR, "feat61-check-plan-routes-lifecycle.receipt.json"),
+              encoding="utf-8") as stream:
+        receipt = json.load(stream)
+    for family, runner in (("top_level_status", _run_with_top_level_status_receipt),
+                           ("task_status", _run_with_task_status_receipt)):
+        for key, expected in receipt[family].items():
+            got = runner(None if key == "None" else key)
+            check(f"feat61_receipt_{family}_{key}_byte_identical", got == expected,
+                  f"expected {expected!r}\n     got {got!r}")
+
+
+def _consolidation_findings_for_tree(mutate=None):
+    """Run `consolidation_findings` over a COPY of bin/ so a mutant never touches the live
+    tree. `mutate(bin_dir)` edits the copy; None runs the tree as shipped."""
+    with tempfile.TemporaryDirectory() as td:
+        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
+        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        if mutate is not None:
+            mutate(copy_bin)
+        return cpr().consolidation_findings(td)
+
+
+def _append_station_literal_mutant(bin_dir):
+    # A predicate that respells the active bucket instead of calling is_active.
+    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
+        stream.write('\n\ndef _mutant_is_live(station):\n'
+                     '    return station in ("plan", "ready", "building", "review")\n')
+
+
+def _append_second_loader_mutant(bin_dir):
+    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
+        stream.write('\n\ndef _mutant_load(path):\n'
+                     '    import importlib.util\n'
+                     '    spec = importlib.util.spec_from_file_location("m", path)\n'
+                     '    return spec\n')
+
+
+def case_feat61_consolidation_locks():
+    """FEAT-61 T-05 / SC-07: the two locks pass on the shipped tree and each fails on its
+    own mutant — and ONLY its own, so a finding names the reintroduction path that opened.
+
+    Also the negative control D-08 demands: plan-merge.py's `_work_started` predicate over
+    {building, review, done} is a different question with its own name (D-11) and must not be
+    reported, or the lock would force a false exemption on a legitimate one-off.
+    """
+    clean = _consolidation_findings_for_tree()
+    check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
+
+    station = _consolidation_findings_for_tree(_append_station_literal_mutant)
+    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding",
+          len(station) == 1 and "gh_board.py::_mutant_is_live" in station[0]
+          and "respells factory_config.ACTIVE_STATIONS" in station[0],
+          "\n".join(station))
+
+    loader = _consolidation_findings_for_tree(_append_second_loader_mutant)
+    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding",
+          len(loader) == 1 and "gh_board.py::_mutant_load" in loader[0]
+          and "second spec_from_file_location" in loader[0],
+          "\n".join(loader))
+
+    r = run("--consolidation-audit")
+    check("feat61_lock_cli_reports_clean_and_exits_0",
+          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
+          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
+
+
+
 
 CASES = (
     case_41_t09_manifest_deviation_is_parsed_not_byte,
@@ -2399,6 +2502,8 @@ CASES = (
     case_41_t04_task_station_vocabulary,
     case_41_t04_top_level_station_vocabulary,
     case_41_t07_is_shipped_reads_the_plan,
+    case_feat61_lifecycle_receipt,
+    case_feat61_consolidation_locks,
 )
 
 

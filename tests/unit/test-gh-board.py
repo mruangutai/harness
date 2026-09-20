@@ -448,6 +448,19 @@ _p = gh_board.project(_plan("done", "ready"), _rec(issues={"T-01": 31}, parent=3
 check("project: absent phase leaves only the task-local non-terminal card",
       _p == {31: "done"}, repr(_p))
 
+# --- FEAT-61 T-02: the active projection is the ACTIVE bucket, not "every board column".
+# --- `backlog` has a column but is not active — the parent keeps its recorded backlog station
+# --- and the tasks keep their own — while abandoned and rejected project nothing at all.
+_p = gh_board.project(_plan("done", "ready", top="backlog"),
+                      _rec(issues={"T-01": 51, "T-02": 52}, parent=50, source_issues=[49]))
+check("project: backlog is a column but never an active projection",
+      _p == {51: "done", 52: "ready", 50: "backlog", 49: "backlog"}, repr(_p))
+for _terminal in factory_config.TERMINAL_STATIONS:
+    _p = gh_board.project(_plan("done", "ready", top=_terminal),
+                          _rec(issues={"T-01": 61, "T-02": 62}, parent=60, source_issues=[59]))
+    check(f"project: {_terminal} places no parent or source card and no active projection",
+          _p == {61: "done", 62: "ready"}, repr(_p))
+
 # --- A VOCABULARY MISS IS THE ONE CASE THAT MUST NOT BE SILENT: it is the defect this feature
 # --- exists to end. It names the task id AND the value.
 for _bad in ("pending", "Building", "shipped"):

@@ -7643,3 +7643,30 @@ was tried and failed only because Claude Code's discovery requires the real dire
 path. DEC-210 is deleted whole: both of its rulings were compatibility-host behaviour. DEC-199's and
 DEC-227's references to the SUSPENDED turn-end and to the compatibility host are rewritten to point
 here. DEC-204 and DEC-201 are unchanged.
+
+## DEC-234 — The hook bootstrap prologue is copied in five gate scripts and stays copied; no shared helper can exist before it runs
+
+**Chose:** `branch-create-gate.py`, `gh-close-gate.py`, `merge-gate.py`, `plan-sign-gate.py` and
+`run-unit-tests.py` each carry the same prologue — strip untrusted `sys.path` entries, insert the
+script's own bin directory, import `harness_boundary` under suppressed stderr, resolve the root,
+refuse at exit 2 when none resolves. It is accepted duplication (FEAT-61 D-09), not debt: each copy
+carries a comment naming the other four and this entry, and nothing enforces the comment's wording.
+
+**Why it cannot be shared.** The prologue is what puts the trusted bin path on `sys.path`. A helper
+holding it would have to be imported from that path — the path the helper is supposed to establish.
+`exec(open(...).read())` of a vendored file would remove the textual duplication at the cost of an
+exec-at-import pattern the tree uses nowhere and a file every hook must locate before it has a root;
+that is a second bootstrap, not the absence of one. The same reasoning covers the 21 simpler
+`sys.path.insert(0, dirname(abspath(__file__)))` lines in importable modules: a one-line seam has no
+seam beneath it.
+
+**What the record does instead.** The cross-reference comment turns five silent twins into one
+declared set, so a change to how a hook finds its root is a five-file edit made knowingly rather than a
+four-file edit made by accident — the fail-open shape FEAT-61's review found in the checkout guard,
+which did have a seam and now uses it (`harness_boundary.feature_artifact_checkout_mismatch`). The
+smell-rule wave that follows FEAT-61 is explicitly not to add a near-duplicate detector that would
+flag these five; they are the reference case for "duplication with no available seam".
+
+**Execution.** Recorded in FEAT-61 T-05 alongside the two lock-in checks that wave adds
+(a feature-station literal outside `factory_config.py`; a second repo-local
+`spec_from_file_location` under `bin/`), neither of which touches the prologues.

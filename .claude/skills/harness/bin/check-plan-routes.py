@@ -520,9 +520,14 @@ def process_plan(path, findings, root, manifest_root):
 # DERIVED, NEVER SPELLED, for the reason `legal_task_statuses` below is: a literal here is a
 # second vocabulary. The import is lazy for that function's exact reason — cases 19b, 19b2 and
 # 21 copy this file alone into a temp directory, where a module-scope import is a traceback.
+#
+# FEAT-61 T-05: the view, not the strict predicate. `_is_shipped` promises never to raise and
+# treats an unknown token as "checked" — `factory_config.is_finished` raises on one by design
+# (D-03), so the membership test stays and the tuple it tests is the table's own
+# FINISHED_STATIONS rather than a hand-concatenated `("done",) + TERMINAL_STATIONS`.
 def finished_stations():
     import factory_config
-    return ("done",) + factory_config.TERMINAL_STATIONS
+    return factory_config.FINISHED_STATIONS
 
 
 # ONE VOCABULARY NOW, WHICH IS THE WHOLE POINT OF FEAT-41. Until T-04 this file carried a
@@ -1606,13 +1611,153 @@ def _run_canonical_reader_audit(root):
     return result["exit_code"]
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-61 T-05: THE TWO CONSOLIDATION LOCKS (D-08). Exactly two, by decision — not a generic
+# duplicate detector and not a dead-symbol sweep. Each names the one reintroduction path the
+# wave closed and would otherwise reopen silently:
+#
+#   1. A feature-station literal outside factory_config.py. The station table is the one place
+#      a lifecycle bucket is spelled; a call site that writes `("plan", "ready", "building",
+#      "review")` or `("done",) + TERMINAL_STATIONS` again is the seventh-station-in-nine-of-ten
+#      defect this wave removed. BY BUCKET, NOT BY WORD: only a literal collection that equals a
+#      lifecycle bucket (ACTIVE_STATIONS, FINISHED_STATIONS) or concatenates a station literal
+#      with one of the table's exports is a respelling. plan-merge.py's `_work_started` predicate
+#      over {building, review, done} is a different question with its own name (D-11) and
+#      matches neither shape — a word grep would flag it and force a false exemption.
+#   2. A second `spec_from_file_location` under bin/. harness_boundary.load_repo_module owns
+#      the registration and failure decisions; a fresh copy re-derives them from scratch.
+#
+# Tests are not scanned: a test loading its subject by path is that test's own business.
+STATION_TABLE_REL = os.path.join(".claude", "skills", "harness", "bin", "factory_config.py")
+MODULE_LOADER_HOME = (
+    os.path.join(".claude", "skills", "harness", "bin", "harness_boundary.py"),
+    "load_repo_module",
+)
+_STATION_EXPORTS = ("MANDATED_STATIONS", "TERMINAL_STATIONS", "ACTIVE_STATIONS",
+                    "FINISHED_STATIONS")
+
+
+def _string_literal_collection(node):
+    """The set of strings in a literal tuple/list/set, or `set(...)`/`frozenset(...)` over
+    one, or None when the node is anything else (including a collection with a non-string)."""
+    if isinstance(node, ast.Call) and not node.keywords and len(node.args) == 1 \
+            and isinstance(node.func, ast.Name) and node.func.id in ("set", "frozenset"):
+        return _string_literal_collection(node.args[0])
+    if not isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+        return None
+    values = set()
+    for element in node.elts:
+        if not isinstance(element, ast.Constant) or not isinstance(element.value, str):
+            return None
+        values.add(element.value)
+    return values
+
+
+def _names_station_export(node):
+    return (isinstance(node, ast.Attribute) and node.attr in _STATION_EXPORTS) or (
+        isinstance(node, ast.Name) and node.id in _STATION_EXPORTS)
+
+
+def _lifecycle_buckets():
+    import factory_config
+    return {"ACTIVE_STATIONS": set(factory_config.ACTIVE_STATIONS),
+            "FINISHED_STATIONS": set(factory_config.FINISHED_STATIONS)}
+
+
+def _respelled_bucket(node, buckets):
+    """Which table export a literal node respells, or None. Two shapes: a literal collection
+    equal to a bucket, and `<literal> + <STATION export>` — the `("done",) + TERMINAL_STATIONS`
+    concatenation that used to stand in for FINISHED_STATIONS at six sites."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        sides = (node.left, node.right)
+        if any(_string_literal_collection(side) for side in sides) \
+                and any(_names_station_export(side) for side in sides):
+            return "FINISHED_STATIONS by concatenation"
+        return None
+    values = _string_literal_collection(node)
+    if not values:
+        return None
+    return next((name for name, bucket in buckets.items() if values == bucket), None)
+
+
+def _feature_station_literal_findings(tree, relative, buckets):
+    # Keyed by line so `frozenset(("plan", ...))` — a Call wrapping a Tuple — reports once.
+    findings = {}
+    for node in ast.walk(tree):
+        respelled = _respelled_bucket(node, buckets)
+        if respelled is not None and node.lineno not in findings:
+            findings[node.lineno] = (
+                f"{relative}::{_call_symbol(tree, node)}:{node.lineno} feature-station literal "
+                f"respells factory_config.{respelled} — read the table's export or call "
+                "is_active/is_finished (FEAT-61 D-08)")
+    return [findings[line] for line in sorted(findings)]
+
+
+def _module_loader_findings(tree, relative):
+    home_file, home_symbol = MODULE_LOADER_HOME
+    findings = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+        if name != "spec_from_file_location":
+            continue
+        symbol = _call_symbol(tree, node)
+        if relative == home_file and symbol == home_symbol:
+            continue
+        findings.append(
+            f"{relative}::{symbol}:{node.lineno} second spec_from_file_location under bin/ — "
+            "load through harness_boundary.load_repo_module (FEAT-61 D-08)")
+    return findings
+
+
+def _call_symbol(tree, node):
+    """The innermost function enclosing `node`, or `<module>`."""
+    containers = [
+        candidate for candidate in ast.walk(tree)
+        if isinstance(candidate, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and candidate.lineno <= node.lineno <= candidate.end_lineno
+    ]
+    if not containers:
+        return "<module>"
+    return min(containers, key=lambda c: c.end_lineno - c.lineno).name
+
+
+def consolidation_findings(root):
+    """Every FEAT-61 lock violation under bin/, as printable lines; empty on a clean tree."""
+    buckets = _lifecycle_buckets()
+    findings = []
+    for absolute, relative in _reader_source_paths(root):
+        try:
+            with open(absolute, encoding="utf-8") as source:
+                tree = ast.parse(source.read(), filename=relative)
+        except (OSError, UnicodeDecodeError, SyntaxError) as error:
+            findings.append(f"{relative}::<module> source_parse: {error}")
+            continue
+        if relative != STATION_TABLE_REL:
+            findings.extend(_feature_station_literal_findings(tree, relative, buckets))
+        findings.extend(_module_loader_findings(tree, relative))
+    return findings
+
+
+def _run_consolidation_audit(root):
+    findings = consolidation_findings(root)
+    for finding in findings:
+        print(f"CONSOLIDATION {finding}")
+    print(f"{len(findings)} consolidation finding(s) under bin/")
+    return 1 if findings else 0
+
+
 def main(argv):
-    if argv[1:] == ["--canonical-reader-audit"]:
+    if argv[1:] in (["--canonical-reader-audit"], ["--consolidation-audit"]):
         try:
             root = harness_boundary.resolve_root(BIN_DIR)
         except ValueError as error:
             print(f"check-plan-routes: {error}", file=sys.stderr)
             sys.exit(2)
+        if argv[1] == "--consolidation-audit":
+            sys.exit(_run_consolidation_audit(root))
         sys.exit(_run_canonical_reader_audit(root))
     examined = None
     if len(argv) > 1:

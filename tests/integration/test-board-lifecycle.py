@@ -1033,6 +1033,18 @@ with tempfile.TemporaryDirectory() as base:
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
+    # FEAT-61 T-02: active reconciliation is the ACTIVE bucket, not every board column. A
+    # feature recorded at backlog has a column but no lifecycle projection — the mismatched
+    # Building parent card would be a STATUS finding if backlog leaked into "active".
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    write_feature(root, "widget", "FEAT-BACKLOG", None, plan_station="backlog", parent=87,
+                  github_issues={"T-01": 88})
+    r, log = run(root, ["audit"], stations=_stations_json({87: "Building", 88: "Building"}))
+    check("audit STATUS: backlog is a column but outside active reconciliation, no STATUS finding",
+          r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
+
+with tempfile.TemporaryDirectory() as base:
     # A matching status and card -- no finding.
     root = os.path.join(base, "root")
     write_root(root, default_github())
