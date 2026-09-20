@@ -2467,22 +2467,24 @@ def _append_second_loader_mutant(bin_dir):
                         '    return spec\n')
 
 
-def case_feat61_consolidation_locks():
-    """FEAT-61 T-05 / SC-07: the two locks pass on the shipped tree and each fails on its
-    own mutant — and ONLY its own, so a finding names the reintroduction path that opened.
-    The station lock catches a bucket copied whole AND one that has already drifted to a
-    subset (validate c1 CR-01), while the D-11 negative control — `_work_started`'s
-    cross-bucket trio, and a `for` over station keys — stays unreported.
+def _mutant_findings(mutate, symbol, respelled):
+    """Findings from a mutant, plus whether exactly one names `symbol` and `respelled`."""
+    findings = _consolidation_findings_for_tree(mutate)
+    own = [f for f in findings if symbol in f and respelled in f]
+    return findings, len(findings) == len(own) and bool(own)
+
+
+def case_feat61_station_lock():
+    """FEAT-61 T-05 / SC-07, lock 1: the station lock passes on the shipped tree, fails on a
+    bucket copied whole AND on one that has already drifted to a subset (validate c1 CR-01),
+    and stays silent on the D-11 negative control — `_work_started`'s cross-bucket trio and a
+    `for` over station keys.
     """
     clean = _consolidation_findings_for_tree()
     check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
-
-    station = _consolidation_findings_for_tree(_append_station_literal_mutant)
-    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding",
-          len(station) == 1 and "gh_board.py::_mutant_is_live" in station[0]
-          and "respells factory_config.ACTIVE_STATIONS" in station[0],
-          "\n".join(station))
-
+    station, ok = _mutant_findings(_append_station_literal_mutant, "gh_board.py::_mutant_is_live",
+                                   "respells factory_config.ACTIVE_STATIONS")
+    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding", ok, "\n".join(station))
     drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
     check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
           len(drifted) == 2
@@ -2491,17 +2493,17 @@ def case_feat61_consolidation_locks():
           and "gh_board.py::<module>" in drifted[1]
           and "respells factory_config.FINISHED_STATIONS" in drifted[1],
           "\n".join(drifted))
-
     control = _consolidation_findings_for_tree(_append_work_started_control)
     check("feat61_lock_d11_cross_bucket_predicate_and_key_iteration_are_not_flagged",
           control == [], "\n".join(control))
 
-    loader = _consolidation_findings_for_tree(_append_second_loader_mutant)
-    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding",
-          len(loader) == 1 and "gh_board.py::_mutant_load" in loader[0]
-          and "second spec_from_file_location" in loader[0],
-          "\n".join(loader))
 
+def case_feat61_loader_lock():
+    """FEAT-61 T-05 / SC-07, lock 2: a second spec_from_file_location under bin/ fails for its
+    own finding only, and the CLI reports the shipped tree clean at exit 0."""
+    loader, ok = _mutant_findings(_append_second_loader_mutant, "gh_board.py::_mutant_load",
+                                  "second spec_from_file_location")
+    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding", ok, "\n".join(loader))
     r = run("--consolidation-audit")
     check("feat61_lock_cli_reports_clean_and_exits_0",
           r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
@@ -2535,7 +2537,8 @@ CASES = (
     case_41_t04_top_level_station_vocabulary,
     case_41_t07_is_shipped_reads_the_plan,
     case_feat61_lifecycle_receipt,
-    case_feat61_consolidation_locks,
+    case_feat61_station_lock,
+    case_feat61_loader_lock,
 )
 
 
