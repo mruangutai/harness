@@ -1637,20 +1637,22 @@ _STATION_EXPORTS = ("MANDATED_STATIONS", "TERMINAL_STATIONS", "ACTIVE_STATIONS",
                     "FINISHED_STATIONS")
 
 
+def _unwrap_set_call(node):
+    """`set(x)` / `frozenset(x)` → `x`; anything else unchanged."""
+    is_set_call = (isinstance(node, ast.Call) and not node.keywords and len(node.args) == 1
+                   and isinstance(node.func, ast.Name) and node.func.id in ("set", "frozenset"))
+    return node.args[0] if is_set_call else node
+
+
 def _string_literal_collection(node):
     """The set of strings in a literal tuple/list/set, or `set(...)`/`frozenset(...)` over
     one, or None when the node is anything else (including a collection with a non-string)."""
-    if isinstance(node, ast.Call) and not node.keywords and len(node.args) == 1 \
-            and isinstance(node.func, ast.Name) and node.func.id in ("set", "frozenset"):
-        return _string_literal_collection(node.args[0])
+    node = _unwrap_set_call(node)
     if not isinstance(node, (ast.Tuple, ast.List, ast.Set)):
         return None
-    values = set()
-    for element in node.elts:
-        if not isinstance(element, ast.Constant) or not isinstance(element.value, str):
-            return None
-        values.add(element.value)
-    return values
+    if not all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in node.elts):
+        return None
+    return {e.value for e in node.elts}
 
 
 def _names_station_export(node):
@@ -1664,19 +1666,22 @@ def _lifecycle_buckets():
             "FINISHED_STATIONS": set(factory_config.FINISHED_STATIONS)}
 
 
+def _is_station_concatenation(node):
+    """`<string literal> + <STATION export>` in either order — the `("done",) +
+    TERMINAL_STATIONS` shape that used to stand in for FINISHED_STATIONS at six sites."""
+    if not (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add)):
+        return False
+    sides = (node.left, node.right)
+    return (any(_string_literal_collection(s) for s in sides)
+            and any(_names_station_export(s) for s in sides))
+
+
 def _respelled_bucket(node, buckets):
-    """Which table export a literal node respells, or None. Two shapes: a literal collection
-    equal to a bucket, and `<literal> + <STATION export>` — the `("done",) + TERMINAL_STATIONS`
-    concatenation that used to stand in for FINISHED_STATIONS at six sites."""
-    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-        sides = (node.left, node.right)
-        if any(_string_literal_collection(side) for side in sides) \
-                and any(_names_station_export(side) for side in sides):
-            return "FINISHED_STATIONS by concatenation"
-        return None
+    """Which table export a literal node respells, or None: a concatenation, or a literal
+    collection equal to a bucket."""
+    if _is_station_concatenation(node):
+        return "FINISHED_STATIONS by concatenation"
     values = _string_literal_collection(node)
-    if not values:
-        return None
     return next((name for name, bucket in buckets.items() if values == bucket), None)
 
 
@@ -1693,23 +1698,23 @@ def _feature_station_literal_findings(tree, relative, buckets):
     return [findings[line] for line in sorted(findings)]
 
 
+def _callee_name(call):
+    func = call.func
+    return func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+
+
 def _module_loader_findings(tree, relative):
     home_file, home_symbol = MODULE_LOADER_HOME
-    findings = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        func = node.func
-        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
-        if name != "spec_from_file_location":
-            continue
-        symbol = _call_symbol(tree, node)
-        if relative == home_file and symbol == home_symbol:
-            continue
-        findings.append(
-            f"{relative}::{symbol}:{node.lineno} second spec_from_file_location under bin/ — "
-            "load through harness_boundary.load_repo_module (FEAT-61 D-08)")
-    return findings
+    loaders = [
+        (node, _call_symbol(tree, node)) for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and _callee_name(node) == "spec_from_file_location"
+    ]
+    return [
+        f"{relative}::{symbol}:{node.lineno} second spec_from_file_location under bin/ — "
+        "load through harness_boundary.load_repo_module (FEAT-61 D-08)"
+        for node, symbol in loaders
+        if not (relative == home_file and symbol == home_symbol)
+    ]
 
 
 def _call_symbol(tree, node):

@@ -607,34 +607,36 @@ def _null_spec_gate(iso):
 
 
 def case_feat61_module_loading():
-    """load_repo_module behind INV-42 and INV-40: the finding names the original exception,
-    a null spec is an ImportError naming the path, a failed exec leaves no registration
-    behind, and the dataclass loader sees its own name while it runs."""
-    results = []
-
+    """load_repo_module behind INV-42 and INV-40: the finding names the original exception
+    and a failed exec leaves no registration behind."""
     _, out, err = _plain(_isolated({"check-skill-weight.py": _RAISING_MODULE,
                                    "plan-merge.py": _REGISTRATION_OBSERVER}))
     v42 = _violations(out, "INV-42")
-    results.append(("(61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it",
-                    len(v42) == 1 and "did not import (RuntimeError: FEAT-61 T-03 injected "
-                    "exec failure)" in v42[0] and "restore .claude/skills/harness/bin/"
-                    "check-skill-weight.py" in v42[0] and "Traceback" not in err, out[:600]))
-    results.append(("(61.b) the failed exec leaves no check_skill_weight entry in sys.modules",
-                    not [l for l in _lines(out, "INV-40") if "plan-merge.py did not import" in l],
-                    out[:600]))
+    return [
+        ("(61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it",
+         len(v42) == 1 and "did not import (RuntimeError: FEAT-61 T-03 injected "
+         "exec failure)" in v42[0] and "restore .claude/skills/harness/bin/"
+         "check-skill-weight.py" in v42[0] and "Traceback" not in err, out[:600]),
+        ("(61.b) the failed exec leaves no check_skill_weight entry in sys.modules",
+         not [l for l in _lines(out, "INV-40") if "plan-merge.py did not import" in l],
+         out[:600]),
+    ]
 
+
+def case_feat61_module_loading_spec_and_registration():
+    """A null spec is an ImportError naming the path, and the dataclass loader sees its own
+    name while it runs."""
     _, out, err = _plain(_null_spec_gate(_isolated({})))
     v42 = _violations(out, "INV-42")
-    results.append(("(61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path",
-                    len(v42) == 1 and "did not import (ImportError: cannot load "
-                    "'check_skill_weight' from " in v42[0]
-                    and "check-skill-weight.py: no module spec or loader)" in v42[0]
-                    and "Traceback" not in err, out[:600]))
-
+    null_spec = ("(61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path",
+                 len(v42) == 1 and "did not import (ImportError: cannot load "
+                 "'check_skill_weight' from " in v42[0]
+                 and "check-skill-weight.py: no module spec or loader)" in v42[0]
+                 and "Traceback" not in err, out[:600])
     _, out, err = _plain(_isolated({"check-skill-weight.py": _DATACLASS_PROBE}))
-    results.append(("(61.d) the dataclass loader observes its own name in sys.modules during exec",
-                    not _lines(out, "INV-42") and "Traceback" not in err, out[:600]))
-    return results
+    registered = ("(61.d) the dataclass loader observes its own name in sys.modules during exec",
+                  not _lines(out, "INV-42") and "Traceback" not in err, out[:600])
+    return [null_spec, registered]
 
 
 def _v2_run(tmp, bin_dir):
@@ -645,37 +647,40 @@ def _v2_run(tmp, bin_dir):
     return _run_from(bin_dir, tmp)
 
 
+def _inv16_with_schema(schema_text):
+    with tempfile.TemporaryDirectory() as tmp:
+        _, out, _ = _v2_run(tmp, _isolated({"run-state-schema.json": schema_text}))
+    return _violations(out, "INV-16"), out[:600]
+
+
+_CANNOT = "run-state schema CANNOT be checked: "
+
+
 def case_feat61_run_schema():
     """load_run_step_contract behind INV-16: strict decode refuses a duplicate key the old
-    json.load silently resolved last-wins; a mis-shaped document keeps its natural exception
-    text at the same catch boundary."""
-    results = []
+    json.load silently resolved last-wins."""
     with open(os.path.join(_anchor_bin, "run-state-schema.json"), encoding="utf-8") as f:
         live = f.read()
     duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
     if duplicate == live:
         raise AssertionError("INCONCLUSIVE: the live schema carries no top-level title key")
-    cannot = "run-state schema CANNOT be checked: "
+    v, out = _inv16_with_schema(duplicate)
+    return [("(61.e) a duplicate key in run-state-schema.json is INV-16 CANNOT be checked, never last-wins",
+             len(v) == 1 and _CANNOT + "ArtifactAccessError: " in v[0]
+             and "invalid JSON: duplicate key: 'title'" in v[0], out)]
 
-    with tempfile.TemporaryDirectory() as tmp:
-        _, out, _ = _v2_run(tmp, _isolated({"run-state-schema.json": duplicate}))
-    v = _violations(out, "INV-16")
-    results.append(("(61.e) a duplicate key in run-state-schema.json is INV-16 CANNOT be checked, never last-wins",
-                    len(v) == 1 and cannot + "ArtifactAccessError: " in v[0]
-                    and "invalid JSON: duplicate key: 'title'" in v[0], out[:600]))
 
-    with tempfile.TemporaryDirectory() as tmp:
-        _, out, _ = _v2_run(tmp, _isolated({
-            "run-state-schema.json": '{"properties": {"steps": {"items": {"type": "object"}}}}'}))
-    v = _violations(out, "INV-16")
-    results.append(("(61.f) a step schema without its properties keeps its natural KeyError",
-                    len(v) == 1 and cannot + "KeyError: 'properties'" in v[0], out[:600]))
-
-    with tempfile.TemporaryDirectory() as tmp:
-        _, out, _ = _v2_run(tmp, _isolated({"run-state-schema.json": '{"properties": {}}'}))
-    v = _violations(out, "INV-16")
-    results.append(("(61.g) a schema without steps keeps its natural KeyError",
-                    len(v) == 1 and cannot + "KeyError: 'steps'" in v[0], out[:600]))
+def case_feat61_run_schema_natural_errors():
+    """A mis-shaped document keeps its natural exception text at the same catch boundary."""
+    results = []
+    for label, schema, natural in (
+        ("(61.f) a step schema without its properties keeps its natural KeyError",
+         '{"properties": {"steps": {"items": {"type": "object"}}}}', "KeyError: 'properties'"),
+        ("(61.g) a schema without steps keeps its natural KeyError",
+         '{"properties": {}}', "KeyError: 'steps'"),
+    ):
+        v, out = _inv16_with_schema(schema)
+        results.append((label, len(v) == 1 and _CANNOT + natural in v[0], out))
     return results
 
 
@@ -1007,7 +1012,8 @@ def case_inv44():
 
 def main():
     return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
-                        + case_feat61_module_loading() + case_feat61_run_schema()
+                        + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
+                        + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
                         + case_feat61_validate_digest()
                         + case_inv41() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
