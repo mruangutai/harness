@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-61-control-plane-consolidation
-status: ready
+status: review
 approval:
   date: '2026-09-20'
   approved_by: Mike (main session)
@@ -158,7 +158,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 and the operator-set route assign the eventual control-plane source and test diff to the main session.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py#station_column
       - .claude/skills/harness/bin/artifact_accessors.py#load_harness_json
@@ -185,7 +185,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 and the operator-set route assign these gate consumers and regressions to the main session.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py#_feature_station
       - .claude/skills/harness/bin/gh_board.py#_active_lifecycle_station
@@ -214,7 +214,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs check-state, check-domain, bash-write-guard, and their tests.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/bin/check-state.py
         quote: FINISHED_STATIONS = ("done",) + TERMINAL_STATIONS
@@ -238,7 +238,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The operator-set DEC-174 route keeps policy code, live config, templates, examples, and tests in one main-session cutover.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gate_policy.py#load_policy
       - .harness/harness.json
@@ -258,7 +258,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The operator-set DEC-174 route keeps the gate lock, bootstrap comments, doctrine, glossary, and their scoped regressions with the main session.
     depends_on: [T-02, T-03, T-04]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/check-plan-routes.py#finished_stations
     - .claude/skills/harness/bin/branch-create-gate.py#_resolve_root
