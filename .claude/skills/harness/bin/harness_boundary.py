@@ -300,19 +300,26 @@ def load_repo_module(module_name, path, register=False):
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
     module = importlib.util.module_from_spec(spec)
-    previous = sys.modules.get(module_name) if register else None
-    if register:
-        sys.modules[module_name] = module
+    if not register:
+        spec.loader.exec_module(module)
+        return module
+    previous = sys.modules.get(module_name)
+    sys.modules[module_name] = module
     try:
         spec.loader.exec_module(module)
     except BaseException:
-        if register:
-            if previous is None:
-                sys.modules.pop(module_name, None)
-            else:
-                sys.modules[module_name] = previous
+        _restore_registration(module_name, previous)
         raise
     return module
+
+
+def _restore_registration(module_name, previous):
+    """Undo one `load_repo_module(register=True)` binding after a failed exec: drop the entry
+    this call made, or put back whatever was bound under the name before it."""
+    if previous is None:
+        sys.modules.pop(module_name, None)
+    else:
+        sys.modules[module_name] = previous
 
 
 def inside(child, parent):
