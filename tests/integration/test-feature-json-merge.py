@@ -453,16 +453,28 @@ def case_14_tail_regex_is_caller_overridable():
 
 
 
-def case_15_changed_feedback_after_a_write():
-    """FEAT-62 T-03: after the write lands and the lock is released, the fixture checkout's own
-    check-state.py --changed reports on stderr; a refusal never reaches it."""
-    d, path = fixture_path()
+def _fixture_checkout(d, path):
+    """Marker plus a fixture check-state.py in the tempdir, so the feedback loop finds a
+    checker by the written path alone. The probe tries the writer's own sibling lock,
+    non-blocking: "free" is the one observation that proves the checker ran AFTER the lock
+    released (GC-03)."""
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write("teams: []\n")
     bin_dir = os.path.join(d, ".claude", "skills", "harness", "bin")
     os.makedirs(bin_dir)
     with open(os.path.join(bin_dir, "check-state.py"), "w") as f:
-        f.write("import sys\nsys.stdout.write('FAIL INV-99 fixture row\\n')\nsys.exit(1)")
+        f.write("import fcntl, os, sys\n"
+                f"fd = os.open({path + '.lock'!r}, os.O_CREAT | os.O_RDWR)\n"
+                "try:\n    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)\n    state = 'free'\n"
+                "except OSError:\n    state = 'held'\n"
+                "sys.stdout.write(f'FAIL INV-99 fixture row lock={state}\\n')\nsys.exit(1)")
+
+
+def case_15_changed_feedback_after_a_write():
+    """FEAT-62 T-03: after the write lands and the lock is released, the fixture checkout's own
+    check-state.py --changed reports on stderr; a refusal never reaches it."""
+    d, path = fixture_path()
+    _fixture_checkout(d, path)
     write_bytes(path, valid_doc())
 
     r = run_cli(["set-key", path, "branch", '"feat/xyz"'])
@@ -470,12 +482,12 @@ def case_15_changed_feedback_after_a_write():
           r.stdout + r.stderr)
     check("case15: the checker's row reaches stderr under the feedback header",
           "FAIL INV-99 fixture row" in r.stderr and "check-state --changed after" in r.stderr, r.stderr)
+    check("case15: the checker runs AFTER the writer's lock is released (GC-03)", "lock=free" in r.stderr, r.stderr)
 
     original = open(path, "rb").read()
     r = run_cli(["set-key", path, "branch", "42"])
     check("case15: a refused write prints no feedback and leaves the bytes alone",
           r.returncode != 0 and "INV-99" not in r.stderr and open(path, "rb").read() == original, r.stderr)
-
 
 def main():
     case_1_refusal_leaves_byte_identical()

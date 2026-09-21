@@ -175,21 +175,39 @@ def _fixture_checker(root, script):
     write(os.path.join(bin_dir, "check-state.py"), script)
 
 
+def _lock_probe_checker(target):
+    """A fixture checker that tries the writer's own sibling lock, non-blocking, and reports
+    whether it was free — the one observation that distinguishes 'after the lock releases'
+    from 'inside the locked transform'."""
+    return ("import fcntl, os, sys\n"
+            f"fd = os.open({target + '.lock'!r}, os.O_CREAT | os.O_RDWR)\n"
+            "try:\n    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)\n    state = 'free'\n"
+            "except OSError:\n    state = 'held'\n"
+            "sys.stdout.write(f'FAIL INV-99 fixture row lock={state}\\n')\nsys.exit(1)")
+
+
+def _feat62_relayed_write_checks(root, plan):
+    """One successful write: receipt on stdout, the checker's rows on stderr, lock free."""
+    r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "building")
+    check("feat62: the write still exits 0 with its receipt on stdout",
+          r.returncode == 0 and r.stdout.strip().endswith(f"APPLIED {os.path.realpath(plan)}"),
+          r.stdout + r.stderr)
+    check("feat62: the checker's non-clean row reaches stderr under the feedback header",
+          "FAIL INV-99 fixture row" in r.stderr and "check-state --changed after" in r.stderr, r.stderr)
+    check("feat62: the checker runs AFTER the writer's lock is released (GC-03)",
+          "lock=free" in r.stderr, r.stderr)
+    check("feat62: the feedback never leaks into stdout", "INV-99" not in r.stdout, r.stdout)
+
+
 def case_feat62_changed_feedback_after_a_plan_write():
     """FEAT-62 T-03: a successful mutating write is followed by the fixture checkout's own
     check-state.py --changed, relayed on stderr; the receipt, bytes and exit are untouched, and
     a refused write never reaches the checker."""
     root, plan = fixture_root()
     try:
-        _fixture_checker(root, "import sys\nsys.stdout.write('FAIL INV-99 fixture row\\n')\nsys.exit(1)")
+        _fixture_checker(root, _lock_probe_checker(plan))
         write(plan, render_plan(ids(1, 3)))
-        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "building")
-        check("feat62: the write still exits 0 with its receipt on stdout",
-              r.returncode == 0 and r.stdout.strip().endswith(f"APPLIED {os.path.realpath(plan)}"),
-              r.stdout + r.stderr)
-        check("feat62: the checker's non-clean row reaches stderr under the feedback header",
-              "FAIL INV-99 fixture row" in r.stderr and "check-state --changed after" in r.stderr, r.stderr)
-        check("feat62: the feedback never leaks into stdout", "INV-99" not in r.stdout, r.stdout)
+        _feat62_relayed_write_checks(root, plan)
 
         before = read(plan)
         r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "no-such-station")
@@ -202,7 +220,6 @@ def case_feat62_changed_feedback_after_a_plan_write():
               r.returncode == 0 and r.stderr == "", r.stderr)
     finally:
         shutil.rmtree(root, ignore_errors=True)
-
 
 def case_proposal_indent_differs_from_base():
     """A proposal whose list items are indented differently from the base's still produces a

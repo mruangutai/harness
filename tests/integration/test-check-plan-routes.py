@@ -2612,10 +2612,25 @@ _PEEK = "    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n"
 # An undeclared input opened by INV-19's own body: (name, first statement, its finding).
 _UNDECLARED_MUTANTS = (
     ("file", _PEEK, ("opens 'team-config.yaml'", "declares no path: read")),
-    ("git", "    subprocess.run(['git', 'status'], capture_output=True)\n", ("spawns git", "declares no git: read")),
+    ("git", "    subprocess.run(['git', 'status'], capture_output=True)\n", ("reads git:status", "declares no git:status read")),
     ("gh", "    _gh_bin = 'gh'\n    subprocess.run([_gh_bin, 'auth', 'status'], capture_output=True)\n",
-     ("spawns gh", "declares no gh: read")),
+     ("reads gh:auth", "declares no gh:auth read")),
 )
+
+# A row whose declaration names the right BINARY but the wrong RESOURCE (GC-02): the lock
+# matches the operation/endpoint, so a false declaration is a finding, not a pass.
+_MISDECLARED_MUTANTS = (
+    ("gh_board", '"gh:auth", "gh:board"', '"gh:auth"', ("INV-26", "reads gh:board", "declares no gh:board read")),
+    ("gh_endpoint", '"gh:auth", "gh:milestones"', '"gh:auth", "gh:issues"',
+     ("INV-30", "reads gh:milestones", "declares no gh:milestones read")),
+    ("git_op", '"git:show", "git:log"', '"git:status", "git:log"', ("INV-33", "reads git:show", "declares no git:show read")),
+)
+
+
+def _misdeclared_resource_checks():
+    for name, before, after, needles in _MISDECLARED_MUTANTS:
+        f = _feat62_findings_for_tree(lambda root: _edit_checker(root, before, after))
+        check(f"feat62_reads_misdeclared_{name}_resource_fails", _only_finding(f, *needles), "\n".join(f))
 
 
 def _inv19_prefixed(statement):
@@ -2628,6 +2643,7 @@ def case_feat62_reads_lock():
     for name, statement, needles in _UNDECLARED_MUTANTS:
         f = _feat62_findings_for_tree(_inv19_prefixed(statement))
         check(f"feat62_reads_undeclared_{name}_mutant_fails", _only_finding(f, "INV-19", *needles), "\n".join(f))
+    _misdeclared_resource_checks()
     # Reached through a HELPER, not the row's own function: the lock walks the call graph.
     def via_helper(root):
         _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n")

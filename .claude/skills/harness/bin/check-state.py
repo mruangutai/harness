@@ -4610,7 +4610,7 @@ def _dirty_paths(root):
     try:
         r = subprocess.run(["git", "-C", root, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
                            capture_output=True)
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return None
     if r.returncode != 0:
         return None

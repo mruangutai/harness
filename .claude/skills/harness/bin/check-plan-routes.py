@@ -1947,23 +1947,66 @@ def _called_names(fn):
 
 
 _SPAWN_CALLEES = ("run", "check_output", "Popen")
+# The one GitHub read check-state.py makes through a module rather than an argv: gh_board's
+# board query. Declared on the row as "gh:board".
+_BOARD_READ_CALLEE = "board_stations_for"
 
 
-def _argv_head(call):
-    """The first element of a `subprocess.run([...])`-shaped argv, or None."""
+def _argv_tokens(call):
+    """The constant string tokens of a `subprocess.run([...])`-shaped argv, in order; a
+    `"literal" % x` token contributes its literal, anything else contributes None so position
+    is kept. Empty when the call is not a spawn."""
     if _callee_name(call) not in _SPAWN_CALLEES or not call.args:
-        return None
+        return []
     argv = call.args[0]
-    return argv.elts[0] if isinstance(argv, (ast.List, ast.Tuple)) and argv.elts else None
+    if not isinstance(argv, (ast.List, ast.Tuple)):
+        return []
+    return [_token_text(e) for e in argv.elts]
 
 
-def _argv_binary(call):
-    """"git" or "gh" for a spawn whose argv head names one, else None."""
-    first = _argv_head(call)
-    if isinstance(first, ast.Constant) and first.value == "git":
-        return "git"
-    if isinstance(first, ast.Name) and "gh" in first.id.lower():
+def _token_text(node):
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod):
+        node = node.left
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name) and "gh" in node.id.lower():
         return "gh"
+    return None
+
+
+def _git_resource(tokens):
+    """`git:<subcommand>` for a git argv; `worktree list` reads as `git:worktree-list`.
+    `-C <dir>` is skipped; the first token that is not an option is the subcommand."""
+    rest = tokens[1:]
+    while rest and rest[0] == "-C":
+        rest = rest[2:]
+    words = [w for w in rest if w is not None and not w.startswith("-")]
+    if not words:
+        return "git:"
+    return "git:" + ("-".join(words[:2]) if words[0] == "worktree" else words[0])
+
+
+def _gh_resource(tokens):
+    """`gh:<resource>`: the subcommand (`gh auth status` -> gh:auth), or for `gh api` the last
+    path segment of the endpoint before its query (`repos/x/milestones?...` -> gh:milestones)."""
+    words = [w for w in tokens[1:] if w is not None and not w.startswith("-")]
+    if not words:
+        return "gh:"
+    if words[0] != "api" or len(words) < 2:
+        return "gh:" + words[0]
+    return "gh:" + words[1].split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1]
+
+
+def _spawn_resource(call):
+    """The `git:<op>` / `gh:<resource>` a call reads, or None: an argv spawn headed by git or a
+    gh binary, or the board module's query."""
+    if _callee_name(call) == _BOARD_READ_CALLEE:
+        return "gh:board"
+    tokens = _argv_tokens(call)
+    if tokens and tokens[0] == "git":
+        return _git_resource(tokens)
+    if tokens and tokens[0] == "gh":
+        return _gh_resource(tokens)
     return None
 
 
@@ -1980,9 +2023,9 @@ def _input_literals(fn):
 
 
 def _observed_inputs(fn):
-    """File-name literals (outside f-strings) and spawned binaries in one function body."""
-    binaries = {_argv_binary(n) for n in ast.walk(fn) if isinstance(n, ast.Call)} - {None}
-    return _input_literals(fn), binaries
+    """File-name literals (outside f-strings) and git/gh resources read in one function body."""
+    resources = {_spawn_resource(n) for n in ast.walk(fn) if isinstance(n, ast.Call)} - {None}
+    return _input_literals(fn), resources
 
 
 def _declared_covers(literal, declared):
@@ -1992,28 +2035,27 @@ def _declared_covers(literal, declared):
 
 
 def _row_inputs(run, fns):
-    """Every literal and binary the row's function and its helpers observe."""
-    literals, binaries = set(), set()
+    """Every literal and git/gh resource the row's function and its helpers observe."""
+    literals, resources = set(), set()
     for fn_name in sorted(_reachable(run, fns)):
         if fn_name.startswith("Ctx.__init__"):
             continue
-        lits, bins = _observed_inputs(fns[fn_name])
+        lits, res = _observed_inputs(fns[fn_name])
         literals |= lits
-        binaries |= bins
-    return literals, binaries
+        resources |= res
+    return literals, resources
 
 
 def _row_reads_findings(row, fns, relative):
     name, run, declared, _authority, lineno = row
     findings = [f"{relative}::INVARIANTS:{lineno} {name} declares {d!r}, which is not path:/git:/gh: "
                 f"(FEAT-62 SC-04)" for d in declared if not d.startswith(_READ_KINDS)][:1]
-    literals, binaries = _row_inputs(run, fns)
+    literals, resources = _row_inputs(run, fns)
     findings += [f"{relative}::{run}:{lineno} {name} opens {literal!r} but its row declares no path: read "
                  f"covering it (FEAT-62 SC-04)"
                  for literal in sorted(literals) if not _declared_covers(literal, declared)]
-    findings += [f"{relative}::{run}:{lineno} {name} spawns {binary} but its row declares no {binary}: read "
-                 f"(FEAT-62 SC-04)"
-                 for binary in sorted(binaries) if not any(d.startswith(binary + ":") for d in declared)]
+    findings += [f"{relative}::{run}:{lineno} {name} reads {resource} but its row declares no {resource} "
+                 f"read (FEAT-62 SC-04)" for resource in sorted(resources) if resource not in declared]
     return findings
 
 
