@@ -15,11 +15,10 @@ a plan flow it runs on the draft before the operator signs. A pass that runs aft
 costs a re-review round; a pass that runs after the signature can apply nothing at all.
 
 **The pass is four separate, parallel, read-only dispatches.** One spawn per angle, four
-spawns, none of them editing. The value comes from four independent readers, not one reader
-carrying four checklists — a single reader trades one angle's depth for another's. The lead
-does not read the angles itself and does not collapse two angles into one spawn. Where the
-squad is smaller than four, the nearest specialist takes more than one angle in separate
-dispatches.
+spawns, none of them editing. The lead does not read the angles itself and does not collapse
+two angles into one spawn — one reader carrying four checklists trades one angle's depth for
+another's. Where the squad is smaller than four, the nearest specialist takes more than one
+angle in separate dispatches.
 
 Readers are drawn from the eng squad by adjacency to the domains the change touches.
 
@@ -31,8 +30,8 @@ noise, and it costs a reader's whole run.
 alternative. **An empty return is a real and expected result** — say so in the dispatch, so a
 reader does not manufacture findings to look useful.
 
-The angle prompts these four sections distil from are recorded verbatim, eight of them, in
-`research-FEAT-23-simplify-angles-source.md`.
+Source prompts (eight, verbatim):
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`.
 
 ## REUSE
 
@@ -48,7 +47,8 @@ spellings must now be edited in lockstep, and the one nobody remembers goes stal
 
 ## SIMPLIFICATION
 
-Flag unnecessary complexity the change adds.
+Flag unnecessary complexity the change adds. Judge a new module or wrapper with the deletion test in
+`harness-codebase-design`: delete it in your head, and if complexity vanishes it was a pass-through.
 
 On a **plan surface**: the same fact asserted twice through different spellings, one rule
 restated in two places that can drift apart, and dead references to a shape that no longer
@@ -113,8 +113,7 @@ it touches.
   returns to the orchestrator with its concrete alternative, and the pass does not attempt the
   apply: a dispatched write to an ungranted surface is refused mid-run, and the segment comes
   back with nothing applied and the findings lost. State this plainly — it is an implementation
-  gap in the rule that this pass is a build-side step applied before `review_sha` pins. It does
-  not weaken that rule and it does not move the step.
+  gap in the rule that this pass is a build-side step applied before `review_sha` pins.
 
 **The apply may not delete or weaken an assertion.** This step runs after the qa gate has
 PASSed, and that gate is more than a green suite — it is the test-matrix judgement and coverage
@@ -135,6 +134,3 @@ arguing with the reader.
 Nobody in the validation tier. The fixer is never the judge: a reviewer's authority comes from
 being read-only on the source it rules on, and a seat that has already applied edits to a diff
 cannot then certify it. This pass applies edits, so it belongs to the build side.
-
-The skill depends on nothing outside this repository. It names no plugin, no slash command,
-and no file outside the tree.

@@ -1,11 +1,33 @@
-# Run state — seeding `state.yaml`, expanding `steps_from:`, and `loop_back` bookkeeping
+# Run state — resolving the team, seeding `state.yaml`, expanding `steps_from:`, `loop_back` bookkeeping, closing out
 
-Read this when seeding `state.yaml` (`harness-team` §2), again whenever the team file carries a
-`steps_from:` expansion rule instead of a literal `steps:` DAG, and again before re-dispatching a
-step under `on_fail: loop_back` (§3f). The skill carries the rules — seed before the first
-dispatch, checkpoint not notebook (DEC-154), cycles are send-backs counted in your `state.yaml`;
-this is the key contract and the procedures. Evidence and history: DEC-117, DEC-119, DEC-154,
-DEC-157, DEC-182, DEC-223.
+Read this when opening a run (`harness-team` §1–2), again whenever the team file carries a
+`steps_from:` expansion rule instead of a literal `steps:` DAG, again before re-dispatching a
+step under `on_fail: loop_back` (§3f), and at close-out (§5). The skill carries the rules — seed
+before the first dispatch, checkpoint not notebook (DEC-154), cycles are send-backs counted in
+your `state.yaml`; this is the key contract and the procedures. Evidence and history: DEC-113,
+DEC-117, DEC-119, DEC-154, DEC-156, DEC-157, DEC-182, DEC-223.
+
+## Resolve the team
+
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/<name>.yaml` first, then
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/<name>.yaml`; project overrides win,
+and anything project-specific lives outside the shipped directory (DEC-113). **No team named?**
+List `name` + `purpose` from both directories and stop — the filesystem is the registry.
+
+## Open the run
+
+```
+<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<feat>/runs/<YYYY-MM-DD>-<seq>-<squad>/
+  state.yaml
+```
+
+Seed `state.yaml` — `schema_version: 2`, run identity, one `pending` step per team step — before
+the first dispatch. A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion
+rule; with `steps_from:`, expand FIRST (below), then seed.
+
+**No shell means no clock**: `dispatched_at`, `completed_at` and their re-dispatch siblings are
+ordering markers (`seq-1`, `seq-2`, …), never invented wall-clock times; anything needing a shell
+belongs to the orchestrator.
 
 ## Seed keys
 
@@ -72,3 +94,14 @@ Only a `FAIL` triggers `on_fail`; `BLOCKED` and `ESCALATE` stop the branch and g
 
 If the same step fails twice with the same reason, more cycles will not help — say so in the
 escalation rather than spending the budget to prove it.
+
+## Close out
+
+Set `status: complete` (or `failed` / `blocked`), then write your team digest to
+`<run_dir>/digest.md` and report it as your `artifact:`.
+
+**The team digest is a digest of digests**: a member's shape plus `members:`, the union of
+`must_fix`, `steps_run`, cycles spent and your assessment. The hook validates the **file** at your
+`artifact:` path against the same schema (DEC-156) — the file, not your transcript, is what a
+successor context reads. Prose goes below the block, never instead of it. Report per-step
+verdicts and the run dir path — the artifacts' paths, not their contents.

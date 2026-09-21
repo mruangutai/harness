@@ -31,9 +31,9 @@ Shipped `PLAN.md` files are never rewritten; their reader stays.
 
 ## Every task needs four things
 
-A task missing any of them is **not written**: return the gap rather than guess. `harness_yaml.py`
-(`REQUIRED_TASK_FIELDS`) refuses a task missing `id`, `title`, `change_type`, `execution_mode`,
-`files`, `verify` or `intent`; the four below are what those fields must CONTAIN.
+`harness_yaml.py` (`REQUIRED_TASK_FIELDS`) refuses a task missing any required field and names
+it; the four below are what those fields must CONTAIN. A task missing any is **not written**:
+return the gap rather than guess.
 
 1. **Exact file anchors**, as a YAML list, one entry per file, each one of three forms: `path`;
    `path#symbol`; or `{path: <p>, quote: <q>}`. **Never `path:NN`** — a line number points at
@@ -82,10 +82,10 @@ different string, so a correct task blocks.
 
 ## The panel result
 
-`plan-merge.py record-panel` writes the `panel:` key from the lead's digest, every finding carried
-byte for byte. **You never transcribe a panel by hand and never edit a finding's severity**
-(DEC-229). Read `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/references/panel-recording.md`
-in the plan team's `apply` step, when the lead's digest lands.
+`plan-merge.py record-panel` writes `panel:` from the lead's digest. **You never transcribe a
+panel by hand and never edit a finding's severity** (DEC-229); read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/panel-recording.md` when the
+digest lands.
 
 ## Reject placeholders
 
@@ -95,24 +95,20 @@ incomplete — raise it in `open_questions`.
 
 ## Perspectives versus decisions — the boundary that matters
 
-A **perspective** (`BRIEF.md ## Done when — by perspective`) survives changing your mind about
-implementation; an **SC-NN** is the falsifiable outcome that discharges one; a **D-NN**
-(`plan.yaml decisions:`) is how, architecturally, and changes if you swap the approach. The swap
-test and SC well-formedness live in `harness-brief`.
+A **perspective** (`BRIEF.md ## Done when — by perspective`) survives the implementation swap; an
+**SC-NN** discharges one; a **D-NN** (`plan.yaml decisions:`) is the architectural how
+(`harness-brief` has the test).
 
 **The D-NN bar (DEC-149):** a choice earns a `D-NN` — and the user's attention at approval — only
 when ALL THREE hold: **hard to reverse**, **surprising without context**, **a real trade-off**.
 Anything failing one is a digest note. A rejected alternative a future scan would re-suggest is the
 classic D-NN — record the reason.
 
-## The glossary — the domain's language is yours to keep sharp
+## The glossary
 
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/glossary.md` is the domain's **ubiquitous language**: one
-canonical term per concept, no implementation detail — a glossary, never a spec (DEC-149).
-**Challenge drift** — a phrase that conflicts with it is called out before it lands in a
-perspective. **Sharpen fuzz** — an overloaded term gets a canonical name before an SC is written
-against it. **Code wins** — a stated meaning that contradicts the code is surfaced, not adopted.
-**Update inline** when a term is settled; create the file lazily, empty is worse than absent.
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/glossary.md` is the ubiquitous language — challenge drift
+before it lands in a perspective, code wins over a stated meaning (DEC-149;
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/glossary-stewardship.md`).
 
 ## Citations and baselines rot — anchor them so they cannot
 
@@ -142,8 +138,5 @@ receipt means no remote call. This applies to `apply`, `add-tasks`, task-changin
 |---|---|
 | "I'll specify this task loosely, the dev will figure it out" | Then you moved planning into execution, unreviewed |
 | "I'll sort out who executes this at build time" | Then the build discovers it mid-run. `check` answers it now |
-| "The user described it to me, so it's approved" | Describing is not approving. You cannot approve either |
-| "Postgres is a requirement, they said so" | It is a decision. A perspective survives the swap test; a decision does not |
 | "I'll skip change_type on the trivial ones" | The loader refuses the task and the qa gate blocks |
-| "This SC is obviously testable" | Then name the test kind. If you cannot, it is not `automated` |
 | "I'll tidy the plan after approval" | Any change resets approval. Get it right first |

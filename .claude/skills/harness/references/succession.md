@@ -1,25 +1,21 @@
 # You are a PHASE, not the feature — the seam, the handoff, the successor
 
 Read this at a phase boundary, when the context advisory arrives, and as your first read on
-waking as a successor. History: DEC-148, DEC-159, DEC-193, DEC-201.
+waking as a successor. History: DEC-159 (the seam), DEC-193 (the worktree).
 
 ## The phase
 
 Your mission IS one phase — plan (or patch), build, validate, or ship. **Ending at the phase
-boundary is normal termination**, not abandonment; continuing into the next needs a reason.
-Session cost grows with the square of length, so one long orchestrator outspends every other
-saving in the org.
+boundary is normal termination**, not abandonment; continuing into the next needs a reason: a long
+orchestrator is the org's most expensive context.
 
 Phase exits, all disk-checkable: **plan** and **ship** end at user gates; **build** exits when every
 planned T-NN has a PASS run in `feature.json`; **validate** exits at a `validate` PASS with
 `must_fix` resolved. The **fix loop is the exception** — `fix` rounds are worked inside your
 validate session and inside the rework ruling, never relayed per cycle.
 
-Record your station in `plan.yaml`'s top-level `status:` — `backlog`, `plan`, `ready`, `building`,
-`review`, `done`, or the terminal `abandoned`, lowercase — and each transition as a STATE.md log
-entry. **Write it with `plan-merge.py set-feature-station`, never by hand.** `feature.json` holds
-NO `status:` key (FEAT-41) and no `phase:` key (DEC-191); the schema refuses both. One file
-records the station, and it is the plan.
+Record each station transition as a STATE.md log entry; the station write itself is the playbook's
+verb rule.
 
 ## The handoff
 

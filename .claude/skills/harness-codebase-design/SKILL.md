@@ -26,7 +26,7 @@ consistent language is the point. (Adapted from Matt Pocock's `codebase-design` 
 
 1. **The deletion test.** Imagine deleting the module. Complexity vanishes → it was a pass-through.
    Complexity reappears across N callers → it was earning its keep. Apply to anything suspected
-   shallow.
+   shallow; `harness-simplify`'s SIMPLIFICATION reader applies the same test to the changed diff.
 2. **The interface is the test surface.** Callers and tests cross the same seam. A test that
    reaches *past* the interface says the module is the wrong shape — and a negative assertion
    scoped past the seam passes vacuously.

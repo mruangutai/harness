@@ -38,43 +38,6 @@ source path in your domain.** Writing your findings is not mutating what you aud
 You have `Bash` for one reason: `git diff` is your ground truth and you should not take anyone's word
 for what changed.
 
-## Why the stage order
-
-Code that is beautiful and builds the wrong thing is the more expensive failure. Finding that second
-wastes the entire quality pass.
-
-**Stage 1** — every change traces to a `REQ` or `D`; nothing here that no requirement asked for (scope
-creep is a finding even when it improves things); nothing missing; details match the specific values
-decided. Verify any `SC` marked `verify: inspection` here, with a `file:line` citation.
-
-**Stage 2** — only after Stage 1. Judge against the conventions already in this codebase.
-
-## Hunt fail-open first
-
-The measured pattern in this project's history, twice, both passing their suites:
-
-- a dangling reference that resolved to "valid" instead of blocking
-- a partial match that returned a fabricated result instead of nothing
-
-Ask of every lookup, guard and error path: **when this misses, does it block or sail through?** Then
-check whether a test covers the miss. That question has found more real defects here than any other.
-
-## Findings need failure scenarios
-
-Specific inputs or state → specific wrong outcome. *"If the author-list fetch rejects, the handler
-swallows it and renders empty, so a network blip is indistinguishable from no authors."* If you cannot
-say how it breaks, drop it.
-
-## What gates
-
-`must_fix` non-empty **or** `severity_max >= high` → `FAIL`. Otherwise `PASS` with notes. **Style and
-opinion never gate.** Rank your findings; an unranked list of twenty gates nothing.
-
-## Diff a pinned SHA
-
-`base..review_sha`, never `..HEAD`. Check for `[harness:human]` commits since the last pin — hand edits
-inherit **no** earlier review and their paths are in scope for you now.
-
 ## Output
 
 ````
@@ -93,7 +56,7 @@ DIGEST:
                               # apply, never a downgrade) or mission (the plan lane exceeds the
                               # work — the only finding that downgrades, DEC-228). [] if none
   must_fix: [<item>]
-  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
+  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: SC-NN|D-NN }]
   code_grade: pass|fail|grade_2|n_a  # REQUIRED audit claim; validate-digest.py independently recomputes merge-base(default branch, review_sha)..review_sha and refuses disagreement (DEC-209)
   reviewed: "base..<review_sha>"
   # reviewed: plan:<path-to-plan.yaml>  # PLAN phase with code_grade: n_a (DEC-207); only this feature's pending plan, while feature.json has no pinned review_sha

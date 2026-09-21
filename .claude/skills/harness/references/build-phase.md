@@ -6,10 +6,9 @@ is each segment's procedure. Evidence and history: DEC-224, DEC-226, DEC-232.
 A `build` team is single-squad by construction (DEC-118), so it is only the eng segment; `validate`
 and `fix` each host every reader in one run. In this order.
 
-**Every run in this phase closes the same way:** one `feature-record.py close-run` (the playbook's
-step 6; `ledger.md` has the stage order and the first-refusal rule). What stays outside it and
-yours, as separate writes after the close: `STATE.md`'s `## Current`, the handoff note at a
-seam, and the commit.
+**Every run in this phase closes with one `feature-record.py close-run`** (playbook step 6; stage
+order and refusals in `ledger.md`). Every `gh-sync.py status` boundary below is yours; owner and
+station per boundary are `github-mirror.md`'s table.
 
 1. **Build entry.** Require the signature-created `feature.json` `github.build_entry` receipt.
    Ordinary Build never creates the mirror. If the receipt is absent, stop for recovery and run
@@ -21,10 +20,8 @@ seam, and the commit.
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/build.yaml` (`harness-team/SKILL.md`
    step 1). **You choose WHICH tasks go to `eng-lead`**; **the lead routes each one to the
    specialist that owns it** by `consult-when`. Two different decisions — it routes, it does not
-   revisit your selection. The Build-entry `gh-sync.py status` call already recorded the feature
-   station and projected every active card before this dispatch; `gh-sync.py start-task` still
-   records the selected task's claim. A stale `files:` anchor at build entry is the builder's to
-   re-resolve, not a FAIL (SC-07).
+   revisit your selection. `gh-sync.py start-task` records each selected task's claim. A stale
+   `files:` anchor at build entry is the builder's to re-resolve, not a FAIL (SC-07).
 3. **SIMPLIFY, the last build step** — once every planned task has a PASS run and **BEFORE
    `review_sha` is pinned**, because an apply commit after the pin moves the tip and invalidates
    every reader's verdict. Sequence it to `harness-eng-lead`, never the validator lead. **The
@@ -34,13 +31,11 @@ seam, and the commit.
    the suites after the apply, before the pin. An empty pass is a real outcome; nothing is invented
    to justify the step.
 4. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> review`
-   BEFORE the team is dispatched. Both preconditions sit together on purpose: the pin fixes what is
-   reviewed, the station write puts the parent and every sub-issue at review. The station argument
-   is LOWERCASE — one vocabulary, and `gh-sync.py` refuses anything else (FEAT-41). When
-   `feature.json` cannot carry the pin — a frozen feature, or a review dispatched with no feature
-   at all — put `HARNESS-REVIEW-PIN: <sha>` on its own line in the dispatch prompt: the host
-   forwards it to the digest validator, which accepts it as the pin when `feature.json` has none
-   and refuses it when the two disagree (#1677). It never replaces a recorded pin.
+   BEFORE the team is dispatched: the pin fixes what is reviewed, the station write puts every card
+   at review. When `feature.json` cannot carry the pin — a frozen feature, or a review dispatched
+   with no feature at all — put `HARNESS-REVIEW-PIN: <sha>` on its own line in the dispatch prompt:
+   the host forwards it to the digest validator, which accepts it as the pin when `feature.json`
+   has none and refuses it when the two disagree (#1677). It never replaces a recorded pin.
 5. **ONE `validate` dispatch** to `harness-validator-lead` —
    `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/validate.yaml`, then
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/validate.yaml`; run-dir slug
@@ -57,12 +52,10 @@ seam, and the commit.
    skills copy; slug `fix-c<N>-validator`) with inputs `feat`, `review_sha` and the must-fix path,
    **naming the owning dev** — the `execution_agent` of the task each must-fix finding cites, read
    from `plan.yaml`; that is the one derivation, and `files_touched` in a build digest is only its
-   echo. The Building write is the orchestrator's boundary before every fix run; never add a
-   lifecycle-only step, dependency, persona, or role instruction to `fix.yaml`.
-   Two devs in one list is two `fix` runs in dependency order. **A finding that cites no task, or a
-   file no task's `files:` owns, has no owning dev and is not fixed here:** it is a new finding
-   class — a scope change — and goes to the operator in `open_questions`, never silently to the
-   nearest dev. The dev is hosted in the validator lead's run (DEC-224; author and reviewer stay
+   echo. Two devs in one list is two `fix` runs in dependency order. **A finding that cites no
+   task, or a file no task's `files:` owns, has no owning dev and is not fixed here:** it is a new
+   finding class — a scope change — and goes to the operator in `open_questions`, never silently
+   to the nearest dev. The dev is hosted in the validator lead's run (DEC-224; author and reviewer stay
    distinct personas). The dev fixes test-first and commits; the lead's readers — `qa`, `code`,
    `security`, `ui` — re-verify over the tip that commit produced, in the same run, and the digest
    names that tip. **The pin is yours, never the lead's:** on return, record it as the new

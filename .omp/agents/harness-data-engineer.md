@@ -60,23 +60,9 @@ Not just "the query runs": the boundary cases. Empty result, null in a joined co
 a value at the index boundary. Where the answer depends on data, write the fixture that makes it
 deterministic.
 
-## Test-first
-
-`harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
-(`test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) live there, not here.
-
 ## When you are handed a bug
 
-Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
-follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
-That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
+Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` (not preloaded, DEC-158) and
+follow it, the three-failed-fixes stop included. It is read-only; your write grants are unchanged.
 
-## Reaching a boundary
-
-Domain and shared-file rules live in `harness-digest-dev` (preloaded). Never work around the hook;
-out-of-domain needs are `open_questions` for your lead.
-
-## Output
-
-Your return contract is the `harness-digest-dev` skill, already in your context — one canonical
-copy for all four dev personas, not restated here.
+## Output — the `dev` schema in `harness-digest-dev`.

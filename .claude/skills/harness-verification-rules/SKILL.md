@@ -13,8 +13,8 @@ There is no separate verifier downstream of you. If you do not catch it, it ship
 ## Two phases, in order — the first is anti-bias
 
 **Phase 1 — derive expected coverage with NO source access.** Read `BRIEF.md` and the plan only —
-`plan.yaml`, or `PLAN.md` for a feature still on the pre-DEC-182 format. From
-the requirements and success criteria alone, write down what tests *should* exist.
+`plan.yaml` (legacy features: `PLAN.md`). From the requirements and success criteria alone, write
+down what tests *should* exist.
 
 Do this first because once you have read the implementation you will unconsciously test what the code
 does rather than what was asked for — and a test suite that mirrors the implementation cannot detect that
@@ -81,19 +81,10 @@ in-place source edits in the main checkout by design. Run the proof in a disposa
 
 ## Absence, subject and mutant (DEC-169, issue #979)
 
-**An absence assertion is never a check on its own (DEC-169).** For every "X is gone" assertion,
-name the presence assertion beside it — `sed -d` satisfies an absence-grep completely and can delete
-the thing that had to stay.
-
-**Every criterion claiming to exclude a specific wrong implementation names its mutant (issue
-#979).** Before signing off a criterion that names an operator, a threshold, or an exclusion,
-mutate the code to the wrong alternative and confirm the named test reddens — of every new
-assertion, not only the ones that feel risky. A fixture names what it was captured *from*; a claim
-about host behaviour names the mode it was measured under.
-
-The canonical block — the two subject-binding questions, fixture provenance, measurement mode and
-the measured instances behind each rule — is
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness-code-review/SKILL.md § Absence, subject and mutant (DEC-169, issue #979)`.
+An absence assertion is never a check on its own, and a criterion that excludes a specific wrong
+implementation names its mutant, which you flip. The one canonical block — the presence pairing, the
+two subject-binding questions, fixture provenance and measurement mode — is
+`harness-code-review` § Absence, subject and mutant.
 Read it in Phase 2 before you sign off any criterion or added test.
 
 ## You supply the evidence, not the verdict on the goal
@@ -120,10 +111,6 @@ specialists only; the validator refuses them on a qa return (SC-05).
 |---|---|
 | "The suite is green, so this passes" | Green proves existing tests pass. Nothing about *this* change |
 | "I'll read the code first, it's faster" | Then Phase 1 is worthless. You will test what it does, not what was asked |
-| "Non-zero exit means the tests failed" | Check the failure kind. A load error is `BLOCKED`, not `FAIL` |
-| "Playwright is missing, so ui fails" | Absent tooling is a soft skip |
-| "The command errors, I'll skip that kind" | That is `BLOCKED`, loudly |
-| "Small change, the matrix is overkill" | The matrix is a floor. Size is not a change type |
 | "There's a test in that file already" | Does it exercise *this* behaviour? If not, missing |
 | "The test passes, so the criterion is proven" | Passing is not exclusion. Name the mutant, flip it, confirm it reddens |
 | "The tests were written first, I'll just say so" | Saying so is a claim. `fail_first` wants the receipt: the path or line that shows the red run |

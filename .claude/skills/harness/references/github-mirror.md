@@ -2,7 +2,7 @@
 
 `bin/gh-sync.py`. Idempotent, and **never a gate**. This file is the whole contract — the
 orchestrator playbook carries only a pointer, so **read it by path before your first sync point of
-the run** (DEC-158 move 3).
+the run** (DEC-158).
 
 Predominantly outbound, and its read-backs are **bounded to an enumerated set** — eight purposes,
 each with the surface that performs it (DEC-203 item 5).
@@ -16,7 +16,7 @@ each with the surface that performs it (DEC-203 item 5).
 | which merged pull request a recorded branch resolves to | `record-pr`, and `ship`, which calls it |
 | which children a card's ticket has | `ship` |
 | which closed tickets a repository holds, with their reasons and labels, and which station options its board declares | `harness-add-repo`, at the registration step, against the board declared in that repository's own harness.json at its `default_branch`, and `ship`, which calls the audit |
-| whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in | The shared type-apply path in `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/gh_issue_types.py`, used by `gh-sync.py` and `factory_decompose.py`, plus `tests/manual/probe-issue-types.py` for the read-back clause |
+| whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in | `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/gh_issue_types.py` (shared by `gh-sync.py` and `factory_decompose.py`) |
 
 **No read-back ever reaches an approval-gated artifact.** That is the only stated bound on what a
 read-back may do, and it is unconditional. For a fleet member the repo is pinned in that repository's
@@ -117,13 +117,6 @@ The order inside `abandon` is fixed by cost, not by convenience: the close is th
 and goes first, the `Backlog` write is the state correction and follows it immediately, and the label
 is cosmetic and goes last. Nothing in that loop can exit, so no cosmetic failure can leave a dropped
 ticket resting at the done station.
-
-The `PreToolUse` close gate that backs this rule **tokenizes the command line rather than matching it
-as text**, so quoting, an absolute path, a leading backslash, `eval`, `bash -c` and a `state=closed`
-hidden in a JSON body are all refused. One class it cannot see is a binary produced by shell
-expansion (`G=gh; $G issue close`), which needs the shell's own expansion a hook does not have. **It
-is a guardrail against a close typed out of habit, not a security boundary** — what actually bounds
-the harness is that no harness command closes an issue except `abandon`.
 
 Every active phase is deliberately feature-wide. Source, parent, and task cards describe the same
 lifecycle phase; per-task status remains local execution evidence rather than a competing board
