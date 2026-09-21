@@ -16,6 +16,16 @@
       "ended_at": "2026-09-21T14:30:03+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-21T19:06:07+00:00",
+      "ended_at": "2026-09-21T19:44:03+00:00",
+      "cycles_used": 0,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -25,6 +35,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "new enforcement surface \u2014 three audit rules and four CLI verbs \u2014 plus a ~3,000-line diff in the file every gate depends on; cause known and files named, but rule 3 of the patch test fails."
+    },
+    {
+      "at": "2026-09-21T19:05:20+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Plan is approved and re-signed, fix round 1 is pinned at review_sha 3d92d38b, and validate cycle 1 should re-grade the amended SC-01 through SC-09 contract."
     }
   ],
   "mission": "plan",
