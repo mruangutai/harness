@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-61-control-plane-consolidation",
   "branch": "feat/FEAT-61-control-plane-consolidation",
-  "pr": null,
+  "pr": 1848,
   "review_sha": "f798e2e600ed08aeb49d61a3a229a626750a9ccb",
   "cycles_used": 2,
   "max_total_cycles": 10,
