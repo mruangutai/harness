@@ -321,12 +321,15 @@ def main():
                               capture_output=True, text=True).stdout.strip()
         check("T-10 defect one: the commit subject names the feature and the station",
               logC == "FEAT-50-commit-station: station done at ship", f"subject={logC!r}")
-        # ONLY THAT ONE FILE. A ship that swept in whatever the operator had staged would be a
-        # worse surprise than the uncommitted station this fixes.
+        # ONLY SHIP'S OWN FILES — plan.yaml and, when `_record_pr` wrote one, feature.json
+        # (#1853). A ship that swept in whatever the operator had staged would be a worse
+        # surprise than the uncommitted station this fixes.
         filesC = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=tmpC,
                                 capture_output=True, text=True).stdout.split()
-        check("T-10 defect one: the commit carries EXACTLY ONE file, the plan",
-              len(filesC) == 1 and filesC[0].endswith("plan.yaml"), f"files={filesC}")
+        check("T-10 defect one: the commit carries the plan and nothing outside ship's two files",
+              any(f.endswith("plan.yaml") for f in filesC)
+              and all(f.endswith(("plan.yaml", "feature.json")) for f in filesC),
+              f"files={filesC}")
 
     # BUG-1114: THE SAME SHIP WITH A **RELATIVE** FEATURE DIR MUST ALSO COMMIT.
     #

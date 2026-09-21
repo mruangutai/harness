@@ -16,6 +16,7 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -491,7 +492,11 @@ def main():
               and not any("pr list" in l for l in logPR5),
               f"rc={r.returncode} pr={docPR5.get('pr')} log={logPR5}")
 
-    # --- ship records the pr and then the status
+    # --- ship records the pr and then the status, and COMMITS BOTH (#1853)
+    # `_commit_terminal_station` used to name plan.yaml alone, so the pr just written to
+    # feature.json stayed dirty in the working tree; FEAT-61 and BUG-1699 both shipped that
+    # way and needed a hand commit in their close-out PRs. The commit stays `--only`-shaped:
+    # a staged, unrelated file must not ride along.
     with tempfile.TemporaryDirectory() as tmpPR6:
         install_gh(tmpPR6, FAKE_GH_PR_LIST)
         featPR6 = stage(tmpPR6, feat_name="FEAT-26-pr-ship")
@@ -499,6 +504,13 @@ def main():
         _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None, status="Review",
                     github={"milestone": 7, "parent": 40, "parent_origin": "created",
                             "attached": ["T-01"], "issues": {"T-01": 41}})
+        for argv in (["init", "-q", "-b", "main"], ["config", "user.email", "t@example.com"],
+                     ["config", "user.name", "t"], ["add", "-A"], ["commit", "-qm", "fixture"]):
+            subprocess.run(["git", *argv], cwd=tmpPR6, capture_output=True)
+        strayPR6 = os.path.join(tmpPR6, "operator-wip.txt")
+        with open(strayPR6, "w") as handle:
+            handle.write("staged by the operator, not ship's to commit\n")
+        subprocess.run(["git", "add", strayPR6], cwd=tmpPR6, capture_output=True)
         r = run(["ship", featPR6], tmpPR6, {"PR_LIST_JSON": '[{"number": 55}]'})
         docPR6 = read_feature_json(fjPR6)
         check("ship records the pr in feature.json and the station in plan.yaml",
@@ -506,6 +518,16 @@ def main():
               and read_plan_station(featPR6) == "done",
               f"rc={r.returncode} pr={docPR6.get('pr')} "
               f"station={read_plan_station(featPR6)!r}")
+        dirtyPR6 = subprocess.run(
+            ["git", "status", "--porcelain", "--", fjPR6, os.path.join(featPR6, "plan.yaml")],
+            cwd=tmpPR6, capture_output=True, text=True).stdout.strip()
+        check("#1853: after ship feature.json and plan.yaml are CLEAN against HEAD — the pr record is committed too",
+              dirtyPR6 == "", f"dirty={dirtyPR6!r}; out={r.stdout[-400:]!r}")
+        filesPR6 = sorted(os.path.basename(p) for p in subprocess.run(
+            ["git", "show", "--name-only", "--format=", "HEAD"], cwd=tmpPR6,
+            capture_output=True, text=True).stdout.split())
+        check("#1853: the commit carries exactly ship's two files and not the operator's staged one",
+              filesPR6 == ["feature.json", "plan.yaml"], f"files={filesPR6}")
 
     # --- record-pr exits 0 on every branch case (one, zero, and two merged PRs together)
     with tempfile.TemporaryDirectory() as tmpPR7:

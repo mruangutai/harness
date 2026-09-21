@@ -11,6 +11,10 @@ const FEATURE_MARKER = /^HARNESS-FEATURE: ((?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+)$/
 // when that is unset (a frozen feature, a review dispatched outside the plan path) and must
 // agree with it when both exist.
 const REVIEW_PIN_MARKER = /^HARNESS-REVIEW-PIN: ([0-9a-f]{7,40})$/gm;
+// #1855: the mission rides the same road. A distill dispatch (DEC-145) has no diff to grade
+// and no suite to run; validate-digest.py pins the readers' gate fields to their did-nothing
+// spelling on `harness_mission: distill` rather than teaching them to fabricate a pass.
+const MISSION_MARKER = /^HARNESS-MISSION: ([a-z]+)$/gm;
 const BIN = ".agents/skills/harness/bin";
 
 // THE GATE DIRECTORY IS DERIVED FROM THIS FILE, NOT FROM ANY CALLER (FEAT-42, panel B-1).
@@ -47,43 +51,24 @@ function debug(message: string): void {
   if (process.env.HARNESS_HOOK_DEBUG === "1") console.error(`[harness-hooks] ${message}`);
 }
 
+// One marker per identity axis, each with exactly one value across every layer: two
+// different values for the same axis is a conflict, never a choice.
+function detectMarker(systemPrompt: unknown, marker: RegExp, what: string): string | undefined {
+  if (!Array.isArray(systemPrompt)) return undefined;
+  const found = new Set<string>();
+  for (const layer of systemPrompt) {
+    if (typeof layer !== "string") continue;
+    for (const match of layer.matchAll(marker)) found.add(match[1]);
+  }
+  if (found.size > 1) {
+    throw new Error(`conflicting Harness ${what} markers: ${[...found].sort().join(", ")}`);
+  }
+  return found.values().next().value;
+}
+
+// Exported: the test seam that pins the marker grammar.
 export function detectHarnessAgent(systemPrompt: unknown): string | undefined {
-  if (!Array.isArray(systemPrompt)) return undefined;
-  const names = new Set<string>();
-  for (const layer of systemPrompt) {
-    if (typeof layer !== "string") continue;
-    for (const match of layer.matchAll(AGENT_MARKER)) names.add(match[1]);
-  }
-  if (names.size > 1) {
-    throw new Error(`conflicting Harness agent markers: ${[...names].sort().join(", ")}`);
-  }
-  return names.values().next().value;
-}
-
-export function detectHarnessFeature(systemPrompt: unknown): string | undefined {
-  if (!Array.isArray(systemPrompt)) return undefined;
-  const features = new Set<string>();
-  for (const layer of systemPrompt) {
-    if (typeof layer !== "string") continue;
-    for (const match of layer.matchAll(FEATURE_MARKER)) features.add(match[1]);
-  }
-  if (features.size > 1) {
-    throw new Error(`conflicting Harness feature markers: ${[...features].sort().join(", ")}`);
-  }
-  return features.values().next().value;
-}
-
-export function detectHarnessReviewPin(systemPrompt: unknown): string | undefined {
-  if (!Array.isArray(systemPrompt)) return undefined;
-  const pins = new Set<string>();
-  for (const layer of systemPrompt) {
-    if (typeof layer !== "string") continue;
-    for (const match of layer.matchAll(REVIEW_PIN_MARKER)) pins.add(match[1]);
-  }
-  if (pins.size > 1) {
-    throw new Error(`conflicting Harness review pin markers: ${[...pins].sort().join(", ")}`);
-  }
-  return pins.values().next().value;
+  return detectMarker(systemPrompt, AGENT_MARKER, "agent");
 }
 
 export function extractEditPaths(input: unknown): string[] {
@@ -772,7 +757,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let expertiseInjected = false;
   let featureCaptured = false;
   let currentReviewPin: string | undefined;
-  let pinCaptured = false;
+  let currentMission: string | undefined;
+  let dispatchCaptured = false;
   let claimsReconciled = false;
   let lastAssistantMessage = "";
   let runtimeAgentId = "";
@@ -818,27 +804,32 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (featureCaptured) return;
     if (!candidate || typeof candidate !== "object") return;
     if ((candidate as Dict).role !== "user") return;
-    setFeature(detectHarnessFeature([messageText(candidate)]), ctx);
+    setFeature(detectMarker([messageText(candidate)], FEATURE_MARKER, "feature"), ctx);
   };
-  // The pin has one source: the assignment message (DEC-204), scanned once. A later user
-  // turn or a tool result echoing another dispatch is never a pin.
-  const capturePinFromMessage = (candidate: unknown): void => {
-    if (pinCaptured) return;
+  // The pin and the mission have one source: the assignment message (DEC-204), scanned
+  // once. A later user turn or a tool result echoing another dispatch is never either.
+  const captureDispatchFromMessage = (candidate: unknown): void => {
+    if (dispatchCaptured) return;
     if (!candidate || typeof candidate !== "object") return;
     if ((candidate as Dict).role !== "user") return;
-    pinCaptured = true;
-    const pin = detectHarnessReviewPin([messageText(candidate)]);
+    dispatchCaptured = true;
+    const layers = [messageText(candidate)];
+    const pin = detectMarker(layers, REVIEW_PIN_MARKER, "review pin");
     if (pin) currentReviewPin = pin;
+    const mission = detectMarker(layers, MISSION_MARKER, "mission");
+    if (mission) currentMission = mission;
   };
 
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
-    const detectedFeature = detectHarnessFeature(event.systemPrompt);
-    const detectedPin = detectHarnessReviewPin(event.systemPrompt);
+    const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
+    const detectedPin = detectMarker(event.systemPrompt, REVIEW_PIN_MARKER, "review pin");
+    const detectedMission = detectMarker(event.systemPrompt, MISSION_MARKER, "mission");
     runtimeAgentId = text(ctx.agentId);
     runtimeParentAgentId = text(ctx.parentAgentId);
     if (detected) currentAgent = detected;
     if (detectedPin) currentReviewPin = detectedPin;
+    if (detectedMission) currentMission = detectedMission;
     setFeature(detectedFeature, ctx);
     if (!currentAgent || expertiseInjected) return;
 
@@ -871,7 +862,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureFeatureFromMessage(candidate, ctx);
-    capturePinFromMessage(candidate);
+    captureDispatchFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -881,7 +872,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureFeatureFromMessage(candidate, ctx);
-    capturePinFromMessage(candidate);
+    captureDispatchFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -1044,6 +1035,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           last_assistant_message: contract,
           harness_feature: currentFeature,
           harness_review_pin: currentReviewPin,
+          harness_mission: currentMission,
         });
         debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
         debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
@@ -1251,6 +1243,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       last_assistant_message: finalText,
       harness_feature: currentFeature,
       harness_review_pin: currentReviewPin,
+      harness_mission: currentMission,
     });
     if (result.reason && result.blocked) ctx.ui?.notify?.(result.reason, "warning");
   });
