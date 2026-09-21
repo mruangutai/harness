@@ -2427,6 +2427,11 @@ def _consolidation_findings_for_tree(mutate=None):
     with tempfile.TemporaryDirectory() as td:
         copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
         shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        # FEAT-62's authority audit reads the decisions index and is LOUD without it — a bin/
+        # copy alone is not a tree the audit can pass, so the index rides along.
+        index_rel = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
+        os.makedirs(os.path.dirname(os.path.join(td, index_rel)))
+        shutil.copy(os.path.join(REPO_ROOT, index_rel), os.path.join(td, index_rel))
         if mutate is not None:
             mutate(copy_bin)
         return cpr().consolidation_findings(td)
@@ -2599,8 +2604,10 @@ def case_feat62_module_body_lock():
         _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
                       "def inv_2(ctx, feat):\n    _again = artifact_accessors.load_plan(ctx.path(feat, 'plan.yaml'))\n    \"\"\"")
     f = _feat62_findings_for_tree(reparse)
+    # The reparse also OPENS plan.yaml undeclared, so the reads lock fires too — both are true.
     check("feat62_reparse_mutant_fails_for_its_own_finding",
-          _only_finding(f, "inv_2", "re-parses a runner-shared source", "load_plan"), "\n".join(f))
+          any(all(n in x for n in ("inv_2", "re-parses a runner-shared source", "load_plan")) for x in f)
+          and all("inv_2" in x or "INV-2 " in x for x in f), "\n".join(f))
 
 
 def case_feat62_reads_lock():
@@ -2642,8 +2649,10 @@ def case_feat62_reads_lock():
     def bad_kind(root):
         _edit_checker(root, '("path:.harness/glossary.md",)', '("glossary.md",)')
     f = _feat62_findings_for_tree(bad_kind)
+    # An unprefixed declaration covers nothing, so the file it meant to declare is ALSO reported.
     check("feat62_reads_unprefixed_declaration_fails",
-          _only_finding(f, "INV-19", "not path:/git:/gh:"), "\n".join(f))
+          any(all(n in x for n in ("INV-19", "not path:/git:/gh:")) for x in f)
+          and all("INV-19" in x for x in f), "\n".join(f))
 
 
 def case_feat62_authority_audit():
