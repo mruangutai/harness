@@ -7707,3 +7707,50 @@ flag these five; they are the reference case for "duplication with no available 
 **Execution.** Recorded in FEAT-61 T-05 alongside the two lock-in checks that wave adds
 (a feature-station literal outside `factory_config.py`; a second repo-local
 `spec_from_file_location` under `bin/`), neither of which touches the prologues.
+
+---
+
+## DEC-235 — Engineering craft enters the org as `harness-craft`: a generated per-seat index over leaves read at the seam
+
+Twelve engineering principles from Lauren Tan's pstack (MIT, cursor/plugins, `skills/principle-*`)
+stand as leaves under `harness-craft/references/`, re-homed onto existing machinery the way
+DEC-149 re-homed Pocock's design vocabulary. Five more pstack principles were **not** imported
+because harness already carries them with teeth (prove-it-works → rule 7 and the receipt gates;
+fix-root-causes → `harness-systematic-debugging`; guard-the-context-window, never-block-on-the-human,
+encode-lessons-in-structure → rules 5/11/13 and the handoff/expertise skills), and four were folded
+into their harness homes rather than duplicated: reader load, boundary discipline and
+exhaust-the-design-space into `harness-codebase-design`; the undefined-return test into
+`harness-code-review`'s canonical absence/subject/mutant block. `laziness-protocol` and
+`subtract-before-you-add` merged into one leaf, `delete-first`, because a harness dev meets both at
+the same moment, a task dispatch.
+
+**Shape, and the three choices in it.** (1) Leaves live in `references/`, not as flat
+`harness-principle-*` skills: OMP puts every discovered skill's name and description into every
+agent's system prompt, so twelve flat skills would tax all sixteen seats on every spawn, and
+`references/` is already the "read at the seam, never preloaded" idiom (DEC-158). The cost is that
+a leaf is not `skill://`-addressable; harness reads everything by path already. (2) The index in
+`harness-craft/SKILL.md` is **generated** from each leaf's frontmatter (`description` is the
+trigger, `seats` is who reads it) by `bin/gen-craft-index.py`, and
+`tests/unit/test-gen-craft-index.py` fails on drift. pstack keeps three hand-maintained copies of
+each trigger and they had already diverged; the index here has one source. (3) The index is
+grouped **by seat**, not by concern as pstack groups it: one pstack agent wears every hat, a
+harness persona wears one, so a dev reads the dev section and a reviewer reads the finding shapes.
+
+**The citation contract.** A principle that shaped a decision is named in the artifact under
+`## Principles applied` with the choice it changed, and only a leaf read this run may be cited.
+Two citations are falsifiable by construction and the reviewer checks them: Build the Lever
+without a script in the diff is not applied; a test kept under Test Behavior that passes when every
+import returns nothing is not kept. The heading is an artifact convention, **not a digest key**
+(INV-16: growing the digest is a decision, and no reviewer consumes it mechanically yet).
+
+**Who preloads it.** The five engineering specialists, pm, code-reviewer and qa. The five
+specialists also now preload `harness-codebase-design` (previously eng-lead and code-reviewer
+only), since three folded principles landed there and the reader-load axes are write-time
+guidance. **eng-lead does not preload it**: it uses the index at exactly two cued seams — writing
+a dispatch (`harness-zero-micro-management` step 2) and the post-PASS architecture review
+(`harness-codebase-design` § Applying it) — and reads it by path there, the same route as
+`harness-systematic-debugging` (DEC-158 move 2). Preloading it put eng-lead at 5631 words against
+the 5500 budget with `harness-team` already cut to its resident core; the seat that reads craft
+least often per spawn is the one to pay per read. Budget after the wave is in
+`check-skill-weight.py`'s output on the landing commit; the optimization pass that preceded this
+(57.2k → 50.7k) is what made room.

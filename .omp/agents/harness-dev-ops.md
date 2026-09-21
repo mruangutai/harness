@@ -18,6 +18,8 @@ autoloadSkills:
 - harness-principles
 - harness-tdd-enforcement
 - harness-code-risk-grading
+- harness-craft
+- harness-codebase-design
 - harness-digest-dev
 ---
 

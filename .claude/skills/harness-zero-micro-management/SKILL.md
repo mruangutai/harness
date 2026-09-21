@@ -31,6 +31,12 @@ writing a deliverable is.
    When dispatching a persona that holds no shell, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>`;
    `dispatch-guard.py` refuses its absence at exit 2. You hold no shell either: use the value
    supplied on your own dispatch, and if it is absent return `VERDICT: BLOCKED` rather than guess.
+   Before dispatching engineering work, read
+   `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-craft/SKILL.md` (not preloaded, DEC-235)
+   and name the leaf the task's shape calls for, by path — a migration names
+   `migrate-callers-then-delete`, concurrent writers name `separate-before-serializing-shared-state`,
+   a task with no precedent names `foundational-thinking`. The member reads the leaf; you do not
+   restate it.
 **Every dispatch you make opens with the feature it belongs to**, on its own first line, spelled
 exactly:
 

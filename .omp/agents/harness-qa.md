@@ -17,6 +17,7 @@ autoloadSkills:
 - harness-handoff
 - harness-expertise
 - harness-principles
+- harness-craft
 - harness-verification-rules
 ---
 

@@ -17,6 +17,7 @@ autoloadSkills:
 - harness-principles
 - harness-code-review
 - harness-code-risk-grading
+- harness-craft
 - harness-codebase-design
 ---
 

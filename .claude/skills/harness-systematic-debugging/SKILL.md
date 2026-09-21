@@ -43,6 +43,14 @@ Only after Phase 3 **confirms**.
 - Run the full suite to confirm no regression.
 - The regression test must match the bug's class: a functional bug needs a functional test, a UI bug a
   browser test. A unit test for a UI bug proves nothing about the UI.
+- **Never add a guard to silence a crash.** A nil check that makes the symptom disappear is a symptom
+  fix; the root cause is still there. A workaround that needs a paragraph of comment to justify it is
+  the code being wrong — fix the code, not the comment.
+- **Fix the pattern, not the instance.** Grep for siblings of the confirmed cause and fix every
+  occurrence in the same cycle; the instance you reproduced is rarely the only one.
+- **A bug that appears after restart: suspect stale persistent state before code** — config files,
+  caches, lock files, serialized state. If clearing a state file restores behaviour, state validation
+  is the fix.
 
 ## The three-failure cap
 
@@ -53,6 +61,9 @@ uncertain. Escalate.
 
 Three failures means your model of the system is wrong, not that you need another attempt. The fourth
 attempt is where speculative changes start accumulating and the original bug gets buried under new ones.
+Two failed fixes that share one premise are evidence about the premise
+(`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-craft/references/attack-the-premise.md`) —
+question it before the third.
 
 ## Red flags
 

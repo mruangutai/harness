@@ -19,6 +19,7 @@ autoloadSkills:
 - harness-expertise
 - harness-principles
 - harness-spec-driven
+- harness-craft
 - harness-brief
 ---
 
