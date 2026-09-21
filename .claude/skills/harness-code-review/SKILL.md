@@ -48,7 +48,12 @@ that amended `verify` "for efficiency" has asserted it, and this stage measures 
 
 Look for: correctness bugs · unhandled errors · **silent failure paths** · missing input validation ·
 dropped async rejections · boundary and off-by-one conditions · resource leaks · dead code left behind ·
-copy-paste divergence · comments that no longer match the code.
+copy-paste divergence · comments that no longer match the code · one more branch on an if/else chain
+or a second boolean that must stay in sync
+(`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-craft/references/model-the-domain.md`) · a
+compatibility shim beside a migrated caller
+(`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-craft/references/migrate-callers-then-delete.md`) ·
+a one-caller wrapper or pass-through layer (`harness-codebase-design` reader load).
 
 **Fail-open is the highest-value pattern to hunt.** Measured in this project's history: a dangling
 reference that resolved to "valid" instead of blocking, a filter that returned a fabricated result on a
@@ -71,6 +76,13 @@ The one canonical copy; `harness-verification-rules` points here. Evidence is DE
   flip it** — swap the operator or threshold and confirm the named test reddens. Ask this of every
   new assertion, not only the risky-looking ones; it is the question in this class with the most
   teeth.
+- **A test that would still pass if every function it imports returned `undefined` observes no
+  behaviour** and cannot fail for a defect. Five shapes: weak or no assertion (`toBeDefined`,
+  `not.toThrow`), mock-or-absence only (`toHaveBeenCalled`, `toEqual([])`), self-referential
+  expected value (`expect(f(a)).toBe(f(a))`), constant pin (restating a hand-maintained default or
+  prompt string), fixture-asserts-fixture (the subject never runs in the body). The fix: call the
+  subject with one concrete input and assert the literal output; no such assertion exists → delete
+  the test.
 - **A fixture says what it was captured from** (depth, shape, mode), and **a claim about host
   behaviour names the mode it was measured under**; never accept one mode as covering another.
 
