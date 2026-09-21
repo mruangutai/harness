@@ -1,0 +1,198 @@
+schema: plan/1
+feature: FEAT-62-check-state-decomposition
+approval:
+  status: pending
+status: plan
+mission: plan
+source_issues: []
+baseline:
+  sha: 1b69f67f4a24c4b011cd1fa724e1bb66d4c77cb7
+  branch: feat/FEAT-62-check-state-decomposition
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Completed requirements, task-graph, overlap, and architecture review.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Completed independent necessity and overbuilding review.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: Scoped out the text-only CLI and gate work; no DESIGN.md or prototype is
+      required.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Graded Operator, Maintainer, and Reader perspectives against the original
+      grilling intent.
+  findings:
+  - id: PF-ec1ccb8d90cd00ca9afacf974a9288b8
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-02 and T-03 can violate the all-changed-Python grade requirement after
+      T-01 has already produced the only grade receipt.
+    disposition: open
+  - id: PF-a71aa813dcabfc5990d91071b1aeb179
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The bespoke AST structural comparator for the 47 except-Exception handlers
+      (T-01 intent, SC-09 evidence) exceeds the proof standard the operator settled
+    disposition: open
+    scope: task
+  - id: PF-10ee67dad109452b4405e92eff930feb
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: The shared-context parse-count test cases in T-01 pin an internal caching
+      detail no consumer observes
+    disposition: open
+  - id: PF-db8324a6929f123efc4922d2332921b4
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Caller-side exact-string suppression of the clean line in the T-03 adapter
+      builds a filter the new --changed mode makes unnecessary
+    disposition: open
+    scope: task
+  - id: PF-e27f2ac207670f537fc75eec4fa546cb
+    severity: unrated
+    reader: should-not-exist
+    kind: substance
+    summary: "Open question \u2014 T-03 lists harness_boundary.py#resolve_root as\
+      \ a change target, but a target-path-derived adapter should not need the environment-reading\
+      \ root resolver modified"
+    disposition: open
+lanes:
+  resolved_at: 1b69f67f4a24c4b011cd1fa724e1bb66d4c77cb7
+  rows:
+    - path: .claude/skills/harness/bin/**
+      action: main-session-direct
+      agent: main-session
+      reason: DEC-174 assigns Harness validators, gates, writer seams, and their supporting libraries to direct execution.
+    - path: tests/**
+      action: main-session-direct
+      agent: main-session
+      reason: DEC-174 keeps regressions for governed gates and writer seams with the direct main-session change.
+    - path: .harness/README.md
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set route keeps the bounded operator guidance with the checker behavior it explains.
+    - path: .harness/harness/features/FEAT-62-check-state-decomposition/notes/build-divergences.md
+      action: main-session-direct
+      agent: main-session
+      reason: The operator-set route keeps the build-time equivalence and exception record with the direct implementation.
+decisions:
+  - id: D-01
+    choice: Keep check-state.py as one deep module whose post-bootstrap body contains declarations, one ordered INVARIANTS tuple, a retired-name map, and the guarded main call; give every active INV number one Inv(name, run, scope, reads, contract, authority) row and one invariant function.
+    because: Existing path consumers require the bootstrap and a package split adds loading seams, while an ordered registry removes executable invariant work from module scope without changing report order.
+    status: accepted
+  - id: D-02
+    choice: Represent declared inputs as literal path:<repository-relative POSIX path-or-glob>, git:<operation>, or gh:<resource> entries; derive --changed candidates from porcelain-v1 NUL-delimited dirty and untracked paths and conservatively retain rows with external or dynamic inputs that cannot be mapped.
+    because: Exact declarations can be audited and used for fast local selection, while conservative treatment of unmappable inputs prevents the convenience path from claiming a false clean result.
+    status: accepted
+  - id: D-03
+    choice: Make authority an exact DEC-NNN reference on every active row and reject an authority absent from DECISIONS-INDEX.md or marked STRUCK there.
+    because: Amendments-in-place are an accepted temporary limit, but missing and struck decisions cannot authorize a live invariant under DEC-188 and DEC-205.
+    status: accepted
+  - id: D-04
+    choice: Preserve suite-by-suite exit status, stdout bytes, and stderr bytes from the planning baseline, except separately enumerated red-first loop-order changes for INV-3, INV-15, INV-26, and their named BEGIN/END sub-blocks in notes/build-divergences.md.
+    because: Moving those repo-level loops into the runner necessarily changes their grouping; a ruled ledger exposes that narrow cost instead of weakening the equivalence claim for every other observable.
+    status: accepted
+  - id: D-05
+    choice: Give --list non-executing registry output and make --only, --feature, and --changed intersect as execution selectors; --feature limits feature-scoped iterations while repo-scoped rows run once, and no-argument execution remains the full-table contract.
+    because: Orthogonal selectors compose without a second execution engine, and retaining repo-scoped rows under --feature preserves repository invariants that contextualize one feature.
+    status: accepted
+  - id: D-06
+    choice: Reserve INV-9 and INV-10 permanently in the retired map so --list and historical references resolve them, but never execute or reuse either number.
+    because: DEC-205 makes deleted decision numbers non-reusable, and the same stable identity rule keeps old checker digests intelligible without reviving removed checks.
+    status: accepted
+  - id: D-07
+    choice: Make --changed silent on a clean selection at the checker source and run it only as advisory post-write feedback at the canonical plan.yaml and feature.json write seams, after durable write and lock release; the shared adapter forwards captured non-clean rows to stderr without exact-string filtering while preserving writer stdout, exit status, refusal behavior, and content, and every workflow, hook, command-entry, and pre-commit gate stays on the full checker.
+    because: The selective path shortens the edit loop but cannot replace the authoritative full-table gate or retroactively roll back an already durable structured write.
+    status: accepted
+  - id: D-08
+    choice: "Admit no planned complexity exemption and no broad-exception cleanup in this wave: changed production functions must grade 4 or 5, changed tests at least 3, and all 47 except Exception sites remain wave-3 work with their clauses and handler bodies untouched apart from extraction indentation."
+    because: Per-invariant functions can be made shallow now, while changing catch boundaries is independently risky wave-3 work and would invalidate the promised behavioral equivalence.
+    status: accepted
+  - id: D-09
+    choice: Execute every implementation task directly in the main session and use Harness only for planning, the configured reader wave, validation, and goal-check.
+    because: DEC-174 governs the checker, audit, writer seams, and their tests, and the operator fixed direct execution before planning.
+    status: accepted
+tasks:
+  - id: T-01
+    title: Decompose the checker and establish selective execution
+    traces: [SC-01, SC-02, SC-04, SC-09]
+    change_type: feature
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 and the operator-set route assign the checker, its contract suites, and its divergence record to the main session.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-state.py
+      - tests/integration/test-check-state.py
+      - tests/integration/test-check-state-entry.py
+      - tests/integration/test-check-state-plans.py
+      - tests/integration/test-check-state-handoff.py
+      - tests/integration/test-check-state-worktrees.py
+      - tests/integration/test-check-state-inv26.py
+      - tests/integration/test-check-state-records.py
+      - tests/integration/test-check-state-feat59.py
+      - .harness/harness/features/FEAT-62-check-state-decomposition/notes/build-divergences.md
+    verify: python3 tests/integration/test-check-state.py && python3 tests/integration/test-check-state-entry.py && python3 tests/integration/test-check-state-plans.py && python3 tests/integration/test-check-state-handoff.py && python3 tests/integration/test-check-state-worktrees.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-check-state-records.py && python3 tests/integration/test-check-state-feat59.py
+    intent: |
+      Work red-first. Before source edits, run each of the eight named suites at the baseline and record its command, exit status, stdout digest, and stderr digest in notes/build-divergences.md. Add failing behavioral cases for the four verbs and selector combinations, dirty, renamed, and untracked path selection, registry order, active and retired identity resolution, byte-identical output, and correct verdicts. Do not assert parser call counts or other internal caching details; T-02 locks the shared-context shape within an existing structural rule family.
+
+      Preserve the existing trusted bootstrap and helper behavior, then move every invariant body into a named function and create an immutable Inv record with fields name, run, scope, reads, contract, and authority. Give every active INV number exactly one ordered INVARIANTS row; a family may share parsed context but never shares its identity row. Keep INV-9 and INV-10 in a separate retired map. The runner owns feature iteration and parses each shared source once into context. The post-bootstrap module body may contain imports, definitions, constants and tables, and the guarded main call only; it may not execute invariant loops, conditionals, try blocks, or reads.
+
+      Use literal reads entries shaped path:<repo-relative POSIX path-or-glob>, git:<operation>, and gh:<resource>. No arguments run the full table with the existing exit code and byte output contract. --list prints ordered active identities plus retired INV-9 and INV-10 and executes nothing. --only accepts one exact INV-NN; a retired number resolves deterministically as retired and is not run. --feature limits feature-scoped runner iterations to the exact feature while repo-scoped rows run once. --changed uses git status --porcelain=v1 -z --untracked-files=all, handles rename pairs, selects path declarations that intersect dirty paths, conservatively includes rows with external or unresolved dynamic inputs, and emits no stdout or stderr when the selected run is clean. --only, --feature, and --changed intersect; --list is exclusive. Preserve existing 0 clean, 1 findings, and 2 cannot-run or command-error channels.
+
+      Move the feature loops for INV-3, INV-15, INV-26, and their BEGIN/END sub-blocks into the runner. For each resulting ordering difference, first commit a failing expectation that describes the old and new order, then add one ledger row with baseline and new byte evidence, reason, scope, and ruling. Rewrite the INV-26 marker slice against its function. Any other receipt difference is a task failure. Leave all 47 except Exception clauses and handler bodies untouched apart from extraction indentation; broad-exception cleanup remains wave 3, and SC-09 uses a handler-scoped baseline-to-HEAD diff review rather than a bespoke AST comparator. Split functions until changed production code grades 4 or 5 and changed tests grade at least 3; no exemption is planned. Do not change report wording, SKILL.md, preload surfaces, or broad catch behavior.
+  - id: T-02
+    title: Add the three consolidation locks and changed-mode posture audit
+    traces: [SC-03, SC-04, SC-05, SC-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 directly governs the route audit, its mutations, and its gate tests.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py#consolidation_findings
+      - tests/integration/test-check-plan-routes.py#case_22
+    verify: python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --consolidation-audit
+    intent: |
+      Extend the existing FEAT-61 consolidation audit test-first with three named AST rule families. The module-body lock permits check-state.py's existing trusted bootstrap, declarations including INVARIANTS and the retired map, and the guarded main call, and rejects injected top-level invariant reads, loops, conditionals, with blocks, or try blocks. Within that same module-body rule family, require sources designated for runner-shared context to be parsed into that context outside invariant functions and reject direct reparsing of those sources in invariant bodies; do not count parser calls and do not add a fourth checker-structure family. The reads lock resolves each Inv.run target, recognizes direct open/read helpers, glob operations, canonical accessors, and literal git or gh subprocess arguments, maps them to the declared path:, git:, and gh: vocabulary, and rejects every detected input absent from that row. The authority lock parses each exact DEC-NNN against .harness/harness/docs/DECISIONS-INDEX.md and rejects a missing row or one containing STRUCK.
+
+      Demonstrate each lock red-first in isolated temporary copies: inject top-level invariant execution and direct invariant-body reparsing of a runner-shared source, add undeclared file/glob, git, and GitHub/board inputs to a function, replace authority once with a missing decision and once with DEC-90, and prove each mutant fails only for its named finding while the unchanged tree passes. Keep these exactly the three FEAT-62 consolidation rule families.
+
+      In the same public --consolidation-audit command add a separate selective-execution posture finding that scans repository workflow and hook command invocations for check-state.py combined with --changed. Prove it red-first by mutating one workflow and one hook fixture. The live tree must keep .github/workflows/tests.yml, command entry, and hook or pre-commit paths on the no-flag full checker. Do not edit those workflow or hook files and do not count this invocation-posture scan as a fourth checker-structure rule.
+  - id: T-03
+    title: Wire canonical writers to the loop and document the full gate
+    traces: [SC-06, SC-07, SC-08, SC-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 and the operator-set route keep the canonical writer feedback seam, its regressions, and bounded operator guidance together in the main session.
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/plan-merge.py#locked_update
+      - .claude/skills/harness/bin/feature_json_write.py#write_feature_json
+      - tests/unit/test-harness-boundary.py#case_worktree_for_feature
+      - tests/integration/test-plan-merge.py
+      - tests/integration/test-feature-json-merge.py
+      - .harness/README.md
+    verify: python3 tests/unit/test-harness-boundary.py && python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-feature-json-merge.py && python3 .claude/skills/harness/bin/check-plan-routes.py --consolidation-audit && python3 .claude/skills/harness/bin/code-grade.py --base 1b69f67f4a24c4b011cd1fa724e1bb66d4c77cb7 --head HEAD
+    intent: |
+      Add red-first cases before writer changes. Put one shared changed-state subprocess adapter in harness_boundary.py. Derive its checkout from the written target path alone with an environment-independent boundary helper, without calling, changing, or depending on resolve_root and its HARNESS_PROJECT_DIR contract. Run that checkout's .claude/skills/harness/bin/check-state.py --changed only when the target is a canonical plan.yaml or feature.json below that checkout's .harness feature tree, capture both streams, and return non-clean rows for the caller's stderr without matching or filtering any exact output string. It must not inspect the developer checkout for a temporary or non-canonical fixture path, recurse into a writer, or introduce a new lock.
+
+      Call the adapter from plan-merge.py after each successful mutating plan write and from feature_json_write.py after each successful feature JSON write, in both cases only after the existing write lock is released. Preserve every current refusal path, atomic-write guarantee, successful stdout receipt, durable bytes, and exit status; changed-state findings are advisory stderr feedback and never roll back the completed write. Tests must prove call order relative to lock release, one invocation per successful persisted write, no invocation on refusal or no-op, finding forwarding, silent clean behavior supplied by the checker source, hermetic target-root selection, no dependency on resolve_root or HARNESS_PROJECT_DIR, and byte-identical existing stdout and stored content. Cover the plan-merge public writer and feature-json-merge path; rely on the shared feature_json_write seam rather than adding wrapper-specific calls.
+
+      Replace the single operator sentence in .harness/README.md with a concise split: structured edits automatically surface --changed feedback during the edit loop, while entry, pre-commit, workflow, and final verification run the full checker. Leave the full-check AGENTS.md instruction unchanged. Do not edit any SKILL.md, preload set, workflow invocation, hook invocation, or command-entry invocation. Finish by running the live consolidation audit and the baseline-to-HEAD code-grade gate so the whole-tree no-workflow-or-hook posture and SC-09 grades are proved after every Python-changing predecessor.
+needs_approval: true
