@@ -27,5 +27,31 @@
       "reason": "new enforcement surface \u2014 three audit rules and four CLI verbs \u2014 plus a ~3,000-line diff in the file every gate depends on; cause known and files named, but rule 3 of the patch test fails."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-62-check-state-decomposition/.harness/harness/features/FEAT-62-check-state-decomposition/notes/handoff-plan.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8be33afa66b0f1a52eaedb3af39bb072c09de4698608a35314b98b30ae171078",
+    "T-02": "d27a5dab54248d19fa05fe0768fd6148afa8686efe3d17aef9995c1d624aa4fc",
+    "T-03": "25ada658537818f359413a3c000a3cada41e291a35491e35e462a95795e985a2"
+  },
+  "github": {
+    "milestone": 83,
+    "parent": 1857,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1858,
+      "T-02": 1859,
+      "T-03": 1860
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
 }

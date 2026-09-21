@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-62-check-state-decomposition
 approval:
-  status: pending
-status: plan
+  date: '2026-09-21'
+  approved_by: molchairuangutai
+  status: approved
+status: ready
 mission: plan
 source_issues: []
 baseline:
