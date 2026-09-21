@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-62-check-state-decomposition",
   "pr": null,
   "review_sha": "a708516fed4bc34129594650e41cb517f56f07dc",
-  "cycles_used": 1,
+  "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -16,15 +16,6 @@
       "ended_at": "2026-09-21T14:30:03+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
-    },
-    {
-      "id": "validate-validator",
-      "squad": "validator",
-      "agent": "harness-validator-lead",
-      "verdict": "FAIL",
-      "started_at": "2026-09-21T16:48:35+00:00",
-      "ended_at": "2026-09-21T17:38:00+00:00",
-      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -34,13 +25,6 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "new enforcement surface \u2014 three audit rules and four CLI verbs \u2014 plus a ~3,000-line diff in the file every gate depends on; cause known and files named, but rule 3 of the patch test fails."
-    },
-    {
-      "at": "2026-09-21T17:40:00+00:00",
-      "by": "main-session",
-      "kind": "succession",
-      "decision": "continue",
-      "reason": "Plan-to-validate succession: T-01..T-03 built main-session-direct (DEC-174) against the signed plan; validate c0 ran on review_sha 1380727c and its panel artifacts are complete although the orchestrator process died after they were written."
     }
   ],
   "mission": "plan",

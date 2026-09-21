@@ -20,6 +20,26 @@ except the rows enumerated under `## After T-03 — the feedback loop, measured
   dirty, and the plan path does NOT relay a second time — one `--changed` run over one dirty
   tree says everything a second would.
 
+## Validate c0 — an orphaned run, and what the loop caught
+
+- The validate orchestrator started `validate-validator` at 16:48Z without recording the
+  plan→validate `succession` judgement, its panel wrote five artifacts (qa PASS, security
+  PASS, ui PASS, code review FAIL, goal-check FAIL — `notes/review-*-c0.md`,
+  `notes/research-*-goalcheck-validate-c0.md`), and the process then died on a provider
+  error before closing the run. Its `PENDING` run entry and a retrospective succession the
+  main session first appended were REMOVED by operator ruling 2026-09-21: the entry was a
+  dead process's unfinished write, and INV-43 grades a retrospective succession as a
+  standing violation. The c0 artifacts stay; the fix round below answers them.
+- Fix round 1 (main session, DEC-174): CR-02/GC-04's census (`_dirty_paths` catch narrowed;
+  47 sites); GC-02 (resource-level reads lock, three misdeclared-resource mutants); GC-03
+  (fixture checker probes the writer's lock and must see it FREE; red on a relay-inside-
+  the-lock mutant of each writer). GC-01 and GC-04's spec contradictions were ruled by
+  BRIEF amendment (SC-01 admits D-1/D-3; SC-09 admits extraction-compatible control flow)
+  with the approval revoked and re-signed.
+- The changed-state loop itself, on this feature's own record writes, surfaced the stale
+  `review_sha`, the unbounded `cycles_used`, and the missing succession — three real
+  findings from one `set-key`.
+
 ## Ruled divergences`, each proved red-first (a failing
 expectation describing old and new order committed before the move) and ruled here.
 
