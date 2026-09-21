@@ -2374,6 +2374,143 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_discovery_cannot_narrow,
 )
 
+def _normalised_receipt(result, td):
+    return {"exit": result.returncode,
+            "stdout": result.stdout.replace(td, "<TD>"),
+            "stderr": result.stderr.replace(td, "<TD>")}
+
+
+def _run_with_top_level_status_receipt(status):
+    with tempfile.TemporaryDirectory() as td:
+        feature_dir = _yaml_project(td)
+        path = os.path.join(feature_dir, "plan.yaml")
+        with open(path, encoding="utf-8") as stream:
+            body = stream.read()
+        if status is not None:
+            body = body.replace("feature: FEAT-A\n",
+                                f"feature: FEAT-A\nstatus: {status}\n", 1)
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(body)
+        return _normalised_receipt(run(project_dir=td), td)
+
+
+def _run_with_task_status_receipt(status):
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status=status)
+        return _normalised_receipt(run(project_dir=td), td)
+
+
+def case_feat61_lifecycle_receipt():
+    """FEAT-61 T-05 / SC-01: the station migration changes NO byte this checker emits.
+
+    The receipt was captured against the pre-migration script (see `captured_at` in the
+    fixture) for every station in the vocabulary, the capitalised `Done` that must be
+    checked rather than skipped, and the absent-status shape — as a top-level station and as
+    a task status. Exit code, stdout and stderr are compared whole; the fixture's temp dir is
+    the only normalisation. A drift in the skip decision (`_is_shipped`), in a violation
+    line, or in the summary reddens the exact station that moved.
+    """
+    with open(os.path.join(FIXTURE_DIR, "feat61-check-plan-routes-lifecycle.receipt.json"),
+              encoding="utf-8") as stream:
+        receipt = json.load(stream)
+    for family, runner in (("top_level_status", _run_with_top_level_status_receipt),
+                           ("task_status", _run_with_task_status_receipt)):
+        for key, expected in receipt[family].items():
+            got = runner(None if key == "None" else key)
+            check(f"feat61_receipt_{family}_{key}_byte_identical", got == expected,
+                  f"expected {expected!r}\n     got {got!r}")
+
+
+def _consolidation_findings_for_tree(mutate=None):
+    """Run `consolidation_findings` over a COPY of bin/ so a mutant never touches the live
+    tree. `mutate(bin_dir)` edits the copy; None runs the tree as shipped."""
+    with tempfile.TemporaryDirectory() as td:
+        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
+        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        if mutate is not None:
+            mutate(copy_bin)
+        return cpr().consolidation_findings(td)
+
+
+def _append_to_gh_board(bin_dir, source):
+    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
+        stream.write(source)
+
+
+def _append_station_literal_mutant(bin_dir):
+    # A predicate that respells the active bucket instead of calling is_active.
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+                        '    return station in ("plan", "ready", "building", "review")\n')
+
+
+def _append_drifted_bucket_mutant(bin_dir):
+    # Validate c1 CR-01: a copied active bucket that has ALREADY drifted — `review` omitted.
+    # A feature in review is classified inactive by this predicate, and an exact-set lock
+    # never sees it. Also the finished bucket drifted to two names, assigned not compared.
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+                        '    return station in ("plan", "ready", "building")\n'
+                        '\n\n_MUTANT_OVER = frozenset({"done", "abandoned"})\n')
+
+
+def _append_work_started_control(bin_dir):
+    # D-11 negative control: the historical one-off spans both buckets and is NOT a respelling.
+    _append_to_gh_board(bin_dir, '\n\ndef _control_work_started(statuses):\n'
+                        '    return not set(statuses).isdisjoint({"building", "review", "done"})\n'
+                        '\n\ndef _control_columns():\n'
+                        '    return [k.capitalize() for k in ("ready", "building", "review")]\n')
+
+
+def _append_second_loader_mutant(bin_dir):
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_load(path):\n'
+                        '    import importlib.util\n'
+                        '    spec = importlib.util.spec_from_file_location("m", path)\n'
+                        '    return spec\n')
+
+
+def _mutant_findings(mutate, symbol, respelled):
+    """Findings from a mutant, plus whether exactly one names `symbol` and `respelled`."""
+    findings = _consolidation_findings_for_tree(mutate)
+    own = [f for f in findings if symbol in f and respelled in f]
+    return findings, len(findings) == len(own) and bool(own)
+
+
+def case_feat61_station_lock():
+    """FEAT-61 T-05 / SC-07, lock 1: the station lock passes on the shipped tree, fails on a
+    bucket copied whole AND on one that has already drifted to a subset (validate c1 CR-01),
+    and stays silent on the D-11 negative control — `_work_started`'s cross-bucket trio and a
+    `for` over station keys.
+    """
+    clean = _consolidation_findings_for_tree()
+    check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
+    station, ok = _mutant_findings(_append_station_literal_mutant, "gh_board.py::_mutant_is_live",
+                                   "respells factory_config.ACTIVE_STATIONS")
+    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding", ok, "\n".join(station))
+    drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
+    check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
+          len(drifted) == 2
+          and "gh_board.py::_mutant_is_live" in drifted[0]
+          and "respells factory_config.ACTIVE_STATIONS" in drifted[0]
+          and "gh_board.py::<module>" in drifted[1]
+          and "respells factory_config.FINISHED_STATIONS" in drifted[1],
+          "\n".join(drifted))
+    control = _consolidation_findings_for_tree(_append_work_started_control)
+    check("feat61_lock_d11_cross_bucket_predicate_and_key_iteration_are_not_flagged",
+          control == [], "\n".join(control))
+
+
+def case_feat61_loader_lock():
+    """FEAT-61 T-05 / SC-07, lock 2: a second spec_from_file_location under bin/ fails for its
+    own finding only, and the CLI reports the shipped tree clean at exit 0."""
+    loader, ok = _mutant_findings(_append_second_loader_mutant, "gh_board.py::_mutant_load",
+                                  "second spec_from_file_location")
+    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding", ok, "\n".join(loader))
+    r = run("--consolidation-audit")
+    check("feat61_lock_cli_reports_clean_and_exits_0",
+          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
+          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
+
+
+
 
 CASES = (
     case_41_t09_manifest_deviation_is_parsed_not_byte,
@@ -2399,6 +2536,9 @@ CASES = (
     case_41_t04_task_station_vocabulary,
     case_41_t04_top_level_station_vocabulary,
     case_41_t07_is_shipped_reads_the_plan,
+    case_feat61_lifecycle_receipt,
+    case_feat61_station_lock,
+    case_feat61_loader_lock,
 )
 
 

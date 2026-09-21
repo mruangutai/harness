@@ -165,10 +165,7 @@
     "_preload_warn_words_rationale": "INFORMATIONAL, NOT A GATE (FEAT-60 SC-08): words of SKILL.md text an agent preloads through autoloadSkills; `universal` bounds the set every agent carries, `agent` bounds any one agent. check-skill-weight.py measures, check-state.py NOTES an excess."
   },
   "gates": {
-    "qa_gate": "blocking",
-    "review": "advisory_unless_high",
-    "uat": "blocking_when_uat_criteria_exist",
-    "merge": "user_gated"
+    "review": "advisory_unless_high"
   },
   "github": {
     "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE by harness-add-repo; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. For a fleet member this block is read from that repository's own harness.json at its default_branch, so pinning it in a checkout alone changes nothing. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",

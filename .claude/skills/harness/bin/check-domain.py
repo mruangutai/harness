@@ -678,9 +678,6 @@ def approval_guard(rel, agent_name):
 
 
 
-RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
-
-
 def feature_checkout_guard(raw_rel, target_path):
     """Bind a governed feature-artifact write to that feature's linked worktree.
 
@@ -688,18 +685,20 @@ def feature_checkout_guard(raw_rel, target_path):
     checkout and a worktree. During FEAT-45 that let six writes land in main; three
     artifacts existed nowhere else. This is a checkout question, not a broader glob or
     shape rule, and it only narrows a write that the domain decision already allowed.
+
+    AN ADAPTER (FEAT-61 T-03): the path question — which artifact, which worktree, is the
+    write inside it — is harness_boundary.feature_artifact_checkout_mismatch, shared with
+    bash-write-guard.py so the binding rule cannot drift between the two routes. This
+    function owns only the refusal: its wording, its exit channel, and the absorption.
     """
-    match = RE_FEATURE_ARTIFACT.match(raw_rel)
-    if match is None:
+    feature_id = harness_boundary.feature_artifact_id(raw_rel)
+    if feature_id is None:
         return
-    feature_id = match.group(1)
     try:
-        expected = harness_boundary.worktree_for_feature(root, feature_id)
-        if expected is None:
+        mismatch = harness_boundary.feature_artifact_checkout_mismatch(root, raw_rel, target_path)
+        if mismatch is None:
             return
-        checkout = harness_boundary.checkout_relative(target_path)
-        if checkout is not None and harness_boundary.real(checkout[0]) == harness_boundary.real(expected):
-            return
+        _, expected = mismatch
         print(f"check-domain: BLOCKED — {target_path} is a feature artifact whose write "
               f"belongs in worktree {expected}.", file=sys.stderr)
         print(f"  Write this artifact in {expected}, not the main checkout.", file=sys.stderr)
@@ -1572,15 +1571,12 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         if _valid_version and isinstance(doc, dict):
             try:
                 import jsonschema
-                _schema_path = os.path.join(sys.argv[3], "run-state-schema.json")
-                with open(_schema_path, encoding="utf-8") as _schema_file:
-                    _run_schema = json.load(_schema_file)
-                _step_schema = _run_schema["properties"]["steps"]["items"]
+                # The step contract comes through the shared strict reader (FEAT-61
+                # T-03); the evidence-name pattern arrives as a string and is compiled here.
+                _step_schema, _declared, _name_pattern_text = (
+                    _artifact_accessors.load_run_step_contract(sys.argv[3]))
                 _validator = jsonschema.Draft202012Validator(_step_schema)
-                _declared = set(_step_schema["properties"])
-                _evidence_schema = _step_schema["properties"]["evidence"]
-                _name_pattern = re.compile(
-                    _evidence_schema["propertyNames"]["pattern"])
+                _name_pattern = re.compile(_name_pattern_text)
                 _offending = set()
                 _schema_errors = []
                 _declared_invalid = set()

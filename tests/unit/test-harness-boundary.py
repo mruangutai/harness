@@ -341,6 +341,121 @@ def case_worktree_for_feature():
         shutil.rmtree(tmp3, ignore_errors=True)
 
 
+# ============================== FEAT-61 T-01: checkout predicate ==============================
+
+def _raises(fn, exc_type):
+    """The exception `fn()` raises when it is an `exc_type`, else None."""
+    try:
+        fn()
+    except exc_type as e:
+        return e
+    return None
+
+
+def case_feature_artifact_checkout_mismatch():
+    """The ONE checkout question both write routes ask (check-domain's tool route and
+    bash-write-guard's Bash route). It decides; the adapters refuse in their own voice."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        wt = make_worktree(mod, tmp, "FEAT-X")
+        rel = ".harness/harness/features/FEAT-X-thing/BRIEF.md"
+        other = ".harness/harness/features/FEAT-Y-other/BRIEF.md"
+        check("checkout_mismatch_non_feature_path_is_none",
+              mod.feature_artifact_checkout_mismatch(tmp, "docs/README.md", os.path.join(tmp, "docs/README.md")) is None)
+        check("checkout_mismatch_no_worktree_for_feature_is_none",
+              mod.feature_artifact_checkout_mismatch(tmp, other, os.path.join(tmp, other)) is None)
+        check("checkout_mismatch_correct_checkout_is_none",
+              mod.feature_artifact_checkout_mismatch(tmp, rel, os.path.join(wt, rel)) is None)
+        got = mod.feature_artifact_checkout_mismatch(tmp, rel, os.path.join(tmp, rel))
+        check("checkout_mismatch_wrong_checkout_names_feature_and_expected_worktree",
+              got == ("FEAT-X-thing", wt), f"got {got!r}")
+        check("feature_artifact_id_extracts_the_feature_segment",
+              mod.feature_artifact_id(rel) == "FEAT-X-thing"
+              and mod.feature_artifact_id("tests/x.py") is None)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_feature_artifact_checkout_mismatch_ambiguous():
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        make_worktree(mod, tmp, "FEAT-X")
+        make_worktree(mod, tmp, "FEAT")
+        raised = _raises(lambda: mod.feature_artifact_checkout_mismatch(
+            tmp, ".harness/harness/features/FEAT-X-thing/BRIEF.md", os.path.join(tmp, "x")),
+            mod.AmbiguousWorktree)
+        check("checkout_mismatch_lets_ambiguous_worktree_reach_the_adapter",
+              raised is not None and "FEAT, FEAT-X" in str(raised), f"got {raised!r}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# ============================== FEAT-61 T-01: load_repo_module ==============================
+
+def _script(tmp, name, body):
+    path = os.path.join(tmp, name)
+    with open(path, "w") as fh:
+        fh.write(body)
+    return path
+
+
+def case_load_repo_module_registration():
+    """The sole spec_from_file_location in bin/. Six hand-written copies disagreed on
+    sys.modules registration; this one owns the decision."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        good = _script(tmp, "good-script.py",
+                       "import sys\nVALUE = 7\nSEEN = 'fixture_reg' in sys.modules\n")
+        loaded = mod.load_repo_module("fixture_unreg", good)
+        check("load_repo_module_executes_and_returns_the_module",
+              getattr(loaded, "VALUE", None) == 7)
+        check("load_repo_module_default_does_not_register",
+              "fixture_unreg" not in sys.modules)
+        registered = mod.load_repo_module("fixture_reg", good, register=True)
+        check("load_repo_module_register_true_is_visible_during_exec",
+              getattr(registered, "SEEN", None) is True,
+              "dataclasses resolve their module by name DURING exec — registration must precede it")
+        check("load_repo_module_register_true_stays_registered_after_exec",
+              sys.modules.get("fixture_reg") is registered)
+        del sys.modules["fixture_reg"]
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_load_repo_module_failures():
+    """A failed exec re-raises the ORIGINAL exception and undoes only its own registration."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        bad = _script(tmp, "bad-script.py", "raise RuntimeError('boom at import')\n")
+        raised = _raises(lambda: mod.load_repo_module("fixture_bad", bad, register=True),
+                         RuntimeError)
+        check("load_repo_module_exec_failure_reraises_the_original",
+              raised is not None and "boom at import" in str(raised), f"got {raised!r}")
+        check("load_repo_module_exec_failure_removes_only_its_own_registration",
+              "fixture_bad" not in sys.modules)
+        sentinel = object()
+        sys.modules["fixture_preexisting"] = sentinel
+        _raises(lambda: mod.load_repo_module("fixture_preexisting", bad, register=True),
+                RuntimeError)
+        check("load_repo_module_exec_failure_restores_a_prior_registration",
+              sys.modules.get("fixture_preexisting") is sentinel)
+        del sys.modules["fixture_preexisting"]
+        # A missing FILE still yields a spec; the loader's own FileNotFoundError is the
+        # original failure and must reach the caller untouched — check-state.py's catch
+        # boundary prints its class and text into an INV finding.
+        check("load_repo_module_missing_file_reraises_the_natural_filenotfound",
+              _raises(lambda: mod.load_repo_module("fixture_missing", os.path.join(tmp, "absent.py")),
+                      FileNotFoundError) is not None)
+        check("load_repo_module_no_loader_is_importerror",
+              _raises(lambda: mod.load_repo_module("fixture_dir", tmp), ImportError) is not None,
+              "a directory yields no spec/loader")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
 # ============================== BUG-1304 claim set ==============================
 
 def _bug1304_unreadable(mod, owner, agent, destination):
@@ -754,6 +869,10 @@ def main():
     run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
     run_case(case_worktree_for_feature)
+    run_case(case_feature_artifact_checkout_mismatch)
+    run_case(case_feature_artifact_checkout_mismatch_ambiguous)
+    run_case(case_load_repo_module_registration)
+    run_case(case_load_repo_module_failures)
     run_case(case_bug1304_claim_set)
     run_case(case_real_keeps_one_namespace_when_unresolvable)
     run_case(case_run_identity_pattern)

@@ -10,13 +10,13 @@ check-state.py's INV-29 calls — it returns `classify(root)` for the harness ch
 `classify(owner_root)` for every repository declared in fleet.yaml. Everything else here is
 implementation detail that stays private.
 """
-import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
 import artifact_accessors
+
 
 CLASSES = ("terminal", "exempt_absent", "unresolved")
 
@@ -39,12 +39,11 @@ def _import_factory_config():
 
 def _import_feature_worktree():
     # The filename has a hyphen, so a plain `import` cannot reach it — loaded by path instead,
-    # per T-01's intent, rather than re-deriving resolve_repo's logic here.
-    path = os.path.join(_BIN_DIR, "feature-worktree.py")
-    spec = importlib.util.spec_from_file_location("_worktree_terminal_feature_worktree", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    # per T-01's intent, rather than re-deriving resolve_repo's logic here. Through the one bin
+    # loader (FEAT-61 T-02), unregistered: it declares no dataclass, and the callers' own
+    # failure handling (resolve_repo's SystemExit and Exception catches) is unchanged.
+    return _import_harness_boundary().load_repo_module(
+        "_worktree_terminal_feature_worktree", os.path.join(_BIN_DIR, "feature-worktree.py"))
 
 
 def _run_git(args, cwd, timeout=None):
@@ -410,10 +409,21 @@ def _landed_plan_classification(owner_root, default_branch, features_rel, resolv
         return "unresolved", f"landed plan.yaml for {resolved_id} is {plan_err}"
     station = str((plan_doc or {}).get("status", "")).split()
     landed = station[0] if station else ""
+    if not landed:
+        # A plan that records no station is live work, not a vocabulary miss.
+        return None
     # `done` and every TERMINAL_STATIONS name are terminal on the default branch (FEAT-1714
     # T-03): a rejected or abandoned feature whose record has landed will never build, so its
-    # worktree is exactly what INV-29 exists to reclaim.
-    if landed == "done" or landed in _import_factory_config().TERMINAL_STATIONS:
+    # worktree is exactly what INV-29 exists to reclaim. The predicate is STRICT (FEAT-61 T-02,
+    # D-03): a landed station outside the vocabulary is "unresolved" — the same posture as an
+    # unreadable plan, for the same reason: folding it into "not terminal" is the silent
+    # non-reclaim above, and a traceback out of classify() would take INV-29 down with it.
+    try:
+        finished = _import_factory_config().is_finished(landed)
+    except artifact_accessors.FleetError:
+        return "unresolved", (f"landed plan.yaml for {resolved_id} records station {landed!r}, "
+                              f"which is outside the station vocabulary")
+    if finished:
         return "terminal", f"landed station is {landed} on {default_branch}"
     return None
 

@@ -1,0 +1,1 @@
+No DESIGN.md or prototype gate is needed: plan.yaml only consolidates control-plane internals, configuration, documentation, and tests while explicitly preserving existing CLI output, so it introduces no user-facing UI surface.

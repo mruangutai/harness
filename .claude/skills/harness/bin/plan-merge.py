@@ -844,18 +844,39 @@ def _reset_approval_lines(lines, reason, resume_station):
 
 
 def _task_statuses(resulting_doc):
+    """Every task's status, an absent one read as ready — the not-started station gh_board
+    reads for the same absence.
+
+    STRICT AT THE BOUNDARY (FEAT-61 T-02, D-03): each explicit status crosses factory_config's
+    station predicate here, so a status outside the vocabulary — or an empty one — raises
+    FleetError whatever the interrupted phase, instead of `_work_started` (a spelled one-off that
+    never asks the boundary) reading it as "not started", or the building phase, which consults
+    no task status at all, writing a reset over a corrupt plan."""
     tasks = resulting_doc.get("tasks") if isinstance(resulting_doc, dict) else None
     if not isinstance(tasks, list):
         return []
-    return [task.get("status", "ready") for task in tasks if isinstance(task, dict)]
+    statuses = [task.get("status", "ready") for task in tasks if isinstance(task, dict)]
+    for status in statuses:
+        factory_config.is_finished(status)
+    return statuses
 
 
 def _review_complete(statuses):
-    return bool(statuses) and set(statuses).issubset({"done", "abandoned"})
+    """Non-empty and every task finished (FEAT-61 T-02): done, abandoned or rejected. A rejected
+    task completes review exactly as an abandoned one does — neither is work still to happen."""
+    return bool(statuses) and all(factory_config.is_finished(status) for status in statuses)
+
+
+# HISTORICAL ONE-OFF, SPELLED ON PURPOSE (FEAT-61 T-02). This is NOT ACTIVE_STATIONS and NOT
+# FINISHED_STATIONS, and must not be derived from either: `finished` is not evidence that work
+# started — abandoned can happen before execution and rejected happens at intake — so a plan whose
+# only non-ready tasks are abandoned or rejected resumes at ready, not building. `plan` and `ready`
+# are not evidence either. Exactly building, review and done are.
+_WORK_STARTED = ("building", "review", "done")
 
 
 def _work_started(statuses):
-    return not set(statuses).isdisjoint({"building", "review", "done"})
+    return any(status in _WORK_STARTED for status in statuses)
 
 
 def _resume_station(interrupted_phase, resulting_doc):
@@ -891,7 +912,9 @@ def _approval_reset_context(base_doc):
     if not isinstance(base_doc, dict):
         return None
     interrupted_phase = base_doc.get("status") or "plan"
-    if interrupted_phase not in {"plan", "ready", "building", "review"}:
+    # A finished feature (done, abandoned, rejected) or a backlog one is never paused at plan;
+    # a feature station outside the vocabulary raises here (FEAT-61 T-02, D-03).
+    if not factory_config.is_active(interrupted_phase):
         return None
     approval = base_doc.get("approval")
     if not isinstance(approval, dict):
@@ -2034,7 +2057,10 @@ def _approval_resume_station(base_bytes):
     approval = doc.get("approval") if isinstance(doc, dict) else None
     station = approval.get("resume_station") if isinstance(approval, dict) else None
     station = station or "ready"
-    if station not in {"ready", "building", "review"}:
+    # THE CODOMAIN OF `_resume_station` IS ACTIVE MINUS `plan` (FEAT-61 T-02, validate c1): a
+    # reset never resumes at plan. Derived from the table, never respelled, so a station added
+    # to the active bucket is resumable without this line learning about it.
+    if station not in set(factory_config.ACTIVE_STATIONS) - {"plan"}:
         raise harness_merge.MergeRefusal(
             5, [f"plan-merge: approval.resume_station is {station!r}; expected ready, "
                 "building, or review before signing"],
@@ -2249,13 +2275,10 @@ def _rework_ruling(args, resolved):
 
 
 def _feature_record_module():
-    """feature-record.py as a module: the hyphen keeps it out of `import`, like check-plan-routes."""
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
+    """feature-record.py as a module: the hyphen keeps it out of `import`, like check-plan-routes.
+    Loaded through the one bin loader (FEAT-61 T-02), unregistered: it declares no dataclass."""
+    return harness_boundary.load_repo_module(
         "feature_record", os.path.join(BIN_DIR, "feature-record.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _record_rework(feature_json, ruling):
@@ -3401,12 +3424,8 @@ def _check_plan_routes_module():
     """check-plan-routes.py as a module: the hyphen keeps it out of `import`, and its resolver
     is the ONE route resolver (DEC-179) — re-implementing it here would be a second copy of the
     rule check-domain.py applies at build time, which is the drift SC-07 exists to close."""
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
+    return harness_boundary.load_repo_module(
         "check_plan_routes", os.path.join(BIN_DIR, "check-plan-routes.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _trace_in_brief(trace, brief_text):

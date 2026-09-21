@@ -14,7 +14,8 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import json, os, shutil, subprocess, sys, tempfile, time
 from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
-    _legal_feature_json, drive, fire_post, fixture, make_linked_worktree)
+    _legal_feature_json, drive, fire, fire_post, fixture, make_linked_worktree)
+from isolated_bin import isolated_bin
 
 
 WT = []
@@ -704,6 +705,121 @@ def run_bug895_wrong_checkout_cases():
             fails += 1
             print(f"FAIL  [bug895] {name}\n      | {detail}")
     print(f"\n{len(results) - fails}/{len(results)} bug895 wrong-checkout cases passed.")
+    return fails
+
+
+# ---------------------------------------------------------------------------
+# FEAT-61 T-03: feature_checkout_guard is an ADAPTER over
+# harness_boundary.feature_artifact_checkout_mismatch. The core answers the path
+# question; the route keeps its refusal wording and its exit channel. Every receipt below
+# except the injected-failure one was captured before the cutover and is byte-identical
+# after it; the injected failure is the case that can only pass once the route delegates.
+FEAT61_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: .harness/*/features/*/BRIEF.md, upsert: true }
+          - { path: .harness/allowed/**, upsert: true }
+"""
+FEAT61_FEATURE = "FEAT-X-thing"
+FEAT61_REL = f".harness/harness/features/{FEAT61_FEATURE}/BRIEF.md"
+
+
+def _feat61_root(*worktree_ids):
+    """A main checkout granting the feature BRIEF and an unrelated allowed path, with one
+    linked worktree per id; returns (root, [realpath of each worktree])."""
+    root = fixture(FEAT61_MANIFEST)
+    os.makedirs(os.path.join(root, ".harness", "allowed"), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.join(root, FEAT61_REL)), exist_ok=True)
+    worktrees = [make_linked_worktree(root, os.path.join(root, ".claude", "worktrees", wt), wt)
+                 for wt in worktree_ids]
+    return root, [os.path.realpath(wt) for wt in worktrees]
+
+
+def _feat61_case(name, result, want_code, want_stderr=None):
+    """want_stderr None: exit code only and no refusal at all; a string: the exact bytes."""
+    if want_stderr is None:
+        ok = (result.returncode == want_code and "BLOCKED" not in result.stderr
+              and "Traceback" not in result.stderr)
+    else:
+        ok = result.returncode == want_code and result.stderr == want_stderr
+    return (name, ok, f"{result.returncode}: {result.stderr!r}")
+
+
+def _feat61_wrong_checkout():
+    root, (expected,) = _feat61_root(FEAT61_FEATURE)
+    target = os.path.join(root, FEAT61_REL)
+    return _feat61_case(
+        "matching path in the wrong checkout is refused in the route's own words",
+        fire(root, FEAT61_REL), 2,
+        f"check-domain: BLOCKED — {target} is a feature artifact whose write belongs in "
+        f"worktree {expected}.\n  Write this artifact in {expected}, not the main checkout.\n")
+
+
+def _feat61_correct_checkout():
+    root, (expected,) = _feat61_root(FEAT61_FEATURE)
+    rel = os.path.join(".claude", "worktrees", FEAT61_FEATURE, FEAT61_REL)
+    os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
+    return _feat61_case("matching path inside its own worktree is allowed",
+                        fire(root, rel), 0)
+
+
+def _feat61_absent_worktree():
+    root, _ = _feat61_root()
+    return _feat61_case("matching path with no linked worktree is allowed",
+                        fire(root, FEAT61_REL), 0)
+
+
+def _feat61_non_matching_path():
+    root, _ = _feat61_root(FEAT61_FEATURE)
+    return _feat61_case("a non-feature path is never bound, even beside a linked worktree",
+                        fire(root, ".harness/allowed/x.txt"), 0)
+
+
+def _feat61_ambiguous_worktree():
+    root, _ = _feat61_root("FEAT-X", FEAT61_FEATURE)
+    target = os.path.join(root, FEAT61_REL)
+    return _feat61_case(
+        "two prefix-matching worktrees refuse and name both candidates",
+        fire(root, FEAT61_REL), 2,
+        f"check-domain: BLOCKED — {target} belongs to feature {FEAT61_FEATURE}, but its "
+        f"worktree is ambiguous: feature '{FEAT61_FEATURE}' matches 2 linked worktrees: "
+        f"FEAT-X, {FEAT61_FEATURE}\n")
+
+
+def _feat61_injected_core_failure():
+    """The route delegates: with the core raising, the adapter's absorbing `except` keeps
+    the domain allowance instead of refusing through a private copy of the rule."""
+    root, _ = _feat61_root(FEAT61_FEATURE)
+    iso = isolated_bin(root)
+    with open(os.path.join(iso, "harness_boundary.py"), "a", encoding="utf-8") as core:
+        core.write("\n\ndef feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):\n"
+                   "    raise RuntimeError('FEAT-61 T-03 injected core failure')\n")
+    return _feat61_case(
+        "an unexpected core failure is absorbed and the allowance stands",
+        fire(root, FEAT61_REL, hook=os.path.join(iso, "check-domain.py")), 0)
+
+
+def run_feat61_feature_checkout_adapter():
+    """FEAT-61 T-03: the tool route's feature-checkout binding through the shared core."""
+    results = [
+        _feat61_wrong_checkout(),
+        _feat61_correct_checkout(),
+        _feat61_absent_worktree(),
+        _feat61_non_matching_path(),
+        _feat61_ambiguous_worktree(),
+        _feat61_injected_core_failure(),
+    ]
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [feat61] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [feat61] {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} FEAT-61 T-03 adapter cases passed.")
     return fails
 
 

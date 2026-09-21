@@ -122,6 +122,15 @@ def case_classify():
         _commit_feature(repo, "FEAT-06-amb-two", {}, plan_station="done")
         amb_dest = _add_wt(repo, "FEAT-06")
 
+        # FEAT-61 T-02: every FINISHED station is terminal on the default branch, and a landed
+        # station OUTSIDE THE VOCABULARY is "unresolved" — the strict predicate's miss is
+        # reported, never folded into "not terminal" (the silent non-reclaim this module exists
+        # to prevent) and never a traceback out of classify().
+        _commit_feature(repo, "FEAT-07-rejected-thing", {}, plan_station="rejected")
+        rejected_dest = _add_wt(repo, "FEAT-07-rejected-thing")
+        _commit_feature(repo, "FEAT-08-capitalised", {}, plan_station="Done")
+        capitalised_dest = _add_wt(repo, "FEAT-08-capitalised")
+
         recs = w.classify(repo)
         by_path = {r["path"]: r for r in recs}
 
@@ -159,6 +168,16 @@ def case_classify():
         results.append(("ambiguous prefix (matches 2 landed dirs) -> unresolved, "
                          "never exempt_absent",
                          bool(r) and r["klass"] == "unresolved",
+                         f"record: {r}"))
+
+        r = get(rejected_dest)
+        results.append(("landed rejected -> terminal, like every FINISHED station",
+                         bool(r) and r["klass"] == "terminal", f"record: {r}"))
+
+        r = get(capitalised_dest)
+        results.append(("landed station outside the vocabulary -> unresolved, naming the value, "
+                         "never omitted",
+                         bool(r) and r["klass"] == "unresolved" and "'Done'" in r["reason"],
                          f"record: {r}"))
 
         # (h) dirty: make the Done worktree dirty and reclassify.

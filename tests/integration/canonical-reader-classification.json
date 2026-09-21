@@ -9,10 +9,10 @@
       "execution_route": "team",
       "exemption": "module_internal_format",
       "file": ".claude/skills/harness/bin/artifact_accessors.py",
-      "id": ".claude/skills/harness/bin/artifact_accessors.py::_parse_json_text::json_string#1",
+      "id": ".claude/skills/harness/bin/artifact_accessors.py::strict_json_loads::json_string#1",
       "reason": "The canonical accessor module owns this strict JSON decoding primitive.",
       "remedy": "none",
-      "symbol": "_parse_json_text",
+      "symbol": "strict_json_loads",
       "task": "none"
     },
     {

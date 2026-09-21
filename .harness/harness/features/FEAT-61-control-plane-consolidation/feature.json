@@ -1,0 +1,193 @@
+{
+  "feature_id": "FEAT-61-control-plane-consolidation",
+  "branch": "feat/FEAT-61-control-plane-consolidation",
+  "pr": null,
+  "review_sha": "f798e2e600ed08aeb49d61a3a229a626750a9ccb",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-20T15:42:07+00:00",
+      "tokens": 221708,
+      "ended_at": "2026-09-20T16:18:40+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-20T22:31:25+00:00",
+      "tokens": 83706,
+      "ended_at": "2026-09-20T22:41:00+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-20T22:45:36+00:00",
+      "tokens": 102920,
+      "ended_at": "2026-09-20T23:00:21+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "amend-cr02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-20T23:27:10+00:00",
+      "tokens": 64083,
+      "ended_at": "2026-09-20T23:31:22+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-20T23:32:23+00:00",
+      "tokens": 94371,
+      "ended_at": "2026-09-20T23:45:31+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-20T23:51:05+00:00",
+      "tokens": 96168,
+      "ended_at": "2026-09-21T00:07:15+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-21T00:08:54+00:00",
+      "tokens": 60047,
+      "ended_at": "2026-09-21T00:17:41+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-20T15:42:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "bounded diff (~12 named files) but adds a new enforcement surface (two lock-in checks) and changes station-predicate semantics at ten sites \u2014 rule 3 of the patch test fails."
+    },
+    {
+      "at": "2026-09-20T22:31:20+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Approved plan and direct build evidence at c7b05584 satisfy the handoff next step; continue to the required post-build simplify and validation gates."
+    },
+    {
+      "at": "2026-09-20T22:43:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "The trusted answers file records the simplify fix at 4a88adb9, the worktree is clean at descendant c533a3f6, and measured rework spend is zero; continue to pin and validate."
+    },
+    {
+      "at": "2026-09-20T23:31:15.564850+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "The regression at test-gh-sync-record.py:358-378 exercises T-02's D-03 gh-sync lifecycle consumer and belongs in that task's file scope."
+    },
+    {
+      "at": "2026-09-20T23:31:15.565005+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.verify",
+      "reason": "T-02 verification must execute its D-03 gh-sync unknown-station regression; the signed command chain omitted that integration script."
+    },
+    {
+      "at": "2026-09-20T23:31:52+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate-c2",
+      "reason": "Validate c1 failed on VAL-01..VAL-03; the trusted operator answers resolve all three and CR-02 is now ledgered, so one pinned regate is required."
+    },
+    {
+      "at": "2026-09-20T23:46:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "form",
+      "reason": "QA-C2-01 concerns the signed task and matrix record shape; all shipped behavior, code review, fail-first evidence, success criteria, and perspectives pass at the pin."
+    },
+    {
+      "at": "2026-09-20T23:46:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "QA-C2-01 changes signed change_type fields or shared matrix/type mappings, outside eligible task HOW amendments; the operator required any further fix after this regate to return awaiting_user."
+    },
+    {
+      "at": "2026-09-20T23:48:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Resume final validate regate under the operator-authorized second and final rework round after signed-plan correction."
+    },
+    {
+      "at": "2026-09-20T23:50:43+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate-c3",
+      "reason": "The operator ruled QA-C2-01 as a signed-plan classification correction at f798e2e6; run the second and final authorized pinned regate."
+    },
+    {
+      "at": "2026-09-21T00:08:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Final validation passed; continue across the recorded validate seam to the requested documentation audit and CEO briefing."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-61-control-plane-consolidation/notes/handoff-plan.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "37f8ba65403a53f309ee3f91313e9c57f2c7568fac938e1b45ae720fa9f240c9",
+    "T-02": "1be5606fd02ed18c839bf633e9a385078996668d6c0f5b24aa7c0a861c5e9b97",
+    "T-03": "d581796c2b9b6d1c4bcfe9ec88fd5ee50d836a48479b4aad096ef24cc7193be5",
+    "T-04": "d9ad8645528adadb3182e86d7dfe90c815eccdaea1894bbabe898da74b24f77f",
+    "T-05": "35eb309e497a973e7a8d0ffb4805a8bf42180e4d3fb67fc7001a92cd5fdce4c1"
+  },
+  "github": {
+    "milestone": 82,
+    "parent": 1842,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1843,
+      "T-02": 1844,
+      "T-03": 1845,
+      "T-04": 1846,
+      "T-05": 1847
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}

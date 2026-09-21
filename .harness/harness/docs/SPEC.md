@@ -1775,7 +1775,7 @@ that. The tier that can see across runs is the tier that bounds them. Exhausting
    are allowed to finish — exhaustion fails a branch, not necessarily the whole team.
 2. **Preserve everything.** The run's `state.yaml` keeps the per-step history; the branch and all
    commits stay; nothing is reverted or abandoned. The feature's `status` stays where it is — it is
-   **not** advanced to `Done`, because closing a feature out, shipped or abandoned, is your call and
+   **not** moved to `done` or `abandoned`, because closing a feature out is your call,
    not the orchestrator's.
 3. **Roll up `VERDICT: BLOCKED`** with the accumulated `must_fix`, the number of cycles spent, and
    **what was tried each cycle** — an exhausted loop is only actionable if you can see why it did not
@@ -1848,10 +1848,11 @@ history of that feature, in order, with the squad visible in each name. This als
 `feature.json` never restates the declaration; it references `FEAT-01`.
 
 **A feature's station lives ONLY in `plan.yaml`'s top-level `status:`** (FEAT-41). It is one
-lowercase vocabulary — `backlog`, `plan`, `ready`, `building`, `review`, `done`, plus the terminal
-`abandoned` — shared with each task's own `status:` and with the board's declared stations, whose
-column names are DERIVED from it rather than stored beside it. `feature.json` holds no `status` key
-at all, and the schema's `additionalProperties: false` refuses one.
+lowercase vocabulary — `backlog`, `plan`, `ready`, `building`, `review`, `done`, `abandoned`,
+`rejected` — shared with each task's own `status:`. The first six have board columns whose
+capitalised names are derived from the lowercase values; the two terminal stations do not have
+columns. `feature.json` holds no `status` key at all, and the schema refuses one because
+`additionalProperties` is `false`.
 
 This inverts what this section said until FEAT-41: that feature status lived only in
 `feature.json`. The reasoning then was that a feature's progress is execution reality while a plan
@@ -2007,30 +2008,32 @@ reason}`, `kind` one of `mission | finding_kind | regate | continue | succession
 run with no `regate` entry, and a handoff with runs after it and no `succession` entry. You audit
 the ledger after the fact and overrule from the return; the overrule rate is the trust KPI.
 
-**One lifecycle field: `status`, recorded in `plan.yaml` and read from there. Its six values are the GitHub board's column names.**
+**One lifecycle field: `status`, recorded in `plan.yaml` and read from there. Its eight values are
+lowercase and case sensitive.**
 
 | `status` | What it means |
 |---|---|
-| `Backlog` | filed, but not yet planned |
-| `Plan` | BRIEF and `plan.yaml` being authored — **not yet signed** |
-| `Ready` | plan signed, waiting to be dispatched |
-| `Building` | a build is running |
-| `Review` | validating **or** waiting on the operator |
-| `Done` | merged and closed, **or** abandoned |
+| `backlog` | filed, but not yet planned |
+| `plan` | BRIEF and `plan.yaml` being authored — **not yet signed** |
+| `ready` | plan signed, waiting to be dispatched |
+| `building` | a build is running |
+| `review` | validating **or** waiting on the operator |
+| `done` | shipped: merged and closed |
+| `abandoned` | stopped without shipping; nothing executable remains |
+| `rejected` | refused at intake as wrong or superseded; nothing executable remains |
 
-**There is NO `phase` field, and no lifecycle vocabulary other than these six** (DEC-203 item 6). If
-you remember a separate phase field alongside a four-value status, both are gone: they collapsed into
-this one field, and nothing translates between the old values and these.
+**There is NO `phase` field, and no lifecycle vocabulary other than these eight.** If you remember
+a separate phase field alongside a four-value status, both are gone: they collapsed into this one
+field, and nothing translates between the old values and these.
 
-**The values are case sensitive, and no lowercase alias is accepted.** They are the board's own
-column names, and the board's spelling and the disk's spelling are required to be byte-identical, so
-`building` is not a `Building`.
+The first six values have GitHub board columns. `factory_config.station_column` derives their
+capitalised board names, so `plan.yaml` records `building` while the board displays `Building`.
+`abandoned` and `rejected` are terminal stations with no board column. A capitalised board name is
+not a valid on-disk station.
 
-**Two collapses, and neither is free.** `Review` **cannot distinguish** a review panel that is
-running from one that is waiting on the operator — the column tells you the feature is in review,
-not whether anything is executing. `Done` **cannot distinguish** shipped from abandoned. Both are
-accepted costs of having exactly one vocabulary, and both are stated here because this is where a
-future reader will look for them.
+The board retains one real collapse: `Review` cannot distinguish a review panel that is running
+from one waiting on the operator. The two terminal outcomes remain distinguishable in `plan.yaml`
+rather than being folded into `Done`.
 
 **The cycle budget has teeth (DEC-157), and so does the rework ruling (DEC-226).** `max_total_cycles`
 bounds *retries* and is **hard**: `check-state.py` INV-39 refuses `cycles_used > max_total_cycles`,

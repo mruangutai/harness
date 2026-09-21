@@ -75,6 +75,7 @@ import harness_yaml
 import artifact_accessors
 import handoff_policy
 import run_identity
+import harness_boundary
 try:
     import handoff_done_when
 except Exception as _handoff_done_when_error:
@@ -100,11 +101,13 @@ def read(p):
 
 # THE STATION VOCABULARY IS DERIVED, NEVER SPELLED (FEAT-41 T-01/T-07). Both names below come
 # from factory_config so this script cannot drift from harness.json's declaration — the drift
-# that made a six-key mapping and a validator disagree, which is why FEAT-41 exists.
+# that made a six-key mapping and a validator disagree, which is why FEAT-41 exists. The
+# finished bucket is the table's own (FEAT-61 T-03), no longer a `("done",) +` concatenation
+# this script spelled for itself.
 import factory_config
 
 TERMINAL_STATIONS = factory_config.TERMINAL_STATIONS
-FINISHED_STATIONS = ("done",) + TERMINAL_STATIONS
+FINISHED_STATIONS = factory_config.FINISHED_STATIONS
 
 # THE FEATURE'S STATION, READ FROM THE ONE FILE THAT RECORDS IT (FEAT-41 T-07). Every site
 # below that used to read feature.json's `status` now calls this, so the vocabulary and the
@@ -1310,10 +1313,7 @@ _vd_mod = None
 _vd_import_err = None
 if os.path.isfile(vd):
     try:
-        import importlib.util as _ilu
-        _spec = _ilu.spec_from_file_location("harness_validate_digest", vd)
-        _vd_mod = _ilu.module_from_spec(_spec)
-        _spec.loader.exec_module(_vd_mod)
+        _vd_mod = harness_boundary.load_repo_module("harness_validate_digest", vd)
         if not callable(getattr(_vd_mod, "validate", None)):
             _vd_mod, _vd_import_err = None, "it defines no validate() function"
     except Exception as _e:
@@ -1377,14 +1377,12 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
             and _schema_version >= 2):
         try:
             import jsonschema
-            _run_schema_path = os.path.join(sys.argv[2], "run-state-schema.json")
-            with open(_run_schema_path, encoding="utf-8") as _run_schema_file:
-                _run_schema = json.load(_run_schema_file)
-            _step_schema = _run_schema["properties"]["steps"]["items"]
+            # The step contract is read once per run through the shared strict reader
+            # (FEAT-61 T-03); the pattern arrives as a string and is compiled here.
+            _step_schema, _declared_step_keys, _evidence_pattern = (
+                artifact_accessors.load_run_step_contract(sys.argv[2]))
             _step_validator = jsonschema.Draft202012Validator(_step_schema)
-            _declared_step_keys = set(_step_schema["properties"])
-            _evidence_name = re.compile(
-                _step_schema["properties"]["evidence"]["propertyNames"]["pattern"])
+            _evidence_name = re.compile(_evidence_pattern)
             for _step_index, _step in enumerate(sdoc.get("steps", [])):
                 _errors = list(_step_validator.iter_errors(_step))
                 if not _errors:
@@ -2422,12 +2420,11 @@ if _lmod is not None:
 # spawns without a rule it was declared to carry) or a references/ file named as a preload
 # (SC-11). The import posture is INV-27's: the module ships with the tree.
 try:
-    import importlib.util as _ilu42
-    _spec42 = _ilu42.spec_from_file_location(
-        "check_skill_weight", os.path.join(sys.argv[2], "check-skill-weight.py"))
-    _csw = _ilu42.module_from_spec(_spec42)
-    sys.modules["check_skill_weight"] = _csw    # dataclasses resolve the module by name
-    _spec42.loader.exec_module(_csw)
+    # register=True: dataclasses resolve the module by name during exec (FEAT-61 T-03 —
+    # the registration, and its removal after a failed exec, live in load_repo_module).
+    _csw = harness_boundary.load_repo_module(
+        "check_skill_weight", os.path.join(sys.argv[2], "check-skill-weight.py"),
+        register=True)
 except Exception as _cswe:
     _csw = None
     bad.append("INV-42 CANNOT RUN: check-skill-weight.py did not import (%s: %s), so an "
@@ -2724,11 +2721,8 @@ def _iso_instant(v):
 _default_cycles = (_int_field((cj.get("budgets") or {}).get("max_total_cycles"))
                    if isinstance(cj, dict) else None)
 try:
-    import importlib.util as _ilu40
-    _spec40 = _ilu40.spec_from_file_location(
+    _pm40 = harness_boundary.load_repo_module(
         "harness_plan_merge", os.path.join(sys.argv[2], "plan-merge.py"))
-    _pm40 = _ilu40.module_from_spec(_spec40)
-    _spec40.loader.exec_module(_pm40)
     _signed_task_hash = _pm40.signed_task_hash
 except Exception as _pme40:
     _signed_task_hash = None

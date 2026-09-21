@@ -267,14 +267,19 @@ def _plan_task(match, feature_dir, root):
 
 
 def _satisfied_plan(match, feature_dir, root):
-    """True when the cited task has already reached its terminal station."""
+    """True when the cited task has already reached its terminal station.
+
+    The predicate is STRICT (FEAT-61 T-02, D-03): a status outside the vocabulary raises
+    FleetError, which `_satisfied` absorbs into None — indeterminate, never a refusal — so an
+    unknown status can neither satisfy nor bind. Case and padding are still folded first: a
+    hand-written `Done` has always counted here and still does."""
     task = _plan_task(match, feature_dir, root)
     if task is None:
         return None
     status = task.get("status")
     if not isinstance(status, str):
         return None
-    return status.strip().lower() in ("done",) + factory_config.TERMINAL_STATIONS
+    return factory_config.is_finished(status.strip().lower())
 
 
 def _heading_body(lines, heading):

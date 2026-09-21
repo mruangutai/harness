@@ -353,6 +353,29 @@ def main():
               read_plan_station(featSt7) == "building",
               read_feature_json(os.path.join(featSt7, "feature.json")))
 
+    # --- FEAT-61 T-02 (D-03): a task status OUTSIDE THE VOCABULARY is not "a task that is not
+    #     yet done" — the guard refuses naming the value, exit 2, one line, never a traceback,
+    #     and nothing is recorded. Before the strict predicate, `Done` read as unfinished and the
+    #     refusal blamed the wrong cause.
+    with tempfile.TemporaryDirectory() as tmpSt7b:
+        install_gh(tmpSt7b, FAKE_GH_STATIONS)
+        featSt7b = stage_station(
+            tmpSt7b, "FEAT-33-status-review-unknown",
+            [("T-01", "done"), ("T-02", "Done")],
+            issues={"T-01": 41, "T-02": 42},
+            parent=40,
+            feature_status=None, plan_station="building",
+        )
+        r = run(["status", featSt7b, "review"], tmpSt7b, {"FACTORY_GH": os.path.join(tmpSt7b, "gh")})
+        check("status Review, task station outside the vocabulary: refused with exit 2",
+              r.returncode == 2, r.stdout + r.stderr)
+        check("status Review, task station outside the vocabulary: names the value, no traceback",
+              "'Done'" in (r.stdout + r.stderr) and "Traceback" not in r.stderr
+              and "not every task" not in (r.stdout + r.stderr), r.stdout + r.stderr)
+        check("status Review, task station outside the vocabulary: station is NOT recorded",
+              read_plan_station(featSt7b) == "building",
+              read_feature_json(os.path.join(featSt7b, "feature.json")))
+
     # --- one sub-issue's set_station raising must not stop the remaining sub-issues from
     #     being written, exit 0, one stderr line, and feature.json's status still recorded.
     #     Custom fake: item-edit fails ONLY for ITEM_41; ITEM_42 and ITEM_43 still succeed.

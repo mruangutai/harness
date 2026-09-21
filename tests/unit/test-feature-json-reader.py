@@ -213,6 +213,45 @@ class LoadFeatureJsonTest(unittest.TestCase):
             )
 
 
+class ParseDocTest(unittest.TestCase):
+    """FEAT-61 T-01: parse_doc decodes through artifact_accessors.strict_json_loads and keeps its
+    own refusal contract byte for byte — code 11 and the exact line shapes gh-sync and the
+    merge tools already match on. The two private hook copies it carried are gone; a reader
+    still reaching for them fails loudly rather than silently using a stale twin."""
+
+    def _refusal(self, base):
+        with self.assertRaises(feature_json_write.harness_merge.MergeRefusal) as caught:
+            feature_json_write.parse_doc(base, "X/feature.json")
+        return caught.exception
+
+    def test_none_passes_through_and_a_mapping_round_trips(self):
+        self.assertIsNone(feature_json_write.parse_doc(None, "X"))
+        self.assertEqual({"a": 1}, feature_json_write.parse_doc(b'{"a": 1}', "X"))
+
+    def test_decode_failures_keep_code_11_and_the_not_valid_json_line(self):
+        for base in (
+            b"{ not json",
+            b'{"outer": {"k": 1, "k": 2}}',
+            b'{"v": NaN}',
+            b"\xff\xfe",
+        ):
+            with self.subTest(base=base):
+                refusal = self._refusal(base)
+                self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, refusal.code)
+                self.assertEqual(1, len(refusal.lines))
+                self.assertTrue(refusal.lines[0].startswith("X/feature.json: not valid JSON: "),
+                                refusal.lines[0])
+
+    def test_non_mapping_keeps_code_11_and_names_the_type(self):
+        refusal = self._refusal(b"[1, 2]")
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, refusal.code)
+        self.assertEqual(
+            ["X/feature.json: parsed but is not a JSON mapping (got list)"], refusal.lines)
+
+    def test_private_hook_twins_are_gone(self):
+        self.assertFalse(hasattr(feature_json_write, "_reject_duplicate_keys"))
+        self.assertFalse(hasattr(feature_json_write, "_reject_nonfinite_constant"))
+
 class OptIntTest(unittest.TestCase):
     """opt_int now lives in feature_json_write.py, the one shared copy gh-sync.py's three
     call sites use (BUG-285 property 7); factory_decompose.py's load_factory keeps its own

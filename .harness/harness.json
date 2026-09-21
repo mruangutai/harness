@@ -379,10 +379,7 @@
     "_preload_warn_words_rationale": "INFORMATIONAL, NOT A GATE (FEAT-60 SC-08): the words of SKILL.md text an agent pays on every spawn through autoloadSkills. `universal` bounds the set every agent preloads (handoff, expertise, principles), `agent` bounds any one agent's whole preload; check-skill-weight.py measures both and check-state.py NOTES an excess. The numerals are the FEAT-60 BRIEF's KPI targets against a measured baseline of 2982 universal and 8246 for pm at 2660e34c; DEC-158 (rule + one clause + pointer) is what keeps the text under them."
   },
   "gates": {
-    "qa_gate": "blocking",
-    "review": "advisory_unless_high",
-    "uat": "blocking_when_uat_criteria_exist",
-    "merge": "user_gated"
+    "review": "advisory_unless_high"
   },
   "github": {
     "sync": true,

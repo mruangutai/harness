@@ -520,9 +520,14 @@ def process_plan(path, findings, root, manifest_root):
 # DERIVED, NEVER SPELLED, for the reason `legal_task_statuses` below is: a literal here is a
 # second vocabulary. The import is lazy for that function's exact reason — cases 19b, 19b2 and
 # 21 copy this file alone into a temp directory, where a module-scope import is a traceback.
+#
+# FEAT-61 T-05: the view, not the strict predicate. `_is_shipped` promises never to raise and
+# treats an unknown token as "checked" — `factory_config.is_finished` raises on one by design
+# (D-03), so the membership test stays and the tuple it tests is the table's own
+# FINISHED_STATIONS rather than a hand-concatenated `("done",) + TERMINAL_STATIONS`.
 def finished_stations():
     import factory_config
-    return ("done",) + factory_config.TERMINAL_STATIONS
+    return factory_config.FINISHED_STATIONS
 
 
 # ONE VOCABULARY NOW, WHICH IS THE WHOLE POINT OF FEAT-41. Until T-04 this file carried a
@@ -961,8 +966,10 @@ T07_TERMINAL_REMEDIES = {
 T07_RELOCATED_IMPLEMENTATIONS = {
     ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
         ("load_fleet", "harness_yaml_file", "harness_yaml.load_file"),
+    # FEAT-61 T-01: the one json.loads behind every strict reader now lives in
+    # artifact_accessors.strict_json_loads; feature.json's canonical read decodes through it.
     ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
-        ("_parse_feature_json_text", "json_string", "json.loads"),
+        ("strict_json_loads", "json_string", "json.loads"),
     ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
         ("load_plan", "harness_yaml_file", "harness_yaml.load_file"),
     ".claude/skills/harness/bin/harness_yaml.py::manifest_domains::harness_yaml_file#1":
@@ -1604,13 +1611,182 @@ def _run_canonical_reader_audit(root):
     return result["exit_code"]
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-61 T-05: THE TWO CONSOLIDATION LOCKS (D-08). Exactly two, by decision — not a generic
+# duplicate detector and not a dead-symbol sweep. Each names the one reintroduction path the
+# wave closed and would otherwise reopen silently:
+#
+#   1. A feature-station literal outside factory_config.py. The station table is the one place
+#      a lifecycle bucket is spelled; a call site that writes `("plan", "ready", "building",
+#      "review")` or `("done",) + TERMINAL_STATIONS` again is the seventh-station-in-nine-of-ten
+#      defect this wave removed. BY BUCKET AND CONTEXT, NOT BY WORD. A literal collection is a
+#      respelling when it is USED AS A PREDICATE — the target of an `in`/`not in` test, a
+#      returned or assigned value — and its names all fall inside ONE lifecycle bucket
+#      (ACTIVE_STATIONS or FINISHED_STATIONS), two or more of them. Subset, not equality
+#      (validate c1, CR-01): a copied bucket that has ALREADY drifted — `("plan", "ready",
+#      "building")` missing `review` — is the most realistic recurrence, and an exact-set check
+#      waves it through. plan-merge.py's `_work_started` over {building, review, done} spans
+#      both buckets and so matches neither (D-11); a `for` over station keys to derive column
+#      names is iteration, not a predicate, and is not flagged. A single name is a station, not
+#      a bucket. The `<literal> + <export>` concatenation is flagged wherever it appears.
+#   2. A second `spec_from_file_location` under bin/. harness_boundary.load_repo_module owns
+#      the registration and failure decisions; a fresh copy re-derives them from scratch.
+#
+# Tests are not scanned: a test loading its subject by path is that test's own business.
+STATION_TABLE_REL = os.path.join(".claude", "skills", "harness", "bin", "factory_config.py")
+MODULE_LOADER_HOME = (
+    os.path.join(".claude", "skills", "harness", "bin", "harness_boundary.py"),
+    "load_repo_module",
+)
+_STATION_EXPORTS = ("MANDATED_STATIONS", "TERMINAL_STATIONS", "ACTIVE_STATIONS",
+                    "FINISHED_STATIONS")
+
+
+def _unwrap_set_call(node):
+    """`set(x)` / `frozenset(x)` → `x`; anything else unchanged."""
+    is_set_call = (isinstance(node, ast.Call) and not node.keywords and len(node.args) == 1
+                   and isinstance(node.func, ast.Name) and node.func.id in ("set", "frozenset"))
+    return node.args[0] if is_set_call else node
+
+
+def _string_literal_collection(node):
+    """The set of strings in a literal tuple/list/set, or `set(...)`/`frozenset(...)` over
+    one, or None when the node is anything else (including a collection with a non-string)."""
+    node = _unwrap_set_call(node)
+    if not isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+        return None
+    if not all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in node.elts):
+        return None
+    return {e.value for e in node.elts}
+
+
+def _names_station_export(node):
+    return (isinstance(node, ast.Attribute) and node.attr in _STATION_EXPORTS) or (
+        isinstance(node, ast.Name) and node.id in _STATION_EXPORTS)
+
+
+def _lifecycle_buckets():
+    import factory_config
+    return {"ACTIVE_STATIONS": set(factory_config.ACTIVE_STATIONS),
+            "FINISHED_STATIONS": set(factory_config.FINISHED_STATIONS)}
+
+
+def _is_station_concatenation(node):
+    """`<string literal> + <STATION export>` in either order — the `("done",) +
+    TERMINAL_STATIONS` shape that used to stand in for FINISHED_STATIONS at six sites."""
+    if not (isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add)):
+        return False
+    sides = (node.left, node.right)
+    return (any(_string_literal_collection(s) for s in sides)
+            and any(_names_station_export(s) for s in sides))
+
+
+_PREDICATE_PARENTS = (ast.Compare, ast.Return, ast.Assign, ast.AnnAssign)
+
+
+def _respelled_bucket(node, parent, buckets):
+    """Which table export a literal node respells, or None: a concatenation anywhere, or a
+    literal collection of two or more names inside one bucket, used as a predicate."""
+    if _is_station_concatenation(node):
+        return "FINISHED_STATIONS by concatenation"
+    values = _string_literal_collection(node)
+    if not values or len(values) < 2 or not isinstance(parent, _PREDICATE_PARENTS):
+        return None
+    return next((name for name, bucket in buckets.items() if values <= bucket), None)
+
+
+def _parents(tree):
+    """Child → parent map, with `set(...)`/`frozenset(...)` wrappers looked through so the
+    inner tuple sees the Compare/Return the call sits in."""
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+    for child, parent in list(parents.items()):
+        if _unwrap_set_call(parent) is not parent:
+            parents[child] = parents.get(parent)
+    return parents
+
+
+def _feature_station_literal_findings(tree, relative, buckets):
+    # Keyed by line so `frozenset(("plan", ...))` — a Call wrapping a Tuple — reports once.
+    parents = _parents(tree)
+    findings = {}
+    for node in ast.walk(tree):
+        respelled = _respelled_bucket(node, parents.get(node), buckets)
+        if respelled is not None and node.lineno not in findings:
+            findings[node.lineno] = (
+                f"{relative}::{_call_symbol(tree, node)}:{node.lineno} feature-station literal "
+                f"respells factory_config.{respelled} — read the table's export or call "
+                "is_active/is_finished (FEAT-61 D-08)")
+    return [findings[line] for line in sorted(findings)]
+
+
+def _callee_name(call):
+    func = call.func
+    return func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+
+
+def _module_loader_findings(tree, relative):
+    home_file, home_symbol = MODULE_LOADER_HOME
+    loaders = [
+        (node, _call_symbol(tree, node)) for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and _callee_name(node) == "spec_from_file_location"
+    ]
+    return [
+        f"{relative}::{symbol}:{node.lineno} second spec_from_file_location under bin/ — "
+        "load through harness_boundary.load_repo_module (FEAT-61 D-08)"
+        for node, symbol in loaders
+        if not (relative == home_file and symbol == home_symbol)
+    ]
+
+
+def _call_symbol(tree, node):
+    """The innermost function enclosing `node`, or `<module>`."""
+    containers = [
+        candidate for candidate in ast.walk(tree)
+        if isinstance(candidate, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and candidate.lineno <= node.lineno <= candidate.end_lineno
+    ]
+    if not containers:
+        return "<module>"
+    return min(containers, key=lambda c: c.end_lineno - c.lineno).name
+
+
+def consolidation_findings(root):
+    """Every FEAT-61 lock violation under bin/, as printable lines; empty on a clean tree."""
+    buckets = _lifecycle_buckets()
+    findings = []
+    for absolute, relative in _reader_source_paths(root):
+        try:
+            with open(absolute, encoding="utf-8") as source:
+                tree = ast.parse(source.read(), filename=relative)
+        except (OSError, UnicodeDecodeError, SyntaxError) as error:
+            findings.append(f"{relative}::<module> source_parse: {error}")
+            continue
+        if relative != STATION_TABLE_REL:
+            findings.extend(_feature_station_literal_findings(tree, relative, buckets))
+        findings.extend(_module_loader_findings(tree, relative))
+    return findings
+
+
+def _run_consolidation_audit(root):
+    findings = consolidation_findings(root)
+    for finding in findings:
+        print(f"CONSOLIDATION {finding}")
+    print(f"{len(findings)} consolidation finding(s) under bin/")
+    return 1 if findings else 0
+
+
 def main(argv):
-    if argv[1:] == ["--canonical-reader-audit"]:
+    if argv[1:] in (["--canonical-reader-audit"], ["--consolidation-audit"]):
         try:
             root = harness_boundary.resolve_root(BIN_DIR)
         except ValueError as error:
             print(f"check-plan-routes: {error}", file=sys.stderr)
             sys.exit(2)
+        if argv[1] == "--consolidation-audit":
+            sys.exit(_run_consolidation_audit(root))
         sys.exit(_run_canonical_reader_audit(root))
     examined = None
     if len(argv) > 1:

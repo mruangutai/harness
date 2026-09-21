@@ -632,6 +632,30 @@ def main():
               and all("OPT_READY" in l for l in editsDg),
               str(editsDg))
 
+    # (h) FEAT-61 T-02 (D-03): the parent rule's terminal exemption now crosses the strict
+    # station predicate. A landed top-level station OUTSIDE THE VOCABULARY must keep gh-sync's
+    # one posture for a vocabulary miss — exit 2, one line naming the value, NEVER a traceback
+    # (FEAT-41 T-16) — and the task's own card, written before the parent rule, still lands.
+    with tempfile.TemporaryDirectory() as tmpDh:
+        install_gh(tmpDh, FAKE_GH_STATIONS)
+        featDh = stage_station(
+            tmpDh, "FEAT-201-h",
+            [("T-01", "done"), ("T-02", "building")],
+            issues={"T-01": 41, "T-02": 326}, parent=40,
+            feature_status=None, plan_station="Building",
+        )
+        rDh = run(["start-task", featDh, "T-02"], tmpDh, {"FACTORY_GH": os.path.join(tmpDh, "gh")})
+        bothDh = rDh.stdout + rDh.stderr
+        editsDh = [l for l in calls(tmpDh) if "project item-edit" in l]
+        check("(h) start-task over a top-level station outside the vocabulary: exit 2, names "
+              "the value, no traceback",
+              rDh.returncode == 2 and "'Building'" in bothDh and "Traceback" not in bothDh,
+              bothDh)
+        check("(h) the task's OWN card was written before the parent rule refused",
+              any("--id ITEM_326" in l and "OPT_BUILDING" in l for l in editsDh)
+              and not any("--id ITEM_40" in l for l in editsDh),
+              str(editsDh))
+
     # ---------------------------------------------------------------------------------------------
     # BUG-201 SIMPLIFY fold-in: refuse() grows an optional runtime-selected `stream` (default
     # unchanged — stdout), and _projected_for's inline "print to stderr, then sys.exit(2)" for a

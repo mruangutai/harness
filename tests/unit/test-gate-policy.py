@@ -21,14 +21,10 @@ sys.modules[spec.name] = gate_policy
 spec.loader.exec_module(gate_policy)
 
 
-FIXTURE_POLICY = {
-    "gates": {
-        "qa_gate": "blocking",
-        "review": "advisory_unless_high",
-        "uat": "blocking_when_uat_criteria_exist",
-        "merge": "user_gated",
-    }
-}
+FIXTURE_POLICY = {"gates": {"review": "advisory_unless_high"}}
+# FEAT-61 T-04: the keys load_policy stopped reading. An old harness.json still carrying them,
+# with any value at all, must load exactly as a review-only one does.
+REMOVED_GATE_KEYS = {"qa_gate": "sometimes", "uat": ["blocking"], "merge": None}
 
 
 def check(actual, expected, label):
@@ -64,27 +60,26 @@ def check_policy_loading():
     failures = 0
     with tempfile.TemporaryDirectory() as directory:
         fixture_path = write_fixture(directory, "harness.json", FIXTURE_POLICY)
-        policy = gate_policy.load_policy(fixture_path)
-        failures += check(policy["qa_gate"], "blocking", "loader resolves qa_gate by name from fixture")
-        failures += check(policy["review"], "advisory_unless_high", "loader resolves review by name from fixture")
-        failures += check(policy["uat"], "blocking_when_uat_criteria_exist", "loader resolves uat by name from fixture")
-        failures += check(policy["merge"], "user_gated", "loader resolves merge by name from fixture")
-        invalid = {"gates": dict(FIXTURE_POLICY["gates"], qa_gate="sometimes")}
+        failures += check(gate_policy.load_policy(fixture_path), {"review": "advisory_unless_high"},
+                          "loader resolves review by name from a review-only fixture")
+        legacy = {"gates": dict(FIXTURE_POLICY["gates"], **REMOVED_GATE_KEYS)}
+        failures += check(gate_policy.load_policy(write_fixture(directory, "legacy.json", legacy)),
+                          {"review": "advisory_unless_high"},
+                          "loader ignores removed gate keys whatever their values")
+        invalid = {"gates": {"review": "sometimes"}}
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "invalid.json", invalid)),
-            "qa_gate", "sometimes", "unrecognised qa_gate policy")
-        invalid_shape = {"gates": dict(FIXTURE_POLICY["gates"], qa_gate=["blocking"])}
+            "review", "sometimes", "unrecognised review policy")
+        invalid_shape = {"gates": {"review": ["blocking"]}}
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "invalid-shape.json", invalid_shape)),
-            "qa_gate", ["blocking"], "non-string qa_gate policy")
+            "review", ["blocking"], "non-string review policy")
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "missing-gates.json", {})),
             "gates", None, "absent gates block")
-        missing_key = {"gates": dict(FIXTURE_POLICY["gates"])}
-        del missing_key["gates"]["merge"]
         failures += expect_policy_error(
-            lambda: gate_policy.load_policy(write_fixture(directory, "missing-key.json", missing_key)),
-            "merge", None, "absent named gate")
+            lambda: gate_policy.load_policy(write_fixture(directory, "missing-key.json", {"gates": {}})),
+            "review", None, "absent review gate")
         malformed_path = os.path.join(directory, "malformed.json")
         with open(malformed_path, "w", encoding="utf-8") as fixture:
             fixture.write("{")
@@ -121,22 +116,9 @@ def check_review_evaluation():
     return failures
 
 
-def check_qa_evaluation():
-    failures = 0
-    qa_result = gate_policy.evaluate_qa("blocking", {"unit": "pass", "integration": "skipped"})
-    failures += check(qa_result, "PASS", "blocking QA does not fail skipped suite")
-    failures += check(qa_result.detail, "skipped: integration", "QA detail reports skipped suite")
-    failures += check(
-        gate_policy.evaluate_qa("blocking", {"unit": "fail", "integration": "skipped"}),
-        "FAIL", "blocking QA blocks failed suite")
-    failures += check(
-        gate_policy.evaluate_qa("advisory", {"unit": "fail"}),
-        "PASS", "advisory QA always passes")
-    return failures
-
 
 def main():
-    return sum((check_policy_loading(), check_review_evaluation(), check_qa_evaluation()))
+    return sum((check_policy_loading(), check_review_evaluation()))
 
 
 if __name__ == "__main__":

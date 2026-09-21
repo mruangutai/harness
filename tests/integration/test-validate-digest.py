@@ -1971,8 +1971,7 @@ def _isolated_root():
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), "w") as f:
-            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
-                                 "uat": "advisory", "merge": "autonomous"}}, f)
+            json.dump({"gates": {"review": "advisory"}}, f)
     return _ISOLATED_ROOT
 
 
@@ -3792,8 +3791,7 @@ def check_prior_validator(td, guarded, failures):
 
 def write_review_config(config, review):
     with open(config, "w") as f:
-        json.dump({"gates": {"qa_gate": "blocking", "review": review,
-                             "uat": "advisory", "merge": "autonomous"}}, f)
+        json.dump({"gates": {"review": review}}, f)
 
 
 def check_code_grade_state(validator, config, feature_dir, failures):
@@ -3917,8 +3915,7 @@ def check_reviewed_range(validator, config, feature_dir, td, failures):
 # are those two cases, now asserting exit 2 and a named reason.
 
 HARNESS_JSON_FIXTURE = {
-    "gates": {"qa_gate": "blocking", "review": "advisory_unless_high",
-              "uat": "advisory", "merge": "user_gated"},
+    "gates": {"review": "advisory_unless_high"},
     "test_kinds": {
         "unit": {"detect": "test_*.py|**/test-*.py", "exclude": "",
                  "cmd": "true", "status": "active"},
