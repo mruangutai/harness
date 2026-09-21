@@ -14,75 +14,23 @@
 
 ## Success criteria
 
-### SC-01 — Existing checker receipts stay byte-identical except ruled divergences
+- SC-01 (operator): Existing checker receipts stay byte-identical except ruled divergences. At the pinned review SHA, each of the eight `tests/integration/test-check-state*.py` suites compares exit status, stdout bytes, and stderr bytes with the planning baseline. Every difference is a red-first expectation for INV-3, INV-15, INV-26, or a named BEGIN/END sub-block and has a matching ruled entry in `.harness/harness/features/FEAT-62-check-state-decomposition/notes/build-divergences.md`; no unlisted difference passes. — verify: automated (test)
 
-Perspective: Operator
-Verify: automated
-Evidence kind: test
+- SC-02 (operator): Ordered registry and all four verbs execute deterministically. Integration tests prove that no-argument execution preserves the full ordered contract, `--list` reports active and retired identities without running invariants, `--only` selects the named active invariant or resolves retired INV-9/INV-10 without reuse, `--feature` limits feature-scoped loops while repo-scoped rows run once, and combined execution selectors intersect. Invalid selectors retain command-line error semantics. — verify: automated (test)
 
-At the pinned review SHA, each of the eight `tests/integration/test-check-state*.py` suites compares exit status, stdout bytes, and stderr bytes with the planning baseline. Every difference is a red-first expectation for INV-3, INV-15, INV-26, or a named BEGIN/END sub-block and has a matching ruled entry in `.harness/harness/features/FEAT-62-check-state-decomposition/notes/build-divergences.md`; no unlisted difference passes.
+- SC-03 (code maintainer): Module-body execution is mechanically locked. A red-first mutation test for `check-plan-routes.py --consolidation-audit` inserts module-scope invariant execution and proves the audit fails. The passing audit permits only the bootstrap prologue, declarations including `INVARIANTS` and the retired map, and the guarded main call. — verify: automated (test)
 
-### SC-02 — Ordered registry and all four verbs execute deterministically
+- SC-04 (code maintainer): Declared reads cover invariant inputs and drive changed selection. Red-first tests add a file/glob, git, and GitHub/board read absent from an invariant's `reads` tuple and prove the consolidation audit rejects each omission. Integration tests prove `--changed` maps dirty and untracked repository paths to matching `path:` declarations, conservatively includes unmappable external/dynamic inputs, and preserves registry order. — verify: automated (test)
 
-Perspective: Operator
-Verify: automated
-Evidence kind: test
+- SC-05 (reader): Every authority reference resolves to current, non-struck truth. Red-first tests replace invariant authority with a missing decision and a `STRUCK` decision and prove `check-plan-routes.py --consolidation-audit` rejects both against the current `DECISIONS-INDEX.md`; the unchanged tree passes with every active row naming an exact live `DEC-NNN`. — verify: automated (test)
 
-Integration tests prove that no-argument execution preserves the full ordered contract, `--list` reports active and retired identities without running invariants, `--only` selects the named active invariant or resolves retired INV-9/INV-10 without reuse, `--feature` limits feature-scoped loops while repo-scoped rows run once, and combined execution selectors intersect. Invalid selectors retain command-line error semantics.
+- SC-06 (operator): Changed mode remains loop-only. An audit scans repository workflows and hooks and fails when a fixture adds `--changed` to either. At the pinned review SHA no workflow or hook passes it, `.github/workflows/tests.yml` still runs the full checker, and the command-entry and pre-commit paths remain full-check paths. — verify: automated (test)
 
-### SC-03 — Module-body execution is mechanically locked
+- SC-07 (operator): Canonical writers surface selective feedback without changing receipts. Red-first integration tests prove that successful persisted writes through `plan-merge.py` and `feature_json_write.py#write_feature_json` invoke the shared changed-state runner after the lock is released, forward non-clean checker rows to stderr, and preserve existing stdout receipts, refusal behavior, durable content, and exit status. A clean `--changed` run is silent at the checker source, so the adapter performs no exact-string filtering. Non-canonical fixture paths derive no unrelated checkout, and the adapter neither calls nor changes the environment-reading `resolve_root` contract. — verify: automated (test)
 
-Perspective: Maintainer
-Verify: automated
-Evidence kind: test
+- SC-08 (reader): Guidance changes add no instruction or preload weight. At the pinned review SHA, the reviewer cites `.harness/README.md` text that distinguishes automatic mid-edit `--changed` feedback from the required full pre-commit check, cites the unchanged full-check instruction in `AGENTS.md`, and confirms the feature diff contains no `SKILL.md`, preload-set, workflow invocation, or hook invocation change. — verify: inspection
 
-A red-first mutation test for `check-plan-routes.py --consolidation-audit` inserts module-scope invariant execution and proves the audit fails. The passing audit permits only the bootstrap prologue, declarations including `INVARIANTS` and the retired map, and the guarded main call.
-
-### SC-04 — Declared reads cover invariant inputs and drive changed selection
-
-Perspective: Maintainer
-Verify: automated
-Evidence kind: test
-
-Red-first tests add a file/glob, git, and GitHub/board read absent from an invariant's `reads` tuple and prove the consolidation audit rejects each omission. Integration tests prove `--changed` maps dirty and untracked repository paths to matching `path:` declarations, conservatively includes unmappable external/dynamic inputs, and preserves registry order.
-
-### SC-05 — Every authority reference resolves to current, non-struck truth
-
-Perspective: Reader
-Verify: automated
-Evidence kind: test
-
-Red-first tests replace invariant authority with a missing decision and a `STRUCK` decision and prove `check-plan-routes.py --consolidation-audit` rejects both against the current `DECISIONS-INDEX.md`; the unchanged tree passes with every active row naming an exact live `DEC-NNN`.
-
-### SC-06 — Changed mode remains loop-only
-
-Perspective: Operator
-Verify: automated
-Evidence kind: test
-
-An audit scans repository workflows and hooks and fails when a fixture adds `--changed` to either. At the pinned review SHA no workflow or hook passes it, `.github/workflows/tests.yml` still runs the full checker, and the command-entry and pre-commit paths remain full-check paths.
-
-### SC-07 — Canonical writers surface selective feedback without changing receipts
-
-Perspective: Operator
-Verify: automated
-Evidence kind: test
-
-Red-first integration tests prove that successful persisted writes through `plan-merge.py` and `feature_json_write.py#write_feature_json` invoke the shared changed-state runner after the lock is released, forward non-clean checker rows to stderr, and preserve existing stdout receipts, refusal behavior, durable content, and exit status. A clean `--changed` run is silent at the checker source, so the adapter performs no exact-string filtering. Non-canonical fixture paths derive no unrelated checkout, and the adapter neither calls nor changes the environment-reading `resolve_root` contract.
-
-### SC-08 — Guidance changes add no instruction or preload weight
-
-Perspective: Reader
-Verify: inspection
-
-At the pinned review SHA, the reviewer cites `.harness/README.md` text that distinguishes automatic mid-edit `--changed` feedback from the required full pre-commit check, cites the unchanged full-check instruction in `AGENTS.md`, and confirms the feature diff contains no `SKILL.md`, preload-set, workflow invocation, or hook invocation change.
-
-### SC-09 — Decomposition stays one-function-per-invariant and leaves wave 3 untouched
-
-Perspective: Maintainer
-Verify: inspection
-
-At the pinned review SHA, the reviewer cites the ordered `INVARIANTS` table and representative invariant functions showing one row per active INV number and runner-owned shared context, the terminal baseline-to-HEAD code-grade receipt showing production grade 4/5 and test grade 3+, and a handler-scoped diff review showing that all 47 `except Exception` sites remain wave-3 work with no change apart from extraction indentation. No package split, broad-exception cleanup, or report-format change is present.
+- SC-09 (code maintainer): Decomposition stays one-function-per-invariant and leaves wave 3 untouched. At the pinned review SHA, the reviewer cites the ordered `INVARIANTS` table and representative invariant functions showing one row per active INV number and runner-owned shared context, the terminal baseline-to-HEAD code-grade receipt showing production grade 4/5 and test grade 3+, and a handler-scoped diff review showing that all 47 `except Exception` sites remain wave-3 work with no change apart from extraction indentation. No package split, broad-exception cleanup, or report-format change is present. — verify: inspection
 
 ## Verification gaps
 
@@ -110,6 +58,6 @@ At the pinned review SHA, the reviewer cites the ordered `INVARIANTS` table and 
 
 ## Approval
 
-Status: pending
-Approved by:
-Date:
+status: approved
+approved-by: Mike (main session)
+date: 2026-09-21

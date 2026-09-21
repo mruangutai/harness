@@ -66,6 +66,7 @@ _os.environ["PYTHONPATH"] = (
 _os.chdir(_root)
 
 # The exact argv the heredoc was handed: argv[1] = root, argv[2] = this bin dir.
+_USER_ARGV = _sys.argv[1:]
 _sys.argv = [_sys.argv[0], _root, _selfdir]
 
 import sys, os, re, glob, json, subprocess
@@ -90,8 +91,6 @@ except Exception as _handoff_done_when_error:
 harness_yaml.require_or_die()
 
 root = sys.argv[1]
-H = os.path.join(root, ".harness")
-bad, warn = [], []
 
 def read(p):
     try:
@@ -133,45 +132,6 @@ def station_of(feat_dir):
     # first whitespace-delimited token — the same normalisation the feature.json reads used.
     token = str(doc.get("status", "")).split()
     return token[0] if token else ""
-
-
-if not os.path.isdir(H):
-    print("harness: no .harness/ here — this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.")
-    sys.exit(1)
-
-# D-08 (FEAT-21 T-05), the OTHER half of the signed trade: dict KEYS stay bare basenames
-# (qualify one of the two name-derivation shapes and not the other and the station mirror
-# silently skips every feature), but a finding that names a PATH carries the DISCOVERED
-# segment-qualified path, so a reader can open exactly what the label names.
-_feat_dirs = {os.path.basename(_d): os.path.relpath(_d, root)
-              for _d in glob.glob(os.path.join(H, "*", "features", "*"))
-              if os.path.isdir(_d)}
-def fpath(feat, tail=""):
-    _b = _feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)
-    return _b + (os.sep + tail if tail else "")
-
-# BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/<repo>/features/<FEAT>/{BRIEF,PLAN}.md.
-# Root-level singletons collided the moment a second feature existed.
-briefs = {os.path.basename(os.path.dirname(p)): read(p)
-          for p in glob.glob(os.path.join(H, "*", "features", "*", "BRIEF.md"))}
-plans  = {os.path.basename(os.path.dirname(p)): read(p)
-          for p in glob.glob(os.path.join(H, "*", "features", "*", "PLAN.md"))}
-# plan.yaml (DEC-182) is loaded, never read as text. Kept in a SEPARATE dict rather than
-# merged into `plans`: every check below either reads markdown or reads a mapping, and one
-# dict holding both shapes is how a regex ends up running over a dict repr. A feature with
-# both files is refused by check-plan-routes; here the yaml simply wins, because a feature
-# mid-migration should be judged by the artifact its author is maintaining.
-plan_docs = {}
-for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
-    _feat = os.path.basename(os.path.dirname(_p))
-    try:
-        plan_docs[_feat] = artifact_accessors.load_plan(_p)
-        plans.pop(_feat, None)
-    except harness_yaml.YamlParseError as _e:
-        # A plan that does not load is a VIOLATION, never a silent skip — the whole point
-        # of DEC-182 is that a malformed plan stops being something a regex half-reads.
-        bad.append(f"{fpath(_feat, 'plan.yaml')} does not load, so INV-3/4/5 cannot be checked "
-                   f"for it: {_e}")
 
 # --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately
 # followed by a digit truncates SILENTLY under YAML's plain-scalar comment rule -- `#217`
@@ -267,12 +227,553 @@ def _unquoted_hash_digit(value):
             return None
     return None
 
+def approved(txt):
+    if not txt: return False
+    m = re.search(r"^##\s+Approval\s*$(.*?)(?=^##\s|\Z)", txt, re.M | re.S)
+    return bool(m) and re.search(r"status:\s*approved", m.group(1), re.I) is not None
 
-for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
-    _feat = os.path.basename(os.path.dirname(_p))
+def has_approval_block(txt):
+    return bool(txt) and re.search(r"^##\s+Approval\s*$", txt, re.M) is not None
+
+_MISSING = object()
+
+# THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATION NAMES.
+# The next editor's first instinct is to build the filename from the station; do not. The stems
+# are seam names — plan, build, validate — and the stations are positions. They now happen to
+# share a case, which is exactly what makes deriving look safe and still be wrong: `ready` and
+# `building` both require notes/handoff-plan.md, and no station is named `validate` at all.
+# Keeping the stems as their own literals also renames no file on disk.
+#
+# THE RESIDUAL LOSS, RECORDED RATHER THAN HIDDEN: validate and ship both folded into
+# review, so the validate-to-ship crossing is no longer separately observable and
+# handoff-validate.md cannot be demanded at review. It is demanded at done instead — the
+# next boundary that proves review completed. One seam moves later; none is dropped.
+#
+# A STATION OUTSIDE STATUS_ORDER IS NOW A VIOLATION, NOT A SILENT SKIP (FEAT-41 T-07, A-03).
+# It was a deliberate silent skip on the grounds that status was schema-required with a closed
+# enum, so an unknown value was already denied at write time and a branch here would have been
+# a second enforcement point for a rule the schema owned. THAT COMPENSATING CONTROL IS GONE:
+# T-07 deleted the key from feature-schema.json, and the station now lives in plan.yaml, whose
+# schema does not constrain the top-level `status` value at all. What denies an illegal station
+# today is plan-merge.py's set-feature-station, which validates before it opens the file — an
+# enforcement point on the WRITE ROUTE, not on the document. A hand-edited plan therefore
+# reaches this loop with a station nothing has checked, and the old skip would have taken every
+# such feature out of INV-17 without a word. It is reported instead.
+#
+# Despite the name, STATUS_ORDER is used as a SET — the membership test below is its only
+# reader and nothing indexes it. So the marker sitting at the end implies no progression.
+#
+# STATUS_ORDER AND SEAM_NOTES ARE ONE VOCABULARY AND MOVE TOGETHER. SEAM_NOTES is indexed by a
+# BARE SUBSCRIPT below, guarded only by that membership test, so rekeying one without the other
+# does not degrade to a skip — it is a KeyError in the project's own state gate, for every
+# well-formed feature on disk. Derived from factory_config rather than spelled, which makes the
+# pairing structural: both are built from MANDATED_STATIONS, so neither can be rekeyed alone.
+STATUS_ORDER = list(factory_config.MANDATED_STATIONS) + list(TERMINAL_STATIONS)
+SEAM_NOTES = {
+    "backlog":  [],
+    "plan":     [],
+    "ready":    ["plan"],
+    "building": ["plan"],
+    "review":   ["plan", "build"],
+    "done":     ["plan", "build", "validate"],
+    # THE TERMINAL STATIONS REQUIRE NO HANDOFF, and that is the whole difference from done. A
+    # feature planned and never built (abandoned) or refused at intake (rejected, FEAT-1714)
+    # crossed no seam, so there is no honest handoff note to write and none will be fabricated.
+    # Keyed EXPLICITLY rather than omitted: an omitted key is now a KeyError rather than a
+    # silent skip, since the station passes the membership test above by construction.
+    **{station: [] for station in TERMINAL_STATIONS},
+}
+# EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
+# structures are derived from the same source, so the only way they can disagree is a hand-typed
+# SEAM_NOTES key — and this is the check that catches it at startup instead of at the subscript,
+# on whichever feature happens to sit at that station.
+HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
+HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
+
+# The literal exemption set. FEAT-01 and FEAT-02 are Done, carry zero handoff notes, and
+# finished before DEC-159 existed: no seam was crossed, so no honest handoff note can be
+# written for them and none will be fabricated (PRINCIPLES rule 15). A finite list, not an
+# inferred rule — no future feature can join it.
+#
+# Matched by PREFIX because a feature directory is FEAT-01-<slug>, and FEAT-01's happens to
+# be bare today. Exact equality would pass every fixture and still raise three violations
+# on the live corpus the moment either directory gained a slug.
+#
+# This one is a SILENT skip, unlike the plan-keyed exemption below, which reports. The
+# difference is deliberate: reporting exists so a WRONGLY granted exemption is visible, and
+# a two-element list that cannot grow has nothing to grant wrongly.
+HANDOFF_EXEMPT_LITERAL = ("FEAT-01", "FEAT-02")
+
+LEADS = {"harness-product-lead", "harness-eng-lead", "harness-validator-lead"}
+CHECKPOINT_KEYS = {
+    # seed (harness-team §2)
+    "schema_version", "run_id", "run_uid", "feature", "squad", "host", "status", "steps",
+    # loop bookkeeping
+    "cycles_used",
+    # The money key below is HISTORICAL-ONLY (DEC-178): nothing produces it any more,
+    # but all 67 pre-FEAT-08 run state.yaml files carry it and :401 flags any key not
+    # in this set — drop it and every historical run becomes a violation. Named
+    # without its quoted spelling because this task's verify: counts that spelling.
+    "cost",
+    # pins and context markers
+    "flow", "task", "team", "branch", "worktree",
+    "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
+    # roll-up enums and the report pointer — matchable values, so checkpoint-legal
+    "verdict", "severity_max", "digest",
+}
+
+_HOOKS_REL = os.path.join(".claude", "skills", "harness", "hooks")
+
+# --- INV-38..41 (FEAT-59 proportional flow; SC-10, SC-15, SC-16, SC-21; DEC-174 direct work).
+# Four invariants over the FEAT-59 record shapes, sharing ONE era predicate defined once here.
+#
+# THE ERA PREDICATE. A record is graded under the FEAT-59 contract when its feature.json
+# carries any key that contract introduced -- `mission`, `judgements`, `budget_decisions`,
+# `rework` -- or its BRIEF is the by-perspective shape (heading `## Done when — by
+# perspective`, C5). A record carrying none of those predates the contract and CANNOT pass a
+# ledger check, because nothing that wrote it knew a ledger existed. INV-32's lesson
+# (BUG-1071) applies verbatim: measured at this commit, 16 features carry `max_total_cycles`
+# above the harness.json default with no `budget_decisions` (the key did not exist) and
+# BUG-1309 records cycles_used 18 against max 17. An invariant that fires on all of them and
+# admits nothing enforces no rule; it trains its reader to ignore the gate. So a pre-era
+# record is NOTED where a check WOULD have fired, and only there: a legacy feature with
+# nothing to say gets no line, and a wrongly granted exemption stays visible.
+#
+# THE PREDICATE ONLY WIDENS GRADING. Any one FEAT-59 key is enough, and so is the BRIEF shape
+# on its own; `judgements: []` is an in-era record with an empty ledger, not a legacy one.
+# Retroactive grading of existing BRIEFs, plans and notes is out of scope by the brief.
+_BY_PERSPECTIVE_HEADING = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.M | re.I)
+_FEAT59_KEYS = ("mission", "judgements", "budget_decisions", "rework")
+
+
+def _brief_is_by_perspective(txt):
+    return bool(txt) and _BY_PERSPECTIVE_HEADING.search(txt) is not None
+
+
+def _perspective_key(name):
+    """`**reader (reviewer / qa / panel)**` declares `reader`: a trailing parenthetical is a
+    gloss on the name, and the SC tag carries the bare name. Case and inner whitespace are
+    normalised so `(Code Maintainer)` discharges `**code maintainer**`."""
+    return re.sub(r"\s+", " ", re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()).lower()
+
+
+def _brief_perspectives(txt):
+    """The `**name**` lines under the by-perspective heading, up to the next `## `, in order."""
+    m = _BY_PERSPECTIVE_HEADING.search(txt)
+    body = txt[m.end():]
+    nxt = re.search(r"^##\s", body, re.M)
+    if nxt:
+        body = body[:nxt.start()]
+    return [pm.group(1).strip() for pm in re.finditer(r"^\*\*([^*\n]+?)\*\*", body, re.M)]
+
+
+def _brief_scs(txt):
+    """(id, tag or None, text) for every `- SC-NN (<name>): ...` line anywhere in the BRIEF,
+    the text carrying the indented continuation lines that follow the bullet."""
+    out, lines, i = [], txt.splitlines(), 0
+    while i < len(lines):
+        m = re.match(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", lines[i])
+        i += 1
+        if not m:
+            continue
+        body = [m.group(3)]
+        while (i < len(lines) and lines[i].strip() and lines[i][:1].isspace()
+               and not re.match(r"^\s*-\s*SC-\d+", lines[i])):
+            body.append(lines[i])
+            i += 1
+        out.append((m.group(1), m.group(2), " ".join(s.strip() for s in body)))
+    return out
+
+
+# INV-41's notion of INVOKING a gate script, as distinct from naming one. A code span that
+# is a command line -- the script with a path or interpreter before it, or arguments after
+# it -- is an invocation. A bare `check-state.py` span is a mention (FEAT-59's own SC-10
+# reads "`check-state.py` refuses a new BRIEF") UNLESS the sentence runs it ("the reviewer
+# runs `check-state.py`") or grades its result ("`check-state.py` exits 0"), which is the
+# FEAT-54 SC-04 shape this invariant exists to refuse. A `check-state.py:1868` citation is
+# neither: the name is followed by `:`, not by an argument boundary.
+_INV41_SCRIPTS = ("check-state.py", "check-domain.py")
+_INV41_RUNS_BEFORE = re.compile(r"\b(?:run|runs|running|ran|execute|executes|invoke|invokes|call|calls)\s*$")
+_INV41_GRADES_AFTER = re.compile(r"(?:exits?\b|exit\s+code|passes|is\s+green|reports|prints|returns)")
+
+
+def _inv41_invocation(text):
+    """The gate script `text` invokes, or None."""
+    for m in re.finditer(r"`([^`\n]*)`", text):
+        span = m.group(1).strip()
+        for s in _INV41_SCRIPTS:
+            if s not in span:
+                continue
+            if span != s:
+                if re.search(r"(?:^|[\s/(=])%s(?:\s|$|[);|])" % re.escape(s), span):
+                    return s
+                continue
+            before = text[:m.start()].rstrip().lower()
+            after = text[m.end():].lstrip().lower()
+            if _INV41_RUNS_BEFORE.search(before) or _INV41_GRADES_AFTER.match(after):
+                return s
+    return None
+
+
+def _inv41_scoped(text, feat):
+    """A `--feature` flag, the feature's own directory, or its id anywhere in the SC text
+    scopes the invocation to this feature (SC-16)."""
+    if "--feature" in text or f"features/{feat}" in text:
+        return True
+    if re.search(r"\b%s\b" % re.escape(feat), text):
+        return True
+    fid = re.match(r"^[A-Za-z]+-\d+", feat)
+    return fid is not None and re.search(r"\b%s\b" % re.escape(fid.group(0)), text) is not None
+
+def _int_field(v):
+    """int, or None. bool is rejected BEFORE the int check (INV-22's lesson: bool subclasses
+    int, so `true` read as a budget of 1)."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, str) and v.strip().isdigit():
+        return int(v.strip())
+    return None
+
+
+def _iso_instant(v):
+    """An aware datetime, or None. Accepts the two spellings the ledger writes — feature-record
+    writes `+00:00`, older fixtures and gh write `Z` — and refuses a naive value rather than
+    guessing its zone, since INV-43 compares instants across two writers."""
+    if not isinstance(v, str) or not v.strip():
+        return None
+    from datetime import datetime
+    try:
+        parsed = datetime.fromisoformat(v.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
+
+
+# =====================================================================================
+# THE RUNNER CONTEXT (FEAT-62). Every shared source is parsed ONCE here and handed to the
+# invariant functions; no invariant re-reads what the context already holds. Findings the
+# loading itself produces (a plan that does not load, a harness.json that is not JSON, an
+# era boundary that cannot be resolved) are the context's own and print FIRST -- before the
+# baseline they printed at the position of the block that first needed the source, which
+# is the same position for the common case and earlier for the rare ones; the ledger rules
+# that ordering change (notes/build-divergences.md).
+# =====================================================================================
+class Ctx:
+    """The parsed corpus one run of the checker judges.
+
+    `features` is the ORDERED list of feature directory names the runner iterates -- sorted,
+    where the baseline followed filesystem order (ruled; see the ledger) -- and `--feature`
+    narrows it, so a repo-scoped invariant that loops `ctx.features` itself is narrowed too.
+    """
+
+    def __init__(self, root, keep=None):
+        self.root = root
+        self.H = os.path.join(root, ".harness")
+        self.bad, self.warn = [], []
+        H, bad, warn = self.H, self.bad, self.warn
+
+        # D-08 (FEAT-21 T-05), the OTHER half of the signed trade: dict KEYS stay bare basenames
+        # (qualify one of the two name-derivation shapes and not the other and the station mirror
+        # silently skips every feature), but a finding that names a PATH carries the DISCOVERED
+        # segment-qualified path, so a reader can open exactly what the label names.
+        self.feat_dirs = {os.path.basename(_d): os.path.relpath(_d, root)
+                          for _d in glob.glob(os.path.join(H, "*", "features", "*"))
+                          if os.path.isdir(_d)}
+        self.features = sorted(self.feat_dirs)
+        if keep is not None:
+            self.features = [f for f in self.features if f in keep]
+
+        # BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/<repo>/features/<FEAT>/{BRIEF,PLAN}.md.
+        # Root-level singletons collided the moment a second feature existed.
+        self.briefs = {os.path.basename(os.path.dirname(p)): read(p)
+                       for p in glob.glob(os.path.join(H, "*", "features", "*", "BRIEF.md"))}
+        self.plans = {os.path.basename(os.path.dirname(p)): read(p)
+                      for p in glob.glob(os.path.join(H, "*", "features", "*", "PLAN.md"))}
+        # plan.yaml (DEC-182) is loaded, never read as text. Kept in a SEPARATE dict rather than
+        # merged into `plans`: every check below either reads markdown or reads a mapping, and one
+        # dict holding both shapes is how a regex ends up running over a dict repr. A feature with
+        # both files is refused by check-plan-routes; here the yaml simply wins, because a feature
+        # mid-migration should be judged by the artifact its author is maintaining.
+        self.plan_docs = {}
+        for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
+            _feat = os.path.basename(os.path.dirname(_p))
+            try:
+                self.plan_docs[_feat] = artifact_accessors.load_plan(_p)
+                self.plans.pop(_feat, None)
+            except harness_yaml.YamlParseError as _e:
+                # A plan that does not load is a VIOLATION, never a silent skip — the whole point
+                # of DEC-182 is that a malformed plan stops being something a regex half-reads.
+                bad.append(f"{self.fpath(_feat, 'plan.yaml')} does not load, so INV-3/4/5 cannot be checked "
+                           f"for it: {_e}")
+        # STATE.md is per-feature since DEC-120; read them all.
+        self.states = {os.path.basename(os.path.dirname(p)): read(p)
+                       for p in glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))}
+
+        # Onboarding itself is signalled by harness.json + team-config.yaml (DEC-129), not a BRIEF:
+        # a freshly-onboarded project legitimately has zero features yet.
+        if not os.path.isfile(os.path.join(H, "harness.json")):
+            bad.append(".harness/harness.json missing — not onboarded (or half-onboarded). Run /harness-init, in this clone.")
+        # AN ABANDONED FEATURE'S BRIEF IS NEVER APPROVED, and that is the point rather than a
+        # defect: it was planned and retired without being signed. Halting /harness entry over an
+        # unapproved brief on a feature nobody will build trains the operator to ignore the gate,
+        # which is the failure a gate exists to prevent. Read from plan.yaml's station (FEAT-41 T-07),
+        # never inferred — and the try/except that guarded the old json.load is gone with it, because
+        # `station_of` already returns "" for every unreadable and unparseable shape.
+        self.abandoned = set()
+        for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+            if not os.path.isdir(_fd):
+                continue
+            if station_of(_fd) in TERMINAL_STATIONS:
+                self.abandoned.add(os.path.basename(_fd))
+
+        # INV-32 / INV-43 era boundaries, resolved ONCE (BUG-1071; see _era_start_for).
+        self._era_cfg = read(os.path.join(H, "harness.json"))
+        self.era_start = self._era_start_for("INV-32", "panel_era_start", "adversarial panel")
+        # INV-43 (BUG-1723) has the same shape of boundary for the same reason: a succession recorded
+        # before the seam was graded cannot be re-recorded to satisfy it (history stays as recorded,
+        # DEC-227), and an invariant that reddens the whole corpus trains its reader to ignore it.
+        self.seam_era_start = self._era_start_for("INV-43", "seam_era_start", "graded seam")
+
+        # THE GIT TOP LEVEL, resolved ONCE for INV-33 below (FEAT-41 T-14 / issue #867).
+        #
+        # RELATIVE TO THE GIT TOP LEVEL, NEVER TO `root`, and the reason CHANGED with the rebase while
+        # the requirement did not. `root` is no longer CLAUDE_PROJECT_DIR: since FEAT-42 T-12 this script
+        # resolves it through harness_boundary.resolve_root(_selfdir). That is the HARNESS root, which
+        # still need not be the repository top level — a worktree checkout is the everyday case, and this
+        # very file is being edited in one. `git show <sha>:<path>` takes a path relative to the
+        # repository, so using `root` would silently miss every plan in a worktree.
+        #
+        # ONE subprocess for the whole run, not one per feature. None on failure, which is one of
+        # INV-33's five deliberate silences: no git work tree is a state it cannot speak to.
+        try:
+            _tl = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"],
+                                 capture_output=True, text=True)
+            self.git_top = _tl.stdout.strip() if _tl.returncode == 0 else None
+        except Exception:
+            self.git_top = None
+
+        # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
+        # gh-config checks. The JSON-validity violation is kept on its own merit — a config
+        # that does not parse silently disables every check that reads it.
+        # BOUND UNCONDITIONALLY. `cj` used to be assigned only inside the `if cfg:` below, so a
+        # project with NO harness.json reached the consumers further down with the name unbound and
+        # died with `NameError: name 'cj' is not defined`. That is a CRASH, and a crash exits 1 —
+        # the same code a real violation exits — so /harness entry reported "violations found" for
+        # an absent config file, with a traceback where a diagnosis should be.
+        #
+        # Pre-existing and reproduced on main at the same fixture before being fixed here; found
+        # while landing DEC-182 because a plan.yaml fixture legitimately carries no harness.json.
+        # Fixed in passing rather than left in a file this change already opens: check-state.py is
+        # a DEC-174 carve-out, so the next person to touch it pays the full carve-out cost, and
+        # leaving a known landmine for them is worse than a two-line diff here. The absent-config
+        # case is already reported by the INV-1 check above; this only stops the crash.
+        cj = self.cj = {}
+        cfg = read(os.path.join(H, "harness.json"))
+        if cfg:
+            try:
+                cj = self.cj = artifact_accessors.load_harness_json(
+                    text=cfg, context=os.path.join(H, "harness.json"))
+            except Exception as e:
+                cj = self.cj = {}
+                bad.append(f".harness/harness.json is not valid JSON: {e}")
+        self.handoff_baseline = set()
+        for _entry in cj.get("handoff_done_when_baseline", []) if isinstance(cj, dict) else []:
+            if not isinstance(_entry, str):
+                continue
+            _path = os.path.relpath(_entry, root) if os.path.isabs(_entry) else _entry
+            self.handoff_baseline.add(os.path.normpath(_path).replace(os.sep, "/"))
+
+        # EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
+        # structures are derived from the same source, so the only way they can disagree is a hand-typed
+        # SEAM_NOTES key — and this is the check that catches it at startup instead of at the subscript,
+        # on whichever feature happens to sit at that station.
+        _missing_seam_rows = [_s for _s in STATUS_ORDER if _s not in SEAM_NOTES]
+        if _missing_seam_rows:
+            bad.append("check-state.py: SEAM_NOTES has no row for station(s) %s — the seam table and "
+                       "the station vocabulary have drifted, and INV-17 would raise KeyError on the "
+                       "first feature at one of them." % ", ".join(_missing_seam_rows))
+
+        self.default_cycles = (_int_field((self.cj.get("budgets") or {}).get("max_total_cycles"))
+                               if isinstance(self.cj, dict) else None)
+        try:
+            _pm40 = harness_boundary.load_repo_module(
+                "harness_plan_merge", os.path.join(sys.argv[2], "plan-merge.py"))
+            self.signed_task_hash = _pm40.signed_task_hash
+        except Exception as _pme40:
+            self.signed_task_hash = None
+            bad.append("INV-40 CANNOT RUN its signed-text check: plan-merge.py did not import "
+                       f"({type(_pme40).__name__}: {_pme40}), so an unledgered task-text change would go "
+                       "unreported. The module ships with this repository.")
+
+        # Per-feature caches filled on first use: the feature.json record (INV-6 family, INV-15's
+        # verdict cross-check) and the run checkpoints (INV-16/36/15).
+        self._records = {}
+        self._run_states = {}
+        self._vd = None
+
+    def fpath(self, feat, tail=""):
+        _b = self.feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)
+        return _b + (os.sep + tail if tail else "")
+
+    def feature_dir(self, feat):
+        return os.path.join(self.root, self.feat_dirs[feat]) if feat in self.feat_dirs \
+            else os.path.join(self.H, "?", "features", feat)
+
+    def path(self, feat, tail):
+        return os.path.join(self.feature_dir(feat), tail)
+
+    def _era_start_for(self, inv, key, what):
+        """The YYYY-MM-DD boundary before which `inv` grades nothing, or None: no config at all
+        (INV-1 reports that; grade everything, the fail-CLOSED direction), null (this project has
+        no pre-`what` era — the template default), or an unreadable value (reported, exempts
+        nothing). A config that predates the key is a VIOLATION, not a silent default: defaulting
+        to "grade everything" reddens every pre-era record in an un-upgraded project, and
+        defaulting to "exempt everything" disables the invariant there without saying so; so it
+        says so, once, and names the command that fixes it."""
+        if not self._era_cfg:
+            return None
+        try:
+            raw = artifact_accessors.load_harness_json(
+                text=self._era_cfg, context=os.path.join(self.H, "harness.json")).get(key, _MISSING)
+        except Exception:
+            # The JSON-validity violation is raised on its own merit further down (`cj`).
+            return None
+        if raw is _MISSING:
+            self.bad.append(f"{inv}: .harness/harness.json has no `{key}`, so no {what} era can be "
+                       f"resolved. Run /harness-init --upgrade (upgrade-config.py) against this "
+                       f"clone's own harness.json, then set it to the date the {what} became available "
+                       f"here, or null if this project never predated it.")
+            return None
+        if raw is None:
+            return None
+        if isinstance(raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw.strip()):
+            return raw.strip()
+        self.bad.append(f"{inv}: .harness/harness.json `{key}` is {raw!r}, which is neither null nor a "
+                   f"YYYY-MM-DD date. Nothing is exempted while it is unreadable.")
+        return None
+
+    def record(self, feat):
+        """The feature.json record as INV-6..8 read it: (doc, runs, code_reviewing_runs, errors).
+        `errors` are the parse-and-shape findings INV-6 reports; every other row of the family
+        skips a record whose doc is None. Parsed once per feature."""
+        if feat in self._records:
+            return self._records[feat]
+        fy = self.path(feat, "feature.json")
+        errors, runs, code_reviewing_runs, doc = [], [], [], None
+        if os.path.isfile(fy):
+            # One canonical strict JSON reader owns duplicate-key, non-finite-value and
+            # recorded-issue validation. A reader failure is loud below; it never reduces
+            # the run set and lets INV-6, INV-7 or INV-8 pass over partial data.
+            try:
+                doc = artifact_accessors.load_feature_json(fy) or {}
+            except Exception as e:
+                # A file that does not parse is a VIOLATION, never a silent skip — the whole
+                # point of DEC-171 is that there is no quieter mode. Report and move on
+                # so one broken feature cannot hide every other feature's invariants.
+                errors.append(f"{self.fpath(feat, 'feature.json')} does not parse, so INV-6..8 and INV-12 "
+                              f"cannot be checked for it: {e}")
+                doc = None
+            if doc is not None and not isinstance(doc, dict):
+                errors.append(f"{self.fpath(feat, 'feature.json')} is not a JSON mapping.")
+                doc = None
+        if doc is not None:
+            # `runs` stays a 3-tuple on purpose: INV-7 and the INV-22 loop below unpack it as
+            # exactly three, so widening it here would break two invariants to serve one.
+            # BUG-1080's exemption gets its own list instead.
+            for entry in (doc.get("runs") or []):
+                if not isinstance(entry, dict):
+                    errors.append(f"{feat}: a runs: entry is not a mapping ({entry!r}).")
+                    continue
+                _squad = str(entry.get("squad", "")).strip()
+                runs.append((str(entry.get("id", "")).strip(),
+                             _squad,
+                             str(entry.get("verdict", "")).strip()))
+                # BUG-1080: a validator run that graded no CODE has no commit to pin. DEC-207
+                # legalises exactly that run and spells it `code_grade: n_a`, so the record
+                # states what was reviewed and INV-6 reads the claim rather than guessing.
+                #
+                # ABSENCE MEANS CODE REVIEW, so a pin is required. That is fail-CLOSED and it
+                # is the OPPOSITE default from the `agent` key, where FEAT-31 made absence
+                # deliberately benign — every run recorded before this key existed reviewed
+                # code, and a silent exemption would retire the invariant on the whole corpus.
+                # EXACT match, no strip and no case fold, so this test and
+                # feature-schema.json's `enum: ["n_a"]` cannot disagree (panel Q2). A document
+                # must never be schema-invalid and gate-exempt at the same time: any deviation
+                # fails BOTH, which is the fail-closed direction.
+                if _squad == "validator" and entry.get("code_grade") != "n_a":
+                    code_reviewing_runs.append(entry)
+        self._records[feat] = (doc, runs, code_reviewing_runs, errors)
+        return self._records[feat]
+
+    def run_verdicts(self, feat):
+        """{run id: [verdicts]} as feature.json records them, for INV-15's cross-check."""
+        doc, _runs, _crr, _errors = self.record(feat)
+        out = {}
+        for entry in ((doc or {}).get("runs") or []):
+            if isinstance(entry, dict):
+                out.setdefault(str(entry.get("id", "")).strip(), []).append(
+                    str(entry.get("verdict", "")).strip())
+        return out
+
+    def run_states(self, feat):
+        """Every runs/*/state.yaml under the feature as (path, rel, rundir, sdoc, error), in
+        filesystem order like the baseline glob. `error` is INV-16's parse finding; sdoc is
+        None when it is set."""
+        if feat in self._run_states:
+            return self._run_states[feat]
+        out = []
+        for sy in glob.glob(os.path.join(self.feature_dir(feat), "runs", "*", "state.yaml")):
+            rel = os.path.relpath(sy, self.H)
+            rundir = os.path.dirname(sy)
+            # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
+            # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
+            # False and the completed-run checks below silently never fired.
+            try:
+                sdoc = harness_yaml.load_file(sy) or {}
+            except Exception as e:
+                out.append((sy, rel, rundir, None,
+                            f"{rel}: state.yaml does not parse, so INV-15/16 cannot be "
+                            f"checked for this run: {e}"))
+                continue
+            if not isinstance(sdoc, dict):
+                out.append((sy, rel, rundir, None, f"{rel}: state.yaml is not a YAML mapping."))
+                continue
+            out.append((sy, rel, rundir, sdoc, None))
+        self._run_states[feat] = out
+        return out
+
+    def validate_digest(self):
+        """(path, module, import_error) for validate-digest.py, loaded ONCE (INV-15)."""
+        if self._vd is None:
+            vd = os.path.join(self.root, ".agents/skills/harness/bin/validate-digest.py")
+            # INV-15 used to fork one interpreter per completed lead run. Measured on this tree: 103
+            # spawns costing 3.02s of a 3.45s run — 87% of the time the operator waits at every
+            # /harness entry, and it grows with run history because historical digests are re-validated
+            # forever. Load the module ONCE instead. `validate()` is a pure function of (persona, text)
+            # and the CLI lives behind `if __name__ == "__main__":`, so importing runs nothing.
+            # _vd_mod is None when the file is absent or will not import; the loop below then reports
+            # digests as UNCHECKED rather than passing them silently.
+            _vd_mod, _vd_import_err = None, None
+            if os.path.isfile(vd):
+                try:
+                    _vd_mod = harness_boundary.load_repo_module("harness_validate_digest", vd)
+                    if not callable(getattr(_vd_mod, "validate", None)):
+                        _vd_mod, _vd_import_err = None, "it defines no validate() function"
+                except Exception as _e:
+                    _vd_mod, _vd_import_err = None, str(_e)
+            self._vd = (vd, _vd_mod, _vd_import_err)
+        return self._vd
+
+
+def inv_35(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    _feat, _p = feat, ctx.path(feat, 'plan.yaml')
     _txt = read(_p)
     if _txt is None:
-        continue
+        return bad, warn
     _block_indent = None
     _quoted_scalar = None
     for _lineno, _line in enumerate(_txt.splitlines(), start=1):
@@ -305,46 +806,28 @@ for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
                 f"`#` onward, silently, even though the file still parses. Quote the value so "
                 f"the issue number stays in the data: {_line.strip()!r}."
             )
-# STATE.md is per-feature since DEC-120; read them all.
-states = {os.path.basename(os.path.dirname(p)): read(p)
-          for p in glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))}
+    return bad, warn
 
-
-def approved(txt):
-    if not txt: return False
-    m = re.search(r"^##\s+Approval\s*$(.*?)(?=^##\s|\Z)", txt, re.M | re.S)
-    return bool(m) and re.search(r"status:\s*approved", m.group(1), re.I) is not None
-
-def has_approval_block(txt):
-    return bool(txt) and re.search(r"^##\s+Approval\s*$", txt, re.M) is not None
-
-# --- INV-1/2: every feature's goal of record must be signed before its flows run.
-# Onboarding itself is signalled by harness.json + team-config.yaml (DEC-129), not a BRIEF:
-# a freshly-onboarded project legitimately has zero features yet.
-if not os.path.isfile(os.path.join(H, "harness.json")):
-    bad.append(".harness/harness.json missing — not onboarded (or half-onboarded). Run /harness-init, in this clone.")
-# AN ABANDONED FEATURE'S BRIEF IS NEVER APPROVED, and that is the point rather than a
-# defect: it was planned and retired without being signed. Halting /harness entry over an
-# unapproved brief on a feature nobody will build trains the operator to ignore the gate,
-# which is the failure a gate exists to prevent. Read from plan.yaml's station (FEAT-41 T-07),
-# never inferred — and the try/except that guarded the old json.load is gone with it, because
-# `station_of` already returns "" for every unreadable and unparseable shape.
-_abandoned = set()
-for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
-    if not os.path.isdir(_fd):
-        continue
-    if station_of(_fd) in TERMINAL_STATIONS:
-        _abandoned.add(os.path.basename(_fd))
-for feat, brief in briefs.items():
-    if feat in _abandoned:
-        continue
+def inv_1(ctx, feat):
+    """INV-1: the feature's goal of record (BRIEF.md) is signed before its flows run."""
+    bad, warn = [], []
+    fpath = ctx.fpath
+    brief = ctx.briefs.get(feat)
+    if brief is None or feat in ctx.abandoned:
+        return bad, warn
     if not has_approval_block(brief):
         bad.append(f"{fpath(feat, 'BRIEF.md')} has no '## Approval' section — cannot tell if the goal is signed.")
     elif not approved(brief):
         bad.append(f"{fpath(feat, 'BRIEF.md')} is NOT approved — halt that flow and surface to the user.")
-for feat in states:
-    if feat not in briefs:
+    return bad, warn
+
+
+def inv_2(ctx, feat):
+    """INV-2: a flow with a STATE.md has a BRIEF.md — no flow runs with no goal of record."""
+    bad, warn = [], []
+    if feat in ctx.states and feat not in ctx.briefs:
         bad.append(f"{feat} has STATE.md but no BRIEF.md — a flow is running with no goal of record.")
+    return bad, warn
 
 # --- INV-3/4/5 on plan.yaml (DEC-182). Same three invariants, read from a mapping
 # instead of scraped out of prose. load_plan has already guaranteed every task carries the
@@ -380,23 +863,84 @@ for feat in states:
 # Two of cycle 4's reviewers checked at source: (inv34.d)'s fixture carries no marker, so the test
 # named here never tested the guarantee claimed here. A false citation is worse than a missing test
 # -- it stops the next reader looking. Cases (inv34.e) and (inv34.f) cover the two forgeries.
-for feat, doc in plan_docs.items():
-    if doc.get("station_only") is True:
-        continue
-    _appr = doc.get("approval")
-    if not isinstance(_appr, dict):
-        bad.append(f"{fpath(feat, 'plan.yaml')} has no `approval:` block — cannot tell if the goal "
-                   f"is signed.")
-    elif str(_appr.get("status", "")).strip().lower() != "approved":
-        warn.append(f"{fpath(feat, 'plan.yaml')} approval is pending — awaiting the user.")
+def inv_3(ctx, feat):
+    """INV-3: the plan is signed too, and re-planning resets that signature. plan.yaml
+    (DEC-182) when the feature carries one, else the PLAN.md-era record."""
+    bad, warn = [], []
+    fpath, states = ctx.fpath, ctx.states
+    doc = ctx.plan_docs.get(feat)
+    if doc is not None:
+        if doc.get("station_only") is True:
+            return bad, warn
+        _appr = doc.get("approval")
+        if not isinstance(_appr, dict):
+            bad.append(f"{fpath(feat, 'plan.yaml')} has no `approval:` block — cannot tell if the goal "
+                       f"is signed.")
+        elif str(_appr.get("status", "")).strip().lower() != "approved":
+            warn.append(f"{fpath(feat, 'plan.yaml')} approval is pending — awaiting the user.")
+        return bad, warn
+    plan = ctx.plans.get(feat)
+    if plan is None:
+        return bad, warn
+    if not has_approval_block(plan):
+        bad.append(f"{fpath(feat, 'PLAN.md')} has no '## Approval' section.")
+    elif not approved(plan):
+        warn.append(f"{fpath(feat, 'PLAN.md')} approval is pending — awaiting the user.")
+    return bad, warn
 
-    _plan_ids = {str(t["id"]) for t in doc["tasks"]}
-    _state = states.get(feat)
-    if _state:
+
+def _plan_md_tasks(plan):
+    # Tasks may be list items (`- T-01:`) or headings (`### T-01 —`) — the smoke's pm
+    # wrote headings and the list-only regex made this check silently vacuous (DEC-129).
+    return re.findall(r"^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)",
+                      plan, re.M | re.S)
+
+
+def inv_4(ctx, feat):
+    """INV-4: every PLAN.md task carries change_type, or the qa gate cannot apply. On
+    plan.yaml this is a LOAD error (REQUIRED_TASK_FIELDS) and never reaches here."""
+    bad, warn = [], []
+    fpath = ctx.fpath
+    if feat in ctx.plan_docs:
+        return bad, warn
+    plan = ctx.plans.get(feat)
+    if plan is None:
+        return bad, warn
+    tasks = _plan_md_tasks(plan)
+    if not tasks and re.search(r"\bT-\d+\b", plan):
+        bad.append(f"{fpath(feat, 'PLAN.md')} mentions T-NN ids but none parse as tasks — "
+                   f"INV-4/5 would be vacuous. Fix the task format.")
+    for tid, body in tasks:
+        if "change_type:" not in body:
+            bad.append(f"{feat}: {tid} has no change_type: — the qa gate cannot be applied to it.")
+    return bad, warn
+
+
+def inv_5(ctx, feat):
+    """INV-5: no flow's STATE.md points at a task its plan does not contain."""
+    bad, warn = [], []
+    fpath = ctx.fpath
+    _state = ctx.states.get(feat)
+    if not _state:
+        return bad, warn
+    doc = ctx.plan_docs.get(feat)
+    if doc is not None:
+        if doc.get("station_only") is True:
+            return bad, warn
+        _plan_ids = {str(t["id"]) for t in doc["tasks"]}
         for _tid in set(re.findall(r"\bT-[0-9A-Za-z]+\b", _state)):
             if _tid not in _plan_ids:
                 bad.append(f"{fpath(feat, 'STATE.md')} references {_tid}, which is absent from its "
                            f"plan.yaml.")
+        return bad, warn
+    plan = ctx.plans.get(feat)
+    if plan is None:
+        return bad, warn
+    plan_ids = {tid for tid, _ in _plan_md_tasks(plan)}
+    for tid in set(re.findall(r"\bT-\d+\b", _state)):
+        if tid not in plan_ids:
+            bad.append(f"{fpath(feat, 'STATE.md')} references {tid}, which is absent from its PLAN.md.")
+    return bad, warn
 
 # INV-32 ERA RESOLUTION BEGIN (BUG-1071)
 # WHY AN ERA GUARD EXISTS AT ALL. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
@@ -421,54 +965,19 @@ for feat, doc in plan_docs.items():
 # RESOLVED ONCE, ABOVE THE LOOP. The first cut assigned the boundary inside the per-plan
 # loop, which re-derived it 32 times and would have reported a single config defect once
 # per plan. A config defect is one finding.
-_era_cfg = read(os.path.join(H, "harness.json"))
-_MISSING = object()
-
-
-def _era_start_for(inv, key, what):
-    """The YYYY-MM-DD boundary before which `inv` grades nothing, or None: no config at all
-    (INV-1 reports that; grade everything, the fail-CLOSED direction), null (this project has
-    no pre-`what` era — the template default), or an unreadable value (reported, exempts
-    nothing). A config that predates the key is a VIOLATION, not a silent default: defaulting
-    to "grade everything" reddens every pre-era record in an un-upgraded project, and
-    defaulting to "exempt everything" disables the invariant there without saying so; so it
-    says so, once, and names the command that fixes it."""
-    if not _era_cfg:
-        return None
-    try:
-        raw = artifact_accessors.load_harness_json(
-            text=_era_cfg, context=os.path.join(H, "harness.json")).get(key, _MISSING)
-    except Exception:
-        # The JSON-validity violation is raised on its own merit further down (`cj`).
-        return None
-    if raw is _MISSING:
-        bad.append(f"{inv}: .harness/harness.json has no `{key}`, so no {what} era can be "
-                   f"resolved. Run /harness-init --upgrade (upgrade-config.py) against this "
-                   f"clone's own harness.json, then set it to the date the {what} became available "
-                   f"here, or null if this project never predated it.")
-        return None
-    if raw is None:
-        return None
-    if isinstance(raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw.strip()):
-        return raw.strip()
-    bad.append(f"{inv}: .harness/harness.json `{key}` is {raw!r}, which is neither null nor a "
-               f"YYYY-MM-DD date. Nothing is exempted while it is unreadable.")
-    return None
-
-
-_era_start = _era_start_for("INV-32", "panel_era_start", "adversarial panel")
-# INV-43 (BUG-1723) has the same shape of boundary for the same reason: a succession recorded
-# before the seam was graded cannot be re-recorded to satisfy it (history stays as recorded,
-# DEC-227), and an invariant that reddens the whole corpus trains its reader to ignore it.
-_seam_era_start = _era_start_for("INV-43", "seam_era_start", "graded seam")
-# INV-32 ERA RESOLUTION END (BUG-1071)
-
-# INV-32 BEGIN (FEAT-45 T-07)
-# A signed plan must carry the adversarial panel record the operator reviewed.
-for feat, doc in plan_docs.items():
+# A signed plan must carry the adversarial panel record the operator reviewed. The FEAT-45 T-07
+# mutation markers wrap this invariant's TABLE ROW below: removing the row unregisters the check,
+# which is what the mutant needs; the function itself may stay defined.
+def inv_32(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    _era_start = ctx.era_start
+    doc = ctx.plan_docs.get(feat)
+    if doc is None:
+        return bad, warn
     approval = doc.get("approval")
     if not isinstance(approval, dict) or str(approval.get("status", "")).strip().lower() != "approved":
-        continue
+        return bad, warn
     # FEAT-59 SC-02: a `patch` mission runs no pre-build panel by design — its diff is
     # reviewed by the validate run instead (DEC-139 as amended). The mission is read from
     # the sibling feature.json's own key, never inferred from the plan's shape: a one-task
@@ -490,13 +999,13 @@ for feat, doc in plan_docs.items():
         if _ntasks == 1:
             warn.append(f"INV-32: {feat} is a patch mission, which runs no pre-build panel; "
                         f"its diff is graded by the validate run instead. Not graded.")
-            continue
+            return bad, warn
         bad.append(f"INV-32: {feat} feature.json says mission: patch but its approved plan "
                    f"carries {_ntasks} tasks, not one — a patch is a one-task plan (SC-02), "
                    f"so the panel exemption does not apply. Set the mission to plan "
                    f"(feature-record.py set-mission) and run the panel, or cut the plan to "
                    f"one task.")
-        continue
+        return bad, warn
 # INV-32 ERA BEGIN (BUG-1071)
     # The boundary itself is resolved ONCE from `panel_era_start`, above this loop; see
     # the ERA RESOLUTION block for why it is config rather than a literal. `_era_start` is
@@ -533,13 +1042,13 @@ for feat, doc in plan_docs.items():
                    f"Add the signature date; recover it with "
                    f"git log -S'status: approved' -- "
                    f".harness/*/features/{feat}/plan.yaml")
-        continue
+        return bad, warn
     if _era_start is not None and signed < _era_start:
         warn.append(f"INV-32: {feat} was signed {signed}, before the adversarial panel "
                     f"became available here ({_era_start}, harness.json "
                     f"panel_era_start); not graded. A plan signed before the panel "
                     f"existed cannot carry a record of it.")
-        continue
+        return bad, warn
 # INV-32 ERA END (BUG-1071)
     panel = doc.get("panel")
     if not isinstance(panel, dict) or not str(panel.get("last_run", "")).strip() or not isinstance(panel.get("findings"), list):
@@ -555,7 +1064,7 @@ for feat, doc in plan_docs.items():
                    f"recorded. If this plan predates the adversarial panel in this "
                    f"project, set harness.json `panel_era_start` to the date the panel "
                    f"became available here instead of recording one.")
-        continue
+        return bad, warn
     findings = panel.get("findings", [])
     finding_ids = {
         str(item.get("id", "")).strip()
@@ -624,112 +1133,21 @@ for feat, doc in plan_docs.items():
                            f"the record cannot show why it never ran.")
             else:
                 warn.append(f"INV-32: {feat} reader {reader} skipped persona {persona}: {reason}")
-# INV-32 END (FEAT-45 T-07)
+    return bad, warn
 
-# --- INV-3: a plan must be signed too, and re-planning must reset that signature.
-for feat, plan in plans.items():
-    if not has_approval_block(plan):
-        bad.append(f"{fpath(feat, 'PLAN.md')} has no '## Approval' section.")
-    elif not approved(plan):
-        warn.append(f"{fpath(feat, 'PLAN.md')} approval is pending — awaiting the user.")
-
-    # --- INV-4: every task must carry change_type or the qa gate cannot apply.
-    # Tasks may be list items (`- T-01:`) or headings (`### T-01 —`) — the smoke's pm
-    # wrote headings and the list-only regex made this check silently vacuous (DEC-129).
-    tasks = re.findall(r"^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)",
-                       plan, re.M | re.S)
-    if not tasks and re.search(r"\bT-\d+\b", plan):
-        bad.append(f"{fpath(feat, 'PLAN.md')} mentions T-NN ids but none parse as tasks — "
-                   f"INV-4/5 would be vacuous. Fix the task format.")
-    for tid, body in tasks:
-        if "change_type:" not in body:
-            bad.append(f"{feat}: {tid} has no change_type: — the qa gate cannot be applied to it.")
-
-    # --- INV-5: no flow's STATE may point at a task its plan does not contain.
-    state = states.get(feat)
-    if state:
-        plan_ids = {tid for tid, _ in tasks}
-        for tid in set(re.findall(r"\bT-\d+\b", state)):
-            if tid not in plan_ids:
-                bad.append(f"{fpath(feat, 'STATE.md')} references {tid}, which is absent from its PLAN.md.")
-
-# THE GIT TOP LEVEL, resolved ONCE for INV-33 below (FEAT-41 T-14 / issue #867).
-#
-# RELATIVE TO THE GIT TOP LEVEL, NEVER TO `root`, and the reason CHANGED with the rebase while
-# the requirement did not. `root` is no longer CLAUDE_PROJECT_DIR: since FEAT-42 T-12 this script
-# resolves it through harness_boundary.resolve_root(_selfdir). That is the HARNESS root, which
-# still need not be the repository top level — a worktree checkout is the everyday case, and this
-# very file is being edited in one. `git show <sha>:<path>` takes a path relative to the
-# repository, so using `root` would silently miss every plan in a worktree.
-#
-# ONE subprocess for the whole run, not one per feature. None on failure, which is one of
-# INV-33's five deliberate silences: no git work tree is a state it cannot speak to.
-try:
-    _tl = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"],
-                         capture_output=True, text=True)
-    _git_top = _tl.stdout.strip() if _tl.returncode == 0 else None
-except Exception:
-    _git_top = None
 
 # --- INV-6..8: per-feature execution facts.
-run_verdicts = {}
-for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
-    feat = os.path.basename(os.path.dirname(fy))
-    # One canonical strict JSON reader owns duplicate-key, non-finite-value and
-    # recorded-issue validation. A reader failure is loud below; it never reduces
-    # the run set and lets INV-6, INV-7 or INV-8 pass over partial data.
-    try:
-        doc = artifact_accessors.load_feature_json(fy) or {}
-    except Exception as e:
-        # A file that does not parse is a VIOLATION, never a silent skip — the whole
-        # point of DEC-171 is that there is no quieter mode. Report and move on
-        # so one broken feature cannot hide every other feature's invariants.
-        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-6..8 and INV-12 "
-                   f"cannot be checked for it: {e}")
-        continue
-    if not isinstance(doc, dict):
-        bad.append(f"{fpath(feat, 'feature.json')} is not a JSON mapping.")
-        continue
-
+def inv_6(ctx, feat):
+    """INV-6: reviewers diff a pinned SHA, never a moving HEAD (DEC-50). Also the row that
+    reports a feature.json the family cannot read at all."""
+    bad, warn = [], []
+    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    bad.extend(_errors)
+    if doc is None:
+        return bad, warn
     def val(k):
-        """A scalar field as a string, or None. JSON returns typed values, so
-        consumers that compare textual placeholders normalize them here."""
         v = doc.get(k)
         return None if v is None else str(v)
-
-    # `runs:` entries arrive as JSON mappings. We assert the three fields these
-    # invariants need rather than copying the accessor's document validation.
-    #
-    # `runs` stays a 3-tuple on purpose: INV-7 and the INV-22 loop below unpack it as
-    # exactly three, so widening it here would break two invariants to serve one.
-    # BUG-1080's exemption gets its own list instead.
-    runs = []
-    code_reviewing_runs = []
-    for entry in (doc.get("runs") or []):
-        if not isinstance(entry, dict):
-            bad.append(f"{feat}: a runs: entry is not a mapping ({entry!r}).")
-            continue
-        _squad = str(entry.get("squad", "")).strip()
-        runs.append((str(entry.get("id", "")).strip(),
-                     _squad,
-                     str(entry.get("verdict", "")).strip()))
-        run_verdicts.setdefault(os.path.dirname(fy), {}).setdefault(
-            str(entry.get("id", "")).strip(), []).append(str(entry.get("verdict", "")).strip())
-        # BUG-1080: a validator run that graded no CODE has no commit to pin. DEC-207
-        # legalises exactly that run and spells it `code_grade: n_a`, so the record
-        # states what was reviewed and INV-6 reads the claim rather than guessing.
-        #
-        # ABSENCE MEANS CODE REVIEW, so a pin is required. That is fail-CLOSED and it
-        # is the OPPOSITE default from the `agent` key, where FEAT-31 made absence
-        # deliberately benign — every run recorded before this key existed reviewed
-        # code, and a silent exemption would retire the invariant on the whole corpus.
-        # EXACT match, no strip and no case fold, so this test and
-        # feature-schema.json's `enum: ["n_a"]` cannot disagree (panel Q2). A document
-        # must never be schema-invalid and gate-exempt at the same time: any deviation
-        # fails BOTH, which is the fail-closed direction.
-        if _squad == "validator" and entry.get("code_grade") != "n_a":
-            code_reviewing_runs.append(entry)
-
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
     # A placeholder is not a pin: val() returns str(v), so `review_sha: none` is a
     # truthy string and only an ABSENT key used to trip this (issue #16).
@@ -744,7 +1162,22 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         bad.append(f"{feat}: a validator run reviewed code but review_sha is not pinned "
                    f"— reviewers would diff HEAD (the GAP-7 failure). A run that graded a "
                    f"plan and no code carries `code_grade: n_a` and needs no pin (DEC-207).")
+    return bad, warn
 
+def inv_33(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    if doc is None:
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    def val(k):
+        """A scalar field as a string, or None. JSON returns typed values, so
+        consumers that compare textual placeholders normalize them here."""
+        v = doc.get(k)
+        return None if v is None else str(v)
+    _git_top = ctx.git_top
+    _sha = (val("review_sha") or "").strip().lower()
     # INV-33: a pin that is STALE, not merely absent (FEAT-41 T-14, closing issue #867).
     #
     # INV-6 above asserts a pin EXISTS. This asserts the pin is CURRENT. An absent pin is
@@ -816,6 +1249,20 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                 bad.append(f"{feat}: review_sha {_sha} is STALE — {os.path.basename(_pf)} has "
                            f"changed since it was pinned, last at {_lastsha}, so the review "
                            f"claim covers text that is no longer there (INV-33).")
+    return bad, warn
+
+def inv_7(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    if doc is None:
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    def val(k):
+        """A scalar field as a string, or None. JSON returns typed values, so
+        consumers that compare textual placeholders normalize them here."""
+        v = doc.get(k)
+        return None if v is None else str(v)
 
     # INV-7: the fix-loop bound must actually count the failures it bounds.
     fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")
@@ -823,6 +1270,20 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     if cu is not None and cu.isdigit() and int(cu) < fails:
         bad.append(f"{feat}: cycles_used={cu} but {fails} FAIL run(s) recorded "
                    f"— the fix loop is no longer bounded.")
+    return bad, warn
+
+def inv_22(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    if doc is None:
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    def val(k):
+        """A scalar field as a string, or None. JSON returns typed values, so
+        consumers that compare textual placeholders normalize them here."""
+        v = doc.get(k)
+        return None if v is None else str(v)
 
     # INV-22: RUNS are counted, because cycles do not count them (issue #79).
     # DEC-157 makes a cycle REWORK ONLY, so a first-pass run contributes zero however
@@ -883,6 +1344,20 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                     f"does not see this). Not a defect by itself — check each run is "
                     f"efficient, is resolving issues, and is advancing the SCs. The count "
                     f"is a FLOOR: main-session-direct segments are not runs.")
+    return bad, warn
+
+def inv_8(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    if doc is None:
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    def val(k):
+        """A scalar field as a string, or None. JSON returns typed values, so
+        consumers that compare textual placeholders normalize them here."""
+        v = doc.get(k)
+        return None if v is None else str(v)
 
     # INV-8: a referenced run dir must exist, or resume has nothing to read.
     recorded = set()
@@ -892,6 +1367,21 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         if not os.path.isdir(d):
             warn.append(f"{feat}: run {rid} is referenced but its dir is absent "
                         f"(pruned, or never created).")
+    return bad, warn
+
+def inv_12(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
+    if doc is None:
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    def val(k):
+        """A scalar field as a string, or None. JSON returns typed values, so
+        consumers that compare textual placeholders normalize them here."""
+        v = doc.get(k)
+        return None if v is None else str(v)
+    recorded = {rid for rid, _, _ in runs}
     # INV-12: the INVERSE — a run dir nothing records. Observed live (DEC-131): an
     # interrupt killed the orchestrator's view while its orphaned subtree ran on and
     # wrote a whole run. Work on disk that no orchestrator knows about is invisible
@@ -902,60 +1392,33 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
             warn.append(f"{feat}: run dir {rid} exists on disk but feature.json does not "
                         f"record it — orphaned work (interrupted flow?). A resume must "
                         f"reconcile it, not rediscover it by luck.")
+    return bad, warn
 
 # --- INV-9 retired under DEC-233; the number is never reused (DEC-205). Host enforcement is
 # `.omp/extensions/harness-hooks.ts`, and its wiring is graded by check-omp-port.py. The
 # gate keys on `.omp/config.yml` so a scratch tree that carries no OMP surface (every
 # fixture in tests/) grades its own invariants without the whole port surface.
-_omp_cfg = os.path.join(root, ".omp", "config.yml")
-if os.path.isfile(_omp_cfg):
-    _omp_check = os.path.join(root, ".agents", "skills", "harness", "bin", "check-omp-port.py")
-    if not os.path.isfile(_omp_check):
-        bad.append("OMP is configured but check-omp-port.py is missing — nothing grades the "
-                   "roster, hook wiring or provider overlays.")
-    else:
-        _omp_result = subprocess.run(
-            [sys.executable, _omp_check, root],
-            text=True,
-            capture_output=True,
-        )
-        if _omp_result.returncode != 0:
-            for _line in (_omp_result.stderr or "").splitlines():
-                if _line.strip():
-                    bad.append(_line.strip())
+def omp_port(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-# `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
-# gh-config checks. The JSON-validity violation is kept on its own merit — a config
-# that does not parse silently disables every check that reads it.
-# BOUND UNCONDITIONALLY. `cj` used to be assigned only inside the `if cfg:` below, so a
-# project with NO harness.json reached the consumers further down with the name unbound and
-# died with `NameError: name 'cj' is not defined`. That is a CRASH, and a crash exits 1 —
-# the same code a real violation exits — so /harness entry reported "violations found" for
-# an absent config file, with a traceback where a diagnosis should be.
-#
-# Pre-existing and reproduced on main at the same fixture before being fixed here; found
-# while landing DEC-182 because a plan.yaml fixture legitimately carries no harness.json.
-# Fixed in passing rather than left in a file this change already opens: check-state.py is
-# a DEC-174 carve-out, so the next person to touch it pays the full carve-out cost, and
-# leaving a known landmine for them is worse than a two-line diff here. The absent-config
-# case is already reported by the INV-1 check above; this only stops the crash.
-cj = {}
-cfg = read(os.path.join(H, "harness.json"))
-if cfg:
-    try:
-        cj = artifact_accessors.load_harness_json(
-            text=cfg, context=os.path.join(H, "harness.json"))
-    except Exception as e:
-        cj = {}
-        bad.append(f".harness/harness.json is not valid JSON: {e}")
-_handoff_baseline = set()
-for _entry in cj.get("handoff_done_when_baseline", []) if isinstance(cj, dict) else []:
-    if not isinstance(_entry, str):
-        continue
-    _path = os.path.relpath(_entry, root) if os.path.isabs(_entry) else _entry
-    _handoff_baseline.add(os.path.normpath(_path).replace(os.sep, "/"))
-
-import subprocess
+    _omp_cfg = os.path.join(root, ".omp", "config.yml")
+    if os.path.isfile(_omp_cfg):
+        _omp_check = os.path.join(root, ".agents", "skills", "harness", "bin", "check-omp-port.py")
+        if not os.path.isfile(_omp_check):
+            bad.append("OMP is configured but check-omp-port.py is missing — nothing grades the "
+                       "roster, hook wiring or provider overlays.")
+        else:
+            _omp_result = subprocess.run(
+                [sys.executable, _omp_check, root],
+                text=True,
+                capture_output=True,
+            )
+            if _omp_result.returncode != 0:
+                for _line in (_omp_result.stderr or "").splitlines():
+                    if _line.strip():
+                        bad.append(_line.strip())
+    return bad, warn
 
 # --- INV-17 (DEC-159): squad seams hand off through notes/handoff-<stem>.md.
 # A feature whose status: sits past a seam with no handoff note for the crossing lost the
@@ -970,96 +1433,25 @@ import subprocess
 # feature. INV-17 would stop examining anything at all while check-state.py went on exiting
 # exactly as it does today. A gate that examines nothing reports nothing wrong.
 #
-# THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATION NAMES.
-# The next editor's first instinct is to build the filename from the station; do not. The stems
-# are seam names — plan, build, validate — and the stations are positions. They now happen to
-# share a case, which is exactly what makes deriving look safe and still be wrong: `ready` and
-# `building` both require notes/handoff-plan.md, and no station is named `validate` at all.
-# Keeping the stems as their own literals also renames no file on disk.
-#
-# THE RESIDUAL LOSS, RECORDED RATHER THAN HIDDEN: validate and ship both folded into
-# review, so the validate-to-ship crossing is no longer separately observable and
-# handoff-validate.md cannot be demanded at review. It is demanded at done instead — the
-# next boundary that proves review completed. One seam moves later; none is dropped.
-#
-# A STATION OUTSIDE STATUS_ORDER IS NOW A VIOLATION, NOT A SILENT SKIP (FEAT-41 T-07, A-03).
-# It was a deliberate silent skip on the grounds that status was schema-required with a closed
-# enum, so an unknown value was already denied at write time and a branch here would have been
-# a second enforcement point for a rule the schema owned. THAT COMPENSATING CONTROL IS GONE:
-# T-07 deleted the key from feature-schema.json, and the station now lives in plan.yaml, whose
-# schema does not constrain the top-level `status` value at all. What denies an illegal station
-# today is plan-merge.py's set-feature-station, which validates before it opens the file — an
-# enforcement point on the WRITE ROUTE, not on the document. A hand-edited plan therefore
-# reaches this loop with a station nothing has checked, and the old skip would have taken every
-# such feature out of INV-17 without a word. It is reported instead.
-#
-# Despite the name, STATUS_ORDER is used as a SET — the membership test below is its only
-# reader and nothing indexes it. So the marker sitting at the end implies no progression.
-#
-# STATUS_ORDER AND SEAM_NOTES ARE ONE VOCABULARY AND MOVE TOGETHER. SEAM_NOTES is indexed by a
-# BARE SUBSCRIPT below, guarded only by that membership test, so rekeying one without the other
-# does not degrade to a skip — it is a KeyError in the project's own state gate, for every
-# well-formed feature on disk. Derived from factory_config rather than spelled, which makes the
-# pairing structural: both are built from MANDATED_STATIONS, so neither can be rekeyed alone.
-STATUS_ORDER = list(factory_config.MANDATED_STATIONS) + list(TERMINAL_STATIONS)
-SEAM_NOTES = {
-    "backlog":  [],
-    "plan":     [],
-    "ready":    ["plan"],
-    "building": ["plan"],
-    "review":   ["plan", "build"],
-    "done":     ["plan", "build", "validate"],
-    # THE TERMINAL STATIONS REQUIRE NO HANDOFF, and that is the whole difference from done. A
-    # feature planned and never built (abandoned) or refused at intake (rejected, FEAT-1714)
-    # crossed no seam, so there is no honest handoff note to write and none will be fabricated.
-    # Keyed EXPLICITLY rather than omitted: an omitted key is now a KeyError rather than a
-    # silent skip, since the station passes the membership test above by construction.
-    **{station: [] for station in TERMINAL_STATIONS},
-}
-# EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
-# structures are derived from the same source, so the only way they can disagree is a hand-typed
-# SEAM_NOTES key — and this is the check that catches it at startup instead of at the subscript,
-# on whichever feature happens to sit at that station.
-_missing_seam_rows = [_s for _s in STATUS_ORDER if _s not in SEAM_NOTES]
-if _missing_seam_rows:
-    bad.append("check-state.py: SEAM_NOTES has no row for station(s) %s — the seam table and "
-               "the station vocabulary have drifted, and INV-17 would raise KeyError on the "
-               "first feature at one of them." % ", ".join(_missing_seam_rows))
-HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
-HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
-
-# The literal exemption set. FEAT-01 and FEAT-02 are Done, carry zero handoff notes, and
-# finished before DEC-159 existed: no seam was crossed, so no honest handoff note can be
-# written for them and none will be fabricated (PRINCIPLES rule 15). A finite list, not an
-# inferred rule — no future feature can join it.
-#
-# Matched by PREFIX because a feature directory is FEAT-01-<slug>, and FEAT-01's happens to
-# be bare today. Exact equality would pass every fixture and still raise three violations
-# on the live corpus the moment either directory gained a slug.
-#
-# This one is a SILENT skip, unlike the plan-keyed exemption below, which reports. The
-# difference is deliberate: reporting exists so a WRONGLY granted exemption is visible, and
-# a two-element list that cannot grow has nothing to grant wrongly.
-HANDOFF_EXEMPT_LITERAL = ("FEAT-01", "FEAT-02")
-
-
-for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
-    feat = os.path.basename(os.path.dirname(fy))
-    # The feature.json read stays because an unreadable record must make the seam
-    # checks loud. The station itself comes from canonical plan.yaml
-    # (FEAT-41 T-07).
+def inv_17(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    _handoff_baseline = ctx.handoff_baseline
+    fy = ctx.path(feat, 'feature.json')
+    if not os.path.isfile(fy):
+        return bad, warn
     try:
         _doc = artifact_accessors.load_feature_json(fy) or {}
     except Exception as e:
         bad.append(f"{fpath(feat, 'feature.json')} does not parse, so its seam invariants "
                    f"cannot be checked: {e}")
-        continue
+        return bad, warn
     _status = station_of(os.path.dirname(fy))
     if not _status:
         # NO STATION AT ALL is still a skip, and deliberately so: a feature directory with no
         # plan.yaml is a PLAN.md-era record, and INV-3 already reports a plan that should exist
         # and does not. Reporting it here too would double every such line.
-        continue
+        return bad, warn
     if _status not in STATUS_ORDER:
         # LOUD, per A-03: nothing denies this value at write time any more. See the comment
         # above STATUS_ORDER for why the old silent skip's justification no longer holds.
@@ -1067,7 +1459,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                    f"the station vocabulary ({', '.join(STATUS_ORDER)}), so its seam "
                    f"invariants cannot be checked. Set it with `plan-merge.py "
                    f"set-feature-station`, which validates the station before it writes.")
-        continue
+        return bad, warn
     _lit = feat.startswith(HANDOFF_EXEMPT_LITERAL)
     # Evaluated LAZILY — only when a required note is actually found missing, never for
     # every feature on every run — and cached, so a feature owing three notes reads its
@@ -1175,12 +1567,15 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         # note worded as one would pollute that diff.
         warn.append(f"INV-17 {feat}: exempt from handoff notes — {_ex_why}. Suppressed "
                     + ", ".join(f"handoff-{s}" for s in _ex_stems) + ".")
+    return bad, warn
 
 # --- INV-18 (DEC-160): a feature with run dirs but no feature.json is invisible to
 # every feature-keyed invariant (INV-8/12/17) — a whole phase can run unchecked.
 # Observed live: FEAT-03's plan phase ran to completion before feature.json existed.
-for rd in glob.glob(os.path.join(H, "*", "features", "*", "runs")):
-    fdir = os.path.dirname(rd)
+def inv_18(ctx, feat):
+    bad, warn = [], []
+    rd = ctx.path(feat, 'runs')
+    fdir = ctx.feature_dir(feat)
     # isdir FIRST: glob matches a plain file named `runs` too, and os.listdir on it raises
     # NotADirectoryError — exit 1, empty stdout, every later invariant skipped.
     if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.json")):
@@ -1188,6 +1583,7 @@ for rd in glob.glob(os.path.join(H, "*", "features", "*", "runs")):
                    f"invisible to run reconciliation and phase checks; instantiate it from "
                    f".agents/skills/harness/templates/feature.json (the playbook's first-cycle "
                    f"duty).")
+    return bad, warn
 
 # --- INV-34 (FEAT-41 T-19): every feature directory carries a plan.yaml, because that is the
 # ONLY place a station may be recorded and a feature without one cannot record its own.
@@ -1201,7 +1597,12 @@ for rd in glob.glob(os.path.join(H, "*", "features", "*", "runs")):
 # A STATION-ONLY PLAN SATISFIES IT. The check is that the record EXISTS, not that it carries
 # tasks: a feature that predates the format, or a bug fix opened without a plan, honestly has no
 # tasks to record and inventing some to pass a schema would be fabrication.
-for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
+def inv_34(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    fy = ctx.path(feat, 'feature.json')
+    if not os.path.isfile(fy):
+        return bad, warn
     _fdir = os.path.dirname(fy)
     if not os.path.isfile(os.path.join(_fdir, "plan.yaml")):
         bad.append(f"INV-34: {os.path.basename(_fdir)} has no plan.yaml, so it has nowhere to "
@@ -1214,6 +1615,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
                    f"-- {os.path.join(os.path.relpath(_fdir, root), 'plan.yaml')}`. If this "
                    f"feature HAD tasks, restore that plan instead — a station-only stub would "
                    f"record the station and silently discard the task history.")
+    return bad, warn
 
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.py enforces the same numbers on a WRITE payload, which is
@@ -1229,52 +1631,57 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
 #
 # VOCABULARY stays in sync with check-domain.py; the MECHANISM deliberately does not
 # (D-02) — that one measures a payload, this one measures a file.
-for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
-    _ftext = read(fy) or ""
-    fl = _ftext.splitlines()
-    feat = os.path.basename(os.path.dirname(fy))
-    # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
-    #
-    # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4), through the SAME helper the
-    # write-time gate uses — the vocabulary sync this block's header promises now covers the
-    # definition of a counted line, not only the wording of the message.
-    try:
-        import feature_schema as _fs_inv23
-        _inv23_budget = _fs_inv23.FEATURE_JSON_LINE_BUDGET
-        _inv23_count = _fs_inv23.journal_lines(_ftext)
-        _inv23_basis = "excluding the runs ledger"
-    except Exception:
-        _inv23_budget = 300
-        _inv23_count = len(fl)
-        _inv23_basis = "whole file — feature_schema was not importable"
-    if _inv23_count > _inv23_budget:
-        warn.append(f"INV-23 {fpath(feat, 'feature.json')} is {_inv23_count} lines "
-                    f"({_inv23_basis}) — budget is {_inv23_budget}. It is "
-                    f"data a script parses, not a journal (DEC-150).")
-    # The comment-line budget is GONE, not relaxed: JSON has no comments, so it could never
-    # fire, and a check that cannot fire is a check a reader trusts.
+def inv_23(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-# CLAUDE.md (issue #139), swept from disk like its peers. The write-time gate in
-# check-domain.py is the one with teeth; this is the backstop for a session where the
-# PostToolUse half was never registered, exactly as for the four state files below.
-_cm = os.path.join(root, "CLAUDE.md")
-_cml = (read(_cm) or "").splitlines()
-if _cml and len(_cml) > 80:
-    warn.append(f"INV-23 CLAUDE.md is {len(_cml)} lines — budget is 80 (DEC-181). It is "
-                f"preloaded into EVERY session, so a line here costs more than a line "
-                f"anywhere else; rationale belongs in .harness/harness/docs/DECISIONS.md.")
-
-for sm in sorted(glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))):
-    sl = (read(sm) or "").splitlines()
-    feat = os.path.basename(os.path.dirname(sm))
-    if len(sl) > 120:
-        warn.append(f"INV-23 {fpath(feat, 'STATE.md')} is {len(sl)} lines — budget is 120. It holds no "
-                    f"history: ## Current is replaced, never appended (DEC-150).")
-    illegal = [l.strip() for l in sl
-               if l.startswith("## ") and l.strip() not in ("## Current", "## Open Questions")]
-    if illegal:
-        warn.append(f"INV-23 {fpath(feat, 'STATE.md')} has illegal section(s) {illegal} — STATE.md is "
-                    f"`## Current` + `## Open Questions` and nothing else (SPEC §2).")
+    for feat in ctx.features:
+        fy = ctx.path(feat, 'feature.json')
+        if not os.path.isfile(fy):
+            continue
+        _ftext = read(fy) or ""
+        fl = _ftext.splitlines()
+        # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
+        #
+        # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4), through the SAME helper the
+        # write-time gate uses — the vocabulary sync this block's header promises now covers the
+        # definition of a counted line, not only the wording of the message.
+        try:
+            import feature_schema as _fs_inv23
+            _inv23_budget = _fs_inv23.FEATURE_JSON_LINE_BUDGET
+            _inv23_count = _fs_inv23.journal_lines(_ftext)
+            _inv23_basis = "excluding the runs ledger"
+        except Exception:
+            _inv23_budget = 300
+            _inv23_count = len(fl)
+            _inv23_basis = "whole file — feature_schema was not importable"
+        if _inv23_count > _inv23_budget:
+            warn.append(f"INV-23 {fpath(feat, 'feature.json')} is {_inv23_count} lines "
+                        f"({_inv23_basis}) — budget is {_inv23_budget}. It is "
+                        f"data a script parses, not a journal (DEC-150).")
+    # CLAUDE.md (issue #139), swept from disk like its peers. The write-time gate in
+    # check-domain.py is the one with teeth; this is the backstop for a session where the
+    # PostToolUse half was never registered, exactly as for the four state files below.
+    _cm = os.path.join(root, "CLAUDE.md")
+    _cml = (read(_cm) or "").splitlines()
+    if _cml and len(_cml) > 80:
+        warn.append(f"INV-23 CLAUDE.md is {len(_cml)} lines — budget is 80 (DEC-181). It is "
+                    f"preloaded into EVERY session, so a line here costs more than a line "
+                    f"anywhere else; rationale belongs in .harness/harness/docs/DECISIONS.md.")
+    for feat in ctx.features:
+        sm = ctx.path(feat, 'STATE.md')
+        if not os.path.isfile(sm):
+            continue
+        sl = (read(sm) or "").splitlines()
+        if len(sl) > 120:
+            warn.append(f"INV-23 {fpath(feat, 'STATE.md')} is {len(sl)} lines — budget is 120. It holds no "
+                        f"history: ## Current is replaced, never appended (DEC-150).")
+        illegal = [l.strip() for l in sl
+                   if l.startswith("## ") and l.strip() not in ("## Current", "## Open Questions")]
+        if illegal:
+            warn.append(f"INV-23 {fpath(feat, 'STATE.md')} has illegal section(s) {illegal} — STATE.md is "
+                        f"`## Current` + `## Open Questions` and nothing else (SPEC §2).")
+    return bad, warn
 
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
 # successor reads — it must exist and satisfy the lead digest contract. The SubagentStop
@@ -1284,258 +1691,242 @@ for sm in sorted(glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))):
 # counters, paths, sequence markers. Top-level keys come from this whitelist, and no key
 # repeats (the FEAT-02 audit found `cost:` written twice in 12 of 15 files — the second
 # key silently shadows the first in any YAML parser).
-LEADS = {"harness-product-lead", "harness-eng-lead", "harness-validator-lead"}
-CHECKPOINT_KEYS = {
-    # seed (harness-team §2)
-    "schema_version", "run_id", "run_uid", "feature", "squad", "host", "status", "steps",
-    # loop bookkeeping
-    "cycles_used",
-    # The money key below is HISTORICAL-ONLY (DEC-178): nothing produces it any more,
-    # but all 67 pre-FEAT-08 run state.yaml files carry it and :401 flags any key not
-    # in this set — drop it and every historical run becomes a violation. Named
-    # without its quoted spelling because this task's verify: counts that spelling.
-    "cost",
-    # pins and context markers
-    "flow", "task", "team", "branch", "worktree",
-    "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
-    # roll-up enums and the report pointer — matchable values, so checkpoint-legal
-    "verdict", "severity_max", "digest",
-}
-vd = os.path.join(root, ".agents/skills/harness/bin/validate-digest.py")
-# INV-15 used to fork one interpreter per completed lead run. Measured on this tree: 103
-# spawns costing 3.02s of a 3.45s run — 87% of the time the operator waits at every
-# /harness entry, and it grows with run history because historical digests are re-validated
-# forever. Load the module ONCE instead. `validate()` is a pure function of (persona, text)
-# and the CLI lives behind `if __name__ == "__main__":`, so importing runs nothing.
-# _vd_mod is None when the file is absent or will not import; the loop below then reports
-# digests as UNCHECKED rather than passing them silently.
-_vd_mod = None
-_vd_import_err = None
-if os.path.isfile(vd):
-    try:
-        _vd_mod = harness_boundary.load_repo_module("harness_validate_digest", vd)
-        if not callable(getattr(_vd_mod, "validate", None)):
-            _vd_mod, _vd_import_err = None, "it defines no validate() function"
-    except Exception as _e:
-        _vd_mod, _vd_import_err = None, str(_e)
-for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.yaml")):
-    rel = os.path.relpath(sy, H)
-    rundir = os.path.dirname(sy)
-    # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
-    # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
-    # False and the completed-run checks below silently never fired.
-    try:
-        sdoc = harness_yaml.load_file(sy) or {}
-    except Exception as e:
-        bad.append(f"{rel}: state.yaml does not parse, so INV-15/16 cannot be "
-                   f"checked for this run: {e}")
-        continue
-    if not isinstance(sdoc, dict):
-        bad.append(f"{rel}: state.yaml is not a YAML mapping.")
-        continue
-    complete = str(sdoc.get("status", "")).strip() == "complete"
+def inv_16(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-    # INV-16: shape.
-    #
-    # Q3, found by the re-review: the duplicate-key TEXT SCAN that used to live here was
-    # DEAD CODE, and its comment told future readers to preserve it for a property it no
-    # longer had. `load_file` above uses the strict loader, which RAISES DuplicateKeyError
-    # before control ever reaches this point — and that path `continue`s, so INV-16's own
-    # DEC-156 message never fired. Keeping a scan that cannot run, guarded by a comment
-    # forbidding its removal, is worse than either fixing or deleting it: the next reader
-    # trusts the comment.
-    #
-    # Removed, because the loader's raise is strictly better — it catches a duplicate at
-    # ANY nesting depth, where the column-0 scan saw only top-level ones.
-    #
-    # CORRECTED (review finding 5): this comment used to claim the DEC-156 wording was
-    # "preserved at the raise site", and it was NOT — DuplicateKeyError's message was
-    # a bare `duplicate key 'x'`, so the guidance an author actually needs ("replace the
-    # placeholder; never append a second copy") vanished from this file entirely. A
-    # comment asserting a preserved message that was in fact dropped is worse than no
-    # comment, in a repo whose convention is that comments are load-bearing.
-    #
-    # It is true NOW because the guidance was moved INTO the exception's message
-    # (harness_yaml.py's DuplicateKeyError.__init__), so every caller renders it whether
-    # or not it has a dedicated handler.
-    # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
-    # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
-    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.py.
-    unknown = sorted({str(k) for k in sdoc if str(k) not in CHECKPOINT_KEYS})
-    if unknown:
-        bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
-                   f"only identifiers, enums, counters, paths and sequence markers "
-                   f"(DEC-154). Findings and assessment prose belong in that run's "
-                   f"digest.md; a one-line note: per step entry is the ceiling.")
+    for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
+        if _error:
+            bad.append(_error)
+            continue
+        # INV-16: shape.
+        #
+        # Q3, found by the re-review: the duplicate-key TEXT SCAN that used to live here was
+        # DEAD CODE, and its comment told future readers to preserve it for a property it no
+        # longer had. `load_file` above uses the strict loader, which RAISES DuplicateKeyError
+        # before control ever reaches this point — and that path `continue`s, so INV-16's own
+        # DEC-156 message never fired. Keeping a scan that cannot run, guarded by a comment
+        # forbidding its removal, is worse than either fixing or deleting it: the next reader
+        # trusts the comment.
+        #
+        # Removed, because the loader's raise is strictly better — it catches a duplicate at
+        # ANY nesting depth, where the column-0 scan saw only top-level ones.
+        #
+        # CORRECTED (review finding 5): this comment used to claim the DEC-156 wording was
+        # "preserved at the raise site", and it was NOT — DuplicateKeyError's message was
+        # a bare `duplicate key 'x'`, so the guidance an author actually needs ("replace the
+        # placeholder; never append a second copy") vanished from this file entirely. A
+        # comment asserting a preserved message that was in fact dropped is worse than no
+        # comment, in a repo whose convention is that comments are load-bearing.
+        #
+        # It is true NOW because the guidance was moved INTO the exception's message
+        # (harness_yaml.py's DuplicateKeyError.__init__), so every caller renders it whether
+        # or not it has a dedicated handler.
+        # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
+        # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
+        # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.py.
+        unknown = sorted({str(k) for k in sdoc if str(k) not in CHECKPOINT_KEYS})
+        if unknown:
+            bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
+                       f"only identifiers, enums, counters, paths and sequence markers "
+                       f"(DEC-154). Findings and assessment prose belong in that run's "
+                       f"digest.md; a one-line note: per step entry is the ceiling.")
 
-    # FEAT-104 census, 2026-09-09: all 356 existing run state.yaml files were
-    # schema_version 1. The closed step sweep begins at version 2, so that corpus
-    # remains byte-for-byte untouched and receives exactly its prior verdict.
-    _schema_version = sdoc.get("schema_version")
-    if (isinstance(_schema_version, int)
-            and not isinstance(_schema_version, bool)
-            and _schema_version >= 2):
-        try:
-            import jsonschema
-            # The step contract is read once per run through the shared strict reader
-            # (FEAT-61 T-03); the pattern arrives as a string and is compiled here.
-            _step_schema, _declared_step_keys, _evidence_pattern = (
-                artifact_accessors.load_run_step_contract(sys.argv[2]))
-            _step_validator = jsonschema.Draft202012Validator(_step_schema)
-            _evidence_name = re.compile(_evidence_pattern)
-            for _step_index, _step in enumerate(sdoc.get("steps", [])):
-                _errors = list(_step_validator.iter_errors(_step))
-                if not _errors:
-                    continue
-                _step_id = (
-                    str(_step.get("id") or f"index-{_step_index}")
-                    if isinstance(_step, dict) else f"index-{_step_index}"
-                )
-                _offending_step_keys = set()
-                if isinstance(_step, dict):
-                    _offending_step_keys.update(
-                        set(_step) - _declared_step_keys)
-                    _evidence = _step.get("evidence")
-                    if isinstance(_evidence, dict):
-                        for _key, _value in _evidence.items():
-                            if (not isinstance(_key, str)
-                                    or not _evidence_name.fullmatch(_key)
-                                    or isinstance(_value, dict)):
-                                _offending_step_keys.add(str(_key))
-                for _error in _errors:
-                    _path = list(_error.path)
-                    if _path:
-                        _offending_step_keys.add(str(_path[0]))
-                _names = sorted(_offending_step_keys) or ["<step>"]
+        # FEAT-104 census, 2026-09-09: all 356 existing run state.yaml files were
+        # schema_version 1. The closed step sweep begins at version 2, so that corpus
+        # remains byte-for-byte untouched and receives exactly its prior verdict.
+        _schema_version = sdoc.get("schema_version")
+        if (isinstance(_schema_version, int)
+                and not isinstance(_schema_version, bool)
+                and _schema_version >= 2):
+            try:
+                import jsonschema
+                # The step contract is read once per run through the shared strict reader
+                # (FEAT-61 T-03); the pattern arrives as a string and is compiled here.
+                _step_schema, _declared_step_keys, _evidence_pattern = (
+                    artifact_accessors.load_run_step_contract(sys.argv[2]))
+                _step_validator = jsonschema.Draft202012Validator(_step_schema)
+                _evidence_name = re.compile(_evidence_pattern)
+                for _step_index, _step in enumerate(sdoc.get("steps", [])):
+                    _errors = list(_step_validator.iter_errors(_step))
+                    if not _errors:
+                        continue
+                    _step_id = (
+                        str(_step.get("id") or f"index-{_step_index}")
+                        if isinstance(_step, dict) else f"index-{_step_index}"
+                    )
+                    _offending_step_keys = set()
+                    if isinstance(_step, dict):
+                        _offending_step_keys.update(
+                            set(_step) - _declared_step_keys)
+                        _evidence = _step.get("evidence")
+                        if isinstance(_evidence, dict):
+                            for _key, _value in _evidence.items():
+                                if (not isinstance(_key, str)
+                                        or not _evidence_name.fullmatch(_key)
+                                        or isinstance(_value, dict)):
+                                    _offending_step_keys.add(str(_key))
+                    for _error in _errors:
+                        _path = list(_error.path)
+                        if _path:
+                            _offending_step_keys.add(str(_path[0]))
+                    _names = sorted(_offending_step_keys) or ["<step>"]
+                    bad.append(
+                        f"INV-16: {rel}: run {sdoc.get('run_id', '<unknown>')} step "
+                        f"{_step_id}: undeclared step key or evidence shape {_names} — "
+                        "declare recovery fields in "
+                        ".claude/skills/harness/bin/run-state-schema.json; put "
+                        "per-dispatch facts under evidence."
+                    )
+            except Exception as _run_schema_error:
                 bad.append(
-                    f"INV-16: {rel}: run {sdoc.get('run_id', '<unknown>')} step "
-                    f"{_step_id}: undeclared step key or evidence shape {_names} — "
-                    "declare recovery fields in "
-                    ".claude/skills/harness/bin/run-state-schema.json; put "
-                    "per-dispatch facts under evidence."
+                    f"INV-16: {rel}: run-state schema CANNOT be checked: "
+                    f"{type(_run_schema_error).__name__}: {_run_schema_error}"
                 )
-        except Exception as _run_schema_error:
-            bad.append(
-                f"INV-16: {rel}: run-state schema CANNOT be checked: "
-                f"{type(_run_schema_error).__name__}: {_run_schema_error}"
-            )
+    return bad, warn
 
-    # INV-36 (BUG-1305): D-13 makes this self-limiting. Only a run directory
-    # carrying the write-once witness is judged; witness-absent directories are
-    # permanently legacy and remain silent. A witness uid with no checkpoint uid
-    # is also silent: that can be a legitimate landing where POST did not run, and
-    # a hook-registration defect must not be mislabeled as a clobber.
-    _marker_path = run_identity.marker_path(rundir)
-    if os.path.lexists(_marker_path):
-        _run_rel = os.path.relpath(rundir, H)
-        try:
-            _marker = run_identity.read_marker(rundir)
-        except run_identity.MarkerUnreadable:
-            bad.append(
-                f"INV-36: {_run_rel}: its recorded run identity cannot be read, so "
-                "whether the checkpoint occupying this directory belongs to it cannot "
-                "be determined.")
-        else:
-            _reason = run_identity.conflict(_marker, sdoc)
-            if _reason:
+def inv_36(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+
+    for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
+        if sdoc is None:
+            continue
+        # INV-36 (BUG-1305): D-13 makes this self-limiting. Only a run directory
+        # carrying the write-once witness is judged; witness-absent directories are
+        # permanently legacy and remain silent. A witness uid with no checkpoint uid
+        # is also silent: that can be a legitimate landing where POST did not run, and
+        # a hook-registration defect must not be mislabeled as a clobber.
+        _marker_path = run_identity.marker_path(rundir)
+        if os.path.lexists(_marker_path):
+            _run_rel = os.path.relpath(rundir, H)
+            try:
+                _marker = run_identity.read_marker(rundir)
+            except run_identity.MarkerUnreadable:
                 bad.append(
-                    f"INV-36: {_run_rel}: the checkpoint occupying this run directory "
-                    "records an identity that disagrees with the identity recorded when "
-                    f"the directory was first written: {_reason}. The checkpoint the "
-                    "witness describes is the record that was lost; the occupying file "
-                    "belongs to a different run.")
+                    f"INV-36: {_run_rel}: its recorded run identity cannot be read, so "
+                    "whether the checkpoint occupying this directory belongs to it cannot "
+                    "be determined.")
             else:
-                _wuid = _marker.get("run_uid") if isinstance(_marker, dict) else None
-                _suid = sdoc.get("run_uid")
-                if (_wuid is not None and str(_wuid).strip()
-                        and _suid is not None and str(_suid).strip()
-                        and str(_wuid) != str(_suid)):
-                    _uid_reason = run_identity.uid_conflict(
-                        {"run_uid": _wuid}, {"run_uid": _suid})
+                _reason = run_identity.conflict(_marker, sdoc)
+                if _reason:
                     bad.append(
                         f"INV-36: {_run_rel}: the checkpoint occupying this run directory "
                         "records an identity that disagrees with the identity recorded when "
-                        f"the directory was first written: {_uid_reason}. The checkpoint "
-                        "the witness describes is the record that was lost; the occupying "
-                        "file belongs to a different run.")
+                        f"the directory was first written: {_reason}. The checkpoint the "
+                        "witness describes is the record that was lost; the occupying file "
+                        "belongs to a different run.")
+                else:
+                    _wuid = _marker.get("run_uid") if isinstance(_marker, dict) else None
+                    _suid = sdoc.get("run_uid")
+                    if (_wuid is not None and str(_wuid).strip()
+                            and _suid is not None and str(_suid).strip()
+                            and str(_wuid) != str(_suid)):
+                        _uid_reason = run_identity.uid_conflict(
+                            {"run_uid": _wuid}, {"run_uid": _suid})
+                        bad.append(
+                            f"INV-36: {_run_rel}: the checkpoint occupying this run directory "
+                            "records an identity that disagrees with the identity recorded when "
+                            f"the directory was first written: {_uid_reason}. The checkpoint "
+                            "the witness describes is the record that was lost; the occupying "
+                            "file belongs to a different run.")
+    return bad, warn
 
-    # INV-15: the durable digest.
-    _host = str(sdoc.get("host", "")).strip()
-    if complete and _host in LEADS:
-        dg = os.path.join(rundir, "digest.md")
-        if not os.path.isfile(dg):
-            bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
-                       f"missing — the lead's report artifact never landed (DEC-156).")
-        elif _vd_mod is None:
-            bad.append(f"INV-15 could not run: {os.path.relpath(vd, root)} "
-                       f"{'is missing' if not os.path.isfile(vd) else 'will not import (' + str(_vd_import_err) + ')'}. "
-                       f"Digest files are UNCHECKED — likely a partial deploy.")
-        else:
-            try:
-                _dtext = open(dg, encoding="utf-8", errors="replace").read()
-                _errs = _vd_mod.validate("lead", _dtext)
-            except Exception as _e:
-                _errs = [f"validate() raised: {_e}"]
-            if _errs:
-                bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
-                           f"contract — a successor reads this file, not the transcript "
-                           f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
+def inv_15(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    vd, _vd_mod, _vd_import_err = ctx.validate_digest()
+    for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
+        if sdoc is None:
+            continue
+        complete = str(sdoc.get("status", "")).strip() == "complete"
+        # INV-15: the durable digest.
+        _host = str(sdoc.get("host", "")).strip()
+        if complete and _host in LEADS:
+            dg = os.path.join(rundir, "digest.md")
+            if not os.path.isfile(dg):
+                bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
+                           f"missing — the lead's report artifact never landed (DEC-156).")
+            elif _vd_mod is None:
+                bad.append(f"INV-15 could not run: {os.path.relpath(vd, root)} "
+                           f"{'is missing' if not os.path.isfile(vd) else 'will not import (' + str(_vd_import_err) + ')'}. "
+                           f"Digest files are UNCHECKED — likely a partial deploy.")
             else:
-                _feat_dir = os.path.dirname(os.path.dirname(rundir))
-                _rid = os.path.basename(rundir)
-                _recorded = run_verdicts.get(_feat_dir, {})
-                if _rid in _recorded:
-                    # Keep validate-digest.py:1155-1160's tail-anchor semantics byte-for-byte.
-                    _anchors = list(re.finditer(r"^\s*VERDICT:", _dtext, re.M))
-                    _tail = _dtext[_anchors[-1].start():] if _anchors else _dtext
-                    _dm = re.search(r"^\s*VERDICT:\s*(\S+)", _tail, re.M)
-                    if _dm:
-                        for _rv in dict.fromkeys(_recorded[_rid]):
-                            if _dm.group(1) != _rv:
-                                bad.append(
-                                    f"INV-37: {os.path.basename(_feat_dir)} run {_rid}: "
-                                    f"digest verdict {_dm.group(1)!r} in "
-                                    f"{os.path.relpath(dg, H)} differs from feature.json verdict "
-                                    f"{_rv!r} in {os.path.relpath(os.path.join(_feat_dir, 'feature.json'), H)}; "
-                                    "the gate does not decide which record is wrong.")
+                try:
+                    _dtext = open(dg, encoding="utf-8", errors="replace").read()
+                    _errs = _vd_mod.validate("lead", _dtext)
+                except Exception as _e:
+                    _errs = [f"validate() raised: {_e}"]
+                if _errs:
+                    bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
+                               f"contract — a successor reads this file, not the transcript "
+                               f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
+                else:
+                    _feat_dir = os.path.dirname(os.path.dirname(rundir))
+                    _rid = os.path.basename(rundir)
+                    _recorded = ctx.run_verdicts(feat)
+                    if _rid in _recorded:
+                        # Keep validate-digest.py:1155-1160's tail-anchor semantics byte-for-byte.
+                        _anchors = list(re.finditer(r"^\s*VERDICT:", _dtext, re.M))
+                        _tail = _dtext[_anchors[-1].start():] if _anchors else _dtext
+                        _dm = re.search(r"^\s*VERDICT:\s*(\S+)", _tail, re.M)
+                        if _dm:
+                            for _rv in dict.fromkeys(_recorded[_rid]):
+                                if _dm.group(1) != _rv:
+                                    bad.append(
+                                        f"INV-37: {os.path.basename(_feat_dir)} run {_rid}: "
+                                        f"digest verdict {_dm.group(1)!r} in "
+                                        f"{os.path.relpath(dg, H)} differs from feature.json verdict "
+                                        f"{_rv!r} in {os.path.relpath(os.path.join(_feat_dir, 'feature.json'), H)}; "
+                                        "the gate does not decide which record is wrong.")
+    return bad, warn
 
 # --- INV-19 (DEC-162): no glossary means the domain's ubiquitous language lives
 # nowhere — "create lazily" fired zero times across three shipped features while
 # enums and status vocabularies were being pinned. Warn-level: flows still run, but
 # pm's next plan pass owes the file. The map precondition went with the map tier.
-if not os.path.isfile(os.path.join(H, "glossary.md")):
-    warn.append("no .harness/glossary.md — the domain's ubiquitous language is unrecorded "
-                "(DEC-162). pm authors it, seeded from shipped features' pinned vocabulary.")
+def inv_19(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+
+    if not os.path.isfile(os.path.join(H, "glossary.md")):
+        warn.append("no .harness/glossary.md — the domain's ubiquitous language is unrecorded "
+                    "(DEC-162). pm authors it, seeded from shipped features' pinned vocabulary.")
+    return bad, warn
 
 # --- INV-21 (D-05): a mirrored feature whose task issues are recorded but whose
 # container (parent) never was — `ship`/`abandon` cannot close it and `open` will not
 # re-derive it (the mirror is write-only, DEC-138). Warn, not violation (D-05): the
 # GitHub Issues sync is never a gate, and a re-run of `open` fixes it. Vacuous
 # when github.sync is off — the check costs nothing then.
-if cj and (cj.get("github") or {}).get("sync"):
-    for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
-        feat = os.path.basename(os.path.dirname(fy))
-        # The canonical feature reader keeps this invariant aligned with every
-        # other consumer of recorded GitHub issue numbers. A rejected document is
-        # reported rather than reduced to an empty github block.
-        try:
-            gdoc = artifact_accessors.load_feature_json(fy) or {}
-        except Exception as e:
-            bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-21 cannot be "
-                       f"checked for it: {e}")
-            continue
-        gblk = gdoc.get("github") if isinstance(gdoc, dict) else None
-        if not isinstance(gblk, dict):
-            continue
-        _issues = gblk.get("issues")
-        has_issue = bool(isinstance(_issues, dict) and any(
-            re.fullmatch(r"T-\d+", str(k).strip()) and str(v).strip().isdigit()
-            for k, v in _issues.items()))
-        has_parent = str(gblk.get("parent", "")).strip().isdigit()
-        if has_issue and not has_parent:
-            warn.append(f"INV-21: {feat} has recorded task issues but no numeric "
-                        f"parent — ship/abandon cannot close the container and open "
-                        f"will not re-derive it (D-05). Re-run `open` to record it.")
+def inv_21(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    cj = ctx.cj
+    if not (cj and (cj.get("github") or {}).get("sync")):
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    if not os.path.isfile(fy):
+        return bad, warn
+    try:
+        gdoc = artifact_accessors.load_feature_json(fy) or {}
+    except Exception as e:
+        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-21 cannot be "
+                   f"checked for it: {e}")
+        return bad, warn
+    gblk = gdoc.get("github") if isinstance(gdoc, dict) else None
+    if not isinstance(gblk, dict):
+        return bad, warn
+    _issues = gblk.get("issues")
+    has_issue = bool(isinstance(_issues, dict) and any(
+        re.fullmatch(r"T-\d+", str(k).strip()) and str(v).strip().isdigit()
+        for k, v in _issues.items()))
+    has_parent = str(gblk.get("parent", "")).strip().isdigit()
+    if has_issue and not has_parent:
+        warn.append(f"INV-21: {feat} has recorded task issues but no numeric "
+                    f"parent — ship/abandon cannot close the container and open "
+                    f"will not re-derive it (D-05). Re-run `open` to record it.")
+    return bad, warn
 
 # --- INV-24 (DEC-203): a feature that records factory state must name a repository the
 # fleet declares, and no two features may claim one issue. The factory writes exactly one
@@ -1546,94 +1937,100 @@ if cj and (cj.get("github") or {}).get("sync"):
 # container published beside one the factory created is D-12's collision, and comparing
 # parents and issues in one list is the only place in this increment it becomes visible.
 # A feature.json with no `factory` block contributes nothing and is not a violation.
-_fac_pairs = {}
-for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
-    feat = os.path.basename(os.path.dirname(fy))
-    try:
-        fdoc = artifact_accessors.load_feature_json(fy) or {}
-    except Exception:
-        continue  # the parse failure is already a violation elsewhere; do not double-report
-    fac = fdoc.get("factory")
-    if not isinstance(fac, dict):
-        continue
-    fleet_p = os.path.join(H, "factory", "fleet.yaml")
-    if not os.path.isfile(fleet_p):
-        bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
-                   f"is absent — no fleet declares the repository it claims work in. "
-                   f"Write the fleet declaration, or clear the feature's factory block.")
-        continue
-    try:
-        fleet = artifact_accessors.load_fleet(fleet_p) or {}
-    except Exception as _e:
-        bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
-                   f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
-        continue
-    # TYPES ARE VALIDATED, NOT ASSUMED (panel2 C1). A missing repository name must
-    # not enter the allow-list, and invalid issue numbers are refused at the shared
-    # feature reader before collision checks run.
-    names = [r["name"] for r in (fleet.get("repos") or [])
-             if isinstance(r, dict) and isinstance(r.get("name"), str) and r["name"]]
-    repo = fac.get("repo")
-    if not isinstance(repo, str) or not repo:
-        bad.append(f"INV-24 {feat}: factory.repo is {repo!r}, not a repository name — "
-                   f"set it to an owner/name string the fleet declares, or remove the "
-                   f"factory block if this feature claims no work.")
-        continue
-    if repo not in names:
-        bad.append(f"INV-24 {feat}: records factory repo {repo!r}, which the fleet does not "
-                   f"declare — fleet names: {', '.join(names) or '(none)'}. Add it to "
-                   f".harness/factory/fleet.yaml, or correct the feature's factory.repo.")
-        continue
-    # Each number carries WHERE IT CAME FROM. Re-deriving the label later from
-    # `n == fac.get("parent")` renders the duplicate message as "(parent and parent)" in
-    # the exact container-equals-task case this check exists for, because both sides of
-    # the comparison are then true.
-    nums = []
-    issues = fac.get("issues")
-    if isinstance(issues, dict):
-        nums.extend((v, f"task {k}") for k, v in issues.items())
-    elif isinstance(issues, list):
-        nums.extend((v, "a task") for v in issues)
-    elif issues is not None:
-        # The CONTAINER type was assumed while its contents were validated: `issues: 42`
-        # left nums empty, so no collision check ran and nothing was reported at all.
-        bad.append(f"INV-24 {feat}: factory.issues is {issues!r}, which is neither a "
-                   f"T-NN-to-number mapping nor a list of numbers — no issue in this "
-                   f"block can be checked for collision. Re-run `factory publish` to "
-                   f"rewrite it, or correct it by hand.")
-    if fac.get("parent") is not None:
-        nums.append((fac.get("parent"), "the parent"))
-    # WITHIN a feature as well as across features (panel2 C2). The comparison used to be
-    # `!= feat`, so a feature whose own parent equalled one of its own task issues never
-    # fired — which is exactly D-12's container collision, in the one shape this check
-    # was written to make visible.
-    _seen_here = {}
-    for n, _src in nums:
-        # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
-        # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
-        # read a quoted number as absent. Rejecting the same shape here would make one
-        # legal feature.json pass one invariant and hard-block on its twin (D-03).
-        if isinstance(n, bool) or not (isinstance(n, int) or str(n).strip().isdigit()):
-            bad.append(f"INV-24 {feat}: records issue number {n!r} for {repo}, which is not "
-                       f"an integer — re-run `factory publish` to rewrite the block, or "
-                       f"correct it by hand.")
+def inv_24(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    _fac_pairs = {}
+    for feat in ctx.features:
+        fy = ctx.path(feat, 'feature.json')
+        if not os.path.isfile(fy):
             continue
-        n = int(n)
-        key = (repo, n)
-        if key in _seen_here:
-            bad.append(f"INV-24 {feat}: records {repo} issue {n} twice within its own factory "
-                       f"block ({_seen_here[key]} and {_src}) — a container that is also a "
-                       f"task issue is D-12's collision. "
-                       f"Re-run `factory publish` after correcting the block.")
+        try:
+            fdoc = artifact_accessors.load_feature_json(fy) or {}
+        except Exception:
+            continue  # the parse failure is already a violation elsewhere; do not double-report
+        fac = fdoc.get("factory")
+        if not isinstance(fac, dict):
             continue
-        _seen_here[key] = _src
-        if key in _fac_pairs and _fac_pairs[key] != feat:
-            bad.append(f"INV-24: {_fac_pairs[key]} and {feat} both record {repo} issue {n} — "
-                       f"two features claiming one issue means the board and the harness "
-                       f"disagree about what is in flight. Decide which feature owns it and "
-                       f"clear the other's factory block.")
-        else:
-            _fac_pairs[key] = feat
+        fleet_p = os.path.join(H, "factory", "fleet.yaml")
+        if not os.path.isfile(fleet_p):
+            bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
+                       f"is absent — no fleet declares the repository it claims work in. "
+                       f"Write the fleet declaration, or clear the feature's factory block.")
+            continue
+        try:
+            fleet = artifact_accessors.load_fleet(fleet_p) or {}
+        except Exception as _e:
+            bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
+                       f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
+            continue
+        # TYPES ARE VALIDATED, NOT ASSUMED (panel2 C1). A missing repository name must
+        # not enter the allow-list, and invalid issue numbers are refused at the shared
+        # feature reader before collision checks run.
+        names = [r["name"] for r in (fleet.get("repos") or [])
+                 if isinstance(r, dict) and isinstance(r.get("name"), str) and r["name"]]
+        repo = fac.get("repo")
+        if not isinstance(repo, str) or not repo:
+            bad.append(f"INV-24 {feat}: factory.repo is {repo!r}, not a repository name — "
+                       f"set it to an owner/name string the fleet declares, or remove the "
+                       f"factory block if this feature claims no work.")
+            continue
+        if repo not in names:
+            bad.append(f"INV-24 {feat}: records factory repo {repo!r}, which the fleet does not "
+                       f"declare — fleet names: {', '.join(names) or '(none)'}. Add it to "
+                       f".harness/factory/fleet.yaml, or correct the feature's factory.repo.")
+            continue
+        # Each number carries WHERE IT CAME FROM. Re-deriving the label later from
+        # `n == fac.get("parent")` renders the duplicate message as "(parent and parent)" in
+        # the exact container-equals-task case this check exists for, because both sides of
+        # the comparison are then true.
+        nums = []
+        issues = fac.get("issues")
+        if isinstance(issues, dict):
+            nums.extend((v, f"task {k}") for k, v in issues.items())
+        elif isinstance(issues, list):
+            nums.extend((v, "a task") for v in issues)
+        elif issues is not None:
+            # The CONTAINER type was assumed while its contents were validated: `issues: 42`
+            # left nums empty, so no collision check ran and nothing was reported at all.
+            bad.append(f"INV-24 {feat}: factory.issues is {issues!r}, which is neither a "
+                       f"T-NN-to-number mapping nor a list of numbers — no issue in this "
+                       f"block can be checked for collision. Re-run `factory publish` to "
+                       f"rewrite it, or correct it by hand.")
+        if fac.get("parent") is not None:
+            nums.append((fac.get("parent"), "the parent"))
+        # WITHIN a feature as well as across features (panel2 C2). The comparison used to be
+        # `!= feat`, so a feature whose own parent equalled one of its own task issues never
+        # fired — which is exactly D-12's container collision, in the one shape this check
+        # was written to make visible.
+        _seen_here = {}
+        for n, _src in nums:
+            # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
+            # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
+            # read a quoted number as absent. Rejecting the same shape here would make one
+            # legal feature.json pass one invariant and hard-block on its twin (D-03).
+            if isinstance(n, bool) or not (isinstance(n, int) or str(n).strip().isdigit()):
+                bad.append(f"INV-24 {feat}: records issue number {n!r} for {repo}, which is not "
+                           f"an integer — re-run `factory publish` to rewrite the block, or "
+                           f"correct it by hand.")
+                continue
+            n = int(n)
+            key = (repo, n)
+            if key in _seen_here:
+                bad.append(f"INV-24 {feat}: records {repo} issue {n} twice within its own factory "
+                           f"block ({_seen_here[key]} and {_src}) — a container that is also a "
+                           f"task issue is D-12's collision. "
+                           f"Re-run `factory publish` after correcting the block.")
+                continue
+            _seen_here[key] = _src
+            if key in _fac_pairs and _fac_pairs[key] != feat:
+                bad.append(f"INV-24: {_fac_pairs[key]} and {feat} both record {repo} issue {n} — "
+                           f"two features claiming one issue means the board and the harness "
+                           f"disagree about what is in flight. Decide which feature owns it and "
+                           f"clear the other's factory block.")
+            else:
+                _fac_pairs[key] = feat
+    return bad, warn
 
 # --- INV-28 (FEAT-26 T-05, REQ-04): a feature that shipped but whose pull request
 # number was never recorded. WARN, not violation: the mirror is never a gate (DEC-138),
@@ -1654,28 +2051,35 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
 # crossed and nothing shipped, so there is no pull request to have missed. Only the `done`
 # station is checked, read from plan.yaml (FEAT-41 T-07) — the feature.json read below stays,
 # because this invariant is ABOUT that document's `pr` key.
-if cj and (cj.get("github") or {}).get("sync"):
-    for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
-        feat = os.path.basename(os.path.dirname(fy))
-        try:
-            pdoc = artifact_accessors.load_feature_json(fy) or {}
-        except Exception as e:
-            bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-28 cannot be "
-                       f"checked for it: {e}")
-            continue
-        if not isinstance(pdoc, dict):
-            continue
-        if station_of(os.path.dirname(fy)) != "done":
-            continue
-        _pr = pdoc.get("pr")
-        # `isinstance(True, int)` is True in Python, so the bool exclusion is load-bearing:
-        # `pr: true` is not a pull request number and must not read as one.
-        if isinstance(_pr, int) and not isinstance(_pr, bool):
-            continue
-        warn.append(f"INV-28: {feat} is Done but its pull request number was never "
-                    f"recorded — the linkage from the feature to the change that shipped "
-                    f"it is missing. Record it with `gh-sync.py record-pr "
-                    f"{os.path.relpath(os.path.dirname(fy), root)}`.")
+def inv_28(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    cj = ctx.cj
+    if not (cj and (cj.get("github") or {}).get("sync")):
+        return bad, warn
+    fy = ctx.path(feat, 'feature.json')
+    if not os.path.isfile(fy):
+        return bad, warn
+    try:
+        pdoc = artifact_accessors.load_feature_json(fy) or {}
+    except Exception as e:
+        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-28 cannot be "
+                   f"checked for it: {e}")
+        return bad, warn
+    if not isinstance(pdoc, dict):
+        return bad, warn
+    if station_of(os.path.dirname(fy)) != "done":
+        return bad, warn
+    _pr = pdoc.get("pr")
+    # `isinstance(True, int)` is True in Python, so the bool exclusion is load-bearing:
+    # `pr: true` is not a pull request number and must not read as one.
+    if isinstance(_pr, int) and not isinstance(_pr, bool):
+        return bad, warn
+    warn.append(f"INV-28: {feat} is Done but its pull request number was never "
+                f"recorded — the linkage from the feature to the change that shipped "
+                f"it is missing. Record it with `gh-sync.py record-pr "
+                f"{os.path.relpath(os.path.dirname(fy), root)}`.")
+    return bad, warn
 
 # --- INV-25 (issue #103): the environment itself must not contain an out-of-place
 # worktree. The write guards now REFUSE writes into such a tree and refuse a session
@@ -1696,92 +2100,97 @@ if cj and (cj.get("github") or {}).get("sync"):
 # It is a VIOLATION rather than a note because the module ships with the repository: it
 # being unimportable is a defect in the tree, never a property of the environment. That
 # is the opposite of the git-absent case below, which correctly records nothing.
-try:
-    import harness_boundary as _hb
-    _wt_seg = _hb.WORKTREES_SEGMENT
-except Exception as _hbe:
-    _wt_seg = None
-    bad.append("INV-25 CANNOT RUN: harness_boundary.py did not import (%s: %s), so a "
-               "pre-existing out-of-place worktree would go unreported. The module ships "
-               "with this repository — restore "
-               ".agents/skills/harness/bin/harness_boundary.py."
-               % (type(_hbe).__name__, _hbe))
+def inv_25(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-if _wt_seg:
     try:
-        _wtp = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
-                              capture_output=True, text=True, timeout=10)
-        _wt_out = _wtp.stdout if _wtp.returncode == 0 else None
-    except Exception:
-        _wt_out = None
+        import harness_boundary as _hb
+        _wt_seg = _hb.WORKTREES_SEGMENT
+    except Exception as _hbe:
+        _wt_seg = None
+        bad.append("INV-25 CANNOT RUN: harness_boundary.py did not import (%s: %s), so a "
+                   "pre-existing out-of-place worktree would go unreported. The module ships "
+                   "with this repository — restore "
+                   ".agents/skills/harness/bin/harness_boundary.py."
+                   % (type(_hbe).__name__, _hbe))
 
-    if _wt_out:
-        # Porcelain records are blank-line separated; `worktree <path>` opens each one and
-        # `prunable` appears on its own, with no --verbose flag needed.
-        _entries = []
-        for _rec in _wt_out.split("\n\n"):
-            _path, _prunable = None, False
-            for _line in _rec.splitlines():
-                if _line.startswith("worktree "):
-                    _path = _line[len("worktree "):].strip()
-                elif _line.strip() == "prunable" or _line.startswith("prunable "):
-                    _prunable = True
-            if _path:
-                _entries.append((_path, _prunable))
+    if _wt_seg:
+        try:
+            _wtp = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
+                                  capture_output=True, text=True, timeout=10)
+            _wt_out = _wtp.stdout if _wtp.returncode == 0 else None
+        except Exception:
+            _wt_out = None
 
-        if _entries:
-            # THE BASE IS DERIVED ONCE, FROM THE MAIN CHECKOUT, AND USED FOR BOTH THE
-            # COMPARISON AND THE MESSAGE. The first porcelain entry is always the main
-            # checkout, even when the command runs from inside a linked worktree, and a
-            # repository with no linked worktrees returns itself — so the derivation is
-            # total.
-            #
-            # NEVER <root>/.claude/worktrees/. `root` is CLAUDE_PROJECT_DIR or the cwd, so
-            # in exactly the session this invariant exists to catch — one whose root IS an
-            # out-of-place worktree — that base would mark every LEGITIMATE worktree under
-            # the main checkout as out of place and hand it destructive removal guidance.
-            _main = os.path.realpath(_entries[0][0])
-            _legal_home = os.path.realpath(os.path.join(_main, _wt_seg))
-            _real_root = os.path.realpath(root)
+        if _wt_out:
+            # Porcelain records are blank-line separated; `worktree <path>` opens each one and
+            # `prunable` appears on its own, with no --verbose flag needed.
+            _entries = []
+            for _rec in _wt_out.split("\n\n"):
+                _path, _prunable = None, False
+                for _line in _rec.splitlines():
+                    if _line.startswith("worktree "):
+                        _path = _line[len("worktree "):].strip()
+                    elif _line.strip() == "prunable" or _line.startswith("prunable "):
+                        _prunable = True
+                if _path:
+                    _entries.append((_path, _prunable))
 
-            def _inside_legal(p):
-                try:
-                    return os.path.commonpath([p, _legal_home]) == _legal_home
-                except ValueError:      # different drives / unrelated roots
-                    return False
+            if _entries:
+                # THE BASE IS DERIVED ONCE, FROM THE MAIN CHECKOUT, AND USED FOR BOTH THE
+                # COMPARISON AND THE MESSAGE. The first porcelain entry is always the main
+                # checkout, even when the command runs from inside a linked worktree, and a
+                # repository with no linked worktrees returns itself — so the derivation is
+                # total.
+                #
+                # NEVER <root>/.claude/worktrees/. `root` is CLAUDE_PROJECT_DIR or the cwd, so
+                # in exactly the session this invariant exists to catch — one whose root IS an
+                # out-of-place worktree — that base would mark every LEGITIMATE worktree under
+                # the main checkout as out of place and hand it destructive removal guidance.
+                _main = os.path.realpath(_entries[0][0])
+                _legal_home = os.path.realpath(os.path.join(_main, _wt_seg))
+                _real_root = os.path.realpath(root)
 
-            # The first entry plays two SEPARATE parts and they must not be fused: it is
-            # skipped as the main checkout, and it supplied the base above.
-            for _wpath, _prunable in _entries[1:]:
-                _rp = os.path.realpath(_wpath)
-                if _inside_legal(_rp):
-                    continue
-                _where = (f"INV-25: {_wpath} is a git worktree outside {_legal_home}{os.sep}, "
-                          f"where worktrees belong. A worktree elsewhere silently disables "
-                          f"the harness machinery for every session opened in it.")
-                if _rp == _real_root:
-                    # THIS BRANCH TESTS AGAINST THE SESSION ROOT, not against the legitimate
-                    # location above. They answer different questions — am I standing in
-                    # this tree, versus does this tree belong where it is — and they stay
-                    # two comparisons.
-                    #
-                    # NO REMOVAL GUIDANCE HERE. `git worktree remove` exits 0 when run from
-                    # inside the tree it removes, so telling this session to remove this
-                    # entry is telling it, at session entry, to delete the ground it is
-                    # standing on.
-                    bad.append(_where + " This session is rooted in it: start the session "
-                                        "from the main checkout, or from a checkout under "
-                                        "that location, instead.")
-                elif _prunable:
-                    # A prunable entry is a stale administrative record whose tree is
-                    # already gone from disk, so it can never be a live cwd.
-                    bad.append(_where + " The entry is stale — clear it with "
-                                        "`git worktree prune`.")
-                else:
-                    # The session is not standing in it, so removal guidance is correct
-                    # here and it STAYS. Deleting it everywhere would be the opposite
-                    # defect.
-                    bad.append(_where + f" Remove it with `git worktree remove {_wpath}`.")
+                def _inside_legal(p):
+                    try:
+                        return os.path.commonpath([p, _legal_home]) == _legal_home
+                    except ValueError:      # different drives / unrelated roots
+                        return False
+
+                # The first entry plays two SEPARATE parts and they must not be fused: it is
+                # skipped as the main checkout, and it supplied the base above.
+                for _wpath, _prunable in _entries[1:]:
+                    _rp = os.path.realpath(_wpath)
+                    if _inside_legal(_rp):
+                        continue
+                    _where = (f"INV-25: {_wpath} is a git worktree outside {_legal_home}{os.sep}, "
+                              f"where worktrees belong. A worktree elsewhere silently disables "
+                              f"the harness machinery for every session opened in it.")
+                    if _rp == _real_root:
+                        # THIS BRANCH TESTS AGAINST THE SESSION ROOT, not against the legitimate
+                        # location above. They answer different questions — am I standing in
+                        # this tree, versus does this tree belong where it is — and they stay
+                        # two comparisons.
+                        #
+                        # NO REMOVAL GUIDANCE HERE. `git worktree remove` exits 0 when run from
+                        # inside the tree it removes, so telling this session to remove this
+                        # entry is telling it, at session entry, to delete the ground it is
+                        # standing on.
+                        bad.append(_where + " This session is rooted in it: start the session "
+                                            "from the main checkout, or from a checkout under "
+                                            "that location, instead.")
+                    elif _prunable:
+                        # A prunable entry is a stale administrative record whose tree is
+                        # already gone from disk, so it can never be a live cwd.
+                        bad.append(_where + " The entry is stale — clear it with "
+                                            "`git worktree prune`.")
+                    else:
+                        # The session is not standing in it, so removal guidance is correct
+                        # here and it STAYS. Deleting it everywhere would be the opposite
+                        # defect.
+                        bad.append(_where + f" Remove it with `git worktree remove {_wpath}`.")
+    return bad, warn
 
 # --- INV-29 (FEAT-34 T-06, REQ-01..REQ-06): a worktree must not survive its feature
 # reaching a terminal state. INV-25's SIBLING, deliberately placed next to it: INV-25 asks
@@ -1804,158 +2213,168 @@ if _wt_seg:
 # THE IMPORT FAILING IS ITSELF A VIOLATION, exactly as INV-25 at :1109 and INV-26 at :1203.
 # The module ships with this repository, so being unimportable is a defect in the tree and
 # never a property of the environment.
-try:
-    import worktree_terminal as _wt29
-except Exception as _wt29e:
-    _wt29 = None
-    bad.append("INV-29 CANNOT RUN: worktree_terminal.py did not import (%s: %s), so a "
-               "worktree surviving its feature's terminal state would go unreported. The "
-               "module ships with this repository — restore "
-               ".agents/skills/harness/bin/worktree_terminal.py."
-               % (type(_wt29e).__name__, _wt29e))
+def inv_29(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-if _wt29 is not None:
-    # The fleet path is read as a CONSTANT, not re-derived. It is one of the two things that
-    # tells a repository-level record apart from a worktree record — see the discriminator
-    # below — and reading it here duplicates none of classify_all's resolution logic.
     try:
-        import factory_config as _fc29
-        _fleet_path29 = os.path.realpath(_fc29.FLEET_PATH)
-    except Exception:
-        _fleet_path29 = None
+        import worktree_terminal as _wt29
+    except Exception as _wt29e:
+        _wt29 = None
+        bad.append("INV-29 CANNOT RUN: worktree_terminal.py did not import (%s: %s), so a "
+                   "worktree surviving its feature's terminal state would go unreported. The "
+                   "module ships with this repository — restore "
+                   ".agents/skills/harness/bin/worktree_terminal.py."
+                   % (type(_wt29e).__name__, _wt29e))
 
-    # A raise here is caught rather than allowed to abort the interpreter. classify_all
-    # already handles the three failure shapes D-10 specifies; an unexpected exception is a
-    # defect, and letting it propagate would take EVERY other invariant's findings down with
-    # it — the gate would print a traceback and report nothing at all.
-    try:
-        _recs29 = _wt29.classify_all(root)
-    except Exception as _ce29:
-        _recs29 = []
-        bad.append("INV-29 CANNOT RUN: worktree_terminal.classify_all raised (%s: %s), so a "
-                   "worktree surviving its feature's terminal state would go unreported."
-                   % (type(_ce29).__name__, _ce29))
-
-    _real_root29 = os.path.realpath(root)
-
-    def _root_is_inside29(worktree_path):
-        """Is this session standing inside the worktree the record describes?"""
+    if _wt29 is not None:
+        # The fleet path is read as a CONSTANT, not re-derived. It is one of the two things that
+        # tells a repository-level record apart from a worktree record — see the discriminator
+        # below — and reading it here duplicates none of classify_all's resolution logic.
         try:
-            return os.path.commonpath([_real_root29, os.path.realpath(worktree_path)]) == \
-                   os.path.realpath(worktree_path)
-        except ValueError:      # different drives / unrelated roots
-            return False
+            import factory_config as _fc29
+            _fleet_path29 = os.path.realpath(_fc29.FLEET_PATH)
+        except Exception:
+            _fleet_path29 = None
 
-    for _r29 in _recs29:
-        if _r29["klass"] == "exempt_absent":
-            # The feature directory is genuinely absent from the default branch. Nothing to
-            # report: that is the abandoned-flow case, and it is silence by design.
-            continue
+        # A raise here is caught rather than allowed to abort the interpreter. classify_all
+        # already handles the three failure shapes D-10 specifies; an unexpected exception is a
+        # defect, and letting it propagate would take EVERY other invariant's findings down with
+        # it — the gate would print a traceback and report nothing at all.
+        try:
+            _recs29 = _wt29.classify_all(root)
+        except Exception as _ce29:
+            _recs29 = []
+            bad.append("INV-29 CANNOT RUN: worktree_terminal.classify_all raised (%s: %s), so a "
+                       "worktree surviving its feature's terminal state would go unreported."
+                       % (type(_ce29).__name__, _ce29))
 
-        # THE DISCRIMINATOR KEYS ON MORE THAN feature_id, AND IT HAS TO. A worktree whose path
-        # is not under WORKTREES_SEGMENT emits feature_id None / repo None / unresolved
-        # (worktree_terminal.py:202-206) — identical on class AND on feature_id to the
-        # fleet-load record (:303-306). Keying on feature_id alone would classify a REAL
-        # worktree as a repository-level failure and withhold the removal command from it.
-        # What separates them: a repository-level record either names a declared repository
-        # (repo is set) or IS the fleet file itself.
-        _repo_level29 = (
-            _r29["feature_id"] is None
-            and (_r29["repo"] is not None
-                 or (_fleet_path29 is not None
-                     and os.path.realpath(_r29["path"]) == _fleet_path29))
-        )
+        _real_root29 = os.path.realpath(root)
 
-        if _repo_level29:
-            # D-10's repository-level shape. BLOCKING for D-10's reason — the enumeration
-            # failed there, so a terminal worktree could be standing and unreported.
-            #
-            # NO REMOVAL COMMAND, EVER, ON THIS BRANCH. The path is a repository root or the
-            # fleet declaration, not a worktree. A removal command pointed at a repository
-            # root would be actively dangerous, and there is nothing there to remove.
-            _what29 = ("the fleet declaration"
-                       if _fleet_path29 is not None
-                       and os.path.realpath(_r29["path"]) == _fleet_path29
-                       else "repository %s" % _r29["repo"])
-            bad.append("INV-29: cross-repository enumeration failed at %s (%s) — %s. A "
-                       "worktree surviving its feature's terminal state could be standing "
-                       "there and unreported. No removal command is given: this path is not "
-                       "a worktree."
-                       % (_r29["path"], _what29, _r29["reason"]))
-            continue
+        def _root_is_inside29(worktree_path):
+            """Is this session standing inside the worktree the record describes?"""
+            try:
+                return os.path.commonpath([_real_root29, os.path.realpath(worktree_path)]) == \
+                       os.path.realpath(worktree_path)
+            except ValueError:      # different drives / unrelated roots
+                return False
 
-        # From here every record describes an actual worktree.
-        if _r29["klass"] == "terminal":
-            _head29 = ("INV-29: %s is a standing worktree whose feature %s reached a terminal "
-                       "state on the default branch. Act 3 is not optional — the checkout is "
-                       "removed once the work has landed."
-                       % (_r29["path"], _r29["feature_id"]))
-        else:
-            # unresolved, at the worktree level. THE FAILED LOOKUP IS NOT AN EXEMPTION, and
-            # the message says so outright: a reader who mistook this for the abandoned-flow
-            # case would treat the loudest branch as the quietest one.
-            _head29 = ("INV-29: %s is a standing worktree whose terminal status could not be "
-                       "determined — %s. A lookup that FAILED is not an exemption; the "
-                       "worktree is reported rather than passed over."
-                       % (_r29["path"], _r29["reason"]))
+        for _r29 in _recs29:
+            if _r29["klass"] == "exempt_absent":
+                # The feature directory is genuinely absent from the default branch. Nothing to
+                # report: that is the abandoned-flow case, and it is silence by design.
+                continue
 
-        # THE DIRTY CLAUSE IS ITS OWN SENTENCE, not folded into the command line. SC-03 grades
-        # the two claims one at a time: that the tree is dirty, and that remove will decline.
-        if _r29["dirty"]:
-            _head29 += (" The tree is dirty: `remove` will DECLINE until those changes are "
-                        "committed, landed or discarded.")
+            # THE DISCRIMINATOR KEYS ON MORE THAN feature_id, AND IT HAS TO. A worktree whose path
+            # is not under WORKTREES_SEGMENT emits feature_id None / repo None / unresolved
+            # (worktree_terminal.py:202-206) — identical on class AND on feature_id to the
+            # fleet-load record (:303-306). Keying on feature_id alone would classify a REAL
+            # worktree as a repository-level failure and withhold the removal command from it.
+            # What separates them: a repository-level record either names a declared repository
+            # (repo is set) or IS the fleet file itself.
+            _repo_level29 = (
+                _r29["feature_id"] is None
+                and (_r29["repo"] is not None
+                     or (_fleet_path29 is not None
+                         and os.path.realpath(_r29["path"]) == _fleet_path29))
+            )
 
-        if _root_is_inside29(_r29["path"]):
-            # INV-25's precedent at :1173, for the same mechanical reason: `git worktree
-            # remove` exits 0 from inside the tree it deletes, so handing this session that
-            # command is telling it to delete the ground it is standing on. The finding still
-            # prints; only the guidance is withheld.
-            bad.append(_head29 + " This session is rooted in it, so no removal command is "
-                                 "given here: run it from the main checkout instead.")
-        elif _r29["repo"] is not None and _r29["feature_id"] is not None:
-            # THE COMMAND CARRIES THIS WORKTREE'S OWN IDENTITY, composed from this record's
-            # own repo segment and id — never a bare command, and never another worktree's.
-            # feature-worktree.py remove is named rather than `git worktree remove` because it
-            # declines a dirty tree at exit 4 and an unlanded artifact directory at exit 5,
-            # and it has no force flag. Raw git would take --force.
-            # THE --id IS THE WORKTREE DIRECTORY'S OWN NAME, never the record's feature_id.
-            # They differ for a SHORT-NAMED worktree: feature_id is the LANDED directory on the
-            # default branch, which is the full name, while `remove` matches the checkout. Printing
-            # feature_id there gives a command that exits "not a linked worktree" for a directory
-            # plainly sitting in front of the reader. post-merge-sweep.py:150 already derives it
-            # this way; this is the same derivation, not a second rule.
-            bad.append(_head29 + " Remove it with `python3 "
-                                 ".agents/skills/harness/bin/feature-worktree.py remove "
-                                 "--repo %s --id %s` (path: %s)."
-                                 % (_r29["repo"],
-                                    os.path.basename(_r29["path"].rstrip(os.sep)),
-                                    _r29["path"]))
-        else:
-            # An out-of-segment worktree: there is no repo/id pair to build the command from,
-            # because the path never resolved to one. INV-25 above reports the same tree with
-            # its own removal guidance, so nothing is lost by withholding it here.
-            bad.append(_head29 + " Its path did not resolve to a repository and id, so no "
-                                 "removal command can be composed for it.")
+            if _repo_level29:
+                # D-10's repository-level shape. BLOCKING for D-10's reason — the enumeration
+                # failed there, so a terminal worktree could be standing and unreported.
+                #
+                # NO REMOVAL COMMAND, EVER, ON THIS BRANCH. The path is a repository root or the
+                # fleet declaration, not a worktree. A removal command pointed at a repository
+                # root would be actively dangerous, and there is nothing there to remove.
+                _what29 = ("the fleet declaration"
+                           if _fleet_path29 is not None
+                           and os.path.realpath(_r29["path"]) == _fleet_path29
+                           else "repository %s" % _r29["repo"])
+                bad.append("INV-29: cross-repository enumeration failed at %s (%s) — %s. A "
+                           "worktree surviving its feature's terminal state could be standing "
+                           "there and unreported. No removal command is given: this path is not "
+                           "a worktree."
+                           % (_r29["path"], _what29, _r29["reason"]))
+                continue
+
+            # From here every record describes an actual worktree.
+            if _r29["klass"] == "terminal":
+                _head29 = ("INV-29: %s is a standing worktree whose feature %s reached a terminal "
+                           "state on the default branch. Act 3 is not optional — the checkout is "
+                           "removed once the work has landed."
+                           % (_r29["path"], _r29["feature_id"]))
+            else:
+                # unresolved, at the worktree level. THE FAILED LOOKUP IS NOT AN EXEMPTION, and
+                # the message says so outright: a reader who mistook this for the abandoned-flow
+                # case would treat the loudest branch as the quietest one.
+                _head29 = ("INV-29: %s is a standing worktree whose terminal status could not be "
+                           "determined — %s. A lookup that FAILED is not an exemption; the "
+                           "worktree is reported rather than passed over."
+                           % (_r29["path"], _r29["reason"]))
+
+            # THE DIRTY CLAUSE IS ITS OWN SENTENCE, not folded into the command line. SC-03 grades
+            # the two claims one at a time: that the tree is dirty, and that remove will decline.
+            if _r29["dirty"]:
+                _head29 += (" The tree is dirty: `remove` will DECLINE until those changes are "
+                            "committed, landed or discarded.")
+
+            if _root_is_inside29(_r29["path"]):
+                # INV-25's precedent at :1173, for the same mechanical reason: `git worktree
+                # remove` exits 0 from inside the tree it deletes, so handing this session that
+                # command is telling it to delete the ground it is standing on. The finding still
+                # prints; only the guidance is withheld.
+                bad.append(_head29 + " This session is rooted in it, so no removal command is "
+                                     "given here: run it from the main checkout instead.")
+            elif _r29["repo"] is not None and _r29["feature_id"] is not None:
+                # THE COMMAND CARRIES THIS WORKTREE'S OWN IDENTITY, composed from this record's
+                # own repo segment and id — never a bare command, and never another worktree's.
+                # feature-worktree.py remove is named rather than `git worktree remove` because it
+                # declines a dirty tree at exit 4 and an unlanded artifact directory at exit 5,
+                # and it has no force flag. Raw git would take --force.
+                # THE --id IS THE WORKTREE DIRECTORY'S OWN NAME, never the record's feature_id.
+                # They differ for a SHORT-NAMED worktree: feature_id is the LANDED directory on the
+                # default branch, which is the full name, while `remove` matches the checkout. Printing
+                # feature_id there gives a command that exits "not a linked worktree" for a directory
+                # plainly sitting in front of the reader. post-merge-sweep.py:150 already derives it
+                # this way; this is the same derivation, not a second rule.
+                bad.append(_head29 + " Remove it with `python3 "
+                                     ".agents/skills/harness/bin/feature-worktree.py remove "
+                                     "--repo %s --id %s` (path: %s)."
+                                     % (_r29["repo"],
+                                        os.path.basename(_r29["path"].rstrip(os.sep)),
+                                        _r29["path"]))
+            else:
+                # An out-of-segment worktree: there is no repo/id pair to build the command from,
+                # because the path never resolved to one. INV-25 above reports the same tree with
+                # its own removal guidance, so nothing is lost by withholding it here.
+                bad.append(_head29 + " Its path did not resolve to a repository and id, so no "
+                                     "removal command can be composed for it.")
+    return bad, warn
 
 # --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.
 # This deliberately runs regardless of station and task state. INV-26 correctly skips
 # terminal and all-ready plans for board placement; neither condition proves a mirror ran.
-try:
-    import feature_schema as _fs37
-except Exception as _fs37e:
-    _fs37 = None
-    bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
-               "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
+def inv_37(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    plan_docs = ctx.plan_docs
+    try:
+        import feature_schema as _fs37
+    except Exception as _fs37e:
+        _fs37 = None
+        bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
+                   "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
 
-try:
-    _sync37 = bool((artifact_accessors.load_harness_json(
-        os.path.join(H, "harness.json")).get("github") or {}).get("sync"))
-except Exception:
-    _sync37 = False
+    try:
+        _sync37 = bool((artifact_accessors.load_harness_json(
+            os.path.join(H, "harness.json")).get("github") or {}).get("sync"))
+    except Exception:
+        _sync37 = False
 
-if _fs37 is not None and _sync37:
-    for _fp37 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
-        _feat37 = os.path.basename(_fp37)
+    if _fs37 is None or not _sync37:
+        return bad, warn
+    for _feat37 in ctx.features:
+        _fp37 = ctx.feature_dir(_feat37)
         if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or _feat37 not in plan_docs:
             continue
         try:
@@ -1978,6 +2397,7 @@ if _fs37 is not None and _sync37:
                        f"already under way or finished, so creating the mirror now would mean "
                        f"task sub-issues for completed work - run gh-sync.py recover-terminal "
                        f"{_fp37} --yes.")
+    return bad, warn
 
 # --- INV-26 BEGINS — the marker T-05's verify slices on. Without it the slice is EMPTY and
 # every literal-absence grep below trivially passes, which is the vacuous-grep failure this
@@ -1995,253 +2415,260 @@ if _fs37 is not None and _sync37:
 # ships with the repository, so being unimportable is a defect in the tree, never a property
 # of the environment. Everything else below records NOTHING, because an offline or
 # unconfigured environment must never become a red gate.
-try:
-    import gh_board as _gb
-    # artifact_accessors owns FleetError, so INV-26 can classify the error without importing
-    # another domain module. gh_board still imports factory_config for board validation.
-except Exception as _gbe:
-    _gb = None
-    bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
-               "disagrees with the plan would go unreported. The module ships with this "
-               "repository — restore .agents/skills/harness/bin/gh_board.py."
-               % (type(_gbe).__name__, _gbe))
-
-# THE BINARY IS OVERRIDABLE OR THIS CANNOT BE TESTED. FACTORY_GH is the variable factory_gh
-# already honours, so ONE fake serves both the module and this invariant. A third variable
-# name would be a third thing to get wrong.
-_gh_bin = os.environ.get("FACTORY_GH") or "gh"
-
-_inv26_board = None
-if _gb is not None:
-    _g26 = cj.get("github") if isinstance(cj, dict) else None
-    _repo26 = (_g26 or {}).get("repo")
-    if isinstance(_g26, dict) and _g26.get("sync") is True and _repo26:
-        # AN UNUSABLE BOARD IS A VIOLATION, NOT SILENCE — the exact inverse of the behaviour
-        # this task removes. load_board used to return None for both "no board declared" and
-        # "board declared and broken", so a typo made INV-26 vacuous and left the gate GREEN.
-        # It now raises for everything except an explicit null, and the gate must COMPLETE
-        # and report rather than abort: one entry, then the rest of INV-26 is skipped.
-        try:
-            _inv26_board = _gb.load_board(root)
-        except Exception as _be26:
-            _inv26_board = None
-            if isinstance(_be26, artifact_accessors.FleetError):
-                bad.append("INV-26 CANNOT RUN: %s — the board declaration is unusable, so a "
-                           "card that disagrees with the plan would go unreported." % _be26)
-            else:
-                raise
-
-if _inv26_board:
-    # gh absent or unauthenticated is an environmental precondition (DEC-138's verbatim
-    # clause), so it records nothing. Same posture as INV-25's git-absent branch.
+def inv_26(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    cj, plan_docs = ctx.cj, ctx.plan_docs
     try:
-        _auth = subprocess.run([_gh_bin, "auth", "status"],
-                               capture_output=True, text=True, timeout=15)
-        _gh_ok = _auth.returncode == 0
-    except Exception:
-        _gh_ok = False
+        import gh_board as _gb
+        # artifact_accessors owns FleetError, so INV-26 can classify the error without importing
+        # another domain module. gh_board still imports factory_config for board validation.
+    except Exception as _gbe:
+        _gb = None
+        bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
+                   "disagrees with the plan would go unreported. The module ships with this "
+                   "repository — restore .agents/skills/harness/bin/gh_board.py."
+                   % (type(_gbe).__name__, _gbe))
 
-    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
-    # something to ask about. That is INV-30's posture one screen below, and it is the one this
-    # invariant was missing (issue #1541): the whole-board read downloaded every card the board
-    # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
-    # 14.3s — to answer questions about the handful of features actually in flight. Measured
-    # 2026-09-09, that handful was FOURTEEN features carrying ZERO mirrored issues, so the
-    # entire download was compared against nothing.
-    #
-    # The skip conditions here are a SUPERSET of the loop's below, deliberately: an extra issue
-    # number costs one alias in a batched query, while a missing one would make the loop report
-    # CANNOT VERIFY for a card that is on the board. Over-asking is cheap; under-asking lies.
-    _numbers26 = set()
-    for _fp26 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
-        if not plan_docs.get(os.path.basename(_fp26)):
-            continue
-        if station_of(_fp26) in FINISHED_STATIONS:
-            continue
-        try:
-            _fj26 = artifact_accessors.load_feature_json(
-                os.path.join(_fp26, "feature.json")) or {}
-        except Exception:
-            continue
-        _gblk26 = _fj26.get("github") or {}
-        _issues26 = _gblk26.get("issues") or {}
-        if not _issues26:
-            continue
-        if isinstance(_gblk26.get("parent"), int):
-            _numbers26.add(_gblk26["parent"])
-        for _n26 in _issues26.values():
-            if isinstance(_n26, int):
-                _numbers26.add(_n26)
-        for _n26 in (_gblk26.get("source_issues") or []):
-            if isinstance(_n26, int):
-                _numbers26.add(_n26)
+    # THE BINARY IS OVERRIDABLE OR THIS CANNOT BE TESTED. FACTORY_GH is the variable factory_gh
+    # already honours, so ONE fake serves both the module and this invariant. A third variable
+    # name would be a third thing to get wrong.
+    _gh_bin = os.environ.get("FACTORY_GH") or "gh"
 
-    _stations = None
-    if _gh_ok:
-        # A FAILED BOARD READ RECORDS NOTHING. board_stations_for already refuses a truncated
-        # read by raising, which is what keeps a partial read from being reported as an empty
-        # column — but the remedy here is silence, not a red gate, because the network is not
-        # the tree.
-        #
-        # AN EMPTY CANDIDATE SET IS AN EMPTY MAP, NOT None. None skips the whole comparison
-        # block below, and that block carries findings that need no board at all — the
-        # mirror-never-ran clause among them. Nothing to look up is not the same as nothing
-        # to check.
-        try:
-            os.environ["FACTORY_GH"] = _gh_bin
-            _stations = _gb.board_stations_for(_inv26_board, _repo26, _numbers26)
-        except Exception:
-            _stations = None
-
-    if _stations is not None:
-        # THE PLACEMENT RULE IS NOT HERE ANY MORE (FEAT-41 T-06, D-11). The two lookup tables
-        # that stood here are DELETED, not lowercased: the rule they encoded — which card
-        # belongs at which station, and when — now lives in gh_board.project and nowhere else,
-        # so this file holds the COMPARE side only. It asks project where a card belongs and
-        # reports the cards that disagree.
-        #
-        # What went with them: a status-to-COLUMN mapping, which was the last thing in this file
-        # translating between two vocabularies, and a three-key lookup whose ready-to-backlog
-        # exception D-11 removed outright. plan.yaml and the board now carry the same word with
-        # the same meaning and nothing is derived between them.
-        #
-        # Their names are deliberately not written here. This task's verify greps the whole file
-        # for both identifiers and fails on a COMMENT as readily as on code — a dead name in
-        # prose is still a reader's next false lead.
-
-        for _fp in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
-            _feat = os.path.basename(_fp)
-            _pdoc = plan_docs.get(_feat)
-            if not _pdoc:
-                # No plan.yaml, or one that did not load. Other invariants own both — the
-                # load failure is already a violation above, and restating it here would
-                # report one defect twice.
-                continue
-
-            # THE FEATURE.JSON READ STAYS — this block reads `github.issues`, `github.parent`
-            # and `factory.issues` off `_fj` further down. Only the STATION moved to plan.yaml.
+    _inv26_board = None
+    if _gb is not None:
+        _g26 = cj.get("github") if isinstance(cj, dict) else None
+        _repo26 = (_g26 or {}).get("repo")
+        if isinstance(_g26, dict) and _g26.get("sync") is True and _repo26:
+            # AN UNUSABLE BOARD IS A VIOLATION, NOT SILENCE — the exact inverse of the behaviour
+            # this task removes. load_board used to return None for both "no board declared" and
+            # "board declared and broken", so a typo made INV-26 vacuous and left the gate GREEN.
+            # It now raises for everything except an explicit null, and the gate must COMPLETE
+            # and report rather than abort: one entry, then the rest of INV-26 is skipped.
             try:
-                _fj = artifact_accessors.load_feature_json(
-                    os.path.join(_fp, "feature.json")) or {}
+                _inv26_board = _gb.load_board(root)
+            except Exception as _be26:
+                _inv26_board = None
+                if isinstance(_be26, artifact_accessors.FleetError):
+                    bad.append("INV-26 CANNOT RUN: %s — the board declaration is unusable, so a "
+                               "card that disagrees with the plan would go unreported." % _be26)
+                else:
+                    raise
+
+    if _inv26_board:
+        # gh absent or unauthenticated is an environmental precondition (DEC-138's verbatim
+        # clause), so it records nothing. Same posture as INV-25's git-absent branch.
+        try:
+            _auth = subprocess.run([_gh_bin, "auth", "status"],
+                                   capture_output=True, text=True, timeout=15)
+            _gh_ok = _auth.returncode == 0
+        except Exception:
+            _gh_ok = False
+
+        # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+        # something to ask about. That is INV-30's posture one screen below, and it is the one this
+        # invariant was missing (issue #1541): the whole-board read downloaded every card the board
+        # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
+        # 14.3s — to answer questions about the handful of features actually in flight. Measured
+        # 2026-09-09, that handful was FOURTEEN features carrying ZERO mirrored issues, so the
+        # entire download was compared against nothing.
+        #
+        # The skip conditions here are a SUPERSET of the loop's below, deliberately: an extra issue
+        # number costs one alias in a batched query, while a missing one would make the loop report
+        # CANNOT VERIFY for a card that is on the board. Over-asking is cheap; under-asking lies.
+        _numbers26 = set()
+        for _feat26 in ctx.features:
+            _fp26 = ctx.feature_dir(_feat26)
+            if not plan_docs.get(os.path.basename(_fp26)):
+                continue
+            if station_of(_fp26) in FINISHED_STATIONS:
+                continue
+            try:
+                _fj26 = artifact_accessors.load_feature_json(
+                    os.path.join(_fp26, "feature.json")) or {}
             except Exception:
-                _fj = {}
+                continue
+            _gblk26 = _fj26.get("github") or {}
+            _issues26 = _gblk26.get("issues") or {}
+            if not _issues26:
+                continue
+            if isinstance(_gblk26.get("parent"), int):
+                _numbers26.add(_gblk26["parent"])
+            for _n26 in _issues26.values():
+                if isinstance(_n26, int):
+                    _numbers26.add(_n26)
+            for _n26 in (_gblk26.get("source_issues") or []):
+                if isinstance(_n26, int):
+                    _numbers26.add(_n26)
 
-            # THE TERMINAL EXEMPTION. `ship` writes the parent's card to the done station and
-            # records the terminal station, while the plan-derived station would still say
-            # review — so without this every shipped feature is a permanent false violation.
+        _stations = None
+        if _gh_ok:
+            # A FAILED BOARD READ RECORDS NOTHING. board_stations_for already refuses a truncated
+            # read by raising, which is what keeps a partial read from being reported as an empty
+            # column — but the remedy here is silence, not a red gate, because the network is not
+            # the tree.
             #
-            # THE CONDITION NOW KEYS ON plan.yaml's STATION (FEAT-41 T-07) rather than
-            # feature.json's status, which is the only change here: one file records the station.
-            if station_of(_fp) in FINISHED_STATIONS:
-                continue
-
-
-            # INV-26 only compares cards recorded by the GitHub mirror. A feature with no
-            # mirrored task issue has no board projection to verify; mirror opening owns its
-            # separate lifecycle obligation.
-            _issues = ((_fj.get("github") or {}).get("issues") or {})
-            if not _issues:
-                continue
-
-            _tstat = {}
-            for _t in (_pdoc.get("tasks") or []):
-                if isinstance(_t, dict) and _t.get("id"):
-                    _tstat[_t["id"]] = _t.get("status") or "ready"
-
-            # ONE CALL, INSIDE THE TRY THAT ALREADY TREATS A gh_board FAILURE AS A VIOLATION.
-            # `rec` is the shape gh-sync.load_recorded returns, built from the feature.json this
-            # loop already has. source_issues is empty because this invariant compares TASK
-            # cards and the parent, and a source issue's card is the parent's station — already
-            # covered by the parent claim above.
+            # AN EMPTY CANDIDATE SET IS AN EMPTY MAP, NOT None. None skips the whole comparison
+            # block below, and that block carries findings that need no board at all — the
+            # mirror-never-ran clause among them. Nothing to look up is not the same as nothing
+            # to check.
             try:
-                _projected = _gb.project(
-                    _pdoc, {"issues": _issues,
-                            "parent": (_fj.get("github") or {}).get("parent"),
-                            "source_issues": (_fj.get("github") or {}).get("source_issues") or []})
-            except Exception as _pe26:
-                # A VOCABULARY MISS IS A VIOLATION, NOT A SKIP. project raises FleetError
-                # naming the task and the value, which is the defect this feature exists to
-                # end — reporting it as silence would be the fail-open D-11 removes.
-                bad.append(f"INV-26 {_feat}: the plan carries a station the vocabulary does not "
-                           f"contain, so no card can be checked against it — {_pe26}")
-                continue
+                os.environ["FACTORY_GH"] = _gh_bin
+                _stations = _gb.board_stations_for(_inv26_board, _repo26, _numbers26)
+            except Exception:
+                _stations = None
 
-            for _tid in sorted(_issues):
-                _num = _issues[_tid]
-                # THE FAIL-OPEN IS DELETED (D-11). This read `if _want is None: continue`, so a
-                # recorded sub-issue that the placement rule did not place went unexamined. A
-                # card project declines to place is now a violation naming the feature, the task
-                # and the station the plan carries.
-                _want = _projected.get(_num)
-                if _want is None:
-                    bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): the plan carries station "
-                               f"{_tstat.get(_tid, 'ready')!r} and no card placement follows from "
-                               f"it, so the board cannot be checked against the plan.")
-                    continue
-                # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under
-                # D-23 a done task's sub-issue is deliberately left OPEN so it can hold its
-                # column through the whole Review phase.
-                #
-                # THE ORIGINAL JUSTIFICATION HERE WAS FALSE and is corrected rather than
-                # deleted. It argued that GitHub's native `Item closed` workflow lands a
-                # closed issue's card in the done column by itself, and cited board 3 never
-                # having held a card at Review as the measurement. Measured 2026-08-25:
-                # FEAT-34's thirteen sub-issues #818 through #830 are ALL CLOSED and ALL sit
-                # at Review. A closed issue's card stays where it is.
-                #
-                # What is actually true, and what this widening rests on now: `ship` — not a
-                # close — is what writes the done station (DEC-203). So while a feature's own
-                # station is review, a done task's card may legitimately read the done, review
-                # OR building station: done if ship has already run, and review or building
-                # because those are what the review phase itself leaves behind.
-                #
-                # BOUNDED ON THAT STATION ON PURPOSE, unchanged in force: an unconditional
-                # widening would silence the mis-columned done card the invariant was
-                # extended to catch. The station is read from plan.yaml now (FEAT-41 T-07),
-                # the same file `_pdoc` came from.
-                _accept = {_want}
-                if _tstat.get(_tid) == "done" and station_of(_fp) == "review":
-                    _accept |= {"review", "building"}
-                _wanttxt = (_want if len(_accept) == 1
-                            else ", ".join(sorted(_accept)[:-1]) + " or " + sorted(_accept)[-1])
-                _found, _reason = _gb.read_station(_stations, _num)
-                if _reason:
-                    # CANNOT VERIFY, NOT CLEAN. A lookup that misses leaves both sides of
-                    # the comparison empty and every record then compares equal — which is
-                    # precisely the silence this invariant exists to break.
-                    bad.append(f"INV-26 CANNOT VERIFY {_feat} {_tid} (issue #{_num}): "
-                               f"{_reason}. The plan says {_tstat.get(_tid, 'pending')}, so "
-                               f"the card should read {_wanttxt}.")
-                elif _found not in _accept:
-                    bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): plan says "
-                               f"{_tstat.get(_tid, 'pending')}, so the card should read "
-                               f"{_wanttxt} — the board reads {_found}.")
+        if _stations is not None:
+            # THE PLACEMENT RULE IS NOT HERE ANY MORE (FEAT-41 T-06, D-11). The two lookup tables
+            # that stood here are DELETED, not lowercased: the rule they encoded — which card
+            # belongs at which station, and when — now lives in gh_board.project and nowhere else,
+            # so this file holds the COMPARE side only. It asks project where a card belongs and
+            # reports the cards that disagree.
+            #
+            # What went with them: a status-to-COLUMN mapping, which was the last thing in this file
+            # translating between two vocabularies, and a three-key lookup whose ready-to-backlog
+            # exception D-11 removed outright. plan.yaml and the board now carry the same word with
+            # the same meaning and nothing is derived between them.
+            #
+            # Their names are deliberately not written here. This task's verify greps the whole file
+            # for both identifiers and fails on a COMMENT as readily as on code — a dead name in
+            # prose is still a reader's next false lead.
 
-            # Parent and source cards are compared through the same projection as task cards.
-            _parent = (_fj.get("github") or {}).get("parent")
-            if isinstance(_parent, int):
-                _parent_want = _projected.get(_parent)
-                if _parent_want is not None:
-                    _pfound, _preason = _gb.read_station(_stations, _parent)
-                    if _preason:
-                        bad.append(f"INV-26 CANNOT VERIFY {_feat} parent (issue #{_parent}): "
-                                   f"{_preason}. The plan projects {_parent_want}.")
-                    elif _pfound != _parent_want:
-                        bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan projects "
-                                   f"{_parent_want} — the board reads {_pfound}.")
-            for _source in (_fj.get("github") or {}).get("source_issues") or []:
-                if not isinstance(_source, int):
+            for _feat in ctx.features:
+                _fp = ctx.feature_dir(_feat)
+                _pdoc = plan_docs.get(_feat)
+                if not _pdoc:
+                    # No plan.yaml, or one that did not load. Other invariants own both — the
+                    # load failure is already a violation above, and restating it here would
+                    # report one defect twice.
                     continue
-                _source_want = _projected.get(_source)
-                if _source_want is None:
+
+                # THE FEATURE.JSON READ STAYS — this block reads `github.issues`, `github.parent`
+                # and `factory.issues` off `_fj` further down. Only the STATION moved to plan.yaml.
+                try:
+                    _fj = artifact_accessors.load_feature_json(
+                        os.path.join(_fp, "feature.json")) or {}
+                except Exception:
+                    _fj = {}
+
+                # THE TERMINAL EXEMPTION. `ship` writes the parent's card to the done station and
+                # records the terminal station, while the plan-derived station would still say
+                # review — so without this every shipped feature is a permanent false violation.
+                #
+                # THE CONDITION NOW KEYS ON plan.yaml's STATION (FEAT-41 T-07) rather than
+                # feature.json's status, which is the only change here: one file records the station.
+                if station_of(_fp) in FINISHED_STATIONS:
                     continue
-                _sfound, _sreason = _gb.read_station(_stations, _source)
-                if _sreason:
-                    bad.append(f"INV-26 CANNOT VERIFY {_feat} source (issue #{_source}): "
-                               f"{_sreason}. The plan projects {_source_want}.")
-                elif _sfound != _source_want:
-                    bad.append(f"INV-26 {_feat} source (issue #{_source}): the plan projects "
-                               f"{_source_want} — the board reads {_sfound}.")
+
+
+                # INV-26 only compares cards recorded by the GitHub mirror. A feature with no
+                # mirrored task issue has no board projection to verify; mirror opening owns its
+                # separate lifecycle obligation.
+                _issues = ((_fj.get("github") or {}).get("issues") or {})
+                if not _issues:
+                    continue
+
+                _tstat = {}
+                for _t in (_pdoc.get("tasks") or []):
+                    if isinstance(_t, dict) and _t.get("id"):
+                        _tstat[_t["id"]] = _t.get("status") or "ready"
+
+                # ONE CALL, INSIDE THE TRY THAT ALREADY TREATS A gh_board FAILURE AS A VIOLATION.
+                # `rec` is the shape gh-sync.load_recorded returns, built from the feature.json this
+                # loop already has. source_issues is empty because this invariant compares TASK
+                # cards and the parent, and a source issue's card is the parent's station — already
+                # covered by the parent claim above.
+                try:
+                    _projected = _gb.project(
+                        _pdoc, {"issues": _issues,
+                                "parent": (_fj.get("github") or {}).get("parent"),
+                                "source_issues": (_fj.get("github") or {}).get("source_issues") or []})
+                except Exception as _pe26:
+                    # A VOCABULARY MISS IS A VIOLATION, NOT A SKIP. project raises FleetError
+                    # naming the task and the value, which is the defect this feature exists to
+                    # end — reporting it as silence would be the fail-open D-11 removes.
+                    bad.append(f"INV-26 {_feat}: the plan carries a station the vocabulary does not "
+                               f"contain, so no card can be checked against it — {_pe26}")
+                    continue
+
+                for _tid in sorted(_issues):
+                    _num = _issues[_tid]
+                    # THE FAIL-OPEN IS DELETED (D-11). This read `if _want is None: continue`, so a
+                    # recorded sub-issue that the placement rule did not place went unexamined. A
+                    # card project declines to place is now a violation naming the feature, the task
+                    # and the station the plan carries.
+                    _want = _projected.get(_num)
+                    if _want is None:
+                        bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): the plan carries station "
+                                   f"{_tstat.get(_tid, 'ready')!r} and no card placement follows from "
+                                   f"it, so the board cannot be checked against the plan.")
+                        continue
+                    # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under
+                    # D-23 a done task's sub-issue is deliberately left OPEN so it can hold its
+                    # column through the whole Review phase.
+                    #
+                    # THE ORIGINAL JUSTIFICATION HERE WAS FALSE and is corrected rather than
+                    # deleted. It argued that GitHub's native `Item closed` workflow lands a
+                    # closed issue's card in the done column by itself, and cited board 3 never
+                    # having held a card at Review as the measurement. Measured 2026-08-25:
+                    # FEAT-34's thirteen sub-issues #818 through #830 are ALL CLOSED and ALL sit
+                    # at Review. A closed issue's card stays where it is.
+                    #
+                    # What is actually true, and what this widening rests on now: `ship` — not a
+                    # close — is what writes the done station (DEC-203). So while a feature's own
+                    # station is review, a done task's card may legitimately read the done, review
+                    # OR building station: done if ship has already run, and review or building
+                    # because those are what the review phase itself leaves behind.
+                    #
+                    # BOUNDED ON THAT STATION ON PURPOSE, unchanged in force: an unconditional
+                    # widening would silence the mis-columned done card the invariant was
+                    # extended to catch. The station is read from plan.yaml now (FEAT-41 T-07),
+                    # the same file `_pdoc` came from.
+                    _accept = {_want}
+                    if _tstat.get(_tid) == "done" and station_of(_fp) == "review":
+                        _accept |= {"review", "building"}
+                    _wanttxt = (_want if len(_accept) == 1
+                                else ", ".join(sorted(_accept)[:-1]) + " or " + sorted(_accept)[-1])
+                    _found, _reason = _gb.read_station(_stations, _num)
+                    if _reason:
+                        # CANNOT VERIFY, NOT CLEAN. A lookup that misses leaves both sides of
+                        # the comparison empty and every record then compares equal — which is
+                        # precisely the silence this invariant exists to break.
+                        bad.append(f"INV-26 CANNOT VERIFY {_feat} {_tid} (issue #{_num}): "
+                                   f"{_reason}. The plan says {_tstat.get(_tid, 'pending')}, so "
+                                   f"the card should read {_wanttxt}.")
+                    elif _found not in _accept:
+                        bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): plan says "
+                                   f"{_tstat.get(_tid, 'pending')}, so the card should read "
+                                   f"{_wanttxt} — the board reads {_found}.")
+
+                # Parent and source cards are compared through the same projection as task cards.
+                _parent = (_fj.get("github") or {}).get("parent")
+                if isinstance(_parent, int):
+                    _parent_want = _projected.get(_parent)
+                    if _parent_want is not None:
+                        _pfound, _preason = _gb.read_station(_stations, _parent)
+                        if _preason:
+                            bad.append(f"INV-26 CANNOT VERIFY {_feat} parent (issue #{_parent}): "
+                                       f"{_preason}. The plan projects {_parent_want}.")
+                        elif _pfound != _parent_want:
+                            bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan projects "
+                                       f"{_parent_want} — the board reads {_pfound}.")
+                for _source in (_fj.get("github") or {}).get("source_issues") or []:
+                    if not isinstance(_source, int):
+                        continue
+                    _source_want = _projected.get(_source)
+                    if _source_want is None:
+                        continue
+                    _sfound, _sreason = _gb.read_station(_stations, _source)
+                    if _sreason:
+                        bad.append(f"INV-26 CANNOT VERIFY {_feat} source (issue #{_source}): "
+                                   f"{_sreason}. The plan projects {_source_want}.")
+                    elif _sfound != _source_want:
+                        bad.append(f"INV-26 {_feat} source (issue #{_source}): the plan projects "
+                                   f"{_source_want} — the board reads {_sfound}.")
+    return bad, warn
+
 # --- INV-30 (FEAT-34 T-08, REQ-12): a feature recorded `Done` whose milestone is still OPEN.
 #
 # IT KEYS ON THE MILESTONE, NEVER ON THE STATUS AGREEING WITH ITSELF. `status: Done` has more
@@ -2258,105 +2685,114 @@ if _inv26_board:
 # ONE `gh` CALL, NOT ONE PER FEATURE. 24 features carry a recorded milestone at 9165162; a
 # request each would make the pre-commit gate pay 24 round trips for a check that one paginated
 # list answers. The whole milestone list is fetched once and matched by number in memory.
-try:
-    import gh_board as _gb30
-    _inv30_import_ok = True
-except Exception as _gbe30:
-    _inv30_import_ok = False
-    bad.append("INV-30 CANNOT RUN: gh_board.py did not import (%s: %s), so a feature recorded "
-               "Done whose milestone is still open would go unreported. The module ships with "
-               "this repository — restore .agents/skills/harness/bin/gh_board.py."
-               % (type(_gbe30).__name__, _gbe30))
+def inv_30(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    cj = ctx.cj
+    try:
+        import gh_board as _gb30
+        _inv30_import_ok = True
+    except Exception as _gbe30:
+        _inv30_import_ok = False
+        bad.append("INV-30 CANNOT RUN: gh_board.py did not import (%s: %s), so a feature recorded "
+                   "Done whose milestone is still open would go unreported. The module ships with "
+                   "this repository — restore .agents/skills/harness/bin/gh_board.py."
+                   % (type(_gbe30).__name__, _gbe30))
 
-_g30 = cj.get("github") if isinstance(cj, dict) else None
-_repo30 = (_g30 or {}).get("repo")
+    _g30 = cj.get("github") if isinstance(cj, dict) else None
+    _repo30 = (_g30 or {}).get("repo")
 
-if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
-    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
-    # something to ask about. A tree with no Done-and-milestoned feature makes no gh call at all.
-    _cand30 = []
-    for _fy30 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
-        _feat30 = os.path.basename(os.path.dirname(_fy30))
-        try:
-            _doc30 = artifact_accessors.load_feature_json(_fy30) or {}
-        except Exception:
-            # INV-28 above already reports an unparseable feature.json. Restating it here would
-            # report one defect twice.
-            continue
-        if not isinstance(_doc30, dict):
-            continue
-        # The `done` station and nothing else, read from plan.yaml (FEAT-41 T-07). The terminal
-        # marker is terminal and silent here for INV-28's reason: nothing shipped, so there is
-        # no milestone that ship should have closed. The feature.json read above stays — this
-        # invariant needs `github.milestone` off that document.
-        if station_of(os.path.dirname(_fy30)) != "done":
-            continue
-        _ms30 = (_doc30.get("github") or {}).get("milestone")
-        if _ms30 is None:
-            # A Done feature with no recorded milestone is outside this invariant's reach, not a
-            # finding. Eight features are in that state at 9165162 and none of them is a defect
-            # INV-30 can speak to.
-            continue
-        try:
-            _cand30.append((_feat30, int(_ms30)))
-        except (TypeError, ValueError):
-            continue
-
-    if _cand30:
-        # SAME RESOLUTION AS INV-26 at :1371 — FACTORY_GH first. A fixture that stubs
-        # `gh` through that variable must reach this invariant too, or INV-30 would be
-        # untestable offline while claiming an offline posture.
-        _gh_bin30 = os.environ.get("FACTORY_GH") or "gh"
-        _open30 = None
-        try:
-            _auth30 = subprocess.run([_gh_bin30, "auth", "status"],
-                                     capture_output=True, text=True, timeout=15)
-            _gh_ok30 = _auth30.returncode == 0
-        except Exception:
-            _gh_ok30 = False
-
-        if _gh_ok30:
-            # `--paginate` rather than a bare per_page: the list is small today and silently
-            # truncating it later would make this invariant quietly stop firing on the oldest
-            # features, which is the decay shape INV-28 was written to catch.
+    if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
+        # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+        # something to ask about. A tree with no Done-and-milestoned feature makes no gh call at all.
+        _cand30 = []
+        for _feat30 in ctx.features:
+            _fy30 = ctx.path(_feat30, 'feature.json')
+            if not os.path.isfile(_fy30):
+                continue
             try:
-                _r30 = subprocess.run(
-                    [_gh_bin30, "api", "--paginate",
-                     "repos/%s/milestones?state=open&per_page=100" % _repo30,
-                     "-q", ".[].number"],
-                    capture_output=True, text=True, timeout=60)
-                if _r30.returncode == 0:
-                    _open30 = {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
+                _doc30 = artifact_accessors.load_feature_json(_fy30) or {}
             except Exception:
-                _open30 = None
+                # INV-28 above already reports an unparseable feature.json. Restating it here would
+                # report one defect twice.
+                continue
+            if not isinstance(_doc30, dict):
+                continue
+            # The `done` station and nothing else, read from plan.yaml (FEAT-41 T-07). The terminal
+            # marker is terminal and silent here for INV-28's reason: nothing shipped, so there is
+            # no milestone that ship should have closed. The feature.json read above stays — this
+            # invariant needs `github.milestone` off that document.
+            if station_of(os.path.dirname(_fy30)) != "done":
+                continue
+            _ms30 = (_doc30.get("github") or {}).get("milestone")
+            if _ms30 is None:
+                # A Done feature with no recorded milestone is outside this invariant's reach, not a
+                # finding. Eight features are in that state at 9165162 and none of them is a defect
+                # INV-30 can speak to.
+                continue
+            try:
+                _cand30.append((_feat30, int(_ms30)))
+            except (TypeError, ValueError):
+                continue
 
-        # None means "we could not ask", which is NOT the same as "nothing is open" and must
-        # never be treated as one. Silence here is the whole offline posture.
-        if _open30 is not None:
-            for _feat30, _num30 in _cand30:
-                if _num30 not in _open30:
-                    continue
-                bad.append(
-                    "INV-30 %s: status is Done but milestone #%d is still OPEN, so "
-                    "`gh-sync.py ship` never ran for it. The status is not evidence — it has "
-                    "several writers and the milestone has one. Close it with `python3 "
-                    ".agents/skills/harness/bin/gh-sync.py ship %s`."
-                    % (_feat30, _num30, fpath(_feat30)))
+        if _cand30:
+            # SAME RESOLUTION AS INV-26 at :1371 — FACTORY_GH first. A fixture that stubs
+            # `gh` through that variable must reach this invariant too, or INV-30 would be
+            # untestable offline while claiming an offline posture.
+            _gh_bin30 = os.environ.get("FACTORY_GH") or "gh"
+            _open30 = None
+            try:
+                _auth30 = subprocess.run([_gh_bin30, "auth", "status"],
+                                         capture_output=True, text=True, timeout=15)
+                _gh_ok30 = _auth30.returncode == 0
+            except Exception:
+                _gh_ok30 = False
 
-# --- INV-26 ENDS
+            if _gh_ok30:
+                # `--paginate` rather than a bare per_page: the list is small today and silently
+                # truncating it later would make this invariant quietly stop firing on the oldest
+                # features, which is the decay shape INV-28 was written to catch.
+                try:
+                    _r30 = subprocess.run(
+                        [_gh_bin30, "api", "--paginate",
+                         "repos/%s/milestones?state=open&per_page=100" % _repo30,
+                         "-q", ".[].number"],
+                        capture_output=True, text=True, timeout=60)
+                    if _r30.returncode == 0:
+                        _open30 = {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
+                except Exception:
+                    _open30 = None
+
+            # None means "we could not ask", which is NOT the same as "nothing is open" and must
+            # never be treated as one. Silence here is the whole offline posture.
+            if _open30 is not None:
+                for _feat30, _num30 in _cand30:
+                    if _num30 not in _open30:
+                        continue
+                    bad.append(
+                        "INV-30 %s: status is Done but milestone #%d is still OPEN, so "
+                        "`gh-sync.py ship` never ran for it. The status is not evidence — it has "
+                        "several writers and the milestone has one. Close it with `python3 "
+                        ".agents/skills/harness/bin/gh-sync.py ship %s`."
+                        % (_feat30, _num30, fpath(_feat30)))
+    return bad, warn
 
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.
 # A missing `github` block means the project predates the feature: surface it once.
-if cj:
-    gh_ = cj.get("github")
-    if gh_ is None:
-        warn.append("harness.json has no `github` block — predates DEC-138. Run "
-                    "/harness-init --upgrade to decide the Issues mirror once (sync on/off).")
-    elif gh_.get("sync") and not gh_.get("repo"):
-        bad.append("github.sync is ON but github.repo is not pinned — every sync will "
-                   "silently SKIP. Pin the repo (from `gh repo view`) or turn sync off.")
+def inv_13(ctx):
+    bad, warn = [], []
+    cj = ctx.cj
+    if cj:
+        gh_ = cj.get("github")
+        if gh_ is None:
+            warn.append("harness.json has no `github` block — predates DEC-138. Run "
+                        "/harness-init --upgrade to decide the Issues mirror once (sync on/off).")
+        elif gh_.get("sync") and not gh_.get("repo"):
+            bad.append("github.sync is ON but github.repo is not pinned — every sync will "
+                       "silently SKIP. Pin the repo (from `gh repo view`) or turn sync off.")
+    return bad, warn
 
 # --- INV-27 (FEAT-20): every layout surface speaks one language. The detector is
 # layout_migration.py; this block composes findings from its STRUCTURED RESULT and
@@ -2368,49 +2804,54 @@ if cj:
 # THE IMPORT IS A VIOLATION WHEN IT FAILS — INV-25's precedent, and for its reason:
 # the module ships with the repository, so it being unimportable is a defect in the
 # tree, never a property of the environment.
-try:
-    import layout_migration as _lmod
-except Exception as _lme:
-    _lmod = None
-    bad.append("INV-27 CANNOT RUN: layout_migration.py did not import (%s: %s), so a "
-               "half-migrated layout would go unreported. The module ships with this "
-               "repository — restore .agents/skills/harness/bin/layout_migration.py."
-               % (type(_lme).__name__, _lme))
+def inv_27(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-if _lmod is not None:
     try:
-        _lres = _lmod.scan(root)
-    except Exception as _lse:
-        _lres = None
-        bad.append("INV-27 CANNOT RUN: the layout scan raised (%s: %s) — fix "
-                   "layout_migration.py or its reader table before trusting this gate."
-                   % (type(_lse).__name__, _lse))
-    if _lres is not None and _lres.applicable:
-        # Every entry ends with a remedy — house style; a finding an operator cannot
-        # act on is a finding they will learn to skip. The form-set tag on each reader
-        # path is load-bearing: [legacy] on a migrated tree means FINISH the reader,
-        # [migrated] on a legacy tree means REVERT it, and the paths are identical
-        # without the tag.
-        _lrem = ("Finish or revert this surface inside one atomic commit; the form "
-                 "rows are data in layout_migration.py.")
-        # THE CAUSE TABLE IS CLOSED AND THE LOOKUP FAILS LOUD (code-review finding:
-        # the earlier if/elif chain had no else, so a fifth cause value would have
-        # appended nothing and this gate — the surface operators actually see —
-        # would have passed clean while CI stayed red).
-        # Wording and blame both come from the module — cause_text/blame_text are
-        # the single owners (see layout_migration.blame, #379); this block adds only
-        # the INV-27 framing and the remedy.
-        for _sname in sorted(_lres.surfaces):
-            _srep = _lres.surfaces[_sname]
-            if _srep.verdict == "MIXED":
-                _ev = "+".join(sorted(_srep.evidence)) if _srep.evidence else "none"
-                bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
-                           f"readers {_lmod.blame_text(_srep)}. {_lrem}")
-            elif _srep.verdict == "CANNOT_VERIFY":
-                _named = _lmod.blame_text(_srep)
-                _suffix = f"; readers: {_named}" if _named else ""
-                bad.append(f"INV-27 CANNOT VERIFY {_sname}: "
-                           f"{_lmod.cause_text(_srep, root)}{_suffix}. {_lrem}")
+        import layout_migration as _lmod
+    except Exception as _lme:
+        _lmod = None
+        bad.append("INV-27 CANNOT RUN: layout_migration.py did not import (%s: %s), so a "
+                   "half-migrated layout would go unreported. The module ships with this "
+                   "repository — restore .agents/skills/harness/bin/layout_migration.py."
+                   % (type(_lme).__name__, _lme))
+
+    if _lmod is not None:
+        try:
+            _lres = _lmod.scan(root)
+        except Exception as _lse:
+            _lres = None
+            bad.append("INV-27 CANNOT RUN: the layout scan raised (%s: %s) — fix "
+                       "layout_migration.py or its reader table before trusting this gate."
+                       % (type(_lse).__name__, _lse))
+        if _lres is not None and _lres.applicable:
+            # Every entry ends with a remedy — house style; a finding an operator cannot
+            # act on is a finding they will learn to skip. The form-set tag on each reader
+            # path is load-bearing: [legacy] on a migrated tree means FINISH the reader,
+            # [migrated] on a legacy tree means REVERT it, and the paths are identical
+            # without the tag.
+            _lrem = ("Finish or revert this surface inside one atomic commit; the form "
+                     "rows are data in layout_migration.py.")
+            # THE CAUSE TABLE IS CLOSED AND THE LOOKUP FAILS LOUD (code-review finding:
+            # the earlier if/elif chain had no else, so a fifth cause value would have
+            # appended nothing and this gate — the surface operators actually see —
+            # would have passed clean while CI stayed red).
+            # Wording and blame both come from the module — cause_text/blame_text are
+            # the single owners (see layout_migration.blame, #379); this block adds only
+            # the INV-27 framing and the remedy.
+            for _sname in sorted(_lres.surfaces):
+                _srep = _lres.surfaces[_sname]
+                if _srep.verdict == "MIXED":
+                    _ev = "+".join(sorted(_srep.evidence)) if _srep.evidence else "none"
+                    bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
+                               f"readers {_lmod.blame_text(_srep)}. {_lrem}")
+                elif _srep.verdict == "CANNOT_VERIFY":
+                    _named = _lmod.blame_text(_srep)
+                    _suffix = f"; readers: {_named}" if _named else ""
+                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: "
+                               f"{_lmod.cause_text(_srep, root)}{_suffix}. {_lrem}")
+    return bad, warn
 
 # --- INV-42 (FEAT-60 SC-08, DEC-174 direct work): preload weight. Every autoloadSkills
 # entry is text paid on every spawn; check_skill_weight measures it per agent and for the
@@ -2419,29 +2860,34 @@ if _lmod is not None:
 # violation is the module's own error list: a preload that resolves to nothing (the agent
 # spawns without a rule it was declared to carry) or a references/ file named as a preload
 # (SC-11). The import posture is INV-27's: the module ships with the tree.
-try:
-    # register=True: dataclasses resolve the module by name during exec (FEAT-61 T-03 —
-    # the registration, and its removal after a failed exec, live in load_repo_module).
-    _csw = harness_boundary.load_repo_module(
-        "check_skill_weight", os.path.join(sys.argv[2], "check-skill-weight.py"),
-        register=True)
-except Exception as _cswe:
-    _csw = None
-    bad.append("INV-42 CANNOT RUN: check-skill-weight.py did not import (%s: %s), so an "
-               "agent preloading a missing skill would go unreported. The module ships with "
-               "this repository — restore .claude/skills/harness/bin/check-skill-weight.py."
-               % (type(_cswe).__name__, _cswe))
-if _csw is not None:
+def inv_42(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+
     try:
-        _wres = _csw.scan(root)
-    except Exception as _wse:
-        _wres = None
-        bad.append("INV-42 CANNOT RUN: the preload scan raised (%s: %s)."
-                   % (type(_wse).__name__, _wse))
-    if _wres is not None:
-        bad.extend(f"INV-42 {_e}." for _e in _wres.errors)
-        warn.extend(f"INV-42 {_n}. Cut per DEC-158 (rule, one clause, pointer) or raise "
-                    f"budgets.preload_warn_words in .harness/harness.json." for _n in _wres.notes())
+        # register=True: dataclasses resolve the module by name during exec (FEAT-61 T-03 —
+        # the registration, and its removal after a failed exec, live in load_repo_module).
+        _csw = harness_boundary.load_repo_module(
+            "check_skill_weight", os.path.join(sys.argv[2], "check-skill-weight.py"),
+            register=True)
+    except Exception as _cswe:
+        _csw = None
+        bad.append("INV-42 CANNOT RUN: check-skill-weight.py did not import (%s: %s), so an "
+                   "agent preloading a missing skill would go unreported. The module ships with "
+                   "this repository — restore .claude/skills/harness/bin/check-skill-weight.py."
+                   % (type(_cswe).__name__, _cswe))
+    if _csw is not None:
+        try:
+            _wres = _csw.scan(root)
+        except Exception as _wse:
+            _wres = None
+            bad.append("INV-42 CANNOT RUN: the preload scan raised (%s: %s)."
+                       % (type(_wse).__name__, _wse))
+        if _wres is not None:
+            bad.extend(f"INV-42 {_e}." for _e in _wres.errors)
+            warn.extend(f"INV-42 {_n}. Cut per DEC-158 (rule, one clause, pointer) or raise "
+                        f"budgets.preload_warn_words in .harness/harness.json." for _n in _wres.notes())
+    return bad, warn
 
 # --- INV-31 (FEAT-40 T-08, REQ-02/REQ-09): this clone's merge hook is not installed.
 #
@@ -2465,146 +2911,47 @@ if _csw is not None:
 # What was missing there was a RUNNER, not a detector, and that runner now sits inside `ship`,
 # once per feature (DEC-203 item 8) — deliberately not here, where the audit's four network
 # calls would fall on every run of the state checker.
-_HOOKS_REL = os.path.join(".claude", "skills", "harness", "hooks")
+def inv_31(ctx):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-try:
-    _hp = subprocess.run(["git", "config", "--get", "core.hooksPath"],
-                         cwd=root, capture_output=True, text=True)
-    _hp_ok = True
-except Exception as _hpe:
-    _hp_ok = False
-    # CANNOT RUN IS A VIOLATION, NOT A PASS — the same posture INV-25, INV-26 and INV-29 take
-    # for an import failure. An unreadable git config is not evidence the hook is installed.
-    bad.append("INV-31 CANNOT RUN: git config could not be read (%s: %s), so an uninstalled "
-               "merge hook would go unreported. Fix: make git runnable in this checkout."
-               % (type(_hpe).__name__, _hpe))
+    try:
+        _hp = subprocess.run(["git", "config", "--get", "core.hooksPath"],
+                             cwd=root, capture_output=True, text=True)
+        _hp_ok = True
+    except Exception as _hpe:
+        _hp_ok = False
+        # CANNOT RUN IS A VIOLATION, NOT A PASS — the same posture INV-25, INV-26 and INV-29 take
+        # for an import failure. An unreadable git config is not evidence the hook is installed.
+        bad.append("INV-31 CANNOT RUN: git config could not be read (%s: %s), so an uninstalled "
+                   "merge hook would go unreported. Fix: make git runnable in this checkout."
+                   % (type(_hpe).__name__, _hpe))
 
-if _hp_ok:
-    _found_hp = _hp.stdout.strip() if _hp.returncode == 0 else ""
-    _want_abs = os.path.realpath(os.path.join(root, _HOOKS_REL))
-    # RESOLVED AND COMPARED AS REAL PATHS, so an ABSOLUTE value naming the same directory
-    # passes and a RELATIVE one naming a different directory fails. Comparing the strings
-    # would report a working clone as broken and vice versa.
-    _found_abs = os.path.realpath(os.path.join(root, _found_hp)) if _found_hp else ""
-    if _found_abs != _want_abs:
-        _shown = "unset" if not _found_hp else '"%s"' % _found_hp
-        bad.append("INV-31: core.hooksPath is %s, not %s — no harness hook runs on this "
-                   "clone. Fix: git config core.hooksPath %s"
-                   % (_shown, _HOOKS_REL, _HOOKS_REL))
-    else:
-        # A SECOND FINDING WITH A DIFFERENT SUBJECT, never a variable tail on the first. One
-        # is a misconfigured clone; this one is a damaged checkout. They have different fixes,
-        # so they are different lines.
-        _pm = os.path.join(_want_abs, "post-merge")
-        if not os.path.isfile(_pm):
-            bad.append("INV-31: %s/post-merge is missing — the hook path resolves but the "
-                       "merge sweep cannot run. Fix: restore it" % _HOOKS_REL)
-        elif not os.access(_pm, os.X_OK):
-            bad.append("INV-31: %s/post-merge is not executable (mode %o) — the hook path "
-                       "resolves but the merge sweep cannot run. Fix: chmod +x it"
-                       % (_HOOKS_REL, os.stat(_pm).st_mode & 0o777))
-
-# --- INV-38..41 (FEAT-59 proportional flow; SC-10, SC-15, SC-16, SC-21; DEC-174 direct work).
-# Four invariants over the FEAT-59 record shapes, sharing ONE era predicate defined once here.
-#
-# THE ERA PREDICATE. A record is graded under the FEAT-59 contract when its feature.json
-# carries any key that contract introduced -- `mission`, `judgements`, `budget_decisions`,
-# `rework` -- or its BRIEF is the by-perspective shape (heading `## Done when — by
-# perspective`, C5). A record carrying none of those predates the contract and CANNOT pass a
-# ledger check, because nothing that wrote it knew a ledger existed. INV-32's lesson
-# (BUG-1071) applies verbatim: measured at this commit, 16 features carry `max_total_cycles`
-# above the harness.json default with no `budget_decisions` (the key did not exist) and
-# BUG-1309 records cycles_used 18 against max 17. An invariant that fires on all of them and
-# admits nothing enforces no rule; it trains its reader to ignore the gate. So a pre-era
-# record is NOTED where a check WOULD have fired, and only there: a legacy feature with
-# nothing to say gets no line, and a wrongly granted exemption stays visible.
-#
-# THE PREDICATE ONLY WIDENS GRADING. Any one FEAT-59 key is enough, and so is the BRIEF shape
-# on its own; `judgements: []` is an in-era record with an empty ledger, not a legacy one.
-# Retroactive grading of existing BRIEFs, plans and notes is out of scope by the brief.
-_BY_PERSPECTIVE_HEADING = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.M | re.I)
-_FEAT59_KEYS = ("mission", "judgements", "budget_decisions", "rework")
-
-
-def _brief_is_by_perspective(txt):
-    return bool(txt) and _BY_PERSPECTIVE_HEADING.search(txt) is not None
-
-
-def _perspective_key(name):
-    """`**reader (reviewer / qa / panel)**` declares `reader`: a trailing parenthetical is a
-    gloss on the name, and the SC tag carries the bare name. Case and inner whitespace are
-    normalised so `(Code Maintainer)` discharges `**code maintainer**`."""
-    return re.sub(r"\s+", " ", re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()).lower()
-
-
-def _brief_perspectives(txt):
-    """The `**name**` lines under the by-perspective heading, up to the next `## `, in order."""
-    m = _BY_PERSPECTIVE_HEADING.search(txt)
-    body = txt[m.end():]
-    nxt = re.search(r"^##\s", body, re.M)
-    if nxt:
-        body = body[:nxt.start()]
-    return [pm.group(1).strip() for pm in re.finditer(r"^\*\*([^*\n]+?)\*\*", body, re.M)]
-
-
-def _brief_scs(txt):
-    """(id, tag or None, text) for every `- SC-NN (<name>): ...` line anywhere in the BRIEF,
-    the text carrying the indented continuation lines that follow the bullet."""
-    out, lines, i = [], txt.splitlines(), 0
-    while i < len(lines):
-        m = re.match(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", lines[i])
-        i += 1
-        if not m:
-            continue
-        body = [m.group(3)]
-        while (i < len(lines) and lines[i].strip() and lines[i][:1].isspace()
-               and not re.match(r"^\s*-\s*SC-\d+", lines[i])):
-            body.append(lines[i])
-            i += 1
-        out.append((m.group(1), m.group(2), " ".join(s.strip() for s in body)))
-    return out
-
-
-# INV-41's notion of INVOKING a gate script, as distinct from naming one. A code span that
-# is a command line -- the script with a path or interpreter before it, or arguments after
-# it -- is an invocation. A bare `check-state.py` span is a mention (FEAT-59's own SC-10
-# reads "`check-state.py` refuses a new BRIEF") UNLESS the sentence runs it ("the reviewer
-# runs `check-state.py`") or grades its result ("`check-state.py` exits 0"), which is the
-# FEAT-54 SC-04 shape this invariant exists to refuse. A `check-state.py:1868` citation is
-# neither: the name is followed by `:`, not by an argument boundary.
-_INV41_SCRIPTS = ("check-state.py", "check-domain.py")
-_INV41_RUNS_BEFORE = re.compile(r"\b(?:run|runs|running|ran|execute|executes|invoke|invokes|call|calls)\s*$")
-_INV41_GRADES_AFTER = re.compile(r"(?:exits?\b|exit\s+code|passes|is\s+green|reports|prints|returns)")
-
-
-def _inv41_invocation(text):
-    """The gate script `text` invokes, or None."""
-    for m in re.finditer(r"`([^`\n]*)`", text):
-        span = m.group(1).strip()
-        for s in _INV41_SCRIPTS:
-            if s not in span:
-                continue
-            if span != s:
-                if re.search(r"(?:^|[\s/(=])%s(?:\s|$|[);|])" % re.escape(s), span):
-                    return s
-                continue
-            before = text[:m.start()].rstrip().lower()
-            after = text[m.end():].lstrip().lower()
-            if _INV41_RUNS_BEFORE.search(before) or _INV41_GRADES_AFTER.match(after):
-                return s
-    return None
-
-
-def _inv41_scoped(text, feat):
-    """A `--feature` flag, the feature's own directory, or its id anywhere in the SC text
-    scopes the invocation to this feature (SC-16)."""
-    if "--feature" in text or f"features/{feat}" in text:
-        return True
-    if re.search(r"\b%s\b" % re.escape(feat), text):
-        return True
-    fid = re.match(r"^[A-Za-z]+-\d+", feat)
-    return fid is not None and re.search(r"\b%s\b" % re.escape(fid.group(0)), text) is not None
-
+    if _hp_ok:
+        _found_hp = _hp.stdout.strip() if _hp.returncode == 0 else ""
+        _want_abs = os.path.realpath(os.path.join(root, _HOOKS_REL))
+        # RESOLVED AND COMPARED AS REAL PATHS, so an ABSOLUTE value naming the same directory
+        # passes and a RELATIVE one naming a different directory fails. Comparing the strings
+        # would report a working clone as broken and vice versa.
+        _found_abs = os.path.realpath(os.path.join(root, _found_hp)) if _found_hp else ""
+        if _found_abs != _want_abs:
+            _shown = "unset" if not _found_hp else '"%s"' % _found_hp
+            bad.append("INV-31: core.hooksPath is %s, not %s — no harness hook runs on this "
+                       "clone. Fix: git config core.hooksPath %s"
+                       % (_shown, _HOOKS_REL, _HOOKS_REL))
+        else:
+            # A SECOND FINDING WITH A DIFFERENT SUBJECT, never a variable tail on the first. One
+            # is a misconfigured clone; this one is a damaged checkout. They have different fixes,
+            # so they are different lines.
+            _pm = os.path.join(_want_abs, "post-merge")
+            if not os.path.isfile(_pm):
+                bad.append("INV-31: %s/post-merge is missing — the hook path resolves but the "
+                           "merge sweep cannot run. Fix: restore it" % _HOOKS_REL)
+            elif not os.access(_pm, os.X_OK):
+                bad.append("INV-31: %s/post-merge is not executable (mode %o) — the hook path "
+                           "resolves but the merge sweep cannot run. Fix: chmod +x it"
+                           % (_HOOKS_REL, os.stat(_pm).st_mode & 0o777))
+    return bad, warn
 
 # INV-38 (SC-10): in a by-perspective BRIEF, every declared perspective is discharged by at
 # least one SC tagged with it, and every SC is tagged with a declared perspective. The old
@@ -2617,9 +2964,11 @@ def _inv41_scoped(text, feat):
 # INV-41 (SC-16) runs in the same loop because it reads the same SC list: an SC whose text
 # invokes check-state.py or check-domain.py with no feature-scoped argument grades the whole
 # repository -- other features' debris reddens it (FEAT-54 SC-04, three of six review cycles).
-for feat, brief in sorted(briefs.items()):
-    if feat in _abandoned or not _brief_is_by_perspective(brief):
-        continue
+def inv_38(ctx, feat):
+    bad, warn = [], []
+    brief = ctx.briefs.get(feat)
+    if brief is None or feat in ctx.abandoned or not _brief_is_by_perspective(brief):
+        return bad, warn
     _persp = _brief_perspectives(brief)
     _pkeys = {_perspective_key(p): p for p in _persp}
     _scs = _brief_scs(brief)
@@ -2639,43 +2988,26 @@ for feat, brief in sorted(briefs.items()):
                        f"discharges a perspective the block declares (SC-10).")
         else:
             _discharged.add(_perspective_key(_tag))
-        _script = _inv41_invocation(_text)
-        if _script and not _inv41_scoped(_text, feat):
-            bad.append(f"INV-41 {feat}: BRIEF.md {_sid} invokes {_script} with no feature-scoped "
-                       f"argument (--feature, the feature directory, or {feat}) — repository-wide "
-                       f"state is a merge-time check, not a feature criterion (SC-16).")
     for _k, _p in _pkeys.items():
         if _k not in _discharged:
             bad.append(f"INV-38 {feat}: BRIEF.md declares perspective '{_p}' and no SC is tagged "
                        f"({_k}) — a perspective no criterion discharges is a promise nothing "
                        f"grades (SC-10).")
+    return bad, warn
 
 
-def _int_field(v):
-    """int, or None. bool is rejected BEFORE the int check (INV-22's lesson: bool subclasses
-    int, so `true` read as a budget of 1)."""
-    if isinstance(v, bool):
-        return None
-    if isinstance(v, int):
-        return v
-    if isinstance(v, str) and v.strip().isdigit():
-        return int(v.strip())
-    return None
-
-
-def _iso_instant(v):
-    """An aware datetime, or None. Accepts the two spellings the ledger writes — feature-record
-    writes `+00:00`, older fixtures and gh write `Z` — and refuses a naive value rather than
-    guessing its zone, since INV-43 compares instants across two writers."""
-    if not isinstance(v, str) or not v.strip():
-        return None
-    from datetime import datetime
-    try:
-        parsed = datetime.fromisoformat(v.strip().replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return parsed if parsed.tzinfo is not None else None
-
+def inv_41(ctx, feat):
+    bad, warn = [], []
+    brief = ctx.briefs.get(feat)
+    if brief is None or feat in ctx.abandoned or not _brief_is_by_perspective(brief):
+        return bad, warn
+    for _sid, _tag, _text in _brief_scs(brief):
+        _script = _inv41_invocation(_text)
+        if _script and not _inv41_scoped(_text, feat):
+            bad.append(f"INV-41 {feat}: BRIEF.md {_sid} invokes {_script} with no feature-scoped "
+                       f"argument (--feature, the feature directory, or {feat}) — repository-wide "
+                       f"state is a merge-time check, not a feature criterion (SC-16).")
+    return bad, warn
 
 # INV-39 (SC-15, DEC-157): the cycle budget is a bound, and a raise is a recorded decision.
 #
@@ -2718,26 +3050,13 @@ def _iso_instant(v):
 # ledger order). A timestamp that is present but unreadable is CANNOT VERIFY naming the
 # field, never a silent pass; a missing succession is INV-40's finding and is not repeated.
 # Chronology is compared on ISO-8601 instants, so `Z` and `+00:00` agree.
-_default_cycles = (_int_field((cj.get("budgets") or {}).get("max_total_cycles"))
-                   if isinstance(cj, dict) else None)
-try:
-    _pm40 = harness_boundary.load_repo_module(
-        "harness_plan_merge", os.path.join(sys.argv[2], "plan-merge.py"))
-    _signed_task_hash = _pm40.signed_task_hash
-except Exception as _pme40:
-    _signed_task_hash = None
-    bad.append("INV-40 CANNOT RUN its signed-text check: plan-merge.py did not import "
-               f"({type(_pme40).__name__}: {_pme40}), so an unledgered task-text change would go "
-               "unreported. The module ships with this repository.")
-
-
-def _signed_hashes_to_grade(doc, plan_doc):
+def _signed_hashes_to_grade(ctx, doc, plan_doc):
     """The signed_task_hashes mapping when INV-40 (d) applies, else None: the hash module
     imported, the record carries hashes, and the plan's approval is `approved`."""
     signed = doc.get("signed_task_hashes")
     approval = plan_doc.get("approval") if isinstance(plan_doc, dict) else None
     approved = isinstance(approval, dict) and str(approval.get("status", "")).strip() == "approved"
-    if _signed_task_hash is None or not isinstance(signed, dict) or not approved:
+    if ctx.signed_task_hash is None or not isinstance(signed, dict) or not approved:
         return None
     return signed
 
@@ -2758,33 +3077,45 @@ def _unledgered_edit_hit(tid, current, signed):
             f"<engineering-lead digest>, or restore the signed text")
 
 
-def _unledgered_task_edits(doc, plan_doc):
+def _unledgered_task_edits(ctx, doc, plan_doc):
     """INV-40 (d): one (short, full) hit per task whose current hash differs from its signed
     hash with no amendment judgement naming that task."""
-    signed = _signed_hashes_to_grade(doc, plan_doc)
+    signed = _signed_hashes_to_grade(ctx, doc, plan_doc)
     if signed is None:
         return []
     graded = {str(t.get("id", "")): t for t in (plan_doc.get("tasks") or [])
               if isinstance(t, dict)}
     unledgered = set(signed) & set(graded) - _amended_task_ids(doc)
-    changed = [(tid, _signed_task_hash(graded[tid])) for tid in sorted(unledgered)]
+    changed = [(tid, ctx.signed_task_hash(graded[tid])) for tid in sorted(unledgered)]
     return [_unledgered_edit_hit(tid, current, signed[tid])
             for tid, current in changed if current != signed[tid]]
 
 
-for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
-    _feat59 = os.path.basename(os.path.dirname(_fy59))
+
+def _feat59_record(ctx, feat):
+    """(doc, era) for the FEAT-59 family, or (None, None) when the record is absent or
+    unreadable -- INV-6..8 already reports an unparseable feature.json; restating it is noise."""
+    _fy59 = ctx.path(feat, "feature.json")
+    if not os.path.isfile(_fy59):
+        return None, None
     try:
         _doc59 = artifact_accessors.load_feature_json(_fy59) or {}
     except Exception:
-        # INV-6..8 already reports an unparseable feature.json; restating it is noise.
-        continue
+        return None, None
     if not isinstance(_doc59, dict):
-        continue
+        return None, None
     _era59 = (any(k in _doc59 for k in _FEAT59_KEYS)
-              or _brief_is_by_perspective(briefs.get(_feat59)))
-    _hits59 = []
+              or _brief_is_by_perspective(ctx.briefs.get(feat)))
+    return _doc59, _era59
 
+
+def inv_39(ctx, feat):
+    bad, warn, _hits59 = [], [], []
+    _feat59 = feat
+    _default_cycles = ctx.default_cycles
+    _doc59, _era59 = _feat59_record(ctx, feat)
+    if _doc59 is None:
+        return bad, warn, _hits59
     _cu59 = _int_field(_doc59.get("cycles_used"))
     _mtc59 = _int_field(_doc59.get("max_total_cycles"))
     # The schema lets a record OMIT max_total_cycles to inherit harness.json's default, so
@@ -2823,7 +3154,17 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                                 f"max_total_cycles: {_mtc59} — a raise is a recorded user decision "
                                 f"(DEC-157); write it with feature-record.py raise-cycles --to "
                                 f"{_mtc59} --decision <path> (SC-15)"))
+    return bad, warn, _hits59
 
+
+def inv_40(ctx, feat):
+    bad, warn, _hits59 = [], [], []
+    _feat59 = feat
+    _fy59 = ctx.path(feat, "feature.json")
+    plan_docs = ctx.plan_docs
+    _doc59, _era59 = _feat59_record(ctx, feat)
+    if _doc59 is None:
+        return bad, warn, _hits59
     _j59 = _doc59.get("judgements")
     if _j59 is None:
         _j59 = []
@@ -2855,7 +3196,7 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                                 f"mission decided '{_last59}' — the mission was changed with no "
                                 f"judgement recording the change (SC-21); record it with "
                                 f"feature-record.py set-mission --by <persona> --reason <why>"))
-    _hits59.extend(_unledgered_task_edits(_doc59, plan_docs.get(_feat59) or {}))
+    _hits59.extend(_unledgered_task_edits(ctx, _doc59, plan_docs.get(_feat59) or {}))
     _runs59 = [e for e in (_doc59.get("runs") or []) if isinstance(e, dict)]
     _regates59 = _kinds59.count("regate")
     _need_regate = [str(e.get("id", "")).strip() for e in _runs59[:-1]
@@ -2891,8 +3232,38 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                         f"({_succ59} recorded for {len(_need_succ)} handoff(s) with a successor "
                         f"run) — the successor's continue/downgrade/stop decision is unrecorded "
                         f"(SC-20/SC-21)"))
+    return bad, warn, _hits59
+
+
+def _feat59_successions(ctx, feat, _doc59, _era59):
+    """The (seq, note, runs-after) handoffs INV-40 (c) counts, in seq order, and the
+    succession entries the ledger carries -- shared by INV-40 and INV-43."""
+    _j59 = _doc59.get("judgements")
+    _j59 = _j59 if isinstance(_j59, list) else []
+    _runs59 = [e for e in (_doc59.get("runs") or []) if isinstance(e, dict)]
+    _need_succ = []
+    for _hp59 in glob.glob(os.path.join(ctx.feature_dir(feat), "notes", "handoff-*.md")):
+        _first59 = ((read(_hp59) or "").splitlines() or [""])[0]
+        _sm59 = re.search(r"\bseq-(\d+)\b", _first59)
+        if _sm59 is None:
+            continue
+        _after59 = len(_runs59) - int(_sm59.group(1))
+        if _after59 > 0:
+            _need_succ.append((int(_sm59.group(1)), os.path.basename(_hp59), _after59))
+    _need_succ.sort()
     _succ_entries = [e for e in _j59 if isinstance(e, dict)
                      and str(e.get("kind", "")).strip() == "succession"]
+    return _runs59, _need_succ, _succ_entries
+
+
+def inv_43(ctx, feat):
+    bad, warn, _hits59 = [], [], []
+    _feat59 = feat
+    _seam_era_start = ctx.seam_era_start
+    _doc59, _era59 = _feat59_record(ctx, feat)
+    if _doc59 is None:
+        return bad, warn, _hits59
+    _runs59, _need_succ, _succ_entries = _feat59_successions(ctx, feat, _doc59, _era59)
     for _k43, (_seq43, _note43, _) in enumerate(_need_succ):
         if _k43 >= len(_succ_entries):
             break  # INV-40 names the missing one
@@ -2927,9 +3298,22 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                             f"not graded — would fail: {_full43}.")
                 continue
             _hits59.append(("INV-43", f"retrospective succession for notes/{_note43}", _full43))
+    return bad, warn, _hits59
 
+
+def collate_feat59(ctx, feat, results):
+    """The FEAT-59 family's joint emission: an in-era record gets one violation per hit; a
+    pre-era record gets ONE note listing every short form, so sixty of them do not bury the
+    violations above them (INV-32's lesson)."""
+    bad, warn, _hits59 = [], [], []
+    for _b, _w, _h in results:
+        bad.extend(_b)
+        warn.extend(_w)
+        _hits59.extend(_h)
+    _feat59 = feat
     if not _hits59:
-        continue
+        return bad, warn
+    _doc59, _era59 = _feat59_record(ctx, feat)
     if _era59:
         # INV-43 gates on a terminal feature too (SC-03/D-02): a retrospective succession is
         # the record of work that crossed the seam unhanded, and shipping does not change what
@@ -2945,6 +3329,7 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
         warn.append(f"{_invs} {_feat59}: predates the FEAT-59 ledger (no mission, judgements, "
                     f"budget_decisions or rework key; no by-perspective BRIEF); not graded — "
                     f"would fail: " + "; ".join(_s for _, _s, _ in _hits59) + ".")
+    return bad, warn
 
 # --- INV-44 (FEAT-1714 T-03): a REJECTED record has exactly one shape. `rejected` is the
 # orchestrator's first-run verdict that the ticket is wrong or superseded — one run, zero
@@ -2954,16 +3339,20 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
 # conforming rejected record is exempt from the approval and plan-panel demands ONLY by
 # being at this station (INV-32 keys on an approved plan; the approval gate skips terminal
 # stations), never by weakening those demands elsewhere.
-for _fd44 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
-    if not os.path.isdir(_fd44) or station_of(_fd44) != "rejected":
-        continue
-    _feat44 = os.path.basename(_fd44)
+def inv_44(ctx, feat):
+    bad, warn = [], []
+    H, root, fpath = ctx.H, ctx.root, ctx.fpath
+    briefs, plan_docs = ctx.briefs, ctx.plan_docs
+    _fd44 = ctx.feature_dir(feat)
+    if station_of(_fd44) != 'rejected':
+        return bad, warn
+    _feat44 = feat
     try:
         _doc44 = artifact_accessors.load_feature_json(os.path.join(_fd44, "feature.json")) or {}
     except Exception:
         bad.append(f"INV-44 {_feat44}: station is rejected but feature.json is unreadable, so "
                    f"the rejection's one-run/zero-cycle shape cannot be verified.")
-        continue
+        return bad, warn
     _cu44 = _doc44.get("cycles_used")
     if not (isinstance(_cu44, int) and not isinstance(_cu44, bool) and _cu44 == 0):
         bad.append(f"INV-44 {_feat44}: rejected with cycles_used={_cu44!r} — a rejection is "
@@ -2998,6 +3387,7 @@ for _fd44 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
     if "panel" in _pdoc44:
         bad.append(f"INV-44 {_feat44}: rejected but plan.yaml carries a panel mapping — no "
                    f"panel runs on a rejected feature; its presence means the plan phase ran.")
+    return bad, warn
 
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole
@@ -3012,8 +3402,391 @@ for _fd44 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
 # removed. The replacement rule holds only while the striking really happens every
 # time, and its enforcement is a human reading a diff.
 
-for m in bad:  print(f"  VIOLATION  {m}")
-for m in warn: print(f"  note       {m}")
-if not bad and not warn:
-    print("  all state invariants hold.")
-sys.exit(1 if bad else 0)
+# =====================================================================================
+# THE INVARIANT TABLE (FEAT-62). One row per active INV number; a row is a record, never a
+# bare pair, so the verbs below and the consolidation audit read the same metadata:
+#
+#   name       the token every finding row prints; retired numbers are NEVER reused (DEC-205)
+#   run        `run(ctx)` for a repo-scoped row, `run(ctx, feat)` for a feature-scoped one
+#   scope      "feature": the runner calls it once per feature in `ctx.features` (sorted, and
+#              narrowed by --feature); "repo": once, and a repo row that loops features itself
+#              loops `ctx.features`, so --feature narrows it too
+#   reads      what the function opens -- `path:<repo-relative POSIX glob>`, `git:<operation>`,
+#              `gh:<resource>` -- the join --changed runs, and the reads-lock's subject
+#   contract   one line: what a VIOLATION or note from this row means
+#   authority  the decision this row stands on; the audit refuses a citation that does not
+#              resolve in DECISIONS-INDEX.md or that is STRUCK (DEC-188 made mechanical)
+#
+# GROUPS ARE THE BASELINE'S BLOCKS. The old file interleaved a family's invariants per feature
+# (INV-6, then INV-33, then INV-7 ... for feature A, then the same for feature B); the runner
+# keeps exactly that order by iterating `for group: for feature: for row`. A group's optional
+# `collate` is the one joint emission the corpus has: the FEAT-59 family's single legacy note.
+# =====================================================================================
+from collections import namedtuple
+
+Inv = namedtuple("Inv", "name run scope reads contract authority")
+Group = namedtuple("Group", "name rows collate", defaults=(None,))
+
+_FEATURE_JSON = "path:.harness/*/features/*/feature.json"
+_PLAN_YAML = "path:.harness/*/features/*/plan.yaml"
+_PLAN_MD = "path:.harness/*/features/*/PLAN.md"
+_BRIEF = "path:.harness/*/features/*/BRIEF.md"
+_STATE_MD = "path:.harness/*/features/*/STATE.md"
+_HARNESS_JSON = "path:.harness/harness.json"
+_RUN_STATE = "path:.harness/*/features/*/runs/*/state.yaml"
+_HANDOFF = "path:.harness/*/features/*/notes/handoff-*.md"
+
+INVARIANTS = (
+    Group("plan-scalar", (
+        Inv("INV-35", inv_35, "feature", (_PLAN_YAML,),
+            "an unquoted ` #<digit>` in a plan.yaml plain scalar truncates the value silently", "DEC-182"),
+    )),
+    Group("goal-of-record", (
+        Inv("INV-1", inv_1, "feature", (_BRIEF, _PLAN_YAML),
+            "a feature's BRIEF.md is signed before its flows run", "DEC-129"),
+    )),
+    Group("state-has-goal", (
+        Inv("INV-2", inv_2, "feature", (_STATE_MD, _BRIEF),
+            "a feature with a STATE.md has a BRIEF.md", "DEC-129"),
+    )),
+    Group("plan-record", (
+        Inv("INV-3", inv_3, "feature", (_PLAN_YAML, _PLAN_MD),
+            "the plan carries an approval block; a pending signature is noted", "DEC-182"),
+        Inv("INV-4", inv_4, "feature", (_PLAN_MD,),
+            "every PLAN.md task carries change_type so the qa gate can apply", "DEC-129"),
+        Inv("INV-5", inv_5, "feature", (_PLAN_YAML, _PLAN_MD, _STATE_MD),
+            "STATE.md names no task its plan does not contain", "DEC-129"),
+    )),
+# INV-32 BEGIN (FEAT-45 T-07)
+    Group("panel-record", (
+        Inv("INV-32", inv_32, "feature", (_PLAN_YAML, _FEATURE_JSON, _HARNESS_JSON),
+            "an approved plan carries the adversarial panel record the operator reviewed", "DEC-182"),
+    )),
+# INV-32 END (FEAT-45 T-07)
+    Group("feature-record", (
+        Inv("INV-6", inv_6, "feature", (_FEATURE_JSON,),
+            "a validator run that reviewed code has a pinned review_sha", "DEC-207"),
+        Inv("INV-33", inv_33, "feature", (_FEATURE_JSON, _PLAN_YAML, _PLAN_MD, "git:show", "git:log"),
+            "a pinned review_sha still matches the plan bytes at a non-terminal station", "DEC-121"),
+        Inv("INV-7", inv_7, "feature", (_FEATURE_JSON,),
+            "cycles_used counts at least the FAIL runs recorded", "DEC-157"),
+        Inv("INV-22", inv_22, "feature", (_FEATURE_JSON, _HARNESS_JSON),
+            "recorded runs are counted against budgets.max_total_runs (a note)", "DEC-178"),
+        Inv("INV-8", inv_8, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/runs/*"),
+            "a recorded run's directory exists on disk (a note)", "DEC-131"),
+        Inv("INV-12", inv_12, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/runs/*"),
+            "a run directory on disk is recorded in feature.json (a note)", "DEC-131"),
+    )),
+    Group("omp-port", (
+        Inv("OMP-PORT", omp_port, "repo", ("path:.omp/config.yml", "path:.agents/skills/harness/bin/check-omp-port.py"),
+            "an OMP-configured tree grades its roster, hook wiring and overlays through check-omp-port.py", "DEC-233"),
+    )),
+    Group("seams", (
+        Inv("INV-17", inv_17, "feature", (_FEATURE_JSON, _PLAN_YAML, _HANDOFF, _HARNESS_JSON),
+            "every seam a feature's station has crossed left a well-formed handoff note", "DEC-159"),
+    )),
+    Group("runs-without-record", (
+        Inv("INV-18", inv_18, "feature", ("path:.harness/*/features/*/runs", _FEATURE_JSON),
+            "a feature with run directories has a feature.json", "DEC-160"),
+    )),
+    Group("station-record", (
+        Inv("INV-34", inv_34, "feature", (_FEATURE_JSON, _PLAN_YAML),
+            "every feature directory carries a plan.yaml, the only place a station is recorded", "DEC-182"),
+    )),
+    Group("budgets", (
+        Inv("INV-23", inv_23, "repo", (_FEATURE_JSON, _STATE_MD, "path:CLAUDE.md"),
+            "feature.json, STATE.md and CLAUDE.md stay within their line budgets (notes)", "DEC-150"),
+    )),
+    Group("run-state", (
+        Inv("INV-16", inv_16, "feature", (_RUN_STATE, "path:.claude/skills/harness/bin/run-state-schema.json"),
+            "state.yaml is a checkpoint: whitelisted keys, declared step shape", "DEC-154"),
+        Inv("INV-36", inv_36, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/.run-identity"),
+            "a run directory's checkpoint carries the identity recorded when it was first written", "DEC-154"),
+        Inv("INV-15", inv_15, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
+                                          "path:.agents/skills/harness/bin/validate-digest.py"),
+            "a complete lead-hosted run's digest.md exists, satisfies the lead contract, and agrees with feature.json's verdict", "DEC-156"),
+    )),
+    Group("glossary", (
+        Inv("INV-19", inv_19, "repo", ("path:.harness/glossary.md",),
+            "the domain's ubiquitous language is recorded (a note)", "DEC-162"),
+    )),
+    Group("mirror-container", (
+        Inv("INV-21", inv_21, "feature", (_FEATURE_JSON, _HARNESS_JSON),
+            "a mirrored feature with task issues records its parent container (a note)", "DEC-138"),
+    )),
+    Group("factory-claims", (
+        Inv("INV-24", inv_24, "repo", (_FEATURE_JSON, "path:.harness/factory/fleet.yaml"),
+            "a factory block names a fleet repository and no two features claim one issue", "DEC-203"),
+    )),
+    Group("shipped-pr", (
+        Inv("INV-28", inv_28, "feature", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON),
+            "a Done feature records the pull request that shipped it (a note)", "DEC-138"),
+    )),
+    Group("worktree-place", (
+        Inv("INV-25", inv_25, "repo", ("git:worktree-list",),
+            "no git worktree stands outside the worktrees segment", "DEC-174"),
+    )),
+    Group("worktree-life", (
+        Inv("INV-29", inv_29, "repo", ("git:worktree-list", _FEATURE_JSON, "path:.harness/factory/fleet.yaml"),
+            "no worktree survives its feature reaching a terminal state", "DEC-203"),
+    )),
+    Group("build-entry", (
+        Inv("INV-37", inv_37, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON),
+            "an enabled mirror left a Build-entry receipt on every planned feature", "DEC-203"),
+    )),
+    Group("board", (
+        Inv("INV-26", inv_26, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON, "gh:auth", "gh:board"),
+            "the board agrees with the plan on disk for every mirrored card", "DEC-203"),
+        Inv("INV-30", inv_30, "repo", (_FEATURE_JSON, _PLAN_YAML, _HARNESS_JSON, "gh:auth", "gh:milestones"),
+            "a Done feature's milestone is closed, proving ship ran", "DEC-203"),
+    )),
+    Group("mirror-config", (
+        Inv("INV-13", inv_13, "repo", (_HARNESS_JSON,),
+            "the GitHub mirror is configured or explicitly off, never limbo", "DEC-138"),
+    )),
+    Group("layout", (
+        Inv("INV-27", inv_27, "repo", ("path:.claude/skills/harness/bin/layout_migration.py",),
+            "every layout surface speaks one language (layout_migration.scan)", "DEC-174"),
+    )),
+    Group("preload-weight", (
+        Inv("INV-42", inv_42, "repo", ("path:.omp/agents/*.md", "path:.claude/skills/*/SKILL.md", _HARNESS_JSON),
+            "every declared preload resolves; excess preload weight is a note", "DEC-158"),
+    )),
+    Group("merge-hook", (
+        Inv("INV-31", inv_31, "repo", ("git:config", "path:.claude/skills/harness/hooks/post-merge"),
+            "this clone's core.hooksPath runs the harness post-merge hook", "DEC-203"),
+    )),
+    Group("brief-perspectives", (
+        Inv("INV-38", inv_38, "feature", (_BRIEF, _PLAN_YAML),
+            "every declared perspective is discharged by a tagged SC, and every SC tag is declared", "DEC-231"),
+        Inv("INV-41", inv_41, "feature", (_BRIEF, _PLAN_YAML),
+            "an SC that invokes a gate script scopes it to the feature", "DEC-231"),
+    )),
+    Group("ledger", (
+        Inv("INV-39", inv_39, "feature", (_FEATURE_JSON, _BRIEF, _HARNESS_JSON),
+            "cycles_used stays within the bound, and a raised bound is a recorded decision", "DEC-157"),
+        Inv("INV-40", inv_40, "feature", (_FEATURE_JSON, _BRIEF, _PLAN_YAML, _HANDOFF),
+            "every autonomous judgement -- mission, regate, succession, amendment -- leaves a ledger entry", "DEC-229"),
+        Inv("INV-43", inv_43, "feature", (_FEATURE_JSON, _BRIEF, _HANDOFF, _HARNESS_JSON),
+            "a succession judgement is recorded no later than the successor's first run", "DEC-227"),
+    ), collate=collate_feat59),
+    Group("rejected-shape", (
+        Inv("INV-44", inv_44, "feature", (_FEATURE_JSON, _PLAN_YAML, _BRIEF),
+            "a REJECTED record has exactly one shape: one run, zero cycles, a reject judgement, nothing signed", "DEC-230"),
+    )),
+)
+
+# Retired numbers stay in the catalogue so `--list` and old digests resolve; a retired number
+# is never run and never reused (DEC-205).
+RETIRED = {
+    "INV-9": "DEC-233 — host enforcement moved to OMP; the OMP-PORT row grades the port surface",
+    "INV-10": "check-docs.sh struck — a decision the tree contradicts is removed, not marked stale",
+}
+
+_INV_NAME = re.compile(r"^(?:INV-\d+|[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)$")
+
+
+def _rows():
+    return [row for group in INVARIANTS for row in group.rows]
+
+
+def _list_rows():
+    for group in INVARIANTS:
+        for row in group.rows:
+            print(f"{row.name:9} {row.scope:8} {' '.join(row.reads)}")
+            print(f"{'':9} {row.authority:8} {row.contract}")
+    for name, why in RETIRED.items():
+        print(f"{name:9} retired  {why}")
+
+
+def _select_names(only):
+    """The row names --only selects, or a (message, exit) refusal."""
+    names = [n.strip() for n in only.split(",") if n.strip()]
+    active = {row.name for row in _rows()}
+    for n in names:
+        if n in RETIRED:
+            print(f"check-state.py: {n} is retired — {RETIRED[n]}. Nothing runs for it.")
+            return None, 0
+        if n not in active:
+            print(f"check-state.py: no invariant named {n!r}; run --list to see the table.",
+                  file=sys.stderr)
+            return None, 2
+    return set(names), None
+
+
+# --- --changed: the join between dirty paths and declared reads --------------------------------
+_FEATURE_IN_PATH = re.compile(r"^\.harness/[^/]+/features/([^/]+)(?:/|$)")
+
+
+def _dirty_paths(root):
+    """Repo-relative POSIX paths of every dirty, staged, untracked or renamed file, or None
+    when git cannot answer (no work tree)."""
+    try:
+        r = subprocess.run(["git", "-C", root, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                           capture_output=True)
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    top = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    top = os.path.realpath(top.stdout.strip()) if top.returncode == 0 else os.path.realpath(root)
+    real_root = os.path.realpath(root)
+    fields = r.stdout.decode("utf-8", errors="replace").split("\0")
+    paths, i = [], 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        code, p = entry[:2], entry[3:]
+        paths.append(p)
+        if code[0] in "RC" and i < len(fields):
+            # A rename record is followed by the ORIGINAL path in its own field; both sides count.
+            paths.append(fields[i])
+            i += 1
+    out = []
+    for p in paths:
+        absolute = os.path.join(top, p)
+        rel = os.path.relpath(absolute, real_root).replace(os.sep, "/")
+        if not rel.startswith("../"):
+            out.append(rel)
+    return out
+
+
+def _changed_selection(root):
+    """{row name: feature names or None} selected by the dirty tree, or None when the tree
+    cannot be read -- which runs EVERYTHING, the conservative direction. A row selected
+    through a `path:` declaration is narrowed to the features those paths belong to; a row
+    selected through an input no path can map (`git:`, `gh:`, a path outside the feature
+    tree) runs for every feature."""
+    from fnmatch import fnmatchcase
+    dirty = _dirty_paths(root)
+    if dirty is None:
+        return None
+    selection = {}
+    for group in INVARIANTS:
+        for row in group.rows:
+            feats, everywhere, hit = set(), False, False
+            for r in row.reads:
+                if not r.startswith("path:"):
+                    hit = everywhere = True      # git:/gh: inputs cannot be mapped to a path
+                    continue
+                pat = r[len("path:"):]
+                for p in dirty:
+                    if fnmatchcase(p, pat) or p.startswith(pat.rstrip("*") + "/"):
+                        hit = True
+                        m = _FEATURE_IN_PATH.match(p)
+                        if m:
+                            feats.add(m.group(1))
+                        else:
+                            everywhere = True
+            if hit:
+                selection[row.name] = None if everywhere else feats
+    return selection
+
+
+def _parse_args(argv):
+    """The four verbs. Everything the baseline ignored (stray user arguments) is still ignored:
+    only the flags below are read."""
+    only = feature = None
+    list_mode = changed = False
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--list":
+            list_mode = True
+        elif a == "--changed":
+            changed = True
+        elif a in ("--only", "--feature"):
+            if i + 1 >= len(argv):
+                print(f"check-state.py: {a} needs a value", file=sys.stderr)
+                sys.exit(2)
+            if a == "--only":
+                only = argv[i + 1]
+            else:
+                feature = argv[i + 1]
+            i += 1
+        elif a.startswith("--only=") or a.startswith("--feature="):
+            k, v = a.split("=", 1)
+            if k == "--only":
+                only = v
+            else:
+                feature = v
+        i += 1
+    return only, feature, list_mode, changed
+
+
+def run_table(ctx, selection=None):
+    """Every selected row, in table order: `for group: for feature: for row`. `selection`
+    maps a row name to the feature names it runs for (None: every feature in ctx.features);
+    a None selection runs the whole table."""
+    bad, warn = list(ctx.bad), list(ctx.warn)
+    for group in INVARIANTS:
+        rows = [r for r in group.rows if selection is None or r.name in selection]
+        if not rows:
+            continue
+        repo_rows = [r for r in rows if r.scope == "repo"]
+        feat_rows = [r for r in rows if r.scope == "feature"]
+        for row in repo_rows:
+            b, w = row.run(ctx)
+            bad.extend(b)
+            warn.extend(w)
+        if not feat_rows:
+            continue
+        for feat in ctx.features:
+            feat_rows_here = [r for r in feat_rows
+                              if selection is None or selection[r.name] is None or feat in selection[r.name]]
+            if not feat_rows_here:
+                continue
+            results = [row.run(ctx, feat) for row in feat_rows_here]
+            if group.collate is not None:
+                b, w = group.collate(ctx, feat, results)
+            else:
+                b = [x for res in results for x in res[0]]
+                w = [x for res in results for x in res[1]]
+            bad.extend(b)
+            warn.extend(w)
+    return bad, warn
+
+
+def main(argv):
+    only, feature, list_mode, changed = _parse_args(argv)
+    if list_mode:
+        try:
+            _list_rows()
+        except BrokenPipeError:
+            pass
+        return 0
+    if not os.path.isdir(os.path.join(root, ".harness")):
+        print("harness: no .harness/ here — this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.")
+        return 1
+    selection = None
+    if only is not None:
+        names, code = _select_names(only)
+        if names is None:
+            return code
+        selection = {n: None for n in names}
+    keep = None if feature is None else {feature}
+    if changed:
+        changed_sel = _changed_selection(root)
+        if changed_sel is not None:
+            if selection is None:
+                selection = changed_sel
+            else:
+                selection = {n: f for n, f in changed_sel.items() if n in selection}
+            if not selection:
+                return 0            # nothing selected reads anything that changed: silent
+    ctx = Ctx(root, keep=keep)
+    bad, warn = run_table(ctx, selection)
+    if changed and not bad and not warn:
+        return 0                    # a clean selective run is SILENT: hooks forward only rows
+    for m in bad:  print(f"  VIOLATION  {m}")
+    for m in warn: print(f"  note       {m}")
+    if not bad and not warn:
+        print("  all state invariants hold.")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(_USER_ARGV))
+
