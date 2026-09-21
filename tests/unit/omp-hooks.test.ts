@@ -801,6 +801,41 @@ describe("OMP task lifecycle adapter", () => {
     expect(validation?.payload.harness_review_pin).toBeUndefined();
   });
 
+  // #1855: the mission rides the same road as the pin — the assignment message, scanned
+  // once — and reaches validate-digest.py as harness_mission so a distill reader's
+  // gate fields are pinned to their did-nothing spelling rather than fabricated.
+  test("forwards the assignment's HARNESS-MISSION to the digest validator", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-qa"],
+    }, ctx);
+    await handlers.get("message_end")?.({
+      message: { role: "user", content: [{ type: "text",
+        text: "HARNESS-FEATURE: FEAT-61-consolidation\nHARNESS-MISSION: distill\ndistill your log" }] },
+    }, ctx);
+    await handlers.get("message_end")?.({
+      message: { role: "user", content: [{ type: "text", text: "HARNESS-MISSION: build" }] },
+    }, ctx);
+    await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx);
+    const validation = calls.find((call) => call.script === "validate-digest.py");
+    expect(validation?.payload.harness_mission).toBe("distill");
+    expect(validation?.payload.harness_review_pin).toBeUndefined();
+  });
+
+  test("forwards no mission when the assignment carries none", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    await start(handlers);
+    await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx);
+    const validation = calls.find((call) => call.script === "validate-digest.py");
+    expect(validation?.payload.harness_mission).toBeUndefined();
+  });
+
   test("attaches task identities and releases each terminal child", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
