@@ -6,8 +6,8 @@ user-invocable: false
 
 # Expertise
 
-Your Expertise file is **already in your context** — a `SubagentStart` hook injected it at spawn,
-**if the file exists.** You never read it yourself and never go looking for it.
+Your Expertise file is **already in your context**, injected at spawn if it exists; you never
+read it yourself.
 
 Memory has **two layers**; confusing them is the failure this skill prevents:
 
@@ -69,7 +69,6 @@ touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`.
 |---|---|
 | "This is durable, straight into Expertise" | Mid-run, nothing goes into Expertise. Observe now, distill cold |
 | "This decision was important, into the log it goes" | Decisions are approval-gated. Wrong home |
-| "The entry needs the feature context to make sense" | Then it is not durable yet. Leave it in observations |
-| "I learned a lot today" | Almost certainly none of it passes the six-spawns test. `expertise_update: []` is the usual return |
+| "I learned a lot today" | Almost none of it is durable craft. `expertise_update: []` is the usual return |
 | "The harness misbehaved, I'll record the workaround" | That is a bug report. Raise it as an `open_question`; a workaround in Expertise outlives the fix |
 | "I'm distilling, I know the format" | Read `harness-distill` anyway. It is not in your context, and writing from your new entries alone deletes every earlier one (DEC-125) |
