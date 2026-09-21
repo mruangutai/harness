@@ -528,6 +528,40 @@ def case_bug1304_multiple_claims():
     finally:
         shutil.rmtree(owner, ignore_errors=True)
 
+def case_runtime_lineage_filters_claim_worktrees():
+    mod = hb()
+    agent = "harness-backend-dev"
+    owner = tempfile.mkdtemp()
+    try:
+        first = make_worktree(mod, owner, "FEAT-31")
+        make_worktree(mod, owner, "FEAT-32")
+        first_claim = live_claim(agent, "FEAT-31-orchestrator-context-watch")
+        first_claim.update({"agent_id": "BackendOne", "parent_agent_id": "LeadOne"})
+        second_claim = live_claim(agent, "FEAT-32-concurrent-write-merge")
+        second_claim.update({"agent_id": "BackendTwo", "parent_agent_id": "LeadTwo"})
+        write_claims(owner, [first_claim, second_claim])
+        got = mod.claim_worktrees(
+            owner,
+            agent,
+            owner,
+            agent_id="BackendOne",
+            parent_agent_id="LeadOne",
+        )
+        check("runtime lineage selects only the exact child's worktree",
+              got == [first], f"expected {[first]!r}, got {got!r}")
+        sibling = mod.claim_worktrees(
+            owner,
+            agent,
+            owner,
+            agent_id="BackendOne",
+            parent_agent_id="LeadTwo",
+        )
+        check("runtime lineage rejects a sibling parent's claim",
+              sibling == [], f"expected [], got {sibling!r}")
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+
 
 def case_bug1304_ambiguous_claim():
     mod = hb()
@@ -609,6 +643,7 @@ def case_bug1304_claim_set():
     case_bug1304_owner_claim()
     case_bug1304_unresolved_and_empty_claims()
     case_bug1304_multiple_claims()
+    case_runtime_lineage_filters_claim_worktrees()
     case_bug1304_ambiguous_claim()
     case_bug1304_unreadable_claims()
     case_bug1304_refusal_text()
