@@ -2510,6 +2510,202 @@ def case_feat61_loader_lock():
           f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-62 T-02: the three checker-structure locks and the --changed posture scan, each proven
+# RED on an isolated mutant of the tree and silent on the tree as shipped. Mutants edit a COPY
+# that carries bin/, the decisions index, the workflows and the hooks — the four surfaces the
+# FEAT-62 rules read — so no case touches the live tree.
+_FEAT62_TREE_RELS = (
+    os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md"),
+)
+_FEAT62_TREE_DIRS = (
+    os.path.join(".github", "workflows"),
+    os.path.join(".claude", "skills", "harness", "hooks"),
+)
+
+
+def _feat62_findings_for_tree(mutate=None):
+    """`feat62_findings` over a COPY of the surfaces it reads; `mutate(root)` edits the copy."""
+    with tempfile.TemporaryDirectory() as td:
+        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
+        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        for rel in _FEAT62_TREE_RELS:
+            os.makedirs(os.path.dirname(os.path.join(td, rel)), exist_ok=True)
+            shutil.copy(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+        for rel in _FEAT62_TREE_DIRS:
+            shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+        if mutate is not None:
+            mutate(td)
+        return cpr().feat62_findings(td)
+
+
+def _checker_path(root):
+    return os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.py")
+
+
+def _edit_checker(root, old, new, count=1):
+    path = _checker_path(root)
+    with open(path, encoding="utf-8") as stream:
+        source = stream.read()
+    assert source.count(old) >= count, f"mutant anchor {old!r} not found"
+    with open(path, "w", encoding="utf-8") as stream:
+        stream.write(source.replace(old, new, count))
+
+
+def _append_checker(root, source):
+    with open(_checker_path(root), "a", encoding="utf-8") as stream:
+        stream.write(source)
+
+
+def _only_finding(findings, *needles):
+    own = [f for f in findings if all(n in f for n in needles)]
+    return bool(own) and len(own) == len(findings)
+
+
+def case_feat62_module_body_lock():
+    """SC-03: module-scope invariant execution is refused; the shipped tree passes."""
+    clean = _feat62_findings_for_tree()
+    check("feat62_clean_tree_has_no_findings", clean == [], "\n".join(clean))
+    # A loop at module scope that reads and judges — the pre-FEAT-62 shape, injected before the
+    # table so the file still runs.
+    def loop(root):
+        _edit_checker(root, "\nINVARIANTS = (",
+                      '\nfor _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):\n'
+                      '    if read(_p) is None:\n        pass\n\nINVARIANTS = (')
+    f = _feat62_findings_for_tree(loop)
+    check("feat62_module_body_loop_mutant_fails_for_its_own_finding",
+          _only_finding(f, "<module>", "for block at module scope"), "\n".join(f))
+    def conditional(root):
+        _edit_checker(root, "\nINVARIANTS = (",
+                      '\nif not os.path.isfile(os.path.join(H, "glossary.md")):\n    pass\n\nINVARIANTS = (')
+    f = _feat62_findings_for_tree(conditional)
+    check("feat62_module_body_conditional_mutant_fails",
+          _only_finding(f, "conditional at module scope"), "\n".join(f))
+    def try_block(root):
+        _edit_checker(root, "\nINVARIANTS = (",
+                      '\ntry:\n    _x = subprocess.run(["git", "status"], capture_output=True)\n'
+                      'except Exception:\n    _x = None\n\nINVARIANTS = (')
+    f = _feat62_findings_for_tree(try_block)
+    check("feat62_module_body_try_mutant_fails",
+          _only_finding(f, "try block at module scope"), "\n".join(f))
+    def read_stmt(root):
+        _edit_checker(root, "\nINVARIANTS = (",
+                      '\n_early = read(os.path.join(H, "harness.json"))\n\nINVARIANTS = (')
+    f = _feat62_findings_for_tree(read_stmt)
+    check("feat62_module_body_read_mutant_fails",
+          _only_finding(f, "reads the tree at module scope", "read"), "\n".join(f))
+    # Same family: an invariant body re-parsing a source the context already holds.
+    def reparse(root):
+        _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
+                      "def inv_2(ctx, feat):\n    _again = artifact_accessors.load_plan(ctx.path(feat, 'plan.yaml'))\n    \"\"\"")
+    f = _feat62_findings_for_tree(reparse)
+    check("feat62_reparse_mutant_fails_for_its_own_finding",
+          _only_finding(f, "inv_2", "re-parses a runner-shared source", "load_plan"), "\n".join(f))
+
+
+def case_feat62_reads_lock():
+    """SC-04: an input a function opens without declaring it — a file, a git spawn, a gh
+    spawn — fails for its own finding; a declared one is silent."""
+    def undeclared_file(root):
+        _edit_checker(root, "def inv_19(ctx):\n",
+                      "def inv_19(ctx):\n    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n")
+    f = _feat62_findings_for_tree(undeclared_file)
+    check("feat62_reads_undeclared_file_mutant_fails",
+          _only_finding(f, "INV-19", "opens 'team-config.yaml'", "declares no path: read"), "\n".join(f))
+    def undeclared_git(root):
+        _edit_checker(root, "def inv_19(ctx):\n",
+                      "def inv_19(ctx):\n    subprocess.run(['git', 'status'], capture_output=True)\n")
+    f = _feat62_findings_for_tree(undeclared_git)
+    check("feat62_reads_undeclared_git_mutant_fails",
+          _only_finding(f, "INV-19", "spawns git", "declares no git: read"), "\n".join(f))
+    def undeclared_gh(root):
+        _edit_checker(root, "def inv_19(ctx):\n",
+                      "def inv_19(ctx):\n    _gh_bin = 'gh'\n    subprocess.run([_gh_bin, 'auth', 'status'], capture_output=True)\n")
+    f = _feat62_findings_for_tree(undeclared_gh)
+    check("feat62_reads_undeclared_gh_mutant_fails",
+          _only_finding(f, "INV-19", "spawns gh", "declares no gh: read"), "\n".join(f))
+    # Reached through a HELPER, not the row's own function: the lock walks the call graph.
+    def via_helper(root):
+        _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n")
+        _edit_checker(root, "def inv_19(ctx):\n", "def inv_19(ctx):\n    _inv19_probe(ctx)\n")
+    f = _feat62_findings_for_tree(via_helper)
+    check("feat62_reads_lock_follows_helpers",
+          _only_finding(f, "INV-19", "opens 'team-config.yaml'"), "\n".join(f))
+    # And the negative control: the same read, DECLARED, is silent.
+    def declared(root):
+        _edit_checker(root, "def inv_19(ctx):\n",
+                      "def inv_19(ctx):\n    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n")
+        _edit_checker(root, '("path:.harness/glossary.md",)',
+                      '("path:.harness/glossary.md", "path:.harness/team-config.yaml")')
+    f = _feat62_findings_for_tree(declared)
+    check("feat62_reads_declared_input_is_silent", f == [], "\n".join(f))
+    def bad_kind(root):
+        _edit_checker(root, '("path:.harness/glossary.md",)', '("glossary.md",)')
+    f = _feat62_findings_for_tree(bad_kind)
+    check("feat62_reads_unprefixed_declaration_fails",
+          _only_finding(f, "INV-19", "not path:/git:/gh:"), "\n".join(f))
+
+
+def case_feat62_authority_audit():
+    """SC-05: a missing or STRUCK authority fails; every live row resolves."""
+    def missing(root):
+        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
+                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-9999"')
+    f = _feat62_findings_for_tree(missing)
+    check("feat62_authority_missing_decision_fails",
+          _only_finding(f, "INV-19", "DEC-9999", "does not resolve"), "\n".join(f))
+    def struck(root):
+        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
+                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-90"')
+    f = _feat62_findings_for_tree(struck)
+    check("feat62_authority_struck_decision_fails",
+          _only_finding(f, "INV-19", "DEC-90", "STRUCK", "DEC-188"), "\n".join(f))
+    # Striking a decision the table stands on reddens the rows that cite it — the DEC-188
+    # mechanism — proven by striking DEC-162 in the COPY's index.
+    def strike_in_index(root):
+        path = os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
+        with open(path, encoding="utf-8") as stream:
+            text = stream.read()
+        line = next(l for l in text.splitlines() if l.startswith("- DEC-162 "))
+        head, _, ruling = line.partition(" :: ")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(text.replace(line, f"{head} :: STRUCK 2026-09-21 under DEC-188 — {ruling}"))
+    f = _feat62_findings_for_tree(strike_in_index)
+    check("feat62_authority_striking_a_cited_decision_reddens_its_rows",
+          _only_finding(f, "INV-19", "DEC-162", "STRUCK"), "\n".join(f))
+    def no_index(root):
+        os.remove(os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md"))
+    f = _feat62_findings_for_tree(no_index)
+    check("feat62_authority_unreadable_index_is_loud_not_silent",
+          _only_finding(f, "CANNOT RUN", "DECISIONS-INDEX.md"), "\n".join(f))
+
+
+def case_feat62_changed_posture():
+    """SC-06: a workflow or hook invoking check-state.py --changed fails; the live tree has none
+    and CI still runs the full checker."""
+    def workflow(root):
+        with open(os.path.join(root, ".github", "workflows", "tests.yml"), "a", encoding="utf-8") as stream:
+            stream.write("\n      - run: python3 .claude/skills/harness/bin/check-state.py --changed\n")
+    f = _feat62_findings_for_tree(workflow)
+    check("feat62_posture_workflow_mutant_fails",
+          _only_finding(f, "workflows/tests.yml", "--changed", "edit-loop verb"), "\n".join(f))
+    def hook(root):
+        with open(os.path.join(root, ".claude", "skills", "harness", "hooks", "post-merge"), "a",
+                  encoding="utf-8") as stream:
+            stream.write('\npython3 "$HARNESS_BIN/check-state.py" --changed\n')
+    f = _feat62_findings_for_tree(hook)
+    check("feat62_posture_hook_mutant_fails",
+          _only_finding(f, "hooks/post-merge", "--changed"), "\n".join(f))
+    with open(os.path.join(REPO_ROOT, ".github", "workflows", "tests.yml"), encoding="utf-8") as stream:
+        wf = stream.read()
+    check("feat62_posture_ci_runs_the_full_checker",
+          "check-state.py" in wf and "--changed" not in wf, wf[:200])
+    r = run("--consolidation-audit")
+    check("feat62_cli_reports_clean_and_exits_0",
+          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
+          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
+
+
 
 
 CASES = (
@@ -2539,6 +2735,10 @@ CASES = (
     case_feat61_lifecycle_receipt,
     case_feat61_station_lock,
     case_feat61_loader_lock,
+    case_feat62_module_body_lock,
+    case_feat62_reads_lock,
+    case_feat62_authority_audit,
+    case_feat62_changed_posture,
 )
 
 

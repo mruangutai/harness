@@ -1753,6 +1753,361 @@ def _call_symbol(tree, node):
     return min(containers, key=lambda c: c.end_lineno - c.lineno).name
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-62 T-02: THE THREE CHECKER-STRUCTURE LOCKS, plus one invocation-posture scan that is
+# deliberately NOT counted as a fourth structural rule. Each names the one way the
+# decomposition of check-state.py could grow back:
+#
+#   1. MODULE BODY. After the trusted bootstrap (everything through `root = sys.argv[1]`), the
+#      checker's module body holds imports, definitions, constants and tables, and the guarded
+#      main call — never an invariant. A top-level `for`/`while`/`with`/`try` (other than an
+#      import guard), an `if` that is not the main guard, or a statement that READS (open, read,
+#      glob, subprocess, a canonical accessor) is a block escaping the table. In the same family:
+#      a source the runner context parses ONCE (plan.yaml as a mapping; BRIEF.md, STATE.md and
+#      PLAN.md as text) is not re-parsed inside an invariant body — `load_plan(...)` or a
+#      `read(...)`/`open(...)` naming one of those files there is a second parse of a shared
+#      source, which is the drift the context exists to remove.
+#   2. READS. Every `Inv` row declares what its function opens (`path:`, `git:`, `gh:`), and
+#      that declaration is what `--changed` joins on. A file name the function (or a helper it
+#      calls) names in code, a `git` argv it spawns, or a `gh` binary it runs that the row does
+#      not declare is a silent hole in selective execution — the run skips the row exactly when
+#      that input changed. Message text (f-strings) is not an input and is not scanned.
+#   3. AUTHORITY. Every row's `authority` resolves to a live `DEC-NNN` in DECISIONS-INDEX.md and
+#      is not STRUCK. DEC-188 says a struck decision is removed from every gate; this is the
+#      mechanism — striking a decision reddens every invariant that stood on it until each is
+#      re-cited or retired. A decision amended in place under the same number is an accepted,
+#      recorded limit.
+#
+#   POSTURE (not a structural rule): `--changed` is the edit-loop verb and never the gate.
+#   No workflow under .github/workflows/ and no hook under .claude/skills/harness/hooks/ may
+#   invoke check-state.py with it; CI, command entry and pre-commit run the full table.
+CHECKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.py")
+DECISIONS_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
+_BOOTSTRAP_END_TARGET = "root"           # the first top-level `root = ...` closes the bootstrap
+_READER_CALLEES = {"open", "read", "glob", "iglob", "run", "check_output", "Popen", "listdir",
+                   "walk", "load_plan", "load_feature_json", "load_harness_json", "load_fleet",
+                   "load_file", "load_repo_module"}
+_SHARED_SOURCE_LOADERS = {"load_plan"}
+_SHARED_SOURCE_TEXTS = ("BRIEF.md", "STATE.md", "PLAN.md")
+_INVARIANT_FN = re.compile(r"^(?:inv_\d+|_inv\d+_\w+|collate_\w+|_collate\d+_\w+)$")
+_INPUT_LITERAL = re.compile(r"^[\w.*-]+\.(?:yaml|yml|json|md|py)$")
+_READ_KINDS = ("path:", "git:", "gh:")
+
+
+def _checker_tree(root):
+    path = os.path.join(root, CHECKER_REL)
+    with open(path, encoding="utf-8") as source:
+        return ast.parse(source.read(), filename=CHECKER_REL)
+
+
+def _bootstrap_end(tree):
+    """Line of the first top-level `root = ...`; everything after it is the locked body."""
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+                isinstance(t, ast.Name) and t.id == _BOOTSTRAP_END_TARGET for t in node.targets):
+            return node.lineno
+    return 0
+
+
+def _is_main_guard(node):
+    test = node.test
+    return (isinstance(node, ast.If) and isinstance(test, ast.Compare)
+            and isinstance(test.left, ast.Name) and test.left.id == "__name__")
+
+
+def _is_import_guard(node):
+    """`try: import x except: x = None` — the one Try shape the body may carry."""
+    body_ok = all(isinstance(s, (ast.Import, ast.ImportFrom)) for s in node.body)
+    handlers_ok = all(all(isinstance(s, (ast.Assign, ast.Pass)) for s in h.body) for h in node.handlers)
+    return isinstance(node, ast.Try) and body_ok and handlers_ok
+
+
+def _reads_in(node):
+    """Callee names in `node` that read the tree — the vocabulary in _READER_CALLEES."""
+    return sorted({_callee_name(c) for c in ast.walk(node)
+                   if isinstance(c, ast.Call) and _callee_name(c) in _READER_CALLEES})
+
+
+_BLOCK_KINDS = (ast.For, ast.While, ast.With, ast.AsyncFor, ast.AsyncWith)
+
+
+def _module_body_shape(node):
+    """What is wrong with a top-level statement's SHAPE, or None: a block, a conditional that
+    is not the main guard, a try that is not an import guard."""
+    if isinstance(node, _BLOCK_KINDS):
+        return f"{type(node).__name__.lower()} block at module scope"
+    if isinstance(node, ast.If) and not _is_main_guard(node):
+        return "conditional at module scope"
+    if isinstance(node, ast.Try) and not _is_import_guard(node):
+        return "try block at module scope"
+    return None
+
+
+def _module_body_finding(node, relative):
+    what = _module_body_shape(node)
+    if what is None and isinstance(node, (ast.Assign, ast.AnnAssign, ast.Expr)):
+        reads = _reads_in(node)
+        what = f"reads the tree at module scope ({', '.join(reads)})" if reads else None
+    return f"{relative}::<module>:{node.lineno} {what}" if what else None
+
+
+def _module_body_findings(tree, relative):
+    after = _bootstrap_end(tree)
+    findings = []
+    for node in tree.body:
+        if node.lineno <= after:
+            continue
+        finding = _module_body_finding(node, relative)
+        if finding:
+            findings.append(finding + " — an invariant lives in a function registered in INVARIANTS (FEAT-62 SC-03)")
+    return findings
+
+
+def _names_shared_text(call):
+    return any(isinstance(c, ast.Constant) and isinstance(c.value, str) and c.value in _SHARED_SOURCE_TEXTS
+               for c in ast.walk(call))
+
+
+def _reparsing_calls(fn):
+    """(callee, lineno) for every call in `fn` that parses a runner-shared source again."""
+    calls = (c for c in ast.walk(fn) if isinstance(c, ast.Call))
+    return [(_callee_name(c), c.lineno) for c in calls
+            if _callee_name(c) in _SHARED_SOURCE_LOADERS
+            or (_callee_name(c) in ("read", "open") and _names_shared_text(c))]
+
+
+def _reparse_findings(tree, relative):
+    """A shared source parsed again inside an invariant body (module-body family)."""
+    return [f"{relative}::{fn.name}:{lineno} re-parses a runner-shared source ({callee}) — read it "
+            f"from ctx (FEAT-62 SC-03)"
+            for fn in _invariant_functions(tree) for callee, lineno in _reparsing_calls(fn)]
+
+
+def _invariant_functions(tree):
+    return [n for n in tree.body if isinstance(n, ast.FunctionDef) and _INVARIANT_FN.match(n.name)]
+
+
+def _module_functions(tree):
+    fns = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    for cls in (n for n in tree.body if isinstance(n, ast.ClassDef)):
+        for m in cls.body:
+            if isinstance(m, ast.FunctionDef):
+                fns[f"{cls.name}.{m.name}"] = m
+    return fns
+
+
+def _is_string_assign(node):
+    return (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str))
+
+
+def _string_constants(tree):
+    """Top-level `NAME = "..."` bindings — the `_FEATURE_JSON`-style read aliases."""
+    return {t.id: node.value.value
+            for node in tree.body if _is_string_assign(node)
+            for t in node.targets if isinstance(t, ast.Name)}
+
+
+def _inv_rows(tree):
+    """(name, run function name, reads tuple, authority, lineno) for every Inv(...) in the table."""
+    aliases = _string_constants(tree)
+    rows = []
+    for call in ast.walk(tree):
+        if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == "Inv"):
+            continue
+        name, run, _scope, reads, _contract, authority = call.args
+        declared = tuple(aliases.get(e.id) if isinstance(e, ast.Name) else e.value for e in reads.elts)
+        rows.append((name.value, run.id, declared, authority.value, call.lineno))
+    return rows
+
+
+def _reachable(fn_name, fns, seen=None):
+    """`fn_name` and every check-state function it calls, transitively (module functions by
+    name, Ctx methods through `ctx.<method>(...)`)."""
+    seen = set() if seen is None else seen
+    if fn_name in seen or fn_name not in fns:
+        return seen
+    seen.add(fn_name)
+    for callee in _called_names(fns[fn_name]):
+        _reachable(callee, fns, seen)
+    return seen
+
+
+def _called_names(fn):
+    """Names `fn` calls that could be check-state functions: bare names, and `ctx.<m>` as
+    `Ctx.<m>`."""
+    names = []
+    for call in (c for c in ast.walk(fn) if isinstance(c, ast.Call)):
+        f = call.func
+        if isinstance(f, ast.Name):
+            names.append(f.id)
+        elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) and f.value.id == "ctx":
+            names.append(f"Ctx.{f.attr}")
+    return names
+
+
+_SPAWN_CALLEES = ("run", "check_output", "Popen")
+
+
+def _argv_head(call):
+    """The first element of a `subprocess.run([...])`-shaped argv, or None."""
+    if _callee_name(call) not in _SPAWN_CALLEES or not call.args:
+        return None
+    argv = call.args[0]
+    return argv.elts[0] if isinstance(argv, (ast.List, ast.Tuple)) and argv.elts else None
+
+
+def _argv_binary(call):
+    """"git" or "gh" for a spawn whose argv head names one, else None."""
+    first = _argv_head(call)
+    if isinstance(first, ast.Constant) and first.value == "git":
+        return "git"
+    if isinstance(first, ast.Name) and "gh" in first.id.lower():
+        return "gh"
+    return None
+
+
+def _joined_parts(fn):
+    """ids of the constant parts of every f-string in `fn` — message text, not inputs."""
+    return {id(v) for node in ast.walk(fn) if isinstance(node, ast.JoinedStr) for v in node.values}
+
+
+def _input_literals(fn):
+    skip = _joined_parts(fn)
+    return {n.value for n in ast.walk(fn)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str)
+            and id(n) not in skip and _INPUT_LITERAL.match(n.value)}
+
+
+def _observed_inputs(fn):
+    """File-name literals (outside f-strings) and spawned binaries in one function body."""
+    binaries = {_argv_binary(n) for n in ast.walk(fn) if isinstance(n, ast.Call)} - {None}
+    return _input_literals(fn), binaries
+
+
+def _declared_covers(literal, declared):
+    return any(d.startswith("path:") and (d.endswith("/" + literal) or d == "path:" + literal
+                                          or os.path.basename(d[5:]) == literal)
+               for d in declared)
+
+
+def _row_inputs(run, fns):
+    """Every literal and binary the row's function and its helpers observe."""
+    literals, binaries = set(), set()
+    for fn_name in sorted(_reachable(run, fns)):
+        if fn_name.startswith("Ctx.__init__"):
+            continue
+        lits, bins = _observed_inputs(fns[fn_name])
+        literals |= lits
+        binaries |= bins
+    return literals, binaries
+
+
+def _row_reads_findings(row, fns, relative):
+    name, run, declared, _authority, lineno = row
+    findings = [f"{relative}::INVARIANTS:{lineno} {name} declares {d!r}, which is not path:/git:/gh: "
+                f"(FEAT-62 SC-04)" for d in declared if not d.startswith(_READ_KINDS)][:1]
+    literals, binaries = _row_inputs(run, fns)
+    findings += [f"{relative}::{run}:{lineno} {name} opens {literal!r} but its row declares no path: read "
+                 f"covering it (FEAT-62 SC-04)"
+                 for literal in sorted(literals) if not _declared_covers(literal, declared)]
+    findings += [f"{relative}::{run}:{lineno} {name} spawns {binary} but its row declares no {binary}: read "
+                 f"(FEAT-62 SC-04)"
+                 for binary in sorted(binaries) if not any(d.startswith(binary + ":") for d in declared)]
+    return findings
+
+
+def _reads_findings(tree, relative):
+    fns = _module_functions(tree)
+    return [f for row in _inv_rows(tree) for f in _row_reads_findings(row, fns, relative)]
+
+
+def _decisions_index(root):
+    """{DEC-NNN: struck?} from the index; None when the index cannot be read."""
+    path = os.path.join(root, DECISIONS_INDEX_REL)
+    try:
+        with open(path, encoding="utf-8") as source:
+            lines = source.read().splitlines()
+    except OSError:
+        return None
+    entries = {}
+    for line in lines:
+        m = re.match(r"^- (DEC-\d+) @\S+ \[[^\]]*\] refs:[^:]*:: (.*)$", line)
+        if m:
+            entries[m.group(1)] = m.group(2).lstrip().startswith("STRUCK")
+    return entries
+
+
+def _authority_findings(tree, relative, root):
+    index = _decisions_index(root)
+    findings = []
+    if index is None:
+        return [f"{relative}::INVARIANTS authority audit CANNOT RUN: {DECISIONS_INDEX_REL} is unreadable "
+                f"(FEAT-62 SC-05)"]
+    for name, _run, _reads, authority, lineno in _inv_rows(tree):
+        if authority not in index:
+            findings.append(f"{relative}::INVARIANTS:{lineno} {name} cites {authority}, which does not resolve in "
+                            f"{DECISIONS_INDEX_REL} — cite the governing decision (FEAT-62 SC-05)")
+        elif index[authority]:
+            findings.append(f"{relative}::INVARIANTS:{lineno} {name} cites {authority}, which is STRUCK — a struck "
+                            f"decision is removed from every gate (DEC-188); re-cite or retire the invariant "
+                            f"(FEAT-62 SC-05)")
+    return findings
+
+
+_POSTURE_DIRS = (os.path.join(".github", "workflows"), os.path.join(".claude", "skills", "harness", "hooks"))
+
+
+def _posture_lines(path):
+    """Line numbers in `path` that invoke check-state.py with --changed, or an OSError."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as source:
+            return [n for n, line in enumerate(source, 1)
+                    if "check-state.py" in line and "--changed" in line]
+    except OSError as error:
+        return error
+
+
+def _posture_file_findings(rel_dir, name, path):
+    lines = _posture_lines(path)
+    if isinstance(lines, OSError):
+        return [f"{os.path.join(rel_dir, name)} posture scan cannot read it: {lines}"]
+    return [f"{os.path.join(rel_dir, name)}:{n} invokes check-state.py --changed — the gate runs the full "
+            f"table; --changed is the edit-loop verb only (FEAT-62 SC-06)" for n in lines]
+
+
+def _posture_files(root):
+    for rel_dir in _POSTURE_DIRS:
+        directory = os.path.join(root, rel_dir)
+        if not os.path.isdir(directory):
+            continue
+        for name in sorted(os.listdir(directory)):
+            path = os.path.join(directory, name)
+            if os.path.isfile(path):
+                yield rel_dir, name, path
+
+
+def _posture_findings(root):
+    """A workflow or hook that invokes check-state.py with --changed."""
+    return [f for rel_dir, name, path in _posture_files(root)
+            for f in _posture_file_findings(rel_dir, name, path)]
+
+
+def feat62_findings(root):
+    """The three checker-structure rule families over check-state.py, then the posture scan."""
+    relative = CHECKER_REL
+    try:
+        tree = _checker_tree(root)
+    except (OSError, UnicodeDecodeError, SyntaxError) as error:
+        return [f"{relative}::<module> source_parse: {error}"]
+    findings = _module_body_findings(tree, relative)
+    findings.extend(_reparse_findings(tree, relative))
+    findings.extend(_reads_findings(tree, relative))
+    findings.extend(_authority_findings(tree, relative, root))
+    findings.extend(_posture_findings(root))
+    return findings
+
+
 def consolidation_findings(root):
     """Every FEAT-61 lock violation under bin/, as printable lines; empty on a clean tree."""
     buckets = _lifecycle_buckets()
@@ -1767,6 +2122,7 @@ def consolidation_findings(root):
         if relative != STATION_TABLE_REL:
             findings.extend(_feature_station_literal_findings(tree, relative, buckets))
         findings.extend(_module_loader_findings(tree, relative))
+    findings.extend(feat62_findings(root))
     return findings
 
 
