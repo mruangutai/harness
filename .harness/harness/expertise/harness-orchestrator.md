@@ -9,6 +9,7 @@
 - P-07: WHEN `feature-worktree.py behind` guards ship readiness DO refresh and compare against the remote default-branch tip — local `main` can be stale and admit an untested conflicting pull request.
 - P-08: WHEN a plan's `change_type` is absent from this repository's configured test matrix DO classify the plan record as malformed and route correction of that record; never create a synonymous mapping to legitimize it.
 - P-09: WHEN validation reports a real site surfaced by the consolidation lock DO route correction as derivation from the canonical authority, not an exemption — exemption preserves the duplicated decision the lock exists to prevent.
+- P-10: WHEN a record writer runs changed-state feedback after every durable write DO order multi-step transitions so each intermediate state satisfies invariants, or use one verb that writes coupled fields — final validity does not prevent real findings mid-transition.
 ## Gotchas (max 15)
 - G-01: WHEN quoting `check-state.py`'s board-read cost DO re-measure rather than recall it — the figure moved from ~500 points (board 3, 486 items, `e1bcdc1`) to 5 (board 3, 473 items, `8c2c24d`), and a cost recalled without its conditions is the rot this repository keeps rediscovering.
 - G-02: WHEN invoking `validate-digest.py` DO pass the PERSONA first and the path second. Path-only prints `BLOCKED (contract violation) — unknown persona '<the path>'`, which reads exactly like a malformed digest and will make you reject a valid one.
