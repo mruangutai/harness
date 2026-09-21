@@ -35,40 +35,39 @@ panel:
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: T-02 and T-03 can violate the all-changed-Python grade requirement after
-      T-01 has already produced the only grade receipt.
-    disposition: open
+    summary: T-02 and T-03 can violate the all-changed-Python grade requirement after T-01 has already produced the only grade receipt.
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-a71aa813dcabfc5990d91071b1aeb179
     severity: low
     reader: should-not-exist
     kind: proportionality
-    summary: The bespoke AST structural comparator for the 47 except-Exception handlers
-      (T-01 intent, SC-09 evidence) exceeds the proof standard the operator settled
-    disposition: open
+    summary: The bespoke AST structural comparator for the 47 except-Exception handlers (T-01 intent, SC-09 evidence) exceeds the proof standard the operator settled
+    disposition: resolved
+    resolved_by: T-01
     scope: task
   - id: PF-10ee67dad109452b4405e92eff930feb
     severity: low
     reader: should-not-exist
     kind: substance
-    summary: The shared-context parse-count test cases in T-01 pin an internal caching
-      detail no consumer observes
-    disposition: open
+    summary: The shared-context parse-count test cases in T-01 pin an internal caching detail no consumer observes
+    disposition: resolved
+    resolved_by: T-01
   - id: PF-db8324a6929f123efc4922d2332921b4
     severity: low
     reader: should-not-exist
     kind: proportionality
-    summary: Caller-side exact-string suppression of the clean line in the T-03 adapter
-      builds a filter the new --changed mode makes unnecessary
-    disposition: open
+    summary: Caller-side exact-string suppression of the clean line in the T-03 adapter builds a filter the new --changed mode makes unnecessary
+    disposition: resolved
+    resolved_by: T-03
     scope: task
   - id: PF-e27f2ac207670f537fc75eec4fa546cb
     severity: unrated
     reader: should-not-exist
     kind: substance
-    summary: "Open question \u2014 T-03 lists harness_boundary.py#resolve_root as\
-      \ a change target, but a target-path-derived adapter should not need the environment-reading\
-      \ root resolver modified"
-    disposition: open
+    summary: Open question — T-03 lists harness_boundary.py#resolve_root as a change target, but a target-path-derived adapter should not need the environment-reading root resolver modified
+    disposition: resolved
+    resolved_by: T-03
 lanes:
   resolved_at: 1b69f67f4a24c4b011cd1fa724e1bb66d4c77cb7
   rows:
