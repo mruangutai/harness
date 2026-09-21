@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import artifact_accessors  # noqa: E402  (local import, after sys.path fix-up)
 import factory_cli  # noqa: E402  (local import, after sys.path fix-up)
 import feature_schema  # noqa: E402  (local import, after sys.path fix-up)
+import harness_boundary  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
 # A features directory either directly under a .harness segment or nested one segment deeper
@@ -168,6 +169,11 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
 
     This function is the ONLY read-modify-write entry point this module exposes (DEC-199):
     it opens no lock and performs no rename of its own, only harness_merge.locked_update's.
+
+    AFTER the write lands and the lock is gone, the changed-state feedback loop runs
+    (FEAT-62 T-03, harness_boundary.relay_changed_state_feedback): the checkout is derived
+    from `resolved`, its check-state.py --changed reports on stderr, and nothing above --
+    receipt, refusal, bytes, exit -- is touched. A refusal never reaches it.
     """
     resolved = harness_merge.require_destination(
         path, tail_regex if tail_regex is not None else FEATURE_JSON_TAIL, _WHAT, _HINT_LINES
@@ -202,3 +208,4 @@ def write_feature_json(path, transform, timeout=None, tail_regex=None):
         return text_bytes
 
     harness_merge.locked_update(resolved, _transform, timeout=timeout)
+    harness_boundary.relay_changed_state_feedback(resolved)

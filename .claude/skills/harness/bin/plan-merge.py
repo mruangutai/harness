@@ -1230,7 +1230,7 @@ def cmd_apply(args):
         return merged.out_bytes
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
@@ -1329,7 +1329,7 @@ def cmd_set_task_station(args):
         return "".join(lines).encode("utf-8")
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
@@ -1404,7 +1404,7 @@ def cmd_set_feature_station(args):
         return spliced
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
@@ -1705,7 +1705,7 @@ def _write_top_mapping(resolved, key, value, splice):
         return spliced
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
@@ -1977,7 +1977,7 @@ def cmd_record_panel(args):
         return spliced
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
     for fid in result["carried"]:
@@ -2145,7 +2145,7 @@ def cmd_sign_approval(args):
         return signed
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         lines = list(refusal.lines)
         if ruling is not None:
@@ -2225,7 +2225,7 @@ def cmd_revoke_approval(args):
         return reset_bytes
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
     print(f"REVOKED {resolved} by {args.by}: {why}")
@@ -2479,6 +2479,14 @@ def _verify_amendments_landed(reloaded, entries):
                     "amendment's `now` — REFUSING to write a splice that lies."])
 
 
+def _locked_plan_update(resolved, transform):
+    """Every mutating verb's plan write: harness_merge.locked_update, then -- once its lock is
+    released -- the changed-state feedback loop on stderr (FEAT-62 T-03). A refusal raises
+    out of locked_update before the relay is reached, so a refused verb stays silent here."""
+    harness_merge.locked_update(resolved, transform)
+    harness_boundary.relay_changed_state_feedback(resolved)
+
+
 def _replace_bytes(path, data):
     """Atomic whole-file replace, the same tempfile+os.replace shape locked_update uses."""
     directory = os.path.dirname(os.path.abspath(path)) or "."
@@ -2527,7 +2535,11 @@ def _record_amendments_locked(resolved, feature_json, entries):
     the ledger write fails for ANY reason — a refusal or an ordinary I/O error (validate c0
     V-01, c1 V-01). Before this the ledger landed first, so a plan write that failed
     afterwards left a judgement for an amendment that never reached the plan — the audit
-    trail lying in the direction nothing detects. The lock is held across the restore."""
+    trail lying in the direction nothing detects. The lock is held across the restore.
+
+    The changed-state feedback (FEAT-62 T-03) is NOT relayed here for the plan: the ledger
+    write inside write_feature_json relays once with both files already dirty, and a second
+    --changed run over the same tree would only repeat it."""
     with harness_merge.acquire(resolved + ".lock"):
         with open(resolved, "rb") as fh:
             base_bytes = fh.read()
@@ -3025,7 +3037,7 @@ def cmd_amend(args):
         return spliced.encode("utf-8")
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
@@ -3390,7 +3402,7 @@ def cmd_delete_items(args):
         return _deleted_bytes(base_bytes, requested, receipt)
 
     try:
-        harness_merge.locked_update(resolved, transform)
+        _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)

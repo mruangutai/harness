@@ -18,6 +18,7 @@ the agent sees.
 
 import os
 import re
+import subprocess
 import sys
 import artifact_accessors
 from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
@@ -278,6 +279,91 @@ def feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):
     if checkout is not None and real(checkout[0]) == real(expected):
         return None
     return feature_id, expected
+
+
+# --- FEAT-62 T-03: the changed-state feedback loop behind every canonical structured write.
+#
+# `--changed` is the edit-loop verb (grilling artefact, SC-06): it exists so an agent sees the
+# invariants its write just touched WITHOUT knowing the flag exists. The primary path is
+# therefore not a rule an agent must remember but this adapter, run by the two canonical
+# writers -- plan-merge.py after each successful mutating plan write, feature_json_write
+# after each successful feature.json write -- once the write's own lock has been released.
+#
+# THE CHECKOUT IS DERIVED FROM THE WRITTEN PATH ALONE. `resolve_root` reads the environment
+# (HARNESS_PROJECT_DIR) and answers "which tree is this SESSION about"; that is the wrong
+# question here. A write to `<X>/.harness/<repo>/features/<FEAT>/plan.yaml` is feedback
+# about `<X>` and nothing else -- so a test fixture under /tmp derives /tmp/<fixture>, finds no
+# checker there, and is silent, rather than reaching into the developer's checkout because an
+# env var pointed at it (panel finding PF-e27f2ac2). A path that is not canonical -- a scratch
+# file, a plain CLI positional -- derives no root at all.
+#
+# ADVISORY, NEVER A ROLLBACK. The write has already landed; what the checker says is stderr
+# feedback for the caller to relay. A clean selective run prints nothing at the checker
+# source (check-state.py's own `--changed` contract), so this forwards whatever arrives
+# without matching any exact string (panel finding PF-db8324a6). The writer's stdout receipt,
+# refusal paths, durable bytes and exit status are untouched by construction: this runs after
+# all of them and touches none.
+#
+# NEVER RECURSIVE. The checker spawns gate scripts of its own; none of them writes a plan or a
+# feature.json, and the env marker below stops a nested writer from re-entering here.
+# HARNESS_PROJECT_DIR is DROPPED from the child's environment for the same reason the root is
+# derived from the path: the checker then resolves its root from its own location, which IS
+# the derived checkout, and a stale session override cannot redirect the feedback.
+_CHANGED_FEEDBACK_ENV = "HARNESS_CHANGED_FEEDBACK"
+# The union of plan-merge.py's PLAN_TAIL and feature_json_write's FEATURE_JSON_TAIL, anchored
+# at the checkout: the tree segment is optional, exactly as the writers accept it.
+RE_CANONICAL_STRUCTURED_WRITE = re.compile(
+    r"^(?P<root>.*?)/\.harness/(?:[^/]+/)?features/(?:FEAT|BUG)-[^/]+/(?:plan\.yaml|feature\.json)$")
+CHECKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.py")
+
+
+def changed_state_root(target_path):
+    """The checkout a canonical plan.yaml/feature.json write belongs to, from the PATH alone;
+    None for any other path."""
+    posix = os.path.abspath(target_path).replace(os.sep, "/")
+    match = RE_CANONICAL_STRUCTURED_WRITE.match(posix)
+    return None if match is None else (match.group("root") or "/")
+
+
+def _changed_state_checker(target_path):
+    """The checker to run for a write to `target_path`, or None: the path must be canonical,
+    the derived checkout must carry MARKER and the checker, and this process must not itself
+    be inside a feedback run."""
+    root = changed_state_root(target_path)
+    if root is None or os.environ.get(_CHANGED_FEEDBACK_ENV):
+        return None
+    checker = os.path.join(root, CHECKER_REL)
+    if os.path.isfile(checker) and os.path.isfile(os.path.join(root, MARKER)):
+        return root, checker
+    return None
+
+
+def changed_state_feedback(target_path, timeout=120):
+    """Run that checkout's `check-state.py --changed` after a successful structured write and
+    return its non-clean rows (both streams, in order) for the caller's stderr. Empty when
+    there is no checker to run (`_changed_state_checker`) or it cannot be spawned -- feedback
+    is never a failure."""
+    found = _changed_state_checker(target_path)
+    if found is None:
+        return []
+    root, checker = found
+    env = {k: v for k, v in os.environ.items() if k != PROJECT_DIR_ENV}
+    env[_CHANGED_FEEDBACK_ENV] = "1"
+    try:
+        result = subprocess.run([sys.executable, checker, "--changed"], cwd=root, env=env,
+                                capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [line for line in (result.stdout + result.stderr).splitlines() if line.strip()]
+
+
+def relay_changed_state_feedback(target_path):
+    """`changed_state_feedback`, printed to stderr under one header — the writers' one call."""
+    rows = changed_state_feedback(target_path)
+    if rows:
+        print(f"check-state --changed after {target_path}:", file=sys.stderr)
+        for row in rows:
+            print(row, file=sys.stderr)
 
 
 def load_repo_module(module_name, path, register=False):
