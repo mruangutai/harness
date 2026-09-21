@@ -165,6 +165,45 @@ def read(path):
 # ---------------------------------------------------------------------------
 
 
+def _fixture_checker(root, script):
+    """A stand-in check-state.py in the fixture checkout so the feedback loop (FEAT-62 T-03)
+    has a checker to find by the written path alone."""
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    write(os.path.join(root, ".harness", "team-config.yaml"), "teams: []\n")
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    write(os.path.join(bin_dir, "check-state.py"), script)
+
+
+def case_feat62_changed_feedback_after_a_plan_write():
+    """FEAT-62 T-03: a successful mutating write is followed by the fixture checkout's own
+    check-state.py --changed, relayed on stderr; the receipt, bytes and exit are untouched, and
+    a refused write never reaches the checker."""
+    root, plan = fixture_root()
+    try:
+        _fixture_checker(root, "import sys\nsys.stdout.write('FAIL INV-99 fixture row\\n')\nsys.exit(1)")
+        write(plan, render_plan(ids(1, 3)))
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "building")
+        check("feat62: the write still exits 0 with its receipt on stdout",
+              r.returncode == 0 and r.stdout.strip().endswith(f"APPLIED {os.path.realpath(plan)}"),
+              r.stdout + r.stderr)
+        check("feat62: the checker's non-clean row reaches stderr under the feedback header",
+              "FAIL INV-99 fixture row" in r.stderr and "check-state --changed after" in r.stderr, r.stderr)
+        check("feat62: the feedback never leaks into stdout", "INV-99" not in r.stdout, r.stdout)
+
+        before = read(plan)
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "no-such-station")
+        check("feat62: a refused write prints NO feedback",
+              r.returncode != 0 and "INV-99" not in r.stderr and read(plan) == before, r.stderr)
+
+        _fixture_checker(root, "")
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "done")
+        check("feat62: a clean --changed run leaves stderr empty",
+              r.returncode == 0 and r.stderr == "", r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_proposal_indent_differs_from_base():
     """A proposal whose list items are indented differently from the base's still produces a
     PARSEABLE plan, and the splice is checked before it is written.
@@ -4429,6 +4468,7 @@ CASES = (
     case_b1716_approval_resets_only_on_task_set_change,
     case_b1716_record_amendments_is_all_or_nothing,
     case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
+    case_feat62_changed_feedback_after_a_plan_write,
 )
 
 

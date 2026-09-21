@@ -4,7 +4,7 @@ approval:
   date: '2026-09-21'
   approved_by: molchairuangutai
   status: approved
-status: ready
+status: building
 mission: plan
 source_issues: []
 baseline:
@@ -134,7 +134,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 and the operator-set route assign the checker, its contract suites, and its divergence record to the main session.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.py
       - tests/integration/test-check-state.py
@@ -162,7 +162,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs the route audit, its mutations, and its gate tests.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#consolidation_findings
       - tests/integration/test-check-plan-routes.py#case_22
@@ -180,7 +180,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 and the operator-set route keep the canonical writer feedback seam, its regressions, and bounded operator guidance together in the main session.
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/plan-merge.py#locked_update

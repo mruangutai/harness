@@ -1,7 +1,26 @@
 # FEAT-62 build divergences — check-state.py decomposition
 
 Bar: every suite's exit status, stdout bytes and stderr bytes are identical to the baseline below,
-except the rows enumerated under `## Ruled divergences`, each proved red-first (a failing
+except the rows enumerated under `## After T-03 — the feedback loop, measured
+
+- The eight baseline suites re-run after T-02 and T-03: all `SAME` against the receipts
+  above (exit, stdout, stderr). Ninth suite `test-check-state-table.py`: ALL PASSED.
+- `tests/unit/test-harness-boundary.py` `case_changed_state_feedback`,
+  `tests/integration/test-plan-merge.py` `case_feat62_changed_feedback_after_a_plan_write`,
+  `tests/integration/test-feature-json-merge.py` `case_15_changed_feedback_after_a_write`:
+  red against the pinned bin/ (`git archive 16ee44f0`, via `HARNESS_BOUNDARY_BIN` /
+  `PLAN_MERGE_BIN` / `FEATURE_JSON_MERGE_BIN`), green on the build.
+- Live: `plan-merge.py set-task-station … T-03 building` in this worktree relayed the real
+  checker's `--changed` output on stderr (the four pre-existing INV-29 stale-worktree rows and
+  INV-32's five resolved-finding notes); the stdout receipt and exit 0 unchanged.
+- `check-plan-routes.py --consolidation-audit`: 0 findings. `code-grade.py --base 16ee44f0`:
+  318 graded, 0 below bar.
+- One shape decision inside T-03's brief: `record-amendments` writes the plan and the ledger
+  under the plan's lock; the ledger write (feature_json_write) relays once with both files
+  dirty, and the plan path does NOT relay a second time — one `--changed` run over one dirty
+  tree says everything a second would.
+
+## Ruled divergences`, each proved red-first (a failing
 expectation describing old and new order committed before the move) and ruled here.
 
 ## Baseline receipts — at 1b69f67f (pin), worktree clean, run from the worktree root

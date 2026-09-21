@@ -352,6 +352,85 @@ def _raises(fn, exc_type):
     return None
 
 
+def _fake_checker(root, script):
+    """A stand-in check-state.py at the derived checkout: the adapter must find it by the
+    written path alone, so the fixture is a whole (marker + checker) tree under /tmp."""
+    write_marker(root)
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    with open(os.path.join(bin_dir, "check-state.py"), "w") as fh:
+        fh.write(script)
+
+
+_PROBE_CHECKER = (
+    "import os, sys\n"
+    "sys.stdout.write('FAIL INV-3 something\\n')\n"
+    "sys.stderr.write('warn row\\n')\n"
+    "sys.stdout.write(f'argv={sys.argv[1:]} cwd={os.getcwd()} "
+    "env={os.environ.get(\"HARNESS_PROJECT_DIR\")!r} "
+    "nested={os.environ.get(\"HARNESS_CHANGED_FEEDBACK\")!r}\\n')\n"
+    "sys.exit(1)")
+
+
+def _changed_state_root_checks(mod, tmp):
+    plan = os.path.join(tmp, ".harness", "harness", "features", "FEAT-7-x", "plan.yaml")
+    flat = os.path.join(tmp, ".harness", "features", "BUG-7-x", "feature.json")
+    check("changed_state_root: canonical repo-tier plan.yaml derives the checkout",
+          mod.changed_state_root(plan) == tmp, mod.changed_state_root(plan))
+    check("changed_state_root: canonical flat feature.json derives the checkout",
+          mod.changed_state_root(flat) == tmp, mod.changed_state_root(flat))
+    for other in (os.path.join(tmp, "scratch", "plan.yaml"),
+                  os.path.join(tmp, ".harness", "harness", "features", "notes", "plan.yaml"),
+                  os.path.join(tmp, ".harness", "harness", "features", "FEAT-7-x", "BRIEF.md")):
+        check(f"changed_state_root: {os.path.relpath(other, tmp)} derives NO checkout",
+              mod.changed_state_root(other) is None, mod.changed_state_root(other))
+    return plan
+
+
+def _with_env(key, value, fn):
+    os.environ[key] = value
+    try:
+        return fn()
+    finally:
+        del os.environ[key]
+
+
+def _changed_state_spawn_checks(mod, tmp, elsewhere, plan):
+    """The spawn itself: which checker, in which cwd, with which environment."""
+    _fake_checker(tmp, _PROBE_CHECKER)
+    rows = _with_env("HARNESS_PROJECT_DIR", elsewhere, lambda: mod.changed_state_feedback(plan))
+    check("feedback forwards BOTH streams' rows from the derived checkout's checker",
+          "FAIL INV-3 something" in rows and "warn row" in rows, rows)
+    detail = [r for r in rows if r.startswith("argv=")]
+    check("the checker is spawned with --changed, in the derived checkout, WITHOUT the "
+          "session's HARNESS_PROJECT_DIR, and marked nested",
+          len(detail) == 1 and "argv=['--changed']" in detail[0]
+          and f"cwd={os.path.realpath(tmp)}" in os.path.realpath(detail[0].split(" env=")[0])
+          and "env=None" in detail[0] and "nested='1'" in detail[0], detail)
+
+
+def case_changed_state_feedback():
+    """FEAT-62 T-03: the feedback loop derives its checkout from the WRITTEN PATH, spawns that
+    checkout's own checker with --changed, and hands back whatever the checker said."""
+    mod = hb()
+    tmp, elsewhere = tempfile.mkdtemp(), tempfile.mkdtemp()
+    try:
+        plan = _changed_state_root_checks(mod, tmp)
+        # No checker at the derived checkout: silent, whatever the environment says.
+        _fake_checker(elsewhere, "import sys; sys.stdout.write('WRONG TREE\\n')")
+        silent = _with_env("HARNESS_PROJECT_DIR", elsewhere, lambda: mod.changed_state_feedback(plan))
+        check("feedback is silent when the derived checkout carries no checker, even with "
+              "HARNESS_PROJECT_DIR pointing at one (PF-e27f2ac2)", silent == [], silent)
+        _changed_state_spawn_checks(mod, tmp, elsewhere, plan)
+        nested = _with_env("HARNESS_CHANGED_FEEDBACK", "1", lambda: mod.changed_state_feedback(plan))
+        check("a writer inside a feedback run never re-enters the loop", nested == [], nested)
+        _fake_checker(tmp, "")
+        check("a clean --changed run (no output) yields no rows",
+              mod.changed_state_feedback(plan) == [], mod.changed_state_feedback(plan))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(elsewhere, ignore_errors=True)
+
 def case_feature_artifact_checkout_mismatch():
     """The ONE checkout question both write routes ask (check-domain's tool route and
     bash-write-guard's Bash route). It decides; the adapters refuse in their own voice."""
@@ -869,6 +948,7 @@ def main():
     run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
     run_case(case_worktree_for_feature)
+    run_case(case_changed_state_feedback)
     run_case(case_feature_artifact_checkout_mismatch)
     run_case(case_feature_artifact_checkout_mismatch_ambiguous)
     run_case(case_load_repo_module_registration)

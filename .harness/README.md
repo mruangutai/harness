@@ -88,7 +88,10 @@ unconfigured, run `harness-init` first; a `schema_version` gap calls for `harnes
 An empty `features/` directory is a normal state, not a sign of missing onboarding.
 
 Run `.agents/skills/harness/bin/check-state.py` any time; it checks invariants that fail silently,
-including required lifecycle integration, approvals, and tasks missing `change_type`.
+including required lifecycle integration, approvals, and tasks missing `change_type`. Mid-edit,
+`--changed` runs only the invariants whose declared inputs the dirty tree touches — and every
+`plan-merge.py` and `feature_json_write` write already runs it for you, on stderr; the pre-commit
+hook and CI run the full table, never `--changed`. `--list` prints the table, `--only INV-N` one row.
 
 > **Schemas are authored in `.claude/skills/harness/templates/`** and exposed to OMP through
 > `.agents/skills` — `BRIEF.md`, `plan.yaml`, `STATE.md`,

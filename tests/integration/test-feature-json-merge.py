@@ -453,6 +453,30 @@ def case_14_tail_regex_is_caller_overridable():
 
 
 
+def case_15_changed_feedback_after_a_write():
+    """FEAT-62 T-03: after the write lands and the lock is released, the fixture checkout's own
+    check-state.py --changed reports on stderr; a refusal never reaches it."""
+    d, path = fixture_path()
+    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
+        f.write("teams: []\n")
+    bin_dir = os.path.join(d, ".claude", "skills", "harness", "bin")
+    os.makedirs(bin_dir)
+    with open(os.path.join(bin_dir, "check-state.py"), "w") as f:
+        f.write("import sys\nsys.stdout.write('FAIL INV-99 fixture row\\n')\nsys.exit(1)")
+    write_bytes(path, valid_doc())
+
+    r = run_cli(["set-key", path, "branch", '"feat/xyz"'])
+    check("case15: the write exits 0 and lands", r.returncode == 0 and '"feat/xyz"' in open(path).read(),
+          r.stdout + r.stderr)
+    check("case15: the checker's row reaches stderr under the feedback header",
+          "FAIL INV-99 fixture row" in r.stderr and "check-state --changed after" in r.stderr, r.stderr)
+
+    original = open(path, "rb").read()
+    r = run_cli(["set-key", path, "branch", "42"])
+    check("case15: a refused write prints no feedback and leaves the bytes alone",
+          r.returncode != 0 and "INV-99" not in r.stderr and open(path, "rb").read() == original, r.stderr)
+
+
 def main():
     case_1_refusal_leaves_byte_identical()
     case_2_concurrent_writer_blocks_not_clobbers()
@@ -468,6 +492,7 @@ def main():
     case_12_ratchet_does_not_over_refuse()
     case_13_unparseable_base_is_strict()
     case_14_tail_regex_is_caller_overridable()
+    case_15_changed_feedback_after_a_write()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:

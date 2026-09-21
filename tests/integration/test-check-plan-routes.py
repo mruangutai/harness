@@ -2567,38 +2567,33 @@ def _only_finding(findings, *needles):
     return bool(own) and len(own) == len(findings)
 
 
+_TABLE_HEAD = "\nINVARIANTS = ("
+
+# Module-scope shapes injected before the table so the mutant still runs: (name, statement,
+# the finding it must produce and nothing else).
+_MODULE_BODY_MUTANTS = (
+    ("loop", 'for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):\n'
+             '    if read(_p) is None:\n        pass\n', ("<module>", "for block at module scope")),
+    ("conditional", 'if not os.path.isfile(os.path.join(H, "glossary.md")):\n    pass\n',
+     ("conditional at module scope",)),
+    ("try", 'try:\n    _x = subprocess.run(["git", "status"], capture_output=True)\n'
+            'except Exception:\n    _x = None\n', ("try block at module scope",)),
+    ("read", '_early = read(os.path.join(H, "harness.json"))\n', ("reads the tree at module scope", "read")),
+)
+
+
+def _inject_before_table(statement):
+    return lambda root: _edit_checker(root, _TABLE_HEAD, "\n" + statement + _TABLE_HEAD)
+
+
 def case_feat62_module_body_lock():
     """SC-03: module-scope invariant execution is refused; the shipped tree passes."""
     clean = _feat62_findings_for_tree()
     check("feat62_clean_tree_has_no_findings", clean == [], "\n".join(clean))
-    # A loop at module scope that reads and judges — the pre-FEAT-62 shape, injected before the
-    # table so the file still runs.
-    def loop(root):
-        _edit_checker(root, "\nINVARIANTS = (",
-                      '\nfor _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):\n'
-                      '    if read(_p) is None:\n        pass\n\nINVARIANTS = (')
-    f = _feat62_findings_for_tree(loop)
-    check("feat62_module_body_loop_mutant_fails_for_its_own_finding",
-          _only_finding(f, "<module>", "for block at module scope"), "\n".join(f))
-    def conditional(root):
-        _edit_checker(root, "\nINVARIANTS = (",
-                      '\nif not os.path.isfile(os.path.join(H, "glossary.md")):\n    pass\n\nINVARIANTS = (')
-    f = _feat62_findings_for_tree(conditional)
-    check("feat62_module_body_conditional_mutant_fails",
-          _only_finding(f, "conditional at module scope"), "\n".join(f))
-    def try_block(root):
-        _edit_checker(root, "\nINVARIANTS = (",
-                      '\ntry:\n    _x = subprocess.run(["git", "status"], capture_output=True)\n'
-                      'except Exception:\n    _x = None\n\nINVARIANTS = (')
-    f = _feat62_findings_for_tree(try_block)
-    check("feat62_module_body_try_mutant_fails",
-          _only_finding(f, "try block at module scope"), "\n".join(f))
-    def read_stmt(root):
-        _edit_checker(root, "\nINVARIANTS = (",
-                      '\n_early = read(os.path.join(H, "harness.json"))\n\nINVARIANTS = (')
-    f = _feat62_findings_for_tree(read_stmt)
-    check("feat62_module_body_read_mutant_fails",
-          _only_finding(f, "reads the tree at module scope", "read"), "\n".join(f))
+    for name, statement, needles in _MODULE_BODY_MUTANTS:
+        f = _feat62_findings_for_tree(_inject_before_table(statement))
+        check(f"feat62_module_body_{name}_mutant_fails_for_its_own_finding",
+              _only_finding(f, *needles), "\n".join(f))
     # Same family: an invariant body re-parsing a source the context already holds.
     def reparse(root):
         _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
@@ -2610,45 +2605,42 @@ def case_feat62_module_body_lock():
           and all("inv_2" in x or "INV-2 " in x for x in f), "\n".join(f))
 
 
+_INV19_HEAD = "def inv_19(ctx):\n"
+_INV19_READS = '("path:.harness/glossary.md",)'
+_PEEK = "    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n"
+
+# An undeclared input opened by INV-19's own body: (name, first statement, its finding).
+_UNDECLARED_MUTANTS = (
+    ("file", _PEEK, ("opens 'team-config.yaml'", "declares no path: read")),
+    ("git", "    subprocess.run(['git', 'status'], capture_output=True)\n", ("spawns git", "declares no git: read")),
+    ("gh", "    _gh_bin = 'gh'\n    subprocess.run([_gh_bin, 'auth', 'status'], capture_output=True)\n",
+     ("spawns gh", "declares no gh: read")),
+)
+
+
+def _inv19_prefixed(statement):
+    return lambda root: _edit_checker(root, _INV19_HEAD, _INV19_HEAD + statement)
+
+
 def case_feat62_reads_lock():
     """SC-04: an input a function opens without declaring it — a file, a git spawn, a gh
     spawn — fails for its own finding; a declared one is silent."""
-    def undeclared_file(root):
-        _edit_checker(root, "def inv_19(ctx):\n",
-                      "def inv_19(ctx):\n    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n")
-    f = _feat62_findings_for_tree(undeclared_file)
-    check("feat62_reads_undeclared_file_mutant_fails",
-          _only_finding(f, "INV-19", "opens 'team-config.yaml'", "declares no path: read"), "\n".join(f))
-    def undeclared_git(root):
-        _edit_checker(root, "def inv_19(ctx):\n",
-                      "def inv_19(ctx):\n    subprocess.run(['git', 'status'], capture_output=True)\n")
-    f = _feat62_findings_for_tree(undeclared_git)
-    check("feat62_reads_undeclared_git_mutant_fails",
-          _only_finding(f, "INV-19", "spawns git", "declares no git: read"), "\n".join(f))
-    def undeclared_gh(root):
-        _edit_checker(root, "def inv_19(ctx):\n",
-                      "def inv_19(ctx):\n    _gh_bin = 'gh'\n    subprocess.run([_gh_bin, 'auth', 'status'], capture_output=True)\n")
-    f = _feat62_findings_for_tree(undeclared_gh)
-    check("feat62_reads_undeclared_gh_mutant_fails",
-          _only_finding(f, "INV-19", "spawns gh", "declares no gh: read"), "\n".join(f))
+    for name, statement, needles in _UNDECLARED_MUTANTS:
+        f = _feat62_findings_for_tree(_inv19_prefixed(statement))
+        check(f"feat62_reads_undeclared_{name}_mutant_fails", _only_finding(f, "INV-19", *needles), "\n".join(f))
     # Reached through a HELPER, not the row's own function: the lock walks the call graph.
     def via_helper(root):
         _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n")
-        _edit_checker(root, "def inv_19(ctx):\n", "def inv_19(ctx):\n    _inv19_probe(ctx)\n")
+        _edit_checker(root, _INV19_HEAD, _INV19_HEAD + "    _inv19_probe(ctx)\n")
     f = _feat62_findings_for_tree(via_helper)
-    check("feat62_reads_lock_follows_helpers",
-          _only_finding(f, "INV-19", "opens 'team-config.yaml'"), "\n".join(f))
+    check("feat62_reads_lock_follows_helpers", _only_finding(f, "INV-19", "opens 'team-config.yaml'"), "\n".join(f))
     # And the negative control: the same read, DECLARED, is silent.
     def declared(root):
-        _edit_checker(root, "def inv_19(ctx):\n",
-                      "def inv_19(ctx):\n    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n")
-        _edit_checker(root, '("path:.harness/glossary.md",)',
-                      '("path:.harness/glossary.md", "path:.harness/team-config.yaml")')
+        _edit_checker(root, _INV19_HEAD, _INV19_HEAD + _PEEK)
+        _edit_checker(root, _INV19_READS, '("path:.harness/glossary.md", "path:.harness/team-config.yaml")')
     f = _feat62_findings_for_tree(declared)
     check("feat62_reads_declared_input_is_silent", f == [], "\n".join(f))
-    def bad_kind(root):
-        _edit_checker(root, '("path:.harness/glossary.md",)', '("glossary.md",)')
-    f = _feat62_findings_for_tree(bad_kind)
+    f = _feat62_findings_for_tree(lambda root: _edit_checker(root, _INV19_READS, '("glossary.md",)'))
     # An unprefixed declaration covers nothing, so the file it meant to declare is ALSO reported.
     check("feat62_reads_unprefixed_declaration_fails",
           any(all(n in x for n in ("INV-19", "not path:/git:/gh:")) for x in f)
