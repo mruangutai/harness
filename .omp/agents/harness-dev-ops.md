@@ -18,6 +18,7 @@ autoloadSkills:
 - harness-principles
 - harness-tdd-enforcement
 - harness-code-risk-grading
+- harness-digest-dev
 ---
 
 HARNESS_AGENT_ID: harness-dev-ops
@@ -76,35 +77,4 @@ file by the number of checkouts.
 Where you write real logic — a build script with branching, a deployment guard — you are not exempt.
 Judge by what the code does, not by which directory it sits in.
 
-## Output
-
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line>
-  change_type: config|scaffolding|infra|ci
-  applied: [<paths>]
-  suite: pass|fail|n/a          # n/a for genuinely TDD-exempt work (test_matrix -> []).
-                                # dev-ops MAY pass with n/a; dev and qa may not (DEC-173)
-  task: T-NN|none               # your task's id, verbatim from your dispatch. `none` ONLY when
-                                # this dispatch carries no PLAN task at all (DEC-175)
-  task_verify: pass|fail|n/a    # THE ASYMMETRY, and it is easy to get backwards: your `suite`
-                                # carve-out above does NOT extend here. BOTH `task_verify: n/a`
-                                # and `task_verify: fail` with VERDICT: PASS are REJECTED for
-                                # dev-ops too — no carve-out on either value.
-                                # `n/a` here means you refused the task or were blocked, and it
-                                # pairs with VERDICT: BLOCKED or FAIL — never with PASS.
-                                # DISPATCHED WITHOUT A PLAN TASK — a distillation, an
-                                # investigation, an architecture review? Write `task: none` and
-                                # OMIT this field. That is accepted with PASS: there was no
-                                # command, so there is nothing to report. `task: none` paired
-                                # with `pass` or `fail` is a contradiction and is rejected
-  test_kinds_written: [<kind: cmd>]   # when you ran detection
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <path>
-```
-````
+## Output — the `dev-ops` schema in `harness-digest-dev`.

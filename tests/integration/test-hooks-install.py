@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """test-hooks-install.py — the only automated evidence for SC-08, SC-13 and SC-14 (FEAT-34 T-13).
 
-WHAT THIS GRADES. `harness-init/SKILL.md`'s "per-clone step" (T-12) — the control-plane clone's
-own — is prose, not a script: three
-steps, of which only steps 1 and 2 carry literal command strings —
+WHAT THIS GRADES. The "per-clone step" (T-12) — the control-plane clone's own, in
+`harness/references/checkout-prereqs.md`, which `harness-init` step 1 cites — is prose, not a
+script: three steps, of which only steps 1 and 2 carry literal command strings —
 
   step 1: `git config --get core.hooksPath || echo "(unset)"`
   step 2: `git config core.hooksPath .claude/skills/harness/hooks`
@@ -12,7 +12,7 @@ steps, of which only steps 1 and 2 carry literal command strings —
 step 3 ("Set to ANYTHING ELSE? STOP and ask the user before writing") is prose with no command.
 So the "setup step" this file exercises is a small orchestration this test defines itself —
 `run_setup_step()` below — built ONLY from the two literal command strings, which
-`case_commands_verbatim_in_skill()` asserts appear byte-for-byte in SKILL.md. Running a command
+`case_commands_verbatim_in_skill()` asserts appear byte-for-byte in that doc. Running a command
 nobody documented would grade an implementation that does not exist (the plan's own words).
 
 CASE (d)'s reporting behaviour falls out of the ORDER the skill states ("Never skip to step 2"):
@@ -51,7 +51,7 @@ import tempfile
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = _anchor_bin
 REAL_ROOT = _anchor_root
-SKILL_MD = os.path.join(REAL_ROOT, ".claude", "skills", "harness-init", "SKILL.md")
+SKILL_MD = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "references", "checkout-prereqs.md")
 REAL_SHIM = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "hooks", "post-merge")
 
 BIN_ENTRIES = sorted(

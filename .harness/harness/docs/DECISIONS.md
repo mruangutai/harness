@@ -4621,6 +4621,8 @@ preloaded by exactly FIVE, those four plus `harness-dev-ops`. The obvious home w
 missed the one persona the ruling had just brought into scope. The same arithmetic runs the other
 way for a rule 11 agents cannot act on: it does not belong in a file all 16 preload.
 
+**Amended 2026-09-18, main session — section 6's home, not its rule.** The receipt clause now lives in `.claude/skills/harness-digest-dev/SKILL.md`, one copy, and `harness-tdd-enforcement` no longer carries it. The preload arithmetic that forced the original placement no longer holds: `harness-dev-ops` preloads `harness-digest-dev`, whose `dev-ops` schema block replaces the one the agent file carried inline, so the skill reaches all FIVE and the topical home is also the covering one. The rule this section generalises to — verify the preload set before choosing a home — is UNCHANGED; it is what made the move safe. `tests/unit/test-digest-dev-skill.py` pins the clause present in `harness-digest-dev` and absent from `harness-tdd-enforcement`, and validates the refusal digest there against `validate-digest.py`.
+
 ## DEC-176 — The signature gate is BATCHED: one review pass produces one consolidated fix, dispatched after the user has read to exhaustion
 
 At the BRIEF/PLAN signature gate the main session now collects **every** change request the user

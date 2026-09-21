@@ -8,17 +8,14 @@ user-invocable: false
 
 Read-only. You return findings; you never fix them.
 
-Two stages, **in order**. Stage 1 must complete before Stage 2 begins, and the stages do not mix.
-
-## Why this order
-
-Wrong-thing-built-well is the costlier failure, and finding it second wastes the quality pass.
+Two stages, **in order** (wrong-thing-built-well is the costlier failure, and finding it second
+wastes the quality pass). Stage 1 must complete before Stage 2 begins, and the stages do not mix.
 
 ## Stage 1 — spec compliance
 
-Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` and the plan's decisions — `plan.yaml`'s `decisions:` list,
-or `PLAN.md ## Decisions` for a feature still on the pre-DEC-182 format — then the diff. Ask four
-questions:
+Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` and the plan's
+decisions — `plan.yaml`'s `decisions:` list (legacy features: `PLAN.md ## Decisions`) — then the
+diff. Ask four questions:
 
 1. Does every change serve a documented `SC-NN` or `D-NN`?
 2. Is anything here that **no** criterion asked for? *(scope creep — a finding even when it is an
@@ -62,8 +59,7 @@ Do **not** report what a linter catches, and do not restyle to personal preferen
 
 ### Absence, subject and mutant (DEC-169, issue #979)
 
-The one canonical copy; `harness-verification-rules` and `harness-review` point here. Evidence is
-DEC-169.
+The one canonical copy; `harness-verification-rules` points here. Evidence is DEC-169.
 
 - **Every absence assertion has a presence assertion beside it** — `sed -d` satisfies an
   absence-grep completely.
@@ -80,27 +76,12 @@ DEC-169.
 
 ### Grade changed Python
 
-Run the grader against the pinned review, never `HEAD`:
-
-```sh
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/code-grade.py \
-  --base "$(git merge-base origin/main "$review_sha")" \
-  --head "$review_sha"
-```
-
-Every record the tool marks `SEVERITY: high` — below its bar and not grade 2, whatever its grade —
-is a **high** finding naming file, line, qualified name, the three numbers and the driver metric,
-reported as `code_grade: fail`. Every gated grade-2 function is a **med** finding with a written
-answer to each `REASON REQUIRED` line, reported as `code_grade: grade_2`; grade 2 never blocks. A
-record with no `SEVERITY:` line is not a finding.
-
-**The enum is an audit claim, not evidence of itself.** `validate-digest.py` recomputes
-`code_grade` over `merge-base(<default branch>, review_sha)..review_sha` — a range your `reviewed:`
-field cannot change — and refuses a digest that disagrees, naming the value it expected; a checkout
-it cannot grade refuses by name with its repair, never falling back to your base. You still run the
-grader to cite records and reason about grade 2; you no longer decide the value. `n_a` means no
-changed Python path in that range and nothing else — a range whose only Python change is a
-deletion is `pass`.
+A changed Python path in the pinned range → run `code-grade.py` per
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/code-grade-review.md`. A record
+marked `SEVERITY: high` — below its bar and not grade 2 — is a **high** finding, reported as
+`code_grade: fail`; a gated grade-2 function is a **med** finding that never blocks, reported as
+`code_grade: grade_2`. **You do not set `code_grade`**: `validate-digest.py` recomputes it and
+refuses a digest that disagrees (DEC-209).
 
 The mechanical result is not the review. A clean grade decides nothing on its own: `must_fix`,
 severity and the review policy remain yours, and they still fail a mechanically clean change.
@@ -144,19 +125,38 @@ the small one too, never fix it.
 
 ## Review a pinned SHA
 
-Diff `base..review_sha` from `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/review_sha` — **never `..HEAD`**. A commit landing
-mid-review must not change what you reviewed. `[harness:human]` commits since the last pin are hand
-edits that **inherit no earlier review**; their paths are in scope now.
+The pin is `review_sha` in the feature's `feature.json` — the orchestrator writes it (INV-6),
+never you — or `HARNESS-REVIEW-PIN: <sha>` in your dispatch when `feature.json` cannot carry it
+(#1677); the two must agree when both exist. Diff `base..review_sha` with
+`base = git merge-base origin/main "$review_sha"` — **never `..HEAD`**. A commit landing
+mid-review must not change what you reviewed. Where an earlier cycle's pin exists, note both: the
+range between them is the fix cycle's work.
+
+**Reconcile hand edits before Stage 1:**
+
+```sh
+git log --format='%h %s' <previous_review_sha>..<review_sha> | grep '\[harness:human\]'
+git status --porcelain
+```
+
+| Found | Action |
+|---|---|
+| `[harness:human]` commits since the last pin | Report them in `human_commits_in_scope`. They **inherit no earlier review**; their paths are in scope now |
+| Uncommitted changes outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** A tree matching no commit has no pinnable verdict — return it and ask for a `[harness:human]` commit or a stash |
+| Unattributed commits that look manual | A finding — attribution is what makes review scope derivable |
+
+A hand edit is never silently in scope: shipping on a green review that never saw it is worse than
+halting.
 
 ## Before there is a SHA: plan-phase review
 
-While `approval.status` is pending and `feature.json` has no `review_sha`, the target is the plan
-(DEC-207): grade `BRIEF.md` and `plan.yaml` as the specification — never a diff — and write
+No `review_sha` yet → the plan is the target (DEC-207): grade `BRIEF.md` and `plan.yaml` as the
+specification, never a diff, and write
 
 ```yaml
 reviewed: plan:<path-to-plan.yaml>
 code_grade: n_a
 ```
 
-`validate-digest.py` accepts this form only under those preconditions. Findings enter the one
-batched signature review (DEC-176), never a separate pre-signature fix dispatch.
+Preconditions and where the findings go:
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/plan-phase-review.md`.

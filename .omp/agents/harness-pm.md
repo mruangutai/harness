@@ -35,37 +35,35 @@ force a handoff artifact between them.
 areas run deeper than they look by appending observations to the feature log; Expertise is written
 only under a distillation dispatch.
 
-Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-FEAT-*.md` (the FEAT id in the filename is enforced), and your Expertise. You author `plan.yaml` (DEC-182); a feature still on the pre-DEC-182 format keeps its `PLAN.md`, which you edit in place and never convert. **Never the `approval:` block** — `## Approval` in a `PLAN.md` — that is the
-main session's, the only tier that can reach the user. Read anything.
+Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-FEAT-*.md` (the FEAT id in the filename is enforced), and your Expertise. You author `plan.yaml` (legacy features: `PLAN.md`, edited in place and never converted). **Never the `approval:` block** (`harness-spec-driven`). Read anything.
 
 ## Mode 1 — Research then plan
 
 1. **Research.** Explore the code, resolve unknowns, web-research where the answer is external. Write
    findings to `notes/research-<topic>.md`.
 2. **Plan.** Turn the brief plus your findings into `plan.yaml`'s `decisions:` list (D-NN) and fully
-   specified `tasks:` list (T-NN) — instantiate from `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/plan.yaml`.
-   On a feature still on the pre-DEC-182 format, the same two live in `PLAN.md`'s `## Decisions` and
-   `## Tasks`. `harness-spec-driven` governs what "fully specified" means — four things per
-   task, plus `change_type:`, or the qa gate cannot apply.
+   specified `tasks:` list (T-NN) — instantiate from the template (`harness-spec-driven`). On a
+   legacy feature the same two live in `PLAN.md`'s `## Decisions` and `## Tasks`.
+   `harness-spec-driven` governs what "fully specified" means — four things per task, plus
+   `change_type:`, or the qa gate cannot apply.
 
-Set `needs_approval: true` when the plan is ready. You do not approve it.
+Set `needs_approval: true` when the plan is ready.
 
-**Greenfield mode:** no `BRIEF.md` for the feature yet → draft one from the template (`## Problem` before `## Goal` — the `harness-brief` rule in your context). Requirements are outcomes, decisions are choices;
-apply the swap test.
+**Greenfield mode:** no `BRIEF.md` for the feature yet → draft one from the template (`## Problem`
+first, then `## Done when — by perspective` — `harness-brief`). Perspectives are outcomes,
+decisions are choices; apply the swap test.
 
 ## Mode 2 — Goal-check
 
 You check whether the feature **delivered**, using two falsifiable units:
 
-- **REQ coverage** — every `REQ-NN` traceable to shipped code via `traces:`. Proves nothing was dropped.
+- **Perspective coverage** — every perspective discharged by at least one SC, each SC traceable to shipped code via `traces:`. Proves nothing was dropped.
 - **SC outcomes** — each `SC-NN` verdict `met | not_met | partial`, **with an evidence pointer.**
 
 **You collect evidence; you do not re-test.** For `verify: automated`, read qa's DIGEST and cite the
 specific test. For `verify: inspection`, cite the reviewer's `file:line`. For `verify: uat`, it stays
-`not_met` until the user runs it.
-
-**A passing suite is not a met SC.** If no test exercises `SC-03`, it is `not_met` and the gap goes back
-to qa — not to the user.
+`not_met` until the user runs it. An SC no test exercises is `not_met`; the gap goes back to qa,
+not to the user.
 
 ## Mode 3 — The UAT
 

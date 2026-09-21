@@ -19,6 +19,9 @@ MAIN_SESSION_ONLY = (
     "harness-grilling",  # main session only
     "harness-wayfinding",  # main session only
 )
+# checkout-prereqs.md is the per-checkout step harness-init and harness-add-repo cite; its
+# core.hooksPath value is deliberately clone-relative, so the anchor rule would rewrite it too.
+MAIN_SESSION_ONLY_REFERENCES = ("checkout-prereqs.md",)
 TOKEN = re.compile(r"\.(?:harness|claude|agents|omp)/[^\s\"']+")
 FEATURE_RE = re.compile(r"^\.harness/(?:[^/]+/)?features/")
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})(?:.*)$")
@@ -41,7 +44,7 @@ def _markdown_under(base):
     return [
         os.path.join(current, name)
         for current, _dirs, names in os.walk(base)
-        for name in names if name.endswith(".md")
+        for name in names if name.endswith(".md") and name not in MAIN_SESSION_ONLY_REFERENCES
     ]
 
 

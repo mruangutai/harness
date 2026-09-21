@@ -54,21 +54,13 @@ uncertain. Escalate.
 Three failures means your model of the system is wrong, not that you need another attempt. The fourth
 attempt is where speculative changes start accumulating and the original bug gets buried under new ones.
 
-## Forbidden
-
-| Pattern | Why |
-|---|---|
-| *"Let's just try X"* | No fix attempt without a confirmed hypothesis |
-| *"It might be Y, I'll change it and see"* | Changing code to test a hypothesis is not testing. Use logging or read-only investigation |
-| *"I'll fix this and that other thing while I'm here"* | One fix per cycle. Never bundle unrelated changes into a debugging fix |
-| *"I can't reproduce it but I think I see the problem"* | Then you cannot verify the fix. Reproduce first |
-| *"The test is wrong, not the code"* | Sometimes true — but prove it with evidence, do not assume it because the code looks right |
-
 ## Red flags
 
 | Thought | Reality |
 |---|---|
+| "Let's just try X" | No code change without a confirmed hypothesis. Changing code to test one is not testing — use logging or read-only investigation |
+| "I'll fix this and that other thing while I'm here" | One fix per cycle. Never bundle unrelated changes into a debugging fix |
+| "The test is wrong, not the code" | Sometimes true — but prove it with evidence, do not assume it because the code looks right |
 | "I'll add a fix and a test together" | Then the test was written to pass, not to catch the bug |
 | "It's obviously the null check" | Obvious hypotheses still need Phase 3. Obvious and wrong is common |
 | "I'll skip reproduction, the stack trace is clear" | A stack trace shows where it surfaced, not where it originated |
-| "Fourth try will get it" | Three failures means the model is wrong. Escalate |

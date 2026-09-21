@@ -54,24 +54,9 @@ Keyboard reachability, focus management, labels, contrast, and state that is not
 alone. Recorded from history: *focus lost when a row's status flips* shipped and needed its own fix PR.
 Interaction state is exactly what unit tests miss and a user notices immediately.
 
-## Test-first
-
-`harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
-(`test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) live there, not here.
-
 ## When you are handed a bug
 
-Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
-follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested). A fourth attempt is where speculative changes start burying the
-original bug.
-That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
+Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` (not preloaded, DEC-158) and
+follow it, the three-failed-fixes stop included. It is read-only; your write grants are unchanged.
 
-## Reaching a boundary
-
-Domain and shared-file rules live in `harness-digest-dev` (preloaded). Never work around the hook;
-out-of-domain needs are `open_questions` for your lead.
-
-## Output
-
-Your return contract is the `harness-digest-dev` skill, already in your context — one canonical
-copy for all four dev personas, not restated here.
+## Output — the `dev` schema in `harness-digest-dev`.

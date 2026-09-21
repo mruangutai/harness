@@ -6,19 +6,11 @@ user-invocable: false
 
 # Distillation: the only time Expertise is written
 
-**Read this because your dispatch said "distill".** It is not preloaded — the rules below govern an
-event that happens once per agent per feature, and carrying them on every spawn taxed ~33 spawns
-that never write an Expertise file. Recording observations mid-run is `harness-expertise`, which you
-already have.
-
-This is **DEC-158 move 2** (conditionally-relevant skills load on demand), the same shape as
-`harness-systematic-debugging`. It does **not** contradict DEC-158 move 3's *"feature-close
-distillation stays inline"* — that governs the ORCHESTRATOR's dispatch procedure in
-`harness/SKILL.md`, which still runs every ship and is still inline. What moved is the MEMBER's
-write-rules, which fire once per agent per feature. Different tier, different frequency.
+**Read this because your dispatch said "distill".** Not preloaded — these rules fire once per agent
+per feature (DEC-158). Mid-run observation logging is `harness-expertise`, which you already have.
 
 You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
-"distill"** — at feature close, under a curation note, or via `/harness-curate`. Then:
+"distill"** — at feature close, under a curation note, or under the `harness-curate` skill. Then:
 
 1. Read your observations log(s) and your current Expertise (already in context).
 2. Extract what passes the test: *six spawns from now, would knowing this change what I do?*
@@ -37,14 +29,17 @@ You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`
    two close-outs can be in flight at once — so this is not a style preference. The tool merges;
    you no longer read-modify-write.
 
-   Three refusals, and each wants a different response:
+   The tool refuses without writing. Each exit wants a different response:
 
-   | Exit | What it means | What you do |
-   | --- | --- | --- |
-   | 6 | the lock is held | retry once, then report it upward |
-   | 7 | the same entry id carries different text | a real conflict — resolve it yourself |
-   | 8 | the section cap is exceeded | curate rather than append |
-   | 9 | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
+   | Exit | Subcommand | What it means | What you do |
+   | --- | --- | --- | --- |
+   | 6 | both | the lock is held | retry once, then report it upward |
+   | 7 | both | `CONFLICT` — the same entry id carries different text | a real conflict — resolve it yourself |
+   | 8 | both | `CAP EXCEEDED` | curate rather than append |
+   | 9 | both | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
+   | 10 | `ops` | `MISSING TARGET` | rejected, never guessed at — a contract violation |
+   | 11 | both | `AMBIGUOUS TARGET` — the id appears twice in its section, or two ops in one proposal name the same section and id | |
+   | 12 | `ops` | `MALFORMED OPS` | |
 
    Report the ops in your DIGEST's `expertise_update` as the receipt.
 4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <file>` and fix every violation before
@@ -62,7 +57,7 @@ dispatch; a member whose dispatch lacks it has the lead fix the dispatch, never 
 Every entry is **WHEN <situation> DO <action>**, at most **50 words**, and names **no feature or
 task IDs** — no `FEAT-NN`, `T-NN`, issue `#NN`.
 
-## Two layers — decide this BEFORE you write the entry
+## Two layers you write — decide this BEFORE you write the entry
 
 Your Expertise is split by **what the knowledge is about**, not by what you were working on.
 
@@ -71,19 +66,16 @@ Your Expertise is split by **what the knowledge is about**, not by what you were
 | **Craft** | how you work, true wherever you work | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<agent>.md` | 150 lines |
 | **Repository** | what is true of ONE repository | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<agent>.md` | 40 lines |
 
+A third, global tier lives in your home directory (`~/.harness`, same `expertise/<agent>.md`
+layout) and is injected ahead of both by `inject-expertise.py`; you never write it from a run.
+
 **The default is craft, and the test is one question: could this entry be true and useful in a
 repository you have never seen?** If yes, it is craft. It is repository-layer only when it turns on
-a path, file, decision or invariant that exists in **one** repository.
-
-**The default matches what you already write.** Measured at `ada8e99` across all 374 entries in the
-15 craft files: **16 name a repository-specific token — 4.3%** — and eight of the fifteen files name
-none. Adjudicated under the rule above, 11 moved to the repository tier and 5 stayed craft, because
-the token was an example rather than the thing the rule turned on. The `WHEN/DO` shape was already
-pushing you toward craft before the layer had a name.
+a path, file, decision or invariant that exists in **one** repository. Measured at `ada8e99`: 4.3%
+of 374 craft entries named a repo-specific token, so craft is the default by a wide margin (DEC-158).
 
 **Durable repo facts — "`tests/` is not type-checked here" — are the repository layer**, and they
-still qualify without the `WHEN/DO` shape. They were previously written beside craft entries; they
-no longer are.
+still qualify without the `WHEN/DO` shape.
 
 **The failure this prevents:** a role that learns one repository's answers and carries them to the
 next one. A craft entry mentioning a path as an *example* is still craft — `check-expertise.py`
@@ -141,21 +133,10 @@ plus a drop of the absorbed id; the tool refuses an `op: merge`. Apply the JSON 
 `expertise_update` list with:
 
 ```bash
-python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
 ```
 
-The operation refuses without writing:
-
-- `7 CONFLICT`
-- `8 CAP EXCEEDED`
-- `9 not an Expertise file`
-- `10 MISSING TARGET`
-- `11 AMBIGUOUS TARGET`
-- `12 MALFORMED OPS`
-
-A missing target is a contract violation: it is rejected, not guessed at. A target is ambiguous
-only when its ID appears more than once in its section, or two ops in one proposal name the same
-section and ID. Add-only proposals may still use `apply --entries`, unchanged.
+The refusals are the table in step 3. Add-only proposals may still use `apply --entries`, unchanged.
 
 At a section cap during distillation, condense until you are under it — distillation IS the
 curation step, so the old flag-and-stop rule does not apply to you here. If you genuinely cannot

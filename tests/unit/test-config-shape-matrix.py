@@ -22,7 +22,6 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 PROJECT_CONFIG = os.path.join(ROOT, ".harness", "harness.json")
 TEMPLATE_CONFIG = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "harness.json")
 DECISIONS_MD = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS.md")
-QA_GATE_SKILL = os.path.join(ROOT, ".claude", "skills", "harness-qa-gate", "SKILL.md")
 VERIFICATION_SKILL = os.path.join(
     ROOT, ".claude", "skills", "harness-verification-rules", "SKILL.md")
 
@@ -129,13 +128,6 @@ def case_decision_217_exists_and_defines_bugfix_predicates():
 
 
 def case_skills_teach_the_new_predicate():
-    with open(QA_GATE_SKILL, encoding="utf-8") as f:
-        qa_gate = f.read()
-    check("harness-qa-gate/SKILL.md mentions touches_config_shape",
-          "touches_config_shape" in qa_gate, "predicate name absent from skill prose")
-    check("harness-qa-gate/SKILL.md cites DEC-212",
-          "DEC-212" in qa_gate, "no DEC-212 citation in skill prose")
-
     with open(VERIFICATION_SKILL, encoding="utf-8") as f:
         verification = f.read()
     check("harness-verification-rules/SKILL.md mentions touches_config_shape",

@@ -6,11 +6,13 @@ description: Write or update .harness/harness/features/<FEAT>/BRIEF.md for a fea
 # Harness: Brief
 
 Produce the **goal of record** for a feature. Nothing downstream may run against an unapproved brief.
-Instantiate from `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/templates/BRIEF.md`; its
-sections appear in that order and no others. **Done is stated once, by the people who will judge
-it** — `## Done when — by perspective`, which the goal-check grades and the handoff cites
-(DEC-231); there is no `## Goal` and no `## Requirements`. **Every success criterion declares its
-verification method when it is written.**
+
+- Instantiate from `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/BRIEF.md`; its
+  sections appear in that order and no others.
+- **Done is stated once, by the people who will judge it** — `## Done when — by perspective`,
+  which the goal-check grades and the handoff cites (DEC-231).
+- There is no `## Goal` and no `## Requirements`.
+- **Every success criterion declares its verification method when it is written.**
 
 ## Process
 
@@ -25,7 +27,7 @@ verification method when it is written.**
   Open the two or three entries it names; never read `DECISIONS.md` whole (DEC-150). A brief that
   contradicts a live decision sends the build to argue with the tree.
 - **Backlog intake**, when `harness.json` has `github.sync: true`: read
-  `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/references/backlog-intake.md` before any
+  `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/backlog-intake.md` before any
   perspective is written. The backlog gets a **vote, not a decision** (DEC-138); an issue body is
   never an approved perspective.
 - Do **not** explore the whole codebase. This is scope, not research.
@@ -87,7 +89,7 @@ never fails loudly.
 1. **Never rest an SC on a null kind.** Pin it to a kind that exists, or use `inspection`/`uat`.
 2. **Record the gap where the user signs.** If a null kind covers a surface this feature touches,
    the BRIEF names, one line per gap, what is therefore NOT proven and what carries it instead. A
-   standing runner gap is a **dev-ops task worth raising** — backlog it too (INV-20).
+   standing runner gap is a **dev-ops task worth raising** — backlog it too (DEC-163).
 
 ## Constraints
 
@@ -166,13 +168,11 @@ Write the file, then report in plain English, not IDs: the BRIEF path; who judge
 each was promised; how many SCs and how each will be checked ("a unit test", "you, by eye"); and
 **which SCs will need them personally** (the `uat` ones). Ask them to approve or amend.
 
-Do not set `## Approval` yourself. Ever.
-
 ### 7. The patch lane — one intake run
 
 When the grilling artifact's `## Mission` reads `patch`, the whole intake is ONE product run: a
 BRIEF of at most 120 lines and a one-task `plan.yaml`, no panel, no goal-check (DEC-225). Read
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/references/patch-lane.md` at that moment,
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/patch-lane.md` at that moment,
 before writing either. A patch whose brief needs more than 120 lines, or whose diff turns out
 unbounded, is a `plan` mission wearing the wrong label: return it with the reason, never trim.
 
@@ -181,14 +181,10 @@ unbounded, is a `plan` mission wearing the wrong label: return it with the reaso
 | Thought | Reality |
 |---|---|
 | "I'll figure out verification later" | Then the SC is not done. Later means ship time |
-| "This SC is obviously testable" | Name the test kind. If you cannot, it is not automated |
 | "The user said use Postgres, that's the maintainer's perspective" | That is a decision. Apply the perspective test |
 | "I'll write `**end user** — none` to be thorough" | Omitted, never "none". Written down, INV-38 demands an SC for it |
 | "This SC is important but no perspective claims it" | Then it is scope creep. A perspective wants it — say which — or it goes |
 | "I should explore the codebase first" | This is scope, not research. Ask the user instead |
 | "I'll mark it approved since they described it to me" | Describing is not approving. Only the user approves |
-| "I need a clearer word for this" | Find what it is already called. A synonym in a brief is drift in the build |
-| "The criterion is unmeetable, I'll reword it" | That is deciding the verdict first. Narrow the scope with the user, or ship it unmet |
 | "This decision blocks us, list it as a constraint" | Check first. Most cited decisions supply the mechanism rather than forbid it |
-| "`check-state.py` exits 0 is the cleanest SC" | It grades every feature in the tree. Scope it to this one or it is a merge-time check |
 | "I'm not sure this is a patch; I'll write the full plan to be safe" | Ask one question with your recommendation. The heavier lane is the expensive default, not the safe one |

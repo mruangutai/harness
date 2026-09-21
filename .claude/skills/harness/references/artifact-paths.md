@@ -44,3 +44,8 @@ and cite it as `artifact:`.
 `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md` is
 the Expertise hot layer (harness-expertise). It is never injected into any spawn, so anything a
 successor must read is lost there. Use it only for lessons about *how you work*.
+
+## Never remove a worktree
+
+`git worktree remove` exits 0 from inside the tree it deletes. The main session or the
+`post-merge` hook removes it from outside; you never do.

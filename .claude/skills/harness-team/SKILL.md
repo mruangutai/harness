@@ -9,18 +9,18 @@ A team is a **DAG of steps, each dispatched to one agent**, hosted by a domain l
 the algorithm; the teams are data at `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/*.yaml`.
 
 **Four shipped teams**: `build` (eng-lead; one step per plan task, expanded at dispatch), `plan`
-(product-lead), `validate` and `fix` (validator-lead). Only `build` is single-squad; the other
-three host personas from other squads, and independence is persona-level — the reviewer is never
-the author (DEC-224).
+(product-lead), `validate` and `fix` (validator-lead). Only `build` is single-squad; the rest host
+outside personas (independence is persona-level — `harness-zero-micro-management` loop step 1,
+DEC-224).
 
-**You are the host, and you are a lead** — never the orchestrator or the main session (DEC-120,
-DEC-158). Spawn allowlist, dispatch header, the `model:` ban and tool grants are
+**You are the host, and you are a lead** — never the orchestrator or the main session (DEC-100,
+DEC-120, issue #83). Spawn allowlist, dispatch header, the `model:` ban and tool grants are
 `harness-zero-micro-management`'s rules, enforced by `dispatch-guard.py`.
 
 ## The two rules that make this safe
 
-**State passes by file path, never by conversation.** A step's return is control flow only; the
-next step is told the artifact's *path* and reads it.
+**State passes by path (harness-handoff).** A step's return is control flow only; the next step
+is told the artifact's *path* and reads it.
 
 **Every step writes only inside the producing agent's own domain.** Members cannot write the run
 dir — a step told to stage output there is blocked by `check-domain.py` on dispatch (DEC-116) —
@@ -30,28 +30,19 @@ and namespaced artifact paths keep parallel outputs disjoint.
 
 ### 1. Resolve the team
 
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/<name>.yaml` first, then `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/<name>.yaml`; project
-overrides win, and anything project-specific lives outside the shipped directory (DEC-113).
-**No team named?** List `name` + `purpose` from both directories and stop — the filesystem is the
-registry.
+Lookup order (project override first, DEC-113) and the no-team-named listing:
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/team-run-state.md` §Resolve the team.
 
 ### 2. Open the run
 
-```
-<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<feat>/runs/<YYYY-MM-DD>-<seq>-<squad>/
-  state.yaml
-```
+Seed `state.yaml` **before the first dispatch** — one `pending` step per team step, `steps_from:`
+expanded first, `run_uid` minted by the harness, never you. Run-dir path, seed keys, the version-2
+step-key contract `check-domain.py` enforces and the `steps_from:` expansion are
+`team-run-state.md` §Open the run — read it when seeding.
 
 **The run dir is yours alone** — `state.yaml`, collected DIGESTs, no per-step member directories.
 `check-domain.py` refuses a `<run_dir>/digest.md` write that would discard existing content, so a
 new cycle takes its own run directory.
-
-Seed `state.yaml` — `schema_version: 2`, run identity, one `pending` step per team step — before
-the first dispatch; `run_uid` the harness mints, never you. **A team file carries EITHER a literal
-`steps:` DAG OR a `steps_from:` expansion rule**; with `steps_from:`, expand FIRST, then seed.
-Version 2 closes each step to the keys `run-state-schema.json` declares — `check-domain.py` refuses
-any other. **Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/team-run-state.md`
-when seeding `state.yaml`** — seed keys, step-key contract and `steps_from:` expansion live there.
 
 **`state.yaml` is a checkpoint, not a notebook (DEC-154)**: identifiers, enums, counters, paths and
 sequence markers a fresh context can match without reading. Findings and reasoning belong in
@@ -86,16 +77,11 @@ After the dispatch header, each item prompt's next line is the title
 `<flow-id> · <step or task id> · <what, 3–6 words>` (DEC-142), then goal, resolved **input paths**
 and **output paths**.
 
-**Under OMP, never supervise a member — the task tool does it.** Every member is declared
-`blocking: true`, so the ready-wave `task` call remains inside OMP until those members are terminal
-while your model is inactive. Do not call `hub wait`, poll `hub jobs`, sleep, emit heartbeats, or
-manufacture work — the blocking boundary is deliberate.
-
-**Never wait for a member.** The `task` call holds in the host until the member is terminal; your
-model is inactive meanwhile. Do not poll, sleep, emit a heartbeat, or invent a tool call — zero
-such actions. The registry prevents a replacement parent while that feature/persona claim is
-live, and the digest gate refuses any return that arrives with a child in flight (DEC-233). The
-host's suggestion to continue other work does not override this conduct (DEC-201).
+**Never wait for a member.** Every member is `blocking: true`; the `task` call holds in the host
+until the member is terminal and your model is inactive. No `hub wait`, polling, sleeps,
+heartbeats or manufactured work — zero such calls. The registry blocks a replacement parent while
+the claim is live and the digest gate refuses a return with a child in flight (DEC-233); a host
+suggestion to continue other work does not override this (DEC-201).
 
 **e. Collect returns after the blocking task result.** Re-read
 `state.yaml` first, verify the cited artifact, then record `VERDICT`, DIGEST fields, and
@@ -116,7 +102,7 @@ report's **path**, cycle-namespaced outputs (DEC-117), and per-step `cycles` cou
 `max_cycles`. **Read `team-run-state.md` §`loop_back` before re-dispatching a step.** The same step
 failing twice for the same reason will not converge — say so in the escalation.
 
-### 4. Collate — this is the job, not the paperwork
+### 4. Collate
 
 Collation is **not** concatenation — it is why the lead tier exists. In order:
 
@@ -146,16 +132,9 @@ only when a decision of *yours* turns on it.
 ### 5. Close out
 
 Set `status: complete` (or `failed` / `blocked`), then **write your team digest to
-`<run_dir>/digest.md`** and report it as your `artifact:`.
-
-**The team digest is a digest of digests**: a member's shape plus `members:`, the union of
-`must_fix`, `steps_run`, cycles spent and your assessment. The hook validates the **file** at your
-`artifact:` path against the same schema (DEC-156) — the file, not your transcript, is what a
-successor context reads. Prose goes below the block, never instead of it.
-
-**No shell means no clock**: ordering markers (`seq-1`, `seq-2`, …), never invented wall-clock
-times; anything needing a shell belongs to the orchestrator. Report per-step verdicts and the run
-dir path — the artifacts' paths, not their contents.
+`<run_dir>/digest.md`** and report it as your `artifact:` — the hook validates the **file** at that
+path against the same schema (DEC-156); the file, not your transcript, is what a successor reads.
+The digest-of-digests shape: `team-run-state.md` §Close out.
 
 ## Reporting up
 
@@ -195,12 +174,8 @@ asked is answered in `adequacy_notes` (qualification on PASS), the run-state ste
 
 | Thought | Reality |
 |---|---|
-| "I'll paste the plan into the next step's prompt" | State passes by path. Pasting burns the budget the org exists to protect |
-| "I'll have the step write its notes to the run dir" | Members cannot write there. It is blocked on dispatch — put outputs in the agent's own domain |
-| "Both steps mutate the repo, but the DAG allows parallel" | `mutates_repo: true` serializes. The domain hook cannot see `Bash` writes |
 | "I'll track the cycle count as I go" | It lives in `state.yaml`. Your context may not survive to the next iteration |
 | "The agent clearly meant PASS" | Missing `VERDICT` is `BLOCKED (contract violation)` after one re-prompt. Do not guess |
 | "I'll dispatch these one at a time to be safe" | Independent, non-mutating steps go in one turn. Serial dispatch wastes the fan-out |
-| "I'll write state.yaml at the end" | Checkpoint before dispatch, or a crash leaves an undecidable run |
 | "I'll record my assessment reasoning in state.yaml so it survives" | Prose survives in `digest.md`. state.yaml carries verdicts and markers a fresh context can match, not read (DEC-154) |
 | "I'll reuse last cycle's run dir" | The digest write is refused rather than overwritten; a new cycle takes a run directory of its own |

@@ -23,7 +23,7 @@ manufacture one. That is a legitimate and common outcome for backend-only work.
 
 A UAT is only `ready` when every `automated` and `inspection` criterion has already passed.
 
-Check `harness-qa-gate`'s verdict and `harness-review`'s verdict. If either is `FAIL`:
+Check `harness-qa`'s verdict (`harness-verification-rules`) and `harness-code-reviewer`'s verdict (`harness-code-review`). If either is `FAIL`:
 
 ```
 UAT status: draft — not ready.

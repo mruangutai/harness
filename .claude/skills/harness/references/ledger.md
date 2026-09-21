@@ -18,14 +18,11 @@ refusal stops it, names its stage, and keeps every earlier durable write** — f
 stage refused; never re-issue the later stages by hand (BUG-1723). On success it prints one line
 carrying the spend figure, which every return of yours reports. `C` is the non-negative
 `cycles_used` the lead DIGEST reports, **never estimated**: run-end writes the run's cycle
-attribution and adjusts the feature total so repeating the same report leaves it unchanged;
-tokens are the host's (BUG-1724), `null` when unmeasured so a reader can tell unmeasured from
-zero (SC-18).
-
-Tokens are the host's, not yours: the hook stamps `details.results[i].tokens` onto the open run
-on your wake (BUG-1724), and a bare close-out preserves it. Only a run whose entry still carries
-no figure may take `run-end --tokens N` afterwards, from the tool result and **never estimated**:
-the tool writes `null` for an unmeasured run, so a reader can tell unmeasured from zero (SC-18).
+attribution and adjusts the feature total so repeating the same report leaves it unchanged.
+Tokens are the host's: the hook stamps the measured figure onto the open run on your wake
+(BUG-1724) and a bare close-out preserves it; only a run whose entry still carries none may take
+`run-end --tokens N` from `details.results[i].tokens`, never an estimate — `null` when unmeasured,
+so a reader can tell unmeasured from zero (SC-18).
 
 The `plan` run graded a document and no code: close it with `--code-grade n_a`. Omitting the flag
 declares the run reviewed code, and INV-6 then demands a `review_sha` that cannot exist before the
@@ -49,11 +46,10 @@ Every autonomous judgement is one line in `judgements[]`:
 | `amendment` | the engineering lead changed a signed task's `intent`, `files` or `verify` inside the same build run (DEC-32/DEC-229) — written FOR you by `plan-merge.py record-amendments`, one entry per changed field, never by hand |
 | `reject` | the source ticket was wrong at first-run intake — already fixed, superseded, or refused by a later ruling; `--decision <superseding issue number \| none>`, one run, zero cycles, then `gh-sync.py reject` (FEAT-1714) |
 
-**An amendment's identity is its `decision`: `T-NN.intent`, `T-NN.files` or `T-NN.verify`** — the
-task and the field, nothing added, so a field amended twice is two entries told apart by `at`.
+**An amendment's identity is its `decision`: `T-NN.intent`, `T-NN.files` or `T-NN.verify`.**
 `record-amendments` writes each entry from the lead's digest (`by: harness-orchestrator`, the
-digest's one-line reason) in the same act that splices the text, and stamps every entry a
-distinct microsecond instant so the operator can name exactly one. **Overruling is by that exact
+digest's one-line reason) in the same act that splices the text, at a distinct microsecond `at`,
+so a field amended twice is two entries the operator can tell apart. **Overruling is by that exact
 `at`:** at ship, the operator reads the amendment table in the briefing and, for any departure
 they reject, the main session runs `feature-record.py overrule-amendment --file <feature.json>
 --at <the entry's at>`; the verb selects the one live amendment at that instant and adds
@@ -76,15 +72,10 @@ the fact, from the reason line, never by ruling in-flight (SC-21).
 
 **The seam has an order (DEC-159, BUG-1723).** The outgoing orchestrator writes the handoff note
 BEFORE any run of the later phase exists; the successor appends its `succession` judgement before
-or with its first run. INV-43 reports a `succession` whose `at` is later than the started_at of
-the first run after that handoff's `seq-N` — a retrospective correction, which means one context
-kept going across the seam and wrote the judgement after the fact. It is a violation at every
-station, `done` included: shipping does not change what the ledger says happened. The one
-boundary is by DATE, never by station — harness.json `seam_era_start` (the same shape as
-`panel_era_start`, BUG-1071): a succession recorded before the seam was graded is reported as a
-note saying what it would fail, because a record cannot be re-recorded to satisfy a rule that
-did not exist when it was written (DEC-227). An unreadable `at` or `started_at` is CANNOT
-VERIFY, never a pass.
+or with its first run. INV-43 reports a `succession` whose `at` is later than the `started_at` of
+the first run after that handoff's `seq-N` — a retrospective correction — at every station, `done`
+included. It grades only successions after harness.json `seam_era_start`; earlier ones report as
+notes (DEC-227). An unreadable `at` or `started_at` is CANNOT VERIFY, never a pass.
 
 ## Spend
 
@@ -100,11 +91,7 @@ If no line arrives there is nothing to weigh.
 
 ## The cycle budget
 
-| | Teeth | On crossing |
-|---|---|---|
-| `cycles_used` / `max_total_cycles` | **HARD** — kills runaway fix loops; `check-state.py` INV-39 enforces the bound | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
-| `rework.rounds` / `rework.wall_clock_minutes` | **THE RULING** — the operator's one answer to "how much rework", given at signature | a `continue` judgement with `--decision stop`, then return with the unmet findings named |
-| `len(runs)` / `max_total_runs` | **INFORMATIONAL** — notices a long feature, never stops one | INV-22 emits a NOTE. Keep going; a high count is not a defect |
+The three lines and their teeth are the playbook's table; this is what counts against them.
 
 **What counts as rework** (DEC-157): a FAIL routed back, an unmet-SC re-dispatch, or a send-back a
 lead reports from inside a run. A clean first-pass run adds ZERO cycles. **Continuing a task after
@@ -120,7 +107,3 @@ A main-session-direct segment is not a run and never appears in `runs:`.
 existing file under the feature directory, or the verb refuses — writes the bound
 and the `budget_decisions[]` record together, and INV-39 refuses a bound above the default with no
 record of the current value. A ceiling that moves when reached is not one.
-
-**Surface a crossing where a human sees it**, not only at `/harness` entry, which is retrospective.
-When `len(runs)` passes `max_total_runs`, say so in your return and in the CEO briefing: the count,
-the budget, and your one-line read on whether the runs still earn their place. Never as an apology.

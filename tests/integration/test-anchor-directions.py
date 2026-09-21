@@ -14,7 +14,7 @@ import harness_boundary
 REF = os.environ.get("HARNESS_REVIEW_SHA") or "HEAD"
 CHECKER = os.path.join(ROOT, ".claude/skills/harness/bin/check-instruction-paths.py")
 ROWS = [
-    ("SC-04 S1 read qa gate", ".claude/skills/harness-qa-gate/SKILL.md", r"\.harness/harness\.json", "HARNESS_CONTROL_PLANE_ROOT", 1),
+    ("SC-04 S1 read verification rules", ".claude/skills/harness-verification-rules/SKILL.md", r"\.harness/harness\.json", "HARNESS_CONTROL_PLANE_ROOT", 1),
     ("SC-04 S2 read expertise", ".claude/skills/harness-expertise/SKILL.md", r"\.harness/expertise/<your-agent-name>\.md", "HARNESS_CONTROL_PLANE_ROOT", 1),
     ("SC-04 S3 write receipt", ".claude/skills/harness-handoff/SKILL.md", r"\.harness/<repo>/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>\.md", "HARNESS_FEATURE_TREE_ROOT", 1),
     ("SC-04 S4 read debugging skill", ".omp/agents/harness-backend-dev.md", r"\.(?:agents|claude)/skills/harness-systematic-debugging/SKILL\.md", "HARNESS_CONTROL_PLANE_ROOT", 1),

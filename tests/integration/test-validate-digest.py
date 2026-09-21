@@ -237,24 +237,30 @@ def run_reviewer_severity_enum_cases():
     print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
-def _skill_documented_block(lines):
-    digest_at = None
-    for index, line in enumerate(lines):
-        if line.lstrip().startswith("DIGEST:"):
-            digest_at = index
-            break
+def _find(lines, predicate, start=0, stop=None, step=1):
+    """Index of the first line in [start, stop) satisfying predicate, else None."""
+    stop = len(lines) if stop is None else stop
+    for index in range(start, stop, step):
+        if predicate(lines[index]):
+            return index
+    return None
+
+
+def _is_fence(line):
+    return line.strip().startswith("```")
+
+
+def _skill_documented_block(lines, heading=None):
+    start = 0
+    if heading is not None:
+        start = _find(lines, lambda line: line.strip() == f"## {heading}")
+        if start is None:
+            return None
+    digest_at = _find(lines, lambda line: line.lstrip().startswith("DIGEST:"), start)
     if digest_at is None:
         return None
-    open_at = None
-    for index in range(digest_at - 1, -1, -1):
-        if lines[index].strip().startswith("```"):
-            open_at = index
-            break
-    close_at = None
-    for index in range(digest_at + 1, len(lines)):
-        if lines[index].strip().startswith("```"):
-            close_at = index
-            break
+    open_at = _find(lines, _is_fence, digest_at - 1, -1, -1)
+    close_at = _find(lines, _is_fence, digest_at + 1)
     if open_at is None or close_at is None:
         return None
     return "\n".join(lines[open_at + 1:close_at])
@@ -277,10 +283,15 @@ def _agent_documented_block(lines):
 
 
 def documented_block(source_text, source_path):
-    """Return the documented DIGEST block for an agent or shared skill."""
+    """Return the documented DIGEST block for an agent or shared skill.
+
+    A skill path may carry `#<heading>` to select the block under that `##` heading
+    when one skill documents several schemas (harness-digest-dev: `dev`, `dev-ops`).
+    """
     lines = source_text.splitlines()
-    if source_path.endswith("SKILL.md"):
-        return _skill_documented_block(lines)
+    path, _, heading = source_path.partition("#")
+    if path.endswith("SKILL.md"):
+        return _skill_documented_block(lines, heading or None)
     return _agent_documented_block(lines)
 
 
@@ -296,7 +307,7 @@ CONTRACT_SOURCES = {
     "harness-pm": [".omp/agents/harness-pm.md"],
     "harness-qa": [".omp/agents/harness-qa.md"],
     "harness-documentor": [".omp/agents/harness-documentor.md"],
-    "harness-dev-ops": [".omp/agents/harness-dev-ops.md"],
+    "harness-dev-ops": [".claude/skills/harness-digest-dev/SKILL.md#dev-ops"],
     "harness-visual-designer": [".omp/agents/harness-visual-designer.md"],
     "harness-code-reviewer": [".omp/agents/harness-code-reviewer.md"],
     "harness-security-reviewer": [".omp/agents/harness-security-reviewer.md"],
@@ -369,7 +380,7 @@ artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-review
 
 def _contract_source(path):
     try:
-        with open(os.path.join(REPO_ROOT, path)) as source:
+        with open(os.path.join(REPO_ROOT, path.partition("#")[0])) as source:
             return source.read()
     except FileNotFoundError:
         return None

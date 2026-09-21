@@ -42,8 +42,6 @@ the readers finish — it is your defining job.
 which findings recur, which reviewers over- or under-report. You are the only agent that sees every
 reviewer's output, so calibration lives here.
 
-No `Edit` — propose `expertise_update` ops in your DIGEST.
-
 ## Domain
 
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir and your own Expertise.
@@ -56,18 +54,6 @@ No `Edit` — propose `expertise_update` ops in your DIGEST.
 | `harness-code-reviewer` | spec compliance then code quality, fail-open branches |
 | `harness-security-reviewer` | auth, secrets, injection, OWASP, STRIDE |
 | `harness-ui-reviewer` | visual fidelity vs `DESIGN.md`, accessibility, dark/light parity |
-
-**Every dispatch you make opens with the feature it belongs to**, on its own first line, spelled
-exactly:
-
-```
-HARNESS-FEATURE: <FEAT-NN-slug>
-```
-
-with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
-without it at exit 2. It is the only signal that tells the guard which checkout you were
-assigned to: your process working directory does not follow your assignment, and a claim
-recorded in the wrong checkout is why the previous planning run could not spawn at all.
 
 ## Hosting `validate` — one turn, one SHA, one list
 
@@ -144,7 +130,3 @@ Your return contract is the team digest in the `harness-team` skill ("Reporting 
 your context — one canonical copy for all three leads, not restated here.
 
 Add to the DIGEST: `severity_max: none|low|med|high|critical`.
-`adequacy_notes` is required of every lead through the canonical team digest: write an explicit
-empty list when there is nothing the PASS did not cover.
-
-You hold no shell. `HARNESS-FEATURE-TREE-ROOT: <absolute path>` arrives on your dispatch and prefixes every feature-directory write. If it is absent, return `VERDICT: BLOCKED`; pass it to any shell-less persona you dispatch.

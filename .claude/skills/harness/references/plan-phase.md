@@ -7,7 +7,7 @@ playbook is one line; this is the procedure. Evidence and history: DEC-225, DEC-
 
 ONE dispatch of the `plan` team to `harness-product-lead` — resolve it
 `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/plan.yaml` before
-`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/teams/plan.yaml`, as `harness-team` requires.
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/plan.yaml`, as `harness-team` requires.
 Pass the grilling artifact's path (its `## Mission` block reads `mission: plan`) and the BRIEF's.
 The whole plan phase happens inside that run; you sequence nothing between its steps. Run-dir
 slug: `plan-product`.
@@ -46,15 +46,15 @@ carries `scope`: `task` means one task over-builds and pm trims it at apply, exa
 substance finding against the plan text; `mission` means the plan lane itself exceeds the work.
 
 **A `scope: mission` finding no reader opposes** is the panel telling you the mission is too heavy
-(SC-03). The lead's digest says `recommend: downgrade patch`, and you act on it yourself:
-`feature-record.py set-mission --file <feature.json> --mission patch --by harness-orchestrator
---reason "<reader> <PF-id>: <summary>; unopposed"` — the verb writes the `mission` judgement with
-it — and the intake returned `pending` with the downgrade stated in your return — the
-operator sees it at signature, not as a question. Before you run it, open the panel digest and
-confirm both halves yourself: the PF you cite says `scope: mission`, and no reader's review says
-the mission fits. `scope: task` findings never downgrade, however many; a reader who found the
-mission proportionate is dissent, and dissent goes to the operator at signature, not to
-`set-mission`. A re-cycle on a proportionality finding of either scope is a defect (DEC-228).
+(SC-03). The lead's digest says `recommend: downgrade patch`; confirm both halves in the panel
+digest yourself — the PF you cite says `scope: mission`, and no reader's review says the mission
+fits — then run `feature-record.py set-mission --file <feature.json> --mission patch --by
+harness-orchestrator --reason "<reader> <PF-id>: <summary>; unopposed"` (the verb writes the
+`mission` judgement with it) and return the intake `pending` with the downgrade stated — the
+operator sees it at signature, not as a question. `scope: task` findings never downgrade, however
+many; a reader who found the mission proportionate is dissent, and dissent goes to the operator at
+signature, not to `set-mission`. A re-cycle on a proportionality finding of either scope is a
+defect (DEC-228).
 
 ## The signature
 
@@ -67,8 +67,5 @@ that same act and never by you or pm.
 ## Mission patch
 
 `mission: patch` in the grilling artifact is the same single dispatch with a smaller deliverable
-and no readers: a BRIEF in the by-perspective shape at ≤ 120 lines and a `plan.yaml` holding
-exactly one task — `T-01`, `execution_mode: team`, `execution_agent` the owning dev, `files:` from
-the grilling, `traces:` every SC, `change_type: bugfix` unless the grilling says otherwise. No
-panel, no goal-check run: a patch is gated at qa and review on the diff, not at plan on a document
+and no readers; the deliverable's shape is pm's — `patch-lane.md`. No panel, no goal-check run
 (DEC-225). After signature it runs exactly build → validate → ship.

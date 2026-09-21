@@ -15,8 +15,7 @@ Mandatory. No exceptions without explicit human approval **in the current sessio
 Production code written before a failing test existed MUST be **deleted** — not kept as reference, not
 adapted, not "tested afterward." Delete it and restart in correct order.
 
-That sounds harsh, and it is the point: if code written test-last can be salvaged by writing tests
-after, the law has no teeth and you will take that path every time you are under pressure.
+Salvage would make the law optional under pressure; that is why deletion is the remedy.
 
 **The only valid exemption is explicit human approval in this session.** "The user implied it was fine",
 "the task didn't mention tests", and "the plan didn't include a test task" are **not** approvals.
@@ -60,46 +59,8 @@ Before executing a task, scan it. **Refuse it** if it contains:
 - Vague verbs with no target: "add error handling", "improve performance", "update the config"
 - No concrete file path anywhere in the task
 
-Do **not** infer the intent. Return:
-
-````
-```yaml
-VERDICT: BLOCKED
-DIGEST:
-  headline: task T-12 is under-specified and cannot be executed as written
-  tests_added: 0
-  suite: n/a
-  task: T-12
-  task_verify: n/a
-  blocked_on: "T-12 contains a placeholder at <location>; needs pm revision"
-  open_questions: []
-  files_touched: []
-  expertise_update: []
-artifact: none
-```
-
-**Every field, including the ones that are empty.** This return used to be written with only
-`headline` and `blocked_on`, and the `SubagentStop` hook rejected it with exit 2 — so the guard
-against under-specified tasks was told it had committed a contract violation at the exact moment it
-fired, and the forced retry shipped unvalidated. `suite: n/a` is what makes it truthful: you ran no
-tests, and DEC-173 gives that a spelling. Do not write `suite: pass` here — it is the only value the
-schema used to accept, and it is a lie.
-
-**`task_verify: n/a` is the same truth about a different question.** You ran no verify command
-because you refused the task, and `n/a` is its spelling. The accompanying VERDICT is `BLOCKED`,
-never `PASS` — `task_verify: n/a` alongside `PASS` is rejected for every dev persona, `dev-ops`
-included. `task_verify: fail` with `VERDICT: PASS` is rejected on the same principle: a check you
-watched fail cannot have passed. Note `task:` still names the task's real id: you were dispatched for one and refused it.
-`task: none` means something else entirely — a dispatch that carried no PLAN task at all, such as
-a distillation or an investigation — and it **releases the requirement**: write `task: none`, omit
-`task_verify`, and `PASS` is accepted, because there was no command to run. Writing `task: none`
-here, for a task you were given and refused, would misreport a refusal as a non-task run.
-
-**The id is a concrete `T-12`, not `T-NN`.** `TASK_ID_RE` is `T-\d+|none`, so the placeholder
-spelling is rejected by the validator — the same zero-placeholder discipline this skill already
-enforces on tasks. This block is piped through `validate-digest.py` by T-04's own verify, so a
-placeholder here would fail for a reason that has nothing to do with what the example teaches.
-````
+Do **not** infer the intent. Return `BLOCKED` in the shape `harness-digest-dev` § Refusing an
+under-specified task gives, every field present.
 
 ## Exemptions
 
@@ -109,18 +70,3 @@ Read `test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. Chan
 **The zero-placeholder gate is never exempt.** It applies to every task of every type.
 
 A behavioural change is never exempt because it is small. Size is not a change type.
-
-## Your task's `verify:` and its receipt
-
-The Iron Law governs your tests. It says nothing about the check the PLAN declared for your task,
-and those are different questions — a green suite has never meant a green `verify:`.
-
-Your dispatch carries the task's `T-NN` id and its `verify:` command **verbatim** (the lead is
-required to quote both). Run the command before you return, report the result as `task_verify`, and
-paste the command together with its **verbatim** output into your B-7 receipt at
-`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`.
-
-Why the receipt and not just the field: `task_verify: pass` is a claim, and a claim with nothing
-behind it converts a skipped check into an unfalsifiable one. The receipt is what a reviewer checks
-it against. It does not make skipping impossible — output can be fabricated — so treat it as an
-audit trail, not a gate.

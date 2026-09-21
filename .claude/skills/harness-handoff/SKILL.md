@@ -39,16 +39,11 @@ parsed (DEC-172).
 on them; every field present, "nothing" as an explicit `[]` or `none`, never an omitted key;
 `findings` and `fail_first` checked inside the list. Violation → `BLOCKED (contract violation)`.
 
-
 **Never invent a verdict** — undeterminable is `BLOCKED`, with why.
 
-**`status: rejected` judges the ticket, not work (FEAT-1714):** the orchestrator alone returns it
-at first-run intake, with one inline `judgement: { kind: reject, superseded_by: <issue | none>,
-reason }` and `cycles_used: 0`.
-
-**Dispatchers** (orchestrator, lead) read
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/runtime-handoff.md` before the run's
-first dispatch — wakes, verification before accepting a verdict, never waiting.
+**`yield` is the terminal handoff; `agent_end` is notification-only.** A dispatcher never yields
+with a live child: the host holds its `task` call until the child is terminal (DEC-204), and the
+digest gate refuses a return with children in flight (DEC-233).
 
 ## Harness-owned paths — anchored, never relative
 
@@ -78,10 +73,8 @@ and the documentor own no path and write the receipt
 **Expensive or hard to reverse** (schema, API contract, new dependency): ask via `open_questions`.
 **Changes scope, the goal, or an approved decision**: always ask — it is not yours.
 
-**Never yours: removing a worktree** — `git worktree remove` exits 0 from inside the tree it deletes;
-the main session or `post-merge` hook does it from outside. **Out of scope is out of scope**: note
-it in the DIGEST, never fix it. **An open question does not block you**: raise it, do what you can,
-return; a member never waits on a human.
+**Out of scope is out of scope**: note it in the DIGEST, never fix it. **An open question does
+not block you**: raise it, do what you can, return; a member never waits on a human.
 
 ## Consulting decisions — cited is a floor, never a ceiling
 

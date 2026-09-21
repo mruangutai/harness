@@ -52,7 +52,7 @@ def case_path_directions():
 def case_scope_and_debug_read():
     check("empty scope refuses", run(tempfile.mkdtemp()).returncode == 2)
     listed = subprocess.run([sys.executable, CHECK, "--root", REPO_ROOT, "--list-scope"], text=True, capture_output=True)
-    for expected in ("harness-qa-gate/SKILL.md", "harness-expertise/SKILL.md", "harness-handoff/SKILL.md", "harness-backend-dev.md", "harness/templates/PLAN.md"):
+    for expected in ("harness-verification-rules/SKILL.md", "harness-expertise/SKILL.md", "harness-handoff/SKILL.md", "harness-backend-dev.md", "harness/templates/PLAN.md"):
         check("scope contains " + expected, expected in listed.stdout, listed.stdout)
     backend = os.path.join(REPO_ROOT, ".omp", "agents", "harness-backend-dev.md")
     debug_line = next(line for line in open(backend, encoding="utf-8")
