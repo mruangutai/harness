@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-63-broad-exception-sweep
-- run: plan-form-product — PASS
-- squad: product
-- status: awaiting-user
-- next: operator signs the pending BRIEF and plan with the proposed 2-round, 90-minute rework ruling
+- run: none
+- squad: none
+- status: built — T-01 b8fa0dfb, T-02 0d9f2220, T-03 (this commit) done main-session-direct
+  (DEC-174); check-state.py at zero broad catches; awaiting review_sha pin and validate
 
 ## Open Questions
 

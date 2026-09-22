@@ -1781,13 +1781,17 @@ def _call_symbol(tree, node):
 #   POSTURE (not a structural rule): `--changed` is the edit-loop verb and never the gate.
 #   No workflow under .github/workflows/ and no hook under .claude/skills/harness/hooks/ may
 #   invoke check-state.py with it; CI, command entry and pre-commit run the full table.
-CHECKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.py")
+BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
+CHECKER_REL = os.path.join(BIN_REL, "check-state.py")
 DECISIONS_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
 _BOOTSTRAP_END_TARGET = "root"           # the first top-level `root = ...` closes the bootstrap
 _READER_CALLEES = {"open", "read", "glob", "iglob", "run", "check_output", "Popen", "listdir",
                    "walk", "load_plan", "load_feature_json", "load_harness_json", "load_fleet",
                    "load_file", "load_repo_module"}
-_SHARED_SOURCE_LOADERS = {"load_plan"}
+# The runner parses these ONCE into Ctx (plan_docs, record, cj); an invariant that calls the
+# loader again has forked the source (FEAT-62 SC-03; feature/harness JSON added by FEAT-63 SC-05,
+# which is what let sixteen re-parses sit under a green audit).
+_SHARED_SOURCE_LOADERS = {"load_plan", "load_feature_json", "load_harness_json"}
 _SHARED_SOURCE_TEXTS = ("BRIEF.md", "STATE.md", "PLAN.md")
 _INVARIANT_FN = re.compile(r"^(?:inv_\d+|_inv\d+_\w+|collate_\w+|_collate\d+_\w+)$")
 _INPUT_LITERAL = re.compile(r"^[\w.*-]+\.(?:yaml|yml|json|md|py)$")
@@ -1946,7 +1950,9 @@ def _called_names(fn):
     return names
 
 
-_SPAWN_CALLEES = ("run", "check_output", "Popen")
+# `spawn` is Ctx.spawn, the checker's one process boundary (FEAT-63 T-01): every git/gh read
+# now arrives through it, so the lock reads its argv exactly as it read subprocess.run's.
+_SPAWN_CALLEES = ("run", "check_output", "Popen", "spawn")
 # The one GitHub read check-state.py makes through a module rather than an argv: gh_board's
 # board query. Declared on the row as "gh:board".
 _BOARD_READ_CALLEE = "board_stations_for"
@@ -2135,6 +2141,86 @@ def _posture_findings(root):
             for f in _posture_file_findings(rel_dir, name, path)]
 
 
+# --- FEAT-63 T-03 (SC-04, D-03): ONE AST census of broad catches -- handlers typed exactly
+# `Exception`, or bare `except:` -- over every Python script under bin/. check-state.py's
+# ceiling is zero. Every other script is frozen at the count observed when this lock landed
+# (950b2f04 for the legacy set; harness_boundary.py at its post-T-02 count, RepoModuleError's
+# load and call boundaries included). Above its own ceiling is one finding naming the file and
+# both counts; below is fine (wave 4 burns the allowlist down); allowance never moves between
+# files; a script absent from the list has a zero ceiling. Counted from the AST, never from
+# source text or comments -- a text grep of this tree once reported 121 where the AST says 118.
+BROAD_CATCH_CEILINGS = {
+    "bash-write-guard.py": 6,
+    "board-station.py": 1,
+    "branch-create-gate.py": 4,
+    "check-domain.py": 24,
+    "check-omp-port.py": 4,
+    "check-plan-routes.py": 2,
+    "check-skill-weight.py": 1,
+    "check-state.py": 0,
+    "dispatch-guard.py": 9,
+    "factory_decompose.py": 1,
+    "feature-record.py": 1,
+    "feature_schema.py": 1,
+    "gh-close-gate.py": 3,
+    "gh-sync.py": 3,
+    "gh_cost_log.py": 2,
+    "handoff_done_when.py": 2,
+    "handoff_policy.py": 1,
+    "harness_boundary.py": 6,
+    "harness_yaml.py": 3,
+    "inflight_registry.py": 3,
+    "inject-expertise.py": 2,
+    "merge-gate.py": 5,
+    "plan-sign-gate.py": 2,
+    "post-merge-sweep.py": 5,
+    "run-unit-tests.py": 2,
+    "run_identity.py": 1,
+    "upgrade-config.py": 1,
+    "validate-digest.py": 18,
+    "worktree_terminal.py": 7,
+}
+
+
+def _is_broad_catch(handler):
+    return handler.type is None or (isinstance(handler.type, ast.Name) and handler.type.id == "Exception")
+
+
+def _broad_catch_count(path):
+    """Broad catches in one script by AST, or None when it does not parse (its own finding)."""
+    try:
+        with open(path, encoding="utf-8") as stream:
+            tree = ast.parse(stream.read())
+    except (OSError, UnicodeDecodeError, SyntaxError):
+        return None
+    return sum(1 for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
+
+
+def _broad_catch_finding(rel, name, count):
+    ceiling = BROAD_CATCH_CEILINGS.get(name, 0)
+    if count is None:
+        return f"{rel} broad-catch census cannot parse it (FEAT-63 SC-04)"
+    if count <= ceiling:
+        return None
+    return (f"{rel} carries {count} broad catch(es) (`except Exception` or bare `except:`) against "
+            f"ceiling {ceiling} — narrow the new one to the boundary's real error class "
+            f"(FEAT-63 SC-04)")
+
+
+def broad_catch_findings(root):
+    """The census over every bin/ script, in name order."""
+    bin_dir = os.path.join(root, BIN_REL)
+    findings = []
+    for name in sorted(os.listdir(bin_dir)) if os.path.isdir(bin_dir) else []:
+        if not name.endswith(".py"):
+            continue
+        rel = os.path.join(BIN_REL, name)
+        finding = _broad_catch_finding(rel, name, _broad_catch_count(os.path.join(bin_dir, name)))
+        if finding:
+            findings.append(finding)
+    return findings
+
+
 def feat62_findings(root):
     """The three checker-structure rule families over check-state.py, then the posture scan."""
     relative = CHECKER_REL
@@ -2147,6 +2233,7 @@ def feat62_findings(root):
     findings.extend(_reads_findings(tree, relative))
     findings.extend(_authority_findings(tree, relative, root))
     findings.extend(_posture_findings(root))
+    findings.extend(broad_catch_findings(root))
     return findings
 
 
