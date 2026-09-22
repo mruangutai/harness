@@ -45,7 +45,9 @@ def _resolve_root():
         with _contextlib.redirect_stderr(captured):
             import harness_boundary as _hb
             return _hb.resolve_root(_selfdir), captured.getvalue()
-    except Exception:
+    except (ImportError, ValueError):
+        # The module did not import, or resolve_root refused (strict: no MARKER anywhere).
+        # Either way the clean-interpreter probe below produces the operator-facing stderr.
         probe = _subprocess.run(
             [_sys.executable, "-I", "-c", _ROOT_PROBE, _selfdir],
             capture_output=True, text=True)
@@ -78,9 +80,9 @@ import handoff_policy
 import run_identity
 import harness_boundary
 try:
-    import handoff_done_when
-except Exception as _handoff_done_when_error:
-    handoff_done_when = None
+    handoff_done_when = harness_boundary.load_repo_module("handoff_done_when")
+except harness_boundary.RepoModuleError as _hdw_error:
+    handoff_done_when, _handoff_done_when_error = None, _hdw_error.cause
 
 # Review finding 1: `require_or_die` is the module's documented gate for exactly
 # this script and had ZERO production callers, so a missing PyYAML surfaced as
@@ -94,9 +96,10 @@ root = sys.argv[1]
 H = os.path.join(root, ".harness")
 
 def read(p):
+    """The file's text, or None when it is absent, unreadable or not UTF-8."""
     try:
         return open(p, encoding="utf-8").read()
-    except Exception:
+    except (OSError, UnicodeDecodeError):
         return None
 
 # THE STATION VOCABULARY IS DERIVED, NEVER SPELLED (FEAT-41 T-01/T-07). Both names below come
@@ -610,7 +613,7 @@ class Ctx:
             try:
                 cj = self.cj = artifact_accessors.load_harness_json(
                     text=cfg, context=os.path.join(H, "harness.json"))
-            except Exception as e:
+            except artifact_accessors.ArtifactAccessError as e:
                 cj = self.cj = {}
                 self.cj_valid = False
                 bad.append(f".harness/harness.json is not valid JSON: {e}")
@@ -674,6 +677,7 @@ class Ctx:
         self._vd = None
         self._gh_ok = {}
         self.spawn_error = None
+        self._record_errors = {}
         self._digests = {}
 
     def fpath(self, feat, tail=""):
@@ -723,7 +727,8 @@ class Ctx:
         # the run set and lets INV-6, INV-7 or INV-8 pass over partial data.
         try:
             doc = artifact_accessors.load_feature_json(fy) or {}
-        except Exception as e:
+        except artifact_accessors.FeatureJsonError as e:
+            self._record_errors[feat] = e
             # A file that does not parse is a VIOLATION, never a silent skip — the whole
             # point of DEC-171 is that there is no quieter mode. Report and move on
             # so one broken feature cannot hide every other feature's invariants.
@@ -765,6 +770,12 @@ class Ctx:
             if _squad == "validator" and entry.get("code_grade") != "n_a":
                 code_reviewing_runs.append(entry)
         return runs, code_reviewing_runs, errors
+
+    def record_error(self, feat):
+        """The FeatureJsonError the ONE parse of `feat`'s feature.json raised, or None. For the
+        rows (INV-17, INV-21, INV-28, INV-44) whose own finding renders it (FEAT-63 T-02)."""
+        self.record(feat)
+        return self._record_errors.get(feat)
 
     def record(self, feat):
         """The feature.json record as INV-6..8 read it: (doc, runs, code_reviewing_runs, errors).
@@ -808,7 +819,7 @@ class Ctx:
             # False and the completed-run checks below silently never fired.
             try:
                 sdoc = harness_yaml.load_file(sy) or {}
-            except Exception as e:
+            except harness_yaml.YamlParseError as e:
                 out.append((sy, rel, rundir, None,
                             f"{rel}: state.yaml does not parse, so INV-15/16 cannot be "
                             f"checked for this run: {e}"))
@@ -848,16 +859,19 @@ class Ctx:
         contract-clean digest can carry). `errors` is None when the validator is unavailable."""
         if dg not in self._digests:
             _vd, _vd_mod, _vd_import_err = self.validate_digest()
-            if _vd_mod is None:
-                self._digests[dg] = (None, None)
-            else:
-                try:
-                    _dtext = open(dg, encoding="utf-8", errors="replace").read()
-                    _errs = _vd_mod.validate("lead", _dtext)
-                except Exception as _e:
-                    _dtext, _errs = None, [f"validate() raised: {_e}"]
-                self._digests[dg] = (_dtext, _errs)
+            self._digests[dg] = (None, None) if _vd_mod is None else self._validate_lead(_vd_mod, dg)
         return self._digests[dg]
+
+    @staticmethod
+    def _validate_lead(_vd_mod, dg):
+        """(text, errors) for one digest: the read and the sibling call are the two boundaries."""
+        try:
+            _dtext = open(dg, encoding="utf-8", errors="replace").read()
+            return _dtext, harness_boundary.call_repo_module(_vd_mod, "validate", "lead", _dtext)
+        except OSError as _e:
+            return None, [f"validate() raised: {_e}"]
+        except harness_boundary.RepoModuleError as _e:
+            return None, [f"validate() raised: {_e.cause}"]
 
 
 def _inv35_quoted_after(_line, _quoted_scalar):
@@ -1858,17 +1872,21 @@ def _inv17_shape_pass(ctx, feat, fy):
         bad.extend(_inv17_note_shape(ctx, feat, hp))
     return bad
 
+def _inv17_record_gate(ctx, feat, fy):
+    """(proceed, findings): the record must exist and parse before any seam is graded."""
+    if not os.path.isfile(fy):
+        return False, []
+    e = ctx.record_error(feat)
+    if e is not None:
+        return False, [f"{ctx.fpath(feat, 'feature.json')} does not parse, so its seam invariants "
+                       f"cannot be checked: {e}"]
+    return True, []
+
 def inv_17(ctx, feat):
     bad, warn = [], []
-    fpath = ctx.fpath
     fy = ctx.path(feat, 'feature.json')
-    if not os.path.isfile(fy):
-        return bad, warn
-    try:
-        _doc = artifact_accessors.load_feature_json(fy) or {}
-    except Exception as e:
-        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so its seam invariants "
-                   f"cannot be checked: {e}")
+    proceed, bad = _inv17_record_gate(ctx, feat, fy)
+    if not proceed:
         return bad, warn
     _status, _gate = _inv17_station(ctx, feat, fy)
     bad.extend(_gate)
@@ -1976,21 +1994,23 @@ def _inv23_feature_json(ctx, feat):
     if not os.path.isfile(fy):
         return []
     _ftext = read(fy) or ""
-    fl = _ftext.splitlines()
     # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
     #
     # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4), through the SAME helper the
     # write-time gate uses — the vocabulary sync this block's header promises now covers the
     # definition of a counted line, not only the wording of the message.
+    # An unimportable feature_schema is CANNOT RUN (FEAT-63 T-02, ruled 2026-09-21). It used to
+    # fall back to grading the whole file against a hard-coded 300 — a budget nobody
+    # maintained, applied silently, which is the fail-open shape this wave removes.
     try:
-        import feature_schema as _fs_inv23
-        _inv23_budget = _fs_inv23.FEATURE_JSON_LINE_BUDGET
-        _inv23_count = _fs_inv23.journal_lines(_ftext)
-        _inv23_basis = "excluding the runs ledger"
-    except Exception:
-        _inv23_budget = 300
-        _inv23_count = len(fl)
-        _inv23_basis = "whole file — feature_schema was not importable"
+        _fs_inv23 = harness_boundary.load_repo_module("feature_schema")
+    except harness_boundary.RepoModuleError as _fse:
+        return [f"INV-23 CANNOT RUN for {fpath(feat, 'feature.json')}: feature_schema.py did not "
+                f"import ({type(_fse.cause).__name__}: {_fse.cause}), so its line budget cannot be "
+                f"graded. The module ships with this repository."]
+    _inv23_budget = _fs_inv23.FEATURE_JSON_LINE_BUDGET
+    _inv23_count = _fs_inv23.journal_lines(_ftext)
+    _inv23_basis = "excluding the runs ledger"
     if _inv23_count > _inv23_budget:
         return [f"INV-23 {fpath(feat, 'feature.json')} is {_inv23_count} lines "
                 f"({_inv23_basis}) — budget is {_inv23_budget}. It is "
@@ -2128,6 +2148,7 @@ def _inv16_step_sweep(rel, sdoc, bad):
     # (FEAT-61 T-03); the pattern arrives as a string and is compiled here.
     _step_schema, _declared_step_keys, _evidence_pattern = (
         artifact_accessors.load_run_step_contract(sys.argv[2]))
+    jsonschema.Draft202012Validator.check_schema(_step_schema)
     _step_validator = jsonschema.Draft202012Validator(_step_schema)
     _evidence_name = re.compile(_evidence_pattern)
     for _step_index, _step in enumerate(sdoc.get("steps", [])):
@@ -2144,6 +2165,18 @@ def _inv16_step_sweep(rel, sdoc, bad):
             "per-dispatch facts under evidence."
         )
 
+def _inv16_boundary_errors():
+    """What the step sweep can raise at its boundaries: jsonschema absent (ImportError), the
+    step contract unreadable (ArtifactAccessError) or without its declared members (KeyError
+    -- cases 61.f/g keep it natural), a contract jsonschema itself rejects (SchemaError, named
+    only when jsonschema imported). Every one is CANNOT be checked, none is a pass."""
+    kinds = (ImportError, KeyError, artifact_accessors.ArtifactAccessError)
+    try:
+        import jsonschema
+    except ImportError:
+        return kinds
+    return kinds + (jsonschema.exceptions.SchemaError,)
+
 def _inv16_run(rel, sdoc):
     bad = _inv16_unknown_keys(rel, sdoc)
 
@@ -2156,7 +2189,7 @@ def _inv16_run(rel, sdoc):
             and _schema_version >= 2):
         try:
             _inv16_step_sweep(rel, sdoc, bad)
-        except Exception as _run_schema_error:
+        except _inv16_boundary_errors() as _run_schema_error:
             bad.append(
                 f"INV-16: {rel}: run-state schema CANNOT be checked: "
                 f"{type(_run_schema_error).__name__}: {_run_schema_error}"
@@ -2367,13 +2400,12 @@ def _inv21_feature_doc(ctx, feat):
     fy = ctx.path(feat, 'feature.json')
     if not os.path.isfile(fy):
         return None, bad
-    try:
-        gdoc = artifact_accessors.load_feature_json(fy) or {}
-    except Exception as e:
+    e = ctx.record_error(feat)
+    if e is not None:
         bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-21 cannot be "
                    f"checked for it: {e}")
         return None, bad
-    return gdoc, bad
+    return ctx.record(feat)[0] or {}, bad
 
 
 def _inv21_has_task_issue(gblk):
@@ -2553,7 +2585,7 @@ def inv_24(ctx):
             continue
         try:
             fleet = artifact_accessors.load_fleet(fleet_p) or {}
-        except Exception as _e:
+        except artifact_accessors.FleetError as _e:
             bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
                        f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
             continue
@@ -2591,13 +2623,12 @@ def _inv28_feature_doc(ctx, feat):
     fy = ctx.path(feat, 'feature.json')
     if not os.path.isfile(fy):
         return fy, None, bad
-    try:
-        pdoc = artifact_accessors.load_feature_json(fy) or {}
-    except Exception as e:
+    e = ctx.record_error(feat)
+    if e is not None:
         bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-28 cannot be "
                    f"checked for it: {e}")
         return fy, None, bad
-    return fy, pdoc, bad
+    return fy, ctx.record(feat)[0] or {}, bad
 
 
 def _inv28_missing_pr(ctx, feat, fy, pdoc):
@@ -2649,9 +2680,10 @@ def inv_28(ctx, feat):
 def _inv25_import():
     bad = []
     try:
-        import harness_boundary as _hb
-        _wt_seg = _hb.WORKTREES_SEGMENT
-    except Exception as _hbe:
+        _wt_seg = harness_boundary.WORKTREES_SEGMENT
+    except AttributeError as _hbe:
+        # The module is imported at the top of this file; a copy that lost the constant is
+        # the one shape left that this row cannot run over.
         _wt_seg = None
         bad.append("INV-25 CANNOT RUN: harness_boundary.py did not import (%s: %s), so a "
                    "pre-existing out-of-place worktree would go unreported. The module ships "
@@ -2786,9 +2818,9 @@ def inv_25(ctx):
 def _inv29_import():
     bad = []
     try:
-        import worktree_terminal as _wt29
-    except Exception as _wt29e:
-        _wt29 = None
+        _wt29 = harness_boundary.load_repo_module("worktree_terminal")
+    except harness_boundary.RepoModuleError as _wt29e:
+        _wt29, _wt29e = None, _wt29e.cause
         bad.append("INV-29 CANNOT RUN: worktree_terminal.py did not import (%s: %s), so a "
                    "worktree surviving its feature's terminal state would go unreported. The "
                    "module ships with this repository — restore "
@@ -2801,9 +2833,8 @@ def _inv29_fleet_path():
     # tells a repository-level record apart from a worktree record — see the discriminator
     # below — and reading it here duplicates none of classify_all's resolution logic.
     try:
-        import factory_config as _fc29
-        _fleet_path29 = os.path.realpath(_fc29.FLEET_PATH)
-    except Exception:
+        _fleet_path29 = os.path.realpath(harness_boundary.load_repo_module("factory_config").FLEET_PATH)
+    except harness_boundary.RepoModuleError:
         _fleet_path29 = None
     return _fleet_path29
 
@@ -2814,9 +2845,9 @@ def _inv29_classify_all(wt29, root):
     # defect, and letting it propagate would take EVERY other invariant's findings down with
     # it — the gate would print a traceback and report nothing at all.
     try:
-        _recs29 = wt29.classify_all(root)
-    except Exception as _ce29:
-        _recs29 = []
+        _recs29 = harness_boundary.call_repo_module(wt29, "classify_all", root)
+    except harness_boundary.RepoModuleError as _ce29:
+        _recs29, _ce29 = [], _ce29.cause
         bad.append("INV-29 CANNOT RUN: worktree_terminal.classify_all raised (%s: %s), so a "
                    "worktree surviving its feature's terminal state would go unreported."
                    % (type(_ce29).__name__, _ce29))
@@ -2963,9 +2994,9 @@ def inv_29(ctx):
 def _inv37_import():
     bad = []
     try:
-        import feature_schema as _fs37
-    except Exception as _fs37e:
-        _fs37 = None
+        _fs37 = harness_boundary.load_repo_module("feature_schema")
+    except harness_boundary.RepoModuleError as _fs37e:
+        _fs37, _fs37e = None, _fs37e.cause
         bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
                    "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
     return bad, _fs37
@@ -3035,11 +3066,11 @@ def inv_37(ctx):
 def _inv26_import():
     bad = []
     try:
-        import gh_board as _gb
+        _gb = harness_boundary.load_repo_module("gh_board")
         # artifact_accessors owns FleetError, so INV-26 can classify the error without importing
         # another domain module. gh_board still imports factory_config for board validation.
-    except Exception as _gbe:
-        _gb = None
+    except harness_boundary.RepoModuleError as _gbe:
+        _gb, _gbe = None, _gbe.cause
         bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
                    "disagrees with the plan would go unreported. The module ships with this "
                    "repository — restore .agents/skills/harness/bin/gh_board.py."
@@ -3062,13 +3093,10 @@ def _inv26_load_board(_gb, root):
     bad = []
     try:
         _inv26_board = _gb.load_board(root)
-    except Exception as _be26:
+    except artifact_accessors.FleetError as _be26:
         _inv26_board = None
-        if isinstance(_be26, artifact_accessors.FleetError):
-            bad.append("INV-26 CANNOT RUN: %s — the board declaration is unusable, so a "
-                       "card that disagrees with the plan would go unreported." % _be26)
-        else:
-            raise
+        bad.append("INV-26 CANNOT RUN: %s — the board declaration is unusable, so a "
+                   "card that disagrees with the plan would go unreported." % _be26)
     return bad, _inv26_board
 
 
@@ -3141,7 +3169,7 @@ def _inv26_stations(_gb, _inv26_board, _repo26, _numbers26, _gh_bin):
     try:
         os.environ["FACTORY_GH"] = _gh_bin
         _stations = _gb.board_stations_for(_inv26_board, _repo26, _numbers26)
-    except Exception:
+    except _gb.BoardError:
         _stations = None
     return _stations
 
@@ -3171,7 +3199,7 @@ def _inv26_projected(_gb, _feat, _pdoc, _fj, _issues):
             _pdoc, {"issues": _issues,
                     "parent": (_fj.get("github") or {}).get("parent"),
                     "source_issues": (_fj.get("github") or {}).get("source_issues") or []})
-    except Exception as _pe26:
+    except artifact_accessors.FleetError as _pe26:
         # A VOCABULARY MISS IS A VIOLATION, NOT A SKIP. project raises FleetError
         # naming the task and the value, which is the defect this feature exists to
         # end — reporting it as silence would be the fail-open D-11 removes.
@@ -3406,10 +3434,10 @@ def inv_26(ctx):
 def _inv30_import():
     bad = []
     try:
-        import gh_board as _gb30
+        harness_boundary.load_repo_module("gh_board")
         _inv30_import_ok = True
-    except Exception as _gbe30:
-        _inv30_import_ok = False
+    except harness_boundary.RepoModuleError as _gbe30:
+        _inv30_import_ok, _gbe30 = False, _gbe30.cause
         bad.append("INV-30 CANNOT RUN: gh_board.py did not import (%s: %s), so a feature recorded "
                    "Done whose milestone is still open would go unreported. The module ships with "
                    "this repository — restore .agents/skills/harness/bin/gh_board.py."
@@ -3572,9 +3600,9 @@ def inv_13(ctx):
 def _inv27_import():
     bad = []
     try:
-        import layout_migration as _lmod
-    except Exception as _lme:
-        _lmod = None
+        _lmod = harness_boundary.load_repo_module("layout_migration")
+    except harness_boundary.RepoModuleError as _lme:
+        _lmod, _lme = None, _lme.cause
         bad.append("INV-27 CANNOT RUN: layout_migration.py did not import (%s: %s), so a "
                    "half-migrated layout would go unreported. The module ships with this "
                    "repository — restore .agents/skills/harness/bin/layout_migration.py."
@@ -3584,9 +3612,11 @@ def _inv27_import():
 def _inv27_scan(_lmod, root):
     bad = []
     try:
-        _lres = _lmod.scan(root)
-    except Exception as _lse:
+        _lres = harness_boundary.call_repo_module(_lmod, "scan", root)
+    except _lmod.LayoutTableError as _lse:
         _lres = None
+    except harness_boundary.RepoModuleError as _lse:
+        _lres, _lse = None, _lse.cause
         bad.append("INV-27 CANNOT RUN: the layout scan raised (%s: %s) — fix "
                    "layout_migration.py or its reader table before trusting this gate."
                    % (type(_lse).__name__, _lse))
@@ -3660,9 +3690,9 @@ def inv_42(ctx):
                    % (type(_cswe).__name__, _cswe))
     if _csw is not None:
         try:
-            _wres = _csw.scan(root)
-        except Exception as _wse:
-            _wres = None
+            _wres = harness_boundary.call_repo_module(_csw, "scan", root)
+        except harness_boundary.RepoModuleError as _wse:
+            _wres, _wse = None, _wse.cause
             bad.append("INV-42 CANNOT RUN: the preload scan raised (%s: %s)."
                        % (type(_wse).__name__, _wse))
         if _wres is not None:
@@ -4333,12 +4363,11 @@ def inv_44(ctx, feat):
     if ctx.station(feat) != 'rejected':
         return bad, warn
     _feat44 = feat
-    try:
-        _doc44 = artifact_accessors.load_feature_json(os.path.join(_fd44, "feature.json")) or {}
-    except Exception:
+    if ctx.record_error(feat) is not None:
         bad.append(f"INV-44 {_feat44}: station is rejected but feature.json is unreadable, so "
                    f"the rejection's one-run/zero-cycle shape cannot be verified.")
         return bad, warn
+    _doc44 = ctx.record(feat)[0] or {}
     _pdoc44 = plan_docs.get(_feat44) or {}
     bad.extend(_inv44_dimensions(_feat44, _doc44, _pdoc44, briefs))
     return bad, warn

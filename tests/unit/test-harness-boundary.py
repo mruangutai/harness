@@ -551,6 +551,24 @@ def _check_registration_restored(mod, bad):
     del sys.modules["fixture_preexisting"]
 
 
+def _check_by_name_and_call(mod):
+    """By NAME: the ordinary import, with the same one type for a failure. A CALL into a
+    sibling: its own exceptions become RepoModuleError, process control does not."""
+    check("load_repo_module_by_name_imports_through_sys_path",
+          mod.load_repo_module("json") is __import__("json"))
+    _check_wrapped(mod, "by_name_absent", lambda: mod.load_repo_module("no_such_module_fixture_63"),
+                   ImportError, "no_such_module_fixture_63", None)
+    import types
+    sib = types.ModuleType("fixture_sibling"); sib.__file__ = "/x/fixture_sibling.py"
+    sib.boom = lambda: (_ for _ in ()).throw(KeyError("k")); sib.quit = lambda: (_ for _ in ()).throw(SystemExit(4))
+    sib.fine = lambda a, b=1: a + b
+    _check_wrapped(mod, "call_failure", lambda: mod.call_repo_module(sib, "boom"),
+                   KeyError, "fixture_sibling", "/x/fixture_sibling.py")
+    check("call_repo_module_passes_process_control_through",
+          type(_repo_module_error(mod, lambda: mod.call_repo_module(sib, "quit"))) is SystemExit)
+    check("call_repo_module_returns_the_result", mod.call_repo_module(sib, "fine", 2, b=3) == 5)
+
+
 def case_load_repo_module_failures():
     """FEAT-63 T-01 (D-02): every Exception raised while loading a repo module -- spec creation,
     the loader's own I/O, registered or unregistered execution -- reaches the caller as ONE
@@ -560,13 +578,14 @@ def case_load_repo_module_failures():
     tmp = tempfile.mkdtemp()
     try:
         bad = _script(tmp, "bad-script.py", "raise RuntimeError('boom at import')\n")
+        absent = os.path.join(tmp, "absent.py")
         wrapped = (
             ("registered_exec_failure", lambda: mod.load_repo_module("fixture_bad", bad, register=True),
              RuntimeError, "fixture_bad", bad),
             ("unregistered_exec_failure", lambda: mod.load_repo_module("fixture_bad2", bad),
              RuntimeError, "fixture_bad2", bad),
-            ("missing_file", lambda: mod.load_repo_module("fixture_missing", os.path.join(tmp, "absent.py")),
-             FileNotFoundError, "fixture_missing", os.path.join(tmp, "absent.py")),
+            ("missing_file", lambda: mod.load_repo_module("fixture_missing", absent),
+             FileNotFoundError, "fixture_missing", absent),
             ("no_loader", lambda: mod.load_repo_module("fixture_dir", tmp), ImportError, "fixture_dir", tmp),
         )
         for row in wrapped:
@@ -577,6 +596,7 @@ def case_load_repo_module_failures():
         _check_process_control_passes_through(mod, tmp)
         ok = _script(tmp, "ok.py", "VALUE = 7\n")
         check("load_repo_module_success_is_unchanged", mod.load_repo_module("fixture_ok", ok).VALUE == 7)
+        _check_by_name_and_call(mod)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
