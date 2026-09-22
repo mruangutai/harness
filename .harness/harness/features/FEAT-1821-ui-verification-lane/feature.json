@@ -4,7 +4,7 @@
   "pr": null,
   "review_sha": "ea4916518eea1c8f73901d372ad8e1e38595e64b",
   "cycles_used": 14,
-  "max_total_cycles": 12,
+  "max_total_cycles": 15,
   "runs": [
     {
       "id": "plan-product",
@@ -609,6 +609,11 @@
       "at": "2026-09-19T14:05:02+00:00",
       "max_total_cycles": 12,
       "decision": ".harness/harness/features/FEAT-1821-ui-verification-lane/notes/answers-validate-c8-traces.md"
+    },
+    {
+      "at": "2026-09-22T15:18:17+00:00",
+      "max_total_cycles": 15,
+      "decision": ".harness/harness/features/FEAT-1821-ui-verification-lane/notes/answers-distill-restart.md"
     }
   ]
 }
