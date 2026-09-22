@@ -863,7 +863,8 @@ def claim_checkout_guard(destination):
         return []
     if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):
         return claim_set
-    deny_bare(harness_boundary.claim_set_refusal(agent, claim_set, destination))
+    deny_bare(harness_boundary.claim_set_refusal(
+        agent, claim_set, destination, identity=(runtime_agent_id, runtime_parent_agent_id)))
 
 
 def _worktree_stripped(rel):
