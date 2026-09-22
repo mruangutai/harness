@@ -132,6 +132,14 @@ authoring the criteria. Wording, numbering and verify methods stay pm's — and 
 | `briefing: <path>` | present the briefing verbatim, take the instruction (ship / fix / re-scope / stop), send it back down as the next mission. A `.html` sibling is rendered beside it for reading — offer it, and if it is missing or older than the markdown run `bin/render-brief.py <path>` |
 | `blocked` | tell the user what blocked and what was spent; the decision is theirs |
 | `shipped` / `PASS` | report it, log it, and if `github.sync` is on run `bin/gh-sync.py ship <feature-dir>` (PATCHes the milestone shut and lands every recorded card at the `Done` station, from which GitHub closes the issues), and — **in the same act** — re-dispatch the orchestrator with a **distill** mission (feature-close distillation runs at MERGE, not at close-out; DEC-145). Then offer the briefing's residual-findings list as proposed backlog — entries the user does not strike become plain backlog issues via `gh-sync.py backlog` (labeled by nature, no milestone; DEC-138). PR and merge remain the user's call — never automatic |
+| the user abandons the feature | `bin/gh-sync.py abandon <feature-dir> --reason-file <path> [--yes]` — **it reports and asks.** Without `--yes` it prints every write and makes none. With `--yes` it detaches each sub-issue, closes it and the parent `not_planned`, labels them `abandoned`, shuts the milestone, and returns every card to **Backlog** — abandoned is not done. The close is the one irreversible act and goes first |
+| the pull request has merged | `bin/gh-sync.py record-pr <feature-dir> [--pr N]` — derives the number when the recorded branch carries exactly one merged PR, never overwrites a recorded number. `ship` runs it too, so the ordinary flow needs no separate call |
+| an already-merged feature never opened its mirror | on the user's explicit approval, `bin/gh-sync.py recover-terminal <feature-dir> --yes` — milestone plus the parent and source issues only, never task sub-issues |
+
+Every mirror call is best-effort and never a gate: an environmental precondition is one `SKIP` line
+and exit 0; a failed write is one stderr line, the run continues, nothing is re-attempted. Owners and
+the read-back bound are DEC-138 and DEC-203; the orchestrator's three subcommands are its
+`references/github-mirror.md`.
 
 **Probe a bounded environment question before any claim about it reaches the user.** When what you
 are about to relay rests on how the runtime *resolves* something — which copy of a file executes,
