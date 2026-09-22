@@ -36,9 +36,8 @@ look better.
 escalating. The structure is blameless: fix forward, record the lesson, amend the rule if the rule
 was the cause.
 
-Also load-bearing but rarely in-turn: hand off while sharp (10), progressive disclosure (5),
-crystallize repetition into tools (13), excavate don't architect (12) — if the factory becomes the
-project, stop and ship something. Read them in `docs/PRINCIPLES.md` when a decision turns on one.
+Also load-bearing but rarely in-turn: hand off while sharp (10) and progressive disclosure (5).
+Read them in `docs/PRINCIPLES.md` when a decision turns on one.
 
 ## Red flags
 
