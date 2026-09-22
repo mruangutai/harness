@@ -119,3 +119,46 @@ DIGEST:
   severity_max: none
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/runs/distill-validator/digest.md
 ```
+
+## Restart correction
+
+All four hosted readers returned valid distill PASS artifacts after restart. QA reported `suite: n/a` and `matrix_ok: n/a`; code review reported `code_grade: n_a` and `reviewed: none`. Eight scoped Expertise checks exited 0. The five historical operations recorded above remain present exactly and were not replayed. No suite, current diff review, test, build, lint, formatter, browser, service, or project-wide validation ran.
+
+```yaml
+VERDICT: PASS
+DIGEST:
+  headline: "Validator distillation is complete: all four reader gates passed and the already-applied Expertise operations remain exact and format-clean."
+  team: distill-validator
+  steps_run: 5
+  cycles_used: 2
+  members:
+    - { step: lead, persona: harness-validator-lead, verdict: PASS, headline: "Validator distill assessment is complete; the orchestrator resolved the resumed run's stale claim at the owning tier.", files_touched: [] }
+    - { step: qa, persona: harness-qa, verdict: PASS, headline: "P-14 remains exact; suite and matrix are n/a and both owned Expertise files are format-clean.", files_touched: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-distill-validator.md] }
+    - { step: code, persona: harness-code-reviewer, verdict: PASS, headline: "P-10 remains exact; code grade is n_a, reviewed is none, and both owned Expertise files are format-clean.", files_touched: [/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-distill-validator.md] }
+    - { step: security, persona: harness-security-reviewer, verdict: PASS, headline: "All candidates remain covered by stronger rules and both owned Expertise files are format-clean.", files_touched: [] }
+    - { step: ui, persona: harness-ui-reviewer, verdict: PASS, headline: "P-04, P-11, and O-07 remain exact and both owned Expertise files are format-clean.", files_touched: [] }
+  must_fix: []
+  files_touched:
+    - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-distill-validator.md
+    - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-distill-validator.md
+    - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-security-reviewer-distill-validator.md
+    - /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-distill-validator.md
+  branch: none
+  open_questions: []
+  escalations:
+    - { id: E1, raised_by: harness-validator-lead, question: "The resumed lead lineage could not replace the existing run digest because its inflight claim had expired.", domain: "runtime claim and feature run bookkeeping", routed_to: harness-orchestrator, resolution: "The orchestrator verified all four member PASS artifacts and appended this complete correction through its feature-domain grant.", decided_by: harness-orchestrator, recorded_as: "restart correction" }
+  expertise_update:
+    - { op: replace, target: P-14, section: Patterns, entry: "WHEN a producer generates evidence fields consumed by a static extractor or gate DO test both the producer runtime output and the consumer accepted field shape — dynamic construction can satisfy runtime discovery while leaving static contract extraction with no usable values.", why: "Historical QA operation is present exactly; it was not replayed." }
+    - { op: replace, target: P-10, section: Patterns, entry: "WHEN a custom validator recognizes a standard format DO compare it with the canonical parser using almost-valid mutants — magic bytes or shallow shape checks can accept artifacts the real consumer cannot open.", why: "Historical code-review operation is present exactly; it was not replayed." }
+    - { op: replace, target: P-04, section: Patterns, entry: "WHEN auditing screenshot evidence DO correlate visible pixels with every signed route, fixture, interaction, viewport, and setup result — readable files and complete counts can still conceal blank or wrong-state captures.", why: "Historical UI-review operation is present exactly; it was not replayed." }
+    - { op: replace, target: P-11, section: Patterns, entry: "WHEN judging replayable UI evidence DO inspect each trace's own action list, filmstrip, DOM snapshot, and assertion context — never infer one project's or state's execution from another trace.", why: "Historical UI-review operation is present exactly; it was not replayed." }
+    - { op: replace, target: O-07, section: Outcomes, entry: "WHEN an intentionally failing visual bundle is structurally complete, explicit, and replayable DO judge evidence truthfulness separately from product success — honest RED can pass the evidence audit without certifying the UI.", why: "Historical UI-review operation is present exactly; it was not replayed." }
+  adequacy_notes:
+    - "All four hosted readers returned valid distill PASS records after restart."
+    - "QA reported suite n/a and matrix_ok n/a; code reviewer reported code_grade n_a and reviewed none."
+    - "Eight scoped Expertise checks exited 0; no Expertise operation was replayed on restart."
+    - "No suite, current diff review, test, build, lint, formatter, browser, service, or project-wide validation ran."
+  severity_max: none
+artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane/.harness/harness/features/FEAT-1821-ui-verification-lane/runs/distill-validator/digest.md
+```
+
