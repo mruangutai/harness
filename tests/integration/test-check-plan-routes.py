@@ -2576,8 +2576,10 @@ _MODULE_BODY_MUTANTS = (
              '    if read(_p) is None:\n        pass\n', ("<module>", "for block at module scope")),
     ("conditional", 'if not os.path.isfile(os.path.join(H, "glossary.md")):\n    pass\n',
      ("conditional at module scope",)),
+    # `except OSError`, not `except Exception`: the FEAT-63 broad-catch census would fire on the
+    # latter too, and this mutant isolates the module-body rule.
     ("try", 'try:\n    _x = subprocess.run(["git", "status"], capture_output=True)\n'
-            'except Exception:\n    _x = None\n', ("try block at module scope",)),
+            'except OSError:\n    _x = None\n', ("try block at module scope",)),
     ("read", '_early = read(os.path.join(H, "harness.json"))\n', ("reads the tree at module scope", "read")),
 )
 
@@ -2725,6 +2727,82 @@ def case_feat62_changed_posture():
 
 
 
+# ------------------------------------------------------------------- FEAT-63 T-03 ---
+
+def _bin_path(root, name):
+    return os.path.join(root, ".claude", "skills", "harness", "bin", name)
+
+
+def _append_bin(root, name, source):
+    with open(_bin_path(root, name), "a", encoding="utf-8") as stream:
+        stream.write(source)
+
+
+def case_feat63_reparse_lock_covers_both_json_loaders():
+    """SC-05: a checker re-parse of feature.json or harness.json inside an invariant is a
+    shared-source-reparse finding, like load_plan's; the shipped tree is clean."""
+    for loader, arg in (("load_feature_json", "ctx.path(feat, 'feature.json')"),
+                        ("load_harness_json", "os.path.join(ctx.H, 'harness.json')")):
+        def reparse(root, loader=loader, arg=arg):
+            _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
+                          f"def inv_2(ctx, feat):\n    _again = artifact_accessors.{loader}({arg})\n    \"\"\"")
+        f = _feat62_findings_for_tree(reparse)
+        check(f"feat63_reparse_{loader}_mutant_fails_for_its_own_finding",
+              any(all(n in x for n in ("inv_2", "re-parses a runner-shared source", loader)) for x in f)
+              and all("inv_2" in x or "INV-2 " in x for x in f), "\n".join(f))
+
+
+_BROAD_CATCH = "\n\ndef _feat63_mutant():\n    try:\n        pass\n    except Exception:\n        pass\n"
+_BARE_CATCH = "\n\ndef _feat63_mutant():\n    try:\n        pass\n    except:\n        pass\n"
+
+
+def _reduce_one_broad_catch(root):
+    path = _bin_path(root, "check-domain.py")
+    src = open(path, encoding="utf-8").read()
+    assert "except Exception" in src
+    open(path, "w", encoding="utf-8").write(src.replace("except Exception", "except OSError", 1))
+
+
+def _feat63_checker_ceiling_checks():
+    """check-state.py's ceiling is zero: both syntaxes, each its own mutant, one finding each."""
+    for name, source in (("except_exception", _BROAD_CATCH), ("bare_except", _BARE_CATCH)):
+        f = _feat62_findings_for_tree(lambda root, s=source: _append_checker(root, s))
+        check(f"feat63_census_checker_{name}_mutant_is_one_finding_naming_check_state",
+              len(f) == 1 and "check-state.py" in f[0] and "broad catch" in f[0] and "ceiling 0" in f[0]
+              and "1 " in f[0], "\n".join(f))
+
+
+def _feat63_frozen_ceiling_checks():
+    """A frozen legacy script: +1 fails naming THAT file and both counts; -1 is clean; allowance
+    never transfers; an unlisted script has a zero ceiling."""
+    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "check-domain.py", _BROAD_CATCH))
+    check("feat63_census_frozen_script_plus_one_is_one_finding_naming_it",
+          len(f) == 1 and "check-domain.py" in f[0] and "check-state.py" not in f[0]
+          and "25" in f[0] and "24" in f[0], "\n".join(f))
+    f = _feat62_findings_for_tree(_reduce_one_broad_catch)
+    check("feat63_census_frozen_script_minus_one_is_clean", f == [], "\n".join(f))
+    f = _feat62_findings_for_tree(lambda root: (_reduce_one_broad_catch(root),
+                                                _append_bin(root, "gh-sync.py", _BROAD_CATCH)))
+    check("feat63_census_allowance_never_transfers_between_files",
+          len(f) == 1 and "gh-sync.py" in f[0], "\n".join(f))
+    def newcomer(root):
+        with open(_bin_path(root, "brand_new_helper.py"), "w", encoding="utf-8") as s:
+            s.write("import os\n" + _BROAD_CATCH)
+    f = _feat62_findings_for_tree(newcomer)
+    check("feat63_census_unlisted_script_has_a_zero_ceiling",
+          len(f) == 1 and "brand_new_helper.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
+
+
+def case_feat63_broad_catch_census():
+    """SC-04: ONE AST census over every bin script -- check-state.py at zero, every other
+    script frozen at its recorded count; the shipped tree is clean."""
+    clean = _feat62_findings_for_tree()
+    check("feat63_census_clean_tree_has_no_findings", clean == [], "\n".join(clean))
+    _feat63_checker_ceiling_checks()
+    _feat63_frozen_ceiling_checks()
+
+
+
 CASES = (
     case_41_t09_manifest_deviation_is_parsed_not_byte,
     case_01_02_03,
@@ -2756,6 +2834,8 @@ CASES = (
     case_feat62_reads_lock,
     case_feat62_authority_audit,
     case_feat62_changed_posture,
+    case_feat63_reparse_lock_covers_both_json_loaders,
+    case_feat63_broad_catch_census,
 )
 
 

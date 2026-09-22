@@ -1010,6 +1010,38 @@ def case_inv44():
     return case_inv44_run_shape() + case_inv44_ledger_and_signatures() + case_inv44_scope()
 
 
+# ------------------------------------------------------------------- FEAT-63 T-02 ---
+# INV-23 graded against a HARD-CODED 300-line budget when feature_schema could not be
+# imported -- a silent fallback that kept grading with a number nobody maintained. The ruling
+# (grilling 2026-09-21) makes it CANNOT RUN like every other import boundary in this gate.
+
+def _feat63_oversized_record(tmp):
+    """A record past 300 lines: the OLD fallback would have printed an over-budget finding for
+    it; the boundary must print CANNOT RUN instead and nothing about 300."""
+    fy = os.path.join(tmp, ".harness", "harness", "features", FEAT, "feature.json")
+    doc = json.loads(open(fy, encoding="utf-8").read())
+    doc["runs"] = [{"id": f"pad-{i}", "squad": "product", "verdict": "PASS"} for i in range(80)]
+    _write(fy, json.dumps(doc, indent=2) + "\n")
+
+
+def case_feat63_inv23_import_boundary():
+    """A feature_schema that fails to import is INV-23 CANNOT RUN, never a 300-line guess."""
+    iso = _isolated({"feature_schema.py": _RAISING_MODULE})
+    with tempfile.TemporaryDirectory() as tmp:
+        _fixture(tmp, _in_era(), BRIEF_NEW)
+        _feat63_oversized_record(tmp)
+        _code, out, err = _run_from(iso, tmp)
+    # INV-23 is a NOTE-level row; its CANNOT RUN keeps the row's severity.
+    v23 = [l for l in _lines(out, "INV-23") if l.strip().startswith("note")]
+    return [
+        ("(63.a) an unimportable feature_schema is INV-23 CANNOT RUN naming the failure",
+         len(v23) == 1 and "CANNOT RUN" in v23[0] and "feature_schema" in v23[0]
+         and "RuntimeError: FEAT-61 T-03 injected exec failure" in v23[0] and "Traceback" not in err,
+         out[:800]),
+        ("(63.b) the 300-line fallback is gone — nothing is graded against a guessed budget",
+         not [l for l in out.splitlines() if "INV-23" in l and "budget is 300" in l], out[:800]),
+    ]
+
 def main():
     return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
@@ -1017,7 +1049,8 @@ def main():
                         + case_feat61_validate_digest()
                         + case_inv41() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
-                        + case_inv43_era_config() + case_inv44()) else 1
+                        + case_inv43_era_config() + case_inv44()
+                        + case_feat63_inv23_import_boundary()) else 1
 
 
 if __name__ == "__main__":

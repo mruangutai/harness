@@ -680,6 +680,36 @@ def case_inv30_fires_on_open_milestone():
         return ok
 
 
+def case_feat63_gh_auth_probed_once():
+    """FEAT-63 SC-02: `gh auth status` is asked ONCE per run and shared by INV-26 and INV-30
+    (each used to spawn its own probe). The stub logs every `auth` call; INV-26 needs a board
+    to reach its probe, so the fixture declares one and the stub answers the board's own read
+    with an exit 1 that INV-26 records nothing about — only the probe count is under test."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
+        # A declared board, so INV-26 reaches its own probe too (its fixture in
+        # test-check-state-inv26.py is the source of this shape).
+        with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+            json.dump({"github": {"sync": True, "repo": "org/repo",
+                                  "board": {"owner": "org", "number": 3, "station_field": "status",
+                                            "stations": ["backlog", "plan", "ready", "building",
+                                                         "review", "done"]}}}, f)
+        gh = _inv30_gh_stub(tmp, [77])
+        log = os.path.join(tmp, "auth-calls.log")
+        with open(gh) as f:
+            body = f.read()
+        body = body.replace('if [ "$1" = "auth" ]; then exit 0; fi',
+                            'if [ "$1" = "auth" ]; then echo auth >> %s; exit 0; fi' % log)
+        with open(gh, "w") as f:
+            f.write(body)
+        _code, out = _run_with_gh(tmp, gh)
+        calls = open(log).read().count("auth") if os.path.exists(log) else 0
+        ok = calls == 1 and len(_inv30_lines(out)) == 1
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-63: gh auth status is probed exactly once per run "
+              f"(probes: {calls}; INV-30 still fired: {len(_inv30_lines(out)) == 1})")
+        return ok
+
+
 def case_inv30_silent_on_closed_milestone():
     """SC-12 clause two, THE DISCRIMINATING ONE. Same fixture, same `status: Done` — only the
     stub's answer changes. An implementation keying on status alone passes the case above and
@@ -819,6 +849,7 @@ def main():
     results.append(case_inv30_silent_offline())
     results.append(case_inv30_silent_on_null_milestone())
     results.append(case_inv30_silent_on_nonterminal())
+    results.append(case_feat63_gh_auth_probed_once())
     results.append(case_no_root_replays_resolver_stderr())
     results.append(case_canonical_reader_rejects_duplicate_harness_json())
     ok_exit_unchanged = code_a == code_b

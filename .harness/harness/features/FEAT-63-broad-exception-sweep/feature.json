@@ -1,0 +1,146 @@
+{
+  "feature_id": "FEAT-63-broad-exception-sweep",
+  "branch": "feat/FEAT-63-broad-exception-sweep",
+  "pr": null,
+  "review_sha": "e43c1a93c415ebb5215d28bc627a13119b95b84a",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T02:22:01+00:00",
+      "ended_at": "2026-09-22T03:17:57+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T03:18:38+00:00",
+      "ended_at": "2026-09-22T03:41:00+00:00",
+      "cycles_used": 1,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-form-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T03:42:51+00:00",
+      "ended_at": "2026-09-22T03:48:53+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-22T13:59:26+00:00",
+      "ended_at": "2026-09-22T14:22:15+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-22T14:37:37+00:00",
+      "ended_at": "2026-09-22T14:57:47+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T15:21:39+00:00",
+      "ended_at": "2026-09-22T15:57:36+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-22T02:21:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "the cause is known and the files are named, but the work adds an enforcement surface (two audit rules), changes INV-23 from silent to loud, and adds a typed error to a shared boundary"
+    },
+    {
+      "at": "2026-09-22T03:18:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "T-03 verify runs the integration suite with an ignored flag but omits the live check-plan-routes.py --consolidation-audit gate required by the operator"
+    },
+    {
+      "at": "2026-09-22T03:18:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan cycle 1",
+      "reason": "correct T-03 verification to run both the integration suite and the live consolidation audit, then independently re-panel that task"
+    },
+    {
+      "at": "2026-09-22T03:42:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "form",
+      "reason": "BRIEF.md lacks the required Approval heading and pending status, so the unsigned signature gate cannot resolve its handoff authority"
+    },
+    {
+      "at": "2026-09-22T13:56:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "approved plan is fully built at pinned review_sha 4066581f and the validate run plus second goal-check are the next signed-plan action"
+    },
+    {
+      "at": "2026-09-22T14:57:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "QA-C1-01 changes shipped test coverage for T-02 and T-03 and is bound to their approved cross_module floor"
+    },
+    {
+      "at": "2026-09-22T00:40:00+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL on QA-C1-01 only; operator ruled one more cycle and re-signed; fix round 2 added the unit suite."
+    }
+  ],
+  "mission": "plan",
+  "github": {
+    "milestone": 84,
+    "parent": 1866,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1867,
+      "T-02": 1868,
+      "T-03": 1869
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  },
+  "signed_task_hashes": {
+    "T-01": "6571eb4e40132ab75b41d96bed39af2349f56ee643790cccf7e18fc1ce4cbc72",
+    "T-02": "d2e3a4d4beb64f9ed1591c5175a03882cb58c06f7dcc7d15f78358e4f69c344c",
+    "T-03": "15679ccc948833565017cd62db67faaef8a12c3ffb1dae6d494421ed6bb78216"
+  }
+}
