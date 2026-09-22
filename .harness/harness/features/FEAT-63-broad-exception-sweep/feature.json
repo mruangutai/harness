@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-63-broad-exception-sweep",
   "pr": null,
   "review_sha": "3270dbf079c941bca5c23791f6751f3057c33477",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -123,7 +123,7 @@
   },
   "signed_task_hashes": {
     "T-01": "6571eb4e40132ab75b41d96bed39af2349f56ee643790cccf7e18fc1ce4cbc72",
-    "T-02": "c18610cf91a117370320660178e673fc057a91aaad3e0dd32fcae20ec69a23aa",
-    "T-03": "9ecdad281ae69884b924eec1cd83d1b95ee9257f9bac3a89cdb86f0dcd985b71"
+    "T-02": "d2e3a4d4beb64f9ed1591c5175a03882cb58c06f7dcc7d15f78358e4f69c344c",
+    "T-03": "15679ccc948833565017cd62db67faaef8a12c3ffb1dae6d494421ed6bb78216"
   }
 }
