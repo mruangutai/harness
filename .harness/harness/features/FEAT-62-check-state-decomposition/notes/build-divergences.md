@@ -91,7 +91,20 @@ is identical; the only reordering is feature order INSIDE a block — see D-1.
 - INV-15 IS hoisted (rows INV-16/INV-36/INV-15 per feature over that feature's runs); its
   interleave is D-2.
 
-## Record anomalies for a ruling (bytes unchanged; nothing acted on)
+## Record anomalies — RULED 2026-09-21 (follow-up PR after ship)
+
+- The unnumbered `OMP-PORT` row is **INV-45** (authority DEC-233 unchanged; finding bytes
+  unchanged). INV-44 was already taken by the DEC-230 rejected-record row.
+- The digest-verdict cross-check is **INV-46**, its own feature-scoped row after INV-15
+  (reads: run state, digest.md, feature.json, validate-digest.py; authority DEC-156). INV-15
+  keeps the contract check; the digest is validated once through `Ctx.lead_digest` and both
+  rows read the result. Message text `INV-37:` -> `INV-46:` -- the ONE receipt divergence
+  (`test-check-state-records.py` stdout; exit unchanged), red-first in that suite's BUG-440
+  cases and in `test-check-state-table.py`. The other seven suites: SAME.
+
+The original record, as parked:
+
+## Record anomalies as first recorded
 
 - The retired INV-9 slot still RUNS an unnumbered check (check-omp-port.py under
   `.omp/config.yml`). The table names it `OMP-PORT` with authority DEC-233. Minting an INV
