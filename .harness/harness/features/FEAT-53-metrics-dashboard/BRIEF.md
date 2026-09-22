@@ -402,7 +402,7 @@ perspective.
   repository selector and there is no Work header toggle. Both header values are URL-backed,
   default to `all`, survive a reload and are present unchanged after navigating to each of the other
   two product routes.
-  verify: uat
+  verify: uat              evidence: ui
 - SC-27 (operator): On `/`, a toggle switches the work list between Kanban and Table only. Both
   layouts filter independently by Station, Status and Kind, with no Repository list filter; the
   table names its state column Status. Astryx icons carry status without text colour, coloured
@@ -410,12 +410,12 @@ perspective.
   reasons, elapsed total and plan/build/validate phases, runs, cycles/max, and tokens. A current
   phase advances through now; token gaps read `unmeasured n of m runs`, never zero. Feature and bug
   rows open `/work/$id`; grilling and worktree rows expand inline.
-  verify: uat
+  verify: uat              evidence: ui
 - SC-28 (operator): `/work/$id` accepts only a feature or bug id and renders the operational header
   first — station, phase, run, status, both source paths, budget, phase elapsed values and tokens —
   followed by the per-feature KPI content previously reached from the aggregate drill. A grilling
   or worktree id has no detail route and its row expands inline on `/`.
-  verify: uat
+  verify: uat              evidence: ui
 - SC-29 (orchestrator): A fixture host transcript carrying a known run-token total causes the
   orchestrator's run-end path to record that exact integer through `feature-record.py run-end`; an
   otherwise identical transcript without the measurement records null. The collector sums measured
@@ -460,7 +460,4 @@ perspective.
 
 ## Approval
 
-status: approved
-approved-by: operator (Mike Ruangutai), via main session
-date: 2026-09-16
-scope: re-signed as one DEC-75 bundle (BRIEF + plan.yaml + prototype) after the 2026-09-15/16 operational-view amendments; supersedes the 2026-09-02 signature. Rework ruling rounds=10, minutes=450.
+status: pending

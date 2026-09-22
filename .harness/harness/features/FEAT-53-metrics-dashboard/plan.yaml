@@ -1,10 +1,13 @@
 schema: plan/1
 feature: FEAT-53-metrics-dashboard
-status: building
+status: plan
 source_issues: []
 
 approval:
-  status: approved
+  status: pending
+  reset_at: '2026-09-22T17:31:30+00:00'
+  reset_reason: apply T-32
+  resume_station: building
   approved_by: operator
   date: '2026-09-16'
 
@@ -323,6 +326,12 @@ decisions:
     because: >-
       A fleet dashboard whose visible selection and API slice diverge would compare unlike scopes;
       one URL-backed authority makes every route shareable and deterministic.
+    dec: none
+  - id: D-34
+    choice: >-
+      SC-26, SC-27, and SC-28 retain verify uat as the final operator gate and each adds automated evidence ui from the FEAT-53 browser lane and independent UI contract gate. SC-02 remains verify uat unchanged.
+    because: >-
+      Deterministic browser predicates now cover the objective rendered contracts, while the operator still makes the final experiential acceptance judgment and clean-checkout setup remains a user-run concern.
     dec: none
 tasks:
   - id: T-01
@@ -1902,6 +1911,33 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: >-
       Phase and token derivation are pure Python collector logic under the existing dashboard backend grant.
+  - id: T-32
+    title: Turn every FEAT-53 automated UI check green
+    traces: [SC-26, SC-27, SC-28]
+    change_type: frontend
+    test_kinds: [unit, component, ui]
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-16]
+    status: backlog
+    files:
+      - .claude/skills/harness/bin/dashboard/client/src/**
+      - .claude/skills/harness/bin/dashboard/client/dist/**
+    verify: |
+      # Required lane form: HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui
+      run="${HARNESS_UI_RUN_ID:?Set HARNESS_UI_RUN_ID to the current build run id}" &&
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID="$run" npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui &&
+      bundle=".harness/harness/features/FEAT-53-metrics-dashboard/runs/$run/ui" &&
+      python3 .claude/skills/harness/bin/ui_contract.py gate --design .harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md --results "$bundle/results.json" --feature FEAT-53-metrics-dashboard --run-id "$run" --served-bundle-commit "$(git rev-parse HEAD)" --repo-root . --client-package .claude/skills/harness/bin/dashboard/client &&
+      git ls-files --error-unmatch "$bundle/results.json" "$bundle"/evidence/*.webp "$bundle"/traces/*.zip
+    intent: |
+      Make the committed client source and distribution bundle satisfy every automated Checks row for FEAT-53. Work from the failing predicates and replayable trace filmstrips in this exact order: geometry, then colour placement, then contrast and hatch, then tables and axe, then keyboard. Preserve the established root, KPI, work-list, and detail behavior while correcting the rendered implementation.
+
+      Do not weaken, delete, bypass, rename, or relax any predicate, Checks row, assertion, expected title, project applicability, DESIGN text, lane accounting rule, screenshot requirement, or trace requirement. If a predicate is wrong, stop that item and route it to harness-visual-designer as a DESIGN amendment; frontend-dev must not edit the specification or its verification contract.
+
+      Run no more than two engineering rounds. If the lane is not green after the second round, return awaiting_user with the complete remaining red list instead of looping. For the successful round, run HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui to exit 0, run the independent ui_contract.py gate to UI GATE: PASS, and commit the complete runs/<run>/ui bundle containing results.json, every referenced WebP, and all eight replayable trace ZIPs.
+
+      Validation preserves the existing unit and component kinds and adds ui. QA runs the complete UI lane and the independent gate against the committed bundle. The harness-ui-reviewer uses Mode B, reads results.json and every referenced WebP, and opens all eight trace ZIPs required by FEAT-1821 T-17 with npx playwright show-trace, citing the exact judged step. SC-26, SC-27, and SC-28 receive automated evidence ui but remain verify uat for the final operator gate; SC-02 is unchanged.
 panel:
   last_run: 2026-09-16-01-product
   cycle: 8
