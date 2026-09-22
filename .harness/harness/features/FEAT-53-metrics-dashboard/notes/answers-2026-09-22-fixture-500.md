@@ -13,3 +13,8 @@ Round 1 proved `vite.config.ts` `base` must be `/` for deep-route assets (`/kpi/
 
 ## Addendum 2 — the 30s timeouts (Main reproduced, round 3)
 The lane fixture root lives under `client/test-results/fixtures/<run>/` — INSIDE the harness worktree's git repo — so every `kpi.compute` runs `git diff --numstat`/`for-each-ref` against the whole harness history: `/api/kpis` = 2.15s per request on a 9-feature fixture. Under the lane's parallel navigations that exhausts the 30s test budget (TBL-DESKTOP, A11Y-AXE, VIS-DENSITY, VIS-PROTOTYPE). With the fixture root made its own repository (`git init` + one commit inside it) the same request takes 0.21s. Ruling: `prepareFixtureSync` initialises the fixture root as a standalone git repository with one commit (deterministic author/date); the 30s budget and the predicates stay as signed. This is fixture.ts, already in T-32's files; round 4 starts from this.
+
+## Addendum 3 — C3-KEYBOARD claims (round 4)
+Both are implementation defects; the predicate stands.
+- Kanban/Table toggle: DESIGN §642 lists it as ONE Tab stop ("Clear Filters when present → Kanban / Table toggle → …") and §482 calls it a switch with two labels. Two independent buttons = two stops = contradiction with DESIGN, and it is what makes the strict-mode locator resolve twice. Implement a single focusable button element (accessible name matching /Kanban|Table/, both segment labels rendered inside it, `aria-pressed`/state reflecting Table) so Tab lands on it once.
+- Clear Filters: DESIGN §429 — it appears whenever Station, Status or Kind is not `all`; `?status=needs-you` is such a state, so it must be present. Add it; it resets only station/status/kind (§445).
