@@ -81,7 +81,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns the checker, shared Python boundary, and their unit proof directly to the main session.
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.py#Ctx
       - .claude/skills/harness/bin/harness_boundary.py#load_repo_module
@@ -100,7 +100,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps the checker-wide boundary cutover, receipt suites, and divergence evidence in one direct sequential change.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.py
       - tests/integration/test-check-state.py
@@ -125,7 +125,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs the consolidation audit, its mutation tests, and the checker table gate.
     depends_on: [T-01, T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#consolidation_findings
       - tests/integration/test-check-plan-routes.py#case_22
