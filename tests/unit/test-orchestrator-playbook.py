@@ -163,23 +163,25 @@ def case9_plan_yaml_write_is_a_verb_not_an_edit(text):
           not offenders, f"lines prescribing an Edit of plan.yaml: {offenders}")
 
 
-def case10_claude_code_suspension(text):
-    start = text.find("Under the Claude Code compatibility host")
+def case10_blocking_host_supervision(text):
+    """DEC-233: one supervision protocol. The step names the blocking task boundary and
+    zero polling, and carries neither the SUSPENDED turn-end nor the quarantine ritual."""
+    start = text.find("Let the host supervise the nested dispatch")
     region = text[start:start + 1200] if start >= 0 else ""
     checks = (
-        ("suspended awaiting",
-         re.search(r"VERDICT:?\s*`?\s*SUSPENDED.*awaiting", region, re.I | re.S)),
+        ("blocking boundary",
+         re.search(r"blocking: true.*task.*call remains in the host", region, re.I | re.S)),
         ("zero polling",
          re.search(r"Do not poll.*sleep.*heartbeat.*invent.*zero", region, re.I | re.S)),
-        ("same parent registry",
-         re.search(r"same parent.*registry.*replacement parent", region, re.I | re.S)),
-        ("explicit quarantine adoption",
-         re.search(r"quarantine\.py list.*adopt.*discard.*automatic.*timer.*non-canonical",
-                   region, re.I | re.S)),
+        ("replacement parent registry",
+         re.search(r"registry.*replacement parent", region, re.I | re.S)),
     )
     for clause, match in checks:
-        check(f"case10_claude_code_suspension_{clause.replace(' ', '_')}",
-              bool(match), f"compatibility region misses {clause}")
+        check(f"case10_blocking_host_{clause.replace(' ', '_')}",
+              bool(match), f"supervision step misses {clause}")
+    check("case10_no_suspended_turn_end_anywhere",
+          "SUSPENDED" not in text and "quarantine.py" not in text,
+          "the playbook still carries the DEC-210 SUSPENDED or quarantine ritual")
 
 
 def main():
@@ -194,7 +196,7 @@ def main():
     case7_absence_record_your_phase_in(text)
     case8_presence_record_your_status_in(text)
     case9_plan_yaml_write_is_a_verb_not_an_edit(text)
-    case10_claude_code_suspension(text)
+    case10_blocking_host_supervision(text)
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

@@ -50,6 +50,13 @@ You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`
 4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <file>` and fix every violation before
    returning. Report per-section entry counts before and after.
 
+**Your DIGEST reviews no diff and ran no suite, and says so.** A distill dispatch carries
+`HARNESS-MISSION: distill` on its own line; the host forwards it and the digest validator then
+REQUIRES the did-nothing spelling of your gate fields — qa `suite: n/a` and `matrix_ok: n/a`,
+code-reviewer `code_grade: n_a` and `reviewed: none` — and refuses a `suite: pass` or a graded
+range as decoration (#1855). A lead hosting distill members repeats the line in each member's
+dispatch; a member whose dispatch lacks it has the lead fix the dispatch, never the digest.
+
 ## The entry format — rules, not stories
 
 Every entry is **WHEN <situation> DO <action>**, at most **50 words**, and names **no feature or

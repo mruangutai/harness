@@ -1,0 +1,40 @@
+schema_version: 2
+run_id: amend-product-t17-contract
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: amendment
+    persona: harness-pm
+    task: T-17
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-amend-t17.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: consult-when
+    note: T-17 alone now carries the DEC-233-compliant path and verification contract.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-amend-t17.md
+    evidence:
+      approval_status: pending
+      exact_files: .omp/agents/harness-ui-reviewer.md,tests/unit/test-ui-reviewer-policy.py
+      exact_verify: python3 tests/unit/test-ui-reviewer-policy.py
+      scoped_plan_check: 18_tasks_49_anchors_zero_failures
+      sole_route: plan_merge_amend
+cycles_used: 0
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/amend-product-t17-contract-product/digest.md
+run_uid: ebb1894e930a4084b4bba6004927c7d4

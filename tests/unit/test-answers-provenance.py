@@ -16,9 +16,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 
-HARNESS_MD = os.path.join(ROOT, ".claude", "commands", "harness.md")
+HARNESS_MD = os.path.join(ROOT, ".omp", "commands", "harness.md")
 ORCH_CANONICAL = os.path.join(ROOT, ".omp", "agents", "harness-orchestrator.md")
-ORCH_ADAPTER = os.path.join(ROOT, ".claude", "agents", "harness-orchestrator.md")
 SKILL_MD = os.path.join(ROOT, ".claude", "skills", "harness", "SKILL.md")
 SPEC_MD = os.path.join(ROOT, ".harness", "harness", "docs", "SPEC.md")
 STATE_TEMPLATE = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "STATE.md")
@@ -66,19 +65,6 @@ def case_orchestrator_canonical_no_longer_claims_the_write_grant():
     stale = "your feature's directory (`STATE.md`, `feature.json`,\n`runs/` metadata), `notes/answers-*.md`, and your own Expertise file. Read anything."
     check("case_orchestrator_canonical_no_longer_claims_the_write_grant",
           stale not in text, "the pre-#671 Domain wording (write-framed answers grant) survives")
-
-
-def case_adapter_is_in_sync_with_canonical():
-    """The generated .claude/agents/ copy must carry the SAME #671 contract — a hand-edit to
-    only one side is exactly the kind of drift issue #1187's review caught for a different
-    persona. sync-agent-adapters.py is the single source of truth for HOW they relate; this
-    only asserts the content actually landed on the side agents are dispatched from."""
-    text = read(ORCH_ADAPTER)
-    check("case_adapter_is_in_sync_with_canonical",
-          "Trust ONLY the path named in your `resume` dispatch prompt (issue #671)" in text
-          and "you may not WRITE it (issue #671)" in text,
-          "the generated adapter does not carry the #671 contract — run "
-          "sync-agent-adapters.py --apply")
 
 
 def case_skill_playbook_states_the_receiver_rule():
@@ -160,7 +146,6 @@ def main():
     case_orchestrator_canonical_trusts_only_handed_path()
     case_orchestrator_canonical_forbids_self_authoring()
     case_orchestrator_canonical_no_longer_claims_the_write_grant()
-    case_adapter_is_in_sync_with_canonical()
     case_skill_playbook_states_the_receiver_rule()
     case_spec_states_the_provenance_rule()
     case_spec_no_longer_names_the_orchestrator_as_asker()

@@ -115,28 +115,27 @@ def _reviewer_severity_expected(validator):
 
 
 def _reviewer_template_paths(validator):
-    """(path, persona) for every reviewer-schema agent template in BOTH
-    trees, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
+    """(path, persona) for every reviewer-schema agent template under
+    `.omp/agents`, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
     so a fourth reviewer persona cannot silently escape this check.
 
-    A missing `agents_dir` yields zero paths from that tree rather than
-    raising — `_report_missing_templates` is what turns that into a loud,
-    named failure instead of a silent empty discovery (c22 send-back).
+    A missing `agents_dir` yields zero paths rather than raising —
+    `_report_missing_templates` is what turns that into a loud, named failure
+    instead of a silent empty discovery (c22 send-back).
     """
     paths = []
-    for agents_dir in (os.path.join(REPO_ROOT, ".claude", "agents"),
-                        os.path.join(REPO_ROOT, ".omp", "agents")):
-        try:
-            fnames = sorted(os.listdir(agents_dir))
-        except FileNotFoundError:
-            continue
-        for fname in fnames:
-            if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
-                paths.append((os.path.join(agents_dir, fname), fname[:-3]))
+    agents_dir = os.path.join(REPO_ROOT, ".omp", "agents")
+    try:
+        fnames = sorted(os.listdir(agents_dir))
+    except FileNotFoundError:
+        return paths
+    for fname in fnames:
+        if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
+            paths.append((os.path.join(agents_dir, fname), fname[:-3]))
     return paths
 
 
-# The reviewer personas already shipped in BOTH trees — the floor
+# The reviewer personas already shipped — the floor
 # `_reviewer_template_paths`'s discovery must clear. Not an equality: a
 # legitimately-added fourth persona is still picked up by that mechanical
 # discovery and never fails this check; it only catches discovery finding
@@ -145,10 +144,9 @@ _EXPECTED_REVIEWER_PERSONAS = ("code", "security", "ui")
 
 
 def _expected_reviewer_template_paths():
-    """Every (tree, persona) path discovery must find at minimum."""
+    """Every persona path discovery must find at minimum."""
     return [
-        os.path.join(REPO_ROOT, tree, "agents", f"harness-{persona}-reviewer.md")
-        for tree in (".claude", ".omp")
+        os.path.join(REPO_ROOT, ".omp", "agents", f"harness-{persona}-reviewer.md")
         for persona in _EXPECTED_REVIEWER_PERSONAS
     ]
 
@@ -208,7 +206,7 @@ def run_reviewer_severity_enum_cases():
 
     FEAT-43 narrowed `SEV` (dropped `info`) inside its own reviewed range and
     only harness-code-reviewer.md followed; harness-security-reviewer.md and
-    harness-ui-reviewer.md (both `.claude/agents` and `.omp/agents`) kept
+    harness-ui-reviewer.md (`.omp/agents`) kept
     instructing the old vocabulary, which the validator then rejects as a
     contract violation the moment a reviewer's worst finding is `info`.
 
@@ -429,7 +427,6 @@ def _derive_plan_mode_code_grade(validator):
 
 def _reviewer_plan_mode_results(validator):
     reviewer_sources = (
-        ".claude/agents/harness-code-reviewer.md",
         ".omp/agents/harness-code-reviewer.md",
         ".claude/skills/harness-code-review/SKILL.md",
     )
@@ -1702,7 +1699,7 @@ def _t09_fire(root, agent, text, hook=None, **extra):
                           # BOTH NAMES, ONE VALUE (FEAT-42 T-17). The hook resolves through
                           # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR
                           # and no other name, and payload cwd is no longer a root input.
-                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+                          env=dict(os.environ, 
                                    HARNESS_PROJECT_DIR=root))
 
 
@@ -1832,38 +1829,19 @@ def run_t09():
         len(claims(root, "harness-backend-dev")) == 1,
         repr(claims(root, "harness-backend-dev")))
 
-    # 10. children_in_flight_stale_claim — THE CASCADE (FEAT-42 T-17, issue #742/#866).
-    #     A claim left behind by a DIFFERENT session is not a live child of this return.
-    #     MEASURED 2026-08-26 and written up in
-    #     runs/2026-08-26-2-plan-product/digest.md: one stranded pm claim refused the pm
-    #     spawn at dispatch-guard, then refused the LEAD's return here, then refused the
-    #     ORCHESTRATOR's return here again — three tiers locked out of reporting by one
-    #     strand, each stranding creating the next. The payload carries session_id; the
-    #     registry entry carries the session that made the claim; a mismatch means the
-    #     claim belongs to somebody else's run and this return must be ADMITTED.
+    # 10. A live child refuses the parent's return, and the refusal names the precise
+    #     single-agent release command rather than release-all, which wipes every claim of
+    #     every agent (following the old advice on 2026-08-26 would have destroyed a live
+    #     one). The former "foreign session is admitted" case is gone with DEC-233: a claim
+    #     is scoped by its OMP supervisor's liveness (DEC-204), not by a session id.
     root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root, session="THIS-SESSION")
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root, session="OTHER-SESSION")
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, session_id="THIS-SESSION")
-    t09("10: children_in_flight_stale_claim — a FOREIGN session's claim does not refuse "
-        "this return", r.returncode == 0,
-        f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
-    t09("10: children_in_flight_stale_claim — and no children marker is printed",
-        CHILD_MARK not in r.stderr, r.stderr.strip()[:240])
-
-    # 11. THE OTHER HALF, so 10 cannot pass by never refusing anyone. Same shape, same
-    #     session on both claims: this one MUST still refuse, and the refusal must name the
-    #     precise single-agent release command rather than release-all, which wipes every
-    #     claim of every agent (following the old advice on 2026-08-26 would have destroyed
-    #     a live one).
-    root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root, session="THIS-SESSION")
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root, session="THIS-SESSION")
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, session_id="THIS-SESSION")
-    t09("11: a SAME-session child still refuses, so case 10 is not a blanket pass",
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
+    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    t09("10: a live child refuses the parent's return",
         r.returncode == 2 and CHILD_MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
-    t09("11: and the refusal names the single-agent release command for that child",
+    t09("10: and the refusal names the single-agent release command for that child",
         "--agent harness-backend-dev" in r.stderr and "release-all" not in r.stderr,
         r.stderr.strip()[:400])
 
@@ -1878,19 +1856,15 @@ def run_t09():
     print("\n%d/%d T-09 cases passed." % (len(T09) - fails, len(T09)))
     return fails
 
-def _t51_suspended(awaiting):
-    rows = "".join(f"    - {persona}\n" for persona in awaiting)
-    return f"VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n{rows}"
-
 
 def _t51_fixture(reg, parent="harness-product-lead", children=("harness-pm",)):
     root = _t09_root()
     session = "feat51-session"
     reg.claim_with_receipt(
-        root, parent, "harness-orchestrator", root, session=session
+        root, parent, "harness-orchestrator", root
     )
     for child in children:
-        reg.claim_with_receipt(root, child, parent, root, session=session)
+        reg.claim_with_receipt(root, child, parent, root)
     return root, session
 
 
@@ -1900,16 +1874,20 @@ def _t51_result(name, result, expected):
     )
 
 
-def _t51_accepted(reg):
+def _t51_suspended_refused(reg):
+    """DEC-233: under a blocking host a parent never yields with a live child, so the
+    nonterminal SUSPENDED turn-end DEC-210 accepted is now refused like any other
+    return with a live child, and the parent's claim is left in place."""
     root, session = _t51_fixture(reg)
     result = _t09_fire(
-        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
+        root, "harness-product-lead",
+        "VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n    - harness-pm\n",
         session_id=session,
     )
-    parent, _ = reg.live_claim(root, "harness-product-lead", session=session)
+    parent, _ = reg.live_claim(root, "harness-product-lead")
     return [
-        _t51_result("a SUSPENDED return with a live child is accepted", result, 0),
-        ("a SUSPENDED return leaves the parent claim live",
+        _t51_result("a SUSPENDED return with a live child is refused", result, 2),
+        ("the refused SUSPENDED return leaves the parent claim live",
          parent is not None, repr(parent)),
     ]
 
@@ -1936,11 +1914,11 @@ def _t51_missing_message(reg):
         result = subprocess.run(
             [VALIDATE, "--hook"], input=json.dumps(payload),
             capture_output=True, text=True,
-            env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+            env=dict(os.environ, 
                      HARNESS_PROJECT_DIR=root),
         )
         parent, _ = reg.live_claim(
-            root, "harness-product-lead", session=session
+            root, "harness-product-lead"
         )
         results.extend([
             _t51_result(
@@ -1954,45 +1932,13 @@ def _t51_missing_message(reg):
 
 
 
-def _t51_no_child():
-    root = _t09_root()
-    result = _t09_fire(
-        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
-        session_id="empty-session",
-    )
-    return [_t51_result("a SUSPENDED return with no live child is refused", result, 2)]
-
-
-def _t51_omitted_child(reg):
-    root, session = _t51_fixture(reg, children=("harness-pm", "harness-qa"))
-    result = _t09_fire(
-        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
-        session_id=session,
-    )
-    return [_t51_result("a SUSPENDED return omitting a live child is refused", result, 2)]
-
-
-def _t51_member(reg):
-    root, session = _t51_fixture(
-        reg, parent="harness-pm", children=("harness-documentor",)
-    )
-    result = _t09_fire(
-        root, "harness-pm", _t51_suspended(["harness-documentor"]),
-        session_id=session,
-    )
-    return [_t51_result("a SUSPENDED return from a member persona is refused", result, 2)]
-
-
 def run_t51_suspension_cases():
     reg = _reg_module()
     results = []
     for case in (
-        _t51_accepted(reg),
+        _t51_suspended_refused(reg),
         _t51_terminal(reg),
         _t51_missing_message(reg),
-        _t51_no_child(),
-        _t51_omitted_child(reg),
-        _t51_member(reg),
     ):
         results.extend(case)
     fails = 0
@@ -2025,8 +1971,7 @@ def _isolated_root():
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), "w") as f:
-            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
-                                 "uat": "advisory", "merge": "autonomous"}}, f)
+            json.dump({"gates": {"review": "advisory"}}, f)
     return _ISOLATED_ROOT
 
 
@@ -2046,7 +1991,6 @@ def run_hook_cases():
         _root = payload.pop("_root", None) or _isolated_root()
         env = dict(os.environ)
         env["HARNESS_PROJECT_DIR"] = _root
-        env["CLAUDE_PROJECT_DIR"] = _root
         r = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
                            capture_output=True, text=True, env=env)
         bad = []
@@ -2082,7 +2026,6 @@ def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
     if not feature:
         env.pop("HARNESS_PROJECT_DIR", None)
-        env.pop("CLAUDE_PROJECT_DIR", None)
     return subprocess.run(
         [binary, "--hook"], input=json.dumps(payload), capture_output=True,
         text=True, env=env)
@@ -3848,8 +3791,7 @@ def check_prior_validator(td, guarded, failures):
 
 def write_review_config(config, review):
     with open(config, "w") as f:
-        json.dump({"gates": {"qa_gate": "blocking", "review": review,
-                             "uat": "advisory", "merge": "autonomous"}}, f)
+        json.dump({"gates": {"review": review}}, f)
 
 
 def check_code_grade_state(validator, config, feature_dir, failures):
@@ -3973,8 +3915,7 @@ def check_reviewed_range(validator, config, feature_dir, td, failures):
 # are those two cases, now asserting exit 2 and a named reason.
 
 HARNESS_JSON_FIXTURE = {
-    "gates": {"qa_gate": "blocking", "review": "advisory_unless_high",
-              "uat": "advisory", "merge": "user_gated"},
+    "gates": {"review": "advisory_unless_high"},
     "test_kinds": {
         "unit": {"detect": "test_*.py|**/test-*.py", "exclude": "",
                  "cmd": "true", "status": "active"},
@@ -4068,7 +4009,6 @@ def _run_hook(root, agent_type, text):
     only 2 rejects and a crash exits 1 while the digest ships unvalidated (DEC-127)."""
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = root
-    env["CLAUDE_PROJECT_DIR"] = root
     payload = {"agent_type": agent_type, "last_assistant_message": text}
     result = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
                             capture_output=True, text=True, env=env)
@@ -5363,6 +5303,106 @@ def run_canonical_reader_strictness_cases():
     for failure in failures:
         print(f"FAIL  [canonical-reader audit] {failure}")
     return 1
+
+
+# --- #1854: a member entry carrying a NESTED block list is ONE member -------------------
+# Measured on FEAT-61's distill-validator digest: five members, each with a block-style
+# `files_touched:` under it. Well-formed YAML (safe_load reads five members), but every
+# nested `- /path` row was split off as a member of its own and reported as "has no
+# verdict". The item indent under `members:` is what says which `- ` opens an entry.
+LEAD_NESTED_LIST_MEMBERS = """
+VERDICT: PASS
+DIGEST:
+  headline: distillation complete
+  team: validate
+  steps_run: 2
+  cycles_used: 1
+  members:
+    - step: qa
+      persona: harness-qa
+      verdict: PASS
+      headline: "accepted three lessons"
+      files_touched:
+        - /abs/.harness/expertise/harness-qa.md
+        - /abs/.harness/harness/expertise/harness-qa.md
+    - step: ui-reviewer
+      persona: harness-ui-reviewer
+      verdict: PASS
+      headline: "accepted no entry"
+      files_touched: []
+  must_fix: []
+  branch: none
+  files_touched: [/abs/.harness/expertise/harness-qa.md]
+  open_questions: []
+  escalations: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+"""
+case("#1854: a member's nested block list stays inside that member",
+     "harness-validator-lead", LEAD_NESTED_LIST_MEMBERS, True)
+case("#1854: a nested list does not hide a member that genuinely lacks a verdict",
+     "harness-validator-lead",
+     LEAD_NESTED_LIST_MEMBERS.replace("      verdict: PASS\n      headline: \"accepted no entry\"\n",
+                                      "      headline: \"accepted no entry\"\n"),
+     False, "no verdict")
+case("#1854: a nested member verdict still rolls up worst-wins",
+     "harness-validator-lead",
+     LEAD_NESTED_LIST_MEMBERS.replace("      verdict: PASS\n      headline: \"accepted no entry\"",
+                                      "      verdict: FAIL\n      headline: \"accepted no entry\""),
+     False, "worst")
+
+
+# --- #1855: a distill dispatch has NO gate subject ------------------------------------
+# Feature-close distillation (DEC-145) runs after the merge: the readers judge Expertise
+# candidates, touch Expertise files, and review no diff and run no suite. Under the
+# build/validate schema qa could not return PASS without `suite: pass` (which then fired
+# the #919 rerun) and the code-reviewer could not bind `code_grade` to a review_sha that
+# is already an ancestor of main. The mission rides in the dispatch exactly as the
+# review pin does (#1677) and reaches the validator as `harness_mission`.
+QA_DISTILL = """
+VERDICT: PASS
+DIGEST:
+  headline: accepted three lessons, displaced two weaker craft entries
+  suite: n/a
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: n/a
+  fail_first: []
+  open_questions: []
+  files_touched: [/abs/.harness/expertise/harness-qa.md]
+  expertise_update: [{file: /abs/.harness/expertise/harness-qa.md, ops: 3}]
+artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+"""
+REVIEWER_DISTILL = """
+VERDICT: PASS
+DIGEST:
+  headline: accepted three lessons across craft and repository layers
+  severity_max: n/a
+  findings: []
+  must_fix: []
+  code_grade: n_a
+  reviewed: none
+  files_touched: [/abs/.harness/expertise/harness-code-reviewer.md]
+  open_questions: []
+  expertise_update: [{file: /abs/.harness/expertise/harness-code-reviewer.md, ops: 3}]
+artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+"""
+hook_case("#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
+          "harness-qa", QA_DISTILL, 0, harness_mission="distill")
+hook_case("#1855: the same qa return outside distill is still the fail-open it always was",
+          "harness-qa", QA_DISTILL, 2, "gate")
+hook_case("#1855: qa on a distill dispatch may not decorate the return with a suite it did not run",
+          "harness-qa", QA_DISTILL.replace("suite: n/a", "suite: pass"), 2, "distill",
+          harness_mission="distill")
+hook_case("#1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range",
+          "harness-code-reviewer", REVIEWER_DISTILL, 0, harness_mission="distill")
+hook_case("#1855: the same reviewer return outside distill is refused at the binding",
+          "harness-code-reviewer", REVIEWER_DISTILL, 2, "cannot be bound")
+hook_case("#1855: a distill reviewer claiming a grade is refused — there is no diff to grade",
+          "harness-code-reviewer", REVIEWER_DISTILL.replace("code_grade: n_a", "code_grade: pass"),
+          2, "distill", harness_mission="distill")
+hook_case("#1855: an unknown mission changes nothing",
+          "harness-qa", QA_DISTILL, 2, "gate", harness_mission="polish")
 
 
 def main():

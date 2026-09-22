@@ -1,0 +1,13 @@
+T-06
+
+Exact current verify command from plan.yaml (preserve every byte except the two substitutions below):
+
+sh -c 'HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=FEAT-1821-initial-red npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui; rc=$?; test "$rc" -ne 0' && python3 -c "import json,pathlib; p=pathlib.Path('.harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/results.json'); d=json.loads(p.read_text()); named={'C1-HEADER-GEOMETRY','DIR-KPI-IDENTITY','DIR-STATUS-LABEL','TBL-DESKTOP'}; byid={x['check_id'] for x in d['checks']}; shots=[pathlib.Path(s['path']) for x in d['checks'] for s in x['screenshot_evidence']]; assert d['schema']=='harness-ui-results/1' and d['summary']['status']=='fail' and named<=byid and not d['missing_check_ids'] and shots and all(x.stat().st_size>12 and x.read_bytes()[8:12]==b'WEBP' for x in shots)"
+
+Required substitutions only:
+1. x['screenshot_evidence'] -> x['screenshots']
+2. d['summary']['status']=='fail' -> d['summary']['status']=='failed'
+
+Reason: contract drift. Main's full discarded run confirmed the implemented T-01 gate and T-03 reporter form uses per-record screenshots and summary status failed.
+
+Acceptance: record-amendments only; amendment ledger records T-06.verify; every other verify byte and plan field remains unchanged; approval remains approved; scoped plan check is clean; no code or broad validation.

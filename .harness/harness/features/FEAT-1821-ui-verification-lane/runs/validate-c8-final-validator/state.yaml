@@ -1,0 +1,69 @@
+schema_version: 2
+run_uid: a9a760ba8b6d40ff8781b41802cb9e0c
+run_id: validate-c8-final-validator
+feature: FEAT-1821-ui-verification-lane
+squad: validator
+host: harness-validator-lead
+team: validate
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+base_sha: b8f96ab8e9c8168ed8389ccf4732a958e84828fd
+review_sha: 0163657540ab3ad3be4ff5aa34f838dc4f1e17d8
+pinned_sha: 0163657540ab3ad3be4ff5aa34f838dc4f1e17d8
+status: blocked
+verdict: BLOCKED
+severity_max: high
+cycles_used: 0
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/validate-c8-final-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c8.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: FAIL
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    routed_by: operator-c7-ruling
+    note: V7-01 closes, but V7-02 remains open because SC-04 lacks pinned criterion-mapped fail-first evidence.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c8.md
+    evidence:
+      matrix_ok: false
+      unit_tests: 24
+      manifest_titles_absent: 0
+      non_red_structural_reasons: 0
+      ui_contract_functions_below_grade_4: 0
+      severity_max: high
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c8.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    routed_by: operator-c7-ruling
+    note: Both review stages pass the c8 implementation and accept the receipt under task-ownership scoping.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c8.md
+    evidence:
+      reviewed: b8f96ab8e9c8168ed8389ccf4732a958e84828fd..0163657540ab3ad3be4ff5aa34f838dc4f1e17d8
+      changed_functions_passing: 3
+      severity_max: none

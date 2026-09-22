@@ -152,6 +152,63 @@ class JsonContracts(unittest.TestCase):
             path.write_text(json.dumps(document), encoding="utf-8")
             self.assertEqual(document, accessors.load_feature_json(path))
 
+    # FEAT-61 T-01: ONE strict decoding primitive. Every strict JSON reader in bin/ (harness.json,
+    # feature.json, gh payloads, feature_json_write.parse_doc) goes through it, so a tightening
+    # lands everywhere at once instead of in whichever of two hand-copied hook pairs got edited.
+    def test_strict_json_loads_rejects_nested_duplicates_and_nonfinite_as_valueerror(self):
+        for text in (
+            '{"outer": {"key": 1, "key": 2}}',
+            '[{"a": 1, "a": 2}]',
+            '{"value": NaN}',
+            '{"value": Infinity}',
+            '{"value": -Infinity}',
+        ):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                accessors.strict_json_loads(text)
+
+    def test_strict_json_loads_returns_any_json_value_untouched(self):
+        for text, expected in (
+            ('{"nested": {"value": 7}}', {"nested": {"value": 7}}),
+            ('[{"value": 7}, 2]', [{"value": 7}, 2]),
+            ("3", 3),
+            ('"x"', "x"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(expected, accessors.strict_json_loads(text))
+
+    # The run-step contract is read by two gates (check-state INV-16, check-domain's version-2
+    # step closure). One accessor owns the navigation so a schema restructure moves one site.
+    def test_load_run_step_contract_returns_step_schema_declared_keys_and_evidence_pattern(self):
+        contract = accessors.load_run_step_contract(BIN)
+        step_schema, declared, pattern = contract
+        with open(BIN / "run-state-schema.json", encoding="utf-8") as handle:
+            raw = json.load(handle)["properties"]["steps"]["items"]
+        self.assertEqual(raw, step_schema)
+        self.assertEqual(set(raw["properties"]), declared)
+        self.assertEqual(raw["properties"]["evidence"]["propertyNames"]["pattern"], pattern)
+
+    def test_load_run_step_contract_preserves_natural_failures_for_malformed_shapes(self):
+        # Both callers absorb with `except Exception` and print the exception's class and text;
+        # wrapping would change those bytes. So: a missing key is a KeyError, a wrong container
+        # is a TypeError, exactly as the inline navigation raised them.
+        cases = (
+            ('{"properties": {}}', KeyError),
+            ('{"properties": {"steps": []}}', TypeError),
+            ('{"properties": {"steps": {"items": {"properties": {}}}}}', KeyError),
+        )
+        for text, expected in cases:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
+                (Path(directory) / "run-state-schema.json").write_text(text, encoding="utf-8")
+                with self.assertRaises(expected):
+                    accessors.load_run_step_contract(directory)
+
+    def test_load_run_step_contract_is_strict_about_the_schema_file_itself(self):
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "run-state-schema.json").write_text(
+                '{"properties": {"steps": 1, "steps": 2}}', encoding="utf-8")
+            with self.assertRaises(accessors.ArtifactAccessError):
+                accessors.load_run_step_contract(directory)
+
 class ManifestDomainsContracts(unittest.TestCase):
     def test_omitted_agent_aggregates_named_role_writes_only(self):
         manifest = """\

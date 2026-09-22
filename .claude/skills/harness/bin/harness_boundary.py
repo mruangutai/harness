@@ -18,6 +18,7 @@ the agent sees.
 
 import os
 import re
+import subprocess
 import sys
 import artifact_accessors
 from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
@@ -244,6 +245,169 @@ def worktree_for_feature(owner_root, feature_id):
     )
 
 
+# A governed feature artifact: `.harness/<segment>/features/<feature-id>/...`. Owned here
+# (FEAT-61 T-01) because both write routes — check-domain's tool route and bash-write-guard's
+# Bash route — ask the same checkout question of it; two copies of this regex let a fix to
+# the binding rule land on one route and leave the other permissive (the FEAT-45 shape).
+RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
+
+
+def feature_artifact_id(raw_rel):
+    """The feature id a governed artifact path belongs to, or None when it is not one."""
+    match = RE_FEATURE_ARTIFACT.match(raw_rel)
+    return None if match is None else match.group(1)
+
+
+def feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):
+    """Does a write to `raw_rel` (resolved at `target_path`) land outside the worktree its
+    feature is linked to? None when the path is not a feature artifact, when the feature has
+    no linked worktree, or when the write is already inside it; otherwise
+    `(feature_id, expected_worktree)` for the adapter to refuse in its own voice.
+
+    THE ADAPTERS OWN THE RESPONSE. `AmbiguousWorktree` and any unexpected failure propagate:
+    each route decides its refusal channel and whether to absorb, because an exit code one
+    host treats as a refusal the other treats as non-blocking. This function decides only the
+    path question, so the binding rule has one home and cannot drift between the routes.
+    """
+    feature_id = feature_artifact_id(raw_rel)
+    if feature_id is None:
+        return None
+    expected = worktree_for_feature(owner_root, feature_id)
+    if expected is None:
+        return None
+    checkout = checkout_relative(target_path)
+    if checkout is not None and real(checkout[0]) == real(expected):
+        return None
+    return feature_id, expected
+
+
+# --- FEAT-62 T-03: the changed-state feedback loop behind every canonical structured write.
+#
+# `--changed` is the edit-loop verb (grilling artefact, SC-06): it exists so an agent sees the
+# invariants its write just touched WITHOUT knowing the flag exists. The primary path is
+# therefore not a rule an agent must remember but this adapter, run by the two canonical
+# writers -- plan-merge.py after each successful mutating plan write, feature_json_write
+# after each successful feature.json write -- once the write's own lock has been released.
+#
+# THE CHECKOUT IS DERIVED FROM THE WRITTEN PATH ALONE. `resolve_root` reads the environment
+# (HARNESS_PROJECT_DIR) and answers "which tree is this SESSION about"; that is the wrong
+# question here. A write to `<X>/.harness/<repo>/features/<FEAT>/plan.yaml` is feedback
+# about `<X>` and nothing else -- so a test fixture under /tmp derives /tmp/<fixture>, finds no
+# checker there, and is silent, rather than reaching into the developer's checkout because an
+# env var pointed at it (panel finding PF-e27f2ac2). A path that is not canonical -- a scratch
+# file, a plain CLI positional -- derives no root at all.
+#
+# ADVISORY, NEVER A ROLLBACK. The write has already landed; what the checker says is stderr
+# feedback for the caller to relay. A clean selective run prints nothing at the checker
+# source (check-state.py's own `--changed` contract), so this forwards whatever arrives
+# without matching any exact string (panel finding PF-db8324a6). The writer's stdout receipt,
+# refusal paths, durable bytes and exit status are untouched by construction: this runs after
+# all of them and touches none.
+#
+# NEVER RECURSIVE. The checker spawns gate scripts of its own; none of them writes a plan or a
+# feature.json, and the env marker below stops a nested writer from re-entering here.
+# HARNESS_PROJECT_DIR is DROPPED from the child's environment for the same reason the root is
+# derived from the path: the checker then resolves its root from its own location, which IS
+# the derived checkout, and a stale session override cannot redirect the feedback.
+_CHANGED_FEEDBACK_ENV = "HARNESS_CHANGED_FEEDBACK"
+# The union of plan-merge.py's PLAN_TAIL and feature_json_write's FEATURE_JSON_TAIL, anchored
+# at the checkout: the tree segment is optional, exactly as the writers accept it.
+RE_CANONICAL_STRUCTURED_WRITE = re.compile(
+    r"^(?P<root>.*?)/\.harness/(?:[^/]+/)?features/(?:FEAT|BUG)-[^/]+/(?:plan\.yaml|feature\.json)$")
+CHECKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.py")
+
+
+def changed_state_root(target_path):
+    """The checkout a canonical plan.yaml/feature.json write belongs to, from the PATH alone;
+    None for any other path."""
+    posix = os.path.abspath(target_path).replace(os.sep, "/")
+    match = RE_CANONICAL_STRUCTURED_WRITE.match(posix)
+    return None if match is None else (match.group("root") or "/")
+
+
+def _changed_state_checker(target_path):
+    """The checker to run for a write to `target_path`, or None: the path must be canonical,
+    the derived checkout must carry MARKER and the checker, and this process must not itself
+    be inside a feedback run."""
+    root = changed_state_root(target_path)
+    if root is None or os.environ.get(_CHANGED_FEEDBACK_ENV):
+        return None
+    checker = os.path.join(root, CHECKER_REL)
+    if os.path.isfile(checker) and os.path.isfile(os.path.join(root, MARKER)):
+        return root, checker
+    return None
+
+
+def changed_state_feedback(target_path, timeout=120):
+    """Run that checkout's `check-state.py --changed` after a successful structured write and
+    return its non-clean rows (both streams, in order) for the caller's stderr. Empty when
+    there is no checker to run (`_changed_state_checker`) or it cannot be spawned -- feedback
+    is never a failure."""
+    found = _changed_state_checker(target_path)
+    if found is None:
+        return []
+    root, checker = found
+    env = {k: v for k, v in os.environ.items() if k != PROJECT_DIR_ENV}
+    env[_CHANGED_FEEDBACK_ENV] = "1"
+    try:
+        result = subprocess.run([sys.executable, checker, "--changed"], cwd=root, env=env,
+                                capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [line for line in (result.stdout + result.stderr).splitlines() if line.strip()]
+
+
+def relay_changed_state_feedback(target_path):
+    """`changed_state_feedback`, printed to stderr under one header — the writers' one call."""
+    rows = changed_state_feedback(target_path)
+    if rows:
+        print(f"check-state --changed after {target_path}:", file=sys.stderr)
+        for row in rows:
+            print(row, file=sys.stderr)
+
+
+def load_repo_module(module_name, path, register=False):
+    """Load a repo-local script as a module by path — THE sole `spec_from_file_location` in
+    bin/ (FEAT-61 T-01). The kebab-case gate scripts cannot be imported by name, and six
+    hand-written copies of this sequence disagreed on two decisions this function now owns:
+
+    - `register=True` binds the module in `sys.modules` BEFORE exec. A script that declares
+      dataclasses needs it (check-skill-weight.py: dataclasses resolve their module by name
+      during class creation); a script that does not is left out so a failed load leaves no
+      half-initialised entry behind.
+    - A failed exec re-raises the ORIGINAL exception and removes only the registration this
+      call made, restoring whatever was bound under the name before.
+
+    A path that yields no spec or loader (missing file, a directory) is ImportError naming
+    the path, never an AttributeError on None three lines later.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
+    module = importlib.util.module_from_spec(spec)
+    if not register:
+        spec.loader.exec_module(module)
+        return module
+    previous = sys.modules.get(module_name)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        _restore_registration(module_name, previous)
+        raise
+    return module
+
+
+def _restore_registration(module_name, previous):
+    """Undo one `load_repo_module(register=True)` binding after a failed exec: drop the entry
+    this call made, or put back whatever was bound under the name before it."""
+    if previous is None:
+        sys.modules.pop(module_name, None)
+    else:
+        sys.modules[module_name] = previous
+
+
 def inside(child, parent):
     """Whether one resolved absolute path is contained by another."""
     try:
@@ -252,20 +416,26 @@ def inside(child, parent):
         return False
 
 
-def _registry_claim_worktrees(owner_root, registry_root, agent_type):
+def _registry_claim_worktrees(owner_root, registry_root, agent_type,
+                              agent_id=None, parent_agent_id=None):
     """Resolve one registry's live claims to linked worktrees."""
     import inflight_registry
 
     result = set()
-    for claim in inflight_registry.live_claims(registry_root, agent_type):
+    for claim in inflight_registry.live_claims(
+            registry_root,
+            agent_type,
+            agent_id=agent_id,
+            parent_agent_id=parent_agent_id):
         worktree = worktree_for_feature(owner_root, claim.get("feature"))
         if worktree is not None:
             result.add(worktree)
     return result
 
 
-def claim_worktrees(owner_root, agent_type, destination):
-    """Return the linked worktrees bound to an agent's live feature claims."""
+def claim_worktrees(owner_root, agent_type, destination,
+                    agent_id=None, parent_agent_id=None):
+    """Return linked worktrees bound to the matching agent runtime's live claims."""
     import inflight_registry
 
     owner_root = real(owner_root)
@@ -275,7 +445,13 @@ def claim_worktrees(owner_root, agent_type, destination):
     for registry_root in [owner_root] + linked_worktrees(owner_root):
         try:
             claim_set.update(
-                _registry_claim_worktrees(owner_root, registry_root, agent_type))
+                _registry_claim_worktrees(
+                    owner_root,
+                    registry_root,
+                    agent_type,
+                    agent_id=agent_id,
+                    parent_agent_id=parent_agent_id,
+                ))
         except inflight_registry.UnreadableRegistry as error:
             unreadable.update(error.paths)
 
@@ -361,8 +537,8 @@ def matches(path, pat):
 # Harness-owned paths with product-shaped names must be explicit. Hidden
 # control-plane roots are additionally recognized by `is_control_plane_glob`
 # below so their grants never bleed into a product checkout. Provider-neutral
-# OMP adds `.agents`, `.omp`, and `AGENTS.md`; the older `.claude` root remains
-# a compatibility surface.
+# OMP adds `.agents`, `.omp`, and `AGENTS.md`; `.claude` holds the authored
+# skills tree and the development worktrees.
 HARNESS_CONTROL_PLANE = [
     ".harness/*/docs/**",
     "docs/PRINCIPLES.md",
@@ -379,7 +555,7 @@ def is_control_plane_glob(pat):
     """Whether a grant belongs only to the Harness checkout.
 
     Hidden Harness roots must not reach a product checkout's same-named
-    directory. `.claude` remains included for compatibility while `.agents`
+    directory. `.claude` holds the authored skills and worktrees; `.agents`
     and `.omp` are the provider-neutral OMP surfaces.
     """
     p = pat.lstrip("/")
@@ -392,8 +568,8 @@ def real(path):
     """Absolute AND symlink-resolved.
 
     `abspath` alone normalises `..` textually but follows no link, so
-    `.harness/harness/docs/<link>/agents/x.md` with `<link> -> ../../../.claude` stayed inside
-    `.harness/` for every comparison while the write landed in `.claude/agents/`.
+    `.harness/harness/docs/<link>/agents/x.md` with `<link> -> ../../../.omp` stayed inside
+    `.harness/` for every comparison while the write landed in `.omp/agents/`.
     Reproduced before this fix: through the link exit 0, the same file named directly
     exit 2. The gap predates the two-base rule — `docs/**` matched with no target-side
     test — so this closes a live escape rather than a regression.

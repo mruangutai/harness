@@ -1,5 +1,6 @@
 # Expertise — harness-code-reviewer
 ## Patterns (max 15)
+- P-01: WHEN a plan change_type is outside harness.json's test_matrix vocabulary DO treat the record as malformed and correct its classification; never add a synonymous mapping merely to legitimize the unsupported value.
 ## Gotchas (max 15)
 - G-01: WHEN reviewing check-expertise.py's REPO_TIER_RE alongside inject-expertise.py's segment filter DO diff both regexes together — REPO_TIER_RE accepts any `[^/]+` segment but the hook silently drops non-lowercase-alnum-hyphen segments, so checker OK does not mean the hook injects.
 - G-02: WHEN reviewing inject-expertise.py's cap_body DO test a fixture missing its trailing newline at the 40- and 150-line boundaries — its `wc -l` vs `head -n` comparison undercounts by one there and silently drops the over-budget tail with no truncation notice.

@@ -91,18 +91,13 @@ and **output paths**.
 while your model is inactive. Do not call `hub wait`, poll `hub jobs`, sleep, emit heartbeats, or
 manufacture work — the blocking boundary is deliberate.
 
-**Under the Claude Code compatibility host, never wait for a member — suspend the turn.** End a
-live-child turn with `VERDICT: SUSPENDED` and an `awaiting:` list naming every live child, and
-nothing else; this is nonterminal and is not a report about their work. Do not poll, sleep, emit a
-heartbeat, or invent a tool call — zero such actions. The host resumes this same parent when the
-child completes, and the registry prevents a replacement parent while that feature/persona claim
-is live. On waking, before deciding anything, run `quarantine.py list --feature <FEAT>`; explicitly
-adopt a result with `quarantine.py adopt --file <path>` or discard it with
-`quarantine.py discard --dir <path>`. Neither happens by default or on a timer, so ignored
-quarantine stays non-canonical. The host's suggestion to continue other work does not override
-this conduct (DEC-201).
+**Never wait for a member.** The `task` call holds in the host until the member is terminal; your
+model is inactive meanwhile. Do not poll, sleep, emit a heartbeat, or invent a tool call — zero
+such actions. The registry prevents a replacement parent while that feature/persona claim is
+live, and the digest gate refuses any return that arrives with a child in flight (DEC-233). The
+host's suggestion to continue other work does not override this conduct (DEC-201).
 
-**e. Collect returns after the blocking task result or on waking under the compatibility host.** Re-read
+**e. Collect returns after the blocking task result.** Re-read
 `state.yaml` first, verify the cited artifact, then record `VERDICT`, DIGEST fields, and
 `completed_at`. A repeated delivery after resume is an idempotent no-op, never a second dispatch or
 GitHub transition (DEC-204).

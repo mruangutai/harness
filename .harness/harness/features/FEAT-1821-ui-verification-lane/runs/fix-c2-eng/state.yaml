@@ -1,0 +1,43 @@
+schema_version: 2
+run_id: fix-c2-eng
+run_uid: 524eded6c1204c36bb19001c8fb643fe
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: failed
+steps:
+  - id: T-03
+    persona: harness-frontend-dev
+    task: T-03
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c2-eng.md
+    mutates_repo: true
+    on_fail: halt
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Run-scoped fixtures and complete inspection capture improved, but F1/F2/F4 remain incomplete.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c2-eng.md
+    evidence:
+      list_exit: 0
+      listed_titles: 12
+      listed_executions: 23
+      src_tokens_projects: desktop-1440
+      clean_fixture_probe: pass
+      concurrent_unique_run_ids: pass
+      inspection_labels_captured: 22
+      expected_product_red: true
+      open_findings: T03-F1,T03-F2,T03-F4
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: FAIL
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/fix-c2-eng/digest.md

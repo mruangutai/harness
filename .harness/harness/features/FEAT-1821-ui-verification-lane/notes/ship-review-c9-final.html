@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-1821 UI verification lane — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-1821-ui-verification-lane-ship-review">FEAT-1821 UI verification lane — ship review</h1>
+<p><strong>Recommendation: ship to <code>feat/FEAT-53</code>.</strong> The feature is complete at code review pin <code>ea4916518eea1c8f73901d372ad8e1e38595e64b</code>: all four signed perspectives are met, all 18 tasks are done, the final QA/code/security/UI review is clean, and the first committed FEAT-53 lane result is the required honest product signal: <strong>22 RED / 1 green</strong>, not a FEAT-1821 failure. The operator still owns merge/ship.</p>
+<h2 id="definition-of-done-graded-by-signed-perspective">Definition of done — graded by signed perspective</h2>
+<p>The initial validate goal-check recorded failures at an earlier pin. The final reconciliation below uses only the later independent repair and validation artifacts; it is not a third goal-check. The validating lead&#x27;s complete reconciliation is <code>runs/briefing-reconciliation-validator/perspective-reconciliation.md</code>.</p>
+<div class="scroll"><table><thead><tr><th>Signed perspective</th><th>Verdict</th><th>Success criteria and evidence</th></tr></thead><tbody><tr><td><strong>operator</strong> — I can rely on a real-browser lane to render the committed client bundle at the two desktop viewports, fail on measurable DESIGN.md violations or missing evidence, and leave reviewable screenshots and structured results. FEAT-53 supplies the first honest signal: its known visual defects are recorded RED here without this feature fixing them.</td><td><strong>met</strong></td><td><strong>SC-01:</strong> <code>runs/validate-c9-fix-validator/digest.md</code> records the configured lane and fail-closed final gate. <strong>SC-02:</strong> <code>notes/review-harness-ui-reviewer-c9.md</code> reviewed all 41 WebPs and all eight trace ZIPs. <strong>SC-03:</strong> <code>notes/receipt-main-direct-T-18-c0.md</code> and <code>runs/validate-c9-traces-validator/digest.md</code> record 18 predicate failures + 4 inspection-setup failures + 1 green SRC-TOKENS, with no FEAT-53 production fix. <strong>SC-04:</strong> <code>notes/receipt-main-direct-T-14-c0.md</code> records the discriminating opt-in-only pixel-baseline proof.</td></tr><tr><td><strong>code maintainer</strong> — I can extend a DESIGN.md check table and its Playwright specs through one explicit check-id contract, distinguish browser assertions from inspection-only judgment, and understand the versioned evidence without reverse-engineering the runner. Shared-component changes cannot silently evade every affected surface.</td><td><strong>met</strong></td><td><strong>SC-05:</strong> <code>notes/review-harness-code-reviewer-c7.md</code> and <code>notes/review-harness-qa-c8.md</code> confirm the manifest-driven, fail-closed contract and complete-client title enforcement. <strong>SC-06:</strong> <code>notes/review-harness-qa-c9.md</code> confirms complete schema, record, screenshot, accounting, and provenance fields. <strong>SC-07:</strong> <code>notes/review-harness-code-reviewer-c7.md</code> confirms the deterministic fixture/config and exact dependency pins; the configured component suite passes 27/27.</td></tr><tr><td><strong>reader (QA / ui-reviewer)</strong> — I can grade the built surface from committed per-test screenshots and results tied to DESIGN.md, rerun the same lane when needed, and fail rather than improvise when a listed dimension has no evidence. Mode B does not depend on ad-hoc CDP or browser scripting.</td><td><strong>met</strong></td><td><strong>SC-08:</strong> <code>notes/receipt-main-direct-T-17-c0.md</code> records 50 passing Mode-B policy/mutant assertions; <code>notes/review-harness-ui-reviewer-c9.md</code> independently opened every trace and WebP. <strong>SC-09:</strong> <code>notes/review-harness-qa-c9.md</code> confirms complete DESIGN mapping and zero structural/title/accounting defects; <code>runs/validate-c9-fix-validator/digest.md</code> preserves the result at the final pin.</td></tr><tr><td><strong>orchestrator</strong> — I can route and gate UI work predictably: the ui kind is active with a real command, CI installs its browser, the interaction-flow matrix branch fails when a touched surface lacks specs, and enforcement-layer changes remain explicit main-session-direct work.</td><td><strong>met</strong></td><td><strong>SC-10:</strong> <code>notes/review-harness-qa-c8.md</code> and <code>notes/review-harness-qa-c9.md</code> confirm active routing, no-bundle refusal, and a real gate. <strong>SC-11:</strong> those same artifacts record complete-client contract coverage and criterion-mapped fail-first evidence. <strong>SC-12:</strong> <code>runs/build-eng-t04-eng/digest.md</code> and <code>notes/review-harness-code-reviewer-c0.md</code> confirm package-resolved Chromium installation in CI.</td></tr></tbody></table></div>
+<h2 id="what-ships">What ships</h2>
+<h3 id="product-and-documentation">Product and documentation</h3>
+<p>The signed plan gave every criterion an owner and verification route (<code>runs/plan-product/digest.md</code>). Product amendments preserved that intent while resolving file ownership, deleted adapter paths, UI discovery, verification commands, the StyleX peer, and the trace-evidence contract. Documentation now gives operators the exact configured rerun, bundle, DESIGN Checks, optional Traces, Mode B, and trace-opening procedures (<code>runs/docs-product/digest.md</code>).</p>
+<p>One historical mismatch is intentionally visible: signed <code>BRIEF.md</code> lines 21 and 58 retain the pre-amendment local-only trace wording. The authoritative signed amendment is <code>notes/answers-validate-c8-traces.md</code>; the docs and final evidence follow that amendment.</p>
+<h3 id="engineering">Engineering</h3>
+<p>The engineering runs delivered a real two-viewport Playwright lane; deterministic fixtures; manifest-driven check coverage; structured <code>harness-ui-results/1</code> reporting; per-test failure screenshots; fail-closed inspection evidence; concurrency-safe fixture preparation; exact DOM/StyleX dependency pins; and committed trace capture. The final configured inventory is 23 browser executions in six files, the component suite is 27/27, and all eight trace ZIPs pass real ZIP central-directory validation. The shared capture helper was the only simplification retained; quantified micro-optimizations were correctly rejected (<code>runs/simplify-eng/digest.md</code>).</p>
+<h3 id="independent-validation">Independent validation</h3>
+<p>Validation ultimately passed every lane-owning check. <code>runs/validate-c9-traces-validator/digest.md</code> records independent UI review of all 41 WebPs and eight traces, with one substantive trace-integrity issue. <code>runs/validate-c9-fix-validator/digest.md</code> closes that issue by rejecting PK-prefix garbage through real ZIP validation while accepting all eight real traces; QA, code review, security review, and the preserved UI result are PASS. There are zero remaining structural, title, provenance, screenshot, trace, or accounting defects beyond the intentional FEAT-53 predicate REDs.</p>
+<p>The earlier GC-01/GC-03/GC-04 and V7/V9 failures are closed. GC-02 was resolved rather than waived: <code>served_bundle_commit</code> identifies the source commit whose bundle was built and served and need not equal the later evidence-commit review SHA. The final reconciliation and exact closure pointers are in <code>runs/briefing-reconciliation-validator/perspective-reconciliation.md</code>.</p>
+<h2 id="operator-trace-review">Operator trace review</h2>
+<p>Run from the repository root. Each archive was independently opened and judged at a distinct recorded step by the UI reviewer:</p>
+<pre><code>npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/C3-KEYBOARD--desktop-1440.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/C3-KEYBOARD--desktop-1920.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/TBL-DESKTOP--desktop-1440.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/TBL-DESKTOP--desktop-1920.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/VIS-PROTOTYPE--desktop-1440.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/VIS-PROTOTYPE--desktop-1920.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/A11Y-AXE--desktop-1440.zip
+npx playwright show-trace .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/traces/A11Y-AXE--desktop-1920.zip</code></pre>
+<h2 id="resolved-escalations">Resolved escalations</h2>
+<div class="scroll"><table><thead><tr><th>Decision</th><th>Resolution</th></tr></thead><tbody><tr><td>T-03 residual ownership</td><td>The operator-approved split preserved delivered T-03 scope and assigned disjoint residuals to T-08 through T-13; the plan was re-signed.</td></tr><tr><td>Deleted Claude adapter path</td><td>DEC-233 made OMP the sole host; T-05 paths and verification were corrected to the live policy surface.</td></tr><tr><td>Browser-spec discovery</td><td>T-08, as integration owner, expanded discovery only to the root FEAT-53 spec and <code>e2e/*.e2e.spec.ts</code>.</td></tr><tr><td>Reporter/gate verification drift</td><td>T-05/T-06 verification was corrected to the actual per-record screenshot and failed-summary contract.</td></tr><tr><td>StyleX peer dependency</td><td>The operator authorized exact <code>@stylexjs/stylex</code> 0.19.x; 0.19.1 is pinned and 27/27 component tests pass.</td></tr><tr><td>Served-bundle provenance</td><td>The source-commit provenance rule was retained; impossible review-SHA self-equality was rejected.</td></tr><tr><td>Trace evidence and fail-first proof</td><td>The operator authorized committed manifest-listed traces plus T-14/T-17/T-18 direct receipts; c9 UI review accepted all evidence.</td></tr></tbody></table></div>
+<p>There are <strong>no open questions</strong> and no required UAT: the signed BRIEF contains no <code>verify: uat</code> criterion. The actual user-facing surface was nevertheless exercised through the configured browser lane and independently inspected through Playwright Trace Viewer.</p>
+<h2 id="spend-and-limits">Spend and limits</h2>
+<ul><li>Recorded runs before the briefing clarification: <strong>30</strong>; the one briefing-only reconciliation brings the final ledger to <strong>31</strong>, against informational <code>max_total_runs: 20</code>.</li><li><strong>Read:</strong> the 11-run overage earned its place. The feature exposed successive real contract defects—fixture races, fail-open inspection evidence, dependency collection, title enforcement, missing fail-first proof, trace policy, and corrupt-ZIP acceptance—and each additional run closed a named defect or binding amendment rather than hiding it.</li><li>Recorded wall-clock before the briefing clarification: <strong>480 minutes</strong>; the final ledger adds only the short read-only reconciliation.</li><li>Rework: <strong>5 of 9</strong> operator-approved rounds and <strong>181 of 405</strong> minutes.</li><li>Rework cycles: <strong>11 of 12</strong>. One cycle remains and is not needed.</li><li>Judgements: <strong>20</strong>, including <strong>7 amendments</strong>.</li><li>Verification gap retained from the signed BRIEF: no repository-wide TypeScript <code>typecheck</code> runner exists; Playwright collection and the existing component runner provide executable module-load coverage instead.</li></ul>
+<h2 id="amendments-to-the-signed-task-text">Amendments to the signed task text</h2>
+<div class="scroll"><table><thead><tr><th>At</th><th>Decision</th><th>Reason</th><th>Overruled</th></tr></thead><tbody><tr><td>2026-09-18T04:10:11.829730+00:00</td><td><code>T-03.files</code></td><td>Signed residual split preserved T-03 deliveries and transferred only ruled file ownership to T-08 and T-13.</td><td>no</td></tr><tr><td>2026-09-18T04:10:11.829886+00:00</td><td><code>T-03.intent</code></td><td>Signed residual split preserved delivered T-03 scope and transferred only the ruled residual to T-08 through T-13.</td><td>no</td></tr><tr><td>2026-09-18T12:30:43.420244+00:00</td><td><code>T-05.files</code></td><td>DEC-233 made OMP the sole host; the generated Claude agent path no longer exists.</td><td>no</td></tr><tr><td>2026-09-18T12:55:20.159293+00:00</td><td><code>T-08.files</code></td><td>Operator ruling authorized T-08, as integration owner, to discover the root FEAT-53 spec and <code>e2e/*.e2e.spec.ts</code>.</td><td>no</td></tr><tr><td>2026-09-18T13:33:40.426871+00:00</td><td><code>T-05.verify</code></td><td>DEC-233 deleted the adapter sync surface; the focused policy test became T-05&#x27;s sole verification.</td><td>no</td></tr><tr><td>2026-09-18T13:57:59.671260+00:00</td><td><code>T-06.verify</code></td><td>Contract drift: the implemented T-01/T-03 contract uses per-record screenshots and a failed summary status.</td><td>no</td></tr><tr><td>2026-09-18T15:14:30+00:00</td><td><code>T-03.files-neutral</code></td><td>Operator authorized exact StyleX 0.19.x in the existing client package and lock to satisfy Astryx 0.6.2&#x27;s peer.</td><td>no</td></tr></tbody></table></div>
+<p><strong>overrule rate: 0/7</strong></p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>These are non-gating residuals. Unstruck IDs become backlog issues only if the operator accepts ship; anything struck is intentionally dropped.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>Make configured UI list/smoke cleanup compatible with governed cross-feature output. Several runs created local scratch bundles under FEAT-53 that the executing governed author could not remove, forcing Main to clean them.</td></tr><tr><td>B-2</td><td>chore</td><td>Make authoritative post-approval amendments discoverable beside affected signed BRIEF clauses, so the pre-amendment local-only trace wording cannot be mistaken for the final trace contract. Preserve the signed record rather than silently rewriting it.</td></tr></tbody></table></div>
+<h2 id="source-record">Source record</h2>
+<p>No general report round was spawned. This briefing was assembled from every digest named by the feature ledger plus one specific, read-only validator clarification because the original c0 goal-check predated the final repairs.</p>
+<p><strong>Product and amendment digests:</strong></p>
+<ul><li><code>runs/plan-product/digest.md</code></li><li><code>runs/build-product-t02-product/digest.md</code></li><li><code>runs/amend-product-t03-split-product/digest.md</code></li><li><code>runs/amend-product-t03-split-correction-product/digest.md</code></li><li><code>runs/amend-product-t03-split-resume-product/digest.md</code></li><li><code>runs/amend-product-t05-anchor-product/digest.md</code></li><li><code>runs/amend-product-t08-discovery-product/digest.md</code></li><li><code>runs/amend-product-t05-verify-product/digest.md</code></li><li><code>runs/amend-product-t06-verify-product/digest.md</code></li><li><code>runs/amend-product-traces-product/digest.md</code></li><li><code>runs/amend-product-t17-contract-product/digest.md</code></li><li><code>runs/2026-09-19-01-product/digest.md</code></li><li><code>runs/docs-product/digest.md</code></li></ul>
+<p><strong>Engineering digests:</strong></p>
+<ul><li><code>runs/build-eng-t03-eng/digest.md</code></li><li><code>runs/fix-c2-eng/digest.md</code></li><li><code>runs/fix-c3-eng/digest.md</code></li><li><code>runs/build-eng-t08-t13-eng/digest.md</code></li><li><code>runs/fix-c4-eng/digest.md</code></li><li><code>runs/build-eng-t04-eng/digest.md</code></li><li><code>runs/fix-c5-eng/digest.md</code></li><li><code>runs/fix-c6-eng/digest.md</code></li><li><code>runs/simplify-eng/digest.md</code></li><li><code>runs/fix-c7-eng/digest.md</code></li><li><code>runs/fix-c7-eng-stylex-eng/digest.md</code></li><li><code>runs/build-eng-t16-eng/digest.md</code></li></ul>
+<p><strong>Validation digests:</strong></p>
+<ul><li><code>runs/fix-c1-validator/digest.md</code></li><li><code>runs/validate-validator/digest.md</code></li><li><code>runs/validate-c7-final-validator/digest.md</code></li><li><code>runs/validate-c8-final-validator/digest.md</code></li><li><code>runs/validate-c9-traces-validator/digest.md</code></li><li><code>runs/validate-c9-fix-validator/digest.md</code></li><li><code>runs/briefing-reconciliation-validator/digest.md</code></li></ul>
+<p>The clarification&#x27;s evidence table is <code>runs/briefing-reconciliation-validator/perspective-reconciliation.md</code>. The final code review pin is <code>ea4916518eea1c8f73901d372ad8e1e38595e64b</code>; documentation landed afterward without changing that reviewed implementation. The branch is stacked on and should merge into <code>feat/FEAT-53</code>, not <code>main</code>.</p><p class='derived'>Derived from <code>ship-review-c9-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

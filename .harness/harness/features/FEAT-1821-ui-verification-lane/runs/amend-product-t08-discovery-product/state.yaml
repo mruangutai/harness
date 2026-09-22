@@ -1,0 +1,39 @@
+schema_version: 2
+run_id: amend-product-t08-discovery
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: amendment
+    persona: harness-pm
+    task: T-08
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/feature.json
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t08-discovery.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: consult-when
+    note: T-08 discovery ownership is ledgered, approval is preserved, and the scoped plan check is clean.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t08-discovery.md
+    evidence:
+      authority: Main_operator_ruling
+      approval_status: approved
+      ledger_entry: T-08.files
+      scoped_check: 27_anchors_resolved_zero_failures
+      plan_files: two_existing_specs_plus_playwright_config
+cycles_used: 0
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/amend-product-t08-discovery-product/digest.md
+run_uid: a655e16763b24d9b92141975a98be6e8

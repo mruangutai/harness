@@ -1,0 +1,88 @@
+schema_version: 2
+run_uid: 45d835b0307f43d58a82ec1765209e5d
+run_id: validate-c7-final-validator
+feature: FEAT-1821-ui-verification-lane
+squad: validator
+host: harness-validator-lead
+team: validate
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+base_sha: 711ba16227eda39ddb397ed574e4ca199fbc5984
+review_sha: b8f96ab8e9c8168ed8389ccf4732a958e84828fd
+pinned_sha: b8f96ab8e9c8168ed8389ccf4732a958e84828fd
+status: blocked
+verdict: BLOCKED
+severity_max: high
+cycles_used: 0
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/validate-c7-final-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c7.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c7.md
+    note: Real full-client gate adds 11 false structural title refusals; fail-first records remain incomplete.
+    evidence:
+      matrix_ok: false
+      unit_tests: 44
+      component_tests: 27
+      ui_discovery_count: 23
+      structural_reasons: 11
+      severity_max: high
+  - id: code
+    persona: harness-code-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c7.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c7.md
+    note: Both stages passed its checks, but its gate invocation did not expose the QA-measured dynamic-title path.
+    evidence:
+      code_grade: grade_2
+      ui_contract_min_grade: 4
+      component_tests: 27
+      ui_discovery_count: 23
+      severity_max: none
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c7.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c7.md
+    note: All 41 WebPs cohere with an explicit fail-closed 18 failed, 4 setup-error, 1 passed RED bundle.
+    evidence:
+      mode: B
+      webps_inspected: 41
+      webps_referenced: 41
+      served_bundle_commit: 153909c71e8ca3f02be6fcbcfe48781718953b1d
+      severity_max: none

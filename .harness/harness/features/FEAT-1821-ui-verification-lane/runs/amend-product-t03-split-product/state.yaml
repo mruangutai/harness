@@ -1,0 +1,38 @@
+schema_version: 2
+run_id: amend-product-t03-split
+run_uid: 564bea65f12744ea950e974e16d49f63
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: blocked
+steps:
+  - id: amendment
+    persona: harness-pm
+    task: amendment
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t03-split.md
+    mutates_repo: true
+    on_fail: halt
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: consult-when
+    note: The only mandated task-addition verb automatically resets approved plans; no plan or ledger mutation landed.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t03-split.md
+    evidence:
+      authority: notes/answers-fix-c3-split.md
+      task_ids: T-08,T-09,T-10,T-11,T-12,T-13
+      approval_status: approved
+      plan_mutated: false
+      ledger_mutated: false
+      blocker: apply_requires_approval_reset
+cycles_used: 0
+verdict: BLOCKED
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/amend-product-t03-split-product/digest.md

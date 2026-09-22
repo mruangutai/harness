@@ -62,9 +62,6 @@
   "dirty_tree_whitelist": [".harness/**", ".claude/worktrees/**"],
 
   "gates": {
-    "qa_gate": "blocking",
-    "review": "advisory_unless_high",
-    "uat": "blocking_when_uat_criteria_exist",
-    "merge": "user_gated"
+    "review": "advisory_unless_high"
   }
 }

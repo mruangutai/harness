@@ -9,7 +9,7 @@ and `fix` each host every reader in one run. In this order.
 **Every run in this phase closes the same way:** one `feature-record.py close-run` (the playbook's
 step 6; `ledger.md` has the stage order and the first-refusal rule). What stays outside it and
 yours, as separate writes after the close: `STATE.md`'s `## Current`, the handoff note at a
-seam, and the commit. The quarantine list is inspected at wake, never at close (DEC-204).
+seam, and the commit.
 
 1. **Build entry.** Require the signature-created `feature.json` `github.build_entry` receipt.
    Ordinary Build never creates the mirror. If the receipt is absent, stop for recovery and run

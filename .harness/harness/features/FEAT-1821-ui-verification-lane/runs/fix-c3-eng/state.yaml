@@ -1,0 +1,47 @@
+schema_version: 2
+run_id: fix-c3-eng
+run_uid: 95ec643b2d5d4885aaf6b32d306b11e6
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: failed
+steps:
+  - id: T-03
+    persona: harness-frontend-dev
+    task: T-03
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c3-eng-r1.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    routed_by: execution_agent
+    note: Final authorized send-back repaired inspection accounting and exact contrast counts but left F1/F2 incomplete and did not execute F4.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c3-eng-r1.md
+    evidence:
+      list_exit: 0
+      listed_executions: 23
+      src_tokens_projects: desktop-1440
+      prior_lane_failed: 22
+      prior_lane_passed: 1
+      inspection_labels_captured: 22
+      inspection_accounting: pass
+      contrast_nontext_pairs: 20
+      contrast_informational_pairs: 19
+      f4_cases_proven: 0
+      open_findings: T03-F1,T03-F2,T03-F4
+cycles_used: 1
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: FAIL
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/fix-c3-eng/digest.md

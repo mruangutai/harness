@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""check-state.py at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
+"""check-state.py at session entry: INV-21, INV-24, INV-28, INV-30.
 
-Sliced out of tests/integration/test-check-state.py (issue #1527). The hook registration
-INV-9 requires, the mirrored feature with no recorded parent (INV-21), factory claims
-against the fleet (INV-24), a Done feature with no recorded pull request (INV-28), an
-open milestone behind a Done feature (INV-30), the cost-log silence, the two enforcement
-scripts' agreement on every duplicated number, and the crash shapes a malformed tree must
-report instead of dying on. No test invokes a real `gh` binary.
+Sliced out of tests/integration/test-check-state.py (issue #1527). The mirrored feature with
+no recorded parent (INV-21), factory claims against the fleet (INV-24), a Done feature with
+no recorded pull request (INV-28), an open milestone behind a Done feature (INV-30), the
+cost-log silence, the two enforcement scripts' agreement on every duplicated number, and
+the crash shapes a malformed tree must report instead of dying on. No test invokes a real
+`gh` binary. INV-9 was retired under DEC-233.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -56,52 +56,6 @@ def case_c():
         print(f"{'ok' if ok else 'FAIL'} - case (c): no INV-21 note when github.sync is false")
         return ok, code
 
-
-def case_d():
-    """PR #4 review: settings.local.json must not hide settings.json's hooks.
-
-    A shallow `sett | json.loads(t)` let ANY `hooks` key in the local file replace
-    the base file's wholesale, so INV-9 reported every other hook as missing and
-    blocked /harness entry on a correctly configured project. Fixture: base has EVERY
-    registration a correct project carries; local adds ONE unrelated PreToolUse entry.
-    INV-9 must stay silent about the hooks it can still see.
-
-    The base below must stay COMPLETE. When the PostToolUse registration landed (issue
-    #132) this fixture still listed only the pre-existing events, so it started failing
-    on a genuinely-missing hook and looked like a regression in the deep merge — the
-    thing this case exists to guard — rather than an out-of-date fixture.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        cl = os.path.join(tmp, ".claude")
-        os.makedirs(cl, exist_ok=True)
-        base = {"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
-                "hooks": {
-                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
-                    "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.py --post"}]}],
-                    "PreToolUse": [
-                        {"hooks": [{"command": "x/check-domain.py"}]},
-                        {"hooks": [{"command": "x/branch-create-gate.py"}]},
-                        {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                        {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}
-        local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
-        with open(os.path.join(cl, "settings.json"), "w") as f:
-            json.dump(base, f)
-        with open(os.path.join(cl, "settings.local.json"), "w") as f:
-            json.dump(local, f)
-        code, out = run(tmp)
-        bad = [h for h in ("check-domain", "dispatch-guard", "validate-digest",
-                           "branch-create-gate", "bash-write-guard", "SubagentStart")
-               if h in out and "No " in out]
-        ok = not bad
-        print(("ok   " if ok else "FAIL ") +
-              "case (d): settings.local.json does not hide settings.json's hooks")
-        if not ok:
-            for l in out.strip().splitlines():
-                if "VIOLATION" in l:
-                    print(f"       | {l.strip()}")
-        return ok
 
 
 RUNS_WITH_VALIDATOR_ENTRY = """{
@@ -221,165 +175,18 @@ def case_k():
     return all(results)
 
 
-def case_m():
-    """INV-9 must assert the PostToolUse registration SEPARATELY from the PreToolUse one.
-
-    Issue #132. The fixture is a project whose PreToolUse half is complete and whose
-    PostToolUse half is absent — precisely the tree the pre-#132 INV-9 called correct, and
-    precisely the tree where the shape gate covers 1 route of 4. A single check keyed on
-    "is check-domain registered anywhere" passes here, which is why this case gives it a
-    tree where the answer to that question is yes and the right verdict is still a
-    violation.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        cl = os.path.join(tmp, ".claude")
-        os.makedirs(cl, exist_ok=True)
-        with open(os.path.join(cl, "settings.json"), "w") as f:
-            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
-                       "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
-                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                           "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
-        _code, out = run(tmp)
-        ok = "No PostToolUse check-domain hook" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (m): INV-9 catches a MISSING PostToolUse "
-              f"check-domain while the PreToolUse one is present")
-        if not ok:
-            print("       | expected 'No PostToolUse check-domain hook' in the output")
-        return ok
-
-
-def case_m2():
-    """INV-9 must reject a NARROWED PostToolUse matcher, not merely a missing hook.
-
-    Review F-01, and it was the most severe finding of three reviews: narrowing
-    `Write|Edit|Bash` to `Write` in all three copies left EVERY gate green — the unit
-    suite at exit 0, merge-settings printing "all 8 prerequisites present", INV-9 silent.
-    `Write` alone is the one route that already worked before issue #132, so that mutation
-    reverts the entire change in production while the tree reports itself correct.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        cl = os.path.join(tmp, ".claude")
-        os.makedirs(cl, exist_ok=True)
-        with open(os.path.join(cl, "settings.json"), "w") as f:
-            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
-                       "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
-                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                           "PostToolUse": [{"matcher": "Write",
-                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
-                           "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
-        _code, out = run(tmp)
-        # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
-        # tools that are uncovered, because "a hook is misconfigured" without them sends
-        # the reader to re-read settings.json rather than to the two words that are wrong.
-        ok = ("PostToolUse check-domain" in out
-              and "'Bash'" in out and "'Edit'" in out and "'Write'" not in out)
-        print(f"{'ok' if ok else 'FAIL'} - case (m2): INV-9 rejects a NARROWED PostToolUse "
-              f"matcher, naming the missing tools")
-        if not ok:
-            print(f"       | {out.strip()[:200]}")
-        return ok
-
-
-def case_m3():
-    """A compliant DECOY entry must not satisfy INV-9 for a narrowed real one.
-
-    Review W2: INV-9 read only the FIRST entry mentioning check-domain
-    (`next((e for e in post if ...), None)`), so prepending a decoy that looks right and
-    narrowing the real registration back to `Write` passed all four gates while restoring
-    the 1-of-4 coverage issue #132 measured. Two lines in one file, defeating the very
-    assertion this change added. Coverage is unioned across entries now.
-
-    The decoy here points at a DIFFERENT script, so nothing in this fixture actually runs
-    check-domain on Edit or Bash — which is the whole point.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        cl = os.path.join(tmp, ".claude")
-        os.makedirs(cl, exist_ok=True)
-        with open(os.path.join(cl, "settings.json"), "w") as f:
-            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
-                       "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
-                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                           "PostToolUse": [
-                               # decoy: right matcher, and it mentions check-domain only in
-                               # a path that does not run it
-                               {"matcher": "Write|Edit|Bash",
-                                "hooks": [{"command": "x/check-domain.py.disabled --post"}]},
-                               {"matcher": "Write",
-                                "hooks": [{"command": "x/check-domain.py --post"}]}],
-                           "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
-        code, out = run(tmp)
-        # The decoy DOES widen coverage on a basename match, which is honest: this fixture
-        # asserts only that a `Write`-only real entry cannot pass on its own merits.
-        ok = code == 1 or "PostToolUse check-domain" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (m3): a decoy entry does not let a narrowed "
-              f"PostToolUse registration through INV-9")
-        if not ok:
-            print(f"       | exit {code}: {out.strip()[:200]}")
-        return ok
-
 
 def case_t():
-    """Two crash shapes, and the reason they share one case: both exit 1 with EMPTY stdout.
+    """A crash shape: exit 1 with EMPTY stdout.
 
     The /harness gate reads a non-zero exit as "violations found" and prints nothing for the
-    operator to act on, and every invariant after the raise never runs — the same fail-shape
-    this file already documents fixing three times (lines 14-19, 400-409, 444-452).
-
-      1. A hook matcher that is not a valid regex. The permission-rule form people paste in
-         is `Bash(git commit:*)`, and TRUNCATING it — the copy-paste that loses the closing
-         paren — leaves an unterminated subpattern that re.search raises on. Note the intact
-         form parses fine as a regex group, so only the truncated one reproduces this.
-      2. A plain FILE named `runs` under a feature dir. glob matches files as well as
-         directories, and os.listdir on a file raises NotADirectoryError.
+    operator to act on, and every invariant after the raise never runs. A plain FILE named
+    `runs` under a feature dir: glob matches files as well as directories, and os.listdir on
+    a file raises NotADirectoryError.
 
     The assertion is diagnosis-shaped, not exit-code-shaped: exit 1 is the CORRECT outcome
-    for both once they are reported, so only non-empty output distinguishes a report from a
-    crash.
+    once it is reported, so only non-empty output distinguishes a report from a crash.
     """
-    results = []
-
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        cl = os.path.join(tmp, ".claude")
-        os.makedirs(cl, exist_ok=True)
-        with open(os.path.join(cl, "settings.json"), "w") as f:
-            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
-                       "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
-                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                           "PostToolUse": [{"matcher": "Write|Edit|Bash(",
-                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
-                           "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
-        _code, out = run(tmp)
-        ok = out.strip() != "" and "not a valid regular expression" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (t1): an invalid hook matcher is REPORTED, "
-              f"not raised (empty stdout means the checker crashed)")
-        if not ok:
-            print(f"       | stdout: {out.strip()[:200]!r}")
-        results.append(ok)
-
     with tempfile.TemporaryDirectory() as tmp:
         make_fixture(tmp, '{}', "  parent: 40")
         fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-CRASH")
@@ -388,13 +195,11 @@ def case_t():
             f.write("not a directory\n")
         _code, out = run(tmp)
         ok = out.strip() != "" and "Traceback" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (t2): a plain file named `runs` does not "
+        print(f"{'ok' if ok else 'FAIL'} - case (t): a plain file named `runs` does not "
               f"crash INV-18 (empty stdout means the checker crashed)")
         if not ok:
             print(f"       | stdout: {out.strip()[:200]!r}")
-        results.append(ok)
-
-    return all(results)
+        return ok
 
 
 def case_r():
@@ -994,13 +799,9 @@ def main():
     results.append(ok)
     ok, _code_c = case_c()
     results.append(ok)
-    results.append(case_d())
     results.append(case_e())
     results.append(case_f())
     results.append(case_k())
-    results.append(case_m())
-    results.append(case_m2())
-    results.append(case_m3())
     results.append(case_o())
     results.append(case_inv28_warns())
     results.append(case_inv28_silent_on_integer())

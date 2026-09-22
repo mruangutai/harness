@@ -2374,6 +2374,356 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_discovery_cannot_narrow,
 )
 
+def _normalised_receipt(result, td):
+    return {"exit": result.returncode,
+            "stdout": result.stdout.replace(td, "<TD>"),
+            "stderr": result.stderr.replace(td, "<TD>")}
+
+
+def _run_with_top_level_status_receipt(status):
+    with tempfile.TemporaryDirectory() as td:
+        feature_dir = _yaml_project(td)
+        path = os.path.join(feature_dir, "plan.yaml")
+        with open(path, encoding="utf-8") as stream:
+            body = stream.read()
+        if status is not None:
+            body = body.replace("feature: FEAT-A\n",
+                                f"feature: FEAT-A\nstatus: {status}\n", 1)
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(body)
+        return _normalised_receipt(run(project_dir=td), td)
+
+
+def _run_with_task_status_receipt(status):
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status=status)
+        return _normalised_receipt(run(project_dir=td), td)
+
+
+def case_feat61_lifecycle_receipt():
+    """FEAT-61 T-05 / SC-01: the station migration changes NO byte this checker emits.
+
+    The receipt was captured against the pre-migration script (see `captured_at` in the
+    fixture) for every station in the vocabulary, the capitalised `Done` that must be
+    checked rather than skipped, and the absent-status shape — as a top-level station and as
+    a task status. Exit code, stdout and stderr are compared whole; the fixture's temp dir is
+    the only normalisation. A drift in the skip decision (`_is_shipped`), in a violation
+    line, or in the summary reddens the exact station that moved.
+    """
+    with open(os.path.join(FIXTURE_DIR, "feat61-check-plan-routes-lifecycle.receipt.json"),
+              encoding="utf-8") as stream:
+        receipt = json.load(stream)
+    for family, runner in (("top_level_status", _run_with_top_level_status_receipt),
+                           ("task_status", _run_with_task_status_receipt)):
+        for key, expected in receipt[family].items():
+            got = runner(None if key == "None" else key)
+            check(f"feat61_receipt_{family}_{key}_byte_identical", got == expected,
+                  f"expected {expected!r}\n     got {got!r}")
+
+
+def _consolidation_findings_for_tree(mutate=None):
+    """Run `consolidation_findings` over a COPY of bin/ so a mutant never touches the live
+    tree. `mutate(bin_dir)` edits the copy; None runs the tree as shipped."""
+    with tempfile.TemporaryDirectory() as td:
+        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
+        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        # FEAT-62's authority audit reads the decisions index and is LOUD without it — a bin/
+        # copy alone is not a tree the audit can pass, so the index rides along.
+        index_rel = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
+        os.makedirs(os.path.dirname(os.path.join(td, index_rel)))
+        shutil.copy(os.path.join(REPO_ROOT, index_rel), os.path.join(td, index_rel))
+        if mutate is not None:
+            mutate(copy_bin)
+        return cpr().consolidation_findings(td)
+
+
+def _append_to_gh_board(bin_dir, source):
+    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
+        stream.write(source)
+
+
+def _append_station_literal_mutant(bin_dir):
+    # A predicate that respells the active bucket instead of calling is_active.
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+                        '    return station in ("plan", "ready", "building", "review")\n')
+
+
+def _append_drifted_bucket_mutant(bin_dir):
+    # Validate c1 CR-01: a copied active bucket that has ALREADY drifted — `review` omitted.
+    # A feature in review is classified inactive by this predicate, and an exact-set lock
+    # never sees it. Also the finished bucket drifted to two names, assigned not compared.
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+                        '    return station in ("plan", "ready", "building")\n'
+                        '\n\n_MUTANT_OVER = frozenset({"done", "abandoned"})\n')
+
+
+def _append_work_started_control(bin_dir):
+    # D-11 negative control: the historical one-off spans both buckets and is NOT a respelling.
+    _append_to_gh_board(bin_dir, '\n\ndef _control_work_started(statuses):\n'
+                        '    return not set(statuses).isdisjoint({"building", "review", "done"})\n'
+                        '\n\ndef _control_columns():\n'
+                        '    return [k.capitalize() for k in ("ready", "building", "review")]\n')
+
+
+def _append_second_loader_mutant(bin_dir):
+    _append_to_gh_board(bin_dir, '\n\ndef _mutant_load(path):\n'
+                        '    import importlib.util\n'
+                        '    spec = importlib.util.spec_from_file_location("m", path)\n'
+                        '    return spec\n')
+
+
+def _mutant_findings(mutate, symbol, respelled):
+    """Findings from a mutant, plus whether exactly one names `symbol` and `respelled`."""
+    findings = _consolidation_findings_for_tree(mutate)
+    own = [f for f in findings if symbol in f and respelled in f]
+    return findings, len(findings) == len(own) and bool(own)
+
+
+def case_feat61_station_lock():
+    """FEAT-61 T-05 / SC-07, lock 1: the station lock passes on the shipped tree, fails on a
+    bucket copied whole AND on one that has already drifted to a subset (validate c1 CR-01),
+    and stays silent on the D-11 negative control — `_work_started`'s cross-bucket trio and a
+    `for` over station keys.
+    """
+    clean = _consolidation_findings_for_tree()
+    check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
+    station, ok = _mutant_findings(_append_station_literal_mutant, "gh_board.py::_mutant_is_live",
+                                   "respells factory_config.ACTIVE_STATIONS")
+    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding", ok, "\n".join(station))
+    drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
+    check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
+          len(drifted) == 2
+          and "gh_board.py::_mutant_is_live" in drifted[0]
+          and "respells factory_config.ACTIVE_STATIONS" in drifted[0]
+          and "gh_board.py::<module>" in drifted[1]
+          and "respells factory_config.FINISHED_STATIONS" in drifted[1],
+          "\n".join(drifted))
+    control = _consolidation_findings_for_tree(_append_work_started_control)
+    check("feat61_lock_d11_cross_bucket_predicate_and_key_iteration_are_not_flagged",
+          control == [], "\n".join(control))
+
+
+def case_feat61_loader_lock():
+    """FEAT-61 T-05 / SC-07, lock 2: a second spec_from_file_location under bin/ fails for its
+    own finding only, and the CLI reports the shipped tree clean at exit 0."""
+    loader, ok = _mutant_findings(_append_second_loader_mutant, "gh_board.py::_mutant_load",
+                                  "second spec_from_file_location")
+    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding", ok, "\n".join(loader))
+    r = run("--consolidation-audit")
+    check("feat61_lock_cli_reports_clean_and_exits_0",
+          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
+          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
+
+
+# ---------------------------------------------------------------------------------------------
+# FEAT-62 T-02: the three checker-structure locks and the --changed posture scan, each proven
+# RED on an isolated mutant of the tree and silent on the tree as shipped. Mutants edit a COPY
+# that carries bin/, the decisions index, the workflows and the hooks — the four surfaces the
+# FEAT-62 rules read — so no case touches the live tree.
+_FEAT62_TREE_RELS = (
+    os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md"),
+)
+_FEAT62_TREE_DIRS = (
+    os.path.join(".github", "workflows"),
+    os.path.join(".claude", "skills", "harness", "hooks"),
+)
+
+
+def _feat62_findings_for_tree(mutate=None):
+    """`feat62_findings` over a COPY of the surfaces it reads; `mutate(root)` edits the copy."""
+    with tempfile.TemporaryDirectory() as td:
+        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
+        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        for rel in _FEAT62_TREE_RELS:
+            os.makedirs(os.path.dirname(os.path.join(td, rel)), exist_ok=True)
+            shutil.copy(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+        for rel in _FEAT62_TREE_DIRS:
+            shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+        if mutate is not None:
+            mutate(td)
+        return cpr().feat62_findings(td)
+
+
+def _checker_path(root):
+    return os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.py")
+
+
+def _edit_checker(root, old, new, count=1):
+    path = _checker_path(root)
+    with open(path, encoding="utf-8") as stream:
+        source = stream.read()
+    assert source.count(old) >= count, f"mutant anchor {old!r} not found"
+    with open(path, "w", encoding="utf-8") as stream:
+        stream.write(source.replace(old, new, count))
+
+
+def _append_checker(root, source):
+    with open(_checker_path(root), "a", encoding="utf-8") as stream:
+        stream.write(source)
+
+
+def _only_finding(findings, *needles):
+    own = [f for f in findings if all(n in f for n in needles)]
+    return bool(own) and len(own) == len(findings)
+
+
+_TABLE_HEAD = "\nINVARIANTS = ("
+
+# Module-scope shapes injected before the table so the mutant still runs: (name, statement,
+# the finding it must produce and nothing else).
+_MODULE_BODY_MUTANTS = (
+    ("loop", 'for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):\n'
+             '    if read(_p) is None:\n        pass\n', ("<module>", "for block at module scope")),
+    ("conditional", 'if not os.path.isfile(os.path.join(H, "glossary.md")):\n    pass\n',
+     ("conditional at module scope",)),
+    ("try", 'try:\n    _x = subprocess.run(["git", "status"], capture_output=True)\n'
+            'except Exception:\n    _x = None\n', ("try block at module scope",)),
+    ("read", '_early = read(os.path.join(H, "harness.json"))\n', ("reads the tree at module scope", "read")),
+)
+
+
+def _inject_before_table(statement):
+    return lambda root: _edit_checker(root, _TABLE_HEAD, "\n" + statement + _TABLE_HEAD)
+
+
+def case_feat62_module_body_lock():
+    """SC-03: module-scope invariant execution is refused; the shipped tree passes."""
+    clean = _feat62_findings_for_tree()
+    check("feat62_clean_tree_has_no_findings", clean == [], "\n".join(clean))
+    for name, statement, needles in _MODULE_BODY_MUTANTS:
+        f = _feat62_findings_for_tree(_inject_before_table(statement))
+        check(f"feat62_module_body_{name}_mutant_fails_for_its_own_finding",
+              _only_finding(f, *needles), "\n".join(f))
+    # Same family: an invariant body re-parsing a source the context already holds.
+    def reparse(root):
+        _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
+                      "def inv_2(ctx, feat):\n    _again = artifact_accessors.load_plan(ctx.path(feat, 'plan.yaml'))\n    \"\"\"")
+    f = _feat62_findings_for_tree(reparse)
+    # The reparse also OPENS plan.yaml undeclared, so the reads lock fires too — both are true.
+    check("feat62_reparse_mutant_fails_for_its_own_finding",
+          any(all(n in x for n in ("inv_2", "re-parses a runner-shared source", "load_plan")) for x in f)
+          and all("inv_2" in x or "INV-2 " in x for x in f), "\n".join(f))
+
+
+_INV19_HEAD = "def inv_19(ctx):\n"
+_INV19_READS = '("path:.harness/glossary.md",)'
+_PEEK = "    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n"
+
+# An undeclared input opened by INV-19's own body: (name, first statement, its finding).
+_UNDECLARED_MUTANTS = (
+    ("file", _PEEK, ("opens 'team-config.yaml'", "declares no path: read")),
+    ("git", "    subprocess.run(['git', 'status'], capture_output=True)\n", ("reads git:status", "declares no git:status read")),
+    ("gh", "    _gh_bin = 'gh'\n    subprocess.run([_gh_bin, 'auth', 'status'], capture_output=True)\n",
+     ("reads gh:auth", "declares no gh:auth read")),
+)
+
+# A row whose declaration names the right BINARY but the wrong RESOURCE (GC-02): the lock
+# matches the operation/endpoint, so a false declaration is a finding, not a pass.
+_MISDECLARED_MUTANTS = (
+    ("gh_board", '"gh:auth", "gh:board"', '"gh:auth"', ("INV-26", "reads gh:board", "declares no gh:board read")),
+    ("gh_endpoint", '"gh:auth", "gh:milestones"', '"gh:auth", "gh:issues"',
+     ("INV-30", "reads gh:milestones", "declares no gh:milestones read")),
+    ("git_op", '"git:show", "git:log"', '"git:status", "git:log"', ("INV-33", "reads git:show", "declares no git:show read")),
+)
+
+
+def _misdeclared_resource_checks():
+    for name, before, after, needles in _MISDECLARED_MUTANTS:
+        f = _feat62_findings_for_tree(lambda root: _edit_checker(root, before, after))
+        check(f"feat62_reads_misdeclared_{name}_resource_fails", _only_finding(f, *needles), "\n".join(f))
+
+
+def _inv19_prefixed(statement):
+    return lambda root: _edit_checker(root, _INV19_HEAD, _INV19_HEAD + statement)
+
+
+def case_feat62_reads_lock():
+    """SC-04: an input a function opens without declaring it — a file, a git spawn, a gh
+    spawn — fails for its own finding; a declared one is silent."""
+    for name, statement, needles in _UNDECLARED_MUTANTS:
+        f = _feat62_findings_for_tree(_inv19_prefixed(statement))
+        check(f"feat62_reads_undeclared_{name}_mutant_fails", _only_finding(f, "INV-19", *needles), "\n".join(f))
+    _misdeclared_resource_checks()
+    # Reached through a HELPER, not the row's own function: the lock walks the call graph.
+    def via_helper(root):
+        _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n")
+        _edit_checker(root, _INV19_HEAD, _INV19_HEAD + "    _inv19_probe(ctx)\n")
+    f = _feat62_findings_for_tree(via_helper)
+    check("feat62_reads_lock_follows_helpers", _only_finding(f, "INV-19", "opens 'team-config.yaml'"), "\n".join(f))
+    # And the negative control: the same read, DECLARED, is silent.
+    def declared(root):
+        _edit_checker(root, _INV19_HEAD, _INV19_HEAD + _PEEK)
+        _edit_checker(root, _INV19_READS, '("path:.harness/glossary.md", "path:.harness/team-config.yaml")')
+    f = _feat62_findings_for_tree(declared)
+    check("feat62_reads_declared_input_is_silent", f == [], "\n".join(f))
+    f = _feat62_findings_for_tree(lambda root: _edit_checker(root, _INV19_READS, '("glossary.md",)'))
+    # An unprefixed declaration covers nothing, so the file it meant to declare is ALSO reported.
+    check("feat62_reads_unprefixed_declaration_fails",
+          any(all(n in x for n in ("INV-19", "not path:/git:/gh:")) for x in f)
+          and all("INV-19" in x for x in f), "\n".join(f))
+
+
+def case_feat62_authority_audit():
+    """SC-05: a missing or STRUCK authority fails; every live row resolves."""
+    def missing(root):
+        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
+                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-9999"')
+    f = _feat62_findings_for_tree(missing)
+    check("feat62_authority_missing_decision_fails",
+          _only_finding(f, "INV-19", "DEC-9999", "does not resolve"), "\n".join(f))
+    def struck(root):
+        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
+                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-90"')
+    f = _feat62_findings_for_tree(struck)
+    check("feat62_authority_struck_decision_fails",
+          _only_finding(f, "INV-19", "DEC-90", "STRUCK", "DEC-188"), "\n".join(f))
+    # Striking a decision the table stands on reddens the rows that cite it — the DEC-188
+    # mechanism — proven by striking DEC-162 in the COPY's index.
+    def strike_in_index(root):
+        path = os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
+        with open(path, encoding="utf-8") as stream:
+            text = stream.read()
+        line = next(l for l in text.splitlines() if l.startswith("- DEC-162 "))
+        head, _, ruling = line.partition(" :: ")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(text.replace(line, f"{head} :: STRUCK 2026-09-21 under DEC-188 — {ruling}"))
+    f = _feat62_findings_for_tree(strike_in_index)
+    check("feat62_authority_striking_a_cited_decision_reddens_its_rows",
+          _only_finding(f, "INV-19", "DEC-162", "STRUCK"), "\n".join(f))
+    def no_index(root):
+        os.remove(os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md"))
+    f = _feat62_findings_for_tree(no_index)
+    check("feat62_authority_unreadable_index_is_loud_not_silent",
+          _only_finding(f, "CANNOT RUN", "DECISIONS-INDEX.md"), "\n".join(f))
+
+
+def case_feat62_changed_posture():
+    """SC-06: a workflow or hook invoking check-state.py --changed fails; the live tree has none
+    and CI still runs the full checker."""
+    def workflow(root):
+        with open(os.path.join(root, ".github", "workflows", "tests.yml"), "a", encoding="utf-8") as stream:
+            stream.write("\n      - run: python3 .claude/skills/harness/bin/check-state.py --changed\n")
+    f = _feat62_findings_for_tree(workflow)
+    check("feat62_posture_workflow_mutant_fails",
+          _only_finding(f, "workflows/tests.yml", "--changed", "edit-loop verb"), "\n".join(f))
+    def hook(root):
+        with open(os.path.join(root, ".claude", "skills", "harness", "hooks", "post-merge"), "a",
+                  encoding="utf-8") as stream:
+            stream.write('\npython3 "$HARNESS_BIN/check-state.py" --changed\n')
+    f = _feat62_findings_for_tree(hook)
+    check("feat62_posture_hook_mutant_fails",
+          _only_finding(f, "hooks/post-merge", "--changed"), "\n".join(f))
+    with open(os.path.join(REPO_ROOT, ".github", "workflows", "tests.yml"), encoding="utf-8") as stream:
+        wf = stream.read()
+    check("feat62_posture_ci_runs_the_full_checker",
+          "check-state.py" in wf and "--changed" not in wf, wf[:200])
+    r = run("--consolidation-audit")
+    check("feat62_cli_reports_clean_and_exits_0",
+          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
+          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
+
+
+
 
 CASES = (
     case_41_t09_manifest_deviation_is_parsed_not_byte,
@@ -2399,6 +2749,13 @@ CASES = (
     case_41_t04_task_station_vocabulary,
     case_41_t04_top_level_station_vocabulary,
     case_41_t07_is_shipped_reads_the_plan,
+    case_feat61_lifecycle_receipt,
+    case_feat61_station_lock,
+    case_feat61_loader_lock,
+    case_feat62_module_body_lock,
+    case_feat62_reads_lock,
+    case_feat62_authority_audit,
+    case_feat62_changed_posture,
 )
 
 

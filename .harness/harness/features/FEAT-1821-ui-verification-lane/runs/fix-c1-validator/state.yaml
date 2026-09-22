@@ -1,0 +1,136 @@
+schema_version: 2
+run_id: fix-c1-validator
+run_uid: 37e5caab7f96448d9dece62ddd1a3861
+feature: FEAT-1821-ui-verification-lane
+squad: validator
+host: harness-validator-lead
+status: failed
+team: fix
+task: T-03
+branch: feat/FEAT-1821-ui-verification-lane
+base_sha: 11d63e311c3ca48b538461d4ba0ce1a6b9b21365
+head_sha: a71ea2a9c294aa1326f101493a2a5b6709a25334
+cycles_used: 1
+verdict: FAIL
+severity_max: high
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/fix-c1-validator/digest.md
+steps:
+  - id: fix
+    persona: harness-frontend-dev
+    task: T-03
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c1.md
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c1-r1.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    routed_by: execution_agent
+    note: "Send-back exposed direct failures but left fixture state, full runtime sequences, and negative reporter accounting unclosed."
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c1-r1.md
+    evidence:
+      first_head_sha: 2ba1c8ac
+      head_sha: a71ea2a9c294aa1326f101493a2a5b6709a25334
+      list_exit: 0
+      listed_executions: 23
+      original_findings_resolved: 0
+  - id: qa
+    persona: harness-qa
+    task: T-03
+    seq: 2
+    depends_on: [fix]
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    on_fail: halt
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 1
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-7
+    recompleted_at: seq-8
+    routed_by: team
+    note: "Matrix false; all four findings open; behavioral fail-first evidence incomplete."
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-qa-c1.md
+    evidence:
+      matrix_ok: false
+      list_exit: 0
+      listed_executions: 23
+      captured_inspection_setups: 1
+      required_inspection_setups: 22
+  - id: code
+    persona: harness-code-reviewer
+    task: T-03
+    seq: 3
+    depends_on: [fix]
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    on_fail: halt
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    routed_by: team
+    note: "All four original findings remain open at high severity."
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    task: T-03
+    seq: 4
+    depends_on: [fix]
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    routed_by: team
+    note: "No security must-fix; one low defense-in-depth artifact path observation."
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-security-reviewer-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    task: T-03
+    seq: 5
+    depends_on: [fix]
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    on_fail: halt
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 1
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-7
+    recompleted_at: seq-8
+    routed_by: team
+    note: "All four signed UI-contract findings remain open at high severity."
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-c1.md

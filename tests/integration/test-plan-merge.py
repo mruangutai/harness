@@ -89,8 +89,10 @@ def ids(n_start, n_end):
 
 
 def task_block(tid, title=None):
+    # `ready`, the not-started station — never the dead word `pending` (FEAT-41 T-16): the
+    # approval-reset path now crosses factory_config's strict station boundary (FEAT-61 T-02).
     title = title or f"Task {tid}"
-    return f"  - id: {tid}\n    title: {title}\n    status: pending\n"
+    return f"  - id: {tid}\n    title: {title}\n    status: ready\n"
 
 
 def decision_block(did, choice=None):
@@ -162,6 +164,62 @@ def read(path):
 # Cases
 # ---------------------------------------------------------------------------
 
+
+def _fixture_checker(root, script):
+    """A stand-in check-state.py in the fixture checkout so the feedback loop (FEAT-62 T-03)
+    has a checker to find by the written path alone."""
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    write(os.path.join(root, ".harness", "team-config.yaml"), "teams: []\n")
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    write(os.path.join(bin_dir, "check-state.py"), script)
+
+
+def _lock_probe_checker(target):
+    """A fixture checker that tries the writer's own sibling lock, non-blocking, and reports
+    whether it was free — the one observation that distinguishes 'after the lock releases'
+    from 'inside the locked transform'."""
+    return ("import fcntl, os, sys\n"
+            f"fd = os.open({target + '.lock'!r}, os.O_CREAT | os.O_RDWR)\n"
+            "try:\n    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)\n    state = 'free'\n"
+            "except OSError:\n    state = 'held'\n"
+            "sys.stdout.write(f'FAIL INV-99 fixture row lock={state}\\n')\nsys.exit(1)")
+
+
+def _feat62_relayed_write_checks(root, plan):
+    """One successful write: receipt on stdout, the checker's rows on stderr, lock free."""
+    r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "building")
+    check("feat62: the write still exits 0 with its receipt on stdout",
+          r.returncode == 0 and r.stdout.strip().endswith(f"APPLIED {os.path.realpath(plan)}"),
+          r.stdout + r.stderr)
+    check("feat62: the checker's non-clean row reaches stderr under the feedback header",
+          "FAIL INV-99 fixture row" in r.stderr and "check-state --changed after" in r.stderr, r.stderr)
+    check("feat62: the checker runs AFTER the writer's lock is released (GC-03)",
+          "lock=free" in r.stderr, r.stderr)
+    check("feat62: the feedback never leaks into stdout", "INV-99" not in r.stdout, r.stdout)
+
+
+def case_feat62_changed_feedback_after_a_plan_write():
+    """FEAT-62 T-03: a successful mutating write is followed by the fixture checkout's own
+    check-state.py --changed, relayed on stderr; the receipt, bytes and exit are untouched, and
+    a refused write never reaches the checker."""
+    root, plan = fixture_root()
+    try:
+        _fixture_checker(root, _lock_probe_checker(plan))
+        write(plan, render_plan(ids(1, 3)))
+        _feat62_relayed_write_checks(root, plan)
+
+        before = read(plan)
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "no-such-station")
+        check("feat62: a refused write prints NO feedback",
+              r.returncode != 0 and "INV-99" not in r.stderr and read(plan) == before, r.stderr)
+
+        _fixture_checker(root, "")
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "done")
+        check("feat62: a clean --changed run leaves stderr empty",
+              r.returncode == 0 and r.stderr == "", r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 def case_proposal_indent_differs_from_base():
     """A proposal whose list items are indented differently from the base's still produces a
@@ -388,7 +446,7 @@ def case_conflict():
     check("case5: the named field is replaced", t03.get("title") == "A completely different title",
           repr(t03))
     check("case5: the new field is added", t03.get("notes") == "added", repr(t03))
-    check("case5: the omitted field is kept", t03.get("status") == "pending", repr(t03))
+    check("case5: the omitted field is kept", t03.get("status") == "ready", repr(t03))
     check("case5: stdout logs the replacement per field with both values",
           "REPLACED T-03.title" in r.stdout and "Task T-03" in r.stdout
           and "A completely different title" in r.stdout and "T-03.notes" in r.stdout,
@@ -732,10 +790,10 @@ def case_set_task_station_one_line():
               "".join(a_lines))
         check("set-task-station leaves the leading comment intact",
               after.startswith("# a leading comment\n"), after[:40])
-        # COUNTED IN THE TASKS SECTION ONLY — the approval mapping also carries a
-        # `status: pending`, so a whole-file count says 3 and proves nothing about the tasks.
-        check("set-task-station leaves T-01 and T-03 pending",
-              after.split("tasks:")[1].count("status: pending") == 2, after)
+        # COUNTED IN THE TASKS SECTION ONLY — the approval mapping carries its own `status:`
+        # line, so a whole-file count proves nothing about the tasks.
+        check("set-task-station leaves T-01 and T-03 ready",
+              after.split("tasks:")[1].count("status: ready") == 2, after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -772,7 +830,7 @@ def case_set_feature_station_insert_and_replace():
               after2.count("status: done") == 1 and "status: review" not in after2
               and len(after2.splitlines()) == len(after.splitlines()), after2[:200])
         check("set-feature-station does not touch a task's status",
-              after2.split("tasks:")[1].count("status: pending") == 2, after2)
+              after2.split("tasks:")[1].count("status: ready") == 2, after2)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -909,7 +967,7 @@ def case_sign_approval():
         check("sign-approval leaves status: pending behind nowhere",
               "status: pending" not in after.split("tasks:")[0], after[:400])
         check("sign-approval does not disturb the tasks",
-              after.split("tasks:")[1].count("status: pending") == 2, after)
+              after.split("tasks:")[1].count("status: ready") == 2, after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -3353,6 +3411,36 @@ def case_bug1699_approval_reset_classifies_active_station():
         _delete_t02_with_resume(plan, "building", ["ready", "ready"], "building")
         _delete_t02_with_resume(plan, "ready", ["done", "ready"], "building")
         _delete_t02_with_resume(plan, "review", ["done", "abandoned"], "review")
+        # FEAT-61 T-02: review completes on every FINISHED station, so a rejected task no longer
+        # demotes an interrupted review to building. The deleted T-02 is the live one; what
+        # remains is [done, rejected].
+        _delete_t02_with_resume(plan, "review", ["done", "ready", "rejected"], "review")
+        # FEAT-61 T-02: finished is NOT evidence that work started — abandoned happens before
+        # execution and rejected at intake. [abandoned, rejected] alone resumes ready, never
+        # building; a `_work_started` derived from FINISHED_STATIONS would redden this.
+        _delete_t02_with_resume(plan, "ready", ["abandoned", "ready", "rejected"], "ready")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_feat61_approval_reset_refuses_an_unknown_task_station():
+    """FEAT-61 T-02 (D-03): an explicit task status outside the vocabulary — or an empty one —
+    RAISES at the station boundary instead of being silently classified as "not started" or
+    "not finished", and the mutation is not written. Hermetic fixtures only; the live plan corpus
+    was checked once during planning and is not loaded here."""
+    root, plan = fixture_root(prefix="plan-merge-f61-")
+    try:
+        for phase, statuses in (("ready", ["Building", "ready"]), ("building", ["", "ready"])):
+            before = write(plan, _resume_plan(phase, statuses))
+            result = run_verb(
+                "delete-items", "--file", plan, "--task", "T-02", "--reason", "scope cut",
+            )
+            label = f"resume/{phase}/{statuses[0]!r}"
+            check(f"{label}: a task station outside the vocabulary raises rather than classifies",
+                  result.returncode != 0 and "unknown station" in result.stderr,
+                  f"rc={result.returncode} {result.stderr[-300:]!r}")
+            check(f"{label}: the refused mutation leaves the plan byte-identical",
+                  read(plan) == before, read(plan))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -3895,7 +3983,7 @@ _AMEND_PLAN = (
     "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
     "  # kept byte for byte\n"
     "tasks:\n"
-    "  - id: T-01\n    title: keep\n    status: pending\n"
+    "  - id: T-01\n    title: keep\n    status: ready\n"
     "    intent: untouched\n    files: [a.py]\n    verify: python3 a.py\n"
     "  - id: T-03\n    title: canonical reader\n    status: building\n"
     "    intent: Add a second text accessor with a compatibility exemption\n"
@@ -4065,7 +4153,7 @@ def case_b1716_record_amendments_touches_only_the_named_fields():
         check("b1716/285: approval and the preamble are byte-identical, comment included",
               after.startswith(head) and "  # kept byte for byte\n" in after, after)
         check("b1716/285: T-01 is byte-identical",
-              "  - id: T-01\n    title: keep\n    status: pending\n    intent: untouched\n"
+              "  - id: T-01\n    title: keep\n    status: ready\n    intent: untouched\n"
               "    files: [a.py]\n    verify: python3 a.py\n" in after, after)
         check("b1716/285: decisions are byte-identical",
               after.endswith("decisions:\n  - id: D-01\n    choice: keep me\n"), after)
@@ -4370,6 +4458,7 @@ CASES = (
     case_f59_set_panel_keeps_an_untouched_finding_byte_identical,
     case_f59_approval_auto_reset_on_every_task_changing_verb,
     case_bug1699_approval_reset_classifies_active_station,
+    case_feat61_approval_reset_refuses_an_unknown_task_station,
     case_bug1699_reapproval_restores_recorded_station,
     case_bug1699_pending_mutation_recomputes_resume_station,
     case_bug1699_terminal_features_stay_terminal,
@@ -4396,6 +4485,7 @@ CASES = (
     case_b1716_approval_resets_only_on_task_set_change,
     case_b1716_record_amendments_is_all_or_nothing,
     case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
+    case_feat62_changed_feedback_after_a_plan_write,
 )
 
 

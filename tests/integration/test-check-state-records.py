@@ -4,8 +4,8 @@
 Sliced out of tests/integration/test-check-state.py (issue #1527). A plan approved with
 no complete panel result (INV-32, plus BUG-1071's era guard), a review_sha that is stale
 rather than absent (INV-33), a run id clobbered in place (INV-36) and digest verdict
-reconciliation (INV-37) plus BUG-1309's Build-entry mirror receipt, which reports under
-the same INV-37 number.
+reconciliation (INV-46 — its own row since the 2026-09-21 ruling; it printed under INV-37's
+number until then) plus BUG-1309's Build-entry mirror receipt (INV-37).
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -686,12 +686,6 @@ def _bug1305_invariant_feature(tmp, h, names):
     with open(os.path.join(fdir, "feature.json"), "w") as fh:
         json.dump(document, fh)
         fh.write("\n")
-    settings_src = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "..",
-        ".claude", "settings.json")
-    settings_dst = os.path.join(tmp, ".claude", "settings.json")
-    os.makedirs(os.path.dirname(settings_dst), exist_ok=True)
-    shutil.copy2(settings_src, settings_dst)
     hooks_dir = os.path.join(tmp, _HOOKS_REL_T)
     os.makedirs(hooks_dir, exist_ok=True)
     post_merge = os.path.join(hooks_dir, "post-merge")
@@ -918,7 +912,7 @@ def _bug440_mixed_case(validator):
     with tempfile.TemporaryDirectory() as tmp:
         _, code, out, unchanged = _bug440_validate_fixture(
             tmp, ("M", "E", "N", "I", "G", "X"), runs)
-    lines = re.findall(r"^.*INV-37.*$", out, re.M)
+    lines = re.findall(r"^.*INV-46.*$", out, re.M)
     line = lines[0] if len(lines) == 1 else ""
     expected = ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")
     silent = ("runs/E", "runs/N", "runs/I", "runs/G", "runs/X", "runs/O")
@@ -936,7 +930,7 @@ def _bug440_blocking_case(validator):
         _, code, out, _ = _bug440_validate_fixture(
             tmp, ("M",), [("M", "harness-eng-lead", "complete",
                            _bug440_digest(validator, "FAIL"))])
-    return code == 1 and "INV-37" in out
+    return code == 1 and "INV-46" in out
 
 
 def _bug440_clean_case(validator):
@@ -944,7 +938,7 @@ def _bug440_clean_case(validator):
         _, code, out, _ = _bug440_validate_fixture(
             tmp, ("E",), [("E", "harness-product-lead", "complete",
                            _bug440_digest(validator, "PASS"))])
-    return code == 0 and "INV-37" not in out
+    return code == 0 and "INV-46" not in out
 
 
 def case_bug440_digest_verdict_reconciliation():
@@ -955,7 +949,7 @@ def case_bug440_digest_verdict_reconciliation():
         _bug440_blocking_case(validator),
         _bug440_clean_case(validator),
     ))
-    print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-37 reconciles digest verdicts without mutation")
+    print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-46 reconciles digest verdicts without mutation")
     return ok
 
 

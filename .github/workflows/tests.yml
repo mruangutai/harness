@@ -88,6 +88,10 @@ jobs:
       - name: Install the dashboard client dependencies
         run: npm ci --prefix .claude/skills/harness/bin/dashboard/client
 
+      - name: Install the dashboard Chromium
+        working-directory: .claude/skills/harness/bin/dashboard/client
+        run: npx playwright install --with-deps chromium
+
       # Integration kind measured at 12 scripts, ~15s.
       - name: Integration suite
         env:

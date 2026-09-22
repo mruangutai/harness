@@ -408,7 +408,7 @@ check("b5 structural: no unreachable dotdot comparison",
 
 
 def _literal_key_present(core):
-    if "_test." in core or ".test." in core:
+    if "_test." in core or ".test." in core or ".e2e.spec." in core:
         return True
     for prefix in ("test-", "test_", "probe-"):
         if not core.startswith(prefix):
@@ -427,6 +427,7 @@ B4_CORPUS = (
     ("probe-*.py", True),
     ("x_test.*", True),
     ("x.test.*", True),
+    ("*.e2e.spec.ts", True),
     ("probe-*.md", False),
     ("test-*.p*y", False),
     ("test_*x", False),
@@ -611,5 +612,83 @@ check("b6 message: the no-candidate failure names both remedies",
 uncertified = hygiene_uncertified(test_kinds_cfg)
 check("case 11 hygiene: every running-kind detect pattern is certified",
       uncertified == [], repr(uncertified))
+
+
+# Case 12 (FEAT-1821 T-07): Playwright e2e specs are test-shaped, and are permitted outside
+# tests/ only inside a package whose package.json declares BOTH @playwright/test and a
+# test:ui script. Anywhere else, or with either declaration missing, they are rogue files.
+CLIENT = ".claude/skills/harness/bin/dashboard/client"
+
+
+def _e2e_fixture(package_json):
+    td = base_git_fixture()
+    (td / CLIENT / "e2e").mkdir(parents=True)
+    (td / CLIENT / "e2e/geometry.e2e.spec.ts").write_text("export {};\n")
+    (td / CLIENT / "feat-53.e2e.spec.ts").write_text("export {};\n")
+    if package_json is not None:
+        (td / CLIENT / "package.json").write_text(json.dumps(package_json))
+    return td
+
+
+check("case 12: an e2e spec basename is test-shaped",
+      suite_layout.is_test_shaped(".harness/tools/x.e2e.spec.ts"))
+check("case 12: a plain .spec.ts basename is still not test-shaped",
+      not suite_layout.is_test_shaped(".harness/tools/x.spec.ts"))
+
+_E2E_PKG = {"scripts": {"test:ui": "playwright test"}, "devDependencies": {"@playwright/test": "1.63.0"}}
+for label, pkg, expected_rogue in (
+        ("declared package permits its e2e specs", _E2E_PKG, 0),
+        ("package without test:ui refuses them", {"devDependencies": {"@playwright/test": "1.63.0"}}, 2),
+        ("package without @playwright/test refuses them", {"scripts": {"test:ui": "playwright test"}}, 2),
+        ("package with no package.json refuses them", None, 2)):
+    td = _e2e_fixture(pkg)
+    try:
+        git_commit(td)
+        got = [g for g in suite_layout.violations(td) if "e2e.spec.ts" in g]
+        check(f"case 12: {label}", len(got) == expected_rogue, repr(got))
+    finally:
+        shutil.rmtree(td)
+
+td = _e2e_fixture(_E2E_PKG)
+try:
+    (td / ".harness/tools").mkdir(parents=True)
+    (td / ".harness/tools/rogue.e2e.spec.ts").write_text("export {};\n")
+    git_commit(td)
+    got = [g for g in suite_layout.violations(td) if "e2e.spec.ts" in g]
+    check("case 12: an e2e spec outside the declared package is rogue even when the package is declared",
+          got == ["tracked test-shaped file outside tests/: .harness/tools/rogue.e2e.spec.ts"], repr(got))
+finally:
+    shutil.rmtree(td)
+
+ui_cfg = repo_cfg["test_kinds"]["ui"]
+check("case 12: ui kind is active", ui_cfg.get("status") == "active", repr(ui_cfg.get("status")))
+check("case 12: ui cmd runs the dashboard client's test:ui",
+      ui_cfg.get("cmd") == "npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui", repr(ui_cfg.get("cmd")))
+check("case 12: ui detect reaches the package e2e specs",
+      any(fnmatch.fnmatch(CLIENT + "/e2e/geometry.e2e.spec.ts", pat) for pat in code_grade._patterns(ui_cfg["detect"]))
+      and any(fnmatch.fnmatch(CLIENT + "/feat-53.e2e.spec.ts", pat) for pat in code_grade._patterns(ui_cfg["detect"])),
+      repr(ui_cfg.get("detect")))
+check("case 12: the soft-skip reason is gone", "does NOT fail" not in json.dumps(ui_cfg))
+gitignore = (ROOT / ".gitignore").read_text()
+check("case 12: playwright report, traces, generated fixtures and test-results are ignored",
+      all(line in gitignore for line in (CLIENT + "/playwright-report/", CLIENT + "/test-results/")),
+      "missing ignore lines")
+def _ignore_rule(path):
+    """The rule git applies to path, as `check-ignore -v` prints it; '' when none matches.
+    check-ignore's exit code is 0 for a NEGATION match too, so the rule text is the oracle."""
+    out = subprocess.run(["git", "check-ignore", "-v", "--no-index", path], cwd=ROOT,
+                         capture_output=True, text=True).stdout.strip()
+    return out.split("\t")[0].split(":", 2)[-1] if out else ""
+
+
+check("case 12: ui evidence under runs/<id>/ui/ is re-included, not ignored",
+      all(_ignore_rule(p).startswith("!") for p in (
+          ".harness/harness/features/X/runs/r/ui/results.json",
+          ".harness/harness/features/X/runs/r/ui/a.webp")),
+      repr([_ignore_rule(".harness/harness/features/X/runs/r/ui/results.json")]))
+check("case 12: other run scratch stays ignored",
+      _ignore_rule(".harness/harness/features/X/runs/r/scratch.log") not in ("",)
+      and not _ignore_rule(".harness/harness/features/X/runs/r/scratch.log").startswith("!"),
+      repr(_ignore_rule(".harness/harness/features/X/runs/r/scratch.log")))
 
 raise SystemExit(1 if failures else 0)

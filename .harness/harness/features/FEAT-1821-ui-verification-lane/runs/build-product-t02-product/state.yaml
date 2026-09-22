@@ -1,0 +1,40 @@
+schema_version: 2
+run_id: build-product-t02
+run_uid: aebfe109be2c47b29f7c8a190a741e11
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: T-02
+    persona: harness-visual-designer
+    task: T-02
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/prototypes/build-product-t02.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: consult-when
+    note: T-01 was complete; T-02 passed on its first specialist run.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/prototypes/build-product-t02.md
+    evidence:
+      prerequisite_t01: done
+      traces: SC-05,SC-09
+      pre_edit_exit: 1
+      pre_edit_refusal: no_checks_section
+      post_edit_exit: 0
+      manifest_schema: harness-ui-manifest/1
+      checks: 12
+      inspection_evidence_rows: 22
+cycles_used: 0
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/build-product-t02-product/digest.md

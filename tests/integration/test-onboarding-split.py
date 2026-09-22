@@ -29,8 +29,8 @@ import sys
 ROOT = _anchor_root
 SKILL_INIT = os.path.join(ROOT, ".claude", "skills", "harness-init", "SKILL.md")
 SKILL_ADD_REPO = os.path.join(ROOT, ".claude", "skills", "harness-add-repo", "SKILL.md")
-CMD_PLAN = os.path.join(ROOT, ".claude", "commands", "harness-plan.md")
-CMD_GRILLING = os.path.join(ROOT, ".claude", "commands", "harness-grilling.md")
+CMD_PLAN = os.path.join(ROOT, ".omp", "commands", "harness-plan.md")
+CMD_GRILLING = os.path.join(ROOT, ".omp", "commands", "harness-grilling.md")
 
 # The registration-only markers that must never reappear in harness-init once the split holds.
 # "Track A"/"Track B" named the pre-split document's two interleaved procedures; the rest are
@@ -172,9 +172,9 @@ def case_command_doors_do_not_cite_harness_init():
     for label, path in (("harness-plan.md", CMD_PLAN), ("harness-grilling.md", CMD_GRILLING)):
         text = open(path, encoding="utf-8").read()
         results.append((
-            f".claude/commands/{label}: does not match 'harness-init'",
+            f".omp/commands/{label}: does not match 'harness-init'",
             "harness-init" not in text,
-            f"found 'harness-init' in .claude/commands/{label}",
+            f"found 'harness-init' in .omp/commands/{label}",
         ))
     return results
 

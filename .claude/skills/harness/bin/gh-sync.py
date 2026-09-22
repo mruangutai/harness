@@ -331,6 +331,19 @@ def _feature_station(feat_dir):
     return station if isinstance(station, str) else None
 
 
+def _finished_or_refuse(station):
+    """`factory_config.is_finished(station)`, with a vocabulary miss turned into this tool's one
+    refusal shape (FEAT-61 T-02). The predicate is STRICT (D-03) and raises FleetError on a name
+    it does not know; a stack trace is the one posture gh-sync must never take (FEAT-41 T-16),
+    so the miss refuses exactly as `_projected_for` refuses the same miss from `project` —
+    exit 2, one line naming the value."""
+    try:
+        return factory_config.is_finished(station)
+    except artifact_accessors.FleetError as exc:
+        refuse(f"the plan carries a station outside the vocabulary, so no card can be "
+               f"placed from it — {exc}")
+
+
 def _apply_parent_rule(feat_dir, repo, board):
     """THE PARENT RULE (T-03, D-03/D-04) — called at the end of `start-task`, which is now
     its ONLY caller. The per-commit subcommand that used to be the second one was deleted
@@ -344,7 +357,8 @@ def _apply_parent_rule(feat_dir, repo, board):
     from which subcommand called it, because that would make the subcommand a second status
     record, which is exactly the drift D-03 removes.
     """
-    if _feature_station(feat_dir) in ("done",) + factory_config.TERMINAL_STATIONS:
+    station = _feature_station(feat_dir)
+    if station is not None and _finished_or_refuse(station):
         # Terminal exemption: `ship` wrote the parent's card to the done station and
         # recorded the terminal station, while the plan-derived station would still say
         # review. Without this exemption every shipped feature is a permanent false
@@ -689,7 +703,8 @@ def _git_detail(r):
 
 
 def _commit_terminal_station(feat_dir):
-    """Commit the plan.yaml `_record_station` just wrote, in the checkout it belongs to.
+    """Commit what ship just wrote — `_record_station`'s plan.yaml and `_record_pr`'s
+    feature.json — in the checkout they belong to.
 
     DEFECT ONE OF FEAT-41 T-10, AND IT WAS MEASURED IN THE FIELD RATHER THAN REASONED ABOUT.
     `cmd_ship` recorded the terminal station as its last statement and left it UNCOMMITTED, so
@@ -698,9 +713,12 @@ def _commit_terminal_station(feat_dir):
     FEAT-40 has since merged and the violation closed itself, so the finding is gone — but the
     defect that produced it was still here, and would produce the next one.
 
-    ONLY THIS ONE FILE. `git commit <path>` implies --only, so a dirty index elsewhere in the
-    checkout is neither staged nor swept in. A ship that quietly committed whatever the operator
-    happened to have staged would be a far worse surprise than the one this fixes.
+    ONLY THESE TWO FILES. `git commit <paths>` implies --only, so a dirty index elsewhere in
+    the checkout is neither staged nor swept in. A ship that quietly committed whatever the
+    operator happened to have staged would be a far worse surprise than the one this fixes.
+    feature.json joined the pathspec under #1853: `_record_pr` writes `pr` moments before
+    this runs, and a plan-only commit left that record dirty on two real ships (FEAT-61,
+    BUG-1699) — INV-6's `pr` read from the default branch as null until a hand commit.
 
     IT DOES NOT PUSH. This runs from a post-merge hook; moving a remote branch from a git hook
     is a second, larger surprise, and nothing downstream needs the commit to be remote.
@@ -715,22 +733,23 @@ def _commit_terminal_station(feat_dir):
     entirely. The prefix used below is deliberately neither.
     """
     # ABSOLUTE, BECAUSE EVERY GIT CALL BELOW RUNS WITH `-C` SET TO THIS FILE'S OWN DIRECTORY
-    # (BUG-1114). A relative `plan_path` made git resolve the pathspec AGAINST `-C`, producing a
-    # doubled path that does not exist: `git status` warned on stderr, stdout read EMPTY, and this
-    # function concluded the file was clean and returned WITHOUT committing -- at exit 0, printing
-    # "station already committed". Measured on FEAT-41's real ship: a relative feature dir left
-    # plan.yaml dirty and reported success; an absolute one committed as b3e943ca.
+    # (BUG-1114). A relative pathspec made git resolve it AGAINST `-C`, producing a doubled
+    # path that does not exist: `git status` warned on stderr, stdout read EMPTY, and this
+    # function concluded the file was clean and returned WITHOUT committing -- at exit 0,
+    # printing "station already committed". Measured on FEAT-41's real ship: a relative
+    # feature dir left plan.yaml dirty and reported success; an absolute one committed as
+    # b3e943ca.
     #
     # The `-C` argument was already absolute. Only the pathspec was not, so the two disagreed
     # about which directory they were talking about.
-    plan_path = os.path.abspath(os.path.join(feat_dir, "plan.yaml"))
-    feat_id = os.path.basename(os.path.abspath(feat_dir))
+    feat_abs = os.path.abspath(feat_dir)
+    paths = [os.path.join(feat_abs, "plan.yaml"), os.path.join(feat_abs, "feature.json")]
+    feat_id = os.path.basename(feat_abs)
 
     def _git(args):
-        return subprocess.run(["git", "-C", os.path.dirname(os.path.abspath(plan_path))] + args,
-                              capture_output=True, text=True)
+        return subprocess.run(["git", "-C", feat_abs] + args, capture_output=True, text=True)
 
-    r = _git(["status", "--porcelain", "--", plan_path])
+    r = _git(["status", "--porcelain", "--"] + paths)
     if r.returncode != 0:
         print(f"gh-sync: WARNING - station committed nowhere, git status failed in "
               f"{feat_dir}: {_git_detail(r)}", file=sys.stderr)
@@ -739,10 +758,11 @@ def _commit_terminal_station(feat_dir):
         # ALREADY COMMITTED IS NOT A FAILURE. ship is idempotent, so a re-run finds the station
         # already recorded and already landed. Saying nothing here would be worse than a line:
         # the reader is looking for the commit this function promises to print.
-        print(f"gh-sync: station already committed — {plan_path} is clean against HEAD")
+        print(f"gh-sync: station already committed — {feat_id}'s plan.yaml and feature.json "
+              f"are clean against HEAD")
         return
 
-    r = _git(["commit", "-q", "-m", f"{feat_id}: station done at ship", "--", plan_path])
+    r = _git(["commit", "-q", "-m", f"{feat_id}: station done at ship", "--"] + paths)
     if r.returncode != 0:
         print(f"gh-sync: WARNING - station recorded but NOT committed in {feat_dir}: "
               f"{_git_detail(r)}", file=sys.stderr)
@@ -950,11 +970,6 @@ def ensure_labels(repo, labels):
                         "--color", colors.get(l, "ededed"),
                         "--description", "created by harness gh-sync"],
                        capture_output=True)
-
-
-def finished_stations():
-    """Task stations that no longer represent executable work."""
-    return ("done",) + factory_config.TERMINAL_STATIONS
 
 
 def detect_issue_types(repo):
@@ -1517,14 +1532,22 @@ def cmd_status(feat_dir, station, repo, board):
         # a live default T-04's migration missed because T-04 grepped check-state.py and the
         # plan corpus, never this file. An absent status reads as `ready`, exactly as
         # gh_board.derive_station and project treat it.
-        all_done = bool(tasks) and all(
-            (t.get("status") or "ready") in finished_stations() for t in tasks)
-        if not all_done:
+        # EVERY status crosses the strict predicate (FEAT-61 T-02, D-03) — a list, not a
+        # short-circuiting generator, so a status outside the vocabulary refuses naming the value
+        # whichever task carries it, instead of being blamed on "not every task is done". Tasks
+        # share the feature vocabulary, so a task is finished when factory_config says so.
+        try:
+            finished = [factory_config.is_finished(t.get("status") or "ready") for t in tasks]
+        except artifact_accessors.FleetError as exc:
+            refuse(f"station review refused — {exc}")
+        if not (finished and all(finished)):
             refuse("station review refused — not every task in plan.yaml is done or abandoned")
 
     _record_station(feat_dir, station)
 
-    if board is None or station not in ("plan", "ready", "building", "review"):
+    # `backlog` and every FINISHED station stop here: done is ship-only and terminal names have
+    # no board column. `station` passed STATION_VALUES above, so the strict predicate cannot raise.
+    if board is None or not factory_config.is_active(station):
         return
 
     rec = load_recorded(feat_dir)

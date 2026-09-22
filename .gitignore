@@ -5,6 +5,16 @@
 # Without this rule, run dirs dirty the working tree and the dirty-tree halt
 # (SPEC 8.6) deadlocks the next crew on the harness's own artifacts.
 .harness/*/features/*/runs/**
+# FEAT-1821: the ui lane's evidence (results.json + WebP) under runs/<id>/ui/ is committed,
+# never scratch — a run directory is re-included only so its ui/ child can be.
+!.harness/*/features/*/runs/*/
+.harness/*/features/*/runs/*/**
+!.harness/*/features/*/runs/*/ui/
+!.harness/*/features/*/runs/*/ui/**
+# Inside a run's ui/, only reporter-published evidence is tracked: results.json, evidence/ WebPs
+# and traces/ ZIPs the Checks `### Traces` table lists. Runner scratch under ui/ stays ignored.
+.harness/*/features/*/runs/*/ui/test-results/
+.harness/*/features/*/runs/*/ui/playwright-report/
 
 # The one-session PyYAML bootstrap marker (DEC-171). The write hooks fail CLOSED
 # when PyYAML is absent, so the first session gets one escape and drops this marker to
@@ -52,4 +62,8 @@ __pycache__/
 .harness/features/*/runs/**
 .claude/skills/harness/bin/dashboard/client/node_modules/
 .claude/skills/harness/bin/dashboard/client/.vite/
+# FEAT-1821: Playwright lane scratch stays local; runs/<id>/ui/results.json and WebPs are evidence and are committed
+.claude/skills/harness/bin/dashboard/client/playwright-report/
+.claude/skills/harness/bin/dashboard/client/test-results/
+.claude/skills/harness/bin/dashboard/client/blob-report/
 # --- end harness ---

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse guard for merges while a Build-entry mirror receipt is owed.
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude
-Code's compatibility registration lives in `.claude/settings.json`.
+Registered in `.omp/extensions/harness-hooks.ts`.
 
 WAS A .sh WRAPPER (issue #1674). This native entry point preserves the wrapper's
 isolated root resolution, refusal behavior and hook stream contracts while
@@ -37,6 +36,10 @@ _bootstrap_sys.path[:] = [
 ]
 
 
+# ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
+# branch-create-gate.py, gh-close-gate.py, plan-sign-gate.py, run-unit-tests.py: it runs BEFORE the
+# trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
+# what creates the import seam. Change all five together; never replace one with an import.
 def _resolve_root():
     """Resolve through the trusted sibling with isolated import semantics."""
     try:

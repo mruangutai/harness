@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Pre/PostToolUse hook — enforce write domains and state-file shape.
 
-Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
-compatibility registrations live in `.claude/settings.json`. One global hook serves all
+Registered in `.omp/extensions/harness-hooks.ts`. One global hook serves all
 Harness agents and reads `agent_type` from the payload (DEC-110/202).
 
 Exit 2 blocks a pre-tool call. Exit 1 does not, so every enforcement failure below must
@@ -123,12 +122,12 @@ except Exception:
 
 # Agent identity: prefer `agent_type` from the hook payload, fall back to $1.
 #
-# WHY BOTH: agent-frontmatter PreToolUse hooks DO NOT FIRE for spawned subagents in
-# this environment — verified three times with three command forms, zero executions
-# (DEC-110). So the hook is registered in settings.json instead, where it does fire,
-# and identity has to come from the payload because one global registration serves
-# every agent.
+# WHY BOTH: agent-frontmatter PreToolUse hooks DO NOT FIRE for spawned subagents
+# (DEC-110). So the hook is registered once, globally, in `harness-hooks.ts`, and
+# identity has to come from the payload because one registration serves every agent.
 agent = (d.get("agent_type") or "") or argv_agent
+runtime_agent_id = d.get("harness_agent_id") or None
+runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
 
 # --- `--resolve <path>` (DEC-179): plan-time route resolution. Answers WHICH AGENT
 # may write a path, so a PLAN task can declare its lane instead of a build phase
@@ -679,9 +678,6 @@ def approval_guard(rel, agent_name):
 
 
 
-RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
-
-
 def feature_checkout_guard(raw_rel, target_path):
     """Bind a governed feature-artifact write to that feature's linked worktree.
 
@@ -689,18 +685,20 @@ def feature_checkout_guard(raw_rel, target_path):
     checkout and a worktree. During FEAT-45 that let six writes land in main; three
     artifacts existed nowhere else. This is a checkout question, not a broader glob or
     shape rule, and it only narrows a write that the domain decision already allowed.
+
+    AN ADAPTER (FEAT-61 T-03): the path question — which artifact, which worktree, is the
+    write inside it — is harness_boundary.feature_artifact_checkout_mismatch, shared with
+    bash-write-guard.py so the binding rule cannot drift between the two routes. This
+    function owns only the refusal: its wording, its exit channel, and the absorption.
     """
-    match = RE_FEATURE_ARTIFACT.match(raw_rel)
-    if match is None:
+    feature_id = harness_boundary.feature_artifact_id(raw_rel)
+    if feature_id is None:
         return
-    feature_id = match.group(1)
     try:
-        expected = harness_boundary.worktree_for_feature(root, feature_id)
-        if expected is None:
+        mismatch = harness_boundary.feature_artifact_checkout_mismatch(root, raw_rel, target_path)
+        if mismatch is None:
             return
-        checkout = harness_boundary.checkout_relative(target_path)
-        if checkout is not None and harness_boundary.real(checkout[0]) == harness_boundary.real(expected):
-            return
+        _, expected = mismatch
         print(f"check-domain: BLOCKED — {target_path} is a feature artifact whose write "
               f"belongs in worktree {expected}.", file=sys.stderr)
         print(f"  Write this artifact in {expected}, not the main checkout.", file=sys.stderr)
@@ -723,7 +721,13 @@ def claim_checkout_guard(destination):
     if not harness_boundary.inside(destination, harness_boundary.real(root)):
         return
     try:
-        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
+        claim_set = harness_boundary.claim_worktrees(
+            root,
+            agent,
+            destination,
+            agent_id=runtime_agent_id,
+            parent_agent_id=runtime_parent_agent_id,
+        )
     except harness_boundary.AmbiguousWorktree as exc:
         print(
             f"check-domain: BLOCKED — {agent} has an ambiguous worktree claim: {exc}",
@@ -1567,15 +1571,12 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         if _valid_version and isinstance(doc, dict):
             try:
                 import jsonschema
-                _schema_path = os.path.join(sys.argv[3], "run-state-schema.json")
-                with open(_schema_path, encoding="utf-8") as _schema_file:
-                    _run_schema = json.load(_schema_file)
-                _step_schema = _run_schema["properties"]["steps"]["items"]
+                # The step contract comes through the shared strict reader (FEAT-61
+                # T-03); the evidence-name pattern arrives as a string and is compiled here.
+                _step_schema, _declared, _name_pattern_text = (
+                    _artifact_accessors.load_run_step_contract(sys.argv[3]))
                 _validator = jsonschema.Draft202012Validator(_step_schema)
-                _declared = set(_step_schema["properties"])
-                _evidence_schema = _step_schema["properties"]["evidence"]
-                _name_pattern = re.compile(
-                    _evidence_schema["propertyNames"]["pattern"])
+                _name_pattern = re.compile(_name_pattern_text)
                 _offending = set()
                 _schema_errors = []
                 _declared_invalid = set()
@@ -2065,40 +2066,6 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
         f"  Apply a proposal:             python3 .claude/skills/harness/bin/{_writer} "
         f"apply --file <plan.yaml> --proposal <path>\n")
     sys.exit(2)
-
-# FEAT-51: a Claude Code child whose parent is gone may finish analysis, but it may
-# not race a replacement writer onto a canonical feature artifact. The explicit
-# quarantine path is inert until the resumed parent adopts it.
-if (_governed and not _post and _tool in ("Write", "Edit", "NotebookEdit")
-        and target):
-    _orphan_rel = _norm(target)
-    _orphan_basename = os.path.basename(_orphan_rel)
-    if _orphan_basename in ("plan.yaml", "BRIEF.md", "feature.json", "STATE.md"):
-        try:
-            import inflight_registry as _reg
-            _artifact = _reg.canonical_artifact(_orphan_rel)
-            if _artifact is not None:
-                _feature, _basename = _artifact
-                _session = d.get("session_id")
-                if _reg.orphan_write(root, agent, _feature, _session):
-                    _quarantine = _reg.quarantine_rel(
-                        _orphan_rel, agent, _session
-                    )
-                    sys.stderr.write(
-                        f"check-domain: BLOCKED — {_show(target)} is canonical, but "
-                        f"{agent} holds no live claim for {_feature}. Its parent is gone "
-                        f"and a replacement may already be writing.\n"
-                        f"  Write the completed result to {_quarantine} instead.\n"
-                        f"  It becomes canonical only when the resumed parent runs "
-                        f"quarantine.py adopt on that file.\n"
-                    )
-                    sys.exit(2)
-        except Exception as _e:
-            print(
-                f"check-domain: quarantine boundary was not enforced ({_e!r}) — "
-                "passing through.",
-                file=sys.stderr,
-            )
 
 _UNREADABLE_EDIT = object()
 

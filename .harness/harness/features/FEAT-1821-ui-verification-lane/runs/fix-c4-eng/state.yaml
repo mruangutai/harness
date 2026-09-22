@@ -1,0 +1,157 @@
+schema_version: 2
+run_id: fix-c4-eng
+run_uid: 40218b4d1fc34efaaa946b3480d5a1db
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: complete
+steps:
+  - id: T-08
+    persona: harness-frontend-dev
+    task: T-08
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-08.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: execution_agent
+    note: Minimal testMatch expansion discovers root and e2e specs; exact T-08 verify lists 9 executions.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-08.md
+    evidence:
+      task_verify: pass
+      listed_executions: 9
+      title_counts: 2,2,1,2,2
+      config_diff: testmatch_only
+  - id: T-09
+    persona: harness-frontend-dev
+    task: T-09
+    seq: 2
+    depends_on: [T-08]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-09.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    routed_by: execution_agent
+    note: Exact T-09 verify lists four executions; no repair was needed.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-09.md
+    evidence:
+      task_verify: pass
+      listed_executions: 4
+      title_counts: 2,2
+      spec_repair: none
+  - id: T-10
+    persona: harness-frontend-dev
+    task: T-10
+    seq: 3
+    depends_on: [T-08]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-10.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    routed_by: execution_agent
+    note: Exact T-10 verify lists two executions; no repair was needed.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-10.md
+    evidence:
+      task_verify: pass
+      listed_executions: 2
+      title_counts: 2
+      spec_repair: none
+  - id: T-11
+    persona: harness-frontend-dev
+    task: T-11
+    seq: 4
+    depends_on: [T-08]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-11.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    routed_by: execution_agent
+    note: Exact T-11 verify lists four executions; no repair was needed.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-11.md
+    evidence:
+      task_verify: pass
+      listed_executions: 4
+      title_counts: 2,2
+      spec_repair: none
+  - id: T-12
+    persona: harness-frontend-dev
+    task: T-12
+    seq: 5
+    depends_on: [T-08]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-12.md]
+    mutates_repo: true
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    redispatches: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    routed_by: execution_agent
+    note: Exact T-12 verify lists four executions; no repair was needed.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-T-12.md
+    evidence:
+      task_verify: pass
+      listed_executions: 4
+      title_counts: 2,2
+      spec_repair: none
+  - id: integrated-list
+    persona: harness-frontend-dev
+    task: integrated-list
+    seq: 6
+    depends_on: [T-09, T-10, T-11, T-12]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-integrated-list.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    routed_by: acceptance_gate
+    note: Configured unfiltered list reports exactly 23 executions in the 9+4+2+4+4 partition and zero reporter probes.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-fix-c4-eng-integrated-list.md
+    evidence:
+      list_exit: 0
+      listed_executions: 23
+      partition: 9,4,2,4,4
+      reporter_probe_executions: 0
+cycles_used: 0
+branch: feat/FEAT-1821-ui-verification-lane
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1821-ui-verification-lane
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/fix-c4-eng/digest.md

@@ -1,0 +1,39 @@
+schema_version: 2
+run_id: amend-product-t05-anchor
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: amendment
+    persona: harness-pm
+    task: T-05
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/feature.json
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t05-anchor.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: consult-when
+    note: Exact governed DEC-233 amendment landed and the post-amendment plan check is clean.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-amend-product-t05-anchor.md
+    evidence:
+      authority: DEC-233
+      approval_status: approved
+      scoped_check: 26_anchors_resolved_zero_failures
+      plan_files: omp_agent_and_policy_test_only
+      ledger_entry: T-05.files
+cycles_used: 0
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/amend-product-t05-anchor-product/digest.md
+run_uid: 9d94c7b6bd424f26bfdcac87a3ce0738
