@@ -55,6 +55,21 @@ cases pass. `code-grade.py --base 804d68b8`: 28 graded, 0 below bar.
   once` in `test-check-state-entry.py` (a logging gh stub sees 2 probes at the pin, 1 on the
   build), which is divergence D-2 below.
 
+## Validate c1 — FAIL on one gate finding, and fix round 2 (main session; operator ruled
+one more cycle over the per-run cap of 2)
+
+- QA-C1-01: T-02/T-03 are `cross_module` (floor unit + integration) with integration-only
+  evidence. `tests/unit/test-broad-catch-census.py` (new) unit-tests the census functions
+  (`_broad_catch_count` over both syntaxes, nesting, a clean file, an unparseable file;
+  `_broad_catch_finding` at/below/above a ceiling, the zero ceiling for check-state and for an
+  unlisted script) and the reads lock's `_spawn_resource` over `subprocess.run` AND `ctx.spawn`
+  argvs (git:show, git:status, git:worktree-list, gh:auth, gh:milestones, gh:board, and two
+  non-resources). Red at the pin, green on the build (receipts file). T-02's unit evidence is
+  the existing `test-harness-boundary.py#case_load_repo_module_failures` (call_repo_module,
+  by-name load), which T-02 added; its `files` now declares it. `plan-merge.py amend` on both
+  `files` lists; approval untouched.
+- All six SCs were MET at 77fa7410 (c1 goal-check); nothing else changed.
+
 ## Ruled divergences
 
 | id | what | where it shows | why | ruling |

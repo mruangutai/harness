@@ -114,15 +114,17 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.py
-      - tests/integration/test-check-state.py
-      - tests/integration/test-check-state-entry.py
-      - tests/integration/test-check-state-plans.py
-      - tests/integration/test-check-state-handoff.py
-      - tests/integration/test-check-state-worktrees.py
-      - tests/integration/test-check-state-inv26.py
-      - tests/integration/test-check-state-records.py
-      - tests/integration/test-check-state-feat59.py
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/harness_boundary.py#call_repo_module
+    - tests/unit/test-harness-boundary.py#case_load_repo_module_failures
+    - tests/integration/test-check-state.py
+    - tests/integration/test-check-state-entry.py
+    - tests/integration/test-check-state-plans.py
+    - tests/integration/test-check-state-handoff.py
+    - tests/integration/test-check-state-worktrees.py
+    - tests/integration/test-check-state-inv26.py
+    - tests/integration/test-check-state-records.py
+    - tests/integration/test-check-state-feat59.py
     verify: python3 tests/integration/test-check-state.py && python3 tests/integration/test-check-state-entry.py && python3 tests/integration/test-check-state-plans.py && python3 tests/integration/test-check-state-handoff.py && python3 tests/integration/test-check-state-worktrees.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-check-state-records.py && python3 tests/integration/test-check-state-feat59.py
     intent: |
       Before production edits, run all eight named suites from the pinned baseline and retain each command, exit status, stdout digest, and stderr digest in the implementation digest. Add a failing behavioral case that removes feature_schema for INV-23 and requires a CANNOT RUN line instead of the hard-coded 300-cycle fallback. Add only boundary cases whose consumer-visible behavior is not already defended; do not pin implementation plumbing or exception syntax.
@@ -139,9 +141,10 @@ tasks:
     depends_on: [T-01, T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/check-plan-routes.py#consolidation_findings
-      - tests/integration/test-check-plan-routes.py#case_22
-      - tests/integration/test-check-state-table.py
+    - .claude/skills/harness/bin/check-plan-routes.py#consolidation_findings
+    - tests/unit/test-broad-catch-census.py
+    - tests/integration/test-check-plan-routes.py#case_22
+    - tests/integration/test-check-state-table.py
     verify: python3 tests/integration/test-check-state-table.py && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --consolidation-audit
     intent: |
       Extend the existing consolidation audit red-first. Add load_feature_json and load_harness_json to _SHARED_SOURCE_LOADERS beside load_plan, then mutate an isolated checker copy to call each loader inside an invariant and prove a named shared-source-reparse finding.

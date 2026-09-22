@@ -40,3 +40,12 @@ ALL PASS
 $ python3 tests/integration/test-check-plan-routes.py | grep -cE "^PASS feat63"
 9
 ```
+
+## Fix round 2 (QA-C1-01) — unit kind
+
+```
+$ CHECK_PLAN_ROUTES_BIN=<804d68b8 bin>/check-plan-routes.py python3 tests/unit/test-broad-catch-census.py   # RED at the pin
+AttributeError: module '_census_under_test' has no attribute '_broad_catch_count'
+$ python3 tests/unit/test-broad-catch-census.py | tail -1   # GREEN on the build
+ALL PASS
+```

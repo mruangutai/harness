@@ -3,7 +3,9 @@
 ## Current
 
 - feature: FEAT-63-broad-exception-sweep
-- run: validate-c1-validator FAIL at review_sha 77fa7410; SC-01..SC-06 and all three c0 remediations pass, but QA-C1-01 finds T-02 and T-03 lack the unit-kind coverage required by their configured cross_module test-matrix floor
+- run: validate c1 FAIL on QA-C1-01 only (all six SCs met); fix round 2 committed by the main
+  session (DEC-174): unit suite tests/unit/test-broad-catch-census.py, T-02/T-03 files
+  declare their unit evidence; operator ruled one more cycle; awaiting validate c2
 - squad: none
 - status: review
 
