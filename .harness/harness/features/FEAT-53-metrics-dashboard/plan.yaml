@@ -1919,6 +1919,7 @@ tasks:
     - T-16
     - T-33
     - T-34
+    - T-35
     status: backlog
     files:
     - .claude/skills/harness/bin/dashboard/client/src/**
@@ -1941,7 +1942,7 @@ tasks:
 
       Implement DIR-STATUS-LABEL with unresolved semantic token-reference ownership for the exact Needs You/needs-you, Blocked/blocked, Stalled/stalled, Over Budget/over-budget, Running/running, and Stale/stale pairs. Each data-status-label=S winning authored color declaration must reference exactly --color-metrics-status-S and compute to that token's value; reject that status token reference on every other rendered selector/property declaration. On the same surface, keep each KPI token reference legal only on the eight KPI roles above. KPI 4 marks must reference --color-metrics-kpi-4 and the Over Budget label must reference --color-metrics-status-over-budget; their equal resolved value #F58BC2 neither violates nor proves ownership and neither token may substitute for the other. Before selection and after selecting each card, preserve the existing neutral-token assertions for the card icon, count, background, border, top-line, and selected treatment. Computed style remains the appearance check and must not infer semantic token identity.
 
-      Rounds: the operator authorized engineering rounds 3 and 4 after the colour-contract correction (notes/answers-2026-09-22-t32-rounds-3-4.md); hard stop at four, then return awaiting_user with the complete remaining red list. The successful round must run HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui to exit 0, run the independent ui_contract.py gate to UI GATE: PASS, and commit the complete runs/<run>/ui bundle containing results.json, every referenced WebP, and all eight replayable trace ZIPs. Preserve the complete remaining red list and do not narrow the lane to the two amended checks.
+      Rounds: the operator authorized engineering rounds 3 and 4 (notes/answers-2026-09-22-t32-rounds-3-4.md) and, after round 4 ended 15/23, rounds 5 and 6 following T-35 (notes/answers-2026-09-22-t32-rounds-5-6.md); hard stop at six, then return awaiting_user with the complete remaining red list. The successful round must run HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui to exit 0, run the independent ui_contract.py gate to UI GATE: PASS, and commit the complete runs/<run>/ui bundle containing results.json, every referenced WebP, and all eight replayable trace ZIPs. Preserve the complete remaining red list and do not narrow the lane to the two amended checks.
 
       Validation preserves the existing unit and component kinds and adds ui. QA runs the complete UI lane and the independent gate against the committed bundle. The harness-ui-reviewer uses Mode B, reads results.json and every referenced WebP, and opens all eight trace ZIPs required by FEAT-1821 T-17 with npx playwright show-trace, citing the exact judged step. SC-26, SC-27, and SC-28 receive automated evidence ui but remain verify uat for the final operator gate; SC-02 is unchanged.
   - id: T-33
@@ -1970,7 +1971,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_mode: team
     execution_reason: Spec defect, not an implementation defect; the implementer never edits the predicate (operator ruling 2026-09-22).
-    status: backlog
+    status: done
     depends_on: []
     files:
       - .claude/skills/harness/bin/dashboard/client/e2e/keyboard.e2e.spec.ts
@@ -1983,6 +1984,26 @@ tasks:
     verify: |
       HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t34-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
       git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client/e2e | grep -c "keyboard.e2e.spec.ts" # only this spec changed by this task
+  - id: T-35
+    title: Publish traces on failing runs and print axe violations
+    change_type: test
+    execution_agent: harness-dev-ops
+    execution_mode: team
+    execution_reason: Lane tooling authored under FEAT-1821 by the dev-ops persona; the implementer never edits the lane.
+    status: backlog
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
+      - .claude/skills/harness/bin/dashboard/client/e2e/tables-a11y.e2e.spec.ts
+    traces:
+      - SC-26
+    test_kinds:
+      - ui
+    intent: |
+      Operator ruling notes/answers-2026-09-22-t32-rounds-5-6.md §1. (1) ui-reporter.ts onEnd copies every captured trace for the manifest's traced_check_ids to runs/<run>/ui/traces/<CHECK>--<project>.zip even when reporterErrors is non-empty; results.json summary.status and summary.errors keep their meaning, so an incomplete bundle still fails the gate. (2) The A11Y-AXE clause in tables-a11y.e2e.spec.ts reports each violation's id, impact and first target selector in its failure message instead of only the count. No predicate, expected title, project applicability, evidence label or trace requirement changes.
+    verify: |
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t35-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
+      git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client | grep -c "ui-reporter.ts\|tables-a11y.e2e.spec.ts" # only these two client files changed by this task
 panel:
   last_run: 2026-09-16-01-product
   cycle: 8
