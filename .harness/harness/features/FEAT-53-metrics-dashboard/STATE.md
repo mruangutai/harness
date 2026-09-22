@@ -3,20 +3,18 @@
 ## Current
 
 - feature: FEAT-53-metrics-dashboard
-- latest_run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-29-eng/digest.md
+- latest_run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-ui-criteria-product/digest.md
 - status: awaiting_user
-- plan_station: building
-- review_sha: ebce36e77769a64ac0e302692d8aa350dceca0e4
-- unvalidated_fix_commit: 69f40ec3c568a4a7e98a953fa7c7e4988d1a616e
-- docs_commit: db1b5ac51c6ad224737a52adf673eb3312ffeb61
-- technical_gate: paused (error-list focused test and production build pass; no validate readers were run after the operator pause)
-- prior_browser_evidence: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-17-28-validator/ui-browser-evidence.png
-- uat: not ready; notes/uat.md was not reset
-- pause_reason: served bundle also diverges on header layout, KPI identity hues, status label colours and table; source-only UI review cannot reliably gate it
-- cycles_used: 40
-- max_total_cycles: 45
-- next: land the separate automated Playwright ui-lane feature, then resume FEAT-53 as its first consumer before any further validation or UAT
+- plan_station: plan
+- review_sha: d6ffd07f6cfa2620b835d8c98c824505603241bf
+- approval: pending in BRIEF.md and plan.yaml after the binding UI-lane amendment
+- task: T-32 backlog; no implementation started
+- ui_baseline: .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/ (22 RED / 1 green)
+- cycles_used: 41
+- max_total_cycles: 50
+- rework: 13 rounds / 585 minutes
+- next: Main obtains the operator signature, records it, then re-delegates the orchestrator for T-32 (maximum two engineering rounds)
 
 ## Open Questions
 
-- Q1 (blocking): Has the automated Playwright ui lane landed, and is FEAT-53 authorized to resume as its first consumer?
+- Q1 (blocking): Will the operator re-sign the amended BRIEF and plan so T-32 may enter build?
