@@ -49,15 +49,13 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
 3. **Delegate to a lead, never a member.** Every governed prompt starts with the literal line
    `HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>` — first, because the dispatch gate keys its claim
-   on it — then the title `FEAT-NN · <step or task id> · <what, 3–6 words>` (DEC-142). Every
-   dispatch is a plain subagent: **never pass a `name:` parameter** (DEC-147). A whole team goes to
-   its named lead, which hosts the DAG via `harness-team`; a single task goes to the lead that owns
-   the persona. A lead spawns only the personas its own `spawns:` list names, and no lead is ever
-   in that list — so cross-squad *leads* are always two dispatches sequenced by you (DEC-118).
-   Independence holds between personas — the reviewer is never the author — not between squads.
-   Pass paths, never content; pin `review_sha` before any validator run over code (INV-6). A
-   dispatch asking a question names where the answer belongs: `adequacy_notes`, a step's
-   `evidence`, or the digest — never a new digest key.
+   on it — then the title `FEAT-NN · <step or task id> · <what, 3–6 words>` (DEC-142). A whole
+   team goes to its named lead, which hosts the DAG via `harness-team`; a single task goes to
+   the lead that owns the persona. `dispatch-guard` refuses a target outside your `spawns:`
+   (the three leads) and any `name:` parameter (DEC-147); cross-squad leads are two dispatches
+   you sequence (DEC-118). Pass paths, never content; pin `review_sha` before any validator run
+   over code (INV-6). A dispatch asking a question names where the answer belongs:
+   `adequacy_notes`, a step's `evidence`, or the digest — never a new digest key.
 4. **Let the host supervise the nested dispatch at the tool boundary.** Every lead and member is
    declared `blocking: true`; the `task` call remains in the host while your model is inactive,
    and returns only when the child is terminal. Do not poll, sleep, emit heartbeats, or invent

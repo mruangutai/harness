@@ -125,6 +125,20 @@ if model and not omp_main:
           file=sys.stderr)
     sys.exit(2)
 
+# A named subagent is a persistent, addressable peer; the org runs plain subagents whose
+# only identity is the persona and the feature line (DEC-233). The playbook says never to
+# pass `name:`, and until now nothing checked. Same shape as the `model:` refusal above.
+name_param = ti.get("name")
+if name_param and not omp_main:
+    print(f"dispatch-guard: BLOCKED — {agent} passed name: {name_param!r} in a dispatch.",
+          file=sys.stderr)
+    print("  Every governed dispatch is a plain subagent addressed by persona and feature",
+          file=sys.stderr)
+    print("  line; a named peer outlives the tool call and escapes single-flight. Re-dispatch",
+          file=sys.stderr)
+    print("  without the name parameter.", file=sys.stderr)
+    sys.exit(2)
+
 # ---------------------------------------------------------------------------
 # T-08 — the single-flight claim (issue #551). EVERY branch below fails OPEN.
 #
@@ -221,6 +235,43 @@ except Exception as exc:
     print("dispatch-guard: run-dir shape check failed (%s: %s) -- passing through."
           % (type(exc).__name__, exc), file=sys.stderr)
 
+
+# THE ALLOWLIST. A persona may dispatch only what its own frontmatter `spawns:` names.
+# Until now that list was org documentation the playbooks restated as prose ("delegate to a
+# lead, never a member"; "no lead is in another lead's spawns"; a task outside your squad
+# escalates); the reviewer≠author independence of DEC-175 rests on it. Read from the
+# DISPATCHER's file at the owner root. Fails OPEN when that file or its key cannot be read
+# (a checkout without the persona is not a violation), loudly; only a persona present in
+# the file and absent from its list blocks (DEC-100). `spawns: []` is a real, empty list.
+if not omp_main:
+    try:
+        _owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                                      strict=False)
+        _dispatcher_file = os.path.join(_owner_root, ".omp", "agents", agent + ".md")
+        _fm = open(_dispatcher_file, encoding="utf-8").read().split("---", 2)[1]
+        _m = re.search(r"(?m)^spawns:[ \t]*(\[[^\]\n]*\])?[ \t]*$((?:\n[ \t]*-[^\n]*)*)", _fm)
+        if _m is None:
+            raise ValueError("no spawns key")
+        if _m.group(1) is not None:
+            _allowed = [s.strip().strip("'\"") for s in _m.group(1)[1:-1].split(",")
+                        if s.strip()]
+        else:
+            _allowed = [ln.strip()[1:].strip().strip("'\"")
+                        for ln in _m.group(2).splitlines() if ln.strip()]
+    except Exception as exc:
+        print("dispatch-guard: spawns allowlist unreadable for %s (%s) -- passing through."
+              % (agent, exc), file=sys.stderr)
+    else:
+        if dispatched not in _allowed:
+            print("dispatch-guard: BLOCKED -- %s may not dispatch %s; its spawns: list is %s."
+                  % (agent, dispatched, ", ".join(_allowed) or "empty"), file=sys.stderr)
+            print("  A persona dispatches only what its frontmatter names. A task owned by",
+                  file=sys.stderr)
+            print("  another squad is an ESCALATE to the orchestrator, which routes it to the",
+                  file=sys.stderr)
+            print("  owning lead; a member is reached through its lead, never directly.",
+                  file=sys.stderr)
+            sys.exit(2)
 
 def _root_for(flow):
     owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),

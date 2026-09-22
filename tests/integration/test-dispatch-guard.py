@@ -148,6 +148,12 @@ def _load_registry_module():
     return m
 
 
+# The dispatched personas every case names, plus the dispatchers: the spawns: allowlist
+# reads the DISPATCHER's file, and a checkout without it passes through loudly (case 28).
+_PERSONAS = ("harness-backend-dev", "harness-product-lead",
+             "harness-eng-lead", "harness-orchestrator")
+
+
 def _checkout():
     """A throwaway tree the resolver will accept as a root.
 
@@ -159,7 +165,7 @@ def _checkout():
     with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\n")
     os.makedirs(os.path.join(tmp, ".omp", "agents"))
-    for persona in ("harness-backend-dev", "harness-product-lead"):
+    for persona in _PERSONAS:
         shutil.copyfile(
             os.path.join(FEATURE_TREE_ROOT, ".omp", "agents", persona + ".md"),
             os.path.join(tmp, ".omp", "agents", persona + ".md"),
@@ -186,7 +192,7 @@ def _checkout_with_run_dir_grants(suffixes):
     with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\nleads:\n" + leads)
     os.makedirs(os.path.join(tmp, ".omp", "agents"))
-    for persona in ("harness-backend-dev", "harness-product-lead"):
+    for persona in _PERSONAS[:2]:
         shutil.copyfile(
             os.path.join(FEATURE_TREE_ROOT, ".omp", "agents", persona + ".md"),
             os.path.join(tmp, ".omp", "agents", persona + ".md"),
@@ -423,7 +429,7 @@ def case_12_claim_lands_in_declared_worktree():
     with open(os.path.join(wt, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\n")
 
-    p = _task("harness-pm", dispatcher="harness-orchestrator", cwd=main)
+    p = _task("harness-pm", dispatcher="harness-product-lead", cwd=main)
     p["tool_input"]["prompt"] = "HARNESS-FEATURE: %s\nplan the thing" % flow
     r = fire(p, env={"HARNESS_PROJECT_DIR": main})
     in_wt = _read_registry(wt, reg)
@@ -700,7 +706,7 @@ def case_21_grant_less_manifest_fails_open_and_says_so():
         tail = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"
         r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
                   "tool_input": {"subagent_type": "harness-eng-lead",
-                                 "prompt": RUNDIR_FEATURE_LINE + "\n" + tail}},
+                                 "prompt": RUNDIR_FEATURE_LINE + "\nHARNESS-FEATURE-TREE-ROOT: " + root + "\n" + tail}},
                  env=env)
         check("case 21: a grant-less manifest is not refused", r.returncode != 2, r.stderr)
         check("case 21: stderr says the manifest declares no run-dir write grant",
@@ -746,7 +752,7 @@ def case_23_broken_derivation_distinguished_from_grant_less():
         tail = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"
         r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
                   "tool_input": {"subagent_type": "harness-eng-lead",
-                                 "prompt": RUNDIR_FEATURE_LINE + "\n" + tail}},
+                                 "prompt": RUNDIR_FEATURE_LINE + "\nHARNESS-FEATURE-TREE-ROOT: " + root + "\n" + tail}},
                  env=env)
         check("case 23: an unparseable manifest is not refused", r.returncode != 2, r.stderr)
         check("case 23: stderr says the run-dir vocabulary derivation failed",
@@ -767,6 +773,72 @@ def case_24_duplicate_hook_keys_are_rejected():
     if result.returncode != 0:
         check("case 24: duplicate hook-payload keys are rejected before dispatch policy",
               False, result.stderr)
+
+
+def _fire_from(root, dispatched, dispatcher):
+    return fire(_task(dispatched, dispatcher, root),
+                env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
+
+
+def case_27_spawns_allowlist():
+    """A persona dispatches only what its frontmatter `spawns:` names. Refused: the
+    orchestrator reaching a member directly, a lead reaching a peer lead, a lead reaching a
+    persona outside its list. Allowed: a lead reaching its own member. A member with
+    `spawns: []` may dispatch nothing. The refusal names both personas and the list."""
+    root = _checkout()
+    try:
+        r = _fire_from(root, "harness-backend-dev", "harness-orchestrator")
+        check("case 27a: orchestrator -> member is refused", r.returncode == 2, r.stderr)
+        check("case 27a: the refusal names dispatcher, target and the list",
+              all(s in r.stderr for s in ("harness-orchestrator", "harness-backend-dev",
+                                          "harness-eng-lead")), r.stderr)
+        r = _fire_from(root, "harness-product-lead", "harness-orchestrator")
+        check("case 27b: orchestrator -> lead is allowed", r.returncode == 0, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    root = _checkout()
+    try:
+        shutil.copyfile(os.path.join(FEATURE_TREE_ROOT, ".omp", "agents",
+                                     "harness-validator-lead.md"),
+                        os.path.join(root, ".omp", "agents", "harness-validator-lead.md"))
+        r = _fire_from(root, "harness-validator-lead", "harness-eng-lead")
+        check("case 27c: lead -> peer lead is refused", r.returncode == 2, r.stderr)
+        r = _fire_from(root, "harness-backend-dev", "harness-eng-lead")
+        check("case 27d: lead -> own member is allowed", r.returncode == 0, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    root = _checkout()
+    try:
+        r = _fire_from(root, "harness-product-lead", "harness-backend-dev")
+        check("case 27e: a member with spawns: [] dispatches nothing",
+              r.returncode == 2 and "empty" in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_28_missing_dispatcher_file_passes_through_loudly():
+    """FAIL OPEN. A checkout without the dispatcher's agent file cannot evaluate the list;
+    the dispatch proceeds and stderr says the allowlist was unreadable (DEC-100)."""
+    root = _checkout()
+    os.remove(os.path.join(root, ".omp", "agents", "harness-eng-lead.md"))
+    try:
+        r = _fire_from(root, "harness-backend-dev", "harness-eng-lead")
+        check("case 28: unreadable allowlist is not refused", r.returncode == 0, r.stderr)
+        check("case 28: and says so", "spawns allowlist unreadable" in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_29_name_parameter_refused():
+    """A governed dispatch carrying `name:` is refused like one carrying `model:`; the
+    refusal names the value so a fixed string cannot pass."""
+    r = fire({"agent_type": "harness-eng-lead",
+              "tool_input": {"name": "Builder", "subagent_type": "harness-backend-dev",
+                             "prompt": FEATURE_LINE}})
+    check("case 29: name: is refused", r.returncode == 2, r.stderr)
+    check("case 29: the refusal names the value", "'Builder'" in r.stderr, r.stderr)
 
 
 def main():
@@ -824,6 +896,9 @@ def main():
     case_22_derived_vocabulary_matches_invented_squad()
     case_23_broken_derivation_distinguished_from_grant_less()
     case_24_duplicate_hook_keys_are_rejected()
+    case_27_spawns_allowlist()
+    case_28_missing_dispatcher_file_passes_through_loudly()
+    case_29_name_parameter_refused()
 
     failed = 0
     for name, ok, detail in RESULTS:

@@ -2191,6 +2191,17 @@ for product-work DAGs, and the filesystem is the registry, so a probe listed the
 anyone might run against a feature). The hierarchy it proved is recorded in DEC-116 and re-exercised
 by every crew run since; the crew definition itself earned nothing further.
 
+**Amended by the skills optimization pass (2026-09-18) — the `spawns:` list is enforced, not
+the depth cap.** DEC-233 removed the platform depth cap this ruling leaned on; from then until
+now "a lead never spawns a lead" and "delegate to a lead, never a member" were prose in two
+playbooks and nothing checked them, while the consumer audit found the reviewer≠author
+independence resting on exactly that list. `dispatch-guard.py` now reads the DISPATCHER's
+`.omp/agents/<persona>.md` frontmatter and refuses a target absent from its `spawns:`; it also
+refuses a `name:` parameter the way it refuses `model:` (DEC-147). Fails open, loudly, when the
+dispatcher file or key is unreadable; `spawns: []` is a real empty list. Main is exempt. The
+ruling — one squad per team, cross-squad leads are two orchestrator dispatches — is unchanged;
+the playbooks now cite the guard instead of restating it.
+
 ---
 
 ## DEC-119 — "team" everywhere, one artifact type per tier, and the two counters get owners
