@@ -1,0 +1,194 @@
+schema: plan/1
+feature: FEAT-64-broad-exception-libs-tools
+approval:
+  status: pending
+status: plan
+mission: plan
+source_issues: []
+baseline:
+  sha: a4a3d7f8e9b91181fb6cc3ae058df8e02275d983
+  branch: feat/FEAT-64-broad-exception-libs-tools
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-0b7e32972bad5fee79955e3761c650ee
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01 freezes an unsettled hook_guard diagnostic contract.
+    disposition: open
+  - id: PF-0f6f38f647d0a4ccb9fecd14350a1e1c
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-03's two shared-source reparse mutants demand a red-first finding the
+      existing detector cannot emit, forcing unrequested detector-scope expansion
+      or an unbuildable requirement.
+    disposition: open
+  - id: PF-a7995df8d4353b1784e178552d9b3e18
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Per-boundary KeyboardInterrupt/SystemExit escape cases across T-01's
+      ~24 narrowed sites are largely interpreter-semantics tests duplicating the RuntimeError-escape
+      coverage.
+    disposition: open
+    scope: task
+lanes:
+  resolved_at: a4a3d7f8e9b91181fb6cc3ae058df8e02275d983
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 assigns Harness validators, boundaries, tools, and gate-adjacent code to direct main-session execution.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 keeps regression, receipt, and mutation proof for governed Harness code with the direct implementation.
+    - surface: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/**
+      lane: main-session-direct
+      reason: The direct implementation records its red-first and byte-receipt evidence in the feature record.
+decisions:
+  - id: D-01
+    choice: Mint or reuse typed errors at producer boundaries before narrowing consumers, and let unrelated programming defects plus every BaseException-only process-control signal propagate.
+    because: Consumer-side error reconstruction would duplicate boundary knowledge and preserve the defect-hiding behavior this feature removes.
+    status: accepted
+  - id: D-02
+    choice: End harness_boundary.py with exactly two broad catches by routing repository-module load and call execution through one RepoModuleError wrapper and adding one unwired hook_guard that catches Exception but not BaseException.
+    because: Repository execution and hook own-failure are the only designed ordinary-exception boundaries, while separate load and call catches would spend a third allowance.
+    status: accepted
+  - id: D-03
+    choice: Treat baseline exit status, stdout bytes, and stderr bytes as immutable unless a red-first case and notes/build-divergences.md record the exact old bytes, new bytes, and operator ruling.
+    because: The sweep is intended to expose unrelated defects without changing established command or silence contracts.
+    status: accepted
+  - id: D-04
+    choice: Ratchet only FEAT-64 library and tool ceilings to their shipped counts, leaving every hook ceiling unchanged for FEAT-65.
+    because: A repository-wide zero target now would make this feature depend on explicitly excluded hook work.
+    status: accepted
+tasks:
+  - id: T-01
+    title: Type the ten shared library boundaries
+    traces: [SC-01, SC-02, SC-03, SC-05, SC-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns Harness shared libraries and their unit and integration proof directly to the main session.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/factory_decompose.py#extract_brief
+      - .claude/skills/harness/bin/factory_gh.py#run_gh
+      - .claude/skills/harness/bin/feature_schema.py#recovery_command_for
+      - .claude/skills/harness/bin/gh_cost_log.py#_read_counter
+      - .claude/skills/harness/bin/handoff_done_when.py#_satisfied
+      - .claude/skills/harness/bin/handoff_policy.py#_plan_mapping
+      - .claude/skills/harness/bin/harness_boundary.py#load_repo_module
+      - .claude/skills/harness/bin/harness_yaml.py#load_str
+      - .claude/skills/harness/bin/run_identity.py#record_seed
+      - .claude/skills/harness/bin/worktree_terminal.py#_run_git
+      - tests/unit/test-factory-gh.py
+      - tests/unit/test-feature-schema-build-entry.py
+      - tests/unit/test-gh-cost-log.py
+      - tests/unit/test-handoff-done-when.py
+      - tests/unit/test-handoff-policy.py
+      - tests/unit/test-harness-boundary.py
+      - tests/unit/test-harness-yaml-corpus.py
+      - tests/unit/test-run-identity.py
+      - tests/integration/test-factory-decompose.py
+      - tests/integration/test-harness-yaml.py
+      - tests/integration/test-inflight-registry.py
+      - tests/integration/test-worktree-terminal.py
+    verify: |
+      python3 tests/unit/test-factory-gh.py && python3 tests/unit/test-feature-schema-build-entry.py && python3 tests/unit/test-gh-cost-log.py && python3 tests/unit/test-handoff-done-when.py && python3 tests/unit/test-handoff-policy.py && python3 tests/unit/test-harness-boundary.py && python3 tests/unit/test-harness-yaml-corpus.py && python3 tests/unit/test-run-identity.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-harness-yaml.py && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-worktree-terminal.py
+    intent: |
+      Work red-first and preserve every current return value, exit effect, stdout byte, stderr byte, and documented silence for natural boundary failures. Add behavioral cases before production edits for each changed contract, including one unrelated RuntimeError case that must escape each new typed-boundary contract. For hook_guard specifically, add explicit KeyboardInterrupt and SystemExit cases that must escape. Do not add assertions over exception syntax or forwarding plumbing.
+
+      In factory_decompose.extract_brief, keep the non-blocking missing, unreadable, non-UTF-8, malformed-heading, and empty-section result while catching only OSError and UnicodeError. In factory_gh.run_gh, convert every subprocess launch OSError and artifact_accessors.ArtifactAccessError from JSON decoding into factory_gh.GhError with the existing argv, status, stdout, stderr, factory_cli rendering, and chained cause; retain the FileNotFoundError wording. In feature_schema.recovery_command_for and handoff_policy._plan_mapping, catch harness_yaml.YamlParseError from artifact_accessors.load_plan and preserve the current recovery string or parenthetical exactly.
+
+      In gh_cost_log._read_counter, narrow to OSError, subprocess.SubprocessError, UnicodeError, and ValueError; in record, narrow to OSError, UnicodeError, TypeError, and ValueError, preserving the best-effort no-raise contract and moving its existing rationale byte-for-byte. In run_identity.record_seed, catch only temp-file, filesystem, Unicode, TypeError, and ValueError failures, keep write-once atomic replacement and finally cleanup, and let unrelated defects surface.
+
+      In handoff_done_when, enumerate the typed read, YAML, JSON, authority-shape, and registered resolver errors at _satisfied and _resolution_problems instead of absorbing every Exception. Carry an already loaded plan authority through resolution and satisfaction so one source is not parsed and reported twice. Preserve True, False, and None semantics plus every failure message byte.
+
+      In harness_yaml.load_str, translate yaml.YAMLError, UnicodeError, TypeError, and ValueError to YamlParseError while keeping DuplicateKeyError and MissingDependency subclasses intact; unexpected RuntimeError must propagate. Narrow require_or_die root resolution to ImportError and ValueError, and narrow require_or_bootstrap courtesy output to OSError, UnicodeError, TypeError, and ValueError. Move each existing fail-closed or courtesy-channel rationale byte-for-byte with its handler.
+
+      In harness_boundary, narrow checkout-pointer and worktree-owner reads to OSError and UnicodeError, fleet resolution to artifact_accessors.FleetError plus its documented mapping-shape errors, and manifest grant reads to artifact_accessors.ArtifactAccessError, artifact_accessors.FleetError, and harness_yaml.YamlParseError. Replace the separate broad handlers in load_repo_module and call_repo_module with one private execution wrapper containing one except Exception that raises RepoModuleError with module name, path, original exception, exception chain, and current sys.modules restoration. Add hook_guard(main, name, fail="open") as the second broad handler: return main's successful result unchanged, catch Exception but not BaseException, and return 0 for open or 2 for closed. Reject any other fail value before calling main. Do not call hook_guard from any production file and do not freeze per-hook message wording in this feature.
+
+      In worktree_terminal, narrow Git launches to OSError and subprocess.SubprocessError, fleet access to artifact_accessors.FleetError, landed feature reads to artifact_accessors.FeatureJsonError, landed plan reads to harness_yaml.YamlParseError while handling MissingDependency by class rather than type-name text, and mapping-shape access to KeyError, TypeError, and ValueError. Preserve all unresolved records, reason strings, dirty flags, and repository classification. The ten shared libraries finish with no broad catch except the two specified harness_boundary handlers.
+  - id: T-02
+    title: Narrow seven tool consumers without changing receipts
+    traces: [SC-01, SC-02, SC-03, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps the Harness tools, their receipt suites, and their typed-boundary cutover in one direct sequential change.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/board-station.py#main
+      - .claude/skills/harness/bin/check-omp-port.py#runtime_pin_errors
+      - .claude/skills/harness/bin/check-skill-weight.py#scan
+      - .claude/skills/harness/bin/gh-sync.py#first_open_child
+      - .claude/skills/harness/bin/post-merge-sweep.py#main
+      - .claude/skills/harness/bin/run-unit-tests.py#_resolve_root
+      - .claude/skills/harness/bin/upgrade-config.py#main
+      - tests/unit/test-gh-sync-build-entry.py
+      - tests/integration/test-board-station.py
+      - tests/integration/test-check-omp-port.py
+      - tests/integration/test-check-skill-weight.py
+      - tests/integration/test-gh-sync-abandon.py
+      - tests/integration/test-gh-sync-open.py
+      - tests/integration/test-gh-sync-record.py
+      - tests/integration/test-gh-sync-ship.py
+      - tests/integration/test-gh-sync-start-task.py
+      - tests/integration/test-post-merge-sweep.py
+      - tests/integration/test-run-unit-tests-kinds.py
+      - tests/integration/test-run-unit-tests-layout.py
+      - tests/integration/test-upgrade-config.py
+    verify: |
+      python3 tests/unit/test-gh-sync-build-entry.py && python3 tests/integration/test-board-station.py && python3 tests/integration/test-check-omp-port.py && python3 tests/integration/test-check-skill-weight.py && python3 tests/integration/test-gh-sync-abandon.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-gh-sync-ship.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-post-merge-sweep.py && python3 tests/integration/test-run-unit-tests-kinds.py && python3 tests/integration/test-run-unit-tests-layout.py && python3 tests/integration/test-upgrade-config.py
+    intent: |
+      Before editing production code, add or tighten behavioral cases that fail on each present broad handler and prove the command's existing exit status and output bytes for its real boundary failure. Add at least one unrelated RuntimeError case per tool family that must escape rather than enter the quiet or best-effort path. Do not turn an offline, missing-tool, unreadable-optional-input, or board-unavailable case into a red gate.
+
+      In board-station.main, catch only gh_board.BoardError and factory_gh.GhError around the station write, preserving the current error line and exit 0. In check-omp-port, narrow runtime-pin reads to OSError, UnicodeError, json.JSONDecodeError, and ValueError; narrow OMP config, agent frontmatter, and provider overlay reads to artifact_accessors.ArtifactAccessError plus OSError and UnicodeError where Path.read_text remains local. Preserve error ordering and text.
+
+      In check-skill-weight.scan, narrow frontmatter failures to artifact_accessors.ArtifactAccessError, OSError, and UnicodeError and keep every per-agent error row, note, ordering rule, and exit result. In gh-sync, make board_stations_for, first_open_child, and _ship_audit expose or consume factory_gh.GhError, gh_board.BoardError, and artifact_accessors.ArtifactAccessError instead of Exception. Preserve every board movement, no-card-moved path, printed line, stream, and ship verdict.
+
+      In post-merge-sweep, narrow main-checkout Git resolution to OSError and subprocess.SubprocessError, fleet lookup to artifact_accessors.FleetError, and build-receipt reads to artifact_accessors.ArtifactAccessError and artifact_accessors.FeatureJsonError. Move process failure conversion to the subprocess-owning helpers so expected failures retain the current per-record or top-level line; remove the per-record and module-level broad catches so unrelated defects propagate instead of producing success exit 0. Keep all current dry-run, evidence-preservation, and skip output for real boundary failures.
+
+      In run-unit-tests, leave the five-file DEC-234 bootstrap prologue and its reciprocal comment byte-for-byte. Narrow _resolve_root to its import and root-resolution errors, and _layout_output to the documented layout data-shape and rendering errors; preserve traceback rendering for those inputs while an injected unrelated RuntimeError propagates. In upgrade-config.main, catch artifact_accessors.ArtifactAccessError for strict config reads and preserve its exit-1 diagnostic. These seven tools finish with zero except Exception and zero bare except handlers.
+  - id: T-03
+    title: Narrow the route checker and ratchet the FEAT-64 census
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 directly governs the route validator, its AST census and mutants, and the final implementation evidence.
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py#BROAD_CATCH_CEILINGS
+      - tests/unit/test-broad-catch-census.py
+      - tests/integration/test-check-plan-routes.py
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/red-first-receipts.md
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/build-divergences.md
+    verify: |
+      python3 tests/unit/test-broad-catch-census.py && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --consolidation-audit
+    intent: |
+      Work red-first. In check-plan-routes._manifest_deviation, catch only artifact_accessors.ArtifactAccessError, artifact_accessors.FleetError, harness_yaml.YamlParseError, and documented mapping-shape errors while retaining the same silent deviation fallback. Remove _is_shipped's second plan load: pass the plan document or parsed status already obtained by feature discovery, preserve False for absent or unusable status, and emit no second parse diagnostic. The final check-plan-routes.py contains no broad catch.
+
+      Update the one BROAD_CATCH_CEILINGS table after T-01 and T-02 land. Set factory_decompose.py, feature_schema.py, gh_cost_log.py, handoff_done_when.py, handoff_policy.py, harness_yaml.py, run_identity.py, worktree_terminal.py, board-station.py, check-omp-port.py, check-plan-routes.py, check-skill-weight.py, gh-sync.py, post-merge-sweep.py, run-unit-tests.py, and upgrade-config.py to zero. Set harness_boundary.py to exactly two. factory_gh.py remains governed by the absent-entry zero default. Leave all eleven hook-file ceilings unchanged for FEAT-65 and do not edit a hook or harness-hooks.ts.
+
+      Extend the unit census and integration audit with independent controlled mutants. A new except Exception and a new bare except in each scoped role family must each produce one finding naming the mutated file and its count versus ceiling; a reduction mutant remains clean; a third harness_boundary broad catch fails against two. Add red-first behavioral regression cases for the named same-execution duplicate parses in route discovery and handoff authority resolution; then delete those reparses and prove the existing parsed plan or authority value is consumed without adding or expanding a detector. Demonstrate every new assertion failing against the pre-change tree before production edits.
+
+      Reproduce the baseline at a4a3d7f8e9b91181fb6cc3ae058df8e02275d983 and record command, exit status, stdout digest, and stderr digest for test-harness-boundary, both test-harness-yaml suites, test-worktree-terminal, test-inflight-registry, test-post-merge-sweep, all six gh-sync suites, test-check-omp-port, both run-unit-tests suites, test-check-plan-routes, and every singleton suite owned by T-01 or T-02. Record the red-first executions and final matching receipts in notes/red-first-receipts.md. Record only deliberate byte differences in notes/build-divergences.md with exact old bytes, new bytes, and the ruling; if none exist, state that the compared corpus is byte-identical. Keep moved silence rationales and the run-unit-tests bootstrap comment byte-for-byte, add only separate FEAT-64 prose, and verify the pinned diff contains no hook or harness-hooks.ts change.
+needs_approval: true
+
