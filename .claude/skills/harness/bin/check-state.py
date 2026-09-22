@@ -2443,6 +2443,26 @@ if _csw is not None:
         warn.extend(f"INV-42 {_n}. Cut per DEC-158 (rule, one clause, pointer) or raise "
                     f"budgets.preload_warn_words in .harness/harness.json." for _n in _wres.notes())
 
+# --- INV-45: every reference a skill makes resolves. A skill citing a deleted DEC, an
+# unimplemented INV, a missing path, a heading a sibling no longer has, or a skill/agent
+# name that does not exist is a rule the reading agent cannot follow and no validator
+# catches (a deleted decision and a never-implemented invariant were each cited for weeks, DEC-235). A finding
+# IS a violation: unlike weight it is a defect, not a cost. Import posture as INV-42.
+try:
+    _csr = harness_boundary.load_repo_module(
+        "check_skill_refs", os.path.join(sys.argv[2], "check-skill-refs.py"), register=True)
+except Exception as _csre:
+    _csr = None
+    bad.append("INV-45 CANNOT RUN: check-skill-refs.py did not import (%s: %s). The module "
+               "ships with this repository — restore .claude/skills/harness/bin/check-skill-refs.py."
+               % (type(_csre).__name__, _csre))
+if _csr is not None:
+    try:
+        bad.extend(f"INV-45 {_f}" for _f in _csr.scan(root))
+    except Exception as _srse:
+        bad.append("INV-45 CANNOT RUN: the reference scan raised (%s: %s)."
+                   % (type(_srse).__name__, _srse))
+
 # --- INV-31 (FEAT-40 T-08, REQ-02/REQ-09): this clone's merge hook is not installed.
 #
 # WHY IT EXISTS AT ALL. The setup step lives in `.claude/skills/harness-init/SKILL.md`, whose
