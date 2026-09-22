@@ -12,3 +12,7 @@ These satisfy locators while degrading the real accessibility DESIGN asks for. T
 3. **Layout switch.** One button, accessible name "Kanban / Table layout", `aria-pressed` true when Table is active, both segment labels visible (bebb5416 addendum 3 stands).
 4. Round accounting: the BLOCKED return caused by the predicate defect does not consume round 5; round 5 resumes after T-36 with the honest implementation. Rounds remain capped at six.
 5. The scratch `client/dom-focus-census.mjs` is not part of T-32 and must not be committed.
+
+## Addendum — VIS-DENSITY hang (round 5 final lane: 21/23)
+`feat-53.e2e.spec.ts::interact` handles `kpi-unavailable` on `/kpi/3` with `getByRole('button', {name:/About/}).nth(2)` — the THIRD disclosure. `KpiPanel` (DESIGN §642: "KPI panel: panel info icon", singular) renders exactly one `InfoDisclosure`, so the locator waits until the test budget expires and every later capture cascades as "page closed". Predicate defect → T-37 (harness-dev-ops, feat-53.e2e.spec.ts only): `kpi-unavailable` opens the panel's disclosure (the single `About` button on the route). Nothing else changes.
+The round-5 lane was invoked with `--timeout=120000`; that is not the signed command. The final run is `npm run test:ui` exactly, with the config's budget. Rerunning the exact run id after Main clears it is fine — "touch it once" was a workflow tip, not a rule; what matters is that the committed bundle comes from one complete run of the signed command. The BLOCKED/incomplete result does not consume round 5.
