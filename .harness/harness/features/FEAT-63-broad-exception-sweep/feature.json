@@ -48,6 +48,16 @@
       "ended_at": "2026-09-22T14:22:15+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-22T14:37:37+00:00",
+      "ended_at": "2026-09-22T14:57:47+00:00",
+      "cycles_used": 0,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -85,6 +95,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "approved plan is fully built at pinned review_sha 4066581f and the validate run plus second goal-check are the next signed-plan action"
+    },
+    {
+      "at": "2026-09-22T14:57:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "QA-C1-01 changes shipped test coverage for T-02 and T-03 and is bound to their approved cross_module floor"
     }
   ],
   "mission": "plan",
