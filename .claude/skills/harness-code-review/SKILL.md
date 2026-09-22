@@ -155,17 +155,18 @@ never you — or `HARNESS-REVIEW-PIN: <sha>` in your dispatch when `feature.json
 mid-review must not change what you reviewed. Where an earlier cycle's pin exists, note both: the
 range between them is the fix cycle's work.
 
-**Reconcile hand edits before Stage 1:**
+**Reconcile hand edits before Stage 1** — `validate-digest.py` recomputes both from the checkout
+and refuses a verdict that disagrees:
 
 ```sh
-git log --format='%h %s' <previous_review_sha>..<review_sha> | grep '\[harness:human\]'
+git log --format='%h %s' --grep='\[harness:human\]' "$base..$review_sha"
 git status --porcelain
 ```
 
 | Found | Action |
 |---|---|
-| `[harness:human]` commits since the last pin | Report them in `human_commits_in_scope`. They **inherit no earlier review**; their paths are in scope now |
-| Uncommitted changes outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** A tree matching no commit has no pinnable verdict — return it and ask for a `[harness:human]` commit or a stash |
+| `[harness:human]` commits in the range | Report exactly that set in `human_commits_in_scope`. They **inherit no earlier review**; their paths are in scope now |
+| Modified tracked files outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** A tree matching no commit has no pinnable verdict — return `BLOCKED` and ask for a `[harness:human]` commit or a stash |
 | Unattributed commits that look manual | A finding — attribution is what makes review scope derivable |
 
 ## Before there is a SHA: plan-phase review

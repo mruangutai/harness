@@ -64,7 +64,7 @@ DIGEST:
                               # `matrix_ok: false` with VERDICT: PASS is rejected too, and the
                               # BOOLEAN spelling is why: a gate keyed on the string "fail"
                               # would silently never fire on this field (DEC-175)
-  kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
+  kinds: [{ kind: unit, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test
   sc_evidence: [{ id: SC-01, test: "<path:line>" }]
   fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]
