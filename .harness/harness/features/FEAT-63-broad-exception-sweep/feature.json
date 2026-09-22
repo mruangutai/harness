@@ -86,5 +86,10 @@
     },
     "source_issues": [],
     "build_entry": "opened"
+  },
+  "signed_task_hashes": {
+    "T-01": "6571eb4e40132ab75b41d96bed39af2349f56ee643790cccf7e18fc1ce4cbc72",
+    "T-02": "c18610cf91a117370320660178e673fc057a91aaad3e0dd32fcae20ec69a23aa",
+    "T-03": "9ecdad281ae69884b924eec1cd83d1b95ee9257f9bac3a89cdb86f0dcd985b71"
   }
 }
