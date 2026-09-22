@@ -1100,7 +1100,7 @@ def _origin_moved_ahead(fx):
     _git(fx["repoA"], ["remote", "add", "origin", origin])
     _git(fx["repoA"], ["push", "-q", "origin", "main"])
     other = os.path.join(os.path.dirname(fx["repoA"]), "other-clone")
-    _git(fx["repoA"], ["clone", "-q", "--no-local", origin, other])
+    _git(fx["repoA"], ["clone", "-q", "--no-local", "--branch", "main", origin, other])
     _git(other, ["config", "user.email", "test@example.com"])
     _git(other, ["config", "user.name", "Test"])
     with open(os.path.join(other, "landed-elsewhere.txt"), "w") as f:
