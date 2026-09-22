@@ -460,4 +460,7 @@ perspective.
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: operator (Mike Ruangutai), via main session
+date: 2026-09-22
+scope: re-signed as one DEC-75 bundle (BRIEF + plan.yaml) after the 2026-09-22 UI-lane amendment (T-32; SC-26/27/28 evidence: ui); supersedes the 2026-09-16 signature. Rework ruling rounds=13, minutes=585 (answers-2026-09-22-resume-ui-lane.md).

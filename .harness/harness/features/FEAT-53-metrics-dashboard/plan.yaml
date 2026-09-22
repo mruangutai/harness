@@ -4,12 +4,9 @@ status: plan
 source_issues: []
 
 approval:
-  status: pending
-  reset_at: '2026-09-22T17:31:30+00:00'
-  reset_reason: apply T-32
-  resume_station: building
-  approved_by: operator
-  date: '2026-09-16'
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: '2026-09-22'
 
 lanes:
   resolved_at: bb39d5c46e109ea020739fb9d7cea3b175b09b7a
