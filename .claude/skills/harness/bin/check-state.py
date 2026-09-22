@@ -700,8 +700,9 @@ class Ctx:
         defaulting to "exempt everything" disables the invariant there without saying so; so it
         says so, once, and names the command that fixes it."""
         if not self.cj_valid:
-            # No config, or one that does not parse: absent is INV-1's finding and invalid is
-            # `_load_config`'s own (`cj`); neither resolves an era.
+            # The JSON-validity violation is raised on its own merit further down (`cj`).
+            # (FEAT-63: `cj` is now loaded BEFORE the eras, so "further down" reads as
+            # "in _load_config"; an absent config is INV-1's finding. Neither resolves an era.)
             return None
         raw = self.cj.get(key, _MISSING)
         if raw is _MISSING:
@@ -2454,10 +2455,10 @@ def _inv24_factory_blocks(ctx):
     unreadable one, or no block contributes nothing (a generator, so the unreadable case keeps
     its `continue`)."""
     for feat in ctx.features:
-        fy = ctx.path(feat, 'feature.json')
+        # (FEAT-63: `None` is also an ABSENT record, which an isfile check used to skip here.)
         fdoc = ctx.record(feat)[0]
         if fdoc is None:
-            continue  # absent, or the parse failure is already a violation elsewhere; do not double-report
+            continue  # the parse failure is already a violation elsewhere; do not double-report
         fac = fdoc.get("factory")
         if not isinstance(fac, dict):
             continue

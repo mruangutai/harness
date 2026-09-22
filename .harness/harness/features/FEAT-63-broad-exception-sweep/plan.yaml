@@ -108,7 +108,7 @@ tasks:
   - id: T-02
     title: Narrow every checker handler and make INV-23 loud
     traces: [SC-01, SC-03, SC-06]
-    change_type: refactor
+    change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps the checker-wide boundary cutover, receipt suites, and divergence evidence in one direct sequential change.
     depends_on: [T-01]

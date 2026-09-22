@@ -35,14 +35,31 @@ additive only; exit 0 both). Broad catches: 27 → **0**. Bare `except:`: 0.
 
 ## After T-03 — receipts
 
-All eight as after T-02. The T-03 gate — `test-check-state-table.py` then
+All eight as after T-02 (fix round 1 adds D-2's one line to `entry`). The T-03 gate — `test-check-state-table.py` then
 `test-check-plan-routes.py` then `--consolidation-audit` — green; 31 `feat62`/`feat63` mutant
 cases pass. `code-grade.py --base 804d68b8`: 28 graded, 0 below bar.
+
+## Validate c0 — FAIL, and fix round 1 (main session)
+
+- PM-63-01 (SC-06): two silence rationales had been REWORDED, not moved — the era loader's
+  "The JSON-validity violation is raised on its own merit further down (`cj`)." and INV-24's
+  "the parse failure is already a violation elsewhere; do not double-report". Both restored
+  byte-for-byte beside their narrowed guards; the new fact each needed (config now loads
+  before eras; `None` is also an absent record) is separate prose marked FEAT-63.
+- QA-63-01: T-02's `change_type: refactor` was not in `harness.json` `test_matrix`. Amended to
+  `cross_module` (unit + integration — what T-02 exercised; T-01/T-03's type). `plan-merge.py
+  amend`; approval untouched (not a signed field).
+- QA-63-02: the ledger's red-first claims were narrative. `notes/red-first-receipts.md` now
+  holds the commands and their verbatim case lines against the pinned tree 804d68b8 and
+  against the build — including a NEW behavioural case for SC-02, `case_feat63_gh_auth_probed_
+  once` in `test-check-state-entry.py` (a logging gh stub sees 2 probes at the pin, 1 on the
+  build), which is divergence D-2 below.
 
 ## Ruled divergences
 
 | id | what | where it shows | why | ruling |
 |---|---|---|---|---|
+| D-2 | `test-check-state-entry.py` stdout gains one ADDED line, `ok - FEAT-63: gh auth status is probed exactly once per run …`. | That suite only; exit unchanged (the suite's other cases untouched). | SC-02's behavioural evidence: one probe per run, red at the pin (2), green on the build (1). | Accepted; red-first (`notes/red-first-receipts.md`). |
 | D-1 | INV-23 reports `note INV-23 CANNOT RUN for <feature.json>: feature_schema.py did not import (<Type>: <text>) …` instead of grading the whole file against a hard-coded 300-line budget. NOTE-level, the row's own severity. | Only when `feature_schema` fails to import: the new `case_feat63_inv23_import_boundary` (isolated bin copy with a raising `feature_schema.py`). No shipped fixture provokes it, so the eight receipts are otherwise unchanged. | Grilling 2026-09-21, ruled loud: a silently applied budget nobody maintained is the fail-open shape this wave removes. | Accepted; red-first (63.a red on the T-01 tree, green on T-02). |
 
 ## Plan deviations, disclosed
