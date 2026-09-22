@@ -39,6 +39,12 @@ except ImportError:
     jsonschema = None
     JSONSCHEMA_AVAILABLE = False
 
+# What a validator built on this dependency raises for a CONTRACT defect (a schema jsonschema
+# itself rejects) -- the one place that names it, so a caller's boundary can catch it without
+# guarding the import a second time (FEAT-63 T-02; D-12's one-guard rule). Empty when the
+# dependency is absent: the caller's ImportError branch is then the one that fires.
+SCHEMA_ERRORS = (jsonschema.exceptions.SchemaError,) if jsonschema is not None else ()
+
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)

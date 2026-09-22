@@ -45,8 +45,9 @@ def _resolve_root():
         with _contextlib.redirect_stderr(captured):
             import harness_boundary as _hb
             return _hb.resolve_root(_selfdir), captured.getvalue()
-    except (ImportError, ValueError):
-        # The module did not import, or resolve_root refused (strict: no MARKER anywhere).
+    except (ModuleNotFoundError, ValueError):
+        # The module did not import (a first-party sibling -- ModuleNotFoundError, the only
+        # shape a missing file takes), or resolve_root refused (strict: no MARKER anywhere).
         # Either way the clean-interpreter probe below produces the operator-facing stderr.
         probe = _subprocess.run(
             [_sys.executable, "-I", "-c", _ROOT_PROBE, _selfdir],
@@ -2169,14 +2170,11 @@ def _inv16_step_sweep(rel, sdoc, bad):
 def _inv16_boundary_errors():
     """What the step sweep can raise at its boundaries: jsonschema absent (ImportError), the
     step contract unreadable (ArtifactAccessError) or without its declared members (KeyError
-    -- cases 61.f/g keep it natural), a contract jsonschema itself rejects (SchemaError, named
-    only when jsonschema imported). Every one is CANNOT be checked, none is a pass."""
-    kinds = (ImportError, KeyError, artifact_accessors.ArtifactAccessError)
-    try:
-        import jsonschema
-    except ImportError:
-        return kinds
-    return kinds + (jsonschema.exceptions.SchemaError,)
+    -- cases 61.f/g keep it natural), a contract jsonschema itself rejects (named by
+    feature_schema, the module that owns that dependency). Every one is CANNOT be checked,
+    none is a pass."""
+    return ((ImportError, KeyError, artifact_accessors.ArtifactAccessError)
+            + harness_boundary.load_repo_module("feature_schema").SCHEMA_ERRORS)
 
 def _inv16_run(rel, sdoc):
     bad = _inv16_unknown_keys(rel, sdoc)

@@ -70,6 +70,19 @@ one more cycle over the per-run cap of 2)
   `files` lists; approval untouched.
 - All six SCs were MET at 77fa7410 (c1 goal-check); nothing else changed.
 
+## After validate c2 PASS — the CI gate, and fix round 3
+
+CI on PR #1871 (head 3fd91e13) failed `test-harness-yaml.py`'s D-12 guarded-import lock —
+a suite outside FEAT-63's verify set: T-02's `_inv16_boundary_errors` guarded
+`import jsonschema` with a literal `except ImportError`, and the rule caps guarded imports
+to one per dependency, in the module that owns that dependency's policy. Fix (main
+session): `feature_schema.SCHEMA_ERRORS` names jsonschema's contract-defect type beside the
+one existing guard; check-state reads it through `load_repo_module("feature_schema")`.
+The bootstrap probe's first-party guard is spelled `ModuleNotFoundError` (the only shape a
+missing sibling takes). Behaviour unchanged: eight suites as after fix round 2; both CI
+runners (`run-unit-tests.py --kind unit|integration`) exit 0 locally; audit 0; 37 graded,
+0 below bar. This change post-dates the c2 pin and is re-pinned below for a delta review.
+
 ## Ruled divergences
 
 | id | what | where it shows | why | ruling |
