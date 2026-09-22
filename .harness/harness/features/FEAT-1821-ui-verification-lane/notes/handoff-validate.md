@@ -1,4 +1,4 @@
-# Handoff — FEAT-1821-ui-verification-lane, validate → docs — written at ea4916518eea1c8f73901d372ad8e1e38595e64b, seq-2
+# Handoff — FEAT-1821-ui-verification-lane, validate → docs — written at ea4916518eea1c8f73901d372ad8e1e38595e64b, seq-29
 
 ## Next
 
@@ -30,4 +30,4 @@ Run the documentation product segment against the clean final pin, preserving th
 Scope: user-facing and operator-facing documentation matches the validated UI lane and replayable trace contract, with no stale local-only trace claim.
 Authority: brief-perspective:.harness/harness/features/FEAT-1821-ui-verification-lane/BRIEF.md#reader-(QA-/-ui-reviewer)
 Authority: approval:.harness/harness/features/FEAT-1821-ui-verification-lane/BRIEF.md#Approval
-Authority: validation:.harness/harness/features/FEAT-1821-ui-verification-lane/runs/validate-c9-fix-validator/digest.md
+Authority: brief-sc:SC-08

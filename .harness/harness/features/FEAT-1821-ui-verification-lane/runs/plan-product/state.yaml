@@ -1,0 +1,119 @@
+schema_version: 2
+run_id: plan-product
+run_uid: c8ff2d6de83541ac8c452aa0923e16e7
+feature: FEAT-1821-ui-verification-lane
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/BRIEF.md
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    redispatched_at: seq-2
+    completed_at: seq-3
+    recompleted_at: seq-3
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+    evidence: { check_exit: 0, tasks_checked: 6, anchors_resolved: 18 }
+  - id: scope
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: [draft]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-plan-c0.md]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-4
+    completed_at: seq-5
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-code-reviewer-plan-c0.md
+    note: Draft findings were applied by the apply step before goalcheck.
+    evidence: { findings: 4, severity_max: high, applied_by: apply }
+  - id: should-not-exist
+    persona: fable-advisor
+    seq: 3
+    depends_on: [draft]
+    outputs: []
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-4
+    redispatched_at: seq-6
+    completed_at: seq-7
+    recompleted_at: seq-7
+    artifact: agent://Feat1821Plan.ZippyRhinoceros.ShouldNotExistFormat
+    evidence: { findings: 5, severity_max: low }
+  - id: design
+    persona: harness-ui-reviewer
+    seq: 4
+    depends_on: [draft]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-plan-c0.md]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-4
+    completed_at: seq-5
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/review-harness-ui-reviewer-plan-c0.md
+    note: Draft findings were applied by the apply step before goalcheck.
+    evidence: { findings: 4, severity_max: high, applied_by: apply }
+  - id: apply
+    persona: harness-pm
+    seq: 5
+    depends_on: [scope, should-not-exist, design]
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/BRIEF.md
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/plan.yaml
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-8
+    completed_at: seq-9
+    redispatched_at: seq-12
+    recompleted_at: seq-13
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-panel-application.md
+    note: Corrected omitted BRIEF pending Approval section; plan substance is unchanged.
+    evidence: { findings_applied: 13, check_exit: 0, tasks_checked: 7, anchors_resolved: 21, panel_cycle: 0, approval_status: pending }
+  - id: goalcheck
+    persona: harness-pm
+    seq: 6
+    depends_on: [apply]
+    outputs: [.harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-ui-verification-lane-goalcheck-plan.md]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-10
+    completed_at: seq-11
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/research-FEAT-1821-ui-verification-lane-goalcheck-plan.md
+    evidence:
+      perspectives: [operator, code_maintainer, reader, orchestrator]
+      grades: [pass, pass, pass, pass]
+cycles_used: 3
+verdict: PASS
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/plan-product/digest.md

@@ -1,0 +1,44 @@
+schema_version: 2
+run_id: build-eng-t03
+run_uid: 2e51d0e794f64827bfee10fa9ad94cce
+feature: FEAT-1821-ui-verification-lane
+squad: eng
+host: harness-eng-lead
+status: failed
+steps:
+  - id: T-03
+    persona: harness-frontend-dev
+    task: T-03
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-03-c1.md
+    mutates_repo: true
+    on_fail: loop_back
+    status: failed
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    routed_by: execution_agent
+    note: Final cycle still omits most signed predicates, keyboard transitions, fixture mutations, and inspection interactions.
+    artifact: .harness/harness/features/FEAT-1821-ui-verification-lane/notes/receipt-harness-frontend-dev-T-03-c1.md
+    evidence:
+      prerequisite_t01: done
+      prerequisite_t02: done
+      traces: SC-01,SC-02,SC-04,SC-05,SC-06,SC-07,SC-09
+      fail_first_exit: 1
+      fail_first_reason: missing_test_ui_script
+      list_exit: 0
+      listed_executions: 23
+      src_tokens_projects: desktop-1440
+      scoped_runtime_exit: 0
+      final_failure: signed_objective_predicates_keyboard_fixture_mutations_and_inspection_interactions_incomplete
+cycles_used: 1
+verdict: FAIL
+digest: .harness/harness/features/FEAT-1821-ui-verification-lane/runs/build-eng-t03-eng/digest.md
