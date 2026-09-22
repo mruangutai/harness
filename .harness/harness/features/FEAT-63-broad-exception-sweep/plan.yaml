@@ -1,0 +1,142 @@
+schema: plan/1
+feature: FEAT-63-broad-exception-sweep
+approval:
+  status: pending
+status: plan
+mission: plan
+source_issues: []
+baseline:
+  sha: 950b2f04ae9d73c6ed2bf5fee261287b396c761f
+  branch: feat/FEAT-63-broad-exception-sweep
+panel:
+  last_run: 2026-09-21-02-product
+  cycle: 1
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Independently re-read T-03 against the operator requirement and confirmed
+      the corrected three-command chain executes the live audit directly.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Re-graded operator, code maintainer, and reader perspectives against the
+      authoritative grilling artifact after the T-03.verify change; all passed.
+  findings:
+  - id: PF-8574ad9b77f909596928fd3f3c970755
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: The 950b2f04-pinned harness_boundary.py ceiling (4) and the assert-total-118 literal should not be built; the durable ruling sizes the allowlist from HEAD when the lock lands, and D-02's "inside the existing BaseException handler" clause exists only to protect that pin.
+    disposition: resolved
+    resolved_by: T-01, T-03
+  - id: PF-2996f9aec3afc25a6b39b21e2ff447ab
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: If T-03's zero-count checker census and D-03's "separate zero ceiling" for check-state are two distinct rules, one of them should not be built.
+    disposition: resolved
+    resolved_by: T-03
+    scope: task
+  - id: PF-914a7b9f45e3cd647331a242bda34114
+    severity: high
+    reader: scope
+    kind: substance
+    summary: The former T-03 verification passed --consolidation-audit to the integration runner, which ignored the flag and never invoked the live audit.
+    disposition: resolved
+    resolved_by: T-03
+lanes:
+  resolved_at: 950b2f04ae9d73c6ed2bf5fee261287b396c761f
+  rows:
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: DEC-174 assigns Harness validators, boundaries, and audit code to direct main-session execution.
+  - surface: tests/**
+    lane: main-session-direct
+    reason: DEC-174 keeps regression and mutation coverage for governed validators with the direct implementation.
+decisions:
+  - id: D-01
+    choice: Consolidate checker environment work behind Ctx.spawn and cached Ctx state while leaving each call's argv, cwd, text mode, capture mode, and timeout at its existing call site; consume the already parsed feature, harness, and plan documents from Ctx instead of reparsing them in invariant bodies.
+    because: One exception boundary can preserve the deliberately quiet environmental contract without obscuring command-specific policy, and the runner context already owns parse reporting and source identity.
+    status: accepted
+  - id: D-02
+    choice: Make harness_boundary.load_repo_module wrap every Exception raised during specification creation, loader validation, or registered or unregistered module execution in RepoModuleError carrying module name, path, the original exception, and an exception chain; let KeyboardInterrupt, SystemExit, and every other BaseException-only process-control exception propagate unchanged, preserve sys.modules registration restoration after registered execution fails, and render the original exception type and message where existing CANNOT RUN receipts require those bytes.
+    because: Checker callers need one catchable repository-load boundary for ordinary load failures, while process-control exceptions must remain able to stop the checker; preserving the original cause, established rendering, and registration cleanup keeps diagnosis, interruption, and unrelated output stable.
+    status: accepted
+  - id: D-03
+    choice: 'Use one AST census of handlers typed exactly Exception or bare across bin Python scripts: require check-state.py to remain at zero, freeze harness_boundary.py at its observed post-T-01 count when T-03 lands, and freeze every other non-check-state script at its authoritative per-file 950b2f04 count. An increase above a file''s own ceiling is one finding, a decrease is accepted, allowance never transfers between files, and files absent from the recorded nonzero allowlist have a zero ceiling.'
+    because: A single per-file census prevents any legacy script from gaining a broad catch without making later wave-4 reductions fail, counting comment mentions, or letting one script spend another script's removed allowance; sizing the changed boundary after T-01 avoids constraining its correct exception shape to a stale baseline.
+    status: accepted
+  - id: D-04
+    choice: Preserve exit status, stdout bytes, and stderr bytes for each of the eight existing checker suites against 950b2f04, with only a red-first ledger entry for INV-23 reporting CANNOT RUN when a fixture removes feature_schema; a newly visible skip or missing row is never an accepted divergence.
+    because: Narrowing exception boundaries is intended to expose programming defects, not change established checker results, and the operator explicitly ruled the feature-schema fallback unsafe.
+    status: accepted
+tasks:
+  - id: T-01
+    title: Consolidate checker context and the repo-module boundary
+    traces: [SC-02, SC-03, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the checker, shared Python boundary, and their unit proof directly to the main session.
+    depends_on: []
+    status: plan
+    files:
+      - .claude/skills/harness/bin/check-state.py#Ctx
+      - .claude/skills/harness/bin/harness_boundary.py#load_repo_module
+      - tests/unit/test-harness-boundary.py#case_load_repo_module_failures
+    verify: python3 tests/unit/test-harness-boundary.py
+    intent: |
+      Work red-first at the shared boundary. Replace the current unit expectations for natural loader exceptions with failing cases for a public RepoModuleError. Exercise specification creation, an absent loader, registered module execution, and unregistered module execution, and require every raised Exception to become RepoModuleError with module_name, path, and the original exception as structured data and as the chained cause. Add cases proving KeyboardInterrupt, SystemExit, and any other exercised BaseException-only process-control signal propagate unchanged rather than becoming RepoModuleError. Restore or remove sys.modules registration exactly as today after every failed registered execution, including a process-control exception, and preserve successful registered and unregistered loading. The string available to checker reporters must include the original exception type and text so callers can retain established CANNOT RUN detail rather than printing a generic wrapper. Choose the handler structure that satisfies the full boundary and cleanup contract; do not constrain the wrapper to the current registered-execution BaseException handler.
+
+      In Ctx, add one spawn boundary that accepts argv plus the existing call-specific subprocess options and returns CompletedProcess or None only on OSError or subprocess.SubprocessError. Route all twelve checker subprocess launches through it, move the existing DEC-138 environmental-precondition rationale byte-for-byte to that one boundary, leave the 10-, 15-, and 60-second timeouts at their current callers, and preserve each call's text or bytes mode, cwd, capture options, return-code handling, and silent-None behavior. Cache gh auth status in one ctx.gh_ok result shared by INV-26 and INV-30, and replace the runner's second git rev-parse with ctx.git_top.
+
+      Delete the eleven invariant-body feature.json and harness.json reparses. Read feature records through ctx.record(feat) and harness configuration through ctx.config; when either parsed document is None, skip because its context loader has already emitted the one parse finding. Make station_of consume the context's parsed plan while preserving the empty-string result for every unknowable case. Do not add parse findings, convert an environmental None into a red result, or change output bytes. Keep _resolve_root's clean-interpreter probe behavior, read()'s absent-or-unreadable contract, and all command-specific policy outside spawn.
+  - id: T-02
+    title: Narrow every checker handler and make INV-23 loud
+    traces: [SC-01, SC-03, SC-06]
+    change_type: refactor
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps the checker-wide boundary cutover, receipt suites, and divergence evidence in one direct sequential change.
+    depends_on: [T-01]
+    status: plan
+    files:
+      - .claude/skills/harness/bin/check-state.py
+      - tests/integration/test-check-state.py
+      - tests/integration/test-check-state-entry.py
+      - tests/integration/test-check-state-plans.py
+      - tests/integration/test-check-state-handoff.py
+      - tests/integration/test-check-state-worktrees.py
+      - tests/integration/test-check-state-inv26.py
+      - tests/integration/test-check-state-records.py
+      - tests/integration/test-check-state-feat59.py
+    verify: python3 tests/integration/test-check-state.py && python3 tests/integration/test-check-state-entry.py && python3 tests/integration/test-check-state-plans.py && python3 tests/integration/test-check-state-handoff.py && python3 tests/integration/test-check-state-worktrees.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-check-state-records.py && python3 tests/integration/test-check-state-feat59.py
+    intent: |
+      Before production edits, run all eight named suites from the pinned baseline and retain each command, exit status, stdout digest, and stderr digest in the implementation digest. Add a failing behavioral case that removes feature_schema for INV-23 and requires a CANNOT RUN line instead of the hard-coded 300-cycle fallback. Add only boundary cases whose consumer-visible behavior is not already defended; do not pin implementation plumbing or exception syntax.
+
+      Replace every remaining except Exception in check-state.py with the real boundary class. Use ImportError for _resolve_root and the module-level handoff_done_when import, and keep the latter's existing context-load finding that INV-17 prints. Use OSError for read(). Catch gh_board.BoardError at INV-26 board_stations_for. Catch harness_boundary.RepoModuleError at each repo-module load used by the invariant import helpers, Ctx.validate_digest, INV-40's plan-merge load, and check-skill-weight; keep their CANNOT RUN behavior and render the stored cause when necessary for receipt identity. Catch ArtifactAccessError, FeatureJsonError, FleetError, and YamlParseError at their owning accessors, and each sibling boundary's own exported error class, including BoardError and the worktree-terminal and check-skill-weight errors. Verify every loud reporter individually against the exception its called boundary documents; do not replace a broad catch with an ungrounded tuple.
+
+      Make the feature_schema ImportError in INV-23 append CANNOT RUN and stop that row from grading against 300. Preserve every other finding, warning, order, severity, exit status, and stream. Move each existing silence rationale byte-for-byte with the handler it explains; do not consolidate or reword those comments. Compare all eight post-change receipts with the retained baseline. Record only the ruled INV-23 difference in the implementation digest, with red-first evidence and exact old/new bytes if its fixture triggers; any visible skip, disappeared row, or other difference fails the task. The final source must contain zero except Exception and zero bare except clauses.
+  - id: T-03
+    title: Add red-first consolidation and broad-catch locks
+    traces: [SC-03, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 directly governs the consolidation audit, its mutation tests, and the checker table gate.
+    depends_on: [T-01, T-02]
+    status: plan
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py#consolidation_findings
+      - tests/integration/test-check-plan-routes.py#case_22
+      - tests/integration/test-check-state-table.py
+    verify: python3 tests/integration/test-check-state-table.py && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --consolidation-audit
+    intent: |
+      Extend the existing consolidation audit red-first. Add load_feature_json and load_harness_json to _SHARED_SOURCE_LOADERS beside load_plan, then mutate an isolated checker copy to call each loader inside an invariant and prove a named shared-source-reparse finding.
+
+      Implement exactly one AST census and one broad-catch finding path for every bin Python script. The census counts handlers typed exactly Exception and bare except. Its check-state.py entry has a zero ceiling; it is not a second checker-specific detector or rule. Prove each syntax with its own isolated check-state mutant, assert each mutant produces exactly one broad-catch finding naming check-state.py, and keep the unchanged checker green. Do not duplicate the AST traversal, finding, mutant family, or maintenance surface for the checker zero invariant.
+
+      Encode this literal nonzero 950b2f04 file-to-count map for the unchanged legacy scripts: bash-write-guard.py 6; board-station.py 1; branch-create-gate.py 4; check-domain.py 24; check-omp-port.py 4; check-plan-routes.py 2; check-skill-weight.py 1; dispatch-guard.py 9; factory_decompose.py 1; feature-record.py 1; feature_schema.py 1; gh-close-gate.py 3; gh-sync.py 3; gh_cost_log.py 2; handoff_done_when.py 2; handoff_policy.py 1; harness_yaml.py 3; inflight_registry.py 3; inject-expertise.py 2; merge-gate.py 5; plan-sign-gate.py 2; post-merge-sweep.py 5; run-unit-tests.py 2; run_identity.py 1; upgrade-config.py 1; validate-digest.py 18; worktree_terminal.py 7. Derive harness_boundary.py's count from the post-T-01 tree when T-03 lands and record that observed count as its per-file ceiling; do not force it to four and do not rebase any unchanged file. Every other existing or new bin Python script has an implicit zero ceiling. Do not assert a fixed aggregate total for the allowlist.
+
+      Compare each current file to its own ceiling through that same census: fewer catches pass, more catches produce one finding naming that file and both counts, and allowance cannot transfer between files. Add a red-first mutant that inserts one except Exception into an unchanged frozen script and assert the single finding names that same script; add a reduction mutant and assert it remains clean. Derive counts from the AST, never source text or comments. Do not narrow the legacy sites in this wave or scan hooks under this policy.
+
+      Keep the audit within the existing public --consolidation-audit surface and existing checker-structure rule family. The final gate is exactly test-check-state-table.py followed by test-check-plan-routes.py --consolidation-audit. Do not edit workflows, hooks, command entry, grader rules, review skills, or any file in the frozen legacy set merely to satisfy the audit.
+needs_approval: true

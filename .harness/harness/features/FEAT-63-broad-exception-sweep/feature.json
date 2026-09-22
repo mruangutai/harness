@@ -1,0 +1,90 @@
+{
+  "feature_id": "FEAT-63-broad-exception-sweep",
+  "branch": "feat/FEAT-63-broad-exception-sweep",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T02:22:01+00:00",
+      "ended_at": "2026-09-22T03:17:57+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T03:18:38+00:00",
+      "ended_at": "2026-09-22T03:41:00+00:00",
+      "cycles_used": 1,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-form-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T03:42:51+00:00",
+      "ended_at": "2026-09-22T03:48:53+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-22T02:21:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "the cause is known and the files are named, but the work adds an enforcement surface (two audit rules), changes INV-23 from silent to loud, and adds a typed error to a shared boundary"
+    },
+    {
+      "at": "2026-09-22T03:18:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "T-03 verify runs the integration suite with an ignored flag but omits the live check-plan-routes.py --consolidation-audit gate required by the operator"
+    },
+    {
+      "at": "2026-09-22T03:18:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan cycle 1",
+      "reason": "correct T-03 verification to run both the integration suite and the live consolidation audit, then independently re-panel that task"
+    },
+    {
+      "at": "2026-09-22T03:42:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "form",
+      "reason": "BRIEF.md lacks the required Approval heading and pending status, so the unsigned signature gate cannot resolve its handoff authority"
+    }
+  ],
+  "mission": "plan",
+  "github": {
+    "milestone": 84,
+    "parent": 1866,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1867,
+      "T-02": 1868,
+      "T-03": 1869
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}
