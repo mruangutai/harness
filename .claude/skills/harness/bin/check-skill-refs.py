@@ -3,7 +3,7 @@
 
 Skills are read by agents that cannot ask; a citation that points at nothing is a rule the
 agent cannot follow and a validator will not catch. Scanned across every `SKILL.md`, every
-`harness/references/*.md` and every `harness/templates/**/*.md`:
+`*/references/*.md` and every `harness/templates/**/*.md`:
 
 - `DEC-NNN` resolves to a `## DEC-NNN` heading in DECISIONS.md (a deleted decision is cited by
   nothing — DEC-210 was, for two months);
@@ -60,7 +60,7 @@ def _files(root: Path) -> list[Path]:
     skills = root / SKILLS_REL
     patterns = [
         str(skills / "*" / "SKILL.md"),
-        str(skills / "harness" / "references" / "*.md"),
+        str(skills / "*" / "references" / "*.md"),
         str(skills / "harness" / "templates" / "**" / "*.md"),
     ]
     return sorted(Path(p) for pat in patterns for p in glob.glob(pat, recursive=True) if os.path.isfile(p))
@@ -73,8 +73,9 @@ def _resolves(root: Path, citing: Path, ref: str) -> bool:
     ref = ref.split("#")[0].split(" §")[0].rstrip("/")
     if "." not in os.path.basename(ref):
         return True  # a directory or a bare name, not a file claim
+    skill_dir = citing.parent.parent if citing.parent.name == "references" else citing.parent
     candidates = (root / ref, root / SKILLS_REL / ref, root / SKILLS_REL / "harness" / ref,
-                  citing.parent / ref)
+                  citing.parent / ref, skill_dir / ref)
     return any(c.exists() for c in candidates)
 
 
