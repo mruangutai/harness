@@ -4,7 +4,7 @@
   "pr": null,
   "review_sha": "ebce36e77769a64ac0e302692d8aa350dceca0e4",
   "cycles_used": 40,
-  "max_total_cycles": 45,
+  "max_total_cycles": 50,
   "max_total_runs": 20,
   "runs": [
     {
@@ -1180,6 +1180,11 @@
       "at": "2026-09-17T21:26:46+00:00",
       "max_total_cycles": 45,
       "decision": ".harness/harness/features/FEAT-53-metrics-dashboard/notes/answers-2026-09-17-28-validator.md"
+    },
+    {
+      "at": "2026-09-22T16:22:11+00:00",
+      "max_total_cycles": 50,
+      "decision": ".harness/harness/features/FEAT-53-metrics-dashboard/notes/answers-2026-09-22-resume-ui-lane.md"
     }
   ]
 }
