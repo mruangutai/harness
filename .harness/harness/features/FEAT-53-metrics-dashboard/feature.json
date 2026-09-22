@@ -2,8 +2,8 @@
   "feature_id": "FEAT-53-metrics-dashboard",
   "branch": "feat/FEAT-53",
   "pr": null,
-  "review_sha": "e4230ebc2a6fff22bb3105bb18d63f5e2d837603",
-  "cycles_used": 41,
+  "review_sha": "6f6539462cb7d2a20b165e19a365a2249edd434a",
+  "cycles_used": 44,
   "max_total_cycles": 50,
   "max_total_runs": 20,
   "runs": [
@@ -515,8 +515,38 @@
       "id": "2026-09-22-t32-r1-eng",
       "squad": "build",
       "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-22T17:54:15+00:00",
+      "tokens": 158361,
+      "ended_at": "2026-09-22T18:37:00+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-09-22-t32-round1-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-22T18:37:39+00:00",
+      "tokens": 65911,
+      "ended_at": "2026-09-22T18:53:35+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "2026-09-22-t32-round2-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-22T18:57:38+00:00",
+      "tokens": 235620,
+      "ended_at": "2026-09-22T19:42:26+00:00",
+      "cycles_used": 3
+    },
+    {
+      "id": "2026-09-22-colour-contract-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
       "verdict": "PENDING",
-      "started_at": "2026-09-22T17:54:15+00:00"
+      "started_at": "2026-09-22T19:42:34+00:00"
     }
   ],
   "mission": "plan",
@@ -1185,6 +1215,27 @@
       "kind": "regate",
       "decision": "replace rejected run id with 2026-09-22-t32-r1-eng",
       "reason": "Dispatch guard rejected the first run id because the required squad suffix did not trail the purpose; no lead ran and no implementation changed."
+    },
+    {
+      "at": "2026-09-22T18:37:00+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "apply-fixture-scope-amendment-and-retry",
+      "reason": "Operator-ruled-fixture-500-does-not-count-against-two-engineering-rounds"
+    },
+    {
+      "at": "2026-09-22T18:53:35+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "run-second-and-final-T32-engineering-round",
+      "reason": "Round-1-repaired-deep-route-assets-but-left-the-complete-22-red-list-and-no-predicate-defect"
+    },
+    {
+      "at": "2026-09-22T19:42:26+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "route-colour-contract-contradictions-to-visual-designer",
+      "reason": "Two-signed-predicates-contradict-DESIGN-and-the-authorized-two-engineering-rounds-are-exhausted"
     }
   ],
   "rework": {
@@ -1224,7 +1275,8 @@
     "T-29": "722035a29b5d53398e6d7532f9a72beadf399995b4504d8ac38c67a6b598d29e",
     "T-30": "4e5cbc2e80d32211562f25716dd580a1b6811e1976073565d008a66bc037c7cd",
     "T-31": "4bc7d133cee350700489d0034fc0b2261e49f213a641d80c17c8fffc659c6acc",
-    "T-32": "554baac4239ca29a17f2a1fb72614aa95fbd21a9584505d8bce30ff1b109f54e"
+    "T-32": "4495a274078adebf7ecbe26d8094a47edae8c0225376d3ca7a32d4c388937a3d",
+    "T-33": "468c55873c59df4320ee1a587115f60454c47a76a86831d5691a9f6d65cbad3f"
   },
   "github": {
     "milestone": 80,

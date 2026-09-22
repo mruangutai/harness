@@ -1915,7 +1915,9 @@ tasks:
     test_kinds: [unit, component, ui]
     execution_mode: team
     execution_agent: harness-frontend-dev
-    depends_on: [T-16]
+    depends_on:
+    - T-16
+    - T-33
     status: backlog
     files:
     - .claude/skills/harness/bin/dashboard/client/src/**
@@ -1932,11 +1934,35 @@ tasks:
     intent: |
       Make the committed client source and distribution bundle satisfy every automated Checks row for FEAT-53. Work from the failing predicates and replayable trace filmstrips in this exact order: geometry, then colour placement, then contrast and hatch, then tables and axe, then keyboard. Preserve the established root, KPI, work-list, and detail behavior while correcting the rendered implementation.
 
-      Do not weaken, delete, bypass, rename, or relax any predicate, Checks row, assertion, expected title, project applicability, DESIGN text, lane accounting rule, screenshot requirement, or trace requirement. If a predicate is wrong, stop that item and route it to harness-visual-designer as a DESIGN amendment; frontend-dev must not edit the specification or its verification contract.
+      The visual-design authority in DESIGN.md rows DIR-KPI-IDENTITY and DIR-STATUS-LABEL and notes/mockups/colour-contract-amendment-2026-09-22.md corrects the two documented colour contradictions; T-33 (harness-dev-ops) aligns the colour-placement spec to those rows and frontend-dev never edits any file under client/e2e/. Do not weaken, delete, bypass, rename, or relax any predicate, Checks row, assertion, expected title, project applicability, DESIGN text, lane accounting rule, screenshot requirement, or trace requirement. Do not change the palette, placements, required marks, surfaces, projects, routes, neutral treatments, captures, or DESIGN.
 
-      Run no more than two engineering rounds. If the lane is not green after the second round, return awaiting_user with the complete remaining red list instead of looping. For the successful round, run HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui to exit 0, run the independent ui_contract.py gate to UI GATE: PASS, and commit the complete runs/<run>/ui bundle containing results.json, every referenced WebP, and all eight replayable trace ZIPs.
+      Implement DIR-KPI-IDENTITY as exact semantic token-reference ownership for every KPI N from 1 through 7. The allow-list contains exactly these eight selector/property roles: data-kpi-identity-dot=N with background-color; data-kpi-sparkline-stroke=N with stroke; data-kpi-sparkline-fill=N with fill and computed fill-opacity 0.12; data-kpi-sparkline-end-dot=N with fill; data-kpi-panel-accent=N with border-top-color; data-kpi-shape-b-line=N with stroke; data-kpi-shape-b-y-title=N with fill; and data-kpi-column-dot=N with background-color. For every required rendered instance, inspect the unresolved winning authored declaration before custom-property substitution, require that named property to reference exactly --color-metrics-kpi-N, and require the computed paint to equal the token's resolved value. Reject every reference to --color-metrics-kpi-N on every other rendered selector/property declaration, including deltas, grades, statuses, text, other borders or backgrounds, gaps, and unnamed roles. The structural data-kpi-identity-mark=N wrapper is neither an allow-list role nor an exclusion boundary.
+
+      Implement DIR-STATUS-LABEL with unresolved semantic token-reference ownership for the exact Needs You/needs-you, Blocked/blocked, Stalled/stalled, Over Budget/over-budget, Running/running, and Stale/stale pairs. Each data-status-label=S winning authored color declaration must reference exactly --color-metrics-status-S and compute to that token's value; reject that status token reference on every other rendered selector/property declaration. On the same surface, keep each KPI token reference legal only on the eight KPI roles above. KPI 4 marks must reference --color-metrics-kpi-4 and the Over Budget label must reference --color-metrics-status-over-budget; their equal resolved value #F58BC2 neither violates nor proves ownership and neither token may substitute for the other. Before selection and after selecting each card, preserve the existing neutral-token assertions for the card icon, count, background, border, top-line, and selected treatment. Computed style remains the appearance check and must not infer semantic token identity.
+
+      Rounds: the operator authorized engineering rounds 3 and 4 after the colour-contract correction (notes/answers-2026-09-22-t32-rounds-3-4.md); hard stop at four, then return awaiting_user with the complete remaining red list. The successful round must run HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui to exit 0, run the independent ui_contract.py gate to UI GATE: PASS, and commit the complete runs/<run>/ui bundle containing results.json, every referenced WebP, and all eight replayable trace ZIPs. Preserve the complete remaining red list and do not narrow the lane to the two amended checks.
 
       Validation preserves the existing unit and component kinds and adds ui. QA runs the complete UI lane and the independent gate against the committed bundle. The harness-ui-reviewer uses Mode B, reads results.json and every referenced WebP, and opens all eight trace ZIPs required by FEAT-1821 T-17 with npx playwright show-trace, citing the exact judged step. SC-26, SC-27, and SC-28 receive automated evidence ui but remain verify uat for the final operator gate; SC-02 is unchanged.
+  - id: T-33
+    title: Align colour-placement predicates to the amended DESIGN rows
+    change_type: test
+    execution_agent: harness-dev-ops
+    execution_mode: team
+    execution_reason: The lane's specs were authored under FEAT-1821 by the dev-ops persona; the implementer never edits the predicate (operator ruling 2026-09-22).
+    status: backlog
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/colour-placement.e2e.spec.ts
+    traces:
+      - SC-26
+      - SC-27
+    test_kinds:
+      - ui
+    intent: |
+      Make the DIR-KPI-IDENTITY and DIR-STATUS-LABEL predicates in colour-placement.e2e.spec.ts implement the amended DESIGN.md rows verbatim (notes/mockups/colour-contract-amendment-2026-09-22.md): the eight KPI identity selector/property roles, unresolved token-reference ownership, and the status-label pairs. Change nothing else — no other predicate, title, project applicability, evidence or trace requirement — and do not touch any other file. This task exists so frontend-dev never edits a predicate.
+    verify: |
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t33-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still lists the same 23 titles at both projects
+      git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client | grep -c "e2e/colour-placement.e2e.spec.ts" # the only client file changed by this task
 panel:
   last_run: 2026-09-16-01-product
   cycle: 8

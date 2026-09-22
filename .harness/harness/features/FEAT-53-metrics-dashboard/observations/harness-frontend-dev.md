@@ -10,3 +10,4 @@
 - 2026-09-17: Astryx Table enforces a 960px minimum width; the responsive dashboard must explicitly reset table min-width to avoid page-level overflow below 832px.
 - 2026-09-17: A receipt that cites browser evidence must record the pre-fix SHA/artifact and the exact computed or geometry values; source CSS alone cannot discharge runtime findings.
 - 2026-09-17: Explicit Astryx reset, core and neutral theme imports in main.tsx cause Vite to emit the committed CSS asset referenced by dist/index.html.
+- 2026-09-22: Vite base "./" makes deep dashboard routes request relative assets that receive the SPA fallback HTML; root base preserves route asset loading.
