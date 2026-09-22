@@ -112,6 +112,13 @@
       "kind": "finding_kind",
       "decision": "substance",
       "reason": "QA-C1-01 changes shipped test coverage for T-02 and T-03 and is bound to their approved cross_module floor"
+    },
+    {
+      "at": "2026-09-22T00:40:00+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "c1 FAIL on QA-C1-01 only; operator ruled one more cycle and re-signed; fix round 2 added the unit suite."
     }
   ],
   "mission": "plan",
