@@ -2379,21 +2379,27 @@ def inv_46(ctx, feat):
 # own: `validate-validator` is c0, `validate-cN-validator` is cN; `-plan-cN` notes belong to
 # plan runs and are not members of a validate run.
 _VALIDATE_RUN_RE = re.compile(r"^validate(?:-c(\d+))?-validator$")
-_MEMBER_NOTE_RE = re.compile(r"^review-harness-[a-z-]+?-c(\d+)\.md$")
+# The lookahead keeps `-plan-cN` names out: plan-review notes are not members of a validate run.
+_MEMBER_NOTE_RE = re.compile(r"^review-harness-(?!.*-plan-c)[a-z-]+-c(\d+)\.md$")
+
+
+def _note_cycle(name):
+    """The cycle a member review note belongs to, or None for a non-member name."""
+    _nm = _MEMBER_NOTE_RE.match(name)
+    return int(_nm.group(1)) if _nm else None
+
+
+def _note_verdict(path):
+    """The note's tail VERDICT, upper-cased, or None when it carries none."""
+    _vm = _inv15_digest_verdict(read(path) or "")
+    return _vm.group(1).strip().upper() if _vm else None
 
 
 def _inv47_member_notes(ctx, feat, cycle):
-    """(name, verdict) for every member review note of `cycle`, verdict None when the note
-    carries no VERDICT line."""
-    found = []
-    for _np in sorted(glob.glob(os.path.join(ctx.feature_dir(feat), "notes", "review-harness-*.md"))):
-        _name = os.path.basename(_np)
-        _nm = _MEMBER_NOTE_RE.match(_name)
-        if not _nm or int(_nm.group(1)) != cycle or "-plan-c" in _name:
-            continue
-        _vm = _inv15_digest_verdict(read(_np) or "")
-        found.append((_name, _vm.group(1).strip().upper() if _vm else None))
-    return found
+    """(name, verdict) for every member review note of `cycle`."""
+    _paths = sorted(glob.glob(os.path.join(ctx.feature_dir(feat), "notes", "review-harness-*.md")))
+    return [(os.path.basename(_np), _note_verdict(_np)) for _np in _paths
+            if _note_cycle(os.path.basename(_np)) == cycle]
 
 
 def inv_47(ctx, feat):
