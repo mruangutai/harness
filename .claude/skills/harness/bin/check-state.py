@@ -643,6 +643,7 @@ class Ctx:
         self._records = {}
         self._run_states = {}
         self._vd = None
+        self._digests = {}
 
     def fpath(self, feat, tail=""):
         _b = self.feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)
@@ -812,6 +813,23 @@ class Ctx:
                     _vd_mod, _vd_import_err = None, str(_e)
             self._vd = (vd, _vd_mod, _vd_import_err)
         return self._vd
+
+    def lead_digest(self, dg):
+        """(text, errors) of one lead digest against the lead contract, validated ONCE and
+        shared by INV-15 (the contract) and INV-46 (the verdict cross-check, which only a
+        contract-clean digest can carry). `errors` is None when the validator is unavailable."""
+        if dg not in self._digests:
+            _vd, _vd_mod, _vd_import_err = self.validate_digest()
+            if _vd_mod is None:
+                self._digests[dg] = (None, None)
+            else:
+                try:
+                    _dtext = open(dg, encoding="utf-8", errors="replace").read()
+                    _errs = _vd_mod.validate("lead", _dtext)
+                except Exception as _e:
+                    _dtext, _errs = None, [f"validate() raised: {_e}"]
+                self._digests[dg] = (_dtext, _errs)
+        return self._digests[dg]
 
 
 def _inv35_quoted_after(_line, _quoted_scalar):
@@ -1639,7 +1657,8 @@ def inv_12(ctx, feat):
     return bad, warn
 
 # --- INV-9 retired under DEC-233; the number is never reused (DEC-205). Host enforcement is
-# `.omp/extensions/harness-hooks.ts`, and its wiring is graded by check-omp-port.py. The
+# `.omp/extensions/harness-hooks.ts`, and its wiring is graded by check-omp-port.py — INV-45
+# since the 2026-09-21 ruling (the row ran unnumbered as `OMP-PORT` before it). The
 # gate keys on `.omp/config.yml` so a scratch tree that carries no OMP surface (every
 # fixture in tests/) grades its own invariants without the whole port surface.
 def _omp_port_findings(root, omp_check):
@@ -1655,7 +1674,7 @@ def _omp_port_findings(root, omp_check):
                 bad.append(_line.strip())
     return bad
 
-def omp_port(ctx):
+def inv_45(ctx):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
@@ -2211,8 +2230,9 @@ def _inv15_digest_verdict(_dtext):
     _tail = _dtext[_anchors[-1].start():] if _anchors else _dtext
     return re.search(r"^\s*VERDICT:\s*(\S+)", _tail, re.M)
 
-def _inv15_verdict_cross_check(ctx, feat, rundir, dg, _dtext):
-    """INV-37: the digest verdict against every verdict feature.json records for the run."""
+def _inv46_verdict_cross_check(ctx, feat, rundir, dg, _dtext):
+    """INV-46: the digest verdict against every verdict feature.json records for the run
+    (BUG-440; printed under INV-37's number until the 2026-09-21 ruling gave it a row)."""
     bad = []
     H = ctx.H
     _feat_dir = os.path.dirname(os.path.dirname(rundir))
@@ -2226,7 +2246,7 @@ def _inv15_verdict_cross_check(ctx, feat, rundir, dg, _dtext):
     for _rv in dict.fromkeys(_recorded[_rid]):
         if _dm.group(1) != _rv:
             bad.append(
-                f"INV-37: {os.path.basename(_feat_dir)} run {_rid}: "
+                f"INV-46: {os.path.basename(_feat_dir)} run {_rid}: "
                 f"digest verdict {_dm.group(1)!r} in "
                 f"{os.path.relpath(dg, H)} differs from feature.json verdict "
                 f"{_rv!r} in {os.path.relpath(os.path.join(_feat_dir, 'feature.json'), H)}; "
@@ -2236,17 +2256,11 @@ def _inv15_verdict_cross_check(ctx, feat, rundir, dg, _dtext):
 def _inv15_validate(ctx, feat, rundir, dg, _vd_mod):
     bad = []
     H = ctx.H
-    try:
-        _dtext = open(dg, encoding="utf-8", errors="replace").read()
-        _errs = _vd_mod.validate("lead", _dtext)
-    except Exception as _e:
-        _errs = [f"validate() raised: {_e}"]
+    _dtext, _errs = ctx.lead_digest(dg)
     if _errs:
         bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
                    f"contract — a successor reads this file, not the transcript "
                    f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
-    else:
-        bad.extend(_inv15_verdict_cross_check(ctx, feat, rundir, dg, _dtext))
     return bad
 
 def _inv15_validator_unavailable(ctx, vd, _vd_import_err):
@@ -2282,6 +2296,29 @@ def inv_15(ctx, feat):
         if sdoc is None:
             continue
         bad.extend(_inv15_run(ctx, feat, rundir, sdoc, _vd))
+    return bad, warn
+
+def _inv46_digest(ctx, sdoc, rundir):
+    """The contract-clean digest of a complete lead-hosted run, or None: INV-15 owns every
+    other outcome (missing digest, unavailable validator, contract failure)."""
+    complete = str(sdoc.get("status", "")).strip() == "complete"
+    _host = str(sdoc.get("host", "")).strip()
+    if not (complete and _host in LEADS):
+        return None
+    dg = os.path.join(rundir, "digest.md")
+    if not os.path.isfile(dg):
+        return None
+    _dtext, _errs = ctx.lead_digest(dg)
+    return (dg, _dtext) if _dtext is not None and not _errs else None
+
+def inv_46(ctx, feat):
+    bad, warn = [], []
+    for sy, rel, rundir, sdoc, _error in ctx.run_states(feat):
+        if sdoc is None:
+            continue
+        found = _inv46_digest(ctx, sdoc, rundir)
+        if found is not None:
+            bad.extend(_inv46_verdict_cross_check(ctx, feat, rundir, found[0], found[1]))
     return bad, warn
 
 # --- INV-19 (DEC-162): no glossary means the domain's ubiquitous language lives
@@ -4440,7 +4477,7 @@ INVARIANTS = (
             "a run directory on disk is recorded in feature.json (a note)", "DEC-131"),
     )),
     Group("omp-port", (
-        Inv("OMP-PORT", omp_port, "repo", ("path:.omp/config.yml", "path:.agents/skills/harness/bin/check-omp-port.py"),
+        Inv("INV-45", inv_45, "repo", ("path:.omp/config.yml", "path:.agents/skills/harness/bin/check-omp-port.py"),
             "an OMP-configured tree grades its roster, hook wiring and overlays through check-omp-port.py", "DEC-233"),
     )),
     Group("seams", (
@@ -4466,7 +4503,10 @@ INVARIANTS = (
             "a run directory's checkpoint carries the identity recorded when it was first written", "DEC-154"),
         Inv("INV-15", inv_15, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
                                           "path:.agents/skills/harness/bin/validate-digest.py"),
-            "a complete lead-hosted run's digest.md exists, satisfies the lead contract, and agrees with feature.json's verdict", "DEC-156"),
+            "a complete lead-hosted run's digest.md exists and satisfies the lead contract", "DEC-156"),
+        Inv("INV-46", inv_46, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
+                                          "path:.agents/skills/harness/bin/validate-digest.py"),
+            "a contract-clean lead digest's VERDICT agrees with every verdict feature.json records for that run", "DEC-156"),
     )),
     Group("glossary", (
         Inv("INV-19", inv_19, "repo", ("path:.harness/glossary.md",),
@@ -4542,7 +4582,7 @@ INVARIANTS = (
 # Retired numbers stay in the catalogue so `--list` and old digests resolve; a retired number
 # is never run and never reused (DEC-205).
 RETIRED = {
-    "INV-9": "DEC-233 — host enforcement moved to OMP; the OMP-PORT row grades the port surface",
+    "INV-9": "DEC-233 — host enforcement moved to OMP; INV-45 grades the port surface",
     "INV-10": "check-docs.sh struck — a decision the tree contradicts is removed, not marked stale",
 }
 

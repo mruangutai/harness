@@ -98,6 +98,10 @@ with tempfile.TemporaryDirectory() as tmp:
     check("--list names every active row once, in table order, INV-35 first and INV-44 last",
           rows and rows[0] == "INV-35" and rows[-3] == "INV-44" and len(rows) == len(set(rows)),
           f"rows={rows}")
+    check("every row is an INV-N identity — the OMP port check is INV-45, the digest-verdict "
+          "cross-check INV-46 (ruling 2026-09-21)",
+          all(re.match(r"^INV-\d+$", r) for r in rows) and "INV-45" in rows and "INV-46" in rows
+          and rows.index("INV-46") == rows.index("INV-15") + 1, f"rows={rows}")
     check("--list carries the retired numbers, marked retired, never as runnable rows",
           rows[-2:] == ["INV-9", "INV-10"]
           and all("retired" in l for l in out.splitlines() if l.startswith(("INV-9 ", "INV-10 "))),
