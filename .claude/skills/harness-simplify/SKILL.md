@@ -22,80 +22,28 @@ angle in separate dispatches.
 
 Readers are drawn from the eng squad by adjacency to the domains the change touches.
 
-**Every dispatch names two things:** the scope, as a concrete diff or file set; and what is
-already settled and therefore not flaggable. A signed decision re-litigated as a finding is
-noise, and it costs a reader's whole run.
-
-**Every finding carries five parts:** file, line, one-line summary, the concrete cost, and the
-alternative. **An empty return is a real and expected result** — say so in the dispatch, so a
-reader does not manufacture findings to look useful.
+**Every dispatch names three things:** the scope, as a concrete diff or file set; what is
+already settled and therefore not flaggable — a signed decision re-litigated as a finding is
+noise, and it costs a reader's whole run; and the one angle file the reader follows, by path:
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-simplify/references/angle-<reuse|simplification|efficiency|altitude>.md`.
+The angle file carries the finding shape (five parts: file, line, summary, concrete cost,
+alternative) and the rule that an empty return is a real result; you do not restate either.
 
 Source prompts (eight, verbatim):
 `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`.
 
-## REUSE
+## The four angles, in one line each
 
-Flag work that re-implements something the tree already has.
+- **REUSE** — the change re-implements something the tree already has.
+- **SIMPLIFICATION** — the change adds complexity a simpler form would not, judged by the
+  deletion test in `harness-codebase-design`.
+- **EFFICIENCY** — the change does wasted work, costed in minutes and hot-path milliseconds;
+  deliberate boundary suite runs are not waste.
+- **ALTITUDE** — the change sits at the wrong depth; every finding ends fold-in, briefing-row,
+  or leave.
 
-On a **plan surface**: a verify clause that hand-rolls a check an existing script already
-performs, or a task intent restating a procedure another task owns.
-
-On a **code surface**: a constant, helper or fixture restated where an importable one exists.
-
-Name the existing thing by file and line, and name the concrete cost — usually that two
-spellings must now be edited in lockstep, and the one nobody remembers goes stale silently.
-
-## SIMPLIFICATION
-
-Flag unnecessary complexity the change adds. Judge a new module or wrapper with the deletion test in
-`harness-codebase-design`: delete it in your head, and if complexity vanishes it was a pass-through.
-
-On a **plan surface**: the same fact asserted twice through different spellings, one rule
-restated in two places that can drift apart, and dead references to a shape that no longer
-exists after a revision.
-
-On a **code surface**: redundant conjuncts, comments that narrate a change instead of stating
-the present fact, and pipelines with a simpler equivalent — but **only where the simpler form
-preserves the anchoring semantics the original fought for**. An anchor that took rounds to get
-right is not complexity to be trimmed.
-
-## EFFICIENCY
-
-Flag wasted work the change would actually do, costed honestly.
-
-Judge **minutes, and hot-path milliseconds**. A gate that runs at every session entry or every
-write earns scrutiny that a one-shot build step does not. Measure before flagging: a suite run
-you suspect is slow may be a fraction of a second.
-
-Deliberate full-suite runs at boundary steps are **not** waste — they are the evidence the
-boundary exists. Say so rather than flagging them.
-
-On a **plan surface**: a step that re-runs a whole suite where a targeted case binds equally,
-or the same file read repeatedly across sequential tasks where one pass could feed several.
-
-On a **code surface**: repeated I/O, work added to startup, and long-lived objects built from
-closures that keep an entire scope alive.
-
-## ALTITUDE
-
-Judge whether each change sits at the right depth, and give an explicit recommendation.
-
-Ask: is the capability at the right home, or bolted onto a caller? Is there **one**
-authoritative statement of a rule, or several that can drift? Are the accepted residuals right
-to accept — and does a deeper fix exist that does not reopen a settled scope?
-
-A methodology that lives only in one session's prompts is a sign of the same thing.
-
-On a **plan surface**: a rule stated in several task intents where one authority should carry
-it, a residual accepted without its compensating control named, and a capability planned into
-a caller that belongs in the module it calls.
-
-On a **code surface**: a special case bolted onto shared infrastructure, a check living inside
-one call site where a shared home already exists, and a workaround that patches a symptom the
-underlying mechanism should refuse.
-
-**Every altitude finding ends with one of three words: fold-in, briefing-row, or leave.** A
-finding with no recommendation makes the reader decide twice.
+On a **plan surface** the readers judge `plan.yaml`/`BRIEF.md` drafts; on a **code surface**,
+the changed diff. Each angle file spells both.
 
 ## Applying what comes back
 
