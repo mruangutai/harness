@@ -3,10 +3,9 @@
 ## Current
 
 - feature: FEAT-63-broad-exception-sweep
-- run: none
-- squad: none
-- status: built — T-01 b8fa0dfb, T-02 0d9f2220, T-03 (this commit) done main-session-direct
-  (DEC-174); check-state.py at zero broad catches; awaiting review_sha pin and validate
+- run: validate-validator
+- squad: validator
+- status: validation failed at review_sha 4066581f6cec2d6eab1fc5094740c13a8d144d7f; SC-01..SC-05 met, SC-06 not met; findings returned to the main session under the DEC-174 carve-out
 
 ## Open Questions
 

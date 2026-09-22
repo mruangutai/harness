@@ -38,6 +38,16 @@
       "cycles_used": 0,
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-22T13:59:26+00:00",
+      "ended_at": "2026-09-22T14:22:15+00:00",
+      "cycles_used": 0,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -68,6 +78,13 @@
       "kind": "finding_kind",
       "decision": "form",
       "reason": "BRIEF.md lacks the required Approval heading and pending status, so the unsigned signature gate cannot resolve its handoff authority"
+    },
+    {
+      "at": "2026-09-22T13:56:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "approved plan is fully built at pinned review_sha 4066581f and the validate run plus second goal-check are the next signed-plan action"
     }
   ],
   "mission": "plan",
