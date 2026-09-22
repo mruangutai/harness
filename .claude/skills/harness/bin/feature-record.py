@@ -149,27 +149,41 @@ def _owed_regate(doc, runs):
     return followed[have] if len(followed) > have else None
 
 
+def _handoff_seq(path):
+    """The `seq-N` a handoff note's first line names, or None (unmarked or unreadable)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            m = re.search(r"\bseq-(\d+)\b", fh.readline())
+    except (OSError, UnicodeDecodeError):
+        return None
+    return int(m.group(1)) if m else None
+
+
 def _owed_succession(feature_json, doc, runs):
     """The handoff note the new run succeeds with no succession entry yet, or None. INV-40
     (c)'s own matching: handoff notes with a `seq-N` below the new run's ordinal, in seq
     order, take succession entries in ledger order. A note with no marker is INV-40's own
     finding and is never counted here."""
     notes_dir = os.path.join(os.path.dirname(os.path.abspath(feature_json)), "notes")
-    owed = []
-    for name in sorted(os.listdir(notes_dir)) if os.path.isdir(notes_dir) else []:
-        if not (name.startswith("handoff-") and name.endswith(".md")):
-            continue
-        try:
-            with open(os.path.join(notes_dir, name), encoding="utf-8") as fh:
-                first = fh.readline()
-        except (OSError, UnicodeDecodeError):
-            continue
-        m = re.search(r"\bseq-(\d+)\b", first)
-        if m and int(m.group(1)) <= len(runs):
-            owed.append((int(m.group(1)), name))
-    owed.sort()
+    names = sorted(os.listdir(notes_dir)) if os.path.isdir(notes_dir) else []
+    seqs = [(_handoff_seq(os.path.join(notes_dir, name)), name) for name in names
+            if name.startswith("handoff-") and name.endswith(".md")]
+    owed = sorted((seq, name) for seq, name in seqs if seq is not None and seq <= len(runs))
     have = _kind_count(doc, "succession")
     return owed[have][1] if len(owed) > have else None
+
+
+def _reconcile_owed(kind, owed_to, decision):
+    """Refuse a mismatch between what the open owes and what the caller supplied."""
+    if owed_to and not decision:
+        what = (f"run {owed_to!r} has verdict FAIL and this run follows it" if kind == "regate"
+                else f"notes/{owed_to} is a handoff this run succeeds")
+        _refuse([f"REFUSED: {what}, and judgements[] carries no {kind} for it.",
+                 f"  The open owes that judgement (INV-40); supply --by, --reason and "
+                 f"--{kind} <decision> to record it and start the run in one write."])
+    if decision and not owed_to:
+        _refuse([f"REFUSED: --{kind} given, but this run owes no {kind}: "
+                 f"the ledger records decisions that happened."])
 
 
 def cmd_run_start(args):
@@ -196,16 +210,7 @@ def cmd_run_start(args):
         owed = {"regate": _owed_regate(doc, runs),
                 "succession": _owed_succession(args.file, doc, runs)}
         for kind, owed_to in owed.items():
-            if owed_to and not supplied[kind]:
-                what = (f"run {owed_to!r} has verdict FAIL and this run follows it"
-                        if kind == "regate" else
-                        f"notes/{owed_to} is a handoff this run succeeds")
-                _refuse([f"REFUSED: {what}, and judgements[] carries no {kind} for it.",
-                         f"  The open owes that judgement (INV-40); supply --by, --reason and "
-                         f"--{kind} <decision> to record it and start the run in one write."])
-            if supplied[kind] and not owed_to:
-                _refuse([f"REFUSED: --{kind} given, but this run owes no {kind}: "
-                         f"the ledger records decisions that happened."])
+            _reconcile_owed(kind, owed_to, supplied[kind])
             if owed_to:
                 judgements.append(_judgement(args.by, kind, supplied[kind], args.reason))
         entry = {"id": args.id, "squad": args.squad}

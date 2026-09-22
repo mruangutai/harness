@@ -2402,27 +2402,35 @@ def _inv47_member_notes(ctx, feat, cycle):
             if _note_cycle(os.path.basename(_np)) == cycle]
 
 
-def inv_47(ctx, feat):
-    bad, warn, _hits = [], [], []
-    _doc, _era = _feat59_record(ctx, feat)
-    if _doc is None:
-        return bad, warn, _hits
+def _passed_validate_cycles(_doc):
+    """(run id, cycle) for every validate run the record has at PASS."""
+    out = []
     for _entry in (_doc.get("runs") or []):
         if not isinstance(_entry, dict):
             continue
         _rid = str(_entry.get("id", "")).strip()
         _rm = _VALIDATE_RUN_RE.match(_rid)
-        if not _rm or str(_entry.get("verdict", "")).strip().upper() != "PASS":
-            continue
-        _cycle = int(_rm.group(1) or 0)
-        for _name, _verdict in _inv47_member_notes(ctx, feat, _cycle):
-            if _verdict in ("FAIL", "BLOCKED"):
-                _hits.append(("INV-47", f"run {_rid} PASS over notes/{_name} {_verdict}",
-                              f"run {_rid} is recorded PASS but its member note "
-                              f"notes/{_name} says VERDICT: {_verdict} — a lead does not pass "
-                              f"over a member's {_verdict}; the member returns again, or the "
-                              f"run is FAIL (#1884)"))
-    return bad, warn, _hits
+        if _rm and str(_entry.get("verdict", "")).strip().upper() == "PASS":
+            out.append((_rid, int(_rm.group(1) or 0)))
+    return out
+
+
+def _inv47_hit(_rid, _name, _verdict):
+    return ("INV-47", f"run {_rid} PASS over notes/{_name} {_verdict}",
+            f"run {_rid} is recorded PASS but its member note notes/{_name} says VERDICT: "
+            f"{_verdict} — a lead does not pass over a member's {_verdict}; the member "
+            f"returns again, or the run is FAIL (#1884)")
+
+
+def inv_47(ctx, feat):
+    _doc, _era = _feat59_record(ctx, feat)
+    if _doc is None:
+        return [], [], []
+    _hits = [_inv47_hit(_rid, _name, _verdict)
+             for _rid, _cycle in _passed_validate_cycles(_doc)
+             for _name, _verdict in _inv47_member_notes(ctx, feat, _cycle)
+             if _verdict in ("FAIL", "BLOCKED")]
+    return [], [], _hits
 
 # --- INV-19 (DEC-162): no glossary means the domain's ubiquitous language lives
 # nowhere — "create lazily" fired zero times across three shipped features while
