@@ -160,8 +160,6 @@ technical approach: if the statement changes, it was a decision, never a perspec
 > "Sign-in goes through Supabase social login" is a **decision**.
 > "**end user** — I can sign in with my Google account" is a **perspective**.
 
-Logged as a perspective, a decision makes the goal-check confirm your choices, not the promises.
-
 ### 6. Hand back for approval
 
 Write the file, then report in plain English, not IDs: the BRIEF path; who judges done and what
@@ -180,11 +178,7 @@ unbounded, is a `plan` mission wearing the wrong label: return it with the reaso
 
 | Thought | Reality |
 |---|---|
-| "I'll figure out verification later" | Then the SC is not done. Later means ship time |
-| "The user said use Postgres, that's the maintainer's perspective" | That is a decision. Apply the perspective test |
 | "I'll write `**end user** — none` to be thorough" | Omitted, never "none". Written down, INV-38 demands an SC for it |
-| "This SC is important but no perspective claims it" | Then it is scope creep. A perspective wants it — say which — or it goes |
 | "I should explore the codebase first" | This is scope, not research. Ask the user instead |
-| "I'll mark it approved since they described it to me" | Describing is not approving. Only the user approves |
 | "This decision blocks us, list it as a constraint" | Check first. Most cited decisions supply the mechanism rather than forbid it |
 | "I'm not sure this is a patch; I'll write the full plan to be safe" | Ask one question with your recommendation. The heavier lane is the expensive default, not the safe one |

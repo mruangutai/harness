@@ -15,8 +15,6 @@ Mandatory. No exceptions without explicit human approval **in the current sessio
 Production code written before a failing test existed MUST be **deleted** — not kept as reference, not
 adapted, not "tested afterward." Delete it and restart in correct order.
 
-Salvage would make the law optional under pressure; that is why deletion is the remedy.
-
 **The only valid exemption is explicit human approval in this session.** "The user implied it was fine",
 "the task didn't mention tests", and "the plan didn't include a test task" are **not** approvals.
 
@@ -27,27 +25,15 @@ Salvage would make the law optional under pressure; that is why deletion is the 
 2. **GREEN** — write the minimum production code to pass. No extra features.
 3. **REFACTOR** — only while green. Never refactor a red suite.
 
-## Red flags — stop immediately
-
-- Writing production code with no failing test in place
-- Writing the test after the implementation
-- Refactoring while any test is red
-- Adding a feature during GREEN
-- Skipping the RED verification — never actually watching it fail
-- Modifying an existing test to make it pass instead of fixing the code
-- Being unable to show the failing run that preceded your change
-
-**And these thoughts, which are rationalizations, not reasons:**
+## Two thoughts that are not reasons
 
 | Thought | Reality |
 |---|---|
-| "This is a simple function, tests add nothing" | Simple functions are where off-by-one lives |
 | "The test would be too hard to write" | Hard-to-test is a design finding. Report it |
-| "I'll add tests once it works" | Then you will write tests that describe the bug you shipped |
 | "We're in a rush" | The rework loop is slower. Measured here: 0.44 escaped defects per feature |
-| "It's obvious code" | Obvious to you, now. Not to the next reader, not in six months |
 
-If you notice any of these: **stop, delete the out-of-order code, restart.**
+Caught yourself writing production code with no red test, or editing an existing test to make it
+pass: **stop, delete the out-of-order code, restart.**
 
 ## Zero-placeholder gate — always applies
 

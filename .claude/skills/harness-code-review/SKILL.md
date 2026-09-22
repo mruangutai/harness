@@ -168,9 +168,6 @@ git status --porcelain
 | Uncommitted changes outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** A tree matching no commit has no pinnable verdict — return it and ask for a `[harness:human]` commit or a stash |
 | Unattributed commits that look manual | A finding — attribution is what makes review scope derivable |
 
-A hand edit is never silently in scope: shipping on a green review that never saw it is worse than
-halting.
-
 ## Before there is a SHA: plan-phase review
 
 No `review_sha` yet → the plan is the target (DEC-207): grade `BRIEF.md` and `plan.yaml` as the

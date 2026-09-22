@@ -61,17 +61,16 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
 4. **Let the host supervise the nested dispatch at the tool boundary.** Every lead and member is
    declared `blocking: true`; the `task` call remains in the host while your model is inactive,
    and returns only when the child is terminal. Do not poll, sleep, emit heartbeats, or invent
-   tool calls: the count is zero. While your feature/persona claim is live, the registry
-   prevents dispatch of a replacement parent. When a result returns, re-read `STATE.md`
-   and `feature.json`, verify its artifact, and treat the digest as a claim until disk confirms
-   it (DEC-204).
+   tool calls: the count is zero; the registry blocks a replacement parent while your claim is
+   live. When a result returns, re-read `STATE.md` and `feature.json`, verify its artifact, and
+   treat the digest as a claim until disk confirms it (DEC-204).
 5. **Weigh your own context and the feature's spend.** You do nothing to obtain either figure. On
    your wake the harness hook reads your own OMP transcript off disk and, only when you are over
    `budgets.orchestrator_context_warn_tokens`, appends one advisory line naming the measured
    tokens, the key and the ratio; likewise one `SPEND:` line when the feature is past
    `budgets.plan_phase_warn_minutes` or the ruling's `rework.wall_clock_minutes`. **Both ADVISE;
    the decision is yours** (DEC-198). Crossing is normal — hand off at a seam, never mid-phase
-   (DEC-201). No line, nothing to weigh.
+   (DEC-201).
    Never guess a figure; a reported number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record — ONE command closes the run.**
    `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`

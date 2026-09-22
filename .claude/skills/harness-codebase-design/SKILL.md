@@ -70,7 +70,3 @@ come from?" and "what can change X?" in 30 seconds? If not, cut layers or cut st
 - **code-reviewer, stage two:** shallow module (interface nearly as complex as its implementation),
   tests reaching past the interface, adapters nothing varies across — each is a finding shape with
   a concrete failure scenario attached, per `harness-code-review`.
-
-Depth is a property of the **interface**, not the implementation — a deep module may be internally
-composed of small swappable parts with **internal seams** its own tests use; they are just not part
-of the interface.

@@ -41,9 +41,8 @@ on them; every field present, "nothing" as an explicit `[]` or `none`, never an 
 
 **Never invent a verdict** — undeterminable is `BLOCKED`, with why.
 
-**`yield` is the terminal handoff; `agent_end` is notification-only.** A dispatcher never yields
-with a live child: the host holds its `task` call until the child is terminal (DEC-204), and the
-digest gate refuses a return with children in flight (DEC-233).
+**A dispatcher never yields with a live child:** the host holds its `task` call until the child is
+terminal (DEC-204), and the digest gate refuses a return with children in flight (DEC-233).
 
 ## Harness-owned paths — anchored, never relative
 

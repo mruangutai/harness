@@ -8,17 +8,12 @@ user-invocable: false
 
 You write tests, run them, and **gate**. Enforced against **the diff**, never against a self-report.
 
-There is no separate verifier downstream of you. If you do not catch it, it ships.
-
 ## Two phases, in order — the first is anti-bias
 
 **Phase 1 — derive expected coverage with NO source access.** Read `BRIEF.md` and the plan only —
 `plan.yaml` (legacy features: `PLAN.md`). From the requirements and success criteria alone, write
-down what tests *should* exist.
-
-Do this first because once you have read the implementation you will unconsciously test what the code
-does rather than what was asked for — and a test suite that mirrors the implementation cannot detect that
-the implementation is wrong.
+down what tests *should* exist. A suite written after reading the implementation mirrors it and
+cannot detect that the implementation is wrong.
 
 **Phase 2 — read the code.** Write and run tests, enforce the matrix, report gaps against your Phase 1
 list. A gap between the two is a finding, not an oversight to quietly close.
@@ -55,9 +50,6 @@ Read **two** signals, never just the exit code: what kind of failure, not merely
 A genuine `FAIL` looks like a **named** test with an assertion diff. Misconfiguration looks like
 `MODULE_NOT_FOUND`, `ImportError`, `No test files found`, a collection `ERROR`, or a "test" whose name is
 a file path.
-
-Blocking legitimate non-web work on a missing browser is a bug. Passing a hard gate because its command
-was broken is worse than halting.
 
 ## Audit test-first compliance
 

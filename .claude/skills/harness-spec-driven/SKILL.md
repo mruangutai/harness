@@ -6,23 +6,17 @@ user-invocable: false
 
 # Spec-Driven Planning
 
-You author `BRIEF.md` and `plan.yaml`. They are the spec.
-
 **`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). Instantiate from
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/plan.yaml`.
 
 **Every write goes through a `plan-merge.py` verb. There is no other route** — the shape gate
-denies `Edit`, `Write` and shell redirects.
+denies `Edit`, `Write` and shell redirects. `sign-approval` is **the main session's only**
+(DEC-120); the rework ruling beside it is theirs too.
 
 ```bash
 python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py apply \
   --file <HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/plan.yaml --proposal -
 ```
-
-`apply` unions by `id` — adds, replaces the fields you name, never deletes — and carries the
-`approval:` block forward byte identical. `plan-merge.py --help` lists every other verb and the
-legal stations. `sign-approval` is **the main session's only** (DEC-120); the rework ruling beside
-it is theirs too.
 
 **No markdown in any value — no backticks, no `**bold**`, no links.** The loader rejects it or a
 resolver reads it as a path nobody wrote (DEC-182).
@@ -93,16 +87,12 @@ digest lands.
 "implement X" without saying what X produces. If you cannot fully specify a task, the *brief* is
 incomplete — raise it in `open_questions`.
 
-## Perspectives versus decisions — the boundary that matters
+## The D-NN bar (DEC-149)
 
-A **perspective** (`BRIEF.md ## Done when — by perspective`) survives the implementation swap; an
-**SC-NN** discharges one; a **D-NN** (`plan.yaml decisions:`) is the architectural how
-(`harness-brief` has the test).
-
-**The D-NN bar (DEC-149):** a choice earns a `D-NN` — and the user's attention at approval — only
+A choice earns a `D-NN` (`plan.yaml decisions:`) — and the user's attention at approval — only
 when ALL THREE hold: **hard to reverse**, **surprising without context**, **a real trade-off**.
 Anything failing one is a digest note. A rejected alternative a future scan would re-suggest is the
-classic D-NN — record the reason.
+classic D-NN — record the reason. A perspective is not a decision; `harness-brief` has the test.
 
 ## The glossary
 
@@ -117,14 +107,10 @@ before it lands in a perspective, code wins over a stated meaning (DEC-149;
 - **A recorded baseline carries the sha it was observed at, and the condition**: `observed exit 1
   at <sha>, BRIEF pending` — the signature itself can change the answer.
 
-Both are `verify:` inputs.
-
 ## Approval is not yours
 
-You draft `BRIEF.md` and `plan.yaml`; you never mark them approved. Only the **main session** writes
-`## Approval` — the only tier with a user channel. **Re-planning resets approval**: any verb that
-changes the task set after signature sets `approval.status` back to `pending` on its own; only
-`sign-approval` writes `approved`.
+Only the **main session** writes `## Approval`. Any verb that changes the task set after signature
+sets `approval.status` back to `pending` on its own.
 
 Capture and print stdout from every task-changing `plan-merge.py` invocation. Only when the
 captured output contains its exact `APPROVAL-RESET:` receipt, run
@@ -132,11 +118,3 @@ captured output contains its exact `APPROVAL-RESET:` receipt, run
 receipt means no remote call. This applies to `apply`, `add-tasks`, task-changing `amend`, and
 `delete-items --task`; it never guesses from the verb or from the prior approval state.
 
-## Red flags
-
-| Thought | Reality |
-|---|---|
-| "I'll specify this task loosely, the dev will figure it out" | Then you moved planning into execution, unreviewed |
-| "I'll sort out who executes this at build time" | Then the build discovers it mid-run. `check` answers it now |
-| "I'll skip change_type on the trivial ones" | The loader refuses the task and the qa gate blocks |
-| "I'll tidy the plan after approval" | Any change resets approval. Get it right first |
