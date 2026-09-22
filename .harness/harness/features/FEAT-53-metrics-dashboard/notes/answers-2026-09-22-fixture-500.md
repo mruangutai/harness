@@ -10,3 +10,6 @@
 
 ## Addendum (vite base)
 Round 1 proved `vite.config.ts` `base` must be `/` for deep-route assets (`/kpi/*`, `/work/*` loaded SPA HTML as their assets, collapsing the body). Same ruling class: T-32 files widen to `client/vite.config.ts`; no behaviour/spec change; applied and re-signed at the signature.
+
+## Addendum 2 — the 30s timeouts (Main reproduced, round 3)
+The lane fixture root lives under `client/test-results/fixtures/<run>/` — INSIDE the harness worktree's git repo — so every `kpi.compute` runs `git diff --numstat`/`for-each-ref` against the whole harness history: `/api/kpis` = 2.15s per request on a 9-feature fixture. Under the lane's parallel navigations that exhausts the 30s test budget (TBL-DESKTOP, A11Y-AXE, VIS-DENSITY, VIS-PROTOTYPE). With the fixture root made its own repository (`git init` + one commit inside it) the same request takes 0.21s. Ruling: `prepareFixtureSync` initialises the fixture root as a standalone git repository with one commit (deterministic author/date); the 30s budget and the predicates stay as signed. This is fixture.ts, already in T-32's files; round 4 starts from this.
