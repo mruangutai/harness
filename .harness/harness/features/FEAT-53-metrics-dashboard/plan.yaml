@@ -1920,6 +1920,7 @@ tasks:
     - T-33
     - T-34
     - T-35
+    - T-36
     status: backlog
     files:
     - .claude/skills/harness/bin/dashboard/client/src/**
@@ -1990,7 +1991,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_mode: team
     execution_reason: Lane tooling authored under FEAT-1821 by the dev-ops persona; the implementer never edits the lane.
-    status: backlog
+    status: done
     depends_on: []
     files:
       - .claude/skills/harness/bin/dashboard/client/ui-reporter.ts
@@ -2004,6 +2005,25 @@ tasks:
     verify: |
       HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t35-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
       git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client | grep -c "ui-reporter.ts\|tables-a11y.e2e.spec.ts" # only these two client files changed by this task
+  - id: T-36
+    title: Assert the Status selection by accessible value, not input value
+    change_type: test
+    execution_agent: harness-dev-ops
+    execution_mode: team
+    execution_reason: Predicate defect; the implementer never edits the predicate (operator ruling 2026-09-22).
+    status: backlog
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/keyboard.e2e.spec.ts
+    traces:
+      - SC-26
+    test_kinds:
+      - ui
+    intent: |
+      notes/answers-2026-09-22-t32-round5-ruling.md §1. In the clause "attention activation lands on selected Status filter", replace `expect.soft(status).toHaveValue('needs-you')` — meaningless for the button-backed Astryx Selector combobox — with two assertions: the focused combobox named Status has an accessible name or text content that includes "Needs You", and the polite live region (`[aria-live="polite"]`) contains the announcement of the selection. Nothing else in the spec changes: no other clause, title, order, project, evidence or trace requirement.
+    verify: |
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t36-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
+      git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client/e2e | grep -c "keyboard.e2e.spec.ts" # only this spec changed by this task
 panel:
   last_run: 2026-09-16-01-product
   cycle: 8
