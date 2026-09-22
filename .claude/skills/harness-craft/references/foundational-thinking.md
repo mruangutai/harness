@@ -2,7 +2,7 @@
 name: foundational-thinking
 title: Foundational Thinking
 description: "Apply before writing logic: choosing core types and data structures, sequencing scaffold against feature work, or asking what concurrent actors share. Get the data structures right so the downstream code becomes obvious."
-seats: [dev, eng-lead]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-dev-ops, harness-eng-lead]
 ---
 # Foundational Thinking
 

@@ -62,6 +62,17 @@ block or does it sail through?*
 
 Do **not** report what a linter catches, and do not restyle to personal preference.
 
+### Principles applied
+
+Read `## Principles applied` in each dev receipt under `notes/`. Two claims are checkable; check them:
+
+- **Build the Lever** — the diff contains the script, codemod or generator. None → `form` finding.
+- **Test Behavior** — the named kept test fails when every import returns nothing. Passes →
+  `substance` finding; the test is decoration.
+
+A cited principle you cannot match to a change in the diff is a `form` finding. An absent or empty
+section is not a finding.
+
 ### Absence, subject and mutant (DEC-169, issue #979)
 
 The one canonical copy; `harness-verification-rules` points here. Evidence is DEC-169.

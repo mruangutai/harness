@@ -2,7 +2,7 @@
 name: separate-before-serializing-shared-state
 title: Separate Before Serializing Shared State
 description: "Apply when concurrent actors might write to the same file, branch, key, or state object. Eliminate the sharing first; serialize structurally only when one shared writer is a real invariant."
-seats: [dev, eng-lead]
+seats: [harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-eng-lead]
 ---
 # Separate Before Serializing Shared State
 

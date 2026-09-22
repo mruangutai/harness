@@ -54,7 +54,7 @@ def main():
         check(f"{leaf['slug']}_indexed", f"`references/{leaf['slug']}.md`" in block, "absent from index")
         check(f"{leaf['slug']}_exists", os.path.isfile(path), path)
 
-    bad = {"name": "x", "title": "X", "description": '"Never"', "seats": "[dev]"}
+    bad = {"name": "x", "title": "X", "description": '"Never"', "seats": "[harness-qa]"}
     text = "---\n" + "\n".join(f"{k}: {v}" for k, v in bad.items()) + "\n---\nbody\n"
     try:
         gen.parse_frontmatter("x.md", text)
@@ -62,10 +62,10 @@ def main():
     except gen.LeafError:
         check("description_must_start_with_apply", True)
 
-    text = '---\nname: x\ntitle: X\ndescription: "Apply when"\nseats: [qa, dev]\n---\nbody\n'
+    text = '---\nname: x\ntitle: X\ndescription: "Apply when"\nseats: [harness-qa, harness-frontend-dev]\n---\nbody\n'
     try:
         gen.parse_frontmatter("x.md", text)
-        check("seats_must_be_canonical_order", False, "accepted [qa, dev]")
+        check("seats_must_be_canonical_order", False, "accepted [harness-qa, harness-frontend-dev]")
     except gen.LeafError:
         check("seats_must_be_canonical_order", True)
 

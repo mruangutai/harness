@@ -2,7 +2,7 @@
 name: attack-the-premise
 title: Attack the Premise
 description: "Apply when two or more fixes that share one premise have failed the same gate. Take a census of which actors hold the imbalance, then question the premise instead of writing another fix that assumes it."
-seats: [dev, eng-lead, pm]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-dev-ops, harness-eng-lead, harness-pm]
 ---
 # Attack the Premise
 

@@ -2,7 +2,7 @@
 name: experience-first
 title: Experience First
 description: "Apply when product, UX, or feature-scope tradeoffs come up. Choose the user's delight over implementation convenience; ship fewer polished features over more rough ones."
-seats: [eng-lead, pm]
+seats: [harness-frontend-dev, harness-eng-lead, harness-pm]
 ---
 # Experience First
 

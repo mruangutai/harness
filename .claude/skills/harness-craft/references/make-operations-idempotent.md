@@ -2,7 +2,7 @@
 name: make-operations-idempotent
 title: Make Operations Idempotent
 description: "Apply when designing commands, lifecycle steps, or processing loops that run amid crashes, restarts, and retries. Converge to the same end state regardless of partial prior runs."
-seats: [dev, eng-lead]
+seats: [harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-eng-lead]
 ---
 # Make Operations Idempotent
 

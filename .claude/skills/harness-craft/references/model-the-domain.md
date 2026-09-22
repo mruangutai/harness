@@ -2,7 +2,7 @@
 name: model-the-domain
 title: Model the Domain
 description: "Apply when writing stateful logic, or when code branches a lot or repeats a shape assumption across files. Encode the domain in a structure instead of scattered conditionals."
-seats: [dev, eng-lead, code-reviewer]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-eng-lead, harness-code-reviewer]
 ---
 # Model the Domain
 

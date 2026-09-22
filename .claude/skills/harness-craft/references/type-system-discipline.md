@@ -2,7 +2,7 @@
 name: type-system-discipline
 title: Type System Discipline
 description: "Apply when designing types, reviewing a function signature, or writing code in any statically typed language. Make illegal states unrepresentable, brand semantic primitives, parse external data at boundaries, refuse to lie to the compiler, exhaust variants, and derive from authoritative schemas."
-seats: [dev, code-reviewer]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-code-reviewer]
 ---
 # Type System Discipline
 
