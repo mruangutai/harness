@@ -2,7 +2,7 @@
 name: build-the-lever
 title: Build the Lever
 description: "Apply to any non-trivial work, not just bulk work: edits, migrations, analyses, checks. Build the tool that does it or proves it (codemod, script, generator, or a shared recipe) instead of working by hand; the tool is the artifact a reviewer can rerun."
-seats: [dev, qa]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-dev-ops, harness-qa]
 ---
 # Build the Lever
 

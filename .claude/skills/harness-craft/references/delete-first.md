@@ -2,7 +2,7 @@
 name: delete-first
 title: Delete First
 description: "Apply when refactoring, sequencing an addition or rewrite, judging diff size, or tempted to add a layer, abstraction, or threaded signal. Remove before you build, and make the smallest change that solves the problem."
-seats: [dev, eng-lead, code-reviewer]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-dev-ops, harness-eng-lead, harness-code-reviewer]
 ---
 # Delete First
 

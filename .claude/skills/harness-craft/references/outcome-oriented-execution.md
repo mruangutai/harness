@@ -2,7 +2,7 @@
 name: outcome-oriented-execution
 title: Outcome-Oriented Execution
 description: "Apply during planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture; do not preserve smooth intermediate states with throwaway compatibility code."
-seats: [dev, eng-lead, pm]
+seats: [harness-backend-dev, harness-data-engineer, harness-dev-ops, harness-eng-lead, harness-pm]
 ---
 # Outcome-Oriented Execution
 

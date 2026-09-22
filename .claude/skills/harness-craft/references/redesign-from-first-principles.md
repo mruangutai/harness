@@ -2,7 +2,7 @@
 name: redesign-from-first-principles
 title: Redesign From First Principles
 description: "Apply when integrating a new requirement into an existing design. Redesign as if the requirement had been a foundational assumption from day one instead of bolting it on."
-seats: [dev, eng-lead, pm]
+seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-eng-lead, harness-pm]
 ---
 # Redesign From First Principles
 
