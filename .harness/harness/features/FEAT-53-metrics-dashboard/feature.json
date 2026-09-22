@@ -2,7 +2,7 @@
   "feature_id": "FEAT-53-metrics-dashboard",
   "branch": "feat/FEAT-53",
   "pr": null,
-  "review_sha": "d6ffd07f6cfa2620b835d8c98c824505603241bf",
+  "review_sha": "e4230ebc2a6fff22bb3105bb18d63f5e2d837603",
   "cycles_used": 41,
   "max_total_cycles": 50,
   "max_total_runs": 20,
@@ -500,6 +500,23 @@
       "tokens": 56205,
       "ended_at": "2026-09-22T17:48:29+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "2026-09-22-t32-eng-r1",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-22T17:52:30+00:00",
+      "ended_at": "2026-09-22T17:53:51+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "2026-09-22-t32-r1-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-09-22T17:54:15+00:00"
     }
   ],
   "mission": "plan",
@@ -1161,6 +1178,13 @@
       "kind": "amendment",
       "decision": "T-25.verify",
       "reason": "The repository migrated to directory-selected integration tests and now verifies required command adapters before runner layout."
+    },
+    {
+      "at": "2026-09-22T17:54:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "replace rejected run id with 2026-09-22-t32-r1-eng",
+      "reason": "Dispatch guard rejected the first run id because the required squad suffix did not trail the purpose; no lead ran and no implementation changed."
     }
   ],
   "rework": {
@@ -1200,7 +1224,7 @@
     "T-29": "722035a29b5d53398e6d7532f9a72beadf399995b4504d8ac38c67a6b598d29e",
     "T-30": "4e5cbc2e80d32211562f25716dd580a1b6811e1976073565d008a66bc037c7cd",
     "T-31": "4bc7d133cee350700489d0034fc0b2261e49f213a641d80c17c8fffc659c6acc",
-    "T-32": "6edb54ffe72a6811de6a43e59afe1129547a9b8f30ea381b69db7f7f4131d8ff"
+    "T-32": "554baac4239ca29a17f2a1fb72614aa95fbd21a9584505d8bce30ff1b109f54e"
   },
   "github": {
     "milestone": 80,
