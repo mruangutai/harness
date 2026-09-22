@@ -1134,6 +1134,21 @@ def _contained_feature_dir(root, relative):
     return feature_dir, None
 
 
+def _worktree_holding(root, path):
+    """The member of `root`'s checkout family — `root` itself or one of its linked
+    worktrees — that contains absolute `path`, or None when no member does. The family is
+    read from `.git/worktrees`, never from the digest, so the root this yields is no more
+    digest-chosen than `root` was. Linked worktrees live UNDER the owner root
+    (`.claude/worktrees/…`), so the deepest containing member is the holder."""
+    real_path = os.path.realpath(path)
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    import harness_boundary
+    family = [root] + harness_boundary.linked_worktrees(root)
+    holders = [member for member in family
+               if real_path.startswith(os.path.realpath(member) + os.sep)]
+    return max(holders, key=lambda member: len(os.path.realpath(member)), default=None)
+
+
 def _feature_dir_from_artifact(text, root):
     """The `.harness/<repo>/features/<FEAT>` directory named by this RETURN'S OWN
     `artifact:` line — the only field SEC-01 trusts to say which feature a
@@ -1144,6 +1159,14 @@ def _feature_dir_from_artifact(text, root):
 
     Matching the pattern is NOT enough to trust the path; `_contained_feature_dir`
     is what decides it names a directory inside `root`.
+
+    AN ABSOLUTE ARTIFACT BINDS TO THE CHECKOUT THAT HOLDS IT (#1883). Reviews and
+    distills run in linked worktrees whose basename need not name the feature
+    (`distill-FEAT-63`), and a dispatch may carry no feature marker; joining the
+    suffix onto `root` then found no feature.json — or, measured, a DIFFERENT
+    checkout's record for a path that was never inside any of them. The holding
+    checkout is looked up in `root`'s own worktree family; an absolute path outside
+    that family is refused as resolving outside this checkout.
 
     Returns `(dir, error)`.
     """
@@ -1160,6 +1183,13 @@ def _feature_dir_from_artifact(text, root):
                        f"{path!r} does not name a "
                        f".harness/<repo>/features/<FEAT>/ location — write your "
                        f"review under that feature's notes/.")
+    if os.path.isabs(path):
+        root = _worktree_holding(root, path)
+        if root is None:
+            return None, (f"code_grade cannot be bound to review_sha: artifact path "
+                           f"{path!r} resolves outside this checkout and its linked "
+                           f"worktrees, so the feature it names is not the one under "
+                           f"review.")
     return _contained_feature_dir(root, fm.group(1))
 
 
