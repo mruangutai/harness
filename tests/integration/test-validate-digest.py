@@ -2386,6 +2386,41 @@ def run_bug919_resolve_fallback_case():
     return 0 if ok else 1
 
 
+def run_bug919_resolve_by_artifact_case():
+    """#1883, second site: the #919 re-run resolved the feature's checkout by WORKTREE NAME
+    and `feature_root` substitutes the owner root when no worktree is named after the
+    feature — the exact silent wrong-checkout re-run the docstring above refuses. Measured
+    2026-09-22: a qa re-return for FEAT-63 from a branch worktree named `process-gaps` was
+    re-run against the owner checkout on a stale branch and refused on THAT tree's failure.
+    The digest's own artifact line names the checkout; when it lies inside a linked
+    worktree, that worktree's runner is the one to re-run."""
+    spec = importlib.util.spec_from_file_location("_bug919_artifact_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    owner = tempfile.mkdtemp(prefix="vd-919-owner-")
+    os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
+    worktree = _linked_worktree_fixture(owner, "process-gaps")
+    text = (f"artifact: {worktree}/.harness/harness/features/FEAT-63-thing/notes/"
+            f"review-harness-qa-c2.md\n")
+    original_root_fn = validator._root_or_none
+    validator._root_or_none = lambda: owner
+    saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    try:
+        resolved = validator._resolve_run_unit_tests_bin(
+            {"harness_feature": "FEAT-63-thing"}, text)
+    finally:
+        validator._root_or_none = original_root_fn
+        if saved_env is not None:
+            os.environ["RUN_UNIT_TESTS_BIN"] = saved_env
+        shutil.rmtree(owner, ignore_errors=True)
+    expected = os.path.join(worktree, ".claude", "skills", "harness", "bin", "run-unit-tests.py")
+    ok = resolved is not None and os.path.realpath(resolved) == os.path.realpath(expected)
+    label = ("[bug919/#1883] the re-run resolves to the linked worktree holding the "
+             "digest's artifact, not the owner root")
+    print(f"ok    {label}" if ok else f"FAIL  {label}\n      | got {resolved!r}")
+    return 0 if ok else 1
+
+
 
 
 
@@ -5450,6 +5485,7 @@ def main():
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
         run_bug919_resolve_fallback_case,
+        run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
         run_code_grade_cases,
         run_hook_cases,
