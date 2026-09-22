@@ -182,7 +182,7 @@ byte-verified before any commit.
 | It returned | You do |
 |---|---|
 | `PASS` | record, next step in PLAN — after `record-amendments` when the digest carries `amendments:` (build only) |
-| `FAIL` with `must_fix` | one `fix` run to `harness-validator-lead` naming the `execution_agent` of the task each finding cites; a finding citing no owned task is a new class → `awaiting_user`; increment `cycles_used`; a `regate` judgement |
+| `FAIL` with `must_fix` | one `fix` run to `harness-validator-lead` naming the `execution_agent` of the task each finding cites; a finding citing no owned task is a new class → `awaiting_user`; increment `cycles_used`; the `regate` judgement lands with that run's `run-start --regate` (#1881) |
 | `BLOCKED` | stop — a blocked member cannot be fixed by retrying. Return `BLOCKED` up |
 | `ESCALATE`, domain belongs to a peer squad | route it laterally to the owning lead — rung 2 below. If it changes the plan, send pm |
 | `ESCALATE`, and no squad can answer it | return `awaiting_user` with it in `open_questions` |
