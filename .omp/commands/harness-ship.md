@@ -12,8 +12,8 @@ Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differ
   ```
 
   Exit 0 means current. **Exit 6 means REFUSED**: it prints the count, every missing commit's
-  subject, and the `git -C <path> merge <branch>` command that fixes it. Run that, re-run the check,
-  then spawn. Exit 3 means there is no worktree at that path — cut it at step 0b first.
+  subject, and the command that fixes it. Run that, re-run the check, then spawn. Exit 3 means
+  there is no worktree at that path — cut it at step 0b first.
 
   This is not belt-and-braces. Measured 2026-08-21: FEAT-31's worktree sat **six** commits behind
   `main` at the moment its build was about to be dispatched, and the gap held `expertise-merge.py`
@@ -21,11 +21,12 @@ Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differ
   re-derived a rule it should have cited, against a tree that did not contain it. Nothing reported
   it; the operator asked.
 
-  **It compares against LOCAL `main`, deliberately.** `gh` was considered and rejected on a
-  measurement: none of the three in-flight feature branches existed on the remote, because nothing is
-  pushed until PR time, so `gh` would answer "no such branch" for exactly this case. The accepted
-  cost is that a stale local `main` makes the count a floor rather than a ceiling — it never accuses
-  a tree that is current.
+  **It compares against `origin/main` after one fetch (#1850).** Until 2026-09-22 it compared
+  against LOCAL `main`, on the reasoning that feature branches are not on the remote before PR
+  time — true, and beside the point, because the target is the default branch. Measured cost of
+  the old target: FEAT-61's local `main` had missed one merge, the door printed `current with
+  main`, and the PR was CONFLICTING with zero CI runs. When the fetch fails it falls back to LOCAL
+  `main` and says `COULD NOT FETCH` on stderr — a named fallback, and then the count is a floor.
 
   **What it does NOT catch:** a build that starts current and drifts behind while it runs. This fires
   at the door, once, not mid-flight.
