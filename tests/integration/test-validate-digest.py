@@ -2386,6 +2386,41 @@ def run_bug919_resolve_fallback_case():
     return 0 if ok else 1
 
 
+def run_bug919_resolve_by_artifact_case():
+    """#1883, second site: the #919 re-run resolved the feature's checkout by WORKTREE NAME
+    and `feature_root` substitutes the owner root when no worktree is named after the
+    feature — the exact silent wrong-checkout re-run the docstring above refuses. Measured
+    2026-09-22: a qa re-return for FEAT-63 from a branch worktree named `process-gaps` was
+    re-run against the owner checkout on a stale branch and refused on THAT tree's failure.
+    The digest's own artifact line names the checkout; when it lies inside a linked
+    worktree, that worktree's runner is the one to re-run."""
+    spec = importlib.util.spec_from_file_location("_bug919_artifact_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    owner = tempfile.mkdtemp(prefix="vd-919-owner-")
+    os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
+    worktree = _linked_worktree_fixture(owner, "process-gaps")
+    text = (f"artifact: {worktree}/.harness/harness/features/FEAT-63-thing/notes/"
+            f"review-harness-qa-c2.md\n")
+    original_root_fn = validator._root_or_none
+    validator._root_or_none = lambda: owner
+    saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    try:
+        resolved = validator._resolve_run_unit_tests_bin(
+            {"harness_feature": "FEAT-63-thing"}, text)
+    finally:
+        validator._root_or_none = original_root_fn
+        if saved_env is not None:
+            os.environ["RUN_UNIT_TESTS_BIN"] = saved_env
+        shutil.rmtree(owner, ignore_errors=True)
+    expected = os.path.join(worktree, ".claude", "skills", "harness", "bin", "run-unit-tests.py")
+    ok = resolved is not None and os.path.realpath(resolved) == os.path.realpath(expected)
+    label = ("[bug919/#1883] the re-run resolves to the linked worktree holding the "
+             "digest's artifact, not the owner root")
+    print(f"ok    {label}" if ok else f"FAIL  {label}\n      | got {resolved!r}")
+    return 0 if ok else 1
+
+
 
 
 
@@ -4339,6 +4374,42 @@ def check_symlinked_feature_component(td, failures):
                         f"directory: {feature_dir!r} {error!r}")
 
 
+def check_artifact_in_linked_worktree_binds_there(td, failures):
+    """#1883: an ABSOLUTE artifact path inside one of the owner checkout's linked
+    worktrees binds to THAT worktree's feature.json and grades `git -C <worktree>`.
+
+    Three agents on 2026-09-22 (FEAT-63's delta reviewer, the distill's code-expertise
+    member) returned valid digests and could not yield: the artifact named
+    `<owner>/.claude/worktrees/harness/distill-FEAT-63/.harness/harness/features/FEAT-63-…`
+    and the binding joined the suffix onto the OWNER root, where a worktree-only feature
+    has no record. The worktree family SEC-01 trusts is the owner root plus
+    `linked_worktrees(owner_root)` — nothing digest-chosen — so an absolute path inside
+    one of them is the same trust the relative form already has. Anything outside the
+    family is refused exactly as before."""
+    validator = _fresh_validator()
+    owner = os.path.join(td, "wt-owner")
+    os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
+    worktree = _linked_worktree_fixture(owner, "distill-FEAT-Z")
+    feature_dir = os.path.join(worktree, ".harness", "harness", "features", "FEAT-Z-thing")
+    os.makedirs(os.path.join(feature_dir, "notes"), exist_ok=True)
+    text = f"artifact: {feature_dir}/notes/review-harness-code-reviewer-delta.md\n"
+    resolved, error = validator._feature_dir_from_artifact(text, owner)
+    if error or os.path.realpath(resolved or "") != os.path.realpath(feature_dir):
+        failures.append(f"#1883: an absolute artifact inside a linked worktree must bind "
+                        f"to that worktree's feature dir: {resolved!r} {error!r}")
+    elif validator._repo_root_for_feature(resolved) != os.path.realpath(worktree):
+        failures.append("#1883: the bound feature dir must grade against the worktree, "
+                        "not the owner root")
+
+    outside = os.path.join(td, "not-a-worktree", ".harness", "harness", "features", "FEAT-Z-thing")
+    os.makedirs(outside, exist_ok=True)
+    resolved, error = validator._feature_dir_from_artifact(
+        f"artifact: {outside}/notes/review.md\n", owner)
+    if resolved is not None or "resolves outside this checkout" not in (error or ""):
+        failures.append(f"#1883: an absolute artifact outside the worktree family must "
+                        f"still be refused: {resolved!r} {error!r}")
+
+
 def check_judgment_outranks_clean_grade(td, failures):
     """SC-08/REQ-05: a mechanically CLEAN range cannot rescue a review whose own human
     judgment failed. The reviewer keeps `must_fix` and severity; recomputing the grade
@@ -4397,6 +4468,7 @@ def _check_bug1081_enforcement(validator, config, td, failures):
     check_malformed_test_kinds(td, failures)
     check_artifact_path_traversal(td, failures)
     check_symlinked_feature_component(td, failures)
+    check_artifact_in_linked_worktree_binds_there(td, failures)
     check_judgment_outranks_clean_grade(td, failures)
     check_plan_review_never_grades(validator, config, td, failures)
 
@@ -5413,6 +5485,7 @@ def main():
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
         run_bug919_resolve_fallback_case,
+        run_bug919_resolve_by_artifact_case,
         run_joint_hint_case,
         run_code_grade_cases,
         run_hook_cases,

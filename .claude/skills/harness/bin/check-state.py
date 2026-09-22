@@ -2369,6 +2369,73 @@ def inv_46(ctx, feat):
             bad.extend(_inv46_verdict_cross_check(ctx, feat, rundir, found[0], found[1]))
     return bad, warn
 
+# INV-47 (#1884): a validate run recorded PASS is graded against the member notes of ITS
+# cycle. FEAT-63's c2 was recorded PASS while notes/review-harness-qa-c2.md said BLOCKED —
+# the integration runner's exit 1 was real and CI caught it after the PASS. issue #919's
+# re-run fires only on a qa PASS, and INV-46 compares the run's digest with feature.json;
+# nothing compared the lead's verdict with what its members returned. The note IS the
+# member's record (overwritten per cycle), so a FAIL or BLOCKED there under a PASS run means
+# the lead passed over a member it did not get to re-return. Cycle mapping is the run id's
+# own: `validate-validator` is c0, `validate-cN-validator` is cN; `-plan-cN` notes belong to
+# plan runs and are not members of a validate run.
+_VALIDATE_RUN_RE = re.compile(r"^validate(?:-c(\d+))?-validator$")
+# The lookahead keeps `-plan-cN` names out: plan-review notes are not members of a validate run.
+_MEMBER_NOTE_RE = re.compile(r"^review-harness-(?!.*-plan-c)[a-z-]+-c(\d+)\.md$")
+
+
+def _note_cycle(name):
+    """The cycle a member review note belongs to, or None for a non-member name."""
+    _nm = _MEMBER_NOTE_RE.match(name)
+    return int(_nm.group(1)) if _nm else None
+
+
+def _note_verdict(path):
+    """The note's tail VERDICT, upper-cased, or None when it carries none."""
+    _vm = _inv15_digest_verdict(read(path) or "")
+    return _vm.group(1).strip().upper() if _vm else None
+
+
+def _inv47_member_notes(ctx, feat, cycle):
+    """(name, verdict) for every member review note of `cycle`."""
+    _paths = sorted(glob.glob(os.path.join(ctx.feature_dir(feat), "notes", "review-harness-*.md")))
+    return [(os.path.basename(_np), _note_verdict(_np)) for _np in _paths
+            if _note_cycle(os.path.basename(_np)) == cycle]
+
+
+def _passed_validate_cycle(_entry):
+    """(run id, cycle) when `_entry` is a validate run at PASS, else None."""
+    if not isinstance(_entry, dict):
+        return None
+    _rid = str(_entry.get("id", "")).strip()
+    _rm = _VALIDATE_RUN_RE.match(_rid)
+    if not _rm or str(_entry.get("verdict", "")).strip().upper() != "PASS":
+        return None
+    return _rid, int(_rm.group(1) or 0)
+
+
+def _passed_validate_cycles(_doc):
+    """(run id, cycle) for every validate run the record has at PASS."""
+    _found = (_passed_validate_cycle(_entry) for _entry in (_doc.get("runs") or []))
+    return [_hit for _hit in _found if _hit is not None]
+
+
+def _inv47_hit(_rid, _name, _verdict):
+    return ("INV-47", f"run {_rid} PASS over notes/{_name} {_verdict}",
+            f"run {_rid} is recorded PASS but its member note notes/{_name} says VERDICT: "
+            f"{_verdict} — a lead does not pass over a member's {_verdict}; the member "
+            f"returns again, or the run is FAIL (#1884)")
+
+
+def inv_47(ctx, feat):
+    _doc, _era = _feat59_record(ctx, feat)
+    if _doc is None:
+        return [], [], []
+    _hits = [_inv47_hit(_rid, _name, _verdict)
+             for _rid, _cycle in _passed_validate_cycles(_doc)
+             for _name, _verdict in _inv47_member_notes(ctx, feat, _cycle)
+             if _verdict in ("FAIL", "BLOCKED")]
+    return [], [], _hits
+
 # --- INV-19 (DEC-162): no glossary means the domain's ubiquitous language lives
 # nowhere — "create lazily" fired zero times across three shipped features while
 # enums and status vocabularies were being pinned. Warn-level: flows still run, but
@@ -4555,6 +4622,8 @@ INVARIANTS = (
             "every autonomous judgement -- mission, regate, succession, amendment -- leaves a ledger entry", "DEC-229"),
         Inv("INV-43", inv_43, "feature", (_FEATURE_JSON, _BRIEF, _HANDOFF, _HARNESS_JSON),
             "a succession judgement is recorded no later than the successor's first run", "DEC-227"),
+        Inv("INV-47", inv_47, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/notes/review-harness-*.md"),
+            "a validate run recorded PASS has no same-cycle member review at FAIL or BLOCKED", "DEC-156"),
     ), collate=collate_feat59),
     Group("rejected-shape", (
         Inv("INV-44", inv_44, "feature", (_FEATURE_JSON, _PLAN_YAML, _BRIEF),

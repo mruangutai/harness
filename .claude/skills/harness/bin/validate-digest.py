@@ -1134,6 +1134,21 @@ def _contained_feature_dir(root, relative):
     return feature_dir, None
 
 
+def _worktree_holding(root, path):
+    """The member of `root`'s checkout family — `root` itself or one of its linked
+    worktrees — that contains absolute `path`, or None when no member does. The family is
+    read from `.git/worktrees`, never from the digest, so the root this yields is no more
+    digest-chosen than `root` was. Linked worktrees live UNDER the owner root
+    (`.claude/worktrees/…`), so the deepest containing member is the holder."""
+    real_path = os.path.realpath(path)
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    import harness_boundary
+    family = [root] + harness_boundary.linked_worktrees(root)
+    holders = [member for member in family
+               if real_path.startswith(os.path.realpath(member) + os.sep)]
+    return max(holders, key=lambda member: len(os.path.realpath(member)), default=None)
+
+
 def _feature_dir_from_artifact(text, root):
     """The `.harness/<repo>/features/<FEAT>` directory named by this RETURN'S OWN
     `artifact:` line — the only field SEC-01 trusts to say which feature a
@@ -1144,6 +1159,14 @@ def _feature_dir_from_artifact(text, root):
 
     Matching the pattern is NOT enough to trust the path; `_contained_feature_dir`
     is what decides it names a directory inside `root`.
+
+    AN ABSOLUTE ARTIFACT BINDS TO THE CHECKOUT THAT HOLDS IT (#1883). Reviews and
+    distills run in linked worktrees whose basename need not name the feature
+    (`distill-FEAT-63`), and a dispatch may carry no feature marker; joining the
+    suffix onto `root` then found no feature.json — or, measured, a DIFFERENT
+    checkout's record for a path that was never inside any of them. The holding
+    checkout is looked up in `root`'s own worktree family; an absolute path outside
+    that family is refused as resolving outside this checkout.
 
     Returns `(dir, error)`.
     """
@@ -1160,6 +1183,13 @@ def _feature_dir_from_artifact(text, root):
                        f"{path!r} does not name a "
                        f".harness/<repo>/features/<FEAT>/ location — write your "
                        f"review under that feature's notes/.")
+    if os.path.isabs(path):
+        root = _worktree_holding(root, path)
+        if root is None:
+            return None, (f"code_grade cannot be bound to review_sha: artifact path "
+                           f"{path!r} resolves outside this checkout and its linked "
+                           f"worktrees, so the feature it names is not the one under "
+                           f"review.")
     return _contained_feature_dir(root, fm.group(1))
 
 
@@ -2044,7 +2074,20 @@ def _qa_claims_unconditional_pass(text):
     return seen.get("suite") == "pass" and seen.get("matrix_ok") is True
 
 
-def _resolve_run_unit_tests_bin(payload):
+def _artifact_holder(text):
+    """The linked worktree (or owner root) holding the digest's absolute artifact line, or
+    None when the digest names none, a relative one, or one outside the family (#1883)."""
+    m = None
+    for mm in re.finditer(r"^\s*artifact:\s*(\S+)", text, re.M):
+        m = mm
+    owner_root = _root_or_none()
+    if not m or not owner_root:
+        return None
+    path = strip_comment(m.group(1)).strip("\"'")
+    return _worktree_holding(owner_root, path) if os.path.isabs(path) else None
+
+
+def _resolve_run_unit_tests_bin(payload, text=""):
     """The suite entrypoint to independently re-run, or None if it cannot be resolved.
 
     RUN_UNIT_TESTS_BIN is test-only: it lets a fixture point this check at a fast stub
@@ -2061,9 +2104,19 @@ def _resolve_run_unit_tests_bin(payload):
     resolve) rather than substituting owner_root; the caller's existing "could not
     independently re-run" fail-open path is where that lands.
     """
+    # THE ARTIFACT'S CHECKOUT FIRST (#1883). `feature_root` resolves by worktree NAME and
+    # substitutes the owner root when nothing is named after the feature — measured on a
+    # branch worktree called `process-gaps`: the suite re-ran against the owner checkout
+    # on a stale branch and refused a qa PASS on that tree's failure. The digest's own
+    # artifact line names the checkout it was written from; when that lies inside the
+    # owner's worktree family it is the checkout to re-run, deterministically.
     run_bin = os.environ.get("RUN_UNIT_TESTS_BIN")
     if run_bin:
         return run_bin
+    holder = _artifact_holder(text)
+    if holder:
+        return os.path.join(holder, ".claude", "skills", "harness", "bin",
+                            "run-unit-tests.py")
     owner_root = _root_or_none()
     feature = payload.get("harness_feature")
     if not feature:
@@ -2142,7 +2195,7 @@ def check_qa_matrix_claim(agent, text, payload):
     """
     if not _qa_claims_unconditional_pass(text):
         return 0
-    run_bin = _resolve_run_unit_tests_bin(payload)
+    run_bin = _resolve_run_unit_tests_bin(payload, text)
     result = _reverify_suite(run_bin, _claimed_kinds(text))
     if result is None:
         print(f"check-digest: could not independently re-run the suite at {run_bin!r} "

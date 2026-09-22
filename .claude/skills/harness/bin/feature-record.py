@@ -135,12 +135,84 @@ def _attributed_cycles(runs):
     return total
 
 
+def _kind_count(doc, kind):
+    return sum(1 for e in (doc.get("judgements") or [])
+               if isinstance(e, dict) and str(e.get("kind", "")).strip() == kind)
+
+
+def _owed_regate(doc, runs):
+    """The FAIL run the new run re-gates with no regate entry yet, or None. INV-40 (b)'s own
+    matching: the k-th FAIL run a later run follows takes the k-th regate entry."""
+    followed = [str(e.get("id", "")).strip() for e in runs
+                if isinstance(e, dict) and str(e.get("verdict", "")).strip().upper() == "FAIL"]
+    have = _kind_count(doc, "regate")
+    return followed[have] if len(followed) > have else None
+
+
+def _handoff_seq(path):
+    """The `seq-N` a handoff note's first line names, or None (unmarked or unreadable)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            m = re.search(r"\bseq-(\d+)\b", fh.readline())
+    except (OSError, UnicodeDecodeError):
+        return None
+    return int(m.group(1)) if m else None
+
+
+def _owed_succession(feature_json, doc, runs):
+    """The handoff note the new run succeeds with no succession entry yet, or None. INV-40
+    (c)'s own matching: handoff notes with a `seq-N` below the new run's ordinal, in seq
+    order, take succession entries in ledger order. A note with no marker is INV-40's own
+    finding and is never counted here."""
+    notes_dir = os.path.join(os.path.dirname(os.path.abspath(feature_json)), "notes")
+    names = sorted(os.listdir(notes_dir)) if os.path.isdir(notes_dir) else []
+    seqs = [(_handoff_seq(os.path.join(notes_dir, name)), name) for name in names
+            if name.startswith("handoff-") and name.endswith(".md")]
+    owed = sorted((seq, name) for seq, name in seqs if seq is not None and seq <= len(runs))
+    have = _kind_count(doc, "succession")
+    return owed[have][1] if len(owed) > have else None
+
+
+def _reconcile_owed(kind, owed_to, decision):
+    """Refuse a mismatch between what the open owes and what the caller supplied."""
+    if owed_to and not decision:
+        what = (f"run {owed_to!r} has verdict FAIL and this run follows it" if kind == "regate"
+                else f"notes/{owed_to} is a handoff this run succeeds")
+        _refuse([f"REFUSED: {what}, and judgements[] carries no {kind} for it.",
+                 f"  The open owes that judgement (INV-40); supply --by, --reason and "
+                 f"--{kind} <decision> to record it and start the run in one write."])
+    if decision and not owed_to:
+        _refuse([f"REFUSED: --{kind} given, but this run owes no {kind}: "
+                 f"the ledger records decisions that happened."])
+
+
 def cmd_run_start(args):
+    # THE RUN AND WHAT ITS OPEN OWES ARE ONE WRITE (#1881), the posture set-mission takes for
+    # the mission and close-run takes for the close. What the open owes is DERIVED from the
+    # record — a FAIL run this one follows owes a regate (INV-40 b); a handoff note this one
+    # succeeds owes a succession (INV-40 c, INV-43 no later than this run starts) — and is
+    # refused unless supplied, so a successor cannot wake without the ledger hearing of it.
+    # A reason for a judgement the open does not owe is refused too: the ledger records
+    # decisions that happened, and an unowed regate or succession did not.
+    # `--regate <decision>` and `--succession continue|downgrade|stop` are the decisions the
+    # ledger already spells (references/ledger.md); `--reason` is the one line both share.
+    supplied = {"regate": args.regate, "succession": args.succession}
+    if any(supplied.values()) and not (args.by and args.reason):
+        _refuse(["REFUSED: --regate/--succession record a judgement and need --by and --reason."])
+    judgements = []
+
     def mutate(doc):
+        judgements.clear()
         runs = _runs(doc)
         if _find_run(runs, args.id) is not None:
             _refuse([f"REFUSED: runs[] already carries an entry with id {args.id!r}.",
                      "  run-start appends a NEW run; close the existing one with run-end."])
+        owed = {"regate": _owed_regate(doc, runs),
+                "succession": _owed_succession(args.file, doc, runs)}
+        for kind, owed_to in owed.items():
+            _reconcile_owed(kind, owed_to, supplied[kind])
+            if owed_to:
+                judgements.append(_judgement(args.by, kind, supplied[kind], args.reason))
         entry = {"id": args.id, "squad": args.squad}
         if args.agent:
             entry["agent"] = args.agent
@@ -148,10 +220,14 @@ def cmd_run_start(args):
         entry["started_at"] = now_iso()
         runs.append(entry)
         doc["runs"] = runs
+        for record in judgements:
+            _append_judgement(doc, record)
         return doc
 
     _apply(args.file, mutate)
     print(f"STARTED run {args.id!r}")
+    for record in judgements:
+        print(f"RECORDED judgement {record['kind']}: {record['decision']}")
     print(f"APPLIED {args.file}")
     sys.exit(0)
 
@@ -637,6 +713,12 @@ def main():
     p.add_argument("--id", required=True)
     p.add_argument("--squad", required=True)
     p.add_argument("--agent", help="the agent executing the run (required for new features)")
+    p.add_argument("--by", help="the persona judging what this open owes (with --reason)")
+    p.add_argument("--reason", help="one line, at most 240 characters, shared by the judgement(s) below")
+    p.add_argument("--regate", help="the re-gate decision when the run this one follows is a FAIL "
+                                    "(INV-40 b), e.g. 'validate cycle 2'")
+    p.add_argument("--succession", choices=("continue", "downgrade", "stop"),
+                   help="the decision on the handoff this run succeeds (INV-40 c, INV-43)")
     p.set_defaults(func=cmd_run_start)
 
     p = with_file(sub.add_parser("run-end", help="close a runs[] entry"))

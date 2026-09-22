@@ -9,7 +9,13 @@ Every write goes through `feature-record.py`; you never edit `feature.json` by h
 ## Runs
 
 Before every dispatch:
-`feature-record.py run-start --file <feature.json> --id <run-id> --squad <squad> --agent <lead>`.
+`feature-record.py run-start --file <feature.json> --id <run-id> --squad <squad> --agent <lead> [--by harness-orchestrator --reason <one line> --regate <decision>] [--by harness-orchestrator --reason <one line> --succession continue|downgrade|stop]`.
+The open is composed like the close (#1881): `run-start` derives what the new run owes from the
+record — a FAIL run it follows owes a `regate`; a handoff note at `seq-N` it succeeds owes a
+`succession` — and **refuses** unless you supply the matching decision and reason, in which case the run and
+the judgement land in one write. A reason for a judgement the open does not owe is refused too.
+You never write those two kinds with `judgement` after the fact; INV-43 grades a late succession
+as retrospective forever.
 After every return, ONE command:
 `feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a]`
 — in order: the digest is validated against the run's recorded persona; `run-end`; the task

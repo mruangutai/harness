@@ -90,6 +90,87 @@ class RunStartEndTest(FeatureRecordCase):
         self.assertIn("r1", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
+    # #1881: the run OPEN is composed like the CLOSE. What the open owes is derived from the
+    # record it appends to, with INV-40's own matching, and refused unless supplied.
+    def test_run_start_after_a_fail_run_owes_a_regate_and_refuses_without_one(self):
+        before = self.write(base_doc(runs=[
+            {"id": "validate-validator", "squad": "validator", "verdict": "FAIL",
+             "agent": "harness-validator-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T11:00:00+00:00", "cycles_used": 1}], cycles_used=1))
+        result = self.run_cli("run-start", "--file", str(self.path), "--id", "validate-c1-validator",
+                              "--squad", "validator", "--agent", "harness-validator-lead")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("regate", result.stderr)
+        self.assertIn("validate-validator", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_start_with_regate_reason_lands_run_and_judgement_in_one_write(self):
+        self.write(base_doc(runs=[
+            {"id": "validate-validator", "squad": "validator", "verdict": "FAIL",
+             "agent": "harness-validator-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T11:00:00+00:00", "cycles_used": 1}], cycles_used=1))
+        self.assert_ok(self.run_cli("run-start", "--file", str(self.path), "--id", "validate-c1-validator",
+                                    "--squad", "validator", "--agent", "harness-validator-lead",
+                                    "--by", "harness-orchestrator", "--regate", "validate cycle 1",
+                                    "--reason", "QA-63-02 fixed; re-gating at the new pin"))
+        doc = self.load()
+        self.assertEqual("validate-c1-validator", doc["runs"][-1]["id"])
+        regates = [j for j in doc["judgements"] if j["kind"] == "regate"]
+        self.assertEqual(1, len(regates))
+        self.assertEqual("validate cycle 1", regates[0]["decision"])
+        self.assertEqual("harness-orchestrator", regates[0]["by"])
+        self.assert_clean()
+
+    def test_run_start_after_a_handoff_owes_a_succession_and_refuses_without_one(self):
+        notes = self.path.parent / "notes"
+        notes.mkdir()
+        (notes / "handoff-plan.md").write_text("# Handoff seq-1 plan\n", encoding="utf-8")
+        before = self.write(base_doc(runs=[
+            {"id": "plan-product", "squad": "product", "verdict": "PASS",
+             "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T11:00:00+00:00", "cycles_used": 1}], cycles_used=1))
+        result = self.run_cli("run-start", "--file", str(self.path), "--id", "validate-validator",
+                              "--squad", "validator", "--agent", "harness-validator-lead")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("succession", result.stderr)
+        self.assertIn("handoff-plan.md", result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_run_start_with_succession_reason_lands_run_and_judgement_in_one_write(self):
+        notes = self.path.parent / "notes"
+        notes.mkdir()
+        (notes / "handoff-plan.md").write_text("# Handoff seq-1 plan\n", encoding="utf-8")
+        self.write(base_doc(runs=[
+            {"id": "plan-product", "squad": "product", "verdict": "PASS",
+             "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T11:00:00+00:00", "cycles_used": 1}], cycles_used=1))
+        self.assert_ok(self.run_cli("run-start", "--file", str(self.path), "--id", "validate-validator",
+                                    "--squad", "validator", "--agent", "harness-validator-lead",
+                                    "--by", "harness-orchestrator", "--succession", "continue",
+                                    "--reason", "plan handoff read; validating at the pin"))
+        doc = self.load()
+        succ = [j for j in doc["judgements"] if j["kind"] == "succession"]
+        self.assertEqual(1, len(succ))
+        self.assertEqual("continue", succ[0]["decision"])
+        self.assert_clean()
+
+    def test_run_start_that_owes_nothing_takes_no_reason_and_writes_no_judgement(self):
+        self.write(base_doc(runs=[
+            {"id": "plan-product", "squad": "product", "verdict": "PASS",
+             "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+             "ended_at": "2026-09-11T11:00:00+00:00", "cycles_used": 1}], cycles_used=1))
+        self.assert_ok(self.run_cli("run-start", "--file", str(self.path), "--id", "validate-validator",
+                                    "--squad", "validator", "--agent", "harness-validator-lead"))
+        self.assertNotIn("judgements", self.load())
+
+    def test_run_start_refuses_a_reason_for_a_judgement_it_does_not_owe(self):
+        before = self.write(base_doc())
+        result = self.run_cli("run-start", "--file", str(self.path), "--id", "plan-product",
+                              "--squad", "product", "--agent", "harness-product-lead",
+                              "--by", "harness-orchestrator", "--regate", "cycle 1", "--reason", "nothing to re-gate")
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
     def test_run_end_stamps_verdict_ended_at_tokens_and_code_grade(self):
         self.write(base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "PENDING",
                                    "agent": "harness-product-lead",

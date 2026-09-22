@@ -507,11 +507,13 @@ def case_behind_default_branch(fx):
     assert r.returncode == 0, f"fixture setup for FEAT-81 failed: rc={r.returncode} stderr={r.stderr!r}"
     dest = info["dest"]
 
-    # CASE A — freshly cut, so it is current by construction.
+    # CASE A — freshly cut, so it is current by construction. This fixture has no origin,
+    # so every comparison here is the NAMED local fallback (#1850; the remote path is
+    # case_behind_sees_origin).
     r0 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
     check(
         "behind: a freshly cut worktree is current, exit 0",
-        r0.returncode == 0 and "current with main" in r0.stdout,
+        r0.returncode == 0 and "current with LOCAL main" in r0.stdout,
         f"rc={r0.returncode} stdout={r0.stdout!r} stderr={r0.stderr!r}",
     )
 
@@ -532,7 +534,7 @@ def case_behind_default_branch(fx):
     )
     check(
         "behind: the refusal names the count, not just that it is behind",
-        "2 commit(s) behind main" in r1.stderr,
+        "2 commit(s) behind LOCAL main" in r1.stderr,
         r1.stderr,
     )
     check(
@@ -558,7 +560,7 @@ def case_behind_default_branch(fx):
     r2 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
     check(
         "behind: after the printed merge command, it is current again, exit 0",
-        r2.returncode == 0 and "current with main" in r2.stdout,
+        r2.returncode == 0 and "current with LOCAL main" in r2.stdout,
         f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
     )
 
@@ -1089,6 +1091,72 @@ def case_short_id_ambiguous_refuses(fx):
     check("#727 guard: the tree survives the refusal", os.path.isdir(dest), dest)
 
 
+def _origin_moved_ahead(fx):
+    """A bare origin holding main as it stands; then origin's main moves ahead through a
+    second clone while the owner checkout's local main stays where it was. Returns the
+    origin path (the caller unwires it)."""
+    origin = os.path.join(os.path.dirname(fx["repoA"]), "origin-A.git")
+    _git(fx["repoA"], ["init", "-q", "--bare", origin])
+    _git(fx["repoA"], ["remote", "add", "origin", origin])
+    _git(fx["repoA"], ["push", "-q", "origin", "main"])
+    other = os.path.join(os.path.dirname(fx["repoA"]), "other-clone")
+    _git(fx["repoA"], ["clone", "-q", "--no-local", "--branch", "main", origin, other])
+    _git(other, ["config", "user.email", "test@example.com"])
+    _git(other, ["config", "user.name", "Test"])
+    with open(os.path.join(other, "landed-elsewhere.txt"), "w") as f:
+        f.write("merged on GitHub\n")
+    _git(other, ["add", "-A"])
+    _git(other, ["commit", "-q", "-m", "landed on origin only"])
+    _git(other, ["push", "-q", "origin", "main"])
+    assert _git(fx["repoA"], ["rev-list", "--count", "HEAD..main"]).stdout.strip() == "0"
+    return origin
+
+
+def case_behind_sees_origin(fx):
+    """#1850: the comparison target is the REMOTE default branch. FEAT-61's incident: local
+    `main` was stale, `behind` printed `current with main`, and the PR opened from that
+    worktree was CONFLICTING with zero CI runs. A stale local ref under-reporting is not the
+    safe direction — it is a green door in front of a red PR."""
+    info, r = create_one(fx, "harness", "FEAT-83")
+    assert r.returncode == 0, f"fixture setup for FEAT-83 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest = info["dest"]
+    origin = _origin_moved_ahead(fx)
+
+    r1 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-83"], fx)
+    check(
+        "behind (#1850): current with a STALE local main but behind origin/main exits 6",
+        r1.returncode == 6,
+        f"rc={r1.returncode} stdout={r1.stdout!r} stderr={r1.stderr!r}",
+    )
+    check(
+        "behind (#1850): the refusal names the remote ref it compared against",
+        "origin/main" in r1.stderr and "landed on origin only" in r1.stderr,
+        r1.stderr,
+    )
+
+    # The remedy it prints brings the worktree current against origin.
+    _git(dest, ["fetch", "-q", "origin", "main"])
+    _git(dest, ["merge", "-q", "FETCH_HEAD", "-m", "pull origin main"])
+    r2 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-83"], fx)
+    check(
+        "behind (#1850): after merging what origin holds it is current, exit 0",
+        r2.returncode == 0 and "origin/main" in r2.stdout,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+
+    # An unreachable origin is a NAMED fallback to local main, never a silent pass: the
+    # operator is told what was compared. The worktree is current with local main here.
+    _git(fx["repoA"], ["remote", "set-url", "origin", os.path.join(origin, "does-not-exist")])
+    r3 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-83"], fx)
+    check(
+        "behind (#1850): an unreachable origin falls back to LOCAL main and says so on stderr",
+        r3.returncode == 0 and "COULD NOT FETCH" in r3.stderr and "LOCAL main" in r3.stderr,
+        f"rc={r3.returncode} stdout={r3.stdout!r} stderr={r3.stderr!r}",
+    )
+    _git(fx["repoA"], ["remote", "remove", "origin"])
+
+
+
 def main():
     root = tempfile.mkdtemp(prefix="feature-worktree-test-")
     try:
@@ -1121,6 +1189,7 @@ def main():
             case_short_id_resolves_to_the_flow_directory(fx)
             case_short_id_ambiguous_refuses(fx)
             case_behind_default_branch(fx)
+            case_behind_sees_origin(fx)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
     finally:

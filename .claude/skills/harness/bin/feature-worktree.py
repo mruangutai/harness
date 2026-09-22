@@ -333,6 +333,17 @@ def cmd_behind(args):
     The accepted cost: if local `main` is itself stale this UNDER-reports. That is the safe
     direction; it never accuses a tree that is actually current.
 
+    SUPERSEDED ON THE TARGET, 2026-09-22 (#1850). Both premises above hold and neither was
+    the point: the feature branch need not exist remotely, because the comparison target is
+    the DEFAULT branch, which always does. Under-reporting was measured NOT safe: FEAT-61's
+    local `main` had missed one merge, `behind` printed `current with main`, and the PR
+    opened from that worktree was CONFLICTING with zero CI runs — GitHub fires no
+    `pull_request` workflow when it cannot compute a merge commit. So the target is now
+    `origin/<default>` after one `git fetch origin <default>` (one network call, still no
+    GraphQL, compared as FETCH_HEAD so no refspec is assumed). When the fetch fails the
+    check falls back to LOCAL `<default>` and SAYS SO in the COULD-NOT voice — a named
+    fallback, never a pass dressed as a comparison.
+
     NO THRESHOLD, DELIBERATELY. An earlier design gated on whether the missing commits
     touched `.claude/` or the decision docs, to stay quiet on ordinary drift. That
     discriminator exists because the check was going to live in `check-state.py`, which runs
@@ -348,12 +359,24 @@ def cmd_behind(args):
         print(f"feature-worktree: no worktree at {dest}", file=sys.stderr)
         sys.exit(3)
 
-    r = _run_git(["rev-list", "--count", f"HEAD..{default_branch}"], dest)
+    fetch = _run_git(["fetch", "-q", "origin", default_branch], dest)
+    if fetch.returncode == 0:
+        target, label = "FETCH_HEAD", f"origin/{default_branch}"
+        remedy = f"git -C {dest} fetch origin {default_branch} && git -C {dest} merge FETCH_HEAD"
+    else:
+        target, label = default_branch, f"LOCAL {default_branch}"
+        remedy = f"git -C {dest} merge {default_branch}"
+        print(f"feature-worktree: COULD NOT FETCH origin/{default_branch} in {dest}; comparing "
+              f"against LOCAL {default_branch} instead (#1850).", file=sys.stderr)
+        print(f"  {fetch.stderr.strip()}", file=sys.stderr)
+        print(f"  If that ref is itself stale this check under-reports.", file=sys.stderr)
+
+    r = _run_git(["rev-list", "--count", f"HEAD..{target}"], dest)
     if r.returncode != 0:
         # FAIL OPEN, and say so loudly. A ship must not be blocked because git could not
         # answer; but a silent pass here would be a gate that examined nothing, so the
         # operator is told the check did not run rather than told it passed.
-        print(f"feature-worktree: COULD NOT CHECK — `git rev-list HEAD..{default_branch}` "
+        print(f"feature-worktree: COULD NOT CHECK — `git rev-list HEAD..{target}` "
               f"failed in {dest}", file=sys.stderr)
         print(f"  {r.stderr.strip()}", file=sys.stderr)
         print("  This is not a pass. Nothing was compared.", file=sys.stderr)
@@ -361,19 +384,19 @@ def cmd_behind(args):
 
     behind = int(r.stdout.strip() or "0")
     if behind == 0:
-        print(f"current with {default_branch}: {dest}")
+        print(f"current with {label}: {dest}")
         sys.exit(0)
 
     print(f"feature-worktree: REFUSED — {dest} is {behind} commit(s) behind "
-          f"{default_branch}.", file=sys.stderr)
-    log = _run_git(["log", "--oneline", f"HEAD..{default_branch}"], dest)
+          f"{label}.", file=sys.stderr)
+    log = _run_git(["log", "--oneline", f"HEAD..{target}"], dest)
     if log.returncode == 0 and log.stdout.strip():
         for line in log.stdout.strip().splitlines():
             print(f"  missing: {line}", file=sys.stderr)
     print(f"  Building here tests a tree that does not contain the above. Bring it "
           f"current first:", file=sys.stderr)
-    print(f"    git -C {dest} merge {default_branch}", file=sys.stderr)
-    print(f"  Compared against LOCAL {default_branch}. If that ref is itself stale this "
+    print(f"    {remedy}", file=sys.stderr)
+    print(f"  Compared against {label}. If that ref is itself stale this "
           f"count is a floor, never a ceiling.", file=sys.stderr)
     sys.exit(6)
 
