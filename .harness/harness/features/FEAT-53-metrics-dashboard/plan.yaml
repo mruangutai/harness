@@ -1921,6 +1921,7 @@ tasks:
     - .claude/skills/harness/bin/dashboard/client/src/**
     - .claude/skills/harness/bin/dashboard/client/dist/**
     - .claude/skills/harness/bin/dashboard/client/fixture.ts
+    - .claude/skills/harness/bin/dashboard/client/vite.config.ts
     verify: |
       # Required lane form: HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=<run> npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui
       run="${HARNESS_UI_RUN_ID:?Set HARNESS_UI_RUN_ID to the current build run id}" &&
