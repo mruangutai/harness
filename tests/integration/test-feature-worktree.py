@@ -1090,17 +1090,11 @@ def case_short_id_ambiguous_refuses(fx):
     )
     check("#727 guard: the tree survives the refusal", os.path.isdir(dest), dest)
 
-def case_behind_sees_origin(fx):
-    """#1850: the comparison target is the REMOTE default branch. FEAT-61's incident: local
-    `main` was stale, `behind` printed `current with main`, and the PR opened from that
-    worktree was CONFLICTING with zero CI runs. A stale local ref under-reporting is not the
-    safe direction — it is a green door in front of a red PR."""
-    info, r = create_one(fx, "harness", "FEAT-83")
-    assert r.returncode == 0, f"fixture setup for FEAT-83 failed: rc={r.returncode} stderr={r.stderr!r}"
-    dest = info["dest"]
 
-    # A bare origin holding main as it stands; then origin's main moves ahead through a
-    # second clone while the owner checkout's local main stays where it was.
+def _origin_moved_ahead(fx):
+    """A bare origin holding main as it stands; then origin's main moves ahead through a
+    second clone while the owner checkout's local main stays where it was. Returns the
+    origin path (the caller unwires it)."""
     origin = os.path.join(os.path.dirname(fx["repoA"]), "origin-A.git")
     _git(fx["repoA"], ["init", "-q", "--bare", origin])
     _git(fx["repoA"], ["remote", "add", "origin", origin])
@@ -1115,6 +1109,18 @@ def case_behind_sees_origin(fx):
     _git(other, ["commit", "-q", "-m", "landed on origin only"])
     _git(other, ["push", "-q", "origin", "main"])
     assert _git(fx["repoA"], ["rev-list", "--count", "HEAD..main"]).stdout.strip() == "0"
+    return origin
+
+
+def case_behind_sees_origin(fx):
+    """#1850: the comparison target is the REMOTE default branch. FEAT-61's incident: local
+    `main` was stale, `behind` printed `current with main`, and the PR opened from that
+    worktree was CONFLICTING with zero CI runs. A stale local ref under-reporting is not the
+    safe direction — it is a green door in front of a red PR."""
+    info, r = create_one(fx, "harness", "FEAT-83")
+    assert r.returncode == 0, f"fixture setup for FEAT-83 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest = info["dest"]
+    origin = _origin_moved_ahead(fx)
 
     r1 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-83"], fx)
     check(

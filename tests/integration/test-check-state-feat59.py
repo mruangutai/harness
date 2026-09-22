@@ -1056,42 +1056,49 @@ def _validate_runs(*verdicts):
     return [_run(rid, verdict=v, squad="validator") for rid, v in zip(ids, verdicts)]
 
 
+def _inv47(record, notes):
+    """INV-47's violation lines for one record with the given member notes."""
+    _, out = _check(record, notes=notes)
+    return _violations(out, "INV-47"), out
+
+
 def case_inv47_member_verdicts():
     """#1884: FEAT-63's validate c2 was recorded PASS while notes/review-harness-qa-c2.md
     said BLOCKED — the integration runner's exit 1 was real (test-harness-yaml's D-12 lock)
     and CI caught it after PASS. A run's PASS is graded against the member notes of ITS
     cycle: validate-validator ↔ c0, validate-cN-validator ↔ cN; FAIL or BLOCKED in any of
-    them is a VIOLATION naming the note. Plan-review notes (-plan-cN) belong to plan runs."""
-    results = []
-    _, out = _check(_in_era(runs=_validate_runs("FAIL", "FAIL", "PASS")),
-                    notes={"review-harness-qa-c2.md": _QA_BLOCKED,
-                           "review-harness-ui-reviewer-c2.md": _UI_NA})
-    v = _violations(out, "INV-47")
-    results.append(("(47.a) a PASS validate run over a same-cycle qa BLOCKED note is a VIOLATION "
-                    "naming the note and the run",
-                    len(v) == 1 and "review-harness-qa-c2.md" in v[0]
-                    and "validate-c2-validator" in v[0] and "BLOCKED" in v[0], out[:600]))
-    _, out = _check(_in_era(runs=_validate_runs("FAIL", "FAIL", "PASS")),
-                    notes={"review-harness-qa-c2.md": _QA_PASS,
-                           "review-harness-ui-reviewer-c2.md": _UI_NA,
-                           "review-harness-qa-c1.md": _QA_BLOCKED})
-    results.append(("(47.b) member notes at PASS/n/a are silent; an earlier cycle's BLOCKED note "
-                    "belongs to that cycle's FAIL run, not this one",
-                    not _lines(out, "INV-47"), out[:400]))
-    _, out = _check(_in_era(runs=_validate_runs("PASS")),
-                    notes={"review-harness-qa-c0.md": _QA_BLOCKED})
-    v = _violations(out, "INV-47")
-    results.append(("(47.c) the unsuffixed validate-validator run is cycle 0",
-                    len(v) == 1 and "review-harness-qa-c0.md" in v[0], out[:500]))
-    _, out = _check(_in_era(runs=_validate_runs("PASS")),
-                    notes={"review-harness-code-reviewer-plan-c0.md": _QA_BLOCKED})
-    results.append(("(47.d) a plan-review note is not a validate member note",
-                    not _lines(out, "INV-47"), out[:400]))
-    _, out = _check(_legacy(runs=_validate_runs("PASS")),
-                    notes={"review-harness-qa-c0.md": _QA_BLOCKED})
-    results.append(("(47.e) a legacy record is not graded",
-                    not _violations(out, "INV-47"), out[:400]))
-    return results
+    them is a VIOLATION naming the note."""
+    v, out = _inv47(_in_era(runs=_validate_runs("FAIL", "FAIL", "PASS")),
+                    {"review-harness-qa-c2.md": _QA_BLOCKED,
+                     "review-harness-ui-reviewer-c2.md": _UI_NA})
+    a = ("(47.a) a PASS validate run over a same-cycle qa BLOCKED note is a VIOLATION "
+         "naming the note and the run",
+         len(v) == 1 and "review-harness-qa-c2.md" in v[0]
+         and "validate-c2-validator" in v[0] and "BLOCKED" in v[0], out[:600])
+    v, out = _inv47(_in_era(runs=_validate_runs("PASS")),
+                    {"review-harness-qa-c0.md": _QA_BLOCKED})
+    c = ("(47.c) the unsuffixed validate-validator run is cycle 0",
+         len(v) == 1 and "review-harness-qa-c0.md" in v[0], out[:500])
+    return [a, c] + case_inv47_silences()
+
+
+def case_inv47_silences():
+    """What INV-47 leaves alone: PASS/n/a notes, another cycle's BLOCKED (that cycle's FAIL
+    run owns it), plan-review notes (-plan-cN belong to plan runs), legacy records."""
+    v, out = _inv47(_in_era(runs=_validate_runs("FAIL", "FAIL", "PASS")),
+                    {"review-harness-qa-c2.md": _QA_PASS,
+                     "review-harness-ui-reviewer-c2.md": _UI_NA,
+                     "review-harness-qa-c1.md": _QA_BLOCKED})
+    b = ("(47.b) member notes at PASS/n/a are silent; an earlier cycle's BLOCKED note "
+         "belongs to that cycle's FAIL run, not this one", not _lines(out, "INV-47"), out[:400])
+    v, out = _inv47(_in_era(runs=_validate_runs("PASS")),
+                    {"review-harness-code-reviewer-plan-c0.md": _QA_BLOCKED})
+    d = ("(47.d) a plan-review note is not a validate member note",
+         not _lines(out, "INV-47"), out[:400])
+    v, out = _inv47(_legacy(runs=_validate_runs("PASS")),
+                    {"review-harness-qa-c0.md": _QA_BLOCKED})
+    e = ("(47.e) a legacy record is not graded", not v, out[:400])
+    return [b, d, e]
 
 
 def main():

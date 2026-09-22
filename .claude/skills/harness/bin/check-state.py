@@ -2402,17 +2402,21 @@ def _inv47_member_notes(ctx, feat, cycle):
             if _note_cycle(os.path.basename(_np)) == cycle]
 
 
+def _passed_validate_cycle(_entry):
+    """(run id, cycle) when `_entry` is a validate run at PASS, else None."""
+    if not isinstance(_entry, dict):
+        return None
+    _rid = str(_entry.get("id", "")).strip()
+    _rm = _VALIDATE_RUN_RE.match(_rid)
+    if not _rm or str(_entry.get("verdict", "")).strip().upper() != "PASS":
+        return None
+    return _rid, int(_rm.group(1) or 0)
+
+
 def _passed_validate_cycles(_doc):
     """(run id, cycle) for every validate run the record has at PASS."""
-    out = []
-    for _entry in (_doc.get("runs") or []):
-        if not isinstance(_entry, dict):
-            continue
-        _rid = str(_entry.get("id", "")).strip()
-        _rm = _VALIDATE_RUN_RE.match(_rid)
-        if _rm and str(_entry.get("verdict", "")).strip().upper() == "PASS":
-            out.append((_rid, int(_rm.group(1) or 0)))
-    return out
+    _found = (_passed_validate_cycle(_entry) for _entry in (_doc.get("runs") or []))
+    return [_hit for _hit in _found if _hit is not None]
 
 
 def _inv47_hit(_rid, _name, _verdict):
