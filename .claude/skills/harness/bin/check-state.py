@@ -326,6 +326,7 @@ CHECKPOINT_KEYS = {
     "verdict", "severity_max", "digest",
 }
 
+
 _HOOKS_REL = os.path.join(".claude", "skills", "harness", "hooks")
 
 # --- INV-38..41 (FEAT-59 proportional flow; SC-10, SC-15, SC-16, SC-21; DEC-174 direct work).
@@ -3769,6 +3770,34 @@ def inv_42(ctx):
                         f"budgets.preload_warn_words in .harness/harness.json." for _n in _wres.notes())
     return bad, warn
 
+# --- INV-48: every reference a skill makes resolves. A skill citing a deleted DEC, an
+# unimplemented INV, a missing path, a heading a sibling no longer has, or a skill/agent
+# name that does not exist is a rule the reading agent cannot follow and no validator
+# catches (a deleted decision and a never-implemented invariant were each cited for weeks, DEC-235). A finding
+# IS a violation: unlike weight it is a defect, not a cost. Import posture as INV-42.
+# (Written as INV-45 on skills/optimization-pass; renumbered at the 2026-09-22 rebase because
+# the 2026-09-21 ruling gave INV-45 to the OMP port row. The import and call are typed per
+# FEAT-63: RepoModuleError at the boundary, CANNOT RUN here.)
+def inv_48(ctx):
+    bad, warn = [], []
+    root = ctx.root
+    try:
+        _csr = harness_boundary.load_repo_module(
+            "check_skill_refs", os.path.join(sys.argv[2], "check-skill-refs.py"), register=True)
+    except harness_boundary.RepoModuleError as _csre:
+        _csr, _csre = None, _csre.cause
+        bad.append("INV-48 CANNOT RUN: check-skill-refs.py did not import (%s: %s). The module "
+                   "ships with this repository — restore .claude/skills/harness/bin/check-skill-refs.py."
+                   % (type(_csre).__name__, _csre))
+    if _csr is not None:
+        try:
+            bad.extend(f"INV-48 {_f}" for _f in harness_boundary.call_repo_module(_csr, "scan", root))
+        except harness_boundary.RepoModuleError as _srse:
+            _srse = _srse.cause
+            bad.append("INV-48 CANNOT RUN: the reference scan raised (%s: %s)."
+                       % (type(_srse).__name__, _srse))
+    return bad, warn
+
 # --- INV-31 (FEAT-40 T-08, REQ-02/REQ-09): this clone's merge hook is not installed.
 #
 # WHY IT EXISTS AT ALL. The setup step lives in `.claude/skills/harness-init/SKILL.md`, whose
@@ -4606,6 +4635,10 @@ INVARIANTS = (
         Inv("INV-42", inv_42, "repo", ("path:.omp/agents/*.md", "path:.claude/skills/*/SKILL.md", _HARNESS_JSON,
                                        "path:.claude/skills/harness/bin/check-skill-weight.py"),
             "every declared preload resolves; excess preload weight is a note", "DEC-158"),
+        Inv("INV-48", inv_48, "repo", ("path:.omp/agents/*.md", "path:.claude/skills/**/*.md",
+                                       "path:.harness/harness/docs/DECISIONS-INDEX.md",
+                                       "path:.claude/skills/harness/bin/check-skill-refs.py"),
+            "every reference a skill makes resolves (check-skill-refs.scan)", "DEC-235"),
     )),
     Group("merge-hook", (
         Inv("INV-31", inv_31, "repo", ("git:config", "path:.claude/skills/harness/hooks/post-merge"),
