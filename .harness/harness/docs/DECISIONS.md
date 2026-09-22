@@ -2777,6 +2777,19 @@ all green. Every new case verified against a saved pre-fix copy of the validator
 (`VALIDATE_DIGEST_BIN` env override): all fail there except the three pass-through cases, which were
 never broken and are asserted unchanged. `check-docs.sh` exits 0 after the doc corrections above.
 
+**Amended by the skills optimization pass (2026-09-18) — three more prose rules become computed
+checks, not a new mechanism.** The consumer audit found the reviewer's hand-edit reconciliation
+and qa's five kind states stated in skills with nothing behind them. `validate-digest.py` now, on
+a code review with a PASS or FAIL verdict, computes `human_commits_in_scope` from
+`[harness:human]` commits in the canonical range and refuses a digest whose list disagrees
+(omitted counts as empty), and refuses any verdict over modified tracked files outside
+`.harness/` — BLOCKED is the honest return there. On a qa return carrying `kinds:`, `state`
+must be one of `satisfied | missing | not_applicable | locally_run | misconfigured`;
+`misconfigured` is refused under PASS or FAIL, `not_applicable` is refused for a kind
+`harness.json` does not exclude, `satisfied` for a kind with no `cmd`, and an undeclared kind
+outright. All three say nothing when git or the policy cannot be read — the grade enforcement
+already refuses that checkout with its own repair. `tests/integration/test-validate-digest-shadows.py`.
+
 ---
 
 ## DEC-128 — The orchestrator exists: agent, playbook, and three doors

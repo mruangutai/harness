@@ -35,14 +35,16 @@ structural nesting in a config a gate script reads) **trips `touches_config_shap
 ## Resolve each kind to exactly one of five states
 
 Read **two** signals, never just the exit code: what kind of failure, not merely whether it failed.
+Report each as `kinds: [{ kind, state, … }]` with `state` spelled as below; `validate-digest.py`
+refuses a state `harness.json` contradicts and `misconfigured` under any verdict but `BLOCKED`.
 
-| State | Signals | Result |
+| `state` | Signals | Result |
 |---|---|---|
-| **satisfied** | a named test ran, none failed | contributes to `PASS` |
-| **missing** | required, and nothing covers this change | **`FAIL`** |
-| **not applicable** | the tooling genuinely is absent (e.g. `ui` with no Playwright) | **soft skip.** Report it; do not FAIL |
-| **locally-run** | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials) | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
-| **misconfigured** | `cmd` is null/absent · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
+| `satisfied` | a named test ran, none failed | contributes to `PASS` |
+| `missing` | required, and nothing covers this change | **`FAIL`** |
+| `not_applicable` | `test_kinds.<kind>.status == "excluded"` — the tooling genuinely is absent | **soft skip.** Report it; do not FAIL |
+| `locally_run` | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials) | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
+| `misconfigured` | `cmd` is null/absent on an active kind · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
 
 ⚠️ **Do not use "zero tests collected" to detect misconfiguration.** `node --test src/` reports
 `tests 1 / fail 1` for a module-load error. **The failure kind is the signal.**

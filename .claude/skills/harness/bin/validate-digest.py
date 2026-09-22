@@ -1019,6 +1019,126 @@ def _load_test_kinds(root):
     return kinds, None
 
 
+# The three checks below replace prose that only the consuming LLM enforced (consumer
+# audit, 2026-09-18). Each is a predicate over data the repository owns — the git log at
+# the pin, the working tree at return, harness.json's test_kinds — and each REFUSES only
+# a positive finding: when git or the policy cannot be read the check says nothing, because
+# the grade enforcement above already refuses that checkout with its own repair.
+
+HUMAN_COMMIT_MARK = "[harness:human]"
+
+
+def _human_commits_in_range(root, base_oid, head_oid):
+    """Full OIDs of `[harness:human]` commits in `base..head`, or None when git cannot say."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", root, "log", "--format=%H", "--fixed-strings",
+             "--grep=" + HUMAN_COMMIT_MARK, f"{base_oid}..{head_oid}"],
+            text=True, capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _prefix_matches(short, full_oids):
+    return bool(short) and any(oid.startswith(short) for oid in full_oids)
+
+
+def _human_commit_disagreement(actual, claimed):
+    """`(unreported, not_in_range)`: human commits the digest omits, and claimed SHAs
+    no human commit in the range begins with."""
+    unreported = [a for a in actual if not any(a.startswith(c) for c in claimed if c)]
+    not_in_range = [c for c in claimed if not _prefix_matches(c, actual)]
+    return unreported, not_in_range
+
+
+def _human_commits_error(root, review_sha, reported):
+    """harness-code-review § Review a pinned SHA: every `[harness:human]` commit in the
+    reviewed range is reported in `human_commits_in_scope`, and nothing else is. The
+    list is COMPUTED from the canonical range and the digest's list is compared to it,
+    abbreviated SHAs accepted; `reported` is None when the digest omits the field."""
+    base_oid, head_oid, range_error = _canonical_review_range(root, review_sha)
+    actual = None if range_error else _human_commits_in_range(root, base_oid, head_oid)
+    if actual is None:
+        return None
+    claimed = [str(item).strip().strip("'\"") for item in (reported or [])]
+    unreported, not_in_range = _human_commit_disagreement(actual, claimed)
+    if not unreported and not not_in_range:
+        return None
+    parts = ["unreported " + ", ".join(a[:12] for a in unreported)] if unreported else []
+    parts += ["not in the range " + ", ".join(not_in_range)] if not_in_range else []
+    return (f"human_commits_in_scope disagrees with the reviewed range ({'; '.join(parts)}). "
+            f"Every {HUMAN_COMMIT_MARK} commit in {base_oid[:12]}..{head_oid[:12]} is in scope "
+            f"and inherits no earlier review; report exactly that set.")
+
+
+def _dirty_tree_error(root):
+    """harness-code-review § Review a pinned SHA: a tree matching no commit has no
+    pinnable verdict. Tracked modifications outside `.harness/` at return time refuse a
+    PASS or FAIL; the honest return is BLOCKED asking for a commit or a stash."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", root, "status", "--porcelain", "--untracked-files=no"],
+            text=True, capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    dirty = [line[3:] for line in result.stdout.splitlines()
+             if len(line) > 3 and not line[3:].lstrip("\"").startswith(".harness/")]
+    if not dirty:
+        return None
+    shown = ", ".join(dirty[:5]) + (" …" if len(dirty) > 5 else "")
+    return (f"the working tree carries uncommitted changes outside .harness/ ({shown}); a tree "
+            f"matching no commit has no pinnable verdict. Return BLOCKED and ask for a "
+            f"{HUMAN_COMMIT_MARK} commit or a stash, then review the pin.")
+
+
+KIND_STATES = {"satisfied", "missing", "not_applicable", "locally_run", "misconfigured"}
+
+
+def _qa_kind_policy_error(i, kind, state, test_kinds):
+    """The harness.json cross-check for one kinds entry, or None."""
+    policy = test_kinds.get(kind)
+    if not isinstance(policy, dict):
+        return f"kinds[{i}] names {kind!r}, which harness.json test_kinds does not declare."
+    excluded = policy.get("status") == "excluded" or policy.get("cmd") is None
+    if state == "not_applicable" and not excluded:
+        return (f"kinds[{i}] ({kind}) claims not_applicable but harness.json carries a "
+                f"runnable cmd for it — a kind that ran is satisfied or missing; one that "
+                f"could not run is misconfigured (BLOCKED).")
+    if state == "satisfied" and policy.get("cmd") is None:
+        return (f"kinds[{i}] ({kind}) claims satisfied but harness.json has no cmd for it — "
+                f"nothing could have run.")
+    return None
+
+
+def _qa_kind_entry_errors(i, raw, verdict, test_kinds):
+    entry = parse_member_entry(str(raw))
+    kind = str(entry.get("kind", "")).strip()
+    state = str(entry.get("state", "")).strip()
+    if state not in KIND_STATES:
+        return [f"kinds[{i}] ({kind or '?'}) state={state!r} is not one of "
+                f"{sorted(KIND_STATES)}."]
+    err = []
+    if state == "misconfigured" and verdict in ("PASS", "FAIL"):
+        err.append(f"kinds[{i}] ({kind}) is misconfigured but VERDICT is {verdict} — a kind "
+                   f"that cannot run is BLOCKED, never a verdict on the code.")
+    policy_error = test_kinds and _qa_kind_policy_error(i, kind, state, test_kinds)
+    return err + ([policy_error] if policy_error else [])
+
+
+def _qa_kind_errors(kinds, verdict, test_kinds):
+    """harness-verification-rules § five states, checked against harness.json: `state`
+    is one of KIND_STATES; `misconfigured` is BLOCKED, never a verdict; `not_applicable`
+    is legal only for a kind the policy excludes; `satisfied` needs a runnable `cmd`.
+    `test_kinds` None means the policy could not be read — only the shape rules run."""
+    return [error for i, raw in enumerate(kinds)
+            for error in _qa_kind_entry_errors(i, raw, verdict, test_kinds)]
+
+
 def _classify_canonical_range(root, base_oid, head_oid, test_kinds):
     """`code_grade.classify` over the canonical range's gated functions, as
     `(result, error)`.
@@ -1753,6 +1873,12 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                            "`verify: automated` SC name the test and the evidence it FAILED "
                            "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
                            "or return FAIL.")
+        kinds = seen.get("kinds")
+        if isinstance(kinds, list) and kinds:
+            qa_root = (_repo_root_for_feature(feature_dir) if feature_dir
+                       else _root_or_none())
+            test_kinds = _load_test_kinds(qa_root)[0] if qa_root else None
+            err.extend(_qa_kind_errors(kinds, m.group(1) if m else None, test_kinds))
 
     # Generic `lead` is the archive-reader persona used by check-state for
     # historical digest files; it cannot recover the producing raw persona or
@@ -1797,6 +1923,14 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                 text, reviewed, code_grade, feature_dir, review_pin)
             if grade_error:
                 err.append(grade_error)
+            if not binding_error and m and m.group(1) in ("PASS", "FAIL"):
+                _fd, root, review_sha, _e = _review_binding(text, feature_dir, review_pin)
+                if root and review_sha:
+                    for error in (_dirty_tree_error(root),
+                                  _human_commits_error(root, review_sha,
+                                                       seen.get("human_commits_in_scope"))):
+                        if error:
+                            err.append(error)
         if code_grade == "grade_2":
             reasons = seen.get("grade_2_reasons")
             if not isinstance(reasons, list) or not reasons \
