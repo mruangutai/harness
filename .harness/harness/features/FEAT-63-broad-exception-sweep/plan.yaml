@@ -19,6 +19,18 @@ panel:
     status: ran
     reason: Independently re-read T-03 against the operator requirement and confirmed
       the corrected three-command chain executes the live audit directly.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: "Ran in cycle 0 (runs/2026-09-21-01-product/digest.md): independent necessity\
+      \ and overbuilding review with two findings, both resolved in the applied plan;\
+      \ cycle 1 re-ran scope and goalcheck only. Roster restored by the main session\
+      \ \u2014 the cycle-1 record-panel had dropped the row."
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: 'Ran in cycle 0 (notes/review-harness-ui-reviewer-plan-c0.md): scoped out
+      the text-only CLI and gate work; no DESIGN.md or prototype required.'
   - reader: goalcheck
     persona: harness-pm
     status: ran
