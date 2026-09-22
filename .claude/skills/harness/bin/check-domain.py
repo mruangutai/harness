@@ -762,7 +762,8 @@ def claim_checkout_guard(destination):
         return
     print(
         "check-domain: BLOCKED — "
-        + harness_boundary.claim_set_refusal(agent, claim_set, destination),
+        + harness_boundary.claim_set_refusal(agent, claim_set, destination,
+                                             identity=(runtime_agent_id, runtime_parent_agent_id)),
         file=sys.stderr,
     )
     sys.exit(2)

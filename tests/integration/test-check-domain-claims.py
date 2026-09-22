@@ -233,6 +233,19 @@ def _runtime_lineage_domain_routes(results, context, inflight_registry):
         sibling.returncode == 2 and context["first"] in sibling.stderr,
         f"exit={sibling.returncode} output={(sibling.stdout + sibling.stderr)[:180]!r}",
     ))
+    # #1882: the refusal names the identity the guard judged, so the next occurrence of an
+    # unexplained cross-feature block carries its own evidence instead of a guess.
+    results.append((
+        "the sibling refusal names the runtime identity it judged (#1882)",
+        "agent_id=DocumentorOne" in sibling.stderr and "parent=ProductLeadOne" in sibling.stderr,
+        f"output={(sibling.stdout + sibling.stderr)[:240]!r}",
+    ))
+    no_identity = _bug1304_fire(context["root"], context["main"], agent)
+    results.append((
+        "an identity-less refusal says so (#1882)",
+        no_identity.returncode == 2 and "agent_id=none" in no_identity.stderr,
+        f"exit={no_identity.returncode} output={(no_identity.stdout + no_identity.stderr)[:240]!r}",
+    ))
     results.append((
         "second runtime lineage retains its own worktree",
         second.returncode == 0,

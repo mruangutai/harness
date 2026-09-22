@@ -505,9 +505,18 @@ def claim_worktrees(owner_root, agent_type, destination,
     return result
 
 
-def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None):
-    """Build the single actionable refusal used by every governed write route."""
+def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None,
+                      identity=(None, None)):
+    """Build the single actionable refusal used by every governed write route.
+
+    `identity` is the (agent_id, parent_agent_id) the guard narrowed the claim set by, and
+    the refusal NAMES it (#1882): twice on 2026-09-22 an orchestrator was bound to another
+    live feature's worktree and the surviving text could not say which identity the guard
+    had judged, so the mechanism was unrecoverable. `none` is printed for an absent id —
+    an identity-less lookup matches every claim of the persona, which is its own finding."""
     destination = real(destination)
+    judged = (f" (judged as agent_id={identity[0] or 'none'}, "
+              f"parent={identity[1] or 'none'})")
     if unreadable_paths:
         files = ", ".join(sorted(set(unreadable_paths)))
         return (
@@ -520,14 +529,14 @@ def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None)
     expertise_segment = os.sep + os.path.join(".harness", "expertise") + os.sep
     if expertise_segment in destination:
         return (
-            f"{agent_type} holds worktree claim(s): {held}. Destination {destination} "
+            f"{agent_type} holds worktree claim(s): {held}{judged}. Destination {destination} "
             "belongs to the control-plane expertise route. Use the sanctioned "
             "python3 expertise-merge.py apply command."
         )
 
     home = root_above(os.path.dirname(destination)) or os.path.dirname(destination)
     return (
-        f"{agent_type} holds worktree claim(s): {held}. Destination {destination} "
+        f"{agent_type} holds worktree claim(s): {held}{judged}. Destination {destination} "
         f"belongs in its proper checkout at {home}; write it from a bound worktree."
     )
 
