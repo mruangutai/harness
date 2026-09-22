@@ -10,7 +10,7 @@
 - P-08: WHEN revising an existing task or decision value DO use plan-merge amend --expect-sha256 --value-file, never apply, which exits 7 CONFLICT on any changed value. amend preserves the original scalar form, so the value file holds the raw body, not a re-quoted YAML value.
 - P-09: WHEN citing check-state.py INV-32 output as evidence a panel record is complete DO check the plan's approval status first: INV-32 grades approved plans only, so a pending plan emits zero lines even with an open high finding. Prove the reader branch against data and a mutant.
 - P-11: WHEN a dispatch fences a harness bin script's capability as settled DO run --help on the control-plane copy, never the worktree's: a worktree behind main is the stale witness, and the control-plane script invoked by absolute path runs fine from inside a worktree.
-- P-10: WHEN selecting change_type DO cite the configured test-matrix vocabulary; correct unsupported values as malformed records, never extend the matrix.
+- P-10: WHEN selecting `change_type` DO choose from the configured test-matrix vocabulary before signature and confirm its required test-kind floor matches the task's planned evidence; unsupported labels are malformed records, not reasons to extend or guess the matrix.
 - P-12: WHEN DEC-174 routes a build main-session-direct and the main session parallelizes task subagents DO state that all relative-path edits must remain inside the assigned feature worktree.
 ## Gotchas (max 15)
 - G-01: WHEN a step must create, copy or move a file DO use the file tools or a Python script — `bash-write-guard.py` denies redirects, `cp`, `mv` and `rm` in Bash whatever the target, including the session scratchpad and paths with no repo-like component.

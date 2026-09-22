@@ -1,6 +1,6 @@
 # Expertise — harness-ui-reviewer
 ## Patterns (max 15)
-- P-01: WHEN scoping a diff for a Mode B UI review DO run a file-extension census (html/css/scss/tsx/jsx/vue/svelte/less) across the full diff before concluding no UI surface exists — a census makes "no UI" a measured finding, not an inferred guess.
+- P-01: WHEN scoping a pinned Mode B diff DO run a full changed-object census and classify each match by rendered or interactive behavior before concluding no UI — feature framing and file type alone are not evidence of surface absence.
 - P-02: WHEN a dispatch or ambient context claims a design contract's presence, absence, or content DO confirm it with a direct object check (`git cat-file -e`, `git diff`) at the pinned commit — a dispatch's description of a file is a hypothesis, not evidence.
 - P-03: WHEN deciding if a markdown file is in scope DO test whether it specifies spacing, colour, states, or interaction for a rendered surface — markdown is a medium this role can audit, not a guarantee any given markdown file is a UI contract.
 - P-04: WHEN a build-time verify closes a coverage gap DO check whether a separate post-build detector or scorer independently classifies the same site — a verify-only fix can leave the detector's row unchanged, letting it falsely score the site as already migrated.

@@ -11,5 +11,6 @@
 - G-08: WHEN a task's change_type resolves to bugfix in .harness/harness.json's test_matrix DO note its when: match_bug_class clause is currently an unresolvable placeholder — no bug-class taxonomy entry fires for any diff yet, so the floor stays at unit alone despite the clause's presence.
 - G-09: WHEN grepping '^FAIL ' over run-unit-tests.py output in this repo DO exclude test-factory-claim-mutation.py's block first — its own BUG-1290/KEY-COLLAPSE mutation proof deliberately prints 'FAIL BUG-1290 ...' as passing evidence, inflating any bare FAIL-token count; grade on the runner's own exit code instead.
 - G-10: WHEN taking a historical-corpus census over run digests in this repo DO scope it explicitly to the checkout holding the feature's runs/ tree (worktree vs. main checkout) — the wrong checkout returns a structurally empty result indistinguishable from a valid zero.
+- G-11: WHEN run-unit-tests.py reports a different discovery-file count for the same --kind invocation DO preserve complete output and invocation environment; unreconciled discovery sets make a divergent exit unauditable.
 ## Outcomes (max 10)
 ## Open (max 5)
