@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-1821-ui-verification-lane",
   "pr": null,
   "review_sha": "ea4916518eea1c8f73901d372ad8e1e38595e64b",
-  "cycles_used": 11,
+  "cycles_used": 14,
   "max_total_cycles": 12,
   "runs": [
     {
@@ -335,6 +335,36 @@
       "cycles_used": 0,
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T13:49:20+00:00",
+      "ended_at": "2026-09-22T14:52:13+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T13:49:20+00:00",
+      "ended_at": "2026-09-22T14:52:23+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-22T13:49:20+00:00",
+      "ended_at": "2026-09-22T14:52:36+00:00",
+      "cycles_used": 2,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -491,6 +521,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Operator accepted ship after trace review; continue only through requested ledger recovery and feature-close distillation before merge."
+    },
+    {
+      "at": "2026-09-22T14:52:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Current OMP loaded pre-1a32fe93 hooks, so mandatory distill QA/code PASS digests cannot receive mission=distill; stop until the operator restarts OMP."
     }
   ],
   "mission": "plan",
