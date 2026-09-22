@@ -1918,6 +1918,7 @@ tasks:
     depends_on:
     - T-16
     - T-33
+    - T-34
     status: backlog
     files:
     - .claude/skills/harness/bin/dashboard/client/src/**
@@ -1949,7 +1950,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_mode: team
     execution_reason: The lane's specs were authored under FEAT-1821 by the dev-ops persona; the implementer never edits the predicate (operator ruling 2026-09-22).
-    status: backlog
+    status: done
     depends_on: []
     files:
       - .claude/skills/harness/bin/dashboard/client/e2e/colour-placement.e2e.spec.ts
@@ -1963,6 +1964,25 @@ tasks:
     verify: |
       HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t33-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still lists the same 23 titles at both projects
       git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client | grep -c "e2e/colour-placement.e2e.spec.ts" # the only client file changed by this task
+  - id: T-34
+    title: Fix the C3-KEYBOARD aria-hidden clause's strict-mode locator
+    change_type: test
+    execution_agent: harness-dev-ops
+    execution_mode: team
+    execution_reason: Spec defect, not an implementation defect; the implementer never edits the predicate (operator ruling 2026-09-22).
+    status: backlog
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/dashboard/client/e2e/keyboard.e2e.spec.ts
+    traces:
+      - SC-26
+    test_kinds:
+      - ui
+    intent: |
+      keyboard.e2e.spec.ts line ~92 asserts `toHaveAttribute('aria-hidden','true')` on the multi-element locator `svg, [data-chart], [data-unavailable], [data-status-badge]`; Playwright's strict mode throws on any page with more than one match, so the clause can never pass on a route with several charts. Rewrite the clause to assert DESIGN §648 as intended — EVERY matched element carries aria-hidden="true" and none is focusable (e.g. iterate `locator.all()` or `expect(locator.filter({hasNot: '[aria-hidden="true"]'})).toHaveCount(0)`). Change nothing else in the spec: no other clause, title, order, project, evidence or trace requirement.
+    verify: |
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t34-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
+      git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client/e2e | grep -c "keyboard.e2e.spec.ts" # only this spec changed by this task
 panel:
   last_run: 2026-09-16-01-product
   cycle: 8

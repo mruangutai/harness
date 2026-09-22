@@ -18,3 +18,7 @@ The lane fixture root lives under `client/test-results/fixtures/<run>/` — INSI
 Both are implementation defects; the predicate stands.
 - Kanban/Table toggle: DESIGN §642 lists it as ONE Tab stop ("Clear Filters when present → Kanban / Table toggle → …") and §482 calls it a switch with two labels. Two independent buttons = two stops = contradiction with DESIGN, and it is what makes the strict-mode locator resolve twice. Implement a single focusable button element (accessible name matching /Kanban|Table/, both segment labels rendered inside it, `aria-pressed`/state reflecting Table) so Tab lands on it once.
 - Clear Filters: DESIGN §429 — it appears whenever Station, Status or Kind is not `all`; `?status=needs-you` is such a state, so it must be present. Add it; it resets only station/status/kind (§445).
+
+## Addendum 4 — round 4 claims
+- Refresh in the Tab order: DESIGN §642's order is exhaustive and omits Refresh, so Refresh must not sit between Kind and the toggle. Place it after the displayed row controls (end of the work-list region). DESIGN gap noted for a follow-up amendment; the predicate stands.
+- `svg, [data-chart], …` `toHaveAttribute` on a multi-element locator is a spec defect (Playwright strict mode) — no implementation can satisfy it on a route with several charts. T-34 (dev-ops) rewrites that clause to "every match is aria-hidden"; T-32 depends on T-34. Frontend-dev does not touch it.
