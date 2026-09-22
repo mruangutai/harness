@@ -504,34 +504,79 @@ def case_load_repo_module_registration():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _repo_module_error(mod, fn):
+    """The RepoModuleError `fn` raises, or the foreign exception it let through, or None."""
+    try:
+        fn()
+    except mod.RepoModuleError as error:
+        return error
+    except BaseException as other:  # the test wants to SEE a wrong type, not die on it
+        return other
+    return None
+
+
+def _check_wrapped(mod, name, fn, cause_type, module_name, path):
+    """One load failure: it reaches the caller as RepoModuleError carrying the module name, the
+    path and the original exception, both as structured data and as the chained cause."""
+    error = _repo_module_error(mod, fn)
+    check(f"load_repo_module_{name}_is_RepoModuleError",
+          isinstance(error, mod.RepoModuleError), f"got {error!r}")
+    if not isinstance(error, mod.RepoModuleError):
+        return
+    check(f"load_repo_module_{name}_carries_name_path_and_cause",
+          error.module_name == module_name and error.path == path
+          and isinstance(error.cause, cause_type) and error.__cause__ is error.cause,
+          f"name={error.module_name!r} path={error.path!r} cause={error.cause!r}")
+    check(f"load_repo_module_{name}_renders_the_original_type_and_text",
+          type(error.cause).__name__ in str(error) and str(error.cause) in str(error), str(error))
+
+
+def _check_process_control_passes_through(mod, tmp):
+    """Process control is NOT a load failure: it propagates unchanged, and the registration
+    made for the attempt is still undone."""
+    for name, stmt, kind in (("keyboard_interrupt", "raise KeyboardInterrupt()", KeyboardInterrupt),
+                             ("system_exit", "raise SystemExit(3)", SystemExit)):
+        script = _script(tmp, f"{name}.py", stmt + "\n")
+        got = _repo_module_error(mod, lambda: mod.load_repo_module(f"fixture_{name}", script, register=True))
+        check(f"load_repo_module_{name}_propagates_unchanged", type(got) is kind, f"got {got!r}")
+        check(f"load_repo_module_{name}_still_undoes_its_registration", f"fixture_{name}" not in sys.modules)
+
+
+def _check_registration_restored(mod, bad):
+    sentinel = object()
+    sys.modules["fixture_preexisting"] = sentinel
+    _repo_module_error(mod, lambda: mod.load_repo_module("fixture_preexisting", bad, register=True))
+    check("load_repo_module_exec_failure_restores_a_prior_registration",
+          sys.modules.get("fixture_preexisting") is sentinel)
+    del sys.modules["fixture_preexisting"]
+
+
 def case_load_repo_module_failures():
-    """A failed exec re-raises the ORIGINAL exception and undoes only its own registration."""
+    """FEAT-63 T-01 (D-02): every Exception raised while loading a repo module -- spec creation,
+    the loader's own I/O, registered or unregistered execution -- reaches the caller as ONE
+    typed RepoModuleError; process-control signals pass through untouched; a failed
+    registered exec undoes only its own registration."""
     mod = hb()
     tmp = tempfile.mkdtemp()
     try:
         bad = _script(tmp, "bad-script.py", "raise RuntimeError('boom at import')\n")
-        raised = _raises(lambda: mod.load_repo_module("fixture_bad", bad, register=True),
-                         RuntimeError)
-        check("load_repo_module_exec_failure_reraises_the_original",
-              raised is not None and "boom at import" in str(raised), f"got {raised!r}")
+        wrapped = (
+            ("registered_exec_failure", lambda: mod.load_repo_module("fixture_bad", bad, register=True),
+             RuntimeError, "fixture_bad", bad),
+            ("unregistered_exec_failure", lambda: mod.load_repo_module("fixture_bad2", bad),
+             RuntimeError, "fixture_bad2", bad),
+            ("missing_file", lambda: mod.load_repo_module("fixture_missing", os.path.join(tmp, "absent.py")),
+             FileNotFoundError, "fixture_missing", os.path.join(tmp, "absent.py")),
+            ("no_loader", lambda: mod.load_repo_module("fixture_dir", tmp), ImportError, "fixture_dir", tmp),
+        )
+        for row in wrapped:
+            _check_wrapped(mod, *row)
         check("load_repo_module_exec_failure_removes_only_its_own_registration",
               "fixture_bad" not in sys.modules)
-        sentinel = object()
-        sys.modules["fixture_preexisting"] = sentinel
-        _raises(lambda: mod.load_repo_module("fixture_preexisting", bad, register=True),
-                RuntimeError)
-        check("load_repo_module_exec_failure_restores_a_prior_registration",
-              sys.modules.get("fixture_preexisting") is sentinel)
-        del sys.modules["fixture_preexisting"]
-        # A missing FILE still yields a spec; the loader's own FileNotFoundError is the
-        # original failure and must reach the caller untouched — check-state.py's catch
-        # boundary prints its class and text into an INV finding.
-        check("load_repo_module_missing_file_reraises_the_natural_filenotfound",
-              _raises(lambda: mod.load_repo_module("fixture_missing", os.path.join(tmp, "absent.py")),
-                      FileNotFoundError) is not None)
-        check("load_repo_module_no_loader_is_importerror",
-              _raises(lambda: mod.load_repo_module("fixture_dir", tmp), ImportError) is not None,
-              "a directory yields no spec/loader")
+        _check_registration_restored(mod, bad)
+        _check_process_control_passes_through(mod, tmp)
+        ok = _script(tmp, "ok.py", "VALUE = 7\n")
+        check("load_repo_module_success_is_unchanged", mod.load_repo_module("fixture_ok", ok).VALUE == 7)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

@@ -122,16 +122,15 @@ FINISHED_STATIONS = factory_config.FINISHED_STATIONS
 # is not a string. "" is the same value the old code produced from an absent feature.json
 # status, so each caller's existing posture carries over unchanged rather than being redesigned
 # alongside the migration.
-def station_of(feat_dir):
-    try:
-        doc = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml")) or {}
-    except Exception:
-        return ""
-    if not isinstance(doc, dict):
+def station_of(plan_doc):
+    """The plan's station from its already-parsed document (FEAT-63: `Ctx.plan_docs`, which
+    `_load_plan_docs` fills once and whose parse failure it reports once); "" for every
+    unknowable case — no plan, an unparseable plan, no station, a station that is not a string."""
+    if not isinstance(plan_doc, dict):
         return ""
     # `status: done  # with a trailing comment` is a shape the live corpus carries, so take the
     # first whitespace-delimited token — the same normalisation the feature.json reads used.
-    token = str(doc.get("status", "")).split()
+    token = str(plan_doc.get("status", "")).split()
     return token[0] if token else ""
 
 # --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately
@@ -530,12 +529,11 @@ class Ctx:
         for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
             if not os.path.isdir(_fd):
                 continue
-            if station_of(_fd) in TERMINAL_STATIONS:
+            if self.station(os.path.basename(_fd)) in TERMINAL_STATIONS:
                 self.abandoned.add(os.path.basename(_fd))
 
     def _load_eras(self):
         # INV-32 / INV-43 era boundaries, resolved ONCE (BUG-1071; see _era_start_for).
-        self._era_cfg = read(os.path.join(self.H, "harness.json"))
         self.era_start = self._era_start_for("INV-32", "panel_era_start", "adversarial panel")
         # INV-43 (BUG-1723) has the same shape of boundary for the same reason: a succession recorded
         # before the seam was graded cannot be re-recorded to satisfy it (history stays as recorded,
@@ -554,12 +552,36 @@ class Ctx:
         #
         # ONE subprocess for the whole run, not one per feature. None on failure, which is one of
         # INV-33's five deliberate silences: no git work tree is a state it cannot speak to.
+        _tl = self.spawn(["git", "-C", self.root, "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True)
+        self.git_top = _tl.stdout.strip() if _tl is not None and _tl.returncode == 0 else None
+
+    def spawn(self, argv, **options):
+        """THE checker's one process boundary (FEAT-63 T-01, D-01): `subprocess.run(argv,
+        **options)`, or None when the process could not be run at all -- OSError (the binary is
+        absent, the cwd is gone) or subprocess.SubprocessError (the timeout a caller passes
+        expired). Every call site keeps its own argv, cwd, text mode, capture and timeout; only
+        the "could not run" decision lives here, once.
+        gh absent or unauthenticated is an environmental precondition (DEC-138's verbatim
+        clause), so it records nothing. Same posture as INV-25's git-absent branch."""
         try:
-            _tl = subprocess.run(["git", "-C", self.root, "rev-parse", "--show-toplevel"],
-                                 capture_output=True, text=True)
-            self.git_top = _tl.stdout.strip() if _tl.returncode == 0 else None
-        except Exception:
-            self.git_top = None
+            return subprocess.run(argv, **options)
+        except (OSError, subprocess.SubprocessError) as error:
+            # Kept for the one caller that renders WHY it could not run (INV-31's CANNOT RUN).
+            self.spawn_error = error
+            return None
+
+    def gh_ok(self, gh_bin):
+        """Whether `gh auth status` succeeds, probed ONCE per binary and shared by INV-26 and
+        INV-30 (each used to spawn its own probe)."""
+        if gh_bin not in self._gh_ok:
+            _auth = self.spawn([gh_bin, "auth", "status"], capture_output=True, text=True, timeout=15)
+            self._gh_ok[gh_bin] = _auth is not None and _auth.returncode == 0
+        return self._gh_ok[gh_bin]
+
+    def station(self, feat):
+        """The feature's plan.yaml station, from the document `_load_plan_docs` parsed once."""
+        return station_of(self.plan_docs.get(feat))
 
     def _load_config(self):
         # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
@@ -580,12 +602,17 @@ class Ctx:
         H, bad = self.H, self.bad
         cj = self.cj = {}
         cfg = read(os.path.join(H, "harness.json"))
+        # `cj_valid` is False only when harness.json EXISTS and does not parse: the one finding
+        # below covers that, and every other reader of the config (the era boundaries, INV-22's
+        # budget, INV-37's sync flag) reads `cj` and stays quiet about it (FEAT-63 T-01).
+        self.cj_valid = bool(cfg)
         if cfg:
             try:
                 cj = self.cj = artifact_accessors.load_harness_json(
                     text=cfg, context=os.path.join(H, "harness.json"))
             except Exception as e:
                 cj = self.cj = {}
+                self.cj_valid = False
                 bad.append(f".harness/harness.json is not valid JSON: {e}")
 
     def _load_handoff_baseline(self):
@@ -615,10 +642,12 @@ class Ctx:
             _pm40 = harness_boundary.load_repo_module(
                 "harness_plan_merge", os.path.join(sys.argv[2], "plan-merge.py"))
             self.signed_task_hash = _pm40.signed_task_hash
-        except Exception as _pme40:
+        except harness_boundary.RepoModuleError as _pme40:
             self.signed_task_hash = None
+            # The ORIGINAL exception is rendered, not the boundary's wrapper: the reader wants
+            # the type and text of what went wrong inside plan-merge.py (FEAT-63 T-01).
             bad.append("INV-40 CANNOT RUN its signed-text check: plan-merge.py did not import "
-                       f"({type(_pme40).__name__}: {_pme40}), so an unledgered task-text change would go "
+                       f"({type(_pme40.cause).__name__}: {_pme40.cause}), so an unledgered task-text change would go "
                        "unreported. The module ships with this repository.")
 
     def __init__(self, root, keep=None):
@@ -629,9 +658,9 @@ class Ctx:
         self._load_plans()
         self._load_plan_docs()
         self._load_states_and_abandoned()
-        self._load_eras()
         self._load_git_top()
         self._load_config()
+        self._load_eras()
         self._load_handoff_baseline()
         self._assert_seam_rows()
         self.default_cycles = (_int_field((self.cj.get("budgets") or {}).get("max_total_cycles"))
@@ -643,6 +672,8 @@ class Ctx:
         self._records = {}
         self._run_states = {}
         self._vd = None
+        self._gh_ok = {}
+        self.spawn_error = None
         self._digests = {}
 
     def fpath(self, feat, tail=""):
@@ -664,14 +695,11 @@ class Ctx:
         to "grade everything" reddens every pre-era record in an un-upgraded project, and
         defaulting to "exempt everything" disables the invariant there without saying so; so it
         says so, once, and names the command that fixes it."""
-        if not self._era_cfg:
+        if not self.cj_valid:
+            # No config, or one that does not parse: absent is INV-1's finding and invalid is
+            # `_load_config`'s own (`cj`); neither resolves an era.
             return None
-        try:
-            raw = artifact_accessors.load_harness_json(
-                text=self._era_cfg, context=os.path.join(self.H, "harness.json")).get(key, _MISSING)
-        except Exception:
-            # The JSON-validity violation is raised on its own merit further down (`cj`).
-            return None
+        raw = self.cj.get(key, _MISSING)
         if raw is _MISSING:
             self.bad.append(f"{inv}: .harness/harness.json has no `{key}`, so no {what} era can be "
                        f"resolved. Run /harness-init --upgrade (upgrade-config.py) against this "
@@ -809,8 +837,8 @@ class Ctx:
                     _vd_mod = harness_boundary.load_repo_module("harness_validate_digest", vd)
                     if not callable(getattr(_vd_mod, "validate", None)):
                         _vd_mod, _vd_import_err = None, "it defines no validate() function"
-                except Exception as _e:
-                    _vd_mod, _vd_import_err = None, str(_e)
+                except harness_boundary.RepoModuleError as _e:
+                    _vd_mod, _vd_import_err = None, str(_e.cause)
             self._vd = (vd, _vd_mod, _vd_import_err)
         return self._vd
 
@@ -1102,13 +1130,7 @@ def _inv32_patch_mission(ctx, feat, doc):
     # BEING one task — that is what makes one validate-run review a sufficient substitute
     # for the panel — so a patch record over a larger plan is graded as the mismatch it is
     # rather than exempted on the strength of a key.
-    try:
-        _mf_path = os.path.join(os.path.dirname(fpath(feat, "plan.yaml")), "feature.json")
-        _mission = str(
-            (artifact_accessors.load_feature_json(_mf_path) or {}).get("mission", "")
-        ).strip()
-    except Exception:
-        _mission = ""
+    _mission = str((ctx.record(feat)[0] or {}).get("mission", "")).strip()
     if _mission == "patch":
         _tasks = doc.get("tasks")
         _ntasks = len(_tasks) if isinstance(_tasks, list) else 0
@@ -1385,7 +1407,7 @@ def _inv33_plan_path(fy):
         _pf = os.path.join(os.path.dirname(fy), "PLAN.md")
     return _pf
 
-def _inv33_stale_relpath(root, _git_top, _sha, _pf):
+def _inv33_stale_relpath(ctx, _git_top, _sha, _pf):
     """The plan's path relative to the work tree when its bytes at the pin differ from
     the bytes on disk, else None."""
     # REALPATH BOTH SIDES. `git rev-parse --show-toplevel` returns the resolved
@@ -1394,8 +1416,8 @@ def _inv33_stale_relpath(root, _git_top, _sha, _pf):
     # `../../..`-prefixed path, `git show` fail, and this invariant go SILENT —
     # measured, and the same mismatch T-07 hit in worktree_terminal.
     _prel = os.path.relpath(os.path.realpath(_pf), os.path.realpath(_git_top))
-    _shown = subprocess.run(["git", "-C", root, "show", f"{_sha}:{_prel}"],
-                            capture_output=True)
+    _shown = ctx.spawn(["git", "-C", ctx.root, "show", f"{_sha}:{_prel}"],
+                       capture_output=True)
     try:
         with open(_pf, "rb") as _pfh:
             _disk = _pfh.read()
@@ -1403,31 +1425,31 @@ def _inv33_stale_relpath(root, _git_top, _sha, _pf):
         _disk = None
     # BOTH reads must succeed. See the path-absent paragraph above — this one clause is
     # what keeps 19 honest pins quiet.
-    if _shown.returncode == 0 and _disk is not None and _shown.stdout != _disk:
+    if _shown is not None and _shown.returncode == 0 and _disk is not None and _shown.stdout != _disk:
         return _prel
     return None
 
-def _inv33_finding(root, feat, _sha, _pf, _prel):
+def _inv33_finding(ctx, feat, _sha, _pf, _prel):
     """The stale-pin finding, naming the last commit to touch the plan."""
     # THE FINDING NAMES THREE THINGS: the feature, the pinned sha, and the last
     # commit to touch that plan. A finding that says only "stale" makes the reader
     # redo the measurement.
-    _last = subprocess.run(
-        ["git", "-C", root, "log", "-1", "--format=%h", "--", _prel],
+    _last = ctx.spawn(
+        ["git", "-C", ctx.root, "log", "-1", "--format=%h", "--", _prel],
         capture_output=True, text=True)
-    _lastsha = _last.stdout.strip() or "(unknown)"
+    _lastsha = (_last.stdout.strip() if _last is not None else "") or "(unknown)"
     return (f"{feat}: review_sha {_sha} is STALE — {os.path.basename(_pf)} has "
             f"changed since it was pinned, last at {_lastsha}, so the review "
             f"claim covers text that is no longer there (INV-33).")
 
-def _inv33_stale(root, _git_top, feat, fy, _sha):
+def _inv33_stale(ctx, _git_top, feat, fy, _sha):
     """The stale-pin finding for the feature's plan file, as a list."""
     bad = []
     _pf = _inv33_plan_path(fy)
     if os.path.isfile(_pf):
-        _prel = _inv33_stale_relpath(root, _git_top, _sha, _pf)
+        _prel = _inv33_stale_relpath(ctx, _git_top, _sha, _pf)
         if _prel is not None:
-            bad.append(_inv33_finding(root, feat, _sha, _pf, _prel))
+            bad.append(_inv33_finding(ctx, feat, _sha, _pf, _prel))
     return bad
 
 def inv_33(ctx, feat):
@@ -1484,8 +1506,8 @@ def inv_33(ctx, feat):
     # recorded run is a LAGGING indicator that can only fire after a panel has already read the
     # wrong text, which is how this feature's own divergence survived.
     if _git_top and _sha and _sha not in harness_yaml.PLACEHOLDER_UNSET \
-            and station_of(os.path.dirname(fy)) not in FINISHED_STATIONS:
-        bad.extend(_inv33_stale(root, _git_top, feat, fy, _sha))
+            and ctx.station(feat) not in FINISHED_STATIONS:
+        bad.extend(_inv33_stale(ctx, _git_top, feat, fy, _sha))
     return bad, warn
 
 def inv_7(ctx, feat):
@@ -1537,20 +1559,16 @@ def _inv22_as_budget(v):
         return int(v.strip()), None
     return None, ("absent" if v is None else f"{v!r} is not a number")
 
-def _inv22_default_budget(H):
+def _inv22_default_budget(ctx):
     """harness.json's budgets.max_total_runs as (int, None), or (None, why)."""
-    _budget, _why = None, "harness.json could not be read"
-    try:
-        _hj = artifact_accessors.load_harness_json(os.path.join(H, "harness.json"))
-        _budget, _why = _inv22_as_budget((_hj.get("budgets") or {}).get("max_total_runs"))
-    except Exception as e:
-        _budget, _why = None, f"harness.json could not be read ({type(e).__name__})"
-    return _budget, _why
+    if not ctx.cj_valid:
+        return None, "harness.json could not be read"
+    return _inv22_as_budget((ctx.cj.get("budgets") or {}).get("max_total_runs"))
 
-def _inv22_budget(H, feat, val, warn):
+def _inv22_budget(ctx, feat, val, warn):
     """The run budget in force — the feature's own outranking the harness.json default —
     as (int, None), or (None, why). An unusable per-feature value is noted in `warn`."""
-    _budget, _why = _inv22_default_budget(H)
+    _budget, _why = _inv22_default_budget(ctx)
     _declared = val("max_total_runs")
     if _declared is not None:                 # a per-feature value outranks the default
         _d, _dwhy = _inv22_as_budget(_declared.strip() if isinstance(_declared, str) else _declared)
@@ -1604,7 +1622,7 @@ def inv_22(ctx, feat):
     # THE COUNT IS A FLOOR, not a total: a main-session-direct segment is not a run and
     # never appears in runs: — on FEAT-07 that hid eight of ten tasks. Said in the
     # message so nobody reads the number as complete.
-    _budget, _why = _inv22_budget(H, feat, val, warn)
+    _budget, _why = _inv22_budget(ctx, feat, val, warn)
     warn.extend(_inv22_count(feat, runs, val, _budget, _why))
     return bad, warn
 
@@ -1661,18 +1679,16 @@ def inv_12(ctx, feat):
 # since the 2026-09-21 ruling (the row ran unnumbered as `OMP-PORT` before it). The
 # gate keys on `.omp/config.yml` so a scratch tree that carries no OMP surface (every
 # fixture in tests/) grades its own invariants without the whole port surface.
-def _omp_port_findings(root, omp_check):
-    bad = []
-    _omp_result = subprocess.run(
-        [sys.executable, omp_check, root],
+def _omp_port_findings(ctx, omp_check):
+    """check-omp-port.py's stderr lines when it fails; nothing when it passes or could not run."""
+    _omp_result = ctx.spawn(
+        [sys.executable, omp_check, ctx.root],
         text=True,
         capture_output=True,
     )
-    if _omp_result.returncode != 0:
-        for _line in (_omp_result.stderr or "").splitlines():
-            if _line.strip():
-                bad.append(_line.strip())
-    return bad
+    if _omp_result is None or _omp_result.returncode == 0:
+        return []
+    return [_line.strip() for _line in (_omp_result.stderr or "").splitlines() if _line.strip()]
 
 def inv_45(ctx):
     bad, warn = [], []
@@ -1685,7 +1701,7 @@ def inv_45(ctx):
             bad.append("OMP is configured but check-omp-port.py is missing — nothing grades the "
                        "roster, hook wiring or provider overlays.")
         else:
-            bad.extend(_omp_port_findings(root, _omp_check))
+            bad.extend(_omp_port_findings(ctx, _omp_check))
     return bad, warn
 
 # --- INV-17 (DEC-159): squad seams hand off through notes/handoff-<stem>.md.
@@ -1705,7 +1721,7 @@ def _inv17_station(ctx, feat, fy):
     """(station, bad) — station is falsy when the seam invariants cannot or need not run."""
     bad = []
     fpath = ctx.fpath
-    _status = station_of(os.path.dirname(fy))
+    _status = ctx.station(feat)
     if not _status:
         # NO STATION AT ALL is still a skip, and deliberately so: a feature directory with no
         # plan.yaml is a PLAN.md-era record, and INV-3 already reports a plan that should exist
@@ -2407,12 +2423,9 @@ def _inv24_factory_blocks(ctx):
     its `continue`)."""
     for feat in ctx.features:
         fy = ctx.path(feat, 'feature.json')
-        if not os.path.isfile(fy):
-            continue
-        try:
-            fdoc = artifact_accessors.load_feature_json(fy) or {}
-        except Exception:
-            continue  # the parse failure is already a violation elsewhere; do not double-report
+        fdoc = ctx.record(feat)[0]
+        if fdoc is None:
+            continue  # absent, or the parse failure is already a violation elsewhere; do not double-report
         fac = fdoc.get("factory")
         if not isinstance(fac, dict):
             continue
@@ -2592,7 +2605,7 @@ def _inv28_missing_pr(ctx, feat, fy, pdoc):
     root = ctx.root
     if not isinstance(pdoc, dict):
         return []
-    if station_of(os.path.dirname(fy)) != "done":
+    if ctx.station(feat) != "done":
         return []
     _pr = pdoc.get("pr")
     # `isinstance(True, int)` is True in Python, so the bool exclusion is load-bearing:
@@ -2647,14 +2660,10 @@ def _inv25_import():
                    % (type(_hbe).__name__, _hbe))
     return _wt_seg, bad
 
-def _inv25_porcelain(root):
-    try:
-        _wtp = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
-                              capture_output=True, text=True, timeout=10)
-        _wt_out = _wtp.stdout if _wtp.returncode == 0 else None
-    except Exception:
-        _wt_out = None
-    return _wt_out
+def _inv25_porcelain(ctx):
+    _wtp = ctx.spawn(["git", "worktree", "list", "--porcelain"], cwd=ctx.root,
+                     capture_output=True, text=True, timeout=10)
+    return _wtp.stdout if _wtp is not None and _wtp.returncode == 0 else None
 
 def _inv25_parse_record(rec):
     _path, _prunable = None, False
@@ -2744,7 +2753,7 @@ def inv_25(ctx):
     bad.extend(_import_bad)
 
     if _wt_seg:
-        _wt_out = _inv25_porcelain(root)
+        _wt_out = _inv25_porcelain(ctx)
 
         if _wt_out:
             _entries = _inv25_parse_entries(_wt_out)
@@ -2961,20 +2970,11 @@ def _inv37_import():
                    "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
     return bad, _fs37
 
-def _inv37_sync(H):
-    try:
-        _sync37 = bool((artifact_accessors.load_harness_json(
-            os.path.join(H, "harness.json")).get("github") or {}).get("sync"))
-    except Exception:
-        _sync37 = False
-    return _sync37
+def _inv37_sync(ctx):
+    return bool((ctx.cj.get("github") or {}).get("sync"))
 
-def _inv37_receipted(_fp37):
-    try:
-        _doc37 = artifact_accessors.load_feature_json(
-            os.path.join(_fp37, "feature.json")) or {}
-    except Exception:
-        _doc37 = {}
+def _inv37_receipted(ctx, _feat37):
+    _doc37 = ctx.record(_feat37)[0] or {}
     return bool((_doc37.get("factory") or {}).get("issues")
                 or (_doc37.get("github") or {}).get("build_entry") is not None)
 
@@ -2996,7 +2996,7 @@ def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
     _fp37 = ctx.feature_dir(_feat37)
     if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or _feat37 not in plan_docs:
         return bad
-    if _inv37_receipted(_fp37):
+    if _inv37_receipted(ctx, _feat37):
         return bad
     bad.append(_inv37_finding(_fs37, _feat37, _fp37))
     return bad
@@ -3008,7 +3008,7 @@ def inv_37(ctx):
     _import_bad37, _fs37 = _inv37_import()
     bad.extend(_import_bad37)
 
-    _sync37 = _inv37_sync(H)
+    _sync37 = _inv37_sync(ctx)
 
     if _fs37 is None or not _sync37:
         return bad, warn
@@ -3083,17 +3083,6 @@ def _inv26_declared_board(_gb, cj, root):
     return bad, _inv26_board, _repo26
 
 
-def _inv26_gh_ok(_gh_bin):
-    # gh absent or unauthenticated is an environmental precondition (DEC-138's verbatim
-    # clause), so it records nothing. Same posture as INV-25's git-absent branch.
-    try:
-        _auth = subprocess.run([_gh_bin, "auth", "status"],
-                               capture_output=True, text=True, timeout=15)
-        _gh_ok = _auth.returncode == 0
-    except Exception:
-        _gh_ok = False
-    return _gh_ok
-
 
 def _inv26_github_numbers(_gblk26, _issues26):
     _numbers26 = set()
@@ -3108,16 +3097,12 @@ def _inv26_github_numbers(_gblk26, _issues26):
     return _numbers26
 
 
-def _inv26_feature_numbers(_fp26, plan_docs):
-    if not plan_docs.get(os.path.basename(_fp26)):
+def _inv26_feature_numbers(ctx, _feat26, plan_docs):
+    if not plan_docs.get(_feat26):
         return set()
-    if station_of(_fp26) in FINISHED_STATIONS:
+    if ctx.station(_feat26) in FINISHED_STATIONS:
         return set()
-    try:
-        _fj26 = artifact_accessors.load_feature_json(
-            os.path.join(_fp26, "feature.json")) or {}
-    except Exception:
-        return set()
+    _fj26 = ctx.record(_feat26)[0] or {}
     _gblk26 = _fj26.get("github") or {}
     _issues26 = _gblk26.get("issues") or {}
     if not _issues26:
@@ -3139,7 +3124,7 @@ def _inv26_numbers(ctx, plan_docs):
     # CANNOT VERIFY for a card that is on the board. Over-asking is cheap; under-asking lies.
     _numbers26 = set()
     for _feat26 in ctx.features:
-        _numbers26 |= _inv26_feature_numbers(ctx.feature_dir(_feat26), plan_docs)
+        _numbers26 |= _inv26_feature_numbers(ctx, _feat26, plan_docs)
     return _numbers26
 
 
@@ -3160,16 +3145,6 @@ def _inv26_stations(_gb, _inv26_board, _repo26, _numbers26, _gh_bin):
         _stations = None
     return _stations
 
-
-def _inv26_feature_json(_fp):
-    # THE FEATURE.JSON READ STAYS — this block reads `github.issues`, `github.parent`
-    # and `factory.issues` off `_fj` further down. Only the STATION moved to plan.yaml.
-    try:
-        _fj = artifact_accessors.load_feature_json(
-            os.path.join(_fp, "feature.json")) or {}
-    except Exception:
-        _fj = {}
-    return _fj
 
 
 def _inv26_task_status_entry(_tstat, _t):
@@ -3206,7 +3181,7 @@ def _inv26_projected(_gb, _feat, _pdoc, _fj, _issues):
     return bad, _projected
 
 
-def _inv26_accepted(_want, _tstat, _tid, _fp):
+def _inv26_accepted(_want, _tstat, _tid, _station):
     # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under
     # D-23 a done task's sub-issue is deliberately left OPEN so it can hold its
     # column through the whole Review phase.
@@ -3229,14 +3204,14 @@ def _inv26_accepted(_want, _tstat, _tid, _fp):
     # extended to catch. The station is read from plan.yaml now (FEAT-41 T-07),
     # the same file `_pdoc` came from.
     _accept = {_want}
-    if _tstat.get(_tid) == "done" and station_of(_fp) == "review":
+    if _tstat.get(_tid) == "done" and _station == "review":
         _accept |= {"review", "building"}
     _wanttxt = (_want if len(_accept) == 1
                 else ", ".join(sorted(_accept)[:-1]) + " or " + sorted(_accept)[-1])
     return _accept, _wanttxt
 
 
-def _inv26_task_card(_gb, _stations, _fp, _feat, _tid, _num, _projected, _tstat):
+def _inv26_task_card(_gb, _stations, _station, _feat, _tid, _num, _projected, _tstat):
     bad = []
     # THE FAIL-OPEN IS DELETED (D-11). This read `if _want is None: continue`, so a
     # recorded sub-issue that the placement rule did not place went unexamined. A
@@ -3248,7 +3223,7 @@ def _inv26_task_card(_gb, _stations, _fp, _feat, _tid, _num, _projected, _tstat)
                    f"{_tstat.get(_tid, 'ready')!r} and no card placement follows from "
                    f"it, so the board cannot be checked against the plan.")
         return bad
-    _accept, _wanttxt = _inv26_accepted(_want, _tstat, _tid, _fp)
+    _accept, _wanttxt = _inv26_accepted(_want, _tstat, _tid, _station)
     _found, _reason = _gb.read_station(_stations, _num)
     if _reason:
         # CANNOT VERIFY, NOT CLEAN. A lookup that misses leaves both sides of
@@ -3264,11 +3239,11 @@ def _inv26_task_card(_gb, _stations, _fp, _feat, _tid, _num, _projected, _tstat)
     return bad
 
 
-def _inv26_task_cards(_gb, _stations, _fp, _feat, _issues, _projected, _tstat):
+def _inv26_task_cards(_gb, _stations, _station, _feat, _issues, _projected, _tstat):
     bad = []
     for _tid in sorted(_issues):
         _num = _issues[_tid]
-        bad += _inv26_task_card(_gb, _stations, _fp, _feat, _tid, _num, _projected, _tstat)
+        bad += _inv26_task_card(_gb, _stations, _station, _feat, _tid, _num, _projected, _tstat)
     return bad
 
 
@@ -3314,7 +3289,7 @@ def _inv26_source_cards(_gb, _stations, _feat, _fj, _projected):
 
 def _inv26_feature(ctx, _gb, _stations, plan_docs, _feat):
     bad = []
-    _fp = ctx.feature_dir(_feat)
+    _station = ctx.station(_feat)
     _pdoc = plan_docs.get(_feat)
     if not _pdoc:
         # No plan.yaml, or one that did not load. Other invariants own both — the
@@ -3322,7 +3297,9 @@ def _inv26_feature(ctx, _gb, _stations, plan_docs, _feat):
         # report one defect twice.
         return bad
 
-    _fj = _inv26_feature_json(_fp)
+    # THE FEATURE.JSON READ STAYS — this block reads `github.issues`, `github.parent`
+    # and `factory.issues` off `_fj` further down. Only the STATION moved to plan.yaml.
+    _fj = ctx.record(_feat)[0] or {}
 
     # THE TERMINAL EXEMPTION. `ship` writes the parent's card to the done station and
     # records the terminal station, while the plan-derived station would still say
@@ -3330,7 +3307,7 @@ def _inv26_feature(ctx, _gb, _stations, plan_docs, _feat):
     #
     # THE CONDITION NOW KEYS ON plan.yaml's STATION (FEAT-41 T-07) rather than
     # feature.json's status, which is the only change here: one file records the station.
-    if station_of(_fp) in FINISHED_STATIONS:
+    if _station in FINISHED_STATIONS:
         return bad
 
 
@@ -3348,7 +3325,7 @@ def _inv26_feature(ctx, _gb, _stations, plan_docs, _feat):
     if _projected is None:
         return bad
 
-    bad += _inv26_task_cards(_gb, _stations, _fp, _feat, _issues, _projected, _tstat)
+    bad += _inv26_task_cards(_gb, _stations, _station, _feat, _issues, _projected, _tstat)
 
     # Parent and source cards are compared through the same projection as task cards.
     bad += _inv26_parent_card(_gb, _stations, _feat, _fj, _projected)
@@ -3379,7 +3356,7 @@ def _inv26_compare(ctx, _gb, _stations, plan_docs):
 
 def _inv26_check(ctx, _gb, _inv26_board, _repo26, _gh_bin, plan_docs):
     bad = []
-    _gh_ok = _inv26_gh_ok(_gh_bin)
+    _gh_ok = ctx.gh_ok(_gh_bin)
     _numbers26 = _inv26_numbers(ctx, plan_docs)
 
     _stations = None
@@ -3446,12 +3423,9 @@ def _inv30_repo(cj):
     return _g30, _repo30
 
 
-def _inv30_feature_doc(_fy30):
-    if not os.path.isfile(_fy30):
-        return None
-    try:
-        _doc30 = artifact_accessors.load_feature_json(_fy30) or {}
-    except Exception:
+def _inv30_feature_doc(ctx, _feat30):
+    _doc30 = ctx.record(_feat30)[0]
+    if _doc30 is None:
         # INV-28 above already reports an unparseable feature.json. Restating it here would
         # report one defect twice.
         return None
@@ -3462,14 +3436,14 @@ def _inv30_feature_doc(_fy30):
 
 def _inv30_candidate(ctx, _feat30):
     _fy30 = ctx.path(_feat30, 'feature.json')
-    _doc30 = _inv30_feature_doc(_fy30)
+    _doc30 = _inv30_feature_doc(ctx, _feat30)
     if _doc30 is None:
         return None
     # The `done` station and nothing else, read from plan.yaml (FEAT-41 T-07). The terminal
     # marker is terminal and silent here for INV-28's reason: nothing shipped, so there is
     # no milestone that ship should have closed. The feature.json read above stays — this
     # invariant needs `github.milestone` off that document.
-    if station_of(os.path.dirname(_fy30)) != "done":
+    if ctx.station(_feat30) != "done":
         return None
     _ms30 = (_doc30.get("github") or {}).get("milestone")
     if _ms30 is None:
@@ -3494,32 +3468,19 @@ def _inv30_candidates(ctx):
     return _cand30
 
 
-def _inv30_gh_ok(_gh_bin30):
-    try:
-        _auth30 = subprocess.run([_gh_bin30, "auth", "status"],
-                                 capture_output=True, text=True, timeout=15)
-        _gh_ok30 = _auth30.returncode == 0
-    except Exception:
-        _gh_ok30 = False
-    return _gh_ok30
 
-
-def _inv30_open_milestones(_gh_bin30, _repo30):
+def _inv30_open_milestones(ctx, _gh_bin30, _repo30):
     # `--paginate` rather than a bare per_page: the list is small today and silently
     # truncating it later would make this invariant quietly stop firing on the oldest
     # features, which is the decay shape INV-28 was written to catch.
-    _open30 = None
-    try:
-        _r30 = subprocess.run(
-            [_gh_bin30, "api", "--paginate",
-             "repos/%s/milestones?state=open&per_page=100" % _repo30,
-             "-q", ".[].number"],
-            capture_output=True, text=True, timeout=60)
-        if _r30.returncode == 0:
-            _open30 = {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
-    except Exception:
-        _open30 = None
-    return _open30
+    _r30 = ctx.spawn(
+        [_gh_bin30, "api", "--paginate",
+         "repos/%s/milestones?state=open&per_page=100" % _repo30,
+         "-q", ".[].number"],
+        capture_output=True, text=True, timeout=60)
+    if _r30 is None or _r30.returncode != 0:
+        return None
+    return {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
 
 
 def _inv30_compare(_cand30, _open30, fpath):
@@ -3536,16 +3497,16 @@ def _inv30_compare(_cand30, _open30, fpath):
     return bad
 
 
-def _inv30_check(_cand30, _repo30, fpath):
+def _inv30_check(ctx, _cand30, _repo30, fpath):
     # SAME RESOLUTION AS INV-26 at :1371 — FACTORY_GH first. A fixture that stubs
     # `gh` through that variable must reach this invariant too, or INV-30 would be
     # untestable offline while claiming an offline posture.
     _gh_bin30 = os.environ.get("FACTORY_GH") or "gh"
     _open30 = None
-    _gh_ok30 = _inv30_gh_ok(_gh_bin30)
+    _gh_ok30 = ctx.gh_ok(_gh_bin30)
 
     if _gh_ok30:
-        _open30 = _inv30_open_milestones(_gh_bin30, _repo30)
+        _open30 = _inv30_open_milestones(ctx, _gh_bin30, _repo30)
 
     # None means "we could not ask", which is NOT the same as "nothing is open" and must
     # never be treated as one. Silence here is the whole offline posture.
@@ -3568,7 +3529,7 @@ def inv_30(ctx):
         _cand30 = _inv30_candidates(ctx)
 
         if _cand30:
-            bad += _inv30_check(_cand30, _repo30, fpath)
+            bad += _inv30_check(ctx, _cand30, _repo30, fpath)
     return bad, warn
 
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
@@ -3690,7 +3651,8 @@ def inv_42(ctx):
         _csw = harness_boundary.load_repo_module(
             "check_skill_weight", os.path.join(sys.argv[2], "check-skill-weight.py"),
             register=True)
-    except Exception as _cswe:
+    except harness_boundary.RepoModuleError as _cswe:
+        _cswe = _cswe.cause      # render what failed inside check-skill-weight.py, not the wrapper
         _csw = None
         bad.append("INV-42 CANNOT RUN: check-skill-weight.py did not import (%s: %s), so an "
                    "agent preloading a missing skill would go unreported. The module ships with "
@@ -3767,19 +3729,16 @@ def inv_31(ctx):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
 
-    try:
-        _hp = subprocess.run(["git", "config", "--get", "core.hooksPath"],
-                             cwd=root, capture_output=True, text=True)
-        _hp_ok = True
-    except Exception as _hpe:
-        _hp_ok = False
+    _hp = ctx.spawn(["git", "config", "--get", "core.hooksPath"],
+                    cwd=root, capture_output=True, text=True)
+    if _hp is None:
+        _hpe = ctx.spawn_error
         # CANNOT RUN IS A VIOLATION, NOT A PASS — the same posture INV-25, INV-26 and INV-29 take
         # for an import failure. An unreadable git config is not evidence the hook is installed.
         bad.append("INV-31 CANNOT RUN: git config could not be read (%s: %s), so an uninstalled "
                    "merge hook would go unreported. Fix: make git runnable in this checkout."
                    % (type(_hpe).__name__, _hpe))
-
-    if _hp_ok:
+    else:
         bad.extend(_inv31_hooks_path(root, _hp))
     return bad, warn
 
@@ -3946,12 +3905,8 @@ def _unledgered_task_edits(ctx, doc, plan_doc):
 def _feat59_record(ctx, feat):
     """(doc, era) for the FEAT-59 family, or (None, None) when the record is absent or
     unreadable -- INV-6..8 already reports an unparseable feature.json; restating it is noise."""
-    _fy59 = ctx.path(feat, "feature.json")
-    if not os.path.isfile(_fy59):
-        return None, None
-    try:
-        _doc59 = artifact_accessors.load_feature_json(_fy59) or {}
-    except Exception:
+    _doc59 = ctx.record(feat)[0]
+    if _doc59 is None:
         return None, None
     if not isinstance(_doc59, dict):
         return None, None
@@ -4375,7 +4330,7 @@ def inv_44(ctx, feat):
     bad, warn = [], []
     briefs, plan_docs = ctx.briefs, ctx.plan_docs
     _fd44 = ctx.feature_dir(feat)
-    if station_of(_fd44) != 'rejected':
+    if ctx.station(feat) != 'rejected':
         return bad, warn
     _feat44 = feat
     try:
@@ -4621,10 +4576,10 @@ def _select_names(only):
 _FEATURE_IN_PATH = re.compile(r"^\.harness/[^/]+/features/([^/]+)(?:/|$)")
 
 
-def _dirty_toplevel(root):
-    """The real path of root's work-tree top, or of root itself when git cannot say."""
-    top = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
-    return os.path.realpath(top.stdout.strip()) if top.returncode == 0 else os.path.realpath(root)
+def _dirty_toplevel(ctx):
+    """The real path of root's work-tree top (the context's ONE rev-parse), or of root itself
+    when git cannot say."""
+    return os.path.realpath(ctx.git_top if ctx.git_top else ctx.root)
 
 
 def _dirty_records(fields):
@@ -4644,17 +4599,15 @@ def _dirty_records(fields):
     return paths
 
 
-def _dirty_paths(root):
+def _dirty_paths(ctx):
     """Repo-relative POSIX paths of every dirty, staged, untracked or renamed file, or None
     when git cannot answer (no work tree)."""
-    try:
-        r = subprocess.run(["git", "-C", root, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
-                           capture_output=True)
-    except (OSError, subprocess.SubprocessError):
+    root = ctx.root
+    r = ctx.spawn(["git", "-C", root, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                  capture_output=True)
+    if r is None or r.returncode != 0:
         return None
-    if r.returncode != 0:
-        return None
-    top = _dirty_toplevel(root)
+    top = _dirty_toplevel(ctx)
     real_root = os.path.realpath(root)
     paths = _dirty_records(r.stdout.decode("utf-8", errors="replace").split("\0"))
     out = []
@@ -4704,13 +4657,13 @@ def _row_changed(row, dirty):
     return hit, feats, everywhere
 
 
-def _changed_selection(root):
+def _changed_selection(ctx):
     """{row name: feature names or None} selected by the dirty tree, or None when the tree
     cannot be read -- which runs EVERYTHING, the conservative direction. A row selected
     through a `path:` declaration is narrowed to the features those paths belong to; a row
     selected through an input no path can map (`git:`, `gh:`, a path outside the feature
     tree) runs for every feature."""
-    dirty = _dirty_paths(root)
+    dirty = _dirty_paths(ctx)
     if dirty is None:
         return None
     selection = {}
@@ -4826,10 +4779,10 @@ def _main_list():
     return 0
 
 
-def _main_changed(selection):
+def _main_changed(ctx, selection):
     """`--changed` narrowing of `selection`: (selection, None) to run it, or (None, 0) when
     nothing selected reads anything that changed."""
-    changed_sel = _changed_selection(root)
+    changed_sel = _changed_selection(ctx)
     if changed_sel is None:
         return selection, None
     if selection is None:
@@ -4841,7 +4794,7 @@ def _main_changed(selection):
     return selection, None
 
 
-def _main_selection(only, changed):
+def _main_selection(ctx, only, changed):
     """The row selection `--only`/`--changed` ask for: (selection, None) to run it, or
     (None, exit status) when the run stops here."""
     selection = None
@@ -4851,7 +4804,7 @@ def _main_selection(only, changed):
             return None, code
         selection = {n: None for n in names}
     if changed:
-        return _main_changed(selection)
+        return _main_changed(ctx, selection)
     return selection, None
 
 
@@ -4874,10 +4827,13 @@ def main(argv):
         print("harness: no .harness/ here — this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.")
         return 1
     keep = None if feature is None else {feature}
-    selection, code = _main_selection(only, changed)
+    # The context is built BEFORE the selection is resolved (FEAT-63 T-01): `--changed` reads
+    # the dirty tree through the context's one process boundary and its one git top level.
+    # Building it prints nothing, so a selector error still exits before any finding.
+    ctx = Ctx(root, keep=keep)
+    selection, code = _main_selection(ctx, only, changed)
     if code is not None:
         return code
-    ctx = Ctx(root, keep=keep)
     bad, warn = run_table(ctx, selection)
     return _main_report(bad, warn, changed)
 

@@ -366,6 +366,21 @@ def relay_changed_state_feedback(target_path):
             print(row, file=sys.stderr)
 
 
+class RepoModuleError(Exception):
+    """A repo-local script could not be loaded as a module (FEAT-63 T-01, D-02). ONE type for
+    every failure of the load itself — no spec, the loader's own I/O error, an exception raised
+    while the module body executes — so a caller can name the boundary it guards instead of
+    guessing which of `ImportError`, `OSError`, `SyntaxError` or the script's own bug will
+    arrive. The original exception is kept as `cause` (and chained), because the CANNOT RUN
+    lines check-state.py prints render its type and text."""
+
+    def __init__(self, module_name, path, cause):
+        self.module_name = module_name
+        self.path = path
+        self.cause = cause
+        super().__init__(f"cannot load {module_name!r} from {path}: {type(cause).__name__}: {cause}")
+
+
 def load_repo_module(module_name, path, register=False):
     """Load a repo-local script as a module by path — THE sole `spec_from_file_location` in
     bin/ (FEAT-61 T-01). The kebab-case gate scripts cannot be imported by name, and six
@@ -375,28 +390,34 @@ def load_repo_module(module_name, path, register=False):
       dataclasses needs it (check-skill-weight.py: dataclasses resolve their module by name
       during class creation); a script that does not is left out so a failed load leaves no
       half-initialised entry behind.
-    - A failed exec re-raises the ORIGINAL exception and removes only the registration this
-      call made, restoring whatever was bound under the name before.
+    - A failed exec raises RepoModuleError carrying the ORIGINAL exception (FEAT-63: it used to
+      re-raise it bare, which left every caller catching `Exception` to be safe) and removes
+      only the registration this call made, restoring whatever was bound under the name before.
 
-    A path that yields no spec or loader (missing file, a directory) is ImportError naming
-    the path, never an AttributeError on None three lines later.
+    A path that yields no spec or loader (missing file, a directory) is RepoModuleError over an
+    ImportError naming the path, never an AttributeError on None three lines later.
+    KeyboardInterrupt and SystemExit are process control, not load failures: they propagate
+    unchanged (the registration is still undone).
     """
     import importlib.util
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
-    module = importlib.util.module_from_spec(spec)
-    if not register:
-        spec.loader.exec_module(module)
-        return module
-    previous = sys.modules.get(module_name)
-    sys.modules[module_name] = module
     try:
-        spec.loader.exec_module(module)
-    except BaseException:
-        _restore_registration(module_name, previous)
-        raise
-    return module
+        spec = importlib.util.spec_from_file_location(module_name, path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
+        module = importlib.util.module_from_spec(spec)
+        if not register:
+            spec.loader.exec_module(module)
+            return module
+        previous = sys.modules.get(module_name)
+        sys.modules[module_name] = module
+        try:
+            spec.loader.exec_module(module)
+        except BaseException:
+            _restore_registration(module_name, previous)
+            raise
+        return module
+    except Exception as error:
+        raise RepoModuleError(module_name, path, error) from error
 
 
 def _restore_registration(module_name, previous):
