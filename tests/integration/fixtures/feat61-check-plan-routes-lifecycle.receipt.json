@@ -1,0 +1,108 @@
+{
+  "captured_at": "pre-FEAT-61-T-05 (commit 1ed20fa1)",
+  "normalisation": "the fixture project's temp dir is replaced by <TD> in stdout and stderr",
+  "top_level_status": {
+    "backlog": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "plan": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "ready": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "building": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "review": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "done": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 0 plan(s)\nexamined 1 feature dir(s); 1 skipped as shipped\n",
+      "stderr": ""
+    },
+    "abandoned": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 0 plan(s)\nexamined 1 feature dir(s); 1 skipped as shipped\n",
+      "stderr": ""
+    },
+    "rejected": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 0 plan(s)\nexamined 1 feature dir(s); 1 skipped as shipped\n",
+      "stderr": ""
+    },
+    "Done": {
+      "exit": 1,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nVIOLATION top-level status 'Done' is not one of ('backlog', 'plan', 'ready', 'building', 'review', 'done', 'abandoned', 'rejected') (case sensitive)\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n1 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "None": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    }
+  },
+  "task_status": {
+    "backlog": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "plan": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "ready": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "building": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "review": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "done": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "abandoned": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "rejected": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "Done": {
+      "exit": 1,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nVIOLATION T-01: status 'Done' is not one of ('backlog', 'plan', 'ready', 'building', 'review', 'done', 'abandoned', 'rejected') (case sensitive)\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n1 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    },
+    "None": {
+      "exit": 0,
+      "stdout": "scanning <TD>/.harness/*/features/*/{plan.yaml,PLAN.md}\nMANIFEST <TD>/.harness/team-config.yaml\nOK T-01 granted to harness-dev-ops\nNOTE invariant-collision check SKIPPED — .agents/skills/harness/bin/check-state.py could not be read, so a claimed number cannot be told from a cited one.\n0 violation(s) across 1 plan(s)\nexamined 1 feature dir(s); 0 skipped as shipped\n",
+      "stderr": ""
+    }
+  }
+}

@@ -38,17 +38,65 @@ import harness_yaml
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# THE MANDATE the declaration is checked against, not a second vocabulary. harness.json's
-# github.board.stations must equal list(MANDATED_STATIONS) exactly, in this order, so this tuple
-# is the only place the six names are spelled and the declaration is a checksum against it rather
-# than a source of new names (FEAT-41 T-01).
-MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
+# THE ONE STATION TABLE (FEAT-61 D-02). One row per station: its name, whether it has a board
+# column, and its lifecycle bucket. Every other station fact in this tree is a VIEW of these rows,
+# so a station cannot be half-added — a row that names no bucket is a construction error here,
+# never a name that is silently in no bucket at a call site. The data structure carries the
+# weight so call sites carry no conditions. Row order is contract: the board reads its columns in
+# this order, and FINISHED_STATIONS keeps the `("done",) + TERMINAL_STATIONS` order every
+# consumer used to concatenate by hand.
+#
+# Board-column axis — `abandoned` (planned, never built — DEC-203) and `rejected` (refused at
+# first-run intake as wrong or superseded — FEAT-1714) are NOT board stations; they have no
+# column and must stay out of MANDATED_STATIONS. harness.json's github.board.stations must equal
+# list(MANDATED_STATIONS) exactly, in this order, so the declaration is a checksum against this
+# table rather than a source of new names (FEAT-41 T-01).
+#
+# Lifecycle axis — the buckets partition the vocabulary: `not_started` (backlog), `active` (the
+# four stations where work is in progress) and `finished` (done, plus the two terminal names).
+# `finished` is NOT evidence that work started: abandoned can happen before execution and
+# rejected happens at intake, which is why plan-merge.py keeps its own `_work_started` predicate.
+STATION_ROWS = (
+    # name        board column  bucket
+    ("backlog",   True,         "not_started"),
+    ("plan",      True,         "active"),
+    ("ready",     True,         "active"),
+    ("building",  True,         "active"),
+    ("review",    True,         "active"),
+    ("done",      True,         "finished"),
+    ("abandoned", False,        "finished"),
+    ("rejected",  False,        "finished"),
+)
 
-# NOT BOARD STATIONS. These terminal names have no board column and must remain out of
-# MANDATED_STATIONS: `abandoned` (planned, never built — DEC-203) and `rejected` (refused at
-# first-run intake as wrong or superseded — FEAT-1714). Every generic terminal consumer reads
-# this ordered tuple; behaviour specific to one of them spells that one name where it acts.
-TERMINAL_STATIONS = ("abandoned", "rejected")
+MANDATED_STATIONS = tuple(name for name, column, _ in STATION_ROWS if column)
+TERMINAL_STATIONS = tuple(name for name, column, _ in STATION_ROWS if not column)
+ACTIVE_STATIONS = tuple(name for name, _, bucket in STATION_ROWS if bucket == "active")
+FINISHED_STATIONS = tuple(name for name, _, bucket in STATION_ROWS if bucket == "finished")
+
+_BUCKET_OF = {name: bucket for name, _, bucket in STATION_ROWS}
+
+
+def _bucket(name):
+    """The lifecycle bucket of a declared station name, or FleetError. STRICT (D-03): only an
+    exact declared string is a station. `x in FINISHED_STATIONS` returned False for a typo, an
+    empty status or a capitalised column name, and let corrupt station data pass as "not
+    finished"; a boundary that answers a question about a name it does not know is not a
+    boundary — the same posture station_column takes below."""
+    bucket = _BUCKET_OF.get(name) if isinstance(name, str) else None
+    if bucket is None:
+        known = ", ".join(MANDATED_STATIONS + TERMINAL_STATIONS)
+        raise artifact_accessors.FleetError("unknown station", repr(name), f"known stations: {known}")
+    return bucket
+
+
+def is_active(name):
+    """True when work on the feature or task is in progress: plan, ready, building or review."""
+    return _bucket(name) == "active"
+
+
+def is_finished(name):
+    """True when nothing executable remains: done, or a terminal name. Not evidence work began."""
+    return _bucket(name) == "finished"
 
 # FLEET_PATH's root always resolves inside the LIVE checkout under any test fixture root,
 # because _BIN_DIR is this module's own on-disk location, and the live checkout always carries

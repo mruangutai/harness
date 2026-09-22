@@ -11,6 +11,10 @@ const FEATURE_MARKER = /^HARNESS-FEATURE: ((?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+)$/
 // when that is unset (a frozen feature, a review dispatched outside the plan path) and must
 // agree with it when both exist.
 const REVIEW_PIN_MARKER = /^HARNESS-REVIEW-PIN: ([0-9a-f]{7,40})$/gm;
+// #1855: the mission rides the same road. A distill dispatch (DEC-145) has no diff to grade
+// and no suite to run; validate-digest.py pins the readers' gate fields to their did-nothing
+// spelling on `harness_mission: distill` rather than teaching them to fabricate a pass.
+const MISSION_MARKER = /^HARNESS-MISSION: ([a-z]+)$/gm;
 const BIN = ".agents/skills/harness/bin";
 
 // THE GATE DIRECTORY IS DERIVED FROM THIS FILE, NOT FROM ANY CALLER (FEAT-42, panel B-1).
@@ -47,43 +51,24 @@ function debug(message: string): void {
   if (process.env.HARNESS_HOOK_DEBUG === "1") console.error(`[harness-hooks] ${message}`);
 }
 
+// One marker per identity axis, each with exactly one value across every layer: two
+// different values for the same axis is a conflict, never a choice.
+function detectMarker(systemPrompt: unknown, marker: RegExp, what: string): string | undefined {
+  if (!Array.isArray(systemPrompt)) return undefined;
+  const found = new Set<string>();
+  for (const layer of systemPrompt) {
+    if (typeof layer !== "string") continue;
+    for (const match of layer.matchAll(marker)) found.add(match[1]);
+  }
+  if (found.size > 1) {
+    throw new Error(`conflicting Harness ${what} markers: ${[...found].sort().join(", ")}`);
+  }
+  return found.values().next().value;
+}
+
+// Exported: the test seam that pins the marker grammar.
 export function detectHarnessAgent(systemPrompt: unknown): string | undefined {
-  if (!Array.isArray(systemPrompt)) return undefined;
-  const names = new Set<string>();
-  for (const layer of systemPrompt) {
-    if (typeof layer !== "string") continue;
-    for (const match of layer.matchAll(AGENT_MARKER)) names.add(match[1]);
-  }
-  if (names.size > 1) {
-    throw new Error(`conflicting Harness agent markers: ${[...names].sort().join(", ")}`);
-  }
-  return names.values().next().value;
-}
-
-export function detectHarnessFeature(systemPrompt: unknown): string | undefined {
-  if (!Array.isArray(systemPrompt)) return undefined;
-  const features = new Set<string>();
-  for (const layer of systemPrompt) {
-    if (typeof layer !== "string") continue;
-    for (const match of layer.matchAll(FEATURE_MARKER)) features.add(match[1]);
-  }
-  if (features.size > 1) {
-    throw new Error(`conflicting Harness feature markers: ${[...features].sort().join(", ")}`);
-  }
-  return features.values().next().value;
-}
-
-export function detectHarnessReviewPin(systemPrompt: unknown): string | undefined {
-  if (!Array.isArray(systemPrompt)) return undefined;
-  const pins = new Set<string>();
-  for (const layer of systemPrompt) {
-    if (typeof layer !== "string") continue;
-    for (const match of layer.matchAll(REVIEW_PIN_MARKER)) pins.add(match[1]);
-  }
-  if (pins.size > 1) {
-    throw new Error(`conflicting Harness review pin markers: ${[...pins].sort().join(", ")}`);
-  }
-  return pins.values().next().value;
+  return detectMarker(systemPrompt, AGENT_MARKER, "agent");
 }
 
 export function extractEditPaths(input: unknown): string[] {
@@ -248,8 +233,16 @@ function runPolicy(
   return { blocked: false, stdout };
 }
 
-function basePayload(agent: string, eventName: string, cwd: string): Dict {
-  return { agent_type: agent, hook_event_name: eventName, cwd };
+function basePayload(agent: string, eventName: string, cwd: string, ctx?: any): Dict {
+  const agentId = text(ctx?.agentId);
+  const parentAgentId = text(ctx?.parentAgentId);
+  return {
+    agent_type: agent,
+    hook_event_name: eventName,
+    cwd,
+    ...(agentId ? { harness_agent_id: agentId } : {}),
+    ...(parentAgentId ? { harness_parent_agent_id: parentAgentId } : {}),
+  };
 }
 
 function preDomain(
@@ -258,8 +251,9 @@ function preDomain(
   toolName: string,
   input: Dict,
   runner: PolicyRunner,
+  ctx?: any,
 ): PolicyResult[] {
-  const base = basePayload(agent, "PreToolUse", cwd);
+  const base = basePayload(agent, "PreToolUse", cwd, ctx);
   if (toolName === "write") {
     return [runner(cwd, "check-domain.py", [], {
       ...base,
@@ -283,8 +277,9 @@ function postDomain(
   toolName: string,
   input: Dict,
   runner: PolicyRunner,
+  ctx?: any,
 ): PolicyResult[] {
-  const base = basePayload(agent, "PostToolUse", cwd);
+  const base = basePayload(agent, "PostToolUse", cwd, ctx);
   if (toolName === "write") {
     return [runner(cwd, "check-domain.py", ["--post"], {
       ...base,
@@ -313,7 +308,7 @@ function firstBlock(results: PolicyResult[]): string | undefined {
   return results.find((result) => result.blocked)?.reason;
 }
 
-type TaskDispatch = { agent: string; task: string; model?: unknown };
+type TaskDispatch = { agent: string; task: string; name?: string; model?: unknown };
 type ClaimReceipt = { root: string; feature: string; agent: string; claimId: string };
 
 export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
@@ -323,12 +318,24 @@ export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
       const value = item as Dict;
       const agent = text(value.agent);
       const task = text(value.task);
-      return agent && task ? [{ agent, task, ...("model" in value ? { model: value.model } : {}) }] : [];
+      const name = text(value.name);
+      return agent && task ? [{
+        agent,
+        task,
+        ...(name ? { name } : {}),
+        ...("model" in value ? { model: value.model } : {}),
+      }] : [];
     });
   }
   const agent = text(input.agent);
   const task = text(input.task);
-  return agent && task ? [{ agent, task, ...("model" in input ? { model: input.model } : {}) }] : [];
+  const name = text(input.name);
+  return agent && task ? [{
+    agent,
+    task,
+    ...(name ? { name } : {}),
+    ...("model" in input ? { model: input.model } : {}),
+  }] : [];
 }
 
 function taskModelOverride(input: Dict): string | undefined {
@@ -750,9 +757,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let expertiseInjected = false;
   let featureCaptured = false;
   let currentReviewPin: string | undefined;
-  let pinCaptured = false;
+  let currentMission: string | undefined;
+  let dispatchCaptured = false;
   let claimsReconciled = false;
   let lastAssistantMessage = "";
+  let runtimeAgentId = "";
+  let runtimeParentAgentId = "";
   // FEAT-44: once-per-session cap for BOTH notice classes (inert and accessor
   // failure). Setting it skips the whole advisory path on every later wake in
   // this session, the read included, so the full scan the widening ladder
@@ -794,30 +804,37 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (featureCaptured) return;
     if (!candidate || typeof candidate !== "object") return;
     if ((candidate as Dict).role !== "user") return;
-    setFeature(detectHarnessFeature([messageText(candidate)]), ctx);
+    setFeature(detectMarker([messageText(candidate)], FEATURE_MARKER, "feature"), ctx);
   };
-  // The pin has one source: the assignment message (DEC-204), scanned once. A later user
-  // turn or a tool result echoing another dispatch is never a pin.
-  const capturePinFromMessage = (candidate: unknown): void => {
-    if (pinCaptured) return;
+  // The pin and the mission have one source: the assignment message (DEC-204), scanned
+  // once. A later user turn or a tool result echoing another dispatch is never either.
+  const captureDispatchFromMessage = (candidate: unknown): void => {
+    if (dispatchCaptured) return;
     if (!candidate || typeof candidate !== "object") return;
     if ((candidate as Dict).role !== "user") return;
-    pinCaptured = true;
-    const pin = detectHarnessReviewPin([messageText(candidate)]);
+    dispatchCaptured = true;
+    const layers = [messageText(candidate)];
+    const pin = detectMarker(layers, REVIEW_PIN_MARKER, "review pin");
     if (pin) currentReviewPin = pin;
+    const mission = detectMarker(layers, MISSION_MARKER, "mission");
+    if (mission) currentMission = mission;
   };
 
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
-    const detectedFeature = detectHarnessFeature(event.systemPrompt);
-    const detectedPin = detectHarnessReviewPin(event.systemPrompt);
+    const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
+    const detectedPin = detectMarker(event.systemPrompt, REVIEW_PIN_MARKER, "review pin");
+    const detectedMission = detectMarker(event.systemPrompt, MISSION_MARKER, "mission");
+    runtimeAgentId = text(ctx.agentId);
+    runtimeParentAgentId = text(ctx.parentAgentId);
     if (detected) currentAgent = detected;
     if (detectedPin) currentReviewPin = detectedPin;
+    if (detectedMission) currentMission = detectedMission;
     setFeature(detectedFeature, ctx);
     if (!currentAgent || expertiseInjected) return;
 
     const result = policyRunner(ctx.cwd, "inject-expertise.py", [], {
-      ...basePayload(currentAgent, "SubagentStart", ctx.cwd),
+      ...basePayload(currentAgent, "SubagentStart", ctx.cwd, ctx),
     });
     if (result.blocked || !result.stdout.trim()) return;
     try {
@@ -845,7 +862,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureFeatureFromMessage(candidate, ctx);
-    capturePinFromMessage(candidate);
+    captureDispatchFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -855,21 +872,59 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureFeatureFromMessage(candidate, ctx);
-    capturePinFromMessage(candidate);
+    captureDispatchFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
 
   pi.on("tool_call", async (event: Dict, ctx: any) => {
-    if (!currentAgent) return;
     const toolName = text(event.toolName);
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
-
+    const agentId = runtimeAgentId;
+    const parentAgentId = runtimeParentAgentId;
+    const runtimeCtx = { ...ctx, agentId, parentAgentId };
+    const mutates = ["write", "edit", "bash"].includes(toolName);
+    const missingCapability = "Harness requires OMP's runtime lineage capability; install the "
+      + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
+    if (toolName === "task" && !agentId) {
+      return { block: true, reason: missingCapability };
+    }
+    if (currentAgent && (toolName === "task" || mutates) && (!agentId || !parentAgentId)) {
+      return { block: true, reason: missingCapability };
+    }
+    const ompMainTask = !currentAgent
+      && toolName === "task"
+      && agentId === "Main"
+      && !parentAgentId;
+    if (!currentAgent && !ompMainTask) return;
+    const policyAgent = currentAgent || "Main";
     let revisedInput: Dict | undefined;
-    let reason = firstBlock(preDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
+    let reason: string | undefined;
+    if (mutates) {
+      if (!currentFeature) {
+        reason = "Harness child mutation policy requires runtime child, parent, and feature identity.";
+      } else {
+        const authorization = policyRunner(ctx.cwd, "inflight_registry.py", [
+          "authorize",
+          "--agent", policyAgent,
+          "--feature", currentFeature,
+          "--agent-id", agentId,
+          "--parent-agent-id", parentAgentId,
+          "--root", ctx.cwd,
+        ], {});
+        if (authorization.blocked || authorization.reason) {
+          reason = authorization.reason || "Harness runtime child lineage is not authorized.";
+        }
+      }
+    }
+    if (!reason) {
+      reason = firstBlock(preDomain(
+        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx,
+      ));
+    }
     if (!reason && toolName === "bash") {
       const payload = {
-        ...basePayload(currentAgent, "PreToolUse", ctx.cwd),
+        ...basePayload(policyAgent, "PreToolUse", ctx.cwd, runtimeCtx),
         tool_name: "Bash",
         tool_input: { command: input.command },
       };
@@ -894,16 +949,16 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // its business; this is the one key it does not get to author.
       if (!reason) {
         const existingEnv = (input.env && typeof input.env === "object" ? input.env : {}) as Dict;
-        revisedInput = { ...input, env: { ...existingEnv, HARNESS_AGENT_TYPE: currentAgent } };
+        revisedInput = { ...input, env: { ...existingEnv, HARNESS_AGENT_TYPE: policyAgent } };
       }
     }
     if (!reason && toolName === "task") {
-      reason = taskModelOverride(input);
+      reason = ompMainTask ? undefined : taskModelOverride(input);
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
           const result = policyRunner(ctx.cwd, "dispatch-guard.py", [], {
-            ...basePayload(currentAgent, "PreToolUse", ctx.cwd),
+            ...basePayload(policyAgent, "PreToolUse", ctx.cwd, ctx),
             tool_name: "Task",
             tool_input: dispatch,
             harness_runtime: "omp",
@@ -926,8 +981,33 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           // deliberately records no claim for one. Whether a dispatch gets a claim is the
           // guard's decision; this caller only enforces the refusals the guard declares.
           const receipt = parseClaimReceipt(result.stdout);
-          if (receipt) receipts.push(receipt);
-          else debug(`dispatch-guard allowed ${dispatch.agent} with no claim recorded`);
+          if (receipt) {
+            receipts.push(receipt);
+            const parentAgentId = text(ctx.agentId);
+            if (parentAgentId) {
+              const args = [
+                "attach",
+                "--agent", receipt.agent,
+                "--feature", receipt.feature,
+                "--claim-id", receipt.claimId,
+                "--parent-agent-id", parentAgentId,
+                "--root", receipt.root,
+              ];
+              if (dispatch.name) args.push("--agent-id", dispatch.name);
+              const attached = policyRunner(
+                ctx.cwd, "inflight_registry.py", args, {},
+              );
+              if (attached.blocked || attached.reason) {
+                receipts.forEach((claimed) =>
+                  releaseClaim(policyRunner, ctx.cwd, claimed));
+                receipts.length = 0;
+                reason = attached.reason || "Harness could not bind the child runtime lineage.";
+                break;
+              }
+            }
+          } else {
+            debug(`dispatch-guard allowed ${dispatch.agent} with no claim recorded`);
+          }
         }
       }
       if (!reason && receipts.length) {
@@ -950,12 +1030,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; no digest was produced — neither the yield payload nor the last assistant message carries one.";
       } else {
         const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-          ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
+          ...basePayload(policyAgent, "SubagentStop", ctx.cwd, ctx),
           stop_hook_active: false,
           last_assistant_message: contract,
           harness_feature: currentFeature,
           harness_review_pin: currentReviewPin,
-          harness_agent_id: text(ctx.agentId) || undefined,
+          harness_mission: currentMission,
         });
         debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
         debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
@@ -968,8 +1048,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   });
 
   pi.on("tool_result", async (event: Dict, ctx: any) => {
-    if (!currentAgent) return;
     const toolName = text(event.toolName);
+    const ompMainTask = !currentAgent
+      && toolName === "task"
+      && text(ctx.agentId) === "Main"
+      && !text(ctx.parentAgentId);
+    if (!currentAgent && !ompMainTask) return;
+    const policyAgent = currentAgent || "Main";
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
     if (toolName === "task") {
       const key = text(event.toolCallId) || "task";
@@ -1112,7 +1197,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         + "neither the pre-write nor the post-write shape check ran on any file. "
         + "This is a notice, not a refusal.");
     }
-    const reason = firstBlock(postDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
+    const reason = firstBlock(postDomain(
+      ctx.cwd, policyAgent, toolName, input, policyRunner, ctx,
+    ));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
     if (!reason) {
@@ -1151,11 +1238,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!finalText.trim()) return;
     // Notification-only backstop. Normal task agents are validated on `yield`.
     const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-      ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
+      ...basePayload(currentAgent, "SubagentStop", ctx.cwd, ctx),
       stop_hook_active: true,
       last_assistant_message: finalText,
       harness_feature: currentFeature,
       harness_review_pin: currentReviewPin,
+      harness_mission: currentMission,
     });
     if (result.reason && result.blocked) ctx.ui?.notify?.(result.reason, "warning");
   });

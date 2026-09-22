@@ -16,6 +16,12 @@ place project Expertise changes.
    report per-section counts before and after." **The read is mandatory:** writing from new
    entries alone wipes every earlier one (DEC-125), and `check-expertise.py` catches format
    violations but never a wipe.
+   **Put `HARNESS-MISSION: distill` on its own line in every distill dispatch — yours to the
+   lead, and the lead's to each member.** The host forwards it to the digest validator (the
+   road `HARNESS-REVIEW-PIN` takes, #1677), which then pins the readers' gate fields to their
+   did-nothing spelling — qa `suite: n/a` / `matrix_ok: n/a`, code-reviewer `code_grade: n_a` /
+   `reviewed: none` — instead of demanding a suite nobody ran or a diff nobody reviewed
+   (#1855). Without the line, qa's honest return is refused and the code-reviewer cannot bind.
 2. **The skim is recall, not judgment** (DEC-145). The lead relays **at most 3 candidates per
    member** as sourced observations ("your t04 digest noted X"), never pre-written entries, and
    flags stale ones. **The member is the sole judge** — it accepts, or **rejects with a reason** in

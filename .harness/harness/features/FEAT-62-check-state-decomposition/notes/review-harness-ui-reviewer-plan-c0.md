@@ -1,0 +1,1 @@
+PASS — Mode A scoped out: the plan changes a text-only operator CLI, gate internals, tests, writer feedback, and README guidance, not a rendered UI; end-user interaction exists only through CLI flags/output, so DESIGN.md and a high-fidelity prototype are not required.

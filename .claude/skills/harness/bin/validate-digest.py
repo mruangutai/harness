@@ -146,6 +146,29 @@ CONDITIONAL = {"task_verify": "task"}
 # Only the pair separates "had nothing to test" from "declined to test".
 NOTHING_TO_GATE = {"dev": {"suite"}}
 
+# A field whose obligation is lifted by the MISSION the dispatch carries, and the one
+# value it must then hold. Feature-close distillation (DEC-145) runs after the merge:
+# the readers judge Expertise candidates, review no diff and run no suite. Under the
+# build/validate contract two of them had no truthful return (#1855, measured on
+# FEAT-61): qa could not PASS without `suite: pass` — which then fired the #919 rerun
+# on a suite the dispatch forbade — and the code-reviewer could not bind `code_grade`
+# to a review_sha that is already an ancestor of the default branch, so it forged a
+# review note to satisfy the binding.
+#
+# The mission rides in the DISPATCH (`HARNESS-MISSION: distill`, forwarded by the host
+# as `harness_mission`) exactly as the review pin does (#1677): the one text the
+# persona does not author. The value is PINNED, not merely released: a gate field on a
+# mission with no gate is decoration, and `suite: pass` beside Expertise edits is the
+# fabricated-record shape this file exists to refuse. Any mission not listed here
+# changes nothing — fail closed.
+MISSION_UNGATED = {"distill": {"qa": {"suite": "n/a", "matrix_ok": "n/a"},
+                               "reviewer": {"code_grade": "n_a", "reviewed": "none"}}}
+
+
+def _mission_pinned_value(field, persona, mission):
+    """The value `field` MUST hold on this mission, or None when the gate binds."""
+    return MISSION_UNGATED.get(mission, {}).get(persona, {}).get(field)
+
 
 def _nothing_to_gate(field, persona, seen):
     """True when this return declared no task AND changed no file, so `field` would
@@ -781,12 +804,17 @@ def parse_digest(text):
             i += 1
             continue
         # Empty value: a block list if the next non-blank deeper line is an item.
-        # Each `- ` line starts a new entry; subsequent deeper lines that are NOT
-        # a new `- ` are continuation lines of the entry just opened (F5) — joined
-        # with ", " for block-mapping style (`step: s1` / `verdict: PASS`, no
-        # existing separator) or with " " for an inline `{ ... }` still balancing
-        # its own brackets across lines.
-        items, cur, cur_is_brace = [], None, False
+        # A `- ` line AT THE ITEM INDENT starts a new entry; every other deeper line
+        # is a continuation of the entry just opened (F5) — joined with ", " for
+        # block-mapping style (`step: s1` / `verdict: PASS`, no existing separator)
+        # or with " " for an inline `{ ... }` still balancing its own brackets
+        # across lines.
+        #
+        # THE ITEM INDENT IS THE ONE THE FIRST `- ` SETS (#1854). Before this, any
+        # deeper `- ` opened a new entry, so a member carrying its own block-style
+        # `files_touched:` list was split into one member per path — well-formed
+        # YAML, five members by safe_load, reported as "has no verdict" per row.
+        items, cur, cur_is_brace, item_indent = [], None, False, None
         j = i + 1
         while j < n:
             nxt = body[j]
@@ -797,7 +825,9 @@ def parse_digest(text):
             if nind <= base:
                 break
             stripped = strip_comment(nxt.lstrip())
-            if nxt.lstrip().startswith("- "):
+            if item_indent is None and nxt.lstrip().startswith("- "):
+                item_indent = nind
+            if nind == item_indent and nxt.lstrip().startswith("- "):
                 if cur is not None:
                     items.append(cur)
                 cur = stripped[2:]
@@ -1463,7 +1493,7 @@ def _missing_field_default_hint(field, allowed):
 
 
 def validate(persona, text, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
-             review_pin=None):
+             review_pin=None, mission=None):
     err = []
     raw_persona = persona
     persona = norm(persona)
@@ -1596,6 +1626,17 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
         if val is _UNPARSED:
             err.append(f"{field!r} could not be parsed — its brackets/quotes never "
                        f"balanced. Fix the YAML rather than resubmitting as-is.")
+            continue
+        # #1855: on a mission with no gate subject the field is PINNED to its
+        # did-nothing spelling — one error, one actionable field, and the gate,
+        # enum and binding checks below never see it. Before D-08 so a mission
+        # dispatch that also carries `task: none` reads the same either way.
+        pinned = _mission_pinned_value(field, persona, mission)
+        if pinned is not None:
+            if val != pinned:
+                err.append(f"{field}={val!r} on a {mission} dispatch — this mission "
+                           f"reviews no diff and runs no suite, so a gate value here is "
+                           f"decoration rather than evidence. Write `{field}: {pinned}`.")
             continue
         # D-08(b)/(c). Placed BEFORE the NULLABLE branch on purpose: after it,
         # D-08(b) would be unreachable for a placeholder value.
@@ -1737,14 +1778,17 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     if raw_persona == "harness-code-reviewer":
         code_grade = seen.get("code_grade")
         reviewed = seen.get("reviewed")
+        # #1855: a distill dispatch has no diff to bind or grade; the field loop above
+        # already pinned `code_grade`/`reviewed` to their did-nothing spelling.
+        grades_a_diff = _mission_pinned_value("code_grade", persona, mission) is None
         # SEC-01 still runs before branching on the grade. DEC-207 adds one
         # separately-bound target: plan:<path> for a pending pre-signature plan.
-        binding_error = code_grade_bound_to_review(
+        binding_error = grades_a_diff and code_grade_bound_to_review(
             text, reviewed, code_grade, feature_dir, branch_override, review_pin
         )
         if binding_error:
             err.append(binding_error)
-        if code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
+        if grades_a_diff and code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
             # BUG-1081: the mechanical result is RECOMPUTED here, for every ordinary
             # code review, and the digest's enum is rejected when it disagrees. Before
             # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
@@ -2295,9 +2339,11 @@ def hook_mode():
     # the "decline to govern" pass-throughs above, which at least say so.
     try:
         _pin = d.get("harness_review_pin")
+        _mission = d.get("harness_mission")
         errs = validate(agent, text, feature_dir=_hook_feature_dir(
             text, d.get("harness_feature")
-        ), review_pin=_pin.strip() if isinstance(_pin, str) and _pin.strip() else None)
+        ), review_pin=_pin.strip() if isinstance(_pin, str) and _pin.strip() else None,
+           mission=_mission.strip() if isinstance(_mission, str) else None)
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2

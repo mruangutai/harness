@@ -35,6 +35,35 @@ def _reject_duplicate_keys(pairs):
     return result
 
 
+def strict_json_loads(text):
+    """THE ONE strict JSON decode (FEAT-61 T-01): a key repeated at any nesting depth and the
+    non-standard NaN/Infinity spellings both raise ValueError, the same coverage
+    harness_yaml.DuplicateKeyError gives every YAML reader. Every strict reader in this tree —
+    harness.json, feature.json, gh payloads, feature_json_write.parse_doc — decodes through
+    here and translates the ValueError into its own public error, so a tightening lands in one
+    place rather than in whichever hand-copied hook pair happened to be edited. Returns any
+    JSON value; callers that need a mapping check the shape themselves."""
+    return json.loads(text, object_pairs_hook=_reject_duplicate_keys,
+                      parse_constant=_reject_constant)
+
+
+def load_run_step_contract(bin_dir):
+    """The run-step schema the two version-2 checkpoint gates validate against (check-state
+    INV-16, check-domain's step closure): returns (step_schema, declared_step_keys,
+    evidence_name_pattern) read from `<bin_dir>/run-state-schema.json`.
+
+    The file itself is decoded strictly and a decode failure is ArtifactAccessError. The
+    NAVIGATION is ordinary mapping access on purpose: both callers absorb with `except
+    Exception` and print the exception's class and text, so a malformed shape must keep its
+    natural KeyError/TypeError — wrapping it would change the bytes those gates emit."""
+    path = os.path.join(bin_dir, "run-state-schema.json")
+    schema = _load_json_bytes(path, path)
+    step_schema = schema["properties"]["steps"]["items"]
+    declared = set(step_schema["properties"])
+    pattern = step_schema["properties"]["evidence"]["propertyNames"]["pattern"]
+    return step_schema, declared, pattern
+
+
 def _load_json_bytes(path, context):
     try:
         with open(path, "rb") as source:
@@ -100,8 +129,7 @@ def _read_feature_json_text(path, context):
 
 def _parse_feature_json_text(text, context):
     try:
-        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
-                         parse_constant=_reject_constant)
+        doc = strict_json_loads(text)
     except (TypeError, ValueError) as error:
         raise FeatureJsonError(
             "feature.json invalid", context, f"does not parse: {error}"
@@ -420,8 +448,7 @@ def parse_gh_json(text, context):
 
 def _parse_json_text(text, context):
     try:
-        return json.loads(text, object_pairs_hook=_reject_duplicate_keys,
-                          parse_constant=_reject_constant)
+        return strict_json_loads(text)
     except (TypeError, ValueError) as error:
         raise ArtifactAccessError(f"{context}: invalid JSON: {error}") from error
 

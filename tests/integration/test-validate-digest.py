@@ -1971,8 +1971,7 @@ def _isolated_root():
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), "w") as f:
-            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
-                                 "uat": "advisory", "merge": "autonomous"}}, f)
+            json.dump({"gates": {"review": "advisory"}}, f)
     return _ISOLATED_ROOT
 
 
@@ -3792,8 +3791,7 @@ def check_prior_validator(td, guarded, failures):
 
 def write_review_config(config, review):
     with open(config, "w") as f:
-        json.dump({"gates": {"qa_gate": "blocking", "review": review,
-                             "uat": "advisory", "merge": "autonomous"}}, f)
+        json.dump({"gates": {"review": review}}, f)
 
 
 def check_code_grade_state(validator, config, feature_dir, failures):
@@ -3917,8 +3915,7 @@ def check_reviewed_range(validator, config, feature_dir, td, failures):
 # are those two cases, now asserting exit 2 and a named reason.
 
 HARNESS_JSON_FIXTURE = {
-    "gates": {"qa_gate": "blocking", "review": "advisory_unless_high",
-              "uat": "advisory", "merge": "user_gated"},
+    "gates": {"review": "advisory_unless_high"},
     "test_kinds": {
         "unit": {"detect": "test_*.py|**/test-*.py", "exclude": "",
                  "cmd": "true", "status": "active"},
@@ -5306,6 +5303,106 @@ def run_canonical_reader_strictness_cases():
     for failure in failures:
         print(f"FAIL  [canonical-reader audit] {failure}")
     return 1
+
+
+# --- #1854: a member entry carrying a NESTED block list is ONE member -------------------
+# Measured on FEAT-61's distill-validator digest: five members, each with a block-style
+# `files_touched:` under it. Well-formed YAML (safe_load reads five members), but every
+# nested `- /path` row was split off as a member of its own and reported as "has no
+# verdict". The item indent under `members:` is what says which `- ` opens an entry.
+LEAD_NESTED_LIST_MEMBERS = """
+VERDICT: PASS
+DIGEST:
+  headline: distillation complete
+  team: validate
+  steps_run: 2
+  cycles_used: 1
+  members:
+    - step: qa
+      persona: harness-qa
+      verdict: PASS
+      headline: "accepted three lessons"
+      files_touched:
+        - /abs/.harness/expertise/harness-qa.md
+        - /abs/.harness/harness/expertise/harness-qa.md
+    - step: ui-reviewer
+      persona: harness-ui-reviewer
+      verdict: PASS
+      headline: "accepted no entry"
+      files_touched: []
+  must_fix: []
+  branch: none
+  files_touched: [/abs/.harness/expertise/harness-qa.md]
+  open_questions: []
+  escalations: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+"""
+case("#1854: a member's nested block list stays inside that member",
+     "harness-validator-lead", LEAD_NESTED_LIST_MEMBERS, True)
+case("#1854: a nested list does not hide a member that genuinely lacks a verdict",
+     "harness-validator-lead",
+     LEAD_NESTED_LIST_MEMBERS.replace("      verdict: PASS\n      headline: \"accepted no entry\"\n",
+                                      "      headline: \"accepted no entry\"\n"),
+     False, "no verdict")
+case("#1854: a nested member verdict still rolls up worst-wins",
+     "harness-validator-lead",
+     LEAD_NESTED_LIST_MEMBERS.replace("      verdict: PASS\n      headline: \"accepted no entry\"",
+                                      "      verdict: FAIL\n      headline: \"accepted no entry\""),
+     False, "worst")
+
+
+# --- #1855: a distill dispatch has NO gate subject ------------------------------------
+# Feature-close distillation (DEC-145) runs after the merge: the readers judge Expertise
+# candidates, touch Expertise files, and review no diff and run no suite. Under the
+# build/validate schema qa could not return PASS without `suite: pass` (which then fired
+# the #919 rerun) and the code-reviewer could not bind `code_grade` to a review_sha that
+# is already an ancestor of main. The mission rides in the dispatch exactly as the
+# review pin does (#1677) and reaches the validator as `harness_mission`.
+QA_DISTILL = """
+VERDICT: PASS
+DIGEST:
+  headline: accepted three lessons, displaced two weaker craft entries
+  suite: n/a
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: n/a
+  fail_first: []
+  open_questions: []
+  files_touched: [/abs/.harness/expertise/harness-qa.md]
+  expertise_update: [{file: /abs/.harness/expertise/harness-qa.md, ops: 3}]
+artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+"""
+REVIEWER_DISTILL = """
+VERDICT: PASS
+DIGEST:
+  headline: accepted three lessons across craft and repository layers
+  severity_max: n/a
+  findings: []
+  must_fix: []
+  code_grade: n_a
+  reviewed: none
+  files_touched: [/abs/.harness/expertise/harness-code-reviewer.md]
+  open_questions: []
+  expertise_update: [{file: /abs/.harness/expertise/harness-code-reviewer.md, ops: 3}]
+artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
+"""
+hook_case("#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
+          "harness-qa", QA_DISTILL, 0, harness_mission="distill")
+hook_case("#1855: the same qa return outside distill is still the fail-open it always was",
+          "harness-qa", QA_DISTILL, 2, "gate")
+hook_case("#1855: qa on a distill dispatch may not decorate the return with a suite it did not run",
+          "harness-qa", QA_DISTILL.replace("suite: n/a", "suite: pass"), 2, "distill",
+          harness_mission="distill")
+hook_case("#1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range",
+          "harness-code-reviewer", REVIEWER_DISTILL, 0, harness_mission="distill")
+hook_case("#1855: the same reviewer return outside distill is refused at the binding",
+          "harness-code-reviewer", REVIEWER_DISTILL, 2, "cannot be bound")
+hook_case("#1855: a distill reviewer claiming a grade is refused — there is no diff to grade",
+          "harness-code-reviewer", REVIEWER_DISTILL.replace("code_grade: n_a", "code_grade: pass"),
+          2, "distill", harness_mission="distill")
+hook_case("#1855: an unknown mission changes nothing",
+          "harness-qa", QA_DISTILL, 2, "gate", harness_mission="polish")
 
 
 def main():

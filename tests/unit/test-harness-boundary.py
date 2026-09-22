@@ -341,6 +341,200 @@ def case_worktree_for_feature():
         shutil.rmtree(tmp3, ignore_errors=True)
 
 
+# ============================== FEAT-61 T-01: checkout predicate ==============================
+
+def _raises(fn, exc_type):
+    """The exception `fn()` raises when it is an `exc_type`, else None."""
+    try:
+        fn()
+    except exc_type as e:
+        return e
+    return None
+
+
+def _fake_checker(root, script):
+    """A stand-in check-state.py at the derived checkout: the adapter must find it by the
+    written path alone, so the fixture is a whole (marker + checker) tree under /tmp."""
+    write_marker(root)
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    with open(os.path.join(bin_dir, "check-state.py"), "w") as fh:
+        fh.write(script)
+
+
+_PROBE_CHECKER = (
+    "import os, sys\n"
+    "sys.stdout.write('FAIL INV-3 something\\n')\n"
+    "sys.stderr.write('warn row\\n')\n"
+    "sys.stdout.write(f'argv={sys.argv[1:]} cwd={os.getcwd()} "
+    "env={os.environ.get(\"HARNESS_PROJECT_DIR\")!r} "
+    "nested={os.environ.get(\"HARNESS_CHANGED_FEEDBACK\")!r}\\n')\n"
+    "sys.exit(1)")
+
+
+def _changed_state_root_checks(mod, tmp):
+    plan = os.path.join(tmp, ".harness", "harness", "features", "FEAT-7-x", "plan.yaml")
+    flat = os.path.join(tmp, ".harness", "features", "BUG-7-x", "feature.json")
+    check("changed_state_root: canonical repo-tier plan.yaml derives the checkout",
+          mod.changed_state_root(plan) == tmp, mod.changed_state_root(plan))
+    check("changed_state_root: canonical flat feature.json derives the checkout",
+          mod.changed_state_root(flat) == tmp, mod.changed_state_root(flat))
+    for other in (os.path.join(tmp, "scratch", "plan.yaml"),
+                  os.path.join(tmp, ".harness", "harness", "features", "notes", "plan.yaml"),
+                  os.path.join(tmp, ".harness", "harness", "features", "FEAT-7-x", "BRIEF.md")):
+        check(f"changed_state_root: {os.path.relpath(other, tmp)} derives NO checkout",
+              mod.changed_state_root(other) is None, mod.changed_state_root(other))
+    return plan
+
+
+def _with_env(key, value, fn):
+    os.environ[key] = value
+    try:
+        return fn()
+    finally:
+        del os.environ[key]
+
+
+def _changed_state_spawn_checks(mod, tmp, elsewhere, plan):
+    """The spawn itself: which checker, in which cwd, with which environment."""
+    _fake_checker(tmp, _PROBE_CHECKER)
+    rows = _with_env("HARNESS_PROJECT_DIR", elsewhere, lambda: mod.changed_state_feedback(plan))
+    check("feedback forwards BOTH streams' rows from the derived checkout's checker",
+          "FAIL INV-3 something" in rows and "warn row" in rows, rows)
+    detail = [r for r in rows if r.startswith("argv=")]
+    check("the checker is spawned with --changed, in the derived checkout, WITHOUT the "
+          "session's HARNESS_PROJECT_DIR, and marked nested",
+          len(detail) == 1 and "argv=['--changed']" in detail[0]
+          and f"cwd={os.path.realpath(tmp)}" in os.path.realpath(detail[0].split(" env=")[0])
+          and "env=None" in detail[0] and "nested='1'" in detail[0], detail)
+
+
+def case_changed_state_feedback():
+    """FEAT-62 T-03: the feedback loop derives its checkout from the WRITTEN PATH, spawns that
+    checkout's own checker with --changed, and hands back whatever the checker said."""
+    mod = hb()
+    tmp, elsewhere = tempfile.mkdtemp(), tempfile.mkdtemp()
+    try:
+        plan = _changed_state_root_checks(mod, tmp)
+        # No checker at the derived checkout: silent, whatever the environment says.
+        _fake_checker(elsewhere, "import sys; sys.stdout.write('WRONG TREE\\n')")
+        silent = _with_env("HARNESS_PROJECT_DIR", elsewhere, lambda: mod.changed_state_feedback(plan))
+        check("feedback is silent when the derived checkout carries no checker, even with "
+              "HARNESS_PROJECT_DIR pointing at one (PF-e27f2ac2)", silent == [], silent)
+        _changed_state_spawn_checks(mod, tmp, elsewhere, plan)
+        nested = _with_env("HARNESS_CHANGED_FEEDBACK", "1", lambda: mod.changed_state_feedback(plan))
+        check("a writer inside a feedback run never re-enters the loop", nested == [], nested)
+        _fake_checker(tmp, "")
+        check("a clean --changed run (no output) yields no rows",
+              mod.changed_state_feedback(plan) == [], mod.changed_state_feedback(plan))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(elsewhere, ignore_errors=True)
+
+def case_feature_artifact_checkout_mismatch():
+    """The ONE checkout question both write routes ask (check-domain's tool route and
+    bash-write-guard's Bash route). It decides; the adapters refuse in their own voice."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        wt = make_worktree(mod, tmp, "FEAT-X")
+        rel = ".harness/harness/features/FEAT-X-thing/BRIEF.md"
+        other = ".harness/harness/features/FEAT-Y-other/BRIEF.md"
+        check("checkout_mismatch_non_feature_path_is_none",
+              mod.feature_artifact_checkout_mismatch(tmp, "docs/README.md", os.path.join(tmp, "docs/README.md")) is None)
+        check("checkout_mismatch_no_worktree_for_feature_is_none",
+              mod.feature_artifact_checkout_mismatch(tmp, other, os.path.join(tmp, other)) is None)
+        check("checkout_mismatch_correct_checkout_is_none",
+              mod.feature_artifact_checkout_mismatch(tmp, rel, os.path.join(wt, rel)) is None)
+        got = mod.feature_artifact_checkout_mismatch(tmp, rel, os.path.join(tmp, rel))
+        check("checkout_mismatch_wrong_checkout_names_feature_and_expected_worktree",
+              got == ("FEAT-X-thing", wt), f"got {got!r}")
+        check("feature_artifact_id_extracts_the_feature_segment",
+              mod.feature_artifact_id(rel) == "FEAT-X-thing"
+              and mod.feature_artifact_id("tests/x.py") is None)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_feature_artifact_checkout_mismatch_ambiguous():
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        make_worktree(mod, tmp, "FEAT-X")
+        make_worktree(mod, tmp, "FEAT")
+        raised = _raises(lambda: mod.feature_artifact_checkout_mismatch(
+            tmp, ".harness/harness/features/FEAT-X-thing/BRIEF.md", os.path.join(tmp, "x")),
+            mod.AmbiguousWorktree)
+        check("checkout_mismatch_lets_ambiguous_worktree_reach_the_adapter",
+              raised is not None and "FEAT, FEAT-X" in str(raised), f"got {raised!r}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# ============================== FEAT-61 T-01: load_repo_module ==============================
+
+def _script(tmp, name, body):
+    path = os.path.join(tmp, name)
+    with open(path, "w") as fh:
+        fh.write(body)
+    return path
+
+
+def case_load_repo_module_registration():
+    """The sole spec_from_file_location in bin/. Six hand-written copies disagreed on
+    sys.modules registration; this one owns the decision."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        good = _script(tmp, "good-script.py",
+                       "import sys\nVALUE = 7\nSEEN = 'fixture_reg' in sys.modules\n")
+        loaded = mod.load_repo_module("fixture_unreg", good)
+        check("load_repo_module_executes_and_returns_the_module",
+              getattr(loaded, "VALUE", None) == 7)
+        check("load_repo_module_default_does_not_register",
+              "fixture_unreg" not in sys.modules)
+        registered = mod.load_repo_module("fixture_reg", good, register=True)
+        check("load_repo_module_register_true_is_visible_during_exec",
+              getattr(registered, "SEEN", None) is True,
+              "dataclasses resolve their module by name DURING exec — registration must precede it")
+        check("load_repo_module_register_true_stays_registered_after_exec",
+              sys.modules.get("fixture_reg") is registered)
+        del sys.modules["fixture_reg"]
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_load_repo_module_failures():
+    """A failed exec re-raises the ORIGINAL exception and undoes only its own registration."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        bad = _script(tmp, "bad-script.py", "raise RuntimeError('boom at import')\n")
+        raised = _raises(lambda: mod.load_repo_module("fixture_bad", bad, register=True),
+                         RuntimeError)
+        check("load_repo_module_exec_failure_reraises_the_original",
+              raised is not None and "boom at import" in str(raised), f"got {raised!r}")
+        check("load_repo_module_exec_failure_removes_only_its_own_registration",
+              "fixture_bad" not in sys.modules)
+        sentinel = object()
+        sys.modules["fixture_preexisting"] = sentinel
+        _raises(lambda: mod.load_repo_module("fixture_preexisting", bad, register=True),
+                RuntimeError)
+        check("load_repo_module_exec_failure_restores_a_prior_registration",
+              sys.modules.get("fixture_preexisting") is sentinel)
+        del sys.modules["fixture_preexisting"]
+        # A missing FILE still yields a spec; the loader's own FileNotFoundError is the
+        # original failure and must reach the caller untouched — check-state.py's catch
+        # boundary prints its class and text into an INV finding.
+        check("load_repo_module_missing_file_reraises_the_natural_filenotfound",
+              _raises(lambda: mod.load_repo_module("fixture_missing", os.path.join(tmp, "absent.py")),
+                      FileNotFoundError) is not None)
+        check("load_repo_module_no_loader_is_importerror",
+              _raises(lambda: mod.load_repo_module("fixture_dir", tmp), ImportError) is not None,
+              "a directory yields no spec/loader")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
 # ============================== BUG-1304 claim set ==============================
 
 def _bug1304_unreadable(mod, owner, agent, destination):
@@ -412,6 +606,40 @@ def case_bug1304_multiple_claims():
               mod.claim_worktrees(owner, agent, owner) == sorted([first, second]))
     finally:
         shutil.rmtree(owner, ignore_errors=True)
+
+def case_runtime_lineage_filters_claim_worktrees():
+    mod = hb()
+    agent = "harness-backend-dev"
+    owner = tempfile.mkdtemp()
+    try:
+        first = make_worktree(mod, owner, "FEAT-31")
+        make_worktree(mod, owner, "FEAT-32")
+        first_claim = live_claim(agent, "FEAT-31-orchestrator-context-watch")
+        first_claim.update({"agent_id": "BackendOne", "parent_agent_id": "LeadOne"})
+        second_claim = live_claim(agent, "FEAT-32-concurrent-write-merge")
+        second_claim.update({"agent_id": "BackendTwo", "parent_agent_id": "LeadTwo"})
+        write_claims(owner, [first_claim, second_claim])
+        got = mod.claim_worktrees(
+            owner,
+            agent,
+            owner,
+            agent_id="BackendOne",
+            parent_agent_id="LeadOne",
+        )
+        check("runtime lineage selects only the exact child's worktree",
+              got == [first], f"expected {[first]!r}, got {got!r}")
+        sibling = mod.claim_worktrees(
+            owner,
+            agent,
+            owner,
+            agent_id="BackendOne",
+            parent_agent_id="LeadTwo",
+        )
+        check("runtime lineage rejects a sibling parent's claim",
+              sibling == [], f"expected [], got {sibling!r}")
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
 
 
 def case_bug1304_ambiguous_claim():
@@ -494,6 +722,7 @@ def case_bug1304_claim_set():
     case_bug1304_owner_claim()
     case_bug1304_unresolved_and_empty_claims()
     case_bug1304_multiple_claims()
+    case_runtime_lineage_filters_claim_worktrees()
     case_bug1304_ambiguous_claim()
     case_bug1304_unreadable_claims()
     case_bug1304_refusal_text()
@@ -719,6 +948,11 @@ def main():
     run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
     run_case(case_worktree_for_feature)
+    run_case(case_changed_state_feedback)
+    run_case(case_feature_artifact_checkout_mismatch)
+    run_case(case_feature_artifact_checkout_mismatch_ambiguous)
+    run_case(case_load_repo_module_registration)
+    run_case(case_load_repo_module_failures)
     run_case(case_bug1304_claim_set)
     run_case(case_real_keeps_one_namespace_when_unresolvable)
     run_case(case_run_identity_pattern)

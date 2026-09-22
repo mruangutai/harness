@@ -992,6 +992,131 @@ def run_feat50_checkout_binding():
     return _report_feat50_bash_results(results)
 
 
+# FEAT-61 T-03: feature_checkout_guard is an ADAPTER over
+# harness_boundary.feature_artifact_checkout_mismatch. The core answers the path
+# question; this route keeps deny()'s wording and exit channel. Every receipt below
+# except the injected-failure one was captured before the cutover and is byte-identical
+# after it; the injected failure is the case that can only pass once the route delegates.
+FEAT61_DENY_TAIL = (
+    "  File changes go through the Write tool, where your domain is enforced. A path the "
+    "domain hook denied does not become writable by switching tools — that is guardrail "
+    "evasion (DEC-151). If the file should be yours, raise it as an open_question.\n")
+
+
+def _feat61_root(*worktree_ids):
+    """A main checkout granting the feature BRIEF, with one linked worktree per id;
+    returns (root, [realpath of each worktree])."""
+    root = fixture(FEAT50_MANIFEST)
+    os.makedirs(os.path.dirname(os.path.join(root, FEAT50_REL)), exist_ok=True)
+    worktrees = []
+    for wt_id in worktree_ids:
+        worktree = os.path.join(root, ".claude", "worktrees", wt_id)
+        _linked_worktree(worktree, root, wt_id, FEAT50_MANIFEST)
+        worktrees.append(os.path.realpath(worktree))
+    return root, worktrees
+
+
+def _feat61_fire(root, target, guard=GUARD):
+    payload = {"agent_type": "harness-documentor", "tool_name": "Bash",
+               "tool_input": {"command": f"echo hi > {target}"}}
+    return subprocess.run([guard], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
+def _feat61_case(name, result, want_code, want_stderr=None):
+    """want_stderr None: exit code only and no refusal at all; a string: the exact bytes."""
+    if want_stderr is None:
+        ok = (result.returncode == want_code and "BLOCKED" not in result.stderr
+              and "Traceback" not in result.stderr)
+    else:
+        ok = result.returncode == want_code and result.stderr == want_stderr
+    return (name, ok, f"{result.returncode}: {result.stderr!r}")
+
+
+def _feat61_wrong_checkout():
+    root, (expected,) = _feat61_root(FEAT50_FEATURE)
+    target = os.path.join(root, FEAT50_REL)
+    return _feat61_case(
+        "matching path in the wrong checkout is refused in deny()'s words",
+        _feat61_fire(root, target), 2,
+        f"bash-write-guard: BLOCKED — {target} is a feature artifact whose write belongs "
+        f"in worktree {expected}. Write it there, not in the main checkout.\n"
+        + FEAT61_DENY_TAIL)
+
+
+def _feat61_correct_checkout():
+    root, _ = _feat61_root(FEAT50_FEATURE)
+    target = os.path.join(root, ".claude", "worktrees", FEAT50_FEATURE, FEAT50_REL)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    return _feat61_case("matching path inside its own worktree is allowed",
+                        _feat61_fire(root, target), 0)
+
+
+def _feat61_absent_worktree():
+    root, _ = _feat61_root()
+    return _feat61_case("matching path with no linked worktree is allowed",
+                        _feat61_fire(root, os.path.join(root, FEAT50_REL)), 0)
+
+
+def _feat61_non_matching_path():
+    root, _ = _feat61_root(FEAT50_FEATURE)
+    target = os.path.join(root, ".harness", "harness", "features", FEAT50_FEATURE)
+    os.makedirs(os.path.join(root, ".harness", "allowed"), exist_ok=True)
+    # The grant covers BRIEF.md only, so a sibling non-feature path must be refused by
+    # the DOMAIN, not bound by the checkout rule: exit 2 without the binding wording.
+    result = _feat61_fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
+    ok = (result.returncode == 2 and "belongs in worktree" not in result.stderr
+          and "outside your domain" in result.stderr and target not in result.stderr)
+    return ("a non-feature path is never bound, even beside a linked worktree",
+            ok, f"{result.returncode}: {result.stderr!r}")
+
+
+def _feat61_ambiguous_worktree():
+    root, _ = _feat61_root("FEAT-X", FEAT50_FEATURE)
+    target = os.path.join(root, FEAT50_REL)
+    return _feat61_case(
+        "two prefix-matching worktrees refuse and name both candidates",
+        _feat61_fire(root, target), 2,
+        f"bash-write-guard: BLOCKED — {target} belongs to feature {FEAT50_FEATURE}, but its "
+        f"worktree is ambiguous: feature '{FEAT50_FEATURE}' matches 2 linked worktrees: "
+        f"FEAT-X, {FEAT50_FEATURE}\n" + FEAT61_DENY_TAIL)
+
+
+def _feat61_injected_core_failure():
+    """The route delegates: with the core raising, the adapter's absorbing `except` keeps
+    the already-computed allowance instead of refusing through a private copy of the rule."""
+    root, _ = _feat61_root(FEAT50_FEATURE)
+    iso = isolated_bin(root)
+    with open(os.path.join(iso, "harness_boundary.py"), "a", encoding="utf-8") as core:
+        core.write("\n\ndef feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):\n"
+                   "    raise RuntimeError('FEAT-61 T-03 injected core failure')\n")
+    return _feat61_case(
+        "an unexpected core failure is absorbed and the allowance stands",
+        _feat61_fire(root, os.path.join(root, FEAT50_REL),
+                     guard=os.path.join(iso, "bash-write-guard.py")), 0)
+
+
+def run_feat61_feature_checkout_adapter():
+    """FEAT-61 T-03: the Bash route's feature-checkout binding through the shared core."""
+    results = [
+        _feat61_wrong_checkout(),
+        _feat61_correct_checkout(),
+        _feat61_absent_worktree(),
+        _feat61_non_matching_path(),
+        _feat61_ambiguous_worktree(),
+        _feat61_injected_core_failure(),
+    ]
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [feat61] {name}")
+            continue
+        failures += 1
+        print(f"FAIL  [feat61] {name}\n      | {detail}")
+    print(f"\n{len(results) - failures}/{len(results)} FEAT-61 T-03 adapter cases passed.")
+    return failures
+
+
 
 def bug1304_pre_change_guard(dest):
     copied_bin = isolated_bin(dest)
@@ -1003,12 +1128,17 @@ def bug1304_pre_change_guard(dest):
     return guard
 
 
-def _bug1304_bash_fire(root, command, agent, guard=GUARD):
+def _bug1304_bash_fire(root, command, agent, guard=GUARD,
+                       agent_id=None, parent_agent_id=None):
     payload = {
         "agent_type": agent,
         "tool_name": "Bash",
         "tool_input": {"command": command},
     }
+    if agent_id:
+        payload["harness_agent_id"] = agent_id
+    if parent_agent_id:
+        payload["harness_parent_agent_id"] = parent_agent_id
     return subprocess.run(
         [guard], input=json.dumps(payload), capture_output=True,
         text=True, env=_env(root),
@@ -1154,6 +1284,74 @@ def _bug1304_bash_multi_and_malformed(results, context, inflight_registry):
         command, 2, context["first"])
     bug1304_assert_pre_change_allows(
         results, "malformed checkout", root, command, agent, context["control"])
+
+
+def _runtime_lineage_bash_routes(results, context, inflight_registry):
+    agent = context["agent"]
+    first_registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
+    first_data = json.load(open(first_registry, encoding="utf-8"))
+    first_data["claims"][0].update({
+        "agent_id": "BackendOne",
+        "parent_agent_id": "LeadOne",
+    })
+    with open(first_registry, "w", encoding="utf-8") as handle:
+        json.dump(first_data, handle)
+
+    receipt = inflight_registry.claim_with_receipt(
+        context["second"],
+        agent,
+        "harness-eng-lead",
+        context["second"],
+        feature="FEAT-1304-B-claim-guard",
+    )
+    inflight_registry.attach_runtime_identity(
+        context["second"],
+        agent,
+        "FEAT-1304-B-claim-guard",
+        claim_id=receipt["claim_id"],
+        agent_id="BackendTwo",
+        parent_agent_id="LeadTwo",
+    )
+    first_command = (
+        f"echo x > {os.path.join(context['first'], '.harness', 'allowed', 'runtime-one.md')}")
+    second_command = (
+        f"echo x > {os.path.join(context['second'], '.harness', 'allowed', 'runtime-two.md')}")
+    own = _bug1304_bash_fire(
+        context["root"],
+        first_command,
+        agent,
+        agent_id="BackendOne",
+        parent_agent_id="LeadOne",
+    )
+    sibling = _bug1304_bash_fire(
+        context["root"],
+        second_command,
+        agent,
+        agent_id="BackendOne",
+        parent_agent_id="LeadOne",
+    )
+    second = _bug1304_bash_fire(
+        context["root"],
+        second_command,
+        agent,
+        agent_id="BackendTwo",
+        parent_agent_id="LeadTwo",
+    )
+    results.append((
+        "exact runtime lineage allows its own Bash worktree",
+        own.returncode == 0,
+        f"exit={own.returncode} output={(own.stdout + own.stderr)[:180]!r}",
+    ))
+    results.append((
+        "exact runtime lineage refuses a same-persona sibling Bash worktree",
+        sibling.returncode == 2 and context["first"] in sibling.stderr,
+        f"exit={sibling.returncode} output={(sibling.stdout + sibling.stderr)[:180]!r}",
+    ))
+    results.append((
+        "second runtime lineage retains its Bash worktree",
+        second.returncode == 0,
+        f"exit={second.returncode} output={(second.stdout + second.stderr)[:180]!r}",
+    ))
 
 
 def _bug1304_bash_ambiguous(results, context, inflight_registry):
@@ -1326,6 +1524,7 @@ def run_bug1304_claim_set():
     _bug1304_bash_unbound_routes(results, context)
     _bug1304_bash_owner_claim(results, context, inflight_registry)
     _bug1304_bash_multi_and_malformed(results, context, inflight_registry)
+    _runtime_lineage_bash_routes(results, context, inflight_registry)
     _bug1304_bash_ambiguous(results, context, inflight_registry)
     _bug1304_bash_short_claim(results, context, inflight_registry)
     _bug1304_bash_expertise(results, context)
@@ -1363,6 +1562,7 @@ def main():
     fails += run_worktree_deep()
     fails += run_head_move()
     fails += run_feat50_checkout_binding()
+    fails += run_feat61_feature_checkout_adapter()
     fails += run_bug895_wrong_checkout()
     fails += run_bug1106_bash_route()
     fails += run_bug1304_claim_set()

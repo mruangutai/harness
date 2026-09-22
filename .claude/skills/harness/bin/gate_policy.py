@@ -2,14 +2,15 @@
 import artifact_accessors
 
 
+# FEAT-61 T-04 (SC-04): review is the only gate any process reads. qa_gate, uat and merge were
+# loaded and vocabulary-checked here without a consumer, so they left the vocabulary, the live
+# config, the template and the example in one cutover. Unread policy is dead config; a knob
+# returns with its reader if one is ever wanted. An old harness.json still carrying those keys
+# loads exactly as a review-only one does.
 GATE_VOCABULARIES = {
-    "qa_gate": frozenset(("blocking", "advisory")),
     "review": frozenset(("blocking", "advisory", "advisory_unless_high")),
-    "uat": frozenset(("blocking", "blocking_when_uat_criteria_exist", "advisory")),
-    "merge": frozenset(("user_gated", "autonomous")),
 }
 SEVERITIES = frozenset(("none", "low", "med", "high", "critical"))
-SUITE_OUTCOMES = frozenset(("pass", "fail", "skipped"))
 
 
 class GatePolicyError(ValueError):
@@ -19,15 +20,6 @@ class GatePolicyError(ValueError):
         self.gate = gate
         self.value = value
         super().__init__(f"invalid gate policy for {gate}: {value!r}")
-
-
-class QaResult(str):
-    """A QA verdict whose detail preserves suites that were deliberately skipped."""
-
-    def __new__(cls, verdict, detail):
-        result = super().__new__(cls, verdict)
-        result.detail = detail
-        return result
 
 
 def _load_config(harness_json_path):
@@ -58,7 +50,7 @@ def _resolve_gate(gates, gate, vocabulary):
 
 
 def load_policy(harness_json_path):
-    """Return all configured gates, rejecting every missing or invalid input loudly."""
+    """Return the configured review gate, rejecting every missing or invalid input loudly."""
     gates = _require_gates(_load_config(harness_json_path))
     return {gate: _resolve_gate(gates, gate, vocabulary)
             for gate, vocabulary in GATE_VOCABULARIES.items()}
@@ -77,25 +69,3 @@ def evaluate_review(policy, must_fix, severity_max):
     if must_fix or severity_max in {"high", "critical"}:
         return "FAIL"
     return "PASS"
-
-
-def _validate_suites(suites):
-    skipped = []
-    for suite, outcome in suites.items():
-        if outcome not in SUITE_OUTCOMES:
-            raise GatePolicyError(str(suite), outcome)
-        if outcome == "skipped":
-            skipped.append(str(suite))
-    return skipped
-
-
-def evaluate_qa(policy, suites):
-    """Return the QA verdict and preserve skipped suites in its detail."""
-    if policy not in GATE_VOCABULARIES["qa_gate"]:
-        raise GatePolicyError("qa_gate", policy)
-
-    skipped = _validate_suites(suites)
-    detail = "skipped: " + ", ".join(skipped) if skipped else ""
-    if policy == "blocking" and any(outcome == "fail" for outcome in suites.values()):
-        return QaResult("FAIL", detail)
-    return QaResult("PASS", detail)

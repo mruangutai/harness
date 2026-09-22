@@ -132,6 +132,8 @@ def segments(text):
 
 
 agent = d.get("agent_type") or ""
+runtime_agent_id = d.get("harness_agent_id") or None
+runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
 if not agent:
     sys.exit(0)
 
@@ -790,8 +792,6 @@ except harness_yaml.YamlParseError as e:
           "then retry.", file=sys.stderr)
     sys.exit(2)
 
-RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
-
 
 def feature_checkout_guard(rel, absolute_path):
     """Refuse an allowed Bash write aimed at a feature's main-checkout artifact.
@@ -800,18 +800,20 @@ def feature_checkout_guard(rel, absolute_path):
     continued on the same allowed verdict and let the identical write land. This does
     not extend run-digest content preservation to Bash: shell commands carry no complete
     incoming file payload to compare with prior content.
+
+    AN ADAPTER (FEAT-61 T-03): the path question is
+    harness_boundary.feature_artifact_checkout_mismatch, shared with check-domain.py so the
+    binding rule cannot drift between the two routes. This function owns only the
+    refusal: deny()'s wording and exit, and the absorption below.
     """
-    match = RE_FEATURE_ARTIFACT.match(rel)
-    if match is None:
+    feature_id = harness_boundary.feature_artifact_id(rel)
+    if feature_id is None:
         return
-    feature_id = match.group(1)
     try:
-        expected = harness_boundary.worktree_for_feature(root, feature_id)
-        if expected is None:
+        mismatch = harness_boundary.feature_artifact_checkout_mismatch(root, rel, absolute_path)
+        if mismatch is None:
             return
-        checkout = harness_boundary.checkout_relative(absolute_path)
-        if checkout is not None and harness_boundary.real(checkout[0]) == harness_boundary.real(expected):
-            return
+        _, expected = mismatch
         deny(f"{absolute_path} is a feature artifact whose write belongs in worktree "
              f"{expected}. Write it there, not in the main checkout.")
     except harness_boundary.AmbiguousWorktree as exc:
@@ -831,7 +833,13 @@ def claim_checkout_guard(destination):
     if not harness_boundary.inside(destination, harness_boundary.real(root)):
         return []
     try:
-        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
+        claim_set = harness_boundary.claim_worktrees(
+            root,
+            agent,
+            destination,
+            agent_id=runtime_agent_id,
+            parent_agent_id=runtime_parent_agent_id,
+        )
     except harness_boundary.AmbiguousWorktree as exc:
         deny_bare(f"{agent} has an ambiguous worktree claim: {exc}")
     except Exception as exc:

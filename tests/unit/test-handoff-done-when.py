@@ -306,6 +306,18 @@ try:
 finally:
     _td.cleanup()
 
+# FEAT-61 T-02: the station predicate is strict and RAISES on a status outside the vocabulary;
+# `_satisfied` absorbs that into indeterminate. The dead word `pending` neither satisfies nor
+# refuses, and no traceback escapes — a satisfaction check must never produce a false refusal.
+_td, _root, _rel = satisfaction_fixture("pending", "approved")
+try:
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
+    check("satisfaction: a task status outside the vocabulary is indeterminate, not a refusal",
+          _got == [], repr(_got))
+finally:
+    _td.cleanup()
+
 # The check is WRITE-TIME ONLY, exactly like resolution: the persisted-corpus pass must
 # never reopen targets, or every superseded note on disk turns the state gate red as its
 # tasks land.

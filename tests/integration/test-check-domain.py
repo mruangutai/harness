@@ -10,6 +10,7 @@ ROOT = os.path.abspath(os.path.join(TESTS, "..", ".."))
 sys.path.insert(0, TESTS)
 
 from check_domain_support import FIXTURE_MANIFEST, fire, fixture
+from isolated_bin import isolated_bin
 
 
 DECLARED = {
@@ -147,6 +148,47 @@ def _declared_shape_case():
     )
 
 
+# FEAT-61 T-03: the step schema is read through artifact_accessors.load_run_step_contract.
+# The file is decoded STRICTLY — a duplicate key is a refusal, not a silent last-wins —
+# while a mis-shaped document keeps the natural KeyError/TypeError the existing catch
+# boundary has always printed, so those two receipts are byte-identical before and after.
+def _schema_copy_fire(schema_text, slug):
+    """A fresh version-2 checkpoint write through a copy of the hook whose sibling
+    run-state-schema.json holds `schema_text`."""
+    root = fixture(FIXTURE_MANIFEST)
+    iso = isolated_bin(root)
+    with open(os.path.join(iso, "run-state-schema.json"), "w", encoding="utf-8") as handle:
+        handle.write(schema_text)
+    return fire(root, f".harness/harness/features/FEAT-X/runs/{slug}/state.yaml",
+                _state("2"), hook=os.path.join(iso, "check-domain.py"))
+
+
+def _run_schema_contract_cases():
+    with open(os.path.join(ROOT, ".claude", "skills", "harness", "bin",
+                           "run-state-schema.json"), encoding="utf-8") as handle:
+        live = handle.read()
+    duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
+    if duplicate == live:
+        raise AssertionError("INCONCLUSIVE: the live schema carries no top-level title key")
+    dup = _schema_copy_fire(duplicate, "schema-duplicate-key")
+    bare_items = _schema_copy_fire(
+        '{"properties": {"steps": {"items": {"type": "object"}}}}', "schema-bare-items")
+    no_steps = _schema_copy_fire('{"properties": {}}', "schema-no-steps")
+    cannot = "run-state schema CANNOT be checked; the write is denied."
+    return [
+        ("a duplicate key in run-state-schema.json is refused as unreadable, never last-wins",
+         dup.returncode == 2 and cannot in dup.stderr
+         and "ArtifactAccessError" in dup.stderr and "duplicate key: 'title'" in dup.stderr,
+         dup),
+        ("a step schema without its properties keeps its natural KeyError at the catch boundary",
+         bare_items.returncode == 2 and cannot in bare_items.stderr
+         and "KeyError: 'properties'" in bare_items.stderr, bare_items),
+        ("a schema without steps keeps its natural KeyError at the catch boundary",
+         no_steps.returncode == 2 and cannot in no_steps.stderr
+         and "KeyError: 'steps'" in no_steps.stderr, no_steps),
+    ]
+
+
 def _floor_creation_cases():
     version2 = _fire_new(_state("2"), "floor-two")
     version1 = _fire_new(_state("1"), "floor-one")
@@ -224,6 +266,7 @@ def run_t06_cases():
     cases.extend(_evidence_cases())
     cases.extend(_declared_type_cases())
     cases.append(_declared_shape_case())
+    cases.extend(_run_schema_contract_cases())
     cases.extend(_floor_creation_cases())
     cases.extend(_floor_update_cases())
     strict_failure = _strict_hook_payload_case()

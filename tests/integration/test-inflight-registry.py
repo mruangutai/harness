@@ -568,6 +568,146 @@ def case_19_attach_and_release_by_runtime_identity():
     check("case19: terminal OMP identity releases only its claim", removed is True, removed)
     check("case19: released OMP claim is gone", remaining is None, remaining)
 
+# GRADE-2 REASON: one sequential lifecycle scenario must retain both competing
+# claims while proving exact, mismatched, idempotent, and CLI authorization paths.
+def case_19b_runtime_lineage_authorization():
+    root = tempfile.mkdtemp()
+    feature = "FEAT-43-alpha"
+    parent = "HarnessLead"
+
+    first = inflight_registry.claim_with_receipt(
+        root,
+        "harness-backend-dev",
+        "harness-eng-lead",
+        root,
+        feature=feature,
+        supervisor_pid=os.getpid(),
+    )
+    second = inflight_registry.claim_with_receipt(
+        root,
+        "harness-backend-dev",
+        "harness-eng-lead",
+        root,
+        feature=feature,
+        supervisor_pid=os.getpid(),
+    )
+    check("case19b: parallel claims exist", first is not None and second is not None)
+
+    first_attached = inflight_registry.attach_runtime_identity(
+        root,
+        "harness-backend-dev",
+        feature,
+        claim_id=first["claim_id"],
+        agent_id="BackendOne",
+        parent_agent_id=parent,
+    )
+    second_attached = inflight_registry.attach_runtime_identity(
+        root,
+        "harness-backend-dev",
+        feature,
+        claim_id=second["claim_id"],
+        agent_id="BackendTwo",
+        parent_agent_id=parent,
+    )
+    check("case19b: parent pre-binds both named children", first_attached and second_attached)
+
+    check(
+        "case19b: exact child and parent lineage authorizes",
+        inflight_registry.authorize_runtime_identity(
+            root, "harness-backend-dev", feature, "BackendOne", parent
+        ) is True,
+    )
+    check(
+        "case19b: a sibling parent cannot borrow the child claim",
+        inflight_registry.authorize_runtime_identity(
+            root, "harness-backend-dev", feature, "BackendOne", "OtherLead"
+        ) is False,
+    )
+    check(
+        "case19b: an unclaimed child id cannot borrow a parallel claim",
+        inflight_registry.authorize_runtime_identity(
+            root, "harness-backend-dev", feature, "BackendThree", parent
+        ) is False,
+    )
+
+    job_attached = inflight_registry.attach_runtime_identity(
+        root,
+        "harness-backend-dev",
+        feature,
+        claim_id=first["claim_id"],
+        agent_id="BackendOne",
+        job_id="job-one",
+        parent_agent_id=parent,
+    )
+    check("case19b: task result augments an already-bound child with its job id", job_attached is True)
+    exact_claims = inflight_registry.live_claims(
+        root,
+        "harness-backend-dev",
+        agent_id="BackendOne",
+        parent_agent_id=parent,
+    )
+    sibling_claims = inflight_registry.live_claims(
+        root,
+        "harness-backend-dev",
+        agent_id="BackendOne",
+        parent_agent_id="OtherLead",
+    )
+    check("case19b: exact runtime lineage filters the live claim set",
+          [claim["claim_id"] for claim in exact_claims] == [first["claim_id"]],
+          exact_claims)
+    check("case19b: a sibling parent sees no matching live claim", sibling_claims == [],
+          sibling_claims)
+
+    third = inflight_registry.claim_with_receipt(
+        root,
+        "harness-frontend-dev",
+        "harness-eng-lead",
+        root,
+        feature=feature,
+        supervisor_pid=os.getpid(),
+    )
+    parent_attached = inflight_registry.attach_runtime_identity(
+        root,
+        "harness-frontend-dev",
+        feature,
+        claim_id=third["claim_id"],
+        parent_agent_id=parent,
+    )
+    first_authorization = inflight_registry.authorize_runtime_identity(
+        root, "harness-frontend-dev", feature, "FrontendOne", parent
+    )
+    repeated_authorization = inflight_registry.authorize_runtime_identity(
+        root, "harness-frontend-dev", feature, "FrontendOne", parent
+    )
+    conflicting_authorization = inflight_registry.authorize_runtime_identity(
+        root, "harness-frontend-dev", feature, "FrontendTwo", parent
+    )
+    check("case19b: a unique parent-bound claim accepts the runtime child id",
+          parent_attached and first_authorization)
+    check("case19b: runtime authorization is idempotent", repeated_authorization is True)
+    check("case19b: a bound claim rejects a different runtime child id",
+          conflicting_authorization is False)
+    cli_ok = inflight_registry.main([
+        "authorize",
+        "--root", root,
+        "--agent", "harness-backend-dev",
+        "--feature", feature,
+        "--agent-id", "BackendOne",
+        "--parent-agent-id", parent,
+    ])
+    cli_refused = inflight_registry.main([
+        "authorize",
+        "--root", root,
+        "--agent", "harness-backend-dev",
+        "--feature", feature,
+        "--agent-id", "BackendOne",
+        "--parent-agent-id", "OtherLead",
+    ])
+    check("case19b: authorize CLI approves exact runtime lineage", cli_ok == 0, cli_ok)
+    check("case19b: authorize CLI blocks a mismatched parent lineage", cli_refused == 2,
+          cli_refused)
+
+
 
 def case_20_reconcile_only_target_feature():
     root = tempfile.mkdtemp()
@@ -1051,7 +1191,8 @@ CASES = (
     case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
     case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
     case_17_targeted_release_keeps_other_feature, case_18_legacy_registry_migrates_on_write,
-    case_19_attach_and_release_by_runtime_identity, case_20_reconcile_only_target_feature,
+    case_19_attach_and_release_by_runtime_identity, case_19b_runtime_lineage_authorization,
+    case_20_reconcile_only_target_feature,
     case_21_live_query_does_not_expire_another_feature,
     case_22_recycled_supervisor_pid_is_not_alive, case_23_verified_claim_never_ages_out,
     case_24_unverifiable_claim_cannot_strand_forever,

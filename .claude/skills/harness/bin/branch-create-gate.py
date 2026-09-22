@@ -43,6 +43,10 @@ import shutil
 import subprocess
 
 
+# ACCEPTED DUPLICATION (FEAT-61 D-09, DEC-234). This prologue is copied, not shared, in
+# gh-close-gate.py, merge-gate.py, plan-sign-gate.py, run-unit-tests.py: it runs BEFORE the
+# trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
+# what creates the import seam. Change all five together; never replace one with an import.
 def _resolve_root():
     """Resolve through the trusted sibling while preserving suppressed diagnostics."""
     try:

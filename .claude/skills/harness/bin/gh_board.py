@@ -141,9 +141,12 @@ def project(plan_doc, rec):
 
 
 def _active_lifecycle_station(plan_doc):
-    """The active feature station shared by all recorded cards, or None."""
+    """The active feature station shared by all recorded cards, or None. `top` is absent or
+    legal by the time this runs — `_parent_station` has already raised on a vocabulary miss —
+    so the strict predicate (FEAT-61 T-02) only ever answers; `backlog` and every FINISHED
+    station answer None."""
     top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
-    return top if top in ("plan", "ready", "building", "review") else None
+    return top if top is not None and factory_config.is_active(top) else None
 
 
 def _place_parent_and_sources(placed, rec, station):

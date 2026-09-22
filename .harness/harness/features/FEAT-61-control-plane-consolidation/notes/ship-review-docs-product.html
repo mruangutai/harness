@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-61 control-plane consolidation</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-61-control-plane-consolidation">Ship review — FEAT-61 control-plane consolidation</h1>
+<p><strong>Recommendation: ship.</strong> The final pinned regate at <code>f798e2e600ed08aeb49d61a3a229a626750a9ccb</code> passed with <code>matrix_ok: true</code>, no findings, and SC-01 through SC-08 met. The post-validation documentation audit corrected one stale lifecycle section in <code>.harness/harness/docs/SPEC.md</code> and found no remaining documentation gap. There are no open questions and no proposed backlog items.</p>
+<h2 id="definition-of-done-graded-by-perspective">Definition of done — graded by perspective</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed definition of done</th><th>Verdict</th><th>Discharged by</th><th>Evidence</th></tr></thead><tbody><tr><td>operator</td><td>I can rely on one authoritative definition for each gate-critical rule in this wave, with dead policy removed and gate behavior unchanged except where the signed rulings deliberately change it. A one-time planning receipt establishes that the baseline live plan corpus is clean, and strict predicates expose invalid station data thereafter.</td><td><strong>met</strong></td><td>SC-01, SC-03, SC-04</td><td><code>notes/research-FEAT-61-control-plane-consolidation-goalcheck-validate-c3.md</code> §Perspective grades and §Success-criterion outcomes; <code>notes/review-harness-qa-c3.md</code> §Signed verify chains</td></tr><tr><td>code maintainer</td><td>I can change station lifecycle, checkout placement, strict JSON parsing, run-step schema navigation, or repo-local module loading in one place, and two cheap checks stop the copied forms from returning. The one accepted bootstrap duplication is explicit and justified where I will encounter it.</td><td><strong>met</strong></td><td>SC-02, SC-05, SC-06, SC-07</td><td><code>notes/research-FEAT-61-control-plane-consolidation-goalcheck-validate-c3.md</code> §Perspective grades and §Success-criterion outcomes; <code>notes/review-harness-code-reviewer-c3.md</code></td></tr><tr><td>reader</td><td>I can distinguish preserved behavior from intentional divergence through fail-first evidence, and I can trace the accepted duplication, vocabulary, and direct-execution boundary to durable records.</td><td><strong>met</strong></td><td>SC-08</td><td><code>notes/research-FEAT-61-control-plane-consolidation-goalcheck-validate-c3.md</code> §Perspective grades and SC-08; <code>notes/receipt-harness-documentor-docs-product.md</code></td></tr></tbody></table></div>
+<h2 id="run-record">Run record</h2>
+<p>No report round was spawned. This briefing was assembled from every digest named by <code>feature.json</code>:</p>
+<div class="scroll"><table><thead><tr><th>Run</th><th>Result</th><th>Conclusion</th><th>Digest</th></tr></thead><tbody><tr><td><code>plan-product</code></td><td>PASS</td><td>Five dependency-ordered direct-execution tasks and eight criteria were signed after all six panel findings were applied.</td><td><code>runs/plan-product/digest.md</code></td></tr><tr><td><code>simplify-eng</code></td><td>PASS</td><td>The four-angle pass found one low pass-through wrapper; it was removed before validation and does not survive in the shipped tree.</td><td><code>runs/simplify-eng/digest.md</code></td></tr><tr><td><code>validate-validator</code></td><td>FAIL</td><td>Initial validation exposed missing fail-first receipts, a partial-bucket detector gap, and an unruled malformed-schema byte change.</td><td><code>runs/validate-validator/digest.md</code></td></tr><tr><td><code>amend-cr02-eng</code></td><td>PASS</td><td>T-02&#x27;s file and verify inventories were ledgered to include the D-03 <code>test-gh-sync-record.py</code> regression.</td><td><code>runs/amend-cr02-eng/digest.md</code></td></tr><tr><td><code>validate-c2-validator</code></td><td>FAIL</td><td>Behavior and all SCs passed, but three tasks carried unsupported <code>change_type: code</code>; the operator ruled this a signed-plan classification correction.</td><td><code>runs/validate-c2-validator/digest.md</code></td></tr><tr><td><code>validate-c3-validator</code></td><td>PASS</td><td>At the final pin, unit and integration matrices, all five signed chains, all readers, every SC, and all three perspectives passed with no finding.</td><td><code>runs/validate-c3-validator/digest.md</code></td></tr><tr><td><code>docs-product</code></td><td>PASS</td><td>The documentation audit corrected stale six-station/terminal wording in <code>SPEC.md</code>; DEC-234, the index, comments, glossary, guides, and READMEs are coherent.</td><td><code>runs/docs-product/digest.md</code></td></tr></tbody></table></div>
+<h2 id="resolved-findings-and-escalations">Resolved findings and escalations</h2>
+<ul><li><code>VAL-01</code> — durable fail-first receipts now cover every automated SC (<code>runs/validate-validator/digest.md</code>; <code>notes/fail-first-receipts.md</code>).</li><li><code>VAL-02</code> — the station lock now detects incomplete and drifted lifecycle buckets, with controlled mutants (<code>runs/validate-validator/digest.md</code>; <code>notes/review-harness-qa-c3.md</code>).</li><li><code>VAL-03</code> — natural malformed run-schema errors were restored at existing catch boundaries (<code>runs/validate-validator/digest.md</code>; final c3 goal-check SC-06).</li><li><code>CR-02</code> — T-02&#x27;s <code>files</code> and <code>verify</code> records now include <code>tests/integration/test-gh-sync-record.py</code> (<code>runs/amend-cr02-eng/digest.md</code>).</li><li><code>QA-C2-01</code> — the operator corrected T-01/T-02/T-03 to <code>cross_module</code>; no duplicate <code>code</code> mapping was introduced (<code>notes/answers-2026-09-20-validate-c2.md</code>; <code>runs/validate-c3-validator/digest.md</code>).</li><li>The simplify wrapper finding is closed: <code>task_finished</code> no longer exists in <code>.claude/skills/harness/bin/gh-sync.py</code>.</li></ul>
+<h2 id="spend-and-audit-ledger">Spend and audit ledger</h2>
+<ul><li>Runs: <strong>7 / 20 informational budget</strong>; the budget was not exceeded, and each run records a distinct planning, review, correction, or documentation boundary.</li><li>Cycles: <strong>2 / 10 hard budget</strong>, reconciled to the two recorded FAIL runs.</li><li>Measured spend after documentation: <strong>103 wall-clock minutes</strong>, <strong>57 rework minutes</strong>, <strong>723,003 tokens</strong> (<code>feature-record.py spend</code>). The signed 90-minute rework window was not exceeded.</li><li>Judgements: <strong>11</strong>.</li><li>UAT: <strong>not required</strong>; the signed criteria are automated or inspection-only.</li></ul>
+<h2 id="amendments-to-signed-tasks">Amendments to signed tasks</h2>
+<div class="scroll"><table><thead><tr><th>At</th><th>Amendment</th><th>Reason</th><th>Overruled</th></tr></thead><tbody><tr><td><code>2026-09-20T23:31:15.564850+00:00</code></td><td><code>T-02.files</code></td><td>The D-03 gh-sync regression belongs in T-02&#x27;s file scope.</td><td>no</td></tr><tr><td><code>2026-09-20T23:31:15.565005+00:00</code></td><td><code>T-02.verify</code></td><td>T-02 verification must execute the D-03 unknown-station regression.</td><td>no</td></tr></tbody></table></div>
+<p>Overrule rate: <strong>0/2</strong>.</p>
+<h2 id="open-questions">Open questions</h2>
+<p>None.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual finding</th></tr></thead><tbody></tbody></table></div>
+<p>No residual finding survived collation; there is nothing to create on ship acceptance.</p><p class='derived'>Derived from <code>ship-review-docs-product.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

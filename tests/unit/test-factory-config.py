@@ -538,6 +538,75 @@ check("(T-02) TERMINAL_STATIONS is the ordered abandoned/rejected non-board tupl
               for station in getattr(fc, "TERMINAL_STATIONS", ())),
       getattr(fc, "TERMINAL_STATIONS", None))
 
+# --- FEAT-61 T-01: ONE station table, two axes, four derived views -----------------------------
+# STATION_ROWS is the only place a station's board-column and lifecycle facts are written. The
+# four exports are VIEWS of it, so a station cannot be half-added: a row without a bucket is a
+# construction error, never a name that is silently in no bucket. Order is contract — the board
+# reads MANDATED_STATIONS in column order and every consumer that used to hand-write
+# ("done",) + TERMINAL_STATIONS relied on that concatenation order.
+_rows = getattr(fc, "STATION_ROWS", None)
+check("(FEAT-61) STATION_ROWS is an ordered tuple of (name, has_board_column, bucket) rows",
+      isinstance(_rows, tuple) and len(_rows) == 8
+      and all(isinstance(r, tuple) and len(r) == 3 for r in _rows),
+      _rows)
+check("(FEAT-61) STATION_ROWS names are plain strings in lifecycle order",
+      _rows is not None and [r[0] for r in _rows]
+      == ["backlog", "plan", "ready", "building", "review", "done", "abandoned", "rejected"]
+      and all(type(r[0]) is str for r in _rows),
+      _rows)
+check("(FEAT-61) MANDATED_STATIONS is derived: exactly the rows with a board column, in order",
+      _rows is not None
+      and fc.MANDATED_STATIONS == tuple(r[0] for r in _rows if r[1] is True)
+      and isinstance(fc.MANDATED_STATIONS, tuple),
+      fc.MANDATED_STATIONS)
+check("(FEAT-61) TERMINAL_STATIONS is derived: exactly the rows without a board column, in order",
+      _rows is not None
+      and fc.TERMINAL_STATIONS == tuple(r[0] for r in _rows if r[1] is False)
+      and isinstance(fc.TERMINAL_STATIONS, tuple),
+      fc.TERMINAL_STATIONS)
+check("(FEAT-61) ACTIVE_STATIONS is the four in-progress stations, in order",
+      getattr(fc, "ACTIVE_STATIONS", None) == ("plan", "ready", "building", "review")
+      and isinstance(getattr(fc, "ACTIVE_STATIONS", None), tuple),
+      getattr(fc, "ACTIVE_STATIONS", None))
+check("(FEAT-61) FINISHED_STATIONS is done then the terminal names — the old concatenation order",
+      getattr(fc, "FINISHED_STATIONS", None) == ("done",) + fc.TERMINAL_STATIONS
+      and isinstance(getattr(fc, "FINISHED_STATIONS", None), tuple),
+      getattr(fc, "FINISHED_STATIONS", None))
+# The three buckets partition the vocabulary: every name in exactly one, nothing left over.
+_buckets = (("backlog",), getattr(fc, "ACTIVE_STATIONS", ()), getattr(fc, "FINISHED_STATIONS", ()))
+check("(FEAT-61) not_started | active | finished partition the eight names with no overlap",
+      sorted(sum(_buckets, ())) == sorted(fc.MANDATED_STATIONS + fc.TERMINAL_STATIONS)
+      and len(sum(_buckets, ())) == 8,
+      _buckets)
+
+# The predicates answer the bucket question so call sites carry no literal. STRICT (D-03): an
+# unknown, empty or non-string name RAISES with the known names, matching station_column. The
+# old `x in ("done",) + TERMINAL_STATIONS` returned False for a typo or an empty status and let
+# corrupt station data pass as "not finished".
+for _name, _active, _finished in (
+    ("backlog", False, False), ("plan", True, False), ("ready", True, False),
+    ("building", True, False), ("review", True, False), ("done", False, True),
+    ("abandoned", False, True), ("rejected", False, True),
+):
+    try:
+        _got = (fc.is_active(_name), fc.is_finished(_name))
+    except Exception as e:
+        _got = f"{type(e).__name__}: {e}"
+    check(f"(FEAT-61) is_active/is_finished({_name!r}) == ({_active}, {_finished})",
+          _got == (_active, _finished), _got)
+for _bad in ("", "Done", "shipped", None, 3, ("done",)):
+    for _pred in ("is_active", "is_finished"):
+        try:
+            _r = getattr(fc, _pred)(_bad)
+            check(f"(FEAT-61) {_pred}({_bad!r}) raises FleetError naming the known stations",
+                  False, f"returned {_r!r}")
+        except accessors.FleetError as e:
+            check(f"(FEAT-61) {_pred}({_bad!r}) raises FleetError naming the known stations",
+                  all(s in str(e) for s in fc.MANDATED_STATIONS + fc.TERMINAL_STATIONS), str(e))
+        except Exception as e:
+            check(f"(FEAT-61) {_pred}({_bad!r}) raises FleetError naming the known stations",
+                  False, f"{type(e).__name__}: {e}")
+
 # --- station_column: the ONE place a capitalised station name is produced (FEAT-41 T-01) ------
 # (c) ONE CASE PER STATION, never a set comparison. A set comparison passes when two stations
 # swap their column names, and the whole purpose of this function is that the board column an
