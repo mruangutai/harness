@@ -139,4 +139,29 @@ try:
           p.stdout + p.stderr)
 finally: shutil.rmtree(r)
 
+# FEAT-64 (SC-03): _layout_output renders the documented layout-shape/rendering failures as a
+# traceback string and the runner exits 2 on them; an unrelated RuntimeError inside
+# suite_layout.violations propagates out of the runner as itself.
+r=tree()
+try:
+    sl = r/".claude/skills/harness/bin/suite_layout.py"
+    sl.write_text(sl.read_text() + "\n\n_real_violations = violations\ndef violations(root):\n    raise RuntimeError('unrelated defect')\n")
+    p=run(r,"--check-layout")
+    check("FEAT-64: an unrelated RuntimeError in suite_layout.violations escapes the runner as "
+          "itself, not as 'MISCONFIGURED: layout check crashed'",
+          p.returncode != 0 and "RuntimeError: unrelated defect" in p.stderr
+          and "layout check crashed" not in p.stderr,
+          f"rc={p.returncode} stdout={p.stdout!r} stderr={p.stderr[-300:]!r}")
+finally: shutil.rmtree(r)
+r=tree()
+try:
+    sl = r/".claude/skills/harness/bin/suite_layout.py"
+    sl.write_text(sl.read_text() + "\n\ndef violations(root):\n    raise ValueError('a documented layout-data shape failure')\n")
+    p=run(r,"--check-layout")
+    check("FEAT-64: a documented layout data-shape failure keeps the 'layout check crashed' rendering at exit 2",
+          p.returncode == 2 and "MISCONFIGURED: layout check crashed" in p.stderr
+          and "ValueError: a documented layout-data shape failure" in p.stderr,
+          f"rc={p.returncode} stderr={p.stderr[-300:]!r}")
+finally: shutil.rmtree(r)
+
 raise SystemExit(1 if failures else 0)

@@ -21,7 +21,6 @@ import re
 import subprocess
 import sys
 import artifact_accessors
-import harness_yaml
 from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 
 # THE LEGITIMATE WORKTREE LOCATION, named once. Every rule in this module that needs
@@ -1076,6 +1075,10 @@ def run_dir_grant_globs(root):
     means when the manifest cannot be read.
     """
     manifest_path = os.path.join(root, ".harness", "team-config.yaml")
+    # Lazy, like resolve_fleet's factory_config import above: this module is copied alone
+    # into fixtures that carry no harness_yaml.py, and a module-level import would turn every
+    # one of them into "no root" (FEAT-64, measured in test-run-unit-tests-layout).
+    import harness_yaml
     try:
         all_roles, shared = artifact_accessors.manifest_domains(manifest_path, agent=None)
     except (artifact_accessors.ArtifactAccessError, artifact_accessors.FleetError,

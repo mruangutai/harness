@@ -105,6 +105,18 @@ class WeightTests(unittest.TestCase):
         self.assertEqual(len(r.errors), 1)
         self.assertIn("references/", r.errors[0])
 
+    def test_feat64_unrelated_defect_in_frontmatter_escapes(self):
+        """FEAT-64 (SC-03): an unreadable/invalid frontmatter is a per-agent error row; an
+        unrelated RuntimeError inside the reader escapes scan()."""
+        root = _tree({"harness-a": ["s1"]}, {"s1": 10})
+        real = csw.artifact_accessors.load_frontmatter
+        csw.artifact_accessors.load_frontmatter = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+        try:
+            with self.assertRaises(RuntimeError):
+                csw.scan(root)
+        finally:
+            csw.artifact_accessors.load_frontmatter = real
+
     def test_live_tree_preloads_resolve_and_no_reference_is_preloaded(self):
         r = csw.scan(Path(ROOT))
         self.assertEqual(r.errors, [])
