@@ -1923,6 +1923,7 @@ tasks:
     - T-36
     - T-37
     - T-38
+    - T-39
     status: backlog
     files:
     - .claude/skills/harness/bin/dashboard/client/src/**
@@ -2063,6 +2064,25 @@ tasks:
       notes/answers-2026-09-22-t32-round5-ruling.md addendum 3. In the inspection test (`for (const check of manifest.checks.filter(... 'SRC-TOKENS','VIS-DENSITY','VIS-PROTOTYPE'))`), when `rows.length > 0` call `test.setTimeout(rows.length * 30_000)` before executing the rows, so each signed capture keeps a 30s budget instead of all captures sharing one. No capture, label, route, interaction, project, evidence or trace requirement changes.
     verify: |
       HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t38-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
+      git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client | grep -c "feat-53.e2e.spec.ts" # only this spec changed by this task
+  - id: T-39
+    title: Induce the initial work-list request failure for its capture
+    change_type: test
+    execution_agent: harness-dev-ops
+    execution_mode: team
+    execution_reason: Lane defect; the implementer never edits the lane.
+    status: backlog
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/dashboard/client/feat-53.e2e.spec.ts
+    traces:
+      - SC-27
+    test_kinds:
+      - ui
+    intent: |
+      notes/answers-2026-09-22-t32-round5-ruling.md addendum 4. In `inspection`/`interact`, for the `initial-request-error` evidence row only: before `load(page, evidence.route)` register `page.route('**/api/work*', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'initial-error fixture request failure' }) }))`, and `page.unroute` it after the capture so later rows are unaffected. The existing interaction (focus Retry without activating) stays. No other capture, label, route, project, evidence or trace requirement changes.
+    verify: |
+      HARNESS_UI_FEATURE=FEAT-53-metrics-dashboard HARNESS_UI_RUN_ID=t39-list npm --prefix .claude/skills/harness/bin/dashboard/client run test:ui -- --list | grep -c "›" # still 23 titles at both projects
       git diff --stat HEAD -- .claude/skills/harness/bin/dashboard/client | grep -c "feat-53.e2e.spec.ts" # only this spec changed by this task
 panel:
   last_run: 2026-09-16-01-product
