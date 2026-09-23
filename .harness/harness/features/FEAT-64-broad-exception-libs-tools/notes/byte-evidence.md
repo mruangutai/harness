@@ -1,6 +1,6 @@
 # FEAT-64 — exact byte evidence per suite (validate c0, GC-64-01)
 
-Baseline `a4a3d7f8e9b91181fb6cc3ae058df8e02275d983` vs head `598c575e2392f1adaa30c2be838afc9309d236e7`.
+Baseline `a4a3d7f8e9b91181fb6cc3ae058df8e02275d983` vs head `220feabb80174c042aff1f9f663cd49a4a57e968`.
 Each suite run once per tree, `HARNESS_PROJECT_DIR=<tree> python3 <tree>/<suite>`, cwd `<tree>`.
 `raw` digests are sha256[:16] of the untouched stream. `norm` digests are the same stream after exactly two
 substitutions: the tree's own absolute path → `<ROOT>`, and any `…/T/tmpXXXXXXXX` tempfile directory → `<TMP>`.
@@ -73,21 +73,21 @@ Lines (stdout):
 
 - exit: baseline 0 → head 0
 - stdout raw `944bd96cf8899fe0` → `944bd96cf8899fe0`; norm `944bd96cf8899fe0` → `944bd96cf8899fe0` (identical)
-- stderr raw `d26bdd8902cfd961` → `b5985bb5d4095da8`; norm `d26bdd8902cfd961` → `b5985bb5d4095da8`
+- stderr raw `484819fc6115ded4` → `fd49aba5f35c938b`; norm `484819fc6115ded4` → `fd49aba5f35c938b`
 
 Lines (stderr):
 ```
 -......
 +.......
--Ran 6 tests in 0.021s
-+Ran 7 tests in 0.021s
+-Ran 6 tests in 0.022s
++Ran 7 tests in 0.023s
 ```
 
 ## `tests/integration/test-factory-decompose.py`
 
 - exit: baseline 0 → head 0
 - stdout raw `8aa25728d0e63e67` → `70501f46d5e84a53`; norm `8aa25728d0e63e67` → `70501f46d5e84a53`
-- stderr raw `417b9da8e38852a7` → `40517917d6f85ea5`; norm `54ea443ca0dad452` → `54ea443ca0dad452` (identical)
+- stderr raw `5299aeebed71d79b` → `dd09f29da3a74361`; norm `54ea443ca0dad452` → `54ea443ca0dad452` (identical)
 
 Lines (stdout):
 ```
@@ -135,7 +135,7 @@ Lines (stdout):
 
 - exit: baseline 0 → head 0
 - stdout raw `b42593b5fd31560e` → `e262cbc6b7063366`; norm `b42593b5fd31560e` → `e262cbc6b7063366`
-- stderr raw `d67e3517267efa55` → `fbc09fa85c0116e4`; norm `baa4f7eeb8769d62` → `baa4f7eeb8769d62` (identical)
+- stderr raw `29f492595035cc15` → `01d0d57ac16f6e08`; norm `baa4f7eeb8769d62` → `baa4f7eeb8769d62` (identical)
 
 Lines (stdout):
 ```
@@ -318,7 +318,7 @@ Lines (stdout):
 
 - exit: baseline 0 → head 0
 - stdout raw `14859aff778938fb` → `1220be5b7538fdac`; norm `14859aff778938fb` → `1220be5b7538fdac`
-- stderr raw `b6d1d2fbaa73d637` → `accec30e28483675`; norm `179f949873782ae8` → `179f949873782ae8` (identical)
+- stderr raw `7c553e93229b3335` → `2caa1109707dcb8b`; norm `179f949873782ae8` → `179f949873782ae8` (identical)
 
 Lines (stdout):
 ```
