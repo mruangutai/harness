@@ -1670,6 +1670,32 @@ with tempfile.TemporaryDirectory() as base:
           "RESULT=GhError" in r_fn.stdout,
           f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
 
+# --- #1897: board declared, github.repo ABSENT raises a real GhError -----------------------
+# The raise used to pass ONE positional to GhError's seven-parameter __init__, so it was a
+# TypeError at raise time; ship's old broad audit catch hid it as "the board audit could not
+# run: GhError.__init__() missing 6 required positional arguments". FEAT-64 narrowed that
+# catch, so the defect would now surface as a traceback out of ship.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, {"sync": True, "board": _BOARD})
+    code = (
+        "import board_lifecycle as bl, factory_gh"
+        "\ntry:"
+        "\n    bl.audit_findings(None)"
+        "\n    print('RESULT=no-exception')"
+        "\nexcept factory_gh.GhError as e:"
+        "\n    print('RESULT=GhError:' + str(e))"
+        "\nexcept TypeError as e:"
+        "\n    print('RESULT=TypeError:' + str(e))"
+    )
+    r_fn, log = run_module(root, code)
+    check("#1897 audit_findings: a declared board with no github.repo raises GhError, not TypeError",
+          "RESULT=GhError:" in r_fn.stdout, f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
+    check("#1897 audit_findings: the GhError names github.repo and the harness.json pin",
+          "github.repo is not declared" in r_fn.stdout and "harness.json" in r_fn.stdout, repr(r_fn.stdout))
+    check("#1897 audit_findings: no gh call was made before the refusal", not log, repr(log))
+
 # --- clause 3: no board declared returns [], matching cmd_audit's own branch ---------------
 
 with tempfile.TemporaryDirectory() as base:
