@@ -1,0 +1,109 @@
+schema_version: 2
+run_id: validate-validator
+run_uid: 9386b69392924fe996fa7dba863b4cae
+feature: FEAT-64-broad-exception-libs-tools
+squad: validator
+host: harness-validator-lead
+team: validate
+flow: validate-validator
+status: failed
+review_sha: dc71e09e0647882c63f66ab0b6d6048bc6dd2688
+verdict: FAIL
+severity_max: high
+digest: .harness/harness/features/FEAT-64-broad-exception-libs-tools/runs/validate-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c0.md
+    evidence:
+      matrix_ok: true
+      required_kinds: [unit, integration]
+      signed_chain: pass
+      code_grade: pass
+      fail_first_scs: 4
+  - id: code
+    persona: harness-code-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-code-reviewer-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-code-reviewer-c0.md
+    evidence:
+      stage_one: fail
+      stage_two: not_started
+      high_findings: 1
+  - id: security
+    persona: harness-security-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-security-reviewer-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-security-reviewer-c0.md
+    evidence:
+      in_scope: true
+      findings: 0
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-ui-reviewer-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-ui-reviewer-c0.md
+    evidence:
+      canonical_objects: 39
+      rendered_ui_paths: 0
+  - id: goalcheck
+    persona: harness-pm
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c0.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c0.md
+    evidence:
+      perspective_grades: 3
+      partial_perspectives: 3
+      findings: 3

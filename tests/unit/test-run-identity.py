@@ -128,10 +128,41 @@ def case_uid_conflicts():
     check("missing incoming uid explains recovery", reason is not None and "old" in reason and "carry" in reason and "witness" in reason, reason)
 
 
+def case_seed_boundary_is_typed():
+    """FEAT-64 (SC-03): record_seed stays best-effort for filesystem/encoding/shape failures
+    (an unwritable run dir is False, nothing raised) but an unrelated programming defect in
+    the serializer escapes instead of reading as a quiet False."""
+    mod = module()
+    with tempfile.TemporaryDirectory() as run_dir:
+        if os.geteuid() != 0:
+            os.chmod(run_dir, 0o500)
+            try:
+                got = mod.record_seed(run_dir, {"feature": "F"}, None, "u1")
+            finally:
+                os.chmod(run_dir, 0o700)
+            check("an unwritable run dir is False, not a raise", got is False and not os.path.exists(mod.marker_path(run_dir)))
+    with tempfile.TemporaryDirectory() as run_dir:
+        real = mod._json.dump
+        def boom(*a, **k):
+            raise RuntimeError("unrelated defect")
+        mod._json.dump = boom
+        try:
+            try:
+                mod.record_seed(run_dir, {"feature": "F"}, None, "u1")
+                escaped = False
+            except RuntimeError:
+                escaped = True
+        finally:
+            mod._json.dump = real
+        check("an unrelated RuntimeError escapes record_seed", escaped)
+        check("the temp file is still cleaned up after the escape",
+              not [n for n in os.listdir(run_dir) if n.startswith(".run-identity-")], os.listdir(run_dir))
+
+
 def main():
     for case in (case_seed_is_write_once, case_marker_absent_and_unreadable,
                  case_uid_mint_and_injection, case_seed_conflict_guards,
-                 case_uid_conflicts):
+                 case_uid_conflicts, case_seed_boundary_is_typed):
         try:
             case()
         except Exception as exc:

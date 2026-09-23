@@ -105,7 +105,7 @@ def _resolve_main_checkout_root(root):
     try:
         proc = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
                                capture_output=True, text=True, timeout=10)
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return None
     if proc.returncode != 0 or not proc.stdout:
         return None
@@ -127,7 +127,7 @@ def _repo_arg_for_segment(segment):
         return "harness"
     try:
         fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
-    except Exception:
+    except artifact_accessors.FleetError:
         return None
     for entry in fleet.get("repos", []):
         name = entry.get("name")
@@ -186,12 +186,24 @@ def _feature_context(rec, main_checkout_root):
     return feature_id, repo_arg, wt_id, feat_dir
 
 
+def _run_step(path, argv):
+    """One child process of the sweep. FEAT-64: the process failures that used to reach the
+    per-record broad catch -- the interpreter missing or unspawnable (OSError), a subprocess
+    error -- are converted HERE, where the process is owned, into the same per-record line that
+    catch printed, and None is returned so the record is left standing. Any other exception is
+    a defect and propagates."""
+    try:
+        return subprocess.run(argv, capture_output=True, text=True)
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"post-merge-sweep: ERROR handling {path}: {e}")
+        return None
+
+
 def _ship_allows_removal(path, feat_dir):
     """Ship first; require its positive output contract before removing evidence."""
-    ship = subprocess.run(
-        ["python3", os.path.join(BIN_DIR, "gh-sync.py"), "ship", feat_dir],
-        capture_output=True, text=True,
-    )
+    ship = _run_step(path, ["python3", os.path.join(BIN_DIR, "gh-sync.py"), "ship", feat_dir])
+    if ship is None:
+        return False
     _print_proc_output(ship)
     combined = (ship.stdout or "") + (ship.stderr or "")
     if ship.returncode != 0:
@@ -227,7 +239,7 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
     try:
         sync_enabled, feature_doc = _read_build_receipt(
             main_checkout_root, feat_dir)
-    except Exception as exc:
+    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError) as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
     if not sync_enabled:
@@ -251,11 +263,10 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
 
 def _remove_worktree(path, repo_arg, wt_id):
     """Run the existing non-force removal and report whether it preserved evidence."""
-    remove = subprocess.run(
-        ["python3", os.path.join(BIN_DIR, "feature-worktree.py"), "remove",
-         "--repo", repo_arg, "--id", wt_id],
-        capture_output=True, text=True,
-    )
+    remove = _run_step(path, ["python3", os.path.join(BIN_DIR, "feature-worktree.py"), "remove",
+                              "--repo", repo_arg, "--id", wt_id])
+    if remove is None:
+        return
     _print_proc_output(remove)
     if remove.returncode != 0:
         print(f"post-merge-sweep: removal declined for {path} (exit {remove.returncode}) — "
@@ -312,17 +323,14 @@ def main():
     records = worktree_terminal.classify(root)
     cwd_real = os.path.realpath(os.getcwd())
 
+    # FEAT-64: no per-record or module-level catch. Every expected failure is converted where
+    # it arises (_run_step, _receipt_allows_removal, _repo_arg_for_segment,
+    # _resolve_main_checkout_root); anything else is a defect in the sweep and must be seen as
+    # a traceback rather than as `ERROR … ` followed by exit 0, which post-merge hooks read
+    # as a clean run.
     for rec in records:
-        try:
-            _handle_record(rec, main_checkout_root, cwd_real)
-        except Exception as e:
-            print(f"post-merge-sweep: ERROR handling {rec.get('path')}: {e}")
+        _handle_record(rec, main_checkout_root, cwd_real)
     return 0
 
 
-try:
-    _code = main()
-except Exception as e:
-    print(f"post-merge-sweep: ERROR: {e}")
-    _code = 0
-sys.exit(_code)
+sys.exit(main())

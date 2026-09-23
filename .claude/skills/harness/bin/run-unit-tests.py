@@ -49,7 +49,10 @@ def _resolve_root():
         with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
             import harness_boundary
             return harness_boundary.resolve_root(_bootstrap_bin)
-    except Exception:
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
         return ""
 
 
@@ -109,7 +112,10 @@ def _layout_output(suite_layout):
         return "\n".join(
             str(finding) for finding in suite_layout.violations(ROOT)
         ).rstrip("\n"), None
-    except Exception:
+    except (LookupError, OSError, UnicodeError, ValueError):
+        # FEAT-64: suite_layout's own typed shapes -- LookupError for its git probes, OSError
+        # and UnicodeError for the tree walk, ValueError for malformed layout data. Anything
+        # else is a defect in the checker and propagates as itself.
         return "", traceback.format_exc().rstrip("\n")
 
 

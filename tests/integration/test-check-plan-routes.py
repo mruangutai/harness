@@ -2803,6 +2803,125 @@ def case_feat63_broad_catch_census():
 
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-64 T-03 (SC-03, SC-05): _manifest_deviation's silent fallback is for the manifest's own
+# failure classes; an unrelated defect escapes. And a plan is parsed ONCE per execution: the
+# shipped-skip in discovery and the route check used to each call load_plan on the same file.
+# ---------------------------------------------------------------------------------------------
+
+def case_feat64_manifest_deviation_defect_escapes():
+    """A RuntimeError raised by manifest_domains is not "agreement not established" -- it is a
+    bug, and the DEVIATION fallback must not paper over it."""
+    mod = cpr()
+    with tempfile.TemporaryDirectory() as td:
+        import harness_boundary
+        owner = os.path.join(td, "owner"); branch = os.path.join(td, "branch")
+        for d in (owner, branch):
+            os.makedirs(os.path.join(d, ".harness"), exist_ok=True)
+        with open(os.path.join(owner, harness_boundary.MARKER), "w") as f:
+            f.write(_T09_BASE_MANIFEST)
+        with open(os.path.join(branch, harness_boundary.MARKER), "w") as f:
+            f.write("# differs\n" + _T09_BASE_MANIFEST)
+        real = mod.artifact_accessors.manifest_domains
+        def boom(*a, **k):
+            raise RuntimeError("unrelated defect")
+        mod.artifact_accessors.manifest_domains = boom
+        try:
+            escaped = False
+            try:
+                mod._manifest_deviation(branch, owner)
+            except RuntimeError:
+                escaped = True
+        finally:
+            mod.artifact_accessors.manifest_domains = real
+        check("feat64_manifest_deviation_unrelated_RuntimeError_escapes", escaped,
+              "the broad catch turned a defect into a DEVIATION line")
+
+
+def _feat64_load_plan_calls(td, fd):
+    """Run the checker over a project via a shim that counts artifact_accessors.load_plan calls
+    per path; returns {path: count}."""
+    counter = os.path.join(td, "load-plan-calls.txt")
+    shim = os.path.join(td, "feat64-shim.py")
+    with open(shim, "w") as f:
+        f.write("import sys, runpy\n"
+                f"sys.path.insert(0, {BIN_DIR!r})\n"
+                "import artifact_accessors as aa\n"
+                "_real = aa.load_plan\n"
+                "def counted(path):\n"
+                f"    open({counter!r}, 'a').write(str(path) + '\\n')\n"
+                "    return _real(path)\n"
+                "aa.load_plan = counted\n"
+                f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n")
+    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
+    env["HARNESS_PROJECT_DIR"] = td
+    env["CLAUDE_PROJECT_DIR"] = td
+    r = subprocess.run([sys.executable, shim], cwd=td, capture_output=True, text=True, env=env, timeout=60)
+    calls = {}
+    if os.path.exists(counter):
+        for line in open(counter).read().splitlines():
+            calls[line] = calls.get(line, 0) + 1
+    return r, calls
+
+
+def case_feat64_plan_is_parsed_once_per_execution():
+    """SC-05: one live plan.yaml, one execution, exactly ONE load_plan call for it -- the
+    shipped-skip and the route check consume the same parsed document."""
+    with tempfile.TemporaryDirectory() as td:
+        fd = _yaml_project(td)
+        plan = os.path.join(fd, "plan.yaml")
+        r, calls = _feat64_load_plan_calls(td, fd)
+        check("feat64_live_plan_loaded_exactly_once_per_execution",
+              r.returncode in (0, 1) and calls.get(plan) == 1,
+              f"rc={r.returncode} calls={calls} stderr={r.stderr[-300:]!r}")
+    with tempfile.TemporaryDirectory() as td:
+        fd = _yaml_project(td, extra="status: done\n")
+        plan = os.path.join(fd, "plan.yaml")
+        r, calls = _feat64_load_plan_calls(td, fd)
+        check("feat64_shipped_plan_loaded_exactly_once_and_skipped",
+              r.returncode == 0 and calls.get(plan) == 1 and "1 skipped as shipped" in r.stdout,
+              f"rc={r.returncode} calls={calls} stdout={r.stdout[-300:]!r}")
+
+
+_FEAT64_ZEROED = ("factory_decompose.py", "feature_schema.py", "gh_cost_log.py", "handoff_done_when.py",
+                  "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
+                  "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
+                  "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py")
+
+
+def _feat64_ceiling_checks(mod):
+    for name in _FEAT64_ZEROED:
+        check(f"feat64_ceiling_{name}_is_zero", mod.BROAD_CATCH_CEILINGS.get(name, 0) == 0,
+              f"ceiling {mod.BROAD_CATCH_CEILINGS.get(name)!r}")
+    check("feat64_ceiling_harness_boundary_is_exactly_two",
+          mod.BROAD_CATCH_CEILINGS.get("harness_boundary.py") == 2,
+          f"ceiling {mod.BROAD_CATCH_CEILINGS.get('harness_boundary.py')!r}")
+
+
+def _feat64_zero_ceiling_mutant_checks():
+    """One new catch of either syntax in a lib and in a tool: one finding, naming that file,
+    `1` against `ceiling 0`."""
+    for family, name in (("lib", "handoff_policy.py"), ("tool", "gh-sync.py")):
+        for syntax, source in (("except_exception", _BROAD_CATCH), ("bare_except", _BARE_CATCH)):
+            f = _feat62_findings_for_tree(lambda root, n=name, s=source: _append_bin(root, n, s))
+            check(f"feat64_census_{family}_{syntax}_mutant_is_one_finding_naming_{name}",
+                  len(f) == 1 and name in f[0] and "broad catch" in f[0] and "ceiling 0" in f[0]
+                  and " 1 " in f[0], "\n".join(f))
+
+
+def case_feat64_broad_catch_census_wave4():
+    """SC-04: the sixteen FEAT-64 files sit at a ZERO ceiling; harness_boundary.py's two designed
+    catches hold at exactly two, so a third fails against two; a reduction elsewhere is clean."""
+    _feat64_ceiling_checks(cpr())
+    _feat64_zero_ceiling_mutant_checks()
+    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "harness_boundary.py", _BROAD_CATCH))
+    check("feat64_census_third_harness_boundary_catch_fails_against_two",
+          len(f) == 1 and "harness_boundary.py" in f[0] and "3 " in f[0] and "ceiling 2" in f[0],
+          "\n".join(f))
+    f = _feat62_findings_for_tree(_reduce_one_broad_catch)
+    check("feat64_census_reduction_mutant_is_clean", f == [], "\n".join(f))
+
+
 CASES = (
     case_41_t09_manifest_deviation_is_parsed_not_byte,
     case_01_02_03,
@@ -2836,6 +2955,9 @@ CASES = (
     case_feat62_changed_posture,
     case_feat63_reparse_lock_covers_both_json_loaders,
     case_feat63_broad_catch_census,
+    case_feat64_manifest_deviation_defect_escapes,
+    case_feat64_plan_is_parsed_once_per_execution,
+    case_feat64_broad_catch_census_wave4,
 )
 
 

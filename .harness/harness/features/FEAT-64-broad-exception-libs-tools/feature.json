@@ -1,0 +1,128 @@
+{
+  "feature_id": "FEAT-64-broad-exception-libs-tools",
+  "branch": "feat/FEAT-64-broad-exception-libs-tools",
+  "pr": null,
+  "review_sha": "721b690e3578fbaba2b88d93774667d94ac4d8a3",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-22T22:04:49+00:00",
+      "tokens": 174571,
+      "ended_at": "2026-09-22T22:52:15+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-23T00:36:50+00:00",
+      "ended_at": "2026-09-23T01:45:20+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-23T02:30:32+00:00",
+      "tokens": 104165,
+      "ended_at": "2026-09-23T03:06:30+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-23T13:08:38+00:00",
+      "tokens": 117676,
+      "ended_at": "2026-09-23T13:52:31+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-23T14:03:02+00:00",
+      "tokens": 108985,
+      "ended_at": "2026-09-23T14:28:47+00:00",
+      "cycles_used": 2
+    },
+    {
+      "id": "validate-c2-qa-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-23T14:33:18+00:00",
+      "tokens": 33112,
+      "ended_at": "2026-09-23T15:01:24+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-22T22:04:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "the cause is known and the files are named, but the work adds a shared enforcement helper every hook runs under (hook_guard), ratchets the census ceilings, and mints typed errors in shared libraries that hooks then consume"
+    },
+    {
+      "at": "2026-09-23T00:36:50+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan signed df73ad56; building main-session-direct under DEC-174"
+    },
+    {
+      "at": "2026-09-23T13:08:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 1",
+      "reason": "validate c1 over 50dd75c4 after c0 fixes"
+    },
+    {
+      "at": "2026-09-23T14:03:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "validate c2 over 721b690e after c1 fix (GC-64-04, QA-64-01)"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-64-broad-exception-libs-tools/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "d965c0c59c81b7aa71de456a07b4c8e97fe776eed7f68be2c7dc621606be2a3b",
+    "T-02": "cd2d73c0e084c935f6212b2020d3cd4b78c7510598230a3c0f1d9a73b313ee32",
+    "T-03": "f6510d5b0da53259d1c6a9d7053d720c49b3f9692f1d654973e40e2f7bb5eb28"
+  },
+  "github": {
+    "milestone": 85,
+    "parent": 1890,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1891,
+      "T-02": 1892,
+      "T-03": 1893
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}

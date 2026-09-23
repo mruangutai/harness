@@ -332,9 +332,10 @@ def recovery_command_for(feat_dir):
     if os.path.basename(feat_dir.rstrip("/")) in BUILD_ENTRY_ERA_EXEMPT:
         return "recover-terminal"
     import artifact_accessors
+    import harness_yaml
     try:
         plan = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml"))
-    except Exception:
+    except harness_yaml.YamlParseError:
         return "recover-terminal"
     if plan.get("status") in {"review", "done"}:
         return "recover-terminal"

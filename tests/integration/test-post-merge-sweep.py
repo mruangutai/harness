@@ -68,6 +68,7 @@ _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1037,9 +1038,37 @@ def case_duplicate_receipt_inputs():
 
 
 
+def case_feat64_unrelated_defect_escapes():
+    """FEAT-64 (SC-03): the module-level and per-record broad catches turned any defect into
+    `post-merge-sweep: ERROR …` + exit 0 — a clean-looking hook. A RuntimeError raised inside
+    worktree_terminal.classify escapes as itself. The fixture's worktree_terminal.py SYMLINK is
+    replaced by a stub whose classify raises; everything else is the real sweep."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        fixture_bin = os.path.dirname(sweep)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+        _commit_feature(repo, "FEAT-64-defect", "Done", milestone=7)
+        dest = _add_wt(repo, "FEAT-64-defect")
+        wt = os.path.join(fixture_bin, "worktree_terminal.py")
+        os.remove(wt)
+        with open(wt, "w") as f:
+            f.write("def classify(*a, **k):\n    raise RuntimeError('unrelated defect')\n")
+        r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
+        return [("FEAT-64: an unrelated RuntimeError inside the sweep escapes (traceback, not "
+                 "'post-merge-sweep: ERROR' + exit 0)",
+                 r.returncode != 0 and "RuntimeError: unrelated defect" in r.stderr
+                 and "post-merge-sweep: ERROR" not in r.stdout,
+                 f"rc={r.returncode} stdout={r.stdout[-200:]!r} stderr={r.stderr[-200:]!r}"),
+                ("FEAT-64: the worktree is left standing when the sweep dies",
+                 os.path.isdir(dest), f"dest={dest}")]
+
+
 def main():
     results = (
-        case_dry_run_safety()
+        case_feat64_unrelated_defect_escapes()
+        +         case_dry_run_safety()
         + case_fast_forward()
         + case_squash()
         + case_self_exclusion()

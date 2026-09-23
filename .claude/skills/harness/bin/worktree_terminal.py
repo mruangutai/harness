@@ -50,7 +50,7 @@ def _run_git(args, cwd, timeout=None):
     try:
         return subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True,
                                timeout=timeout)
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return None
 
 
@@ -64,7 +64,7 @@ def _worktree_list_raw(root):
     try:
         r = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
                             capture_output=True, text=True, timeout=10)
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return False, ""
     if r.returncode != 0 or not r.stdout:
         return False, ""
@@ -121,7 +121,7 @@ def _repo_arg_for_segment(repo_segment, factory_config):
         return "harness"
     try:
         fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
-    except Exception:
+    except artifact_accessors.FleetError:
         return None
     for entry in fleet.get("repos", []):
         name = entry.get("name")
@@ -140,7 +140,7 @@ def _resolve_default_branch(repo_segment, feature_worktree_mod, factory_config):
         _owner_root, _segment, default_branch = feature_worktree_mod.resolve_repo(repo_arg)
     except SystemExit:
         return None
-    except Exception:
+    except artifact_accessors.FleetError:
         return None
     return default_branch
 
@@ -191,7 +191,7 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     try:
         data = artifact_accessors.load_feature_json(
             text=text, context=f"{default_branch}:{feature_json_rel}")
-    except Exception:
+    except artifact_accessors.FeatureJsonError:
         return None, "unparseable"
     return data, None
 
@@ -225,16 +225,16 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     text, err = _landed_blob_text(owner_root, default_branch, plan_rel)
     if err is not None:
         return None, err
+    import harness_yaml
     try:
-        import harness_yaml
         doc = harness_yaml.load_str(text, f"{default_branch}:{plan_rel}")
-    except Exception as exc:
-        if type(exc).__name__ != "MissingDependency":
-            # A genuinely malformed plan. Unchanged posture: never folded into "not terminal".
-            return None, "unparseable"
+    except harness_yaml.MissingDependency:
         doc = _scan_top_level_status(text)
         if doc is None:
             return None, "unparseable"
+    except harness_yaml.YamlParseError:
+        # A genuinely malformed plan. Unchanged posture: never folded into "not terminal".
+        return None, "unparseable"
     if not isinstance(doc, dict):
         return None, "unparseable"
     return doc, None
@@ -498,7 +498,7 @@ def classify_all(root):
 
     try:
         fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
-    except Exception as exc:
+    except artifact_accessors.FleetError as exc:
         records.append({
             "path": factory_config.FLEET_PATH, "feature_id": None, "klass": "unresolved",
             "dirty": False, "reason": f"fleet.yaml failed to load: {exc}", "repo": None,

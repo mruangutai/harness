@@ -993,6 +993,85 @@ def case_plan_station_scan_without_pyyaml():
     return results
 
 
+def _raiser(exc):
+    def raise_it(*a, **k):
+        raise exc
+    return raise_it
+
+
+def _escapes(fn, exc_type=RuntimeError):
+    """True when fn() raises exc_type -- the shape every "unrelated defect escapes" claim takes."""
+    try:
+        fn()
+    except exc_type:
+        return True
+    return False
+
+
+class _patched:
+    """Temporarily rebind `name` on `holder`; the shim every boundary probe below needs."""
+    def __init__(self, holder, name, value):
+        self.holder, self.name, self.value = holder, name, value
+    def __enter__(self):
+        self.real = getattr(self.holder, self.name)
+        setattr(self.holder, self.name, self.value)
+    def __exit__(self, *exc):
+        setattr(self.holder, self.name, self.real)
+
+
+def _feat64_git_launcher_rows(w):
+    rows = []
+    with _patched(w.subprocess, "run", _raiser(FileNotFoundError("no git"))):
+        rows.append(("(n) a git that cannot launch is None from _run_git", w._run_git(["status"], ".") is None, ""))
+        rows.append(("(n) a git that cannot launch is (False, '') from _worktree_list_raw", w._worktree_list_raw(".") == (False, ""), ""))
+    with _patched(w.subprocess, "run", _raiser(RuntimeError("unrelated"))):
+        escaped = [_escapes(lambda: w._run_git(["status"], ".")), _escapes(lambda: w._worktree_list_raw("."))]
+        rows.append(("(n) an unrelated RuntimeError escapes both git launchers", all(escaped), repr(escaped)))
+    return rows
+
+
+def _feat64_fleet_rows(w, artifact_accessors):
+    class _FC:
+        FLEET_PATH = "/nonexistent/fleet.yaml"
+    with _patched(artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
+        return [("(n) an unrelated RuntimeError escapes _repo_arg_for_segment",
+                 _escapes(lambda: w._repo_arg_for_segment("other", _FC)), "")]
+
+
+def _feat64_landed_json_rows(w, artifact_accessors):
+    with _patched(w, "_landed_blob_text", lambda *a: ("{}", None)):
+        with _patched(artifact_accessors, "load_feature_json", _raiser(RuntimeError("unrelated"))):
+            escaped = _escapes(lambda: w._read_landed_feature_json("/r", "main", "x/feature.json"))
+        with _patched(artifact_accessors, "load_feature_json",
+                      _raiser(artifact_accessors.FeatureJsonError("bad", "x", "fix"))):
+            got = w._read_landed_feature_json("/r", "main", "x/feature.json")
+    return [("(n) an unrelated RuntimeError escapes the landed feature.json read", escaped, ""),
+            ("(n) a FeatureJsonError from the landed read is 'unparseable'", got == (None, "unparseable"), repr(got))]
+
+
+def _feat64_landed_yaml_rows(w):
+    import harness_yaml
+    with _patched(w, "_landed_blob_text", lambda *a: ("status: x\n", None)):
+        with _patched(harness_yaml, "load_str", _raiser(RuntimeError("unrelated"))):
+            escaped = _escapes(lambda: w._read_landed_plan_yaml("/r", "main", "x/plan.yaml"))
+        with _patched(harness_yaml, "load_str", _raiser(harness_yaml.MissingDependency())):
+            got = w._read_landed_plan_yaml("/r", "main", "x/plan.yaml")
+    return [("(n) an unrelated RuntimeError escapes the landed plan.yaml read", escaped, ""),
+            ("(n) MissingDependency (by class) falls back to the top-level status scan",
+             got == ({"status": "x"}, None), repr(got))]
+
+
+def case_feat64_boundaries_are_typed():
+    """FEAT-64 (SC-03): every quiet path in this module keeps its documented outcome for the
+    failure its boundary really raises — a git that cannot launch, a fleet that does not load,
+    a landed blob that does not parse — and an unrelated programming defect escapes instead of
+    reading as "unresolved"."""
+    import worktree_terminal as w
+    import artifact_accessors
+    return (_feat64_git_launcher_rows(w) + _feat64_fleet_rows(w, artifact_accessors)
+            + _feat64_landed_json_rows(w, artifact_accessors) + _feat64_landed_yaml_rows(w))
+
+
 def main():
     results = (
         case_classify()
@@ -1008,6 +1087,7 @@ def main():
         + case_plan_station_is_the_landed_authority()
         + case_plan_station_scan_without_pyyaml()
         + case_direct_build_brief_is_terminal()
+        + case_feat64_boundaries_are_typed()
     )
     all_ok = True
     for name, ok, detail in results:

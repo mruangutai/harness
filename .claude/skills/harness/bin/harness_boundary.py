@@ -181,7 +181,7 @@ def linked_worktrees(owner_root):
         try:
             with open(pointer, "r", encoding="utf-8", errors="strict") as fh:
                 named = fh.read().strip()
-        except Exception:
+        except (OSError, UnicodeError):
             # An unreadable or non-UTF-8 pointer is skipped, not guessed at. The sweep is
             # a REPORT, so a checkout it cannot place is one it cannot honestly name.
             continue
@@ -403,28 +403,63 @@ def load_repo_module(module_name, path=None, register=False):
     KeyboardInterrupt and SystemExit are process control, not load failures: they propagate
     unchanged (the registration is still undone).
     """
+    return _as_repo_module_failure(module_name, path, _load_repo_module, module_name, path, register)
+
+
+def _load_repo_module(module_name, path, register):
     import importlib
     import importlib.util
-    try:
-        if path is None:
-            return importlib.import_module(module_name)
-        spec = importlib.util.spec_from_file_location(module_name, path)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
-        module = importlib.util.module_from_spec(spec)
-        if not register:
-            spec.loader.exec_module(module)
-            return module
-        previous = sys.modules.get(module_name)
-        sys.modules[module_name] = module
-        try:
-            spec.loader.exec_module(module)
-        except BaseException:
-            _restore_registration(module_name, previous)
-            raise
+    if path is None:
+        return importlib.import_module(module_name)
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {module_name!r} from {path}: no module spec or loader")
+    module = importlib.util.module_from_spec(spec)
+    if not register:
+        spec.loader.exec_module(module)
         return module
+    previous = sys.modules.get(module_name)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        _restore_registration(module_name, previous)
+        raise
+    return module
+
+
+def _as_repo_module_failure(module_name, path, fn, *args):
+    """Run `fn(*args)` and give anything it raises the type of a repo-module failure. THE ONE
+    broad catch of the load/call boundary (FEAT-64): `load_repo_module` and `call_repo_module`
+    each spelled it before. The cause, its chain and the path travel on RepoModuleError;
+    process control (KeyboardInterrupt, SystemExit) passes through untouched."""
+    try:
+        return fn(*args)
     except Exception as error:
         raise RepoModuleError(module_name, path, error) from error
+
+
+def hook_guard(main, name, fail="open"):
+    """A hook's own-failure posture, spelled ONCE (FEAT-64; wired by FEAT-65). Runs `main()`
+    and returns its result unchanged. An Exception escaping main is the hook's OWN defect —
+    an unreadable payload shape, a missing sibling, a bug — never the agent's contract
+    violation, and the verdict on it is fixed at the call site: `fail="open"` prints the
+    pass-through line and returns 0 (DEC-100: only exit 2 blocks; check-domain.py set the
+    precedent that a hook must not wedge every agent on its own bug); `fail="closed"` prints
+    BLOCKED and returns 2 for the one hook whose safety layer cannot run without the module
+    that failed. KeyboardInterrupt and SystemExit are BaseException, not Exception, and are
+    never caught here: a hook that exits deliberately keeps its own exit code."""
+    try:
+        return main()
+    except Exception as error:
+        detail = f"{type(error).__name__}: {error}"
+        if fail == "closed":
+            print(f"{name}: BLOCKED — the hook failed internally ({detail}); enforcement is "
+                  f"CLOSED rather than partial.", file=sys.stderr)
+            return 2
+        print(f"{name}: the hook failed internally ({detail}) — passing through; this is not "
+              f"a pass, nothing was checked.", file=sys.stderr)
+        return 0
 
 
 def call_repo_module(module, attr, *args, **kwargs):
@@ -435,10 +470,8 @@ def call_repo_module(module, attr, *args, **kwargs):
     one of those is a defect in the sibling, and a defect that took every other invariant's
     findings down with it (a traceback, and nothing else printed) would be the worse gate.
     Process control passes through."""
-    try:
-        return getattr(module, attr)(*args, **kwargs)
-    except Exception as error:
-        raise RepoModuleError(module.__name__, getattr(module, "__file__", None), error) from error
+    return _as_repo_module_failure(module.__name__, getattr(module, "__file__", None),
+                                   lambda: getattr(module, attr)(*args, **kwargs))
 
 
 def _restore_registration(module_name, previous):
@@ -718,7 +751,7 @@ def resolve_fleet(root, label):
         bases = [real(factory_config.workspace_path(fleet, e["name"]))
                  for e in fleet["repos"]]
         return fleet["workspace_root"], bases, fleet_path
-    except Exception as e:
+    except (artifact_accessors.FleetError, KeyError, TypeError, ValueError) as e:
         print(f"{label}: BLOCKED — the fleet declaration does not load, so no "
               "product path can be identified.", file=sys.stderr)
         print(f"  {fleet_path}", file=sys.stderr)
@@ -989,7 +1022,7 @@ def worktree_owner(path):
             try:
                 with open(dot, "r", encoding="utf-8", errors="strict") as fh:
                     line = fh.read().strip()
-            except Exception:
+            except (OSError, UnicodeError):
                 # Unreadable, or not UTF-8. UNKNOWN, never "not a worktree".
                 return (cur, None, False)
             # MULTILINE, because a pointer carrying any second line is still a pointer
@@ -1051,9 +1084,15 @@ def run_dir_grant_globs(root):
     means when the manifest cannot be read.
     """
     manifest_path = os.path.join(root, ".harness", "team-config.yaml")
+    # Lazy, like resolve_fleet's factory_config import above: this module is copied alone
+    # into fixtures that carry no harness_yaml.py, and a module-level import would turn every
+    # one of them into "no root" (FEAT-64, measured in test-run-unit-tests-layout).
+    import harness_yaml
     try:
         all_roles, shared = artifact_accessors.manifest_domains(manifest_path, agent=None)
-    except Exception:
+    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FleetError,
+            harness_yaml.YamlParseError, OSError, UnicodeError, KeyError, TypeError,
+            ValueError):
         return []
     return sorted({glob for glob in (*all_roles, *shared) if "/runs/" in glob})
 

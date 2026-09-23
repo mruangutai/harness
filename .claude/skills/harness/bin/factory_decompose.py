@@ -90,7 +90,7 @@ def extract_brief(feat_dir):
         if problem is None or goal is None:
             return None, None
         return problem, goal
-    except Exception:
+    except (OSError, UnicodeError):
         return None, None
 
 

@@ -1,0 +1,135 @@
+schema_version: 2
+run_id: validate-c1-validator
+run_uid: 3dea111101624e94bc53fb0d0729b331
+feature: FEAT-64-broad-exception-libs-tools
+squad: validator
+host: harness-validator-lead
+team: validate
+flow: validate-c1-validator
+status: failed
+review_sha: 50dd75c4b97a51f6a3fe7ffb5f27d3c5e2889a31
+verdict: FAIL
+severity_max: high
+digest: .harness/harness/features/FEAT-64-broad-exception-libs-tools/runs/validate-c1-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c1.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: validate
+    note: matrix green; exact-byte ledger contradiction blocks SC-01
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c1.md
+    evidence:
+      canonical_paths: 59
+      matrix_ok: true
+      required_kinds: [unit, integration]
+      fail_first_scs: 6
+  - id: code
+    persona: harness-code-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-code-reviewer-c1.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: validate
+    note: both review stages passed; PM later found evidence contradiction
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-code-reviewer-c1.md
+    evidence:
+      canonical_paths: 59
+      stage_one: pass
+      stage_two: pass
+  - id: security
+    persona: harness-security-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-security-reviewer-c1.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: validate
+    note: in-scope threat audit found no security defect
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-security-reviewer-c1.md
+    evidence:
+      canonical_paths: 59
+      in_scope: true
+      findings: 0
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-ui-reviewer-c1.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: validate
+    note: measured 59 objects and no rendered UI surface
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-ui-reviewer-c1.md
+    evidence:
+      canonical_paths: 59
+      rendered_ui_paths: 0
+  - id: goalcheck
+    persona: harness-pm
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c1.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: validate
+    note: SC-01 and operator perspective partial on contradictory exact-byte records
+    artifact: .harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c1.md
+    evidence:
+      canonical_paths: 59
+      perspective_grades: 3
+      sc_grades: 8
+      findings: 1

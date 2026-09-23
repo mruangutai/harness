@@ -242,6 +242,32 @@ def main():
               and read_plan_station(featSB) == "done",
               r.stdout)
 
+    # --- FEAT-64 (SC-03): an unrelated defect in the audit ESCAPES; a GhError still holds -----------
+    # The `SHIP_CLOSED_JSON="not json at all"` case above is the documented class: the audit's
+    # gh read decodes to nothing and factory_gh.GhError is what board_lifecycle raises for it.
+    # A RuntimeError from inside the audit is not that class and must surface as itself.
+    with tempfile.TemporaryDirectory() as tmpSC:
+        install_gh(tmpSC, FAKE_GH_SHIP)
+        featSC = stage_ship(tmpSC, "FEAT-40-ship-audit-defect", {"T-01": 41}, parent=40)
+        shim = os.path.join(tmpSC, "feat64-shim.py")
+        with open(shim, "w") as f:
+            f.write("import sys, runpy\n"
+                    f"sys.path.insert(0, {os.path.dirname(os.path.realpath(SYNC))!r})\n"
+                    "import board_lifecycle\n"
+                    "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
+                    "board_lifecycle.audit_findings = boom\n"
+                    f"runpy.run_path({os.path.realpath(SYNC)!r}, run_name='__main__')\n")
+        env = dict(os.environ, FAKE_LOG=os.path.join(tmpSC, "calls.log"),
+                   GH_SYNC_GH=os.path.join(tmpSC, "gh"))
+        env.update(ship_env(tmpSC, "40=Review 41=Review", children={40: [41]}))
+        rSC = subprocess.run([sys.executable, shim, "ship", featSC], capture_output=True,
+                             text=True, env=env)
+        check("FEAT-64: an unrelated RuntimeError inside the audit escapes ship (traceback, "
+              "not 'the board audit could not run')",
+              rSC.returncode != 0 and "RuntimeError: unrelated defect" in rSC.stderr
+              and "the board audit could not run" not in rSC.stderr,
+              f"rc={rSC.returncode} stderr={rSC.stderr[-300:]!r}")
+
     # --- REGRESSION GUARD, REQ-10: status Review still moves the parent and every sub-issue -------
     with tempfile.TemporaryDirectory() as tmpSC:
         install_gh(tmpSC, FAKE_GH_SHIP)

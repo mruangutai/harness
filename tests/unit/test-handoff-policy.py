@@ -79,5 +79,23 @@ if os.geteuid() != 0:
     check("unreadable plan.yaml -> no exemption, detail names the read failure",
           why == "" and "does not parse" in detail, repr((why, detail)))
 
-print(f"{len(NOT_EXEMPT) * 2 + 2 - len(failures)} passed, {len(failures)} failed")
+
+# FEAT-64 (SC-03): "does not parse" is the loader's YamlParseError; an unrelated
+# RuntimeError raised inside the loader escapes rather than becoming a parenthetical.
+import artifact_accessors  # noqa: E402
+_real = artifact_accessors.load_plan
+def _boom(path):
+    raise RuntimeError("unrelated defect")
+artifact_accessors.load_plan = _boom
+try:
+    try:
+        reason_for("schema: plan/1\ntasks:\n" + task("T-01", "main-session-direct"))
+        escaped = False
+    except RuntimeError:
+        escaped = True
+finally:
+    artifact_accessors.load_plan = _real
+check("FEAT-64: an unrelated RuntimeError in the plan loader escapes _plan_mapping", escaped)
+
+print(f"{len(NOT_EXEMPT) * 2 + 3 - len(failures)} passed, {len(failures)} failed")
 sys.exit(1 if failures else 0)

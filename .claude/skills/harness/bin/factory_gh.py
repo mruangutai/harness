@@ -143,6 +143,38 @@ def _first_line(text):
     return text.splitlines()[0] if text else ""
 
 
+def _launch_gh(gh, args):
+    """subprocess.run of gh, with both launch failures typed. An absent binary keeps its own
+    message; any other OSError — permission denied, a binary that is a directory — is the same
+    boundary and reaches the caller as the one typed error with the OS failure chained (FEAT-64)."""
+    try:
+        return subprocess.run(
+            [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
+        )
+    except FileNotFoundError as error:
+        raise GhError(
+            args, None, "", "",
+            "gh not found", gh,
+            "install gh, or point FACTORY_GH at its path",
+        ) from error
+    except OSError as error:
+        raise GhError(
+            args, None, "", "",
+            "gh could not be launched", gh, f"{type(error).__name__}: {error}",
+        ) from error
+
+
+def _decode_gh_json(args, r):
+    """The JSON body of a successful gh call. A body that does not decode is a gh failure to
+    the caller, not a parser's — one typed error with the argv, status and captured streams
+    (FEAT-64)."""
+    try:
+        return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
+    except artifact_accessors.ArtifactAccessError as error:
+        raise GhError(args, r.returncode, r.stdout, r.stderr,
+                      _what_from_argv(args), _value_from_argv(args), str(error)) from error
+
+
 def run_gh(args, json_out=False):
     """Run [gh] + args. Raise GhError when the binary is absent or the exit status is non-zero.
 
@@ -151,16 +183,7 @@ def run_gh(args, json_out=False):
     """
     gh = _gh_binary()
     with gh_cost_log.measured(args) as _cost:
-        try:
-            r = subprocess.run(
-                [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
-            )
-        except FileNotFoundError:
-            raise GhError(
-                args, None, "", "",
-                "gh not found", gh,
-                "install gh, or point FACTORY_GH at its path",
-            )
+        r = _launch_gh(gh, args)
         _cost.returncode = r.returncode
     if r.returncode != 0:
         if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
@@ -169,7 +192,7 @@ def run_gh(args, json_out=False):
         raise GhError(args, r.returncode, r.stdout, r.stderr,
                       _what_from_argv(args), _value_from_argv(args), next_step)
     if json_out:
-        return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
+        return _decode_gh_json(args, r)
     return r.stdout.strip()
 
 

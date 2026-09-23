@@ -109,6 +109,33 @@ def run(root, *args):
         capture_output=True, text=True)
 
 
+def _feat64_escape_shim(tmpdir, script, patch_module, patch_attr, argv, env):
+    """FEAT-64 (SC-03): run `script` with `patch_module.patch_attr` replaced by a function that
+    raises RuntimeError('unrelated defect'); return the CompletedProcess. Used to prove an
+    unrelated programming defect ESCAPES the tool (non-zero, traceback) instead of entering its
+    quiet/best-effort path."""
+    shim = os.path.join(tmpdir, "feat64-shim.py")
+    with open(shim, "w") as f:
+        f.write("import sys, runpy\n"
+                f"sys.path.insert(0, {BIN_DIR!r})\n"
+                f"import {patch_module} as m\n"
+                "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
+                f"m.{patch_attr} = boom\n"
+                "sys.argv = [sys.argv[0]] + sys.argv[1:]\n"
+                f"runpy.run_path({script!r}, run_name='__main__')\n")
+    return subprocess.run([sys.executable, shim, *argv], capture_output=True, text=True, env=env)
+
+
+# --- FEAT-64: an unrelated defect in the config reader ESCAPES; a strict-read failure stays exit 1 ---
+with tempfile.TemporaryDirectory() as _t64:
+    _root64 = project()
+    r64 = _feat64_escape_shim(_t64, SCRIPT, "artifact_accessors", "load_harness_json",
+                              [_root64, "--templates", os.path.join(_root64, "_templates"), "--check"],
+                              dict(os.environ))
+    check("FEAT-64: an unrelated RuntimeError in load_harness_json escapes upgrade-config",
+          r64.returncode != 0 and "RuntimeError" in r64.stderr and "cannot read config" not in r64.stdout,
+          f"rc={r64.returncode} stdout={r64.stdout[-160:]!r} stderr={r64.stderr[-160:]!r}")
+
 # --- 1. it runs at all. This is the regression. ---
 r = run(project(), "--check")
 check("the script RUNS as a subprocess (F-03: NameError on every invocation)",

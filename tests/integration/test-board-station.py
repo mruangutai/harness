@@ -249,7 +249,10 @@ with tempfile.TemporaryDirectory() as tmp:
           r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
           f"rc={r.returncode} stdout={r.stdout!r} log={log}")
 
-# ---------------- case 7: non-BoardError exception from set_station ----------------
+# ---------------- case 7: a non-JSON gh body from set_station ----------------
+# FEAT-64: this used to be titled "non-BoardError exception" and pinned the broad catch. The
+# shape is a gh body that does not decode; run_gh raises factory_gh.GhError for it (T-01), which
+# is the typed class main catches beside gh_board.BoardError. Same exit 0, same ERROR line.
 
 with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
@@ -258,11 +261,36 @@ with tempfile.TemporaryDirectory() as tmp:
                                         "station_field": "Status",
                                         "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
     r, log = run(tmp, ["326", "plan"], gh_script=FAKE_GH_NON_JSON)
-    check("board-station exits 0 when set_station raises a non-BoardError exception",
+    check("board-station exits 0 when set_station's gh returns a body that does not decode (GhError)",
           r.returncode == 0
           and r.stderr.startswith("board-station: ERROR - ")
           and "326" in r.stderr and "plan" in r.stderr,
           f"rc={r.returncode} stderr={r.stderr!r}")
+
+# ---------------- case 7b (FEAT-64): an unrelated defect inside the write ESCAPES ----------
+# The module docstring's D-02 ruling covers board failures, not programming defects: a
+# RuntimeError raised inside set_station is neither BoardError nor GhError and must surface
+# as itself (non-zero, traceback) rather than as `ERROR - … exit 0`.
+with tempfile.TemporaryDirectory() as tmp:
+    write_team_config(tmp)
+    write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
+                              "board": {"owner": "mruangutai", "number": 3,
+                                        "station_field": "Status",
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    shim = os.path.join(tmp, "shim.py")
+    with open(shim, "w") as f:
+        f.write("import sys, runpy\n"
+                f"sys.path.insert(0, {BIN_DIR!r})\n"
+                "import gh_board\n"
+                "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
+                "gh_board.set_station = boom\n"
+                "sys.argv = ['board-station.py'] + sys.argv[1:]\n"
+                f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n")
+    env = dict(os.environ, HARNESS_PROJECT_DIR=tmp, FACTORY_GH=install_gh(tmp, FAKE_GH_OK))
+    r = subprocess.run([sys.executable, shim, "326", "plan"], capture_output=True, text=True, env=env, cwd=tmp)
+    check("FEAT-64: an unrelated RuntimeError inside set_station escapes (non-zero, not ERROR/exit 0)",
+          r.returncode != 0 and "RuntimeError" in r.stderr and not r.stderr.startswith("board-station: ERROR - "),
+          f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
 
 # ---------------- case 8: the station is validated against the six (FEAT-41 T-02) ----------
 # D-05 used to let ANY string through to the board. It is now refused here, and these cases pin

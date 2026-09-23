@@ -9,6 +9,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 
 import shutil
+import os
 import subprocess
 import sys
 import tempfile
@@ -275,7 +276,38 @@ def case_absent_canonical_command_root_fails():
 
 
 
+def _feat64_escape_shim(tmpdir, script, patch_module, patch_attr, argv, env):
+    """FEAT-64 (SC-03): run `script` with `patch_module.patch_attr` replaced by a function that
+    raises RuntimeError('unrelated defect'); return the CompletedProcess. Used to prove an
+    unrelated programming defect ESCAPES the tool (non-zero, traceback) instead of entering its
+    quiet/best-effort path."""
+    shim = os.path.join(tmpdir, "feat64-shim.py")
+    with open(shim, "w") as f:
+        f.write("import sys, runpy\n"
+                f"sys.path.insert(0, {str(ROOT / '.claude/skills/harness/bin')!r})\n"
+                f"import {patch_module} as m\n"
+                "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
+                f"m.{patch_attr} = boom\n"
+                "sys.argv = [sys.argv[0]] + sys.argv[1:]\n"
+                f"runpy.run_path({script!r}, run_name='__main__')\n")
+    return subprocess.run([sys.executable, shim, *argv], capture_output=True, text=True, env=env)
+
+
+def case_feat64_unrelated_defect_escapes():
+    td, root = fixture()
+    try:
+        r = _feat64_escape_shim(td.name, str(CHECK), "artifact_accessors", "load_omp_config",
+                                [str(root)], dict(os.environ))
+        return [("FEAT-64: an unrelated RuntimeError in the config reader escapes check-omp-port "
+                 "(traceback, not 'cannot read')",
+                 r.returncode != 0 and "RuntimeError" in r.stderr and "cannot read .omp/config.yml" not in r.stderr,
+                 f"rc={r.returncode} stderr={r.stderr[-200:]!r}")]
+    finally:
+        td.cleanup()
+
+
 CASES = (
+    case_feat64_unrelated_defect_escapes,
     case_symlink_topology,
     case_live_tree_passes,
     case_missing_agents_md_fails,
