@@ -1,0 +1,456 @@
+{
+  "schema": "harness-ui-results/1",
+  "feature": "FEAT-53-metrics-dashboard",
+  "run_id": "t32r5c3remaining",
+  "design": ".harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md",
+  "served_bundle_commit": "ee3c721d1dd4c622570d8387cb3d4bd58905245b",
+  "projects": {
+    "desktop-1440": {
+      "viewport": {
+        "width": 1440,
+        "height": 1100
+      }
+    },
+    "desktop-1920": {
+      "viewport": {
+        "width": 1920,
+        "height": 1100
+      }
+    }
+  },
+  "listed_check_ids": [
+    "C1-HEADER-GEOMETRY",
+    "KPI-R1",
+    "DIR-KPI-IDENTITY",
+    "DIR-STATUS-LABEL",
+    "C3-KEYBOARD",
+    "C3-CONTRAST",
+    "C4-HATCH",
+    "TBL-DESKTOP",
+    "SRC-TOKENS",
+    "A11Y-AXE",
+    "VIS-DENSITY",
+    "VIS-PROTOTYPE"
+  ],
+  "applicable_check_ids": {
+    "desktop-1440": [
+      "C1-HEADER-GEOMETRY",
+      "KPI-R1",
+      "DIR-KPI-IDENTITY",
+      "DIR-STATUS-LABEL",
+      "C3-KEYBOARD",
+      "C3-CONTRAST",
+      "C4-HATCH",
+      "TBL-DESKTOP",
+      "SRC-TOKENS",
+      "A11Y-AXE",
+      "VIS-DENSITY",
+      "VIS-PROTOTYPE"
+    ],
+    "desktop-1920": [
+      "C1-HEADER-GEOMETRY",
+      "KPI-R1",
+      "DIR-KPI-IDENTITY",
+      "DIR-STATUS-LABEL",
+      "C3-KEYBOARD",
+      "C3-CONTRAST",
+      "C4-HATCH",
+      "TBL-DESKTOP",
+      "A11Y-AXE",
+      "VIS-DENSITY",
+      "VIS-PROTOTYPE"
+    ]
+  },
+  "observed_check_ids": [
+    "C3-CONTRAST",
+    "C1-HEADER-GEOMETRY",
+    "DIR-KPI-IDENTITY",
+    "KPI-R1",
+    "C4-HATCH",
+    "TBL-DESKTOP",
+    "DIR-STATUS-LABEL",
+    "A11Y-AXE"
+  ],
+  "missing_check_ids": [
+    "C3-KEYBOARD",
+    "SRC-TOKENS",
+    "VIS-DENSITY",
+    "VIS-PROTOTYPE"
+  ],
+  "checks": [
+    {
+      "check_id": "C3-CONTRAST",
+      "spec_title": "dark tokens meet DESIGN contrast floors",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/C3-CONTRAST--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C3-CONTRAST",
+      "spec_title": "dark tokens meet DESIGN contrast floors",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/C3-CONTRAST--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C1-HEADER-GEOMETRY",
+      "spec_title": "shared header geometry matches DESIGN",
+      "method": "automated-each-project",
+      "surface": "shared-header",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/C1-HEADER-GEOMETRY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "DIR-KPI-IDENTITY",
+      "spec_title": "KPI identity hues stay on identity marks",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/DIR-KPI-IDENTITY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "DIR-KPI-IDENTITY",
+      "spec_title": "KPI identity hues stay on identity marks",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/DIR-KPI-IDENTITY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "KPI-R1",
+      "spec_title": "overview KPI grid is 4 plus 3",
+      "method": "automated-each-project",
+      "surface": "overview-kpis",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/KPI-R1--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C4-HATCH",
+      "spec_title": "unavailable hatch uses 45 degree 1 pixel 6 pixel stops",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/C4-HATCH--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C4-HATCH",
+      "spec_title": "unavailable hatch uses 45 degree 1 pixel 6 pixel stops",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/C4-HATCH--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C1-HEADER-GEOMETRY",
+      "spec_title": "shared header geometry matches DESIGN",
+      "method": "automated-each-project",
+      "surface": "shared-header",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/C1-HEADER-GEOMETRY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "KPI-R1",
+      "spec_title": "overview KPI grid is 4 plus 3",
+      "method": "automated-each-project",
+      "surface": "overview-kpis",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/KPI-R1--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "TBL-DESKTOP",
+      "spec_title": "desktop tables contain overflow and keep ID sticky",
+      "method": "automated-each-project",
+      "surface": "work-and-kpi-tables",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/TBL-DESKTOP--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/traces/TBL-DESKTOP--desktop-1440.zip"
+    },
+    {
+      "check_id": "DIR-STATUS-LABEL",
+      "spec_title": "status hue stays on attention labels",
+      "method": "automated-each-project",
+      "surface": "overview-attention",
+      "project": "desktop-1440",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/DIR-STATUS-LABEL--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "Error: Needs You background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m"
+      ]
+    },
+    {
+      "check_id": "DIR-STATUS-LABEL",
+      "spec_title": "status hue stays on attention labels",
+      "method": "automated-each-project",
+      "surface": "overview-attention",
+      "project": "desktop-1920",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/DIR-STATUS-LABEL--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "Error: Needs You background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Needs You top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Blocked top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stalled top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Over Budget top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Running top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale background must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale border must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+        "Error: Stale top line must be rendered\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m"
+      ]
+    },
+    {
+      "check_id": "TBL-DESKTOP",
+      "spec_title": "desktop tables contain overflow and keep ID sticky",
+      "method": "automated-each-project",
+      "surface": "work-and-kpi-tables",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/TBL-DESKTOP--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/traces/TBL-DESKTOP--desktop-1920.zip"
+    },
+    {
+      "check_id": "A11Y-AXE",
+      "spec_title": "routes pass axe and expose non-colour equivalents",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1440/A11Y-AXE--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/traces/A11Y-AXE--desktop-1440.zip"
+    },
+    {
+      "check_id": "A11Y-AXE",
+      "spec_title": "routes pass axe and expose non-colour equivalents",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/evidence/desktop-1920/A11Y-AXE--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3remaining/ui/traces/A11Y-AXE--desktop-1920.zip"
+    }
+  ],
+  "summary": {
+    "status": "failed",
+    "check_count": 16,
+    "errors": [
+      "missing record: C3-KEYBOARD,SRC-TOKENS,VIS-DENSITY,VIS-PROTOTYPE",
+      "incomplete accounting"
+    ]
+  }
+}

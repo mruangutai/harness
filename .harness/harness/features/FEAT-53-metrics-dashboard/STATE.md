@@ -2,18 +2,7 @@
 
 ## Current
 
-- feature: FEAT-53-metrics-dashboard
-- latest_run: .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-ui-criteria-product/digest.md
-- status: awaiting_user
-- plan_station: plan
-- review_sha: d6ffd07f6cfa2620b835d8c98c824505603241bf
-- approval: pending in BRIEF.md and plan.yaml after the binding UI-lane amendment
-- task: T-32 backlog; no implementation started
-- ui_baseline: .harness/harness/features/FEAT-53-metrics-dashboard/runs/FEAT-1821-initial-red/ui/ (22 RED / 1 green)
-- cycles_used: 41
-- max_total_cycles: 50
-- rework: 13 rounds / 585 minutes
-- next: Main obtains the operator signature, records it, then re-delegates the orchestrator for T-32 (maximum two engineering rounds)
+ABANDONED 2026-09-22 by operator ruling (notes/abandon-2026-09-22.md): the built dashboard does not resemble the approved prototype despite a 23/23 automated lane, and the collectors yield unusable data against the real fleet. Successor feature starts over from notes/prototypes/FEAT-53 as the source, branched from feat/FEAT-53. Last pinned review_sha 0ffacbf8; T-32 green bundle at runs/2026-09-22-t32-round5-eng/ui. gh-sync abandon deferred to the branch landing on main.
 
 ## Open Questions
 

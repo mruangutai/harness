@@ -1,0 +1,132 @@
+{
+  "schema": "harness-ui-results/1",
+  "feature": "FEAT-53-metrics-dashboard",
+  "run_id": "t32r5c3keyboardreturn",
+  "design": ".harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md",
+  "served_bundle_commit": "ee3c721d1dd4c622570d8387cb3d4bd58905245b",
+  "projects": {
+    "desktop-1440": {
+      "viewport": {
+        "width": 1440,
+        "height": 1100
+      }
+    },
+    "desktop-1920": {
+      "viewport": {
+        "width": 1920,
+        "height": 1100
+      }
+    }
+  },
+  "listed_check_ids": [
+    "C1-HEADER-GEOMETRY",
+    "KPI-R1",
+    "DIR-KPI-IDENTITY",
+    "DIR-STATUS-LABEL",
+    "C3-KEYBOARD",
+    "C3-CONTRAST",
+    "C4-HATCH",
+    "TBL-DESKTOP",
+    "SRC-TOKENS",
+    "A11Y-AXE",
+    "VIS-DENSITY",
+    "VIS-PROTOTYPE"
+  ],
+  "applicable_check_ids": {
+    "desktop-1440": [
+      "C1-HEADER-GEOMETRY",
+      "KPI-R1",
+      "DIR-KPI-IDENTITY",
+      "DIR-STATUS-LABEL",
+      "C3-KEYBOARD",
+      "C3-CONTRAST",
+      "C4-HATCH",
+      "TBL-DESKTOP",
+      "SRC-TOKENS",
+      "A11Y-AXE",
+      "VIS-DENSITY",
+      "VIS-PROTOTYPE"
+    ],
+    "desktop-1920": [
+      "C1-HEADER-GEOMETRY",
+      "KPI-R1",
+      "DIR-KPI-IDENTITY",
+      "DIR-STATUS-LABEL",
+      "C3-KEYBOARD",
+      "C3-CONTRAST",
+      "C4-HATCH",
+      "TBL-DESKTOP",
+      "A11Y-AXE",
+      "VIS-DENSITY",
+      "VIS-PROTOTYPE"
+    ]
+  },
+  "observed_check_ids": [
+    "C3-KEYBOARD"
+  ],
+  "missing_check_ids": [
+    "C1-HEADER-GEOMETRY",
+    "KPI-R1",
+    "DIR-KPI-IDENTITY",
+    "DIR-STATUS-LABEL",
+    "C3-CONTRAST",
+    "C4-HATCH",
+    "TBL-DESKTOP",
+    "SRC-TOKENS",
+    "A11Y-AXE",
+    "VIS-DENSITY",
+    "VIS-PROTOTYPE"
+  ],
+  "checks": [
+    {
+      "check_id": "C3-KEYBOARD",
+      "spec_title": "keyboard focus transitions and restoration match DESIGN",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3keyboardreturn/ui/evidence/desktop-1920/C3-KEYBOARD--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "Error: attention card after browser Back: activeElement\n\n\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: /Needs You/ })\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - attention card after browser Back: activeElement getByRole('button', { name: /Needs You/ }) with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Needs You/ })\u001b[22m\n\u001b[2m    14 × locator resolved to <button type=\"button\" data-size=\"md\" aria-current=\"true\" data-elevation=\"none\" aria-label=\"Needs You\" data-variant=\"secondary\" class=\"astryx-button secondary md none x1k57tk5 x1vidyx5 x1t137rt x1jhp3zv xx47ajj x16bblx1 x1wfwxd8 x13aywxo x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk x16khyan xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x7uyq82 xmvprkv xetgvay x3oybdh x8ppqj x1gnnqk1 x17x4s8c x1tgivj0\">…</button>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3keyboardreturn/ui/traces/C3-KEYBOARD--desktop-1920.zip"
+    },
+    {
+      "check_id": "C3-KEYBOARD",
+      "spec_title": "keyboard focus transitions and restoration match DESIGN",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3keyboardreturn/ui/evidence/desktop-1440/C3-KEYBOARD--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "Error: attention card after browser Back: activeElement\n\n\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: /Needs You/ })\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - attention card after browser Back: activeElement getByRole('button', { name: /Needs You/ }) with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /Needs You/ })\u001b[22m\n\u001b[2m    14 × locator resolved to <button type=\"button\" data-size=\"md\" aria-current=\"true\" data-elevation=\"none\" aria-label=\"Needs You\" data-variant=\"secondary\" class=\"astryx-button secondary md none x1k57tk5 x1vidyx5 x1t137rt x1jhp3zv xx47ajj x16bblx1 x1wfwxd8 x13aywxo x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk x16khyan xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x7uyq82 xmvprkv xetgvay x3oybdh x8ppqj x1gnnqk1 x17x4s8c x1tgivj0\">…</button>\u001b[22m\n\u001b[2m       - unexpected value \"inactive\"\u001b[22m\n"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/t32r5c3keyboardreturn/ui/traces/C3-KEYBOARD--desktop-1440.zip"
+    }
+  ],
+  "summary": {
+    "status": "failed",
+    "check_count": 2,
+    "errors": [
+      "missing record: C1-HEADER-GEOMETRY,KPI-R1,DIR-KPI-IDENTITY,DIR-STATUS-LABEL,C3-CONTRAST,C4-HATCH,TBL-DESKTOP,SRC-TOKENS,A11Y-AXE,VIS-DENSITY,VIS-PROTOTYPE",
+      "incomplete accounting"
+    ]
+  }
+}

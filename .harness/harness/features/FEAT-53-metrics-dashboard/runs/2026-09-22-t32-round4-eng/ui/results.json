@@ -1,0 +1,573 @@
+{
+  "schema": "harness-ui-results/1",
+  "feature": "FEAT-53-metrics-dashboard",
+  "run_id": "2026-09-22-t32-round4-eng",
+  "design": ".harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md",
+  "served_bundle_commit": "02c34e9944436215525c097d6a388613f6e6cdc0",
+  "projects": {
+    "desktop-1440": {
+      "viewport": {
+        "width": 1440,
+        "height": 1100
+      }
+    },
+    "desktop-1920": {
+      "viewport": {
+        "width": 1920,
+        "height": 1100
+      }
+    }
+  },
+  "listed_check_ids": [
+    "C1-HEADER-GEOMETRY",
+    "KPI-R1",
+    "DIR-KPI-IDENTITY",
+    "DIR-STATUS-LABEL",
+    "C3-KEYBOARD",
+    "C3-CONTRAST",
+    "C4-HATCH",
+    "TBL-DESKTOP",
+    "SRC-TOKENS",
+    "A11Y-AXE",
+    "VIS-DENSITY",
+    "VIS-PROTOTYPE"
+  ],
+  "applicable_check_ids": {
+    "desktop-1440": [
+      "C1-HEADER-GEOMETRY",
+      "KPI-R1",
+      "DIR-KPI-IDENTITY",
+      "DIR-STATUS-LABEL",
+      "C3-KEYBOARD",
+      "C3-CONTRAST",
+      "C4-HATCH",
+      "TBL-DESKTOP",
+      "SRC-TOKENS",
+      "A11Y-AXE",
+      "VIS-DENSITY",
+      "VIS-PROTOTYPE"
+    ],
+    "desktop-1920": [
+      "C1-HEADER-GEOMETRY",
+      "KPI-R1",
+      "DIR-KPI-IDENTITY",
+      "DIR-STATUS-LABEL",
+      "C3-KEYBOARD",
+      "C3-CONTRAST",
+      "C4-HATCH",
+      "TBL-DESKTOP",
+      "A11Y-AXE",
+      "VIS-DENSITY",
+      "VIS-PROTOTYPE"
+    ]
+  },
+  "observed_check_ids": [
+    "SRC-TOKENS",
+    "C3-CONTRAST",
+    "C1-HEADER-GEOMETRY",
+    "DIR-KPI-IDENTITY",
+    "KPI-R1",
+    "C4-HATCH",
+    "TBL-DESKTOP",
+    "DIR-STATUS-LABEL",
+    "C3-KEYBOARD",
+    "VIS-DENSITY",
+    "A11Y-AXE",
+    "VIS-PROTOTYPE"
+  ],
+  "missing_check_ids": [],
+  "checks": [
+    {
+      "check_id": "SRC-TOKENS",
+      "spec_title": "component source uses only theme tokens",
+      "method": "automated-once",
+      "surface": "client-source",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/SRC-TOKENS--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C3-CONTRAST",
+      "spec_title": "dark tokens meet DESIGN contrast floors",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/C3-CONTRAST--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C1-HEADER-GEOMETRY",
+      "spec_title": "shared header geometry matches DESIGN",
+      "method": "automated-each-project",
+      "surface": "shared-header",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/C1-HEADER-GEOMETRY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "DIR-KPI-IDENTITY",
+      "spec_title": "KPI identity hues stay on identity marks",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/DIR-KPI-IDENTITY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "KPI-R1",
+      "spec_title": "overview KPI grid is 4 plus 3",
+      "method": "automated-each-project",
+      "surface": "overview-kpis",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/KPI-R1--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C4-HATCH",
+      "spec_title": "unavailable hatch uses 45 degree 1 pixel 6 pixel stops",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/C4-HATCH--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C3-CONTRAST",
+      "spec_title": "dark tokens meet DESIGN contrast floors",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/C3-CONTRAST--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "DIR-KPI-IDENTITY",
+      "spec_title": "KPI identity hues stay on identity marks",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/DIR-KPI-IDENTITY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "TBL-DESKTOP",
+      "spec_title": "desktop tables contain overflow and keep ID sticky",
+      "method": "automated-each-project",
+      "surface": "work-and-kpi-tables",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/TBL-DESKTOP--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/TBL-DESKTOP--desktop-1440.zip"
+    },
+    {
+      "check_id": "C4-HATCH",
+      "spec_title": "unavailable hatch uses 45 degree 1 pixel 6 pixel stops",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/C4-HATCH--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "DIR-STATUS-LABEL",
+      "spec_title": "status hue stays on attention labels",
+      "method": "automated-each-project",
+      "surface": "overview-attention",
+      "project": "desktop-1440",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/DIR-STATUS-LABEL--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "C1-HEADER-GEOMETRY",
+      "spec_title": "shared header geometry matches DESIGN",
+      "method": "automated-each-project",
+      "surface": "shared-header",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/C1-HEADER-GEOMETRY--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "KPI-R1",
+      "spec_title": "overview KPI grid is 4 plus 3",
+      "method": "automated-each-project",
+      "surface": "overview-kpis",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/KPI-R1--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "DIR-STATUS-LABEL",
+      "spec_title": "status hue stays on attention labels",
+      "method": "automated-each-project",
+      "surface": "overview-attention",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/DIR-STATUS-LABEL--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "check_id": "TBL-DESKTOP",
+      "spec_title": "desktop tables contain overflow and keep ID sticky",
+      "method": "automated-each-project",
+      "surface": "work-and-kpi-tables",
+      "project": "desktop-1920",
+      "status": "passed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/TBL-DESKTOP--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/TBL-DESKTOP--desktop-1920.zip"
+    },
+    {
+      "check_id": "C3-KEYBOARD",
+      "spec_title": "keyboard focus transitions and restoration match DESIGN",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/C3-KEYBOARD--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+        "Error: all C3 keyboard clauses execute before reporting product divergence\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 18\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"in-app KPI and work transitions land on unrung h1: locator.click: Test timeout of 30000ms exceeded.\u001b[39m\n\u001b[31m+ Call log:\u001b[39m\n\u001b[31m+ \u001b[2m  - waiting for getByRole('link', { name: /FEAT|BUG/ }).first()\u001b[22m\u001b[39m\n\u001b[31m+ \",\u001b[39m\n\u001b[31m+   \"pointer-opened Selector selection restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"pointer-opened Selector Escape restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"keyboard-opened Selector selection restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"keyboard-opened Selector Escape restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"attention activation lands on selected Status filter: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"filter and layout updates retain initiator after results settle: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"grilling and worktree disclosure toggles restore their row buttons: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"browser Back restores exact attention card initiator: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"browser Back restores exact KPI tile initiator: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"browser Back restores exact dashboard row initiator: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"InfoDisclosure keyboard open Escape restores ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"InfoDisclosure outside click restores pointer trigger without ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/C3-KEYBOARD--desktop-1440.zip"
+    },
+    {
+      "check_id": "VIS-DENSITY",
+      "spec_title": "dense hierarchy and qualitative states match DESIGN",
+      "method": "inspection-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "evidence",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/VIS-DENSITY--overview-default.webp",
+          "route": "/?window=all&repo=all&station=all&status=all&kind=all&layout=table",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "Fresh-load the default table overview; compare the full hierarchy with the approved FEAT-53 prototype overview-default surface.",
+          "evidence_label": "overview-default"
+        }
+      ],
+      "errors": [
+        "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+        "Error: every signed inspection setup and capture must execute\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 8\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"kpi-unavailable: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"work-detail-long-content: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"filtered-zero: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"source-error-with-valid-rows: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"initial-request-error: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"table-overflow: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+      ]
+    },
+    {
+      "check_id": "A11Y-AXE",
+      "spec_title": "routes pass axe and expose non-colour equivalents",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/A11Y-AXE--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/A11Y-AXE--desktop-1440.zip"
+    },
+    {
+      "check_id": "VIS-PROTOTYPE",
+      "spec_title": "rendered routes and interactions match approved prototype",
+      "method": "inspection-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1440",
+      "status": "evidence",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/VIS-PROTOTYPE--overview-default.webp",
+          "route": "/?window=all&repo=all&station=all&status=all&kind=all&layout=table",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "Fresh-load the overview and compare the rendered default route with the approved FEAT-53 prototype overview-default surface.",
+          "evidence_label": "overview-default"
+        },
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/VIS-PROTOTYPE--kpi-drill.webp",
+          "route": "/kpi/1?window=all&repo=all",
+          "fixture_state": "default loaded KPI 1 fixture",
+          "interaction": "From overview activate KPI tile 1 and wait for route focus to settle; compare with the approved FEAT-53 prototype KPI-drill surface.",
+          "evidence_label": "kpi-drill"
+        },
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/VIS-PROTOTYPE--work-drill.webp",
+          "route": "/work/FEAT-53?window=all&repo=all",
+          "fixture_state": "default loaded FEAT work fixture",
+          "interaction": "From overview activate the FEAT-53 row and wait for route focus to settle; compare with the approved FEAT-53 prototype work-drill surface.",
+          "evidence_label": "work-drill"
+        },
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1440/VIS-PROTOTYPE--disclosure-open.webp",
+          "route": "/kpi/7?window=all&repo=all",
+          "fixture_state": "default loaded KPI 7 fixture",
+          "interaction": "Keyboard-open KPI 7 InfoDisclosure and leave focus on its first control; compare with the approved FEAT-53 prototype disclosure-open surface.",
+          "evidence_label": "disclosure-open"
+        }
+      ],
+      "errors": [
+        "Error: every signed inspection setup and capture must execute\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 15\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"disclosure-open: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[31m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ Locator:  getByRole('dialog').getByRole('button').first()\u001b[39m\n\u001b[31m+ Expected: focused\u001b[39m\n\u001b[31m+ Received: inactive\u001b[39m\n\u001b[31m+ Timeout:  5000ms\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ Call log:\u001b[39m\n\u001b[31m+ \u001b[2m  - Expect \\\"toBeFocused\\\" getByRole('dialog').getByRole('button').first() with timeout 5000ms\u001b[22m\u001b[39m\n\u001b[31m+ \u001b[2m  - waiting for getByRole('dialog').getByRole('button').first()\u001b[22m\u001b[39m\n\u001b[31m+ \u001b[2m    14 × locator resolved to <button type=\\\"button\\\" data-size=\\\"md\\\" data-elevation=\\\"none\\\" data-variant=\\\"secondary\\\" class=\\\"astryx-button secondary md none x1k57tk5 x1vidyx5 x1t137rt x1jhp3zv xx47ajj x16bblx1 x1wfwxd8 x13aywxo x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk x16khyan xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x7uyq82 xmvprkv xetgvay x3oybdh x8ppqj x1gnnqk1 x17x4s8c x1tgivj0\\\">…</button>\u001b[22m\u001b[39m\n\u001b[31m+ \u001b[2m       - unexpected value \\\"inactive\\\"\u001b[22m\u001b[39m\n\u001b[31m+ \",\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/VIS-PROTOTYPE--desktop-1440.zip"
+    },
+    {
+      "check_id": "C3-KEYBOARD",
+      "spec_title": "keyboard focus transitions and restoration match DESIGN",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/C3-KEYBOARD--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+        "Error: all C3 keyboard clauses execute before reporting product divergence\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 18\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"in-app KPI and work transitions land on unrung h1: locator.click: Test timeout of 30000ms exceeded.\u001b[39m\n\u001b[31m+ Call log:\u001b[39m\n\u001b[31m+ \u001b[2m  - waiting for getByRole('link', { name: /FEAT|BUG/ }).first()\u001b[22m\u001b[39m\n\u001b[31m+ \",\u001b[39m\n\u001b[31m+   \"pointer-opened Selector selection restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"pointer-opened Selector Escape restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"keyboard-opened Selector selection restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"keyboard-opened Selector Escape restores trigger with correct ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"attention activation lands on selected Status filter: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"filter and layout updates retain initiator after results settle: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"grilling and worktree disclosure toggles restore their row buttons: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"browser Back restores exact attention card initiator: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"browser Back restores exact KPI tile initiator: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"browser Back restores exact dashboard row initiator: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"InfoDisclosure keyboard open Escape restores ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"InfoDisclosure outside click restores pointer trigger without ring: page.addInitScript: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/C3-KEYBOARD--desktop-1920.zip"
+    },
+    {
+      "check_id": "A11Y-AXE",
+      "spec_title": "routes pass axe and expose non-colour equivalents",
+      "method": "automated-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "failed",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/A11Y-AXE--execution.webp",
+          "route": "/",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "automated predicate execution",
+          "evidence_label": "execution"
+        }
+      ],
+      "errors": [
+        "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/A11Y-AXE--desktop-1920.zip"
+    },
+    {
+      "check_id": "VIS-DENSITY",
+      "spec_title": "dense hierarchy and qualitative states match DESIGN",
+      "method": "inspection-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "evidence",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/VIS-DENSITY--overview-default.webp",
+          "route": "/?window=all&repo=all&station=all&status=all&kind=all&layout=table",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "Fresh-load the default table overview; compare the full hierarchy with the approved FEAT-53 prototype overview-default surface.",
+          "evidence_label": "overview-default"
+        }
+      ],
+      "errors": [
+        "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+        "Error: every signed inspection setup and capture must execute\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 8\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"kpi-unavailable: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"work-detail-long-content: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"filtered-zero: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"source-error-with-valid-rows: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"initial-request-error: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+   \"table-overflow: page.addStyleTag: Target page, context or browser has been closed\",\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+      ]
+    },
+    {
+      "check_id": "VIS-PROTOTYPE",
+      "spec_title": "rendered routes and interactions match approved prototype",
+      "method": "inspection-each-project",
+      "surface": "all-routes",
+      "project": "desktop-1920",
+      "status": "evidence",
+      "screenshots": [
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/VIS-PROTOTYPE--overview-default.webp",
+          "route": "/?window=all&repo=all&station=all&status=all&kind=all&layout=table",
+          "fixture_state": "default loaded dashboard",
+          "interaction": "Fresh-load the overview and compare the rendered default route with the approved FEAT-53 prototype overview-default surface.",
+          "evidence_label": "overview-default"
+        },
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/VIS-PROTOTYPE--kpi-drill.webp",
+          "route": "/kpi/1?window=all&repo=all",
+          "fixture_state": "default loaded KPI 1 fixture",
+          "interaction": "From overview activate KPI tile 1 and wait for route focus to settle; compare with the approved FEAT-53 prototype KPI-drill surface.",
+          "evidence_label": "kpi-drill"
+        },
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/VIS-PROTOTYPE--work-drill.webp",
+          "route": "/work/FEAT-53?window=all&repo=all",
+          "fixture_state": "default loaded FEAT work fixture",
+          "interaction": "From overview activate the FEAT-53 row and wait for route focus to settle; compare with the approved FEAT-53 prototype work-drill surface.",
+          "evidence_label": "work-drill"
+        },
+        {
+          "path": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/evidence/desktop-1920/VIS-PROTOTYPE--disclosure-open.webp",
+          "route": "/kpi/7?window=all&repo=all",
+          "fixture_state": "default loaded KPI 7 fixture",
+          "interaction": "Keyboard-open KPI 7 InfoDisclosure and leave focus on its first control; compare with the approved FEAT-53 prototype disclosure-open surface.",
+          "evidence_label": "disclosure-open"
+        }
+      ],
+      "errors": [
+        "Error: every signed inspection setup and capture must execute\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 15\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"disclosure-open: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[31m\u001b[2m).\u001b[22mtoBeFocused\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ Locator:  getByRole('dialog').getByRole('button').first()\u001b[39m\n\u001b[31m+ Expected: focused\u001b[39m\n\u001b[31m+ Received: inactive\u001b[39m\n\u001b[31m+ Timeout:  5000ms\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ Call log:\u001b[39m\n\u001b[31m+ \u001b[2m  - Expect \\\"toBeFocused\\\" getByRole('dialog').getByRole('button').first() with timeout 5000ms\u001b[22m\u001b[39m\n\u001b[31m+ \u001b[2m  - waiting for getByRole('dialog').getByRole('button').first()\u001b[22m\u001b[39m\n\u001b[31m+ \u001b[2m    14 × locator resolved to <button type=\\\"button\\\" data-size=\\\"md\\\" data-elevation=\\\"none\\\" data-variant=\\\"secondary\\\" class=\\\"astryx-button secondary md none x1k57tk5 x1vidyx5 x1t137rt x1jhp3zv xx47ajj x16bblx1 x1wfwxd8 x13aywxo x1n2onr6 x3nfvp2 x6s0dn4 xl56j7k x1txdalj xce4md1 xrrkdod xc342km xng3xce x1jxw6zd xjb2p0i xcr08ib x1kq96og x1e4wzip xuxw1ft x1ypdohk x16khyan xrafxwg xuedmi6 x12w9bfk xlr8y92 x1ueg155 x7uyq82 xmvprkv xetgvay x3oybdh x8ppqj x1gnnqk1 x17x4s8c x1tgivj0\\\">…</button>\u001b[22m\u001b[39m\n\u001b[31m+ \u001b[2m       - unexpected value \\\"inactive\\\"\u001b[22m\u001b[39m\n\u001b[31m+ \",\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+      ],
+      "trace": ".harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round4-eng/ui/traces/VIS-PROTOTYPE--desktop-1920.zip"
+    }
+  ],
+  "summary": {
+    "status": "failed",
+    "check_count": 23,
+    "errors": [
+      "evidence labels mismatch for desktop-1440/VIS-DENSITY: expected overview-default,kpi-unavailable,work-detail-long-content,filtered-zero,source-error-with-valid-rows,initial-request-error,table-overflow observed overview-default",
+      "evidence labels mismatch for desktop-1920/VIS-DENSITY: expected overview-default,kpi-unavailable,work-detail-long-content,filtered-zero,source-error-with-valid-rows,initial-request-error,table-overflow observed overview-default"
+    ]
+  }
+}
