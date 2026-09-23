@@ -550,6 +550,10 @@ ALIAS = {
     "harness-product-lead": "lead", "harness-eng-lead": "lead",
     "harness-validator-lead": "lead",
     "harness-orchestrator": "orchestrator",
+    # #1895: a run the main session built directly (DEC-174 `run-start --agent main-session`)
+    # carries the DEV contract -- the main session wrote the diff and owns the same task /
+    # task_verify / suite receipt -- so the composed close-run can validate its digest.
+    "main-session": "dev",
 }
 
 def norm(p):

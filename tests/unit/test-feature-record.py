@@ -321,6 +321,22 @@ class StampTokensTest(FeatureRecordCase):
         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
                                     "--verdict", "PASS", "--cycles-used", "0", "--tokens", "42"))
         self.assertEqual(42, self.load()["runs"][0]["tokens"])
+MAIN_SESSION_DIGEST = """```yaml
+VERDICT: PASS
+DIGEST:
+  headline: "one task built directly by the main session"
+  tests_added: 1
+  suite: pass
+  blocked_on: none
+  task: T-01
+  task_verify: pass
+  files_touched: [x.py]
+  open_questions: []
+  expertise_update: []
+artifact: /tmp/x/notes/receipts.md
+```
+"""
+
 LEAD_DIGEST = """```yaml
 VERDICT: PASS
 DIGEST:
@@ -397,6 +413,17 @@ class CloseRunTest(FeatureRecordCase):
         line = result.stdout.strip()
         self.assertIn("T-01", line)
         self.assertIn("regate", line)
+        self.assert_clean()
+
+    def test_main_session_direct_run_closes_through_the_composed_close(self):
+        """#1895: a run opened with `--agent main-session` (DEC-174: the main session wrote the
+        diff) must close through the SAME composed close every other run uses; its digest is the
+        dev contract. It used to stop at the digest stage with `unknown persona 'main-session'`."""
+        self.write(base_doc(runs=[dict(self.OPEN, agent="main-session")]))
+        self.digest.write_text(MAIN_SESSION_DIGEST, encoding="utf-8")
+        result = self.close()
+        self.assert_ok(result)
+        self.assertEqual("PASS", self.load()["runs"][0]["verdict"])
         self.assert_clean()
 
     def test_argument_shape_is_refused_before_any_stage_runs(self):

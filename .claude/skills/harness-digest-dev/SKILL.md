@@ -10,6 +10,10 @@ The four dev personas share one digest schema, so they share one template. This 
 copy — the agent files deliberately do not restate it, because four inline copies is how they
 drifted apart before (DEC-126).
 
+The **main session** returns this same contract when it builds a feature directly under DEC-174
+(`feature-record.py run-start --agent main-session`): it wrote the diff, so it owns the same
+`task` / `task_verify` / `suite` receipt, and `close-run` validates its digest as `dev` (#1895).
+
 ````
 ```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE

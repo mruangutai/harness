@@ -1,0 +1,192 @@
+diff --git a/.claude/skills/harness-digest-dev/SKILL.md b/.claude/skills/harness-digest-dev/SKILL.md
+index 0adee202..6ab69982 100644
+--- a/.claude/skills/harness-digest-dev/SKILL.md
++++ b/.claude/skills/harness-digest-dev/SKILL.md
+@@ -10,6 +10,10 @@ The four dev personas share one digest schema, so they share one template. This
+ copy — the agent files deliberately do not restate it, because four inline copies is how they
+ drifted apart before (DEC-126).
+ 
++The **main session** returns this same contract when it builds a feature directly under DEC-174
++(`feature-record.py run-start --agent main-session`): it wrote the diff, so it owns the same
++`task` / `task_verify` / `suite` receipt, and `close-run` validates its digest as `dev` (#1895).
++
+ ````
+ ```yaml
+ VERDICT: PASS | FAIL | BLOCKED | ESCALATE
+diff --git a/.claude/skills/harness/bin/board_lifecycle.py b/.claude/skills/harness/bin/board_lifecycle.py
+index 28ee30cb..54479aa6 100755
+--- a/.claude/skills/harness/bin/board_lifecycle.py
++++ b/.claude/skills/harness/bin/board_lifecycle.py
+@@ -928,8 +928,12 @@ def audit_findings(repo_arg=None):
+     if board is None:
+         return []
+     if not repo_name:
++        # #1897: built the way every other raise in this module is. The one-positional form
++        # was a TypeError at raise time, which ship's (then broad) audit catch reported as
++        # "the board audit could not run: GhError.__init__() missing 6 required …".
+         raise factory_gh.GhError(
+-            "github.repo is not declared -- pin it in harness.json before auditing")
++            [], None, "", "", "github.repo is not declared", "harness.json",
++            "pin github.repo in harness.json before auditing")
+     findings, _notes = _audit_findings(root, board, repo_name)
+     return findings
+ 
+diff --git a/.claude/skills/harness/bin/validate-digest.py b/.claude/skills/harness/bin/validate-digest.py
+index 90a02290..406cfffb 100755
+--- a/.claude/skills/harness/bin/validate-digest.py
++++ b/.claude/skills/harness/bin/validate-digest.py
+@@ -550,6 +550,10 @@ ALIAS = {
+     "harness-product-lead": "lead", "harness-eng-lead": "lead",
+     "harness-validator-lead": "lead",
+     "harness-orchestrator": "orchestrator",
++    # #1895: a run the main session built directly (DEC-174 `run-start --agent main-session`)
++    # carries the DEV contract -- the main session wrote the diff and owns the same task /
++    # task_verify / suite receipt -- so the composed close-run can validate its digest.
++    "main-session": "dev",
+ }
+ 
+ def norm(p):
+diff --git a/tests/integration/test-board-lifecycle.py b/tests/integration/test-board-lifecycle.py
+index cdb1f2fd..1f5188ae 100644
+--- a/tests/integration/test-board-lifecycle.py
++++ b/tests/integration/test-board-lifecycle.py
+@@ -1670,6 +1670,32 @@ with tempfile.TemporaryDirectory() as base:
+           "RESULT=GhError" in r_fn.stdout,
+           f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
+ 
++# --- #1897: board declared, github.repo ABSENT raises a real GhError -----------------------
++# The raise used to pass ONE positional to GhError's seven-parameter __init__, so it was a
++# TypeError at raise time; ship's old broad audit catch hid it as "the board audit could not
++# run: GhError.__init__() missing 6 required positional arguments". FEAT-64 narrowed that
++# catch, so the defect would now surface as a traceback out of ship.
++
++with tempfile.TemporaryDirectory() as base:
++    root = os.path.join(base, "root")
++    write_root(root, {"sync": True, "board": _BOARD})
++    code = (
++        "import board_lifecycle as bl, factory_gh"
++        "\ntry:"
++        "\n    bl.audit_findings(None)"
++        "\n    print('RESULT=no-exception')"
++        "\nexcept factory_gh.GhError as e:"
++        "\n    print('RESULT=GhError:' + str(e))"
++        "\nexcept TypeError as e:"
++        "\n    print('RESULT=TypeError:' + str(e))"
++    )
++    r_fn, log = run_module(root, code)
++    check("#1897 audit_findings: a declared board with no github.repo raises GhError, not TypeError",
++          "RESULT=GhError:" in r_fn.stdout, f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
++    check("#1897 audit_findings: the GhError names github.repo and the harness.json pin",
++          "github.repo is not declared" in r_fn.stdout and "harness.json" in r_fn.stdout, repr(r_fn.stdout))
++    check("#1897 audit_findings: no gh call was made before the refusal", not log, repr(log))
++
+ # --- clause 3: no board declared returns [], matching cmd_audit's own branch ---------------
+ 
+ with tempfile.TemporaryDirectory() as base:
+diff --git a/tests/integration/test-validate-digest.py b/tests/integration/test-validate-digest.py
+index 43c127d4..c5ce0618 100755
+--- a/tests/integration/test-validate-digest.py
++++ b/tests/integration/test-validate-digest.py
+@@ -306,6 +306,8 @@ CONTRACT_SOURCES = {
+     "harness-backend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+     "harness-ai-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+     "harness-data-engineer": [".claude/skills/harness-digest-dev/SKILL.md"],
++    # #1895: the main session's own direct build (DEC-174) returns the dev contract.
++    "main-session": [".claude/skills/harness-digest-dev/SKILL.md"],
+     "harness-product-lead": [".claude/skills/harness-team/SKILL.md"],
+     "harness-eng-lead": [".claude/skills/harness-team/SKILL.md"],
+     "harness-validator-lead": [".claude/skills/harness-team/SKILL.md"],
+@@ -726,6 +728,40 @@ DIGEST:
+ artifact: .harness/notes/impl-auth.md
+ """, True)
+ 
++# #1895: a run the MAIN SESSION wrote directly (DEC-174, `run-start --agent main-session`) is closed
++# through the composed `close-run`, whose digest stage validates against the run's recorded agent.
++# `main-session` is the dev contract -- the main session wrote the diff and owns the same
++# task / task_verify / suite receipt -- so it validates as `dev`, gate fields included.
++case("main-session (DEC-174 direct build) validates as dev", "main-session", """
++VERDICT: PASS
++DIGEST:
++  headline: the eighteen scoped files carry zero broad catches
++  tests_added: 60
++  suite: pass
++  blocked_on: none
++  task: T-03
++  task_verify: pass
++  files_touched: [.claude/skills/harness/bin/board-station.py]
++  open_questions: []
++  expertise_update: []
++artifact: .harness/harness/features/FEAT-64-x/notes/red-first-receipts.md
++""", True)
++
++case("main-session with task_verify fail and VERDICT PASS is refused like any dev", "main-session", """
++VERDICT: PASS
++DIGEST:
++  headline: built
++  tests_added: 1
++  suite: pass
++  blocked_on: none
++  task: T-01
++  task_verify: fail
++  files_touched: [x.py]
++  open_questions: []
++  expertise_update: []
++artifact: notes/x.md
++""", False, mentions=["task_verify"])
++
+ case("drifted key spelling is caught", "harness-code-reviewer", """
+ VERDICT: FAIL
+ DIGEST:
+@@ -3459,6 +3495,7 @@ def _t04_base_digest(persona):
+         "harness-frontend-dev": "harness-backend-dev",
+         "harness-ai-dev": "harness-backend-dev",
+         "harness-data-engineer": "harness-backend-dev",
++        "main-session": "harness-backend-dev",  # #1895: the dev contract
+         "harness-product-lead": "harness-eng-lead",
+         "harness-validator-lead": "harness-eng-lead",
+     }.get(persona, persona)
+diff --git a/tests/unit/test-feature-record.py b/tests/unit/test-feature-record.py
+index 9596f3e8..5a6112d6 100755
+--- a/tests/unit/test-feature-record.py
++++ b/tests/unit/test-feature-record.py
+@@ -321,6 +321,22 @@ class StampTokensTest(FeatureRecordCase):
+         self.assert_ok(self.run_cli("run-end", "--file", str(self.path), "--id", "r2",
+                                     "--verdict", "PASS", "--cycles-used", "0", "--tokens", "42"))
+         self.assertEqual(42, self.load()["runs"][0]["tokens"])
++MAIN_SESSION_DIGEST = """```yaml
++VERDICT: PASS
++DIGEST:
++  headline: "one task built directly by the main session"
++  tests_added: 1
++  suite: pass
++  blocked_on: none
++  task: T-01
++  task_verify: pass
++  files_touched: [x.py]
++  open_questions: []
++  expertise_update: []
++artifact: /tmp/x/notes/receipts.md
++```
++"""
++
+ LEAD_DIGEST = """```yaml
+ VERDICT: PASS
+ DIGEST:
+@@ -399,6 +415,17 @@ class CloseRunTest(FeatureRecordCase):
+         self.assertIn("regate", line)
+         self.assert_clean()
+ 
++    def test_main_session_direct_run_closes_through_the_composed_close(self):
++        """#1895: a run opened with `--agent main-session` (DEC-174: the main session wrote the
++        diff) must close through the SAME composed close every other run uses; its digest is the
++        dev contract. It used to stop at the digest stage with `unknown persona 'main-session'`."""
++        self.write(base_doc(runs=[dict(self.OPEN, agent="main-session")]))
++        self.digest.write_text(MAIN_SESSION_DIGEST, encoding="utf-8")
++        result = self.close()
++        self.assert_ok(result)
++        self.assertEqual("PASS", self.load()["runs"][0]["verdict"])
++        self.assert_clean()
++
+     def test_argument_shape_is_refused_before_any_stage_runs(self):
+         before = self.write(base_doc(runs=[dict(self.OPEN)]))
+         for extra, needle in (
