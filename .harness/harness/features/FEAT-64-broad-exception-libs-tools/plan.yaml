@@ -4,7 +4,7 @@ approval:
   date: '2026-09-22'
   approved_by: main session (operator molchairuangutai)
   status: approved
-status: ready
+status: review
 mission: plan
 source_issues: []
 baseline:
@@ -90,7 +90,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns Harness shared libraries and their unit and integration proof directly to the main session.
     depends_on: []
-    status: review
+    status: done
     files:
       - .claude/skills/harness/bin/factory_decompose.py#extract_brief
       - .claude/skills/harness/bin/factory_gh.py#run_gh
@@ -137,7 +137,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps the Harness tools, their receipt suites, and their typed-boundary cutover in one direct sequential change.
     depends_on: [T-01]
-    status: review
+    status: done
     files:
       - .claude/skills/harness/bin/board-station.py#main
       - .claude/skills/harness/bin/check-omp-port.py#runtime_pin_errors
@@ -178,7 +178,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs the route validator, its AST census and mutants, and the final implementation evidence.
     depends_on: [T-01, T-02]
-    status: review
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#BROAD_CATCH_CEILINGS
       - tests/unit/test-broad-catch-census.py
