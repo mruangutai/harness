@@ -27,5 +27,32 @@
       "reason": "Cause known and diff bounded (11 files, 77 sites, 4 tasks), but it changes the enforcement surface every hook runs under, so rule 3 (no new enforcement surface) fails."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-65-broad-exception-hooks/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7e13463a2ef37e4bb2ef59b0556ae19ce893f4a8dce1c8b462e49c9105b58dd3",
+    "T-02": "74550e868f5714e0ee6984de5b0dbd1775cb105bdbd6997fbdaa22224703fe9f",
+    "T-03": "28e8988917c759fe32bdd7b3494c27724c0b5e9219a08f84aa1554983d815f1a",
+    "T-04": "16a32c9af1447f2f683cf47f2f280ce5b080a7cc2bc2099ea10e07f9195d7bec"
+  },
+  "github": {
+    "milestone": 87,
+    "parent": 1912,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1913,
+      "T-02": 1914,
+      "T-03": 1915,
+      "T-04": 1916
+    },
+    "source_issues": []
+  }
 }
