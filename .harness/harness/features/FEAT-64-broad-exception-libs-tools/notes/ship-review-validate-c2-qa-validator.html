@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-64 broad exception libraries and tools</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-64-broad-exception-libraries-and-tools">Ship review — FEAT-64 broad exception libraries and tools</h1>
+<h2 id="conclusion">Conclusion</h2>
+<p>FEAT-64 is ready to ship at review SHA <code>721b690e3578fbaba2b88d93774667d94ac4d8a3</code>. All three signed perspectives and SC-01 through SC-08 are met. The clean-pin QA re-gate passed both configured matrix kinds, all three signed task verification chains, and every retained fail-first binding. There are no open questions or surviving non-gating findings.</p>
+<h2 id="definition-of-done">Definition of done</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed outcome</th><th>Verdict</th><th>Discharged by</th></tr></thead><tbody><tr><td>operator</td><td>Established command exit status, stdout, and stderr remain reliable, including unavailable-environment cases, while no hook is wired or changes verdict.</td><td>met</td><td>SC-01: exact baseline-to-pin output evidence and divergence ledger (<code>notes/byte-evidence.md</code>, <code>notes/build-divergences.md</code>); SC-04: pinned hook/caller inspection (<code>notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c2.md</code>).</td></tr><tr><td>code maintainer</td><td>Ten shared libraries and eight tools use typed boundaries, unrelated defects and process-control exceptions surface, and only two designed broad catches remain in <code>harness_boundary.py</code>.</td><td>met</td><td>SC-02: census and mutants; SC-03: library boundary and process-control tests; SC-07: tool boundary and defect-escape tests (<code>notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c2.md</code>; <code>notes/review-harness-qa-c2-regate.md</code>).</td></tr><tr><td>reader</td><td>Every remaining silence is explained, preserved rationales/comments are byte-identical, and deliberate output differences plus removed reparses trace to red-first evidence.</td><td>met</td><td>SC-05: pinned rationale/comment inspection; SC-06: route single-parse tests; SC-08: handoff single-parse tests (<code>notes/red-first-receipts.md</code>; <code>notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c2.md</code>).</td></tr></tbody></table></div>
+<h2 id="run-summaries">Run summaries</h2>
+<ul><li><strong>Plan:</strong> PASS. The approved three-task direct-execution plan covers the ten-library/eight-tool scope and all perspectives (<code>runs/plan-product/digest.md</code>).</li><li><strong>Build:</strong> PASS. The implementation narrowed the scoped exception boundaries, retained exactly the two designed <code>harness_boundary.py</code> catches, and recorded red-first and byte-divergence evidence (<code>runs/build-main-direct/digest.md</code>).</li><li><strong>Initial validation:</strong> FAIL. It identified the out-of-plan <code>board_lifecycle</code> change and incomplete exact-byte/evidence-kind proof; these findings drove the subsequent corrections (<code>runs/validate-validator/digest.md</code>).</li><li><strong>Validation c1:</strong> FAIL. The matrix was green, but contradictory corpus totals left SC-01 partial; that evidence contradiction was corrected without changing production behavior (<code>runs/validate-c1-validator/digest.md</code>).</li><li><strong>Validation c2:</strong> BLOCKED only on QA execution provisioning. Code, security, UI, and goalcheck passed at the final SHA; all perspectives and SC-01 through SC-08 graded met (<code>runs/validate-c2-validator/digest.md</code>).</li><li><strong>QA clean-pin re-gate:</strong> PASS. Unit matrix: 42 files; integration matrix: 69 files; T-01, T-02, and T-03 exact verify chains passed; all retained fail-first bindings were supported (<code>runs/validate-c2-qa-validator/digest.md</code>; <code>notes/review-harness-qa-c2-regate.md</code>). This closes QA-64-02 and completes the c2 panel.</li></ul>
+<p>No report round was spawned for this briefing. It was assembled from <code>runs/plan-product/digest.md</code>, <code>runs/build-main-direct/digest.md</code>, <code>runs/validate-validator/digest.md</code>, <code>runs/validate-c1-validator/digest.md</code>, <code>runs/validate-c2-validator/digest.md</code>, and <code>runs/validate-c2-qa-validator/digest.md</code>.</p>
+<h2 id="resolved-findings-and-escalations">Resolved findings and escalations</h2>
+<ul><li>CR-64-01 / GC-64-03: closed by removing the out-of-scope <code>board_lifecycle</code> repair; existing issue #1897 retains that separate work.</li><li>GC-64-01: closed by complete per-suite byte evidence and an exact divergence ledger.</li><li>GC-64-02: closed by the approved evidence-kind separation in BRIEF and plan.</li><li>GC-64-04: closed by reconciling the corpus evidence to 104 total / 100 under <code>.harness</code>, with exactly three governed YAML additions.</li><li>QA-64-01: closed; the build digest is tracked and inspectable at the review pin.</li><li>QA-64-02: closed by the clean detached-pin QA re-gate.</li><li>Open questions: none.</li></ul>
+<h2 id="spend-and-record">Spend and record</h2>
+<ul><li>Runs: 6 of the informational 20-run budget.</li><li>Feature cycles used: 3 of 10.</li><li>Measured wall-clock: 249 minutes total; 133 rework minutes against the signed 90-minute advisory.</li><li>Measured tokens: 538,509.</li><li>Judgements recorded: 4.</li></ul>
+<p>The rework-time advisory was exceeded, but the extra time produced the final immutable-pin QA evidence and closed the sole remaining panel blocker. The run count remains below its informational threshold.</p>
+<h2 id="amendments">Amendments</h2>
+<div class="scroll"><table><thead><tr><th>At</th><th>Decision</th><th>Reason</th><th>Overruled</th></tr></thead><tbody><tr><td>—</td><td>None</td><td>No builder-side amendments were recorded.</td><td>—</td></tr></tbody></table></div>
+<p>Overrule rate: 0/0.</p>
+<h2 id="uat">UAT</h2>
+<p>No success criterion uses UAT. This non-UI feature is discharged by automated and inspection evidence.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>No residual finding survived final collation. Existing issue #1897 remains the already-recorded owner of the deliberately out-of-scope <code>board_lifecycle</code> repair and is not a new backlog proposal.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Finding</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>None.</td></tr></tbody></table></div><p class='derived'>Derived from <code>ship-review-validate-c2-qa-validator.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

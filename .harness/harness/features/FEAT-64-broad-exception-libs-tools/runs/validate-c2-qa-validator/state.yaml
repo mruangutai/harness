@@ -1,0 +1,47 @@
+schema_version: 2
+run_id: validate-c2-qa-validator
+run_uid: 570b1e17ce19492798b7073980b2aa5f
+feature: FEAT-64-broad-exception-libs-tools
+squad: validator
+host: harness-validator-lead
+status: complete
+team: validate
+flow: validate-c2-qa-regate
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat64-pin
+review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+base_sha: a4a3d7f8e9b91181fb6cc3ae058df8e02275d983
+cycles_used: 0
+verdict: PASS
+severity_max: none
+digest: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/runs/validate-c2-qa-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: validate c2 qa re-gate
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c2-regate.md]
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    max_cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    routed_by: lead-adequacy-review
+    note: all matrix, signed-chain, and fail-first gates pass after current-ledger recheck
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c2-regate.md
+    evidence:
+      review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+      matrix_ok: true
+      unit_files: 42
+      integration_files: 69
+      t01_exit: 0
+      t02_exit: 0
+      t03_exit: 0
+      fail_first_supported: [SC-01, SC-02, SC-03, SC-06, SC-07, SC-08]
