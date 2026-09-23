@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/mruangutai/oh-my-pi.git",
-  "ref": "harness-runtime-lineage-v1",
-  "commit": "56b883c182691463baf957bf7bdbc47cd9e72906",
+  "ref": "harness-runtime-lineage-v2",
+  "commit": "d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10",
   "required_capability": "extension-context-runtime-lineage"
 }
