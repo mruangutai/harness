@@ -1030,14 +1030,17 @@ def _feat64_git_launcher_rows(w):
     return rows
 
 
-def _feat64_landed_read_rows(w, artifact_accessors):
-    import harness_yaml
-    rows = []
+def _feat64_fleet_rows(w, artifact_accessors):
     class _FC:
         FLEET_PATH = "/nonexistent/fleet.yaml"
     with _patched(artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
-        rows.append(("(n) an unrelated RuntimeError escapes _repo_arg_for_segment",
-                     _escapes(lambda: w._repo_arg_for_segment("other", _FC)), ""))
+        return [("(n) an unrelated RuntimeError escapes _repo_arg_for_segment",
+                 _escapes(lambda: w._repo_arg_for_segment("other", _FC)), "")]
+
+
+def _feat64_landed_read_rows(w, artifact_accessors):
+    import harness_yaml
+    rows = []
     with _patched(w, "_landed_blob_text", lambda *a: ("{}", None)):
         with _patched(artifact_accessors, "load_feature_json", _raiser(RuntimeError("unrelated"))):
             rows.append(("(n) an unrelated RuntimeError escapes the landed feature.json read",
@@ -1064,7 +1067,8 @@ def case_feat64_boundaries_are_typed():
     reading as "unresolved"."""
     import worktree_terminal as w
     import artifact_accessors
-    return _feat64_git_launcher_rows(w) + _feat64_landed_read_rows(w, artifact_accessors)
+    return (_feat64_git_launcher_rows(w) + _feat64_fleet_rows(w, artifact_accessors)
+            + _feat64_landed_read_rows(w, artifact_accessors))
 
 
 def main():
