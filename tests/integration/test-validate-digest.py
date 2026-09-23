@@ -306,6 +306,8 @@ CONTRACT_SOURCES = {
     "harness-backend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
     "harness-ai-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
     "harness-data-engineer": [".claude/skills/harness-digest-dev/SKILL.md"],
+    # #1895: the main session's own direct build (DEC-174) returns the dev contract.
+    "main-session": [".claude/skills/harness-digest-dev/SKILL.md"],
     "harness-product-lead": [".claude/skills/harness-team/SKILL.md"],
     "harness-eng-lead": [".claude/skills/harness-team/SKILL.md"],
     "harness-validator-lead": [".claude/skills/harness-team/SKILL.md"],
@@ -725,6 +727,40 @@ DIGEST:
   expertise_update: []
 artifact: .harness/notes/impl-auth.md
 """, True)
+
+# #1895: a run the MAIN SESSION wrote directly (DEC-174, `run-start --agent main-session`) is closed
+# through the composed `close-run`, whose digest stage validates against the run's recorded agent.
+# `main-session` is the dev contract -- the main session wrote the diff and owns the same
+# task / task_verify / suite receipt -- so it validates as `dev`, gate fields included.
+case("main-session (DEC-174 direct build) validates as dev", "main-session", """
+VERDICT: PASS
+DIGEST:
+  headline: the eighteen scoped files carry zero broad catches
+  tests_added: 60
+  suite: pass
+  blocked_on: none
+  task: T-03
+  task_verify: pass
+  files_touched: [.claude/skills/harness/bin/board-station.py]
+  open_questions: []
+  expertise_update: []
+artifact: .harness/harness/features/FEAT-64-x/notes/red-first-receipts.md
+""", True)
+
+case("main-session with task_verify fail and VERDICT PASS is refused like any dev", "main-session", """
+VERDICT: PASS
+DIGEST:
+  headline: built
+  tests_added: 1
+  suite: pass
+  blocked_on: none
+  task: T-01
+  task_verify: fail
+  files_touched: [x.py]
+  open_questions: []
+  expertise_update: []
+artifact: notes/x.md
+""", False, mentions=["task_verify"])
 
 case("drifted key spelling is caught", "harness-code-reviewer", """
 VERDICT: FAIL
@@ -3459,6 +3495,7 @@ def _t04_base_digest(persona):
         "harness-frontend-dev": "harness-backend-dev",
         "harness-ai-dev": "harness-backend-dev",
         "harness-data-engineer": "harness-backend-dev",
+        "main-session": "harness-backend-dev",  # #1895: the dev contract
         "harness-product-lead": "harness-eng-lead",
         "harness-validator-lead": "harness-eng-lead",
     }.get(persona, persona)
