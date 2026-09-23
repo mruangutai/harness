@@ -27,5 +27,31 @@
       "reason": "the cause is known and the files are named, but the work adds a shared enforcement helper every hook runs under (hook_guard), ratchets the census ceilings, and mints typed errors in shared libraries that hooks then consume"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-64-broad-exception-libs-tools/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "d965c0c59c81b7aa71de456a07b4c8e97fe776eed7f68be2c7dc621606be2a3b",
+    "T-02": "cd2d73c0e084c935f6212b2020d3cd4b78c7510598230a3c0f1d9a73b313ee32",
+    "T-03": "f6510d5b0da53259d1c6a9d7053d720c49b3f9692f1d654973e40e2f7bb5eb28"
+  },
+  "github": {
+    "milestone": 85,
+    "parent": 1890,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1891,
+      "T-02": 1892,
+      "T-03": 1893
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
 }

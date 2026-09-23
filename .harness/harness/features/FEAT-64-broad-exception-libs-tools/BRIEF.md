@@ -65,6 +65,6 @@ Operators and maintainers cannot distinguish expected environment, parse, proces
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator (molchairuangutai), via the main session
+date: 2026-09-22

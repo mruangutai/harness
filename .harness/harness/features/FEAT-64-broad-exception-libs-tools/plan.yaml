@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-64-broad-exception-libs-tools
 approval:
-  status: pending
-status: plan
+  date: '2026-09-22'
+  approved_by: main session (operator molchairuangutai)
+  status: approved
+status: ready
 mission: plan
 source_issues: []
 baseline:
