@@ -51,7 +51,7 @@ async function sourceTokens(): Promise<void> {
 async function interact(page: Page, evidence: InspectionEvidence): Promise<void> {
   if (evidence.evidence_label === 'overview-default' || evidence.evidence_label === 'work-detail-long-content' || evidence.evidence_label === 'source-error-with-valid-rows') return;
   if (evidence.evidence_label === 'kpi-unavailable' || evidence.evidence_label === 'disclosure-open') {
-    const disclosure = evidence.evidence_label === 'disclosure-open' ? page.getByRole('button', { name: /About/ }).last() : page.getByRole('button', { name: /About/ }).nth(2);
+    const disclosure = evidence.evidence_label === 'disclosure-open' ? page.getByRole('button', { name: /About/ }).last() : page.getByRole('heading', { name: 'Blocking Human Touchpoints' }).locator('..').getByRole('button', { name: /About/ }).first();
     await disclosure.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('dialog')).toBeVisible();
@@ -94,13 +94,24 @@ async function inspection(page: Page, testInfo: TestInfo, check: UiCheck, eviden
   let failure: unknown;
   try {
     await test.step(`${check.check_id}: ${evidence.evidence_label}`, async () => {
+      if (evidence.evidence_label === 'initial-request-error') {
+        await page.route('**/api/work*', (route) => route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'initial-error fixture request failure' }),
+        }));
+      }
       await load(page, evidence.route);
       await interact(page, evidence);
     });
   } catch (error) {
     failure = error;
   }
-  await captureHardFailureEvidence(page, testInfo, check, evidence.evidence_label);
+  try {
+    await captureHardFailureEvidence(page, testInfo, check, evidence.evidence_label);
+  } finally {
+    if (evidence.evidence_label === 'initial-request-error') await page.unroute('**/api/work*');
+  }
   if (failure) throw failure;
 }
 
@@ -109,6 +120,7 @@ for (const check of manifest.checks.filter((candidate) => ['SRC-TOKENS', 'VIS-DE
     test.skip(!check.applicable_projects.includes(testInfo.project.name), `${check.check_id} is not applicable to ${testInfo.project.name}`);
     const rows = manifest.inspection_evidence.filter((entry) => entry.check_id === check.check_id && entry.project === testInfo.project.name);
     if (rows.length > 0) {
+      test.setTimeout(rows.length * 30_000);
       const failures: string[] = [];
       for (const row of rows) {
         try { await inspection(page, testInfo, check, row); }

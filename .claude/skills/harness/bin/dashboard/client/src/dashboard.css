@@ -1,0 +1,14 @@
+:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+html[data-input-modality="pointer"] :focus {
+  outline: 0;
+  outline-offset: 0;
+}
+
+ [role="combobox"][data-pointer-origin]:focus {
+  outline: 0;
+  outline-offset: 0;
+ }

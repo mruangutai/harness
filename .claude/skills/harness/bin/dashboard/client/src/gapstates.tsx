@@ -1,9 +1,9 @@
 import { Badge, Card, Stack, Text } from '@astryxdesign/core';
 
-const hatch = 'repeating-linear-gradient(45deg, var(--color-neutral) 0, var(--color-neutral) 2px, var(--color-metrics-unavailable-stroke) 2px, var(--color-metrics-unavailable-stroke) 3px, var(--color-neutral) 3px, var(--color-neutral) 6px)';
+const hatch = 'repeating-linear-gradient(45deg, var(--color-neutral) 0, var(--color-neutral) 1px, var(--color-metrics-unavailable-stroke) 1px, var(--color-metrics-unavailable-stroke) 2px, var(--color-neutral) 2px, var(--color-neutral) 6px)';
 
 export function UnavailableValue({ reason }: { reason: string }) {
-  return <Card padding={2} style={{ backgroundImage: hatch }}>
+  return <Card data-unavailable="" aria-hidden="true" padding={2} style={{ backgroundImage: hatch }}>
     <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
       <Text type="large" style={{ color: 'var(--color-metrics-unavailable-stroke)', fontWeight: 400 }}>—</Text>
       <Badge label="unavailable" />

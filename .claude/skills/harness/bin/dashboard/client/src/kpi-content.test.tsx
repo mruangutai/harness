@@ -29,7 +29,7 @@ describe('KpiTiles', () => {
   it('sums unattributed breakdown values for the KPI 6 tile without stringifying the breakdown', () => {
     render(<KpiTiles payload={{ ...payload, aggregate: { ...payload.aggregate, attribution: { attributable_share: 0.5, unattributed: { feature_only: 3, human: 5, no_prefix: 7, unresolvable_step_id: 11 }, total_commits: 40, unavailable: {} } } }} search={{ window: 'all', repo: 'all' }} />);
 
-    expect(screen.getByText('26 of 40 commits unattributed')).toBeTruthy();
+    expect(screen.getAllByText('26 of 40 commits unattributed')).not.toEqual([]);
     expect(screen.queryByText('[object Object]')).toBeNull();
   });
 

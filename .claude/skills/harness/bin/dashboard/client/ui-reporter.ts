@@ -133,13 +133,11 @@ export default class UiReporter implements Reporter {
     if (duplicate) this.reporterErrors.push('duplicate record');
     if (titleMismatch) this.reporterErrors.push('mismatched title');
     if (incomplete) this.reporterErrors.push('incomplete accounting');
-    if (this.reporterErrors.length === 0) {
-      await Promise.all(this.tracePublications.map(async ({ source, destination }) => {
-        const path = resolve(root, destination);
-        await mkdir(resolve(path, '..'), { recursive: true });
-        await copyFile(source, path);
-      }));
-    }
+    await Promise.all(this.tracePublications.map(async ({ source, destination }) => {
+      const path = resolve(root, destination);
+      await mkdir(resolve(path, '..'), { recursive: true });
+      await copyFile(source, path);
+    }));
     const failed = result.status !== 'passed' || this.reporterErrors.length > 0 || this.checks.some((check) => check.status === 'failed' || check.errors.length > 0);
     await mkdir(resolve(output, '..'), { recursive: true });
     await writeFile(output, JSON.stringify({ schema: 'harness-ui-results/1', feature, run_id: runId, design: '.harness/harness/features/FEAT-53-metrics-dashboard/DESIGN.md', served_bundle_commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), projects: { 'desktop-1440': { viewport: { width: 1440, height: 1100 } }, 'desktop-1920': { viewport: { width: 1920, height: 1100 } } }, listed_check_ids: manifest?.listed_check_ids ?? [], applicable_check_ids: applicable, observed_check_ids: observed, missing_check_ids: missing, checks: this.checks, summary: { status: failed ? 'failed' : 'passed', check_count: this.checks.length, errors: this.reporterErrors } }, null, 2));

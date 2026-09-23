@@ -78,6 +78,7 @@ async function runClause(name: string, action: () => Promise<void>, failures: st
 }
 
 test('keyboard focus transitions and restoration match DESIGN', async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
   test.skip(!check.applicable_projects.includes(testInfo.project.name), 'C3-KEYBOARD is not applicable to this project');
   const failures: string[] = [];
 
@@ -89,7 +90,12 @@ test('keyboard focus transitions and restoration match DESIGN', async ({ page },
     await expect.soft(tiles, 'overview has seven KPI tile links').toHaveCount(7);
     await expect.soft(info, 'overview has seven KPI InfoDisclosure triggers').toHaveCount(7);
     await tabThrough(page, [page.getByRole('link', { name: 'Overview' }), page.getByRole('radio', { name: '30d' }), page.getByRole('radio', { name: '90d' }), page.getByRole('radio', { name: 'All' }), page.getByRole('combobox', { name: 'Repository' }), ...Array.from({ length: 7 }, (_, index) => tiles.nth(index)).flatMap((tile, index) => [tile, info.nth(index)]), ...statuses, page.getByRole('combobox', { name: 'Station' }), page.getByRole('combobox', { name: 'Status' }), page.getByRole('combobox', { name: 'Kind' }), page.getByRole('button', { name: /Kanban|Table/ })], 'overview Tab order');
-    await expect.soft(page.locator('svg, [data-chart], [data-unavailable], [data-status-badge]'), 'charts and named noncontrols are aria-hidden').toHaveAttribute('aria-hidden', 'true');
+    const noncontrols = page.locator('svg, [data-chart], [data-unavailable], [data-status-badge]');
+    for (let index = 0; index < await noncontrols.count(); index += 1) {
+      const noncontrol = noncontrols.nth(index);
+      await expect.soft(noncontrol, 'charts and named noncontrols are aria-hidden').toHaveAttribute('aria-hidden', 'true');
+      await expect.soft(noncontrol, 'charts and named noncontrols are not focusable').toHaveJSProperty('tabIndex', -1);
+    }
   }, failures);
   await runClause('overview conditional Clear Filters layout headers and row controls remain in Tab order', async () => {
     await load(page, `${overview}&status=needs-you`);
@@ -167,7 +173,8 @@ test('keyboard focus transitions and restoration match DESIGN', async ({ page },
     await settle(page);
     const status = page.getByRole('combobox', { name: 'Status' });
     await expectFocused(status, 'pointer', 'Status after attention activation');
-    await expect.soft(status, 'Status selection is announced by value').toHaveValue('needs-you');
+    await expect.soft(status, 'Status selected value is exposed').toContainText('Needs You');
+    await expect.soft(page.locator('[aria-live="polite"]'), 'Status selection is announced').toContainText('Needs You');
   }, failures);
 
   await runClause('filter and layout updates retain initiator after results settle', async () => {

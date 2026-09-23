@@ -121,7 +121,7 @@ for (const check of [
       await clause(`A11Y-AXE: ${state} has no WCAG A or AA violations`, async () => {
         await load(page, route);
         const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-        expect.soft(results.violations, `${state}: ${results.violations.map((violation) => violation.id).join(', ')}`).toEqual([]);
+        expect.soft(results.violations, `${state}: ${results.violations.map((violation) => `${violation.id} (${violation.impact ?? 'unknown impact'}): ${violation.nodes[0]?.target[0] ?? 'no target'}`).join(', ')}`).toEqual([]);
       });
     }
     await clause('A11Y-AXE: every chart is aria-hidden with an adjacent real table carrying values', async () => {

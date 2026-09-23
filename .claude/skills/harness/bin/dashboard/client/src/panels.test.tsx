@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@tanstack/react-router', () => ({ Link: ({ children }: { children: string }) => <a href="/work/example">{children}</a> }));
@@ -83,10 +83,19 @@ describe('KpiPanel chart mounts', () => {
     expectShapeB(screen.getByTestId('chart-shape-b'), 'Merged PRs: 3');
   });
 
+  it('renders one disclosure with the tile definition for an unavailable KPI panel', () => {
+    render(<KpiPanel id={3} payload={{ aggregate: { touchpoints: { mean: null, zero_count: 0, unavailable: { mean: 'no touchpoint records' } } }, features: [], trend: {} }} search={search} />);
+
+    const disclosure = screen.getByRole('button', { name: 'About Blocking Human Touchpoints' });
+    expect(screen.getAllByRole('button', { name: /About Blocking Human Touchpoints/ })).toHaveLength(1);
+    fireEvent.click(disclosure);
+    expect(screen.getByText('0 measured zero touchpoints')).toBeTruthy();
+  });
+
   it('sums unattributed breakdown values for the KPI 6 panel without stringifying the breakdown', () => {
     render(<KpiPanel id={6} payload={{ aggregate: { attribution: { unattributed: { feature_only: 3, human: 5, no_prefix: 7, unresolvable_step_id: 11 }, total_commits: 40 } }, features: [], trend: {} }} search={search} />);
 
-    expect(screen.getByText(/26 of 40 commits unattributed/)).toBeTruthy();
+    expect(screen.getAllByText(/26 of 40 commits unattributed/)).not.toEqual([]);
     expect(screen.queryByText('[object Object]')).toBeNull();
   });
 });

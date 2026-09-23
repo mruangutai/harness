@@ -1,0 +1,53 @@
+schema_version: 2
+run_id: 2026-09-22-t32-round5-eng
+run_uid: 9898f1f6b5004927af39adb25e50766c
+feature: FEAT-53-metrics-dashboard
+squad: engineering
+host: harness-eng-lead
+status: complete
+verdict: PASS
+team: build
+branch: feat/FEAT-53
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53
+cycles_used: 12
+digest: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-22-t32-round5-eng/digest.md
+steps:
+  - { id: T-36, persona: harness-dev-ops, task: T-36, seq: seq-1, depends_on: [], outputs: [.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-36-c0.md], mutates_repo: true, on_fail: halt, status: complete, verdict: PASS, lead_verdict: PASS, cycles: 0, max_cycles: 0, redispatches: 0, dispatched_at: seq-5, completed_at: seq-6, routed_by: harness-eng-lead, artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-36-c0.md }
+  - { id: T-37, persona: harness-dev-ops, task: T-37, seq: seq-2, depends_on: [], outputs: [.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-37-c0.md], mutates_repo: true, on_fail: halt, status: complete, verdict: PASS, lead_verdict: PASS, cycles: 0, max_cycles: 0, redispatches: 0, dispatched_at: seq-8, completed_at: seq-9, routed_by: harness-eng-lead, artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-37-c0.md }
+  - { id: T-38, persona: harness-dev-ops, task: T-38, seq: seq-3, depends_on: [], outputs: [.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-38-c0.md], mutates_repo: true, on_fail: halt, status: complete, verdict: PASS, lead_verdict: PASS, cycles: 0, max_cycles: 0, redispatches: 0, dispatched_at: seq-12, completed_at: seq-13, routed_by: harness-eng-lead, artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-38-c0.md }
+  - { id: T-39, persona: harness-dev-ops, task: T-39, seq: seq-4, depends_on: [], outputs: [.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-39-c0.md], mutates_repo: true, on_fail: halt, status: complete, verdict: PASS, lead_verdict: PASS, cycles: 0, max_cycles: 0, redispatches: 0, dispatched_at: seq-15, completed_at: seq-16, routed_by: harness-eng-lead, artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-39-c0.md }
+  - { id: T-40, persona: harness-dev-ops, task: T-40, seq: seq-5, depends_on: [], outputs: [.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-40-c0.md], mutates_repo: true, on_fail: halt, status: complete, verdict: PASS, lead_verdict: PASS, cycles: 0, max_cycles: 0, redispatches: 0, dispatched_at: seq-18, completed_at: seq-19, routed_by: harness-eng-lead, artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-dev-ops-T-40-c0.md }
+  - id: T-32
+    persona: harness-frontend-dev
+    task: T-32
+    seq: seq-6
+    depends_on: [T-36, T-37, T-38, T-39, T-40]
+    outputs: [.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-frontend-dev-T-32-round5-c8.md]
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 12
+    max_cycles: 12
+    redispatches: 12
+    dispatched_at: seq-1
+    redispatched_at: seq-20
+    completed_at: seq-21
+    routed_by: harness-eng-lead
+    note: "Exact lane passed 23/23; independent UI gate PASS; 41 nonempty referenced WebPs; eight nonempty traces."
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-53/.harness/harness/features/FEAT-53-metrics-dashboard/notes/receipt-harness-frontend-dev-T-32-round5-c8.md
+    evidence:
+      exact_ui_lane: 23_pass_0_fail
+      exact_ui_gate: pass
+      results_status: passed
+      check_count: 23
+      missing_check_ids: []
+      results_errors: []
+      referenced_webp_count: 41
+      referenced_webp_nonempty_count: 41
+      trace_zip_count: 8
+      trace_zip_nonempty_count: 8
+      exact_bundle_present: true
+      committed: false
+      commit_reason: "Direct assignment required no commit."

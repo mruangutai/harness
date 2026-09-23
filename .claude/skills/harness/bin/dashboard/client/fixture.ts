@@ -1,6 +1,7 @@
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 const client = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const dashboard = resolve(client, '..');
@@ -28,7 +29,9 @@ export function fixturePath(runId = process.env.HARNESS_UI_RUN_ID ?? 'local'): s
 function materializeState(destination: string, id: string, state: string, kind: string): void {
   const unavailable = state === 'unavailable-kpis';
   const requestError = state === 'initial-error' || state === 'refresh-error';
+  const source = JSON.parse(readFileSync(resolve(destination, 'feature.json'), 'utf8')) as Record<string, unknown>;
   writeFileSync(resolve(destination, 'feature.json'), JSON.stringify({
+    ...source,
     feature_id: id,
     branch: `fixture/${state}`,
     fixture_state: state,
@@ -45,6 +48,7 @@ function materializeState(destination: string, id: string, state: string, kind: 
     runs: [{ id: `fixture-${state}`, squad: kind, verdict: requestError ? 'FAIL' : 'PASS' }],
   }, null, 2));
   writeFileSync(resolve(destination, 'plan.yaml'), `fixture_state: ${state}\n`);
+  if (state === 'attention') writeFileSync(resolve(destination, 'STATE.md'), '## Open Questions\n- operator decision required\n');
   writeFileSync(resolve(destination, 'touchpoints.jsonl'), JSON.stringify({
     feature_id: id, state, kind, reason: state === 'long-content' ? 'A deliberately long operational fixture record that must wrap without page overflow.' : `${state} deterministic fixture`,
   }) + '\n');
@@ -63,7 +67,27 @@ export function prepareFixtureSync(runId = process.env.HARNESS_UI_RUN_ID ?? 'loc
     cpSync(sourceFeature, destination, { recursive: true });
     materializeState(destination, id, state, kind);
   }
+  const notes = resolve(fixtureRoot, '.harness', 'notes');
+  mkdirSync(notes, { recursive: true });
+  writeFileSync(resolve(notes, 'grilling-Grilling.md'), '---\nstatus: open\nbecame: null\n---\n# Grilling\n');
+  initializeFixtureRepository(fixtureRoot);
   return fixtureRoot;
+}
+
+function initializeFixtureRepository(fixtureRoot: string): void {
+  const environment = {
+    ...process.env,
+    GIT_AUTHOR_NAME: 'Harness Fixture',
+    GIT_AUTHOR_EMAIL: 'fixture@harness.test',
+    GIT_AUTHOR_DATE: '2026-09-17T12:00:00Z',
+    GIT_COMMITTER_NAME: 'Harness Fixture',
+    GIT_COMMITTER_EMAIL: 'fixture@harness.test',
+    GIT_COMMITTER_DATE: '2026-09-17T12:00:00Z',
+  };
+  execFileSync('git', ['init', '--quiet'], { cwd: fixtureRoot, env: environment });
+  execFileSync('git', ['add', '.'], { cwd: fixtureRoot, env: environment });
+  execFileSync('git', ['commit', '--quiet', '--message', 'fixture'], { cwd: fixtureRoot, env: environment });
+  execFileSync('git', ['worktree', 'add', '--detach', resolve(fixtureRoot, 'Worktree')], { cwd: fixtureRoot, env: environment });
 }
 
 export default function globalSetup(): void {

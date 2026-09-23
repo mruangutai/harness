@@ -11,3 +11,7 @@
 - 2026-09-17: A receipt that cites browser evidence must record the pre-fix SHA/artifact and the exact computed or geometry values; source CSS alone cannot discharge runtime findings.
 - 2026-09-17: Explicit Astryx reset, core and neutral theme imports in main.tsx cause Vite to emit the committed CSS asset referenced by dist/index.html.
 - 2026-09-22: Vite base "./" makes deep dashboard routes request relative assets that receive the SPA fallback HTML; root base preserves route asset loading.
+- 2026-09-22: Astryx Selector renders a button-backed combobox while C3 applies input-only value assertion; an overlay input repaired role/value discovery but its status attention transition still did not update router state after three source-side fixes.
+- 2026-09-22: Exact T-32 round-5 lane reached 21/23; both VIS-DENSITY projects exhausted the 30s test deadline after overview-default, so remaining captures attempted page.addStyleTag on a closed page. results.json references 29 existing WebPs and eight nonempty trace ZIPs, but each density record lacks six required labels.
+- 2026-09-22: T-32 c5 disclosure source passed both focused VIS-DENSITY projects in 9.6s, but the one exact 23-test lane timed out at 30s on both VIS-DENSITY projects after five evidence captures; results retain 21 passed, 37 WebPs, and eight nonempty traces.
+- 2026-09-22: Round-5 exact UI lane ran 21/23; both VIS-DENSITY initial-request-error captures hit the 210000ms test timeout before table-overflow, which closed the page and produced evidence-label mismatch errors in results.json.
