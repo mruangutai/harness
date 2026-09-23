@@ -123,12 +123,29 @@ def _unresolved(pointer, target, detail):
     return _message(f"Authority pointer {pointer!r} is unresolved in {target}: {detail}")
 
 
+# FEAT-64 (SC-06): plan.yaml is parsed ONCE per note. `_resolve_plan` and `_plan_task` both
+# read the feature's plan; before this they each read and parsed it, so one source was
+# parsed (and could have been diagnosed) twice in one execution. `problems()` clears the
+# memo at entry, so the cache never outlives the note it was built for.
+_PLAN_MEMO = {}
+
+
+def _plan_doc(feature_dir, root):
+    """The feature's loaded plan document, read and parsed at most once per `problems()`
+    call. Raises what `_read_target` and `load_plan` raise (ValueError, YamlParseError)."""
+    key = str(feature_dir)
+    if key not in _PLAN_MEMO:
+        target = feature_dir / "plan.yaml"
+        _read_target(target, root)
+        _PLAN_MEMO[key] = artifact_accessors.load_plan(target)
+    return _PLAN_MEMO[key]
+
+
 def _resolve_plan(pointer, match, feature_dir, root):
     target = feature_dir / "plan.yaml"
     task_id = match.group(1)
     try:
-        _read_target(target, root)
-        doc = artifact_accessors.load_plan(target)
+        doc = _plan_doc(feature_dir, root)
     except (ValueError, harness_yaml.YamlParseError) as exc:
         return _unresolved(pointer, target, exc)
     tasks = doc.get("tasks", []) if isinstance(doc, dict) else []
@@ -258,9 +275,7 @@ RESOLVERS = {
 
 
 def _plan_task(match, feature_dir, root):
-    target = feature_dir / "plan.yaml"
-    _read_target(target, root)
-    doc = artifact_accessors.load_plan(target)
+    doc = _plan_doc(feature_dir, root)
     tasks = doc.get("tasks", []) if isinstance(doc, dict) else []
     return next((task for task in tasks
                  if isinstance(task, dict) and task.get("id") == match.group(1)), None)
@@ -323,7 +338,8 @@ def _satisfied(pointer, match, feature_dir, root):
         return None
     try:
         return check(match, feature_dir, root)
-    except Exception:
+    except (ValueError, harness_yaml.YamlParseError, artifact_accessors.FleetError,
+            KeyError, TypeError, AttributeError):
         # The pointer already RESOLVED to reach this line, so an exception here is a
         # shape surprise in the target, not a missing target. Indeterminate, never a
         # refusal: this check may only ever narrow what a clean resolution permits.
@@ -406,7 +422,9 @@ def _resolution_problems(parsed, feature_dir, root):
     for pointer, match in parsed:
         try:
             problem = _resolve(pointer, match, feature_dir, root)
-        except Exception as exc:
+        except (ValueError, OSError, UnicodeError, harness_yaml.YamlParseError,
+                artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+                artifact_accessors.FleetError, KeyError, TypeError, AttributeError) as exc:
             problem = _message(
                 f"Authority pointer {pointer!r} resolver failed closed "
                 f"({type(exc).__name__}: {exc})")
@@ -461,6 +479,7 @@ def _resolve_all(rel_path, parsed, root):
 
 def problems(rel_path, text, root, resolve):
     """Return one single-line problem for each violation in a handoff note."""
+    _PLAN_MEMO.clear()
     lines = text.splitlines()
     indices = _done_when_indices(lines)
     if not indices:

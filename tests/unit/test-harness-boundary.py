@@ -29,6 +29,7 @@ import time
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+BIN = BIN_DIR
 SCRIPT = os.environ.get("HARNESS_BOUNDARY_BIN") or os.path.join(
     BIN_DIR, "harness_boundary.py")
 
@@ -958,6 +959,114 @@ def case_run_dir_grant_globs_absent_and_garbage():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# ============================== FEAT-64: hook_guard and typed lib boundaries ==============================
+
+def case_hook_guard_contract():
+    """FEAT-64 (SC-03): the ONE spelling of a hook's own-failure posture. A successful main's
+    result is returned unchanged; an Exception inside main becomes the hook's verdict on its
+    own failure — 0 (pass-through) or 2 (blocked) — with one stderr line naming the hook and
+    the failure; KeyboardInterrupt and SystemExit are never caught. No hook calls it yet
+    (FEAT-65 wires them; SC-03's last clause)."""
+    mod = hb()
+    import io, contextlib
+    check("hook_guard_returns_mains_result", mod.hook_guard(lambda: 7, "x-hook") == 7)
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc_open = mod.hook_guard(lambda: (_ for _ in ()).throw(RuntimeError("boom")), "x-hook")
+    check("hook_guard_open_returns_0_on_exception", rc_open == 0, repr(rc_open))
+    check("hook_guard_open_names_hook_and_failure_and_passing_through",
+          "x-hook" in err.getvalue() and "RuntimeError" in err.getvalue()
+          and "passing through" in err.getvalue(), err.getvalue())
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc_closed = mod.hook_guard(lambda: (_ for _ in ()).throw(RuntimeError("boom")), "x-hook",
+                                   fail="closed")
+    check("hook_guard_closed_returns_2_on_exception", rc_closed == 2, repr(rc_closed))
+    check("hook_guard_closed_says_BLOCKED", "BLOCKED" in err.getvalue(), err.getvalue())
+    for exc in (KeyboardInterrupt, SystemExit):
+        try:
+            mod.hook_guard(lambda e=exc: (_ for _ in ()).throw(e(3)), "x-hook")
+            escaped = False
+        except exc:
+            escaped = True
+        check(f"hook_guard_lets_{exc.__name__}_escape", escaped)
+    hooks = ["bash-write-guard.py", "branch-create-gate.py", "check-domain.py", "dispatch-guard.py",
+             "feature-record.py", "gh-close-gate.py", "inflight_registry.py", "inject-expertise.py",
+             "merge-gate.py", "plan-sign-gate.py", "validate-digest.py"]
+    callers = [h for h in hooks if "hook_guard(" in open(os.path.join(BIN, h)).read()]
+    check("hook_guard_is_called_by_no_hook_in_FEAT-64", callers == [], repr(callers))
+
+
+def case_feat64_lib_boundaries_are_typed():
+    """FEAT-64 (SC-03): the pointer reads, fleet resolution and manifest grants keep their
+    documented outcomes for real boundary failures and let an unrelated RuntimeError escape."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        wt = os.path.join(tmp, ".git", "worktrees", "w1"); os.makedirs(wt)
+        with open(os.path.join(wt, "gitdir"), "wb") as fh:
+            fh.write(b"\xff\xfe")
+        check("linked_worktrees_skips_a_non_utf8_pointer", mod.linked_worktrees(tmp) == [])
+        real_open = mod.open if hasattr(mod, "open") else None
+        import builtins
+        orig = builtins.open
+        def boom(*a, **k):
+            if str(a[0]).endswith("gitdir"):
+                raise RuntimeError("unrelated")
+            return orig(*a, **k)
+        builtins.open = boom
+        try:
+            try:
+                mod.linked_worktrees(tmp); escaped = False
+            except RuntimeError:
+                escaped = True
+        finally:
+            builtins.open = orig
+        check("linked_worktrees_lets_an_unrelated_RuntimeError_escape", escaped)
+
+        harness_dir = os.path.join(tmp, ".harness"); os.makedirs(harness_dir, exist_ok=True)
+        real_md = mod.artifact_accessors.manifest_domains
+        mod.artifact_accessors.manifest_domains = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+        try:
+            try:
+                mod.run_dir_grant_globs(tmp); escaped = False
+            except RuntimeError:
+                escaped = True
+        finally:
+            mod.artifact_accessors.manifest_domains = real_md
+        check("run_dir_grant_globs_lets_an_unrelated_RuntimeError_escape", escaped)
+
+        fdir = os.path.join(harness_dir, "factory"); os.makedirs(fdir)
+        with open(os.path.join(fdir, "fleet.yaml"), "w") as fh:
+            fh.write("schema: factory-fleet/1\nrepos: [\n")
+        import io, contextlib
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err):
+                mod.resolve_fleet(tmp, "x-hook")
+            code = None
+        except SystemExit as e:
+            code = e.code
+        check("resolve_fleet_blocks_exit_2_on_a_fleet_that_does_not_load",
+              code == 2 and "does not load" in err.getvalue(), f"{code} {err.getvalue()[:120]}")
+        real_lf = mod.artifact_accessors.load_fleet
+        mod.artifact_accessors.load_fleet = lambda p: (_ for _ in ()).throw(RuntimeError("unrelated"))
+        try:
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    mod.resolve_fleet(tmp, "x-hook")
+                escaped = False
+            except RuntimeError:
+                escaped = True
+            except SystemExit:
+                escaped = False
+        finally:
+            mod.artifact_accessors.load_fleet = real_lf
+        check("resolve_fleet_lets_an_unrelated_RuntimeError_escape", escaped)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 # ============================== run_dir_refs ==============================
 
 def case_run_dir_refs():
@@ -1029,6 +1138,8 @@ def main():
     run_case(case_run_dir_refs)
     run_case(case_run_dir_slug_ok)
     run_case(case_run_dir_forms)
+    run_case(case_hook_guard_contract)
+    run_case(case_feat64_lib_boundaries_are_typed)
 
 
     if failures:

@@ -1919,4 +1919,48 @@ for exc in RAISED:
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
+
+
+# ---------------- FEAT-64: run_gh's boundary is ONE typed error ----------------
+# A launch that fails for any OSError (permission denied on the binary, not just absent) and a
+# JSON body gh returned that does not decode are both GhError to the caller, with the argv and
+# the chained cause; an unrelated RuntimeError inside the launch escapes.
+def fake_run_perm(argv, **kwargs):
+    raise PermissionError("gh: permission denied")
+
+
+fgh.subprocess.run = fake_run_perm
+try:
+    fgh.run_gh(["auth", "status"])
+    raised, exc = False, None
+except fgh.GhError as e:
+    raised, exc = True, e
+restore()
+check("FEAT-64 run_gh: a launch PermissionError is GhError", raised)
+check("FEAT-64 run_gh: the launch failure is chained as the cause",
+      raised and isinstance(exc.__cause__, PermissionError), repr(getattr(exc, "__cause__", None)))
+
+fake, calls = recorder([Result(0, stdout="not json {", stderr="")])
+fgh.subprocess.run = fake
+try:
+    fgh.run_gh(["api", "x"], json_out=True)
+    raised, exc = False, None
+except fgh.GhError as e:
+    raised, exc = True, e
+restore()
+check("FEAT-64 run_gh: a non-JSON body under json_out is GhError", raised)
+check("FEAT-64 run_gh: the decode failure names the argv and keeps the stdout",
+      raised and exc.argv == ["api", "x"] and exc.stdout == "not json {", repr(exc))
+
+fgh.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+try:
+    fgh.run_gh(["auth", "status"])
+    escaped = False
+except RuntimeError:
+    escaped = True
+except fgh.GhError:
+    escaped = False
+restore()
+check("FEAT-64 run_gh: an unrelated RuntimeError escapes", escaped)
+
 sys.exit(1 if FAILS else 0)

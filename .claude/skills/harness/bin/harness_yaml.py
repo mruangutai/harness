@@ -227,7 +227,7 @@ def load_str(text, where):
         raise
     except yaml.YAMLError as e:
         raise YamlParseError(where, e) from e
-    except Exception as e:
+    except (UnicodeError, TypeError, ValueError) as e:
         # F-01, found by the review panel and reproduced live. Catching only
         # yaml.YAMLError left every other failure to propagate uncaught through
         # both write hooks, killing the subprocess with exit 1 — and exit 1 is
@@ -239,6 +239,11 @@ def load_str(text, where):
         # Deliberately broad: the callers already treat YamlParseError as "cannot
         # read the rulebook, block". Any unanticipated failure must land there
         # too, because the alternative is not a wrong answer, it is no guard.
+        #
+        # FEAT-64: "deliberately broad" is now the parser's OWN failure classes — the
+        # Unicode, type and value errors a loader raises on hostile input — not every
+        # Exception. A programming defect surfaces as itself rather than as a blocked write
+        # with the wrong reason; the census (check-plan-routes.py) refuses a broad catch here.
         raise YamlParseError(where, e) from e
 
 
@@ -490,7 +495,7 @@ def require_or_die():
         try:
             import harness_boundary
             root = harness_boundary.resolve_root(_BIN_DIR)
-        except Exception:
+        except (ImportError, ValueError):
             return
         marker = _marker_path(root)
         try:
@@ -636,7 +641,7 @@ def require_or_bootstrap(root, payload=None):
             "[harness] PyYAML is missing, so the write guards cannot read the domain "
             "manifest. This session is granted ONE bootstrap pass and later sessions "
             "will be blocked. Install it now:\n" + INSTALL_COMMAND}) + "\n")
-    except Exception:
+    except (OSError, UnicodeError, TypeError, ValueError):
         # Never let the courtesy channel break the grant it is announcing.
         pass
     return True

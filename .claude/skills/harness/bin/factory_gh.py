@@ -155,12 +155,20 @@ def run_gh(args, json_out=False):
             r = subprocess.run(
                 [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
             )
-        except FileNotFoundError:
+        except FileNotFoundError as error:
             raise GhError(
                 args, None, "", "",
                 "gh not found", gh,
                 "install gh, or point FACTORY_GH at its path",
-            )
+            ) from error
+        except OSError as error:
+            # FEAT-64: any other launch failure — permission denied, a binary that is a
+            # directory — is the same boundary as an absent gh and reaches the caller as the
+            # one typed error, with the OS failure chained as its cause.
+            raise GhError(
+                args, None, "", "",
+                "gh could not be launched", gh, f"{type(error).__name__}: {error}",
+            ) from error
         _cost.returncode = r.returncode
     if r.returncode != 0:
         if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
@@ -169,7 +177,13 @@ def run_gh(args, json_out=False):
         raise GhError(args, r.returncode, r.stdout, r.stderr,
                       _what_from_argv(args), _value_from_argv(args), next_step)
     if json_out:
-        return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
+        try:
+            return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
+        except artifact_accessors.ArtifactAccessError as error:
+            # FEAT-64: a body gh returned that does not decode is a gh failure to the caller,
+            # not a parser's — one typed error with the argv, status and captured streams.
+            raise GhError(args, r.returncode, r.stdout, r.stderr,
+                          _what_from_argv(args), _value_from_argv(args), str(error)) from error
     return r.stdout.strip()
 
 

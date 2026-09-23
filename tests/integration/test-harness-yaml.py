@@ -1039,6 +1039,61 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
         artifact_accessors.load_plan(path)
 
 
+def test_feat64_load_str_boundary_is_typed():
+    """FEAT-64 (SC-03): load_str translates the parser's own failures — yaml.YAMLError,
+    UnicodeError, TypeError, ValueError — into YamlParseError (F-01's fail-closed posture,
+    kept), while DuplicateKeyError and MissingDependency stay their own subclasses, and an
+    unrelated RuntimeError inside the parser propagates instead of being read as "the
+    rulebook cannot be read"."""
+    import harness_yaml as hy
+    import yaml as _y
+    try:
+        hy.load_str("a: [\n", "x")
+    except hy.YamlParseError as e:
+        assert not isinstance(e, hy.DuplicateKeyError), e
+    else:
+        raise AssertionError("malformed YAML must raise YamlParseError")
+    real = _y.load
+    _y.load = lambda *a, **k: (_ for _ in ()).throw(TypeError("shape"))
+    try:
+        try:
+            hy.load_str("a: 1", "x")
+        except hy.YamlParseError:
+            pass
+        else:
+            raise AssertionError("a TypeError from the parser must become YamlParseError")
+        _y.load = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+        try:
+            hy.load_str("a: 1", "x")
+        except RuntimeError:
+            pass
+        except hy.YamlParseError:
+            raise AssertionError("an unrelated RuntimeError must escape load_str, not become YamlParseError")
+    finally:
+        _y.load = real
+
+
+def test_feat64_require_or_die_cleanup_boundary_is_typed():
+    """FEAT-64 (SC-03): the marker-unlink courtesy in require_or_die stays silent on a missing
+    boundary module (ImportError) or an unverifiable root (ValueError), and an unrelated
+    RuntimeError from the resolver escapes."""
+    import harness_yaml as hy
+    import harness_boundary as hb
+    real = hb.resolve_root
+    hb.resolve_root = lambda *a, **k: (_ for _ in ()).throw(ValueError("no marker"))
+    try:
+        hy.require_or_die()
+        hb.resolve_root = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+        try:
+            hy.require_or_die()
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("an unrelated RuntimeError must escape require_or_die's cleanup")
+    finally:
+        hb.resolve_root = real
+
+
 TESTS = [
     test_merge_key_override_is_not_a_duplicate,
     test_missing_pyyaml_is_reportable_not_a_second_crash,
@@ -1069,6 +1124,8 @@ TESTS = [
     test_load_plan_reports_line_and_column_on_malformed_yaml,
     test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
     test_load_plan_accepts_a_station_only_record_and_only_with_a_station,
+    test_feat64_load_str_boundary_is_typed,
+    test_feat64_require_or_die_cleanup_boundary_is_typed,
 ]
 
 

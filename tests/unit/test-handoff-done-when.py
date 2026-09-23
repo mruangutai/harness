@@ -458,4 +458,56 @@ try:
 finally:
     _td.cleanup()
 
+
+# FEAT-64 (SC-03, SC-06): the resolver and satisfaction boundaries are TYPED — a target that
+# cannot be read/parsed/shaped still fails closed or reads indeterminate, but an unrelated
+# programming defect escapes; and plan.yaml is parsed ONCE per note, the loaded document
+# carried from resolution to satisfaction rather than re-read.
+import artifact_accessors  # noqa: E402
+_td, _root, _rel = satisfaction_fixture("done", "approved")
+try:
+    _body = note("Scope: do the thing\nAuthority: plan-task:T-03.verify")
+    _real_load = artifact_accessors.load_plan
+    _loads = []
+    def _counting(path):
+        _loads.append(str(path)); return _real_load(path)
+    artifact_accessors.load_plan = _counting
+    try:
+        handoff_done_when.problems(_rel, _body, _root, True)
+    finally:
+        artifact_accessors.load_plan = _real_load
+    check("FEAT-64: plan.yaml is parsed once per note across resolution and satisfaction",
+          len(_loads) == 1, repr(_loads))
+    artifact_accessors.load_plan = lambda path: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    try:
+        try:
+            handoff_done_when.problems(_rel, _body, _root, True)
+            _escaped = False
+        except RuntimeError:
+            _escaped = True
+    finally:
+        artifact_accessors.load_plan = _real_load
+    check("FEAT-64: an unrelated RuntimeError in the plan loader escapes resolution", _escaped)
+    _real_finished = handoff_done_when.factory_config.is_finished
+    handoff_done_when.factory_config.is_finished = lambda s: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    try:
+        try:
+            handoff_done_when.problems(_rel, _body, _root, True)
+            _escaped = False
+        except RuntimeError:
+            _escaped = True
+    finally:
+        handoff_done_when.factory_config.is_finished = _real_finished
+    check("FEAT-64: an unrelated RuntimeError in satisfaction escapes", _escaped)
+    handoff_done_when.factory_config.is_finished = lambda s: (_ for _ in ()).throw(
+        artifact_accessors.FleetError("status", s, "fix"))
+    try:
+        _got = handoff_done_when.problems(_rel, _body, _root, True)
+    finally:
+        handoff_done_when.factory_config.is_finished = _real_finished
+    check("FEAT-64: a FleetError from the station vocabulary is indeterminate, not a refusal",
+          _got == [], repr(_got))
+finally:
+    _td.cleanup()
+
 raise SystemExit(1 if failures else 0)

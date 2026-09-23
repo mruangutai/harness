@@ -993,6 +993,77 @@ def case_plan_station_scan_without_pyyaml():
     return results
 
 
+def case_feat64_boundaries_are_typed():
+    """FEAT-64 (SC-03): every quiet path in this module keeps its documented outcome for the
+    failure its boundary really raises — a git that cannot launch, a fleet that does not load,
+    a landed blob that does not parse — and an unrelated programming defect escapes instead of
+    reading as "unresolved"."""
+    import worktree_terminal as w
+    import artifact_accessors
+    results = []
+    real_run = w.subprocess.run
+    w.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no git"))
+    try:
+        results.append(("(n) a git that cannot launch is None from _run_git", w._run_git(["status"], ".") is None, ""))
+        results.append(("(n) a git that cannot launch is (False, '') from _worktree_list_raw", w._worktree_list_raw(".") == (False, ""), ""))
+        w.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+        escaped = []
+        for fn in (lambda: w._run_git(["status"], "."), lambda: w._worktree_list_raw(".")):
+            try:
+                fn(); escaped.append(False)
+            except RuntimeError:
+                escaped.append(True)
+        results.append(("(n) an unrelated RuntimeError escapes both git launchers", all(escaped), repr(escaped)))
+    finally:
+        w.subprocess.run = real_run
+    real_lf = artifact_accessors.load_fleet
+    artifact_accessors.load_fleet = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    class _FC:
+        FLEET_PATH = "/nonexistent/fleet.yaml"
+    try:
+        try:
+            w._repo_arg_for_segment("other", _FC); e1 = False
+        except RuntimeError:
+            e1 = True
+        results.append(("(n) an unrelated RuntimeError escapes _repo_arg_for_segment", e1, ""))
+    finally:
+        artifact_accessors.load_fleet = real_lf
+    real_lfj = artifact_accessors.load_feature_json
+    real_blob = w._landed_blob_text
+    w._landed_blob_text = lambda *a: ("{}", None)
+    artifact_accessors.load_feature_json = lambda **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    try:
+        try:
+            w._read_landed_feature_json("/r", "main", "x/feature.json"); e2 = False
+        except RuntimeError:
+            e2 = True
+        results.append(("(n) an unrelated RuntimeError escapes the landed feature.json read", e2, ""))
+        artifact_accessors.load_feature_json = lambda **k: (_ for _ in ()).throw(artifact_accessors.FeatureJsonError("bad", "x", "fix"))
+        got = w._read_landed_feature_json("/r", "main", "x/feature.json")
+        results.append(("(n) a FeatureJsonError from the landed read is 'unparseable'", got == (None, "unparseable"), repr(got)))
+    finally:
+        artifact_accessors.load_feature_json = real_lfj
+        w._landed_blob_text = real_blob
+    import harness_yaml
+    w._landed_blob_text = lambda *a: ("status: x\n", None)
+    real_ls = harness_yaml.load_str
+    harness_yaml.load_str = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    try:
+        try:
+            w._read_landed_plan_yaml("/r", "main", "x/plan.yaml"); e3 = False
+        except RuntimeError:
+            e3 = True
+        results.append(("(n) an unrelated RuntimeError escapes the landed plan.yaml read", e3, ""))
+        harness_yaml.load_str = lambda *a, **k: (_ for _ in ()).throw(harness_yaml.MissingDependency())
+        got = w._read_landed_plan_yaml("/r", "main", "x/plan.yaml")
+        results.append(("(n) MissingDependency (by class) falls back to the top-level status scan",
+                        got == ({"status": "x"}, None), repr(got)))
+    finally:
+        harness_yaml.load_str = real_ls
+        w._landed_blob_text = real_blob
+    return results
+
+
 def main():
     results = (
         case_classify()
@@ -1008,6 +1079,7 @@ def main():
         + case_plan_station_is_the_landed_authority()
         + case_plan_station_scan_without_pyyaml()
         + case_direct_build_brief_is_terminal()
+        + case_feat64_boundaries_are_typed()
     )
     all_ok = True
     for name, ok, detail in results:
