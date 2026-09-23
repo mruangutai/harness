@@ -44,7 +44,13 @@ is unguarded too — any of these reaching the top as a traceback would abort an
 planning session, which the EXIT CONTRACT paragraph above forbids. So every exception class
 from the write is reported as ONE line on stderr and the process still exits 0 (D-02's
 mirror-write rule, applied here — this is a STATION WRITE failure, not an unusable
-declaration, and the two exit differently on purpose). `factory_gh.preflight()` is never
+declaration, and the two exit differently on purpose).
+
+FEAT-64 supersedes the "broad `except Exception`" sentence above: `factory_gh.run_gh` now
+converts its own `OSError` and non-JSON exit-0 bodies into `factory_gh.GhError`, so the
+write's whole failure surface is `gh_board.BoardError` + `factory_gh.GhError`, and that is
+what `main` catches. The ONE-line-on-stderr, exit-0 outcome for those is unchanged; an
+exception of any other class is a programming defect and propagates as itself. `factory_gh.preflight()` is never
 called — its callers exit non-zero, and this tool's callers must not.
 """
 import os
@@ -55,6 +61,7 @@ sys.path.insert(0, HERE)
 
 import artifact_accessors  # noqa: E402
 import factory_config  # noqa: E402
+import factory_gh  # noqa: E402
 import gh_board  # noqa: E402
 
 USAGE = (
@@ -172,7 +179,7 @@ def main(argv):
 
     try:
         gh_board.set_station(board, repo, issue_number, station)
-    except Exception as exc:  # noqa: BLE001 — deliberate: see module docstring, D-02
+    except (gh_board.BoardError, factory_gh.GhError) as exc:  # see module docstring, D-02
         err(f"ERROR - #{issue_number} -> {station}: {exc}")
         return 0
 

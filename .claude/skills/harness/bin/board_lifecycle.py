@@ -928,8 +928,13 @@ def audit_findings(repo_arg=None):
     if board is None:
         return []
     if not repo_name:
+        # FEAT-64: this used to pass ONE positional to a seven-parameter __init__ and so raised
+        # TypeError instead of GhError; ship's broad audit catch reported that TypeError as
+        # "the board audit could not run" and hid the defect. Built the way every other raise
+        # in this module is.
         raise factory_gh.GhError(
-            "github.repo is not declared -- pin it in harness.json before auditing")
+            [], None, "", "", "github.repo is not declared", "harness.json",
+            "pin it in harness.json before auditing")
     findings, _notes = _audit_findings(root, board, repo_name)
     return findings
 

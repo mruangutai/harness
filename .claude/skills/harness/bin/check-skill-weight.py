@@ -108,7 +108,7 @@ def scan(root: Path) -> Report:
         agent = agent_path.stem
         try:
             declared = _frontmatter(agent_path).get("autoloadSkills") or []
-        except Exception as exc:
+        except (artifact_accessors.ArtifactAccessError, OSError, UnicodeError) as exc:
             report.errors.append(f"{agent}: unreadable frontmatter ({exc})")
             continue
         if not isinstance(declared, list) or not all(isinstance(s, str) for s in declared):

@@ -2208,7 +2208,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         stations = gh_board.board_stations_for(
             board, repo, list(children) + list(sources) + list(parents),
         )
-    except Exception as e:  # factory_gh.GhError and anything it wraps
+    except (factory_gh.GhError, gh_board.BoardError) as e:
         print(f"gh-sync: ERROR - board read failed, no card moved: {e}", file=sys.stderr)
         stations = None
 
@@ -2253,7 +2253,13 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         without running a second command."""
         ok, raw = gh_try(sub_issues_args(repo, num))
         if not ok:
-            raise RuntimeError(raw)
+            # FEAT-64: typed as the gh failure it is (was RuntimeError(raw)). str() now
+            # carries factory_cli's canonical grammar with gh's captured stderr as the value,
+            # so the operator line below reads `… card not moved: sub-issue list unreadable:
+            # <gh stderr> — re-run ship once gh is reachable`.
+            raise factory_gh.GhError(sub_issues_args(repo, num), None, "", raw,
+                                     "sub-issue list unreadable", raw,
+                                     "re-run ship once gh is reachable")
         kids = artifact_accessors.parse_gh_json(
             raw, "sub-issues response") if raw and raw.strip() else []
         numbers = sorted(int(k["number"]) for k in kids
@@ -2284,7 +2290,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             continue
         try:
             blocker = first_open_child(num)
-        except Exception as e:
+        except (factory_gh.GhError, artifact_accessors.ArtifactAccessError) as e:
             # SAME BUCKET as the board-read failure four lines above, and for the same
             # reason: this card did not reach done, and nothing downstream reports it. An
             # earlier cut printed and continued WITHOUT recording it, so the run exited 0
@@ -2340,7 +2346,8 @@ def _ship_audit(repo):
     silently change worktree behaviour on a healthy run."""
     try:
         findings = board_lifecycle.audit_findings(repo)
-    except Exception as e:
+    except (factory_gh.GhError, gh_board.BoardError, artifact_accessors.ArtifactAccessError,
+            artifact_accessors.FleetError) as e:
         print(f"gh-sync: ERROR - the board audit could not run: {e}", file=sys.stderr)
         return
     for f in findings:

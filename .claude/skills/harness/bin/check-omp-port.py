@@ -54,7 +54,7 @@ def runtime_pin_errors(root: Path) -> list[str]:
         pin = json.loads(runtime_pin.read_text(encoding="utf-8"))
         if not isinstance(pin, dict):
             raise ValueError("root must be an object")
-    except Exception as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
         return [f"cannot read .omp/runtime-pin.json: {exc}"]
     requirements = (
         (re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit") or "")) is not None,
@@ -97,7 +97,7 @@ def check(root: Path) -> list[str]:
             errors.append(".omp/config.yml task.maxRuntimeMs must be 0")
         if config.get("modelRoles"):
             errors.append("concrete modelRoles belong in .omp/providers overlays, not .omp/config.yml")
-    except Exception as exc:
+    except artifact_accessors.ArtifactAccessError as exc:
         errors.append(f"cannot read .omp/config.yml: {exc}")
 
     agent_dir = root / ".omp" / "agents"
@@ -105,7 +105,7 @@ def check(root: Path) -> list[str]:
     for path in sorted(agent_dir.glob("harness-*.md")):
         try:
             meta = frontmatter(path)
-        except Exception as exc:
+        except (artifact_accessors.ArtifactAccessError, OSError, UnicodeError) as exc:
             errors.append(f"{path.relative_to(root)}: {exc}")
             continue
         name = str(meta.get("name") or "")
@@ -154,7 +154,7 @@ def check(root: Path) -> list[str]:
             for role, selector in roles.items():
                 if not str(selector).startswith(prefix):
                     errors.append(f"{path.relative_to(root)} role {role} must select {prefix}*")
-        except Exception as exc:
+        except artifact_accessors.ArtifactAccessError as exc:
             errors.append(f"cannot read {path.relative_to(root)}: {exc}")
 
     claude_skills = root / ".claude" / "skills"

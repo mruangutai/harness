@@ -193,7 +193,7 @@ def main():
         return 1
     try:
         proj, tmpl = load_json(p_json), load_json(t_json)
-    except Exception as e:
+    except artifact_accessors.ArtifactAccessError as e:
         print(f"upgrade-config: cannot read config ({e})")
         return 1
 
