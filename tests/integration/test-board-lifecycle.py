@@ -755,6 +755,13 @@ with tempfile.TemporaryDirectory() as base:
 # operator or script that reads 2 as "nothing happened" retries, re-enters the create branch and
 # gets a SECOND board -- the exact disaster the exit-code contract exists to prevent. These two
 # cases pin the FIELD work and the LINK call, the two blocks that were broadened.
+#
+# FEAT-64: `factory_gh.run_gh(json_out=True)` now converts a non-JSON exit-0 body into
+# `factory_gh.GhError` itself (the decode failure is the gh boundary's own), so the malformed
+# body below arrives as an ANTICIPATED gh failure rather than an "unexpected
+# ArtifactAccessError". The exit-4 contract and the created-number line are what these cases
+# defend; the class-name assertions changed to "names the invalid body, is not called
+# UNEXPECTED" -- the KeyError/TypeError shapes named above still take the UNEXPECTED branch.
 
 with tempfile.TemporaryDirectory() as base:
     root = os.path.join(base, "root")
@@ -766,9 +773,9 @@ with tempfile.TemporaryDirectory() as base:
     check("c4: a NON-GhError (ArtifactAccessError from strict GitHub parsing) in the field work "
           "after a successful create+link exits 4, NEVER 2 -- 2 would claim nothing was written",
           r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-    check("c4: it says plainly that the failure was UNEXPECTED and names the typed parse "
-          "exception class rather than a gh error",
-          "UNEXPECTED" in r.stderr and "ArtifactAccessError" in r.stderr, repr(r.stderr))
+    check("c4: the field failure names the invalid GitHub body as a gh failure (FEAT-64: "
+          "run_gh's own GhError, no longer an UNEXPECTED ArtifactAccessError)",
+          "invalid JSON" in r.stderr and "UNEXPECTED" not in r.stderr, repr(r.stderr))
     check("c4: it still tells the operator to record the number now",
           "record 42" in r.stderr, repr(r.stderr))
     check("c4: create and link really did land before the unexpected failure",
@@ -783,8 +790,9 @@ with tempfile.TemporaryDirectory() as base:
     check("c4: a NON-GhError in the LINK call after a successful create exits 4, never 2 -- the "
           "same hole lived in that block too",
           r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-    check("c4: the link's unexpected failure names the created number and typed parse class",
-          "42" in r.stderr and "unexpected" in r.stderr and "ArtifactAccessError" in r.stderr,
+    check("c4: the link failure names the created number and the invalid GitHub body (FEAT-64: "
+          "a gh failure, not 'unexpected')",
+          "42" in r.stderr and "invalid JSON" in r.stderr and "unexpected" not in r.stderr,
           repr(r.stderr))
     check("c4: no field work was attempted after the link failed",
           not any("createProjectV2Field" in l or "updateProjectV2Field" in l for l in log),

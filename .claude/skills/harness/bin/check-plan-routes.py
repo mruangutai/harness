@@ -144,12 +144,19 @@ def _manifest_deviation(root, owner_root):
     with open(branch_manifest, "rb") as branch, open(manifest, "rb") as owner:
         if branch.read() == owner.read():
             return None
+    import harness_yaml
     try:
         if (
                 artifact_accessors.manifest_domains(branch_manifest)
                 == artifact_accessors.manifest_domains(manifest)):
             return None
-    except Exception:
+    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FleetError,
+            harness_yaml.YamlParseError, OSError, UnicodeError, KeyError, TypeError,
+            ValueError):
+        # FEAT-64: the manifest's own failure classes -- unreadable, unparseable, or a mapping
+        # of the wrong shape -- mean agreement is not established, which is what the DEVIATION
+        # line below says. The same tuple harness_boundary.run_dir_grant_globs names for the
+        # same accessor. Anything else is a defect and propagates.
         pass
     return (
         f"DEVIATION {branch_manifest} differs from {manifest}; routes were "
@@ -381,7 +388,7 @@ def process_plan_yaml(path, findings, root, manifest_root):
     import harness_yaml
     import plan_anchors
     try:
-        doc = artifact_accessors.load_plan(path)
+        doc = _load_plan_once(path)
     except harness_yaml.YamlParseError as e:
         # Exit 2, not a violation. "The plan does not parse" is the checker being unable to
         # run, not the plan being wrong about routing — the same distinction B-7 turned on.
@@ -550,6 +557,30 @@ def legal_task_statuses():
     return tuple(factory_config.MANDATED_STATIONS) + factory_config.TERMINAL_STATIONS
 
 
+# FEAT-64 (SC-05): ONE parse per plan per execution. `_is_shipped` (discovery's shipped-skip
+# and the invariant-collision scan) and `process_plan_yaml` (the route check) each called
+# `artifact_accessors.load_plan` on the same file, so every live plan was parsed twice and a
+# shipped one once more in the collision scan. The outcome of the first load -- the document,
+# or the YamlParseError it raised -- is what every later reader in the same run receives;
+# nothing on disk changes between them. Cleared in main() so a test that drives main() twice
+# in one interpreter sees its own writes.
+_PLAN_LOADS = {}
+
+
+def _load_plan_once(path):
+    key = os.path.realpath(path)
+    if key not in _PLAN_LOADS:
+        import harness_yaml
+        try:
+            _PLAN_LOADS[key] = artifact_accessors.load_plan(path)
+        except harness_yaml.YamlParseError as error:
+            _PLAN_LOADS[key] = error
+    hit = _PLAN_LOADS[key]
+    if isinstance(hit, Exception):
+        raise hit
+    return hit
+
+
 def _is_shipped(feature_dir):
     """True when this feature's work is delivered and its plan is a record, not a contract.
 
@@ -592,9 +623,13 @@ def _is_shipped(feature_dir):
         # nothing is skipped on the strength of an absence alone — and discovery finds no plan to
         # check there anyway, so the branch below is about PLAN.md and only PLAN.md.
         return os.path.isfile(os.path.join(feature_dir, "PLAN.md"))
+    import harness_yaml
     try:
-        doc = artifact_accessors.load_plan(fy)
-    except Exception:
+        doc = _load_plan_once(fy)
+    except harness_yaml.YamlParseError:
+        # load_plan's whole failure surface: load_file wraps the read's OSError/UnicodeError
+        # (F-01), and validate_plan_doc's PlanSchemaError is a YamlParseError. Unreadable is
+        # NOT finished, per the docstring; the diagnostic is process_plan_yaml's to print.
         return False
     # `or {}` is NOT enough here. load_file returns whatever the document is, and a
     # non-empty list is truthy — it would survive `or {}` and then fail on `.get`.
@@ -1634,9 +1669,13 @@ def _run_canonical_reader_audit(root):
 #
 # Tests are not scanned: a test loading its subject by path is that test's own business.
 STATION_TABLE_REL = os.path.join(".claude", "skills", "harness", "bin", "factory_config.py")
+# FEAT-64: the home symbol is the private body `_load_repo_module`. `load_repo_module` (the
+# public entry every caller names) runs that body inside `_as_repo_module_failure`, the ONE
+# broad catch the load and call boundaries share -- so the spec call moved one function
+# inward while staying the sole one under bin/.
 MODULE_LOADER_HOME = (
     os.path.join(".claude", "skills", "harness", "bin", "harness_boundary.py"),
-    "load_repo_module",
+    "_load_repo_module",
 )
 _STATION_EXPORTS = ("MANDATED_STATIONS", "TERMINAL_STATIONS", "ACTIVE_STATIONS",
                     "FINISHED_STATIONS")
@@ -2149,36 +2188,25 @@ def _posture_findings(root):
 # both counts; below is fine (wave 4 burns the allowlist down); allowance never moves between
 # files; a script absent from the list has a zero ceiling. Counted from the AST, never from
 # source text or comments -- a text grep of this tree once reported 121 where the AST says 118.
+#
+# FEAT-64 (SC-04): every lib and tool of wave 4 is now ABSENT from the table -- zero by the
+# default -- and harness_boundary.py holds at exactly two: `_as_repo_module_failure` (the load
+# and call boundary) and `hook_guard` (the hook own-failure idiom, wired by FEAT-65). The
+# eleven remaining entries are the hook scripts, frozen for FEAT-65.
 BROAD_CATCH_CEILINGS = {
     "bash-write-guard.py": 6,
-    "board-station.py": 1,
     "branch-create-gate.py": 4,
     "check-domain.py": 24,
-    "check-omp-port.py": 4,
-    "check-plan-routes.py": 2,
-    "check-skill-weight.py": 1,
     "check-state.py": 0,
     "dispatch-guard.py": 9,
-    "factory_decompose.py": 1,
     "feature-record.py": 1,
-    "feature_schema.py": 1,
     "gh-close-gate.py": 3,
-    "gh-sync.py": 3,
-    "gh_cost_log.py": 2,
-    "handoff_done_when.py": 2,
-    "handoff_policy.py": 1,
-    "harness_boundary.py": 6,
-    "harness_yaml.py": 3,
+    "harness_boundary.py": 2,
     "inflight_registry.py": 3,
     "inject-expertise.py": 2,
     "merge-gate.py": 5,
     "plan-sign-gate.py": 2,
-    "post-merge-sweep.py": 5,
-    "run-unit-tests.py": 2,
-    "run_identity.py": 1,
-    "upgrade-config.py": 1,
     "validate-digest.py": 18,
-    "worktree_terminal.py": 7,
 }
 
 
@@ -2264,6 +2292,7 @@ def _run_consolidation_audit(root):
 
 
 def main(argv):
+    _PLAN_LOADS.clear()
     if argv[1:] in (["--canonical-reader-audit"], ["--consolidation-audit"]):
         try:
             root = harness_boundary.resolve_root(BIN_DIR)

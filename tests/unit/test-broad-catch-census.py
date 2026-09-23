@@ -73,6 +73,18 @@ def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
           above is not None and "bin/check-domain.py" in above and str(ceiling + 1) in above
           and f"ceiling {ceiling}" in above, above)
     check("check-state.py's ceiling is zero", mod.BROAD_CATCH_CEILINGS["check-state.py"] == 0)
+    # FEAT-64 (SC-04): the wave-4 libs and tools carry NO allowance -- absent from the table or
+    # explicitly zero -- and harness_boundary.py's two designed catches are the whole budget.
+    for name in ("factory_decompose.py", "feature_schema.py", "gh_cost_log.py", "handoff_done_when.py",
+                 "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
+                 "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
+                 "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py"):
+        check(f"FEAT-64: {name} has a zero ceiling", mod.BROAD_CATCH_CEILINGS.get(name, 0) == 0,
+              repr(mod.BROAD_CATCH_CEILINGS.get(name)))
+    check("FEAT-64: harness_boundary.py's ceiling is exactly two",
+          mod.BROAD_CATCH_CEILINGS.get("harness_boundary.py") == 2)
+    check("FEAT-64: a third harness_boundary.py broad catch is a finding against two",
+          "ceiling 2" in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or ""))
     check("a script absent from the allowlist has a zero ceiling",
           mod._broad_catch_finding("bin/new.py", "new.py", 0) is None
           and "ceiling 0" in (mod._broad_catch_finding("bin/new.py", "new.py", 1) or ""))
