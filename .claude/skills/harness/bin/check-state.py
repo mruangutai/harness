@@ -1637,7 +1637,9 @@ def inv_22(ctx, feat):
     #
     # THE COUNT IS A FLOOR, not a total: a main-session-direct segment is not a run and
     # never appears in runs: — on FEAT-07 that hid eight of ten tasks. Said in the
-    # message so nobody reads the number as complete.
+    # message so nobody reads the number as complete. (#1895: since FEAT-64 the main
+    # session MAY record its direct segment as a run with `--agent main-session`; a recorded
+    # one is counted like any other, an unrecorded one still is not — the floor stands.)
     _budget, _why = _inv22_budget(ctx, feat, val, warn)
     warn.extend(_inv22_count(feat, runs, val, _budget, _why))
     return bad, warn

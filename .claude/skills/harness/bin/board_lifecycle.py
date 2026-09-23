@@ -932,8 +932,8 @@ def audit_findings(repo_arg=None):
         # was a TypeError at raise time, which ship's (then broad) audit catch reported as
         # "the board audit could not run: GhError.__init__() missing 6 required …".
         raise factory_gh.GhError(
-            [], None, "", "", "github.repo is not declared", "harness.json",
-            "pin github.repo in harness.json before auditing")
+            [], None, "", "", "github.repo is not declared", "github.repo",
+            "pin it in harness.json before auditing")
     findings, _notes = _audit_findings(root, board, repo_name)
     return findings
 
