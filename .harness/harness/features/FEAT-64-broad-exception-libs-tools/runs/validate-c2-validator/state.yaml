@@ -1,0 +1,115 @@
+schema_version: 2
+run_id: validate-c2-validator
+run_uid: b79cbe38df2d4510af4708dbc2a855b3
+feature: FEAT-64-broad-exception-libs-tools
+squad: validator
+host: harness-validator-lead
+status: blocked
+team: validate
+flow: validate-c2
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools
+review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+base_sha: a4a3d7f8e9b91181fb6cc3ae058df8e02275d983
+cycles_used: 0
+verdict: BLOCKED
+severity_max: high
+digest: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/runs/validate-c2-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: blocked
+    verdict: BLOCKED
+    lead_verdict: BLOCKED
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Pinned matrix was not executed because QA declined the non-pin checkout.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-qa-c2.md
+    evidence:
+      review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+      matrix_ok: false
+  - id: code
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-code-reviewer-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Both review stages passed and prior findings were closed.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-code-reviewer-c2.md
+    evidence:
+      review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+  - id: security
+    persona: harness-security-reviewer
+    seq: 3
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-security-reviewer-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: No exploitable security regression remains at the pin.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-security-reviewer-c2.md
+    evidence:
+      review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 4
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-ui-reviewer-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: Full census found no rendered or DESIGN-governed UI.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/review-harness-ui-reviewer-c2.md
+    evidence:
+      review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+  - id: goalcheck
+    persona: harness-pm
+    seq: 5
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    note: All perspectives and SC-01 through SC-08 were graded met.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-64-broad-exception-libs-tools/.harness/harness/features/FEAT-64-broad-exception-libs-tools/notes/research-FEAT-64-broad-exception-libs-tools-goalcheck-validate-c2.md
+    evidence:
+      review_sha: 721b690e3578fbaba2b88d93774667d94ac4d8a3
+      sc_grades: 8
+      perspective_grades: 3

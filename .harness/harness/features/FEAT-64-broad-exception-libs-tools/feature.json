@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-64-broad-exception-libs-tools",
   "pr": null,
   "review_sha": "721b690e3578fbaba2b88d93774667d94ac4d8a3",
-  "cycles_used": 1,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -46,6 +46,16 @@
       "tokens": 117676,
       "ended_at": "2026-09-23T13:52:31+00:00",
       "cycles_used": 1
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-23T14:03:02+00:00",
+      "tokens": 108985,
+      "ended_at": "2026-09-23T14:28:47+00:00",
+      "cycles_used": 2
     }
   ],
   "judgements": [
@@ -69,6 +79,13 @@
       "kind": "regate",
       "decision": "validate cycle 1",
       "reason": "validate c1 over 50dd75c4 after c0 fixes"
+    },
+    {
+      "at": "2026-09-23T14:03:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate cycle 2",
+      "reason": "validate c2 over 721b690e after c1 fix (GC-64-04, QA-64-01)"
     }
   ],
   "mission": "plan",
