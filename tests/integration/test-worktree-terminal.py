@@ -1038,26 +1038,27 @@ def _feat64_fleet_rows(w, artifact_accessors):
                  _escapes(lambda: w._repo_arg_for_segment("other", _FC)), "")]
 
 
-def _feat64_landed_read_rows(w, artifact_accessors):
-    import harness_yaml
-    rows = []
+def _feat64_landed_json_rows(w, artifact_accessors):
     with _patched(w, "_landed_blob_text", lambda *a: ("{}", None)):
         with _patched(artifact_accessors, "load_feature_json", _raiser(RuntimeError("unrelated"))):
-            rows.append(("(n) an unrelated RuntimeError escapes the landed feature.json read",
-                         _escapes(lambda: w._read_landed_feature_json("/r", "main", "x/feature.json")), ""))
+            escaped = _escapes(lambda: w._read_landed_feature_json("/r", "main", "x/feature.json"))
         with _patched(artifact_accessors, "load_feature_json",
                       _raiser(artifact_accessors.FeatureJsonError("bad", "x", "fix"))):
             got = w._read_landed_feature_json("/r", "main", "x/feature.json")
-            rows.append(("(n) a FeatureJsonError from the landed read is 'unparseable'", got == (None, "unparseable"), repr(got)))
+    return [("(n) an unrelated RuntimeError escapes the landed feature.json read", escaped, ""),
+            ("(n) a FeatureJsonError from the landed read is 'unparseable'", got == (None, "unparseable"), repr(got))]
+
+
+def _feat64_landed_yaml_rows(w):
+    import harness_yaml
     with _patched(w, "_landed_blob_text", lambda *a: ("status: x\n", None)):
         with _patched(harness_yaml, "load_str", _raiser(RuntimeError("unrelated"))):
-            rows.append(("(n) an unrelated RuntimeError escapes the landed plan.yaml read",
-                         _escapes(lambda: w._read_landed_plan_yaml("/r", "main", "x/plan.yaml")), ""))
+            escaped = _escapes(lambda: w._read_landed_plan_yaml("/r", "main", "x/plan.yaml"))
         with _patched(harness_yaml, "load_str", _raiser(harness_yaml.MissingDependency())):
             got = w._read_landed_plan_yaml("/r", "main", "x/plan.yaml")
-            rows.append(("(n) MissingDependency (by class) falls back to the top-level status scan",
-                         got == ({"status": "x"}, None), repr(got)))
-    return rows
+    return [("(n) an unrelated RuntimeError escapes the landed plan.yaml read", escaped, ""),
+            ("(n) MissingDependency (by class) falls back to the top-level status scan",
+             got == ({"status": "x"}, None), repr(got))]
 
 
 def case_feat64_boundaries_are_typed():
@@ -1068,7 +1069,7 @@ def case_feat64_boundaries_are_typed():
     import worktree_terminal as w
     import artifact_accessors
     return (_feat64_git_launcher_rows(w) + _feat64_fleet_rows(w, artifact_accessors)
-            + _feat64_landed_read_rows(w, artifact_accessors))
+            + _feat64_landed_json_rows(w, artifact_accessors) + _feat64_landed_yaml_rows(w))
 
 
 def main():
