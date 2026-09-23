@@ -1,0 +1,251 @@
+schema: plan/1
+feature: FEAT-65-broad-exception-hooks
+approval:
+  status: pending
+status: plan
+mission: plan
+source_issues: []
+baseline:
+  sha: 4e8c73c07e5f1f102c392fe3800616fc94a1c53d
+  branch: main
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-07a56ec6b695f6fc55d021147dd092ba
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-04 cannot commit a receipt that both names and exists at its own eventual review SHA.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-79f8373991498fecb580a19816be701e
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-03 has no mode seam separating hook fail-open behavior from authoritative direct CLI behavior.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-4a8d590c8ec663b4cfeb49256fb71754
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: SC-02 demands hook_guard's canonical diagnostic from "each of the eleven hooks", but the settled classification gives inflight_registry.py no guard at all — that evidence cannot be produced without building machinery the classification forbids
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-e3a11dbe88b0720fc18b4847cf2005d9
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: SC-04's per-hook increase mutants build eleven copies of a case the census suite already proves once — the default-0 path for unlisted files
+    disposition: resolved
+    resolved_by: T-04
+    scope: task
+  - id: PF-c211be099ac9661d2ac20a14cdbe047d
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: SC-08's literal wording — the receipts note exists "at the pinned review SHA" and "names that exact pin" — is unsatisfiable, since a tracked file cannot ship inside the commit whose hash it records
+    disposition: resolved
+    resolved_by: T-04
+lanes:
+  resolved_at: 8875fa2f9c7c980a62106693e3e67183950a00b4
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 assigns Harness hooks, validators, gates, and boundaries to direct main-session execution.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 keeps regression, receipt, mutation, and lock proof for governed Harness code with the direct implementation.
+    - surface: .harness/harness/features/FEAT-65-broad-exception-hooks/notes/**
+      lane: main-session-direct
+      reason: DEC-174 keeps the implementation's clean-pin and byte-divergence evidence with the direct main-session change.
+decisions:
+  - id: D-01
+    choice: Classify every one of the 77 hook sites as an expected typed boundary, a rule-level absorber to delete, or a legacy own-failure path that the settled classification routes to harness_boundary.hook_guard. Add no second failure wrapper or compatibility path, and do not add a universal entrypoint guard to a program whose classified sites are typed boundaries only.
+    because: A single deep guard keeps expected recovery local while making programming defects loud and preserves one operator explanation of what was not checked.
+    status: accepted
+  - id: D-02
+    choice: Preserve each hook's established fail-open or fail-closed verdict and every output byte except the legacy own-failure lines whose settled classification routes them to the canonical hook_guard wording, with each replacement ledgered and its owning case re-pinned. Shared authoritative direct commands remain outside a universal entrypoint guard, so unexpected direct-command failures stay loud and nonzero.
+    because: This feature narrows defect masking; it does not change enforcement policy, and unrecorded wording drift would hide a policy change inside mechanical cleanup.
+    status: accepted
+  - id: D-03
+    choice: Narrow inflight process identity exactly to (OSError, ValueError, IndexError, StopIteration) for the Linux proc reads, (OSError, subprocess.SubprocessError, ValueError) for ps, and (harness_boundary.AmbiguousWorktree, OSError) for feature worktree lookup while retaining None and the 24-hour fallback.
+    because: Those are the settled environmental and parse boundaries; broader recovery would keep masking defects and different fallbacks would change claim liveness.
+    status: accepted
+  - id: D-04
+    choice: Replace the four drifted gate bootstrap prologues with the run-unit-tests.py DEC-234 copy byte-for-byte, including its FEAT-64 comment, and protect all five copies with one reciprocal lock.
+    because: DEC-234 requires intentional duplication until the bootstrap code can safely import shared code, so byte identity is the maintainable contract.
+    status: accepted
+  - id: D-05
+    choice: Ratchet BROAD_CATCH_CEILINGS to the single harness_boundary.py value of 2, name an immutable implementation pin after build and simplify, test that pin from a clean checkout, and commit the tracked receipt later on the feature branch without claiming that the receipt exists inside the pin it names.
+    because: Testing a named immutable implementation pin from a clean checkout makes the zero-hook census, prologue identity, and output evidence reproducible, while committing the receipt afterward avoids the impossible requirement that a tracked file contain the hash of the commit that already contains it.
+    status: accepted
+tasks:
+  - id: T-01
+    title: Narrow check-domain's 24 hook sites
+    traces:
+      - SC-01
+      - SC-02
+      - SC-03
+      - SC-06
+      - SC-07
+      - SC-08
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the check-domain enforcement hook and its eight owning integration suites directly to the main session.
+    depends_on: []
+    status: plan
+    files:
+      - .claude/skills/harness/bin/check-domain.py#domain_check
+      - path: tests/integration/test-check-domain.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-artifact.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-claims.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-grant.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-post.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-worktree-parity.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-worktree.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-approval.py
+        quote: "#!/usr/bin/env python3"
+    verify: |
+      python3 tests/integration/test-check-domain.py && python3 tests/integration/test-check-domain-artifact.py && python3 tests/integration/test-check-domain-claims.py && python3 tests/integration/test-check-domain-grant.py && python3 tests/integration/test-check-domain-post.py && python3 tests/integration/test-check-domain-worktree-parity.py && python3 tests/integration/test-check-domain-worktree.py && python3 tests/integration/test-check-domain-approval.py
+    intent: |
+      Work red-first in the eight named suites. For every current branch, pin the baseline exit status, stdout bytes, and stderr bytes before production edits. Add focused expected-boundary cases and inject an unrelated RuntimeError at each treatment family so a rule-level absorber cannot silently remain. Add hook-level cases proving the exact hook_guard diagnostic and the existing open or closed exit result; prove KeyboardInterrupt and SystemExit escape. Assertions must cover consumer-visible behavior, not source syntax or forwarding.
+
+      Apply the 24-site classification in notes/research-FEAT-65-hook-site-classification.md exactly once per site. Narrow root and shape imports to their import/path errors; payload and YAML reads to artifact, YAML, OS, Unicode, type, and value failures actually exported or raised at those boundaries; feature-schema, run-state, run-identity, prior-state, Done-when, worktree-sweep, and dirty-check calls to their producer or OS/subprocess failures. Delete the feature_checkout_guard rule-level broad absorber and the nested claim exception classifier so unrelated defects reach the outer guard. Keep UnreadableRegistry handling explicit. Do not recreate either absorber in a helper.
+
+      Route unexpected hook failures through harness_boundary.hook_guard as the single wrapper. Preserve check-domain's two boundary-module-load BLOCKED paths and every other existing verdict. Replace only the settled operator-visible own-failure text with the canonical guard form; retain all other bytes. Record every replaced or deleted operator-visible line for T-04's divergence ledger and finish check-domain.py with zero except Exception and zero bare except handlers.
+  - id: T-02
+    title: Narrow validate-digest's 18 hook sites
+    traces:
+      - SC-01
+      - SC-02
+      - SC-03
+      - SC-06
+      - SC-07
+      - SC-08
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the validate-digest enforcement hook, its integration contract, and its code-grade proof directly to the main session.
+    depends_on: [T-01]
+    status: plan
+    files:
+      - .claude/skills/harness/bin/validate-digest.py#hook_mode
+      - path: tests/integration/test-validate-digest.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/unit/test-code-grade.py
+        quote: "#!/usr/bin/env python3"
+    verify: |
+      python3 tests/integration/test-validate-digest.py && python3 tests/unit/test-code-grade.py
+    intent: |
+      Work red-first in both named suites. Pin CLI and hook-mode exit status, stdout bytes, and stderr bytes for every affected branch before editing production. Add expected producer-error cases and unrelated RuntimeError injections for the code-grade, feature/plan reader, root, artifact-root, durable-file, re-verification, payload, inflight child/release, release-command, and return-validation families. Keep direct CLI behavior outside the hook wrapper, and prove KeyboardInterrupt and SystemExit escape.
+
+      Apply all 18 classifications in notes/research-FEAT-65-hook-site-classification.md. Catch typed OS, subprocess, decode, value, artifact, feature-record, plan-YAML/schema, boundary, and registry failures at the operations that own them while retaining current findings and cleanup behavior. Delete the durable-file and returned-digest local own-failure broad catches so unexpected defects reach one harness_boundary.hook_guard around hook mode. Use the established hook name check-digest. Preserve each existing blocking return-contract result and each non-blocking cleanup result.
+
+      Replace only the legacy hook own-failure/pass-through lines covered by the settled canonical diagnostic, re-pin their exact owning cases, and leave all other output bytes and verdicts unchanged. Record each deliberate line change for T-04 and finish validate-digest.py with zero except Exception and zero bare except handlers.
+  - id: T-03
+    title: Narrow the other nine hooks and align four gate prologues
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
+    - SC-09
+    - SC-10
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the nine enforcement hooks, four DEC-234 gate copies, and each hook's owning suite directly to the main session.
+    depends_on: [T-01, T-02]
+    status: plan
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.py#claim_checkout_guard
+      - .claude/skills/harness/bin/branch-create-gate.py#_resolve_root
+      - .claude/skills/harness/bin/dispatch-guard.py#_root_for
+      - .claude/skills/harness/bin/feature-record.py#main
+      - .claude/skills/harness/bin/gh-close-gate.py#denies
+      - .claude/skills/harness/bin/inflight_registry.py#_read_process_start_time
+      - .claude/skills/harness/bin/inject-expertise.py#main
+      - .claude/skills/harness/bin/merge-gate.py#main
+      - .claude/skills/harness/bin/plan-sign-gate.py#denies
+      - path: tests/integration/test-bash-write-guard.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-branch-create-gate.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-dispatch-guard.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/unit/test-feature-record.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-gh-close-gate.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-inflight-registry.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-inject-expertise.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-merge-gate.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-plan-sign-gate.py
+        quote: "#!/usr/bin/env python3"
+    verify: |
+      python3 tests/integration/test-bash-write-guard.py && python3 tests/integration/test-branch-create-gate.py && python3 tests/integration/test-dispatch-guard.py && python3 tests/unit/test-feature-record.py && python3 tests/integration/test-gh-close-gate.py && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-inject-expertise.py && python3 tests/integration/test-merge-gate.py && python3 tests/integration/test-plan-sign-gate.py
+    intent: |
+      Work red-first, one existing owning suite per program. Pin every affected exit status and output byte, then add natural expected-boundary cases. For bash-write-guard.py, dispatch-guard.py, and merge-gate.py, inject an unrelated RuntimeError at each treatment family classified to reach hook_guard and add process-control escape coverage without asserting handler syntax. For feature-record.py and inflight_registry.py, add direct-command cases proving an unexpected RuntimeError remains loud and exits nonzero; neither program receives a universal entrypoint guard. Preserve each program's current enforcement verdict, including bash-write-guard's blocked boundary-load path, dispatch refusals, merge denials, plan-sign pass-throughs, and best-effort cleanup.
+
+      Apply the 35-site classification in notes/research-FEAT-65-hook-site-classification.md: bash-write-guard 6, branch-create-gate 4, dispatch-guard 9, feature-record 1, gh-close-gate 3, inflight_registry 3, inject-expertise 2, merge-gate 5, and plan-sign-gate 2. Use exported artifact, feature, plan, registry, schema, and boundary errors plus only the documented local built-ins. Delete bash-write-guard's rule-level and nested broad absorbers. In inflight_registry, use exactly (OSError, ValueError, IndexError, StopIteration) for the Linux proc reads, (OSError, subprocess.SubprocessError, ValueError) for ps, and (harness_boundary.AmbiguousWorktree, OSError) for worktree lookup; keep ps returning None and keep the 24-hour fallback.
+
+      Make the _resolve_root prologues in branch-create-gate, gh-close-gate, merge-gate, and plan-sign-gate byte-identical to the run-unit-tests.py DEC-234 copy, including its FEAT-64 reciprocal comment and (ModuleNotFoundError, ValueError) tuple. Do not factor the copies into shared code. Route only the classified legacy own-failure paths in bash-write-guard.py, dispatch-guard.py, and merge-gate.py through harness_boundary.hook_guard and replace only their settled own-failure wording. Programs whose 35-site classification contains typed boundaries only remain unwrapped, especially authoritative feature-record.py and inflight_registry.py. Record every deliberate line change for T-04 and finish all nine files with zero broad catches.
+  - id: T-04
+    title: Lock the census and prologues, then record clean-pin receipts
+    traces:
+      - SC-01
+      - SC-02
+      - SC-03
+      - SC-04
+      - SC-05
+      - SC-06
+      - SC-07
+      - SC-08
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the governing census, hook-boundary tests, clean-pin receipts, and divergence ledger directly to the main session.
+    depends_on: [T-01, T-02, T-03]
+    status: plan
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py#BROAD_CATCH_CEILINGS
+      - path: tests/unit/test-broad-catch-census.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/unit/test-harness-boundary.py
+        quote: "#!/usr/bin/env python3"
+      - .harness/harness/features/FEAT-65-broad-exception-hooks/notes/clean-pin-byte-receipts.md
+      - .harness/harness/features/FEAT-65-broad-exception-hooks/notes/build-divergences.md
+    verify: |
+      python3 tests/unit/test-broad-catch-census.py && python3 tests/unit/test-harness-boundary.py
+    intent: |
+      Work red-first. Replace BROAD_CATCH_CEILINGS with exactly one entry, harness_boundary.py: 2; do not retain explicit zero entries for the eleven hooks. Extend the AST census with one representative unlisted-hook/default-zero increase mutant and a third-catch mutant for harness_boundary.py, each naming the changed file and count versus ceiling, plus a reduction mutant that remains clean. The final AST census must still inspect all eleven hooks and prove zero broad catches in every one. Prove the failing states before the ceiling change.
+
+      Add one byte-identity lock covering the full copied bootstrap prologue and reciprocal comment in branch-create-gate.py, gh-close-gate.py, merge-gate.py, plan-sign-gate.py, and run-unit-tests.py. Demonstrate it failing before T-03's alignment and on an independent mutation to each copy. Keep harness_boundary hook_guard's exact open diagnostic, closed form, successful-return behavior, and Exception-not-BaseException boundary covered without adding another broad handler.
+
+      After build and simplify name the immutable implementation pin, create a separate clean checkout of that exact commit and run every T-01, T-02, T-03, and T-04 verify command there. Record the tested implementation pin, clean checkout identity, commands, exit status, stdout evidence, stderr evidence, zero-hook/two-boundary census, and five-way prologue identity in notes/clean-pin-byte-receipts.md, then commit that tracked receipt in a later feature-branch commit. State explicitly that the receipt does not claim to exist inside the implementation pin it names. In notes/build-divergences.md record every replaced or deleted operator-visible line with exact old bytes, new bytes, ruling, and re-pinned owning case; inspect against baseline 4e8c73c07e5f1f102c392fe3800616fc94a1c53d and state explicitly whether any unledgered divergence exists. Do not accept dirty-worktree receipts.
+needs_approval: true
