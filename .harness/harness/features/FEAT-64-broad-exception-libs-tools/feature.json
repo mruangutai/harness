@@ -26,6 +26,16 @@
       "ended_at": "2026-09-23T01:45:20+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-23T02:30:32+00:00",
+      "tokens": 104165,
+      "ended_at": "2026-09-23T03:06:30+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
