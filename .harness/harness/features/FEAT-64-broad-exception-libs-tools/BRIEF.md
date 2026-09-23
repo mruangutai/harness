@@ -28,16 +28,22 @@ Operators and maintainers cannot distinguish expected environment, parse, proces
 - SC-02 (code maintainer): An AST census reports 2 broad catches across the ten scoped shared libraries, both in `harness_boundary.py`, and 0 across the eight scoped tools; independent increase mutants fail with one finding naming the changed file, while a reduction remains clean, with the failing states demonstrated before implementation.
   verify: automated
   evidence: integration
-- SC-03 (code maintainer): Boundary tests demonstrated failing first and then prove that the scoped consumers catch exported typed errors or the documented `OSError`, `UnicodeError`, `json.JSONDecodeError`, `ValueError`, and subprocess error classes, while unrelated programming exceptions propagate; `harness_boundary.hook_guard` catches `Exception` but not `BaseException`, explicitly lets `KeyboardInterrupt` and `SystemExit` escape, preserves a successful `main` result, and is not called by a hook.
+- SC-03 (code maintainer): Boundary tests demonstrated failing first and then prove that the scoped shared-library consumers catch exported typed errors or the documented `OSError`, `UnicodeError`, `json.JSONDecodeError`, `ValueError`, and subprocess error classes, while unrelated programming exceptions propagate; `harness_boundary.hook_guard` catches `Exception` but not `BaseException`, explicitly lets `KeyboardInterrupt` and `SystemExit` escape, preserves a successful `main` result, and is not called by a hook.
   verify: automated
   evidence: unit
 - SC-04 (operator): The pinned review tree contains no FEAT-64 change to the eleven hook entry scripts or `.omp/extensions/harness-hooks.ts`, and running their existing callers therefore retains every measured fail-open or fail-closed verdict; inspection uses `git show <review_sha>:<path>` rather than the working tree.
   verify: inspection
 - SC-05 (reader): At the pinned review SHA, inspection of `git show <review_sha>:.claude/skills/harness/bin/<file>` against `a4a3d7f8e9b91181fb6cc3ae058df8e02275d983` confirms every moved silence rationale and copied-bootstrap comment is byte-identical, and every new explanatory sentence is separate prose marked `FEAT-64`.
   verify: inspection
-- SC-06 (reader): Red-first tests prove that a scoped path cannot reparse a feature, plan, manifest, or config source already parsed and reported in the same execution, and the final implementation consumes the existing parsed value without adding a second shared loader or a second parse diagnostic.
+- SC-06 (reader): Red-first tests prove that the scoped route-discovery path cannot reparse a plan, manifest, or config source already parsed and reported in the same execution, and the final implementation consumes the existing parsed value without adding a second shared loader or a second parse diagnostic.
   verify: automated
   evidence: integration
+- SC-07 (code maintainer): Boundary tests demonstrated failing first and then prove that the scoped tool consumers `board-station.py`, `check-omp-port.py`, `check-plan-routes.py`, `check-skill-weight.py`, `gh-sync.py`, `post-merge-sweep.py`, `run-unit-tests.py`, and `upgrade-config.py` catch exported typed errors or the documented `OSError`, `UnicodeError`, `json.JSONDecodeError`, `ValueError`, and subprocess error classes, while unrelated programming exceptions propagate.
+  verify: automated
+  evidence: integration
+- SC-08 (reader): Red-first tests prove that the scoped handoff-authority path cannot reparse a feature or plan source already parsed and reported in the same execution, and the final implementation consumes the existing parsed value without adding a second shared loader or a second parse diagnostic.
+  verify: automated
+  evidence: unit
 
 ## Verification gaps
 
@@ -67,4 +73,4 @@ Operators and maintainers cannot distinguish expected environment, parse, proces
 
 status: approved
 approved-by: operator (molchairuangutai), via the main session
-date: 2026-09-22
+date: 2026-09-23

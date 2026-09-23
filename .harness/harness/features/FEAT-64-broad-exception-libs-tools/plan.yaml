@@ -1,7 +1,7 @@
 schema: plan/1
 feature: FEAT-64-broad-exception-libs-tools
 approval:
-  date: '2026-09-22'
+  date: '2026-09-23'
   approved_by: main session (operator molchairuangutai)
   status: approved
 status: review
@@ -85,7 +85,13 @@ decisions:
 tasks:
   - id: T-01
     title: Type the ten shared library boundaries
-    traces: [SC-01, SC-02, SC-03, SC-05, SC-06]
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-06
+    - SC-08
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns Harness shared libraries and their unit and integration proof directly to the main session.
@@ -132,7 +138,12 @@ tasks:
       In worktree_terminal, narrow Git launches to OSError and subprocess.SubprocessError, fleet access to artifact_accessors.FleetError, landed feature reads to artifact_accessors.FeatureJsonError, landed plan reads to harness_yaml.YamlParseError while handling MissingDependency by class rather than type-name text, and mapping-shape access to KeyError, TypeError, and ValueError. Preserve all unresolved records, reason strings, dirty flags, and repository classification. The ten shared libraries finish with no broad catch except the two specified harness_boundary handlers.
   - id: T-02
     title: Narrow seven tool consumers without changing receipts
-    traces: [SC-01, SC-02, SC-03, SC-05]
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-05
+    - SC-07
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps the Harness tools, their receipt suites, and their typed-boundary cutover in one direct sequential change.
@@ -173,7 +184,15 @@ tasks:
       In run-unit-tests, leave the five-file DEC-234 bootstrap prologue and its reciprocal comment byte-for-byte. Narrow _resolve_root to its import and root-resolution errors, and _layout_output to the documented layout data-shape and rendering errors; preserve traceback rendering for those inputs while an injected unrelated RuntimeError propagates. In upgrade-config.main, catch artifact_accessors.ArtifactAccessError for strict config reads and preserve its exit-1 diagnostic. These seven tools finish with zero except Exception and zero bare except handlers.
   - id: T-03
     title: Narrow the route checker and ratchet the FEAT-64 census
-    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs the route validator, its AST census and mutants, and the final implementation evidence.
