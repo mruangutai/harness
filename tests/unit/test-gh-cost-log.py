@@ -95,7 +95,9 @@ def counter_stub(values):
 
 
 def raising_run(argv, **kwargs):
-    raise RuntimeError("boom — the counter binary is unreachable")
+    # FEAT-64: an unreachable binary is an OSError — the class the boundary really raises.
+    # (Was RuntimeError, which pinned the over-broad catch rather than the contract.)
+    raise OSError("boom — the counter binary is unreachable")
 
 
 # ---------------- record(): keys, cost, and the fresh-file coverage line ----------------
@@ -443,6 +445,44 @@ with tempfile.TemporaryDirectory() as tmp:
           read_lines(path) == [], f"lines={read_lines(path)}")
     check("OFF, FAILING: exactly one subprocess call (the real call only, neither counter read)",
           len(calls) == 1, f"calls={calls}")
+restore()
+
+
+# FEAT-64 (SC-03): the counter and the log are BEST-EFFORT at their real boundaries — a
+# counter binary that is absent, fails, or prints junk is None; an unwritable log dir is a
+# silent return — but an unrelated programming defect escapes rather than reading as "the
+# counter could not be read".
+with tempfile.TemporaryDirectory() as tmp:
+    redirect(tmp)
+    gh_cost_log.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no gh"))
+    check("FEAT-64: an absent counter binary reads None", gh_cost_log._read_counter() is None)
+    class _R:
+        returncode = 0
+        stdout = "not-a-number"
+    gh_cost_log.subprocess.run = lambda *a, **k: _R()
+    check("FEAT-64: a counter that prints junk reads None", gh_cost_log._read_counter() is None)
+    gh_cost_log.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    try:
+        gh_cost_log._read_counter()
+        escaped = False
+    except RuntimeError:
+        escaped = True
+    check("FEAT-64: an unrelated RuntimeError escapes _read_counter", escaped)
+    restore()
+    redirect(tmp)
+    _real_dumps = gh_cost_log.json.dumps
+    gh_cost_log.json.dumps = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    os.environ["HARNESS_GH_COST_LOG"] = "1"
+    try:
+        try:
+            gh_cost_log.record(["gh", "api"], 1, 2, 0)
+            escaped = False
+        except RuntimeError:
+            escaped = True
+    finally:
+        gh_cost_log.json.dumps = _real_dumps
+        del os.environ["HARNESS_GH_COST_LOG"]
+    check("FEAT-64: an unrelated RuntimeError escapes record", escaped)
 restore()
 
 

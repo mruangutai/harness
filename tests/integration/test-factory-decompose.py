@@ -1491,4 +1491,28 @@ for _label, _factory in (
               code == 2 and [c for c in rec.calls if c[0] == "create_issue"] == [],
               f"code={code!r} calls={rec.calls!r} err={err!r}")
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
+
+# FEAT-64 (SC-03): extract_brief's (None, None) covers the documented shapes — missing,
+# unreadable, non-UTF-8, malformed heading, empty section — at their real classes (OSError,
+# UnicodeError); an unrelated RuntimeError inside the section parser escapes.
+with tempfile.TemporaryDirectory() as _tmp64:
+    _fd64 = os.path.join(_tmp64, "FEAT-64-x"); os.makedirs(_fd64)
+    with open(os.path.join(_fd64, "BRIEF.md"), "wb") as _f:
+        _f.write(b"\xff\xfe## Problem\nx\n## Goal\ny\n")
+    check("FEAT-64: a non-UTF-8 BRIEF is (None, None)", fd.extract_brief(_fd64) == (None, None))
+    check("FEAT-64: a missing BRIEF is (None, None)", fd.extract_brief(os.path.join(_tmp64, "nope")) == (None, None))
+    _real_section = fd._section
+    fd._section = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    with open(os.path.join(_fd64, "BRIEF.md"), "w", encoding="utf-8") as _f:
+        _f.write("## Problem\nx\n## Goal\ny\n")
+    try:
+        try:
+            fd.extract_brief(_fd64)
+            _escaped = False
+        except RuntimeError:
+            _escaped = True
+    finally:
+        fd._section = _real_section
+    check("FEAT-64: an unrelated RuntimeError escapes extract_brief", _escaped)
+
 sys.exit(1 if FAILS else 0)

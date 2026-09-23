@@ -16,6 +16,13 @@
       "ended_at": "2026-09-22T22:52:15+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-23T00:36:50+00:00"
     }
   ],
   "judgements": [
@@ -25,6 +32,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "the cause is known and the files are named, but the work adds a shared enforcement helper every hook runs under (hook_guard), ratchets the census ceilings, and mints typed errors in shared libraries that hooks then consume"
+    },
+    {
+      "at": "2026-09-23T00:36:50+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan signed df73ad56; building main-session-direct under DEC-174"
     }
   ],
   "mission": "plan",

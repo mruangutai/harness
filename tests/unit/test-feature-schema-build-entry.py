@@ -131,4 +131,30 @@ check("BE-10 membership is exact, never a prefix and never case-insensitive",
       and "FEAT-90-e-green-thing" not in feature_schema.BUILD_ENTRY_ERA_EXEMPT,
       repr(sorted(x for x in feature_schema.BUILD_ENTRY_ERA_EXEMPT if x.startswith("FEAT-01"))))
 
+
+# FEAT-64 (SC-03): the plan read is a TYPED boundary. A plan that does not parse is
+# recover-terminal (harness_yaml.YamlParseError, the loader's own class); an unrelated
+# programming defect in the loader must escape, never be read as "the plan is unusable".
+import artifact_accessors  # noqa: E402
+with tempfile.TemporaryDirectory() as tmp:
+    d = feat_dir(tmp, "FEAT-9010-fixture-bad-yaml")
+    Path(d, "plan.yaml").write_text("schema: plan/1\ntasks: [\n", encoding="utf-8")
+    got = feature_schema.recovery_command_for(d)
+    check("FEAT-64 BE-11 a plan.yaml that does not parse is recover-terminal",
+          got == "recover-terminal", repr(got))
+    _real = artifact_accessors.load_plan
+    def _boom(path):
+        raise RuntimeError("unrelated defect")
+    artifact_accessors.load_plan = _boom
+    try:
+        try:
+            feature_schema.recovery_command_for(d)
+            escaped = False
+        except RuntimeError:
+            escaped = True
+    finally:
+        artifact_accessors.load_plan = _real
+    check("FEAT-64 BE-12 an unrelated RuntimeError in the plan loader escapes recovery_command_for",
+          escaped)
+
 sys.exit(1 if failures else 0)

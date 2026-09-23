@@ -86,7 +86,7 @@ def _read_counter():
         if r.returncode != 0:
             return None
         return int(r.stdout.strip())
-    except Exception:
+    except (OSError, subprocess.SubprocessError, UnicodeError, ValueError):
         return None
 
 
@@ -143,7 +143,7 @@ def record(argv, graphql_before, graphql_after, returncode):
             if is_new:
                 f.write(json.dumps({"coverage": COVERAGE_NOTICE}) + "\n")
             f.write(json.dumps(line) + "\n")
-    except Exception:
+    except (OSError, UnicodeError, TypeError, ValueError):
         # The counter, and this log, must never be able to break a harness command.
         return
 

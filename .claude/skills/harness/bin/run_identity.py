@@ -92,7 +92,7 @@ def record_seed(run_dir, doc, identity, run_uid):
         _os.replace(temp_path, path)
         temp_path = None
         return True
-    except Exception:
+    except (OSError, UnicodeError, TypeError, ValueError):
         return False
     finally:
         if temp_path is not None:

@@ -4,6 +4,7 @@ whether a feature owes its seam notes: check-state.py's INV-17 and gh-sync.py's 
 import os
 
 import artifact_accessors
+import harness_yaml
 
 
 def exempt_reason(fdir):
@@ -46,7 +47,7 @@ def _plan_mapping(pp):
         return None, ""
     try:
         pdoc = artifact_accessors.load_plan(pp) or {}
-    except Exception as e:
+    except harness_yaml.YamlParseError as e:
         return None, f" (its plan.yaml does not parse, so no exemption could be evaluated: {e})"
     if not isinstance(pdoc, dict):
         return None, " (its plan.yaml is not a mapping, so no exemption could be evaluated)"
