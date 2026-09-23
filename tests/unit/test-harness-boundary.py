@@ -961,6 +961,46 @@ def case_run_dir_grant_globs_absent_and_garbage():
 
 # ============================== FEAT-64: hook_guard and typed lib boundaries ==============================
 
+def _raiser(exc):
+    def raise_it(*a, **k):
+        raise exc
+    return raise_it
+
+
+def _escapes(fn, exc_type=RuntimeError):
+    """True when fn() raises exc_type -- the shape every "unrelated defect escapes" claim takes."""
+    try:
+        fn()
+    except exc_type:
+        return True
+    return False
+
+
+class _patched:
+    """Temporarily rebind `name` on `holder`; the shim every boundary probe below needs."""
+    def __init__(self, holder, name, value):
+        self.holder, self.name, self.value = holder, name, value
+    def __enter__(self):
+        self.real = getattr(self.holder, self.name)
+        setattr(self.holder, self.name, self.value)
+    def __exit__(self, *exc):
+        setattr(self.holder, self.name, self.real)
+
+
+def _hook_guard_verdict(mod, fail):
+    """(return code, stderr) of hook_guard around a main that raises RuntimeError."""
+    import io, contextlib
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = mod.hook_guard(_raiser(RuntimeError("boom")), "x-hook", fail=fail)
+    return rc, err.getvalue()
+
+
+_HOOKS = ("bash-write-guard.py", "branch-create-gate.py", "check-domain.py", "dispatch-guard.py",
+          "feature-record.py", "gh-close-gate.py", "inflight_registry.py", "inject-expertise.py",
+          "merge-gate.py", "plan-sign-gate.py", "validate-digest.py")
+
+
 def case_hook_guard_contract():
     """FEAT-64 (SC-03): the ONE spelling of a hook's own-failure posture. A successful main's
     result is returned unchanged; an Exception inside main becomes the hook's verdict on its
@@ -968,33 +1008,55 @@ def case_hook_guard_contract():
     the failure; KeyboardInterrupt and SystemExit are never caught. No hook calls it yet
     (FEAT-65 wires them; SC-03's last clause)."""
     mod = hb()
-    import io, contextlib
     check("hook_guard_returns_mains_result", mod.hook_guard(lambda: 7, "x-hook") == 7)
-    err = io.StringIO()
-    with contextlib.redirect_stderr(err):
-        rc_open = mod.hook_guard(lambda: (_ for _ in ()).throw(RuntimeError("boom")), "x-hook")
+    rc_open, err = _hook_guard_verdict(mod, "open")
     check("hook_guard_open_returns_0_on_exception", rc_open == 0, repr(rc_open))
     check("hook_guard_open_names_hook_and_failure_and_passing_through",
-          "x-hook" in err.getvalue() and "RuntimeError" in err.getvalue()
-          and "passing through" in err.getvalue(), err.getvalue())
-    err = io.StringIO()
-    with contextlib.redirect_stderr(err):
-        rc_closed = mod.hook_guard(lambda: (_ for _ in ()).throw(RuntimeError("boom")), "x-hook",
-                                   fail="closed")
+          "x-hook" in err and "RuntimeError" in err and "passing through" in err, err)
+    rc_closed, err = _hook_guard_verdict(mod, "closed")
     check("hook_guard_closed_returns_2_on_exception", rc_closed == 2, repr(rc_closed))
-    check("hook_guard_closed_says_BLOCKED", "BLOCKED" in err.getvalue(), err.getvalue())
+    check("hook_guard_closed_says_BLOCKED", "BLOCKED" in err, err)
     for exc in (KeyboardInterrupt, SystemExit):
-        try:
-            mod.hook_guard(lambda e=exc: (_ for _ in ()).throw(e(3)), "x-hook")
-            escaped = False
-        except exc:
-            escaped = True
-        check(f"hook_guard_lets_{exc.__name__}_escape", escaped)
-    hooks = ["bash-write-guard.py", "branch-create-gate.py", "check-domain.py", "dispatch-guard.py",
-             "feature-record.py", "gh-close-gate.py", "inflight_registry.py", "inject-expertise.py",
-             "merge-gate.py", "plan-sign-gate.py", "validate-digest.py"]
-    callers = [h for h in hooks if "hook_guard(" in open(os.path.join(BIN, h)).read()]
+        check(f"hook_guard_lets_{exc.__name__}_escape",
+              _escapes(lambda e=exc: mod.hook_guard(_raiser(e(3)), "x-hook"), exc))
+    callers = [h for h in _HOOKS if "hook_guard(" in open(os.path.join(BIN, h)).read()]
     check("hook_guard_is_called_by_no_hook_in_FEAT-64", callers == [], repr(callers))
+
+
+def _feat64_pointer_read_checks(mod, tmp):
+    import builtins
+    wt = os.path.join(tmp, ".git", "worktrees", "w1"); os.makedirs(wt)
+    with open(os.path.join(wt, "gitdir"), "wb") as fh:
+        fh.write(b"\xff\xfe")
+    check("linked_worktrees_skips_a_non_utf8_pointer", mod.linked_worktrees(tmp) == [])
+    orig = builtins.open
+    def boom(*a, **k):
+        if str(a[0]).endswith("gitdir"):
+            raise RuntimeError("unrelated")
+        return orig(*a, **k)
+    with _patched(builtins, "open", boom):
+        check("linked_worktrees_lets_an_unrelated_RuntimeError_escape",
+              _escapes(lambda: mod.linked_worktrees(tmp)))
+
+
+def _feat64_fleet_checks(mod, tmp):
+    import io, contextlib
+    fdir = os.path.join(tmp, ".harness", "factory"); os.makedirs(fdir)
+    with open(os.path.join(fdir, "fleet.yaml"), "w") as fh:
+        fh.write("schema: factory-fleet/1\nrepos: [\n")
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err):
+            mod.resolve_fleet(tmp, "x-hook")
+        code = None
+    except SystemExit as e:
+        code = e.code
+    check("resolve_fleet_blocks_exit_2_on_a_fleet_that_does_not_load",
+          code == 2 and "does not load" in err.getvalue(), f"{code} {err.getvalue()[:120]}")
+    with _patched(mod.artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
+        with contextlib.redirect_stderr(io.StringIO()):
+            check("resolve_fleet_lets_an_unrelated_RuntimeError_escape",
+                  _escapes(lambda: mod.resolve_fleet(tmp, "x-hook")))
 
 
 def case_feat64_lib_boundaries_are_typed():
@@ -1003,66 +1065,12 @@ def case_feat64_lib_boundaries_are_typed():
     mod = hb()
     tmp = tempfile.mkdtemp()
     try:
-        wt = os.path.join(tmp, ".git", "worktrees", "w1"); os.makedirs(wt)
-        with open(os.path.join(wt, "gitdir"), "wb") as fh:
-            fh.write(b"\xff\xfe")
-        check("linked_worktrees_skips_a_non_utf8_pointer", mod.linked_worktrees(tmp) == [])
-        real_open = mod.open if hasattr(mod, "open") else None
-        import builtins
-        orig = builtins.open
-        def boom(*a, **k):
-            if str(a[0]).endswith("gitdir"):
-                raise RuntimeError("unrelated")
-            return orig(*a, **k)
-        builtins.open = boom
-        try:
-            try:
-                mod.linked_worktrees(tmp); escaped = False
-            except RuntimeError:
-                escaped = True
-        finally:
-            builtins.open = orig
-        check("linked_worktrees_lets_an_unrelated_RuntimeError_escape", escaped)
-
-        harness_dir = os.path.join(tmp, ".harness"); os.makedirs(harness_dir, exist_ok=True)
-        real_md = mod.artifact_accessors.manifest_domains
-        mod.artifact_accessors.manifest_domains = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
-        try:
-            try:
-                mod.run_dir_grant_globs(tmp); escaped = False
-            except RuntimeError:
-                escaped = True
-        finally:
-            mod.artifact_accessors.manifest_domains = real_md
-        check("run_dir_grant_globs_lets_an_unrelated_RuntimeError_escape", escaped)
-
-        fdir = os.path.join(harness_dir, "factory"); os.makedirs(fdir)
-        with open(os.path.join(fdir, "fleet.yaml"), "w") as fh:
-            fh.write("schema: factory-fleet/1\nrepos: [\n")
-        import io, contextlib
-        err = io.StringIO()
-        try:
-            with contextlib.redirect_stderr(err):
-                mod.resolve_fleet(tmp, "x-hook")
-            code = None
-        except SystemExit as e:
-            code = e.code
-        check("resolve_fleet_blocks_exit_2_on_a_fleet_that_does_not_load",
-              code == 2 and "does not load" in err.getvalue(), f"{code} {err.getvalue()[:120]}")
-        real_lf = mod.artifact_accessors.load_fleet
-        mod.artifact_accessors.load_fleet = lambda p: (_ for _ in ()).throw(RuntimeError("unrelated"))
-        try:
-            try:
-                with contextlib.redirect_stderr(io.StringIO()):
-                    mod.resolve_fleet(tmp, "x-hook")
-                escaped = False
-            except RuntimeError:
-                escaped = True
-            except SystemExit:
-                escaped = False
-        finally:
-            mod.artifact_accessors.load_fleet = real_lf
-        check("resolve_fleet_lets_an_unrelated_RuntimeError_escape", escaped)
+        _feat64_pointer_read_checks(mod, tmp)
+        os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
+        with _patched(mod.artifact_accessors, "manifest_domains", _raiser(RuntimeError("unrelated"))):
+            check("run_dir_grant_globs_lets_an_unrelated_RuntimeError_escape",
+                  _escapes(lambda: mod.run_dir_grant_globs(tmp)))
+        _feat64_fleet_checks(mod, tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -1115,32 +1123,39 @@ def case_run_dir_forms():
 
 
 
-def main():
-    run_case(case_marker_constant)
-    run_case(case_root_from_script)
-    run_case(case_resolve_root_strict)
-    run_case(case_resolve_root_override_normalises_relative)
-    run_case(case_root_above)
-    run_case(case_worktree_for_feature)
-    run_case(case_changed_state_feedback)
-    run_case(case_feature_artifact_checkout_mismatch)
-    run_case(case_feature_artifact_checkout_mismatch_ambiguous)
-    run_case(case_load_repo_module_registration)
-    run_case(case_load_repo_module_failures)
-    run_case(case_bug1304_claim_set)
-    run_case(case_real_keeps_one_namespace_when_unresolvable)
-    run_case(case_run_identity_pattern)
-    run_case(case_tests_are_target_side_control_plane_only)
-    run_case(case_run_dir_grant_globs_uses_aggregated_accessor)
-    run_case(case_run_dir_grant_globs_live_shape)
-    run_case(case_run_dir_grant_globs_synthetic)
-    run_case(case_run_dir_grant_globs_absent_and_garbage)
-    run_case(case_run_dir_refs)
-    run_case(case_run_dir_slug_ok)
-    run_case(case_run_dir_forms)
-    run_case(case_hook_guard_contract)
-    run_case(case_feat64_lib_boundaries_are_typed)
+# THE REGISTRATION IS DATA, NOT CONTROL FLOW (FEAT-64): a flat list of calls cost main a grade
+# point per case; iterating a tuple costs one however long it grows.
+CASES = (
+    case_marker_constant,
+    case_root_from_script,
+    case_resolve_root_strict,
+    case_resolve_root_override_normalises_relative,
+    case_root_above,
+    case_worktree_for_feature,
+    case_changed_state_feedback,
+    case_feature_artifact_checkout_mismatch,
+    case_feature_artifact_checkout_mismatch_ambiguous,
+    case_load_repo_module_registration,
+    case_load_repo_module_failures,
+    case_bug1304_claim_set,
+    case_real_keeps_one_namespace_when_unresolvable,
+    case_run_identity_pattern,
+    case_tests_are_target_side_control_plane_only,
+    case_run_dir_grant_globs_uses_aggregated_accessor,
+    case_run_dir_grant_globs_live_shape,
+    case_run_dir_grant_globs_synthetic,
+    case_run_dir_grant_globs_absent_and_garbage,
+    case_run_dir_refs,
+    case_run_dir_slug_ok,
+    case_run_dir_forms,
+    case_hook_guard_contract,
+    case_feat64_lib_boundaries_are_typed,
+)
 
+
+def main():
+    for case in CASES:
+        run_case(case)
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

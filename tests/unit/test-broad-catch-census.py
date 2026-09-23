@@ -73,8 +73,17 @@ def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
           above is not None and "bin/check-domain.py" in above and str(ceiling + 1) in above
           and f"ceiling {ceiling}" in above, above)
     check("check-state.py's ceiling is zero", mod.BROAD_CATCH_CEILINGS["check-state.py"] == 0)
-    # FEAT-64 (SC-04): the wave-4 libs and tools carry NO allowance -- absent from the table or
-    # explicitly zero -- and harness_boundary.py's two designed catches are the whole budget.
+    check("a script absent from the allowlist has a zero ceiling",
+          mod._broad_catch_finding("bin/new.py", "new.py", 0) is None
+          and "ceiling 0" in (mod._broad_catch_finding("bin/new.py", "new.py", 1) or ""))
+    unparsed = mod._broad_catch_finding("bin/x.py", "x.py", None)
+    check("an unparseable script is its own finding", unparsed is not None and "cannot parse" in unparsed, unparsed)
+
+
+def case_feat64_wave4_ceilings_are_zero():
+    """FEAT-64 (SC-04): the wave-4 libs and tools carry NO allowance -- absent from the table or
+    explicitly zero -- and harness_boundary.py's two designed catches are the whole budget."""
+    mod = cpr()
     for name in ("factory_decompose.py", "feature_schema.py", "gh_cost_log.py", "handoff_done_when.py",
                  "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
                  "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
@@ -85,11 +94,6 @@ def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
           mod.BROAD_CATCH_CEILINGS.get("harness_boundary.py") == 2)
     check("FEAT-64: a third harness_boundary.py broad catch is a finding against two",
           "ceiling 2" in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or ""))
-    check("a script absent from the allowlist has a zero ceiling",
-          mod._broad_catch_finding("bin/new.py", "new.py", 0) is None
-          and "ceiling 0" in (mod._broad_catch_finding("bin/new.py", "new.py", 1) or ""))
-    unparsed = mod._broad_catch_finding("bin/x.py", "x.py", None)
-    check("an unparseable script is its own finding", unparsed is not None and "cannot parse" in unparsed, unparsed)
 
 
 def _call(src):
@@ -121,6 +125,7 @@ def case_spawn_resource_reads_git_and_gh_through_run_and_spawn():
 def main():
     case_broad_catch_count_counts_exactly_the_two_syntaxes()
     case_broad_catch_finding_compares_a_file_to_its_own_ceiling()
+    case_feat64_wave4_ceilings_are_zero()
     case_spawn_resource_reads_git_and_gh_through_run_and_spawn()
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
