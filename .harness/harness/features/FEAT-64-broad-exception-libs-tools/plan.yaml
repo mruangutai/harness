@@ -32,7 +32,8 @@ panel:
     reader: scope
     kind: substance
     summary: T-01 freezes an unsettled hook_guard diagnostic contract.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-01
   - id: PF-0f6f38f647d0a4ccb9fecd14350a1e1c
     severity: med
     reader: should-not-exist
@@ -40,7 +41,8 @@ panel:
     summary: T-03's two shared-source reparse mutants demand a red-first finding the
       existing detector cannot emit, forcing unrequested detector-scope expansion
       or an unbuildable requirement.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-a7995df8d4353b1784e178552d9b3e18
     severity: low
     reader: should-not-exist
@@ -48,7 +50,8 @@ panel:
     summary: Per-boundary KeyboardInterrupt/SystemExit escape cases across T-01's
       ~24 narrowed sites are largely interpreter-semantics tests duplicating the RuntimeError-escape
       coverage.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-01
     scope: task
 lanes:
   resolved_at: a4a3d7f8e9b91181fb6cc3ae058df8e02275d983
@@ -87,7 +90,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns Harness shared libraries and their unit and integration proof directly to the main session.
     depends_on: []
-    status: ready
+    status: review
     files:
       - .claude/skills/harness/bin/factory_decompose.py#extract_brief
       - .claude/skills/harness/bin/factory_gh.py#run_gh
@@ -134,7 +137,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps the Harness tools, their receipt suites, and their typed-boundary cutover in one direct sequential change.
     depends_on: [T-01]
-    status: ready
+    status: review
     files:
       - .claude/skills/harness/bin/board-station.py#main
       - .claude/skills/harness/bin/check-omp-port.py#runtime_pin_errors
@@ -175,7 +178,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 directly governs the route validator, its AST census and mutants, and the final implementation evidence.
     depends_on: [T-01, T-02]
-    status: ready
+    status: review
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#BROAD_CATCH_CEILINGS
       - tests/unit/test-broad-catch-census.py
