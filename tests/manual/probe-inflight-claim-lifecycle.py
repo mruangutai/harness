@@ -84,6 +84,7 @@ CHILD_PREAMBLE = (
 ).format(feature=FEATURE, root=ROOT)
 
 sys.path.insert(0, str(BIN))
+import harness_boundary  # noqa: E402  (the root resolver every gate uses)
 import inflight_registry  # noqa: E402  (the registry under test, from this worktree)
 
 RESULTS: list[tuple[str, bool, object]] = []
@@ -164,9 +165,9 @@ def check_checkout() -> None:
 
 
 def check_no_substitution() -> None:
-    project = os.environ.get("HARNESS_PROJECT_DIR")
-    check("no fixture substitution: HARNESS_PROJECT_DIR is unset or this worktree",
-          project is None or os.path.realpath(project) == os.path.realpath(ROOT), project)
+    resolved = harness_boundary.resolve_root(str(BIN), strict=False)
+    check("no fixture substitution: the gates resolve their root to this worktree",
+          os.path.realpath(resolved) == os.path.realpath(ROOT), resolved)
     check("no fixture substitution: VALIDATE_DIGEST_BIN is unset",
           "VALIDATE_DIGEST_BIN" not in os.environ, os.environ.get("VALIDATE_DIGEST_BIN"))
     check("the hook under test is this worktree's",

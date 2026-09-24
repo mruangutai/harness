@@ -17,7 +17,7 @@ Live mode refuses to start in any of these cases:
 - `omp` is missing or is not the pinned runtime (`.omp/runtime-pin.json`).
 - There is no credential for the model's provider.
 - The cwd is not this worktree, or `feature_root` does not place the feature here.
-- `HARNESS_PROJECT_DIR` or `VALIDATE_DIGEST_BIN` is set to substitute a fixture.
+- the gates resolve their root anywhere but this worktree, or `VALIDATE_DIGEST_BIN` substitutes a validator.
 - The feature registry holds any row. Do the cutover first, per `ship-checklist.md`.
 
 A scenario that runs but is not observed is a FAIL.
