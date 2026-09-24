@@ -161,3 +161,16 @@ Rulings are the grilling's (`.harness/notes/grilling-broad-exception-hooks-feat6
 - `feature-record.py propose-rework`: `harness_yaml.YamlParseError` keeps `REFUSED: <plan> does not load`; anything else is a traceback, exit 1 (SC-09: `test_an_unexpected_defect_stays_loud_and_nonzero`).
 - `inflight_registry.py`: `/proc` probes `(OSError, ValueError, IndexError, StopIteration)`; `ps` `(OSError, subprocess.SubprocessError, ValueError)` → `None`; `feature_root` `(AmbiguousWorktree, OSError)` → owner root. No entrypoint guard (SC-10: "feat65: the direct feature-root command stays loud and nonzero on a defect").
 - `dispatch-guard.py` bootstrap probe: `ImportError` / `(ArtifactAccessError, YamlParseError, OSError, ValueError)` → status "1"; tool-grant read `(OSError, ValueError, IndexError)`; registry import `ImportError`.
+
+## validate c1 fixes
+
+### D-15 · `branch-create-gate.py` `_CONFIG_READER` (CR-01) — no byte change
+
+- The embedded compatibility program's `except Exception:` → `except (OSError, ValueError, AttributeError):`
+  (no file, not JSON, a top-level document with no `.get`). Same `false -` on those; a `github:` block that
+  is not a mapping keeps its traceback — the exceptional path the gate runs this program FOR.
+- `check-plan-routes._broad_catch_count` now counts handlers inside string constants that parse as
+  Python and carry a `try` (programs handed to another interpreter). Baseline `branch-create-gate.py`
+  counts 5 under it (4 own + 1 embedded); the pin counts 0.
+- re-pinned by: `test-branch-create-gate.py` `run_feat65_config_reader` (four recoveries + the traceback
+  path); `test-broad-catch-census.py` `case_feat65_census_reads_executable_embedded_python`.
