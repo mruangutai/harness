@@ -2204,19 +2204,22 @@ def _is_broad_catch(handler):
     return handler.type is None or (isinstance(handler.type, ast.Name) and handler.type.id == "Exception")
 
 
+def _parsed_program(text):
+    """`text` as a Python module when it is one and carries a try statement, else None."""
+    try:
+        inner = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return None
+    return inner if any(isinstance(n, ast.Try) for n in ast.walk(inner)) else None
+
+
 def _embedded_programs(tree):
     """String constants that parse as Python and carry a try statement: programs the script hands
     to another interpreter (`python3 -I -c`, `python3 -`), whose handlers are as real as its own
     (FEAT-65 c1, CR-01). Prose and docstrings do not parse into a try and are skipped."""
-    for node in ast.walk(tree):
-        if not (isinstance(node, ast.Constant) and isinstance(node.value, str) and "except" in node.value):
-            continue
-        try:
-            inner = ast.parse(node.value)
-        except (SyntaxError, ValueError):
-            continue
-        if any(isinstance(n, ast.Try) for n in ast.walk(inner)):
-            yield inner
+    strings = (node.value for node in ast.walk(tree)
+               if isinstance(node, ast.Constant) and isinstance(node.value, str) and "except" in node.value)
+    return [program for program in map(_parsed_program, strings) if program is not None]
 
 
 def _broad_catch_count(path):
