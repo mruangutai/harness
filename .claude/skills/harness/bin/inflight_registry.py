@@ -154,7 +154,8 @@ def _read_process_start_time(pid):
         with open("/proc/stat", "rb") as handle:
             boot = next(l for l in handle if l.startswith(b"btime "))
         return int(float(boot.split()[1]) + float(tail[19]) / os.sysconf("SC_CLK_TCK"))
-    except Exception:
+    except (OSError, ValueError, IndexError, StopIteration):
+        # No /proc, an unreadable or short stat line, or no btime row (FEAT-65).
         pass
     try:
         # macOS and anything else without /proc. One fork per distinct pid per run.
@@ -170,7 +171,9 @@ def _read_process_start_time(pid):
                              env={**os.environ, "LC_ALL": "C", "LC_TIME": "C"})
         line = out.stdout.strip()
         return int(time.mktime(time.strptime(line, "%a %b %d %H:%M:%S %Y"))) if line else None
-    except Exception:
+    except (OSError, subprocess.SubprocessError, ValueError):
+        # No ps, a ps that failed or timed out, or a start time that does not parse
+        # (FEAT-65). None: liveness falls to the 24-hour backstop.
         return None
 
 
@@ -314,7 +317,7 @@ def feature_root(owner_root, feature):
     """Resolve the checkout assigned to `feature`, falling back to the supplied owner root."""
     try:
         resolved = harness_boundary.worktree_for_feature(owner_root, feature)
-    except Exception:
+    except (harness_boundary.AmbiguousWorktree, OSError):
         return owner_root
     return resolved if resolved is not None else owner_root
 

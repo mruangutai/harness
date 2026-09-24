@@ -16,20 +16,41 @@ contracts exactly; it does not redesign the enforcement body.
 import os as _bootstrap_os
 import sys as _bootstrap_sys
 
-_bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
-_bootstrap_derived = _bootstrap_os.path.abspath(
-    _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
+if __name__ == "__main__":
+    _bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+    _bootstrap_derived = _bootstrap_os.path.abspath(
+        _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
 
-# Bash command substitution stripped every trailing newline from the old payload.
-_bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
-_bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
-_bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
-_bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
-    _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
+    # Bash command substitution stripped every trailing newline from the old payload.
+    _bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
+    _bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
+    _bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
+    _bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
+        _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
 
-# Preserve the synthetic argv shape consumed by the former heredoc body.
-_bootstrap_sys.argv = [
-    _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_selfdir]
+    # Preserve the synthetic argv shape consumed by the former heredoc body.
+    _bootstrap_sys.argv = [
+        _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_selfdir]
+
+    # THE HOOK'S OWN-FAILURE POSTURE IS harness_boundary.hook_guard (FEAT-65), wired exactly
+    # as check-domain.py wires it — see the note there. The body below is module-level flow,
+    # so the guard wraps its EXECUTION: this process runs the bootstrap once, then re-runs
+    # this file as module `bash_write_guard_body`, under whose name the bootstrap is skipped. A tree
+    # without harness_boundary.py runs unguarded, as before (the isolated-copy fixture).
+    _bootstrap_sys.path.insert(0, _bootstrap_selfdir)
+    try:
+        import harness_boundary as _bootstrap_boundary
+    except (ImportError, SyntaxError):
+        _bootstrap_boundary = None
+    if _bootstrap_boundary is not None:
+        import runpy as _bootstrap_runpy
+
+        def _bootstrap_body():
+            _bootstrap_runpy.run_path(__file__, run_name="bash_write_guard_body")
+            return 0
+
+        _bootstrap_sys.exit(_bootstrap_boundary.hook_guard(_bootstrap_body, "bash-write-guard"))
+
 import sys, os, re, json, shlex, ast
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
@@ -60,15 +81,19 @@ def _root():
     """
     try:
         import harness_boundary as _hb_root
-    except Exception:
+    except (ImportError, SyntaxError):
         return _derived
     return _hb_root.resolve_root(_bin_dir, strict=False)
 
+# THE IMPORT STAYS INSIDE (FEAT-65): the absent-manifest fixture copies this script alone,
+# and that tree must still reach DEC-151's fail-open rather than crash on a missing sibling.
 try:
     import artifact_accessors as _artifact_accessors
     d = _artifact_accessors.read_hook_payload(
         os.environ.get("HOOK_PAYLOAD") or "", "bash-write-guard hook payload")
-except Exception:
+except ImportError:
+    sys.exit(0)
+except _artifact_accessors.ArtifactAccessError:
     sys.exit(0)
 
 # MOVED UP (FEAT-30 T-05), verbatim and unchanged. The HEAD-move rule below runs
@@ -274,7 +299,7 @@ import artifact_accessors
 # the tier that repairs the file is never blocked by it.
 try:
     import harness_boundary
-except Exception as _be:
+except (ImportError, SyntaxError) as _be:
     print("bash-write-guard: BLOCKED — the boundary module harness_boundary.py could "
           "not be imported, so no domain can be checked.", file=sys.stderr)
     print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
@@ -804,7 +829,9 @@ def feature_checkout_guard(rel, absolute_path):
     AN ADAPTER (FEAT-61 T-03): the path question is
     harness_boundary.feature_artifact_checkout_mismatch, shared with check-domain.py so the
     binding rule cannot drift between the two routes. This function owns only the
-    refusal: deny()'s wording and exit, and the absorption below.
+    refusal: deny()'s wording and exit. Its absorbing `except` is gone (FEAT-65): a defect in
+    the narrowing check reaches the hook's one guard, which passes through at exit 0 and says
+    so — the already-computed allowance still stands, and now loudly.
     """
     feature_id = harness_boundary.feature_artifact_id(rel)
     if feature_id is None:
@@ -819,16 +846,19 @@ def feature_checkout_guard(rel, absolute_path):
     except harness_boundary.AmbiguousWorktree as exc:
         deny(f"{absolute_path} belongs to feature {feature_id}, but its worktree is "
              f"ambiguous: {exc}")
-    except Exception:
-        # Absorbing: preserve the already-computed allowance rather than crashing to an
-        # exit code the host does not treat as a refusal.
-        return
 
 
 def claim_checkout_guard(destination):
-    """Bind an in-repository Bash write to the agent's live claim worktrees."""
+    """Bind an in-repository Bash write to the agent's live claim worktrees.
+
+    The registry's explicit unreadable result is the one failure this rule answers (FEAT-65);
+    it used to be recovered by a nested classifier under a broad catch whose fall-through
+    printed its own pass-through sentence. Anything else the lookup raises is a defect and
+    reaches the hook's one guard.
+    """
     if not agent or not agent.startswith("harness-"):
         return []
+    import inflight_registry
     destination = harness_boundary.real(destination)
     if not harness_boundary.inside(destination, harness_boundary.real(root)):
         return []
@@ -842,23 +872,10 @@ def claim_checkout_guard(destination):
         )
     except harness_boundary.AmbiguousWorktree as exc:
         deny_bare(f"{agent} has an ambiguous worktree claim: {exc}")
-    except Exception as exc:
-        try:
-            import inflight_registry
-            if isinstance(exc, inflight_registry.UnreadableRegistry):
-                deny_bare(harness_boundary.claim_set_refusal(
-                    agent, [], destination, unreadable_paths=exc.paths
-                ))
-        except SystemExit:
-            raise
-        except Exception:
-            pass
-        print(
-            "bash-write-guard: claim-worktree boundary was not enforced; passing "
-            f"through because the guard failed internally: {exc}",
-            file=sys.stderr,
-        )
-        return []
+    except inflight_registry.UnreadableRegistry as exc:
+        deny_bare(harness_boundary.claim_set_refusal(
+            agent, [], destination, unreadable_paths=exc.paths
+        ))
     if not claim_set:
         return []
     if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):

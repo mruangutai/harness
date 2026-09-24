@@ -22,6 +22,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -224,6 +225,23 @@ def run_assertion_6():
               False, f"stdout={payload_result.stdout!r} stderr={payload_result.stderr!r}")
 
 
+def run_feat65():
+    """FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
+    (traceback, nonzero), never a silent pass-through; the DEC-234 prologue absorbs only a
+    missing module or a strict "no root" refusal."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(os.path.dirname(GATE), mbin)
+    with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as f:
+        f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
+    r = subprocess.run([os.path.join(mbin, "branch-create-gate.py")],
+                       input=json.dumps({"tool_input": {"command": "git checkout -b x"}}),
+                       capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=REPO_ROOT, HARNESS_PROJECT_DIR=REPO_ROOT))
+    check("FEAT-65: an unexpected resolver defect is loud and nonzero, not absorbed by the prologue",
+          r.returncode not in (0, 2) and "FEAT-65 injected" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+
+
 def main():
     run_assertion_1()
     run_assertion_2()
@@ -231,6 +249,7 @@ def main():
     run_assertion_4()
     run_assertion_5()
     run_assertion_6()
+    run_feat65()
 
     fails = 0
     for name, ok, detail in RESULTS:

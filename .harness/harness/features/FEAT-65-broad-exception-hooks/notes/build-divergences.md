@@ -122,3 +122,42 @@ Rulings are the grilling's (`.harness/notes/grilling-broad-exception-hooks-feat6
   `(OSError, subprocess.SubprocessError, ValueError)`. Site 18: `(AttributeError, OSError, ValueError)`.
 - The direct CLI (`validate-digest.py <persona> [file]`) is not wrapped: "[feat65] the direct CLI is
   not wrapped: a validator defect is loud and nonzero".
+
+## T-03 the nine hooks
+
+### D-10 · bash-write-guard claim rule's own pass-through sentence (site 5/6) — R1
+
+- old (stderr, exit 0): `bash-write-guard: claim-worktree boundary was not enforced; passing through because the guard failed internally: <exc>`
+- new (stderr, exit 0): `bash-write-guard: the hook failed internally (<Type>: <msg>) — passing through; this is not a pass, nothing was checked.`
+- re-pinned by: `tests/integration/test-bash-write-guard.py` — "[feat65] a defect in the claim rule is no longer classified locally: it is named on stderr". `UnreadableRegistry` keeps its `deny_bare` refusal.
+
+### D-11 · bash-write-guard feature-checkout rule's silent absorb (site 4) — R2
+
+- old: exit 0, nothing printed. new: exit 0 and the template line.
+- re-pinned by: "[feat61] an unexpected core failure passes through hook_guard, named, and the allowance stands".
+
+### D-12 · dispatch-guard's four own-failure sentences — R1
+
+- `run-dir shape check failed (<Type>: <msg>) -- passing through.` (site 4), `could not resolve the checkout for <feat> (<exc>) — no claim recorded.` (site 6), `feature tree resolver failed (<exc>) -- passing through.` (site 8): deleted — the helpers behind them raise nothing of their own (`linked_worktrees` and `worktree_for_feature` absorb their filesystem failures; the run-dir vocabulary helpers are pure), so each was for defects only. A defect now prints the template line, exit 0.
+- `claim step failed (<Type>: <msg>) — passing through, the dispatch is NOT blocked.` (site 9): kept for `UnreadableRegistry`, `harness_merge.MergeRefusal`, `OSError`; any other class → template line, exit 0.
+- `unreadable hook payload (<detail>) — passing through.` (site 2): kept for `ArtifactAccessError`; a missing `artifact_accessors` is now a defect (template line) rather than "unreadable payload".
+- re-pinned by: `tests/integration/test-dispatch-guard.py` — "feat65: a claim-step defect passes through hook_guard, named" / "feat65: the registry's own unreadable class keeps the typed claim-step sentence".
+
+### D-13 · merge-gate's two "could not evaluate … receipt" denials (sites 4/5) — R1, CLOSED form
+
+- old (stdout, exit 0): `{"hookSpecificOutput": {…"permissionDecision": "deny", "permissionDecisionReason": "merge-gate: could not evaluate <feat>'s Build-entry receipt, so this merge is denied. …"}}` (and the feature-less twin).
+- new: site 4 deleted; site 5 kept for `(ImportError, OSError)` (feature_schema missing, git failing to run). Any other class → `hook_guard(main, "merge-gate", fail="closed")`: stderr `merge-gate: BLOCKED — the hook failed internally (<Type>: <msg>); enforcement is CLOSED rather than partial.`, exit 2, no decision JSON. The host treats exit 2 as blocked, so the verdict is unchanged; the channel moved from the decision JSON to stderr.
+- re-pinned by: `tests/integration/test-merge-gate.py` — "FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named".
+
+### D-14 · four DEC-234 prologues — no byte change; byte-identical to run-unit-tests.py's
+
+- `branch-create-gate.py`, `gh-close-gate.py`, `merge-gate.py`, `plan-sign-gate.py`: `except Exception:` → the reference `except (ModuleNotFoundError, ValueError):` with the FEAT-64 comment moved verbatim; branch-create-gate additionally spells its imports `_bootstrap_contextlib`/`_bootstrap_io` and its docstring as the reference does (the copy had drifted). A resolver defect now escapes (traceback, exit 1); re-pinned by one "FEAT-65: an unexpected resolver defect is loud and nonzero" case per gate.
+
+### Narrowings with no byte change (SC-06)
+
+- `branch-create-gate.py` config load/shape/command: `ArtifactAccessError` / `AttributeError` / `AttributeError`.
+- `gh-close-gate.py`, `plan-sign-gate.py`: `ArtifactAccessError` at their config/payload reads.
+- `inject-expertise.py`: root `(ImportError, ValueError)`; payload `ImportError` / `ArtifactAccessError`.
+- `feature-record.py propose-rework`: `harness_yaml.YamlParseError` keeps `REFUSED: <plan> does not load`; anything else is a traceback, exit 1 (SC-09: `test_an_unexpected_defect_stays_loud_and_nonzero`).
+- `inflight_registry.py`: `/proc` probes `(OSError, ValueError, IndexError, StopIteration)`; `ps` `(OSError, subprocess.SubprocessError, ValueError)` → `None`; `feature_root` `(AmbiguousWorktree, OSError)` → owner root. No entrypoint guard (SC-10: "feat65: the direct feature-root command stays loud and nonzero on a defect").
+- `dispatch-guard.py` bootstrap probe: `ImportError` / `(ArtifactAccessError, YamlParseError, OSError, ValueError)` → status "1"; tool-grant read `(OSError, ValueError, IndexError)`; registry import `ImportError`.

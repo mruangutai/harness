@@ -9,6 +9,8 @@ WAS A .sh (issue #1674). The shell version spread one decision across root, conf
 payload and output interpreter launches plus external text filters. This native entry
 point preserves those contracts while making the policy visible to Python tooling.
 """
+import contextlib as _bootstrap_contextlib
+import io as _bootstrap_io
 import os as _bootstrap_os
 import site as _bootstrap_site
 import sys as _bootstrap_sys
@@ -48,13 +50,16 @@ import subprocess
 # trusted bin path is on sys.path, so no helper can be imported to hold it — the code below IS
 # what creates the import seam. Change all five together; never replace one with an import.
 def _resolve_root():
-    """Resolve through the trusted sibling while preserving suppressed diagnostics."""
+    """Resolve through the trusted sibling with isolated import semantics."""
     try:
         _bootstrap_sys.path.insert(0, _bootstrap_bin)
-        with contextlib.redirect_stderr(io.StringIO()):
+        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
             import harness_boundary
             return harness_boundary.resolve_root(_bootstrap_bin)
-    except Exception:
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
         return ""
 
 
@@ -89,11 +94,12 @@ def _github_config():
             root, ".harness", "harness.json")
         github = (
             _artifact_accessors.load_harness_json(config_path).get("github") or {})
-    except Exception:
+    except _artifact_accessors.ArtifactAccessError:
         github = {}
     try:
         return str(bool(github.get("sync"))).lower(), github.get("repo") or "-"
-    except Exception:
+    except AttributeError:
+        # A `github:` block that is not a mapping has no .get (FEAT-65).
         # As with malformed hook input, the old helper exposed its traceback while
         # the shell itself continued and self-gated. Preserve that exceptional path
         # without paying for another interpreter on a valid configuration.
@@ -124,7 +130,9 @@ def _command():
         # The shell gate ignored malformed JSON but exposed the helper's stderr.
         # Duplicate keys are valid stdlib JSON yet invalid hook payloads, so they
         # stop here rather than being reparsed by the compatibility helper.
-    except Exception:
+    except AttributeError:
+        # A tool_input that is not a mapping has no .get: the compatibility helper below
+        # answers it exactly as the shell gate did (FEAT-65).
         pass
     result = subprocess.run(
         [_bootstrap_sys.executable, "-I", "-c", _COMMAND_EXTRACTOR],

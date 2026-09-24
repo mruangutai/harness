@@ -73,7 +73,10 @@ def _resolve_root():
         with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
             import harness_boundary
             return harness_boundary.resolve_root(_bootstrap_bin)
-    except Exception:
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
         return ""
 
 
@@ -160,7 +163,7 @@ REASON = reason(TOOL, (VERB,))
 try:
     payload = _artifact_accessors.read_hook_payload(
         sys.stdin.read(), "plan-sign-gate hook payload")
-except Exception:
+except _artifact_accessors.ArtifactAccessError:
     sys.exit(0)
 
 # AN ABSENT OR EMPTY agent_type IS THE MAIN SESSION, and that exemption is the mechanism

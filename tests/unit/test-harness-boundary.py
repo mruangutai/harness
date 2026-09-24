@@ -1020,7 +1020,12 @@ def case_hook_guard_contract():
         check(f"hook_guard_lets_{exc.__name__}_escape",
               _escapes(lambda e=exc: mod.hook_guard(_raiser(e(3)), "x-hook"), exc))
     callers = [h for h in _HOOKS if "hook_guard(" in open(os.path.join(BIN, h)).read()]
-    check("hook_guard_is_called_by_no_hook_in_FEAT-64", callers == [], repr(callers))
+    # FEAT-65: the five hooks whose classification routes an own-failure path through the
+    # guard call it; the typed-only programs — the two authoritative direct commands
+    # (SC-09/SC-10) and the four DEC-234 gates — do not.
+    check("hook_guard_is_called_by_exactly_the_five_guarded_hooks",
+          callers == ["bash-write-guard.py", "check-domain.py", "dispatch-guard.py",
+                      "merge-gate.py", "validate-digest.py"], repr(callers))
 
 
 def _feat64_pointer_read_checks(mod, tmp):
