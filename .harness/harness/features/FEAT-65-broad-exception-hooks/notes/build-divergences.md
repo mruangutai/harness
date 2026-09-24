@@ -77,3 +77,48 @@ Rulings are the grilling's (`.harness/notes/grilling-broad-exception-hooks-feat6
   `re.error`; the two KeyError contract cases in `test-check-domain.py` are unchanged.
 - Site 24 (dirty check): the internal `raise RuntimeError(_r.stderr)` became `check=True`
   (`CalledProcessError`), caught with `(OSError, SubprocessError, ValueError)`; `_found = None` as before.
+
+## T-02 `validate-digest.py` (hook name `check-digest`)
+
+### D-06 · unreadable hook payload (site 12) — R1
+
+- old (stderr, exit 0): `check-digest: unreadable hook payload (<e>) — passing through.`
+- new (stderr, exit 0): `check-digest: the hook failed internally (ArtifactAccessError: SubagentStop hook payload: invalid JSON: <detail>) — passing through; this is not a pass, nothing was checked.`
+- re-pinned by: `tests/integration/test-validate-digest.py` — "[feat65] an unreadable payload is the
+  hook's own failure and takes the same template"; the canonical-reader duplicate-key audit
+  (`_duplicate_hook_payload_failures`) re-pinned to the template's `ArtifactAccessError:` prefix.
+
+### D-07 · returned-digest own failure (site 17) — R1
+
+- old (stderr, exit 0): `check-digest: internal error validating <agent>'s return (<e!r>) — passing through; this is our bug, not theirs.`
+- new: the template line, exit 0. `GatePolicyError` keeps `check-digest: <error>`, exit 2.
+- re-pinned by: "[feat65] a defect reading the payload passes through with exactly the hook_guard
+  line" (exact stderr) and "[feat65] a defect in the registry errand is no longer reported in its
+  own sentence" (an unrelated defect anywhere in hook mode).
+
+### D-08 · durable-copy own failure (site 9) — R1
+
+- old (stderr, exit 0): `check-digest: internal error validating <found> (<e!r>) — passing through; this is our bug, not theirs.`
+- new: the template line, exit 0 (the same guard; `check_artifact_file` is reached from hook mode only).
+- no pre-existing case pinned the old sentence; covered by the guard cases above.
+
+### D-09 · registry errand sentences (sites 13–16) — kept for their real classes, R1 otherwise
+
+- `inflight_registry unavailable (...)` — kept for `ImportError` only.
+- `could not read children of <agent> (...)` / `could not release <agent>'s claim (...)` — kept for
+  `UnreadableRegistry`, `harness_merge.MergeRefusal`, `OSError` (what `_update_registry` raises).
+- `could not compose the release command (...)` — kept for `(AttributeError, TypeError, ValueError)`.
+- any other class in those errands: template line, exit 0 (was the local sentence + the verdict
+  continuing). Re-pinned by "[feat65] a defect in the registry errand …" (asserts the old
+  "Not blocking on our own errand" sentence is absent).
+
+### Narrowings with no byte change (SC-06)
+
+- Site 1: `(OSError, subprocess.SubprocessError, ValueError)` — `TestKindsError` is a `ValueError`;
+  `SyntaxError` keeps its own earlier clause. Sites 2/3/5: `artifact_accessors.FeatureJsonError`.
+  Site 4: `harness_yaml.YamlParseError` (`PlanSchemaError` is one). Sites 6/7/8/10:
+  `(ImportError, OSError, ValueError)`; `run_bug919_resolve_fallback_case` re-pinned to inject
+  `OSError` (was `LookupError`, not a class the lookup raises). Site 11:
+  `(OSError, subprocess.SubprocessError, ValueError)`. Site 18: `(AttributeError, OSError, ValueError)`.
+- The direct CLI (`validate-digest.py <persona> [file]`) is not wrapped: "[feat65] the direct CLI is
+  not wrapped: a validator defect is loud and nonzero".
