@@ -486,6 +486,48 @@ def case_12_claim_lands_in_declared_worktree():
     check("case 12 claim_lands_in_declared_worktree: and the main checkout registry is untouched",
           not _claims_for(in_main, "harness-pm", flow), f"main registry={in_main!r}")
 
+def _git_checkout_with_worktree(short_name):
+    """A real git checkout with one linked worktree at .claude/worktrees/harness/<short_name>."""
+    main = _checkout()
+    for cmd in (["git", "init", "-q", "-b", "main", main],
+                ["git", "-C", main, "config", "user.email", "t@example.com"],
+                ["git", "-C", main, "config", "user.name", "t"],
+                ["git", "-C", main, "commit", "-q", "--allow-empty", "-m", "init"]):
+        subprocess.run(cmd, capture_output=True)
+    wt = os.path.join(main, ".claude", "worktrees", "harness", short_name)
+    subprocess.run(["git", "-C", main, "worktree", "add", "-q", "-b", "wt-" + short_name, wt,
+                    "HEAD"], capture_output=True)
+    return main, wt
+
+
+def _claim_receipt(stdout):
+    lines = [line for line in stdout.splitlines() if line.startswith("{")]
+    return json.loads(lines[-1]).get("harness_claim", {}) if lines else {}
+
+
+def case_27_guard_and_registry_resolve_one_feature_root():
+    """BUG-1898 T-01: the guard writes its claim where inflight_registry.feature_root says the
+    feature lives. A SHORT-FORM worktree (`BUG-97`) for the declared feature
+    `BUG-97-short-form` is the case the guard's old basename-equality lookup sent to the main
+    checkout while every reader (authorize, validate-digest) looked in the worktree."""
+    reg = _load_registry_module()
+    main, wt = _git_checkout_with_worktree("BUG-97")
+    flow = "BUG-97-short-form"
+    expected = os.path.realpath(reg.feature_root(main, flow))
+    p = _task("harness-backend-dev", dispatcher="harness-eng-lead", cwd=main)
+    p["tool_input"]["prompt"] = "HARNESS-FEATURE: %s\nbuild the thing" % flow
+    r = fire(p, env={"HARNESS_PROJECT_DIR": main})
+    receipt_root = os.path.realpath(_claim_receipt(r.stdout).get("root", ""))
+    check("case 27: feature_root places the short-form feature in its worktree",
+          expected == os.path.realpath(wt), expected)
+    check("case 27: the guard's claim receipt names that same root",
+          r.returncode == 0 and receipt_root == expected,
+          f"exit {r.returncode}, receipt root={receipt_root!r}, stderr={r.stderr[:200]!r}")
+    homes = [len(_claims_for(_read_registry(root, reg), "harness-backend-dev", flow))
+             for root in (wt, main)]
+    check("case 27: and the claim row lives in the worktree registry, not the main checkout's",
+          homes == [1, 0], homes)
+
 
 def case_13_feature_line_must_be_first_and_valid():
     root = _checkout()
@@ -861,6 +903,7 @@ def main():
     case_10_library_missing()
     case_11_missing_feature_line_refused()
     case_12_claim_lands_in_declared_worktree()
+    case_27_guard_and_registry_resolve_one_feature_root()
     case_13_feature_line_must_be_first_and_valid()
     case_14_single_flight_is_per_feature()
     case_15_omp_dispatch_records_supervisor_and_receipt()

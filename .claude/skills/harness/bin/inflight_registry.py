@@ -264,8 +264,12 @@ def _visible(claim, feature=None):
     return feature is None or claim.get("feature", LEGACY_FEATURE) == feature
 
 
-def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
-    """Return claims that still bind ``agent`` to worktrees, without mutating state."""
+def _read_strict(root):
+    """Every claim row in `root`'s registry, or [] when there is no registry.
+
+    Unlike `_parse`, which the locked writers use and which reads a corrupt file as empty,
+    this raises UnreadableRegistry: a reader that answers a question about ownership must
+    not mistake "cannot read" for "nothing is claimed"."""
     path = _registry_path(root)
     try:
         with open(path, "r", encoding="utf-8", errors="strict") as handle:
@@ -279,24 +283,27 @@ def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
         raw = json.loads(text)
     except (json.JSONDecodeError, ValueError) as error:
         raise UnreadableRegistry(path) from error
-    if not isinstance(raw, dict):
+    if not _known_shape(raw):
         raise UnreadableRegistry(path)
-    is_v2 = (
-        raw.get("schema_version") == SCHEMA_VERSION
-        and isinstance(raw.get("claims"), list)
-    )
-    is_v1 = (
-        "schema_version" not in raw
-        and all(isinstance(key, str) and isinstance(entries, list)
-                for key, entries in raw.items())
-    )
-    if not (is_v2 or is_v1):
-        raise UnreadableRegistry(path)
+    return _parse(text, path)["claims"]
 
+
+def _known_shape(raw):
+    """A version-2 document, or a version-1 `{persona: [claims]}` map."""
+    if not isinstance(raw, dict):
+        return False
+    if "schema_version" in raw:
+        return raw["schema_version"] == SCHEMA_VERSION and isinstance(raw.get("claims"), list)
+    return all(isinstance(key, str) and isinstance(entries, list)
+               for key, entries in raw.items())
+
+
+def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
+    """Return claims that still bind ``agent`` to worktrees, without mutating state."""
     live, _expired = _expire(
         [
             claim
-            for claim in _parse(text, path)["claims"]
+            for claim in _read_strict(root)
             if _matches(
                 claim,
                 agent=agent,
@@ -308,6 +315,174 @@ def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
         time.time() if now is None else now,
     )
     return sorted(live, key=lambda claim: claim["started_at"])
+
+
+def _refusal(cause, retryable, message):
+    return {"ok": False, "cause": cause, "retryable": retryable, "message": message}
+
+
+def find_run_claim(owner_root, agent_id, now=None):
+    """Which live claim does the OMP run `agent_id` hold, and in which registry? (BUG-1898)
+
+    Read-only. Enumerates the owner checkout plus every linked worktree and matches by the
+    EXACT runtime agent id only — never persona, dispatch name, cwd or session. It is how a
+    run that lost its feature marker (an OMP restart, a revival) finds its feature again.
+    Exactly one match answers {ok, feature, root, claim}; zero, several, or any unreadable
+    registry is a structured refusal, because a guess here would bind a run to a stranger."""
+    matches, unreadable = _live_claims_for_run(owner_root, agent_id,
+                                               time.time() if now is None else now)
+    if unreadable:
+        return _refusal(
+            "unreadable", False,
+            "cannot place run %s: unreadable claim registries %s; the operator must repair "
+            "them" % (agent_id, ", ".join(sorted(unreadable))))
+    if not matches:
+        return _refusal(
+            "not-found", False,
+            "no live claim is bound to run %s in %s or its linked worktrees"
+            % (agent_id, owner_root))
+    if len(matches) > 1:
+        return _refusal(
+            "ambiguous", False,
+            "run %s is bound in %d registries (%s); refusing to choose"
+            % (agent_id, len(matches), ", ".join(sorted(root for root, _ in matches))))
+    root, claim = matches[0]
+    return {"ok": True, "feature": claim.get("feature", LEGACY_FEATURE), "root": root,
+            "claim": dict(claim)}
+
+
+def _live_claims_for_run(owner_root, agent_id, now):
+    """Scan the owner checkout and each linked worktree for live claims bound to exactly
+    `agent_id`: ([(root, claim)], [unreadable registry paths])."""
+    roots = [owner_root] + [
+        root for root in harness_boundary.linked_worktrees(owner_root) if root != owner_root
+    ]
+    matches = []
+    unreadable = []
+    for root in roots:
+        try:
+            rows = _read_strict(root)
+        except UnreadableRegistry as error:
+            unreadable.extend(error.paths)
+            continue
+        live, _expired = _expire([c for c in rows if _matches(c, agent_id=agent_id)], now)
+        matches.extend((root, claim) for claim in live)
+    return matches, unreadable
+
+
+def _reuse_exact(exact, agent_id, parent_agent_id):
+    """A run already bound to its id reuses that claim — unless another parent holds it."""
+    if any(c.get("parent_agent_id") not in (None, "", parent_agent_id) for c in exact):
+        return "refused", _refusal(
+            "lineage", False,
+            "run %s is already claimed under a different parent; refusing to rebind"
+            % agent_id)
+    return "reused", exact[0]
+
+
+def claim_run_start(root, agent, feature, agent_id, parent_agent_id, supervisor_pid=None,
+                    cwd="", now=None):
+    """The run-start claim (BUG-1898): make the OMP run `agent_id` hold exactly one claim
+    bound to it, in one locked update, before its first write.
+
+    Exactly one outcome:
+      reused  — a live claim is already bound to this exact id (a woken, settled agent);
+      bound   — the UNIQUE live, unbound receipt dispatch left for this persona under this
+                parent now carries the id;
+      created — no receipt could be chosen (none, or an ambiguous set, which is never
+                picked from), so the run gets a new claim of its own.
+    Refusals are structured for the hook: a live holder of a single-flight persona is
+    retryable once it settles; a lineage mismatch or an unreadable registry is not. The
+    registry is read strictly first, so a corrupt file is refused and left as found rather
+    than overwritten by a writer that would read it as empty."""
+    now = time.time() if now is None else now
+    supervisor_pid = os.getpid() if supervisor_pid is None else supervisor_pid
+    try:
+        _read_strict(root)
+    except UnreadableRegistry as error:
+        return _refusal(
+            "unreadable", False,
+            "cannot claim run %s: unreadable claim registry %s; the operator must repair it"
+            % (agent_id, ", ".join(error.paths)))
+
+    def mutator(data):
+        live, retained, _expired = _expire_where(
+            data.get("claims", []), now,
+            lambda claim: _matches(claim, agent=agent, feature=feature),
+        )
+        data["claims"] = retained
+        mine = [c for c in live if _matches(c, agent=agent, feature=feature)]
+        outcome, subject = _run_start_decision(mine, agent, feature, agent_id, parent_agent_id)
+        if outcome == "refused":
+            return data, subject
+        if outcome == "bound":
+            subject["agent_id"] = agent_id
+        elif outcome == "created":
+            subject = _run_claim_entry(agent, feature, agent_id, parent_agent_id,
+                                       supervisor_pid, cwd, now)
+            data["claims"].append(subject)
+        return data, {"ok": True, "outcome": outcome, "claim": dict(subject)}
+
+    result = _update_registry(root, mutator)
+    result["root"] = root
+    return result
+
+
+def _run_start_decision(mine, agent, feature, agent_id, parent_agent_id):
+    """Choose, without mutating, what `claim_run_start` does with this persona's live
+    same-feature claims `mine`: ("reused"|"bound", claim), ("created", None) or
+    ("refused", refusal)."""
+    exact, receipts, others = _partition_for_run(mine, agent_id, parent_agent_id)
+    if exact:
+        return _reuse_exact(exact, agent_id, parent_agent_id)
+    single = is_single_flight(agent)
+    if len(receipts) == 1 and (not single or len(others) == 1):
+        return "bound", receipts[0]
+    if single and others:
+        return "refused", _single_flight_refusal(agent, feature, others)
+    return "created", None
+
+
+def _partition_for_run(mine, agent_id, parent_agent_id):
+    """(claims bound to this exact run, this parent's unbound receipts, every other claim)."""
+    exact = [c for c in mine if c.get("agent_id") == agent_id]
+    receipts = [c for c in mine if _is_unbound_receipt(c, parent_agent_id)]
+    others = [c for c in mine if c.get("agent_id") != agent_id]
+    return exact, receipts, others
+
+
+def _is_unbound_receipt(claim, parent_agent_id):
+    """A dispatch receipt this parent left, not yet carrying a run's id."""
+    return (not claim.get("agent_id") and claim.get("runtime") == "omp"
+            and claim.get("parent_agent_id") == parent_agent_id)
+
+
+def _single_flight_refusal(agent, feature, holders):
+    named = ", ".join(sorted(
+        c.get("agent_id") or "an unbound dispatch (claim %s)" % c.get("claim_id")
+        for c in holders))
+    return _refusal("single-flight", True,
+                    "%s for %s is already held by %s; retry after it settles"
+                    % (agent, feature, named))
+
+
+def _run_claim_entry(agent, feature, agent_id, parent_agent_id, supervisor_pid, cwd, now):
+    entry = {
+        "claim_id": uuid.uuid4().hex,
+        "started_at": now,
+        "feature": feature,
+        "agent": agent,
+        "dispatcher": "run-start",
+        "cwd": cwd,
+        "runtime": "omp",
+        "supervisor_pid": supervisor_pid,
+        "agent_id": agent_id,
+        "parent_agent_id": parent_agent_id,
+    }
+    started_at = _process_start_time(supervisor_pid)
+    if started_at is not None:
+        entry["supervisor_started_at"] = started_at
+    return entry
 
 
 def is_single_flight(agent):
@@ -756,6 +931,39 @@ def _authorize_command(root, rest):
     return 2
 
 
+def _run_start_command(root, rest):
+    agent = _option(rest, "--agent")
+    feature = _option(rest, "--feature")
+    agent_id = _option(rest, "--agent-id")
+    parent_agent_id = _option(rest, "--parent-agent-id")
+    supervisor_pid = _option(rest, "--supervisor-pid")
+    if not all((agent, feature, agent_id, parent_agent_id)) or (
+        supervisor_pid is not None and not supervisor_pid.isdigit()
+    ):
+        print(
+            "inflight_registry: run-start requires --agent, --feature, --agent-id, "
+            "--parent-agent-id, and an integer --supervisor-pid",
+            file=sys.stderr,
+        )
+        return 1
+    result = claim_run_start(
+        feature_root(root, feature), agent, feature, agent_id, parent_agent_id,
+        supervisor_pid=int(supervisor_pid) if supervisor_pid else None, cwd=root,
+    )
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] else 2
+
+
+def _find_run_command(root, rest):
+    agent_id = _option(rest, "--agent-id")
+    if not agent_id:
+        print("inflight_registry: find-run requires --agent-id", file=sys.stderr)
+        return 1
+    result = find_run_claim(root, agent_id)
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] else 2
+
+
 def _release_command(root, rest):
     selector_names = ("--agent", "--claim-id", "--agent-id", "--job-id")
     if not any(_option(rest, name) for name in selector_names):
@@ -790,6 +998,8 @@ COMMANDS = {
     "list": _list_command,
     "attach": _attach_command,
     "authorize": _authorize_command,
+    "run-start": _run_start_command,
+    "find-run": _find_run_command,
     "release": _release_command,
     "release-all": _release_all_command,
     "reconcile": _reconcile_command,
