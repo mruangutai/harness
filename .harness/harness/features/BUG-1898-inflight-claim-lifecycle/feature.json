@@ -56,6 +56,16 @@
       "tokens": 117760,
       "ended_at": "2026-09-24T21:00:47+00:00",
       "cycles_used": 1
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T21:04:42+00:00",
+      "tokens": 96264,
+      "ended_at": "2026-09-24T21:24:41+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -107,6 +117,20 @@
       "kind": "regate",
       "decision": "validate c2 fixes at 4942950a83c1895d85922f7cd9e9cfd41e28daf8",
       "reason": "re-review F-02 and F-QA-01 after the c2 fixes at the operator-pinned SHA while retaining SC-07 as the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T21:04:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c3 fix at 6bfc21e3ccdf78eb86cdd0eb250067348d887096",
+      "reason": "re-review the repaired F-QA-01 exact mutant oracle at the operator-pinned c3 SHA while preserving SC-07 as the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T21:24:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "the c3 panel is clean at the pinned SHA, the measured rework window reached 91 minutes, and no further automated rework is warranted; SC-07 remains the operator merge gate"
     }
   ],
   "mission": "plan",

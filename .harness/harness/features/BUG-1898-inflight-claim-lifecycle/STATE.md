@@ -3,9 +3,9 @@
 ## Current
 
 - feature: BUG-1898-inflight-claim-lifecycle
-- run: .harness/harness/features/BUG-1898-inflight-claim-lifecycle/runs/validate-c2-validator/state.yaml
+- run: .harness/harness/features/BUG-1898-inflight-claim-lifecycle/runs/validate-c3-validator/state.yaml
 - squad: validator
-- status: blocked
+- status: in_review
 
 ## Open Questions
 
