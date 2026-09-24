@@ -987,11 +987,24 @@ class _patched:
         setattr(self.holder, self.name, self.real)
 
 
-def _hook_guard_verdict(mod, fail):
-    """(return code, stderr) of hook_guard around a main that raises RuntimeError."""
+def _captured_stderr():
     import io, contextlib
     err = io.StringIO()
-    with contextlib.redirect_stderr(err):
+    ctx = contextlib.redirect_stderr(err)
+
+    class _Capture:
+        def __enter__(self):
+            ctx.__enter__()
+            return err
+
+        def __exit__(self, *exc):
+            return ctx.__exit__(*exc)
+    return _Capture()
+
+
+def _hook_guard_verdict(mod, fail):
+    """(return code, stderr) of hook_guard around a main that raises RuntimeError."""
+    with _captured_stderr() as err:
         rc = mod.hook_guard(_raiser(RuntimeError("boom")), "x-hook", fail=fail)
     return rc, err.getvalue()
 
@@ -1019,13 +1032,50 @@ def case_hook_guard_contract():
     for exc in (KeyboardInterrupt, SystemExit):
         check(f"hook_guard_lets_{exc.__name__}_escape",
               _escapes(lambda e=exc: mod.hook_guard(_raiser(e(3)), "x-hook"), exc))
-    callers = [h for h in _HOOKS if "hook_guard(" in open(os.path.join(BIN, h)).read()]
+    callers = [h for h in _HOOKS
+               if any(f"{fn}(" in open(os.path.join(BIN, h)).read()
+                      for fn in ("hook_guard", "run_hook_body"))]
     # FEAT-65: the five hooks whose classification routes an own-failure path through the
-    # guard call it; the typed-only programs — the two authoritative direct commands
-    # (SC-09/SC-10) and the four DEC-234 gates — do not.
+    # guard call it (three through run_hook_body); the typed-only programs — the two
+    # authoritative direct commands (SC-09/SC-10) and the four DEC-234 gates — do not.
     check("hook_guard_is_called_by_exactly_the_five_guarded_hooks",
           callers == ["bash-write-guard.py", "check-domain.py", "dispatch-guard.py",
                       "merge-gate.py", "validate-digest.py"], repr(callers))
+
+
+def case_run_hook_body_contract():
+    """FEAT-65: a module-level hook body runs again as a module named `run_name` under
+    hook_guard — the `__main__` bootstrap is skipped, a fall-off is 0, an Exception is the
+    open (or closed) verdict, and the body's own SystemExit passes through."""
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    path = os.path.join(tmp, "hookish.py")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("import os, sys\n"
+                 "if __name__ == '__main__':\n    raise RuntimeError('bootstrap ran twice')\n"
+                 "mode = os.environ.get('HOOKISH_MODE')\n"
+                 "if mode == 'raise':\n    raise RuntimeError('body defect')\n"
+                 "if mode == 'exit':\n    sys.exit(5)\n")
+    os.environ["HOOKISH_MODE"] = "ok"
+    try:
+        check("run_hook_body_returns_0_when_the_body_falls_off",
+              mod.run_hook_body(path, "hookish", "hookish_body") == 0)
+        os.environ["HOOKISH_MODE"] = "raise"
+        with _captured_stderr() as err:
+            rc = mod.run_hook_body(path, "hookish", "hookish_body")
+        check("run_hook_body_open_passes_through_a_body_defect",
+              rc == 0 and err.getvalue() == "hookish: the hook failed internally (RuntimeError: "
+              "body defect) — passing through; this is not a pass, nothing was checked.\n",
+              repr(err.getvalue()))
+        with _captured_stderr() as err:
+            rc = mod.run_hook_body(path, "hookish", "hookish_body", fail="closed")
+        check("run_hook_body_closed_blocks_a_body_defect", rc == 2 and "BLOCKED" in err.getvalue())
+        os.environ["HOOKISH_MODE"] = "exit"
+        check("run_hook_body_lets_the_bodys_SystemExit_escape",
+              _escapes(lambda: mod.run_hook_body(path, "hookish", "hookish_body"), SystemExit))
+    finally:
+        os.environ.pop("HOOKISH_MODE", None)
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def _feat64_pointer_read_checks(mod, tmp):
@@ -1154,6 +1204,7 @@ CASES = (
     case_run_dir_slug_ok,
     case_run_dir_forms,
     case_hook_guard_contract,
+    case_run_hook_body_contract,
     case_feat64_lib_boundaries_are_typed,
 )
 

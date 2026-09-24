@@ -105,13 +105,7 @@ if __name__ == "__main__":
     except (ImportError, SyntaxError):
         _bootstrap_boundary = None
     if _bootstrap_boundary is not None:
-        import runpy as _bootstrap_runpy
-
-        def _bootstrap_body():
-            _bootstrap_runpy.run_path(__file__, run_name="dispatch_guard_body")
-            return 0
-
-        _bootstrap_sys.exit(_bootstrap_boundary.hook_guard(_bootstrap_body, "dispatch-guard"))
+        _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "dispatch-guard", "dispatch_guard_body"))
 
 
 import sys, json, os

@@ -61,10 +61,10 @@ if __name__ == "__main__":
 
     # THE HOOK'S OWN-FAILURE POSTURE IS harness_boundary.hook_guard (FEAT-65). The body
     # below is module-level flow by design — 2,200 lines of rules that exit where they
-    # decide — so the guard cannot wrap a function of it. It wraps the body's EXECUTION
-    # instead: this process runs the bootstrap once, then re-runs this same file as a
-    # module named `check_domain_body`, under whose name the bootstrap is skipped and the
-    # body runs on the argv, environment and stdin the bootstrap already fixed. An
+    # decide — so the guard cannot wrap a function of it. `run_hook_body` wraps the body's
+    # EXECUTION instead: this process runs the bootstrap once, then re-runs this same file
+    # as a module named `check_domain_body`, under whose name the bootstrap is skipped and
+    # the body runs on the argv, environment and stdin the bootstrap already fixed. An
     # Exception escaping the body is the hook's own defect — an unreadable payload shape,
     # a sibling raising where its contract said it would not, a bug — and the guard names
     # it and passes through at exit 0 (DEC-100: only exit 2 blocks; this hook set the
@@ -85,13 +85,7 @@ if __name__ == "__main__":
     except (ImportError, SyntaxError):
         _bootstrap_boundary = None
     if _bootstrap_boundary is not None:
-        import runpy as _bootstrap_runpy
-
-        def _bootstrap_body():
-            _bootstrap_runpy.run_path(__file__, run_name="check_domain_body")
-            return 0
-
-        _bootstrap_sys.exit(_bootstrap_boundary.hook_guard(_bootstrap_body, "check-domain"))
+        _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "check-domain", "check_domain_body"))
 
 
 import sys, os, re, json, fnmatch
