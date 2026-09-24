@@ -436,38 +436,41 @@ def _record_repository_result(results, name, response, want, contains=None):
     results.append((name, ok, f"exit={response.returncode} output={output[:240]!r}"))
 
 
-def _repository_binding_routes(results, inflight_registry):
-    """FEAT-495: wildcard product grants never outrank exact runtime repository lineage."""
-    feature = "FEAT-495-product-write"
+def _repository_happy_routes(results, inflight_registry, feature):
     root, products = _repository_fixture()
     first = _repository_claim(
         inflight_registry, root, "product-a", feature, "DocumentorOne", "ProductLeadOne")
-    own_write = _repository_fire(
-        root, products["product-a"], feature, "DocumentorOne", "ProductLeadOne")
-    own_edit = _repository_fire(
-        root, products["product-a"], feature, "DocumentorOne", "ProductLeadOne", tool="Edit")
-    cross_product = _repository_fire(
-        root, products["product-b"], feature, "DocumentorOne", "ProductLeadOne")
-    wrong_parent = _repository_fire(
-        root, products["product-a"], feature, "DocumentorOne", "ProductLeadTwo")
-    _record_repository_result(
-        results, "repository-bound child can repeat Write in its own product", own_write, 0)
-    _record_repository_result(
-        results, "repository-bound child can Edit in its own product", own_edit, 0)
-    _record_repository_result(
-        results, "repository-bound child cannot cross into another product",
-        cross_product, 2, "mismatched")
-    _record_repository_result(
-        results, "repository binding includes the immediate parent",
-        wrong_parent, 2, "mismatched")
-
+    cases = (
+        ("repository-bound child can repeat Write in its own product",
+         _repository_fire(
+             root, products["product-a"], feature, "DocumentorOne", "ProductLeadOne"),
+         0, None),
+        ("repository-bound child can Edit in its own product",
+         _repository_fire(
+             root, products["product-a"], feature, "DocumentorOne", "ProductLeadOne",
+             tool="Edit"),
+         0, None),
+        ("repository-bound child cannot cross into another product",
+         _repository_fire(
+             root, products["product-b"], feature, "DocumentorOne", "ProductLeadOne"),
+         2, "mismatched"),
+        ("repository binding includes the immediate parent",
+         _repository_fire(
+             root, products["product-a"], feature, "DocumentorOne", "ProductLeadTwo"),
+         2, "mismatched"),
+    )
+    for name, response, want, contains in cases:
+        _record_repository_result(results, name, response, want, contains)
     _repository_claim(
         inflight_registry, root, "product-a", feature, "DocumentorTwo", "ProductLeadOne")
     sibling = _repository_fire(
         root, products["product-a"], feature, "DocumentorTwo", "ProductLeadOne")
     _record_repository_result(
         results, "same-role siblings retain distinct valid product claims", sibling, 0)
+    return first
 
+
+def _repository_missing_and_released(results, inflight_registry, feature):
     missing_root, missing_products = _repository_fixture()
     missing = _repository_fire(
         missing_root, missing_products["product-a"], feature, "MissingChild", "ProductLeadOne")
@@ -475,19 +478,20 @@ def _repository_binding_routes(results, inflight_registry):
         results, "product write without a repository claim fails closed", missing, 2, "missing")
 
     released_root, released_products = _repository_fixture()
-    released_receipt = _repository_claim(
+    receipt = _repository_claim(
         inflight_registry, released_root, "product-a", feature,
         "ReleasedChild", "ProductLeadOne")
-    inflight_registry.release(
-        released_root, claim_id=released_receipt["claim_id"], feature=feature)
+    inflight_registry.release(released_root, claim_id=receipt["claim_id"], feature=feature)
     released = _repository_fire(
         released_root, released_products["product-a"], feature,
         "ReleasedChild", "ProductLeadOne")
     _record_repository_result(
         results, "released repository claim fails closed", released, 2, "released")
 
+
+def _repository_stale_and_ambiguous(results, inflight_registry, feature):
     stale_root, stale_products = _repository_fixture()
-    stale_receipt = _repository_claim(
+    _repository_claim(
         inflight_registry, stale_root, "product-a", feature, "StaleChild", "ProductLeadOne")
     stale_path = os.path.join(stale_root, inflight_registry.REGISTRY_REL)
     stale_data = json.load(open(stale_path, encoding="utf-8"))
@@ -501,13 +505,13 @@ def _repository_binding_routes(results, inflight_registry):
         results, "stale repository claim fails closed", stale, 2, "stale")
 
     ambiguous_root, ambiguous_products = _repository_fixture()
-    ambiguous_receipt = _repository_claim(
+    receipt = _repository_claim(
         inflight_registry, ambiguous_root, "product-a", feature,
         "AmbiguousChild", "ProductLeadOne")
     ambiguous_path = os.path.join(ambiguous_root, inflight_registry.REGISTRY_REL)
     ambiguous_data = json.load(open(ambiguous_path, encoding="utf-8"))
     duplicate = dict(ambiguous_data["claims"][0])
-    duplicate["claim_id"] = ambiguous_receipt["claim_id"] + "-duplicate"
+    duplicate["claim_id"] = receipt["claim_id"] + "-duplicate"
     ambiguous_data["claims"].append(duplicate)
     with open(ambiguous_path, "w", encoding="utf-8") as handle:
         json.dump(ambiguous_data, handle)
@@ -517,6 +521,10 @@ def _repository_binding_routes(results, inflight_registry):
     _record_repository_result(
         results, "ambiguous repository claim fails closed", ambiguous, 2, "ambiguous")
 
+
+def _repository_collision_and_unreadable(
+    results, inflight_registry, feature, first_claim_id,
+):
     collision_root, collision_products = _repository_fixture()
     _repository_claim(
         inflight_registry, collision_root, "product-a", feature,
@@ -549,9 +557,19 @@ def _repository_binding_routes(results, inflight_registry):
     output = unreadable.stdout + unreadable.stderr
     results.append((
         "repository refusal does not expose registry paths or claim ids",
-        inflight_registry.REGISTRY_REL not in output and first["claim_id"] not in output,
+        inflight_registry.REGISTRY_REL not in output and first_claim_id not in output,
         output[:240],
     ))
+
+
+def _repository_binding_routes(results, inflight_registry):
+    """FEAT-495: wildcard product grants never outrank exact runtime repository lineage."""
+    feature = "FEAT-495-product-write"
+    first = _repository_happy_routes(results, inflight_registry, feature)
+    _repository_missing_and_released(results, inflight_registry, feature)
+    _repository_stale_and_ambiguous(results, inflight_registry, feature)
+    _repository_collision_and_unreadable(
+        results, inflight_registry, feature, first["claim_id"])
 
 
 def run_bug1304_claim_set():

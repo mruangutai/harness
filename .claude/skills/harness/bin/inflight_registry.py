@@ -470,6 +470,49 @@ def _live_registry_claims(root, now):
     return live
 
 
+def _identity_claims_at_root(root, claim_id, agent_id, parent_agent_id, now):
+    claims = [
+        claim for claim in _live_registry_claims(root, now)
+        if claim.get("claim_id") != claim_id
+    ]
+    children = [
+        claim for claim in claims
+        if agent_id and claim.get("agent_id") == agent_id
+    ]
+    parents = [
+        claim for claim in claims
+        if parent_agent_id and claim.get("agent_id") == parent_agent_id
+    ]
+    return children, parents
+
+
+def _identity_claim_groups(root, claim_id, agent_id, parent_agent_id, now):
+    """Collect other live claims that use either requested runtime identity."""
+    child_claims = []
+    parent_claims = []
+    for registry_root in _identity_registry_roots(root):
+        children, parents = _identity_claims_at_root(
+            registry_root, claim_id, agent_id, parent_agent_id, now)
+        child_claims.extend(children)
+        parent_claims.extend(parents)
+    return child_claims, parent_claims
+
+
+def _child_identity_collides(child_claims, expected_child):
+    if not child_claims:
+        return False
+    if expected_child is None or len(child_claims) != 1:
+        return True
+    agent, feature, parent, repository = expected_child
+    child = child_claims[0]
+    return (
+        child.get("agent") != agent
+        or child.get("feature", LEGACY_FEATURE) != feature
+        or child.get("parent_agent_id") != parent
+        or child.get("repository") != repository
+    )
+
+
 def _foreign_identity_collision(
     root,
     claim_id,
@@ -480,32 +523,65 @@ def _foreign_identity_collision(
     expected_child=None,
 ):
     """Whether another active dispatch already owns the requested host lineage."""
-    child_claims = []
-    parent_claims = []
-    for registry_root in _identity_registry_roots(root):
-        for claim in _live_registry_claims(registry_root, now):
-            if claim.get("claim_id") == claim_id:
-                continue
-            if agent_id and claim.get("agent_id") == agent_id:
-                child_claims.append(claim)
-            if parent_agent_id and claim.get("agent_id") == parent_agent_id:
-                parent_claims.append(claim)
-    if child_claims:
-        if expected_child is None or len(child_claims) != 1:
-            return True
-        expected_agent, expected_feature, expected_parent, expected_repository = expected_child
-        child = child_claims[0]
-        if (
-            child.get("agent") != expected_agent
-            or child.get("feature", LEGACY_FEATURE) != expected_feature
-            or child.get("parent_agent_id") != expected_parent
-            or child.get("repository") != expected_repository
-        ):
-            return True
+    child_claims, parent_claims = _identity_claim_groups(
+        root, claim_id, agent_id, parent_agent_id, now)
     return (
-        len(parent_claims) > 1
+        _child_identity_collides(child_claims, expected_child)
+        or len(parent_claims) > 1
         or any(claim.get("feature", LEGACY_FEATURE) != feature for claim in parent_claims)
     )
+
+
+def _attachment_conflicts(claim, agent_id, job_id, parent_agent_id):
+    return (
+        (agent_id and claim.get("agent_id") not in (None, "", agent_id))
+        or (job_id and claim.get("job_id") not in (None, "", job_id))
+        or (
+            parent_agent_id
+            and claim.get("parent_agent_id") not in (None, "", parent_agent_id)
+        )
+    )
+
+
+def _matching_attachment_claims(live, agent, feature, claim_id, repository):
+    return [
+        claim for claim in live
+        if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
+        and claim.get("repository") == repository
+    ]
+
+
+def _single_attachment_target(candidates):
+    if len(candidates) > 1:
+        return None, "ambiguous"
+    return (candidates[0], "attached") if candidates else (None, "missing")
+
+
+def _attachment_target(
+    live, agent, feature, claim_id, repository, agent_id, job_id, parent_agent_id,
+):
+    matches = _matching_attachment_claims(
+        live, agent, feature, claim_id, repository)
+    if any(
+        _attachment_conflicts(claim, agent_id, job_id, parent_agent_id)
+        for claim in matches
+    ):
+        return None, "collision"
+    candidates = [
+        claim for claim in matches
+        if not _attachment_conflicts(claim, agent_id, job_id, parent_agent_id)
+    ]
+    return _single_attachment_target(candidates)
+
+
+def _apply_runtime_identity(target, agent_id, job_id, parent_agent_id):
+    for key, value in (
+        ("agent_id", agent_id),
+        ("job_id", job_id),
+        ("parent_agent_id", parent_agent_id),
+    ):
+        if value:
+            target[key] = value
 
 
 def attach_runtime_identity_state(
@@ -530,8 +606,6 @@ def attach_runtime_identity_state(
     except UnreadableRegistry:
         return "unreadable"
 
-    # GRADE-2 REASON: selection, collision detection, and identity mutation must
-    # remain inside one locked registry update; splitting them reintroduces TOCTOU.
     def mutator(data):
         live, retained, _expired = _expire_where(
             data.get("claims", []),
@@ -540,46 +614,20 @@ def attach_runtime_identity_state(
                 claim, agent=agent, feature=feature, claim_id=claim_id
             ),
         )
-        scoped = [
-            claim for claim in live
-            if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
-        ]
-        exact_repository = [
-            claim for claim in scoped
-            if claim.get("repository") == repository
-        ]
-        if any(
-            (agent_id and claim.get("agent_id") not in (None, "", agent_id))
-            or (job_id and claim.get("job_id") not in (None, "", job_id))
-            or (
-                parent_agent_id
-                and claim.get("parent_agent_id") not in (None, "", parent_agent_id)
-            )
-            for claim in exact_repository
-        ):
-            data["claims"] = retained
-            return data, "collision"
-        candidates = [
-            claim for claim in exact_repository
-            if (not agent_id or claim.get("agent_id") in (None, "", agent_id))
-            and (not job_id or claim.get("job_id") in (None, "", job_id))
-            and (
-                not parent_agent_id
-                or claim.get("parent_agent_id") in (None, "", parent_agent_id)
-            )
-        ]
-        if len(candidates) != 1:
-            data["claims"] = retained
-            return data, "ambiguous" if len(candidates) > 1 else "missing"
-        target = candidates[0]
-        if agent_id:
-            target["agent_id"] = agent_id
-        if job_id:
-            target["job_id"] = job_id
-        if parent_agent_id:
-            target["parent_agent_id"] = parent_agent_id
+        target, state = _attachment_target(
+            live,
+            agent,
+            feature,
+            claim_id,
+            repository,
+            agent_id,
+            job_id,
+            parent_agent_id,
+        )
+        if target is not None:
+            _apply_runtime_identity(target, agent_id, job_id, parent_agent_id)
         data["claims"] = retained
-        return data, "attached"
+        return data, state
 
     return _update_registry(root, mutator)
 
@@ -671,36 +719,29 @@ def authorize_runtime_identity(
         repository=repository,
     ) == "authorized"
 
-def repository_binding(
-    root,
-    agent,
-    feature,
-    repository,
-    agent_id,
-    parent_agent_id,
-    now=None,
-):
-    """Return the fail-closed state of one exact factory repository binding."""
-    if not all((agent, feature, repository, agent_id, parent_agent_id)):
-        return "missing"
+
+def _read_repository_claims(root):
     path = _registry_path(root)
     try:
         with open(path, "r", encoding="utf-8", errors="strict") as handle:
             raw = json.load(handle)
-        if (
-            not isinstance(raw, dict)
-            or raw.get("schema_version") != SCHEMA_VERSION
-            or not isinstance(raw.get("claims"), list)
-        ):
-            return "unreadable"
     except FileNotFoundError:
-        return "missing"
+        return "missing", None
     except (OSError, UnicodeError, ValueError):
-        return "unreadable"
+        return "unreadable", None
+    valid = (
+        isinstance(raw, dict)
+        and raw.get("schema_version") == SCHEMA_VERSION
+        and isinstance(raw.get("claims"), list)
+    )
+    return (None, raw["claims"]) if valid else ("unreadable", None)
 
-    current = time.time() if now is None else now
+
+def _repository_claim_groups(
+    claims, agent, feature, repository, agent_id, parent_agent_id,
+):
     identity_claims = [
-        claim for claim in raw["claims"]
+        claim for claim in claims
         if isinstance(claim, dict) and claim.get("agent_id") == agent_id
     ]
     exact = [
@@ -714,33 +755,62 @@ def repository_binding(
         )
         and claim.get("repository") == repository
     ]
+    return identity_claims, exact
+
+
+def _live_repository_binding_state(identity_claims, exact, agent, feature, current):
     live_exact, _expired = _expire(exact, current)
     live_identity, _identity_expired = _expire(identity_claims, current)
-    foreign_dispatch = [
-        claim for claim in live_identity
-        if claim not in live_exact
+    foreign_dispatch = any(
+        claim not in live_exact
         and (
             claim.get("agent") != agent
             or claim.get("feature", LEGACY_FEATURE) != feature
         )
-    ]
+        for claim in live_identity
+    )
     if len(live_exact) > 1:
         return "ambiguous"
     if foreign_dispatch or len(live_identity) > 1:
         return "collision"
-    if len(live_exact) == 1:
-        return "allow"
+    return "allow" if live_exact else None
+
+
+def _inactive_repository_binding_state(identity_claims, exact, agent, feature, agent_id):
     if any(claim.get("released_at") is not None for claim in exact):
         return "released"
     if exact:
         return "stale"
-    same_dispatch = [
-        claim for claim in identity_claims
-        if _matches(claim, agent=agent, feature=feature, agent_id=agent_id)
-    ]
-    if same_dispatch:
-        return "mismatched"
-    return "missing"
+    same_dispatch = any(
+        _matches(claim, agent=agent, feature=feature, agent_id=agent_id)
+        for claim in identity_claims
+    )
+    return "mismatched" if same_dispatch else "missing"
+
+
+def repository_binding(
+    root,
+    agent,
+    feature,
+    repository,
+    agent_id,
+    parent_agent_id,
+    now=None,
+):
+    """Return the fail-closed state of one exact factory repository binding."""
+    if not all((agent, feature, repository, agent_id, parent_agent_id)):
+        return "missing"
+    read_state, claims = _read_repository_claims(root)
+    if read_state is not None:
+        return read_state
+    identity_claims, exact = _repository_claim_groups(
+        claims, agent, feature, repository, agent_id, parent_agent_id)
+    current = time.time() if now is None else now
+    live_state = _live_repository_binding_state(
+        identity_claims, exact, agent, feature, current)
+    return live_state or _inactive_repository_binding_state(
+        identity_claims, exact, agent, feature, agent_id)
+
 
 REPOSITORY_BINDING_STATES = frozenset({
     "missing", "collision", "mismatched", "stale",

@@ -1572,33 +1572,36 @@ def _repository_bash_record(results, name, response, want, contains=None):
     results.append((name, ok, f"exit={response.returncode} output={output[:240]!r}"))
 
 
-def _repository_binding_bash_routes(results, inflight_registry):
-    """FEAT-495: product Bash writes require exact runtime repository lineage."""
-    feature = "FEAT-495-product-bash"
+def _repository_bash_happy_routes(results, inflight_registry, feature):
     root, products = _repository_bash_fixture()
     first = _repository_bash_claim(
         inflight_registry, root, "product-a", feature, "BackendOne", "EngLeadOne")
-    own = _repository_bash_fire(
-        root, products["product-a"], feature, "BackendOne", "EngLeadOne")
-    cross = _repository_bash_fire(
-        root, products["product-b"], feature, "BackendOne", "EngLeadOne")
-    wrong_parent = _repository_bash_fire(
-        root, products["product-a"], feature, "BackendOne", "EngLeadTwo")
-    _repository_bash_record(
-        results, "repository-bound child can repeat Bash in its own product", own, 0)
-    _repository_bash_record(
-        results, "repository-bound Bash child cannot cross products", cross, 2, "mismatched")
-    _repository_bash_record(
-        results, "Bash repository binding includes immediate parent",
-        wrong_parent, 2, "mismatched")
-
+    cases = (
+        ("repository-bound child can repeat Bash in its own product",
+         _repository_bash_fire(
+             root, products["product-a"], feature, "BackendOne", "EngLeadOne"),
+         0, None),
+        ("repository-bound Bash child cannot cross products",
+         _repository_bash_fire(
+             root, products["product-b"], feature, "BackendOne", "EngLeadOne"),
+         2, "mismatched"),
+        ("Bash repository binding includes immediate parent",
+         _repository_bash_fire(
+             root, products["product-a"], feature, "BackendOne", "EngLeadTwo"),
+         2, "mismatched"),
+    )
+    for name, response, want, contains in cases:
+        _repository_bash_record(results, name, response, want, contains)
     _repository_bash_claim(
         inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
     sibling = _repository_bash_fire(
         root, products["product-a"], feature, "BackendTwo", "EngLeadOne")
     _repository_bash_record(
         results, "same-role Bash siblings retain their own product claims", sibling, 0)
+    return first
 
+
+def _repository_bash_missing_and_released(results, inflight_registry, feature):
     missing_root, missing_products = _repository_bash_fixture()
     missing = _repository_bash_fire(
         missing_root, missing_products["product-a"], feature, "MissingChild", "EngLeadOne")
@@ -1606,17 +1609,18 @@ def _repository_binding_bash_routes(results, inflight_registry):
         results, "Bash product write without claim fails closed", missing, 2, "missing")
 
     released_root, released_products = _repository_bash_fixture()
-    released_receipt = _repository_bash_claim(
+    receipt = _repository_bash_claim(
         inflight_registry, released_root, "product-a", feature,
         "ReleasedChild", "EngLeadOne")
-    inflight_registry.release(
-        released_root, claim_id=released_receipt["claim_id"], feature=feature)
+    inflight_registry.release(released_root, claim_id=receipt["claim_id"], feature=feature)
     released = _repository_bash_fire(
         released_root, released_products["product-a"], feature,
         "ReleasedChild", "EngLeadOne")
     _repository_bash_record(
         results, "released Bash repository claim fails closed", released, 2, "released")
 
+
+def _repository_bash_stale_and_ambiguous(results, inflight_registry, feature):
     stale_root, stale_products = _repository_bash_fixture()
     _repository_bash_claim(
         inflight_registry, stale_root, "product-a", feature, "StaleChild", "EngLeadOne")
@@ -1648,6 +1652,10 @@ def _repository_binding_bash_routes(results, inflight_registry):
     _repository_bash_record(
         results, "ambiguous Bash repository claim fails closed", ambiguous, 2, "ambiguous")
 
+
+def _repository_bash_collision_and_unreadable(
+    results, inflight_registry, feature, first_claim_id,
+):
     collision_root, collision_products = _repository_bash_fixture()
     _repository_bash_claim(
         inflight_registry, collision_root, "product-a", feature,
@@ -1681,9 +1689,19 @@ def _repository_binding_bash_routes(results, inflight_registry):
     output = unreadable.stdout + unreadable.stderr
     results.append((
         "Bash repository refusal does not expose registry paths or claim ids",
-        inflight_registry.REGISTRY_REL not in output and first["claim_id"] not in output,
+        inflight_registry.REGISTRY_REL not in output and first_claim_id not in output,
         output[:240],
     ))
+
+
+def _repository_binding_bash_routes(results, inflight_registry):
+    """FEAT-495: product Bash writes require exact runtime repository lineage."""
+    feature = "FEAT-495-product-bash"
+    first = _repository_bash_happy_routes(results, inflight_registry, feature)
+    _repository_bash_missing_and_released(results, inflight_registry, feature)
+    _repository_bash_stale_and_ambiguous(results, inflight_registry, feature)
+    _repository_bash_collision_and_unreadable(
+        results, inflight_registry, feature, first["claim_id"])
 
 
 def run_bug1304_claim_set():
