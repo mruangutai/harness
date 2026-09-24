@@ -906,6 +906,14 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     pending.receipts.forEach((receipt) => releaseClaim(policyRunner, cwd, receipt));
   };
 
+  // Open the run gate: claim this exact id, or hold the run with the refusal's reason.
+  const openRun = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
+    runGate = { state: "unready" };
+    const started = startRun(ctx, prompt);
+    runGate = started.ok ? { state: "ready" } : { state: "held", reason: heldRunReason(started) };
+    return started;
+  };
+
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
     const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
@@ -919,10 +927,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (detectedMission) currentMission = detectedMission;
     setFeature(detectedFeature);
     if (!currentAgent) return;
-    runGate = { state: "unready" };
-    const started = startRun(ctx, event.prompt);
-    if (!started.ok) {
-      runGate = { state: "held", reason: heldRunReason(started) };
+    const started = openRun(ctx, event.prompt);
+    if (runGate.state === "held") {
       return {
         message: {
           customType: "harness-run-refused",
@@ -933,7 +939,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         },
       };
     }
-    runGate = { state: "ready" };
     // Only once the run holds its claim: reconcile's locked writer reads a corrupt registry
     // as empty and rewrites it, which would erase the very file a refusal leaves as found.
     if (!claimsReconciled) {
@@ -968,6 +973,15 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     } catch {
       throw new Error("inject-expertise.py returned invalid JSON");
     }
+  });
+
+  // BUG-1898 (live probe S2): a hub-woken agent runs a new turn through agent.prompt(),
+  // which emits agent_start but never before_agent_start. Its claim was released when it
+  // settled, so the wake re-opens the gate here — the same exact-id claim step, with the
+  // feature this session already runs. A first run arrives already ready and is untouched.
+  pi.on("agent_start", async (_event: Dict, ctx: any) => {
+    if (!currentAgent || runGate.state === "ready") return;
+    openRun({ cwd: text(ctx?.cwd) || sessionCwd }, "");
   });
 
   pi.on("message_update", async (event: Dict) => {
@@ -1324,6 +1338,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
 
   pi.on("agent_end", async (event: Dict, ctx: any) => {
     if (!currentAgent) return;
+    // The turn is over and its claim released on yield; a later wake must claim again.
+    runGate = { state: "unready" };
     const finalText = lastAssistantText(event.messages);
     if (!finalText.trim()) return;
     // Notification-only backstop. Normal task agents are validated on `yield`.

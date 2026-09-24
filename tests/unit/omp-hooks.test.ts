@@ -1889,20 +1889,37 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     expect(await child.handlers.get("tool_call")?.(write(), childCtx)).toBeUndefined();
   });
 
+  // An IRC wake runs agent.prompt() directly: OMP emits agent_start for it, never
+  // before_agent_start (agent-session.ts #wakeForIrc). The live probe's S2 caught the
+  // run-start-only reclaim leaving the woken run's first write with no claim.
   test("a settled agent woken by message reclaims the same exact id", async () => {
     const w = world();
     const parent = await lead(w);
     const child = session(w.runner);
     const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
     await begin(child, childCtx, "harness-backend-dev", ASSIGN);
+    await child.handlers.get("agent_start")?.({ type: "agent_start" }, childCtx);
+    await child.handlers.get("agent_end")?.({ messages: [] }, childCtx);
     await parent.s.emit("task:subagent:lifecycle", {
       id: "Lead.Dev", agent: "harness-backend-dev", status: "completed", index: 0,
     });
     expect(governed(w.root)).toEqual([]);
 
-    await begin(child, childCtx, "harness-backend-dev", "one more thing");
+    await child.handlers.get("agent_start")?.({ type: "agent_start" }, childCtx);
     expect(governed(w.root).map((row) => row.agent_id)).toEqual(["Lead.Dev"]);
     expect(await child.handlers.get("tool_call")?.(write(), childCtx)).toBeUndefined();
+  });
+
+  test("a woken run's writes are held until its wake has reclaimed", async () => {
+    const w = world();
+    const child = session(w.runner);
+    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    seed(w.root, [{ agent: "harness-backend-dev", parent_agent_id: "Lead", claim_id: "r" }]);
+    await begin(child, childCtx, "harness-backend-dev", ASSIGN);
+    await child.handlers.get("agent_end")?.({ messages: [] }, childCtx);
+    const held = await child.handlers.get("tool_call")?.(write(), childCtx) as
+      { block?: boolean } | undefined;
+    expect(held?.block).toBe(true);
   });
 
   test("a markerless revival recovers its feature from its one exact live claim", async () => {

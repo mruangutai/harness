@@ -12,7 +12,8 @@ the session, result-row and agent ids it observes; it never predicts names.
       exact runtime id. The hook authorizes that write only against such a claim. Nobody
       binds by hand.
   S3  A background batch mixes a scout with two orchestrators, one of which dispatches a
-      nested scout. It must show a repeated name's suffix id and a lineage id. Rows are
+      nested lead (the only children an orchestrator may spawn). It must show a repeated
+      name's suffix id and a lineage id. Rows are
       matched by real ids: no governed row ever carries a non-governed id or another
       persona's id, and every governed child settles.
   S4  One real suite run leaves a separately seeded, unrelated live claim byte-identical.
@@ -59,7 +60,7 @@ SCENARIOS = (
     ("S2-wake-reclaim",
      "the settled orchestrator, woken by hub send, writes under a claim bound to its exact id"),
     ("S3-mixed-batch",
-     "scout + two orchestrators (one nesting a scout) settle by real ids, no cross-attachment"),
+     "scout + two orchestrators (one nesting a lead) settle by real ids, no cross-attachment"),
     ("S4-suite-preservation",
      "one real suite run leaves a separately seeded unrelated live claim intact"),
     ("S5-settled-empty", "every governed child settled and the feature registry is empty"),
@@ -74,6 +75,23 @@ DIGEST:
   briefing: none
   files_touched: []
   open_questions: []
+  expertise_update: []
+artifact: .harness/harness/features/{feature}/feature.json""".format(feature=FEATURE)
+# A nested child must be a lead: an orchestrator may dispatch only the three leads, so a
+# nested scout is refused at spawn preflight and no lineage id ever appears.
+LEAD_DIGEST = """VERDICT: PASS
+DIGEST:
+  headline: BUG-1898 live probe nested lead settled
+  team: probe
+  steps_run: 0
+  cycles_used: 0
+  members: []
+  must_fix: []
+  branch: none
+  escalations: []
+  adequacy_notes: []
+  open_questions: []
+  files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/{feature}/feature.json""".format(feature=FEATURE)
 CHILD_PREAMBLE = (
@@ -298,8 +316,8 @@ class Session:
 # Scenarios
 # ---------------------------------------------------------------------------------------
 
-def child_task(steps: str) -> str:
-    return f"{CHILD_PREAMBLE}\n{steps}\nThen yield exactly this digest as your result:\n{DIGEST}"
+def child_task(steps: str, digest: str = DIGEST) -> str:
+    return f"{CHILD_PREAMBLE}\n{steps}\nThen yield exactly this digest as your result:\n{digest}"
 
 
 def governed_rows(agent_ids) -> list[dict]:
@@ -331,8 +349,9 @@ def wake_settlement(s: Session, orch: str, mark: int, timeout: float) -> dict | 
         None)
 
 
-def sampled_owner(s: Session, orch: str) -> list[float]:
-    return [ts for ts, rows in s.samples
+def sampled_owner(s: Session, orch: str, since: int) -> list[float]:
+    """Samples taken after the wake began that show a live claim bound to `orch`."""
+    return [ts for ts, rows in s.samples[since:]
             if any(r.get("agent_id") == orch and r.get("feature") == FEATURE for r in rows)]
 
 
@@ -340,12 +359,13 @@ def s2_wake_reclaim(s: Session, orch: str | None, timeout: float) -> None:
     if not check("S2: has a settled orchestrator to wake", orch is not None, orch):
         return
     mark = len(s.lifecycle)
+    since = len(s.samples)
     wake = child_task(f"Use the write tool to create {WAKE_MARKER} containing exactly: "
                       f"woken {orch}")
     s.prompt(f"Use the hub tool once: op send, to {orch}, message:\n{wake}\nThen use hub "
              f"wait from {orch} and reply with exactly PROBE_S2_DONE.", timeout)
     settled = wake_settlement(s, orch, mark, timeout)
-    owned = sampled_owner(s, orch)
+    owned = sampled_owner(s, orch, since)
     text = WAKE_MARKER.read_text().strip() if WAKE_MARKER.exists() else None
     check("S2: the woken run's write landed (the hook authorizes only an exact-id claim)",
           text == f"woken {orch}", text)
@@ -357,8 +377,9 @@ def s2_wake_reclaim(s: Session, orch: str | None, timeout: float) -> None:
 
 def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
     mark = len(s.lifecycle)
-    nested = child_task("Use the task tool exactly once (blocking): agent scout, name Scope, "
-                        "task: Reply with the single word ok.")
+    lead = child_task("There are no steps.", LEAD_DIGEST)
+    nested = child_task("Use the task tool exactly once (blocking): agent harness-eng-lead, "
+                        f"name Probe, task:\n{lead}")
     plain = child_task("There are no steps.")
     s.prompt("Use the task tool exactly once, as a BACKGROUND (non-blocking) batch of three "
              "tasks with shared context 'BUG-1898 probe batch':\n"
@@ -375,8 +396,9 @@ def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
 
 
 def batch_plain_ids(s: Session, mark: int) -> list[str]:
+    """Ids of the batch's non-governed children; a nested lead is governed, never plain."""
     return [p["id"] for p in s.lifecycle[mark:]
-            if p.get("id") and p.get("agent") != "harness-orchestrator"]
+            if p.get("id") and not str(p.get("agent", "")).startswith("harness-")]
 
 
 def observed_ids(s: Session, governed: list[str], plain_ids: list[str]) -> list[str]:
@@ -402,7 +424,7 @@ def check_batch_ids(s: Session, governed: list[str], plain_ids: list[str]) -> No
     check("S3: two governed orchestrators started under real ids", len(governed) == 2, governed)
     check("S3: a repeated name produced a suffix id (Name-2)",
           any(i.rsplit("-", 1)[-1].isdigit() for i in every if "-" in i), every)
-    check("S3: a nested child produced a lineage id (Lead.Scope)",
+    check("S3: a nested child produced a lineage id (Nest.Probe)",
           any("." in i for i in every), every)
     check("S3: no row ever carried a non-governed id or crossed personas", not stray, stray[:3])
     check("S3: every governed child settled", all(settled), settled)
