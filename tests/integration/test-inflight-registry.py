@@ -1208,33 +1208,35 @@ CASES = (
 )
 
 
-def case_feat65_typed_probes():
-    """FEAT-65 SC-10 and the settled probe tuples: the process-identity probes and the feature
-    worktree lookup absorb only their producers' classes; anything else is loud."""
-    import inflight_registry
+def _feat65_ps_probe_checks(inflight_registry):
+    """The ps probe absorbs only its own classes and still answers None on them."""
     real_run = inflight_registry.subprocess.run
-    real_lookup = inflight_registry.harness_boundary.worktree_for_feature
-    if not os.path.exists("/proc"):
-        def _raise_os(*a, **k):
-            raise OSError("FEAT-65 ps unavailable")
-        inflight_registry.subprocess.run = _raise_os
-        try:
-            check("feat65: a failing ps probe still answers None",
-                  inflight_registry._read_process_start_time(os.getpid()) is None)
-        finally:
-            inflight_registry.subprocess.run = real_run
+    if os.path.exists("/proc"):
+        return
+    def _raise_os(*a, **k):
+        raise OSError("FEAT-65 ps unavailable")
+    inflight_registry.subprocess.run = _raise_os
+    try:
+        check("feat65: a failing ps probe still answers None",
+              inflight_registry._read_process_start_time(os.getpid()) is None)
+    finally:
+        inflight_registry.subprocess.run = real_run
 
-        def _raise_rt(*a, **k):
-            raise RuntimeError("FEAT-65 injected")
-        inflight_registry.subprocess.run = _raise_rt
-        try:
-            inflight_registry._read_process_start_time(os.getpid())
-            check("feat65: an unrelated defect in the ps probe escapes", False, "returned")
-        except RuntimeError:
-            check("feat65: an unrelated defect in the ps probe escapes", True)
-        finally:
-            inflight_registry.subprocess.run = real_run
-    root = tempfile.mkdtemp()
+    def _raise_rt(*a, **k):
+        raise RuntimeError("FEAT-65 injected")
+    inflight_registry.subprocess.run = _raise_rt
+    try:
+        inflight_registry._read_process_start_time(os.getpid())
+        check("feat65: an unrelated defect in the ps probe escapes", False, "returned")
+    except RuntimeError:
+        check("feat65: an unrelated defect in the ps probe escapes", True)
+    finally:
+        inflight_registry.subprocess.run = real_run
+
+
+def _feat65_feature_root_checks(inflight_registry, root):
+    """feature_root absorbs the lookup's own AmbiguousWorktree/OSError; a defect escapes."""
+    real_lookup = inflight_registry.harness_boundary.worktree_for_feature
 
     def _ambiguous(owner_root, feature):
         raise inflight_registry.harness_boundary.AmbiguousWorktree("FEAT-65 two candidates")
@@ -1255,7 +1257,16 @@ def case_feat65_typed_probes():
         check("feat65: an unrelated lookup defect escapes feature_root", True)
     finally:
         inflight_registry.harness_boundary.worktree_for_feature = real_lookup
-    # The direct command has no entrypoint guard: the same defect is a traceback, nonzero.
+
+
+def case_feat65_typed_probes():
+    """FEAT-65 SC-10 and the settled probe tuples: the process-identity probes and the feature
+    worktree lookup absorb only their producers' classes; anything else is loud — and the
+    direct command has no entrypoint guard, so the same defect is a traceback, nonzero."""
+    import inflight_registry
+    root = tempfile.mkdtemp()
+    _feat65_ps_probe_checks(inflight_registry)
+    _feat65_feature_root_checks(inflight_registry, root)
     mbin = os.path.join(tempfile.mkdtemp(), "bin")
     shutil.copytree(os.path.dirname(inflight_registry.__file__), mbin)
     with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as handle:

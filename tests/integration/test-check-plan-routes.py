@@ -2781,10 +2781,6 @@ def _feat63_frozen_ceiling_checks():
     check("feat63_census_frozen_script_plus_one_is_one_finding_naming_it",
           len(f) == 1 and "harness_boundary.py" in f[0] and "check-state.py" not in f[0]
           and " 3 " in f[0] and "ceiling 2" in f[0], "\n".join(f))
-    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "check-domain.py", _BROAD_CATCH))
-    check("feat65_census_a_hook_plus_one_is_one_finding_against_ceiling_0",
-          len(f) == 1 and "check-domain.py" in f[0] and " 1 " in f[0] and "ceiling 0" in f[0],
-          "\n".join(f))
     f = _feat62_findings_for_tree(_reduce_one_broad_catch)
     check("feat63_census_frozen_script_minus_one_is_clean", f == [], "\n".join(f))
     f = _feat62_findings_for_tree(lambda root: (_reduce_one_broad_catch(root),
@@ -2799,6 +2795,14 @@ def _feat63_frozen_ceiling_checks():
           len(f) == 1 and "brand_new_helper.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
 
 
+def _feat65_hook_ceiling_checks():
+    """Every hook is unlisted now: one broad catch in any of them is a finding against zero."""
+    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "check-domain.py", _BROAD_CATCH))
+    check("feat65_census_a_hook_plus_one_is_one_finding_against_ceiling_0",
+          len(f) == 1 and "check-domain.py" in f[0] and " 1 " in f[0] and "ceiling 0" in f[0],
+          "\n".join(f))
+
+
 def case_feat63_broad_catch_census():
     """SC-04: ONE AST census over every bin script -- check-state.py at zero, every other
     script frozen at its recorded count; the shipped tree is clean."""
@@ -2806,6 +2810,7 @@ def case_feat63_broad_catch_census():
     check("feat63_census_clean_tree_has_no_findings", clean == [], "\n".join(clean))
     _feat63_checker_ceiling_checks()
     _feat63_frozen_ceiling_checks()
+    _feat65_hook_ceiling_checks()
 
 
 

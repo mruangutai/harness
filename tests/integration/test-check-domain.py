@@ -35,6 +35,18 @@ def _feat65_fire(sibling, override, argv=(), stdin=None):
                           capture_output=True, text=True, env=env)
 
 
+def _feat65_guarded(result, line):
+    """Pass-through: exit 0, stderr ending in the template, never the old claim sentence."""
+    return (result.returncode == 0 and result.stderr.endswith(line)
+            and "was not enforced" not in result.stderr)
+
+
+def _feat65_escaped(result, code=None):
+    """Process control escaped the guard: nonzero (or the named code) and no template."""
+    exit_ok = result.returncode != 0 if code is None else result.returncode == code
+    return exit_ok and "failed internally" not in result.stderr
+
+
 def _feat65_guard_cases():
     """Unexpected defects reach hook_guard (pass-through exit 0, the canonical line, nothing
     else); process control escapes it; the deleted rule-level absorbers absorb nothing."""
@@ -60,23 +72,19 @@ def _feat65_guard_cases():
     line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
     return [
         ("a defect reading the payload passes through with exactly the hook_guard line",
-         payload_defect.returncode == 0 and payload_defect.stderr == line
-         and payload_defect.stdout == "", payload_defect),
+         payload_defect.stderr == line and payload_defect.stdout == ""
+         and _feat65_guarded(payload_defect, line), payload_defect),
         ("a defect in the feature-checkout rule is no longer absorbed: it is named on stderr",
-         checkout_defect.returncode == 0 and checkout_defect.stderr.endswith(line),
-         checkout_defect),
+         _feat65_guarded(checkout_defect, line), checkout_defect),
         ("a defect in the claim rule is no longer classified locally: it is named on stderr",
-         claim_defect.returncode == 0 and claim_defect.stderr.endswith(line)
-         and "was not enforced" not in claim_defect.stderr, claim_defect),
+         _feat65_guarded(claim_defect, line), claim_defect),
         ("a --resolve defect passes through the same guard and answers no route",
-         resolve_defect.returncode == 0 and resolve_defect.stderr == line
-         and resolve_defect.stdout == "", resolve_defect),
+         resolve_defect.stderr == line and resolve_defect.stdout == ""
+         and _feat65_guarded(resolve_defect, line), resolve_defect),
         ("KeyboardInterrupt escapes the guard",
-         interrupt.returncode != 0 and "KeyboardInterrupt" in interrupt.stderr
-         and "failed internally" not in interrupt.stderr, interrupt),
+         _feat65_escaped(interrupt) and "KeyboardInterrupt" in interrupt.stderr, interrupt),
         ("a deliberate SystemExit keeps its own exit code",
-         deliberate_exit.returncode == 7 and "failed internally" not in deliberate_exit.stderr,
-         deliberate_exit),
+         _feat65_escaped(deliberate_exit, 7), deliberate_exit),
     ]
 
 
