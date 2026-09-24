@@ -279,7 +279,7 @@ if not omp_main:
         else:
             _allowed = [ln.strip()[1:].strip().strip("'\"")
                         for ln in _m.group(2).splitlines() if ln.strip()]
-    except Exception as exc:
+    except (hb.AmbiguousWorktree, OSError, IndexError, ValueError) as exc:
         print("dispatch-guard: spawns allowlist unreadable for %s (%s) -- passing through."
               % (agent, exc), file=sys.stderr)
     else:
