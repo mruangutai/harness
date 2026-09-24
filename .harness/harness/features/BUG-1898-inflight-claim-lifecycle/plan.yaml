@@ -1,8 +1,10 @@
 schema: plan/1
 feature: BUG-1898-inflight-claim-lifecycle
 approval:
-  status: pending
-status: plan
+  date: '2026-09-24'
+  approved_by: main session (operator molchairuangutai)
+  status: approved
+status: ready
 mission: plan
 source_issues: [1898]
 baseline:

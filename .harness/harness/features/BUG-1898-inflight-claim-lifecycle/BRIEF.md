@@ -68,6 +68,6 @@ The governed-agent claim lifecycle is split across dispatch, OMP run start, task
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator (molchairuangutai), via the main session
+date: 2026-09-24

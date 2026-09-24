@@ -27,5 +27,39 @@
       "reason": "five causes across the OMP extension, the digest validator, the registry and their tests; the fix adds a claim-at-run-start path and re-arms the held-child gate (new enforcement surfaces), and occurrence 1's trigger is still unpinned"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1898-inflight-claim-lifecycle/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "07d03c585492e9aaf26d5e677d3b2b91cf5f5b6b80c56ab6c2f3590839de7105",
+    "T-02": "3b6b6df3ccc9ec81b5a80d4f99d840f97bbc499b02af29b0c36328cf6f8feaea",
+    "T-03": "e77e210445edd4c615fdf7754b1f5817544d507cbe905d8bf13784ca3853a8ae",
+    "T-04": "a1cafe7a99f1c356009ea970a9a9b578b1b8fee8e466ec90beee4499e0a1cab2",
+    "T-05": "6a7636312a72593748e4e712d0a08a3b52f70fad523cc864676c8815d0fd1cea"
+  },
+  "github": {
+    "milestone": 88,
+    "parent": 1921,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1922,
+      "T-02": 1923,
+      "T-03": 1924,
+      "T-04": 1925,
+      "T-05": 1926
+    },
+    "source_issues": [
+      1898
+    ],
+    "build_entry": "opened"
+  }
 }
