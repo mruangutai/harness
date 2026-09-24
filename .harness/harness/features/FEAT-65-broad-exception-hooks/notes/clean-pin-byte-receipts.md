@@ -1,6 +1,6 @@
 # FEAT-65 — clean-pin byte receipts (SC-08)
 
-Implementation pin: `79b7c268` (resolved HEAD `79b7c2682a4ca174aa19f48259d10d3b60bb43e5`). Clean detached checkout `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat65-cleanpin-79b7c268` via `git worktree add --detach`; `git status --porcelain` at the checkout: empty.
+Implementation pin: `97d14f0b` (resolved HEAD `97d14f0b0fdca9fa9ab3b87b2ef2c12b263c8620`). Clean detached checkout `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat65-cleanpin-97d14f0b` via `git worktree add --detach`; `git status --porcelain` at the checkout: empty.
 
 Each suite: `HARNESS_PROJECT_DIR=<checkout> python3 <checkout>/<suite>`, cwd `<checkout>`. Digests are sha256[:16] of the raw stream; the final stdout line is quoted as the suite's own verdict.
 
@@ -16,19 +16,21 @@ THIS RECEIPT IS COMMITTED IN A LATER COMMIT ON THE FEATURE BRANCH AND DOES NOT C
 | T-01 | `tests/integration/test-check-domain-worktree-parity.py` | 0 | `0f05a1a008bbbf95` | `e3b0c44298fc1c14` | `49/49 worktree grant-parity cases passed.` |
 | T-01 | `tests/integration/test-check-domain-worktree.py` | 0 | `51d19db1e52bb91a` | `e3b0c44298fc1c14` | `12/12 b2 cwd-independence cases passed.` |
 | T-01 | `tests/integration/test-check-domain-approval.py` | 0 | `c7794321f8e0d333` | `e3b0c44298fc1c14` | `28/28 T-14 cases passed.` |
-| T-02 | `tests/integration/test-validate-digest.py` | 0 | `f5cb25d9df05a30e` | `e3b0c44298fc1c14` | `ALL PASSED.` |
+| T-02 | `tests/integration/test-validate-digest.py` | 0 | `d108ea50fe04ade5` | `e3b0c44298fc1c14` | `ALL PASSED.` |
 | T-02 | `tests/unit/test-code-grade.py` | 0 | `a6133575d90833b8` | `e3b0c44298fc1c14` | `PASS test-code-grade` |
 | T-03 | `tests/integration/test-bash-write-guard.py` | 0 | `c5f5de6f51976c86` | `e3b0c44298fc1c14` | `PASS  [bug1304] partial unreadable is allowed by the frozen pre-change guard` |
-| T-03 | `tests/integration/test-branch-create-gate.py` | 0 | `fb0ea577ff1d1e21` | `e3b0c44298fc1c14` | `9/9 cases passed.` |
+| T-03 | `tests/integration/test-branch-create-gate.py` | 0 | `41e65ecc68e1be42` | `e3b0c44298fc1c14` | `14/14 cases passed.` |
 | T-03 | `tests/integration/test-dispatch-guard.py` | 0 | `f89829d7caaf3795` | `e3b0c44298fc1c14` | `85 of 85 cases passed` |
-| T-03 | `tests/unit/test-feature-record.py` | 0 | `e3b0c44298fc1c14` | `8e18fe6215250a41` | `` |
+| T-03 | `tests/unit/test-feature-record.py` | 0 | `e3b0c44298fc1c14` | `d4460736b59a8c62` | `` |
 | T-03 | `tests/integration/test-gh-close-gate.py` | 0 | `c938ecba1dce3d30` | `e3b0c44298fc1c14` | `ALL PASSED` |
 | T-03 | `tests/integration/test-inflight-registry.py` | 0 | `12327690623b4491` | `da6f5bfb48f793ec` | `PASS - 144/144 checks passed` |
 | T-03 | `tests/integration/test-inject-expertise.py` | 0 | `49035c70c1384ff8` | `e3b0c44298fc1c14` | `21/21 cases passed.` |
 | T-03 | `tests/integration/test-merge-gate.py` | 0 | `be41d360798b2ffb` | `e3b0c44298fc1c14` | `ALL PASSED` |
 | T-03 | `tests/integration/test-plan-sign-gate.py` | 0 | `fdf654d77d0babf5` | `e3b0c44298fc1c14` | `all checks passed.` |
-| T-04 | `tests/unit/test-broad-catch-census.py` | 0 | `ca5f5c39c959da1b` | `e3b0c44298fc1c14` | `ALL PASS` |
-| T-04 | `tests/unit/test-harness-boundary.py` | 0 | `14d569909492d386` | `c6a545cdac96989d` | `ALL PASS` |
+| T-04 | `tests/unit/test-broad-catch-census.py` | 0 | `3054a612fd3e3fc9` | `e3b0c44298fc1c14` | `ALL PASS` |
+| T-04 | `tests/unit/test-harness-boundary.py` | 0 | `14d569909492d386` | `88c9c920f7b2da0c` | `ALL PASS` |
+| T-04 | `tests/integration/test-check-plan-routes.py` | 0 | `d5ca1a56461d1a4c` | `e3b0c44298fc1c14` | `ALL PASS` |
+| T-04 | `tests/unit/test-code-grade.py` | 0 | `a6133575d90833b8` | `e3b0c44298fc1c14` | `PASS test-code-grade` |
 
 ## AST census at the pin
 
