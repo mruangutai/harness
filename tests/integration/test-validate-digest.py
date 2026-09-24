@@ -1738,10 +1738,13 @@ def _t09_root():
     return d
 
 
-def _t09_fire(root, agent, text, hook=None, **extra):
+def _t09_fire(root, agent, text, hook=None, governed=True, **extra):
+    """Fire the hook as a governed return (HOOK_IDENTITY merged in), or with `governed`
+    False, exactly the identity passed and nothing else."""
     payload = {"agent_type": agent, "last_assistant_message": text, "cwd": root}
     payload.update(extra)
-    return subprocess.run([hook or VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
+    return subprocess.run([hook or VALIDATE, "--hook"],
+                          input=json.dumps(_governed(payload) if governed else payload),
                           capture_output=True, text=True,
                           # BOTH NAMES, ONE VALUE (FEAT-42 T-17). The hook resolves through
                           # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR
@@ -5699,14 +5702,6 @@ def _b1898_rows(root):
         return json.load(handle).get("claims", [])
 
 
-def _b1898_fire(root, agent, text, **identity):
-    payload = {"agent_type": agent, "last_assistant_message": text, "cwd": root}
-    payload.update(identity)
-    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
-                          capture_output=True, text=True,
-                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
-
-
 def _b1898_one_claim_per_persona():
     root = _t09_root()
     _b1898_seed(root, [{"agent": persona, "agent_id": "Lead.%s" % persona,
@@ -5725,7 +5720,7 @@ def _b1898_missing_identity_releases_nothing():
         ):
             root = _b1898_one_claim_per_persona()
             before = _b1898_rows(root)
-            r = _b1898_fire(root, persona, PM_OK, **identity)
+            r = _t09_fire(root, persona, PM_OK, **identity, governed=False)
             _b1898_check("%s return missing its %s is refused" % (persona, missing),
                          r.returncode == 2 and "harness_agent_id" in r.stderr
                          and "harness_feature" in r.stderr,
@@ -5739,7 +5734,7 @@ def _b1898_blocked_return_without_identity():
     touches no registry and is not refused for the identity it lacks."""
     root = _b1898_one_claim_per_persona()
     before = _b1898_rows(root)
-    r = _b1898_fire(root, "harness-qa", "VERDICT: BLOCKED\nDIGEST:\n  headline: held\n")
+    r = _t09_fire(root, "harness-qa", "VERDICT: BLOCKED\nDIGEST:\n  headline: held\n", governed=False)
     _b1898_check("a BLOCKED return without identity is not refused for identity",
                  "harness_agent_id" not in r.stderr, r.stderr.strip()[-240:])
     _b1898_check("and it releases nothing", _b1898_rows(root) == before,
@@ -5755,8 +5750,8 @@ def _b1898_qa_yields_while_pm_live():
         {"agent": "harness-qa", "agent_id": "Lead.Qa", "parent_agent_id": "Lead"},
     ])
     pm_before = [row for row in _b1898_rows(root) if row["agent"] == "harness-pm"]
-    _b1898_fire(root, "harness-qa", "VERDICT: PASS\n",
-                harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa")
+    _t09_fire(root, "harness-qa", "VERDICT: PASS\n",
+                harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
     rows = _b1898_rows(root)
     _b1898_check("occurrence-1: QA's exact claim is released",
                  [row["agent"] for row in rows] == ["harness-pm"], repr(rows)[:240])
@@ -5780,8 +5775,8 @@ def _b1898_release_reads_the_feature_worktree():
     _b1898_seed(owner, [{"agent": "harness-qa", "agent_id": "Other.Qa",
                          "parent_agent_id": "Other", "feature": "FEAT-7-owner"}])
     owner_before = _b1898_rows(owner)
-    _b1898_fire(owner, "harness-qa", "VERDICT: PASS\n",
-                harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa")
+    _t09_fire(owner, "harness-qa", "VERDICT: PASS\n",
+                harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
     _b1898_check("the claim is released from the feature worktree's registry",
                  _b1898_rows(worktree) == [], repr(_b1898_rows(worktree))[:240])
     _b1898_check("and the owner checkout's registry is untouched",
@@ -5821,7 +5816,7 @@ def _b1898_held_child_refuses_the_parent():
     """The held-child gate on exact ids: a parent with a live child is refused, keeps its
     own claim, and is told how to release exactly that child."""
     owner, worktree = _b1898_parent_with_live_child()
-    r = _b1898_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT)
+    r = _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT, governed=False)
     _b1898_check("a parent with an exact live child is refused",
                  r.returncode == 2 and CHILD_MARK in r.stderr,
                  "exit %d: %s" % (r.returncode, r.stderr.strip()[-300:]))
@@ -5840,9 +5835,9 @@ def _b1898_held_child_refuses_the_parent():
 def _b1898_settled_child_frees_the_parent():
     """Once that child settles, the identical yield passes and releases only the parent."""
     owner, worktree = _b1898_parent_with_live_child()
-    _b1898_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT)
+    _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT, governed=False)
     _reg_module().release(worktree, feature=B1898_FEATURE, agent_id="Main.Orch.Lead")
-    r = _b1898_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT)
+    r = _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT, governed=False)
     _b1898_check("after the child settles the identical yield passes",
                  r.returncode == 0, "exit %d: %s" % (r.returncode, r.stderr.strip()[-300:]))
     _b1898_check("and releases only the parent",

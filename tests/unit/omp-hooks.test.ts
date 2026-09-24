@@ -280,6 +280,17 @@ describe("OMP task lifecycle adapter", () => {
         });
         return answer({ ok: true, outcome: "created" });
       }
+      if (script === "inflight_registry.py" && args[0] === "release-run") {
+        const agentId = option(args, "--agent-id");
+        const found = [...lineageClaims.values()].filter((claimRecord) =>
+          claimRecord.agentId === agentId);
+        if (found.length !== 1) {
+          return { blocked: true, stdout: JSON.stringify({ ok: false, cause: "not-found", retryable: false,
+            message: `no live claim is bound to run ${agentId}` }) };
+        }
+        active.delete(String(agentId));
+        return { blocked: false, stdout: JSON.stringify({ ok: true, feature: found[0].feature, root: "/repo" }) };
+      }
       if (script === "inflight_registry.py" && args[0] === "find-run") {
         const agentId = option(args, "--agent-id");
         const found = [...lineageClaims.values()].filter((claimRecord) =>

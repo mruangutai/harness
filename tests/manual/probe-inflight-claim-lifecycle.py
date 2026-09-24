@@ -45,7 +45,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FEATURE = "BUG-1898-inflight-claim-lifecycle"
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-REGISTRY = ROOT / ".harness" / ".inflight-claims.json"
 NOTES = ROOT / ".harness" / "harness" / "features" / FEATURE / "notes"
 RECEIPT = NOTES / "live-omp-probe.md"
 WAKE_MARKER = NOTES / "probe-wake-marker.txt"
@@ -134,8 +133,8 @@ def has_credentials(model: str) -> bool:
     return count > 0
 
 
-def registry_rows(root: Path = ROOT) -> list[dict]:
-    path = root / ".harness" / ".inflight-claims.json"
+def registry_rows() -> list[dict]:
+    path = ROOT / inflight_registry.REGISTRY_REL
     if not path.exists():
         return []
     return list(json.loads(path.read_text(encoding="utf-8")).get("claims", []))
@@ -148,17 +147,12 @@ def check_runtime(omp: str | None) -> None:
           {"runtime": str(runtime), "head": head, "pin": pinned_commit()})
 
 
-def owner_checkout() -> Path | None:
-    """The checkout this linked worktree belongs to (`.git` is a `gitdir:` pointer file)."""
-    pointer = (ROOT / ".git").read_text().strip() if (ROOT / ".git").is_file() else ""
-    return Path(pointer[len("gitdir: "):]).parents[2] if pointer.startswith("gitdir: ") else None
-
-
 def check_checkout() -> None:
     check("cwd is this feature worktree", Path.cwd().resolve() == ROOT.resolve(),
           {"cwd": str(Path.cwd()), "worktree": str(ROOT)})
-    owner = owner_checkout()
-    placed = inflight_registry.feature_root(str(owner), FEATURE) if owner else ""
+    owned = harness_boundary.worktree_owner(str(ROOT))
+    owner = owned[1] if owned else None
+    placed = inflight_registry.feature_root(owner, FEATURE) if owner else ""
     check("feature_root places the feature in this linked worktree",
           os.path.realpath(placed) == os.path.realpath(ROOT),
           {"owner": str(owner), "feature_root": placed})

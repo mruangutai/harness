@@ -1553,9 +1553,7 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # the real block. The contract mandates the real return LAST, so slice from
     # the last line-start VERDICT: and validate only that. No anchor at all keeps
     # whole-text behavior — the "no VERDICT" path stays byte-identical.
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        text = text[anchors[-1].start():]
+    text = _return_tail(text)
 
     # --- VERDICT: exact token, exact spelling.
     m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)
@@ -1966,10 +1964,7 @@ def _hook_feature_dir(text, feature):
 
 
 def _durable_artifact_path(text):
-    tail = text
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        tail = text[anchors[-1].start():]
+    tail = _return_tail(text)
     matches = list(re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M))
     if not matches:
         return None
@@ -2068,13 +2063,9 @@ def check_artifact_file(agent, text, payload):
 def _qa_claims_unconditional_pass(text):
     """True iff `text`'s tail-anchored return is VERDICT: PASS with suite: pass AND
     matrix_ok: true — the one claim #919 exists to independently re-verify."""
-    tail = text
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        tail = text[anchors[-1].start():]
-    verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", tail, re.M)
-    if (verdict_match.group(1) if verdict_match else None) != "PASS":
+    if _return_verdict(text) != "PASS":
         return False
+    tail = _return_tail(text)
     seen = parse_digest(tail)
     return seen.get("suite") == "pass" and seen.get("matrix_ok") is True
 
@@ -2225,11 +2216,17 @@ def check_qa_matrix_claim(agent, text, payload):
 _ABSENT = object()
 
 
-def _return_verdict(raw):
+def _return_tail(text):
+    """A return from its LAST line-start `VERDICT:` on — the real block, which the contract
+    puts last, so an echoed template earlier in the message never shadows it. No anchor
+    leaves the text whole."""
+    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
+    return text[anchors[-1].start():] if anchors else text
+
+
+def _return_verdict(text):
     """The verdict of the LAST `VERDICT:` block in a return, or None."""
-    anchors = list(re.finditer(r"^\s*VERDICT:", raw, re.M))
-    tail = raw[anchors[-1].start():] if anchors else raw
-    match = re.search(r"^\s*VERDICT:\s*(\S+)", tail, re.M)
+    match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail(text), re.M)
     return match.group(1) if match else None
 
 
@@ -2294,10 +2291,10 @@ def _registry_errand(reg, d, agent):
     `feature_root` places the feature in — the one resolver dispatch-guard and the OMP hook
     also use, so the claim a guard wrote is the claim released here. A parent with a live
     child keeps its own claim (DEC-233), and every recovery command names one claim."""
-    verdict = _return_verdict(str(d.get("last_assistant_message") or ""))
     feature, agent_id = _exact_run_identity(d)
     if feature is None:
-        return _identity_refusal(agent, verdict)
+        return _identity_refusal(
+            agent, _return_verdict(str(d.get("last_assistant_message") or "")))
     owner_root = _root_or_none()
     if owner_root is None:
         print("check-digest: no checkout root from this vantage; the #551 claim was "

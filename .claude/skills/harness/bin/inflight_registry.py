@@ -361,13 +361,26 @@ def _live_claims_for_run(owner_root, agent_id, now):
     unreadable = []
     for root in roots:
         try:
-            rows = _read_strict(root)
+            live = live_claims(root, None, now=now, agent_id=agent_id)
         except UnreadableRegistry as error:
             unreadable.extend(error.paths)
             continue
-        live, _expired = _expire([c for c in rows if _matches(c, agent_id=agent_id)], now)
         matches.extend((root, claim) for claim in live)
     return matches, unreadable
+
+
+def release_run(owner_root, agent_id, now=None):
+    """Release the one live claim bound to run `agent_id`, in whichever registry holds it
+    (BUG-1898): `find_run_claim`'s answer, then the exact feature + runtime-id release under
+    that registry's lock. Anything but a unique match releases nothing and is refused."""
+    found = find_run_claim(owner_root, agent_id, now)
+    if not found["ok"]:
+        return found
+    removed = release(found["root"], feature=found["feature"], agent_id=agent_id)
+    if removed is not True:
+        return _refusal("not-found", False,
+                        "run %s's claim changed before it could be released" % agent_id)
+    return found
 
 
 def _reuse_exact(exact, agent_id, parent_agent_id):
@@ -418,8 +431,8 @@ def claim_run_start(root, agent, feature, agent_id, parent_agent_id, supervisor_
         if outcome == "bound":
             subject["agent_id"] = agent_id
         elif outcome == "created":
-            subject = _run_claim_entry(agent, feature, agent_id, parent_agent_id,
-                                       supervisor_pid, cwd, now)
+            subject = _claim_entry(agent, feature, "run-start", cwd, supervisor_pid, now,
+                                   agent_id=agent_id, parent_agent_id=parent_agent_id)
             data["claims"].append(subject)
         return data, {"ok": True, "outcome": outcome, "claim": dict(subject)}
 
@@ -436,7 +449,7 @@ def _run_start_decision(mine, agent, feature, agent_id, parent_agent_id):
     if exact:
         return _reuse_exact(exact, agent_id, parent_agent_id)
     single = is_single_flight(agent)
-    if len(receipts) == 1 and (not single or len(others) == 1):
+    if len(receipts) == 1 and (not single or others == receipts):
         return "bound", receipts[0]
     if single and others:
         return "refused", _single_flight_refusal(agent, feature, others)
@@ -444,7 +457,9 @@ def _run_start_decision(mine, agent, feature, agent_id, parent_agent_id):
 
 
 def _partition_for_run(mine, agent_id, parent_agent_id):
-    """(claims bound to this exact run, this parent's unbound receipts, every other claim)."""
+    """(claims bound to this exact run, this parent's unbound receipts, every claim not
+    bound to this exact run). The last includes the receipts: a single-flight persona binds
+    its receipt only when that receipt is the one live claim, and is refused otherwise."""
     exact = [c for c in mine if c.get("agent_id") == agent_id]
     receipts = [c for c in mine if _is_unbound_receipt(c, parent_agent_id)]
     others = [c for c in mine if c.get("agent_id") != agent_id]
@@ -466,19 +481,22 @@ def _single_flight_refusal(agent, feature, holders):
                     % (agent, feature, named))
 
 
-def _run_claim_entry(agent, feature, agent_id, parent_agent_id, supervisor_pid, cwd, now):
+def _claim_entry(agent, feature, dispatcher, cwd, supervisor_pid, now, **identity):
+    """The one claim row every writer records; `identity` carries a run's runtime ids."""
     entry = {
         "claim_id": uuid.uuid4().hex,
         "started_at": now,
         "feature": feature,
         "agent": agent,
-        "dispatcher": "run-start",
+        "dispatcher": dispatcher,
         "cwd": cwd,
         "runtime": "omp",
         "supervisor_pid": supervisor_pid,
-        "agent_id": agent_id,
-        "parent_agent_id": parent_agent_id,
+        **identity,
     }
+    # Pinned at claim time so a later recycled pid can be told apart from this one.
+    # Absent when the OS declines to report it; `_omp_claim_live` then falls back
+    # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
     started_at = _process_start_time(supervisor_pid)
     if started_at is not None:
         entry["supervisor_started_at"] = started_at
@@ -568,22 +586,7 @@ def claim_with_receipt(
         ):
             data["claims"] = retained
             return data, None
-        entry = {
-            "claim_id": uuid.uuid4().hex,
-            "started_at": now,
-            "feature": feature,
-            "agent": agent,
-            "dispatcher": dispatcher,
-            "cwd": cwd,
-            "runtime": "omp",
-            "supervisor_pid": supervisor_pid,
-        }
-        # Pinned at claim time so a later recycled pid can be told apart from this one.
-        # Absent when the OS declines to report it; `_omp_claim_live` then falls back
-        # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
-        started_at = _process_start_time(supervisor_pid)
-        if started_at is not None:
-            entry["supervisor_started_at"] = started_at
+        entry = _claim_entry(agent, feature, dispatcher, cwd, supervisor_pid, now)
         live.append(entry)
         retained.append(entry)
         data["claims"] = retained
@@ -973,6 +976,16 @@ def _find_run_command(root, rest):
     return 0 if result["ok"] else 2
 
 
+def _release_run_command(root, rest):
+    agent_id = _option(rest, "--agent-id")
+    if not agent_id:
+        print("inflight_registry: release-run requires --agent-id", file=sys.stderr)
+        return 1
+    result = release_run(root, agent_id)
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] else 2
+
+
 def _release_command(root, rest):
     selector_names = ("--agent", "--claim-id", "--agent-id", "--job-id")
     if not any(_option(rest, name) for name in selector_names):
@@ -1009,21 +1022,18 @@ COMMANDS = {
     "authorize": _authorize_command,
     "run-start": _run_start_command,
     "find-run": _find_run_command,
+    "release-run": _release_run_command,
     "release": _release_command,
     "release-all": _release_all_command,
     "reconcile": _reconcile_command,
 }
 
 
-
-
 def main(argv=None):
     argv = list(argv) if argv is not None else sys.argv[1:]
     if not argv:
-        print(
-            "usage: inflight_registry.py {list|attach|authorize|release|release-all|reconcile|feature-root} [options]",
-            file=sys.stderr,
-        )
+        print("usage: inflight_registry.py {%s} [options]" % "|".join(COMMANDS),
+              file=sys.stderr)
         return 1
     command = argv[0]
     root, rest = _resolve_root(argv[1:])

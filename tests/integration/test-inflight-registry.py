@@ -1217,17 +1217,10 @@ BUG1898_FEATURE = "BUG-98-run-start"
 
 def _bug1898_seed(root, claims):
     """Write `claims` (supervised by this live process) as a version-2 registry."""
-    path = os.path.join(root, inflight_registry.REGISTRY_REL)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    rows = []
-    for index, extra in enumerate(claims):
-        row = {"claim_id": "seed-%d" % index, "started_at": time.time(), "cwd": root,
-               "dispatcher": "harness-eng-lead", "runtime": "omp",
-               "supervisor_pid": os.getpid(), "feature": BUG1898_FEATURE}
-        row.update(extra)
-        rows.append(row)
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"schema_version": inflight_registry.SCHEMA_VERSION, "claims": rows}, handle)
+    _write_raw(root, {"schema_version": inflight_registry.SCHEMA_VERSION, "claims": [
+        {**_bug1304_claim(None, BUG1898_FEATURE, time.time()), "claim_id": "seed-%d" % index,
+         **extra}
+        for index, extra in enumerate(claims)]})
 
 
 def _bug1898_start(root, agent, agent_id, parent="Lead", feature=BUG1898_FEATURE):

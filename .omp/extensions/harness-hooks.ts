@@ -180,19 +180,28 @@ export function normalizeYieldInput(input: Dict, fallback: string): Dict {
   return { ...input, result: { data: { content: fallback } } };
 }
 
-function parseDecision(stdout: string): string | undefined {
+// A gate's machine-readable answer is one JSON object on one stdout line; every other line
+// is diagnostic text. Each caller keeps only its own predicate over these objects.
+function jsonLines(stdout: string): Dict[] {
+  const objects: Dict[] = [];
   for (const line of stdout.split("\n")) {
     if (!line.trim().startsWith("{")) continue;
     try {
-      const data = JSON.parse(line) as Dict;
-      const hook = data.hookSpecificOutput as Dict | undefined;
-      if (hook?.permissionDecision === "deny") {
-        return text(hook.permissionDecisionReason) || "Harness policy denied the operation.";
-      }
-      if (data.decision === "block") return text(data.reason) || "Harness policy denied the operation.";
+      objects.push(JSON.parse(line) as Dict);
     } catch {
       // Non-JSON diagnostic output is handled by the script exit code.
     }
+  }
+  return objects;
+}
+
+function parseDecision(stdout: string): string | undefined {
+  for (const data of jsonLines(stdout)) {
+    const hook = data.hookSpecificOutput as Dict | undefined;
+    if (hook?.permissionDecision === "deny") {
+      return text(hook.permissionDecisionReason) || "Harness policy denied the operation.";
+    }
+    if (data.decision === "block") return text(data.reason) || "Harness policy denied the operation.";
   }
   return undefined;
 }
@@ -346,20 +355,14 @@ function taskModelOverride(input: Dict): string | undefined {
 }
 
 function parseClaimReceipt(stdout: string): ClaimReceipt | undefined {
-  for (const line of stdout.split("\n")) {
-    if (!line.trim().startsWith("{")) continue;
-    try {
-      const parsed = JSON.parse(line) as Dict;
-      const raw = parsed.harness_claim as Dict | undefined;
-      if (!raw) continue;
-      const root = text(raw.root);
-      const feature = text(raw.feature);
-      const agent = text(raw.agent);
-      const claimId = text(raw.claim_id);
-      if (root && feature && agent && claimId) return { root, feature, agent, claimId };
-    } catch {
-      continue;
-    }
+  for (const parsed of jsonLines(stdout)) {
+    const raw = parsed.harness_claim as Dict | undefined;
+    if (!raw) continue;
+    const root = text(raw.root);
+    const feature = text(raw.feature);
+    const agent = text(raw.agent);
+    const claimId = text(raw.claim_id);
+    if (root && feature && agent && claimId) return { root, feature, agent, claimId };
   }
   return undefined;
 }
@@ -385,8 +388,8 @@ export function settledRunIds(details: unknown): string[] {
   return [...ids];
 }
 
-// A run-start or find-run answer (inflight_registry.py prints one JSON object). A step that
-// printed none crashed; that is a refusal the run can retry, never a silent pass.
+// A run-start, find-run or release-run answer (inflight_registry.py prints one JSON object).
+// A step that printed none crashed; that is a refusal the run can retry, never a silent pass.
 type RunAnswer = {
   ok: boolean;
   cause?: string;
@@ -397,15 +400,8 @@ type RunAnswer = {
 };
 
 function parseRunAnswer(result: PolicyResult): RunAnswer {
-  for (const line of result.stdout.split("\n").reverse()) {
-    if (!line.trim().startsWith("{")) continue;
-    try {
-      const parsed = JSON.parse(line) as Dict;
-      if (typeof parsed.ok === "boolean") return parsed as RunAnswer;
-    } catch {
-      continue;
-    }
-  }
+  const answer = jsonLines(result.stdout).reverse().find((parsed) => typeof parsed.ok === "boolean");
+  if (answer) return answer as RunAnswer;
   return {
     ok: false,
     cause: "claim-step-failed",
@@ -467,21 +463,6 @@ function releaseClaim(
     "--claim-id", receipt.claimId,
     "--feature", receipt.feature,
     "--root", receipt.root,
-  ], {});
-}
-
-// Release the one claim bound to runtime id `agentId`, in whichever registry holds it. A
-// child that never governed (a scout, a sonic) holds none, and nothing is released for it.
-function releaseRun(runner: PolicyRunner, cwd: string, agentId: string): void {
-  const found = parseRunAnswer(runner(cwd, "inflight_registry.py", [
-    "find-run", "--agent-id", agentId, "--root", cwd,
-  ], {}));
-  if (!found.ok || !found.feature || !found.root) return;
-  runner(cwd, "inflight_registry.py", [
-    "release",
-    "--agent-id", agentId,
-    "--feature", found.feature,
-    "--root", found.root,
   ], {});
 }
 
@@ -874,8 +855,10 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (assigned.conflict) {
       return { ok: false, cause: "feature-conflict", retryable: false, message: assigned.conflict };
     }
-    setFeature(assigned.feature);
-    if (currentFeature) return { ok: true };
+    if (assigned.feature) {
+      setFeature(assigned.feature);
+      return { ok: true };
+    }
     const found = parseRunAnswer(policyRunner(ctx.cwd, "inflight_registry.py", [
       "find-run", "--agent-id", runtimeAgentId, "--root", ctx.cwd,
     ], {}));
@@ -910,12 +893,16 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // A child is released by its runtime id wherever its claim lives, and a call's receipts
   // once all of that call's children have settled.
   const settleRun = (callKey: string | undefined, agentId: string, cwd: string): void => {
-    releaseRun(policyRunner, cwd, agentId);
-    const pending = callKey ? pendingTaskCalls.get(callKey) : undefined;
+    // One registry step finds the claim bound to this runtime id, wherever it lives, and
+    // releases it by feature + id under that registry's lock. A child that never governed
+    // (a scout, a sonic) holds none, and nothing is released for it.
+    policyRunner(cwd, "inflight_registry.py", ["release-run", "--agent-id", agentId, "--root", cwd], {});
+    if (!callKey) return;
+    const pending = pendingTaskCalls.get(callKey);
     if (!pending) return;
     pending.settled.add(agentId);
     if (pending.settled.size < pending.total) return;
-    pendingTaskCalls.delete(String(callKey));
+    pendingTaskCalls.delete(callKey);
     pending.receipts.forEach((receipt) => releaseClaim(policyRunner, cwd, receipt));
   };
 
