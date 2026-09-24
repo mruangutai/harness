@@ -2320,18 +2320,27 @@ def _registry_errand(reg, d, agent):
         print("check-digest: no checkout root from this vantage; the #551 claim was "
               "neither released nor checked.", file=sys.stderr)
         return None
-    root = reg.feature_root(owner_root, feature)
+    return _settle_in(reg, d, agent, reg.feature_root(owner_root, feature), feature, agent_id)
+
+
+def _settle_in(reg, d, agent, root, feature, agent_id):
+    """Settle this exact run in `root`'s registry: refuse while it holds a live child, else
+    release its own claim. Strict reads come before any write: the locked writer parses a
+    corrupt file as empty, so releasing into an unreadable registry would erase every claim
+    it holds."""
     try:
-        # Strict reads before any write: the locked writer parses a corrupt file as empty,
-        # so releasing into an unreadable registry would erase every claim it holds.
         own = reg.live_claims(root, None, agent_id=agent_id)
         children = _held_children(reg, root, agent, feature, agent_id)
     except (reg.UnreadableRegistry, OSError) as error:
         return _unreadable_registry(agent, root, error, d)
     if children:
         return _children_refusal(reg, root, agent, children)
-    if not own:
-        return None
+    if own:
+        _release_own(reg, root, agent, feature, agent_id)
+    return None
+
+
+def _release_own(reg, root, agent, feature, agent_id):
     try:
         if reg.release(root, agent=agent, feature=feature, agent_id=agent_id):
             print(f"check-digest: released {agent}'s claim {agent_id} for {feature}.",
@@ -2339,7 +2348,6 @@ def _registry_errand(reg, d, agent):
     except (reg.UnreadableRegistry, reg.harness_merge.MergeRefusal, OSError) as error:
         print(f"check-digest: could not release {agent}'s claim ({error!r}); it expires with "
               "its supervisor. Not blocking on our own errand.", file=sys.stderr)
-    return None
 
 
 def hook_mode():

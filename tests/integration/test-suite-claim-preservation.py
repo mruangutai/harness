@@ -1,26 +1,45 @@
 #!/usr/bin/env python3
-"""BUG-1898 SC-01 (F-QA-01): one real validate-digest suite run leaves every unrelated live
-claim byte-identical.
+"""BUG-1898 SC-01 (F-QA-01): a real validate-digest suite run releases no unrelated live
+claim, and the suite itself goes red on a hook that releases by persona.
 
-The suite fires the SubagentStop hook hundreds of times from this checkout. Before BUG-1898 a
-return that named no exact identity was released by persona, so a suite run released a live
-stranger holding the same persona. This seeds one such stranger per governed persona — each
-bound to its own runtime id, under a feature no case uses — in this checkout's own registry,
-runs the suite, and requires every row unchanged. Its own file, so the suite is never run
-inside itself. Cleanup releases exactly the seeded claims and nothing else.
+Two runs of the real suite:
+  pinned  — one live stranger per governed persona is seeded in this checkout's registry,
+            each under this run's own feature and runtime id (so concurrent runs never
+            collide). The suite must pass and every stranger must stay byte-identical.
+  mutant  — the suite fires a copy of the validator whose registry `release` ignores the
+            runtime id: the persona-wide selector BUG-1898 removed. The suite's own
+            exact-release checks must report failures. A green suite here would mean a
+            persona-wide release could come back unnoticed, because the suite's fires land
+            in isolated registries this wrapper cannot watch directly.
+Its own file, so the suite is never run inside itself. Cleanup releases exactly the seeded
+claims and removes the mutant copy.
 """
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / ".claude" / "skills" / "harness" / "bin"))
+BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
+sys.path.insert(0, str(BIN))
 import inflight_registry  # noqa: E402
 
 SUITE = ROOT / "tests" / "integration" / "test-validate-digest.py"
-SENTINEL_FEATURE = "BUG-1898-suite-sentinel"
+FEATURE = "BUG-1898-suite-sentinel-%d" % os.getpid()
+EXACT_RELEASE_FAIL = "FAIL  [bug1898]"
+PERSONA_RELEASE = '''
+
+_bug1898_exact_release = release
+
+
+def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
+    """Mutant: the pre-BUG-1898 persona selector; the runtime id is ignored."""
+    return _bug1898_exact_release(root, agent=agent, feature=feature, claim_id=claim_id,
+                                  job_id=job_id)
+'''
 failures = []
 
 
@@ -41,36 +60,61 @@ def governed_personas():
 
 
 def seed_sentinels():
-    """One live claim per governed persona, each bound to its own runtime id."""
+    """One live claim per governed persona, each bound to this run's own runtime id."""
     claim_ids = []
     for persona in governed_personas():
         entry = inflight_registry.claim_with_receipt(
-            str(ROOT), persona, "suite-sentinel", str(ROOT), feature=SENTINEL_FEATURE,
+            str(ROOT), persona, "suite-sentinel", str(ROOT), feature=FEATURE,
             supervisor_pid=os.getpid())
         inflight_registry.attach_runtime_identity(
-            str(ROOT), persona, SENTINEL_FEATURE, agent_id="Suite.%s" % persona,
-            claim_id=entry["claim_id"], parent_agent_id="Suite")
+            str(ROOT), persona, FEATURE, agent_id="Suite%d.%s" % (os.getpid(), persona),
+            claim_id=entry["claim_id"], parent_agent_id="Suite%d" % os.getpid())
         claim_ids.append(entry["claim_id"])
     return [row for row in rows() if row.get("claim_id") in claim_ids]
 
 
-def main():
+def run_suite(env=None):
+    run = subprocess.run([sys.executable, str(SUITE)], cwd=ROOT, capture_output=True,
+                         text=True, timeout=1800, env=env)
+    return run.returncode, run.stdout + run.stderr
+
+
+def pinned_run():
     sentinels = seed_sentinels()
     ids = {row["claim_id"] for row in sentinels}
     try:
         check("one live sentinel per governed persona was seeded",
               len(sentinels) == len(governed_personas()), len(sentinels))
-        run = subprocess.run([sys.executable, str(SUITE)], cwd=ROOT, capture_output=True,
-                             text=True, timeout=1800)
+        code, output = run_suite()
         kept = [row for row in rows() if row.get("claim_id") in ids]
-        tail = (run.stdout + run.stderr).strip().splitlines()[-3:]
-        check("the validate-digest suite run passed", run.returncode == 0, tail)
+        check("the pinned validate-digest suite run passed", code == 0,
+              output.strip().splitlines()[-3:])
         check("every unrelated live claim is byte-identical after the suite",
               kept == sentinels,
               sorted({r["agent"] for r in sentinels} - {r["agent"] for r in kept}))
     finally:
         for claim_id in ids:
-            inflight_registry.release(str(ROOT), feature=SENTINEL_FEATURE, claim_id=claim_id)
+            inflight_registry.release(str(ROOT), feature=FEATURE, claim_id=claim_id)
+
+
+def mutant_run():
+    copy = Path(tempfile.mkdtemp(prefix="vd-persona-release-")) / "bin"
+    try:
+        shutil.copytree(BIN, copy, ignore=shutil.ignore_patterns("__pycache__"))
+        with open(copy / "inflight_registry.py", "a", encoding="utf-8") as handle:
+            handle.write(PERSONA_RELEASE)
+        code, output = run_suite(dict(os.environ,
+                                      VALIDATE_DIGEST_BIN=str(copy / "validate-digest.py")))
+        reddened = [line for line in output.splitlines() if line.startswith(EXACT_RELEASE_FAIL)]
+        check("a persona-wide release turns the suite's exact-release checks red",
+              code != 0 and reddened, "exit %d, %d exact-release failures" % (code, len(reddened)))
+    finally:
+        shutil.rmtree(copy.parent, ignore_errors=True)
+
+
+def main():
+    pinned_run()
+    mutant_run()
     print("%d failure(s)" % len(failures))
     return 1 if failures else 0
 
