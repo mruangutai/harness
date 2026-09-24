@@ -45,16 +45,23 @@ def observations(path: Path) -> list[dict[str, object]]:
     return rows
 
 
-def probe_command(omp: str, workdir: Path, marker: Path, out: Path) -> list[str]:
-    child_task = (
-        f"Use the write tool to create {marker} with the exact text alpha. "
-        "Use the edit tool to replace alpha with beta. "
-        f"Then use the bash tool to run rm {marker}. "
-        "Finally reply with exactly LINEAGE_CHILD_PASS."
-    )
+def probe_command(omp: str, workdir: Path, markers: list[Path], out: Path) -> list[str]:
+    tasks = []
+    for index, marker in enumerate(markers, start=1):
+        child_task = (
+            f"Use the write tool to create {marker} with the exact text alpha. "
+            "Use the edit tool to replace alpha with beta. "
+            f"Then use the bash tool to run rm {marker}. "
+            f"Finally reply with exactly LINEAGE_CHILD_{index}_PASS."
+        )
+        tasks.append(
+            '{"agent":"task","name":"LineageProbeChild%d","task":%s}'
+            % (index, json.dumps(child_task))
+        )
     prompt = (
-        "Use the task tool exactly once with agent task and name LineageProbeChild. "
-        f"Its task is: {child_task} After it finishes, reply with exactly LINEAGE_PARENT_PASS."
+        "Use the task tool exactly once with one batch containing these two tasks: ["
+        + ",".join(tasks)
+        + "]. After both finish, reply with exactly LINEAGE_PARENT_PASS."
     )
     command = [
         omp,
@@ -80,10 +87,12 @@ def probe_command(omp: str, workdir: Path, marker: Path, out: Path) -> list[str]
     return command
 
 
-def run_probe(omp: str, workdir: Path) -> tuple[subprocess.CompletedProcess[str] | None, Path, Path]:
+def run_probe(
+    omp: str, workdir: Path,
+) -> tuple[subprocess.CompletedProcess[str] | None, Path, list[Path]]:
     out = workdir / "lineage.jsonl"
-    marker = workdir / "child-marker.txt"
-    command = probe_command(omp, workdir, marker, out)
+    markers = [workdir / "child-one.txt", workdir / "child-two.txt"]
+    command = probe_command(omp, workdir, markers, out)
     env = {**os.environ, "OMP_LINEAGE_PROBE_OUT": str(out)}
     try:
         proc = subprocess.run(
@@ -96,8 +105,8 @@ def run_probe(omp: str, workdir: Path) -> tuple[subprocess.CompletedProcess[str]
         )
     except subprocess.TimeoutExpired as exc:
         check("case2: omp completed the live lineage scenario", False, f"timeout after {exc.timeout}s")
-        return None, out, marker
-    return proc, out, marker
+        return None, out, markers
+    return proc, out, markers
 
 
 def verify_parent(rows: list[dict[str, object]]) -> None:
@@ -110,18 +119,30 @@ def verify_parent(rows: list[dict[str, object]]) -> None:
           carries_main, parent_tasks)
 
 
-def verify_child(rows: list[dict[str, object]], marker: Path) -> None:
+def verify_children(rows: list[dict[str, object]], markers: list[Path]) -> None:
     child_rows = [row for row in rows if row.get("parentAgentId") == "Main"]
     child_ids = {str(row.get("agentId") or "") for row in child_rows} - {""}
-    child_tools = {str(row.get("tool") or "").lower() for row in child_rows}
-    check("case4: one child identity is bound to Main",
-          len(child_ids) == 1, {"child_ids": sorted(child_ids), "rows": child_rows})
-    check("case5: the inherited extension observes child Write, Edit, and Bash callbacks",
-          {"write", "edit", "bash"}.issubset(child_tools), sorted(child_tools))
-    check("case6: the child removed its marker through Bash", not marker.exists(), str(marker))
+    tools_by_child = {
+        child_id: {
+            str(row.get("tool") or "").lower()
+            for row in child_rows if row.get("agentId") == child_id
+        }
+        for child_id in child_ids
+    }
+    check("case4: two distinct child identities are bound to Main",
+          len(child_ids) == 2, {"child_ids": sorted(child_ids), "rows": child_rows})
+    check("case5: each inherited extension observes child Write, Edit, and Bash callbacks",
+          all({"write", "edit", "bash"}.issubset(tools) for tools in tools_by_child.values())
+          and len(tools_by_child) == 2,
+          {child: sorted(tools) for child, tools in tools_by_child.items()})
+    check("case6: both children removed their marker through Bash",
+          all(not marker.exists() for marker in markers),
+          [str(marker) for marker in markers if marker.exists()])
 
 
-def verify_probe(proc: subprocess.CompletedProcess[str], out: Path, marker: Path) -> None:
+def verify_probe(
+    proc: subprocess.CompletedProcess[str], out: Path, markers: list[Path],
+) -> None:
     rows = observations(out)
     diagnostic = {
         "returncode": proc.returncode,
@@ -132,7 +153,7 @@ def verify_probe(proc: subprocess.CompletedProcess[str], out: Path, marker: Path
     check("case2: omp completed the live lineage scenario",
           proc.returncode == 0 and "LINEAGE_PARENT_PASS" in proc.stdout, diagnostic)
     verify_parent(rows)
-    verify_child(rows, marker)
+    verify_children(rows, markers)
 
 
 def main() -> int:
@@ -143,9 +164,9 @@ def main() -> int:
         return finish()
 
     with tempfile.TemporaryDirectory(prefix="harness-omp-lineage-") as workdir_text:
-        proc, out, marker = run_probe(omp, Path(workdir_text))
+        proc, out, markers = run_probe(omp, Path(workdir_text))
         if proc is not None:
-            verify_probe(proc, out, marker)
+            verify_probe(proc, out, markers)
     return finish()
 
 

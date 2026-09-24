@@ -17,6 +17,7 @@ import json, os, shutil, subprocess, sys, tempfile
 from isolated_bin import isolated_bin
 from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
     _legal_feature_json, drive, fire, fixture, fixture_fleet)
+import inflight_registry
 
 
 _anchor_sys.path.insert(0, _anchor_bin)
@@ -532,13 +533,38 @@ shared:
     tb = fixture_fleet(two_base_manifest, two_base_fleet)
     prod_src = os.path.join(ws, "widget", "src", "main.py")
 
+    repository_identities = {}
+
     def fire_abs(root, abspath, agent):
+        key = (root, agent)
+        if key not in repository_identities:
+            child = f"child-{len(repository_identities)}"
+            parent = "fleet-test-parent"
+            receipt = inflight_registry.claim_with_receipt(
+                root, agent, "task", root, feature="FEAT-fleet-test",
+                supervisor_pid=os.getpid(), repository="widget",
+            )
+            assert receipt is not None
+            assert inflight_registry.attach_runtime_identity(
+                root, agent, "FEAT-fleet-test", agent_id=child,
+                parent_agent_id=parent, claim_id=receipt["claim_id"],
+                repository="widget",
+            )
+            repository_identities[key] = (child, parent)
+        child, parent = repository_identities[key]
         return subprocess.run(
             [HOOK],
-            input=json.dumps({"agent_type": agent, "tool_name": "Write",
-                              "tool_input": {"file_path": abspath, "content": "x"}}),
+            input=json.dumps({
+                "agent_type": agent,
+                "harness_feature": "FEAT-fleet-test",
+                "harness_agent_id": child,
+                "harness_parent_agent_id": parent,
+                "tool_name": "Write",
+                "tool_input": {"file_path": abspath, "content": "x"},
+            }),
             capture_output=True, text=True,
-            env=_env(root))
+            env=_env(root),
+        )
 
     # (f) THE PRODUCT BASE, as a discriminating pair from ONE fixture. Either half
     # alone is what a broken guard produces: an allow-all passes the granted write, a
@@ -550,7 +576,7 @@ shared:
         "persona without it",
         f_yes.returncode == 0 and f_no.returncode == 2,
         f"granted got {f_yes.returncode} (want 0), ungranted got {f_no.returncode} "
-        f"(want 2)")
+        f"(want 2), granted stderr={f_yes.stderr.strip()[:180]!r}")
 
     # (g) THE MIRROR-IMAGE BUG, both directions, from the same fixture. This is the
     # defect the feature exists to close: the same logical path was blocked inside

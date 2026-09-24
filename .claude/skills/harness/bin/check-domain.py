@@ -128,6 +128,7 @@ except Exception:
 agent = (d.get("agent_type") or "") or argv_agent
 runtime_agent_id = d.get("harness_agent_id") or None
 runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
+runtime_feature = d.get("harness_feature") or None
 
 # --- `--resolve <path>` (DEC-179): plan-time route resolution. Answers WHICH AGENT
 # may write a path, so a PLAN task can declare its lane instead of a build phase
@@ -713,6 +714,37 @@ def feature_checkout_guard(raw_rel, target_path):
         return
 
 
+def repository_claim_guard(verdict):
+    """Require exact runtime lineage before a product-domain grant can allow a write."""
+    repository = verdict.get("repository")
+    if not repository or repository == "harness":
+        return
+    try:
+        import inflight_registry
+    except Exception:
+        print("check-domain: BLOCKED — runtime repository binding could not be "
+              "evaluated.", file=sys.stderr)
+        sys.exit(2)
+    try:
+        state = inflight_registry.repository_binding(
+            root,
+            agent,
+            runtime_feature,
+            repository,
+            runtime_agent_id,
+            runtime_parent_agent_id,
+        )
+    except Exception:
+        state = "unreadable"
+    if state == "allow":
+        return
+    headline, guidance = inflight_registry.repository_binding_refusal(
+        agent, repository, state)
+    print(f"check-domain: BLOCKED — {headline}", file=sys.stderr)
+    print(f"  {guidance}", file=sys.stderr)
+    sys.exit(2)
+
+
 def claim_checkout_guard(destination):
     """Bind a governed harness-base write to the agent's live claim worktrees."""
     if not agent or not agent.startswith("harness-"):
@@ -917,12 +949,14 @@ def domain_check():
         # path would never fire. This is the difference between the words "except
         # ## Approval" being a COMMENT beside a grant and being enforced.
         feature_checkout_guard(_verdict["rel"], target)
+        repository_claim_guard(_verdict)
         claim_checkout_guard(_claimed_abs(target))
         approval_guard(rel, agent)
         return
 
     if _verdict["outcome"] == "shared":
         feature_checkout_guard(_verdict["rel"], target)
+        repository_claim_guard(_verdict)
         claim_checkout_guard(_claimed_abs(target))
         # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
         # write, but say so — an unnoticed shared-file edit is how two agents collide.

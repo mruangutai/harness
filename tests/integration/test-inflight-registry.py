@@ -1204,24 +1204,27 @@ def case_38_repository_bound_attachment():
         root, "harness-backend-dev", "FEAT-495", agent_id="child-1")
     attached = inflight_registry.attach_runtime_identity(
         root, "harness-backend-dev", "FEAT-495", agent_id="child-1",
+        parent_agent_id="lead-1",
         claim_id=first["claim_id"], repository="product-a")
     idempotent = inflight_registry.attach_runtime_identity(
         root, "harness-backend-dev", "FEAT-495", agent_id="child-1",
+        parent_agent_id="lead-1",
         claim_id=first["claim_id"], repository="product-a")
     second_child = inflight_registry.attach_runtime_identity(
         root, "harness-backend-dev", "FEAT-495", agent_id="child-2",
+        parent_agent_id="lead-1",
         claim_id=second["claim_id"], repository="product-a")
     data = _read_raw(root)["claims"]
     check("case38: factory receipt keeps optional repository and correlation",
           first["repository"] == "product-a"
           and first["dispatch_correlation"]["repository"] == "product-a", first)
     allowed = inflight_registry.repository_binding(
-        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1")
+        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1", "lead-1")
     mismatch = inflight_registry.repository_binding(
-        root, "harness-backend-dev", "FEAT-495", "product-b", "child-1")
+        root, "harness-backend-dev", "FEAT-495", "product-b", "child-1", "lead-1")
     released = inflight_registry.release(root, agent_id="child-1")
     release_state = inflight_registry.repository_binding(
-        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1")
+        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1", "lead-1")
     check("case38: exact active id is the sole allowed repository binding",
           allowed == "allow" and mismatch == "mismatched", (allowed, mismatch))
     check("case38: released repository binding remains explicitly denied",
@@ -1233,6 +1236,79 @@ def case_38_repository_bound_attachment():
     check("case38: foreign product remains pending",
           foreign["claim_id"] in [c["claim_id"] for c in data if not c.get("agent_id")],
           data)
+
+
+def case_39_runtime_identity_collision_and_repository_cli():
+    """One host identity cannot authorize two active dispatches.
+
+    Sharing an immediate parent is legal for concurrent siblings. Reusing either a
+    child's own id or changing the parent already attached to one claim is a named
+    collision, never a generic missing-claim result.
+    """
+    root = tempfile.mkdtemp()
+    first = inflight_registry.claim_with_receipt(
+        root, "harness-backend-dev", "harness-eng-lead", root,
+        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
+    second = inflight_registry.claim_with_receipt(
+        root, "harness-backend-dev", "harness-eng-lead", root,
+        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
+
+    first_state = inflight_registry.attach_runtime_identity_state(
+        root, "harness-backend-dev", "FEAT-495",
+        agent_id="BackendOne", parent_agent_id="LeadOne",
+        claim_id=first["claim_id"], repository="product-a")
+    sibling_state = inflight_registry.attach_runtime_identity_state(
+        root, "harness-backend-dev", "FEAT-495",
+        agent_id="BackendTwo", parent_agent_id="LeadOne",
+        claim_id=second["claim_id"], repository="product-a")
+    reused_child = inflight_registry.attach_runtime_identity_state(
+        root, "harness-backend-dev", "FEAT-495",
+        agent_id="BackendOne", parent_agent_id="LeadOne",
+        claim_id=second["claim_id"], repository="product-a")
+    changed_parent = inflight_registry.attach_runtime_identity_state(
+        root, "harness-backend-dev", "FEAT-495",
+        agent_id="BackendOne", parent_agent_id="OtherLead",
+        claim_id=first["claim_id"], repository="product-a")
+    check("case39: concurrent same-role siblings may share their immediate parent",
+          first_state == "attached" and sibling_state == "attached",
+          (first_state, sibling_state))
+    check("case39: reused child identity has the distinct collision state",
+          reused_child == "collision", reused_child)
+    check("case39: changing an attached claim's parent has the distinct collision state",
+          changed_parent == "collision", changed_parent)
+
+    cli_root = tempfile.mkdtemp()
+    receipt = inflight_registry.claim_with_receipt(
+        cli_root, "harness-backend-dev", "harness-eng-lead", cli_root,
+        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
+    competing = inflight_registry.claim_with_receipt(
+        cli_root, "harness-backend-dev", "harness-eng-lead", cli_root,
+        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
+    cli_ok = inflight_registry.main([
+        "attach", "--root", cli_root,
+        "--agent", "harness-backend-dev", "--feature", "FEAT-495",
+        "--agent-id", "BackendThree", "--parent-agent-id", "LeadOne",
+        "--claim-id", receipt["claim_id"], "--repository", "product-a",
+    ])
+    state = inflight_registry.repository_binding(
+        cli_root, "harness-backend-dev", "FEAT-495", "product-a",
+        "BackendThree", "LeadOne")
+    check("case39: attach CLI preserves the repository selector",
+          cli_ok == 0 and state == "allow", (cli_ok, state))
+
+    collision_err = io.StringIO()
+    with contextlib.redirect_stderr(collision_err):
+        collision_rc = inflight_registry.main([
+            "attach", "--root", cli_root,
+            "--agent", "harness-backend-dev", "--feature", "FEAT-495",
+            "--agent-id", "BackendThree", "--parent-agent-id", "LeadOne",
+            "--claim-id", competing["claim_id"], "--repository", "product-a",
+        ])
+    check("case39: attach CLI fails closed and names runtime identity collision",
+          collision_rc == 2 and "collision" in collision_err.getvalue().lower(),
+          (collision_rc, collision_err.getvalue()))
+
+
 
 
 CASES = (
@@ -1258,6 +1334,7 @@ CASES = (
     case_36_live_claims_read_only_and_binding_horizon,
     case_37_live_claims_refuses_unreadable_registry,
     case_38_repository_bound_attachment,
+    case_39_runtime_identity_collision_and_repository_cli,
 )
 
 

@@ -167,6 +167,7 @@ describe("OMP task lifecycle adapter", () => {
       feature: string;
       agentId?: string;
       parentAgentId?: string;
+      repository?: string;
     }>();
     lineageClaims.set("fixture-parent", {
       agent: "harness-eng-lead",
@@ -210,9 +211,12 @@ describe("OMP task lifecycle adapter", () => {
         claim += 1;
         const claimId = `claim-${claim}`;
         const dispatchedAgent = String((payload.tool_input as Record<string, unknown>).agent);
+        const repository = String(task).includes("HARNESS-REPOSITORY: acme/product-a")
+          ? "product-a" : undefined;
         lineageClaims.set(claimId, {
           agent: dispatchedAgent,
           feature: "FEAT-43-long-run",
+          repository,
         });
         return {
           blocked: false,
@@ -222,6 +226,7 @@ describe("OMP task lifecycle adapter", () => {
               feature: "FEAT-43-long-run",
               agent: dispatchedAgent,
               claim_id: claimId,
+              ...(repository ? { repository } : {}),
             },
           }),
         };
@@ -234,9 +239,11 @@ describe("OMP task lifecycle adapter", () => {
         }
         const agentId = option(args, "--agent-id");
         const parentAgentId = option(args, "--parent-agent-id");
+        const repository = option(args, "--repository");
         if ((agentId && claimRecord.agentId && claimRecord.agentId !== agentId)
           || (parentAgentId && claimRecord.parentAgentId
-            && claimRecord.parentAgentId !== parentAgentId)) {
+            && claimRecord.parentAgentId !== parentAgentId)
+          || claimRecord.repository !== repository) {
           return { blocked: true, reason: "runtime lineage attach refused", stdout: "" };
         }
         if (agentId) claimRecord.agentId = agentId;
@@ -248,12 +255,14 @@ describe("OMP task lifecycle adapter", () => {
         const feature = option(args, "--feature");
         const agentId = option(args, "--agent-id");
         const parentAgentId = option(args, "--parent-agent-id");
+        const repository = option(args, "--repository");
         if (agentId === "AuthorizeError") {
           return { blocked: false, reason: "authorization gate crashed", stdout: "" };
         }
         const candidates = [...lineageClaims.values()].filter((claimRecord) =>
           claimRecord.agent === agent
           && claimRecord.feature === feature
+          && claimRecord.repository === repository
           && claimRecord.parentAgentId === parentAgentId
           && (!claimRecord.agentId || claimRecord.agentId === agentId));
         const exact = candidates.filter((claimRecord) => claimRecord.agentId === agentId);
@@ -338,6 +347,54 @@ describe("OMP task lifecycle adapter", () => {
     ]);
     expect(normalizeTaskDispatches({ agent: "harness-pm", task: "plan" }))
       .toEqual([{ agent: "harness-pm", task: "plan" }]);
+  });
+
+  test("repository receipts bind only through trusted host lineage", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = {
+      cwd: "/repo",
+      agentId: "LeadOne",
+      parentAgentId: "OrchestratorOne",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
+    const input = {
+      agent: "harness-backend-dev",
+      name: "BackendRepoOne",
+      task: "HARNESS-FEATURE: FEAT-43-long-run\nHARNESS-REPOSITORY: acme/product-a\nchange it",
+      harness_agent_id: "ForgedChild",
+      harness_parent_agent_id: "ForgedParent",
+    };
+    expect(await handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "repo-task", input,
+    }, ctx)).toBeUndefined();
+
+    const guardCall = calls.find((call) => call.script === "dispatch-guard.py");
+    expect(guardCall?.payload.harness_agent_id).toBe("LeadOne");
+    expect(guardCall?.payload.harness_parent_agent_id).toBe("OrchestratorOne");
+    expect((guardCall?.payload.tool_input as Record<string, unknown>).harness_agent_id)
+      .toBeUndefined();
+    const preSpawnAttach = calls.find((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "attach"
+      && call.args.includes("BackendRepoOne"));
+    expect(preSpawnAttach?.args).toContain("--repository");
+    expect(preSpawnAttach?.args).toContain("product-a");
+
+    await handlers.get("tool_result")?.({
+      toolName: "task",
+      toolCallId: "repo-task",
+      input,
+      details: { progress: [{ index: 0, id: "BackendRepoOne", jobId: "job-repo" }] },
+      content: [],
+    }, ctx);
+    const resultAttaches = calls.filter((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "attach"
+      && call.args.includes("job-repo"));
+    expect(resultAttaches).toHaveLength(1);
+    expect(resultAttaches[0].args).toContain("--repository");
+    expect(resultAttaches[0].args).toContain("product-a");
   });
 
   test("refuses task dispatch when OMP exposes no runtime identity", async () => {
@@ -484,6 +541,7 @@ describe("OMP task lifecycle adapter", () => {
       call.script === "check-domain.py");
     expect(domainCall?.payload.harness_agent_id).toBe("BackendOne");
     expect(domainCall?.payload.harness_parent_agent_id).toBe("LeadOne");
+    expect(domainCall?.payload.harness_feature).toBe("FEAT-43-long-run");
 
     const bashResult = await childHandlers.get("tool_call")?.({
       toolName: "bash",
@@ -495,6 +553,7 @@ describe("OMP task lifecycle adapter", () => {
       HARNESS_AGENT_TYPE: "harness-backend-dev",
     });
     const bashGuard = calls.findLast((call) => call.script === "bash-write-guard.py");
+    expect(bashGuard?.payload.harness_feature).toBe("FEAT-43-long-run");
     expect(bashGuard?.payload.harness_agent_id).toBe("BackendOne");
     expect(bashGuard?.payload.harness_parent_agent_id).toBe("LeadOne");
     const authorizations = calls.filter((call) =>

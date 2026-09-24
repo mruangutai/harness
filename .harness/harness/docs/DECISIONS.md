@@ -6971,10 +6971,10 @@ Origin: `BUG-1304-worktree-relative-path-guard`.
 sibling worktrees receive the same answer after resolution. The host-uniform predicate lives in
 DEC-193's shared `harness_boundary.py` seam. OMP contributes its child and immediate-parent ids to
 that predicate; Claude Code retains the persona-only call because it exposes no equivalent runtime
-lineage. An unresolvable or ambiguous assignment refuses rather than guessing. Scratch paths,
-unbound agents, and DEC-193's second legal location, `workspace_root/<repo>` under DEC-189, retain
-their prior behavior. Control-plane Expertise distillation remains carved out by its sanctioned
-merge route, not by a destination glob (DEC-153).
+lineage. An unresolvable or ambiguous assignment refuses rather than guessing. Scratch paths and
+unbound Harness-checkout agents retain their prior behavior. Product-repository writes are governed
+separately by DEC-235's repository-bound lineage. Control-plane Expertise distillation remains
+carved out by its sanctioned merge route, not by a destination glob (DEC-153).
 
 **The two persona residues remain only on compatibility hosts.** On Claude Code, persona P
 dispatched for feature A may still write into B's worktree while a concurrent P session holds B,
@@ -7705,3 +7705,53 @@ flag these five; they are the reference case for "duplication with no available 
 **Execution.** Recorded in FEAT-61 T-05 alongside the two lock-in checks that wave adds
 (a feature-station literal outside `factory_config.py`; a second repo-local
 `spec_from_file_location` under `bin/`), neither of which touches the prologues.
+
+## DEC-235 — Product-repository write authority is exact OMP lineage bound to a validated fleet member
+
+**Chose:** a factory dispatch may mutate one product repository only when one live claim matches the
+tuple `(feature, agent_type, child agent id, immediate parent agent id, repository)`. The repository
+comes from two trusted lookups: dispatch preflight validates the required `HARNESS-REPOSITORY:
+owner/repo` assignment header against the canonical fleet and stores its normalized segment on the
+claim; the write guards classify each target through DEC-189's shared two-base resolver and derive
+the same segment from the selected product base. A wildcard domain grant is necessary but no longer
+sufficient for Write or Edit. Every detectable Bash target receives the same repository decision
+after classification and before the existing product/outside-root continuation.
+
+**The host supplies lineage; text supplies no authority.** OMP's inherited hook context supplies the
+actual child and immediate-parent ids. Dispatch may pre-bind the named child as a selector, but the
+first mutation still authorizes OMP's actual pair and may attach an unnamed claim only when exactly
+one parent-bound candidate exists. Prompt prose, caller-authored payload fields, environment
+variables, task names, and task-result details cannot create or change repository authority. The
+adapter strips caller-authored lineage fields before preflight. A nested dispatch gets a new claim
+bound to its own child and immediate parent; it never inherits or forwards its parent's repository
+authority.
+
+**One fail-closed decision is shared by both guards.** `inflight_registry.repository_binding`
+requires one exact live claim. Missing identity or claim, a child reused by another active dispatch,
+parent or repository mismatch, stale or released claims, an unreadable registry, and multiple exact
+claims each produce a distinct denial state and exit 2 without exposing registry paths or claim ids.
+Two same-role siblings may share one parent and repository because their child ids and claims remain
+distinct. Repeated writes by one valid child remain valid. Targeted release revokes repository
+authority immediately; no cached guard verdict survives release.
+
+**Scope is factory-only.** A missing fleet keeps the pre-existing non-factory behavior. Harness-base
+self-development, scratch targets, the main-session exemption, `check-domain.py --resolve`, and the
+Write/Edit zero-target refusal are unchanged. The Bash guard retains DEC-151's dev-ops recovery
+exemption and DEC-193's product-domain pass-through; only exact repository ownership is now required
+before that pass-through. A fleet entry is not a credential: it is the allowlisted locator against
+which host-authenticated runtime lineage is checked.
+
+**Why a bearer token was rejected.** The measured OMP task path persists revised task input and makes
+assignment text visible to the child. A capability carried in the prompt, payload, environment, task
+name, or result would therefore be copyable and forwardable. Runtime lineage is already available at
+the mutation callback and cannot be rewritten by the child, so binding it to the pre-spawn claim is
+both narrower and simpler than inventing secret transport.
+
+**Evidence and execution.** The live runtime probe launched two concurrent same-role children and
+observed distinct child ids under one parent, with each child inheriting Write, Edit, and Bash
+callbacks. Deterministic integration cases cover two products, same-role siblings, repeated valid
+writes, cross-product and wrong-parent attempts, every named fail-closed state, release revocation,
+and non-disclosure. This enforcement-layer change was executed directly in a feature worktree under
+DEC-174.
+
+Lineage: DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, DEC-218, and DEC-233.

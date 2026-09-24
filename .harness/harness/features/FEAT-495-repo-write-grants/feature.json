@@ -1,0 +1,77 @@
+{
+  "feature_id": "FEAT-495-repo-write-grants",
+  "branch": "feat/495-repo-write-grants-lineage",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "build-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T04:14:47+00:00",
+      "ended_at": "2026-09-16T04:26:54+00:00",
+      "tokens": null
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T04:14:16+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "This adds a fail-closed identity/binding contract across the OMP pre-write adapter and both enforcement routes."
+    },
+    {
+      "at": "2026-09-16T13:25:54+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "OMP 18.2.1 persists revised task input containing the raw capability, so signed T-02 and SC-08 cannot both be met without a new private per-spawn host metadata seam."
+    },
+    {
+      "at": "2026-09-24T01:57:25+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "OMP runtime-lineage v2 satisfies the blocked host-seam prerequisite; the approved amendment removes bearer transport and resumes at T-02 on current main."
+    }
+  ],
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-495-repo-write-grants/notes/approval-2026-09-15.md"
+  },
+  "mission": "plan",
+  "github": {
+    "milestone": 71,
+    "parent": 1717,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1718,
+      "T-02": 1719,
+      "T-03": 1720,
+      "T-04": 1721,
+      "T-05": 1722
+    },
+    "source_issues": [
+      495
+    ],
+    "build_entry": "opened"
+  },
+  "signed_task_hashes": {
+    "T-01": "a5e3c642ca244f0904c218a8ae44b319c3554335080a01a68b3e0a0363e65df5",
+    "T-02": "618a9eafefaee2cadd79bb3a92ffd623a50a8dcaf0e7d53975a1aafaee5805b9",
+    "T-03": "d5e4e0ba1dc5c4005349c4307b520a663e3e469e635fa9bb9bea9da9a05163d7",
+    "T-04": "1a4227b52e156666a70424b90b343fcd161bfc3bc9264bf4292be39fbb5df2f8",
+    "T-05": "1a57a5134c55a4296a9b605f000060afa313adaf9ab6481f6b10f1774c4504e8"
+  }
+}

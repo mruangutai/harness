@@ -438,42 +438,139 @@ def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE,
     ) is not None
 
 
-def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None,
-                            parent_agent_id=None, repository=None):
-    """Attach stable OMP runtime lineage to one live claim.
+def _identity_registry_roots(root):
+    """Registries that can already own an OMP runtime id visible from ``root``."""
+    owner = harness_boundary.worktree_owner(root)
+    owner_root = owner[1] if owner and owner[1] else root
+    roots = [owner_root] + harness_boundary.linked_worktrees(owner_root)
+    return sorted({os.path.realpath(item) for item in roots})
 
-    Repeating the same attachment is idempotent. A conflicting child, job, parent,
-    or repository identity is refused rather than moving the claim to another runtime.
-    """
+
+def _live_registry_claims(root, now):
+    """Strict, read-only live claims for collision checks."""
+    path = _registry_path(root)
+    try:
+        with open(path, "r", encoding="utf-8", errors="strict") as handle:
+            text = handle.read()
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeError) as error:
+        raise UnreadableRegistry(path) from error
+    try:
+        raw = json.loads(text)
+    except (json.JSONDecodeError, ValueError) as error:
+        raise UnreadableRegistry(path) from error
+    if (
+        not isinstance(raw, dict)
+        or raw.get("schema_version") != SCHEMA_VERSION
+        or not isinstance(raw.get("claims"), list)
+    ):
+        raise UnreadableRegistry(path)
+    live, _expired = _expire(raw["claims"], now)
+    return live
+
+
+def _foreign_identity_collision(
+    root,
+    claim_id,
+    feature,
+    agent_id,
+    parent_agent_id,
+    now,
+    expected_child=None,
+):
+    """Whether another active dispatch already owns the requested host lineage."""
+    child_claims = []
+    parent_claims = []
+    for registry_root in _identity_registry_roots(root):
+        for claim in _live_registry_claims(registry_root, now):
+            if claim.get("claim_id") == claim_id:
+                continue
+            if agent_id and claim.get("agent_id") == agent_id:
+                child_claims.append(claim)
+            if parent_agent_id and claim.get("agent_id") == parent_agent_id:
+                parent_claims.append(claim)
+    if child_claims:
+        if expected_child is None or len(child_claims) != 1:
+            return True
+        expected_agent, expected_feature, expected_parent, expected_repository = expected_child
+        child = child_claims[0]
+        if (
+            child.get("agent") != expected_agent
+            or child.get("feature", LEGACY_FEATURE) != expected_feature
+            or child.get("parent_agent_id") != expected_parent
+            or child.get("repository") != expected_repository
+        ):
+            return True
+    return (
+        len(parent_claims) > 1
+        or any(claim.get("feature", LEGACY_FEATURE) != feature for claim in parent_claims)
+    )
+
+
+def attach_runtime_identity_state(
+    root,
+    agent,
+    feature,
+    agent_id=None,
+    job_id=None,
+    claim_id=None,
+    parent_agent_id=None,
+    repository=None,
+):
+    """Attach stable OMP runtime lineage, returning a named authorization state."""
     path = _registry_path(root)
     if not os.path.exists(path) or not (agent_id or job_id or parent_agent_id):
-        return False
+        return "missing"
+    now = time.time()
+    try:
+        if _foreign_identity_collision(
+                root, claim_id, feature, agent_id, parent_agent_id, now):
+            return "collision"
+    except UnreadableRegistry:
+        return "unreadable"
 
-    # GRADE-2 REASON: selection and identity mutation must remain inside one locked
-    # registry update; splitting them would reintroduce a claim-binding TOCTOU race.
+    # GRADE-2 REASON: selection, collision detection, and identity mutation must
+    # remain inside one locked registry update; splitting them reintroduces TOCTOU.
     def mutator(data):
         live, retained, _expired = _expire_where(
             data.get("claims", []),
-            time.time(),
+            now,
             lambda claim: _matches(
                 claim, agent=agent, feature=feature, claim_id=claim_id
             ),
         )
-        candidates = [
+        scoped = [
             claim for claim in live
             if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
-            and (not agent_id or claim.get("agent_id") in (None, "", agent_id))
-            and (not job_id or claim.get("job_id") in (None, "", job_id))
-            and (not parent_agent_id
-                 or claim.get("parent_agent_id") in (None, "", parent_agent_id))
         ]
-        if repository is None:
-            candidates = [c for c in candidates if c.get("repository") is None]
-        else:
-            candidates = [c for c in candidates if c.get("repository") == repository]
+        exact_repository = [
+            claim for claim in scoped
+            if claim.get("repository") == repository
+        ]
+        if any(
+            (agent_id and claim.get("agent_id") not in (None, "", agent_id))
+            or (job_id and claim.get("job_id") not in (None, "", job_id))
+            or (
+                parent_agent_id
+                and claim.get("parent_agent_id") not in (None, "", parent_agent_id)
+            )
+            for claim in exact_repository
+        ):
+            data["claims"] = retained
+            return data, "collision"
+        candidates = [
+            claim for claim in exact_repository
+            if (not agent_id or claim.get("agent_id") in (None, "", agent_id))
+            and (not job_id or claim.get("job_id") in (None, "", job_id))
+            and (
+                not parent_agent_id
+                or claim.get("parent_agent_id") in (None, "", parent_agent_id)
+            )
+        ]
         if len(candidates) != 1:
             data["claims"] = retained
-            return data, False
+            return data, "ambiguous" if len(candidates) > 1 else "missing"
         target = candidates[0]
         if agent_id:
             target["agent_id"] = agent_id
@@ -482,23 +579,53 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
         if parent_agent_id:
             target["parent_agent_id"] = parent_agent_id
         data["claims"] = retained
-        return data, True
+        return data, "attached"
 
     return _update_registry(root, mutator)
 
 
-def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
+def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None,
+                            parent_agent_id=None, repository=None):
+    return attach_runtime_identity_state(
+        root,
+        agent,
+        feature,
+        agent_id=agent_id,
+        job_id=job_id,
+        claim_id=claim_id,
+        parent_agent_id=parent_agent_id,
+        repository=repository,
+    ) == "attached"
+
+
+def authorize_runtime_identity_state(
+    root, agent, feature, agent_id, parent_agent_id, repository=None,
+):
     """Authorize and, when unique, bind an OMP child to its parent claim."""
     path = _registry_path(root)
     if not os.path.exists(path) or not all((agent, feature, agent_id, parent_agent_id)):
-        return False
+        return "missing"
+    now = time.time()
+    try:
+        if _foreign_identity_collision(
+            root,
+            None,
+            feature,
+            agent_id,
+            parent_agent_id,
+            now,
+            expected_child=(agent, feature, parent_agent_id, repository),
+        ):
+            return "collision"
+    except UnreadableRegistry:
+        return "unreadable"
 
-    # GRADE-2 REASON: exact-match selection, unique unbound fallback, and binding
-    # form one locked authorization transaction and cannot safely be split.
+    # GRADE-2 REASON: exact-match selection, unique unbound fallback, collision
+    # detection, and binding form one locked authorization transaction.
     def mutator(data):
         live, retained, _expired = _expire_where(
             data.get("claims", []),
-            time.time(),
+            now,
             lambda claim: _matches(claim, agent=agent, feature=feature),
         )
         candidates = [
@@ -510,56 +637,128 @@ def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
                 parent_agent_id=parent_agent_id,
             )
             and claim.get("runtime") == "omp"
+            and claim.get("repository") == repository
             and claim.get("agent_id") in (None, "", agent_id)
         ]
         exact = [claim for claim in candidates if claim.get("agent_id") == agent_id]
         if len(exact) == 1:
             selected = exact[0]
-        elif not exact:
+        elif len(exact) > 1:
+            data["claims"] = retained
+            return data, "collision"
+        else:
             unbound = [claim for claim in candidates if not claim.get("agent_id")]
             if len(unbound) != 1:
                 data["claims"] = retained
-                return data, False
+                return data, "ambiguous" if len(unbound) > 1 else "missing"
             selected = unbound[0]
-        else:
-            data["claims"] = retained
-            return data, False
         selected["agent_id"] = agent_id
         data["claims"] = retained
-        return data, True
+        return data, "authorized"
 
     return _update_registry(root, mutator)
 
-def repository_binding(root, agent, feature, repository, agent_id, now=None):
+
+def authorize_runtime_identity(
+    root, agent, feature, agent_id, parent_agent_id, repository=None,
+):
+    return authorize_runtime_identity_state(
+        root,
+        agent,
+        feature,
+        agent_id,
+        parent_agent_id,
+        repository=repository,
+    ) == "authorized"
+
+def repository_binding(
+    root,
+    agent,
+    feature,
+    repository,
+    agent_id,
+    parent_agent_id,
+    now=None,
+):
     """Return the fail-closed state of one exact factory repository binding."""
-    if not agent_id:
+    if not all((agent, feature, repository, agent_id, parent_agent_id)):
         return "missing"
     path = _registry_path(root)
     try:
         with open(path, "r", encoding="utf-8", errors="strict") as handle:
             raw = json.load(handle)
-        if not isinstance(raw, dict) or not isinstance(raw.get("claims"), list):
+        if (
+            not isinstance(raw, dict)
+            or raw.get("schema_version") != SCHEMA_VERSION
+            or not isinstance(raw.get("claims"), list)
+        ):
             return "unreadable"
     except FileNotFoundError:
         return "missing"
     except (OSError, UnicodeError, ValueError):
         return "unreadable"
-    claims = [
+
+    current = time.time() if now is None else now
+    identity_claims = [
         claim for claim in raw["claims"]
-        if _matches(claim, agent=agent, feature=feature, agent_id=agent_id)
+        if isinstance(claim, dict) and claim.get("agent_id") == agent_id
     ]
-    exact = [claim for claim in claims if claim.get("repository") == repository]
+    exact = [
+        claim for claim in identity_claims
+        if _matches(
+            claim,
+            agent=agent,
+            feature=feature,
+            agent_id=agent_id,
+            parent_agent_id=parent_agent_id,
+        )
+        and claim.get("repository") == repository
+    ]
+    live_exact, _expired = _expire(exact, current)
+    live_identity, _identity_expired = _expire(identity_claims, current)
+    foreign_dispatch = [
+        claim for claim in live_identity
+        if claim not in live_exact
+        and (
+            claim.get("agent") != agent
+            or claim.get("feature", LEGACY_FEATURE) != feature
+        )
+    ]
+    if len(live_exact) > 1:
+        return "ambiguous"
+    if foreign_dispatch or len(live_identity) > 1:
+        return "collision"
+    if len(live_exact) == 1:
+        return "allow"
     if any(claim.get("released_at") is not None for claim in exact):
         return "released"
-    current = time.time() if now is None else now
-    live, _expired = _expire(exact, current)
-    if live:
-        return "allow"
     if exact:
         return "stale"
-    if claims:
+    same_dispatch = [
+        claim for claim in identity_claims
+        if _matches(claim, agent=agent, feature=feature, agent_id=agent_id)
+    ]
+    if same_dispatch:
         return "mismatched"
     return "missing"
+
+REPOSITORY_BINDING_STATES = frozenset({
+    "missing", "collision", "mismatched", "stale",
+    "released", "unreadable", "ambiguous",
+})
+
+
+def repository_binding_refusal(agent, repository, state):
+    """Return the shared, non-sensitive refusal text for a binding state."""
+    rendered = state if state in REPOSITORY_BINDING_STATES else "unreadable"
+    return (
+        f"{agent} has a {rendered} runtime repository binding for {repository}.",
+        "Product writes require one active claim matching the authenticated child, "
+        "its immediate parent, feature, role, and repository. Retry from the dispatch "
+        "that owns this product.",
+    )
+
+
 
 
 def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
@@ -772,7 +971,7 @@ def _attach_command(root, rest):
     if not agent or not feature:
         print("inflight_registry: attach requires --agent and --feature", file=sys.stderr)
         return 1
-    ok = attach_runtime_identity(
+    state = attach_runtime_identity_state(
         root,
         agent,
         feature,
@@ -780,8 +979,16 @@ def _attach_command(root, rest):
         job_id=_option(rest, "--job-id"),
         claim_id=_option(rest, "--claim-id"),
         parent_agent_id=_option(rest, "--parent-agent-id"),
+        repository=_option(rest, "--repository"),
     )
-    return 0 if ok else 1
+    if state == "attached":
+        return 0
+    print(
+        "inflight_registry: %s - runtime lineage attach %s"
+        % ("BLOCKED" if state in ("collision", "ambiguous", "unreadable") else "refused", state),
+        file=sys.stderr,
+    )
+    return 2 if state in ("collision", "ambiguous", "unreadable") else 1
 
 
 def _authorize_command(root, rest):
@@ -797,10 +1004,19 @@ def _authorize_command(root, rest):
         )
         return 1
     target_root = feature_root(root, feature)
-    if authorize_runtime_identity(target_root, agent, feature, agent_id, parent_agent_id):
+    state = authorize_runtime_identity_state(
+        target_root,
+        agent,
+        feature,
+        agent_id,
+        parent_agent_id,
+        repository=_option(rest, "--repository"),
+    )
+    if state == "authorized":
         return 0
     print(
-        "inflight_registry: BLOCKED - runtime child lineage has no matching claim",
+        "inflight_registry: BLOCKED - runtime child lineage %s"
+        % ("identity collision" if state == "collision" else state),
         file=sys.stderr,
     )
     return 2

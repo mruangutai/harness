@@ -822,18 +822,6 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
         sys.exit(2)
     return None, None, None
 
-def target_repository(abs_target, root, label):
-    """Return the exact repository identity selected by the shared two-base classifier."""
-    workspace_root, workspace_bases, fleet_path = resolve_fleet(root, label)
-    base, _glob_filter, _target_side_test = select_base(
-        real(abs_target), root, workspace_root, workspace_bases, fleet_path, label)
-    if base is None:
-        return None
-    if real(base) == real(root):
-        return {"base": real(base), "repository": "harness"}
-    identity_for = getattr(workspace_bases, "identity_for", None)
-    repository = identity_for(base) if identity_for else None
-    return {"base": real(base), "repository": repository}
 
 
 def is_control_plane_target(rel):
@@ -867,6 +855,7 @@ def classify(abs_target, root, globs, shared, label):
       base              the base the target resolved against (likewise)
       advertise         the globs the `Permitted for you` line may honestly offer
       shared_advertise  the same for shared paths
+      repository        exact repository identity selected with the base, or None
 
     Note what is NOT returned and never was: `resolve_fleet` and `select_base` still
     exit 2 themselves for an unloadable fleet file and for a path under the workspace
@@ -931,6 +920,13 @@ def classify(abs_target, root, globs, shared, label):
         return {"outcome": "not_a_domain_question", "rel": None, "base": None,
                 "advertise": [], "shared_advertise": []}
 
+    identity_for = getattr(workspace_bases, "identity_for", None)
+    repository = (
+        "harness"
+        if real(base) == real(root)
+        else identity_for(base) if identity_for else None
+    )
+
     _abs_root = real(root)
     applicable_globs = [g for g in globs if _glob_filter(g)]
     applicable_shared = [s for s in shared if _glob_filter(s)]
@@ -970,7 +966,7 @@ def classify(abs_target, root, globs, shared, label):
     if any(matches(r, g) for r in rel_candidates for g in applicable_globs
            if target_side_test(r)):
         return {"outcome": "allow", "rel": rel, "base": base,
-                "advertise": [], "shared_advertise": []}
+                "repository": repository, "advertise": [], "shared_advertise": []}
 
     if any(matches(r, g) for r in rel_candidates for g in applicable_shared
            if target_side_test(r)):
@@ -978,7 +974,7 @@ def classify(abs_target, root, globs, shared, label):
         # write, but the caller says so — an unnoticed shared-file edit is how two
         # agents collide.
         return {"outcome": "shared", "rel": rel, "base": base,
-                "advertise": [], "shared_advertise": []}
+                "repository": repository, "advertise": [], "shared_advertise": []}
 
     # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the rejected
     # path leaves an agent with no basis for choosing a valid alternative, so the caller
@@ -1000,6 +996,7 @@ def classify(abs_target, root, globs, shared, label):
         _shared_advertise = list(applicable_shared)
 
     return {"outcome": "deny", "rel": rel, "base": base,
+            "repository": repository,
             "advertise": _advertise, "shared_advertise": _shared_advertise}
 
 

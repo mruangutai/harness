@@ -141,6 +141,20 @@ if not dispatched.startswith("harness-"):
               file=sys.stderr)
     sys.exit(0)
 
+forbidden_lineage_fields = {
+    "agent_id", "parent_agent_id", "harness_agent_id", "harness_parent_agent_id",
+}
+authored_lineage = sorted(forbidden_lineage_fields.intersection(ti))
+if authored_lineage:
+    print(
+        "dispatch-guard: BLOCKED — task input may not author runtime-lineage fields: %s."
+        % (", ".join(authored_lineage),),
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
+
 
 # ---------------------------------------------------------------------------
 # THE DISPATCH DECLARES ITS FEATURE (FEAT-42 T-18, issue #742). This is the ONE site in the
@@ -171,6 +185,26 @@ if not declared or not FEATURE_RE.fullmatch(declared):
     print("  BUG-NN-slug is also valid. A later line or another id form is refused.",
           file=sys.stderr)
     sys.exit(2)
+
+repository_lines = [
+    line[len("HARNESS-REPOSITORY: "):]
+    for line in prompt.splitlines()
+    if line.startswith("HARNESS-REPOSITORY: ")
+]
+REPOSITORY_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+if (
+    len(repository_lines) > 1
+    or (repository_lines and not REPOSITORY_RE.fullmatch(repository_lines[0]))
+):
+    print(
+        "dispatch-guard: BLOCKED — HARNESS-REPOSITORY must appear at most once "
+        "as an owner-qualified fleet repository.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+declared_repository = repository_lines[0] if repository_lines else None
+
+
 
 try:
     import harness_boundary as hb
@@ -247,6 +281,74 @@ if not root:
           file=sys.stderr)
     sys.exit(0)
 
+
+def _repository_identity(control_root):
+    """Validate a repository dispatch against its one fleet-owned feature artifact."""
+    harness_dir = os.path.join(control_root, ".harness")
+    artifacts = []
+    try:
+        segments = os.listdir(harness_dir)
+    except OSError:
+        segments = []
+    for segment in segments:
+        if segment in ("harness", "factory"):
+            continue
+        feature_path = os.path.join(
+            harness_dir, segment, "features", declared, "feature.json")
+        if not os.path.isfile(feature_path):
+            continue
+        feature_doc = artifact_accessors.load_feature_json(feature_path)
+        factory = feature_doc.get("factory")
+        repo_name = factory.get("repo") if isinstance(factory, dict) else None
+        if feature_doc.get("feature_id") != declared or not isinstance(repo_name, str):
+            raise ValueError(
+                "repository-tier feature artifact does not bind its feature and factory repo")
+        artifacts.append((segment, repo_name))
+
+    if not artifacts:
+        if declared_repository:
+            raise ValueError(
+                "HARNESS-REPOSITORY names no repository-tier feature artifact")
+        return None
+    if len(artifacts) != 1:
+        raise ValueError(
+            "repository feature is ambiguous across %d artifacts" % (len(artifacts),))
+
+    segment, artifact_repository = artifacts[0]
+    if declared_repository is None:
+        raise ValueError(
+            "repository-tier feature requires HARNESS-REPOSITORY: %s"
+            % (artifact_repository,))
+    if declared_repository != artifact_repository:
+        raise ValueError(
+            "HARNESS-REPOSITORY %s disagrees with feature artifact %s"
+            % (declared_repository, artifact_repository))
+
+    import factory_config
+    fleet_path = os.path.join(harness_dir, "factory", "fleet.yaml")
+    fleet = artifact_accessors.load_fleet(fleet_path)
+    factory_config.repo_entry(fleet, declared_repository)
+    if factory_config.segment_of(declared_repository) != segment:
+        raise ValueError(
+            "repository segment %s disagrees with fleet repository %s"
+            % (segment, declared_repository))
+    return segment
+
+
+try:
+    repository = _repository_identity(
+        hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                        strict=False))
+except Exception as exc:
+    print(
+        "dispatch-guard: BLOCKED — repository dispatch identity is invalid (%s)."
+        % (exc,),
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
+
 # T-09 -- a shell-less persona cannot resolve the feature tree itself. The
 # dispatcher supplies the resolved value and this block checks it before claim.
 try:
@@ -318,6 +420,16 @@ try:
         for line in reg.refusal_lines(dispatched, existing, command):
             print(line, file=sys.stderr)
         sys.exit(2)
+    correlation = {
+        "agent": dispatched,
+        "feature": declared,
+    }
+    if repository is not None:
+        correlation["repository"] = repository
+    if d.get("harness_agent_id"):
+        correlation["parent_agent_id"] = d.get("harness_agent_id")
+    if ti.get("name"):
+        correlation["requested_agent_id"] = ti.get("name")
     receipt = reg.claim_with_receipt(
         root,
         dispatched,
@@ -325,6 +437,8 @@ try:
         d.get("cwd") or "",
         feature=declared,
         supervisor_pid=supervisor_pid,
+        repository=repository,
+        dispatch_correlation=correlation,
     )
     if receipt is None:
         print("dispatch-guard: BLOCKED — single-flight claim raced for %s in %s."
@@ -336,6 +450,7 @@ try:
             "feature": declared,
             "agent": dispatched,
             "claim_id": receipt.get("claim_id"),
+            **({"repository": repository} if repository is not None else {}),
         }
     }, sort_keys=True))
 except SystemExit:

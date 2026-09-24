@@ -1129,7 +1129,7 @@ def bug1304_pre_change_guard(dest):
 
 
 def _bug1304_bash_fire(root, command, agent, guard=GUARD,
-                       agent_id=None, parent_agent_id=None):
+                       agent_id=None, parent_agent_id=None, feature=None):
     payload = {
         "agent_type": agent,
         "tool_name": "Bash",
@@ -1139,6 +1139,8 @@ def _bug1304_bash_fire(root, command, agent, guard=GUARD,
         payload["harness_agent_id"] = agent_id
     if parent_agent_id:
         payload["harness_parent_agent_id"] = parent_agent_id
+    if feature:
+        payload["harness_feature"] = feature
     return subprocess.run(
         [guard], input=json.dumps(payload), capture_output=True,
         text=True, env=_env(root),
@@ -1513,6 +1515,177 @@ def _bug1304_bash_partial_registry(results, context, inflight_registry):
         results, "partial unreadable", root, command, agent, control)
 
 
+def _repository_bash_fixture():
+    root = fixture(FIXTURE_MANIFEST)
+    workspace = tempfile.mkdtemp(prefix="harness-bash-repository-binding-")
+    os.makedirs(os.path.join(root, ".harness", "factory"), exist_ok=True)
+    with open(
+        os.path.join(root, ".harness", "factory", "fleet.yaml"),
+        "w",
+        encoding="utf-8",
+    ) as handle:
+        json.dump({
+            "schema": "factory-fleet/1",
+            "workspace_root": workspace,
+            "repos": [
+                {"name": "acme/product-a", "default_branch": "main"},
+                {"name": "acme/product-b", "default_branch": "main"},
+            ],
+        }, handle)
+    products = {
+        name: os.path.join(workspace, name, "change.md")
+        for name in ("product-a", "product-b")
+    }
+    for target in products.values():
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+    return root, products
+
+
+def _repository_bash_claim(
+    inflight_registry, root, repository, feature, agent_id, parent_agent_id,
+):
+    agent = "harness-backend-dev"
+    receipt = inflight_registry.claim_with_receipt(
+        root, agent, "harness-eng-lead", root,
+        feature=feature, repository=repository,
+    )
+    state = inflight_registry.attach_runtime_identity_state(
+        root, agent, feature, claim_id=receipt["claim_id"],
+        agent_id=agent_id, parent_agent_id=parent_agent_id,
+        repository=repository,
+    )
+    if state != "attached":
+        raise AssertionError(f"fixture claim did not attach: {state}")
+    return receipt
+
+
+def _repository_bash_fire(root, target, feature, agent_id, parent_agent_id):
+    return _bug1304_bash_fire(
+        root, f"echo x > {target}", "harness-backend-dev",
+        agent_id=agent_id, parent_agent_id=parent_agent_id, feature=feature,
+    )
+
+
+def _repository_bash_record(results, name, response, want, contains=None):
+    output = response.stdout + response.stderr
+    ok = response.returncode == want and (contains is None or contains in output)
+    results.append((name, ok, f"exit={response.returncode} output={output[:240]!r}"))
+
+
+def _repository_binding_bash_routes(results, inflight_registry):
+    """FEAT-495: product Bash writes require exact runtime repository lineage."""
+    feature = "FEAT-495-product-bash"
+    root, products = _repository_bash_fixture()
+    first = _repository_bash_claim(
+        inflight_registry, root, "product-a", feature, "BackendOne", "EngLeadOne")
+    own = _repository_bash_fire(
+        root, products["product-a"], feature, "BackendOne", "EngLeadOne")
+    cross = _repository_bash_fire(
+        root, products["product-b"], feature, "BackendOne", "EngLeadOne")
+    wrong_parent = _repository_bash_fire(
+        root, products["product-a"], feature, "BackendOne", "EngLeadTwo")
+    _repository_bash_record(
+        results, "repository-bound child can repeat Bash in its own product", own, 0)
+    _repository_bash_record(
+        results, "repository-bound Bash child cannot cross products", cross, 2, "mismatched")
+    _repository_bash_record(
+        results, "Bash repository binding includes immediate parent",
+        wrong_parent, 2, "mismatched")
+
+    _repository_bash_claim(
+        inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
+    sibling = _repository_bash_fire(
+        root, products["product-a"], feature, "BackendTwo", "EngLeadOne")
+    _repository_bash_record(
+        results, "same-role Bash siblings retain their own product claims", sibling, 0)
+
+    missing_root, missing_products = _repository_bash_fixture()
+    missing = _repository_bash_fire(
+        missing_root, missing_products["product-a"], feature, "MissingChild", "EngLeadOne")
+    _repository_bash_record(
+        results, "Bash product write without claim fails closed", missing, 2, "missing")
+
+    released_root, released_products = _repository_bash_fixture()
+    released_receipt = _repository_bash_claim(
+        inflight_registry, released_root, "product-a", feature,
+        "ReleasedChild", "EngLeadOne")
+    inflight_registry.release(
+        released_root, claim_id=released_receipt["claim_id"], feature=feature)
+    released = _repository_bash_fire(
+        released_root, released_products["product-a"], feature,
+        "ReleasedChild", "EngLeadOne")
+    _repository_bash_record(
+        results, "released Bash repository claim fails closed", released, 2, "released")
+
+    stale_root, stale_products = _repository_bash_fixture()
+    _repository_bash_claim(
+        inflight_registry, stale_root, "product-a", feature, "StaleChild", "EngLeadOne")
+    stale_path = os.path.join(stale_root, inflight_registry.REGISTRY_REL)
+    stale_data = json.load(open(stale_path, encoding="utf-8"))
+    stale_data["claims"][0]["supervisor_pid"] = 99999999
+    stale_data["claims"][0].pop("supervisor_started_at", None)
+    with open(stale_path, "w", encoding="utf-8") as handle:
+        json.dump(stale_data, handle)
+    stale = _repository_bash_fire(
+        stale_root, stale_products["product-a"], feature, "StaleChild", "EngLeadOne")
+    _repository_bash_record(
+        results, "stale Bash repository claim fails closed", stale, 2, "stale")
+
+    ambiguous_root, ambiguous_products = _repository_bash_fixture()
+    _repository_bash_claim(
+        inflight_registry, ambiguous_root, "product-a", feature,
+        "AmbiguousChild", "EngLeadOne")
+    ambiguous_path = os.path.join(ambiguous_root, inflight_registry.REGISTRY_REL)
+    ambiguous_data = json.load(open(ambiguous_path, encoding="utf-8"))
+    duplicate = dict(ambiguous_data["claims"][0])
+    duplicate["claim_id"] += "-duplicate"
+    ambiguous_data["claims"].append(duplicate)
+    with open(ambiguous_path, "w", encoding="utf-8") as handle:
+        json.dump(ambiguous_data, handle)
+    ambiguous = _repository_bash_fire(
+        ambiguous_root, ambiguous_products["product-a"], feature,
+        "AmbiguousChild", "EngLeadOne")
+    _repository_bash_record(
+        results, "ambiguous Bash repository claim fails closed", ambiguous, 2, "ambiguous")
+
+    collision_root, collision_products = _repository_bash_fixture()
+    _repository_bash_claim(
+        inflight_registry, collision_root, "product-a", feature,
+        "CollidingChild", "EngLeadOne")
+    collision_path = os.path.join(collision_root, inflight_registry.REGISTRY_REL)
+    collision_data = json.load(open(collision_path, encoding="utf-8"))
+    foreign = dict(collision_data["claims"][0])
+    foreign["claim_id"] += "-foreign"
+    foreign["feature"] = "FEAT-496-other-dispatch"
+    collision_data["claims"].append(foreign)
+    with open(collision_path, "w", encoding="utf-8") as handle:
+        json.dump(collision_data, handle)
+    collision = _repository_bash_fire(
+        collision_root, collision_products["product-a"], feature,
+        "CollidingChild", "EngLeadOne")
+    _repository_bash_record(
+        results, "reused Bash runtime identity fails as collision",
+        collision, 2, "collision")
+
+    unreadable_root, unreadable_products = _repository_bash_fixture()
+    unreadable_path = os.path.join(unreadable_root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(unreadable_path), exist_ok=True)
+    with open(unreadable_path, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    unreadable = _repository_bash_fire(
+        unreadable_root, unreadable_products["product-a"], feature,
+        "UnreadableChild", "EngLeadOne")
+    _repository_bash_record(
+        results, "unreadable Bash repository registry fails closed",
+        unreadable, 2, "unreadable")
+    output = unreadable.stdout + unreadable.stderr
+    results.append((
+        "Bash repository refusal does not expose registry paths or claim ids",
+        inflight_registry.REGISTRY_REL not in output and first["claim_id"] not in output,
+        output[:240],
+    ))
+
+
 def run_bug1304_claim_set():
     """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
     import inflight_registry
@@ -1534,6 +1707,7 @@ def run_bug1304_claim_set():
     _bug1304_bash_partial_registry(results, context, inflight_registry)
 
     failures = 0
+    _repository_binding_bash_routes(results, inflight_registry)
     for name, ok, detail in results:
         print(("PASS " if ok else "FAIL "), "[bug1304]", name)
         if not ok:

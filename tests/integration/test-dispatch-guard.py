@@ -166,6 +166,27 @@ def _checkout():
         )
     return tmp
 
+
+def _factory_checkout(repo_name="acme/product-a", feature="FEAT-495-product-write"):
+    """A control-plane fixture with one exact fleet member and repository feature."""
+    root = _checkout()
+    segment = repo_name.split("/", 1)[-1]
+    fleet_dir = os.path.join(root, ".harness", "factory")
+    os.makedirs(fleet_dir, exist_ok=True)
+    with open(os.path.join(fleet_dir, "fleet.yaml"), "w", encoding="utf-8") as fh:
+        json.dump({
+            "schema": "factory-fleet/1",
+            "repos": [{"name": repo_name, "default_branch": "main"}],
+            "workspace_root": os.path.join(root, "products"),
+        }, fh)
+    feature_dir = os.path.join(root, ".harness", segment, "features", feature)
+    os.makedirs(feature_dir, exist_ok=True)
+    with open(os.path.join(feature_dir, "feature.json"), "w", encoding="utf-8") as fh:
+        json.dump({"feature_id": feature, "factory": {"repo": repo_name}}, fh)
+    return root, segment
+
+
+
 def _checkout_with_run_dir_grants(suffixes):
     """A throwaway checkout whose `leads:` carry a run-dir write grant for each of
     `suffixes` (BUG-124 T-02) -- copies the same personas `_checkout` copies, and does
@@ -769,6 +790,77 @@ def case_24_duplicate_hook_keys_are_rejected():
               False, result.stderr)
 
 
+
+def case_27_repository_header_binds_exact_factory_claim():
+    feature = "FEAT-495-product-write"
+    root, segment = _factory_checkout(feature=feature)
+    env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+    prompt = (
+        f"HARNESS-FEATURE: {feature}\n"
+        "HARNESS-REPOSITORY: acme/product-a\n"
+        "change the product"
+    )
+    result = fire({
+        "agent_type": "harness-eng-lead",
+        "harness_agent_id": "LeadOne",
+        "harness_parent_agent_id": "OrchestratorOne",
+        "tool_input": {
+            "agent": "harness-backend-dev",
+            "name": "BackendOne",
+            "task": prompt,
+        },
+    }, env=env)
+    claim_lines = [line for line in result.stdout.splitlines() if line.startswith("{")]
+    receipt = json.loads(claim_lines[-1])["harness_claim"] if claim_lines else {}
+    data = _read_registry(root, _load_registry_module())
+    claims = _claims_for(data, "harness-backend-dev", feature)
+    check("case 27: exact factory repository dispatch is allowed",
+          result.returncode == 0, result.stderr)
+    check("case 27: claim and receipt carry normalized repository identity",
+          receipt.get("repository") == segment
+          and len(claims) == 1
+          and claims[0].get("repository") == segment,
+          {"receipt": receipt, "claims": claims})
+    check("case 27: claim records trusted host dispatch correlation",
+          claims[0].get("dispatch_correlation") == {
+              "agent": "harness-backend-dev",
+              "feature": feature,
+              "repository": segment,
+              "parent_agent_id": "LeadOne",
+              "requested_agent_id": "BackendOne",
+          }, claims)
+
+    missing = fire({
+        "agent_type": "harness-eng-lead",
+        "harness_agent_id": "LeadOne",
+        "harness_parent_agent_id": "OrchestratorOne",
+        "tool_input": {
+            "agent": "harness-backend-dev",
+            "task": f"HARNESS-FEATURE: {feature}\nchange the product",
+        },
+    }, env=env)
+    mismatch = fire({
+        "agent_type": "harness-eng-lead",
+        "harness_agent_id": "LeadOne",
+        "harness_parent_agent_id": "OrchestratorOne",
+        "tool_input": {
+            "agent": "harness-backend-dev",
+            "task": (
+                f"HARNESS-FEATURE: {feature}\n"
+                "HARNESS-REPOSITORY: acme/product-b\n"
+                "change the product"
+            ),
+        },
+    }, env=env)
+    check("case 27: repository feature without its locator is refused",
+          missing.returncode == 2 and "HARNESS-REPOSITORY" in missing.stderr,
+          missing.stderr)
+    check("case 27: repository locator outside the fleet is refused",
+          mismatch.returncode == 2 and "repository" in mismatch.stderr.lower(),
+          mismatch.stderr)
+
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -824,6 +916,7 @@ def main():
     case_22_derived_vocabulary_matches_invented_squad()
     case_23_broken_derivation_distinguished_from_grant_less()
     case_24_duplicate_hook_keys_are_rejected()
+    case_27_repository_header_binds_exact_factory_claim()
 
     failed = 0
     for name, ok, detail in RESULTS:

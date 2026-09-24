@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
 const FEATURE_MARKER = /^HARNESS-FEATURE: ((?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+)$/gm;
+const REPOSITORY_MARKER = /^HARNESS-REPOSITORY: ([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)$/gm;
 // #1677: an operator-supplied review pin travels in the DISPATCH — the one text a reviewer
 // does not author — and reaches validate-digest.py as `harness_review_pin`, the same way the
 // feature marker reaches it as `harness_feature`. It stands in for feature.json's review_sha
@@ -252,8 +253,12 @@ function preDomain(
   input: Dict,
   runner: PolicyRunner,
   ctx?: any,
+  feature?: string,
 ): PolicyResult[] {
-  const base = basePayload(agent, "PreToolUse", cwd, ctx);
+  const base = {
+    ...basePayload(agent, "PreToolUse", cwd, ctx),
+    ...(feature ? { harness_feature: feature } : {}),
+  };
   if (toolName === "write") {
     return [runner(cwd, "check-domain.py", [], {
       ...base,
@@ -309,7 +314,13 @@ function firstBlock(results: PolicyResult[]): string | undefined {
 }
 
 type TaskDispatch = { agent: string; task: string; name?: string; model?: unknown };
-type ClaimReceipt = { root: string; feature: string; agent: string; claimId: string };
+type ClaimReceipt = {
+  root: string;
+  feature: string;
+  agent: string;
+  claimId: string;
+  repository?: string;
+};
 
 export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
   if (Array.isArray(input.tasks)) {
@@ -356,7 +367,11 @@ function parseClaimReceipt(stdout: string): ClaimReceipt | undefined {
       const feature = text(raw.feature);
       const agent = text(raw.agent);
       const claimId = text(raw.claim_id);
-      if (root && feature && agent && claimId) return { root, feature, agent, claimId };
+      const repository = text(raw.repository) || undefined;
+      if (root && feature && agent && claimId) {
+        return { root, feature, agent, claimId, repository };
+      }
+      continue;
     } catch {
       continue;
     }
@@ -754,6 +769,7 @@ export function spendAdvisoryFor(
 export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPolicy): void {
   let currentAgent: string | undefined;
   let currentFeature: string | undefined;
+  let currentRepository: string | undefined;
   let expertiseInjected = false;
   let featureCaptured = false;
   let currentReviewPin: string | undefined;
@@ -800,11 +816,24 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // unbounded, both failure paths are live — an agent on feature A that reads feature
   // B's notes throws from inside an async pi.on handler, or, if the foreign marker
   // lands first, reconciles against the WRONG feature's claims.
+  const setRepository = (repository: string | undefined): void => {
+    if (!repository) return;
+    const normalized = repository.split("/", 2).at(-1);
+    if (currentRepository && currentRepository !== normalized) {
+      throw new Error(
+        `conflicting Harness repository markers: ${currentRepository}, ${normalized}`,
+      );
+    }
+    currentRepository = normalized;
+  };
+
   const captureFeatureFromMessage = (candidate: unknown, ctx: { cwd: string }): void => {
     if (featureCaptured) return;
     if (!candidate || typeof candidate !== "object") return;
     if ((candidate as Dict).role !== "user") return;
-    setFeature(detectMarker([messageText(candidate)], FEATURE_MARKER, "feature"), ctx);
+    const layers = [messageText(candidate)];
+    setFeature(detectMarker(layers, FEATURE_MARKER, "feature"), ctx);
+    setRepository(detectMarker(layers, REPOSITORY_MARKER, "repository"));
   };
   // The pin and the mission have one source: the assignment message (DEC-204), scanned
   // once. A later user turn or a tool result echoing another dispatch is never either.
@@ -823,6 +852,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
     const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
+    const detectedRepository = detectMarker(event.systemPrompt, REPOSITORY_MARKER, "repository");
     const detectedPin = detectMarker(event.systemPrompt, REVIEW_PIN_MARKER, "review pin");
     const detectedMission = detectMarker(event.systemPrompt, MISSION_MARKER, "mission");
     runtimeAgentId = text(ctx.agentId);
@@ -831,6 +861,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (detectedPin) currentReviewPin = detectedPin;
     if (detectedMission) currentMission = detectedMission;
     setFeature(detectedFeature, ctx);
+    setRepository(detectedRepository);
     if (!currentAgent || expertiseInjected) return;
 
     const result = policyRunner(ctx.cwd, "inject-expertise.py", [], {
@@ -904,14 +935,20 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       if (!currentFeature) {
         reason = "Harness child mutation policy requires runtime child, parent, and feature identity.";
       } else {
-        const authorization = policyRunner(ctx.cwd, "inflight_registry.py", [
+        const authorizationArgs = [
           "authorize",
           "--agent", policyAgent,
           "--feature", currentFeature,
           "--agent-id", agentId,
           "--parent-agent-id", parentAgentId,
           "--root", ctx.cwd,
-        ], {});
+        ];
+        if (currentRepository) {
+          authorizationArgs.push("--repository", currentRepository);
+        }
+        const authorization = policyRunner(
+          ctx.cwd, "inflight_registry.py", authorizationArgs, {},
+        );
         if (authorization.blocked || authorization.reason) {
           reason = authorization.reason || "Harness runtime child lineage is not authorized.";
         }
@@ -919,12 +956,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     if (!reason) {
       reason = firstBlock(preDomain(
-        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx,
+        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx, currentFeature,
       ));
     }
     if (!reason && toolName === "bash") {
       const payload = {
         ...basePayload(policyAgent, "PreToolUse", ctx.cwd, runtimeCtx),
+        ...(currentFeature ? { harness_feature: currentFeature } : {}),
         tool_name: "Bash",
         tool_input: { command: input.command },
       };
@@ -994,6 +1032,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
                 "--root", receipt.root,
               ];
               if (dispatch.name) args.push("--agent-id", dispatch.name);
+              if (receipt.repository) {
+                args.push("--repository", receipt.repository);
+              }
               const attached = policyRunner(
                 ctx.cwd, "inflight_registry.py", args, {},
               );
@@ -1083,6 +1124,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           ];
           if (identity.agentId) args.push("--agent-id", identity.agentId);
           if (identity.jobId) args.push("--job-id", identity.jobId);
+          if (receipt.repository) args.push("--repository", receipt.repository);
           policyRunner(ctx.cwd, "inflight_registry.py", args, {});
           if (identity.agentId) runtimeClaims.set(`agent:${identity.agentId}`, receipt);
           if (identity.jobId) runtimeClaims.set(`job:${identity.jobId}`, receipt);
