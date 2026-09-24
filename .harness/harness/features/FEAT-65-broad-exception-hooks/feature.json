@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-65-broad-exception-hooks",
   "pr": null,
   "review_sha": "7596434cdd4931512a008db8f2fce2ec9b9456b9",
-  "cycles_used": 2,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -56,6 +56,16 @@
       "tokens": 131323,
       "ended_at": "2026-09-24T14:19:39+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "fix-c1-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T14:21:32+00:00",
+      "ended_at": "2026-09-24T14:30:32+00:00",
+      "cycles_used": 1,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -86,6 +96,13 @@
       "kind": "finding_kind",
       "decision": "substance",
       "reason": "SC-01_final-pin_fail-first_provenance_remains_unproven"
+    },
+    {
+      "at": "2026-09-24T14:21:29+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix then re-validate (cycle 2 of 2)",
+      "reason": "validate c1 FAIL on SC-01 only: byte-evidence-vs-baseline.md was produced with task-head tests, not the tests committed at the pin; regenerate at the pin"
     }
   ],
   "mission": "plan",

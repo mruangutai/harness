@@ -174,3 +174,11 @@ Rulings are the grilling's (`.harness/notes/grilling-broad-exception-hooks-feat6
   counts 5 under it (4 own + 1 embedded); the pin counts 0.
 - re-pinned by: `test-branch-create-gate.py` `run_feat65_config_reader` (four recoveries + the traceback
   path); `test-broad-catch-census.py` `case_feat65_census_reads_executable_embedded_python`.
+
+### validate c1 → c2 (QA-65-01 provenance)
+
+- `notes/byte-evidence-vs-baseline.md` regenerated: each suite's test file AS COMMITTED AT THE REVIEW PIN
+  is copied into the clean `4e8c73c0` production tree and run there (red, every `-` line verbatim), then run
+  at the pin (green). The earlier note had been produced at task heads. No production or test byte changed
+  between `7596434c` and this regeneration (`git diff --stat 7596434c HEAD -- .claude tests` is empty), so
+  `97d14f0b` remains the implementation pin and `notes/clean-pin-byte-receipts.md` stands.
