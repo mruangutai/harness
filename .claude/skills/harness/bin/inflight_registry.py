@@ -770,7 +770,7 @@ def reconcile(root, feature=None, now=None):
     return _update_registry(root, mutator)
 
 
-def release_cmd(root, agent, feature):
+def release_cmd(root, agent, feature, agent_id=None, claim_id=None):
     # A featureless claim is real — LEGACY_FEATURE exists for exactly those, and `_matches`
     # reads them as `claim.get("feature", LEGACY_FEATURE)`.
     #
@@ -779,13 +779,22 @@ def release_cmd(root, agent, feature):
     # and the printed remedy was `--feature ''`. That selector matches no claim at all, so
     # an operator was handed a well-formed command that ran clean and removed nothing.
     # Silent non-remedy, not a crash.
+    #
+    # BUG-1898: a claim bound to a runtime id, or one known claim, is named EXACTLY — a
+    # persona selector is the single-flight guard's remedy, never a recovery command for one
+    # run among several of the same persona.
     feature = feature or LEGACY_FEATURE
+    if agent_id:
+        selector = ["--agent-id", agent_id]
+    elif claim_id:
+        selector = ["--claim-id", claim_id]
+    else:
+        selector = ["--agent", agent]
     parts = [
         "python3",
         os.path.join(root, ".agents/skills/harness/bin/inflight_registry.py"),
         "release",
-        "--agent",
-        agent,
+        *selector,
     ]
     parts.extend(["--feature", feature])
     parts.extend(["--root", root])
