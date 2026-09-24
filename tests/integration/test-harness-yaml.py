@@ -635,8 +635,17 @@ def test_exactly_one_guarded_import_in_the_tree():
     # which is what this cap exists to prevent. The alternative considered and rejected was
     # dropping the guard: it breaks no test today, because NOTHING exercises the guarded
     # branch, but it departs from signed text to buy nothing.
+    # FEAT-65: four more hooks now SPELL their first-party sibling guards as `except
+    # ImportError` — bash-write-guard.py and dispatch-guard.py (artifact_accessors,
+    # inflight_registry), inject-expertise.py (harness_boundary, artifact_accessors),
+    # validate-digest.py (inflight_registry). Each was `except Exception` before, i.e. a
+    # guarded import this text needle could not see; narrowing it to the class `import`
+    # raises adds no fallback path, it names one that already existed. Same category as
+    # check-domain.py and feature-worktree.py: first-party siblings, never a third-party
+    # dependency.
     allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
-               "feature-worktree.py"}
+               "feature-worktree.py", "bash-write-guard.py", "dispatch-guard.py",
+               "inject-expertise.py", "validate-digest.py"}
     assert set(guarded_hits) <= allowed, (
         f"unexpected guarded-import file(s) outside the allowed set: "
         f"{set(guarded_hits) - allowed!r}"

@@ -59,7 +59,8 @@
     "attached": [
       "T-01",
       "T-02",
-      "T-03"
+      "T-03",
+      "T-04"
     ],
     "issues": {
       "T-01": 1913,
@@ -67,6 +68,7 @@
       "T-03": 1915,
       "T-04": 1916
     },
-    "source_issues": []
+    "source_issues": [],
+    "build_entry": "opened"
   }
 }
