@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1898-inflight-claim-lifecycle",
   "pr": null,
   "review_sha": "81dbd81d21b04b6fdcba2435d2e73a12ec72fd2e",
-  "cycles_used": 1,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -36,6 +36,16 @@
       "tokens": 112502,
       "ended_at": "2026-09-24T17:58:10+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T19:34:40+00:00",
+      "tokens": 144014,
+      "ended_at": "2026-09-24T20:05:32+00:00",
+      "cycles_used": 2
     }
   ],
   "judgements": [
@@ -66,6 +76,20 @@
       "kind": "finding_kind",
       "decision": "substance",
       "reason": "F-01 and F-QA-01 each change shipped enforcement or its required automated proof and cite owned plan tasks with concrete failure scenarios"
+    },
+    {
+      "at": "2026-09-24T19:34:40+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate the c1 fixes at 81dbd81d21b04b6fdcba2435d2e73a12ec72fd2e",
+      "reason": "re-review the two prior high must-fixes after the pinned c1 fixes while keeping SC-07 as the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T20:05:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "F-02 and retained F-QA-01 require production or permanent-test changes in signed tasks T-03 and T-04"
     }
   ],
   "mission": "plan",
