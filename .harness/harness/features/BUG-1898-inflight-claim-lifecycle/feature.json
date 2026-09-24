@@ -26,6 +26,16 @@
       "ended_at": "2026-09-24T17:37:28+00:00",
       "cycles_used": 1,
       "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T17:41:53+00:00",
+      "tokens": 112502,
+      "ended_at": "2026-09-24T17:58:10+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -42,6 +52,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "BUG-1898 build, main-session-direct (DEC-174)"
+    },
+    {
+      "at": "2026-09-24T17:41:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "build PASS is pinned at the requested review SHA; proceed to the independent validation panel while leaving SC-07 to the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T17:58:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "F-01 and F-QA-01 each change shipped enforcement or its required automated proof and cite owned plan tasks with concrete failure scenarios"
     }
   ],
   "mission": "plan",
