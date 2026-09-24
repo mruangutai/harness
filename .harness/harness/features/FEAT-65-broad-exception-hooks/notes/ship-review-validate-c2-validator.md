@@ -40,9 +40,9 @@ The plan run produced an approved four-task plan with five resolved panel findin
 
 ## Escalations and host gaps
 
-Known host gap #1898 occurred exactly 6 times during validate c2: five PM lineage refusals before claim `5631b96060f7422b99a43185ba69f4c4` was bound, and one validator-lead state-write refusal before claim `e46afac0294e4e469e201a0af1ac51cc` was bound. Both retries succeeded under supervisor PID 2347. These were host failures, not FEAT-65 product findings.
+Known host gap #1898 occurred exactly 7 times during validate c2: five PM lineage refusals before claim `5631b96060f7422b99a43185ba69f4c4` was bound, one validator-lead state-write refusal before claim `e46afac0294e4e469e201a0af1ac51cc` was bound, and one later validator-lead digest-rewrite refusal before active claim `2465e734dc544301a8320f0e4fd73f47` was established. The PM artifact and validator state retries succeeded under supervisor PID 2347. The requested one-block digest rewrite is main-session-direct because the validator-lead grant correctly refuses replacing a recorded run digest; no reader rerun is required. These host failures are not FEAT-65 product findings.
 
-The terminal-yield gate also repeatedly rejected canonical reader returns while their durable artifacts remained recoverable. Validation relied on the artifacts after contract checks; this does not change the feature verdict.
+The terminal-yield gate also repeatedly rejected canonical reader, lead, and orchestrator returns while their durable artifacts remained recoverable. Validation relied on the artifacts after contract checks; this does not change the feature verdict.
 
 ## Spend and judgements
 
@@ -72,4 +72,4 @@ None block shipping. The operator's remaining decision is whether to ship the va
 | ID | Nature | Residual item |
 |---|---|---|
 | B-1 | bug | CR-02: constrain the embedded-program census so a harmless parseable `try/except` example in a non-executed string cannot falsely block plan routes. |
-| B-2 | bug | Investigate the terminal-yield parser defect that rejected canonical reader and lead returns despite valid durable artifacts. |
+| B-2 | bug | Investigate the terminal-yield parser defect that rejected canonical reader, lead, and orchestrator returns despite valid durable artifacts. |
