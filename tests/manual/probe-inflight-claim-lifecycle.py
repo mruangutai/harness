@@ -282,8 +282,23 @@ class Session:
         sent = self.send(command)
         return self.pump(lambda f: f.get("type") == "response" and f.get("id") == sent, timeout)
 
+    def idle(self, timeout: float) -> bool:
+        """Wait until Main runs no turn. A child's result lands twice (async result, then
+        its IRC reply) and each wakes Main for a turn of its own, so the next prompt waits
+        those out rather than landing inside one and being lost."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            state = (self.request({"type": "get_state"}) or {}).get("data") or {}
+            if state and not state.get("isStreaming"):
+                return True
+            self.pump(lambda f: f.get("type") == "agent_end", 5)
+        return False
+
     def prompt(self, message: str, timeout: float) -> bool:
-        self.request({"type": "prompt", "message": message})
+        self.idle(timeout)
+        # followUp: a wake that starts between the idle check and this send queues the
+        # prompt behind its turn instead of dropping it.
+        self.request({"type": "prompt", "message": message, "streamingBehavior": "followUp"})
         return self.pump(lambda f: f.get("type") == "agent_end", timeout) is not None
 
     def settled(self, agent_id: str, timeout: float) -> dict | None:
@@ -395,17 +410,21 @@ def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
     return governed
 
 
+def observed_ids(s: Session, governed: list[str], plain_ids: list[str]) -> list[str]:
+    """Every id OMP reported to Main (lifecycle frames, its subagent registry) plus every id
+    a claim was sampled under. Main sees only its direct children; a nested lead's lineage
+    id (Nest.Probe) reaches the probe through the claim it holds while it runs."""
+    listed = (s.request({"type": "get_subagents"}) or {}).get("data") or {}
+    claimed = {str(r.get("agent_id")) for _ts, rows in s.samples for r in rows
+               if r.get("feature") == FEATURE and r.get("agent_id")}
+    return sorted({str(a.get("id")) for a in listed.get("subagents", [])}
+                  | set(governed) | set(plain_ids) | claimed)
+
+
 def batch_plain_ids(s: Session, mark: int) -> list[str]:
     """Ids of the batch's non-governed children; a nested lead is governed, never plain."""
     return [p["id"] for p in s.lifecycle[mark:]
             if p.get("id") and not str(p.get("agent", "")).startswith("harness-")]
-
-
-def observed_ids(s: Session, governed: list[str], plain_ids: list[str]) -> list[str]:
-    """Every id OMP reported: lifecycle frames plus its subagent registry (nested included)."""
-    listed = (s.request({"type": "get_subagents"}) or {}).get("data") or {}
-    return sorted({str(a.get("id")) for a in listed.get("subagents", [])}
-                  | set(governed) | set(plain_ids))
 
 
 def crossed_rows(s: Session, governed: list[str], plain_ids: list[str]) -> list[dict]:
