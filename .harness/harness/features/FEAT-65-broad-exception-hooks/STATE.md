@@ -3,7 +3,7 @@
 ## Current
 
 - feature: FEAT-65-broad-exception-hooks
-- run: .harness/harness/features/FEAT-65-broad-exception-hooks/runs/validate-validator/state.yaml
+- run: .harness/harness/features/FEAT-65-broad-exception-hooks/runs/validate-c1-validator/state.yaml
 - squad: validator
 - status: blocked
 
