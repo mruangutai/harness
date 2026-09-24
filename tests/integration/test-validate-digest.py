@@ -2399,8 +2399,10 @@ def run_bug919_resolve_fallback_case():
     original_root_fn = validator._root_or_none
     original_feature_root = inflight_registry.feature_root
     validator._root_or_none = lambda: "/some/owner/root"
+    # FEAT-65: the lookup's own boundary class, not an arbitrary one — the fallback is
+    # typed now, and an unrelated exception is a defect that reaches hook_guard instead.
     def _raise(root, feature):
-        raise LookupError("no unambiguous worktree for %r" % feature)
+        raise OSError("no unambiguous worktree for %r" % feature)
     inflight_registry.feature_root = _raise
     saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
     try:
@@ -5391,10 +5393,11 @@ def _duplicate_hook_payload_failures():
     hook = subprocess.run(
         [sys.executable, VALIDATE, "--hook"], input=payload,
         capture_output=True, text=True)
+    # FEAT-65: the typed ArtifactAccessError reaches hook_guard and is named in its template.
     refused = (
         hook.returncode == 0
         and "duplicate key" in hook.stderr
-        and "unreadable hook payload" in hook.stderr
+        and "check-digest: the hook failed internally (ArtifactAccessError:" in hook.stderr
     )
     return [] if refused else [
         "duplicate hook payload did not take the typed fail-open path"]
@@ -5514,9 +5517,108 @@ hook_case("#1855: an unknown mission changes nothing",
           "harness-qa", QA_DISTILL, 2, "gate", harness_mission="polish")
 
 
+# --- FEAT-65: the hook's own failure is harness_boundary.hook_guard's ONE template -------
+# Hook mode runs under `hook_guard(hook_mode, "check-digest")`. The two local "internal error
+# … passing through" catches and the "unreadable hook payload" catch are gone: an unexpected
+# defect anywhere in hook mode prints the template line and exits 0; process control escapes;
+# and the direct CLI is NOT wrapped — its defects stay loud and nonzero.
+
+GUARD_LINE = ("check-digest: the hook failed internally ({detail}) — passing through; "
+              "this is not a pass, nothing was checked.\n")
+
+
+def _feat65_fire(sibling, override, argv=("--hook",), payload=None, stdin=None):
+    """Fire a copy of the validator whose `sibling` module ends with `override` (an appended
+    def wins). `sibling` None fires the unmodified copy."""
+    root = tempfile.mkdtemp(prefix="vd-feat65-")
+    os.makedirs(os.path.join(root, ".harness"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as handle:
+        handle.write("schema_version: 1\n")
+    iso = isolated_bin(root)
+    if sibling is not None:
+        with open(os.path.join(iso, sibling), "a", encoding="utf-8") as handle:
+            handle.write("\n\n" + override)
+    if payload is None:
+        payload = {"agent_type": "harness-qa", "last_assistant_message": "VERDICT: PASS\n"}
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+    return subprocess.run([os.path.join(iso, "validate-digest.py"), *argv],
+                          input=json.dumps(payload) if stdin is None else stdin,
+                          capture_output=True, text=True, env=env)
+
+
+def _feat65_guarded(result, line):
+    """Pass-through: exit 0, stderr ending in the template, and never the old sentences."""
+    legacy = ("Not blocking on our own errand", "internal error validating", "unreadable hook payload")
+    return (result.returncode == 0 and result.stderr.endswith(line)
+            and not any(old in result.stderr for old in legacy))
+
+
+def _feat65_escaped(result, code=None):
+    """Process control escaped the guard: nonzero (or the named code) and no template."""
+    exit_ok = result.returncode != 0 if code is None else result.returncode == code
+    return exit_ok and "failed internally" not in result.stderr
+
+
+def run_feat65_guard_cases():
+    raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
+    payload_defect = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n" + raise_rt)
+    unreadable_payload = _feat65_fire(None, "", stdin="{not json")
+    registry_defect = _feat65_fire(
+        "inflight_registry.py",
+        "def release(root, agent=None, feature=None, claim_id=None, agent_id=None, "
+        "job_id=None):\n" + raise_rt)
+    interrupt = _feat65_fire(
+        "artifact_accessors.py",
+        "def read_hook_payload(text, context):\n    raise KeyboardInterrupt()\n")
+    deliberate_exit = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n    raise SystemExit(7)\n")
+    # The direct CLI reads its persona and text itself; a defect in the validator core must
+    # stay a loud traceback, never a pass-through. The reviewer persona resolves the review
+    # policy's root through harness_boundary on every validate() call.
+    cli_defect = _feat65_fire(
+        "harness_boundary.py", "def resolve_root(bin_dir, strict=True):\n" + raise_rt,
+        argv=("harness-code-reviewer",), stdin="VERDICT: PASS\nartifact: x.md\n")
+    line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
+    unreadable_head = ("check-digest: the hook failed internally (ArtifactAccessError: "
+                       "SubagentStop hook payload: invalid JSON: ")
+    return _feat65_report([
+        ("a defect reading the payload passes through with exactly the hook_guard line",
+         payload_defect.stderr == line and payload_defect.stdout == ""
+         and _feat65_guarded(payload_defect, line), payload_defect),
+        ("an unreadable payload is the hook's own failure and takes the same template",
+         unreadable_payload.stderr.startswith(unreadable_head)
+         and _feat65_guarded(unreadable_payload, line[line.index(" — passing through"):]),
+         unreadable_payload),
+        ("a defect in the registry errand is no longer reported in its own sentence",
+         _feat65_guarded(registry_defect, line), registry_defect),
+        ("KeyboardInterrupt escapes the guard",
+         _feat65_escaped(interrupt) and "KeyboardInterrupt" in interrupt.stderr, interrupt),
+        ("a deliberate SystemExit keeps its own exit code",
+         _feat65_escaped(deliberate_exit, 7), deliberate_exit),
+        ("the direct CLI is not wrapped: a validator defect is loud and nonzero",
+         _feat65_escaped(cli_defect) and cli_defect.returncode != 2
+         and "FEAT-65 injected" in cli_defect.stderr, cli_defect),
+    ])
+
+
+def _feat65_report(cases):
+    fails = 0
+    for name, ok, result in cases:
+        if ok:
+            print(f"ok    [feat65] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [feat65] {name}\n      | exit {result.returncode}: "
+                  f"{result.stderr.strip()[:400]!r}")
+    print(f"\n{len(cases) - fails}/{len(cases)} FEAT-65 guard cases passed.")
+    return fails
+
+
 def main():
     checks = (
         run_canonical_reader_strictness_cases,
+        run_feat65_guard_cases,
         run_cli_cases,
         run_empty_red_case,
         run_dec156_worktree_red_case,

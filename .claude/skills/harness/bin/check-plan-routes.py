@@ -2191,22 +2191,12 @@ def _posture_findings(root):
 #
 # FEAT-64 (SC-04): every lib and tool of wave 4 is now ABSENT from the table -- zero by the
 # default -- and harness_boundary.py holds at exactly two: `_as_repo_module_failure` (the load
-# and call boundary) and `hook_guard` (the hook own-failure idiom, wired by FEAT-65). The
-# eleven remaining entries are the hook scripts, frozen for FEAT-65.
+# and call boundary) and `hook_guard` (the hook own-failure idiom, wired by FEAT-65).
+#
+# FEAT-65 (SC-04): the eleven hooks are gone from the table too. The budget is the two designed
+# catches and nothing else; a broad catch anywhere else under bin/ is a finding by default.
 BROAD_CATCH_CEILINGS = {
-    "bash-write-guard.py": 6,
-    "branch-create-gate.py": 4,
-    "check-domain.py": 24,
-    "check-state.py": 0,
-    "dispatch-guard.py": 9,
-    "feature-record.py": 1,
-    "gh-close-gate.py": 3,
     "harness_boundary.py": 2,
-    "inflight_registry.py": 3,
-    "inject-expertise.py": 2,
-    "merge-gate.py": 5,
-    "plan-sign-gate.py": 2,
-    "validate-digest.py": 18,
 }
 
 
@@ -2214,14 +2204,35 @@ def _is_broad_catch(handler):
     return handler.type is None or (isinstance(handler.type, ast.Name) and handler.type.id == "Exception")
 
 
+def _parsed_program(text):
+    """`text` as a Python module when it is one and carries a try statement, else None."""
+    try:
+        inner = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return None
+    return inner if any(isinstance(n, ast.Try) for n in ast.walk(inner)) else None
+
+
+def _embedded_programs(tree):
+    """String constants that parse as Python and carry a try statement: programs the script hands
+    to another interpreter (`python3 -I -c`, `python3 -`), whose handlers are as real as its own
+    (FEAT-65 c1, CR-01). Prose and docstrings do not parse into a try and are skipped."""
+    strings = (node.value for node in ast.walk(tree)
+               if isinstance(node, ast.Constant) and isinstance(node.value, str) and "except" in node.value)
+    return [program for program in map(_parsed_program, strings) if program is not None]
+
+
 def _broad_catch_count(path):
-    """Broad catches in one script by AST, or None when it does not parse (its own finding)."""
+    """Broad catches in one script by AST — its own handlers plus those of any executable Python
+    it embeds as a string — or None when it does not parse (its own finding)."""
     try:
         with open(path, encoding="utf-8") as stream:
             tree = ast.parse(stream.read())
     except (OSError, UnicodeDecodeError, SyntaxError):
         return None
-    return sum(1 for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
+    trees = [tree, *_embedded_programs(tree)]
+    return sum(1 for t in trees for node in ast.walk(t)
+               if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
 
 
 def _broad_catch_finding(rel, name, count):

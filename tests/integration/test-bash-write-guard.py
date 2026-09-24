@@ -1083,17 +1083,82 @@ def _feat61_ambiguous_worktree():
 
 
 def _feat61_injected_core_failure():
-    """The route delegates: with the core raising, the adapter's absorbing `except` keeps
-    the already-computed allowance instead of refusing through a private copy of the rule."""
+    """The route delegates: with the core raising, no private copy of the rule refuses; the
+    defect reaches the hook's one guard (FEAT-65) and the already-computed allowance stands."""
     root, _ = _feat61_root(FEAT50_FEATURE)
     iso = isolated_bin(root)
     with open(os.path.join(iso, "harness_boundary.py"), "a", encoding="utf-8") as core:
         core.write("\n\ndef feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):\n"
                    "    raise RuntimeError('FEAT-61 T-03 injected core failure')\n")
+    # FEAT-65: the adapter's absorbing `except` is gone. The allowance still stands only
+    # because hook_guard's pass-through never blocks — and it SAYS so, in the one template.
     return _feat61_case(
-        "an unexpected core failure is absorbed and the allowance stands",
+        "an unexpected core failure passes through hook_guard, named, and the allowance stands",
         _feat61_fire(root, os.path.join(root, FEAT50_REL),
-                     guard=os.path.join(iso, "bash-write-guard.py")), 0)
+                     guard=os.path.join(iso, "bash-write-guard.py")), 0,
+        FEAT65_LINE.format(detail="RuntimeError: FEAT-61 T-03 injected core failure"))
+
+
+# FEAT-65: the hook's own-failure posture is harness_boundary.hook_guard's ONE template.
+FEAT65_LINE = ("bash-write-guard: the hook failed internally ({detail}) — passing through; "
+               "this is not a pass, nothing was checked.\n")
+
+
+def _feat65_fire(sibling, override):
+    """Fire a governed write INSIDE the feature's own worktree — past the checkout rule, so
+    the claim rule is reached — against a copied bin whose `sibling` ends with `override`."""
+    root, (worktree,) = _feat61_root(FEAT50_FEATURE)
+    iso = isolated_bin(root)
+    with open(os.path.join(iso, sibling), "a", encoding="utf-8") as core:
+        core.write("\n\n" + override)
+    # Spelled under the fixture root as given, not its realpath: a target the guard cannot
+    # place under `root` is a product path it skips before any rule runs.
+    inside = os.path.join(root, os.path.relpath(worktree, os.path.realpath(root)), FEAT50_REL)
+    return _feat61_fire(root, inside, guard=os.path.join(iso, "bash-write-guard.py"))
+
+
+def run_feat65_guard_cases():
+    """Unexpected defects reach hook_guard; process control escapes it; the claim rule's own
+    pass-through sentence and nested classifier are gone."""
+    raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
+    line = FEAT65_LINE.format(detail="RuntimeError: FEAT-65 injected")
+    claim_defect = _feat65_fire(
+        "harness_boundary.py",
+        "def claim_worktrees(owner_root, agent_type, destination, agent_id=None, "
+        "parent_agent_id=None):\n" + raise_rt)
+    payload_defect = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n" + raise_rt)
+    interrupt = _feat65_fire(
+        "artifact_accessors.py",
+        "def read_hook_payload(text, context):\n    raise KeyboardInterrupt()\n")
+    deliberate_exit = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n    raise SystemExit(7)\n")
+    results = [
+        ("a defect in the claim rule is no longer classified locally: it is named on stderr",
+         claim_defect.returncode == 0 and claim_defect.stderr.endswith(line)
+         and "was not enforced" not in claim_defect.stderr,
+         f"{claim_defect.returncode}: {claim_defect.stderr!r}"),
+        ("a defect reading the payload passes through with exactly the hook_guard line",
+         payload_defect.returncode == 0 and payload_defect.stderr == line
+         and payload_defect.stdout == "",
+         f"{payload_defect.returncode}: {payload_defect.stderr!r}"),
+        ("KeyboardInterrupt escapes the guard",
+         interrupt.returncode != 0 and "KeyboardInterrupt" in interrupt.stderr
+         and "failed internally" not in interrupt.stderr,
+         f"{interrupt.returncode}: {interrupt.stderr[-200:]!r}"),
+        ("a deliberate SystemExit keeps its own exit code",
+         deliberate_exit.returncode == 7 and "failed internally" not in deliberate_exit.stderr,
+         f"{deliberate_exit.returncode}: {deliberate_exit.stderr!r}"),
+    ]
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [feat65] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [feat65] {name}\n      | {detail}")
+    print(f"\n{len(results) - failures}/{len(results)} FEAT-65 guard cases passed.")
+    return failures
 
 
 def run_feat61_feature_checkout_adapter():
@@ -1563,6 +1628,7 @@ def main():
     fails += run_head_move()
     fails += run_feat50_checkout_binding()
     fails += run_feat61_feature_checkout_adapter()
+    fails += run_feat65_guard_cases()
     fails += run_bug895_wrong_checkout()
     fails += run_bug1106_bash_route()
     fails += run_bug1304_claim_set()

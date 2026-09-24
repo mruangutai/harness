@@ -22,6 +22,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -224,6 +225,55 @@ def run_assertion_6():
               False, f"stdout={payload_result.stdout!r} stderr={payload_result.stderr!r}")
 
 
+def run_feat65():
+    """FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
+    (traceback, nonzero), never a silent pass-through; the DEC-234 prologue absorbs only a
+    missing module or a strict "no root" refusal."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(os.path.dirname(GATE), mbin)
+    with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as f:
+        f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
+    r = subprocess.run([os.path.join(mbin, "branch-create-gate.py")],
+                       input=json.dumps({"tool_input": {"command": "git checkout -b x"}}),
+                       capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=REPO_ROOT, HARNESS_PROJECT_DIR=REPO_ROOT))
+    check("FEAT-65: an unexpected resolver defect is loud and nonzero, not absorbed by the prologue",
+          r.returncode not in (0, 2) and "FEAT-65 injected" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+
+
+def run_feat65_config_reader():
+    """FEAT-65 c1 (CR-01): the compatibility config reader — a program this gate runs through a
+    clean interpreter — recovers from its own boundary classes (no file, not JSON, a github
+    block that is not a mapping) with the same `false -` the shell gate printed, and carries
+    no broad catch for the census to miss."""
+    src = open(GATE, encoding="utf-8").read()
+    start = src.index('_CONFIG_READER = """') + len('_CONFIG_READER = """')
+    reader = src[start:src.index('"""', start)]
+    def run(body):
+        root = tempfile.mkdtemp()
+        os.makedirs(os.path.join(root, ".harness"))
+        if body is not None:
+            with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
+                f.write(body)
+        return subprocess.run([sys.executable, "-I", "-", root], input=reader,
+                              capture_output=True, text=True)
+    for label, body in (("no harness.json", None), ("not JSON", "{nope"),
+                        ("a top-level document that is not an object", "[1, 2]")):
+        r = run(body)
+        check(f"FEAT-65 config reader recovers from {label} as `false -`",
+              r.returncode == 0 and r.stdout == "false -\n" and r.stderr == "",
+              f"rc={r.returncode} out={r.stdout!r} err={r.stderr[-200:]!r}")
+    # The exceptional path the gate runs this program FOR: a github block that is not a mapping
+    # exposes the helper's traceback, exactly as the shell gate did (see _github_config).
+    r = run('{"github": [1, 2]}')
+    check("FEAT-65 config reader keeps its traceback for a github block that is not a mapping",
+          r.returncode == 1 and r.stdout == "" and "AttributeError" in r.stderr,
+          f"rc={r.returncode} out={r.stdout!r} err={r.stderr[-200:]!r}")
+    check("FEAT-65 config reader carries no broad catch",
+          "except Exception" not in reader and "except:" not in reader, reader)
+
+
 def main():
     run_assertion_1()
     run_assertion_2()
@@ -231,6 +281,8 @@ def main():
     run_assertion_4()
     run_assertion_5()
     run_assertion_6()
+    run_feat65()
+    run_feat65_config_reader()
 
     fails = 0
     for name, ok, detail in RESULTS:

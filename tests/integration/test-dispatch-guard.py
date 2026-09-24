@@ -346,6 +346,57 @@ def case_9_stale_claim():
         shutil.rmtree(root, ignore_errors=True)
 
 
+FEAT65_LINE = ("dispatch-guard: the hook failed internally ({detail}) — passing through; "
+               "this is not a pass, nothing was checked.\n")
+
+
+def _feat65_fire(root, sibling, override):
+    """The refusal payload against a copied bin whose `sibling` ends with `override`."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(BIN_DIR, mbin)
+    with open(os.path.join(mbin, sibling), "a", encoding="utf-8") as handle:
+        handle.write("\n\n" + override)
+    payload = {"harness_runtime": "omp", "supervisor_pid": os.getpid(),
+               **_task("harness-pm", "harness-product-lead", root)}
+    return subprocess.run([os.path.join(mbin, "dispatch-guard.py")], input=json.dumps(payload),
+                          capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root))
+
+
+def case_feat65_guard():
+    """FEAT-65: an unexpected defect in the claim step reaches hook_guard (exit 0, the one
+    template, never the old 'claim step failed' sentence); process control escapes; the
+    registry's own classes keep the typed, local sentence."""
+    reg = _load_registry_module()
+    root = _checkout()
+    try:
+        raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
+        sig = "def live_claim(root, agent, now=None, feature=None):\n"
+        defect = _feat65_fire(root, "inflight_registry.py", sig + raise_rt)
+        line = FEAT65_LINE.format(detail="RuntimeError: FEAT-65 injected")
+        check("feat65: a claim-step defect passes through hook_guard, named",
+              defect.returncode == 0 and defect.stderr.endswith(line)
+              and "claim step failed" not in defect.stderr,
+              f"exit {defect.returncode}, stderr={defect.stderr[-300:]!r}")
+        typed = _feat65_fire(root, "inflight_registry.py",
+                             sig + "    raise UnreadableRegistry(['/x'])\n")
+        check("feat65: the registry's own unreadable class keeps the typed claim-step sentence",
+              typed.returncode == 0 and "claim step failed (UnreadableRegistry" in typed.stderr
+              and "failed internally" not in typed.stderr,
+              f"exit {typed.returncode}, stderr={typed.stderr[-300:]!r}")
+        interrupt = _feat65_fire(root, "inflight_registry.py", sig + "    raise KeyboardInterrupt()\n")
+        check("feat65: KeyboardInterrupt escapes the guard",
+              interrupt.returncode != 0 and "KeyboardInterrupt" in interrupt.stderr
+              and "failed internally" not in interrupt.stderr,
+              f"exit {interrupt.returncode}, stderr={interrupt.stderr[-200:]!r}")
+        exited = _feat65_fire(root, "inflight_registry.py", sig + "    raise SystemExit(7)\n")
+        check("feat65: a deliberate SystemExit keeps its own exit code",
+              exited.returncode == 7 and "failed internally" not in exited.stderr,
+              f"exit {exited.returncode}, stderr={exited.stderr[-200:]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_10_library_missing():
     """THE LIBRARY IS MISSING -- fail open, LOUDLY. A guard that blocks every spawn because its
     library moved is worse than no guard (DEC-100). The payload here is the REFUSAL payload, so
@@ -801,6 +852,7 @@ def main():
     case_2_governed_agent_no_model()
     case_3_not_a_harness_agent()
     case_4_unreadable_payload()
+    case_feat65_guard()
     case_5_main_session()
     case_6_single_flight_refusal()
     case_7_allow_and_record()

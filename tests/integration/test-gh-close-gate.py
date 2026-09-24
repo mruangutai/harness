@@ -12,6 +12,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -248,6 +249,20 @@ with open(os.path.join(_noroot, ".harness", "team-config.yaml"), "w") as _f:
 _rc, _d, _ = gate("gh issue close 728", root=_noroot)
 check("no harness.json at all: the gate exits 0 with no output",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
+
+# FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
+# (traceback, nonzero), never a silent pass-through; the DEC-234 prologue absorbs only a
+# missing module or a strict "no root" refusal.
+_mbin = os.path.join(tempfile.mkdtemp(), "bin")
+shutil.copytree(BIN, _mbin)
+with open(os.path.join(_mbin, "harness_boundary.py"), "a", encoding="utf-8") as _f:
+    _f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
+_r = subprocess.run([os.path.join(_mbin, "gh-close-gate.py")],
+                    input=json.dumps({"tool_input": {"command": "gh issue close 728"}}),
+                    capture_output=True, text=True, env=dict(os.environ, HARNESS_PROJECT_DIR=_root()))
+check("FEAT-65: an unexpected resolver defect is loud and nonzero, not absorbed by the prologue",
+      _r.returncode not in (0, 2) and "FEAT-65 injected" in _r.stderr and not _r.stdout.strip(),
+      f"rc={_r.returncode} stderr={_r.stderr[-200:]!r}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

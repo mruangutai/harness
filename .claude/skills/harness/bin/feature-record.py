@@ -70,6 +70,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import feature_json_write  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
+import harness_yaml  # noqa: E402  (local import, after sys.path fix-up)
 
 JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
 MISSIONS = ("patch", "plan")
@@ -685,7 +686,7 @@ def cmd_propose_rework(args):
         for line in refusal.lines:
             print(line, file=sys.stderr)
         sys.exit(refusal.code)
-    except Exception as exc:  # a plan that does not load proposes nothing
+    except harness_yaml.YamlParseError as exc:  # a plan that does not load proposes nothing
         print(f"REFUSED: {plan_path} does not load: {exc}", file=sys.stderr)
         sys.exit(REFUSAL_CODE)
     print(json.dumps(proposal))

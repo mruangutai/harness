@@ -462,6 +462,22 @@ def hook_guard(main, name, fail="open"):
         return 0
 
 
+def run_hook_body(path, name, run_name, fail="open"):
+    """`hook_guard` for a hook whose body is module-level flow (FEAT-65: check-domain.py,
+    bash-write-guard.py, dispatch-guard.py). The hook's bootstrap runs once under
+    `__main__`, then calls this: the same file is executed again as a module named
+    `run_name`, under which the bootstrap is skipped and the body runs on the argv,
+    environment and stdin the bootstrap fixed. The body's own `sys.exit` calls are
+    SystemExit and pass through the guard untouched; a normal fall-off returns 0."""
+    import runpy
+
+    def body():
+        runpy.run_path(path, run_name=run_name)
+        return 0
+
+    return hook_guard(body, name, fail=fail)
+
+
 def call_repo_module(module, attr, *args, **kwargs):
     """Call `module.<attr>(*args, **kwargs)` and give anything it raises the type of a repo-
     module failure (FEAT-63 T-02). The sibling's own exported error class is the caller's to

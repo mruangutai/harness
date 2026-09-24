@@ -22,41 +22,71 @@ contracts exactly; it does not redesign the enforcement body.
 import os as _bootstrap_os
 import sys as _bootstrap_sys
 
-_bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
-_bootstrap_derived = _bootstrap_os.path.abspath(
-    _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
-_bootstrap_args = _bootstrap_sys.argv[1:]
-_bootstrap_first = _bootstrap_args[0] if _bootstrap_args else ""
+if __name__ == "__main__":
+    _bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+    _bootstrap_derived = _bootstrap_os.path.abspath(
+        _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
+    _bootstrap_args = _bootstrap_sys.argv[1:]
+    _bootstrap_first = _bootstrap_args[0] if _bootstrap_args else ""
 
-if _bootstrap_first == "--resolve":
-    # The resolver never reads stdin: an open pipe must not turn a route query into a hang.
-    _bootstrap_payload = ""
-    _bootstrap_os.environ["HARNESS_RESOLVE_PATH"] = (
-        _bootstrap_args[1] if len(_bootstrap_args) > 1 else "")
-    _bootstrap_agent = _bootstrap_first
-    _bootstrap_mode = "pre"
-else:
-    # A caller-controlled inherited value must never switch off the hook path.
-    _bootstrap_os.environ.pop("HARNESS_RESOLVE_PATH", None)
-    # Bash command substitution stripped every trailing newline from the old payload.
-    _bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
-    if _bootstrap_first == "--post":
-        _bootstrap_agent = ""
-        _bootstrap_mode = "post"
-    else:
+    if _bootstrap_first == "--resolve":
+        # The resolver never reads stdin: an open pipe must not turn a route query into a hang.
+        _bootstrap_payload = ""
+        _bootstrap_os.environ["HARNESS_RESOLVE_PATH"] = (
+            _bootstrap_args[1] if len(_bootstrap_args) > 1 else "")
         _bootstrap_agent = _bootstrap_first
         _bootstrap_mode = "pre"
+    else:
+        # A caller-controlled inherited value must never switch off the hook path.
+        _bootstrap_os.environ.pop("HARNESS_RESOLVE_PATH", None)
+        # Bash command substitution stripped every trailing newline from the old payload.
+        _bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
+        if _bootstrap_first == "--post":
+            _bootstrap_agent = ""
+            _bootstrap_mode = "post"
+        else:
+            _bootstrap_agent = _bootstrap_first
+            _bootstrap_mode = "pre"
 
-_bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
-_bootstrap_os.environ["HARNESS_HOOK_MODE"] = _bootstrap_mode
-_bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
-_bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
-    _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
+    _bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
+    _bootstrap_os.environ["HARNESS_HOOK_MODE"] = _bootstrap_mode
+    _bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
+    _bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
+        _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
 
-# Preserve the exact synthetic argv shape the former heredoc body consumed. Several
-# validation branches read sys.argv[3] directly for sibling schemas.
-_bootstrap_sys.argv = [
-    _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_agent, _bootstrap_selfdir]
+    # Preserve the exact synthetic argv shape the former heredoc body consumed. Several
+    # validation branches read sys.argv[3] directly for sibling schemas.
+    _bootstrap_sys.argv = [
+        _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_agent, _bootstrap_selfdir]
+
+    # THE HOOK'S OWN-FAILURE POSTURE IS harness_boundary.hook_guard (FEAT-65). The body
+    # below is module-level flow by design — 2,200 lines of rules that exit where they
+    # decide — so the guard cannot wrap a function of it. `run_hook_body` wraps the body's
+    # EXECUTION instead: this process runs the bootstrap once, then re-runs this same file
+    # as a module named `check_domain_body`, under whose name the bootstrap is skipped and
+    # the body runs on the argv, environment and stdin the bootstrap already fixed. An
+    # Exception escaping the body is the hook's own defect — an unreadable payload shape,
+    # a sibling raising where its contract said it would not, a bug — and the guard names
+    # it and passes through at exit 0 (DEC-100: only exit 2 blocks; this hook set the
+    # precedent that it must not wedge every agent on its own bug). The body's own
+    # sys.exit calls are SystemExit, which the guard never catches, so every deliberate
+    # verdict keeps its exit code.
+    #
+    # THE ONE TREE WITHOUT harness_boundary.py RUNS UNGUARDED, exactly as before: the
+    # isolated-copy fixture that proves DEC-101's fail-open with the module absent. The
+    # body's typed import sites answer that tree in their own words (`_root`, the two
+    # fail-closed loads under --resolve and _run_domain, the absorbing shape imports).
+    # ImportError and SyntaxError are what `import` itself raises for a module that is
+    # missing or does not compile; a module that raises while executing is loud here, as a
+    # defect in the module that defines the guard has to be.
+    _bootstrap_sys.path.insert(0, _bootstrap_selfdir)
+    try:
+        import harness_boundary as _bootstrap_boundary
+    except (ImportError, SyntaxError):
+        _bootstrap_boundary = None
+    if _bootstrap_boundary is not None:
+        _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "check-domain", "check_domain_body"))
+
 
 import sys, os, re, json, fnmatch
 
@@ -106,18 +136,18 @@ def _root():
     """
     try:
         import harness_boundary as _hb_root
-    except Exception:
+    except (ImportError, SyntaxError):
         return _derived
     return _hb_root.resolve_root(_bin_dir, strict=False)
 
 # One parse of the payload, reused by every check below. A failure here is OUR
 # problem, not the agent's: fall back to the same empty-payload behaviour the four
 # separate launches had, each of which printed "" and let the caller decide.
+import artifact_accessors as _artifact_accessors
 try:
-    import artifact_accessors as _artifact_accessors
     d = _artifact_accessors.read_hook_payload(
         os.environ.get("HOOK_PAYLOAD") or "", "check-domain hook payload")
-except Exception:
+except _artifact_accessors.ArtifactAccessError:
     d = {}
 
 # Agent identity: prefer `agent_type` from the hook payload, fall back to $1.
@@ -159,7 +189,7 @@ if _resolve_target is not None:
     # is missing (D-06).
     try:
         import harness_boundary
-    except Exception as _be:
+    except (ImportError, SyntaxError) as _be:
         print("check-domain: BLOCKED — the boundary module harness_boundary.py could "
               "not be imported, so no domain can be checked.", file=sys.stderr)
         print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
@@ -176,7 +206,7 @@ if _resolve_target is not None:
               file=sys.stderr)
         print(f"  {manifest}", file=sys.stderr)
         sys.exit(2)
-    except Exception as e:
+    except harness_yaml.YamlParseError as e:
         print("check-domain: BLOCKED — the manifest does not parse, so no domain can be "
               f"resolved: {e}", file=sys.stderr)
         sys.exit(2)
@@ -351,7 +381,7 @@ if _run_domain:
     # only tier that can restore the file — never reaches this line (D-06).
     try:
         import harness_boundary
-    except Exception as _be:
+    except (ImportError, SyntaxError) as _be:
         print("check-domain: BLOCKED — the boundary module harness_boundary.py could "
               "not be imported, so no domain can be checked.", file=sys.stderr)
         print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
@@ -388,7 +418,7 @@ else:
     try:
         import harness_yaml
         _no_parser = harness_yaml.yaml is None
-    except Exception:
+    except ImportError:
         _no_parser = True
 
 
@@ -421,7 +451,7 @@ def _approval_entries(manifest_path):
     try:
         view = _artifact_accessors.manifest_domains(
             manifest_path, view=True)
-    except Exception as exc:
+    except harness_yaml.YamlParseError as exc:
         return [], "could not parse %s (%r)" % (manifest_path, exc)
     if not view.main_session_present:
         return [], "no main_session key in %s" % (manifest_path,)
@@ -534,7 +564,7 @@ def approval_guard(rel, agent_name):
 
     try:
         disk = open(_claimed_abs(target), encoding="utf-8").read()
-    except Exception as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         print("check-domain: could not read %s (%r) — no fragment denial applied."
               % (rel, exc), file=sys.stderr)
         return
@@ -586,7 +616,7 @@ def approval_guard(rel, agent_name):
                 try:
                     old = harness_yaml.load_str(disk, target).get(frag[:-1])
                     new = harness_yaml.load_str(proposed, target).get(frag[:-1])
-                except Exception as exc:
+                except (harness_yaml.YamlParseError, AttributeError) as exc:
                     print("check-domain: could not parse one side of %s (%r) — allowing; a "
                           "gate that blocks on its own parse failure breaks every write the "
                           "moment the payload shape changes." % (rel, exc), file=sys.stderr)
@@ -689,7 +719,9 @@ def feature_checkout_guard(raw_rel, target_path):
     AN ADAPTER (FEAT-61 T-03): the path question — which artifact, which worktree, is the
     write inside it — is harness_boundary.feature_artifact_checkout_mismatch, shared with
     bash-write-guard.py so the binding rule cannot drift between the two routes. This
-    function owns only the refusal: its wording, its exit channel, and the absorption.
+    function owns only the refusal: its wording and its exit channel. Its absorbing
+    `except` is gone (FEAT-65): a defect in the narrowing check reaches the hook's one guard,
+    which passes through at exit 0 and says so — the allowance still stands, and now loudly.
     """
     feature_id = harness_boundary.feature_artifact_id(raw_rel)
     if feature_id is None:
@@ -707,16 +739,19 @@ def feature_checkout_guard(raw_rel, target_path):
         print(f"check-domain: BLOCKED — {target_path} belongs to feature {feature_id}, "
               f"but its worktree is ambiguous: {exc}", file=sys.stderr)
         sys.exit(2)
-    except Exception:
-        # Absorbing by design: a bug in this narrowing check must not turn an existing
-        # domain allowance into an ambiguous exit-1 that the host treats as non-blocking.
-        return
 
 
 def claim_checkout_guard(destination):
-    """Bind a governed harness-base write to the agent's live claim worktrees."""
+    """Bind a governed harness-base write to the agent's live claim worktrees.
+
+    The registry's explicit unreadable result is the one failure this rule answers (FEAT-65);
+    it used to be recovered by a nested classifier under a broad catch whose fall-through
+    printed its own pass-through sentence. Anything else the lookup raises is a defect and
+    reaches the hook's one guard.
+    """
     if not agent or not agent.startswith("harness-"):
         return
+    import inflight_registry
     destination = harness_boundary.real(destination)
     if not harness_boundary.inside(destination, harness_boundary.real(root)):
         return
@@ -734,28 +769,15 @@ def claim_checkout_guard(destination):
             file=sys.stderr,
         )
         sys.exit(2)
-    except Exception as exc:
-        try:
-            import inflight_registry
-            if isinstance(exc, inflight_registry.UnreadableRegistry):
-                print(
-                    "check-domain: BLOCKED — "
-                    + harness_boundary.claim_set_refusal(
-                        agent, [], destination, unreadable_paths=exc.paths
-                    ),
-                    file=sys.stderr,
-                )
-                sys.exit(2)
-        except SystemExit:
-            raise
-        except Exception:
-            pass
+    except inflight_registry.UnreadableRegistry as exc:
         print(
-            "check-domain: claim-worktree boundary was not enforced; passing through "
-            f"because the guard failed internally: {exc}",
+            "check-domain: BLOCKED — "
+            + harness_boundary.claim_set_refusal(
+                agent, [], destination, unreadable_paths=exc.paths
+            ),
             file=sys.stderr,
         )
-        return
+        sys.exit(2)
     if not claim_set:
         return
     if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):
@@ -1097,7 +1119,7 @@ def _norm(path):
         _ck = _hb.checkout_relative(_claimed_abs(path))
         if _ck is not None and _hb.real(_ck[0]) != _hb.real(root):
             return _ck[1]
-    except Exception:
+    except (ImportError, OSError, ValueError):
         pass
     return rel
 
@@ -1110,9 +1132,42 @@ def _checkout_root(path):
         _ck = _hb.checkout_relative(_claimed_abs(path))
         if _ck is not None and _hb.real(_ck[0]) != _hb.real(root):
             return _ck[0]
-    except Exception:
+    except (ImportError, OSError, ValueError):
         pass
     return root
+
+
+def _run_state_boundary_errors():
+    """What the version-2 step check can raise at its boundaries (FEAT-65, the same set
+    check-state.py's INV-16 names): jsonschema absent (ImportError), the step contract
+    unreadable (ArtifactAccessError) or without its declared members (KeyError — the two
+    schema-contract cases keep it natural), its evidence-name pattern not a pattern
+    (re.error), or a contract jsonschema itself rejects (named by feature_schema, the module
+    that owns that dependency). Every one is CANNOT be checked, none is a pass."""
+    import feature_schema
+    return ((ImportError, KeyError, re.error, _artifact_accessors.ArtifactAccessError)
+            + feature_schema.SCHEMA_ERRORS)
+
+
+def _done_when_problems(rel, content, checkout_root):
+    """The Done-when validator, called through the load/call boundary (FEAT-65): its
+    contract is "returns a list, never raises", so anything it raises is a defect in the
+    sibling and arrives as RepoModuleError carrying the cause."""
+    import harness_boundary
+    import handoff_done_when
+    return harness_boundary.call_repo_module(
+        handoff_done_when, "problems", rel, content, checkout_root, resolve=True)
+
+
+def _done_when_boundary_errors():
+    """What `_done_when_problems` raises at its boundary: either module missing
+    (ImportError), or the validator failing behind the boundary (RepoModuleError) — named
+    only when the boundary module is present to name it."""
+    try:
+        import harness_boundary
+    except ImportError:
+        return (ImportError,)
+    return (ImportError, harness_boundary.RepoModuleError)
 
 
 # THE VERB IS MODE-DEPENDENT, and this was a review finding. In PRE the write is genuinely
@@ -1151,7 +1206,7 @@ RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$", _I)
 try:
     import harness_boundary as _shape_boundary
     RE_RUN_IDENTITY = _shape_boundary.RE_RUN_IDENTITY
-except Exception:
+except (ImportError, AttributeError):
     # The shape phase preserves the bootstrap repair route; governed domain writes
     # still fail closed on the same missing module in _run_domain above.
     RE_RUN_IDENTITY = re.compile(r"(?!x)x")
@@ -1327,7 +1382,11 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         try:
             import harness_yaml as _hy
             _doc = _hy.load_str(content, display or rel)
-        except Exception:
+        except ImportError:
+            # NO PARSER IS NOT THIS RULE'S FINDING EITHER (FEAT-65): the state.yaml branch owns
+            # that answer through `_no_parser`.
+            _doc = None
+        except _hy.YamlParseError:
             # UNPARSEABLE IS NOT THIS RULE'S FINDING. check-plan-routes.py refuses a malformed
             # plan before signature and check-state.py refuses it again at entry; reporting it
             # a third time here would put one defect in three voices.
@@ -1372,7 +1431,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             # padded fixture counted 300 that way and the boundary case at 301 exited 0.
             _counted = _fs_budget.journal_lines(content)
             _basis = "excluding the runs ledger"
-        except Exception:
+        except (ImportError, AttributeError, TypeError, ValueError):
             # THE FALLBACK COUNTS EVERYTHING, deliberately. An unimportable helper must not
             # loosen a budget; it makes this stricter than intended, which is the safe way
             # for a shape gate to be wrong.
@@ -1432,7 +1491,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             _sp = ["feature_schema is not importable, so this file CANNOT be checked. "
                    "Expected at .agents/skills/harness/bin/feature_schema.py, reachable on "
                    "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
-        except Exception as _se:
+        except (OSError, ValueError) + feature_schema.SCHEMA_ERRORS as _se:
             # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
             # inject any other exception into problems_for_text and an ILLEGAL document
             # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
@@ -1440,6 +1499,12 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             # more than ImportError: a malformed feature-schema.json is JSONDecodeError,
             # an unreadable one is OSError, a jsonschema version drift is SchemaError.
             # Every one of them meant "written anyway".
+            #
+            # THOSE ARE THE CLASSES CAUGHT, BY NAME (FEAT-65): the schema file unreadable
+            # (OSError), not JSON (JSONDecodeError, a ValueError), or rejected by jsonschema
+            # itself (feature_schema.SCHEMA_ERRORS, the module that owns that dependency).
+            # A checker that raises anything else is a defect and reaches the hook's one
+            # guard, which passes through at exit 0 and names it — never exit 1.
             #
             # The message is SEPARATE from the ImportError branch on purpose. Saying "not
             # importable" when the module imported fine and then crashed sends the reader
@@ -1640,7 +1705,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                             "per-dispatch fact goes under `evidence` with a lowercase "
                             "identifier key and a scalar or scalar-array value."
                         )
-            except Exception as _schema_exc:
+            except _run_state_boundary_errors() as _schema_exc:
                 out.append(_head(
                     "run-state schema CANNOT be checked; the write is denied."))
                 out.append(
@@ -1666,7 +1731,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                     run_identity.inject_uid(absolute_path, effective_uid)
                 run_identity.record_seed(
                     run_dir, doc, harness_yaml._resolve_identity(d), effective_uid)
-            except Exception:
+            except (ImportError, OSError, TypeError, ValueError):
                 # POST recording is best effort and may never turn a landed write
                 # into a new refusal.
                 pass
@@ -1703,7 +1768,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             if prior_state:
                 try:
                     prior_doc = harness_yaml.load_str(prior_state, rel)
-                except Exception as exc:
+                except harness_yaml.YamlParseError as exc:
                     prior_exc = exc
             prior_has_uid = (
                 prior_exc is None and isinstance(prior_doc, dict)
@@ -1844,10 +1909,8 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                             f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
                             f" unvalidated digest did (DEC-156).")
         try:
-            import handoff_done_when
-            problems.extend(handoff_done_when.problems(
-                rel, content, _checkout_root(absolute_path), resolve=True))
-        except Exception as exc:
+            problems.extend(_done_when_problems(rel, content, _checkout_root(absolute_path)))
+        except _done_when_boundary_errors() as exc:
             problems.append("the Done when validator handoff_done_when.py failed — "
                             f"REFUSING the write ({type(exc).__name__}: {exc})")
         if problems:
@@ -2200,7 +2263,7 @@ else:
         import harness_boundary as _hb_sweep
         for _wt_root in _hb_sweep.linked_worktrees(root):
             _sweep.extend((_wt_root, os.path.join(_wt_root, _p)) for _p in SWEEP_GLOBS)
-    except Exception:
+    except (ImportError, OSError, ValueError):
         pass
 
     # --- mtime IS NOT EVIDENCE OF A WRITE AFTER A CHECKOUT OPERATION.
@@ -2257,12 +2320,12 @@ else:
             for _argv in (["diff", "--name-only", "-z", "HEAD"],
                           ["ls-files", "-z", "--others", "--exclude-standard"]):
                 _r = _subprocess.run(["git", "-C", _checkout] + _argv,
-                                     capture_output=True, text=True, timeout=15)
-                if _r.returncode != 0:
-                    raise RuntimeError(_r.stderr)
+                                     capture_output=True, text=True, timeout=15, check=True)
                 _dirty.update(_x for _x in _r.stdout.split("\0") if _x)
             _found = _dirty
-        except Exception:
+        except (OSError, _subprocess.SubprocessError, ValueError):
+            # git absent or failing (OSError, CalledProcessError, TimeoutExpired) or output
+            # that is not text: "unknown cleanliness", so the sweep reads everything (FEAT-65).
             _found = None
         _clean_cache[_checkout] = _found
         return _found

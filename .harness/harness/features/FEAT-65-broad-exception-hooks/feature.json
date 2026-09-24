@@ -1,0 +1,155 @@
+{
+  "feature_id": "FEAT-65-broad-exception-hooks",
+  "branch": "feat/FEAT-65-broad-exception-hooks",
+  "pr": null,
+  "review_sha": "ffcc2dafa29fc56ae8a9634e9ed1508e1433661d",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-23T22:03:33+00:00",
+      "tokens": 134467,
+      "ended_at": "2026-09-23T22:56:02+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T00:00:12+00:00",
+      "ended_at": "2026-09-24T13:03:46+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T13:06:23+00:00",
+      "tokens": 111895,
+      "ended_at": "2026-09-24T13:38:41+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T13:42:28+00:00",
+      "ended_at": "2026-09-24T14:00:24+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T14:02:11+00:00",
+      "tokens": 131323,
+      "ended_at": "2026-09-24T14:19:39+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c1-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T14:21:32+00:00",
+      "ended_at": "2026-09-24T14:30:32+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T14:31:56+00:00",
+      "tokens": 105903,
+      "ended_at": "2026-09-24T14:57:29+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-23T22:03:08+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Cause known and diff bounded (11 files, 77 sites, 4 tasks), but it changes the enforcement surface every hook runs under, so rule 3 (no new enforcement surface) fails."
+    },
+    {
+      "at": "2026-09-24T00:00:12+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan signed dd1203a3; building main-session-direct under DEC-174"
+    },
+    {
+      "at": "2026-09-24T13:42:15+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix then re-validate (cycle 1 of 2)",
+      "reason": "validate c0 FAIL: QA-65-01 (no retained red-first receipts) and CR-01 (embedded except Exception in branch-create-gate _CONFIG_READER outside the census); both fixable direct under DEC-174"
+    },
+    {
+      "at": "2026-09-24T14:19:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "SC-01_final-pin_fail-first_provenance_remains_unproven"
+    },
+    {
+      "at": "2026-09-24T14:21:29+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix then re-validate (cycle 2 of 2)",
+      "reason": "validate c1 FAIL on SC-01 only: byte-evidence-vs-baseline.md was produced with task-head tests, not the tests committed at the pin; regenerate at the pin"
+    },
+    {
+      "at": "2026-09-24T14:57:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Final validate-c2 PASS closed every SC after measured rework reached 102/90 minutes; no unmet finding remains and no further rework is authorized."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-65-broad-exception-hooks/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7e13463a2ef37e4bb2ef59b0556ae19ce893f4a8dce1c8b462e49c9105b58dd3",
+    "T-02": "74550e868f5714e0ee6984de5b0dbd1775cb105bdbd6997fbdaa22224703fe9f",
+    "T-03": "28e8988917c759fe32bdd7b3494c27724c0b5e9219a08f84aa1554983d815f1a",
+    "T-04": "16a32c9af1447f2f683cf47f2f280ce5b080a7cc2bc2099ea10e07f9195d7bec"
+  },
+  "github": {
+    "milestone": 87,
+    "parent": 1912,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 1913,
+      "T-02": 1914,
+      "T-03": 1915,
+      "T-04": 1916
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}

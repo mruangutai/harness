@@ -45,6 +45,27 @@ def _count(mod, source):
         os.unlink(fh.name)
 
 
+_EMBEDDED_HELPER = 'import json\ntry:\n    x = json.loads(sys.argv[1])\nexcept Exception:\n    x = {}\n'
+_EMBEDDED = ('import subprocess, sys\nHELPER = ' + repr(_EMBEDDED_HELPER)
+             + "\nsubprocess.run([sys.executable, '-I', '-c', HELPER, 'x'])\n")
+
+
+def case_feat65_census_reads_executable_embedded_python():
+    """FEAT-65 c1 (CR-01): a string constant that parses as Python and carries a try statement
+    is a program the file runs through another interpreter; its broad catches count against
+    the carrier file. Prose, docstrings and non-Python strings do not parse into a try and
+    add nothing."""
+    mod = cpr()
+    check("an embedded `-c` program's broad catch counts against its carrier",
+          _count(mod, _EMBEDDED) == 1, repr(_count(mod, _EMBEDDED)))
+    check("an embedded program with a typed catch adds nothing",
+          _count(mod, _EMBEDDED.replace('except Exception:', 'except ValueError:')) == 0)
+    check("a docstring that merely mentions `except Exception` adds nothing",
+          _count(mod, 'def f():\n    """the old code said except Exception: here"""\n') == 0)
+    check("the live branch-create-gate.py config reader carries no broad catch",
+          mod._broad_catch_count(os.path.join(BIN_DIR, 'branch-create-gate.py')) == 0)
+
+
 def case_broad_catch_count_counts_exactly_the_two_syntaxes():
     """`except Exception` and bare `except:` count; a typed catch, a tuple, and a SUBCLASS of
     Exception do not -- the census is about the catch that hides bugs, not every handler."""
@@ -64,15 +85,15 @@ def case_broad_catch_count_counts_exactly_the_two_syntaxes():
 
 def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
     mod = cpr()
-    ceiling = mod.BROAD_CATCH_CEILINGS["check-domain.py"]
-    check("at the ceiling is clean", mod._broad_catch_finding("bin/check-domain.py", "check-domain.py", ceiling) is None)
-    check("below the ceiling is clean (wave 4 burns it down)",
-          mod._broad_catch_finding("bin/check-domain.py", "check-domain.py", ceiling - 1) is None)
-    above = mod._broad_catch_finding("bin/check-domain.py", "check-domain.py", ceiling + 1)
+    ceiling = mod.BROAD_CATCH_CEILINGS["harness_boundary.py"]
+    check("at the ceiling is clean", mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", ceiling) is None)
+    check("below the ceiling is clean (a reduction never fails the census)",
+          mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", ceiling - 1) is None)
+    above = mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", ceiling + 1)
     check("above the ceiling names the file and BOTH counts",
-          above is not None and "bin/check-domain.py" in above and str(ceiling + 1) in above
+          above is not None and "bin/harness_boundary.py" in above and str(ceiling + 1) in above
           and f"ceiling {ceiling}" in above, above)
-    check("check-state.py's ceiling is zero", mod.BROAD_CATCH_CEILINGS["check-state.py"] == 0)
+    check("check-state.py's ceiling is zero", mod.BROAD_CATCH_CEILINGS.get("check-state.py", 0) == 0)
     check("a script absent from the allowlist has a zero ceiling",
           mod._broad_catch_finding("bin/new.py", "new.py", 0) is None
           and "ceiling 0" in (mod._broad_catch_finding("bin/new.py", "new.py", 1) or ""))
@@ -94,6 +115,66 @@ def case_feat64_wave4_ceilings_are_zero():
           mod.BROAD_CATCH_CEILINGS.get("harness_boundary.py") == 2)
     check("FEAT-64: a third harness_boundary.py broad catch is a finding against two",
           "ceiling 2" in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or ""))
+
+
+_FEAT65_HOOKS = ("bash-write-guard.py", "branch-create-gate.py", "check-domain.py", "dispatch-guard.py",
+                 "feature-record.py", "gh-close-gate.py", "inflight_registry.py", "inject-expertise.py",
+                 "merge-gate.py", "plan-sign-gate.py", "validate-digest.py")
+_FEAT65_PROLOGUES = ("branch-create-gate.py", "gh-close-gate.py", "merge-gate.py", "plan-sign-gate.py",
+                     "run-unit-tests.py")
+
+
+def case_feat65_hooks_have_no_allowance():
+    """FEAT-65 (SC-04): the ceiling table is exactly harness_boundary.py's two designed catches;
+    every hook is unlisted, so its ceiling is the default zero and one catch is a finding;
+    the live census of all eleven hooks is zero and of harness_boundary.py exactly two."""
+    mod = cpr()
+    check("FEAT-65: the ceiling table is exactly {harness_boundary.py: 2}",
+          mod.BROAD_CATCH_CEILINGS == {"harness_boundary.py": 2}, repr(mod.BROAD_CATCH_CEILINGS))
+    for name in _FEAT65_HOOKS:
+        finding = mod._broad_catch_finding(f"bin/{name}", name, 1) or ""
+        check(f"FEAT-65: one broad catch in {name} is a finding against ceiling 0",
+              name in finding and "ceiling 0" in finding and " 1 " in finding, finding)
+        live = mod._broad_catch_count(os.path.join(BIN_DIR, name))
+        check(f"FEAT-65: {name} carries zero broad catches", live == 0, repr(live))
+    check("FEAT-65: harness_boundary.py carries exactly its two designed catches",
+          mod._broad_catch_count(os.path.join(BIN_DIR, "harness_boundary.py")) == 2)
+    check("FEAT-65: a third harness_boundary.py catch is a finding naming 3 against 2",
+          " 3 " in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or "")
+          and "ceiling 2" in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or ""))
+
+
+def _prologue_source(path):
+    """The `_resolve_root` function's exact source lines, comments included."""
+    src = open(path, encoding="utf-8").read()
+    node = next(n for n in ast.parse(src).body
+                if isinstance(n, ast.FunctionDef) and n.name == "_resolve_root")
+    return "\n".join(src.split("\n")[node.lineno - 1:node.end_lineno])
+
+
+def _prologue_drift(sources):
+    """Names of the copies whose text differs from run-unit-tests.py's, in order."""
+    reference = sources["run-unit-tests.py"]
+    return [name for name, text in sources.items() if text != reference]
+
+
+def case_feat65_dec234_prologues_are_byte_identical():
+    """FEAT-65 (SC-05): the five DEC-234 bootstrap copies are one text, comment and
+    `(ModuleNotFoundError, ValueError)` tuple included; an independent mutation of any one
+    copy is reported by name."""
+    sources = {name: _prologue_source(os.path.join(BIN_DIR, name)) for name in _FEAT65_PROLOGUES}
+    check("FEAT-65: the five DEC-234 prologues are byte-identical",
+          _prologue_drift(sources) == [], repr(_prologue_drift(sources)))
+    check("FEAT-65: the shared prologue catches exactly (ModuleNotFoundError, ValueError)",
+          "except (ModuleNotFoundError, ValueError):" in sources["run-unit-tests.py"])
+    for name in _FEAT65_PROLOGUES:
+        mutated = dict(sources)
+        mutated[name] = sources[name].replace("ValueError", "TypeError", 1)
+        drift = _prologue_drift(mutated)
+        others = [n for n in _FEAT65_PROLOGUES if n != name]
+        expected = others if name == "run-unit-tests.py" else [name]
+        check(f"FEAT-65: mutating {name}'s prologue alone is reported",
+              drift == expected, repr(drift))
 
 
 def _call(src):
@@ -126,6 +207,9 @@ def main():
     case_broad_catch_count_counts_exactly_the_two_syntaxes()
     case_broad_catch_finding_compares_a_file_to_its_own_ceiling()
     case_feat64_wave4_ceilings_are_zero()
+    case_feat65_hooks_have_no_allowance()
+    case_feat65_census_reads_executable_embedded_python()
+    case_feat65_dec234_prologues_are_byte_identical()
     case_spawn_resource_reads_git_and_gh_through_run_and_spawn()
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

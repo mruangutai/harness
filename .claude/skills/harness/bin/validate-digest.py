@@ -1040,7 +1040,10 @@ def _classify_canonical_range(root, base_oid, head_oid, test_kinds):
                       f"{base_oid[:12]}..{head_oid[:12]} does not parse "
                       f"({exc.msg}, line {exc.lineno}) — fix the committed syntax "
                       f"error and rerun.")
-    except Exception as exc:
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        # git absent or refusing (OSError, CalledProcessError), an unresolvable revision or a
+        # malformed test_kinds policy (ValueError, TestKindsError), or output that is not text
+        # (UnicodeDecodeError) — the grader's own boundary classes (FEAT-65).
         return None, (_GRADE_PREFIX + f"grading {base_oid[:12]}..{head_oid[:12]} "
                       f"failed ({type(exc).__name__}: {exc}).")
     return result, None
@@ -1223,7 +1226,7 @@ def _read_review_sha(feature_dir):
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
         doc = artifact_accessors.load_feature_json(fj_path)
-    except Exception as e:
+    except artifact_accessors.FeatureJsonError as e:
         return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
                        f"could not be read ({e}), so the claim is not trusted.")
     sha = doc.get("review_sha") if isinstance(doc, dict) else None
@@ -1288,7 +1291,7 @@ def _read_feature_branch(feature_dir):
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
         doc = artifact_accessors.load_feature_json(fj_path)
-    except Exception:
+    except artifact_accessors.FeatureJsonError:
         return None
     branch = doc.get("branch") if isinstance(doc, dict) else None
     if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
@@ -1378,7 +1381,8 @@ def _resolve_plan_review_path(reviewed):
 def _pending_plan_status_error(plan_path):
     try:
         plan = artifact_accessors.load_plan(plan_path)
-    except Exception as exc:
+    except harness_yaml.YamlParseError as exc:
+        # load_plan's one exported class: PlanSchemaError is a YamlParseError too (FEAT-65).
         return f"reviewed plan target {plan_path!r} could not be read ({exc})."
     approval = plan.get("approval") if isinstance(plan, dict) else None
     status = approval.get("status") if isinstance(approval, dict) else None
@@ -1394,7 +1398,7 @@ def _pinned_feature_review_error(feature_dir):
         return None
     try:
         feature = artifact_accessors.load_feature_json(feature_json)
-    except Exception as exc:
+    except artifact_accessors.FeatureJsonError as exc:
         return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
     review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
     if not isinstance(review_sha, str) \
@@ -1943,7 +1947,7 @@ def _root_or_none():
         import harness_boundary
         return harness_boundary.resolve_root(
             os.path.dirname(os.path.realpath(__file__)), strict=False)
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return None
 
 def _hook_feature_dir(text, feature):
@@ -1957,7 +1961,7 @@ def _hook_feature_dir(text, feature):
         checkout_root = inflight_registry.feature_root(owner_root, feature)
         feature_dir, error = _feature_dir_from_artifact(text, checkout_root)
         return None if error else feature_dir
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return None
 
 
@@ -1980,7 +1984,7 @@ def _feature_artifact_root(owner_root, feature):
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import inflight_registry
         return inflight_registry.feature_root(owner_root, feature)
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return None
 
 
@@ -2025,12 +2029,9 @@ def _missing_durable_artifact(agent, path, candidates):
 
 
 def _validate_durable_artifact(agent, found):
-    try:
-        ferrs = validate(agent, open(found, encoding="utf-8").read())
-    except Exception as e:
-        print(f"check-digest: internal error validating {found} ({e!r}) — passing through; "
-              f"this is our bug, not theirs.", file=sys.stderr)
-        return 0
+    # No local own-failure catch (FEAT-65): a defect validating the durable copy reaches
+    # hook_guard, which passes through and names it in the one template.
+    ferrs = validate(agent, open(found, encoding="utf-8").read())
     if not ferrs:
         return 0
     print(
@@ -2132,7 +2133,7 @@ def _resolve_run_unit_tests_bin(payload, text=""):
             sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
             import inflight_registry
             base = inflight_registry.feature_root(owner_root, feature)
-        except Exception:
+        except (ImportError, OSError, ValueError):
             base = None
     if not base:
         return None
@@ -2168,7 +2169,7 @@ def _reverify_suite(run_bin, kinds=()):
         try:
             result = subprocess.run([sys.executable, run_bin, *extra], capture_output=True,
                                     text=True, timeout=1800)
-        except Exception:
+        except (OSError, subprocess.SubprocessError, ValueError):
             return None
         if result.returncode != 0:
             return result
@@ -2244,13 +2245,15 @@ def hook_mode():
        same reason: a hook that blocks on its own bug wedges every agent in every
        project the moment a payload shape changes. Blocking is for THEIR contract
        violation, never ours.
+
+    The third pass-through is harness_boundary.hook_guard's (FEAT-65): this function runs
+    under `hook_guard(hook_mode, "check-digest")`, so an unreadable payload
+    (ArtifactAccessError) and any exception out of validate() print the guard's one template
+    and exit 0. The "no schema" decline below stays a local, typed answer. The direct CLI
+    at the bottom of this file is NOT wrapped: its defects stay loud and nonzero.
     """
-    try:
-        d = artifact_accessors.read_hook_payload(
-            sys.stdin.read(), "SubagentStop hook payload")
-    except Exception as e:
-        print(f"check-digest: unreadable hook payload ({e}) — passing through.", file=sys.stderr)
-        return 0
+    d = artifact_accessors.read_hook_payload(
+        sys.stdin.read(), "SubagentStop hook payload")
 
     # F6: absent `agent_type` and a PRESENT non-harness one are different situations
     # and used to be silently identical. A present `Explore`/`general-purpose` value
@@ -2282,7 +2285,7 @@ def hook_mode():
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import inflight_registry as _reg
-    except Exception as _e:
+    except ImportError as _e:
         print(f"check-digest: inflight_registry unavailable ({_e!r}) — the #551 claim was "
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
 
@@ -2306,7 +2309,7 @@ def hook_mode():
             if norm(agent) in ("lead", "orchestrator"):
                 try:
                     _kids = _reg.live_children(_root, agent, feature=_feature)
-                except Exception as _e:
+                except (_reg.UnreadableRegistry, _reg.harness_merge.MergeRefusal, OSError) as _e:
                     print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
                           f"#551 return contract is not enforced for this return.",
                           file=sys.stderr)
@@ -2334,7 +2337,7 @@ def hook_mode():
                     if _released:
                         print(f"check-digest: released the #551 claim for {agent}.",
                               file=sys.stderr)
-                except Exception as _e:
+                except (_reg.UnreadableRegistry, _reg.harness_merge.MergeRefusal, OSError) as _e:
                     print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
                           f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
                           file=sys.stderr)
@@ -2358,7 +2361,7 @@ def hook_mode():
                             ),
                             file=sys.stderr,
                         )
-                except Exception as _e:
+                except (AttributeError, TypeError, ValueError) as _e:
                     print(f"check-digest: could not compose the release command "
                           f"({_e!r}).", file=sys.stderr)
                 return 2
@@ -2394,6 +2397,9 @@ def hook_mode():
     # and — because only exit 2 blocks (DEC-100/DEC-122) — the digest shipped
     # completely unvalidated with no signal at all. That is a worse outcome than
     # the "decline to govern" pass-throughs above, which at least say so.
+    #
+    # THE LOUD FAIL-OPEN IS hook_guard's NOW (FEAT-65). Only the policy refusal is answered
+    # here, because it is THEIR verdict (exit 2), not our failure.
     try:
         _pin = d.get("harness_review_pin")
         _mission = d.get("harness_mission")
@@ -2404,10 +2410,6 @@ def hook_mode():
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
-    except Exception as e:
-        print(f"check-digest: internal error validating {agent}'s return ({e!r}) — "
-              f"passing through; this is our bug, not theirs.", file=sys.stderr)
-        return 0
     if not errs:
         # Message valid. For leads, the DURABLE copy must comply too (DEC-156) —
         # the orchestrator's successor reads runs/<id>/digest.md, never this message.
@@ -2428,14 +2430,14 @@ def hook_mode():
 
 if __name__ == "__main__":
     if "--hook" in sys.argv:
-        sys.exit(hook_mode())
+        sys.exit(harness_boundary.hook_guard(hook_mode, "check-digest"))
     # F14: CLI mode crashed with UnicodeEncodeError under an ASCII locale
     # (LC_ALL=C), truncating the printed reasons before the operator saw them.
     # Hook mode was already safe (stderr defaults to backslashreplace); make
     # stdout match it rather than raise on a non-ASCII byte in a digest value.
     try:
         sys.stdout.reconfigure(errors="backslashreplace")
-    except Exception:
+    except (AttributeError, OSError, ValueError):
         pass
     if len(sys.argv) < 2:
         print("usage: validate-digest.py <persona> [file]   |   --hook  (SubagentStop)"); sys.exit(2)

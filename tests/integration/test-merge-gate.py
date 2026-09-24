@@ -2,6 +2,7 @@
 """Contract coverage for the Build-entry merge gate."""
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -274,5 +275,36 @@ r, d, reason = gate("git merge feature/test", root)
 if d is not None:
     check("duplicate feature.json keys cannot claim a merge branch",
           False, f"rc={r.returncode} reason={reason!r}")
+# FEAT-65: the two "could not evaluate … receipt" broad catches are gone; an unexpected defect
+# reaches hook_guard's CLOSED form — BLOCKED on stderr, exit 2, no decision JSON — so the
+# denial verdict is kept while the defect is named. Process control escapes the guard.
+def _feat65_fire(root, sibling, override):
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(BIN, mbin)
+    with open(os.path.join(mbin, sibling), "a", encoding="utf-8") as handle:
+        handle.write("\n\n" + override)
+    return subprocess.run([os.path.join(mbin, "merge-gate.py")],
+                          input=json.dumps({"tool_input": {"command": "git merge feature/test"}}),
+                          text=True, capture_output=True, cwd=root,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+root, _ = fixture()
+sig = "def recovery_command_for(feat_dir):\n"
+r = _feat65_fire(root, "feature_schema.py", sig + "    raise RuntimeError('FEAT-65 injected')\n")
+check("FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named",
+      r.returncode == 2 and r.stdout == "" and r.stderr ==
+      "merge-gate: BLOCKED — the hook failed internally (RuntimeError: FEAT-65 injected); "
+      "enforcement is CLOSED rather than partial.\n",
+      f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+r = _feat65_fire(root, "feature_schema.py", sig + "    raise KeyboardInterrupt()\n")
+check("FEAT-65: KeyboardInterrupt escapes the guard",
+      r.returncode != 0 and "KeyboardInterrupt" in r.stderr and "failed internally" not in r.stderr,
+      f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+r = _feat65_fire(root, "feature_schema.py", sig + "    raise SystemExit(7)\n")
+check("FEAT-65: a deliberate SystemExit keeps its own exit code",
+      r.returncode == 7 and "failed internally" not in r.stderr,
+      f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

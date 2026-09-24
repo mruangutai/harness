@@ -22,6 +22,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1205,6 +1206,82 @@ CASES = (
     case_36_live_claims_read_only_and_binding_horizon,
     case_37_live_claims_refuses_unreadable_registry,
 )
+
+
+def _feat65_ps_probe_checks(inflight_registry):
+    """The ps probe absorbs only its own classes and still answers None on them."""
+    real_run = inflight_registry.subprocess.run
+    if os.path.exists("/proc"):
+        return
+    def _raise_os(*a, **k):
+        raise OSError("FEAT-65 ps unavailable")
+    inflight_registry.subprocess.run = _raise_os
+    try:
+        check("feat65: a failing ps probe still answers None",
+              inflight_registry._read_process_start_time(os.getpid()) is None)
+    finally:
+        inflight_registry.subprocess.run = real_run
+
+    def _raise_rt(*a, **k):
+        raise RuntimeError("FEAT-65 injected")
+    inflight_registry.subprocess.run = _raise_rt
+    try:
+        inflight_registry._read_process_start_time(os.getpid())
+        check("feat65: an unrelated defect in the ps probe escapes", False, "returned")
+    except RuntimeError:
+        check("feat65: an unrelated defect in the ps probe escapes", True)
+    finally:
+        inflight_registry.subprocess.run = real_run
+
+
+def _feat65_feature_root_checks(inflight_registry, root):
+    """feature_root absorbs the lookup's own AmbiguousWorktree/OSError; a defect escapes."""
+    real_lookup = inflight_registry.harness_boundary.worktree_for_feature
+
+    def _ambiguous(owner_root, feature):
+        raise inflight_registry.harness_boundary.AmbiguousWorktree("FEAT-65 two candidates")
+    inflight_registry.harness_boundary.worktree_for_feature = _ambiguous
+    try:
+        check("feat65: an ambiguous worktree lookup falls back to the owner root",
+              inflight_registry.feature_root(root, "FEAT-65-x") == root)
+    finally:
+        inflight_registry.harness_boundary.worktree_for_feature = real_lookup
+
+    def _defect(owner_root, feature):
+        raise RuntimeError("FEAT-65 injected")
+    inflight_registry.harness_boundary.worktree_for_feature = _defect
+    try:
+        inflight_registry.feature_root(root, "FEAT-65-x")
+        check("feat65: an unrelated lookup defect escapes feature_root", False, "returned")
+    except RuntimeError:
+        check("feat65: an unrelated lookup defect escapes feature_root", True)
+    finally:
+        inflight_registry.harness_boundary.worktree_for_feature = real_lookup
+
+
+def case_feat65_typed_probes():
+    """FEAT-65 SC-10 and the settled probe tuples: the process-identity probes and the feature
+    worktree lookup absorb only their producers' classes; anything else is loud — and the
+    direct command has no entrypoint guard, so the same defect is a traceback, nonzero."""
+    import inflight_registry
+    root = tempfile.mkdtemp()
+    _feat65_ps_probe_checks(inflight_registry)
+    _feat65_feature_root_checks(inflight_registry, root)
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(os.path.dirname(inflight_registry.__file__), mbin)
+    with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as handle:
+        handle.write("\n\ndef worktree_for_feature(owner_root, feature_id):\n"
+                     "    raise RuntimeError('FEAT-65 injected')\n")
+    r = subprocess.run([sys.executable, os.path.join(mbin, "inflight_registry.py"),
+                        "feature-root", "--feature", "FEAT-65-x", "--root", root],
+                       capture_output=True, text=True)
+    check("feat65: the direct feature-root command stays loud and nonzero on a defect",
+          r.returncode not in (0, 2) and "FEAT-65 injected" in r.stderr
+          and "failed internally" not in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+
+
+CASES = CASES + (case_feat65_typed_probes,)
 
 
 def main():

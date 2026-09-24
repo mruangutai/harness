@@ -530,5 +530,19 @@ check("F6 NEGATIVE CONTROL: a judgement whose --reason MENTIONS raise-cycles is 
       "position, not substring",
       rc == 0, f"rc={rc} stderr={err[:300]!r}")
 
+# FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
+# (traceback, nonzero), never a silent pass-through; the DEC-234 prologue absorbs only a
+# missing module or a strict "no root" refusal.
+_mbin = os.path.join(tempfile.mkdtemp(), "bin")
+shutil.copytree(BIN, _mbin)
+with open(os.path.join(_mbin, "harness_boundary.py"), "a", encoding="utf-8") as _f:
+    _f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
+_r = subprocess.run([os.path.join(_mbin, "plan-sign-gate.py")],
+                    input=json.dumps({"tool_input": {"command": "git status"}}),
+                    capture_output=True, text=True, env=dict(os.environ, HARNESS_PROJECT_DIR=ROOT))
+check("FEAT-65: an unexpected resolver defect is loud and nonzero, not absorbed by the prologue",
+      _r.returncode not in (0, 2) and "FEAT-65 injected" in _r.stderr,
+      f"rc={_r.returncode} stderr={_r.stderr[-200:]!r}")
+
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)
