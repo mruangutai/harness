@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1898-inflight-claim-lifecycle",
   "pr": null,
   "review_sha": "4942950a83c1895d85922f7cd9e9cfd41e28daf8",
-  "cycles_used": 3,
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -46,6 +46,16 @@
       "tokens": 144014,
       "ended_at": "2026-09-24T20:05:32+00:00",
       "cycles_used": 2
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T20:35:56+00:00",
+      "tokens": 117760,
+      "ended_at": "2026-09-24T21:00:47+00:00",
+      "cycles_used": 1
     }
   ],
   "judgements": [
@@ -90,6 +100,13 @@
       "kind": "finding_kind",
       "decision": "substance",
       "reason": "F-02 and retained F-QA-01 require production or permanent-test changes in signed tasks T-03 and T-04"
+    },
+    {
+      "at": "2026-09-24T20:35:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c2 fixes at 4942950a83c1895d85922f7cd9e9cfd41e28daf8",
+      "reason": "re-review F-02 and F-QA-01 after the c2 fixes at the operator-pinned SHA while retaining SC-07 as the operator merge gate"
     }
   ],
   "mission": "plan",
