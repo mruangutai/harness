@@ -364,38 +364,76 @@ function parseClaimReceipt(stdout: string): ClaimReceipt | undefined {
   return undefined;
 }
 
-type TaskIdentity = { index: number; agentId?: string; jobId?: string; settled: boolean };
+// BUG-1898: a task result names its children by their runtime ids, and that id is the only
+// key a claim is ever released by. Row order is not dispatch order (a batch settles in any
+// order and mixes governed with plain work), so nothing here is keyed by position.
+const SETTLED_STATUSES = ["completed", "failed", "aborted"];
 
-function taskIdentities(details: unknown): TaskIdentity[] {
+export function settledRunIds(details: unknown): string[] {
   if (!details || typeof details !== "object") return [];
   const value = details as Dict;
-  const identities = new Map<number, TaskIdentity>();
-  const add = (row: unknown, fallbackIndex: number, settledBySource: boolean): void => {
+  const ids = new Set<string>();
+  const add = (row: unknown, settledBySource: boolean): void => {
     if (!row || typeof row !== "object") return;
     const item = row as Dict;
-    const rawIndex = item.index;
-    const index = typeof rawIndex === "number" ? rawIndex : fallbackIndex;
-    const agentId = text(item.agentId || item.id || item.outputId) || undefined;
-    const jobId = text(item.jobId || item.job_id) || undefined;
-    const status = text(item.status || item.state);
-    const settled = settledBySource
-      || typeof item.exitCode === "number"
-      || ["idle", "parked", "aborted", "failed", "completed", "exited"].includes(status);
-    const prior = identities.get(index);
-    identities.set(index, {
-      index,
-      agentId: agentId || prior?.agentId,
-      jobId: jobId || prior?.jobId,
-      settled: settled || prior?.settled || false,
-    });
+    const id = text(item.id || item.agentId);
+    const settled = settledBySource || SETTLED_STATUSES.includes(text(item.status));
+    if (id && settled) ids.add(id);
   };
-  (Array.isArray(value.progress) ? value.progress : []).forEach(
-    (row, index) => add(row, index, false),
-  );
-  (Array.isArray(value.results) ? value.results : []).forEach(
-    (row, index) => add(row, index, true),
-  );
-  return [...identities.values()].sort((a, b) => a.index - b.index);
+  (Array.isArray(value.progress) ? value.progress : []).forEach((row) => add(row, false));
+  (Array.isArray(value.results) ? value.results : []).forEach((row) => add(row, true));
+  return [...ids];
+}
+
+// A run-start or find-run answer (inflight_registry.py prints one JSON object). A step that
+// printed none crashed; that is a refusal the run can retry, never a silent pass.
+type RunAnswer = {
+  ok: boolean;
+  cause?: string;
+  retryable?: boolean;
+  message?: string;
+  feature?: string;
+  root?: string;
+};
+
+function parseRunAnswer(result: PolicyResult): RunAnswer {
+  for (const line of result.stdout.split("\n").reverse()) {
+    if (!line.trim().startsWith("{")) continue;
+    try {
+      const parsed = JSON.parse(line) as Dict;
+      if (typeof parsed.ok === "boolean") return parsed as RunAnswer;
+    } catch {
+      continue;
+    }
+  }
+  return {
+    ok: false,
+    cause: "claim-step-failed",
+    retryable: true,
+    message: result.reason || "inflight_registry.py printed no result",
+  };
+}
+
+export function heldRunReason(refusal: RunAnswer): string {
+  const retry = refusal.retryable
+    ? "a retry can succeed once the cause clears"
+    : "a retry cannot succeed until the operator acts";
+  return `Harness run start refused: ${refusal.message} (cause: ${refusal.cause}; ${retry}). `
+    + "Every tool is refused for this run; yield a BLOCKED digest that names this cause.";
+}
+
+const BLOCKED_VERDICT = /^VERDICT:\s*BLOCKED\b/m;
+const MISSING_CAPABILITY = "Harness requires OMP's runtime lineage capability; install the "
+  + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
+
+// The assignment's feature: one HARNESS-FEATURE value across the prompt (DEC-204's grammar,
+// now read where OMP delivers the assignment). Two different values are a conflict to refuse.
+function promptFeature(prompt: unknown): { feature?: string; conflict?: string } {
+  try {
+    return { feature: detectMarker([text(prompt)], FEATURE_MARKER, "feature") };
+  } catch (error) {
+    return { conflict: (error as Error).message };
+  }
 }
 
 // BUG-1724 (DEC-227): the tokens the host measured for one `task` call — the sum over
@@ -429,6 +467,21 @@ function releaseClaim(
     "--claim-id", receipt.claimId,
     "--feature", receipt.feature,
     "--root", receipt.root,
+  ], {});
+}
+
+// Release the one claim bound to runtime id `agentId`, in whichever registry holds it. A
+// child that never governed (a scout, a sonic) holds none, and nothing is released for it.
+function releaseRun(runner: PolicyRunner, cwd: string, agentId: string): void {
+  const found = parseRunAnswer(runner(cwd, "inflight_registry.py", [
+    "find-run", "--agent-id", agentId, "--root", cwd,
+  ], {}));
+  if (!found.ok || !found.feature || !found.root) return;
+  runner(cwd, "inflight_registry.py", [
+    "release",
+    "--agent-id", agentId,
+    "--feature", found.feature,
+    "--root", found.root,
   ], {});
 }
 
@@ -755,7 +808,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let currentAgent: string | undefined;
   let currentFeature: string | undefined;
   let expertiseInjected = false;
-  let featureCaptured = false;
   let currentReviewPin: string | undefined;
   let currentMission: string | undefined;
   let dispatchCaptured = false;
@@ -763,6 +815,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let lastAssistantMessage = "";
   let runtimeAgentId = "";
   let runtimeParentAgentId = "";
+  // BUG-1898: a governed run is unready until it holds a claim bound to its runtime id, and
+  // held — every tool refused, only a BLOCKED yield allowed — when it cannot get one.
+  let runGate: { state: "unready" | "ready" } | { state: "held"; reason: string } = {
+    state: "unready",
+  };
+  // The lifecycle bus hands its listener no ctx; this is the checkout the session works in.
+  let sessionCwd = process.cwd();
   // FEAT-44: once-per-session cap for BOTH notice classes (inert and accessor
   // failure). Setting it skips the whole advisory path on every later wake in
   // this session, the read included, so the full scan the widening ladder
@@ -774,38 +833,22 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // is found. Not cached while ABSENT — the orchestrator instantiates the file on its
   // first cycle, so an early miss must be retried on the next wake.
   let spendFeatureJson: string | undefined;
-  const pendingTaskCalls = new Map<string, ClaimReceipt[]>();
-  const runtimeClaims = new Map<string, ClaimReceipt>();
-  const setFeature = (feature: string | undefined, ctx: any): void => {
+  // Dispatch receipts per task call. A receipt holds a governed slot across the spawn gap
+  // and is released only once every child of its call has settled: by then a child that
+  // started has bound it (and was released by its own id) or never touched it.
+  const pendingTaskCalls = new Map<string, {
+    receipts: ClaimReceipt[];
+    total: number;
+    settled: Set<string>;
+  }>();
+  const setFeature = (feature: string | undefined): void => {
     if (!feature) return;
     if (currentFeature && currentFeature !== feature) {
       throw new Error(`conflicting Harness feature markers: ${currentFeature}, ${feature}`);
     }
     currentFeature = feature;
-    featureCaptured = true;
-    if (currentAgent && !claimsReconciled) {
-      policyRunner(ctx.cwd, "inflight_registry.py", [
-        "reconcile",
-        "--feature", currentFeature,
-        "--root", ctx.cwd,
-      ], {});
-      claimsReconciled = true;
-    }
   };
 
-  // DEC-204 captures the ASSIGNMENT message — it arrives ONCE, as `user`, before the
-  // first tool call. Nothing after it is an identity source: not this agent's own
-  // output, and above all not a tool result echoing another feature's stored dispatch
-  // or notes, which is routine harness work rather than an attack. Unfiltered and
-  // unbounded, both failure paths are live — an agent on feature A that reads feature
-  // B's notes throws from inside an async pi.on handler, or, if the foreign marker
-  // lands first, reconciles against the WRONG feature's claims.
-  const captureFeatureFromMessage = (candidate: unknown, ctx: { cwd: string }): void => {
-    if (featureCaptured) return;
-    if (!candidate || typeof candidate !== "object") return;
-    if ((candidate as Dict).role !== "user") return;
-    setFeature(detectMarker([messageText(candidate)], FEATURE_MARKER, "feature"), ctx);
-  };
   // The pin and the mission have one source: the assignment message (DEC-204), scanned
   // once. A later user turn or a tool result echoing another dispatch is never either.
   const captureDispatchFromMessage = (candidate: unknown): void => {
@@ -820,6 +863,62 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (mission) currentMission = mission;
   };
 
+  // BUG-1898: where a governed run's feature comes from, in order — the feature this
+  // session already runs (a wake), the assignment OMP delivers as the run's prompt (DEC-204:
+  // identity is read from the assignment, never from later output), or, for a restart or
+  // revival that carries no marker, the ONE live claim bound to this exact runtime id.
+  // Never persona, dispatch name, cwd or session: a guess binds a run to a stranger.
+  const resolveFeature = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
+    if (currentFeature) return { ok: true };
+    const assigned = promptFeature(prompt);
+    if (assigned.conflict) {
+      return { ok: false, cause: "feature-conflict", retryable: false, message: assigned.conflict };
+    }
+    setFeature(assigned.feature);
+    if (currentFeature) return { ok: true };
+    const found = parseRunAnswer(policyRunner(ctx.cwd, "inflight_registry.py", [
+      "find-run", "--agent-id", runtimeAgentId, "--root", ctx.cwd,
+    ], {}));
+    if (found.ok) setFeature(found.feature);
+    return found;
+  };
+
+  // The run-start claim (T-01's one locked step): reuse this id's claim, bind the unique
+  // receipt its parent's dispatch left, or create one. A refusal holds the run.
+  const startRun = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
+    if (!runtimeAgentId || !runtimeParentAgentId) {
+      return { ok: false, cause: "runtime-lineage", retryable: false, message: MISSING_CAPABILITY };
+    }
+    const feature = resolveFeature(ctx, prompt);
+    if (!feature.ok) return feature;
+    return parseRunAnswer(policyRunner(ctx.cwd, "inflight_registry.py", [
+      "run-start",
+      "--root", ctx.cwd,
+      "--feature", String(currentFeature),
+      "--agent", String(currentAgent),
+      "--agent-id", runtimeAgentId,
+      "--parent-agent-id", runtimeParentAgentId,
+      "--supervisor-pid", String(process.pid),
+    ], {}));
+  };
+
+  const heldReason = (): string =>
+    runGate.state === "held"
+      ? runGate.reason
+      : "Harness run start has not completed; no tool runs before the run holds its claim.";
+
+  // A child is released by its runtime id wherever its claim lives, and a call's receipts
+  // once all of that call's children have settled.
+  const settleRun = (callKey: string | undefined, agentId: string, cwd: string): void => {
+    releaseRun(policyRunner, cwd, agentId);
+    const pending = callKey ? pendingTaskCalls.get(callKey) : undefined;
+    if (!pending) return;
+    pending.settled.add(agentId);
+    if (pending.settled.size < pending.total) return;
+    pendingTaskCalls.delete(String(callKey));
+    pending.receipts.forEach((receipt) => releaseClaim(policyRunner, cwd, receipt));
+  };
+
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
     const detected = detectHarnessAgent(event.systemPrompt);
     const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
@@ -827,11 +926,38 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const detectedMission = detectMarker(event.systemPrompt, MISSION_MARKER, "mission");
     runtimeAgentId = text(ctx.agentId);
     runtimeParentAgentId = text(ctx.parentAgentId);
+    sessionCwd = text(ctx.cwd) || sessionCwd;
     if (detected) currentAgent = detected;
     if (detectedPin) currentReviewPin = detectedPin;
     if (detectedMission) currentMission = detectedMission;
-    setFeature(detectedFeature, ctx);
-    if (!currentAgent || expertiseInjected) return;
+    setFeature(detectedFeature);
+    if (!currentAgent) return;
+    runGate = { state: "unready" };
+    const started = startRun(ctx, event.prompt);
+    if (!started.ok) {
+      runGate = { state: "held", reason: heldRunReason(started) };
+      return {
+        message: {
+          customType: "harness-run-refused",
+          content: runGate.reason,
+          display: true,
+          details: { agent: currentAgent, cause: started.cause, retryable: started.retryable },
+          attribution: "harness",
+        },
+      };
+    }
+    runGate = { state: "ready" };
+    // Only once the run holds its claim: reconcile's locked writer reads a corrupt registry
+    // as empty and rewrites it, which would erase the very file a refusal leaves as found.
+    if (!claimsReconciled) {
+      policyRunner(ctx.cwd, "inflight_registry.py", [
+        "reconcile",
+        "--feature", String(currentFeature),
+        "--root", ctx.cwd,
+      ], {});
+      claimsReconciled = true;
+    }
+    if (expertiseInjected) return;
 
     const result = policyRunner(ctx.cwd, "inject-expertise.py", [], {
       ...basePayload(currentAgent, "SubagentStart", ctx.cwd, ctx),
@@ -857,21 +983,19 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
   });
 
-  pi.on("message_update", async (event: Dict, ctx: any) => {
+  pi.on("message_update", async (event: Dict) => {
     const candidate = event.message && typeof event.message === "object"
       ? event.message
       : event;
-    captureFeatureFromMessage(candidate, ctx);
     captureDispatchFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
 
-  pi.on("message_end", async (event: Dict, ctx: any) => {
+  pi.on("message_end", async (event: Dict) => {
     const candidate = event.message && typeof event.message === "object"
       ? event.message
       : event;
-    captureFeatureFromMessage(candidate, ctx);
     captureDispatchFromMessage(candidate);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
@@ -884,13 +1008,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const parentAgentId = runtimeParentAgentId;
     const runtimeCtx = { ...ctx, agentId, parentAgentId };
     const mutates = ["write", "edit", "bash"].includes(toolName);
-    const missingCapability = "Harness requires OMP's runtime lineage capability; install the "
-      + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
+    sessionCwd = text(ctx.cwd) || sessionCwd;
     if (toolName === "task" && !agentId) {
-      return { block: true, reason: missingCapability };
+      return { block: true, reason: MISSING_CAPABILITY };
     }
-    if (currentAgent && (toolName === "task" || mutates) && (!agentId || !parentAgentId)) {
-      return { block: true, reason: missingCapability };
+    // BUG-1898: a governed run that holds no claim of its own runs nothing but a yield.
+    if (currentAgent && runGate.state !== "ready" && toolName !== "yield") {
+      return { block: true, reason: heldReason() };
     }
     const ompMainTask = !currentAgent
       && toolName === "task"
@@ -980,6 +1104,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           // non-harness subagent (scout, sonic) was refused outright because the guard
           // deliberately records no claim for one. Whether a dispatch gets a claim is the
           // guard's decision; this caller only enforces the refusals the guard declares.
+          // BUG-1898: the receipt learns only its dispatching parent. Which run takes it is
+          // decided when a child STARTS, by that child's own runtime id (T-01 run-start) —
+          // never by a dispatch name, which is not the id OMP gives the child.
           const receipt = parseClaimReceipt(result.stdout);
           if (receipt) {
             receipts.push(receipt);
@@ -993,7 +1120,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
                 "--parent-agent-id", parentAgentId,
                 "--root", receipt.root,
               ];
-              if (dispatch.name) args.push("--agent-id", dispatch.name);
               const attached = policyRunner(
                 ctx.cwd, "inflight_registry.py", args, {},
               );
@@ -1011,7 +1137,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         }
       }
       if (!reason && receipts.length) {
-        pendingTaskCalls.set(text(event.toolCallId) || "task", receipts);
+        pendingTaskCalls.set(text(event.toolCallId) || "task", {
+          receipts,
+          total: normalizeTaskDispatches(input).length,
+          settled: new Set(),
+        });
       }
     }
     if (!reason && toolName === "yield") {
@@ -1028,9 +1158,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
       if (!contract.trim()) {
         reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; no digest was produced — neither the yield payload nor the last assistant message carries one.";
+      } else if (currentAgent && runGate.state !== "ready" && !BLOCKED_VERDICT.test(contract)) {
+        reason = `${heldReason()} This run may yield only a BLOCKED digest.`;
       } else {
         const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-          ...basePayload(policyAgent, "SubagentStop", ctx.cwd, ctx),
+          ...basePayload(policyAgent, "SubagentStop", ctx.cwd, runtimeCtx),
           stop_hook_active: false,
           last_assistant_message: contract,
           harness_feature: currentFeature,
@@ -1058,35 +1190,14 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
     if (toolName === "task") {
       const key = text(event.toolCallId) || "task";
-      const receipts = pendingTaskCalls.get(key) || [];
-      pendingTaskCalls.delete(key);
+      sessionCwd = text(ctx.cwd) || sessionCwd;
       if (event.isError) {
-        receipts.forEach((receipt) => releaseClaim(policyRunner, ctx.cwd, receipt));
+        // The call failed as a whole: no child of it ran, so its receipts are released.
+        const pending = pendingTaskCalls.get(key);
+        pendingTaskCalls.delete(key);
+        pending?.receipts.forEach((receipt) => releaseClaim(policyRunner, ctx.cwd, receipt));
       } else {
-        const identities = taskIdentities(event.details);
-        receipts.forEach((receipt, index) => {
-          const identity = identities.find((item) => item.index === index);
-          if (identity?.settled) {
-            releaseClaim(policyRunner, ctx.cwd, receipt);
-            return;
-          }
-          if (!identity?.agentId && !identity?.jobId) {
-            releaseClaim(policyRunner, ctx.cwd, receipt);
-            return;
-          }
-          const args = [
-            "attach",
-            "--agent", receipt.agent,
-            "--feature", receipt.feature,
-            "--claim-id", receipt.claimId,
-            "--root", receipt.root,
-          ];
-          if (identity.agentId) args.push("--agent-id", identity.agentId);
-          if (identity.jobId) args.push("--job-id", identity.jobId);
-          policyRunner(ctx.cwd, "inflight_registry.py", args, {});
-          if (identity.agentId) runtimeClaims.set(`agent:${identity.agentId}`, receipt);
-          if (identity.jobId) runtimeClaims.set(`job:${identity.jobId}`, receipt);
-        });
+        settledRunIds(event.details).forEach((agentId) => settleRun(key, agentId, ctx.cwd));
       }
     }
     // FEAT-44: computed BEFORE the early return below. That return fires whenever
@@ -1213,23 +1324,15 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     };
   });
 
-  pi.on("task:subagent:lifecycle", async (event: Dict, ctx: any) => {
-    const status = text(event.status || event.state);
-    if (!["idle", "parked", "aborted", "failed", "completed", "exited"].includes(status)) return;
-    const agentId = text(event.agentId || event.id);
-    const jobId = text(event.jobId || event.job_id);
-    const receipt = runtimeClaims.get(`agent:${agentId}`) || runtimeClaims.get(`job:${jobId}`);
-    if (receipt) {
-      releaseClaim(policyRunner, ctx.cwd, receipt);
-      if (agentId) runtimeClaims.delete(`agent:${agentId}`);
-      if (jobId) runtimeClaims.delete(`job:${jobId}`);
-      return;
-    }
-    const args = ["release", "--root", ctx.cwd];
-    if (currentFeature) args.push("--feature", currentFeature);
-    if (agentId) args.push("--agent-id", agentId);
-    if (jobId) args.push("--job-id", jobId);
-    if (agentId || jobId) policyRunner(ctx.cwd, "inflight_registry.py", args, {});
+  // BUG-1898 defect D: OMP publishes a child's lifecycle on the session EventBus — the
+  // `pi.events` an extension holds — for a first run and for every message-woken turn
+  // alike. `pi.on` is the hook dispatcher and never carried it, so no child was ever
+  // released here. A settled child is released by its own runtime id and nothing else.
+  pi.events.on("task:subagent:lifecycle", (data: unknown) => {
+    const event = (data && typeof data === "object" ? data : {}) as Dict;
+    const agentId = text(event.id);
+    if (!agentId || !SETTLED_STATUSES.includes(text(event.status))) return;
+    settleRun(text(event.parentToolCallId) || undefined, agentId, sessionCwd);
   });
 
   pi.on("agent_end", async (event: Dict, ctx: any) => {
