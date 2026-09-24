@@ -29,7 +29,14 @@ import inflight_registry  # noqa: E402
 
 SUITE = ROOT / "tests" / "integration" / "test-validate-digest.py"
 FEATURE = "BUG-1898-suite-sentinel-%d" % os.getpid()
-EXACT_RELEASE_FAIL = "FAIL  [bug1898]"
+EXACT_RELEASE_FAIL = "FAIL  [bug1898] "
+# The two checks a persona-wide release must redden: two orchestrators share the persona and
+# feature, so a release that ignores the runtime id matches both, refuses, and the settled
+# parent keeps its claim. Any other [bug1898] red would be a different fault.
+PERSONA_RELEASE_REDS = {
+    "after the child settles the identical yield passes",
+    "and releases only the parent",
+}
 PERSONA_RELEASE = '''
 
 _bug1898_exact_release = release
@@ -105,9 +112,11 @@ def mutant_run():
             handle.write(PERSONA_RELEASE)
         code, output = run_suite(dict(os.environ,
                                       VALIDATE_DIGEST_BIN=str(copy / "validate-digest.py")))
-        reddened = [line for line in output.splitlines() if line.startswith(EXACT_RELEASE_FAIL)]
-        check("a persona-wide release turns the suite's exact-release checks red",
-              code != 0 and reddened, "exit %d, %d exact-release failures" % (code, len(reddened)))
+        reddened = {line[len(EXACT_RELEASE_FAIL):] for line in output.splitlines()
+                    if line.startswith(EXACT_RELEASE_FAIL)}
+        check("a persona-wide release reddens exactly the parent-settlement checks",
+              code != 0 and reddened == PERSONA_RELEASE_REDS,
+              "exit %d, reddened %s" % (code, sorted(reddened)))
     finally:
         shutil.rmtree(copy.parent, ignore_errors=True)
 
