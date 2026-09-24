@@ -5612,8 +5612,8 @@ def run_feat65_guard_cases():
     unreadable_payload = _feat65_fire(None, "", stdin="{not json")
     registry_defect = _feat65_fire(
         "inflight_registry.py",
-        "def release(root, agent=None, feature=None, claim_id=None, agent_id=None, "
-        "job_id=None):\n" + raise_rt)
+        "def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):\n"
+        + raise_rt)
     interrupt = _feat65_fire(
         "artifact_accessors.py",
         "def read_hook_payload(text, context):\n    raise KeyboardInterrupt()\n")
@@ -5844,6 +5844,39 @@ def _b1898_settled_child_frees_the_parent():
                  _b1898_ids(worktree) == ["Main.Orch-2", "Main.Orch-2.Qa"], _b1898_ids(worktree))
 
 
+B1898_UNREADABLE_MARK = "cannot tell whether it holds a live child"
+
+
+def _b1898_unreadable_registry_holds_the_parent():
+    """F-01: "cannot read" is never "no live child". An unreadable registry refuses a
+    dispatch-capable parent's return, leaves the file as found, and lets only a BLOCKED
+    return — the parent's one way out while the operator repairs it — go on. A leaf, which
+    holds no children, is not held by it."""
+    owner, worktree = _b1898_parent_with_live_child()
+    path = os.path.join(worktree, ".harness", ".inflight-claims.json")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("{not json")
+    r = _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT,
+                  governed=False)
+    _b1898_check("an unreadable registry refuses a parent's PASS return",
+                 r.returncode == 2 and B1898_UNREADABLE_MARK in r.stderr,
+                 "exit %d: %s" % (r.returncode, r.stderr.strip()[-300:]))
+    _b1898_check("and names the unreadable registry and the BLOCKED way out",
+                 os.path.realpath(worktree) in r.stderr and "BLOCKED" in r.stderr,
+                 r.stderr.strip()[-400:])
+    blocked = _b1898_orchestrator_digest().replace("VERDICT: PASS", "VERDICT: BLOCKED", 1)
+    r = _t09_fire(owner, "harness-orchestrator", blocked, **B1898_PARENT, governed=False)
+    _b1898_check("a parent's BLOCKED return is not held by the unreadable registry",
+                 B1898_UNREADABLE_MARK not in r.stderr, r.stderr.strip()[-300:])
+    r = _t09_fire(owner, "harness-qa", "VERDICT: PASS\n", governed=False,
+                  harness_feature=B1898_FEATURE, harness_agent_id="Main.Orch-2.Qa")
+    _b1898_check("a leaf's return is not held by it",
+                 B1898_UNREADABLE_MARK not in r.stderr, r.stderr.strip()[-300:])
+    with open(path, encoding="utf-8") as handle:
+        _b1898_check("the unreadable registry is left exactly as found",
+                     handle.read() == "{not json", "registry rewritten")
+
+
 def run_bug1898_exact_release_cases():
     for case_fn in (
         _b1898_missing_identity_releases_nothing,
@@ -5852,6 +5885,7 @@ def run_bug1898_exact_release_cases():
         _b1898_release_reads_the_feature_worktree,
         _b1898_held_child_refuses_the_parent,
         _b1898_settled_child_frees_the_parent,
+        _b1898_unreadable_registry_holds_the_parent,
     ):
         case_fn()
     fails = 0

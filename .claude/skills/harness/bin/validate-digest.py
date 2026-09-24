@@ -2257,11 +2257,15 @@ def _identity_refusal(agent, verdict):
     return 2
 
 
+def _dispatches(agent):
+    """Only a lead or the orchestrator dispatches, so only they can hold live children."""
+    return norm(agent) in ("lead", "orchestrator")
+
+
 def _held_children(reg, root, agent, feature, agent_id):
-    """Live claims whose parent is this exact run, in `root`'s registry. Only a lead or the
-    orchestrator dispatches. Raises UnreadableRegistry rather than reading "cannot read" as
-    "no children"."""
-    if norm(agent) not in ("lead", "orchestrator"):
+    """Live claims whose parent is this exact run, in `root`'s registry. Raises
+    UnreadableRegistry rather than reading "cannot read" as "no children"."""
+    if not _dispatches(agent):
         return []
     return [
         claim for claim in reg.live_claims(root, None, parent_agent_id=agent_id)
@@ -2283,6 +2287,22 @@ def _children_refusal(reg, root, agent, children):
     return 2
 
 
+def _unreadable_registry(agent, root, error, d):
+    """F-01: "cannot read" is never "no live child". A dispatching parent's return is held
+    unless it is BLOCKED — its one way out while the operator repairs the file; a leaf holds
+    no children and goes on. Either way nothing is written, so the file stays as found."""
+    verdict = _return_verdict(str(d.get("last_assistant_message") or ""))
+    if _dispatches(agent) and verdict != "BLOCKED":
+        print(f"check-digest: REFUSED {agent}'s return: {root}'s claim registry is unreadable "
+              f"({error!r}), so this run cannot tell whether it holds a live child. Nothing was "
+              "released. A retry cannot succeed until the operator repairs the registry; "
+              "yield a BLOCKED digest naming this cause.", file=sys.stderr)
+        return 2
+    print(f"check-digest: could not read {root}'s claim registry ({error!r}); nothing was "
+          "released and the registry was left as found.", file=sys.stderr)
+    return None
+
+
 def _registry_errand(reg, d, agent):
     """T-09 (#551) and BUG-1898: release this run's claim, or refuse the return while it
     holds a live child. Returns an exit code to return, or None to go on validating.
@@ -2302,14 +2322,16 @@ def _registry_errand(reg, d, agent):
         return None
     root = reg.feature_root(owner_root, feature)
     try:
+        # Strict reads before any write: the locked writer parses a corrupt file as empty,
+        # so releasing into an unreadable registry would erase every claim it holds.
+        own = reg.live_claims(root, None, agent_id=agent_id)
         children = _held_children(reg, root, agent, feature, agent_id)
     except (reg.UnreadableRegistry, OSError) as error:
-        print(f"check-digest: could not read {root}'s claim registry ({error!r}); nothing "
-              "was released and the #551 return contract is not enforced for this return.",
-              file=sys.stderr)
-        return None
+        return _unreadable_registry(agent, root, error, d)
     if children:
         return _children_refusal(reg, root, agent, children)
+    if not own:
+        return None
     try:
         if reg.release(root, agent=agent, feature=feature, agent_id=agent_id):
             print(f"check-digest: released {agent}'s claim {agent_id} for {feature}.",
