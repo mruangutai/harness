@@ -12,6 +12,73 @@ sys.path.insert(0, TESTS)
 from check_domain_support import FIXTURE_MANIFEST, fire, fixture
 from isolated_bin import isolated_bin
 
+# FEAT-65: the hook's own-failure posture is harness_boundary.hook_guard's ONE template.
+GUARD_LINE = ("check-domain: the hook failed internally ({detail}) — passing through; "
+              "this is not a pass, nothing was checked.\n")
+# A governed FEATURE ARTIFACT the fixture persona may write, so the checkout and claim
+# rules are reached; its content is a clean version-2 checkpoint, so shape says nothing.
+FEAT65_ROUTE = ".harness/harness/features/FEAT-X/runs/feat65/state.yaml"
+
+
+def _feat65_fire(sibling, override, argv=(), stdin=None):
+    """Fire a copy of the hook whose `sibling` module ends with `override` (an appended def
+    wins) at a fresh fixture; the payload names a governed feature-artifact write."""
+    root = fixture(FIXTURE_MANIFEST)
+    iso = isolated_bin(root)
+    with open(os.path.join(iso, sibling), "a", encoding="utf-8") as handle:
+        handle.write("\n\n" + override)
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": os.path.join(root, FEAT65_ROUTE), "content": _state()}}
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    return subprocess.run([os.path.join(iso, "check-domain.py"), *argv],
+                          input=json.dumps(payload) if stdin is None else stdin,
+                          capture_output=True, text=True, env=env)
+
+
+def _feat65_guard_cases():
+    """Unexpected defects reach hook_guard (pass-through exit 0, the canonical line, nothing
+    else); process control escapes it; the deleted rule-level absorbers absorb nothing."""
+    raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
+    payload_defect = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n" + raise_rt)
+    checkout_defect = _feat65_fire(
+        "harness_boundary.py",
+        "def feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):\n" + raise_rt)
+    claim_defect = _feat65_fire(
+        "harness_boundary.py",
+        "def claim_worktrees(owner_root, agent_type, destination, agent_id=None, "
+        "parent_agent_id=None):\n" + raise_rt)
+    resolve_defect = _feat65_fire(
+        "artifact_accessors.py",
+        "def manifest_domains(manifest_path, agent=None, *, view=False):\n" + raise_rt,
+        argv=("--resolve", FEAT65_ROUTE), stdin="")
+    interrupt = _feat65_fire(
+        "artifact_accessors.py",
+        "def read_hook_payload(text, context):\n    raise KeyboardInterrupt()\n")
+    deliberate_exit = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n    raise SystemExit(7)\n")
+    line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
+    return [
+        ("a defect reading the payload passes through with exactly the hook_guard line",
+         payload_defect.returncode == 0 and payload_defect.stderr == line
+         and payload_defect.stdout == "", payload_defect),
+        ("a defect in the feature-checkout rule is no longer absorbed: it is named on stderr",
+         checkout_defect.returncode == 0 and checkout_defect.stderr.endswith(line),
+         checkout_defect),
+        ("a defect in the claim rule is no longer classified locally: it is named on stderr",
+         claim_defect.returncode == 0 and claim_defect.stderr.endswith(line)
+         and "was not enforced" not in claim_defect.stderr, claim_defect),
+        ("a --resolve defect passes through the same guard and answers no route",
+         resolve_defect.returncode == 0 and resolve_defect.stderr == line
+         and resolve_defect.stdout == "", resolve_defect),
+        ("KeyboardInterrupt escapes the guard",
+         interrupt.returncode != 0 and "KeyboardInterrupt" in interrupt.stderr
+         and "failed internally" not in interrupt.stderr, interrupt),
+        ("a deliberate SystemExit keeps its own exit code",
+         deliberate_exit.returncode == 7 and "failed internally" not in deliberate_exit.stderr,
+         deliberate_exit),
+    ]
+
 
 DECLARED = {
     "id", "persona", "task", "seq", "depends_on", "outputs", "mutates_repo",
@@ -272,6 +339,7 @@ def run_t06_cases():
     strict_failure = _strict_hook_payload_case()
     if strict_failure is not None:
         cases.append(strict_failure)
+    cases.extend(_feat65_guard_cases())
     return _report(cases)
 
 

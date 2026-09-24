@@ -16,6 +16,13 @@
       "ended_at": "2026-09-23T22:56:02+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-24T00:00:12+00:00"
     }
   ],
   "judgements": [
@@ -25,6 +32,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "Cause known and diff bounded (11 files, 77 sites, 4 tasks), but it changes the enforcement surface every hook runs under, so rule 3 (no new enforcement surface) fails."
+    },
+    {
+      "at": "2026-09-24T00:00:12+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan signed dd1203a3; building main-session-direct under DEC-174"
     }
   ],
   "mission": "plan",

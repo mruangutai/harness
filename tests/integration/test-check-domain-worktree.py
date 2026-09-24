@@ -790,16 +790,20 @@ def _feat61_ambiguous_worktree():
 
 
 def _feat61_injected_core_failure():
-    """The route delegates: with the core raising, the adapter's absorbing `except` keeps
-    the domain allowance instead of refusing through a private copy of the rule."""
+    """The route delegates: with the core raising, no private copy of the rule refuses; the
+    defect reaches the hook's one guard (FEAT-65) and the domain allowance stands."""
     root, _ = _feat61_root(FEAT61_FEATURE)
     iso = isolated_bin(root)
     with open(os.path.join(iso, "harness_boundary.py"), "a", encoding="utf-8") as core:
         core.write("\n\ndef feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):\n"
                    "    raise RuntimeError('FEAT-61 T-03 injected core failure')\n")
+    # FEAT-65: the adapter's absorbing `except` is gone. The allowance still stands only
+    # because hook_guard's pass-through never blocks — and it SAYS so, in the one template.
     return _feat61_case(
-        "an unexpected core failure is absorbed and the allowance stands",
-        fire(root, FEAT61_REL, hook=os.path.join(iso, "check-domain.py")), 0)
+        "an unexpected core failure passes through hook_guard, named, and the allowance stands",
+        fire(root, FEAT61_REL, hook=os.path.join(iso, "check-domain.py")), 0,
+        "check-domain: the hook failed internally (RuntimeError: FEAT-61 T-03 injected core "
+        "failure) — passing through; this is not a pass, nothing was checked.\n")
 
 
 def run_feat61_feature_checkout_adapter():
