@@ -2191,22 +2191,12 @@ def _posture_findings(root):
 #
 # FEAT-64 (SC-04): every lib and tool of wave 4 is now ABSENT from the table -- zero by the
 # default -- and harness_boundary.py holds at exactly two: `_as_repo_module_failure` (the load
-# and call boundary) and `hook_guard` (the hook own-failure idiom, wired by FEAT-65). The
-# eleven remaining entries are the hook scripts, frozen for FEAT-65.
+# and call boundary) and `hook_guard` (the hook own-failure idiom, wired by FEAT-65).
+#
+# FEAT-65 (SC-04): the eleven hooks are gone from the table too. The budget is the two designed
+# catches and nothing else; a broad catch anywhere else under bin/ is a finding by default.
 BROAD_CATCH_CEILINGS = {
-    "bash-write-guard.py": 6,
-    "branch-create-gate.py": 4,
-    "check-domain.py": 24,
-    "check-state.py": 0,
-    "dispatch-guard.py": 9,
-    "feature-record.py": 1,
-    "gh-close-gate.py": 3,
     "harness_boundary.py": 2,
-    "inflight_registry.py": 3,
-    "inject-expertise.py": 2,
-    "merge-gate.py": 5,
-    "plan-sign-gate.py": 2,
-    "validate-digest.py": 18,
 }
 
 
