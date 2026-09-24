@@ -131,6 +131,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "the c3 panel is clean at the pinned SHA, the measured rework window reached 91 minutes, and no further automated rework is warranted; SC-07 remains the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T23:55:00+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "c3 validate PASS handed off to the operator probe; the live probe found the S2 wake-reclaim defect, so main-session continued with fix c4 (DEC-174) and returns to validate"
     }
   ],
   "mission": "plan",
