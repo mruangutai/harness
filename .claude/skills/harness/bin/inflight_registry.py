@@ -470,20 +470,21 @@ def _live_registry_claims(root, now):
     return live
 
 
+def _claims_with_agent_id(claims, agent_id):
+    if not agent_id:
+        return []
+    return [claim for claim in claims if claim.get("agent_id") == agent_id]
+
+
 def _identity_claims_at_root(root, claim_id, agent_id, parent_agent_id, now):
     claims = [
         claim for claim in _live_registry_claims(root, now)
         if claim.get("claim_id") != claim_id
     ]
-    children = [
-        claim for claim in claims
-        if agent_id and claim.get("agent_id") == agent_id
-    ]
-    parents = [
-        claim for claim in claims
-        if parent_agent_id and claim.get("agent_id") == parent_agent_id
-    ]
-    return children, parents
+    return (
+        _claims_with_agent_id(claims, agent_id),
+        _claims_with_agent_id(claims, parent_agent_id),
+    )
 
 
 def _identity_claim_groups(root, claim_id, agent_id, parent_agent_id, now):
