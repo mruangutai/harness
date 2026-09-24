@@ -16,6 +16,13 @@
       "ended_at": "2026-09-24T14:38:14+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-24T16:37:25+00:00"
     }
   ],
   "judgements": [
@@ -25,6 +32,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "five causes across the OMP extension, the digest validator, the registry and their tests; the fix adds a claim-at-run-start path and re-arms the held-child gate (new enforcement surfaces), and occurrence 1's trigger is still unpinned"
+    },
+    {
+      "at": "2026-09-24T16:37:25+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "BUG-1898 build, main-session-direct (DEC-174)"
     }
   ],
   "mission": "plan",
