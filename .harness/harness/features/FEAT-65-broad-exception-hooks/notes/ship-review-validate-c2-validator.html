@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-65 ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-65-ship-review">FEAT-65 ship review</h1>
+<h2 id="conclusion">Conclusion</h2>
+<p>FEAT-65 is ready for the operator&#x27;s ship decision at review SHA <code>ffcc2dafa29fc56ae8a9634e9ed1508e1433661d</code>. Validate cycle 2 passed: SC-01 through SC-10 are met, <code>must_fix</code> is empty, the unit and integration matrix is green, and QA-65-01 is closed. CR-02 remains a non-blocking medium advisory.</p>
+<h2 id="definition-of-done">Definition of done</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed outcome</th><th>Verdict</th><th>Discharged by</th><th>Evidence</th></tr></thead><tbody><tr><td>operator</td><td>Preserve established fail-open/fail-closed verdicts and output bytes except ruled canonical diagnostics; keep authoritative direct commands loud and nonzero.</td><td>met</td><td>SC-01, SC-02, SC-09, SC-10</td><td><code>notes/research-FEAT-65-broad-exception-hooks-goalcheck-validate-c2.md</code>; <code>runs/validate-c2-validator/digest.md</code></td></tr><tr><td>code maintainer</td><td>Use typed boundary catches, one classified <code>hook_guard</code> idiom, no process-control catches, identical DEC-234 prologues, and only two designed broad catches in <code>harness_boundary.py</code>.</td><td>met</td><td>SC-03, SC-04, SC-05</td><td><code>notes/research-FEAT-65-broad-exception-hooks-goalcheck-validate-c2.md</code>; <code>notes/clean-pin-byte-receipts.md</code></td></tr><tr><td>reader</td><td>Trace all 77 sites, every operator-visible divergence, and reproducible clean-checkout evidence for the immutable implementation pin.</td><td>met</td><td>SC-06, SC-07, SC-08</td><td><code>notes/research-FEAT-65-broad-exception-hooks-goalcheck-validate-c2.md</code>; <code>notes/build-divergences.md</code>; <code>notes/clean-pin-byte-receipts.md</code></td></tr></tbody></table></div>
+<h2 id="run-record">Run record</h2>
+<p>No report round was spawned. This briefing was assembled from the seven recorded run digests:</p>
+<ul><li><code>runs/plan-product/digest.md</code></li><li><code>runs/build-main-direct/digest.md</code></li><li><code>runs/validate-validator/digest.md</code></li><li><code>runs/fix-c0-main-direct/digest.md</code></li><li><code>runs/validate-c1-validator/digest.md</code></li><li><code>runs/fix-c1-main-direct/digest.md</code></li><li><code>runs/validate-c2-validator/digest.md</code></li></ul>
+<p>The plan run produced an approved four-task plan with five resolved panel findings. The main-session-direct build removed all 77 scoped broad catches, locked the census at zero scoped hooks and two designed boundary catches, aligned all five DEC-234 prologues, and retained clean-pin evidence. Validate c0 found missing fail-first receipts and an embedded broad catch; fix c0 closed both. Validate c1 narrowed the remaining defect to SC-01 final-pin provenance; fix c1 regenerated the receipt using the tests committed at the pin. Validate c2 independently closed QA-65-01 and passed all five reader seats.</p>
+<h2 id="validation-result">Validation result</h2>
+<ul><li>Review SHA: <code>ffcc2dafa29fc56ae8a9634e9ed1508e1433661d</code></li><li>Implementation pin: <code>97d14f0b</code></li><li>Test matrix: unit 42/42 and integration 69/69 passed.</li><li>SC-01 provenance: 15 suites retained RED exit 1 to GREEN exit 0 with 110 RED output lines; 7 unchanged suites retained byte-identical normalized streams.</li><li>Criteria: SC-01 through SC-10 met.</li><li>Must-fix: none.</li><li>Maximum remaining severity: medium advisory.</li><li>UI: self-scoped out after a 59-file census found no UI surface.</li><li>UAT: not required; every criterion is automated or inspection-based.</li></ul>
+<h2 id="escalations-and-host-gaps">Escalations and host gaps</h2>
+<p>Known host gap #1898 occurred exactly 6 times during validate c2: five PM lineage refusals before claim <code>5631b96060f7422b99a43185ba69f4c4</code> was bound, and one validator-lead state-write refusal before claim <code>e46afac0294e4e469e201a0af1ac51cc</code> was bound. Both retries succeeded under supervisor PID 2347. These were host failures, not FEAT-65 product findings.</p>
+<p>The terminal-yield gate also repeatedly rejected canonical reader returns while their durable artifacts remained recoverable. Validation relied on the artifacts after contract checks; this does not change the feature verdict.</p>
+<h2 id="spend-and-judgements">Spend and judgements</h2>
+<ul><li>Runs: 7 of the informational 20-run tripwire.</li><li>Cycles: 3 of 10.</li><li>Wall clock: 938 minutes total.</li><li>Rework: 102 minutes across 2 signed rounds, exceeding the 90-minute ruling during the final successful validation. The ledger records <code>continue: stop</code>: all criteria passed, no unmet finding remains, and no further rework is authorized.</li><li>Measured tokens: 483,588.</li><li>Judgements: 6.</li></ul>
+<h2 id="amendments">Amendments</h2>
+<p>No builder amendment departed from the signed task text.</p>
+<div class="scroll"><table><thead><tr><th>At</th><th>Decision</th><th>Reason</th><th>Overruled</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>none</td><td>—</td></tr></tbody></table></div>
+<p>Overrule rate: 0/0.</p>
+<h2 id="open-questions">Open questions</h2>
+<p>None block shipping. The operator&#x27;s remaining decision is whether to ship the validated change and which proposed backlog rows, if any, to retain.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>CR-02: constrain the embedded-program census so a harmless parseable <code>try/except</code> example in a non-executed string cannot falsely block plan routes.</td></tr><tr><td>B-2</td><td>bug</td><td>Investigate the terminal-yield parser defect that rejected canonical reader and lead returns despite valid durable artifacts.</td></tr></tbody></table></div><p class='derived'>Derived from <code>ship-review-validate-c2-validator.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
