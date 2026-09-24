@@ -78,10 +78,14 @@ GH = _bootstrap_os.environ.get("GH_BIN") or "gh"
 input_text = _bootstrap_sys.stdin.read().rstrip("\n")
 
 
+# A PROGRAM, NOT PROSE (FEAT-65 c1, CR-01): this string runs through a clean interpreter, so its
+# handler is a real catch and the census counts it like any other. It absorbs exactly what the
+# read can raise — no file (OSError), not JSON (ValueError), a top-level document with no `.get`
+# (AttributeError) — and nothing else.
 _CONFIG_READER = """import json, os, sys
 try:
     g = json.load(open(os.path.join(sys.argv[1], ".harness", "harness.json"))).get("github") or {}
-except Exception:
+except (OSError, ValueError, AttributeError):
     g = {}
 print(str(bool(g.get("sync"))).lower(),
       g.get("repo") or "-")

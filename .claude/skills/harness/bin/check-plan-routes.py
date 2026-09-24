@@ -2204,14 +2204,32 @@ def _is_broad_catch(handler):
     return handler.type is None or (isinstance(handler.type, ast.Name) and handler.type.id == "Exception")
 
 
+def _embedded_programs(tree):
+    """String constants that parse as Python and carry a try statement: programs the script hands
+    to another interpreter (`python3 -I -c`, `python3 -`), whose handlers are as real as its own
+    (FEAT-65 c1, CR-01). Prose and docstrings do not parse into a try and are skipped."""
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Constant) and isinstance(node.value, str) and "except" in node.value):
+            continue
+        try:
+            inner = ast.parse(node.value)
+        except (SyntaxError, ValueError):
+            continue
+        if any(isinstance(n, ast.Try) for n in ast.walk(inner)):
+            yield inner
+
+
 def _broad_catch_count(path):
-    """Broad catches in one script by AST, or None when it does not parse (its own finding)."""
+    """Broad catches in one script by AST — its own handlers plus those of any executable Python
+    it embeds as a string — or None when it does not parse (its own finding)."""
     try:
         with open(path, encoding="utf-8") as stream:
             tree = ast.parse(stream.read())
     except (OSError, UnicodeDecodeError, SyntaxError):
         return None
-    return sum(1 for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
+    trees = [tree, *_embedded_programs(tree)]
+    return sum(1 for t in trees for node in ast.walk(t)
+               if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
 
 
 def _broad_catch_finding(rel, name, count):

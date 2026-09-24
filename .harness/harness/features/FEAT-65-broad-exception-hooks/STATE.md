@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-65-broad-exception-hooks
-- run: .harness/harness/features/FEAT-65-broad-exception-hooks/runs/plan-product/state.yaml
-- squad: product
-- status: awaiting-user
+- run: .harness/harness/features/FEAT-65-broad-exception-hooks/runs/validate-validator/state.yaml
+- squad: validator
+- status: blocked
 
 ## Open Questions
 
-- Approve or revise the pending FEAT-65 BRIEF, plan, and proposed rework ruling before build.
+- None. Validation must-fix is routed to Main because every implementation task is main-session-direct under DEC-174.

@@ -242,6 +242,38 @@ def run_feat65():
           f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
 
 
+def run_feat65_config_reader():
+    """FEAT-65 c1 (CR-01): the compatibility config reader — a program this gate runs through a
+    clean interpreter — recovers from its own boundary classes (no file, not JSON, a github
+    block that is not a mapping) with the same `false -` the shell gate printed, and carries
+    no broad catch for the census to miss."""
+    src = open(GATE, encoding="utf-8").read()
+    start = src.index('_CONFIG_READER = """') + len('_CONFIG_READER = """')
+    reader = src[start:src.index('"""', start)]
+    def run(body):
+        root = tempfile.mkdtemp()
+        os.makedirs(os.path.join(root, ".harness"))
+        if body is not None:
+            with open(os.path.join(root, ".harness", "harness.json"), "w") as f:
+                f.write(body)
+        return subprocess.run([sys.executable, "-I", "-", root], input=reader,
+                              capture_output=True, text=True)
+    for label, body in (("no harness.json", None), ("not JSON", "{nope"),
+                        ("a top-level document that is not an object", "[1, 2]")):
+        r = run(body)
+        check(f"FEAT-65 config reader recovers from {label} as `false -`",
+              r.returncode == 0 and r.stdout == "false -\n" and r.stderr == "",
+              f"rc={r.returncode} out={r.stdout!r} err={r.stderr[-200:]!r}")
+    # The exceptional path the gate runs this program FOR: a github block that is not a mapping
+    # exposes the helper's traceback, exactly as the shell gate did (see _github_config).
+    r = run('{"github": [1, 2]}')
+    check("FEAT-65 config reader keeps its traceback for a github block that is not a mapping",
+          r.returncode == 1 and r.stdout == "" and "AttributeError" in r.stderr,
+          f"rc={r.returncode} out={r.stdout!r} err={r.stderr[-200:]!r}")
+    check("FEAT-65 config reader carries no broad catch",
+          "except Exception" not in reader and "except:" not in reader, reader)
+
+
 def main():
     run_assertion_1()
     run_assertion_2()
@@ -250,6 +282,7 @@ def main():
     run_assertion_5()
     run_assertion_6()
     run_feat65()
+    run_feat65_config_reader()
 
     fails = 0
     for name, ok, detail in RESULTS:

@@ -45,6 +45,27 @@ def _count(mod, source):
         os.unlink(fh.name)
 
 
+_EMBEDDED_HELPER = 'import json\ntry:\n    x = json.loads(sys.argv[1])\nexcept Exception:\n    x = {}\n'
+_EMBEDDED = ('import subprocess, sys\nHELPER = ' + repr(_EMBEDDED_HELPER)
+             + "\nsubprocess.run([sys.executable, '-I', '-c', HELPER, 'x'])\n")
+
+
+def case_feat65_census_reads_executable_embedded_python():
+    """FEAT-65 c1 (CR-01): a string constant that parses as Python and carries a try statement
+    is a program the file runs through another interpreter; its broad catches count against
+    the carrier file. Prose, docstrings and non-Python strings do not parse into a try and
+    add nothing."""
+    mod = cpr()
+    check("an embedded `-c` program's broad catch counts against its carrier",
+          _count(mod, _EMBEDDED) == 1, repr(_count(mod, _EMBEDDED)))
+    check("an embedded program with a typed catch adds nothing",
+          _count(mod, _EMBEDDED.replace('except Exception:', 'except ValueError:')) == 0)
+    check("a docstring that merely mentions `except Exception` adds nothing",
+          _count(mod, 'def f():\n    """the old code said except Exception: here"""\n') == 0)
+    check("the live branch-create-gate.py config reader carries no broad catch",
+          mod._broad_catch_count(os.path.join(BIN_DIR, 'branch-create-gate.py')) == 0)
+
+
 def case_broad_catch_count_counts_exactly_the_two_syntaxes():
     """`except Exception` and bare `except:` count; a typed catch, a tuple, and a SUBCLASS of
     Exception do not -- the census is about the catch that hides bugs, not every handler."""
@@ -187,6 +208,7 @@ def main():
     case_broad_catch_finding_compares_a_file_to_its_own_ceiling()
     case_feat64_wave4_ceilings_are_zero()
     case_feat65_hooks_have_no_allowance()
+    case_feat65_census_reads_executable_embedded_python()
     case_feat65_dec234_prologues_are_byte_identical()
     case_spawn_resource_reads_git_and_gh_through_run_and_spawn()
     if failures:
