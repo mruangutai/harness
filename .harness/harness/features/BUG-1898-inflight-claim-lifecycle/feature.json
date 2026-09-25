@@ -66,6 +66,16 @@
       "tokens": 96264,
       "ended_at": "2026-09-24T21:24:41+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T23:57:00+00:00",
+      "tokens": 96088,
+      "ended_at": "2026-09-25T00:16:35+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -138,6 +148,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "c3 validate PASS handed off to the operator probe; the live probe found the S2 wake-reclaim defect, so main-session continued with fix c4 (DEC-174) and returns to validate"
+    },
+    {
+      "at": "2026-09-25T00:16:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "T-04 live-oracle omission permits a nested lead claim under the wrong persona while every S3 assertion passes"
+    },
+    {
+      "at": "2026-09-25T00:16:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c4 validation found a substantive T-04 oracle gap after rework reached 111 minutes against the operator ruling of 90; return the owned main-session-direct fix instead of starting another run"
     }
   ],
   "mission": "plan",
