@@ -86,6 +86,16 @@
       "tokens": 89885,
       "ended_at": "2026-09-25T13:14:38+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "validate-c6-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-25T13:20:45+00:00",
+      "tokens": 85999,
+      "ended_at": "2026-09-25T13:36:47+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -186,6 +196,13 @@
       "kind": "finding_kind",
       "decision": "substance",
       "reason": "F-SEC-C5-01 demonstrates a deeper-lineage row can satisfy the T-04 singleton while escaping persona and governing-parent validation"
+    },
+    {
+      "at": "2026-09-25T13:20:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c6 fix at 47b345fe65e992e07386de717f43b9f8dd495dc8",
+      "reason": "re-review F-SEC-C5-01 after the operator-owned c6 fix at the pinned SHA while preserving the authorized SC-07 receipt and named residuals"
     }
   ],
   "mission": "plan",
