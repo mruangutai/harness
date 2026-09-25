@@ -430,20 +430,29 @@ def batch_plain_ids(s: Session, mark: int) -> list[str]:
 NESTED_PERSONA = "harness-eng-lead"
 
 
+def _governing_root(agent_id: str, governed: list[str]) -> str | None:
+    """The governed orchestrator whose lineage `agent_id` sits under, at ANY depth, or None."""
+    return next((g for g in governed if agent_id.startswith(g + ".")), None)
+
+
 def nested_ids(s: Session, governed: list[str]) -> list[str]:
-    """Lineage ids sampled under a governed orchestrator's id (`Nest.Probe`): its children."""
+    """Every lineage id sampled under a governed orchestrator's id, at any depth."""
     return sorted({str(r.get("agent_id")) for _ts, rows in s.samples for r in rows
-                   if any(str(r.get("agent_id", "")).startswith(g + ".") for g in governed)})
+                   if _governing_root(str(r.get("agent_id") or ""), governed)})
 
 
 def crossed_rows(s: Session, governed: list[str], plain_ids: list[str]) -> list[dict]:
     """Rows, over every sample, bound to a non-governed id, to another persona's id, or —
-    for a nested child — to anything but the lead dispatched, under its own parent."""
+    under a governed orchestrator — to anything but the one lead it dispatched: a direct
+    child (`Nest.Probe`, one segment deeper), harness-eng-lead, parented by that
+    orchestrator. The probe dispatches nothing deeper, so any deeper row is crossed."""
     def crossed(row: dict) -> bool:
         agent_id = str(row.get("agent_id") or "")
-        parent = agent_id.rsplit(".", 1)[0] if "." in agent_id else None
-        if parent in governed:
-            return row.get("agent") != NESTED_PERSONA or row.get("parent_agent_id") != parent
+        root = _governing_root(agent_id, governed)
+        if root is not None:
+            direct = "." not in agent_id[len(root) + 1:]
+            return (not direct or row.get("agent") != NESTED_PERSONA
+                    or row.get("parent_agent_id") != root)
         return agent_id in plain_ids or (
             agent_id in governed and row.get("agent") != "harness-orchestrator")
     return [row for _ts, rows in s.samples for row in rows if crossed(row)]
