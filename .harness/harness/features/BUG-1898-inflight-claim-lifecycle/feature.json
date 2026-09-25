@@ -166,8 +166,8 @@
   ],
   "mission": "plan",
   "rework": {
-    "rounds": 2,
-    "wall_clock_minutes": 90,
+    "rounds": 3,
+    "wall_clock_minutes": 150,
     "decision": ".harness/harness/features/BUG-1898-inflight-claim-lifecycle/BRIEF.md"
   },
   "signed_task_hashes": {

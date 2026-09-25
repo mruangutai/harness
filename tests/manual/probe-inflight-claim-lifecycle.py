@@ -427,10 +427,23 @@ def batch_plain_ids(s: Session, mark: int) -> list[str]:
             if p.get("id") and not str(p.get("agent", "")).startswith("harness-")]
 
 
+NESTED_PERSONA = "harness-eng-lead"
+
+
+def nested_ids(s: Session, governed: list[str]) -> list[str]:
+    """Lineage ids sampled under a governed orchestrator's id (`Nest.Probe`): its children."""
+    return sorted({str(r.get("agent_id")) for _ts, rows in s.samples for r in rows
+                   if any(str(r.get("agent_id", "")).startswith(g + ".") for g in governed)})
+
+
 def crossed_rows(s: Session, governed: list[str], plain_ids: list[str]) -> list[dict]:
-    """Rows, over every sample, bound to a non-governed id or to another persona's id."""
+    """Rows, over every sample, bound to a non-governed id, to another persona's id, or —
+    for a nested child — to anything but the lead dispatched, under its own parent."""
     def crossed(row: dict) -> bool:
-        agent_id = row.get("agent_id")
+        agent_id = str(row.get("agent_id") or "")
+        parent = agent_id.rsplit(".", 1)[0] if "." in agent_id else None
+        if parent in governed:
+            return row.get("agent") != NESTED_PERSONA or row.get("parent_agent_id") != parent
         return agent_id in plain_ids or (
             agent_id in governed and row.get("agent") != "harness-orchestrator")
     return [row for _ts, rows in s.samples for row in rows if crossed(row)]
@@ -438,16 +451,19 @@ def crossed_rows(s: Session, governed: list[str], plain_ids: list[str]) -> list[
 
 def check_batch_ids(s: Session, governed: list[str], plain_ids: list[str]) -> None:
     every = observed_ids(s, governed, plain_ids)
+    nested = nested_ids(s, governed)
     stray = crossed_rows(s, governed, plain_ids)
     settled = [s._settlement(i) for i in governed]
     check("S3: two governed orchestrators started under real ids", len(governed) == 2, governed)
     check("S3: a repeated name produced a suffix id (Name-2)",
           any(i.rsplit("-", 1)[-1].isdigit() for i in every if "-" in i), every)
-    check("S3: a nested child produced a lineage id (Nest.Probe)",
-          any("." in i for i in every), every)
-    check("S3: no row ever carried a non-governed id or crossed personas", not stray, stray[:3])
+    check("S3: a nested lead held a claim under its lineage id (Nest.Probe)",
+          len(nested) == 1, nested)
+    check("S3: no row ever carried a non-governed id or crossed personas "
+          "(the nested row is the dispatched lead, under its own parent)", not stray, stray[:3])
     check("S3: every governed child settled", all(settled), settled)
-    check("S3: and none leaves a row", not governed_rows(governed), registry_rows())
+    check("S3: and none leaves a row, nested included",
+          not governed_rows(governed + nested), registry_rows())
 
 
 def seed_sentinel() -> dict:

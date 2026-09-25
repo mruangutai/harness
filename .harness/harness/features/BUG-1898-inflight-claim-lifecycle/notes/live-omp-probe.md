@@ -713,3 +713,391 @@ Observed ids and registry snapshots:
   "after": []
 }
 ```
+
+## Live run 2026-09-25T12:52:48+00:00
+
+- Verdict: **FAIL** (28/29 checks)
+- Command: `/Users/molchairuangutai/.bun/bin/omp --mode rpc --model anthropic/claude-sonnet-5 --cwd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle`
+- cwd: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle`
+- OMP: `/Users/molchairuangutai/.bun/bin/omp` → runtime `/Users/molchairuangutai/.local/share/omp-harness/harness-runtime-lineage-v2` @ `d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10` (pin `d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10`)
+- Session: `{"sessionId": "01a0d89e-8b75-7000-baf0-ad18b143a5f0", "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0.jsonl"}`
+- Scenarios: S1-orchestrator-background, S2-wake-reclaim, S3-mixed-batch, S4-suite-preservation, S5-settled-empty
+- Suite: `python3 tests/integration/test-validate-digest.py` → `{"returncode": 0, "tail": ["10/10 T-08 revision and lead replay cases passed.", "", "ALL PASSED."]}`
+
+Checks:
+- PASS: omp is on PATH
+- PASS: omp runs the pinned Harness runtime
+- PASS: cwd is this feature worktree
+- PASS: feature_root places the feature in this linked worktree
+- PASS: no fixture substitution: the gates resolve their root to this worktree
+- PASS: no fixture substitution: VALIDATE_DIGEST_BIN is unset
+- PASS: the hook under test is this worktree's
+- PASS: credentials exist for anthropic
+- PASS: the feature registry holds no rows (cutover done, nothing live)
+- PASS: the RPC session became ready
+- PASS: S1: a background orchestrator started under a real runtime id
+- PASS: S1: its settlement arrived on the lifecycle bus
+- PASS: S1: its settled run leaves no row
+- PASS: S2: has a settled orchestrator to wake
+- PASS: S2: the woken run's write landed (the hook authorizes only an exact-id claim)
+- PASS: S2: a row bound to the exact woken id was sampled during the wake
+- PASS: S2: the wake settled on the lifecycle bus
+- PASS: S2: and leaves no row
+- PASS: S3: two governed orchestrators started under real ids
+- PASS: S3: a repeated name produced a suffix id (Name-2)
+- PASS: S3: a nested lead held a claim under its lineage id (Nest.Probe)
+- FAIL: S3: no row ever carried a non-governed id or crossed personas (the nested row is the dispatched lead, under its own parent) (`[{'agent': 'harness-orchestrator', 'agent_id': 'Plain', 'claim_id': '64b29a5b8b354a1c945be7b5e27b7973', 'cwd': '/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle', 'dispatcher': 'run-start', 'feature': 'BUG-1898-inflight-claim-lifecycle', 'parent_agent_id': 'Main', 'runtime': 'omp', 'started_at': 1790340706.7960808, 'supervisor_pid': 24561, 'supervisor_started_at': 1790340663}, {'agent': 'harness-orchestrator', 'agent_id': 'Plain', 'claim_id': '64b29a5b8b354a1c945be7b5e27b7973', 'cwd': '/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle', 'dispatcher': 'run-start', 'feature': 'BUG-1898-inflight-claim-lifecycle', 'parent_agent_id': 'Main', 'runtime': 'omp', 'started_at': 1790340706.7960808, 'supervisor_pid': 24561, 'supervisor_started_at': 1790340663}, {'agent': 'harness-orchestrator', 'agent_id': 'Plain', 'claim_id': '64b29a5b8b354a1c945be7b5e27b7973', 'cwd': '/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle', 'dispatcher': 'run-start', 'feature': 'BUG-1898-inflight-claim-lifecycle', 'parent_agent_id': 'Main', 'runtime': 'omp', 'started_at': 1790340706.7960808, 'supervisor_pid': 24561, 'supervisor_started_at': 1790340663}]`)
+- PASS: S3: every governed child settled
+- PASS: S3: and none leaves a row, nested included
+- PASS: S4: the real suite run passed
+- PASS: S4: the seeded unrelated claim is byte-identical after the suite
+- PASS: S4: and the suite changed no other row
+- PASS: S5: every governed child observed
+- PASS: S5: the feature registry is empty at probe end
+
+Observed ids and registry snapshots:
+```json
+{
+  "ids": {
+    "S1/S2 orchestrator": "Scope",
+    "S3 governed": [
+      "Plain",
+      "Nest"
+    ],
+    "lifecycle": [
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_014R8innwTp1ywERYy7zbtcr",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_014R8innwTp1ywERYy7zbtcr",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 live probe digest",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_014R8innwTp1ywERYy7zbtcr",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_014R8innwTp1ywERYy7zbtcr",
+        "detached": true,
+        "agentSource": "project",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Plain",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_0128mXb66M3AFjHm75HqcVjB",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Plain.jsonl",
+        "index": 2
+      },
+      {
+        "id": "Nest",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_0128mXb66M3AFjHm75HqcVjB",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Nest.jsonl",
+        "index": 1
+      },
+      {
+        "id": "Scope-2",
+        "agent": "scout",
+        "parentToolCallId": "toolu_0128mXb66M3AFjHm75HqcVjB",
+        "detached": true,
+        "agentSource": "bundled",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Scope-2.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope-2",
+        "agent": "scout",
+        "parentToolCallId": "toolu_0128mXb66M3AFjHm75HqcVjB",
+        "detached": true,
+        "agentSource": "bundled",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Scope-2.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Plain",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_0128mXb66M3AFjHm75HqcVjB",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 live probe digest",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Plain.jsonl",
+        "index": 2
+      },
+      {
+        "id": "Nest.Probe",
+        "agent": "harness-eng-lead",
+        "parentToolCallId": "call_nrbq8Tjimtwepv1vYhAB7TS1|fc_0abb2141d3411734016ab66e68dcdc87d0be4950570e72c4be",
+        "detached": false,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Nest/Nest.Probe.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Nest.Probe",
+        "agent": "harness-eng-lead",
+        "parentToolCallId": "call_nrbq8Tjimtwepv1vYhAB7TS1|fc_0abb2141d3411734016ab66e68dcdc87d0be4950570e72c4be",
+        "detached": false,
+        "agentSource": "project",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Nest/Nest.Probe.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Nest",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_0128mXb66M3AFjHm75HqcVjB",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 nested lead probe",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-51-04-181Z_01a0d89e-8b75-7000-baf0-ad18b143a5f0/Nest.jsonl",
+        "index": 1
+      }
+    ]
+  },
+  "sentinel": {
+    "agent": "harness-qa",
+    "agent_id": "Probe.Sentinel",
+    "claim_id": "bfad6911283a4bcf8e049cb171ec28b6",
+    "cwd": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle",
+    "dispatcher": "probe-sentinel",
+    "feature": "BUG-1898-probe-sentinel",
+    "parent_agent_id": "Probe",
+    "runtime": "omp",
+    "started_at": 1790340740.956192,
+    "supervisor_pid": 24555,
+    "supervisor_started_at": 1790340663
+  },
+  "before": [],
+  "after": []
+}
+```
+
+## Live run 2026-09-25T12:54:34+00:00
+
+- Verdict: **PASS** (29/29 checks)
+- Command: `/Users/molchairuangutai/.bun/bin/omp --mode rpc --model anthropic/claude-sonnet-5 --cwd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle`
+- cwd: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle`
+- OMP: `/Users/molchairuangutai/.bun/bin/omp` → runtime `/Users/molchairuangutai/.local/share/omp-harness/harness-runtime-lineage-v2` @ `d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10` (pin `d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10`)
+- Session: `{"sessionId": "01a0d8a0-4c03-7000-962b-8fcc7d8d1e13", "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13.jsonl"}`
+- Scenarios: S1-orchestrator-background, S2-wake-reclaim, S3-mixed-batch, S4-suite-preservation, S5-settled-empty
+- Suite: `python3 tests/integration/test-validate-digest.py` → `{"returncode": 0, "tail": ["10/10 T-08 revision and lead replay cases passed.", "", "ALL PASSED."]}`
+
+Checks:
+- PASS: omp is on PATH
+- PASS: omp runs the pinned Harness runtime
+- PASS: cwd is this feature worktree
+- PASS: feature_root places the feature in this linked worktree
+- PASS: no fixture substitution: the gates resolve their root to this worktree
+- PASS: no fixture substitution: VALIDATE_DIGEST_BIN is unset
+- PASS: the hook under test is this worktree's
+- PASS: credentials exist for anthropic
+- PASS: the feature registry holds no rows (cutover done, nothing live)
+- PASS: the RPC session became ready
+- PASS: S1: a background orchestrator started under a real runtime id
+- PASS: S1: its settlement arrived on the lifecycle bus
+- PASS: S1: its settled run leaves no row
+- PASS: S2: has a settled orchestrator to wake
+- PASS: S2: the woken run's write landed (the hook authorizes only an exact-id claim)
+- PASS: S2: a row bound to the exact woken id was sampled during the wake
+- PASS: S2: the wake settled on the lifecycle bus
+- PASS: S2: and leaves no row
+- PASS: S3: two governed orchestrators started under real ids
+- PASS: S3: a repeated name produced a suffix id (Name-2)
+- PASS: S3: a nested lead held a claim under its lineage id (Nest.Probe)
+- PASS: S3: no row ever carried a non-governed id or crossed personas (the nested row is the dispatched lead, under its own parent)
+- PASS: S3: every governed child settled
+- PASS: S3: and none leaves a row, nested included
+- PASS: S4: the real suite run passed
+- PASS: S4: the seeded unrelated claim is byte-identical after the suite
+- PASS: S4: and the suite changed no other row
+- PASS: S5: every governed child observed
+- PASS: S5: the feature registry is empty at probe end
+
+Observed ids and registry snapshots:
+```json
+{
+  "ids": {
+    "S1/S2 orchestrator": "Scope",
+    "S3 governed": [
+      "Plain",
+      "Nest"
+    ],
+    "lifecycle": [
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01KMXTZm3M785NTotKi2JUnr",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01KMXTZm3M785NTotKi2JUnr",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 live probe digest",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01KMXTZm3M785NTotKi2JUnr",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01KMXTZm3M785NTotKi2JUnr",
+        "detached": true,
+        "agentSource": "project",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Plain",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01EZrSeMXn56sjQjyWThPPGC",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Plain.jsonl",
+        "index": 2
+      },
+      {
+        "id": "Nest",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01EZrSeMXn56sjQjyWThPPGC",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Nest.jsonl",
+        "index": 1
+      },
+      {
+        "id": "Scope-2",
+        "agent": "scout",
+        "parentToolCallId": "toolu_01EZrSeMXn56sjQjyWThPPGC",
+        "detached": true,
+        "agentSource": "bundled",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Scope-2.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope-2",
+        "agent": "scout",
+        "parentToolCallId": "toolu_01EZrSeMXn56sjQjyWThPPGC",
+        "detached": true,
+        "agentSource": "bundled",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Scope-2.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Plain",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01EZrSeMXn56sjQjyWThPPGC",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 live probe digest",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Plain.jsonl",
+        "index": 2
+      },
+      {
+        "id": "Nest.Probe",
+        "agent": "harness-eng-lead",
+        "parentToolCallId": "call_bxX1RSpETQY0z8D0xm9B0OLQ|fc_07d0ee1a1eb6b6b1016ab66ed508d487d0b0d0325d4ff90857",
+        "detached": false,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Nest/Nest.Probe.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Nest.Probe",
+        "agent": "harness-eng-lead",
+        "parentToolCallId": "call_bxX1RSpETQY0z8D0xm9B0OLQ|fc_07d0ee1a1eb6b6b1016ab66ed508d487d0b0d0325d4ff90857",
+        "detached": false,
+        "agentSource": "project",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Nest/Nest.Probe.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Nest",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "toolu_01EZrSeMXn56sjQjyWThPPGC",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 nested lead probe dispatch",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-1898-inflight-claim-lifecycle/2026-09-25T12-52-59-011Z_01a0d8a0-4c03-7000-962b-8fcc7d8d1e13/Nest.jsonl",
+        "index": 1
+      }
+    ]
+  },
+  "sentinel": {
+    "agent": "harness-qa",
+    "agent_id": "Probe.Sentinel",
+    "claim_id": "59aa63055fd34545802080f2a9128ff6",
+    "cwd": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1898-inflight-claim-lifecycle",
+    "dispatcher": "probe-sentinel",
+    "feature": "BUG-1898-probe-sentinel",
+    "parent_agent_id": "Probe",
+    "runtime": "omp",
+    "started_at": 1790340847.844094,
+    "supervisor_pid": 27286,
+    "supervisor_started_at": 1790340778
+  },
+  "before": [],
+  "after": []
+}
+```
