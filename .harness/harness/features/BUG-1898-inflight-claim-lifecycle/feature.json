@@ -2,7 +2,7 @@
   "feature_id": "BUG-1898-inflight-claim-lifecycle",
   "branch": "feat/BUG-1898-inflight-claim-lifecycle",
   "pr": null,
-  "review_sha": "7893fe7a23e493dcd1554e439f28e3c9832b4de4",
+  "review_sha": "47b345fe65e992e07386de717f43b9f8dd495dc8",
   "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
