@@ -1370,6 +1370,12 @@ ALLOWED_PATH_RESULT: SUCCEEDED
 
 Selective path blocking works, `exit 2` blocks, and the stderr reason reaches the agent.
 
+Only `exit 2` blocks; a hook's own crash passes through, and that holds for dispatch too. A
+dispatch-guard crash still lets the dispatch through without a receipt. Under OMP the started
+child makes the authoritative claim at run start (DEC-204). A child that cannot claim refuses
+every tool itself and may yield only a BLOCKED digest that names the cause and whether a retry can
+succeed. The guard's pass-through is therefore never an unclaimed governed run.
+
 **Residual gap, stated honestly:** this used a `settings.json` hook, not an *agent-frontmatter* hook.
 Agent definitions are **not live-reloaded** (see below), so the frontmatter variant could not be loaded
 this session. The docs assert it directly — *"Define hooks directly in the subagent's markdown file…
@@ -6358,10 +6364,13 @@ different id form is refused. The OMP adapter normalizes both batch and flat tas
 existing dispatch guard for every item, and refuses the whole batch when one item fails. A batch
 cannot start with only part of its checkpoint represented by claims.
 The role marker comes from the system prompt, but the feature marker does not: OMP places the task
-assignment in the first user message. The extension captures that message before the first tool
-call and carries the feature into yield validation and startup reconciliation. Reading only
-`before_agent_start.systemPrompt` was measured losing the feature and falsely treating concurrent
-features as one parent-child tree.
+assignment in the run's first user message, and `before_agent_start` receives that message's text as
+its `prompt` before the first tool call. The extension reads the one `HARNESS-FEATURE` value there;
+two different values are refused. A restart or revival that carries no marker recovers its feature
+only from the one live claim bound to its exact runtime id, searched across the owner checkout's
+registry and every linked worktree's; none, several, or an unreadable registry is a refusal, never a
+guess from persona, dispatch name, cwd, or session. Reading only `before_agent_start.systemPrompt`
+was measured losing the feature and falsely treating concurrent features as one parent-child tree.
 
 
 **Claims use schema version 2.** The registry is one explicit `claims` list. Every entry names
@@ -6369,13 +6378,22 @@ features as one parent-child tree.
 names its supervising PID. Main is not a Harness persona and remains outside persona policy, but
 the OMP adapter submits its top-level Harness task through dispatch preflight using OMP's
 host-derived `Main` runtime id; this creates the orchestrator claim without constraining the user's
-model choice. After dispatch preflight creates any OMP claim, the parent extension atomically
-attaches its host-derived runtime id and, when the task call names the child, that expected child id
-before the task call returns. Before an inherited child may use Write, Edit, or Bash, it presents
-OMP's actual child and parent ids: the registry either verifies the exact pre-bound pair or binds
-the actual child to the one unique parent-bound unnamed claim. A mismatch, ambiguity, missing
-identity, or registry error refuses before the mutation gate runs. Later task results may add job
-identity without changing the attached lineage. Single-flight is keyed by `(feature, persona)`, so
+model choice. After dispatch preflight creates an OMP claim, a receipt, the parent extension
+attaches its own host-derived runtime id to it before the task call returns. It never binds a
+dispatch name, which is not the id OMP gives the child. **Every governed run claims at run start.**
+Before its first tool call, a governed run presents OMP's actual child and parent ids to one locked
+`run-start` step. That step reuses the live claim already bound to that exact id (a woken agent),
+binds the unique unbound receipt its parent left, or creates a claim of its own; it never picks
+from an ambiguous set. A run that cannot claim is held:
+
+- the causes: another live holder of a single-flight persona, a lineage mismatch, an unreadable
+  registry, no exact claim for a markerless revival, or missing runtime identity;
+- the refusal names its cause and whether a retry can succeed;
+- every tool except `yield` is refused, and only a BLOCKED digest may be yielded.
+
+Before Write, Edit, or Bash the registry still verifies the exact child and parent pair; a
+mismatch, ambiguity, missing identity, or registry error refuses before the mutation gate runs.
+Single-flight is keyed by `(feature, persona)`, so
 two PMs for one feature are refused while PMs for different features are legal. The version-1
 persona-keyed object is read once for migration and every following write is version 2. There is one
 locked registry implementation, still `inflight_registry.py`.
@@ -6397,13 +6415,29 @@ another feature; only that feature's query or an explicit targeted reconcile rem
 crash recovery from changing an unrelated flow merely because both claims share one registry.
 
 
-**Release is targeted and idempotent.** A settled blocking task result releases its claim directly.
-For a background task, OMP attaches agent/job identity from task result details and releases the
-matching claim on `task:subagent:lifecycle`; `yield` validation remains an idempotent second path.
-A failed preflight or spawn releases claims for items that did not start. Recovery instructions and
-refusals print only feature/agent/claim-targeted commands, never `release-all`. The older command
-remains an operator escape hatch but is not an automated remedy. A lead or orchestrator `yield` is
-refused while any matching child claim remains live; `agent_end` is notification-only.
+**Release is exact and idempotent.** A claim is released only by its feature plus its exact runtime
+id or claim id. The release happens in the registry that `inflight_registry.feature_root` places
+that feature in. That is the one resolver that dispatch preflight, the run-start step, and yield
+validation share.
+
+- **Task results.** Results are keyed by each row's own runtime id, never by array position. A
+  settled row releases that id's claim wherever it lives.
+- **Background children.** A background child's settlement arrives on OMP's
+  `task:subagent:lifecycle`. The extension subscribes to it through `pi.events`, the session event
+  bus; `pi.on` never delivers it. The settlement releases that id's claim, and a woken agent's
+  turns settle the same way.
+- **Dispatch receipts.** A receipt only holds a governed slot across the spawn gap. Once every
+  child of a call has settled, or the call failed as a whole, the receipts no child bound are
+  released. So a receipt only ever rolls back a child that never started.
+- **Yield validation.** Yield validation releases the run's own claim as an idempotent second
+  path. It requires both the feature and the exact runtime id: it releases nothing without them
+  and refuses a non-BLOCKED return that lacks them. A lead or orchestrator `yield` is refused, and
+  keeps its own claim, while any claim whose parent is its exact id remains live.
+- **Recovery commands.** Recovery instructions and refusals print only commands that name one
+  claim, by feature and runtime or claim id. They never print a persona-wide release or
+  `release-all`, which remains an operator escape hatch and is not an automated remedy.
+
+`agent_end` is notification-only.
 
 **A process exit does not pretend detached work survived.** OMP sessions and transcripts persist,
 but running jobs belong to the process. On `--resume`, a dead-PID claim is reconciled before a new
@@ -6439,11 +6473,26 @@ each parent transcript contains no intervening model message or tool call.
 
 
 
-The deterministic suites separately exercise per-feature PM isolation, live/dead OMP supervisors,
-targeted release, schema migration, runtime identity, atomic batch refusal, blocking-result release,
-flat/batch normalization, lifecycle release, and parent-yield refusal. The port checker rejects
-drift in async enablement, wall-clock configuration, nested blocking declarations, task preflight,
-lifecycle wiring, or the GitHub close gate.
+The deterministic suites separately exercise these behaviours:
+
+- per-feature PM isolation;
+- live and dead OMP supervisors;
+- run-start claiming, including wakes, markerless revivals and every held refusal;
+- exact, feature-registry release;
+- id-keyed settlement of mixed and reordered batches;
+- schema migration and runtime identity;
+- atomic batch refusal and flat/batch normalization;
+- parent-yield refusal.
+
+The port checker rejects drift in:
+
+- async enablement and wall-clock configuration;
+- nested blocking declarations and task preflight;
+- a lifecycle listener registered anywhere but `pi.events`;
+- the GitHub close gate.
+
+The live `tests/manual/probe-inflight-claim-lifecycle.py` is the credentialled merge gate for a
+change to this lifecycle.
 
 This decision supersedes DEC-199 only for claim schema, key, liveness, and automated recovery. It
 supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and

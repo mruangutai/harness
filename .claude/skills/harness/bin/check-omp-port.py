@@ -78,6 +78,24 @@ def runtime_probe_errors(root: Path) -> list[str]:
 
 
 
+# BUG-1898 defect D: OMP emits task:subagent:lifecycle on the session EventBus that an
+# extension reaches as `pi.events`; `pi.on` is the hook dispatcher and never delivers it.
+# The marker string alone is present in both forms, so the registration shape is checked.
+_LIFECYCLE_ON_EVENTS = re.compile(r"""\bpi\.events\.on\(\s*(["'])task:subagent:lifecycle\1""")
+_LIFECYCLE_ON_HOOKS = re.compile(r"""\bpi\.on\(\s*(["'])task:subagent:lifecycle\1""")
+
+
+def lifecycle_bus_errors(source: str) -> list[str]:
+    errors = []
+    if _LIFECYCLE_ON_HOOKS.search(source):
+        errors.append(".omp/extensions/harness-hooks.ts registers task:subagent:lifecycle on "
+                      "pi.on, which never delivers it; register it on pi.events")
+    if not _LIFECYCLE_ON_EVENTS.search(source):
+        errors.append(".omp/extensions/harness-hooks.ts has no task:subagent:lifecycle "
+                      "listener on pi.events; terminal children are never released")
+    return errors
+
+
 def check(root: Path) -> list[str]:
     errors: list[str] = []
     agents_md = root / "AGENTS.md"
@@ -172,7 +190,6 @@ def check(root: Path) -> list[str]:
         source = extension.read_text(encoding="utf-8")
         required_wiring = {
             "dispatch-guard.py": "OMP task preflight",
-            "task:subagent:lifecycle": "OMP task terminal lifecycle",
             "gh-close-gate.py": "GitHub close preflight",
             "inflight_registry.py": "OMP claim attachment and release",
             # BUG-1132: absent here until this fix, so plan-sign-gate.py's own absence from
@@ -185,6 +202,7 @@ def check(root: Path) -> list[str]:
         for marker, purpose in required_wiring.items():
             if marker not in source:
                 errors.append(f".omp/extensions/harness-hooks.ts lacks {purpose} ({marker})")
+        errors.extend(lifecycle_bus_errors(source))
 
     command_dir = root / ".omp" / "commands"
     for door in REQUIRED_DOORS:

@@ -1,0 +1,250 @@
+schema: plan/1
+feature: BUG-1898-inflight-claim-lifecycle
+approval:
+  date: '2026-09-24'
+  approved_by: main session (operator molchairuangutai)
+  status: approved
+status: building
+mission: plan
+source_issues: [1898]
+baseline:
+  sha: 4e8c73c0
+  branch: feat/BUG-1898-inflight-claim-lifecycle
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Reviewed scope, traceability, topological dependencies, architecture, and
+      all four sharp questions.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Challenged invented behavior and disproportionate task scope.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: Self-scoped out because the plan has no user-facing surface; no DESIGN.md
+      or prototype is required.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Graded exactly one line for each of the four BRIEF perspectives against
+      the grilling artifact.
+  findings:
+  - id: PF-76209d0a36c1336673ab03a358829427
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: Resolve the restart/revival feature-identity lookup before plan approval.
+    disposition: resolved
+    resolved_by: T-01, T-02
+    resolution: BRIEF Constraints, D-01, T-01, and T-02 now specify one pre-write exact-agent lookup across the owner-checkout and all registered linked-worktree registries, with unique-match success and zero, multiple, or unreadable refusal.
+  - id: PF-2d5c2f34e36b72a8dc95cabccec2e9fb
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: The persona-scoped single-flight invariant for non-PM roles is invented; only harness-pm is single-flight today and the intent settled the one-PM rule as unchanged.
+    disposition: resolved
+    resolved_by: T-01
+    resolution: BRIEF Constraints, D-01, and T-01 retain single-flight only for harness-pm through SINGLE_FLIGHT_AGENTS and explicitly preserve same-feature multi-flight for every other persona.
+  - id: PF-10de5de904e06669dc97fbfa2bb396cb
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-04's --dry-run scope (receipt-schema and scenario-structure validation) exceeds the established probe dry-run convention of printing the plan.
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+    resolution: T-04 dry-run is limited to prerequisite checks and printing the exact command, cwd, and scenario plan; receipt-schema and scenario-structure self-validation are forbidden.
+  - id: PF-799217131de2d5706ced864261550034
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: Suite-preservation of an unrelated seeded live claim is proven in three places; the test-run-unit-tests-kinds extension adds the least and can be dropped.
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+    resolution: T-04 keeps runner-kind declaration pinning but removes the seeded-claim scenario from test-run-unit-tests-kinds; T-03 and the live probe retain the real proofs.
+  - id: PF-fe16f9a27157494d54e1c7dc97eb7509
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: Lane rows extending DEC-174 to the feature notes directory and the DECISIONS docs attribute enforcement-carve-out authority to surfaces outside its category.
+    disposition: resolved
+    resolved_by: T-02, T-04, T-05
+    resolution: Lanes and task reasons now cite DEC-174 only for extension, harness-bin, and tests surfaces; records cite DEC-205 current truth or the operator-required explicit notes lane.
+lanes:
+  resolved_at: 4e8c73c0
+  rows:
+  - surface: .omp/extensions/**
+    lane: main-session-direct
+    reason: DEC-174 keeps the OMP enforcement hook and its lifecycle behavior out of self-hosted team execution.
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: DEC-174 keeps registry, dispatch, validator, port-check, and decision-index enforcement code in direct main-session execution.
+  - surface: tests/**
+    lane: main-session-direct
+    reason: DEC-174 keeps every test that directly vouches for these enforcement surfaces with the direct implementation.
+  - surface: .harness/harness.json
+    lane: main-session-direct
+    reason: The operator requires explicit direct-lane coverage for this feature's test-kind declaration; it remains coupled to the direct tests task, while DEC-174 governs the tests rather than this config record.
+  - surface: .harness/harness/docs/DECISIONS.md and .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: DEC-205 requires the lifecycle doctrine to be rewritten in place as current truth and to land with the correction it records; DEC-174 does not govern these records.
+  - surface: .harness/harness/features/BUG-1898-inflight-claim-lifecycle/notes/**
+    lane: main-session-direct
+    reason: The operator requires explicit lane coverage for this feature's notes; each restart, live-session, cutover, or post-merge record stays with the direct task whose evidence it records, not under DEC-174 authority.
+decisions:
+  - id: D-01
+    choice: 'Make OMP run start authoritative for claiming or binding the exact feature, persona, agent id, parent id, and supervisor. When a restart or revival has no canonical feature marker, recover feature identity before first write by searching the owner-checkout registry and every registered linked-worktree registry for the exact live OMP agent id: exactly one match supplies the feature and holding root, while zero matches, multiple matches, or any unreadable registry hold the child in the cause-and-retryability BLOCKED-only state. Retain single-flight only for harness-pm; personas outside SINGLE_FLIGHT_AGENTS remain legally multi-flight.'
+    because: Dispatch does not yet know the actual OMP child id, while before_agent_start exposes that id before the child can write and runs again when a settled agent wakes. DEC-204 records that its system prompt can omit the feature marker; the existing owner-root plus registered-linked-worktree boundary gives an exhaustive registry scope in which exact agent id, unlike persona or name, is unambiguous or safely refusible.
+    dec: DEC-100, DEC-204, DEC-218, DEC-233
+  - id: D-02
+    choice: Key task results and lifecycle settlement by each OMP result row's actual id, delete bare dispatch-name prebinding and positional receipt matching, and use a dispatch receipt only to roll back a governed child that never started.
+    because: Names and batch positions are not identities; OMP already emits lineage-qualified and uniqueness-suffixed ids such as `Lead.Scope` and `Name-2`.
+    dec: DEC-204, DEC-218
+  - id: D-03
+    choice: Use `inflight_registry.feature_root` as the only feature-registry resolver and migrate both dispatch guard and digest validation to it.
+    because: A private dispatch resolver and owner-checkout validation currently split claim, child-gate, release, and recovery operations across different registries.
+    dec: DEC-204, DEC-205
+  - id: D-04
+    choice: Subscribe to `task:subagent:lifecycle` on `pi.events` and make the OMP port check reject a marker registered on any other bus.
+    because: OMP publishes task lifecycle on the event bus; string-presence checks and unit fakes do not prove that a real event can reach the handler.
+    dec: DEC-204, DEC-205
+  - id: D-05
+    choice: Treat occurrence 1 as a safety invariant rather than asserting an unproven historical cause; prove that QA yield and a suite run cannot release a concurrently live PM claim.
+    because: The destructive selector is observable and fixable, but the original trigger remains causally unpinned.
+    dec: none
+  - id: D-06
+    choice: Require a credentialled live OMP probe to pass before merge, perform one exact manual registry cutover before live sessions load the new hook, and record the first real post-merge full feature cycle as follow-up evidence rather than a merge or ship gate.
+    because: Event delivery, revived-run behavior, and real ids require the host runtime, while guessed bulk cleanup and circular post-merge gates would create new lifecycle hazards.
+    dec: DEC-204, DEC-205
+  - id: D-07
+    choice: Rewrite DEC-204 in place to the shipped run-start, id-keyed, canonical-root lifecycle and add the DEC-100 child-refusal distinction, rather than appending a contradictory amendment.
+    because: DEC-205 requires current-truth correction of stale implementation records.
+    dec: DEC-100, DEC-204, DEC-205
+tasks:
+  - id: T-01
+    title: Establish canonical feature resolution and atomic run-start claiming
+    traces: [SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves the inflight registry, dispatch guard, and the enforcement tests that vouch for them to direct main-session execution.
+    depends_on: []
+    status: plan
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py#feature_root
+      - .claude/skills/harness/bin/dispatch-guard.py#_root_for
+      - tests/integration/test-inflight-registry.py
+      - tests/integration/test-dispatch-guard.py
+    verify: |
+      python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py
+    intent: |
+      Work red-first. Add integration cases that fail against the baseline for canonical feature-worktree resolution, exact-id run start, a settled exact-id reclaim, a unique unbound parent receipt, one-PM conflict, and two concurrent same-feature claims for a governed persona outside SINGLE_FLIGHT_AGENTS. Exercise real registry files and assert claim rows and command results rather than implementation calls. Add exact-id revival-discovery cases covering a unique owner-root match, a unique linked-worktree match, zero matches, duplicate matches across registries, and an unreadable registry.
+
+      Make inflight_registry.feature_root the single public resolver for a feature registry. Preserve its linked-worktree lookup and owner-root fallback. Delete dispatch-guard._root_for rather than retaining a one-caller delegation. Both callers must choose the same feature worktree for a linked feature.
+
+      Add a read-only run-identity lookup that starts from the resolved owner checkout, enumerates that checkout plus every worktree returned by harness_boundary.linked_worktrees, and filters live claims by exact OMP agent id. Exactly one match returns that claim's feature and the registry root holding it. Zero matches, multiple matches, or any unreadable registry return a structured refusal; never select by persona, dispatch name, cwd, or guessed session identity.
+
+      Add one locked run-start operation that receives exact feature, persona, OMP agent id, parent id, and supervisor. It must atomically choose exactly one outcome: reuse an already live claim bound to that exact id; bind the unique live parent-bound dispatch receipt that has not yet acquired an agent id; or create and bind a new run-start claim when no receipt exists. Preserve single-flight only when inflight_registry.is_single_flight reports true, which today means harness-pm. Every persona outside SINGLE_FLIGHT_AGENTS may retain multiple live same-feature claims; exact claim, agent, and parent ids still cannot cross-bind. Never bind by bare dispatch name and never select an ambiguous receipt.
+
+      Return a structured claim/refusal result suitable for hook messaging. A live-PM conflict names the holder and is retryable after that holder settles. An unreadable or corrupt registry names the operator condition and is non-retryable by the child. Keep release and recovery commands targeted by feature plus claim id or exact agent id. Do not add automatic retries, a retry limit, release-all, or stale-row guessing.
+
+      Preserve DEC-100 exactly: if the dispatch guard itself crashes or cannot obtain a receipt, it passes the dispatch through unchanged. The child run-start claim is the authoritative second boundary; no guard exception is converted into a dispatch denial.
+  - id: T-02
+    title: Rebuild the OMP hook around run ids and the real lifecycle bus
+    traces: [SC-02, SC-04, SC-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct main-session execution for the OMP extension, harness bin checker, and every tests path. The operator-required explicit notes lane keeps the restart evidence with the same direct task that produces it.
+    depends_on: [T-01]
+    status: plan
+    files:
+      - .omp/extensions/harness-hooks.ts#registerHarnessHooks
+      - tests/unit/omp-hooks.test.ts
+      - .claude/skills/harness/bin/check-omp-port.py#check
+      - tests/integration/test-check-omp-port.py
+      - .harness/harness/features/BUG-1898-inflight-claim-lifecycle/notes/restart-marker-evidence.md
+    verify: |
+      bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-check-omp-port.py
+    intent: |
+      Work red-first. Extend the OMP hook unit harness with observable cases for first run, settled-agent wake, markerless restart or revival, unclaimable run, reordered mixed background results, repeated names, lineage ids, children that never start, and actual settlement. The markerless cases must exercise one unique exact-agent claim and the zero-match, multiple-match, and unreadable-registry refusals. Every unclaimable case must show every tool except yield refused and must reject a non-BLOCKED yield. Assert registry state and tool verdicts, not handler registration trivia.
+
+      At each governed before_agent_start, capture the context's actual agent and parent ids and initialize the run as unready. Resolve feature identity and complete T-01's run-start operation before authorizing any tool write. A canonical assignment marker supplies feature identity when present. If a restart or revival has no marker, call T-01's exact-agent lookup across the owner-checkout registry and every registered linked-worktree registry; exactly one live match supplies the feature and holding root. Zero matches, multiple matches, or any unreadable registry retain a per-run held state with an actionable cause and retryability, refuse every later tool, and allow only a syntactically valid BLOCKED digest through yield. Never fall back to persona, dispatch name, cwd, or guessed session identity.
+
+      On a first child run, consume the unique parent dispatch receipt if present. When DEC-100 allowed a receiptless dispatch, capture the canonical feature from the assignment and create the exact claim before the first tool write. On a wake after settlement, reclaim the same exact id. Add no mechanical retry loop or limit.
+
+      Remove every prebind to bare dispatch.name. For task-result delivery, index returned rows by each row's actual id and reconcile only the receipt for that governed dispatch. Non-governed rows never acquire a claim. Receipt order and result order may differ without cross-attachment. Use a receipt only to release a governed child proven never to have started. Cover a mixed batch containing non-governed work, repeated names, Lead.Scope, and Name-2, including first writes before result delivery and final zero governed leftovers.
+
+      Register task:subagent:lifecycle on pi.events, not pi.on. Settlement and yield must release only the exact run claim. Upgrade check-omp-port.py and its integration mutants to inspect the registration shape so the baseline wrong-bus form fails even though the event marker string is present.
+
+      Write notes/restart-marker-evidence.md with the measured premise that DEC-204 records before_agent_start.systemPrompt losing the feature marker, the owner-root and registered-linked-worktree search scope, and the unit receipts for unique recovery plus every refusal branch. The note records proof of the settled lookup rule; it does not defer identity selection to a later live observation.
+  - id: T-03
+    title: Make digest validation exact and registry-consistent
+    traces: [SC-01, SC-03, SC-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves the SubagentStop validator and its enforcement integration suite to direct main-session execution.
+    depends_on: [T-01, T-02]
+    status: plan
+    files:
+      - .claude/skills/harness/bin/validate-digest.py#hook_mode
+      - tests/integration/test-validate-digest.py
+    verify: |
+      python3 tests/integration/test-validate-digest.py
+    intent: |
+      Work red-first. Seed one unrelated live exact-id claim for every governed persona, including PM, and prove the baseline hook can disturb the set before changing production code. Add the occurrence-1 invariant explicitly: a QA digest is validated while PM remains live, and PM's claim id, agent id, parent id, and timestamps survive unchanged. Do not claim a historical cause that the reproduction does not establish.
+
+      In governed hook mode, require both feature and exact harness agent id before child lookup or release. If either is absent or ambiguous, exit with the existing blocking class and an actionable refusal, release nothing, and never fall back to persona-wide selection. Resolve the feature registry only through T-01's `inflight_registry.feature_root`; use that same root for live-child lookup, held-child refusal, release, and printed recovery commands.
+
+      Re-arm the held-child gate against exact ids. A lead or orchestrator with a live child must be refused and its parent claim must remain. After the corrected lifecycle path settles that child, the next identical parent yield must succeed and release only the parent. Recovery output names exact feature plus claim id or agent id and never suggests bulk or persona-only release. Defect E lands here only after T-02 corrects defects C and D.
+  - id: T-04
+    title: Add the live OMP merge-gate probe and suite-preservation receipt
+    traces: [SC-01, SC-04, SC-07]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 requires direct main-session execution for both tests paths. The operator-required explicit lane coverage keeps the coupled test-kind declaration and live-probe receipt in that same direct task without treating config or records as DEC-174 surfaces.
+    depends_on: [T-02, T-03]
+    status: plan
+    files:
+      - tests/manual/probe-inflight-claim-lifecycle.py
+      - .harness/harness.json
+      - tests/integration/test-run-unit-tests-kinds.py
+      - .harness/harness/features/BUG-1898-inflight-claim-lifecycle/notes/live-omp-probe.md
+    verify: |
+      python3 tests/manual/probe-inflight-claim-lifecycle.py --dry-run && python3 tests/integration/test-run-unit-tests-kinds.py
+    intent: |
+      Add an inflight_claim_lifecycle_live locally-run test kind whose detector and command name tests/manual/probe-inflight-claim-lifecycle.py, whose worktree exclusion matches the existing live kinds, and whose runner note requires an omp binary, live credentials, execution from the feature worktree, and a recorded feature-note receipt. Keep it outside the automated matrix: it is a credentialled merge gate, not a CI claim. Extend the runner-kind integration test only to pin this declaration; do not add a seeded-claim preservation scenario there. T-03 owns the hook regression and the live probe owns the real-suite preservation proof.
+
+      Implement deterministic --dry-run behavior that validates only the live probe's prerequisites and prints the exact planned command, cwd, and scenario list without starting OMP or claiming live success. Do not add receipt-schema or scenario-structure self-validation. Live mode must refuse missing OMP, missing credentials, wrong working directory, fixture substitution, or a skipped scenario. It starts the real OMP session with this linked worktree as cwd and records the session, job, result-row, and agent ids it observes rather than predicting names.
+
+      In one live receipt, prove all of the following: Main dispatches an orchestrator in background and the real lifecycle event removes the settled row; a settled governed agent is woken through hub send and owns its exact id before its first write without manual binding; a mixed governed/non-governed background batch returns reordered rows including repeated names and lineage/suffix ids such as Lead.Scope and Name-2 without cross-attachment; one real suite run leaves a separately seeded unrelated live claim intact; each governed child settles; and the entire feature registry is empty at probe end. Cleanup may target only ids created and observed by this probe.
+
+      Write the live command, cwd, OMP/runtime identity, scenario ids, before/after registry snapshots, suite verdict, and final PASS or failure to notes/live-omp-probe.md. Dry-run output is only a prerequisite and plan print; it is never a receipt or PASS. The operator must run live mode successfully before merge.
+  - id: T-05
+    title: Correct the lifecycle decisions and publish the exact cutover
+    traces: [SC-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: DEC-205 requires the decisions records to state current truth, and the operator requires the generated index and feature cutover record to land in the same direct task after the lifecycle correction. DEC-174 does not govern these records.
+    depends_on: [T-03, T-04]
+    status: plan
+    files:
+      - .harness/harness/docs/DECISIONS.md#DEC-100
+      - .harness/harness/docs/DECISIONS.md#DEC-204
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/features/BUG-1898-inflight-claim-lifecycle/notes/ship-checklist.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Under DEC-205, rewrite DEC-204's stale release paragraph in place to current truth. State that every governed run claims or binds its exact OMP id at run start; task results and settlement are id-keyed; lifecycle subscribes through `pi.events`; dispatch receipts only roll back children that never started; yield and held-child checks use the canonical feature registry; and release is exact and idempotent. Do not append an amendment that leaves contradictory old text authoritative.
+
+      Add the DEC-100 distinction without weakening it: a dispatch-guard crash still passes through, while the started child performs the authoritative claim and self-refuses every tool except a cause-and-retryability BLOCKED yield when it cannot claim. Regenerate `DECISIONS-INDEX.md` with the repository generator and keep its hand-written suffixes intact.
+
+      Write `notes/ship-checklist.md` as an executable operator sequence. Before any live session loads the changed hook, enumerate every feature worktree registry, identify known-dead rows from exact runtime evidence, release each confirmed row individually with feature plus claim id or exact agent id, and enumerate every registry again. Forbid automatic cleanup, release-all, persona-only release, and action on ambiguous or live rows. Explicitly state that implementation does not clear FEAT-65's current live or leaked rows.
+
+      After merge, require the first real feature to complete planning, build, and validation with exact claim and settlement evidence stored in that feature's own notes. Track that observation as follow-up evidence only; it is neither a merge nor a ship gate. Keep issues 1919 and 1882, mechanical retry limits, and automatic stale cleanup out of this feature.
+needs_approval: true

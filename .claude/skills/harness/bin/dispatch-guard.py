@@ -243,19 +243,14 @@ if refs:
             sys.exit(2)
 
 
-def _root_for(flow):
-    owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
-                                 strict=False)
-    if not owner_root:
-        return None
-    # No catch (FEAT-65): linked_worktrees answers [] for every filesystem failure itself.
-    for wt in hb.linked_worktrees(owner_root):
-        if os.path.basename(wt) == flow:
-            return wt
-    return owner_root
-
-
-root = _root_for(declared)
+# The checkout whose registry holds this dispatch's claims — the one resolver every reader
+# uses. BUG-1898: this once matched a linked worktree's basename by EQUALITY, so a
+# short-form worktree (`BUG-97` for `BUG-97-short-form`) sent the claim to the owner
+# checkout while authorize and validate-digest, which prefix-match through feature_root,
+# looked in the worktree. One resolver, one registry.
+owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                             strict=False)
+root = reg.feature_root(owner_root, declared) if owner_root else None
 if not root:
     print("dispatch-guard: no checkout root for this dispatch — no claim recorded.",
           file=sys.stderr)
@@ -264,8 +259,7 @@ if not root:
 # T-09 -- a shell-less persona cannot resolve the feature tree itself. The
 # dispatcher supplies the resolved value and this block checks it before claim.
 try:
-    owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
-                                 strict=False)
+    # owner_root is set: a dispatch with no checkout root exited above.
     tools_file = os.path.join(owner_root, ".omp", "agents", dispatched + ".md")
     raw_agent = open(tools_file, encoding="utf-8").read()
     frontmatter = raw_agent.split("---", 2)[1]

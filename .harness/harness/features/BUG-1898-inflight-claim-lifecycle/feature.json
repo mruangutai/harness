@@ -1,0 +1,243 @@
+{
+  "feature_id": "BUG-1898-inflight-claim-lifecycle",
+  "branch": "feat/BUG-1898-inflight-claim-lifecycle",
+  "pr": null,
+  "review_sha": "47b345fe65e992e07386de717f43b9f8dd495dc8",
+  "cycles_used": 5,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T14:05:11+00:00",
+      "tokens": 137238,
+      "ended_at": "2026-09-24T14:38:14+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T16:37:25+00:00",
+      "ended_at": "2026-09-24T17:37:28+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T17:41:53+00:00",
+      "tokens": 112502,
+      "ended_at": "2026-09-24T17:58:10+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T19:34:40+00:00",
+      "tokens": 144014,
+      "ended_at": "2026-09-24T20:05:32+00:00",
+      "cycles_used": 2
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T20:35:56+00:00",
+      "tokens": 117760,
+      "ended_at": "2026-09-24T21:00:47+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-24T21:04:42+00:00",
+      "tokens": 96264,
+      "ended_at": "2026-09-24T21:24:41+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-24T23:57:00+00:00",
+      "tokens": 96088,
+      "ended_at": "2026-09-25T00:16:35+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c5-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-25T12:56:15+00:00",
+      "tokens": 89885,
+      "ended_at": "2026-09-25T13:14:38+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c6-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-25T13:20:45+00:00",
+      "tokens": 85999,
+      "ended_at": "2026-09-25T13:36:47+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-24T14:04:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "five causes across the OMP extension, the digest validator, the registry and their tests; the fix adds a claim-at-run-start path and re-arms the held-child gate (new enforcement surfaces), and occurrence 1's trigger is still unpinned"
+    },
+    {
+      "at": "2026-09-24T16:37:25+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "BUG-1898 build, main-session-direct (DEC-174)"
+    },
+    {
+      "at": "2026-09-24T17:41:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "build PASS is pinned at the requested review SHA; proceed to the independent validation panel while leaving SC-07 to the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T17:58:13+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "F-01 and F-QA-01 each change shipped enforcement or its required automated proof and cite owned plan tasks with concrete failure scenarios"
+    },
+    {
+      "at": "2026-09-24T19:34:40+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate the c1 fixes at 81dbd81d21b04b6fdcba2435d2e73a12ec72fd2e",
+      "reason": "re-review the two prior high must-fixes after the pinned c1 fixes while keeping SC-07 as the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T20:05:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "F-02 and retained F-QA-01 require production or permanent-test changes in signed tasks T-03 and T-04"
+    },
+    {
+      "at": "2026-09-24T20:35:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c2 fixes at 4942950a83c1895d85922f7cd9e9cfd41e28daf8",
+      "reason": "re-review F-02 and F-QA-01 after the c2 fixes at the operator-pinned SHA while retaining SC-07 as the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T21:04:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c3 fix at 6bfc21e3ccdf78eb86cdd0eb250067348d887096",
+      "reason": "re-review the repaired F-QA-01 exact mutant oracle at the operator-pinned c3 SHA while preserving SC-07 as the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T21:24:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "the c3 panel is clean at the pinned SHA, the measured rework window reached 91 minutes, and no further automated rework is warranted; SC-07 remains the operator merge gate"
+    },
+    {
+      "at": "2026-09-24T23:55:00+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "c3 validate PASS handed off to the operator probe; the live probe found the S2 wake-reclaim defect, so main-session continued with fix c4 (DEC-174) and returns to validate"
+    },
+    {
+      "at": "2026-09-25T00:16:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "T-04 live-oracle omission permits a nested lead claim under the wrong persona while every S3 assertion passes"
+    },
+    {
+      "at": "2026-09-25T00:16:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "c4 validation found a substantive T-04 oracle gap after rework reached 111 minutes against the operator ruling of 90; return the owned main-session-direct fix instead of starting another run"
+    },
+    {
+      "at": "2026-09-25T12:56:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c5 fix at 7893fe7a23e493dcd1554e439f28e3c9832b4de4",
+      "reason": "re-review the T-04 S3 nested-persona and settlement oracle after the pinned c5 fix, using the operator-authorized 29/29 receipt for SC-07"
+    },
+    {
+      "at": "2026-09-25T13:14:41+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "F-SEC-C5-01 demonstrates a deeper-lineage row can satisfy the T-04 singleton while escaping persona and governing-parent validation"
+    },
+    {
+      "at": "2026-09-25T13:20:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "validate c6 fix at 47b345fe65e992e07386de717f43b9f8dd495dc8",
+      "reason": "re-review F-SEC-C5-01 after the operator-owned c6 fix at the pinned SHA while preserving the authorized SC-07 receipt and named residuals"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 150,
+    "decision": ".harness/harness/features/BUG-1898-inflight-claim-lifecycle/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "07d03c585492e9aaf26d5e677d3b2b91cf5f5b6b80c56ab6c2f3590839de7105",
+    "T-02": "3b6b6df3ccc9ec81b5a80d4f99d840f97bbc499b02af29b0c36328cf6f8feaea",
+    "T-03": "e77e210445edd4c615fdf7754b1f5817544d507cbe905d8bf13784ca3853a8ae",
+    "T-04": "a1cafe7a99f1c356009ea970a9a9b578b1b8fee8e466ec90beee4499e0a1cab2",
+    "T-05": "6a7636312a72593748e4e712d0a08a3b52f70fad523cc864676c8815d0fd1cea"
+  },
+  "github": {
+    "milestone": 88,
+    "parent": 1921,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1922,
+      "T-02": 1923,
+      "T-03": 1924,
+      "T-04": 1925,
+      "T-05": 1926
+    },
+    "source_issues": [
+      1898
+    ],
+    "build_entry": "opened"
+  }
+}

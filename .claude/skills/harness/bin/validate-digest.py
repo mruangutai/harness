@@ -1553,9 +1553,7 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # the real block. The contract mandates the real return LAST, so slice from
     # the last line-start VERDICT: and validate only that. No anchor at all keeps
     # whole-text behavior — the "no VERDICT" path stays byte-identical.
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        text = text[anchors[-1].start():]
+    text = _return_tail(text)
 
     # --- VERDICT: exact token, exact spelling.
     m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)
@@ -1966,10 +1964,7 @@ def _hook_feature_dir(text, feature):
 
 
 def _durable_artifact_path(text):
-    tail = text
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        tail = text[anchors[-1].start():]
+    tail = _return_tail(text)
     matches = list(re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M))
     if not matches:
         return None
@@ -2068,13 +2063,9 @@ def check_artifact_file(agent, text, payload):
 def _qa_claims_unconditional_pass(text):
     """True iff `text`'s tail-anchored return is VERDICT: PASS with suite: pass AND
     matrix_ok: true — the one claim #919 exists to independently re-verify."""
-    tail = text
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        tail = text[anchors[-1].start():]
-    verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", tail, re.M)
-    if (verdict_match.group(1) if verdict_match else None) != "PASS":
+    if _return_verdict(text) != "PASS":
         return False
+    tail = _return_tail(text)
     seen = parse_digest(tail)
     return seen.get("suite") == "pass" and seen.get("matrix_ok") is True
 
@@ -2225,6 +2216,140 @@ def check_qa_matrix_claim(agent, text, payload):
 _ABSENT = object()
 
 
+def _return_tail(text):
+    """A return from its LAST line-start `VERDICT:` on — the real block, which the contract
+    puts last, so an echoed template earlier in the message never shadows it. No anchor
+    leaves the text whole."""
+    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
+    return text[anchors[-1].start():] if anchors else text
+
+
+def _return_verdict(text):
+    """The verdict of the LAST `VERDICT:` block in a return, or None."""
+    match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail(text), re.M)
+    return match.group(1) if match else None
+
+
+def _exact_run_identity(d):
+    """(feature, runtime agent id) when the payload names both exactly, else (None, None).
+
+    BUG-1898: these two values are the ONLY claim selector the hook may use. A missing,
+    blank, padded or non-string value is absent — never a reason to widen the selector to
+    the persona, which is how a suite run or a re-validation released a live stranger."""
+    feature = d.get("harness_feature")
+    agent_id = d.get("harness_agent_id")
+    exact = all(isinstance(value, str) and value and value == value.strip()
+                for value in (feature, agent_id))
+    return (feature, agent_id) if exact else (None, None)
+
+
+def _identity_refusal(agent, verdict):
+    """No exact identity: release nothing. A BLOCKED return is the one way out for a run
+    T-02 holds without a claim, so it proceeds to validation; any other return is refused."""
+    if verdict == "BLOCKED":
+        print(f"check-digest: {agent}'s BLOCKED return names no exact feature and runtime "
+              "id; no claim was looked up or released.", file=sys.stderr)
+        return None
+    print(f"check-digest: REFUSED {agent}'s return: it names no exact harness_feature and "
+          "harness_agent_id, so its claim cannot be found without guessing by persona, and "
+          "nothing was released. A run that holds no claim of its own yields a BLOCKED "
+          "digest naming why.", file=sys.stderr)
+    return 2
+
+
+def _dispatches(agent):
+    """Only a lead or the orchestrator dispatches, so only they can hold live children."""
+    return norm(agent) in ("lead", "orchestrator")
+
+
+def _held_children(reg, root, agent, feature, agent_id):
+    """Live claims whose parent is this exact run, in `root`'s registry. Raises
+    UnreadableRegistry rather than reading "cannot read" as "no children"."""
+    if not _dispatches(agent):
+        return []
+    return [
+        claim for claim in reg.live_claims(root, None, parent_agent_id=agent_id)
+        if claim.get("feature", reg.LEGACY_FEATURE) == feature
+    ]
+
+
+def _children_refusal(reg, root, agent, children):
+    for line in reg.children_refusal_lines(
+            agent, [(claim.get("agent"), claim) for claim in children]):
+        print(line, file=sys.stderr)
+    print("  your own claim is kept. If one of these is stranded rather than running, "
+          "release exactly it:", file=sys.stderr)
+    for claim in children:
+        print("  %s" % reg.release_cmd(
+            root, claim.get("agent"), claim.get("feature"),
+            agent_id=claim.get("agent_id"), claim_id=claim.get("claim_id"),
+        ), file=sys.stderr)
+    return 2
+
+
+def _unreadable_registry(agent, root, error, d):
+    """F-01: "cannot read" is never "no live child". A dispatching parent's return is held
+    unless it is BLOCKED — its one way out while the operator repairs the file; a leaf holds
+    no children and goes on. Either way nothing is written, so the file stays as found."""
+    verdict = _return_verdict(str(d.get("last_assistant_message") or ""))
+    if _dispatches(agent) and verdict != "BLOCKED":
+        print(f"check-digest: REFUSED {agent}'s return: {root}'s claim registry is unreadable "
+              f"({error!r}), so this run cannot tell whether it holds a live child. Nothing was "
+              "released. A retry cannot succeed until the operator repairs the registry; "
+              "yield a BLOCKED digest naming this cause.", file=sys.stderr)
+        return 2
+    print(f"check-digest: could not read {root}'s claim registry ({error!r}); nothing was "
+          "released and the registry was left as found.", file=sys.stderr)
+    return None
+
+
+def _registry_errand(reg, d, agent):
+    """T-09 (#551) and BUG-1898: release this run's claim, or refuse the return while it
+    holds a live child. Returns an exit code to return, or None to go on validating.
+
+    Exact or nothing: the claim is selected by feature AND runtime id only, in the registry
+    `feature_root` places the feature in — the one resolver dispatch-guard and the OMP hook
+    also use, so the claim a guard wrote is the claim released here. A parent with a live
+    child keeps its own claim (DEC-233), and every recovery command names one claim."""
+    feature, agent_id = _exact_run_identity(d)
+    if feature is None:
+        return _identity_refusal(
+            agent, _return_verdict(str(d.get("last_assistant_message") or "")))
+    owner_root = _root_or_none()
+    if owner_root is None:
+        print("check-digest: no checkout root from this vantage; the #551 claim was "
+              "neither released nor checked.", file=sys.stderr)
+        return None
+    return _settle_in(reg, d, agent, reg.feature_root(owner_root, feature), feature, agent_id)
+
+
+def _settle_in(reg, d, agent, root, feature, agent_id):
+    """Settle this exact run in `root`'s registry: refuse while it holds a live child, else
+    release its own claim. Strict reads come before any write: the locked writer parses a
+    corrupt file as empty, so releasing into an unreadable registry would erase every claim
+    it holds."""
+    try:
+        own = reg.live_claims(root, None, agent_id=agent_id)
+        children = _held_children(reg, root, agent, feature, agent_id)
+    except (reg.UnreadableRegistry, OSError) as error:
+        return _unreadable_registry(agent, root, error, d)
+    if children:
+        return _children_refusal(reg, root, agent, children)
+    if own:
+        _release_own(reg, root, agent, feature, agent_id)
+    return None
+
+
+def _release_own(reg, root, agent, feature, agent_id):
+    try:
+        if reg.release(root, agent=agent, feature=feature, agent_id=agent_id):
+            print(f"check-digest: released {agent}'s claim {agent_id} for {feature}.",
+                  file=sys.stderr)
+    except (reg.UnreadableRegistry, reg.harness_merge.MergeRefusal, OSError) as error:
+        print(f"check-digest: could not release {agent}'s claim ({error!r}); it expires with "
+              "its supervisor. Not blocking on our own errand.", file=sys.stderr)
+
+
 def hook_mode():
     """SubagentStop hook: reject a malformed digest at source.
 
@@ -2290,81 +2415,9 @@ def hook_mode():
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
 
     if _reg is not None:
-        # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
-        # the payload cwd. The old note here said cwd had to come first so this released from
-        # the same registry dispatch-guard.py wrote to — but that guard now takes its root
-        # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
-        # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
-        # which is why it was never a root.
-        _root = _root_or_none()
-
-        if _root is None:
-            print("check-digest: no checkout root from this vantage — the #551 claim was "
-                  "neither released nor checked.", file=sys.stderr)
-        else:
-            # Read the return contract before releasing the parent's claim: a return with
-            # live children is nonterminal and therefore still owns that claim.
-            _feature = d.get("harness_feature")
-            _kids = []
-            if norm(agent) in ("lead", "orchestrator"):
-                try:
-                    _kids = _reg.live_children(_root, agent, feature=_feature)
-                except (_reg.UnreadableRegistry, _reg.harness_merge.MergeRefusal, OSError) as _e:
-                    print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
-                          f"#551 return contract is not enforced for this return.",
-                          file=sys.stderr)
-
-            _raw_return = str(d.get("last_assistant_message") or "")
-            _anchors = list(re.finditer(r"^\s*VERDICT:", _raw_return, re.M))
-            _return_tail = _raw_return[_anchors[-1].start():] if _anchors else _raw_return
-            _verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail, re.M)
-            _return_verdict = _verdict_match.group(1) if _verdict_match else None
-            # Terminal returns release. A return with live children does not: under a blocking
-            # host a parent cannot yield while a child runs (DEC-204), so the parent is still
-            # the only owner able to resume those children safely (DEC-233).
-            _keep_parent = bool(_kids and _return_verdict not in VERDICTS)
-            if not _keep_parent:
-                _agent_id = d.get("harness_agent_id")
-                _job_id = d.get("harness_job_id")
-                try:
-                    _released = _reg.release(
-                        _root,
-                        agent=agent,
-                        feature=_feature,
-                        agent_id=_agent_id,
-                        job_id=_job_id,
-                    )
-                    if _released:
-                        print(f"check-digest: released the #551 claim for {agent}.",
-                              file=sys.stderr)
-                except (_reg.UnreadableRegistry, _reg.harness_merge.MergeRefusal, OSError) as _e:
-                    print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
-                          f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
-                          file=sys.stderr)
-
-            if _kids:
-                if _return_verdict not in VERDICTS:
-                    print(
-                        f"check-digest: REFUSED unvalidated return from {agent}; "
-                        "live children still make this parent nonterminal.",
-                        file=sys.stderr,
-                    )
-                for _line in _reg.children_refusal_lines(agent, _kids):
-                    print(_line, file=sys.stderr)
-                try:
-                    print("  if one of these is stranded rather than running, release "
-                          "exactly it:", file=sys.stderr)
-                    for _persona, _c in _kids:
-                        print(
-                            "  %s" % _reg.release_cmd(
-                                _root, _persona, feature=_c.get("feature")
-                            ),
-                            file=sys.stderr,
-                        )
-                except (AttributeError, TypeError, ValueError) as _e:
-                    print(f"check-digest: could not compose the release command "
-                          f"({_e!r}).", file=sys.stderr)
-                return 2
+        _refused = _registry_errand(_reg, d, agent)
+        if _refused is not None:
+            return _refused
 
     # PRESENCE, NOT TRUTHINESS. Absent, null and empty-string used to be ONE branch, so
     # the PLATFORM's gap — nothing supplied to validate — and the PERSONA's contract

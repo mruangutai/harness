@@ -178,11 +178,19 @@ describe("OMP task lifecycle adapter", () => {
       const index = args.indexOf(name);
       return index >= 0 ? args[index + 1] : undefined;
     };
+    const lifecycle: Function[] = [];
     const pi = {
       on(name: string, handler: Function) {
         handlers.set(name, handler);
       },
+      events: {
+        on(channel: string, handler: Function) {
+          if (channel === "task:subagent:lifecycle") lifecycle.push(handler);
+          return () => {};
+        },
+      },
     };
+    const settle = (data: Record<string, unknown>) => lifecycle.forEach((handler) => handler(data));
     const runner = (
       _cwd: string,
       script: string,
@@ -243,6 +251,55 @@ describe("OMP task lifecycle adapter", () => {
         if (parentAgentId) claimRecord.parentAgentId = parentAgentId;
         return { blocked: false, stdout: "" };
       }
+      // T-01's run-start over this fixture's claim map: reuse the exact id (refusing another
+      // parent's), bind the parent's unique unbound receipt, or create.
+      if (script === "inflight_registry.py" && args[0] === "run-start") {
+        const agent = option(args, "--agent");
+        const feature = option(args, "--feature");
+        const agentId = option(args, "--agent-id");
+        const parentAgentId = option(args, "--parent-agent-id");
+        const mine = [...lineageClaims.values()].filter((claimRecord) =>
+          claimRecord.agent === agent && claimRecord.feature === feature);
+        const exact = mine.find((claimRecord) => claimRecord.agentId === agentId);
+        const answer = (value: Record<string, unknown>) => ({
+          blocked: value.ok !== true, stdout: JSON.stringify(value),
+        });
+        if (exact && exact.parentAgentId && exact.parentAgentId !== parentAgentId) {
+          return answer({ ok: false, cause: "lineage", retryable: false,
+            message: `run ${agentId} is already claimed under a different parent` });
+        }
+        if (exact) return answer({ ok: true, outcome: "reused" });
+        const receipts = mine.filter((claimRecord) =>
+          !claimRecord.agentId && claimRecord.parentAgentId === parentAgentId);
+        if (receipts.length === 1) {
+          receipts[0].agentId = agentId;
+          return answer({ ok: true, outcome: "bound" });
+        }
+        lineageClaims.set(`run-${agentId}`, {
+          agent: String(agent), feature: String(feature), agentId, parentAgentId,
+        });
+        return answer({ ok: true, outcome: "created" });
+      }
+      if (script === "inflight_registry.py" && args[0] === "release-run") {
+        const agentId = option(args, "--agent-id");
+        const found = [...lineageClaims.values()].filter((claimRecord) =>
+          claimRecord.agentId === agentId);
+        if (found.length !== 1) {
+          return { blocked: true, stdout: JSON.stringify({ ok: false, cause: "not-found", retryable: false,
+            message: `no live claim is bound to run ${agentId}` }) };
+        }
+        active.delete(String(agentId));
+        return { blocked: false, stdout: JSON.stringify({ ok: true, feature: found[0].feature, root: "/repo" }) };
+      }
+      if (script === "inflight_registry.py" && args[0] === "find-run") {
+        const agentId = option(args, "--agent-id");
+        const found = [...lineageClaims.values()].filter((claimRecord) =>
+          claimRecord.agentId === agentId);
+        return found.length === 1
+          ? { blocked: false, stdout: JSON.stringify({ ok: true, feature: found[0].feature, root: "/repo" }) }
+          : { blocked: true, stdout: JSON.stringify({ ok: false, cause: "not-found", retryable: false,
+            message: `no live claim is bound to run ${agentId}` }) };
+      }
       if (script === "inflight_registry.py" && args[0] === "authorize") {
         const agent = option(args, "--agent");
         const feature = option(args, "--feature");
@@ -291,7 +348,7 @@ describe("OMP task lifecycle adapter", () => {
       return { blocked: false, stdout: "" };
     };
     registerHarnessHooks(pi, runner);
-    return { handlers, calls, runner };
+    return { handlers, calls, runner, settle };
   }
 
   async function start(
@@ -305,6 +362,7 @@ describe("OMP task lifecycle adapter", () => {
     agent = "harness-eng-lead",
   ) {
     await handlers.get("before_agent_start")?.({
+      prompt: "Complete assignment thoroughly:\n\nHARNESS-FEATURE: FEAT-43-long-run\nassignment",
       systemPrompt: [`HARNESS_AGENT_ID: ${agent}`],
     }, ctx);
     await handlers.get("message_end")?.({
@@ -319,9 +377,12 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     const ctx = {
       cwd: "/repo",
+      agentId: "LeadOne",
+      parentAgentId: "OrchestratorOne",
       sessionManager: { getSessionId: () => "parent-session" },
     };
     const result = await handlers.get("before_agent_start")?.({
+      prompt: "HARNESS-FEATURE: FEAT-43-long-run\nlead it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
     }, ctx);
     expect(calls.some((call) => call.script === "inject-expertise.py")).toBe(true);
@@ -404,13 +465,14 @@ describe("OMP task lifecycle adapter", () => {
     const parentAttach = calls.find((call) =>
       call.script === "inflight_registry.py"
       && call.args[0] === "attach"
-      && call.args.includes("OrchestratorOne")
       && call.args.includes("Main"));
     expect(parentAttach).toBeDefined();
+    expect(parentAttach?.args).not.toContain("--agent-id");
 
     const childHandlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
+      events: { on: () => () => {} },
     }, runner);
     const childCtx = {
       cwd: "/repo",
@@ -431,7 +493,7 @@ describe("OMP task lifecycle adapter", () => {
       && call.args.includes("Main"))).toBe(true);
   });
 
-  test("pre-binds a named child and authorizes inherited write and Bash policy", async () => {
+  test("a named child binds at run start and inherits write and Bash policy", async () => {
     const { handlers, calls, runner } = fixture();
     const parentCtx = {
       cwd: "/repo",
@@ -455,11 +517,12 @@ describe("OMP task lifecycle adapter", () => {
       && call.args[0] === "attach"
       && call.args.includes("--parent-agent-id"));
     expect(parentAttach?.args).toContain("LeadOne");
-    expect(parentAttach?.args).toContain("BackendOne");
+    expect(parentAttach?.args).not.toContain("BackendOne");
 
     const childHandlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
+      events: { on: () => () => {} },
     }, runner);
     const childCtx = {
       cwd: "/repo",
@@ -527,6 +590,7 @@ describe("OMP task lifecycle adapter", () => {
     const childHandlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
+      events: { on: () => () => {} },
     }, runner);
     const childCtx = {
       cwd: "/repo",
@@ -548,6 +612,7 @@ describe("OMP task lifecycle adapter", () => {
     const goodHandlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { goodHandlers.set(name, handler); },
+      events: { on: () => () => {} },
     }, runner);
     const goodCtx = {
       cwd: "/repo",
@@ -565,6 +630,7 @@ describe("OMP task lifecycle adapter", () => {
     const siblingHandlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { siblingHandlers.set(name, handler); },
+      events: { on: () => () => {} },
     }, runner);
     const siblingCtx = {
       cwd: "/repo",
@@ -578,7 +644,8 @@ describe("OMP task lifecycle adapter", () => {
       toolCallId: "call-edit-blocked",
       input: { input: "[schema.sql#A1B2]\nPUT 1.=1:\n+select 2;" },
     }, siblingCtx);
-    expect(blocked).toEqual({ block: true, reason: "runtime lineage not authorized" });
+    expect(blocked?.block).toBe(true);
+    expect(blocked?.reason).toContain("already claimed under a different parent");
   });
 
   test("fails closed when runtime lineage authorization cannot run", async () => {
@@ -586,6 +653,7 @@ describe("OMP task lifecycle adapter", () => {
     const childHandlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
+      events: { on: () => () => {} },
     }, runner);
     const childCtx = {
       cwd: "/repo",
@@ -771,8 +839,12 @@ describe("OMP task lifecycle adapter", () => {
   // later user turn is not a source.
   test("forwards the assignment's HARNESS-REVIEW-PIN to the digest validator", async () => {
     const { handlers, calls } = fixture();
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = {
+      cwd: "/repo", agentId: "Lead.Child", parentAgentId: "Lead",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
     await handlers.get("before_agent_start")?.({
+      prompt: "HARNESS-FEATURE: FEAT-43-long-run\nreview it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-code-reviewer"],
     }, ctx);
     await handlers.get("message_end")?.({
@@ -806,8 +878,12 @@ describe("OMP task lifecycle adapter", () => {
   // gate fields are pinned to their did-nothing spelling rather than fabricated.
   test("forwards the assignment's HARNESS-MISSION to the digest validator", async () => {
     const { handlers, calls } = fixture();
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = {
+      cwd: "/repo", agentId: "Lead.Child", parentAgentId: "Lead",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
     await handlers.get("before_agent_start")?.({
+      prompt: "HARNESS-FEATURE: FEAT-61-consolidation\ndistill your log",
       systemPrompt: ["HARNESS_AGENT_ID: harness-qa"],
     }, ctx);
     await handlers.get("message_end")?.({
@@ -834,51 +910,6 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
     expect(validation?.payload.harness_mission).toBeUndefined();
-  });
-
-  test("attaches task identities and releases each terminal child", async () => {
-    const { handlers, calls } = fixture();
-    await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
-    const input = {
-      context: "shared",
-      tasks: [
-        { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\none" },
-        { agent: "harness-dev-ops", task: "HARNESS-FEATURE: FEAT-43-long-run\ntwo" },
-      ],
-    };
-    expect(await handlers.get("tool_call")?.({
-      toolName: "task", toolCallId: "call-ok", input,
-    }, ctx)).toBeUndefined();
-    await handlers.get("tool_result")?.({
-      toolName: "task",
-      toolCallId: "call-ok",
-      input,
-      details: {
-        progress: [
-          { index: 0, id: "agent-a", jobId: "job-a" },
-          { index: 1, id: "agent-b", jobId: "job-b" },
-        ],
-      },
-      content: [],
-    }, ctx);
-    expect(calls.filter((call) =>
-      call.script === "inflight_registry.py" && call.args[0] === "attach"
-    )).toHaveLength(2);
-
-    await handlers.get("task:subagent:lifecycle")?.({
-      status: "idle", agentId: "agent-a", jobId: "job-a",
-    }, ctx);
-    expect(await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
-    }, ctx)).toEqual({ block: true, reason: "children live" });
-
-    await handlers.get("task:subagent:lifecycle")?.({
-      status: "idle", agentId: "agent-b", jobId: "job-b",
-    }, ctx);
-    expect(await handlers.get("tool_call")?.({
-      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
-    }, ctx)).toBeUndefined();
   });
 
   // --- F1. DEC-100: only exit 2 blocks. Fails on the pre-fix adapter, which read an
@@ -1215,7 +1246,10 @@ describe("context advisory injection", () => {
     blockReason?: string;
   } = {}) {
     const handlers = new Map<string, Function>();
-    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const pi = {
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on: () => () => {} },
+    };
     const runner = (_cwd: string, script: string) => {
       if (script === "check-domain.py" && opts.blockReason) {
         return { blocked: true, reason: opts.blockReason, stdout: "" };
@@ -1482,7 +1516,10 @@ describe("spend advisory injection", () => {
 
   function wakeFixture(root: string) {
     const handlers = new Map<string, Function>();
-    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const pi = {
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on: () => () => {} },
+    };
     const calls: Array<{ script: string; args: string[] }> = [];
     const runner = (_cwd: string, script: string, args: string[]) => {
       calls.push({ script, args });
@@ -1624,7 +1661,10 @@ describe("host-stamped tokens", () => {
 
   function fixture(root: string) {
     const handlers = new Map<string, Function>();
-    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const pi = {
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on: () => () => {} },
+    };
     const calls: Array<{ script: string; args: string[] }> = [];
     const runner = (_cwd: string, script: string, args: string[]) => {
       calls.push({ script, args });
@@ -1702,5 +1742,402 @@ describe("host-stamped tokens", () => {
     expect(JSON.parse(readFileSync(featureJson, "utf8")).runs.every((r: any) => !("tokens" in r))).toBe(true);
     expect(calls.some((c) => c.script === "feature-record.py" && c.args[0] === "spend")).toBe(true);
     expect(result === undefined || !("isError" in result)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BUG-1898 T-02 — a governed run claims at run start, keyed by its runtime id.
+//
+// Every case drives the REAL inflight_registry.py against a fresh temp registry and
+// asserts the rows it leaves and the verdict each tool call gets. Only dispatch-guard.py
+// is emulated (it needs a whole checkout): a governed dispatch records the receipt the
+// real guard records, through the registry's own claim_with_receipt; `passthrough` is its
+// DEC-100 crash shape — exit 0, no receipt. validate-digest.py passes (T-03 owns it).
+// ---------------------------------------------------------------------------
+describe("BUG-1898 run-start claims on the real registry", () => {
+  const FEATURE = "BUG-98-run-start";
+  const REGISTRY_BIN = join(gatePath("inflight_registry.py"), "..");
+  type Call = { script: string; args: string[]; payload: Record<string, unknown> };
+  type Row = Record<string, unknown>;
+
+  function python(args: string[], cwd: string) {
+    const proc = spawnSync("python3", args, { cwd, encoding: "utf8" });
+    const stderr = (proc.stderr || "").trim();
+    if (proc.status === 2) return { blocked: true, reason: stderr, stdout: proc.stdout || "" };
+    return proc.status === 0
+      ? { blocked: false, stdout: proc.stdout || "" }
+      : { blocked: false, reason: stderr || `exit ${proc.status}`, stdout: proc.stdout || "" };
+  }
+
+  const RECEIPT = [
+    "import json, sys",
+    `sys.path.insert(0, ${JSON.stringify(REGISTRY_BIN)})`,
+    "import inflight_registry as reg",
+    "root, agent, dispatcher, feature, pid = sys.argv[1:]",
+    "entry = reg.claim_with_receipt(root, agent, dispatcher, root, feature=feature,",
+    "                               supervisor_pid=int(pid))",
+    "print(json.dumps({'harness_claim': {'root': root, 'feature': feature, 'agent': agent,",
+    "                                    'claim_id': entry['claim_id']}}))",
+  ].join("\n");
+
+  function world(root = mkdtempSync(join(tmpdir(), "bug1898-"))) {
+    const calls: Call[] = [];
+    const runner = (cwd: string, script: string, args: string[], payload: Record<string, unknown>) => {
+      calls.push({ script, args, payload });
+      if (script === "inflight_registry.py") {
+        return python([gatePath("inflight_registry.py"), ...args], cwd);
+      }
+      if (script === "dispatch-guard.py") {
+        const input = payload.tool_input as Record<string, unknown>;
+        const agent = String(input.agent);
+        if (input.task === "passthrough" || !agent.startsWith("harness-")) {
+          return { blocked: false, stdout: "" };
+        }
+        return python(["-c", RECEIPT, root, agent, String(payload.agent_type), FEATURE,
+          String(process.pid)], cwd);
+      }
+      return { blocked: false, stdout: "" };
+    };
+    return { root, calls, runner };
+  }
+
+  function session(runner: Function) {
+    const handlers = new Map<string, Function>();
+    const bus = new Map<string, Function[]>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: {
+        on(channel: string, handler: Function) {
+          bus.set(channel, [...(bus.get(channel) || []), handler]);
+          return () => {};
+        },
+        emit(channel: string, data: unknown) { (bus.get(channel) || []).forEach((h) => h(data)); },
+      },
+    }, runner as any);
+    const emit = async (channel: string, data: unknown) => {
+      for (const handler of bus.get(channel) || []) await handler(data);
+    };
+    return { handlers, emit };
+  }
+
+  function ctxFor(root: string, agentId: string, parentAgentId?: string) {
+    return {
+      cwd: root,
+      agentId,
+      ...(parentAgentId ? { parentAgentId } : {}),
+      sessionManager: { getSessionId: () => `session-${agentId}` },
+    };
+  }
+
+  async function begin(
+    s: ReturnType<typeof session>, ctx: Record<string, unknown>, agent: string, prompt: string,
+  ) {
+    return s.handlers.get("before_agent_start")?.({
+      prompt, systemPrompt: [`HARNESS_AGENT_ID: ${agent}`],
+    }, ctx);
+  }
+
+  function rows(root: string): Row[] {
+    const path = join(root, ".harness", ".inflight-claims.json");
+    if (!existsSync(path)) return [];
+    return (JSON.parse(readFileSync(path, "utf8")).claims || []) as Row[];
+  }
+
+  function seed(root: string, claims: Row[]) {
+    mkdirSync(join(root, ".harness"), { recursive: true });
+    writeFileSync(join(root, ".harness", ".inflight-claims.json"), JSON.stringify({
+      schema_version: 2,
+      claims: claims.map((claim, index) => ({
+        claim_id: `seed-${index}`, started_at: Date.now() / 1000, cwd: root,
+        dispatcher: "harness-eng-lead", runtime: "omp", supervisor_pid: process.pid,
+        feature: FEATURE, ...claim,
+      })),
+    }));
+  }
+
+  const ASSIGN = `HARNESS-FEATURE: ${FEATURE}\nbuild the thing`;
+  const write = (path = "src/x.ts") => ({
+    toolName: "write", toolCallId: `w-${path}`, input: { path, content: "x" },
+  });
+  const blockedDigest = "VERDICT: BLOCKED\nDIGEST: cannot claim this run\nARTIFACT: none";
+
+  async function lead(w: ReturnType<typeof world>) {
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead", "Orch");
+    seed(w.root, [{ agent: "harness-eng-lead", agent_id: "Lead", parent_agent_id: "Orch",
+      claim_id: "lead-claim" }]);
+    await begin(s, ctx, "harness-eng-lead", ASSIGN);
+    return { s, ctx };
+  }
+
+  const governed = (root: string) => rows(root).filter((row) => row.claim_id !== "lead-claim");
+
+  test("a first run binds its parent's receipt to its exact id before its first write", async () => {
+    const w = world();
+    const parent = await lead(w);
+    expect(await parent.s.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "t1",
+      input: { agent: "harness-backend-dev", name: "Dev", task: ASSIGN },
+    }, parent.ctx)).toBeUndefined();
+    expect(governed(w.root).map((row) => row.agent_id)).toEqual([undefined]);
+
+    const child = session(w.runner);
+    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    await begin(child, childCtx, "harness-backend-dev", ASSIGN);
+    expect(governed(w.root).map((row) => [row.agent_id, row.parent_agent_id]))
+      .toEqual([["Lead.Dev", "Lead"]]);
+    expect(await child.handlers.get("tool_call")?.(write(), childCtx)).toBeUndefined();
+  });
+
+  // An IRC wake runs agent.prompt() directly: OMP emits agent_start for it, never
+  // before_agent_start (agent-session.ts #wakeForIrc). The live probe's S2 caught the
+  // run-start-only reclaim leaving the woken run's first write with no claim.
+  test("a settled agent woken by message reclaims the same exact id", async () => {
+    const w = world();
+    const parent = await lead(w);
+    const child = session(w.runner);
+    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    await begin(child, childCtx, "harness-backend-dev", ASSIGN);
+    await child.handlers.get("agent_start")?.({ type: "agent_start" }, childCtx);
+    await child.handlers.get("agent_end")?.({ messages: [] }, childCtx);
+    await parent.s.emit("task:subagent:lifecycle", {
+      id: "Lead.Dev", agent: "harness-backend-dev", status: "completed", index: 0,
+    });
+    expect(governed(w.root)).toEqual([]);
+
+    await child.handlers.get("agent_start")?.({ type: "agent_start" }, childCtx);
+    expect(governed(w.root).map((row) => row.agent_id)).toEqual(["Lead.Dev"]);
+    expect(await child.handlers.get("tool_call")?.(write(), childCtx)).toBeUndefined();
+  });
+
+  test("a woken run's writes are held until its wake has reclaimed", async () => {
+    const w = world();
+    const child = session(w.runner);
+    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    seed(w.root, [{ agent: "harness-backend-dev", parent_agent_id: "Lead", claim_id: "r" }]);
+    await begin(child, childCtx, "harness-backend-dev", ASSIGN);
+    await child.handlers.get("agent_end")?.({ messages: [] }, childCtx);
+    const held = await child.handlers.get("tool_call")?.(write(), childCtx) as
+      { block?: boolean } | undefined;
+    expect(held?.block).toBe(true);
+  });
+
+  test("a markerless revival recovers its feature from its one exact live claim", async () => {
+    const w = world();
+    seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
+    const revived = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    await begin(revived, ctx, "harness-qa", "continue where you left off");
+    expect(await revived.handlers.get("tool_call")?.(write(), ctx)).toBeUndefined();
+    await revived.handlers.get("tool_call")?.({
+      toolName: "yield", input: { data: { content: "VERDICT: PASS" } },
+    }, ctx);
+    const validation = w.calls.find((call) => call.script === "validate-digest.py");
+    expect(validation?.payload.harness_feature).toBe(FEATURE);
+    expect(rows(w.root).map((row) => row.agent_id)).toEqual(["Lead.Qa"]);
+  });
+
+  async function expectHeld(
+    s: ReturnType<typeof session>, ctx: Record<string, unknown>, cause: RegExp,
+  ) {
+    for (const call of [
+      write(),
+      { toolName: "read", input: { path: "src/x.ts" } },
+      { toolName: "bash", input: { command: "true" } },
+      { toolName: "task", toolCallId: "t", input: { agent: "scout", task: "look" } },
+      { toolName: "yield", input: { data: { content: "VERDICT: PASS\nDIGEST: done" } } },
+    ]) {
+      const verdict = await s.handlers.get("tool_call")?.(call, ctx);
+      expect(verdict?.block).toBe(true);
+      expect(verdict?.reason).toMatch(cause);
+    }
+    expect(await s.handlers.get("tool_call")?.({
+      toolName: "yield", input: { data: { content: blockedDigest } },
+    }, ctx)).toBeUndefined();
+  }
+
+  test("a markerless revival with no exact claim is held: only a BLOCKED yield passes", async () => {
+    const w = world();
+    seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Other", parent_agent_id: "Lead" }]);
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    const injected = await begin(s, ctx, "harness-qa", "continue");
+    expect(String(injected?.message?.content)).toMatch(/not-found/);
+    await expectHeld(s, ctx, /not-found/);
+    expect(rows(w.root).map((row) => row.agent_id)).toEqual(["Lead.Other"]);
+  });
+
+  test("a markerless revival bound in two registries is held as ambiguous", async () => {
+    const w = world();
+    const linked = mkdtempSync(join(tmpdir(), "bug1898-wt-"));
+    mkdirSync(join(w.root, ".git", "worktrees", "BUG-98"), { recursive: true });
+    writeFileSync(join(w.root, ".git", "worktrees", "BUG-98", "gitdir"), join(linked, ".git"));
+    seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
+    seed(linked, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    await begin(s, ctx, "harness-qa", "continue");
+    await expectHeld(s, ctx, /ambiguous/);
+  });
+
+  test("an unreadable registry holds the run, non-retryable, and is left as found", async () => {
+    const w = world();
+    mkdirSync(join(w.root, ".harness"), { recursive: true });
+    writeFileSync(join(w.root, ".harness", ".inflight-claims.json"), "{not json");
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    await begin(s, ctx, "harness-qa", ASSIGN);
+    await expectHeld(s, ctx, /unreadable[\s\S]*cannot succeed/);
+    expect(readFileSync(join(w.root, ".harness", ".inflight-claims.json"), "utf8"))
+      .toBe("{not json");
+  });
+
+  test("a second live pm is held, naming the holder and that a retry can succeed", async () => {
+    const w = world();
+    seed(w.root, [{ agent: "harness-pm", agent_id: "Lead.Pm", parent_agent_id: "Lead" }]);
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Pm-2", "Lead");
+    await begin(s, ctx, "harness-pm", ASSIGN);
+    await expectHeld(s, ctx, /Lead\.Pm[\s\S]*retry can succeed/);
+    expect(rows(w.root).map((row) => row.agent_id)).toEqual(["Lead.Pm"]);
+  });
+
+  test("a DEC-100 receiptless dispatch still claims the child's exact id at run start", async () => {
+    const w = world();
+    const parent = await lead(w);
+    expect(await parent.s.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "t1",
+      input: { agent: "harness-backend-dev", name: "Dev", task: "passthrough" },
+    }, parent.ctx)).toBeUndefined();
+    expect(governed(w.root)).toEqual([]);
+    const child = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Dev", "Lead");
+    await begin(child, ctx, "harness-backend-dev", ASSIGN);
+    expect(governed(w.root).map((row) => row.agent_id)).toEqual(["Lead.Dev"]);
+    expect(await child.handlers.get("tool_call")?.(write(), ctx)).toBeUndefined();
+  });
+
+  test("a mixed, reordered batch never cross-attaches and leaves zero governed rows", async () => {
+    const w = world();
+    const parent = await lead(w);
+    const input = {
+      context: "shared",
+      tasks: [
+        { agent: "scout", name: "Look", task: "survey" },
+        { agent: "harness-backend-dev", name: "Scope", task: ASSIGN },
+        { agent: "harness-backend-dev", name: "Scope", task: ASSIGN },
+        { agent: "harness-qa", name: "Check", task: ASSIGN },
+      ],
+    };
+    expect(await parent.s.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "batch", input,
+    }, parent.ctx)).toBeUndefined();
+    expect(governed(w.root).every((row) => row.agent_id === undefined)).toBe(true);
+
+    // Children start in reverse order and write before any result is delivered.
+    const started: Array<[string, string]> = [
+      ["Lead.Check", "harness-qa"], ["Lead.Scope-2", "harness-backend-dev"],
+      ["Lead.Scope", "harness-backend-dev"],
+    ];
+    for (const [id, agent] of started) {
+      const child = session(w.runner);
+      const ctx = ctxFor(w.root, id, "Lead");
+      await begin(child, ctx, agent, ASSIGN);
+      expect(await child.handlers.get("tool_call")?.(write(`src/${id}.ts`), ctx)).toBeUndefined();
+    }
+    const bound = governed(w.root).filter((row) => row.agent_id)
+      .map((row) => [row.agent_id, row.agent]).sort();
+    expect(bound).toEqual([
+      ["Lead.Check", "harness-qa"],
+      ["Lead.Scope", "harness-backend-dev"],
+      ["Lead.Scope-2", "harness-backend-dev"],
+    ]);
+
+    await parent.s.handlers.get("tool_result")?.({
+      toolName: "task", toolCallId: "batch", input, content: [],
+      details: { results: [
+        { index: 3, id: "Lead.Check", exitCode: 0 },
+        { index: 0, id: "Lead.Look", exitCode: 0 },
+        { index: 2, id: "Lead.Scope-2", exitCode: 0 },
+        { index: 1, id: "Lead.Scope", exitCode: 0 },
+      ] },
+    }, parent.ctx);
+    expect(governed(w.root)).toEqual([]);
+    expect(rows(w.root).map((row) => row.claim_id)).toEqual(["lead-claim"]);
+  });
+
+  test("a governed child that never starts has its receipt released at settlement", async () => {
+    const w = world();
+    const parent = await lead(w);
+    const input = {
+      context: "shared",
+      tasks: [
+        { agent: "harness-qa", name: "Check", task: ASSIGN },
+        { agent: "harness-data-engineer", name: "Data", task: ASSIGN },
+      ],
+    };
+    await parent.s.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "pair", input,
+    }, parent.ctx);
+    const child = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Check", "Lead");
+    await begin(child, ctx, "harness-qa", ASSIGN);
+    await parent.s.handlers.get("tool_result")?.({
+      toolName: "task", toolCallId: "pair", input, content: [],
+      details: { results: [
+        { index: 1, id: "Lead.Data", exitCode: 1 },
+        { index: 0, id: "Lead.Check", exitCode: 0 },
+      ] },
+    }, parent.ctx);
+    expect(governed(w.root)).toEqual([]);
+  });
+
+  test("background children are released by their own settlement on pi.events", async () => {
+    const w = world();
+    const parent = await lead(w);
+    const input = {
+      context: "shared",
+      tasks: [
+        { agent: "harness-qa", name: "Check", task: ASSIGN },
+        { agent: "harness-backend-dev", name: "Dev", task: ASSIGN },
+      ],
+    };
+    await parent.s.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "bg", input,
+    }, parent.ctx);
+    await parent.s.handlers.get("tool_result")?.({
+      toolName: "task", toolCallId: "bg", input, content: [],
+      details: { progress: [
+        { index: 0, id: "Lead.Check", status: "running" },
+        { index: 1, id: "Lead.Dev", status: "pending" },
+      ] },
+    }, parent.ctx);
+    const check = session(w.runner);
+    await begin(check, ctxFor(w.root, "Lead.Check", "Lead"), "harness-qa", ASSIGN);
+    const dev = session(w.runner);
+    await begin(dev, ctxFor(w.root, "Lead.Dev", "Lead"), "harness-backend-dev", ASSIGN);
+    expect(governed(w.root).map((row) => row.agent_id).sort()).toEqual(["Lead.Check", "Lead.Dev"]);
+
+    await parent.s.emit("task:subagent:lifecycle", {
+      id: "Lead.Dev", agent: "harness-backend-dev", status: "failed",
+      parentToolCallId: "bg", index: 1,
+    });
+    expect(governed(w.root).map((row) => row.agent_id)).toEqual(["Lead.Check"]);
+    await parent.s.emit("task:subagent:lifecycle", {
+      id: "Lead.Check", agent: "harness-qa", status: "completed",
+      parentToolCallId: "bg", index: 0,
+    });
+    expect(governed(w.root)).toEqual([]);
+  });
+
+  test("a governed run with no runtime parent id is held, never authorized", async () => {
+    const w = world();
+    const s = session(w.runner);
+    const ctx = ctxFor(w.root, "Lead.Dev");
+    await begin(s, ctx, "harness-backend-dev", ASSIGN);
+    const verdict = await s.handlers.get("tool_call")?.(write(), ctx);
+    expect(verdict?.block).toBe(true);
+    expect(verdict?.reason).toContain("runtime lineage capability");
+    expect(rows(w.root)).toEqual([]);
   });
 });
