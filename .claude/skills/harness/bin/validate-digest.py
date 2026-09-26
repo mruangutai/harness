@@ -1517,6 +1517,9 @@ def _missing_field_default_hint(field, allowed):
     SCALAR (currently only `code_grade`), which needs its legal values named
     instead. Isolated here, not as a new elif in `validate`, so this fix does
     not grow a function already far past the grade bar (pre-existing).
+    FEAT-66: `validate` is now a driver at the bar and the hint chain lives in
+    `_missing_field_hint`; this helper stays because that chain is itself at
+    the bar's edge, not because `validate` is.
     """
     if field == "code_grade":
         vals = sorted(a for a in allowed if isinstance(a, str))
@@ -1553,7 +1556,8 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     all_fields = {**schema, **UNIVERSAL, **optional_fields}
     err = _common_errors(m, text, seen, all_fields, optional_fields, persona, mission)
     err += _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission,
-                           (config_path, feature_dir, branch_override, review_pin))
+                           config_path=config_path, feature_dir=feature_dir,
+                           branch_override=branch_override, review_pin=review_pin)
     return err
 
 
@@ -1716,6 +1720,8 @@ def _missing_field_hint(field, allowed, persona):
         # omitted it straight into a second, guaranteed rejection
         # (REQ-11's own defect class). SC-19 stays intact: the field is
         # still named literally in the outer message below.
+        # FEAT-66: the loop body is `_missing_field_hint` now, at the bar;
+        # the helper stays so this chain does not grow past it.
         hint = _missing_field_default_hint(field, allowed)
     return hint
 
@@ -1860,7 +1866,8 @@ def _near_miss(allowed, val):
     return extra
 
 
-def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, review_inputs):
+def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, *,
+                    config_path, feature_dir, branch_override, review_pin):
     """The rules one persona is held to beyond the common ones, in inline order. The raw
     persona (`harness-code-reviewer`, `harness-eng-lead`, the archive-reader `lead`) and
     the normalized one (`qa`, `lead`, `orchestrator`) are both consulted, as before."""
@@ -1871,7 +1878,9 @@ def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, re
     if raw_persona != "lead":
         err += _undeclared_errors(seen, all_fields, raw_persona)
     if raw_persona == "harness-code-reviewer":
-        err += _reviewer_errors(seen, text, passing, persona, mission, review_inputs)
+        err += _reviewer_errors(seen, text, passing, persona, mission,
+                                config_path=config_path, feature_dir=feature_dir,
+                                branch_override=branch_override, review_pin=review_pin)
     if persona == "lead" and m:
         err += _lead_rollup_errors(seen, m.group(1))
     err += _tail_errors(seen, raw_persona, persona)
@@ -1925,13 +1934,14 @@ def _undeclared_errors(seen, all_fields, raw_persona):
     ]
 
 
-def _reviewer_errors(seen, text, passing, persona, mission, review_inputs):
-    config_path, feature_dir, branch_override, review_pin = review_inputs
+def _reviewer_errors(seen, text, passing, persona, mission, *,
+                     config_path, feature_dir, branch_override, review_pin):
     review_policy = load_policy(review_config_path(config_path))["review"]
     code_grade = seen.get("code_grade")
     reviewed = seen.get("reviewed")
     err = _code_grade_errors(text, code_grade, reviewed, persona, mission,
-                             (feature_dir, branch_override, review_pin))
+                             feature_dir=feature_dir, branch_override=branch_override,
+                             review_pin=review_pin)
     if code_grade == "grade_2":
         err += _grade_2_reason_errors(seen.get("grade_2_reasons"))
     if code_grade == "fail" and passing:
@@ -1960,8 +1970,8 @@ def _review_policy_errors(seen, review_policy, passing):
     return []
 
 
-def _code_grade_errors(text, code_grade, reviewed, persona, mission, binding_inputs):
-    feature_dir, branch_override, review_pin = binding_inputs
+def _code_grade_errors(text, code_grade, reviewed, persona, mission, *,
+                       feature_dir, branch_override, review_pin):
     err = []
     # #1855: a distill dispatch has no diff to bind or grade; the field loop above
     # already pinned `code_grade`/`reviewed` to their did-nothing spelling.

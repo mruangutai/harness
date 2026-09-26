@@ -280,7 +280,7 @@ def _bug1124_red_case(root, path, collision):
     mutant = _feat50_mutant_between(
         "def _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path):\n"
         "    if absolute_path is None:\n        return []\n",
-        "\n\ndef _state_yaml_prior_text(", iso)
+        "\n\ndef _state_yaml_prior_parse(", iso)
     muted = _bug1124_state_fire(root, path,
                                 "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
                                 hook=mutant)

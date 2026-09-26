@@ -981,30 +981,43 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
         return MergeResult(proposal_text.encode("utf-8"), [], [], False)
 
     ignored_approval = _refuse_approval_conflict(base_doc, prop_doc)
-    (out_order, out_text, added_ids, preserved_ids, replaced, changes, changed_tasks,
-     ignored) = _merge_keys(base_text, proposal_text, base_doc, prop_doc)
+    out_order, out_text, added_ids, preserved_ids, replaced, changed_tasks, ignored = _merge_keys(
+        base_text, proposal_text, base_doc, prop_doc)
     spliced_text, reset = _maybe_reset_approval(out_text, base_doc, verb, changed_tasks)
+    changes = _replaced_fields(replaced)
     out_bytes = _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced)
     return MergeResult(out_bytes, added_ids, preserved_ids, ignored_approval, changes, reset, ignored)
 
 
 def _merge_keys(base_text, proposal_text, base_doc, prop_doc):
     """Every top-level key in merged order, each through `_merge_key`, with the per-key lists
-    concatenated in that order: (out_order, out_text, added, preserved, replaced, changes,
+    concatenated in that order: (out_order, out_text, added, preserved, replaced,
     changed_tasks, ignored)."""
     base = _index_top_keys(base_text)
     prop = _index_top_keys(proposal_text)
     out_order = _merged_key_order(base[1], prop[1])
-    chunks, added_ids, preserved_ids, replaced, changed_tasks, ignored = _concat_columns(
-        [_merge_key(key, base, prop, base_doc, prop_doc) for key in out_order], 6)
-    changes = [change for _key, _iid, _item, item_changes in replaced for change in item_changes]
-    return (out_order, "".join([*base[3], *chunks]), added_ids, preserved_ids, replaced, changes,
+    chunks, added_ids, preserved_ids, replaced, changed_tasks, ignored = _fold_merge_rows(
+        _merge_key(key, base, prop, base_doc, prop_doc) for key in out_order)
+    return (out_order, "".join([*base[3], *chunks]), added_ids, preserved_ids, replaced,
             changed_tasks, ignored)
 
 
-def _concat_columns(rows, width):
-    """Each row's lists concatenated position-wise, in row order; `width` empty lists for no rows."""
-    return tuple(sum(column, []) for column in zip(*rows)) or tuple([] for _ in range(width))
+def _replaced_fields(replaced):
+    """MergeResult's `replaced`: the (iid, field, old, new) rows of every replaced item, flat."""
+    return [change for _key, _iid, _item, item_changes in replaced for change in item_changes]
+
+
+def _fold_merge_rows(rows):
+    """The per-key results' six lists, each concatenated in key order."""
+    chunks, added, preserved, replaced, changed_tasks, ignored = [], [], [], [], [], []
+    for row_chunks, row_added, row_preserved, row_replaced, row_changed, row_ignored in rows:
+        chunks += row_chunks
+        added += row_added
+        preserved += row_preserved
+        replaced += row_replaced
+        changed_tasks += row_changed
+        ignored += row_ignored
+    return chunks, added, preserved, replaced, changed_tasks, ignored
 
 
 def _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced):
@@ -1035,14 +1048,7 @@ def _seed_new_plan(proposal_text):
     # A new plan needs an unsigned approval mapping before the main session can later sign it.
     # The proposal may not supply that mapping: accepting any caller-owned value would let
     # `apply` mint an approved plan, bypassing cmd_sign_approval's identity gate.
-    try:
-        prop_doc = harness_yaml.load_str(proposal_text, "<proposal>")
-    except harness_yaml.YamlParseError as exc:
-        raise harness_merge.MergeRefusal(
-            5, [f"UNPARSEABLE: proposal failed to parse: {exc}"]
-        )
-    prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
-    _refuse_illegal_anchors(prop_doc, "the proposal")
+    prop_doc = _parsed_proposal(proposal_text)
     if APPROVAL_REFUSAL and "approval" in prop_doc:
         raise harness_merge.MergeRefusal(
             8,
@@ -1070,14 +1076,20 @@ def _merge_inputs(base_bytes, proposal_text):
         base_doc = harness_yaml.load_str(base_text, "<base plan>")
     except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(5, [f"UNPARSEABLE: base failed to parse: {exc}"])
+    prop_doc = _parsed_proposal(proposal_text)
+    base_doc = base_doc if isinstance(base_doc, dict) else {}
+    return base_doc, prop_doc, base_text
+
+
+def _parsed_proposal(proposal_text):
+    """The proposal as a mapping with its anchors checked, or the exit-5 refusal."""
     try:
         prop_doc = harness_yaml.load_str(proposal_text, "<proposal>")
     except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(5, [f"UNPARSEABLE: proposal failed to parse: {exc}"])
-    base_doc = base_doc if isinstance(base_doc, dict) else {}
     prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
     _refuse_illegal_anchors(prop_doc, "the proposal")
-    return base_doc, prop_doc, base_text
+    return prop_doc
 
 
 def _refuse_approval_conflict(base_doc, prop_doc):

@@ -1314,16 +1314,8 @@ def _rule_run_digest(rel, content, lines, shown, absolute_path):
     if absolute_path is None:
         return []
     out = []
-    prior = None
-    try:
-        with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
-            prior = prior_file.read()
-    except FileNotFoundError:
-        if not os.path.lexists(absolute_path):
-            prior = ""
-    except OSError:
-        pass
-    if prior is None:
+    prior, unreadable = _prior_text(absolute_path)
+    if unreadable:
         out.append(_head(shown, "run digest already exists but cannot be read safely; "
                          "refusing a Write that could destroy its recorded content."))
     elif prior.strip() and not content.startswith(prior):
@@ -1613,9 +1605,9 @@ def _rule_state_yaml(rel, content, lines, shown, absolute_path):
     doc, refusal = _state_yaml_doc(content, rel, shown)
     if refusal:
         return refusal
-    _version, _valid_version = _state_yaml_version(doc)
-    out = _state_yaml_version_floor(_version, _valid_version, shown, absolute_path)
-    out.extend(_state_yaml_step_schema(doc, _valid_version, shown))
+    _version = _state_yaml_version(doc)
+    out = _state_yaml_version_floor(_version, shown, absolute_path)
+    out.extend(_state_yaml_step_schema(doc, _version, shown))
     _state_yaml_post_seed(doc, absolute_path)
     refusal = _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path)
     if refusal:
@@ -1646,23 +1638,26 @@ def _state_yaml_doc(content, rel, shown):
 
 
 def _state_yaml_version(doc):
-    _version = doc.get("schema_version") if isinstance(doc, dict) else None
-    _valid_version = (
+    return doc.get("schema_version") if isinstance(doc, dict) else None
+
+
+def _valid_state_version(_version):
+    """A strict checkpoint's version: an int (never a bool) of 2 or more."""
+    return (
         isinstance(_version, int) and not isinstance(_version, bool)
         and _version >= 2
     )
-    return _version, _valid_version
 
 
 # FEAT-104 D-11: schema_version floor applies at CREATION only. Existing
 # version-1 checkpoints remain writable so an in-flight pre-deploy run can
 # finish unchanged. `_post` sees an already-landed file and is never creation.
-def _state_yaml_version_floor(_version, _valid_version, shown, absolute_path):
+def _state_yaml_version_floor(_version, shown, absolute_path):
     _creating = (
         not _post and absolute_path is not None
         and not os.path.lexists(absolute_path)
     )
-    if not (_creating and not _valid_version):
+    if not _creating or _valid_state_version(_version):
         return []
     if _version is None:
         _version_problem = "is absent"
@@ -1682,8 +1677,8 @@ def _state_yaml_version_floor(_version, _valid_version, shown, absolute_path):
 
 # FEAT-104: version 2 closes each step through the one declared JSON
 # schema. Version 1 deliberately keeps its historical open shape.
-def _state_yaml_step_schema(doc, _valid_version, shown):
-    if not (_valid_version and isinstance(doc, dict)):
+def _state_yaml_step_schema(doc, _version, shown):
+    if not (_valid_state_version(_version) and isinstance(doc, dict)):
         return []
     try:
         import jsonschema
@@ -1732,32 +1727,31 @@ def _state_yaml_evidence_offenders(_evidence, _name_pattern):
 def _state_yaml_step_findings(_schema_errors, _declared, _offending, shown):
     if not _schema_errors:
         return []
-    _declared_invalid = set()
     # Type/value failures on declared fields may not be captured by
     # the vocabulary comparisons above; name their nearest field.
-    _missing_required = set()
+    buckets = {"missing": set(), "invalid": set(), "offending": _offending}
     for _error in _schema_errors:
-        _state_yaml_step_sort(_error, _declared, _missing_required, _declared_invalid, _offending)
-    return _state_yaml_step_messages(_missing_required, _declared_invalid, _offending, shown)
+        bucket, names = _state_yaml_step_sort(_error, _declared)
+        buckets[bucket].update(names)
+    return _state_yaml_step_messages(buckets["missing"], buckets["invalid"], buckets["offending"], shown)
 
 
-def _state_yaml_step_sort(_error, _declared, _missing_required, _declared_invalid, _offending):
-    """File one schema error under the set that names it, in place."""
+def _state_yaml_step_sort(_error, _declared):
+    """(bucket, names) for one schema error: the required keys it says are missing, the declared
+    field whose value is invalid, or the undeclared field it names — an empty set for none."""
     if (_error.validator == "required"
             and isinstance(_error.instance, dict)):
-        _missing_required.update(
+        return "missing", {
             str(_key) for _key in _error.validator_value
             if _key not in _error.instance
-        )
-        return
+        }
     _path = list(_error.path)
     if not _path:
-        return
+        return "offending", set()
     _field = str(_path[0])
     if _field in _declared and _field != "evidence":
-        _declared_invalid.add(_field)
-    else:
-        _offending.add(_field)
+        return "invalid", {_field}
+    return "offending", {_field}
 
 
 def _state_yaml_step_messages(_missing_required, _declared_invalid, _offending, shown):
@@ -1836,7 +1830,7 @@ def _state_yaml_witness_uid(run_dir):
 def _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path):
     if absolute_path is None:
         return []
-    prior_state, prior_unreadable = _state_yaml_prior_text(absolute_path)
+    prior_state, prior_unreadable = _prior_text(absolute_path)
     if prior_unreadable:
         return [_head(shown, "run state already exists but cannot be read safely; "
                             "refusing a Write that could destroy its recorded content.")]
@@ -1872,7 +1866,7 @@ def _state_yaml_prior_parse(prior_state, rel):
     return prior_doc, prior_exc, prior_has_uid
 
 
-def _state_yaml_prior_text(absolute_path):
+def _prior_text(absolute_path):
     prior_state = None
     prior_unreadable = False
     try:
