@@ -1,0 +1,97 @@
+schema: plan/1
+feature: FEAT-66-complex-function-drivers
+approval:
+  status: pending
+status: plan
+mission: patch
+source_issues: []
+baseline:
+  sha: cb6f80505721292c0c799cf03b0af6b180ba2970
+  branch: feat/FEAT-66-complex-function-drivers
+lanes:
+  resolved_at: cb6f80505721292c0c799cf03b0af6b180ba2970
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 assigns Harness validators and gate scripts to direct main-session execution.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 keeps the owning proof for governed Harness validators and gate scripts with the direct implementation.
+    - surface: .harness/harness/features/FEAT-66-complex-function-drivers/notes/**
+      lane: main-session-direct
+      reason: DEC-174 keeps the implementation pin receipts and divergence evidence with the direct main-session change.
+decisions:
+  - id: D-01
+    choice: Keep validate common-rule helpers on the common values already parsed, and pass each persona-rule helper only the branch's existing explicit tuple of values; do not create a validator context object.
+    because: The current branches consume different small value sets, so explicit persona tuples keep dependencies visible without exposing unrelated state.
+    dec: none
+  - id: D-02
+    choice: Have each apply_merge phase helper return its own phase-local tuple of output chunks and added, preserved, changed, ignored, and changed-task deltas; only the driver extends the existing named lists, while _maybe_reset_approval returns the reset scalar and the driver constructs MergeResult once.
+    because: Phase-local deltas preserve the current result fields and order without passing a shared mutable accumulator bag through every phase.
+    dec: none
+tasks:
+  - id: T-01
+    title: Decompose the three heaviest rule evaluators into small drivers
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: refactor
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns check-domain.py, validate-digest.py, and plan-merge.py enforcement-layer changes and their owning proof directly to the main session.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-domain.py#shape_problems
+      - .claude/skills/harness/bin/validate-digest.py#validate
+      - .claude/skills/harness/bin/plan-merge.py#apply_merge
+      - path: tests/integration/test-check-domain.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-artifact.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-claims.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-grant.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-post.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-worktree-parity.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-worktree.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-check-domain-approval.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/unit/test-config-shape-matrix.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-plan-merge.py
+        quote: "#!/usr/bin/env python3"
+      - path: tests/integration/test-validate-digest.py
+        quote: "#!/usr/bin/env python3"
+      - tests/integration/test-validate-digest-shadows.py
+      - .harness/harness/features/FEAT-66-complex-function-drivers/notes/red-first-receipts.md
+      - .harness/harness/features/FEAT-66-complex-function-drivers/notes/clean-pin-byte-receipts.md
+      - .harness/harness/features/FEAT-66-complex-function-drivers/notes/build-divergences.md
+    verify: |
+      python3 tests/integration/test-check-domain.py &&
+      python3 tests/integration/test-check-domain-artifact.py &&
+      python3 tests/integration/test-check-domain-claims.py &&
+      python3 tests/integration/test-check-domain-grant.py &&
+      python3 tests/integration/test-check-domain-post.py &&
+      python3 tests/integration/test-check-domain-worktree-parity.py &&
+      python3 tests/integration/test-check-domain-worktree.py &&
+      python3 tests/integration/test-check-domain-approval.py &&
+      python3 tests/unit/test-config-shape-matrix.py &&
+      python3 tests/integration/test-plan-merge.py &&
+      python3 tests/integration/test-validate-digest.py &&
+      python3 tests/integration/test-validate-digest-shadows.py &&
+      python3 -c 'import importlib.util,pathlib,subprocess,sys; root=pathlib.Path("."); spec=importlib.util.spec_from_file_location("feat66_code_grade",root/".claude/skills/harness/bin/code_grade.py"); grade=importlib.util.module_from_spec(spec); sys.modules[spec.name]=grade; spec.loader.exec_module(grade); pairs=[(".claude/skills/harness/bin/check-domain.py","shape_problems"),(".claude/skills/harness/bin/validate-digest.py","validate"),(".claude/skills/harness/bin/plan-merge.py","apply_merge")]; base={p:{r.qualname for r in grade.grade_source(subprocess.check_output(["git","show","cb6f80505721292c0c799cf03b0af6b180ba2970:"+p],text=True),p)} for p,d in pairs}; records=[(p,d,r) for p,d in pairs for r in grade.grade_source((root/p).read_text(),p) if r.qualname==d or r.qualname not in base[p]]; bad=[(p,r.qualname,r.grade) for p,d,r in records if r.grade<4 and r.grade!=2]; print("FEAT-66 grades",[(p,r.qualname,r.grade) for p,d,r in records]); sys.exit(1 if not records or bad else 0)'
+    intent: |
+      Work red-first and change only the three named production functions, their named owning suites, and the three feature-local evidence files. Before production edits, run each named suite at baseline cb6f80505721292c0c799cf03b0af6b180ba2970 and record its command, exit status, stdout bytes, and stderr bytes. Run the task's direct grade assertion against the baseline and record the intended failure: shape_problems, validate, and apply_merge are grade 1. Commit this red-first receipt only after the later immutable implementation pin exists.
+
+      Refactor check-domain.py shape_problems into an ordered table of rule records keyed by the eight existing file-kind regex families: run digest, run identity, plan YAML, feature JSON, state YAML, handoff, CLAUDE.md, and STATE.md. Parse the shared path and content context once, preserve current short-circuit and accumulation semantics, and invoke only the matching rules in current output order. The driver and every extracted rule must grade 4 or better, except exact grade 2. Move every existing explanatory comment byte-for-byte with its rule.
+
+      Refactor validate-digest.py validate into common rules followed by the existing persona-specific rule groups, preserving every error append order and every raw-persona versus normalized-persona distinction. Do not introduce one context object. Common helpers receive only the already parsed common values they need; QA, code-reviewer, lead, engineering-lead, and orchestrator helpers receive explicit tuples made from the values their existing branches already build. The driver and every extracted rule must grade 4 or better, except exact grade 2. Move every existing explanatory comment byte-for-byte with its rule.
+
+      Refactor plan-merge.py apply_merge along its existing phases: new-base approval seeding, parse and refusal checks, top-level ordering, union-key splicing, ordinary-key conflict or preservation, approval reset, output verification, and the existing non-preserving fallback. Do not pass a mutable state bag between helpers and do not add a new record type. Each phase helper returns phase-local output chunks and added, preserved, changed, ignored, and changed-task deltas; apply_merge alone extends the existing named accumulator lists in phase order. Keep _maybe_reset_approval's existing text-and-reset return, flatten changes where it already occurs, and construct the public MergeResult once on each existing return path. Preserve its fields, return values, refusal codes, and receipt order. The driver and every extracted phase function must grade 4 or better, except exact grade 2. Move every existing explanatory comment byte-for-byte with its phase.
+
+      Add or adjust only behavioral owning-suite assertions needed to make rule order, output accumulation, refusal paths, and result receipts fail when the decomposition changes an observable contract. Do not assert helper names, table syntax, tuple plumbing, or source text. Preserve each suite's baseline exit status and stdout and stderr bytes. A difference is unacceptable unless the operator explicitly rules it; record each ruled difference in notes/build-divergences.md with exact old bytes, new bytes, affected case, and ruling. Record none when there are no divergences.
+
+      Add no behavior, compatibility path, shared type across files, lock, verb, schema, or grade checker. Do not touch the 12 CLI dispatchers, the other 16 grade-1 rule evaluators, or #1928. After build and simplify, name an immutable implementation pin. In a separate clean checkout of that exact pin, run the verify block and compare every named suite with its baseline receipts byte-for-byte. Record the implementation pin, clean-checkout identity, commands, exit statuses, stdout and stderr evidence, and grade records in notes/clean-pin-byte-receipts.md. Commit that receipt, notes/red-first-receipts.md, and notes/build-divergences.md after the implementation pin, explicitly stating that the later receipts do not claim to exist inside the pin they name.
+needs_approval: true

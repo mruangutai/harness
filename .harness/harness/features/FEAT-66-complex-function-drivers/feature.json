@@ -1,0 +1,31 @@
+{
+  "feature_id": "FEAT-66-complex-function-drivers",
+  "branch": "feat/FEAT-66-complex-function-drivers",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "patch-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-26T13:57:24+00:00",
+      "tokens": 76009,
+      "ended_at": "2026-09-26T14:09:37+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-26T13:56:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known; diff bounded to three named functions and suites; no new public interface, schema, or enforcement surface; the existing code-grade ratchet holds the result."
+    }
+  ],
+  "mission": "patch"
+}
