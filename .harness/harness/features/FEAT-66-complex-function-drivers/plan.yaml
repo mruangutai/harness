@@ -4,7 +4,7 @@ approval:
   date: '2026-09-26'
   approved_by: molchairuangutai
   status: approved
-status: building
+status: review
 mission: patch
 source_issues: []
 baseline:
@@ -39,7 +39,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns check-domain.py, validate-digest.py, and plan-merge.py enforcement-layer changes and their owning proof directly to the main session.
     depends_on: []
-    status: review
+    status: done
     files:
     - .claude/skills/harness/bin/check-domain.py#shape_problems
     - .claude/skills/harness/bin/validate-digest.py#validate
