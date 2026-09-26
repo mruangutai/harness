@@ -2,7 +2,7 @@
   "feature_id": "FEAT-66-complex-function-drivers",
   "branch": "feat/FEAT-66-complex-function-drivers",
   "pr": null,
-  "review_sha": "c1f6204d6aad17d484e19bee84c2b43543785bf5",
+  "review_sha": "c4ea33bc0ff93b11a846f24d70923ce108aa1358",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -26,6 +26,16 @@
       "ended_at": "2026-09-26T15:12:02+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-26T15:17:03+00:00",
+      "tokens": 133148,
+      "ended_at": "2026-09-26T15:34:09+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -56,6 +66,20 @@
       "kind": "amendment",
       "decision": "T-01.verify",
       "reason": "the suite exists only untracked in the operator's main checkout; it is on neither origin/main nor this branch (ledger D-04)"
+    },
+    {
+      "at": "2026-09-26T15:15:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Proceed with the single pinned validation inside the operator-authorized 2-round, 90-minute rework ruling; no gate has failed yet."
+    },
+    {
+      "at": "2026-09-26T15:34:14+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "main-session-direct repair then fresh validation",
+      "reason": "DEC-174 returns T-01 fixes to Main; three unowned scope/acceptance findings require operator routing before a new pin and regate."
     }
   ],
   "mission": "patch",
