@@ -4,7 +4,7 @@ approval:
   date: '2026-09-26'
   approved_by: molchairuangutai
   status: approved
-status: ready
+status: building
 mission: patch
 source_issues: []
 baseline:
@@ -39,37 +39,36 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns check-domain.py, validate-digest.py, and plan-merge.py enforcement-layer changes and their owning proof directly to the main session.
     depends_on: []
-    status: ready
+    status: review
     files:
-      - .claude/skills/harness/bin/check-domain.py#shape_problems
-      - .claude/skills/harness/bin/validate-digest.py#validate
-      - .claude/skills/harness/bin/plan-merge.py#apply_merge
-      - path: tests/integration/test-check-domain.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-artifact.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-claims.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-grant.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-post.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-worktree-parity.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-worktree.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-check-domain-approval.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/unit/test-config-shape-matrix.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-plan-merge.py
-        quote: "#!/usr/bin/env python3"
-      - path: tests/integration/test-validate-digest.py
-        quote: "#!/usr/bin/env python3"
-      - tests/integration/test-validate-digest-shadows.py
-      - .harness/harness/features/FEAT-66-complex-function-drivers/notes/red-first-receipts.md
-      - .harness/harness/features/FEAT-66-complex-function-drivers/notes/clean-pin-byte-receipts.md
-      - .harness/harness/features/FEAT-66-complex-function-drivers/notes/build-divergences.md
+    - .claude/skills/harness/bin/check-domain.py#shape_problems
+    - .claude/skills/harness/bin/validate-digest.py#validate
+    - .claude/skills/harness/bin/plan-merge.py#apply_merge
+    - path: tests/integration/test-check-domain.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-artifact.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-claims.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-grant.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-post.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-worktree-parity.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-worktree.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-check-domain-approval.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/unit/test-config-shape-matrix.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-plan-merge.py
+      quote: '#!/usr/bin/env python3'
+    - path: tests/integration/test-validate-digest.py
+      quote: '#!/usr/bin/env python3'
+    - .harness/harness/features/FEAT-66-complex-function-drivers/notes/red-first-receipts.md
+    - .harness/harness/features/FEAT-66-complex-function-drivers/notes/clean-pin-byte-receipts.md
+    - .harness/harness/features/FEAT-66-complex-function-drivers/notes/build-divergences.md
     verify: |
       python3 tests/integration/test-check-domain.py &&
       python3 tests/integration/test-check-domain-artifact.py &&
@@ -82,7 +81,6 @@ tasks:
       python3 tests/unit/test-config-shape-matrix.py &&
       python3 tests/integration/test-plan-merge.py &&
       python3 tests/integration/test-validate-digest.py &&
-      python3 tests/integration/test-validate-digest-shadows.py &&
       python3 -c 'import importlib.util,pathlib,subprocess,sys; root=pathlib.Path("."); spec=importlib.util.spec_from_file_location("feat66_code_grade",root/".claude/skills/harness/bin/code_grade.py"); grade=importlib.util.module_from_spec(spec); sys.modules[spec.name]=grade; spec.loader.exec_module(grade); pairs=[(".claude/skills/harness/bin/check-domain.py","shape_problems"),(".claude/skills/harness/bin/validate-digest.py","validate"),(".claude/skills/harness/bin/plan-merge.py","apply_merge")]; base={p:{r.qualname for r in grade.grade_source(subprocess.check_output(["git","show","cb6f80505721292c0c799cf03b0af6b180ba2970:"+p],text=True),p)} for p,d in pairs}; records=[(p,d,r) for p,d in pairs for r in grade.grade_source((root/p).read_text(),p) if r.qualname==d or r.qualname not in base[p]]; bad=[(p,r.qualname,r.grade) for p,d,r in records if r.grade<4 and r.grade!=2]; print("FEAT-66 grades",[(p,r.qualname,r.grade) for p,d,r in records]); sys.exit(1 if not records or bad else 0)'
     intent: |
       Work red-first and change only the three named production functions, their named owning suites, and the three feature-local evidence files. Before production edits, run each named suite at baseline cb6f80505721292c0c799cf03b0af6b180ba2970 and record its command, exit status, stdout bytes, and stderr bytes. Run the task's direct grade assertion against the baseline and record the intended failure: shape_problems, validate, and apply_merge are grade 1. Commit this red-first receipt only after the later immutable implementation pin exists.

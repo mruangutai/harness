@@ -16,6 +16,16 @@
       "ended_at": "2026-09-26T14:09:37+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-26T14:13:31+00:00",
+      "ended_at": "2026-09-26T15:12:02+00:00",
+      "cycles_used": 0,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -25,6 +35,27 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "Cause known; diff bounded to three named functions and suites; no new public interface, schema, or enforcement surface; the existing code-grade ratchet holds the result."
+    },
+    {
+      "at": "2026-09-26T14:13:31+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "DEC-174: enforcement-layer refactor, the main session writes the diff; pm's plan handoff continues unchanged into build"
+    },
+    {
+      "at": "2026-09-26T15:09:41.830185+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "the suite exists only untracked in the operator's main checkout; it is on neither origin/main nor this branch (ledger D-04)"
+    },
+    {
+      "at": "2026-09-26T15:09:41.830349+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.verify",
+      "reason": "the suite exists only untracked in the operator's main checkout; it is on neither origin/main nor this branch (ledger D-04)"
     }
   ],
   "mission": "patch",
