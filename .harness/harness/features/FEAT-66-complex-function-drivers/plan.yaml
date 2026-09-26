@@ -1,8 +1,10 @@
 schema: plan/1
 feature: FEAT-66-complex-function-drivers
 approval:
-  status: pending
-status: plan
+  date: '2026-09-26'
+  approved_by: molchairuangutai
+  status: approved
+status: ready
 mission: patch
 source_issues: []
 baseline:

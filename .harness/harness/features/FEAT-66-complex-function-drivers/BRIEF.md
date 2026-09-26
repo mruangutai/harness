@@ -46,6 +46,6 @@ The maintainers of three enforcement-layer rule evaluators must change hundreds 
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: molchairuangutai
+date: 2026-09-26

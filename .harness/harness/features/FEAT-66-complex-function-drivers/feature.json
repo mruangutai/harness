@@ -27,5 +27,25 @@
       "reason": "Cause known; diff bounded to three named functions and suites; no new public interface, schema, or enforcement surface; the existing code-grade ratchet holds the result."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-66-complex-function-drivers/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "186929057f133f43b54cd62ad8474f3044c622cd6b9d5c434621ad8c2e39ea6f"
+  },
+  "github": {
+    "milestone": 89,
+    "parent": 1932,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1933
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
 }
