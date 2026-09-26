@@ -973,36 +973,98 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
     raised MergeRefusal leaves the file untouched. `verb` is the command-line name, recorded
     in approval.reset_reason when this merge voids a signature."""
     if base_bytes is None:
-        # A new plan needs an unsigned approval mapping before the main session can later sign it.
-        # The proposal may not supply that mapping: accepting any caller-owned value would let
-        # `apply` mint an approved plan, bypassing cmd_sign_approval's identity gate.
-        try:
-            prop_doc = harness_yaml.load_str(proposal_text, "<proposal>")
-        except harness_yaml.YamlParseError as exc:
-            raise harness_merge.MergeRefusal(
-                5, [f"UNPARSEABLE: proposal failed to parse: {exc}"]
-            )
-        prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
-        _refuse_illegal_anchors(prop_doc, "the proposal")
-        if APPROVAL_REFUSAL and "approval" in prop_doc:
-            raise harness_merge.MergeRefusal(
-                8,
-                [
-                    "REFUSED: proposal carries an approval mapping and the base does not exist.",
-                    "  base approval: <absent>",
-                    f"  proposal approval: {prop_doc.get('approval')!r}",
-                    "  apply seeds a fixed pending mapping; only the main session may approve it through sign-approval.",
-                ],
-            )
-        lines = proposal_text.splitlines(keepends=True)
-        for index, line in enumerate(lines):
-            if FEATURE_LINE_RE.match(line):
-                lines[index + 1:index + 1] = ["approval:\n", "  status: pending\n"]
-                return MergeResult("".join(lines).encode("utf-8"), [], [], False)
-        raise harness_merge.MergeRefusal(
-            5, ["UNPARSEABLE: proposal carries no top-level feature: key to anchor approval."]
-        )
+        return MergeResult(_seed_new_plan(proposal_text), [], [], False)
+    base_doc, prop_doc, base_text = _merge_inputs(base_bytes, proposal_text)
 
+    if not UNION_MERGE:
+        # Step 5, off: today's last-writer-wins, verbatim.
+        return MergeResult(proposal_text.encode("utf-8"), [], [], False)
+
+    ignored_approval = _refuse_approval_conflict(base_doc, prop_doc)
+    (out_order, out_text, added_ids, preserved_ids, replaced, changes, changed_tasks,
+     ignored) = _merge_keys(base_text, proposal_text, base_doc, prop_doc)
+    spliced_text, reset = _maybe_reset_approval(out_text, base_doc, verb, changed_tasks)
+    out_bytes = _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced)
+    return MergeResult(out_bytes, added_ids, preserved_ids, ignored_approval, changes, reset, ignored)
+
+
+def _merge_keys(base_text, proposal_text, base_doc, prop_doc):
+    """Every top-level key in merged order, each through `_merge_key`, with the per-key lists
+    concatenated in that order: (out_order, out_text, added, preserved, replaced, changes,
+    changed_tasks, ignored)."""
+    base = _index_top_keys(base_text)
+    prop = _index_top_keys(proposal_text)
+    out_order = _merged_key_order(base[1], prop[1])
+    chunks, added_ids, preserved_ids, replaced, changed_tasks, ignored = _concat_columns(
+        [_merge_key(key, base, prop, base_doc, prop_doc) for key in out_order], 6)
+    changes = [change for _key, _iid, _item, item_changes in replaced for change in item_changes]
+    return (out_order, "".join([*base[3], *chunks]), added_ids, preserved_ids, replaced, changes,
+            changed_tasks, ignored)
+
+
+def _concat_columns(rows, width):
+    """Each row's lists concatenated position-wise, in row order; `width` empty lists for no rows."""
+    return tuple(sum(column, []) for column in zip(*rows)) or tuple([] for _ in range(width))
+
+
+def _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced):
+    """The bytes to write: the verified splice, or the safe_dump rendering when preservation is off."""
+    spliced_bytes = spliced_text.encode("utf-8")
+    if PRESERVE_BASE_BYTES:
+        # STEP 9: THE RESULT IS PARSED BEFORE IT IS WRITTEN, and this guard is general.
+        # Steps 5-8 parse the BASE and the PROPOSAL; nothing parsed the OUTPUT, so a splice
+        # defect could — and on 2026-08-31 did — write a signed plan that PyYAML cannot load
+        # while printing ADDED and exiting 0. A tool whose whole promise is "the base's bytes
+        # survive" must not be able to hand back bytes that are not a plan.
+        #
+        # It also checks the MERGE, not merely the syntax: every id the caller is about to be
+        # told was added or preserved must actually be present in the reloaded document, and
+        # every replaced item must reload as base-with-the-reported-changes. A splice that
+        # lands text in the wrong block can still parse.
+        _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, replaced)
+        return spliced_bytes
+
+    # PRESERVE_BASE_BYTES off: what a naive implementation does — render the whole merged
+    # document through yaml.safe_dump instead of splicing. Comments and quoting do not survive
+    # this path; that is exactly the property the red proof grades.
+    return _dump_merged(base_doc, prop_doc, out_order)
+
+
+def _seed_new_plan(proposal_text):
+    """The bytes for a plan with no base: the proposal with a pending approval seeded."""
+    # A new plan needs an unsigned approval mapping before the main session can later sign it.
+    # The proposal may not supply that mapping: accepting any caller-owned value would let
+    # `apply` mint an approved plan, bypassing cmd_sign_approval's identity gate.
+    try:
+        prop_doc = harness_yaml.load_str(proposal_text, "<proposal>")
+    except harness_yaml.YamlParseError as exc:
+        raise harness_merge.MergeRefusal(
+            5, [f"UNPARSEABLE: proposal failed to parse: {exc}"]
+        )
+    prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
+    _refuse_illegal_anchors(prop_doc, "the proposal")
+    if APPROVAL_REFUSAL and "approval" in prop_doc:
+        raise harness_merge.MergeRefusal(
+            8,
+            [
+                "REFUSED: proposal carries an approval mapping and the base does not exist.",
+                "  base approval: <absent>",
+                f"  proposal approval: {prop_doc.get('approval')!r}",
+                "  apply seeds a fixed pending mapping; only the main session may approve it through sign-approval.",
+            ],
+        )
+    lines = proposal_text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if FEATURE_LINE_RE.match(line):
+            lines[index + 1:index + 1] = ["approval:\n", "  status: pending\n"]
+            return "".join(lines).encode("utf-8")
+    raise harness_merge.MergeRefusal(
+        5, ["UNPARSEABLE: proposal carries no top-level feature: key to anchor approval."]
+    )
+
+
+def _merge_inputs(base_bytes, proposal_text):
+    """(base_doc, prop_doc, base_text), both documents parsed and the proposal's anchors checked."""
     base_text = base_bytes.decode("utf-8")
     try:
         base_doc = harness_yaml.load_str(base_text, "<base plan>")
@@ -1015,14 +1077,11 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
     base_doc = base_doc if isinstance(base_doc, dict) else {}
     prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
     _refuse_illegal_anchors(prop_doc, "the proposal")
+    return base_doc, prop_doc, base_text
 
-    if not UNION_MERGE:
-        # Step 5, off: today's last-writer-wins, verbatim.
-        return MergeResult(proposal_text.encode("utf-8"), [], [], False)
 
-    base_lines, base_order, base_ranges, base_preamble = _index_top_keys(base_text)
-    prop_lines, prop_order, prop_ranges, _prop_preamble = _index_top_keys(proposal_text)
-
+def _refuse_approval_conflict(base_doc, prop_doc):
+    """Whether the proposal's approval is ignored because the base carries its own."""
     base_has_approval = "approval" in base_doc
     prop_has_approval = "approval" in prop_doc
     base_approval = base_doc.get("approval")
@@ -1045,172 +1104,217 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
             ],
         )
     ignored_approval = base_has_approval and prop_has_approval
+    return ignored_approval
 
+
+def _merged_key_order(base_order, prop_order):
     out_order = list(base_order)
     for key in prop_order:
         if key not in out_order:
             out_order.append(key)
+    return out_order
 
-    out_chunks = ["".join(base_preamble)]
-    added_ids, preserved_ids, replaced, changed_tasks, ignored = [], [], [], [], []
 
-    for key in out_order:
-        if key == "approval":
-            # Step 7: the base's line range, byte for byte, always. If the base has no
-            # approval block at all, this tool still never writes one — there is nothing to
-            # carry forward, and the proposal's is ignored the same as everywhere else.
-            if base_has_approval:
-                s, e = base_ranges["approval"]
-                out_chunks.append("".join(base_lines[s:e]))
+def _merge_key(key, base, prop, base_doc, prop_doc):
+    """One top-level key's (chunks, added, preserved, replaced, changed_tasks, ignored).
+    `base` and `prop` are `_index_top_keys` results: (lines, order, ranges, preamble)."""
+    base_lines, _base_order, base_ranges, _base_preamble = base
+    prop_lines, _prop_order, prop_ranges, _prop_preamble = prop
+    if key == "approval":
+        # Step 7: the base's line range, byte for byte, always. If the base has no
+        # approval block at all, this tool still never writes one — there is nothing to
+        # carry forward, and the proposal's is ignored the same as everywhere else.
+        if "approval" in base_doc:
+            s, e = base_ranges["approval"]
+            return ["".join(base_lines[s:e])], [], [], [], [], []
+        return [], [], [], [], [], []
+    if key in UNION_KEYS:
+        return _merge_union_key(key, (base_lines, base_ranges, base_doc),
+                                (prop_lines, prop_ranges, prop_doc))
+    chunk = _merge_plain_key(key, (base_lines, base_ranges, base_doc), (prop_lines, prop_ranges, prop_doc))
+    return chunk, [], [], [], [], []
+
+
+def _merge_union_key(key, base, prop):
+    """A union key's (chunks, added, preserved, replaced, changed_tasks, ignored); `base` and
+    `prop` are (lines, ranges, doc)."""
+    base_list, base_item_ranges = _aligned_items(key, base)
+    prop_list, prop_item_ranges = _aligned_items(key, prop)
+    head = _union_key_head(key, base, prop, base_item_ranges, prop_item_ranges)
+    if head is None:
+        return [], [], [], [], [], []
+
+    base_by_id, _base_id_order = _items_by_id(base_item_ranges, base_list)
+    prop_by_id, prop_id_order = _items_by_id(prop_item_ranges, prop_list)
+    chunks, preserved, replaced, ignored = _carry_base_items(
+        key, base_by_id, prop_by_id, base[0], prop[0])
+    # THE ADDITION IS RE-INDENTED TO THE BASE'S LIST, never appended verbatim. When
+    # the base has no items of its own there is nothing to match, and the key head came
+    # from the proposal too, so its own indentation is already consistent.
+    shift = _indent_shift(base[0], base_item_ranges, prop[0], prop_item_ranges)
+    added_chunks, added, changed_tasks = _add_new_items(
+        key, prop_id_order, base_by_id, prop_by_id, prop[0], shift)
+    return [head] + chunks + added_chunks, added, preserved, replaced, changed_tasks, ignored
+
+
+def _aligned_items(key, side):
+    """(parsed items, their text ranges) for one side — (lines, ranges, doc) — of a union key,
+    or the alignment refusal."""
+    lines, ranges, doc = side
+    items = doc.get(key) or []
+    item_ranges = _index_list_items(lines, ranges[key]) if key in ranges else []
+    if len(item_ranges) != len(items):
+        raise harness_merge.MergeRefusal(
+            5,
+            [
+                f"UNPARSEABLE: could not align text ranges with parsed items for "
+                f"'{key}' — the block's formatting is not one dash per item."
+            ],
+        )
+    return items, item_ranges
+
+
+def _union_key_head(key, base, prop, base_item_ranges, prop_item_ranges):
+    """The key's head lines from whichever side carries it, base first; None when neither does."""
+    base_lines, base_ranges, _base_doc = base
+    prop_lines, prop_ranges, _prop_doc = prop
+    if key in base_ranges:
+        return _key_head(base_lines, base_ranges[key], base_item_ranges)
+    if key in prop_ranges:
+        return _key_head(prop_lines, prop_ranges[key], prop_item_ranges)
+    return None
+
+
+def _indent_shift(base_lines, base_item_ranges, prop_lines, prop_item_ranges):
+    """Columns to shift a proposal item by to sit in the base's list, or None when a side has
+    no items to measure."""
+    base_indent = _item_indent(base_lines, base_item_ranges)
+    prop_indent = _item_indent(prop_lines, prop_item_ranges)
+    if base_indent is not None and prop_indent is not None:
+        return base_indent - prop_indent
+    return None
+
+
+def _items_by_id(item_ranges, items):
+    """({id: (start, end, item)}, ids in list order) — the order keeps a duplicate id's repeats."""
+    by_id = {}
+    id_order = []
+    for (s, e), item in zip(item_ranges, items):
+        iid = _item_id(item)
+        by_id[iid] = (s, e, item)
+        id_order.append(iid)
+    return by_id, id_order
+
+
+def _carry_base_items(key, base_by_id, prop_by_id, base_lines, prop_lines):
+    """The base's items in base order — carried, preserved or field-replaced — as
+    (chunks, preserved, replaced, ignored)."""
+    chunks, preserved, replaced, ignored = [], [], [], []
+    for iid, (s, e, item) in base_by_id.items():
+        if iid not in prop_by_id:
+            chunks.append("".join(base_lines[s:e]))
             continue
-
-        if key in UNION_KEYS:
-            base_list = base_doc.get(key) or []
-            prop_list = prop_doc.get(key) or []
-            base_item_ranges = (
-                _index_list_items(base_lines, base_ranges[key]) if key in base_ranges else []
-            )
-            prop_item_ranges = (
-                _index_list_items(prop_lines, prop_ranges[key]) if key in prop_ranges else []
-            )
-            if len(base_item_ranges) != len(base_list) or len(prop_item_ranges) != len(
-                prop_list
-            ):
-                raise harness_merge.MergeRefusal(
-                    5,
-                    [
-                        f"UNPARSEABLE: could not align text ranges with parsed items for "
-                        f"'{key}' — the block's formatting is not one dash per item."
-                    ],
-                )
-
-            if key in base_ranges:
-                out_chunks.append(_key_head(base_lines, base_ranges[key], base_item_ranges))
-            elif key in prop_ranges:
-                out_chunks.append(_key_head(prop_lines, prop_ranges[key], prop_item_ranges))
-            else:
-                continue
-
-            base_by_id = {}
-            for (s, e), item in zip(base_item_ranges, base_list):
-                base_by_id[_item_id(item)] = (s, e, item)
-            prop_by_id = {}
-            prop_id_order = []
-            for (s, e), item in zip(prop_item_ranges, prop_list):
-                iid = _item_id(item)
-                prop_by_id[iid] = (s, e, item)
-                prop_id_order.append(iid)
-
-            for iid, (s, e, item) in base_by_id.items():
-                if iid not in prop_by_id:
-                    out_chunks.append("".join(base_lines[s:e]))
-                    continue
-                ps, pe, pitem = prop_by_id[iid]
-                if pitem == item:
-                    out_chunks.append("".join(base_lines[s:e]))
-                    preserved_ids.append(iid)
-                    continue
-                # THE PROPOSAL'S FIELDS REPLACE THE BASE'S, FIELD BY FIELD (FEAT-59 SC-08).
-                # This was exit 7 CONFLICT, and it cost FEAT-54 an amend round trip per field.
-                # A `status` that differs is IGNORED, not a change: an item whose only
-                # difference is its station is neither replaced nor a reason to void approval.
-                item_lines, changes, ignored_here = _replace_fields(
-                    base_lines, s, e, item, prop_lines, ps, pe, pitem, iid, key)
-                out_chunks.append("".join(item_lines))
-                ignored.extend(ignored_here)
-                if not changes:
-                    continue
-                replaced.append((key, iid, item, changes))
-                # A REPLACED task field no longer voids the signature (BUG-1716 D-04): the
-                # signed text is hashed in feature.json at signature, and an unledgered change
-                # to it is INV-40's to refuse. Only the TASK SET resets approval now.
-            # THE ADDITION IS RE-INDENTED TO THE BASE'S LIST, never appended verbatim. When
-            # the base has no items of its own there is nothing to match, and the key head came
-            # from the proposal too, so its own indentation is already consistent.
-            base_indent = _item_indent(base_lines, base_item_ranges)
-            prop_indent = _item_indent(prop_lines, prop_item_ranges)
-            for iid in prop_id_order:
-                if iid not in base_by_id:
-                    s, e, _item = prop_by_id[iid]
-                    item_lines = prop_lines[s:e]
-                    if base_indent is not None and prop_indent is not None:
-                        item_lines = _reindent(
-                            item_lines, base_indent - prop_indent, iid, key
-                        )
-                    out_chunks.append("".join(item_lines))
-                    added_ids.append(iid)
-                    if key == "tasks":
-                        changed_tasks.append(iid)
+        ps, pe, pitem = prop_by_id[iid]
+        if pitem == item:
+            chunks.append("".join(base_lines[s:e]))
+            preserved.append(iid)
             continue
+        # THE PROPOSAL'S FIELDS REPLACE THE BASE'S, FIELD BY FIELD (FEAT-59 SC-08).
+        # This was exit 7 CONFLICT, and it cost FEAT-54 an amend round trip per field.
+        # A `status` that differs is IGNORED, not a change: an item whose only
+        # difference is its station is neither replaced nor a reason to void approval.
+        item_lines, changes, ignored_here = _replace_fields(
+            base_lines, s, e, item, prop_lines, ps, pe, pitem, iid, key)
+        chunks.append("".join(item_lines))
+        ignored.extend(ignored_here)
+        if not changes:
+            continue
+        replaced.append((key, iid, item, changes))
+        # A REPLACED task field no longer voids the signature (BUG-1716 D-04): the
+        # signed text is hashed in feature.json at signature, and an unledgered change
+        # to it is INV-40's to refuse. Only the TASK SET resets approval now.
+    return chunks, preserved, replaced, ignored
 
-        # Step 8: every other top-level key.
-        in_base = key in base_ranges
-        in_prop = key in prop_ranges
-        if in_base and in_prop:
-            bval, pval = base_doc.get(key), prop_doc.get(key)
-            if bval != pval:
-                raise harness_merge.MergeRefusal(
-                    7,
-                    [
-                        f"CONFLICT: top-level key '{key}' carries two different values.",
-                        f"  base: {bval!r}",
-                        f"  proposal: {pval!r}",
-                    ],
-                )
-            s, e = base_ranges[key]
-            out_chunks.append("".join(base_lines[s:e]))
-        elif in_base:
-            s, e = base_ranges[key]
-            out_chunks.append("".join(base_lines[s:e]))
-        elif in_prop:
-            s, e = prop_ranges[key]
-            out_chunks.append("".join(prop_lines[s:e]))
 
-    spliced_text, reset = _maybe_reset_approval("".join(out_chunks), base_doc, verb, changed_tasks)
-    spliced_bytes = spliced_text.encode("utf-8")
-    changes = [change for _key, _iid, _item, item_changes in replaced for change in item_changes]
+def _add_new_items(key, prop_id_order, base_by_id, prop_by_id, prop_lines, shift):
+    """The proposal's items the base lacks, in proposal order, re-indented by `shift` when
+    both sides have an indent to compare — as (chunks, added, changed_tasks)."""
+    chunks, added, changed_tasks = [], [], []
+    for iid in prop_id_order:
+        if iid in base_by_id:
+            continue
+        s, e, _item = prop_by_id[iid]
+        item_lines = prop_lines[s:e]
+        if shift is not None:
+            item_lines = _reindent(item_lines, shift, iid, key)
+        chunks.append("".join(item_lines))
+        added.append(iid)
+        if key == "tasks":
+            changed_tasks.append(iid)
+    return chunks, added, changed_tasks
 
-    if PRESERVE_BASE_BYTES:
-        # STEP 9: THE RESULT IS PARSED BEFORE IT IS WRITTEN, and this guard is general.
-        # Steps 5-8 parse the BASE and the PROPOSAL; nothing parsed the OUTPUT, so a splice
-        # defect could — and on 2026-08-31 did — write a signed plan that PyYAML cannot load
-        # while printing ADDED and exiting 0. A tool whose whole promise is "the base's bytes
-        # survive" must not be able to hand back bytes that are not a plan.
-        #
-        # It also checks the MERGE, not merely the syntax: every id the caller is about to be
-        # told was added or preserved must actually be present in the reloaded document, and
-        # every replaced item must reload as base-with-the-reported-changes. A splice that
-        # lands text in the wrong block can still parse.
-        _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, replaced)
-        return MergeResult(spliced_bytes, added_ids, preserved_ids, ignored_approval,
-                           changes, reset, ignored)
 
-    # PRESERVE_BASE_BYTES off: what a naive implementation does — render the whole merged
-    # document through yaml.safe_dump instead of splicing. Comments and quoting do not survive
-    # this path; that is exactly the property the red proof grades.
+def _merge_plain_key(key, base, prop):
+    """The chunk list for an ordinary top-level key: the base's bytes, or the proposal's when
+    only it carries the key; two different values are the exit-7 CONFLICT."""
+    base_lines, base_ranges, base_doc = base
+    prop_lines, prop_ranges, prop_doc = prop
+    # Step 8: every other top-level key.
+    in_base = key in base_ranges
+    in_prop = key in prop_ranges
+    if in_base and in_prop:
+        bval, pval = base_doc.get(key), prop_doc.get(key)
+        if bval != pval:
+            raise harness_merge.MergeRefusal(
+                7,
+                [
+                    f"CONFLICT: top-level key '{key}' carries two different values.",
+                    f"  base: {bval!r}",
+                    f"  proposal: {pval!r}",
+                ],
+            )
+    if in_base:
+        s, e = base_ranges[key]
+        return ["".join(base_lines[s:e])]
+    if in_prop:
+        s, e = prop_ranges[key]
+        return ["".join(prop_lines[s:e])]
+    return []
+
+
+def _dump_merged(base_doc, prop_doc, out_order):
+    """The PRESERVE_BASE_BYTES-off rendering: the merged document through yaml.safe_dump."""
     merged_doc = dict(base_doc)
-    for key in UNION_KEYS:
-        if key not in out_order:
-            continue
-        base_list = base_doc.get(key) or []
-        merged_list = list(base_list)
-        seen = {_item_id(i) for i in base_list}
-        for item in prop_doc.get(key) or []:
-            iid = _item_id(item)
-            if iid not in seen:
-                merged_list.append(item)
-                seen.add(iid)
+    for key in (k for k in UNION_KEYS if k in out_order):
+        merged_list = _merged_union_list(base_doc.get(key) or [], prop_doc.get(key) or [])
         if merged_list:
             merged_doc[key] = merged_list
+    _carry_plain_keys(merged_doc, prop_doc)
+    if "approval" in base_doc:
+        merged_doc["approval"] = base_doc.get("approval")
+    dumped = yaml.safe_dump(merged_doc, sort_keys=False, allow_unicode=True).encode("utf-8")
+    return dumped
+
+
+def _merged_union_list(base_list, prop_list):
+    """The base's items followed by the proposal's whose ids the base lacks."""
+    merged_list = list(base_list)
+    seen = {_item_id(i) for i in base_list}
+    for item in prop_list:
+        iid = _item_id(item)
+        if iid not in seen:
+            merged_list.append(item)
+            seen.add(iid)
+    return merged_list
+
+
+def _carry_plain_keys(merged_doc, prop_doc):
+    """Add the proposal's ordinary keys the merged document lacks, in place."""
     for key in prop_doc:
         if key in UNION_KEYS or key == "approval":
             continue
         if key not in merged_doc:
             merged_doc[key] = prop_doc[key]
-    if base_has_approval:
-        merged_doc["approval"] = base_approval
-    dumped = yaml.safe_dump(merged_doc, sort_keys=False, allow_unicode=True).encode("utf-8")
-    return MergeResult(dumped, added_ids, preserved_ids, ignored_approval, changes, reset, ignored)
 
 
 def cmd_apply(args):
