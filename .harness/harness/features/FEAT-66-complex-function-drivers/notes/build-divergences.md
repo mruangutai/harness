@@ -8,8 +8,9 @@ suites, `tests/unit/test-config-shape-matrix.py`, `tests/integration/test-plan-m
 
 ## Output divergences
 
-**None.** Every compared suite has the same exit status, the same stdout bytes and the same stderr
-bytes as its baseline receipt. No operator-visible line changed.
+**None from the change.** Every compared suite has the same exit status and the same stdout and stderr
+bytes as its baseline receipt once each checkout's own absolute root is normalised (D-09, operator-ruled:
+the only raw difference is the running checkout's path in three `ok` lines). No operator-visible line changed.
 
 ## Non-output changes, ruled
 
@@ -23,6 +24,8 @@ bytes as its baseline receipt. No operator-visible line changed.
 | D-06 | `plan-merge.apply_merge`: the six accumulator lists and the `MergeResult` return paths | six lists extended per key inside the driver's loop; `MergeResult` built on each of the two union-path returns | the key walk is `_merge_keys`, whose `_fold_merge_rows` extends the same six named lists in key order; `MergeResult` is built once on the union path after `_final_bytes` picks the verified splice or the safe_dump rendering | pm's intent asked that `apply_merge` alone extend the accumulators and construct `MergeResult` on each return path; both forms put the driver at abc 28-40 (grade 2-3), so the bar (SC-01) wins. Every list's order is unchanged: rows are folded in `out_order`. |
 | D-07 | `check-domain`: the `_head`/`deny` closures | closures over `rel`/`display`/`out` inside `shape_problems` | module-level `_head(shown, text)` and `deny(out, shown, msgs)` | Same bytes produced; the closures' comments moved with them. `deny` keeps its name because four load-bearing comments name it. |
 | D-08 | two rationales in validate-digest.py saying a branch was placed away from `validate` because `validate` was "already far past the grade bar (pre-existing)" (`_missing_field_default_hint`'s docstring; the comment above its call in `_missing_field_hint`) | carried verbatim | carried verbatim, each followed by one FEAT-66-marked sentence re-deriving the reason against the post-diff tree | Simplify altitude finding 4: the condition the rationale cites was removed by this diff, and a live instruction derived from a dead constraint sends the next reader to the wrong place. The original bytes are kept; only a marked sentence is appended (the repository's convention for a new fact). |
+| D-09 | `tests/integration/test-validate-digest.py` raw stdout at the clean pin checkout vs the baseline receipt | three lines `ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-66-complex-function-drivers/.omp/agents/harness-{code,security,ui}-reviewer.md` | the same three lines with `…/feat66-cleanpin-<pin>/…` | The suite prints the absolute path of the agent file it read, which names the checkout that ran it and nothing about the change. Operator ruling 2026-09-26 (validate c0, MF-01): not a divergence; the comparison replaces each checkout's own root with `<checkout>` on both sides; raw sha1 columns are kept in the receipt and the exact lines are printed there. |
+
 
 ## Simplify pass (four read-only readers, before the pin)
 
