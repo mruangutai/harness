@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-66 complex function drivers</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-66-complex-function-drivers">Ship review — FEAT-66 complex function drivers</h1>
+<p>FEAT-66 is ready for the operator&#x27;s ship decision. Validation passed at review pin <code>b635ec5f61ee29bf280c99f5b6182520c99a0487</code>: the required unit and integration matrix is green, both signed perspectives are met, SC-01 through SC-04 are met, and all six validate-c0 findings are closed.</p>
+<h2 id="definition-of-done">Definition of done</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed outcome</th><th>Verdict</th><th>Discharged by</th><th>Evidence</th></tr></thead><tbody><tr><td>operator</td><td>I can rely on all existing enforcement outcomes and output bytes from the three evaluators remaining unchanged, with any divergence explicitly enumerated and ruled, and on reproducible evidence from the exact implementation pin rather than the working tree.</td><td>met</td><td>SC-02, SC-04</td><td><code>notes/research-FEAT-66-complex-function-drivers-goalcheck-validate-c1.md</code>; <code>notes/review-harness-qa-c1.md</code>; <code>notes/clean-pin-byte-receipts.md</code>; <code>notes/build-divergences.md</code> D-09</td></tr><tr><td>code maintainer</td><td>I can change or review one rule without traversing a grade-1 monolith: each of the three named functions is a small driver over ordered per-rule functions, and every function produced or retained by this refactor meets the production code-grade bar except the grader&#x27;s grade-2 exception. The comments that explain each rule remain byte-for-byte with that rule.</td><td>met</td><td>SC-01, SC-03</td><td><code>notes/research-FEAT-66-complex-function-drivers-goalcheck-validate-c1.md</code>; <code>notes/review-harness-code-reviewer-c1.md</code>; <code>notes/red-first-receipts.md</code></td></tr></tbody></table></div>
+<h2 id="run-record">Run record</h2>
+<p>No report round was spawned. This briefing was assembled from the durable run digests:</p>
+<ul><li><code>runs/patch-product/digest.md</code></li><li><code>runs/build-main-direct/digest.md</code></li><li><code>runs/validate-validator/digest.md</code></li><li><code>runs/fix-c0-main-direct/digest.md</code></li><li><code>runs/validate-c1-validator/digest.md</code></li></ul>
+<p>The patch run produced the approved one-task direct-execution plan. The build run decomposed <code>shape_problems</code>, <code>validate</code>, and <code>apply_merge</code> into graded drivers and per-rule helpers while preserving the owning suites&#x27; outcomes. Validate c0 found six defects in evidence, plan conformance, and matrix configuration. The operator ruled the three scope/acceptance questions in <code>notes/answers-validate-validator.md</code>; fix c0 closed MF-01 through MF-06 without changing production bytes. Validate c1 independently re-graded those repairs with QA, code, security, UI, and PM readers and returned PASS with no finding.</p>
+<h2 id="verification-and-risk">Verification and risk</h2>
+<ul><li>Review pin: <code>b635ec5f61ee29bf280c99f5b6182520c99a0487</code>.</li><li>QA: <code>cross_module</code> requires unit and integration; 42 unit files and 70 integration files passed in an exact-pin detached checkout.</li><li>Fail-first: SC-01&#x27;s plan-inline assertion fails at baseline <code>35c39f02</code> with all three drivers at grade 1 and passes at implementation pin <code>f882dc3e</code>; SC-02 uses the operator-approved baseline-comparison equivalent.</li><li>Code review: 91 changed or new function records pass the production grade bar; the exact three-file production boundary, rule/output order, and load-bearing comments are preserved.</li><li>Security: enforcement boundaries were inspected and no security finding survived.</li><li>UI: correctly scoped out; the pinned diff has no rendered surface.</li><li>UAT: not required; all success criteria are automated or inspection-based and the change has no user-facing surface.</li></ul>
+<h2 id="resolved-escalations-and-open-questions">Resolved escalations and open questions</h2>
+<p>All validate-c0 escalations are resolved: D-09 records and rules the three checkout-root-only output lines; D-02 is amended to the built fold shape; the second permanent grade lock and stale exemption are removed; BRIEF records SC-02&#x27;s approved fail-first equivalent; and T-01 uses <code>change_type: cross_module</code>. There are no open questions.</p>
+<h2 id="spend-and-ledger">Spend and ledger</h2>
+<p>The feature used 5 recorded runs, 1 of 10 allowed rework cycles, 110 wall-clock minutes, and 287,658 measured agent tokens. Rework used 39 of the operator-approved 90 minutes and 1 of 2 rounds. The ledger contains 8 judgements. The informational run budget is 20, so it was not crossed.</p>
+<h2 id="amendments-to-signed-task-text">Amendments to signed task text</h2>
+<div class="scroll"><table><thead><tr><th>At</th><th>Decision</th><th>Reason</th><th>Overruled</th></tr></thead><tbody><tr><td><code>2026-09-26T15:09:41.830185+00:00</code></td><td><code>T-01.files</code></td><td>The shadows suite existed only untracked in the operator&#x27;s main checkout and was on neither origin/main nor this branch.</td><td>no</td></tr><tr><td><code>2026-09-26T15:09:41.830349+00:00</code></td><td><code>T-01.verify</code></td><td>The shadows suite existed only untracked in the operator&#x27;s main checkout and was on neither origin/main nor this branch.</td><td>no</td></tr></tbody></table></div>
+<p>Overrule rate: 0/2.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Derive the pre-existing <code>SHAPE_PATTERNS</code> constant from <code>SHAPE_RULES</code>; this is outside SC-03 and was intentionally not included in FEAT-66.</td></tr><tr><td>B-2</td><td>chore</td><td>Replace <code>check-state._inv15_digest_verdict</code>&#x27;s hand-rolled <code>_return_tail</code> behavior and moved validate-digest line citations in a separately scoped change.</td></tr></tbody></table></div>
+<p>These rows do not gate FEAT-66. Unstruck rows become backlog issues only if the operator accepts ship.</p><p class='derived'>Derived from <code>ship-review-validate-c1-validator.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
