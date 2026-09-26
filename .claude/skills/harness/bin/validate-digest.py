@@ -1532,20 +1532,11 @@ def _missing_field_default_hint(field, allowed):
 
 def validate(persona, text, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
              review_pin=None, mission=None):
-    err = []
     raw_persona = persona
     persona = norm(persona)
-    schema = SCHEMAS.get(persona)
+    schema = _persona_schema(raw_persona, persona)
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
-    if raw_persona == "harness-code-reviewer":
-        # CANONICAL SPELLING (batch contract, wave 2): a gated record that is below
-        # bar and NOT grade 2 — one that blocks the build exactly as grade 1 does —
-        # is reported by code_grade.py at severity `high` and is spelled here
-        # `code_grade: fail`. There is no fifth enum value; `fail` already carries
-        # that meaning and is reused rather than added to.
-        schema = {**schema, "code_grade": set(CODE_GRADE_VALUES),
-                  "reviewed": str}
 
     # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
     # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
@@ -1557,35 +1548,32 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
 
     # --- VERDICT: exact token, exact spelling.
     m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)
-    if not m:
-        err.append("no VERDICT: line — this is a contract violation, not a verdict of any kind.")
-    elif m.group(1) not in VERDICTS:
-        err.append(f"VERDICT is {m.group(1)!r}; must be exactly one of {sorted(VERDICTS)}.")
-
-    if not re.search(r"^\s*DIGEST:", text, re.M):
-        err.append("no DIGEST: block.")
-    if not re.search(r"^\s*artifact:\s*\S+", text, re.M):
-        err.append("no artifact: path.")
-
     seen = parse_digest(text)
-    review_policy = None
+    optional_fields = _optional_fields(raw_persona, persona)
+    all_fields = {**schema, **UNIVERSAL, **optional_fields}
+    err = _common_errors(m, text, seen, all_fields, optional_fields, persona, mission)
+    err += _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission,
+                           (config_path, feature_dir, branch_override, review_pin))
+    return err
+
+
+def _persona_schema(raw_persona, persona):
+    """The persona's required fields, or None for a persona this file does not know."""
+    schema = SCHEMAS.get(persona)
+    if schema is None:
+        return None
     if raw_persona == "harness-code-reviewer":
-        review_policy = load_policy(review_config_path(config_path))["review"]
+        # CANONICAL SPELLING (batch contract, wave 2): a gated record that is below
+        # bar and NOT grade 2 — one that blocks the build exactly as grade 1 does —
+        # is reported by code_grade.py at severity `high` and is spelled here
+        # `code_grade: fail`. There is no fifth enum value; `fail` already carries
+        # that meaning and is reused rather than added to.
+        schema = {**schema, "code_grade": set(CODE_GRADE_VALUES),
+                  "reviewed": str}
+    return schema
 
-    # F7: `headline` must be at the DIGEST block's OWN level, read from `seen` (which
-    # only holds base-indent keys) rather than matched anywhere in the text at any
-    # depth. A lead digest with no top-level headline but a block-style member that
-    # happens to carry its own `headline:` used to pass — the orchestrator routes on
-    # the TOP-level headline and never opens member entries.
-    hl = seen.get("headline")
-    if not (isinstance(hl, str) and hl.strip()):
-        err.append("DIGEST has no headline: — the orchestrator routes on this.")
 
-    # --- catch DRIFTED key spellings before reporting them as merely missing.
-    # F15: iterate the FULL field set (schema + universal), not schema alone — a
-    # universal field like `files_touched` drifting to `files-touched` was reported
-    # as merely missing rather than as the drift it is; fails closed either way, but
-    # the wrong message.
+def _optional_fields(raw_persona, persona):
     optional_fields = {
         **PASSTHROUGH.get(persona, {}),
         **DOCUMENTED_OPTIONAL.get(raw_persona, {}),
@@ -1596,169 +1584,17 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # harness-*-lead type and still require adequacy_notes.
     if raw_persona == "lead":
         optional_fields["adequacy_notes"] = list
-    all_fields = {**schema, **UNIVERSAL, **optional_fields}
-    for k in list(seen):
-        for want in all_fields:
-            if k != want and k.replace("-", "_").lower() == want:
-                err.append(f"key {k!r} is drifted spelling of {want!r} — the runner "
-                           f"routes on the exact name and will not see it.")
+    return optional_fields
 
+
+def _common_errors(m, text, seen, all_fields, optional_fields, persona, mission):
+    """The rules every persona is held to, in the order the inline body ran them."""
+    err = _verdict_errors(m, text)
+    err += _headline_errors(seen)
+    err += _drift_errors(seen, all_fields)
+    passing = bool(m) and m.group(1) == "PASS"
     for field, allowed in all_fields.items():
-        if field not in seen:
-            if field in optional_fields:
-                continue
-            # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
-            # governed field is not required of it at all.
-            if _unbound(field, seen):
-                continue
-            # REQ-11: a hint must name a value that will actually VALIDATE. Before
-            # this, `task_verify` inherited "write `none`" — which the gate above
-            # then rejects alongside PASS — and `task` would have inherited "write
-            # `[]`", which its own regex rejects. Four branches, most specific first.
-            if isinstance(allowed, re.Pattern):
-                hint = ("your task's `T-NN` id exactly as your dispatch carries it "
-                        "(T-05), or `none` if this dispatch carries no PLAN task")
-            elif field in GATE_FIELDS.get(persona, ()) and isinstance(allowed, set):
-                # The isinstance guard is not decoration: qa's `matrix_ok` is in
-                # GATE_FIELDS with `allowed is bool`, and sorted() over a type raises.
-                #
-                # WORDING: do NOT say a placeholder is disallowed. This branch also
-                # fires on a missing `suite` for dev, and `suite: n/a` with BLOCKED is
-                # LEGAL (REQ-03/SC-06). The gate is on the PAIRING, so the hint says so.
-                vals = sorted(a for a in allowed if isinstance(a, str))
-                hint = (f"one of {vals} — what gets rejected for this role is a "
-                        f"placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder "
-                        f"itself (`n/a` with FAIL or BLOCKED is the honest refusal)")
-                # JOINTLY FOLLOWABLE (SC-18c). Without this clause a return omitting
-                # both fields gets hint (8a) offering `task: none` and this hint
-                # demanding a real value — and `task: none` + `task_verify: pass` is
-                # then rejected by the conditional. A hint routing an agent into a
-                # second rejection is REQ-11's own defect class, re-created by its fix,
-                # and the re-prompted return is NOT re-validated (see below).
-                if field in CONDITIONAL:
-                    hint += (f", or omit this field entirely if this dispatch carries "
-                             f"no PLAN task and you wrote `{CONDITIONAL[field]}: none`")
-            elif field in NULLABLE:
-                hint = "`none` if genuinely not applicable"
-            else:
-                # `code_grade` is handled inside this helper rather than as its
-                # own elif here: `validate` is already far past the grade bar
-                # (pre-existing), and a single-value ENUM SCALAR like
-                # `code_grade` needs a hint naming its legal values, not the
-                # generic "`[]` if there are none" — which sent a reviewer who
-                # omitted it straight into a second, guaranteed rejection
-                # (REQ-11's own defect class). SC-19 stays intact: the field is
-                # still named literally in the outer message below.
-                hint = _missing_field_default_hint(field, allowed)
-            # HONEST LIMIT: a re-prompted return is not re-validated —
-            # `:845` is `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
-            # value ships the second attempt unvalidated. That passthrough is
-            # pre-existing and deliberate; this edit stops the hint POINTING at it and
-            # does not close it.
-            err.append(f"missing {field!r} — every field is required; write {hint}. "
-                       f"An absent field is ambiguous; an explicit empty one asserts you looked.")
-            continue
-        val = seen[field]
-        if val is _UNPARSED:
-            err.append(f"{field!r} could not be parsed — its brackets/quotes never "
-                       f"balanced. Fix the YAML rather than resubmitting as-is.")
-            continue
-        # #1855: on a mission with no gate subject the field is PINNED to its
-        # did-nothing spelling — one error, one actionable field, and the gate,
-        # enum and binding checks below never see it. Before D-08 so a mission
-        # dispatch that also carries `task: none` reads the same either way.
-        pinned = _mission_pinned_value(field, persona, mission)
-        if pinned is not None:
-            if val != pinned:
-                err.append(f"{field}={val!r} on a {mission} dispatch — this mission "
-                           f"reviews no diff and runs no suite, so a gate value here is "
-                           f"decoration rather than evidence. Write `{field}: {pinned}`.")
-            continue
-        # D-08(b)/(c). Placed BEFORE the NULLABLE branch on purpose: after it,
-        # D-08(b) would be unreachable for a placeholder value.
-        if _unbound(field, seen):
-            if isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
-                # D-08(b): `n/a` is the honest DEC-121 spelling for a field with no
-                # answer, and the n/a-with-PASS gate does NOT bind here — there was no
-                # gate to decline.
-                continue
-            # D-08(c): the `continue` below short-circuits both the enum check and the
-            # fail gate, so this produces exactly ONE error, naming the actionable
-            # field, rather than two that disagree about what is wrong.
-            err.append(f"{field}={val!r} but {CONDITIONAL[field]}=none — a dispatch "
-                       f"carrying no PLAN task has no verify: command to report on. "
-                       f"Omit {field} or write `n/a`, or name the task's T-NN id in "
-                       f"`{CONDITIONAL[field]}`.")
-            continue
-        if field in NULLABLE and isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
-            # DEC-173: declining a GATE while claiming PASS is the fail-open the
-            # widened NULLABLE would otherwise have created. Reported here rather
-            # than as a separate pass so the message lands next to the field.
-            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS" \
-                    and not _nothing_to_gate(field, persona, seen):
-                err.append(f"{field}={val!r} declines to report a gate, but VERDICT is "
-                           f"PASS — a gate that did not run cannot have passed. Return "
-                           f"BLOCKED or FAIL, or report the real result.")
-            continue
-        # THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch above —
-        # nesting it inside is exactly why `suite: fail` + PASS was accepted for five
-        # features. ADDITIVE: it appends and does not `continue`, so a value that is
-        # both a gate failure and a schema violation still reports both.
-        expected = GATE_FAIL_VALUES.get(persona, {})
-        if field in expected and m and m.group(1) == "PASS":
-            want = expected[field]
-            # TYPE-STRICT, and the reason is not stylistic: `0 == False` is True in
-            # Python, so a bare equality would fire on `matrix_ok: 0`.
-            # `isinstance(0, bool)` is False, which is what makes this correct.
-            if val == want and isinstance(val, type(want)):
-                err.append(f"{field}={val!r} reports a gate as FAILED, but VERDICT is "
-                           f"PASS — a gate that failed cannot have passed. Fix until it "
-                           f"passes, or return FAIL or BLOCKED.")
-        if isinstance(allowed, set):
-            # F: fail-open crash. `val` can be a LIST (`severity_max: [low, med]`
-            # parses via parse_scalar's `[...]` branch) while `allowed` is a set —
-            # `val not in allowed` then raises TypeError on the unhashable list,
-            # which propagated all the way out of `validate()` uncaught. In `--hook`
-            # mode that meant exit 1, and only exit 2 blocks (DEC-100/DEC-122), so
-            # the ENTIRE gate went dark for that return with no signal. Report it as
-            # the real violation it is instead of crashing past it.
-            if isinstance(val, list):
-                err.append(f"{field}={val!r} must be a single value from "
-                           f"{sorted(a for a in allowed if isinstance(a, str))}, not a list.")
-            elif val not in allowed:
-                extra = ""
-                if isinstance(val, str):
-                    near = [a for a in allowed if isinstance(a, str)
-                            and (a.startswith(val[:3]) or val.startswith(a[:3]))]
-                    if near: extra = f" (did you mean {near[0]!r}?)"
-                err.append(f"{field}={val!r} is not in {sorted(allowed)}{extra}.")
-        elif isinstance(allowed, re.Pattern):
-            # LOAD-BEARING, not stylistic. Measured in the interpreter: a re.Pattern
-            # is not a set and is none of bool/int/list/str, so WITHOUT this branch it
-            # falls through the whole chain in SILENCE and `task: bogus` is ACCEPTED —
-            # the "unknown key ignored" shape this file exists to remove.
-            if not (isinstance(val, str) and allowed.fullmatch(val)):
-                err.append(f"{field}={val!r} is not a task id — write your task's "
-                           f"`T-NN` id exactly as your dispatch carries it (T-05), or "
-                           f"`none` if this dispatch carries no PLAN task.")
-        elif allowed is bool and not isinstance(val, bool):
-            err.append(f"{field}={val!r} must be a bool, not {type(val).__name__} "
-                       f"— a string like \"mostly\" silently soft-fails a hard gate.")
-        elif allowed is int and (not isinstance(val, int) or isinstance(val, bool)):
-            # F12/bool: `bool` is an `int` subclass in Python — `open_questions: true`
-            # parsed by `parse_scalar` to `True` would otherwise pass an `int` field.
-            err.append(f"{field}={val!r} must be an integer.")
-        elif allowed is list and not isinstance(val, list):
-            err.append(f"{field}={val!r} must be a list.")
-        elif allowed is str and not (isinstance(val, str) and val.strip()):
-            # F12: `str`-typed fields (`team`, `branch`, `blocked_on`,
-            # `briefing`) hit no type branch at all before this — `team: 7` passed
-            # as an int, and a bare `branch:` with nothing under it parsed to `[]`
-            # and passed, though DEC-121 requires the literal `none` for an
-            # inapplicable NULLABLE scalar, not silence.
-            err.append(f"{field}={val!r} must be a non-empty string"
-                       + (" (write the literal `none` if genuinely inapplicable)."
-                          if field in NULLABLE else "."))
+        err += _field_errors(field, allowed, seen, persona, optional_fields, mission, passing)
 
     # --- FEAT-59 SC-06: every finding carries a KIND (FINDING_KINDS). Generic over
     # personas on purpose — `findings` is required of a reviewer and optional on a
@@ -1767,154 +1603,483 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # drift. Guarded on `list`: a non-list already reported "must be a list" above.
     findings = seen.get("findings")
     if isinstance(findings, list):
-        err.extend(_finding_kind_errors(findings))
+        err += _finding_kind_errors(findings)
+    return err
 
-    # --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass.
-    # `matrix_ok: true` says the tests PASS; `fail_first` is what says they ever
-    # FAILED, and a test that never failed constrains nothing (the Iron Law,
-    # harness-tdd-enforcement). Bound to the same triple #919 re-verifies —
-    # VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` (no gate ran) and every
-    # non-PASS verdict may truthfully carry `[]`. TYPE-STRICT on `True` for the
-    # reason GATE_FAIL_VALUES is: `1 == True` in Python and `matrix_ok: 1` is not a
-    # bool (already rejected above; not doubled here).
+
+def _verdict_errors(m, text):
+    err = []
+    if not m:
+        err.append("no VERDICT: line — this is a contract violation, not a verdict of any kind.")
+    elif m.group(1) not in VERDICTS:
+        err.append(f"VERDICT is {m.group(1)!r}; must be exactly one of {sorted(VERDICTS)}.")
+
+    if not re.search(r"^\s*DIGEST:", text, re.M):
+        err.append("no DIGEST: block.")
+    if not re.search(r"^\s*artifact:\s*\S+", text, re.M):
+        err.append("no artifact: path.")
+    return err
+
+
+# F7: `headline` must be at the DIGEST block's OWN level, read from `seen` (which
+# only holds base-indent keys) rather than matched anywhere in the text at any
+# depth. A lead digest with no top-level headline but a block-style member that
+# happens to carry its own `headline:` used to pass — the orchestrator routes on
+# the TOP-level headline and never opens member entries.
+def _headline_errors(seen):
+    hl = seen.get("headline")
+    if not (isinstance(hl, str) and hl.strip()):
+        return ["DIGEST has no headline: — the orchestrator routes on this."]
+    return []
+
+
+# --- catch DRIFTED key spellings before reporting them as merely missing.
+# F15: iterate the FULL field set (schema + universal), not schema alone — a
+# universal field like `files_touched` drifting to `files-touched` was reported
+# as merely missing rather than as the drift it is; fails closed either way, but
+# the wrong message.
+def _drift_errors(seen, all_fields):
+    return [f"key {k!r} is drifted spelling of {want!r} — the runner "
+            f"routes on the exact name and will not see it."
+            for k in list(seen) for want in all_fields
+            if k != want and k.replace("-", "_").lower() == want]
+
+
+def _field_errors(field, allowed, seen, persona, optional_fields, mission, passing):
+    """One field's errors: absent, unparsed, short-circuited, or checked against its gate
+    and its type — the inline loop body, with each `continue` a return."""
+    if field not in seen:
+        return _missing_field_errors(field, allowed, seen, persona, optional_fields)
+    val = seen[field]
+    if val is _UNPARSED:
+        return [f"{field!r} could not be parsed — its brackets/quotes never "
+                f"balanced. Fix the YAML rather than resubmitting as-is."]
+    short = _field_short_circuit(field, val, seen, persona, mission, passing)
+    if short is not None:
+        return short
+    return _fail_value_errors(field, val, persona, passing) + _field_type_errors(field, allowed, val)
+
+
+def _missing_field_errors(field, allowed, seen, persona, optional_fields):
+    if field in optional_fields:
+        return []
+    # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
+    # governed field is not required of it at all.
+    if _unbound(field, seen):
+        return []
+    hint = _missing_field_hint(field, allowed, persona)
+    # HONEST LIMIT: a re-prompted return is not re-validated —
+    # `:845` is `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
+    # value ships the second attempt unvalidated. That passthrough is
+    # pre-existing and deliberate; this edit stops the hint POINTING at it and
+    # does not close it.
+    return [f"missing {field!r} — every field is required; write {hint}. "
+            f"An absent field is ambiguous; an explicit empty one asserts you looked."]
+
+
+# REQ-11: a hint must name a value that will actually VALIDATE. Before
+# this, `task_verify` inherited "write `none`" — which the gate above
+# then rejects alongside PASS — and `task` would have inherited "write
+# `[]`", which its own regex rejects. Four branches, most specific first.
+def _missing_field_hint(field, allowed, persona):
+    if isinstance(allowed, re.Pattern):
+        hint = ("your task's `T-NN` id exactly as your dispatch carries it "
+                "(T-05), or `none` if this dispatch carries no PLAN task")
+    elif field in GATE_FIELDS.get(persona, ()) and isinstance(allowed, set):
+        # The isinstance guard is not decoration: qa's `matrix_ok` is in
+        # GATE_FIELDS with `allowed is bool`, and sorted() over a type raises.
+        #
+        # WORDING: do NOT say a placeholder is disallowed. This branch also
+        # fires on a missing `suite` for dev, and `suite: n/a` with BLOCKED is
+        # LEGAL (REQ-03/SC-06). The gate is on the PAIRING, so the hint says so.
+        vals = sorted(a for a in allowed if isinstance(a, str))
+        hint = (f"one of {vals} — what gets rejected for this role is a "
+                f"placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder "
+                f"itself (`n/a` with FAIL or BLOCKED is the honest refusal)")
+        # JOINTLY FOLLOWABLE (SC-18c). Without this clause a return omitting
+        # both fields gets hint (8a) offering `task: none` and this hint
+        # demanding a real value — and `task: none` + `task_verify: pass` is
+        # then rejected by the conditional. A hint routing an agent into a
+        # second rejection is REQ-11's own defect class, re-created by its fix,
+        # and the re-prompted return is NOT re-validated (see below).
+        if field in CONDITIONAL:
+            hint += (f", or omit this field entirely if this dispatch carries "
+                     f"no PLAN task and you wrote `{CONDITIONAL[field]}: none`")
+    elif field in NULLABLE:
+        hint = "`none` if genuinely not applicable"
+    else:
+        # `code_grade` is handled inside this helper rather than as its
+        # own elif here: `validate` is already far past the grade bar
+        # (pre-existing), and a single-value ENUM SCALAR like
+        # `code_grade` needs a hint naming its legal values, not the
+        # generic "`[]` if there are none" — which sent a reviewer who
+        # omitted it straight into a second, guaranteed rejection
+        # (REQ-11's own defect class). SC-19 stays intact: the field is
+        # still named literally in the outer message below.
+        hint = _missing_field_default_hint(field, allowed)
+    return hint
+
+
+def _field_short_circuit(field, val, seen, persona, mission, passing):
+    """The errors to report INSTEAD of the gate and type checks, or None to run them."""
+    # #1855: on a mission with no gate subject the field is PINNED to its
+    # did-nothing spelling — one error, one actionable field, and the gate,
+    # enum and binding checks below never see it. Before D-08 so a mission
+    # dispatch that also carries `task: none` reads the same either way.
+    pinned = _mission_pinned_value(field, persona, mission)
+    if pinned is not None:
+        if val != pinned:
+            return [f"{field}={val!r} on a {mission} dispatch — this mission "
+                    f"reviews no diff and runs no suite, so a gate value here is "
+                    f"decoration rather than evidence. Write `{field}: {pinned}`."]
+        return []
+    # D-08(b)/(c). Placed BEFORE the NULLABLE branch on purpose: after it,
+    # D-08(b) would be unreachable for a placeholder value.
+    if _unbound(field, seen):
+        return _unbound_field_errors(field, val)
+    if field in NULLABLE and isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
+        return _declined_gate_errors(field, val, seen, persona, passing)
+    return None
+
+
+def _unbound_field_errors(field, val):
+    if isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
+        # D-08(b): `n/a` is the honest DEC-121 spelling for a field with no
+        # answer, and the n/a-with-PASS gate does NOT bind here — there was no
+        # gate to decline.
+        return []
+    # D-08(c): the `continue` below short-circuits both the enum check and the
+    # fail gate, so this produces exactly ONE error, naming the actionable
+    # field, rather than two that disagree about what is wrong.
+    return [f"{field}={val!r} but {CONDITIONAL[field]}=none — a dispatch "
+            f"carrying no PLAN task has no verify: command to report on. "
+            f"Omit {field} or write `n/a`, or name the task's T-NN id in "
+            f"`{CONDITIONAL[field]}`."]
+
+
+def _declined_gate_errors(field, val, seen, persona, passing):
+    # DEC-173: declining a GATE while claiming PASS is the fail-open the
+    # widened NULLABLE would otherwise have created. Reported here rather
+    # than as a separate pass so the message lands next to the field.
+    if field in GATE_FIELDS.get(persona, ()) and passing \
+            and not _nothing_to_gate(field, persona, seen):
+        return [f"{field}={val!r} declines to report a gate, but VERDICT is "
+                f"PASS — a gate that did not run cannot have passed. Return "
+                f"BLOCKED or FAIL, or report the real result."]
+    return []
+
+
+# THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch above —
+# nesting it inside is exactly why `suite: fail` + PASS was accepted for five
+# features. ADDITIVE: it appends and does not `continue`, so a value that is
+# both a gate failure and a schema violation still reports both.
+def _fail_value_errors(field, val, persona, passing):
+    expected = GATE_FAIL_VALUES.get(persona, {})
+    if field in expected and passing:
+        want = expected[field]
+        # TYPE-STRICT, and the reason is not stylistic: `0 == False` is True in
+        # Python, so a bare equality would fire on `matrix_ok: 0`.
+        # `isinstance(0, bool)` is False, which is what makes this correct.
+        if val == want and isinstance(val, type(want)):
+            return [f"{field}={val!r} reports a gate as FAILED, but VERDICT is "
+                    f"PASS — a gate that failed cannot have passed. Fix until it "
+                    f"passes, or return FAIL or BLOCKED."]
+    return []
+
+
+def _field_type_errors(field, allowed, val):
+    if isinstance(allowed, set):
+        return _enum_errors(field, allowed, val)
+    if isinstance(allowed, re.Pattern):
+    # LOAD-BEARING, not stylistic. Measured in the interpreter: a re.Pattern
+    # is not a set and is none of bool/int/list/str, so WITHOUT this branch it
+    # falls through the whole chain in SILENCE and `task: bogus` is ACCEPTED —
+    # the "unknown key ignored" shape this file exists to remove.
+        if not (isinstance(val, str) and allowed.fullmatch(val)):
+            return [f"{field}={val!r} is not a task id — write your task's "
+                    f"`T-NN` id exactly as your dispatch carries it (T-05), or "
+                    f"`none` if this dispatch carries no PLAN task."]
+        return []
+    return (_flag_or_count_errors(field, allowed, val) + _list_type_errors(field, allowed, val)
+            + _text_type_errors(field, allowed, val))
+
+
+def _flag_or_count_errors(field, allowed, val):
+    if allowed is bool and not isinstance(val, bool):
+        return [f"{field}={val!r} must be a bool, not {type(val).__name__} "
+                f"— a string like \"mostly\" silently soft-fails a hard gate."]
+    if allowed is int and (not isinstance(val, int) or isinstance(val, bool)):
+    # F12/bool: `bool` is an `int` subclass in Python — `open_questions: true`
+    # parsed by `parse_scalar` to `True` would otherwise pass an `int` field.
+        return [f"{field}={val!r} must be an integer."]
+    return []
+
+
+def _list_type_errors(field, allowed, val):
+    if allowed is list and not isinstance(val, list):
+        return [f"{field}={val!r} must be a list."]
+    return []
+
+
+def _text_type_errors(field, allowed, val):
+    # F12: `str`-typed fields (`team`, `branch`, `blocked_on`,
+    # `briefing`) hit no type branch at all before this — `team: 7` passed
+    # as an int, and a bare `branch:` with nothing under it parsed to `[]`
+    # and passed, though DEC-121 requires the literal `none` for an
+    # inapplicable NULLABLE scalar, not silence.
+    if allowed is str and not (isinstance(val, str) and val.strip()):
+        return [f"{field}={val!r} must be a non-empty string"
+                + (" (write the literal `none` if genuinely inapplicable)."
+                   if field in NULLABLE else ".")]
+    return []
+
+
+def _enum_errors(field, allowed, val):
+    # F: fail-open crash. `val` can be a LIST (`severity_max: [low, med]`
+    # parses via parse_scalar's `[...]` branch) while `allowed` is a set —
+    # `val not in allowed` then raises TypeError on the unhashable list,
+    # which propagated all the way out of `validate()` uncaught. In `--hook`
+    # mode that meant exit 1, and only exit 2 blocks (DEC-100/DEC-122), so
+    # the ENTIRE gate went dark for that return with no signal. Report it as
+    # the real violation it is instead of crashing past it.
+    if isinstance(val, list):
+        return [f"{field}={val!r} must be a single value from "
+                f"{sorted(a for a in allowed if isinstance(a, str))}, not a list."]
+    if val not in allowed:
+        return [f"{field}={val!r} is not in {sorted(allowed)}{_near_miss(allowed, val)}."]
+    return []
+
+
+def _near_miss(allowed, val):
+    """` (did you mean …?)` when a string value shares a prefix with a legal one, else ``."""
+    extra = ""
+    if isinstance(val, str):
+        near = [a for a in allowed if isinstance(a, str)
+                and (a.startswith(val[:3]) or val.startswith(a[:3]))]
+        if near: extra = f" (did you mean {near[0]!r}?)"
+    return extra
+
+
+def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, review_inputs):
+    """The rules one persona is held to beyond the common ones, in inline order. The raw
+    persona (`harness-code-reviewer`, `harness-eng-lead`, the archive-reader `lead`) and
+    the normalized one (`qa`, `lead`, `orchestrator`) are both consulted, as before."""
+    passing = bool(m) and m.group(1) == "PASS"
+    err = []
     if persona == "qa":
-        fail_first = seen.get("fail_first")
-        if isinstance(fail_first, list):
-            err.extend(_fail_first_errors(fail_first))
-            matrix_ok = seen.get("matrix_ok")
-            if not fail_first and m and m.group(1) == "PASS" \
-                    and matrix_ok is True and isinstance(matrix_ok, bool):
-                err.append("fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
-                           "green suite with no fail-first evidence is not a pass. For each "
-                           "`verify: automated` SC name the test and the evidence it FAILED "
-                           "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
-                           "or return FAIL.")
-
-    # Generic `lead` is the archive-reader persona used by check-state for
-    # historical digest files; it cannot recover the producing raw persona or
-    # contract era. Current returns always carry harness-*-lead and are closed.
+        err += _qa_errors(seen, passing)
     if raw_persona != "lead":
-        legal_fields = set(all_fields) | {"headline"}
-        if raw_persona == "harness-code-reviewer":
-            legal_fields.add("grade_2_reasons")
-        undeclared = sorted(set(seen) - legal_fields)
-        if undeclared:
-            names = ", ".join(repr(field) for field in undeclared)
-            err.append(
-                f"undeclared digest key(s): {names}. The digest contract is closed. "
-                "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
-                "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
-                "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
-                "a new required persona field belongs in SCHEMAS and must also be "
-                "documented under DEC-216. A per-dispatch answer is not a digest key: "
-                "put a PASS qualification in adequacy_notes or a per-step fact in the "
-                "run state steps evidence container."
-            )
-
+        err += _undeclared_errors(seen, all_fields, raw_persona)
     if raw_persona == "harness-code-reviewer":
-        code_grade = seen.get("code_grade")
-        reviewed = seen.get("reviewed")
-        # #1855: a distill dispatch has no diff to bind or grade; the field loop above
-        # already pinned `code_grade`/`reviewed` to their did-nothing spelling.
-        grades_a_diff = _mission_pinned_value("code_grade", persona, mission) is None
-        # SEC-01 still runs before branching on the grade. DEC-207 adds one
-        # separately-bound target: plan:<path> for a pending pre-signature plan.
-        binding_error = grades_a_diff and code_grade_bound_to_review(
-            text, reviewed, code_grade, feature_dir, branch_override, review_pin
-        )
-        if binding_error:
-            err.append(binding_error)
-        if grades_a_diff and code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
-            # BUG-1081: the mechanical result is RECOMPUTED here, for every ordinary
-            # code review, and the digest's enum is rejected when it disagrees. Before
-            # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
-            # the reviewer's word, so a skipped, crashed or misreported grader passed.
-            grade_error = code_grade_enforcement_error(
-                text, reviewed, code_grade, feature_dir, review_pin)
-            if grade_error:
-                err.append(grade_error)
-        if code_grade == "grade_2":
-            reasons = seen.get("grade_2_reasons")
-            if not isinstance(reasons, list) or not reasons \
-                    or not all(isinstance(reason, str) and reason.strip()
-                               for reason in reasons):
-                err.append("code_grade='grade_2' requires non-empty grade_2_reasons.")
-        if code_grade == "fail" and m and m.group(1) == "PASS":
-            err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
-                       "a gate that failed cannot have passed.")
-        must_fix = seen.get("must_fix")
-        severity_max = seen.get("severity_max")
-        if isinstance(must_fix, list) and severity_max in SEV \
-                and evaluate_review(review_policy, must_fix, severity_max) == "FAIL" \
-                and m and m.group(1) == "PASS":
-            err.append(f"review policy {review_policy!r} reports a gate as FAILED, but "
-                       "VERDICT is PASS — a gate that failed cannot have passed.")
-
-    # --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
-    #
-    # This is the only part of collation that is arithmetic rather than judgement, and
-    # it was the one thing stated in prose with a validator sitting next to it that
-    # could check it and didn't — the DEC-110 / DEC-119 shape exactly. A lead
-    # reporting PASS over a failing member is the single most consequential digest
-    # error possible: the orchestrator routes on VERDICT and never opens member
-    # entries (SPEC 8), so a masked FAIL ships.
-    #
-    # ESCALATE outranks FAIL deliberately: a decision only the user can make must not
-    # be hidden behind a failure the team could have fixed.
+        err += _reviewer_errors(seen, text, passing, persona, mission, review_inputs)
     if persona == "lead" and m:
-        members = seen.get("members")
-        steps_run = seen.get("steps_run")
-        # F1 cross-check: `members: []` alongside `steps_run: 3` used to sail
-        # through — SPEC 10.4 calls `members` "NOT optional", and a team that ran
-        # steps but reported zero members is never legitimate. Checked whether or
-        # not the roll-up itself can run, since an empty list makes the roll-up a
-        # no-op (there is nothing to rank).
-        if (isinstance(members, list) and isinstance(steps_run, int)
-                and len(members) == 0 and steps_run > 0):
-            err.append(f"members: [] but steps_run={steps_run} — a team that ran "
-                       f"{steps_run} step(s) reported zero members; that is never "
-                       f"legitimate (SPEC 10.4: members is NOT optional).")
+        err += _lead_rollup_errors(seen, m.group(1))
+    err += _tail_errors(seen, raw_persona, persona)
+    return err
 
-        if isinstance(members, list) and members:
-            RANK = {"PASS": 0, "FAIL": 1, "ESCALATE": 2, "BLOCKED": 3}
-            top = m.group(1)
-            worst, worst_src = None, None
-            for item in members:
-                fields = parse_member_entry(str(item))
-                skipped, skip_error = _skipped_member_error(fields)
-                if skip_error:
-                    err.append(skip_error)
-                    continue
-                if skipped:
-                    continue
-                mv = fields.get("verdict")
-                if not mv:
-                    # Their data, not our bug — the normative template carries a
-                    # verdict in every member entry, and without one the roll-up is
-                    # undecidable. Looked up by KEY, never by matching `verdict:`
-                    # as text anywhere in the entry (F1) — a quoted headline like
-                    # `"verdict: PASS on retry"` must not satisfy this.
-                    err.append(f"a members entry has no verdict: — {str(item)[:60]!r}. "
-                               f"Every member entry needs one; the team verdict is the "
-                               f"worst of them and cannot be computed otherwise.")
-                    continue
-                v = str(mv).upper()
-                if v not in RANK:
-                    err.append(f"member verdict {mv!r} is not one of "
-                               f"{sorted(RANK)} — the roll-up cannot rank it.")
-                    continue
-                if worst is None or RANK[v] > RANK[worst]:
-                    worst, worst_src = v, str(item)[:60]
-            if worst is None:
-                err.append("members records no member actually ran — a lead verdict cannot "
-                           "claim an outcome for an entirely skipped team.")
-            if worst and top in RANK and RANK[top] < RANK[worst]:
-                err.append(f"VERDICT is {top} but a member returned {worst} "
-                           f"({worst_src!r}). The team verdict is the WORST member verdict "
-                           f"— BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on "
-                           f"your VERDICT and never opens member entries, so reporting "
-                           f"{top} here hides the {worst}.")
 
+# --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass.
+# `matrix_ok: true` says the tests PASS; `fail_first` is what says they ever
+# FAILED, and a test that never failed constrains nothing (the Iron Law,
+# harness-tdd-enforcement). Bound to the same triple #919 re-verifies —
+# VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` (no gate ran) and every
+# non-PASS verdict may truthfully carry `[]`. TYPE-STRICT on `True` for the
+# reason GATE_FAIL_VALUES is: `1 == True` in Python and `matrix_ok: 1` is not a
+# bool (already rejected above; not doubled here).
+def _qa_errors(seen, passing):
+    err = []
+    fail_first = seen.get("fail_first")
+    if isinstance(fail_first, list):
+        err.extend(_fail_first_errors(fail_first))
+        matrix_ok = seen.get("matrix_ok")
+        if not fail_first and passing \
+                and matrix_ok is True and isinstance(matrix_ok, bool):
+            err.append("fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
+                       "green suite with no fail-first evidence is not a pass. For each "
+                       "`verify: automated` SC name the test and the evidence it FAILED "
+                       "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
+                       "or return FAIL.")
+    return err
+
+
+# Generic `lead` is the archive-reader persona used by check-state for
+# historical digest files; it cannot recover the producing raw persona or
+# contract era. Current returns always carry harness-*-lead and are closed.
+def _undeclared_errors(seen, all_fields, raw_persona):
+    legal_fields = set(all_fields) | {"headline"}
+    if raw_persona == "harness-code-reviewer":
+        legal_fields.add("grade_2_reasons")
+    undeclared = sorted(set(seen) - legal_fields)
+    if not undeclared:
+        return []
+    names = ", ".join(repr(field) for field in undeclared)
+    return [
+        f"undeclared digest key(s): {names}. The digest contract is closed. "
+        "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
+        "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
+        "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
+        "a new required persona field belongs in SCHEMAS and must also be "
+        "documented under DEC-216. A per-dispatch answer is not a digest key: "
+        "put a PASS qualification in adequacy_notes or a per-step fact in the "
+        "run state steps evidence container."
+    ]
+
+
+def _reviewer_errors(seen, text, passing, persona, mission, review_inputs):
+    config_path, feature_dir, branch_override, review_pin = review_inputs
+    review_policy = load_policy(review_config_path(config_path))["review"]
+    code_grade = seen.get("code_grade")
+    reviewed = seen.get("reviewed")
+    err = _code_grade_errors(text, code_grade, reviewed, persona, mission,
+                             (feature_dir, branch_override, review_pin))
+    if code_grade == "grade_2":
+        err += _grade_2_reason_errors(seen.get("grade_2_reasons"))
+    if code_grade == "fail" and passing:
+        err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
+                   "a gate that failed cannot have passed.")
+    err += _review_policy_errors(seen, review_policy, passing)
+    return err
+
+
+def _grade_2_reason_errors(reasons):
+    if not isinstance(reasons, list) or not reasons \
+            or not all(isinstance(reason, str) and reason.strip()
+                       for reason in reasons):
+        return ["code_grade='grade_2' requires non-empty grade_2_reasons."]
+    return []
+
+
+def _review_policy_errors(seen, review_policy, passing):
+    must_fix = seen.get("must_fix")
+    severity_max = seen.get("severity_max")
+    if isinstance(must_fix, list) and severity_max in SEV \
+            and evaluate_review(review_policy, must_fix, severity_max) == "FAIL" \
+            and passing:
+        return [f"review policy {review_policy!r} reports a gate as FAILED, but "
+                "VERDICT is PASS — a gate that failed cannot have passed."]
+    return []
+
+
+def _code_grade_errors(text, code_grade, reviewed, persona, mission, binding_inputs):
+    feature_dir, branch_override, review_pin = binding_inputs
+    err = []
+    # #1855: a distill dispatch has no diff to bind or grade; the field loop above
+    # already pinned `code_grade`/`reviewed` to their did-nothing spelling.
+    grades_a_diff = _mission_pinned_value("code_grade", persona, mission) is None
+    # SEC-01 still runs before branching on the grade. DEC-207 adds one
+    # separately-bound target: plan:<path> for a pending pre-signature plan.
+    binding_error = grades_a_diff and code_grade_bound_to_review(
+        text, reviewed, code_grade, feature_dir, branch_override, review_pin
+    )
+    if binding_error:
+        err.append(binding_error)
+    if grades_a_diff and code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
+        # BUG-1081: the mechanical result is RECOMPUTED here, for every ordinary
+        # code review, and the digest's enum is rejected when it disagrees. Before
+        # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
+        # the reviewer's word, so a skipped, crashed or misreported grader passed.
+        grade_error = code_grade_enforcement_error(
+            text, reviewed, code_grade, feature_dir, review_pin)
+        if grade_error:
+            err.append(grade_error)
+    return err
+
+
+# --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
+#
+# This is the only part of collation that is arithmetic rather than judgement, and
+# it was the one thing stated in prose with a validator sitting next to it that
+# could check it and didn't — the DEC-110 / DEC-119 shape exactly. A lead
+# reporting PASS over a failing member is the single most consequential digest
+# error possible: the orchestrator routes on VERDICT and never opens member
+# entries (SPEC 8), so a masked FAIL ships.
+#
+# ESCALATE outranks FAIL deliberately: a decision only the user can make must not
+# be hidden behind a failure the team could have fixed.
+def _lead_rollup_errors(seen, top):
+    members = seen.get("members")
+    err = _empty_members_errors(members, seen.get("steps_run"))
+    if isinstance(members, list) and members:
+        err += _member_rank_errors(members, top)
+    return err
+
+
+def _empty_members_errors(members, steps_run):
+    # F1 cross-check: `members: []` alongside `steps_run: 3` used to sail
+    # through — SPEC 10.4 calls `members` "NOT optional", and a team that ran
+    # steps but reported zero members is never legitimate. Checked whether or
+    # not the roll-up itself can run, since an empty list makes the roll-up a
+    # no-op (there is nothing to rank).
+    if (isinstance(members, list) and isinstance(steps_run, int)
+            and len(members) == 0 and steps_run > 0):
+        return [f"members: [] but steps_run={steps_run} — a team that ran "
+                f"{steps_run} step(s) reported zero members; that is never "
+                f"legitimate (SPEC 10.4: members is NOT optional)."]
+    return []
+
+
+RANK = {"PASS": 0, "FAIL": 1, "ESCALATE": 2, "BLOCKED": 3}
+
+
+def _member_rank_errors(members, top):
+    worst, worst_src, err = _worst_member(members)
+    if worst is None:
+        err.append("members records no member actually ran — a lead verdict cannot "
+                   "claim an outcome for an entirely skipped team.")
+    if worst and top in RANK and RANK[top] < RANK[worst]:
+        err.append(f"VERDICT is {top} but a member returned {worst} "
+                   f"({worst_src!r}). The team verdict is the WORST member verdict "
+                   f"— BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on "
+                   f"your VERDICT and never opens member entries, so reporting "
+                   f"{top} here hides the {worst}.")
+    return err
+
+
+def _worst_member(members):
+    """(worst verdict, its entry's head, errors) over the members that actually ran."""
+    err = []
+    worst, worst_src = None, None
+    for item in members:
+        v, error = _member_verdict(item)
+        if error:
+            err.append(error)
+        elif _outranks(v, worst):
+            worst, worst_src = v, str(item)[:60]
+    return worst, worst_src, err
+
+
+def _outranks(v, worst):
+    """A ranked member verdict `v` that is worse than the worst seen so far (None = none yet)."""
+    return v is not None and (worst is None or RANK[v] > RANK[worst])
+
+
+def _member_verdict(item):
+    """(ranked verdict or None for a skipped member, error or None) for one entry."""
+    fields = parse_member_entry(str(item))
+    skipped, skip_error = _skipped_member_error(fields)
+    if skip_error:
+        return None, skip_error
+    if skipped:
+        return None, None
+    mv = fields.get("verdict")
+    if not mv:
+            # Their data, not our bug — the normative template carries a
+            # verdict in every member entry, and without one the roll-up is
+            # undecidable. Looked up by KEY, never by matching `verdict:`
+            # as text anywhere in the entry (F1) — a quoted headline like
+            # `"verdict: PASS on retry"` must not satisfy this.
+        return None, (f"a members entry has no verdict: — {str(item)[:60]!r}. "
+                      f"Every member entry needs one; the team verdict is the "
+                      f"worst of them and cannot be computed otherwise.")
+    v = str(mv).upper()
+    if v not in RANK:
+        return None, (f"member verdict {mv!r} is not one of "
+                      f"{sorted(RANK)} — the roll-up cannot rank it.")
+    return v, None
+
+
+def _tail_errors(seen, raw_persona, persona):
+    err = []
     # --- open_questions is a LIST of structured items, never a count (SPEC 8).
     # F13: read from `seen` — the parsed, DIGEST's-own-level value — rather than a
     # whole-text regex. The old regex matched a NESTED `open_questions: 0` (e.g.
