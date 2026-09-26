@@ -1280,6 +1280,839 @@ def has_shape_rules(rel):
 _SCHEMA_UNAVAILABLE_SAID = False
 
 
+# THE PATH GOES IN THE HEADER, and its absence was a live review finding rather than a
+# style note. The pre route names one file the agent just named itself; the SWEEP walks
+# up to 234 candidates across a main checkout and every worktree, and named NONE of
+# them. Measured consequence: one logical file present in main plus four worktrees
+# produced five byte-identical findings, 20 lines of stderr, zero paths — and a
+# reviewer received another agent's transient fixture, unattributable, in their own
+# session. check-state.py already does this correctly.
+def _head(shown, text):
+    # THE DISPLAY PATH IS NOT THE MATCH PATH (review of PR #152). `rel` is
+    # worktree-stripped so the patterns match, and for a state file the stripped form
+    # still carries `FEAT-NN` — enough to tell two checkouts apart. For CLAUDE.md it
+    # collapses to the constant string "CLAUDE.md", so a 114-line copy in ANOTHER
+    # agent's worktree told an agent whose own file is 74 lines that "CLAUDE.md is 114
+    # lines". That is the same unattributable-finding defect DEC-180 fixed for the
+    # sweep generally, surviving in the one path where stripping erases everything.
+    return f"check-domain: {VERB} — {shown}: {text}"
+
+
+def deny(out, shown, msgs):
+    out.append(_head(shown, "state-file shape (DEC-150)."))
+    out.extend(f"  {m}" for m in msgs)
+    out.append(f"  {ROUTING}")
+
+
+# Issues #1058/#1619: a lead reused a cycle's run directory and a plain digest.md
+# overwrite destroyed the cycle-0 record. This guard fires on Write and Edit: Edit
+# content is reconstructed against the on-disk prior before this branch runs. A
+# correction appends a complete contract block because validate-digest.py reads the
+# last VERDICT; a trailing field alone sits outside that block and repairs nothing.
+# Bash digest writes are refused outright by bash-write-guard.py; POST is too late.
+def _rule_run_digest(rel, content, lines, shown, absolute_path):
+    if absolute_path is None:
+        return []
+    out = []
+    prior = None
+    try:
+        with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
+            prior = prior_file.read()
+    except FileNotFoundError:
+        if not os.path.lexists(absolute_path):
+            prior = ""
+    except OSError:
+        pass
+    if prior is None:
+        out.append(_head(shown, "run digest already exists but cannot be read safely; "
+                         "refusing a Write that could destroy its recorded content."))
+    elif prior.strip() and not content.startswith(prior):
+        out.append(_head(shown, "run digest already holds a recorded digest; this Write "
+                         "would replace rather than extend it. Write this cycle's "
+                         "digest into a run directory of its own. To correct this "
+                         "run's own digest without erasing history, append a complete "
+                         "corrected VERDICT / DIGEST / artifact block at the end; "
+                         "do not insert or append only the missing field."))
+    return out
+
+
+def _rule_run_identity(rel, content, lines, shown, absolute_path):
+    # record_seed writes this file from inside the POST process, outside every
+    # governed tool route, and is itself write-once. Every Write/Edit attempt
+    # is therefore an overwrite or forgery, whether or not a marker exists yet.
+    return [_head(shown,
+        "this path is the run's write-once identity witness, recorded at the "
+        "run's first landed checkpoint. It is never rewritten or removed once "
+        "written. A run that needs a record of its own writes into a run directory "
+        "of its own; a witness a human genuinely must repair is repaired outside "
+        "the guards.")]
+
+
+# THE VOCABULARY RULE, AND IT IS THE ONLY THING THE SWEEP CAN JUDGE (FEAT-41 T-09).
+# Every task status, and the top-level status WHEN PRESENT, must be a mandated station
+# or the terminal marker — IMPORTED from factory_config, never respelled here, because a
+# second copy of the vocabulary is exactly the drift FEAT-41 exists to remove.
+#
+# WHAT THIS CATCHES AND WHAT IT DOES NOT, stated rather than left to be discovered: a
+# dead word or a broken file, yes. A shell write of a LEGAL value, NO — this reads disk
+# and cannot attribute an author, so a `sed` that lands a legal station is
+# indistinguishable from the tool doing its job. The Write and Edit denial below is what
+# closes the editor routes; this is the net under the one route that cannot be denied
+# before the fact.
+#
+# A MISSING TOP-LEVEL status IS LEGAL, and that is a contract rather than an oversight.
+# T-07 is what adds the key to most plans and is NOT a dependency of this task, so the
+# two are unordered: a rule that REQUIRED the key would report a violation on every
+# un-migrated plan this sweep touches. An absent TASK status is legal for the same
+# reason — T-04 leaves it out of harness_yaml's REQUIRED_TASK_FIELDS, and an absent one
+# reads as the not-started station. Only a value OUTSIDE the vocabulary is reported.
+#
+# NOT deny(). Its last line appends the module-level ROUTING constant, which speaks
+# about STATE.md, digests and notes/ — a different file class entirely. See the comment
+# further down that already records this trap in its own words: ONE ROUTING SENTENCE PER
+# FINDING.
+def _rule_plan_yaml(rel, content, lines, shown, absolute_path):
+    import factory_config as _fc
+    # MANDATED_STATIONS, not station_names(board): the declaration itself, with no
+    # board to consult. This gate has no board and needs none — the vocabulary is
+    # fixed (T-01), and station_names() exists for the COLUMN derivation.
+    _legal = set(_fc.MANDATED_STATIONS) | set(_fc.TERMINAL_STATIONS)
+    _bad = _plan_yaml_bad_stations(_plan_yaml_doc(content, shown), _legal)
+    if not _bad:
+        return []
+    return [_head(shown, "plan.yaml station vocabulary (FEAT-41 REQ-01)."),
+            *(f"  {b} is not a station" for b in _bad),
+            f"  The stations are {', '.join(sorted(_legal))}. "
+            f"Set one with plan-merge.py set-task-station or set-feature-station, "
+            f"which validate the value before it lands."]
+
+
+def _plan_yaml_doc(content, shown):
+    """The parsed plan, or None when this rule has nothing to say about it."""
+    try:
+        import harness_yaml as _hy
+        return _hy.load_str(content, shown)
+    except ImportError:
+        # NO PARSER IS NOT THIS RULE'S FINDING EITHER (FEAT-65): the state.yaml branch owns
+        # that answer through `_no_parser`.
+        return None
+    except _hy.YamlParseError:
+        # UNPARSEABLE IS NOT THIS RULE'S FINDING. check-plan-routes.py refuses a malformed
+        # plan before signature and check-state.py refuses it again at entry; reporting it
+        # a third time here would put one defect in three voices.
+        return None
+
+
+def _plan_yaml_bad_stations(_doc, _legal):
+    if not isinstance(_doc, dict):
+        return []
+    _bad = []
+    _top = _doc.get("status")
+    if _top is not None and str(_top) not in _legal:
+        _bad.append(f"top-level status {str(_top)!r}")
+    _tasks = _doc.get("tasks")
+    if isinstance(_tasks, list):
+        _bad.extend(_plan_yaml_bad_task_stations(_tasks, _legal))
+    return _bad
+
+
+def _plan_yaml_bad_task_stations(_tasks, _legal):
+    _bad = []
+    for _t in _tasks:
+        if not isinstance(_t, dict):
+            continue
+        _s = _t.get("status")
+        if _s is not None and str(_s) not in _legal:
+            _bad.append(f"task {_t.get('id', '(no id)')} status {str(_s)!r}")
+    return _bad
+
+
+# 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
+# The comment-line budget is GONE, not relaxed — JSON has no comments, so it could
+# never fire, and a check that cannot fire is a check a reader trusts.
+#
+# THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4). The cap is DEC-150's "data, not a
+# journal", and the run ledger is the data — its length tracks how long the feature
+# ran, not anyone's prose. Measured on FEAT-54's own record: 336 lines, 294 of them
+# the 48-entry array. Counting it fired the cap on the only legitimately unbounded
+# part of the file, and both remedies were wrong: delete real history, or raise a
+# number that is wrong again at 60 runs. `journal_lines` lives in feature_schema so
+# this gate and check-state.py's INV-23 cannot drift on the definition.
+def _rule_feature_json(rel, content, lines, shown, absolute_path):
+    out = []
+    problems = _feature_json_budget(content, lines)
+    if problems:
+        deny(out, shown, problems)
+
+    # THE SCHEMA CHECK. Imported INSIDE this branch, never at module level: jsonschema
+    # costs +42.6 ms median on import (17.3 -> 59.9 ms over 10 isolated launches,
+    # 4.26.0, warm bytecode; 395 ms cold). At module level every Write, Edit and Bash
+    # in the repo would pay it, for the rare feature.json write. sys.modules caches it,
+    # so a POST sweep over many candidates pays it ONCE per invocation, not per file.
+    # This file already defers harness_yaml for the same reason (see :139).
+    #
+    # THE TIGHT try IS FOR feature_schema ITSELF being unimportable — PYTHONPATH not
+    # exported, a syntax error, the file missing. It must APPEND to problems, never
+    # raise: a raise escaping the per-file loop exits 1, and :14 says exit 1 is
+    # NON-BLOCKING, so the bad write would land — fail open in the case the checker
+    # exists for.
+    #
+    # FAIL CLOSED, WITH NO BOOTSTRAP ESCAPE, stated as facts rather than as a
+    # comfortable story: the shape phase runs for EVERY writer including the main
+    # session, because the no-agent_type carve-out is the _governed FLAG and not an
+    # exit. So this denial governs the main-session-direct migration tasks too,
+    # deliberately. It does NOT share the PyYAML bootstrap escape —
+    # require_or_bootstrap is reached only inside `if _run_domain:` (:333), which the
+    # shape phase never enters. No escape is needed: the remedy is `python3 -m pip
+    # install jsonschema`, a Bash command no gate denies. That is the difference from
+    # the missing-PARSER case, where the gate cannot read its own manifest at all.
+    # This branch needs stdlib json and jsonschema ONLY, never PyYAML — do not extend
+    # the state.yaml branch's `_no_parser` fail-open to cover it.
+    global _SCHEMA_UNAVAILABLE_SAID
+    _out = []
+    for _l in _feature_json_schema_problems(rel, content, shown):
+        if "CANNOT be checked" in _l:
+            # ONE MESSAGE PER INVOCATION, not one per file — a corpus-wide sweep would
+            # otherwise print an identical block per feature.
+            if _SCHEMA_UNAVAILABLE_SAID:
+                continue
+            _SCHEMA_UNAVAILABLE_SAID = True
+        _out.append(_l)
+    if _out:
+        # APPEND TO `out`, never print-and-exit. deny() ACCUMULATES — it does not
+        # exit — and shape_problems RETURNS its findings to two call sites. A block
+        # that printed and exited here would pre-empt the line-budget finding above
+        # and bypass the accumulator both callers read. Found by the suite: the
+        # 301-line case reported a schema denial instead of its budget denial.
+        #
+        # ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny():
+        # deny() appends the module-level ROUTING constant, speaking about STATE.md,
+        # digests and notes/ — a different sentence from the schema's own redirection
+        # line, which also names plan.yaml approval.rulings. Two routing sentences in
+        # one stderr stream contradict each other about the same file class. The
+        # line-budget finding above keeps deny() and therefore keeps ROUTING: it is
+        # not a schema finding and its advice is still right.
+        out.append(_head(shown, "feature execution-state schema."))
+        out.extend(f"  {_l}" for _l in _out)
+    return out
+
+
+def _feature_json_budget(content, lines):
+    problems = []
+    try:
+        import feature_schema as _fs_budget
+        _budget = _fs_budget.FEATURE_JSON_LINE_BUDGET
+        # `content`, NEVER "\n".join(lines): joining drops trailing blank lines, because
+        # splitlines does not create an entry for a final newline. Measured — a 301-line
+        # padded fixture counted 300 that way and the boundary case at 301 exited 0.
+        _counted = _fs_budget.journal_lines(content)
+        _basis = "excluding the runs ledger"
+    except (ImportError, AttributeError, TypeError, ValueError):
+        # THE FALLBACK COUNTS EVERYTHING, deliberately. An unimportable helper must not
+        # loosen a budget; it makes this stricter than intended, which is the safe way
+        # for a shape gate to be wrong.
+        _budget = 300
+        _counted = len(lines)
+        _basis = "whole file — feature_schema was not importable"
+    if _counted > _budget:
+        problems.append(f"feature.json is {_counted} lines ({_basis}) — budget is "
+                        f"{_budget}. It is data a script parses, not a journal.")
+    return problems
+
+
+def _feature_json_schema_problems(rel, content, shown):
+    try:
+        import feature_schema
+        # ISSUE #749 — THE SCHEMA COMES FROM THE TREE THE FILE LIVES IN. `rel` already
+        # carries the worktree prefix when the target is inside one, so joining it with
+        # `root` gives the real absolute path and feature_schema walks UP from there for
+        # that checkout's own feature-schema.json.
+        #
+        # Measured live 2026-08-23: this refused `source_issues` at /github on a FEAT-26
+        # write. The key WAS declared in that worktree's schema and was NOT in main's,
+        # and this module is imported through CLAUDE_PROJECT_DIR — the main checkout. So
+        # a feature that ADDS a schema key could not write data using it until it
+        # merged, and could not demonstrate it working before merging.
+        #
+        # It falls back to the module's own schema when no checkout schema is above the
+        # path, so a target outside any checkout is checked exactly as before.
+        return feature_schema.problems_for_text(
+            content, shown,
+            for_path=os.path.join(root, rel) if root else rel)
+    except ImportError:
+        return ["feature_schema is not importable, so this file CANNOT be checked. "
+               "Expected at .agents/skills/harness/bin/feature_schema.py, reachable on "
+               "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
+    except (OSError, ValueError) + feature_schema.SCHEMA_ERRORS as _se:
+        # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
+        # inject any other exception into problems_for_text and an ILLEGAL document
+        # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
+        # NON-BLOCKING (line 14), so the bad write lands. A schema loader raises far
+        # more than ImportError: a malformed feature-schema.json is JSONDecodeError,
+        # an unreadable one is OSError, a jsonschema version drift is SchemaError.
+        # Every one of them meant "written anyway".
+        #
+        # THOSE ARE THE CLASSES CAUGHT, BY NAME (FEAT-65): the schema file unreadable
+        # (OSError), not JSON (JSONDecodeError, a ValueError), or rejected by jsonschema
+        # itself (feature_schema.SCHEMA_ERRORS, the module that owns that dependency).
+        # A checker that raises anything else is a defect and reaches the hook's one
+        # guard, which passes through at exit 0 and names it — never exit 1.
+        #
+        # The message is SEPARATE from the ImportError branch on purpose. Saying "not
+        # importable" when the module imported fine and then crashed sends the reader
+        # to check PYTHONPATH for a fault that is not there — an unattributable
+        # finding, the defect DEC-180 fixed twice in this file.
+        return ["feature_schema CRASHED while checking this file, so it CANNOT be "
+               "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
+               "in .agents/skills/harness/bin/feature-schema.json, not a missing "
+               "dependency. The write is DENIED rather than allowed through, because "
+               "a checker that cannot run must never be the reason a file passes."
+               % (type(_se).__name__, _se)]
+
+
+# DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
+# INV-16 sweeps this at entry; this denies it at write, while the author can
+# fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
+# the sweep landing, so entry-time alone demonstrably does not deter.
+# KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.py; the
+# MECHANISM deliberately does not (D-02). check-state.py sweeps existing files
+# and reports; this denies at write. Since T-12 the duplicate here is caught by
+# the LOADER RAISING, while check-state.py still scans — same vocabulary, two
+# mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
+# is what let a malformed file pass with its keys silently unread.
+_STATE_YAML_ALLOWED = {"schema_version", "run_id", "run_uid", "feature", "squad", "host",
+                       "status", "steps", "cycles_used", "cost", "flow", "task", "team",
+                       "branch", "worktree", "review_sha", "pinned_sha", "base_sha",
+                       "head_sha", "tip_sha", "commits", "verdict", "severity_max", "digest"}
+
+
+# NO PARSER, in a bootstrap-grant session: the shape gate does not run.
+#
+# A line-scan fallback lived here briefly and was REMOVED at the user's ruling. The
+# signed BRIEF forbids it outright — Goal :20-21 "no second code path anywhere, so
+# the brittle regex leaves the tree instead of living on as a fallback nobody
+# exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
+# converted script". A branch that runs ONLY when PyYAML is missing is by
+# construction the least-exercised code in this file, which is precisely the rot
+# the constraint is aimed at. I argued the exception in a comment in the same commit
+# that introduced it, with no D-NN and no signature; the goal-check caught it.
+#
+# What is given up is EARLIER detection, not correctness — measured, not assumed: a
+# malformed state.yaml written during a grant is still refused by check-state.py at
+# the next /harness entry, naming the same offending keys, by a session that can
+# actually read it. One bad file to delete, against a crude reader living on forever
+# in a write guard.
+#
+# A BARE `return []`, not a `sys.exit(0)` as this was before the #132 refactor.
+# Equivalent for a single write — no other branch can match a state.yaml path — but
+# NOT equivalent under the post sweep, where exiting here would abandon every file
+# after this one in the same pass.
+def _rule_state_yaml(rel, content, lines, shown, absolute_path):
+    if _no_parser:
+        return []
+    doc, refusal = _state_yaml_doc(content, rel, shown)
+    if refusal:
+        return refusal
+    _version, _valid_version = _state_yaml_version(doc)
+    out = _state_yaml_version_floor(_version, _valid_version, shown, absolute_path)
+    out.extend(_state_yaml_step_schema(doc, _valid_version, shown))
+    _state_yaml_post_seed(doc, absolute_path)
+    refusal = _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path)
+    if refusal:
+        return out + refusal
+    out.extend(_state_yaml_unknown_keys(doc, shown))
+    return out
+
+
+def _state_yaml_doc(content, rel, shown):
+    """(doc, []) when the checkpoint parses; (None, <refusal lines>) when it does not."""
+    try:
+        return harness_yaml.load_str(content, rel), []
+    except harness_yaml.DuplicateKeyError as e:
+        # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
+        # counted by a regex — which also catches a duplicate at any nesting depth,
+        # not merely at column 0.
+        return None, [_head(shown, "state.yaml is a checkpoint, not a notebook (DEC-154)."),
+                      f"  duplicate key {e.key!r} — the second silently shadows the first; "
+                      f"replace the placeholder, never append a copy (DEC-156)."]
+    except harness_yaml.YamlParseError as e:
+        # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
+        # replaced found no keys in a malformed file and therefore reported nothing
+        # wrong — it wrote a broken checkpoint and said it was fine.
+        return None, [_head(shown, "this state.yaml is not valid YAML."),
+                      f"  {e.original}",
+                      "  A checkpoint that cannot be parsed is unreadable to every gate that "
+                      "consumes it later; the write is refused while you can still fix it."]
+
+
+def _state_yaml_version(doc):
+    _version = doc.get("schema_version") if isinstance(doc, dict) else None
+    _valid_version = (
+        isinstance(_version, int) and not isinstance(_version, bool)
+        and _version >= 2
+    )
+    return _version, _valid_version
+
+
+# FEAT-104 D-11: schema_version floor applies at CREATION only. Existing
+# version-1 checkpoints remain writable so an in-flight pre-deploy run can
+# finish unchanged. `_post` sees an already-landed file and is never creation.
+def _state_yaml_version_floor(_version, _valid_version, shown, absolute_path):
+    _creating = (
+        not _post and absolute_path is not None
+        and not os.path.lexists(absolute_path)
+    )
+    if not (_creating and not _valid_version):
+        return []
+    if _version is None:
+        _version_problem = "is absent"
+    elif not isinstance(_version, int) or isinstance(_version, bool):
+        _type_name = {
+            str: "string", bool: "boolean", list: "array", dict: "mapping",
+        }.get(type(_version), type(_version).__name__)
+        _version_problem = f"has type {_type_name}, not integer"
+    else:
+        _version_problem = f"is {_version}, below 2"
+    return [_head(shown, "schema_version floor for a new run checkpoint."),
+            "  schema_version %s. Seed new runs from "
+            ".claude/skills/harness-team/SKILL.md, section 2, with "
+            "`schema_version: 2`; only updates to an already-existing version-1 "
+            "state.yaml retain compatibility." % _version_problem]
+
+
+# FEAT-104: version 2 closes each step through the one declared JSON
+# schema. Version 1 deliberately keeps its historical open shape.
+def _state_yaml_step_schema(doc, _valid_version, shown):
+    if not (_valid_version and isinstance(doc, dict)):
+        return []
+    try:
+        import jsonschema
+        # The step contract comes through the shared strict reader (FEAT-61
+        # T-03); the evidence-name pattern arrives as a string and is compiled here.
+        _step_schema, _declared, _name_pattern_text = (
+            _artifact_accessors.load_run_step_contract(sys.argv[3]))
+        _validator = jsonschema.Draft202012Validator(_step_schema)
+        _name_pattern = re.compile(_name_pattern_text)
+        _schema_errors, _offending = _state_yaml_step_scan(doc, _validator, _declared, _name_pattern)
+        return _state_yaml_step_findings(_schema_errors, _declared, _offending, shown)
+    except _run_state_boundary_errors() as _schema_exc:
+        return [_head(shown,
+            "run-state schema CANNOT be checked; the write is denied."),
+            "  .claude/skills/harness/bin/run-state-schema.json or its "
+            "jsonschema validator failed: %s: %s"
+            % (type(_schema_exc).__name__, _schema_exc)]
+
+
+def _state_yaml_step_scan(doc, _validator, _declared, _name_pattern):
+    """Every step's schema errors, and the undeclared keys and evidence shapes, as one pass."""
+    _offending = set()
+    _schema_errors = []
+    for _step in doc.get("steps", []):
+        _schema_errors.extend(_validator.iter_errors(_step))
+        if not isinstance(_step, dict):
+            _offending.add("<step>")
+            continue
+        _offending.update(set(_step) - _declared)
+        _evidence = _step.get("evidence")
+        if isinstance(_evidence, dict):
+            _offending.update(_state_yaml_evidence_offenders(_evidence, _name_pattern))
+    return _schema_errors, _offending
+
+
+def _state_yaml_evidence_offenders(_evidence, _name_pattern):
+    _offending = set()
+    for _key, _value in _evidence.items():
+        if not isinstance(_key, str) or not _name_pattern.fullmatch(_key):
+            _offending.add(str(_key))
+        if isinstance(_value, dict):
+            _offending.add(str(_key))
+    return _offending
+
+
+def _state_yaml_step_findings(_schema_errors, _declared, _offending, shown):
+    if not _schema_errors:
+        return []
+    _declared_invalid = set()
+    # Type/value failures on declared fields may not be captured by
+    # the vocabulary comparisons above; name their nearest field.
+    _missing_required = set()
+    for _error in _schema_errors:
+        _state_yaml_step_sort(_error, _declared, _missing_required, _declared_invalid, _offending)
+    return _state_yaml_step_messages(_missing_required, _declared_invalid, _offending, shown)
+
+
+def _state_yaml_step_sort(_error, _declared, _missing_required, _declared_invalid, _offending):
+    """File one schema error under the set that names it, in place."""
+    if (_error.validator == "required"
+            and isinstance(_error.instance, dict)):
+        _missing_required.update(
+            str(_key) for _key in _error.validator_value
+            if _key not in _error.instance
+        )
+        return
+    _path = list(_error.path)
+    if not _path:
+        return
+    _field = str(_path[0])
+    if _field in _declared and _field != "evidence":
+        _declared_invalid.add(_field)
+    else:
+        _offending.add(_field)
+
+
+def _state_yaml_step_messages(_missing_required, _declared_invalid, _offending, shown):
+    out = []
+    if _missing_required:
+        _missing_names = ", ".join(
+            repr(key) for key in sorted(_missing_required))
+        out.append(_head(shown, "missing required step key."))
+        out.append(
+            f"  missing key(s): {_missing_names}. Required step fields "
+            "are declared in .claude/skills/harness/bin/"
+            "run-state-schema.json; supply each required field."
+        )
+    if _declared_invalid:
+        _invalid_names = ", ".join(
+            repr(key) for key in sorted(_declared_invalid))
+        out.append(_head(shown, "declared step field has invalid value."))
+        out.append(
+            f"  invalid field(s): {_invalid_names}. Match each field's "
+            "type and value constraints in .claude/skills/harness/bin/"
+            "run-state-schema.json; correct the declared field in place."
+        )
+    if _offending:
+        _names = ", ".join(repr(key) for key in sorted(_offending))
+        out.append(_head(shown, "undeclared step key or evidence shape."))
+        out.append(
+            f"  offending key(s): {_names}. A recovery field is declared "
+            "in .claude/skills/harness/bin/run-state-schema.json; a "
+            "per-dispatch fact goes under `evidence` with a lowercase "
+            "identifier key and a scalar or scalar-array value."
+        )
+    return out
+
+
+def _state_yaml_post_seed(doc, absolute_path):
+    if not (_post and absolute_path is not None and isinstance(doc, dict)):
+        return
+    # D-12/D-13: mint only after a governed landing. Until the first POST
+    # completes, a fresh same-slug collision remains the modal residual:
+    # neither uid_conflict nor detection has a witness to consult.
+    try:
+        import run_identity
+        run_dir = os.path.dirname(absolute_path)
+        landed_uid = doc.get("run_uid")
+        witness_uid = _state_yaml_witness_uid(run_dir)
+        effective_uid = landed_uid or witness_uid or run_identity.mint_uid()
+        if not landed_uid:
+            run_identity.inject_uid(absolute_path, effective_uid)
+        run_identity.record_seed(
+            run_dir, doc, harness_yaml._resolve_identity(d), effective_uid)
+    except (ImportError, OSError, TypeError, ValueError):
+        # POST recording is best effort and may never turn a landed write
+        # into a new refusal.
+        pass
+
+
+def _state_yaml_witness_uid(run_dir):
+    """The witness marker's run_uid, or None when there is no readable witness."""
+    import run_identity
+    try:
+        marker = run_identity.read_marker(run_dir)
+    except run_identity.MarkerUnreadable:
+        marker = None
+    return marker.get("run_uid") if isinstance(marker, dict) else None
+
+
+# Issue #1124: the digest guard above (#1058) fires only on digest.md, but a run
+# directory's state.yaml is written just as easily under a reused slug — and unlike
+# digest.md, state.yaml is LEGITIMATELY rewritten many times over a run's life
+# (DEC-154's "checkpoint, not a notebook" upsert). A prefix/equality compare like the
+# digest guard's would refuse every legitimate checkpoint update, so this checks
+# identity instead of content: run_id is the one field every checkpoint in this run
+# carries unchanged from its first write (CHECKPOINT_KEYS in check-state.py), so a
+# PRIOR file whose run_id disagrees with THIS write's run_id is not an upsert of this
+# run at all — it is a different run's checkpoint about to be silently destroyed.
+def _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path):
+    if absolute_path is None:
+        return []
+    prior_state, prior_unreadable = _state_yaml_prior_text(absolute_path)
+    if prior_unreadable:
+        return [_head(shown, "run state already exists but cannot be read safely; "
+                            "refusing a Write that could destroy its recorded content.")]
+
+    prior_doc, prior_exc, prior_has_uid = _state_yaml_prior_parse(prior_state, rel)
+
+    # The witness is the only identity available for an absent, zeroed, or
+    # unparseable prior. It answers first unless a readable checkpoint uid
+    # lets the minted-identity ladder own the decision.
+    if not prior_has_uid:
+        refusal = _state_yaml_witness_refusal(doc, shown, absolute_path)
+        if refusal:
+            return refusal
+
+    if not prior_state:
+        return []
+    return (_state_yaml_prior_doc_refusal(prior_doc, prior_exc, _version, shown)
+            or _state_yaml_prior_identity_refusal(prior_doc, doc, shown))
+
+
+def _state_yaml_prior_parse(prior_state, rel):
+    """(prior_doc, prior_exc, prior_has_uid) for a prior checkpoint's text."""
+    prior_doc = None
+    prior_exc = None
+    if prior_state:
+        try:
+            prior_doc = harness_yaml.load_str(prior_state, rel)
+        except harness_yaml.YamlParseError as exc:
+            prior_exc = exc
+    prior_has_uid = (
+        prior_exc is None and isinstance(prior_doc, dict)
+        and str(prior_doc.get("run_uid") or "").strip() != "")
+    return prior_doc, prior_exc, prior_has_uid
+
+
+def _state_yaml_prior_text(absolute_path):
+    prior_state = None
+    prior_unreadable = False
+    try:
+        with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
+            prior_state = prior_file.read()
+    except FileNotFoundError:
+        if not os.path.lexists(absolute_path):
+            prior_state = ""
+        else:
+            prior_unreadable = True
+    except OSError:
+        prior_unreadable = True
+    return prior_state, prior_unreadable
+
+
+def _state_yaml_witness_refusal(doc, shown, absolute_path):
+    try:
+        import run_identity
+        marker = run_identity.read_marker(os.path.dirname(absolute_path))
+    except run_identity.MarkerUnreadable:
+        return [_head(shown, "state.yaml run identity (Issue 1305)."),
+                "  this run directory's recorded identity cannot be read, so a "
+                "Write that could silently replace another run checkpoint is refused."]
+    reason = run_identity.conflict(marker, doc)
+    if reason:
+        return [_head(shown, "state.yaml run identity (Issue 1305)."),
+                f"  {reason}. Write this cycle's state into a run directory "
+                "of its own."]
+    return []
+
+
+def _state_yaml_prior_doc_refusal(prior_doc, prior_exc, _version, shown):
+    if prior_exc is not None:
+        return [_head(shown, "run state already exists but does not parse; "
+                            "refusing a Write that could silently replace it."),
+                f"  {prior_exc}"]
+    if not isinstance(prior_doc, dict):
+        return [_head(shown, "run state already exists but is not a mapping after "
+                            "parsing; refusing a Write that could silently replace "
+                            "it.")]
+    _prior_version = prior_doc.get("schema_version")
+    _prior_is_strict = (
+        isinstance(_prior_version, int)
+        and not isinstance(_prior_version, bool)
+        and _prior_version >= 2
+    )
+    _version_decreased = (
+        not isinstance(_version, int)
+        or isinstance(_version, bool)
+        or _version < _prior_version
+    ) if _prior_is_strict else False
+    if _version_decreased:
+        return [_head(shown, "schema_version downgrade for a run checkpoint."),
+                f"  this existing checkpoint declares schema_version "
+                f"{_prior_version}; the proposed write declares {_version!r}. "
+                "A strict checkpoint cannot opt out of its closed step schema. "
+                "Keep schema_version unchanged or increase it."]
+    return []
+
+
+def _state_yaml_prior_identity_refusal(prior_doc, doc, shown):
+    prior_run_id = prior_doc.get("run_id")
+    new_run_id = doc.get("run_id") if isinstance(doc, dict) else None
+    if prior_run_id is None:
+        return [_head(shown, "state.yaml run identity (Issue #1106)."),
+                "  this run directory already holds a checkpoint with no "
+                "run_id — its identity cannot be verified, so a Write that "
+                "could silently replace it is refused. Write this cycle's "
+                "state into a run directory of its own."]
+    if new_run_id is None:
+        return [_head(shown, "state.yaml run identity (Issue #1106)."),
+                f"  this run directory already holds a checkpoint for run_id "
+                f"{prior_run_id!r}; this Write carries no run_id of its own, "
+                f"so it cannot be shown to be an upsert of that run. Write "
+                f"this cycle's state into a run directory of its own."]
+    if str(prior_run_id) != str(new_run_id):
+        return [_head(shown, "state.yaml run identity (Issue #1124)."),
+                f"  this run directory already holds a checkpoint for "
+                f"run_id {prior_run_id!r}; this Write carries run_id "
+                f"{new_run_id!r} — a different run's state, not an upsert "
+                f"of this one. Write this cycle's state into a run "
+                f"directory of its own."]
+    return _state_yaml_uid_refusal(prior_doc, doc, shown)
+
+
+# D-11: once a non-empty prior parses with a minted uid, that uid —
+# not the author-chosen slug and never session identity or a live claim —
+# decides whether a PRE write is an upsert. POST is not a write-refusal
+# route and may just have minted the prior's uid itself. Absent and
+# readable zero-byte priors never enter this ladder; an unreadable prior
+# already returned above. A legacy prior has no uid and uid_conflict
+# deliberately stays silent.
+def _state_yaml_uid_refusal(prior_doc, doc, shown):
+    import run_identity
+    uid_reason = None if _post else run_identity.uid_conflict(prior_doc, doc)
+    if not uid_reason:
+        return []
+    incoming_uid = doc.get("run_uid") if isinstance(doc, dict) else None
+    if incoming_uid is None or incoming_uid == "":
+        return [_head(shown, "state.yaml run identity (Issue 1305)."),
+                f"  {uid_reason}; if this write does not belong to that run, "
+                "write this cycle's state into a run directory of its own."]
+    return [_head(shown, "state.yaml run identity (Issue 1305)."),
+            f"  {uid_reason}. Write this cycle's state into a run directory "
+            "of its own."]
+
+
+# T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
+# YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —
+# so an un-coerced comparison against a set of strings silently reports a real key
+# as unknown, and `sorted()` over mixed types raises outright. In a fail-closed
+# hook a raise is a block on every write, not a wrong answer.
+def _state_yaml_unknown_keys(doc, shown):
+    keys = list(doc) if isinstance(doc, dict) else []
+    unknown = sorted({str(k) for k in keys if str(k) not in _STATE_YAML_ALLOWED})
+    if not unknown:
+        return []
+    out = [_head(shown, "state.yaml is a checkpoint, not a notebook (DEC-154)."),
+           f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
+           f"belong in this run's digest.md; a one-line note: per STEP entry is the "
+           f"prose ceiling."]
+    # Naming the key is required (DEC-100b), but naming it `True` when the author
+    # typed `on:` is not actionable — the reader cannot find `True` in their file.
+    # Say what happened instead of leaving them to guess.
+    if any(not isinstance(k, str) for k in keys):
+        odd = sorted(f"{k!r} ({type(k).__name__})" for k in keys if not isinstance(k, str))
+        out.append(f"  NOTE — {', '.join(odd)} came from an UNQUOTED key that YAML resolved to a "
+                   f"non-string: `on`/`off`/`yes`/`no`/`true`/`false` become booleans and `01` "
+                   f"becomes an int (YAML 1.1). Quote the key to keep it a string.")
+    return out
+
+
+# DEC-159: the handoff note is working memory for a successor — five fixed
+# sections including ## Done when, hard-capped, denied at write while the author can still fix it.
+# Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
+def _rule_handoff(rel, content, lines, shown, absolute_path):
+    problems = []
+    if len(lines) > 60:
+        problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
+                        f" dead ends, a working set and ## Done when, not a narrative; history lives on disk.")
+    problems.extend(_handoff_section_problems(lines))
+    problems.extend(_handoff_done_when_problems(rel, content, absolute_path))
+    if not problems:
+        return []
+    return [_head(shown, "handoff shape (DEC-159)."), *(f"  {m}" for m in problems)]
+
+
+def _handoff_section_problems(lines):
+    required = ["## Next", "## Trust", "## Dead ends", "## Working set", "## Done when"]
+    low = [l.strip().lower() for l in lines]
+    missing = [h for h in required if h.lower() not in low]
+    if not missing:
+        return []
+    return [f"missing required section(s) {missing} — the five sections are the"
+            f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
+            f" unvalidated digest did (DEC-156)."]
+
+
+def _handoff_done_when_problems(rel, content, absolute_path):
+    try:
+        return _done_when_problems(rel, content, _checkout_root(absolute_path))
+    except _done_when_boundary_errors() as exc:
+        return ["the Done when validator handoff_done_when.py failed — "
+                f"REFUSING the write ({type(exc).__name__}: {exc})"]
+
+
+# ISSUE #139. CLAUDE.md is read at EVERY session start — the widest blast radius in
+# the repo — and was the only file of its class with no mechanical budget. Its peers
+# all have one: expertise 150, feature.json 300, handoff 60, STATE.md 120.
+#
+# 80 IS DERIVED, NOT PICKED, and the ticket asked for exactly that. Measured from
+# this file's own history, WHICH STARTS AT A CLEANUP: it was 208-214 lines from
+# April through 2026-07-27, then DEC-135 cut it to 50 — that blow-out is why issue
+# #139 exists at all. Since the cleanup: 50-51 through 07-28, 56 on 08-02, 71 on
+# 08-04, then 84, at which point a human trimmed it twice, to 78 and then 74.
+#
+# The evidence CONSTRAINS the number to roughly 75-83 rather than fixing it at one:
+# above 84 discards the only judgement anyone actually made, and at 74 it bans all
+# growth. 80 sits inside that band with 6 lines of headroom, which is thin on
+# purpose — this file is preloaded into every session, and the two trims say the
+# right response to pressure here is to cut, not to raise the ceiling. An earlier
+# draft called 80 "the only number with evidence"; that overstated it, and the band
+# is stated instead.
+#
+# THE SHRINK EXEMPTION APPLIES HERE, MEASURED AND ACCEPTED. Issue #132 named this
+# for a different option: with the file at 200 lines on disk, a `Write` payload of
+# 150 is DENIED even though it is a large improvement, because the pre gate measures
+# the payload against the budget and 150 > 80. A partial staged shrink is blocked;
+# a full one is not. It is not a trap: `Edit` is never blocked pre-hoc, so the
+# author trims with Edit and the post route reports until they are under. Recorded
+# rather than fixed, because a "smaller than what is on disk" exemption means the
+# pre gate must read the file it is about to overwrite — file I/O and a TOCTOU
+# window in the hot path, to rescue a case with a working alternative.
+#
+# THE TICKET RULED THIS GATE OUT AND ISSUE #132 MADE THAT REASON OBSOLETE. #139 says
+# "check-domain.py's shape gate is the wrong home: it fires on Write only and the
+# main session is ungoverned by it" — both true when written, neither true now. The
+# main session is the thing that actually edits CLAUDE.md, and it is now bound on
+# all four routes. Re-derived at a5edb13 rather than inherited from the ticket.
+def _rule_claude_md(rel, content, lines, shown, absolute_path):
+    if len(lines) <= 80:
+        return []
+    return [_head(shown, f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."),
+            "  It is preloaded into EVERY session, so a line here costs more than "
+            "a line anywhere else. Carry the rule and one clause of why, not the "
+            "biography (DEC-158); rationale belongs in .harness/harness/docs/DECISIONS.md."]
+
+
+def _rule_state_md(rel, content, lines, shown, absolute_path):
+    out = []
+    problems = []
+    if len(lines) > 120:
+        problems.append(f"STATE.md is {len(lines)} lines — budget is 120. It holds no history: "
+                        f"## Current is replaced, never appended.")
+    h2 = [l.strip() for l in lines if l.startswith("## ")]
+    bad = [h for h in h2 if h not in ("## Current", "## Open Questions")]
+    if bad:
+        problems.append(f"illegal section(s) {bad} — STATE.md is `## Current` + "
+                        f"`## Open Questions` and nothing else (SPEC §2).")
+    if problems:
+        deny(out, shown, problems)
+    return out
+
+
+# ONE ROW PER FILE KIND, IN THE ORDER THE INLINE BRANCHES RAN (FEAT-66). The patterns name
+# distinct file names, so at most one row matches a path and a rule's findings are the whole
+# answer; the rule that used to `return out` early is the same rule that returns its list.
+# `RE_RUN_DIGEST`'s extra `absolute_path is not None` condition lives inside its rule.
+SHAPE_RULES = (
+    (RE_RUN_DIGEST, _rule_run_digest),
+    (RE_RUN_IDENTITY, _rule_run_identity),
+    (RE_PLAN_YAML, _rule_plan_yaml),
+    (RE_FEATURE_JSON, _rule_feature_json),
+    (RE_STATE_YAML, _rule_state_yaml),
+    (RE_HANDOFF, _rule_handoff),
+    (RE_CLAUDE_MD, _rule_claude_md),
+    (RE_STATE_MD, _rule_state_md),
+)
+
+
 def shape_problems(rel, content, display=None, absolute_path=None):
     """The stderr LINES for one file's text, or [] when it is clean. NEVER exits.
 
@@ -1289,687 +2122,11 @@ def shape_problems(rel, content, display=None, absolute_path=None):
     inline version it replaces.
     """
     lines = content.splitlines()
+    shown = display or rel
     out = []
-
-    # THE PATH GOES IN THE HEADER, and its absence was a live review finding rather than a
-    # style note. The pre route names one file the agent just named itself; the SWEEP walks
-    # up to 234 candidates across a main checkout and every worktree, and named NONE of
-    # them. Measured consequence: one logical file present in main plus four worktrees
-    # produced five byte-identical findings, 20 lines of stderr, zero paths — and a
-    # reviewer received another agent's transient fixture, unattributable, in their own
-    # session. check-state.py already does this correctly.
-    def _head(text):
-        # THE DISPLAY PATH IS NOT THE MATCH PATH (review of PR #152). `rel` is
-        # worktree-stripped so the patterns match, and for a state file the stripped form
-        # still carries `FEAT-NN` — enough to tell two checkouts apart. For CLAUDE.md it
-        # collapses to the constant string "CLAUDE.md", so a 114-line copy in ANOTHER
-        # agent's worktree told an agent whose own file is 74 lines that "CLAUDE.md is 114
-        # lines". That is the same unattributable-finding defect DEC-180 fixed for the
-        # sweep generally, surviving in the one path where stripping erases everything.
-        return f"check-domain: {VERB} — {display or rel}: {text}"
-
-    def deny(msgs):
-        out.append(_head("state-file shape (DEC-150)."))
-        out.extend(f"  {m}" for m in msgs)
-        out.append(f"  {ROUTING}")
-
-    # Issues #1058/#1619: a lead reused a cycle's run directory and a plain digest.md
-    # overwrite destroyed the cycle-0 record. This guard fires on Write and Edit: Edit
-    # content is reconstructed against the on-disk prior before this branch runs. A
-    # correction appends a complete contract block because validate-digest.py reads the
-    # last VERDICT; a trailing field alone sits outside that block and repairs nothing.
-    # Bash digest writes are refused outright by bash-write-guard.py; POST is too late.
-    if RE_RUN_DIGEST.match(rel) and absolute_path is not None:
-        prior = None
-        try:
-            with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
-                prior = prior_file.read()
-        except FileNotFoundError:
-            if not os.path.lexists(absolute_path):
-                prior = ""
-        except OSError:
-            pass
-        if prior is None:
-            out.append(_head("run digest already exists but cannot be read safely; "
-                             "refusing a Write that could destroy its recorded content."))
-        elif prior.strip() and not content.startswith(prior):
-            out.append(_head("run digest already holds a recorded digest; this Write "
-                             "would replace rather than extend it. Write this cycle's "
-                             "digest into a run directory of its own. To correct this "
-                             "run's own digest without erasing history, append a complete "
-                             "corrected VERDICT / DIGEST / artifact block at the end; "
-                             "do not insert or append only the missing field."))
-    if RE_RUN_IDENTITY.match(rel):
-        # record_seed writes this file from inside the POST process, outside every
-        # governed tool route, and is itself write-once. Every Write/Edit attempt
-        # is therefore an overwrite or forgery, whether or not a marker exists yet.
-        out.append(_head(
-            "this path is the run's write-once identity witness, recorded at the "
-            "run's first landed checkpoint. It is never rewritten or removed once "
-            "written. A run that needs a record of its own writes into a run directory "
-            "of its own; a witness a human genuinely must repair is repaired outside "
-            "the guards."))
-    if RE_PLAN_YAML.match(rel):
-        # THE VOCABULARY RULE, AND IT IS THE ONLY THING THE SWEEP CAN JUDGE (FEAT-41 T-09).
-        # Every task status, and the top-level status WHEN PRESENT, must be a mandated station
-        # or the terminal marker — IMPORTED from factory_config, never respelled here, because a
-        # second copy of the vocabulary is exactly the drift FEAT-41 exists to remove.
-        #
-        # WHAT THIS CATCHES AND WHAT IT DOES NOT, stated rather than left to be discovered: a
-        # dead word or a broken file, yes. A shell write of a LEGAL value, NO — this reads disk
-        # and cannot attribute an author, so a `sed` that lands a legal station is
-        # indistinguishable from the tool doing its job. The Write and Edit denial below is what
-        # closes the editor routes; this is the net under the one route that cannot be denied
-        # before the fact.
-        #
-        # A MISSING TOP-LEVEL status IS LEGAL, and that is a contract rather than an oversight.
-        # T-07 is what adds the key to most plans and is NOT a dependency of this task, so the
-        # two are unordered: a rule that REQUIRED the key would report a violation on every
-        # un-migrated plan this sweep touches. An absent TASK status is legal for the same
-        # reason — T-04 leaves it out of harness_yaml's REQUIRED_TASK_FIELDS, and an absent one
-        # reads as the not-started station. Only a value OUTSIDE the vocabulary is reported.
-        #
-        # NOT deny(). Its last line appends the module-level ROUTING constant, which speaks
-        # about STATE.md, digests and notes/ — a different file class entirely. See the comment
-        # further down that already records this trap in its own words: ONE ROUTING SENTENCE PER
-        # FINDING.
-        import factory_config as _fc
-        # MANDATED_STATIONS, not station_names(board): the declaration itself, with no
-        # board to consult. This gate has no board and needs none — the vocabulary is
-        # fixed (T-01), and station_names() exists for the COLUMN derivation.
-        _legal = set(_fc.MANDATED_STATIONS) | set(_fc.TERMINAL_STATIONS)
-        _bad = []
-        try:
-            import harness_yaml as _hy
-            _doc = _hy.load_str(content, display or rel)
-        except ImportError:
-            # NO PARSER IS NOT THIS RULE'S FINDING EITHER (FEAT-65): the state.yaml branch owns
-            # that answer through `_no_parser`.
-            _doc = None
-        except _hy.YamlParseError:
-            # UNPARSEABLE IS NOT THIS RULE'S FINDING. check-plan-routes.py refuses a malformed
-            # plan before signature and check-state.py refuses it again at entry; reporting it
-            # a third time here would put one defect in three voices.
-            _doc = None
-        if isinstance(_doc, dict):
-            _top = _doc.get("status")
-            if _top is not None and str(_top) not in _legal:
-                _bad.append(f"top-level status {str(_top)!r}")
-            _tasks = _doc.get("tasks")
-            if isinstance(_tasks, list):
-                for _t in _tasks:
-                    if not isinstance(_t, dict):
-                        continue
-                    _s = _t.get("status")
-                    if _s is not None and str(_s) not in _legal:
-                        _bad.append(f"task {_t.get('id', '(no id)')} status {str(_s)!r}")
-        if _bad:
-            out.append(_head("plan.yaml station vocabulary (FEAT-41 REQ-01)."))
-            out.extend(f"  {b} is not a station" for b in _bad)
-            out.append(f"  The stations are {', '.join(sorted(_legal))}. "
-                       f"Set one with plan-merge.py set-task-station or set-feature-station, "
-                       f"which validate the value before it lands.")
-
-    if RE_FEATURE_JSON.match(rel):
-        # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
-        # The comment-line budget is GONE, not relaxed — JSON has no comments, so it could
-        # never fire, and a check that cannot fire is a check a reader trusts.
-        #
-        # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4). The cap is DEC-150's "data, not a
-        # journal", and the run ledger is the data — its length tracks how long the feature
-        # ran, not anyone's prose. Measured on FEAT-54's own record: 336 lines, 294 of them
-        # the 48-entry array. Counting it fired the cap on the only legitimately unbounded
-        # part of the file, and both remedies were wrong: delete real history, or raise a
-        # number that is wrong again at 60 runs. `journal_lines` lives in feature_schema so
-        # this gate and check-state.py's INV-23 cannot drift on the definition.
-        problems = []
-        try:
-            import feature_schema as _fs_budget
-            _budget = _fs_budget.FEATURE_JSON_LINE_BUDGET
-            # `content`, NEVER "\n".join(lines): joining drops trailing blank lines, because
-            # splitlines does not create an entry for a final newline. Measured — a 301-line
-            # padded fixture counted 300 that way and the boundary case at 301 exited 0.
-            _counted = _fs_budget.journal_lines(content)
-            _basis = "excluding the runs ledger"
-        except (ImportError, AttributeError, TypeError, ValueError):
-            # THE FALLBACK COUNTS EVERYTHING, deliberately. An unimportable helper must not
-            # loosen a budget; it makes this stricter than intended, which is the safe way
-            # for a shape gate to be wrong.
-            _budget = 300
-            _counted = len(lines)
-            _basis = "whole file — feature_schema was not importable"
-        if _counted > _budget:
-            problems.append(f"feature.json is {_counted} lines ({_basis}) — budget is "
-                            f"{_budget}. It is data a script parses, not a journal.")
-        if problems:
-            deny(problems)
-
-        # THE SCHEMA CHECK. Imported INSIDE this branch, never at module level: jsonschema
-        # costs +42.6 ms median on import (17.3 -> 59.9 ms over 10 isolated launches,
-        # 4.26.0, warm bytecode; 395 ms cold). At module level every Write, Edit and Bash
-        # in the repo would pay it, for the rare feature.json write. sys.modules caches it,
-        # so a POST sweep over many candidates pays it ONCE per invocation, not per file.
-        # This file already defers harness_yaml for the same reason (see :139).
-        #
-        # THE TIGHT try IS FOR feature_schema ITSELF being unimportable — PYTHONPATH not
-        # exported, a syntax error, the file missing. It must APPEND to problems, never
-        # raise: a raise escaping the per-file loop exits 1, and :14 says exit 1 is
-        # NON-BLOCKING, so the bad write would land — fail open in the case the checker
-        # exists for.
-        #
-        # FAIL CLOSED, WITH NO BOOTSTRAP ESCAPE, stated as facts rather than as a
-        # comfortable story: the shape phase runs for EVERY writer including the main
-        # session, because the no-agent_type carve-out is the _governed FLAG and not an
-        # exit. So this denial governs the main-session-direct migration tasks too,
-        # deliberately. It does NOT share the PyYAML bootstrap escape —
-        # require_or_bootstrap is reached only inside `if _run_domain:` (:333), which the
-        # shape phase never enters. No escape is needed: the remedy is `python3 -m pip
-        # install jsonschema`, a Bash command no gate denies. That is the difference from
-        # the missing-PARSER case, where the gate cannot read its own manifest at all.
-        # This branch needs stdlib json and jsonschema ONLY, never PyYAML — do not extend
-        # the state.yaml branch's `_no_parser` fail-open to cover it.
-        global _SCHEMA_UNAVAILABLE_SAID
-        try:
-            import feature_schema
-            # ISSUE #749 — THE SCHEMA COMES FROM THE TREE THE FILE LIVES IN. `rel` already
-            # carries the worktree prefix when the target is inside one, so joining it with
-            # `root` gives the real absolute path and feature_schema walks UP from there for
-            # that checkout's own feature-schema.json.
-            #
-            # Measured live 2026-08-23: this refused `source_issues` at /github on a FEAT-26
-            # write. The key WAS declared in that worktree's schema and was NOT in main's,
-            # and this module is imported through CLAUDE_PROJECT_DIR — the main checkout. So
-            # a feature that ADDS a schema key could not write data using it until it
-            # merged, and could not demonstrate it working before merging.
-            #
-            # It falls back to the module's own schema when no checkout schema is above the
-            # path, so a target outside any checkout is checked exactly as before.
-            _sp = feature_schema.problems_for_text(
-                content, display or rel,
-                for_path=os.path.join(root, rel) if root else rel)
-        except ImportError:
-            _sp = ["feature_schema is not importable, so this file CANNOT be checked. "
-                   "Expected at .agents/skills/harness/bin/feature_schema.py, reachable on "
-                   "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
-        except (OSError, ValueError) + feature_schema.SCHEMA_ERRORS as _se:
-            # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
-            # inject any other exception into problems_for_text and an ILLEGAL document
-            # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
-            # NON-BLOCKING (line 14), so the bad write lands. A schema loader raises far
-            # more than ImportError: a malformed feature-schema.json is JSONDecodeError,
-            # an unreadable one is OSError, a jsonschema version drift is SchemaError.
-            # Every one of them meant "written anyway".
-            #
-            # THOSE ARE THE CLASSES CAUGHT, BY NAME (FEAT-65): the schema file unreadable
-            # (OSError), not JSON (JSONDecodeError, a ValueError), or rejected by jsonschema
-            # itself (feature_schema.SCHEMA_ERRORS, the module that owns that dependency).
-            # A checker that raises anything else is a defect and reaches the hook's one
-            # guard, which passes through at exit 0 and names it — never exit 1.
-            #
-            # The message is SEPARATE from the ImportError branch on purpose. Saying "not
-            # importable" when the module imported fine and then crashed sends the reader
-            # to check PYTHONPATH for a fault that is not there — an unattributable
-            # finding, the defect DEC-180 fixed twice in this file.
-            _sp = ["feature_schema CRASHED while checking this file, so it CANNOT be "
-                   "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
-                   "in .agents/skills/harness/bin/feature-schema.json, not a missing "
-                   "dependency. The write is DENIED rather than allowed through, because "
-                   "a checker that cannot run must never be the reason a file passes."
-                   % (type(_se).__name__, _se)]
-        _out = []
-        for _l in _sp:
-            if "CANNOT be checked" in _l:
-                # ONE MESSAGE PER INVOCATION, not one per file — a corpus-wide sweep would
-                # otherwise print an identical block per feature.
-                if _SCHEMA_UNAVAILABLE_SAID:
-                    continue
-                _SCHEMA_UNAVAILABLE_SAID = True
-            _out.append(_l)
-        if _out:
-            # APPEND TO `out`, never print-and-exit. deny() ACCUMULATES — it does not
-            # exit — and shape_problems RETURNS its findings to two call sites. A block
-            # that printed and exited here would pre-empt the line-budget finding above
-            # and bypass the accumulator both callers read. Found by the suite: the
-            # 301-line case reported a schema denial instead of its budget denial.
-            #
-            # ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny():
-            # deny() appends the module-level ROUTING constant, speaking about STATE.md,
-            # digests and notes/ — a different sentence from the schema's own redirection
-            # line, which also names plan.yaml approval.rulings. Two routing sentences in
-            # one stderr stream contradict each other about the same file class. The
-            # line-budget finding above keeps deny() and therefore keeps ROUTING: it is
-            # not a schema finding and its advice is still right.
-            out.append(_head("feature execution-state schema."))
-            out.extend(f"  {_l}" for _l in _out)
-
-    if RE_STATE_YAML.match(rel):
-        # DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
-        # INV-16 sweeps this at entry; this denies it at write, while the author can
-        # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
-        # the sweep landing, so entry-time alone demonstrably does not deter.
-        # KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.py; the
-        # MECHANISM deliberately does not (D-02). check-state.py sweeps existing files
-        # and reports; this denies at write. Since T-12 the duplicate here is caught by
-        # the LOADER RAISING, while check-state.py still scans — same vocabulary, two
-        # mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
-        # is what let a malformed file pass with its keys silently unread.
-        ALLOWED = {"schema_version", "run_id", "run_uid", "feature", "squad", "host",
-                   "status", "steps", "cycles_used", "cost", "flow", "task", "team",
-                   "branch", "worktree", "review_sha", "pinned_sha", "base_sha",
-                   "head_sha", "tip_sha", "commits", "verdict", "severity_max", "digest"}
-        # NO PARSER, in a bootstrap-grant session: the shape gate does not run.
-        #
-        # A line-scan fallback lived here briefly and was REMOVED at the user's ruling. The
-        # signed BRIEF forbids it outright — Goal :20-21 "no second code path anywhere, so
-        # the brittle regex leaves the tree instead of living on as a fallback nobody
-        # exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
-        # converted script". A branch that runs ONLY when PyYAML is missing is by
-        # construction the least-exercised code in this file, which is precisely the rot
-        # the constraint is aimed at. I argued the exception in a comment in the same commit
-        # that introduced it, with no D-NN and no signature; the goal-check caught it.
-        #
-        # What is given up is EARLIER detection, not correctness — measured, not assumed: a
-        # malformed state.yaml written during a grant is still refused by check-state.py at
-        # the next /harness entry, naming the same offending keys, by a session that can
-        # actually read it. One bad file to delete, against a crude reader living on forever
-        # in a write guard.
-        #
-        # A BARE `return []`, not a `sys.exit(0)` as this was before the #132 refactor.
-        # Equivalent for a single write — no other branch can match a state.yaml path — but
-        # NOT equivalent under the post sweep, where exiting here would abandon every file
-        # after this one in the same pass.
-        if _no_parser:
-            return out
-
-        try:
-            doc = harness_yaml.load_str(content, rel)
-        except harness_yaml.DuplicateKeyError as e:
-            # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
-            # counted by a regex — which also catches a duplicate at any nesting depth,
-            # not merely at column 0.
-            out.append(_head("state.yaml is a checkpoint, not a notebook (DEC-154)."))
-            out.append(f"  duplicate key {e.key!r} — the second silently shadows the first; "
-                       f"replace the placeholder, never append a copy (DEC-156).")
-            return out
-
-        except harness_yaml.YamlParseError as e:
-            # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
-            # replaced found no keys in a malformed file and therefore reported nothing
-            # wrong — it wrote a broken checkpoint and said it was fine.
-            out.append(_head("this state.yaml is not valid YAML."))
-            out.append(f"  {e.original}")
-            out.append("  A checkpoint that cannot be parsed is unreadable to every gate that "
-                       "consumes it later; the write is refused while you can still fix it.")
-            return out
-
-        # FEAT-104 D-11: schema_version floor applies at CREATION only. Existing
-        # version-1 checkpoints remain writable so an in-flight pre-deploy run can
-        # finish unchanged. `_post` sees an already-landed file and is never creation.
-        _creating = (
-            not _post and absolute_path is not None
-            and not os.path.lexists(absolute_path)
-        )
-        _version = doc.get("schema_version") if isinstance(doc, dict) else None
-        _valid_version = (
-            isinstance(_version, int) and not isinstance(_version, bool)
-            and _version >= 2
-        )
-        if _creating and not _valid_version:
-            if _version is None:
-                _version_problem = "is absent"
-            elif not isinstance(_version, int) or isinstance(_version, bool):
-                _type_name = {
-                    str: "string", bool: "boolean", list: "array", dict: "mapping",
-                }.get(type(_version), type(_version).__name__)
-                _version_problem = f"has type {_type_name}, not integer"
-            else:
-                _version_problem = f"is {_version}, below 2"
-            out.append(_head("schema_version floor for a new run checkpoint."))
-            out.append(
-                "  schema_version %s. Seed new runs from "
-                ".claude/skills/harness-team/SKILL.md, section 2, with "
-                "`schema_version: 2`; only updates to an already-existing version-1 "
-                "state.yaml retain compatibility." % _version_problem
-            )
-
-        # FEAT-104: version 2 closes each step through the one declared JSON
-        # schema. Version 1 deliberately keeps its historical open shape.
-        if _valid_version and isinstance(doc, dict):
-            try:
-                import jsonschema
-                # The step contract comes through the shared strict reader (FEAT-61
-                # T-03); the evidence-name pattern arrives as a string and is compiled here.
-                _step_schema, _declared, _name_pattern_text = (
-                    _artifact_accessors.load_run_step_contract(sys.argv[3]))
-                _validator = jsonschema.Draft202012Validator(_step_schema)
-                _name_pattern = re.compile(_name_pattern_text)
-                _offending = set()
-                _schema_errors = []
-                _declared_invalid = set()
-                for _step in doc.get("steps", []):
-                    _schema_errors.extend(_validator.iter_errors(_step))
-                    if not isinstance(_step, dict):
-                        _offending.add("<step>")
-                        continue
-                    _offending.update(set(_step) - _declared)
-                    _evidence = _step.get("evidence")
-                    if isinstance(_evidence, dict):
-                        for _key, _value in _evidence.items():
-                            if not isinstance(_key, str) or not _name_pattern.fullmatch(_key):
-                                _offending.add(str(_key))
-                            if isinstance(_value, dict):
-                                _offending.add(str(_key))
-                if _schema_errors:
-                    # Type/value failures on declared fields may not be captured by
-                    # the vocabulary comparisons above; name their nearest field.
-                    _missing_required = set()
-                    for _error in _schema_errors:
-                        if (_error.validator == "required"
-                                and isinstance(_error.instance, dict)):
-                            _missing_required.update(
-                                str(_key) for _key in _error.validator_value
-                                if _key not in _error.instance
-                            )
-                            continue
-                        _path = list(_error.path)
-                        if _path:
-                            _field = str(_path[0])
-                            if _field in _declared and _field != "evidence":
-                                _declared_invalid.add(_field)
-                            else:
-                                _offending.add(_field)
-                    if _missing_required:
-                        _missing_names = ", ".join(
-                            repr(key) for key in sorted(_missing_required))
-                        out.append(_head("missing required step key."))
-                        out.append(
-                            f"  missing key(s): {_missing_names}. Required step fields "
-                            "are declared in .claude/skills/harness/bin/"
-                            "run-state-schema.json; supply each required field."
-                        )
-                    if _declared_invalid:
-                        _invalid_names = ", ".join(
-                            repr(key) for key in sorted(_declared_invalid))
-                        out.append(_head("declared step field has invalid value."))
-                        out.append(
-                            f"  invalid field(s): {_invalid_names}. Match each field's "
-                            "type and value constraints in .claude/skills/harness/bin/"
-                            "run-state-schema.json; correct the declared field in place."
-                        )
-                    if _offending:
-                        _names = ", ".join(repr(key) for key in sorted(_offending))
-                        out.append(_head("undeclared step key or evidence shape."))
-                        out.append(
-                            f"  offending key(s): {_names}. A recovery field is declared "
-                            "in .claude/skills/harness/bin/run-state-schema.json; a "
-                            "per-dispatch fact goes under `evidence` with a lowercase "
-                            "identifier key and a scalar or scalar-array value."
-                        )
-            except _run_state_boundary_errors() as _schema_exc:
-                out.append(_head(
-                    "run-state schema CANNOT be checked; the write is denied."))
-                out.append(
-                    "  .claude/skills/harness/bin/run-state-schema.json or its "
-                    "jsonschema validator failed: %s: %s"
-                    % (type(_schema_exc).__name__, _schema_exc)
-                )
-        if _post and absolute_path is not None and isinstance(doc, dict):
-            # D-12/D-13: mint only after a governed landing. Until the first POST
-            # completes, a fresh same-slug collision remains the modal residual:
-            # neither uid_conflict nor detection has a witness to consult.
-            try:
-                import run_identity
-                run_dir = os.path.dirname(absolute_path)
-                try:
-                    marker = run_identity.read_marker(run_dir)
-                except run_identity.MarkerUnreadable:
-                    marker = None
-                landed_uid = doc.get("run_uid")
-                witness_uid = marker.get("run_uid") if isinstance(marker, dict) else None
-                effective_uid = landed_uid or witness_uid or run_identity.mint_uid()
-                if not landed_uid:
-                    run_identity.inject_uid(absolute_path, effective_uid)
-                run_identity.record_seed(
-                    run_dir, doc, harness_yaml._resolve_identity(d), effective_uid)
-            except (ImportError, OSError, TypeError, ValueError):
-                # POST recording is best effort and may never turn a landed write
-                # into a new refusal.
-                pass
-
-        # Issue #1124: the digest guard above (#1058) fires only on digest.md, but a run
-        # directory's state.yaml is written just as easily under a reused slug — and unlike
-        # digest.md, state.yaml is LEGITIMATELY rewritten many times over a run's life
-        # (DEC-154's "checkpoint, not a notebook" upsert). A prefix/equality compare like the
-        # digest guard's would refuse every legitimate checkpoint update, so this checks
-        # identity instead of content: run_id is the one field every checkpoint in this run
-        # carries unchanged from its first write (CHECKPOINT_KEYS in check-state.py), so a
-        # PRIOR file whose run_id disagrees with THIS write's run_id is not an upsert of this
-        # run at all — it is a different run's checkpoint about to be silently destroyed.
-        if absolute_path is not None:
-            prior_state = None
-            prior_unreadable = False
-            try:
-                with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
-                    prior_state = prior_file.read()
-            except FileNotFoundError:
-                if not os.path.lexists(absolute_path):
-                    prior_state = ""
-                else:
-                    prior_unreadable = True
-            except OSError:
-                prior_unreadable = True
-            if prior_unreadable:
-                out.append(_head("run state already exists but cannot be read safely; "
-                                 "refusing a Write that could destroy its recorded content."))
-                return out
-
-            prior_doc = None
-            prior_exc = None
-            if prior_state:
-                try:
-                    prior_doc = harness_yaml.load_str(prior_state, rel)
-                except harness_yaml.YamlParseError as exc:
-                    prior_exc = exc
-            prior_has_uid = (
-                prior_exc is None and isinstance(prior_doc, dict)
-                and str(prior_doc.get("run_uid") or "").strip() != "")
-
-            # The witness is the only identity available for an absent, zeroed, or
-            # unparseable prior. It answers first unless a readable checkpoint uid
-            # lets the minted-identity ladder own the decision.
-            if not prior_has_uid:
-                try:
-                    import run_identity
-                    marker = run_identity.read_marker(os.path.dirname(absolute_path))
-                except run_identity.MarkerUnreadable:
-                    out.append(_head("state.yaml run identity (Issue 1305)."))
-                    out.append(
-                        "  this run directory's recorded identity cannot be read, so a "
-                        "Write that could silently replace another run checkpoint is refused.")
-                    return out
-                reason = run_identity.conflict(marker, doc)
-                if reason:
-                    out.append(_head("state.yaml run identity (Issue 1305)."))
-                    out.append(f"  {reason}. Write this cycle's state into a run directory "
-                               "of its own.")
-                    return out
-
-            if prior_state:
-                if prior_exc is not None:
-                    out.append(_head("run state already exists but does not parse; "
-                                     "refusing a Write that could silently replace it."))
-                    out.append(f"  {prior_exc}")
-                    return out
-                if not isinstance(prior_doc, dict):
-                    out.append(_head("run state already exists but is not a mapping after "
-                                     "parsing; refusing a Write that could silently replace "
-                                     "it."))
-                    return out
-                _prior_version = prior_doc.get("schema_version")
-                _prior_is_strict = (
-                    isinstance(_prior_version, int)
-                    and not isinstance(_prior_version, bool)
-                    and _prior_version >= 2
-                )
-                _version_decreased = (
-                    not isinstance(_version, int)
-                    or isinstance(_version, bool)
-                    or _version < _prior_version
-                ) if _prior_is_strict else False
-                if _version_decreased:
-                    out.append(_head("schema_version downgrade for a run checkpoint."))
-                    out.append(
-                        f"  this existing checkpoint declares schema_version "
-                        f"{_prior_version}; the proposed write declares {_version!r}. "
-                        "A strict checkpoint cannot opt out of its closed step schema. "
-                        "Keep schema_version unchanged or increase it."
-                    )
-                    return out
-                prior_run_id = prior_doc.get("run_id")
-                new_run_id = doc.get("run_id") if isinstance(doc, dict) else None
-                if prior_run_id is None:
-                    out.append(_head("state.yaml run identity (Issue #1106)."))
-                    out.append("  this run directory already holds a checkpoint with no "
-                               "run_id — its identity cannot be verified, so a Write that "
-                               "could silently replace it is refused. Write this cycle's "
-                               "state into a run directory of its own.")
-                    return out
-                if new_run_id is None:
-                    out.append(_head("state.yaml run identity (Issue #1106)."))
-                    out.append(f"  this run directory already holds a checkpoint for run_id "
-                               f"{prior_run_id!r}; this Write carries no run_id of its own, "
-                               f"so it cannot be shown to be an upsert of that run. Write "
-                               f"this cycle's state into a run directory of its own.")
-                    return out
-                if str(prior_run_id) != str(new_run_id):
-                    out.append(_head("state.yaml run identity (Issue #1124)."))
-                    out.append(f"  this run directory already holds a checkpoint for "
-                               f"run_id {prior_run_id!r}; this Write carries run_id "
-                               f"{new_run_id!r} — a different run's state, not an upsert "
-                               f"of this one. Write this cycle's state into a run "
-                               f"directory of its own.")
-                    return out
-                # D-11: once a non-empty prior parses with a minted uid, that uid —
-                # not the author-chosen slug and never session identity or a live claim —
-                # decides whether a PRE write is an upsert. POST is not a write-refusal
-                # route and may just have minted the prior's uid itself. Absent and
-                # readable zero-byte priors never enter this ladder; an unreadable prior
-                # already returned above. A legacy prior has no uid and uid_conflict
-                # deliberately stays silent.
-                import run_identity
-                uid_reason = None if _post else run_identity.uid_conflict(prior_doc, doc)
-                if uid_reason:
-                    out.append(_head("state.yaml run identity (Issue 1305)."))
-                    incoming_uid = doc.get("run_uid") if isinstance(doc, dict) else None
-                    if incoming_uid is None or incoming_uid == "":
-                        out.append(
-                            f"  {uid_reason}; if this write does not belong to that run, "
-                            "write this cycle's state into a run directory of its own.")
-                    else:
-                        out.append(
-                            f"  {uid_reason}. Write this cycle's state into a run directory "
-                            "of its own.")
-                    return out
-
-        # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
-        # YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —
-        # so an un-coerced comparison against a set of strings silently reports a real key
-        # as unknown, and `sorted()` over mixed types raises outright. In a fail-closed
-        # hook a raise is a block on every write, not a wrong answer.
-        keys = list(doc) if isinstance(doc, dict) else []
-        unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
-        if unknown:
-            out.append(_head("state.yaml is a checkpoint, not a notebook (DEC-154)."))
-            out.append(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
-                       f"belong in this run's digest.md; a one-line note: per STEP entry is the "
-                       f"prose ceiling.")
-            # Naming the key is required (DEC-100b), but naming it `True` when the author
-            # typed `on:` is not actionable — the reader cannot find `True` in their file.
-            # Say what happened instead of leaving them to guess.
-            if any(not isinstance(k, str) for k in keys):
-                odd = sorted(f"{k!r} ({type(k).__name__})" for k in keys if not isinstance(k, str))
-                out.append(f"  NOTE — {', '.join(odd)} came from an UNQUOTED key that YAML resolved to a "
-                           f"non-string: `on`/`off`/`yes`/`no`/`true`/`false` become booleans and `01` "
-                           f"becomes an int (YAML 1.1). Quote the key to keep it a string.")
-            return out
-
-    if RE_HANDOFF.match(rel):
-        # DEC-159: the handoff note is working memory for a successor — five fixed
-        # sections including ## Done when, hard-capped, denied at write while the author can still fix it.
-        # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
-        problems = []
-        if len(lines) > 60:
-            problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
-                            f" dead ends, a working set and ## Done when, not a narrative; history lives on disk.")
-        required = ["## Next", "## Trust", "## Dead ends", "## Working set", "## Done when"]
-        low = [l.strip().lower() for l in lines]
-        missing = [h for h in required if h.lower() not in low]
-        if missing:
-            problems.append(f"missing required section(s) {missing} — the five sections are the"
-                            f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
-                            f" unvalidated digest did (DEC-156).")
-        try:
-            problems.extend(_done_when_problems(rel, content, _checkout_root(absolute_path)))
-        except _done_when_boundary_errors() as exc:
-            problems.append("the Done when validator handoff_done_when.py failed — "
-                            f"REFUSING the write ({type(exc).__name__}: {exc})")
-        if problems:
-            out.append(_head("handoff shape (DEC-159)."))
-            out.extend(f"  {m}" for m in problems)
-
-    if RE_CLAUDE_MD.match(rel):
-        # ISSUE #139. CLAUDE.md is read at EVERY session start — the widest blast radius in
-        # the repo — and was the only file of its class with no mechanical budget. Its peers
-        # all have one: expertise 150, feature.json 300, handoff 60, STATE.md 120.
-        #
-        # 80 IS DERIVED, NOT PICKED, and the ticket asked for exactly that. Measured from
-        # this file's own history, WHICH STARTS AT A CLEANUP: it was 208-214 lines from
-        # April through 2026-07-27, then DEC-135 cut it to 50 — that blow-out is why issue
-        # #139 exists at all. Since the cleanup: 50-51 through 07-28, 56 on 08-02, 71 on
-        # 08-04, then 84, at which point a human trimmed it twice, to 78 and then 74.
-        #
-        # The evidence CONSTRAINS the number to roughly 75-83 rather than fixing it at one:
-        # above 84 discards the only judgement anyone actually made, and at 74 it bans all
-        # growth. 80 sits inside that band with 6 lines of headroom, which is thin on
-        # purpose — this file is preloaded into every session, and the two trims say the
-        # right response to pressure here is to cut, not to raise the ceiling. An earlier
-        # draft called 80 "the only number with evidence"; that overstated it, and the band
-        # is stated instead.
-        #
-        # THE SHRINK EXEMPTION APPLIES HERE, MEASURED AND ACCEPTED. Issue #132 named this
-        # for a different option: with the file at 200 lines on disk, a `Write` payload of
-        # 150 is DENIED even though it is a large improvement, because the pre gate measures
-        # the payload against the budget and 150 > 80. A partial staged shrink is blocked;
-        # a full one is not. It is not a trap: `Edit` is never blocked pre-hoc, so the
-        # author trims with Edit and the post route reports until they are under. Recorded
-        # rather than fixed, because a "smaller than what is on disk" exemption means the
-        # pre gate must read the file it is about to overwrite — file I/O and a TOCTOU
-        # window in the hot path, to rescue a case with a working alternative.
-        #
-        # THE TICKET RULED THIS GATE OUT AND ISSUE #132 MADE THAT REASON OBSOLETE. #139 says
-        # "check-domain.py's shape gate is the wrong home: it fires on Write only and the
-        # main session is ungoverned by it" — both true when written, neither true now. The
-        # main session is the thing that actually edits CLAUDE.md, and it is now bound on
-        # all four routes. Re-derived at a5edb13 rather than inherited from the ticket.
-        if len(lines) > 80:
-            out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))
-            out.append("  It is preloaded into EVERY session, so a line here costs more than "
-                       "a line anywhere else. Carry the rule and one clause of why, not the "
-                       "biography (DEC-158); rationale belongs in .harness/harness/docs/DECISIONS.md.")
-
-    if RE_STATE_MD.match(rel):
-        problems = []
-        if len(lines) > 120:
-            problems.append(f"STATE.md is {len(lines)} lines — budget is 120. It holds no history: "
-                            f"## Current is replaced, never appended.")
-        h2 = [l.strip() for l in lines if l.startswith("## ")]
-        bad = [h for h in h2 if h not in ("## Current", "## Open Questions")]
-        if bad:
-            problems.append(f"illegal section(s) {bad} — STATE.md is `## Current` + "
-                            f"`## Open Questions` and nothing else (SPEC §2).")
-        if problems:
-            deny(problems)
-
+    for pattern, rule in SHAPE_RULES:
+        if pattern.match(rel):
+            out.extend(rule(rel, content, lines, shown, absolute_path))
     return out
 
 
