@@ -36,6 +36,13 @@
       "tokens": 133148,
       "ended_at": "2026-09-26T15:34:09+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-26T15:59:34+00:00"
     }
   ],
   "judgements": [
@@ -80,6 +87,13 @@
       "kind": "regate",
       "decision": "main-session-direct repair then fresh validation",
       "reason": "DEC-174 returns T-01 fixes to Main; three unowned scope/acceptance findings require operator routing before a new pin and regate."
+    },
+    {
+      "at": "2026-09-26T15:59:25+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix then re-validate (cycle 1 of 2)",
+      "reason": "validate c0 FAIL: MF-01..MF-06; five operator rulings in notes/answers-validate-validator.md; DEC-174 main-session fix"
     }
   ],
   "mission": "patch",

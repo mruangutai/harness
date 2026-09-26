@@ -28,14 +28,14 @@ decisions:
     because: The current branches consume different small value sets, so explicit persona tuples keep dependencies visible without exposing unrelated state.
     dec: none
   - id: D-02
-    choice: Have each apply_merge phase helper return its own phase-local tuple of output chunks and added, preserved, changed, ignored, and changed-task deltas; only the driver extends the existing named lists, while _maybe_reset_approval returns the reset scalar and the driver constructs MergeResult once.
-    because: Phase-local deltas preserve the current result fields and order without passing a shared mutable accumulator bag through every phase.
+    choice: 'Have each apply_merge phase helper return its own phase-local tuple of output chunks and added, preserved, changed, ignored, and changed-task deltas; the key walk (_merge_keys) extends the six existing named lists in key order through one fold helper the driver calls, _maybe_reset_approval returns the reset scalar, and the driver constructs MergeResult once. Amended 2026-09-26 by the operator (validate c0, MF-02): the form in which the driver itself extends the lists grades 2 on ABC and was declined.'
+    because: Phase-local deltas preserve the current result fields and order without passing a shared mutable accumulator bag through every phase; folding them in one named helper keeps the driver at the production grade bar (SC-01), which the driver-owned extension does not.
     dec: none
 tasks:
   - id: T-01
     title: Decompose the three heaviest rule evaluators into small drivers
     traces: [SC-01, SC-02, SC-03, SC-04]
-    change_type: refactor
+    change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns check-domain.py, validate-digest.py, and plan-merge.py enforcement-layer changes and their owning proof directly to the main session.
     depends_on: []

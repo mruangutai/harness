@@ -18,6 +18,7 @@ The maintainers of three enforcement-layer rule evaluators must change hundreds 
 - SC-02 (operator): From a clean checkout of the exact implementation pin, each named owning suite has the same exit status, stdout bytes, and stderr bytes as its pre-refactor baseline except divergences whose exact old bytes, new bytes, affected case, and operator ruling are recorded; an unledgered difference fails verification.
   verify: automated
   evidence: integration
+  fail-first: the baseline-versus-pin byte comparison is this criterion's fail-first equivalent — byte identity is an invariant with no pre-fix red form (operator ruling 2026-09-26, validate c0 MF-05; notes/answers-validate-validator.md).
 - SC-03 (code maintainer): At the pinned review SHA, the only production changes are the decomposition of `check-domain.shape_problems`, `validate-digest.validate`, and `plan-merge.apply_merge`; rule order is preserved, and every load-bearing comment moved with its rule byte-for-byte rather than being rewritten or dropped.
   verify: inspection
 - SC-04 (operator): The pinned review SHA contains the red-first receipt, clean-checkout implementation-pin receipt, and divergence ledger, all committed after the implementation pin; they name the exact baseline and implementation pins, commands, checkout identity, exit statuses, and stdout/stderr byte evidence without claiming to exist inside the earlier pin.
@@ -32,6 +33,7 @@ The maintainers of three enforcement-layer rule evaluators must change hundreds 
 - DEC-174 SUPPLIES direct execution: all three production functions and their owning proof are enforcement-layer work, so T-01 is `main-session-direct` and has no developer dispatch.
 - DEC-225 SUPPLIES the patch lane: this intake has one task, no panel, no goal-check, and a BRIEF no longer than 120 lines.
 - The established `code_grade` ratchet remains the only grade lock; add no second checker or lock.
+- The red-first evidence for SC-01 is the plan's own inline grade assertion (T-01 `verify:`), run against the baseline tree and at the pin; no permanent test file carries it (validate c0 MF-03).
 - Preserve rule and output order. Read each function's shared context once, then apply its existing rule families without introducing a shared record type across the three files.
 - Change no behavior. Any observed output divergence requires an exact old/new ledger entry and an explicit operator ruling before it can be accepted.
 - Move each existing load-bearing comment byte-for-byte with the rule it explains.
