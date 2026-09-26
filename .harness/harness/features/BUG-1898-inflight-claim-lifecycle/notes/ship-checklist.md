@@ -2,6 +2,9 @@
 
 **BLUF.** The operator runs this in order.
 
+**Status (2026-09-25).** Steps 1 and 2 are complete; step 3 is open, owned by the first real
+post-merge feature. Cutover evidence and accepted deviations: `notes/cutover-evidence.md`.
+
 1. Record a live probe PASS before merge.
 2. Do the one-time cutover after merge and before any OMP session loads the changed hook.
 3. On the first real feature after merge, record its claim evidence. That record is follow-up
@@ -12,7 +15,7 @@ leaked rows. Every release in step 2 is one the operator makes on exact evidence
 
 ## 1. Before merge
 
-- [ ] Run the live probe from this feature's worktree. The receipt must show **PASS**, appended
+- [x] Run the live probe from this feature's worktree. The receipt must show **PASS**, appended
       to `notes/live-omp-probe.md` (SC-07). A dry run is not a receipt.
 
       ```sh
@@ -20,10 +23,16 @@ leaked rows. Every release in step 2 is one the operator makes on exact evidence
       python3 tests/manual/probe-inflight-claim-lifecycle.py
       ```
 
-- [ ] Rebase onto `origin/main` if it moved, then re-run the task verifies.
-- [ ] The merge is the operator's.
+      Done: run 2026-09-25T13:18:49Z, **PASS 29/29**.
+
+- [x] Rebase onto `origin/main` if it moved, then re-run the task verifies. (Not needed: `main`
+      had not moved; merge parent `a4d72e7` is the merge base.)
+- [x] The merge is the operator's. (PR #1929, merge commit `bdd8b273`, 2026-09-25T13:44:59Z.)
 
 ## 2. Cutover, once: after merge, before any live session loads the changed hook
+
+- [x] Done 2026-09-25; enumerations, per-row evidence and accepted deviations in
+      `notes/cutover-evidence.md`.
 
 Rows written before this change can block the new run-start step:
 
