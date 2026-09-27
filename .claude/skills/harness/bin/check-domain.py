@@ -545,17 +545,21 @@ def approval_guard(rel, agent_name):
     if not _approval_guard_applies():
         return
     entries = _approval_grants()
-    disk = _approval_disk_text(rel) if entries is not None else None
+    if entries is None:
+        return
+    disk = _approval_disk_text(rel)
     if disk is None:
         return
     lines = disk.splitlines()
 
-    # FEAT-67: one driver, one rule per tool form. Each entry's context is derived once,
-    # read-only, and the first entry whose glob matches under Write or Edit ends the guard,
-    # as the inline `return`s always did; any other tool matches no rule and continues.
+    # FEAT-67: only Write and Edit have a rule; the first grant matching the path is the
+    # one the rule sees, and the guard ends there.
+    rule = {"Write": _approval_write_rule, "Edit": _approval_edit_rule}.get(_tool)
+    if rule is None:
+        return
     for frag, raw in _matching_grants(entries, rel):
-        if _apply_fragment_rule(_governed_fragment(rel, agent_name, frag, raw, disk, lines)):
-            return
+        rule(_governed_fragment(rel, agent_name, frag, raw, disk, lines))
+        return
 
 
 def _matching_grants(entries, rel):
@@ -580,17 +584,6 @@ def _approval_guard_applies():
     # before this check made every passing write to a non-existent path under a fixture
     # manifest print the unreadable-list warning, and it cost a real regression.
     return os.path.exists(target)
-
-
-def _apply_fragment_rule(fragment):
-    """Run the rule for the current tool form; True when one ran (the guard is over)."""
-    if _tool == "Write":
-        _approval_write_rule(fragment)
-        return True
-    if _tool == "Edit":
-        _approval_edit_rule(fragment)
-        return True
-    return False
 
 
 def _approval_grants():
@@ -703,21 +696,19 @@ def _approval_edit_rule(fragment):
     #
     # So the test is INTERSECTION of byte ranges. Locate old_string in the file and ask
     # whether its span touches the fragment's span at all.
-    denied_a = False
     if not fragment.absent and isinstance(old_s, str) and old_s:
-        denied_a = _edit_overlap_limb(fragment, old_s)
+        _edit_overlap_limb(fragment, old_s)
 
     # LIMB B — what new_string INTRODUCES. Token-match the key rather than a prefix
     # test, so a QUOTED key cannot slip past, and govern ANY deeper indent rather than
     # only the exact on-disk one, because re-indenting children 2 -> 4 was the other
     # half of the demonstrated bypass.
-    if not denied_a and isinstance(new_s, str) and new_s:
+    if isinstance(new_s, str) and new_s:
         _edit_introduce_limb(fragment, new_s)
 
 
 def _edit_overlap_limb(fragment, old_s):
-    """Limb A. Returns whether it denied (a denial exits; the flag is kept for limb B's
-    guard exactly as the inline form kept `denied_a`)."""
+    """Limb A. A denial exits, so limb B only ever runs when this limb was silent."""
     disk, lines, rng, on_disk_block = (fragment.disk, fragment.lines, fragment.rng,
                                        fragment.on_disk_block)
     b0 = disk.find(old_s)
@@ -731,13 +722,10 @@ def _edit_overlap_limb(fragment, old_s):
             _deny_fragment(fragment, "old_string OVERLAPS the on-disk %s block (bytes %d-%d "
                            "against the block at %d-%d), so this edit rewrites part "
                            "or all of the signature." % (fragment.frag, b0, b1, f0, f1))
-            return True
     elif old_s in on_disk_block:
         # not found verbatim in the file but is block text -- still governed
         _deny_fragment(fragment, "old_string is text inside the on-disk %s block."
                        % (fragment.frag,))
-        return True
-    return False
 
 
 def _signature_child_keys(lines, rng, ind):

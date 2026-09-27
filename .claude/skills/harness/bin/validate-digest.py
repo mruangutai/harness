@@ -757,8 +757,7 @@ def parse_digest(text):
       until they balance. If they never do, the field is `_UNPARSED` — reported as a
       violation, never silently coerced to an empty list.
     """
-    # FEAT-67: three phases — locate the block, then one field per step of the cursor;
-    # every helper returns its parsed value and the next cursor explicitly.
+    # FEAT-67: every helper returns its parsed value and the next cursor explicitly.
     located = _digest_body(text)
     if located is None:
         return {}

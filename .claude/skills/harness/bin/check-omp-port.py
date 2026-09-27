@@ -97,8 +97,7 @@ def lifecycle_bus_errors(source: str) -> list[str]:
 
 
 def check(root: Path) -> list[str]:
-    # FEAT-67: one ordered list of checks over root; each returns its own errors and the
-    # driver concatenates them, so the returned order is the order the blocks always had.
+    # FEAT-67: order is part of the contract — errors come out in CHECKS order.
     errors: list[str] = []
     for check_fn in CHECKS:
         errors.extend(check_fn(root))
