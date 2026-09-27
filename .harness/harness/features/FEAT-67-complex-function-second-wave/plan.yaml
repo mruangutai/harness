@@ -31,7 +31,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns the three enforcement-layer scripts and their owning proof directly to the main session.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/check-domain.py#approval_guard
       - .claude/skills/harness/bin/check-omp-port.py#check
