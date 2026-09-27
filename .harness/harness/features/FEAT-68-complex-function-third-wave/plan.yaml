@@ -37,7 +37,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns the five enforcement-layer scripts, renderer cutover, and their owning proof directly to the main session.
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#process_plan_yaml
       - .claude/skills/harness/bin/harness_boundary.py#classify

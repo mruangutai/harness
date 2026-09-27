@@ -16,6 +16,13 @@
       "ended_at": "2026-09-27T16:11:44+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-27T16:37:46+00:00"
     }
   ],
   "judgements": [
@@ -25,6 +32,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "Cause known; bounded five-function refactor plus unused renderer removal; no new interface, schema, or enforcement surface."
+    },
+    {
+      "at": "2026-09-27T16:37:46+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "DEC-174: T-01 is main-session-direct; the main session builds in the worktree"
     }
   ],
   "mission": "patch",
