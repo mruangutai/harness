@@ -1,6 +1,6 @@
 # FEAT-68 — build amendment (DEC-174 main-session-direct; the main session is the engineering lead of this build)
 
-Recorded with `plan-merge.py record-amendments`. Ledger: notes/build-divergences.md D-06, D-07.
+Recorded with `plan-merge.py record-amendments`. Ledger: notes/build-divergences.md D-10, D-11.
 
 ```yaml
 VERDICT: PASS
@@ -378,5 +378,5 @@ DIGEST:
       quote: '| `briefing: <path>` |'
     reason: 'Post-image anchors: the two deleted files drop out, three edited files
       re-quote their new text, and .omp/commands/harness.md (a render-brief mention
-      the grilling grep missed) joins (ledger D-07).'
+      the grilling grep missed) joins (ledger D-11).'
 ```

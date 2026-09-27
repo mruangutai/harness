@@ -1,12 +1,16 @@
 # FEAT-68 — red-first receipts
 
-Written after the implementation pin `0c15bad6` (this file is not inside it). Base
+Written after the implementation pin `9ab1813e` (this file is not inside it; `0c15bad6` was a
+superseded candidate — its first full unit run failed the bar-4 lock, ledger D-13). Base
 `e655f14a56a14bf1777cae55a19195c9af10505d` = origin/main at the signed plan.
 
 ## Baseline suite receipts (before any production edit)
 
-Captured in the feature worktree at `e655f14a` by `/tmp/feat68-baseline.py` →
-`/tmp/feat68-baseline.json` (raw stdout/stderr retained; sha1 per stream). The 57 owning
+Captured in the clean detached baseline checkout
+`.claude/worktrees/harness/feat68-base-e655f14a` (`git status --porcelain` empty) by
+`/tmp/feat68-baseline.py` → `/tmp/feat68-baseline.json` (raw stdout/stderr retained; sha1 per
+stream). An earlier capture in the feature worktree at the same SHA was superseded by this one
+(validate c0 VF-01). The 57 owning
 suites are every `tests/**/test-*.py` whose source, or whose `*_support.py` helper, names one
 of the five changed modules (harness_boundary alone is imported by half the tree). All 57 exit
 0 at the base; per-suite exit and byte sizes are in the json and repeated in
@@ -14,8 +18,9 @@ of the five changed modules (harness_boundary alone is imported by half the tree
 
 ## SC-01 red: the plan's inline grade assertion at the base
 
-Run in the feature worktree at `e655f14a` before any production edit (the verify block's
-first `python3 -c` extracted verbatim to `/tmp/feat68-grade-assert.py`):
+Run at `e655f14a` before any production edit (the verify block's first `python3 -c`
+extracted verbatim to `/tmp/feat68-grade-assert.py`); the same run in the clean detached
+baseline checkout is in `notes/clean-pin-byte-receipts.md`:
 
 ```
 AssertionError: [('.claude/skills/harness/bin/check-plan-routes.py', 'process_plan_yaml', 1), ('.claude/skills/harness/bin/harness_boundary.py', 'classify', 1), ('.claude/skills/harness/bin/board_lifecycle.py', '_audit_findings', 1), ('.claude/skills/harness/bin/layout_migration.py', 'scan', 1), ('.claude/skills/harness/bin/check-domain.py', 'domain_check', 1)]

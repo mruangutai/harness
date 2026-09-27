@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-68-complex-function-third-wave",
   "pr": null,
   "review_sha": "009b249b",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -36,6 +36,16 @@
       "tokens": 125688,
       "ended_at": "2026-09-27T17:50:26+00:00",
       "cycles_used": 1
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T17:57:58+00:00",
+      "ended_at": "2026-09-27T18:11:44+00:00",
+      "cycles_used": 1,
+      "tokens": null
     }
   ],
   "judgements": [

@@ -7,7 +7,7 @@ Dispatch `harness-validator-lead` once for the `validate` team over pinned `revi
 ## Trust
 
 - T-01 closed PASS after the five target drivers reached the grade bar, the dead renderer surfaces were removed, and both repository test kinds passed — `.harness/harness/features/FEAT-68-complex-function-third-wave/runs/build-main-direct/digest.md` — verified-at 009b249b
-- Clean detached baseline/pin comparison accounts for 56 byte-identical owning suites and D-01, the deleted renderer test discovery count, as the only output divergence — `.harness/harness/features/FEAT-68-complex-function-third-wave/notes/clean-pin-byte-receipts.md` and `notes/build-divergences.md` — verified-at 009b249b
+- Clean detached baseline/pin comparison accounts for 53 byte-identical owning suites and five ledgered lines D-01..D-05 (the deleted renderer test's discovery count; three mkdtemp names; one unittest wall-clock) — `.harness/harness/features/FEAT-68-complex-function-third-wave/notes/clean-pin-byte-receipts.md` and `notes/build-divergences.md` — verified-at 009b249b
 - SC-01, SC-04, and SC-05 red-first evidence is committed after implementation pin `9ab1813e` — `.harness/harness/features/FEAT-68-complex-function-third-wave/notes/red-first-receipts.md` — verified-at 009b249b
 - T-01 files were re-anchored to the post-image through the recorded amendment — `.harness/harness/features/FEAT-68-complex-function-third-wave/notes/amendments-build-main-direct.md` and `feature.json` — verified-at 009b249b
 

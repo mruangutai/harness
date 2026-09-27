@@ -59,3 +59,9 @@ Things the reviewer should weigh:
 
 Residual (briefing rows, not applied): `_harness_advertise` single-use extraction (S4 — holds the
 grade); the CANNOT_VERIFY reason chain lives in two functions with a documented order (A2).
+
+---
+Correction after validate c0 (fix-c0-main-direct, append-only per #1058): the SC-02 evidence
+named above was recollected — detached baseline checkout, checkout-root normalisation ONLY —
+and reads 53/57 identical with five ledgered lines D-01..D-05 (`notes/build-divergences.md`);
+the structural entries are renumbered D-06..D-13. The pin is unchanged at `9ab1813e`.

@@ -1,16 +1,16 @@
 # FEAT-68 — clean-checkout implementation-pin receipts
 
-Written 2026-09-27T17:15:28+00:00, AFTER the pin it names; this file is not inside `9ab1813e`.
+Written 2026-09-27T18:04:15+00:00, AFTER the pin it names; this file is not inside `9ab1813e`.
 
 - implementation pin: `9ab1813e86067ca4a21a84f49364cf4f453055b4`
 - baseline: `e655f14a56a14bf1777cae55a19195c9af10505d` (the signed plan; = origin/main at the signed plan)
 - pin checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-cleanpin-9ab1813e` (detached, `git status --porcelain` empty)
 - baseline checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-base-e655f14a` (detached)
-- baseline receipts: captured at the baseline in the feature worktree before any production edit (`/tmp/feat68-baseline.py` → `/tmp/feat68-baseline.json`); exit status and sha1 of stdout/stderr per suite.
+- baseline receipts: captured in the clean detached baseline checkout (`git status --porcelain` empty) (`/tmp/feat68-baseline.py` → `/tmp/feat68-baseline.json`); exit status and sha1 of stdout/stderr per suite.
 
 ## Owning suites at the pin vs baseline (SC-02)
 
-Compared after replacing each checkout's own absolute root with `<checkout>` on both sides: one stderr line in each of three suites names a fresh `mkdtemp()` directory (normalised to `<tmpdir>`), `test-artifact-accessors.py`'s unittest footer carries a wall-clock (`Ran N tests in <t>s`), and (and three `ok` lines in
+Compared after replacing each checkout's own absolute root with `<checkout>` on both sides: one stderr line in each of three suites names a fresh `mkdtemp()` directory (normalised to `<tmpdir>`), `test-artifact-accessors.py`'s unittest footer carries a wall-clock (`Ran N tests in <t>s`), and three `ok` lines in
 `test-validate-digest.py` print the agent file's absolute path, which names the checkout that ran the suite and nothing else.
 The sha1 columns are of the raw bytes and so differ for that one suite; the `identical` column is the normalised comparison.
 
@@ -48,7 +48,7 @@ The sha1 columns are of the raw bytes and so differ for that one suite; the `ide
 | `tests/integration/test-gh-sync-record.py` | 0→0 | 771343fa68b7 / 771343fa68b7 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-gh-sync-ship.py` | 0→0 | 99076664d68d / 99076664d68d | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-gh-sync-start-task.py` | 0→0 | 455f467d39e6 / 455f467d39e6 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/integration/test-harness-yaml.py` | 0→0 | 7aab10214ebe / 7aab10214ebe | d2dee59db71e / dd1252cd3d73 | yes |
+| `tests/integration/test-harness-yaml.py` | 0→0 | 7aab10214ebe / 7aab10214ebe | c0659f251557 / ab7ba7d5aa2d | **NO** |
 | `tests/integration/test-inflight-registry.py` | 0→0 | 174c3796f75b / 174c3796f75b | 1e3e411e9bdb / 1e3e411e9bdb | yes |
 | `tests/integration/test-inject-expertise.py` | 0→0 | 8407d740b416 / 8407d740b416 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-layout-migration.py` | 0→0 | a045494df541 / a045494df541 | da39a3ee5e6b / da39a3ee5e6b | yes |
@@ -58,10 +58,10 @@ The sha1 columns are of the raw bytes and so differ for that one suite; the `ide
 | `tests/integration/test-post-merge-sweep.py` | 0→0 | d34c03d22688 / d34c03d22688 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-run-unit-tests-kinds.py` | 0→0 | bd6faeed0f45 / bd6faeed0f45 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-run-unit-tests-layout.py` | 0→0 | 0942f7b5f217 / 0942f7b5f217 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/integration/test-validate-digest.py` | 0→0 | c4b498635b54 / c75206100a62 | da39a3ee5e6b / da39a3ee5e6b | yes |
+| `tests/integration/test-validate-digest.py` | 0→0 | 72e2cffb6855 / c75206100a62 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-validate-feature-json.py` | 0→0 | 3fb3ca62430b / 3fb3ca62430b | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-worktree-terminal.py` | 0→0 | 1704dcb63d55 / 1704dcb63d55 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/unit/test-artifact-accessors.py` | 0→0 | da39a3ee5e6b / da39a3ee5e6b | 84ad166236b1 / 8f25ab8ab73c | yes |
+| `tests/unit/test-artifact-accessors.py` | 0→0 | da39a3ee5e6b / da39a3ee5e6b | f784a74d59f0 / 8f25ab8ab73c | **NO** |
 | `tests/unit/test-config-shape-matrix.py` | 0→0 | 849446963b7b / 849446963b7b | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-factory-claim.py` | 0→0 | dad0a9479a29 / dad0a9479a29 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-factory-config.py` | 0→0 | 1827616bffd7 / 1827616bffd7 | da39a3ee5e6b / da39a3ee5e6b | yes |
@@ -69,31 +69,55 @@ The sha1 columns are of the raw bytes and so differ for that one suite; the `ide
 | `tests/unit/test-gh-board.py` | 0→0 | c7d324c4b552 / c7d324c4b552 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-gh-cost-log.py` | 0→0 | 7ecc739a6f4e / 7ecc739a6f4e | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-handoff-done-when.py` | 0→0 | 866c66363614 / 866c66363614 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/unit/test-harness-boundary.py` | 0→0 | 4207e374f3e6 / 4207e374f3e6 | 5dbf514c9350 / 8d505b5b001a | yes |
+| `tests/unit/test-harness-boundary.py` | 0→0 | 4207e374f3e6 / 4207e374f3e6 | ee9111cf9ddb / 5ff995e518a6 | **NO** |
 | `tests/unit/test-no-distribution.py` | 0→0 | 87f31e1d378d / 87f31e1d378d | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/unit/test-suite-independence.py` | 0→0 | c2fb6658b8a6 / 35d3f42454b0 | bfdc2c526ec9 / 3fe6ba9f6866 | **NO** |
+| `tests/unit/test-suite-independence.py` | 0→0 | 221f3ce81707 / 35d3f42454b0 | 0ba9a268e611 / c1dcd42b75e3 | **NO** |
 | `tests/unit/test-wayfind.py` | 0→0 | d9e7c19eee65 / d9e7c19eee65 | da39a3ee5e6b / da39a3ee5e6b | yes |
 
-All identical (normalised): **NO** (56/57).
+All identical (normalised): **NO** (53/57).
 
-### Raw-byte differences, exact lines (ledger: the ruled checkout-root and mkdtemp normalisations)
+### Raw-byte differences, exact lines (checkout-root normalisation only; every other difference is ledgered)
 
-`tests/integration/test-validate-digest.py`:
+`tests/integration/test-harness-yaml.py (stderr)`:
 ```
--ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.omp/agents/harness-code-reviewer.md
--ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.omp/agents/harness-security-reviewer.md
--ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.omp/agents/harness-ui-reviewer.md
+-PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpkbvkh756/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpkbvkh756/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
++PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpae99yjt5/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpae99yjt5/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
+```
+
+`tests/integration/test-validate-digest.py (stdout)`:
+```
+-ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-base-e655f14a/.omp/agents/harness-code-reviewer.md
+-ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-base-e655f14a/.omp/agents/harness-security-reviewer.md
+-ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-base-e655f14a/.omp/agents/harness-ui-reviewer.md
 +ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-cleanpin-9ab1813e/.omp/agents/harness-code-reviewer.md
 +ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-cleanpin-9ab1813e/.omp/agents/harness-security-reviewer.md
 +ok    [severity_max enum] /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-cleanpin-9ab1813e/.omp/agents/harness-ui-reviewer.md
 ```
 
-`tests/unit/test-suite-independence.py`:
+`tests/unit/test-artifact-accessors.py (stderr)`:
 ```
--root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave
+-Ran 24 tests in 0.122s
++Ran 24 tests in 0.105s
+```
+
+`tests/unit/test-harness-boundary.py (stderr)`:
+```
+-harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpc63ro8j0' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpenh3yza9'.
++harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpujmk9hky' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp17b9a1kl'.
+```
+
+`tests/unit/test-suite-independence.py (stdout)`:
+```
+-root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-base-e655f14a
 -discovered 112
 +root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-cleanpin-9ab1813e
 +discovered 111
+```
+
+`tests/unit/test-suite-independence.py (stderr)`:
+```
+-ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp9sv7_pg1
++ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpf59d0rrb
 ```
 
 ## SC-01: the plan's inline grade assertion (T-01 verify) at the pin — green
@@ -114,23 +138,33 @@ Traceback (most recent call last):
 AssertionError: [('.claude/skills/harness/bin/check-plan-routes.py', 'process_plan_yaml', 1), ('.claude/skills/harness/bin/harness_boundary.py', 'classify', 1), ('.claude/skills/harness/bin/board_lifecycle.py', '_audit_findings', 1), ('.claude/skills/harness/bin/layout_migration.py', 'scan', 1), ('.claude/skills/harness/bin/check-domain.py', 'domain_check', 1)]
 ```
 
-## The one non-identical suite
+## The four non-identical suites
 
-`tests/unit/test-suite-independence.py`: stdout `discovered 112` → `discovered 111` (raw lines
-above). `tests/unit/test-render-brief.py` is deleted with its script; the count is the
-deletion's expected consequence — ledger D-01 in `notes/build-divergences.md`. Every other
-suite is identical after the ruled normalisations.
+53/57 identical under the one signed normalisation. The four that differ are five ledgered
+lines, each with exact old/new bytes above and its ruling in `notes/build-divergences.md`:
+D-01 `test-suite-independence.py` `discovered 112 → 111` (the deleted renderer test — the
+deletion's consequence); D-02/D-03/D-04 one stderr line each in `test-harness-yaml.py`,
+`test-harness-boundary.py`, `test-suite-independence.py` naming the case's fresh `mkdtemp()`
+directory; D-05 `test-artifact-accessors.py`'s unittest wall-clock. Exit statuses match in all
+57; stdout matches in 56.
 
 ## Test kinds at the pin (change_type cross_module: unit + integration both required)
 
 Run in the feature worktree at `9ab1813e` via the configured runner
 (`.agents/skills/harness/bin/run-unit-tests.py`): `--kind unit` exit 0 (41 files — one fewer
 than the base, the deleted renderer test); `--kind integration` exit 0 (70 files, `0 failure(s)`).
-The first unit run at `0c15bad6` failed on `test-code-grade.py`'s stale `process_plan_yaml: 1`
-exemption (D-09); `9ab1813e` removes it and is the pin.
+The candidate `0c15bad6` before it failed the unit kind on `test-code-grade.py`'s stale
+`process_plan_yaml: 1` exemption (D-13); `9ab1813e` removes it and is the pin.
 
 ## SC-05 at the pin
 
 The verify block's html-absence and reference-grep assertions pass at the pin (part of the
 T-01 verify run above); no `render-brief` / `md_to_html` reference remains outside notes,
 logs, decision records and feature-history dirs.
+
+## History of this receipt
+
+The first version (commit `ae0b41d7`) compared against a baseline captured in the feature
+worktree and applied two further normalisations (mkdtemp paths, unittest timing). Validate c0
+VF-01 ruled both outside the signed experiment; this version (fix run, after the pin) uses the
+detached baseline checkout and the checkout-root normalisation alone.
