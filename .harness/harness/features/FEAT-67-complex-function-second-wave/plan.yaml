@@ -1,0 +1,94 @@
+schema: plan/1
+feature: FEAT-67-complex-function-second-wave
+approval:
+  status: pending
+status: plan
+mission: patch
+source_issues: []
+baseline:
+  sha: 00c7219e4026081e70614647f3f98726afb2c381
+  branch: feat/FEAT-67-complex-function-second-wave
+lanes:
+  resolved_at: 00c7219e4026081e70614647f3f98726afb2c381
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 assigns Harness enforcement scripts to direct main-session execution.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 keeps the owning proof for enforcement scripts with the direct implementation.
+    - surface: .harness/harness/features/FEAT-67-complex-function-second-wave/notes/**
+      lane: main-session-direct
+      reason: DEC-174 keeps implementation-pin receipts and divergence evidence with the direct main-session change.
+decisions: []
+tasks:
+  - id: T-01
+    title: Decompose the three second-wave complex functions
+    traces: [SC-01, SC-02, SC-03, SC-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the three enforcement-layer scripts and their owning proof directly to the main session.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-domain.py#approval_guard
+      - .claude/skills/harness/bin/check-omp-port.py#check
+      - .claude/skills/harness/bin/validate-digest.py#parse_digest
+      - path: tests/integration/test-check-domain.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-artifact.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-claims.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-grant.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-post.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-worktree-parity.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-worktree.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-domain-approval.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/check_domain_support.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-bash-write-guard.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-check-omp-port.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/integration/test-validate-digest.py
+        quote: '#!/usr/bin/env python3'
+      - path: tests/unit/test-code-grade.py
+        quote: '#!/usr/bin/env python3'
+      - .harness/harness/features/FEAT-67-complex-function-second-wave/notes/red-first-receipts.md
+      - .harness/harness/features/FEAT-67-complex-function-second-wave/notes/clean-pin-byte-receipts.md
+      - .harness/harness/features/FEAT-67-complex-function-second-wave/notes/build-divergences.md
+    verify: |
+      python3 tests/integration/test-check-domain.py &&
+      python3 tests/integration/test-check-domain-artifact.py &&
+      python3 tests/integration/test-check-domain-claims.py &&
+      python3 tests/integration/test-check-domain-grant.py &&
+      python3 tests/integration/test-check-domain-post.py &&
+      python3 tests/integration/test-check-domain-worktree-parity.py &&
+      python3 tests/integration/test-check-domain-worktree.py &&
+      python3 tests/integration/test-check-domain-approval.py &&
+      python3 tests/integration/test-bash-write-guard.py &&
+      python3 tests/integration/test-check-omp-port.py &&
+      python3 tests/integration/test-validate-digest.py &&
+      python3 tests/unit/test-code-grade.py &&
+      python3 -c 'import importlib.util,pathlib,subprocess,sys; root=pathlib.Path("."); spec=importlib.util.spec_from_file_location("feat67_code_grade",root/".claude/skills/harness/bin/code_grade.py"); grade=importlib.util.module_from_spec(spec); sys.modules[spec.name]=grade; spec.loader.exec_module(grade); pairs=[(".claude/skills/harness/bin/check-domain.py","approval_guard"),(".claude/skills/harness/bin/check-omp-port.py","check"),(".claude/skills/harness/bin/validate-digest.py","parse_digest")]; base={p:{r.qualname for r in grade.grade_source(subprocess.check_output(["git","show","00c7219e4026081e70614647f3f98726afb2c381:"+p],text=True),p)} for p,d in pairs}; records=[(p,d,r) for p,d in pairs for r in grade.grade_source((root/p).read_text(),p) if r.qualname==d or r.qualname not in base[p]]; bad=[(p,r.qualname,r.grade) for p,d,r in records if r.grade<4 and r.grade!=2]; print("FEAT-67 grades",[(p,r.qualname,r.grade) for p,d,r in records]); sys.exit(1 if len(records)<3 or bad else 0)'
+    intent: |
+      Work red-first inside the assigned FEAT-67 worktree and change only the three named production functions, the named owning test and support files when behavioral proof requires it, and the three feature-local evidence files. Before any production edit, run every named executable owning suite at base 00c7219e4026081e70614647f3f98726afb2c381 and record each command, exit status, raw stdout bytes, and raw stderr bytes. Run the verify block's inline grade assertion against that base and record the intended failure from approval_guard, check, and parse_digest grading 1. The existing code_grade ratchet and this inline assertion are the only grade lock; do not add a permanent second lock file. Commit the red-first receipt only after the later immutable implementation pin exists, and state that the receipt is not claimed to exist inside that pin.
+
+      Refactor check-domain.py approval_guard as one small driver around a parsed shared context read once. Preserve the shared prechecks for APPROVAL_GUARD being off, NotebookEdit, a missing target, and fragment handling in their current short-circuit order. Preserve the per-entry loop over glob, frag, and raw, then delegate the existing Write and Edit branches to separate per-entry rule functions. Preserve every return and denial point, denial output and order, overlap and introduced-content semantics, and every distinction between raw grant text, the relative path, disk text, split lines, normalized YAML values, and stripped heading bodies. Do not accumulate state in a shared mutable context bag. The driver and every function introduced or retained by this decomposition must grade 4 or better, except exact grade 2. Move each existing explanatory comment byte-for-byte with its rule; every new factual comment must cite FEAT-67.
+
+      Refactor check-omp-port.py check into a small driver that invokes five ordered error-appending checks over root for the existing AGENTS.md block, agent-file block, expected-name block, provider-prefix block, and extension-door block. Keep every existing check within its current block, including config, agent metadata and skills, roster equality, provider roles, skill symlink, extension wiring and lifecycle, and command doors. Preserve the exact append and traversal order so the returned errors remain byte-for-byte ordered. Do not introduce a shared mutable context bag beyond the existing errors list owned by the driver. The driver and every function introduced or retained by this decomposition must grade 4 or better, except exact grade 2. Move each existing explanatory comment byte-for-byte with its check; every new factual comment must cite FEAT-67.
+
+      Refactor validate-digest.py parse_digest as a cursor-based scanner with explicit phases that find DIGEST, derive the base indent, and consume flow-scalar, block-list, and nested-key value forms. Preserve all line, indent, comment stripping, bracket-balance, dedent, empty-list, and unparsed-value semantics. Preserve cursor movement exactly, including the roles and update order of i, cur, and item_indent; helpers return their next cursor and parsed value explicitly rather than sharing a mutable state bag. Preserve the order in which fields and block-list items are emitted and every raw-versus-normalized distinction. The driver and every function introduced or retained by this decomposition must grade 4 or better, except exact grade 2. Move each existing explanatory comment byte-for-byte with its phase; every new factual comment must cite FEAT-67.
+
+      Add or adjust only behavioral owning-suite assertions needed to make approval-guard short circuits and denials, check error order, parser cursor and value-form transitions, and output accumulation fail when an observable contract changes. Do not assert helper names, table syntax, tuple plumbing, or source text. Nothing else in the three production files may change. Add no behavior, compatibility path, shared type across files, lock, verb, schema, or grade checker. Do not touch the nine CLI dispatchers, the seven other grade-1 evaluators, validate-digest.hook_mode, or issue 1928.
+
+      Capture the baseline and pin outputs before interpreting differences. Normalize each checkout's own absolute-root output lines up front on both sides for comparison, retain the raw bytes and raw hashes in the receipt, and treat only that ruled path substitution as non-divergent. Reject any other exit-status, stdout-byte, or stderr-byte difference unless the operator rules it. Write every accepted divergence to notes/build-divergences.md in completed built form with exact old bytes, exact new bytes, affected case, and operator ruling; record none when none exist.
+
+      After implementation and the required simplify pass, name an immutable implementation pin. In a separate clean detached checkout of that exact pin under .claude/worktrees/harness/, run the verify block and compare every named executable owning suite with its base receipt for exit status, normalized stdout bytes, and normalized stderr bytes. Record the full base and pin SHAs, clean-checkout identity and clean status, commands, exit statuses, raw and normalized stdout and stderr evidence, and all inline grade records in notes/clean-pin-byte-receipts.md. Commit that receipt, notes/red-first-receipts.md, and notes/build-divergences.md only after the implementation pin, explicitly stating that these later evidence files do not claim to exist inside the pin they grade.
+needs_approval: true
