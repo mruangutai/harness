@@ -104,7 +104,8 @@ Copy the grilling artifact's `## Out of scope`, reasons included; do not re-liti
 
 ## Approval
 
-`status: pending` — ONLY the user sets this to approved, with a date.
+Always written, always `status: pending` with empty `approved-by:` and `date:` — ONLY the user sets
+it to approved. A brief without this section reads as unsigned to every gate and halts the flow.
 
 ### 3b. Vocabulary — reuse names, never invent them
 
@@ -166,7 +167,7 @@ Write the file, then report in plain English, not IDs: the BRIEF path; who judge
 each was promised; how many SCs and how each will be checked ("a unit test", "you, by eye"); and
 **which SCs will need them personally** (the `uat` ones). Ask them to approve or amend.
 
-Do not set `## Approval` yourself. Ever.
+Write the `## Approval` section; never set it to `approved` yourself.
 
 ### 7. The patch lane — one intake run
 
