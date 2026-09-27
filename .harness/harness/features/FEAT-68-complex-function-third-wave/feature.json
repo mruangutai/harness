@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-68-complex-function-third-wave",
   "pr": null,
   "review_sha": "b6b8c28d4a71bfe8ba25482eceee24d28a9e15d6",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -96,6 +96,16 @@
       "tokens": 105350,
       "ended_at": "2026-09-27T20:48:03+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "fix-c3-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T21:04:39+00:00",
+      "ended_at": "2026-09-27T21:12:01+00:00",
+      "cycles_used": 1,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -189,12 +199,19 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "The c3 panel found VF-04-C3 and new-class high-severity VF-05-C3 after the operator-authorized third round; the 3-round ruling is exhausted, so stop rework and escalate the complete must-fix set."
+    },
+    {
+      "at": "2026-09-27T21:04:39+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes VF-04-C3/VF-05-C3 to the main session; operator-authorised fourth evidence-only round (A-5, rework 4/150)"
     }
   ],
   "mission": "patch",
   "rework": {
-    "rounds": 3,
-    "wall_clock_minutes": 120,
+    "rounds": 4,
+    "wall_clock_minutes": 150,
     "decision": ".harness/harness/features/FEAT-68-complex-function-third-wave/notes/answers-validate-validator.md"
   },
   "signed_task_hashes": {

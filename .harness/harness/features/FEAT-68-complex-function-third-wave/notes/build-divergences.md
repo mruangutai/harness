@@ -24,24 +24,24 @@ was replaced by the detached one for the same finding.)
   operator's deviation, BRIEF SC-03/SC-05); one fewer suite is the deletion's consequence.
 - D-02 `tests/integration/test-harness-yaml.py` (stderr, line 9)
   old: `PyYAML is not importable and the bootstrap marker at /var/folders/y3/…/T/tmpkbvkh756/.harness/.pyyaml-bootstrap could not be written …`
-  new: `… at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpuz9xuqz8/.harness/.pyyaml-bootstrap could not be written …`
+  new: `… at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpvmwjw2po/.harness/.pyyaml-bootstrap could not be written …`
   case: the bootstrap-marker warning names the `tempfile.mkdtemp()` directory the case created.
   ruling: accepted — run-to-run nondeterminism (a fresh directory name every run, at the base
   as at the pin); the code path and the message are the same. Operator ruling 2026-09-27
   (`notes/answers-validate-validator.md` A-1).
 - D-03 `tests/unit/test-harness-boundary.py` (stderr, line 1)
   old: `harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/…/T/tmpc63ro8j0' — it does not carry .harness/team-config.yaml. Falling back …`
-  new: `… HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpu0qzo3z_' …`
+  new: `… HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpvaz3yhhy' …`
   case: the fallback warning names the case's `mkdtemp()` directory.
   ruling: accepted — same as D-02 (A-1).
 - D-04 `tests/unit/test-suite-independence.py` (stderr, line 1)
   old: `ERROR could not resolve scan root above /var/folders/y3/…/T/tmp9sv7_pg1`
-  new: `ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpizakwf7r`
+  new: `ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmprm_hlbs4`
   case: the no-root error names the case's `mkdtemp()` directory.
   ruling: accepted — same as D-02 (A-1).
 - D-05 `tests/unit/test-artifact-accessors.py` (stderr, line 3)
   old: `Ran 24 tests in 0.122s`
-  new: `Ran 24 tests in 0.108s`
+  new: `Ran 24 tests in 0.222s`
   case: unittest's footer wall-clock.
   ruling: accepted — timing, not output; 24 tests both sides, `OK` both sides (A-1).
 
