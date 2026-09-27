@@ -1,0 +1,132 @@
+schema_version: 2
+run_id: validate-c4-validator
+run_uid: 5874dcb048f54f8ba139e39f66b293fa
+feature: FEAT-68-complex-function-third-wave
+squad: validator
+host: harness-validator-lead
+status: failed
+team: validate
+flow: validate-c4
+branch: feat/FEAT-68-complex-function-third-wave
+worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave
+review_sha: 9d495ccdf9f8216a54a06356fe8c14227f190938
+base_sha: e655f14a56a14bf1777cae55a19195c9af10505d
+pinned_sha: 9ab1813e86067ca4a21a84f49364cf4f453055b4
+cycles_used: 0
+verdict: FAIL
+severity_max: med
+digest: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.harness/harness/features/FEAT-68-complex-function-third-wave/runs/validate-c4-validator/digest.md
+steps:
+  - id: qa
+    persona: qa
+    task: T-01
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-qa-c4.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: harness-validator-lead
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-qa-c4.md
+    note: Exact-byte ledger truncation blocks SC-02 and SC-04.
+    evidence:
+      matrix_ok: true
+      unit_files: 41
+      integration_files: 70
+  - id: code
+    persona: code-reviewer
+    task: T-01
+    seq: 2
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c4.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: harness-validator-lead
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c4.md
+    note: Post-return correction supersedes stale PASS artifact; Stage 1 fails on exact-byte ledger truncation.
+    evidence:
+      artifact_stale: true
+      code_grade: pass
+  - id: security
+    persona: security-reviewer
+    task: T-01
+    seq: 3
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-security-reviewer-c4.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: harness-validator-lead
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-security-reviewer-c4.md
+    note: Full 178-path boundary audit found no security defect.
+  - id: ui
+    persona: ui-reviewer
+    task: T-01
+    seq: 4
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-ui-reviewer-c4.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: harness-validator-lead
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-ui-reviewer-c4.md
+    note: Mode B census found no live UI and markdown-only briefing remains possible.
+  - id: goalcheck
+    persona: pm
+    task: T-01
+    seq: 5
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c4.md
+    mutates_repo: false
+    on_fail: halt
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    routed_by: harness-validator-lead
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-68-complex-function-third-wave/.harness/harness/features/FEAT-68-complex-function-third-wave/notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c4.md
+    note: Operator perspective fails; code-maintainer perspective passes.
+    evidence:
+      sc_01: met
+      sc_02: partial
+      sc_03: met
+      sc_04: partial
+      sc_05: partial
