@@ -248,7 +248,7 @@ def scan(root, table=None):
 
 
 def _scan_surface(root, table, surface, segments):
-    """One surface: (its report, evidence count, readable reader count) (FEAT-68)."""
+    """One surface: (its report, evidence count, readable reader count)."""
     rows = [r for r in table if r.surface == surface]
     shapes, n, undeclared = _evidence(root, surface, segments)
     readers = [(r.path, _reader_formset(root, r)) for r in rows]
@@ -257,7 +257,9 @@ def _scan_surface(root, table, surface, segments):
 
 
 def _surface_report(surface, rows, shapes, readers, undeclared):
-    """The verdict for one surface, in the order the inline chain always tested (FEAT-68)."""
+    """The verdict for one surface. Reason order is the contract: no-rows and
+    undeclared-segment first (they alone carry a payload or blank the readers), then the
+    reasons `_cannot_verify_reason` ranks, then MIXED, then CLEAN (FEAT-68)."""
     if not rows:
         return SurfaceReport(surface, CANNOT_VERIFY, shapes, [], "no-rows")
     if undeclared:

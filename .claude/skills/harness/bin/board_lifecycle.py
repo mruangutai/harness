@@ -812,8 +812,8 @@ def _audit_findings(root, board, repo_name):
     # line escape from inside this module.
     notes = []
 
-    # FEAT-68: one class per function, called in the order the four network calls are named
-    # above; each returns its findings and the driver keeps the list order.
+    # FEAT-68: findings are reported in class order; each class function returns its own.
+    # Class 1 -- DECLARATION. Call 1/4.
     findings.extend(_declaration_findings(board, owner, number, field))
 
     # The closed-issue read feeding classes 2, 3 and 4. Call 2/4.
@@ -826,7 +826,9 @@ def _audit_findings(root, board, repo_name):
     # Class 2 -- STATION. Call 3/4.
     stations = gh_board.board_stations(board, repo_name)
     findings.extend(_station_findings(issues, stations, done_station))
+    # Class 3 -- REASON.
     findings.extend(_reason_findings(issues))
+    # Class 4 -- LABEL.
     findings.extend(_label_findings(issues))
 
     # Class 5 -- WORKFLOW. Call 4/4.
@@ -849,7 +851,6 @@ def _audit_findings(root, board, repo_name):
 
 
 def _declaration_findings(board, owner, number, field):
-    # Class 1 -- DECLARATION. Call 1/4.
     declared = _declared_stations(board)
     options = factory_gh.project_field_options(owner, number, field)
     # NO value_to_key INVERSION (FEAT-41 T-02): a lowercase station IS its own key, so the
@@ -884,7 +885,6 @@ def _issue_label_names(issue):
 
 
 def _reason_findings(issues):
-    # Class 3 -- REASON.
     findings = []
     for issue in issues:
         if issue.get("stateReason") is None:
@@ -898,7 +898,6 @@ def _reason_findings(issues):
 
 
 def _label_findings(issues):
-    # Class 4 -- LABEL.
     findings = []
     for issue in issues:
         reason = (issue.get("stateReason") or "").upper()

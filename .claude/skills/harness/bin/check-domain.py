@@ -908,9 +908,8 @@ def domain_check():
     # and it was invisible because the sibling `--resolve` route already joined onto root.
     _verdict = harness_boundary.classify(_claimed_abs(target), root, globs, shared, "check-domain")
 
-    # FEAT-68: one handler per outcome; the refusing handlers exit, the others return
-    # here. An outcome the table does not name is denied, as the inline chain's
-    # fall-through always did.
+    # FEAT-68: the refusing handlers exit, the others return here; an outcome the table
+    # does not name is denied.
     _VERDICT_HANDLERS.get(_verdict["outcome"], _deny_verdict)(_verdict)
 
 
@@ -967,12 +966,12 @@ def _manifest_domains_or_exit():
         sys.exit(2)
 
 
-def _out_of_place_worktree_verdict(_verdict):
+def _out_of_place_worktree_verdict(verdict):
     # A write INTO a sibling worktree, from a session standing outside it. The
     # removal guidance is correct here and stays: the tree being named is not the
     # one this session is running in.
-    if _verdict.get("unparsed"):
-        print(f"check-domain: BLOCKED — {_verdict['checkout']} holds a .git pointer "
+    if verdict.get("unparsed"):
+        print(f"check-domain: BLOCKED — {verdict['checkout']} holds a .git pointer "
               "file that does not parse, so this code cannot say which repository "
               "owns it or whether it is in a legal place.", file=sys.stderr)
         print("  A checkout that cannot be placed is not one to write into. Repair "
@@ -980,26 +979,26 @@ def _out_of_place_worktree_verdict(_verdict):
         sys.exit(2)
     print(f"check-domain: BLOCKED — {target} is inside a git worktree that is not "
           f"under {harness_boundary.WORKTREES_SEGMENT}/.", file=sys.stderr)
-    print(f"  Worktrees belong under {_verdict['expected']}", file=sys.stderr)
-    print(f"  That tree ({_verdict['checkout']}) should be removed with "
+    print(f"  Worktrees belong under {verdict['expected']}", file=sys.stderr)
+    print(f"  That tree ({verdict['checkout']}) should be removed with "
           "`git worktree remove` rather than written into.", file=sys.stderr)
     sys.exit(2)
 
 
-def _wrong_checkout_verdict(_verdict):
+def _wrong_checkout_verdict(verdict):
     # Issue #895: the same relative path exists, unrefused, in every checkout of
     # this repository — main and every worktree — because a domain grant is
     # matched by SHAPE alone. This target sits in a REAL checkout of the same
     # repository this session is rooted in, just not the one it is rooted in.
-    print(f"check-domain: BLOCKED — {target} is in {_verdict['checkout']}, but "
-          f"this session is rooted in {_verdict['root']}.", file=sys.stderr)
+    print(f"check-domain: BLOCKED — {target} is in {verdict['checkout']}, but "
+          f"this session is rooted in {verdict['root']}.", file=sys.stderr)
     print(f"  Write it there instead: a domain grant is matched by relative path "
           f"shape, and the identical path in a different checkout of this "
           f"repository is not the same file.", file=sys.stderr)
     sys.exit(2)
 
 
-def _not_a_domain_question_verdict(_verdict):
+def _not_a_domain_question_verdict(verdict):
     # bash-write-guard.py already said so ("outside repo — not this hook's
     # problem"), and this hook did not: a scratch script at /tmp/x.py was legal via
     # Bash and blocked via Write, so an agent learned to route around a hook whose
@@ -1008,33 +1007,33 @@ def _not_a_domain_question_verdict(_verdict):
     return
 
 
-def _allow_verdict(_verdict):
+def _allow_verdict(verdict):
     # AFTER the domain verdict, and on the ALLOW path deliberately: harness-pm IS
     # granted plan.yaml and BRIEF.md whole, so a fragment denial placed on the deny
     # path would never fire. This is the difference between the words "except
     # ## Approval" being a COMMENT beside a grant and being enforced.
-    feature_checkout_guard(_verdict["rel"], target)
+    feature_checkout_guard(verdict["rel"], target)
     claim_checkout_guard(_claimed_abs(target))
-    approval_guard(_verdict["rel"], agent)
+    approval_guard(verdict["rel"], agent)
 
 
-def _shared_verdict(_verdict):
-    feature_checkout_guard(_verdict["rel"], target)
+def _shared_verdict(verdict):
+    feature_checkout_guard(verdict["rel"], target)
     claim_checkout_guard(_claimed_abs(target))
     # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
     # write, but say so — an unnoticed shared-file edit is how two agents collide.
-    print(f"check-domain: {agent} is writing SHARED path {_verdict['rel']} "
+    print(f"check-domain: {agent} is writing SHARED path {verdict['rel']} "
           f"(owned by nobody, must be serialized).", file=sys.stderr)
 
 
-def _deny_verdict(_verdict):
+def _deny_verdict(verdict):
     # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the rejected
     # path leaves an agent with no basis for choosing a valid alternative, so always
     # print what it MAY write. The module computed the two lists; the WORDING stays
     # here, because the agent-facing verdict names this hook and no other.
-    rel = _verdict["rel"]
-    _advertise = _verdict["advertise"]
-    _shared_advertise = _verdict["shared_advertise"]
+    rel = verdict["rel"]
+    _advertise = verdict["advertise"]
+    _shared_advertise = verdict["shared_advertise"]
     permitted = ", ".join(_advertise) if _advertise else "(no writable domain declared)"
     print(f"check-domain: BLOCKED — {agent} may not write {rel}", file=sys.stderr)
     print(f"  Permitted for you: {permitted}", file=sys.stderr)

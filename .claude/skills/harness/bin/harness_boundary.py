@@ -875,7 +875,7 @@ def classify(abs_target, root, globs, shared, label):
     if base is None:
         return _no_base_verdict(abs_target, root)
 
-    # FEAT-68: the base is known; the remaining phases each return a verdict or None.
+    # FEAT-68: allow and shared are decided before deny; the deny lists are built last.
     applicable_globs = [g for g in globs if _glob_filter(g)]
     applicable_shared = [s for s in shared if _glob_filter(s)]
 
@@ -993,7 +993,7 @@ def _reached(rel_candidates, globs, target_side_test):
                if target_side_test(r))
 
 
-def _deny_verdict(rel, base, _abs_root, applicable_globs, applicable_shared):
+def _deny_verdict(rel, base, abs_root, applicable_globs, applicable_shared):
     # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the rejected
     # path leaves an agent with no basis for choosing a valid alternative, so the caller
     # always prints what it MAY write — and these are the lists it prints.
@@ -1003,7 +1003,7 @@ def _deny_verdict(rel, base, _abs_root, applicable_globs, applicable_shared):
     # base, is being sent round a loop it cannot exit. In the product base that is the
     # non-control-plane globs; in the harness base, the globs some control-plane target
     # could actually satisfy.
-    if base == _abs_root:
+    if base == abs_root:
         _advertise, _shared_advertise = _harness_advertise(applicable_globs, applicable_shared)
     else:
         _advertise = list(applicable_globs)

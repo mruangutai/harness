@@ -386,7 +386,6 @@ def process_plan_yaml(path, findings, root, manifest_root):
     tokens because load_plan says so.
     """
     import harness_yaml
-    import plan_anchors
     try:
         doc = _load_plan_once(path)
     except harness_yaml.YamlParseError as e:
@@ -395,19 +394,18 @@ def process_plan_yaml(path, findings, root, manifest_root):
         print(f"check-plan-routes: {path} does not load: {e}", file=sys.stderr)
         return None
 
-    _legal = legal_task_statuses()
-    # FEAT-68: one rule per function, each appending its findings in the inline order and
-    # returning how many were violations.
-    violations = _feature_station_rule(doc, findings, _legal)
+    legal = legal_task_statuses()
+    # FEAT-68: findings are reported in this sequence; each rule returns its violation count.
+    violations = _feature_station_rule(doc, findings, legal)
     for t in doc["tasks"]:
         tid = str(t["id"])
         violations += _budget_rule(t, tid, findings)
-        violations += _task_status_rule(t, tid, findings, _legal)
-        violations += _routing_rule(t, tid, findings, root, manifest_root, plan_anchors)
+        violations += _task_status_rule(t, tid, findings, legal)
+        violations += _routing_rule(t, tid, findings, root, manifest_root)
     return violations
 
 
-def _feature_station_rule(doc, findings, _legal):
+def _feature_station_rule(doc, findings, legal):
     # THE FEATURE'S OWN STATION, checked exactly like a task's (FEAT-41 T-04). It is optional:
     # a plan that has not been given a station is not a plan that is wrong about one, and T-07 is
     # what makes this key the station of record. But a value OUTSIDE the vocabulary is a
@@ -416,10 +414,10 @@ def _feature_station_rule(doc, findings, _legal):
     feature_station = doc.get("status")
     if feature_station is not None and (
             not isinstance(feature_station, str)
-            or feature_station not in _legal):
+            or feature_station not in legal):
         findings.append(
             f"VIOLATION top-level status {feature_station!r} is not one of "
-            f"{_legal} (case sensitive)")
+            f"{legal} (case sensitive)")
         return 1
     return 0
 
@@ -448,10 +446,10 @@ def _budget_rule(t, tid, findings):
     return 0
 
 
-def _task_status_rule(t, tid, findings, _legal):
+def _task_status_rule(t, tid, findings, legal):
     status = t.get("status")
     if status is not None and (
-            not isinstance(status, str) or status not in _legal):
+            not isinstance(status, str) or status not in legal):
         # Not str()-coerced first (DEC-203): a list stringifies to something that
         # happens not to be in the tuple, which gives the right answer for the wrong
         # reason and stops giving it the moment the tuple grows. Case sensitive on
@@ -460,15 +458,15 @@ def _task_status_rule(t, tid, findings, _legal):
         # is `pending` — the word this file itself accepted until FEAT-41 T-04 — or a
         # capitalised column name copied off the GitHub board by eye.
         findings.append(
-            f"VIOLATION {tid}: status {status!r} is not one of {_legal} "
+            f"VIOLATION {tid}: status {status!r} is not one of {legal} "
             f"(case sensitive)")
         return 1
     return 0
 
 
-def _routing_rule(t, tid, findings, root, manifest_root, plan_anchors):
+def _routing_rule(t, tid, findings, root, manifest_root):
     mode = t["execution_mode"]
-    literals = _literal_paths(t, tid, findings, plan_anchors)
+    literals = _literal_paths(t, tid, findings)
     nobody, granted = _resolve_grants(literals, root, manifest_root)
     if nobody:
         return _ungranted_findings(tid, mode, nobody, findings)
@@ -477,7 +475,8 @@ def _routing_rule(t, tid, findings, root, manifest_root, plan_anchors):
     return 0
 
 
-def _literal_paths(t, tid, findings, plan_anchors):
+def _literal_paths(t, tid, findings):
+    import plan_anchors
     # AN ANCHOR IS RESOLVED BY ITS PATH (FEAT-59 C4). `a.py#foo` and `{path: a.py, quote:
     # ...}` name a place INSIDE a.py; the grant question is about a.py. plan_anchors.py owns
     # the grammar; asking check-domain about `a.py#foo` would answer NOBODY for a granted
