@@ -27,5 +27,13 @@
       "reason": "cause known (one body carrying every rule for its input), diff bounded to three named functions and their suites, with no new public interface, schema, or enforcement surface"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-67-complex-function-second-wave/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "59dc7a181d84fd6267f3ae92296045925ac04ed3aae948eb1bbfcdb59ca85e2c"
+  }
 }
