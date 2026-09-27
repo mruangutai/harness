@@ -48,4 +48,6 @@ Five grade-1 orchestration functions in the Harness control plane remain harder 
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: molchairuangutai
+date: 2026-09-27
