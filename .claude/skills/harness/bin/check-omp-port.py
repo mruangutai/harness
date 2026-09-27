@@ -97,11 +97,22 @@ def lifecycle_bus_errors(source: str) -> list[str]:
 
 
 def check(root: Path) -> list[str]:
+    # FEAT-67: order is part of the contract — errors come out in CHECKS order.
     errors: list[str] = []
+    for check_fn in CHECKS:
+        errors.extend(check_fn(root))
+    return errors
+
+
+def agents_md_errors(root: Path) -> list[str]:
     agents_md = root / "AGENTS.md"
     if not agents_md.is_file():
-        errors.append("AGENTS.md is missing; OMP has no provider-neutral project guidance")
+        return ["AGENTS.md is missing; OMP has no provider-neutral project guidance"]
+    return []
 
+
+def config_errors(root: Path) -> list[str]:
+    errors: list[str] = []
     config_path = root / ".omp" / "config.yml"
     try:
         config = artifact_accessors.load_omp_config(config_path)
@@ -117,7 +128,11 @@ def check(root: Path) -> list[str]:
             errors.append("concrete modelRoles belong in .omp/providers overlays, not .omp/config.yml")
     except artifact_accessors.ArtifactAccessError as exc:
         errors.append(f"cannot read .omp/config.yml: {exc}")
+    return errors
 
+
+def agent_files_errors(root: Path) -> list[str]:
+    errors: list[str] = []
     agent_dir = root / ".omp" / "agents"
     actual_names: set[str] = set()
     for path in sorted(agent_dir.glob("harness-*.md")):
@@ -128,87 +143,120 @@ def check(root: Path) -> list[str]:
             continue
         name = str(meta.get("name") or "")
         actual_names.add(name)
-        model = meta.get("model")
-        if model not in CAPABILITIES:
-            errors.append(f"{path.relative_to(root)} must use a provider-neutral model alias")
-        elif meta.get("thinking-level") != THINKING_FOR_CAPABILITY[model]:
-            errors.append(
-                f"{path.relative_to(root)}: {model} requires thinking-level "
-                f"{THINKING_FOR_CAPABILITY[model]!r}, got {meta.get('thinking-level')!r}"
-            )
-        if name == "harness-orchestrator":
-            if meta.get("blocking"):
-                errors.append(f"{path.relative_to(root)} must remain background-dispatched from main")
-        elif meta.get("blocking") is not True:
-            errors.append(
-                f"{path.relative_to(root)} must set blocking: true for nested OMP supervision"
-            )
-        if not isinstance(meta.get("tools"), list):
-            errors.append(f"{path.relative_to(root)} tools must be a list")
-        if not isinstance(meta.get("spawns"), list):
-            errors.append(f"{path.relative_to(root)} spawns must be an explicit list")
-        skills = meta.get("autoloadSkills")
-        if not isinstance(skills, list):
-            errors.append(f"{path.relative_to(root)} autoloadSkills must be a list")
-        else:
-            for skill in skills:
-                if not (root / ".agents" / "skills" / str(skill) / "SKILL.md").is_file():
-                    errors.append(f"{path.relative_to(root)} references missing skill {skill!r}")
-        marker = f"HARNESS_AGENT_ID: {name}"
-        if marker not in path.read_text(encoding="utf-8"):
-            errors.append(f"{path.relative_to(root)} lacks its stable HARNESS_AGENT_ID marker")
+        errors.extend(agent_file_errors(root, path, meta, name))
     if actual_names != EXPECTED_AGENTS:
         errors.append(
             "OMP agent roster mismatch: missing=%s extra=%s"
             % (sorted(EXPECTED_AGENTS - actual_names), sorted(actual_names - EXPECTED_AGENTS))
         )
+    return errors
 
+
+def agent_file_errors(root: Path, path: Path, meta: dict, name: str) -> list[str]:
+    errors: list[str] = []
+    model = meta.get("model")
+    if model not in CAPABILITIES:
+        errors.append(f"{path.relative_to(root)} must use a provider-neutral model alias")
+    elif meta.get("thinking-level") != THINKING_FOR_CAPABILITY[model]:
+        errors.append(
+            f"{path.relative_to(root)}: {model} requires thinking-level "
+            f"{THINKING_FOR_CAPABILITY[model]!r}, got {meta.get('thinking-level')!r}"
+        )
+    if name == "harness-orchestrator":
+        if meta.get("blocking"):
+            errors.append(f"{path.relative_to(root)} must remain background-dispatched from main")
+    elif meta.get("blocking") is not True:
+        errors.append(
+            f"{path.relative_to(root)} must set blocking: true for nested OMP supervision"
+        )
+    if not isinstance(meta.get("tools"), list):
+        errors.append(f"{path.relative_to(root)} tools must be a list")
+    if not isinstance(meta.get("spawns"), list):
+        errors.append(f"{path.relative_to(root)} spawns must be an explicit list")
+    errors.extend(agent_skills_errors(root, path, meta.get("autoloadSkills")))
+    marker = f"HARNESS_AGENT_ID: {name}"
+    if marker not in path.read_text(encoding="utf-8"):
+        errors.append(f"{path.relative_to(root)} lacks its stable HARNESS_AGENT_ID marker")
+    return errors
+
+
+def agent_skills_errors(root: Path, path: Path, skills) -> list[str]:
+    if not isinstance(skills, list):
+        return [f"{path.relative_to(root)} autoloadSkills must be a list"]
+    return [f"{path.relative_to(root)} references missing skill {skill!r}"
+            for skill in skills
+            if not (root / ".agents" / "skills" / str(skill) / "SKILL.md").is_file()]
+
+
+def provider_errors(root: Path) -> list[str]:
+    errors: list[str] = []
     for filename, prefix in PROVIDER_PREFIX.items():
-        path = root / ".omp" / "providers" / filename
-        try:
-            roles = (artifact_accessors.load_omp_config(path).get("modelRoles") or {})
-            if set(roles) != {capability[1:] for capability in CAPABILITIES}:
-                errors.append(f"{path.relative_to(root)} must map deep, strong, standard, and review")
-            for role, selector in roles.items():
-                if not str(selector).startswith(prefix):
-                    errors.append(f"{path.relative_to(root)} role {role} must select {prefix}*")
-        except artifact_accessors.ArtifactAccessError as exc:
-            errors.append(f"cannot read {path.relative_to(root)}: {exc}")
+        errors.extend(provider_file_errors(root, root / ".omp" / "providers" / filename, prefix))
+    return errors
 
+
+def provider_file_errors(root: Path, path: Path, prefix: str) -> list[str]:
+    try:
+        roles = (artifact_accessors.load_omp_config(path).get("modelRoles") or {})
+    except artifact_accessors.ArtifactAccessError as exc:
+        return [f"cannot read {path.relative_to(root)}: {exc}"]
+    errors: list[str] = []
+    if set(roles) != {capability[1:] for capability in CAPABILITIES}:
+        errors.append(f"{path.relative_to(root)} must map deep, strong, standard, and review")
+    for role, selector in roles.items():
+        if not str(selector).startswith(prefix):
+            errors.append(f"{path.relative_to(root)} role {role} must select {prefix}*")
+    return errors
+
+
+def skills_link_errors(root: Path) -> list[str]:
     claude_skills = root / ".claude" / "skills"
     agent_skills = root / ".agents" / "skills"
     try:
         if not agent_skills.is_symlink() or agent_skills.resolve() != claude_skills.resolve():
-            errors.append(".agents/skills must be a symlink to the authored tree at .claude/skills")
+            return [".agents/skills must be a symlink to the authored tree at .claude/skills"]
     except OSError as exc:
-        errors.append(f"cannot resolve .agents/skills link: {exc}")
+        return [f"cannot resolve .agents/skills link: {exc}"]
+    return []
 
+
+def extension_errors(root: Path) -> list[str]:
     extension = root / ".omp" / "extensions" / "harness-hooks.ts"
     if not extension.is_file():
-        errors.append(".omp/extensions/harness-hooks.ts is missing")
-    else:
-        source = extension.read_text(encoding="utf-8")
-        required_wiring = {
-            "dispatch-guard.py": "OMP task preflight",
-            "gh-close-gate.py": "GitHub close preflight",
-            "inflight_registry.py": "OMP claim attachment and release",
-            # BUG-1132: absent here until this fix, so plan-sign-gate.py's own absence from
-            # harness-hooks.ts's bash gate list — REQ-05/DEC-120's only enforcement — went
-            # undetected. required_wiring is a spot-check, not an enumeration of every gate
-            # script; this entry closes the one instance that was actually missing, not the
-            # general class.
-            "plan-sign-gate.py": "sign-approval identity preflight",
-        }
-        for marker, purpose in required_wiring.items():
-            if marker not in source:
-                errors.append(f".omp/extensions/harness-hooks.ts lacks {purpose} ({marker})")
-        errors.extend(lifecycle_bus_errors(source))
-
-    command_dir = root / ".omp" / "commands"
-    for door in REQUIRED_DOORS:
-        if not (command_dir / f"{door}.md").is_file():
-            errors.append(f".omp/commands/{door}.md is missing; {door} has no provider-neutral door")
+        return [".omp/extensions/harness-hooks.ts is missing"]
+    source = extension.read_text(encoding="utf-8")
+    required_wiring = {
+        "dispatch-guard.py": "OMP task preflight",
+        "gh-close-gate.py": "GitHub close preflight",
+        "inflight_registry.py": "OMP claim attachment and release",
+        # BUG-1132: absent here until this fix, so plan-sign-gate.py's own absence from
+        # harness-hooks.ts's bash gate list — REQ-05/DEC-120's only enforcement — went
+        # undetected. required_wiring is a spot-check, not an enumeration of every gate
+        # script; this entry closes the one instance that was actually missing, not the
+        # general class.
+        "plan-sign-gate.py": "sign-approval identity preflight",
+    }
+    errors = [f".omp/extensions/harness-hooks.ts lacks {purpose} ({marker})"
+              for marker, purpose in required_wiring.items() if marker not in source]
+    errors.extend(lifecycle_bus_errors(source))
     return errors
+
+
+def door_errors(root: Path) -> list[str]:
+    command_dir = root / ".omp" / "commands"
+    return [f".omp/commands/{door}.md is missing; {door} has no provider-neutral door"
+            for door in REQUIRED_DOORS if not (command_dir / f"{door}.md").is_file()]
+
+
+CHECKS = (
+    agents_md_errors,
+    config_errors,
+    agent_files_errors,
+    provider_errors,
+    skills_link_errors,
+    extension_errors,
+    door_errors,
+)
 
 
 def main() -> int:

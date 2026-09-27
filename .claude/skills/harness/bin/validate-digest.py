@@ -757,11 +757,27 @@ def parse_digest(text):
       until they balance. If they never do, the field is `_UNPARSED` — reported as a
       violation, never silently coerced to an empty list.
     """
+    # FEAT-67: every helper returns its parsed value and the next cursor explicitly.
+    located = _digest_body(text)
+    if located is None:
+        return {}
+    body, base = located
+    out = {}
+    i = 0
+    while i < len(body):
+        k, v, i = _next_field(body, i, base)
+        if k is not None:
+            out[k] = v
+    return out
+
+
+def _digest_body(text):
+    """The lines under `DIGEST:` and their base indent, or None when either is missing."""
     lines = text.splitlines()
     start = next((i for i, l in enumerate(lines)
                   if re.match(r"^\s*DIGEST:\s*(#.*)?$", l)), None)
     if start is None:
-        return {}
+        return None
 
     body = lines[start + 1:]
     # Base indent = the first real key under DIGEST:. Everything deeper is nested.
@@ -769,89 +785,109 @@ def parse_digest(text):
                  for l in body
                  if l.strip() and re.match(r"^\s*[a-z_][a-z0-9_-]*:", l)), None)
     if base is None:
-        return {}
+        return None
+    return body, base
 
-    out = {}
+
+def _next_field(body, i, base):
+    """Consume from line `i`: (key, value, next cursor); key None when nothing was a field.
+    A dedent below the base indent ends the block by returning the cursor past the end."""
+    line = body[i]
+    if not line.strip():
+        return None, None, i + 1
+    indent = len(line) - len(line.lstrip())
+    if indent < base:
+        return None, None, len(body)   # dedented out of the block (`artifact:`)
+    if indent != base:
+        return None, None, i + 1       # nested — belongs to a member, not to us
+    # NOTE the hyphen in the class: a drifted key like `must-fix` must be PARSED
+    # before it can be reported as drift. Omitting it made this validator blind
+    # to exactly the defect class it exists to catch.
+    m = re.match(r"^\s*([a-z_][a-z0-9_-]*):[ \t]*(.*)$", line)
+    if not m:
+        return None, None, i + 1
+    k, v = m.group(1), strip_comment(m.group(2))
+    if v:
+        value, j = _inline_value(body, i, v)
+        return k, value, j
+    items, j = _block_list(body, i, base)
+    return k, items, j
+
+
+def _inline_value(body, i, v):
+    if v[0] in "[{" and bracket_depth(v) > 0:
+        return _spanning_value(body, i, v)
+    return parse_scalar(v), i + 1
+
+
+def _spanning_value(body, i, v):
+    # Unclosed on this line — an inline list/map spanning lines.
     n = len(body)
-    i = 0
-    while i < n:
-        line = body[i]
-        if not line.strip():
-            i += 1
-            continue
-        indent = len(line) - len(line.lstrip())
-        if indent < base:
-            break                      # dedented out of the block (`artifact:`)
-        if indent != base:
-            i += 1
-            continue                   # nested — belongs to a member, not to us
-        # NOTE the hyphen in the class: a drifted key like `must-fix` must be PARSED
-        # before it can be reported as drift. Omitting it made this validator blind
-        # to exactly the defect class it exists to catch.
-        m = re.match(r"^\s*([a-z_][a-z0-9_-]*):[ \t]*(.*)$", line)
-        if not m:
-            i += 1
-            continue
-        k, v = m.group(1), strip_comment(m.group(2))
-        if v:
-            if v[0] in "[{" and bracket_depth(v) > 0:
-                # Unclosed on this line — an inline list/map spanning lines.
-                joined = v
-                j = i + 1
-                while j < n and bracket_depth(joined) > 0:
-                    joined += " " + strip_comment(body[j]).strip()
-                    j += 1
-                out[k] = parse_scalar(joined) if bracket_depth(joined) == 0 else _UNPARSED
-                i = j
-                continue
-            out[k] = parse_scalar(v)
-            i += 1
-            continue
-        # Empty value: a block list if the next non-blank deeper line is an item.
-        # A `- ` line AT THE ITEM INDENT starts a new entry; every other deeper line
-        # is a continuation of the entry just opened (F5) — joined with ", " for
-        # block-mapping style (`step: s1` / `verdict: PASS`, no existing separator)
-        # or with " " for an inline `{ ... }` still balancing its own brackets
-        # across lines.
-        #
-        # THE ITEM INDENT IS THE ONE THE FIRST `- ` SETS (#1854). Before this, any
-        # deeper `- ` opened a new entry, so a member carrying its own block-style
-        # `files_touched:` list was split into one member per path — well-formed
-        # YAML, five members by safe_load, reported as "has no verdict" per row.
-        items, cur, cur_is_brace, item_indent = [], None, False, None
-        j = i + 1
-        while j < n:
-            nxt = body[j]
-            if not nxt.strip():
-                j += 1
-                continue
-            nind = len(nxt) - len(nxt.lstrip())
-            if nind <= base:
-                break
-            stripped = strip_comment(nxt.lstrip())
-            if item_indent is None and nxt.lstrip().startswith("- "):
-                item_indent = nind
-            if nind == item_indent and nxt.lstrip().startswith("- "):
-                if cur is not None:
-                    items.append(cur)
-                cur = stripped[2:]
-                cur_is_brace = cur.lstrip().startswith("{")
-            elif cur is not None:
-                if cur_is_brace:
-                    if bracket_depth(cur) > 0:
-                        cur += " " + stripped
-                    # else: balanced already — stray deeper content, not ours.
-                else:
-                    cur += ", " + stripped
+    joined = v
+    j = i + 1
+    while j < n and bracket_depth(joined) > 0:
+        joined += " " + strip_comment(body[j]).strip()
+        j += 1
+    return (parse_scalar(joined) if bracket_depth(joined) == 0 else _UNPARSED), j
+
+
+def _block_list(body, i, base):
+    # Empty value: a block list if the next non-blank deeper line is an item.
+    # A `- ` line AT THE ITEM INDENT starts a new entry; every other deeper line
+    # is a continuation of the entry just opened (F5) — joined with ", " for
+    # block-mapping style (`step: s1` / `verdict: PASS`, no existing separator)
+    # or with " " for an inline `{ ... }` still balancing its own brackets
+    # across lines.
+    #
+    # THE ITEM INDENT IS THE ONE THE FIRST `- ` SETS (#1854). Before this, any
+    # deeper `- ` opened a new entry, so a member carrying its own block-style
+    # `files_touched:` list was split into one member per path — well-formed
+    # YAML, five members by safe_load, reported as "has no verdict" per row.
+    n = len(body)
+    items, cur, cur_is_brace, item_indent = [], None, False, None
+    j = i + 1
+    while j < n:
+        nxt = body[j]
+        if not nxt.strip():
             j += 1
+            continue
+        nind = len(nxt) - len(nxt.lstrip())
+        if nind <= base:
+            break
+        cur, cur_is_brace, item_indent = _block_list_step(items, cur, cur_is_brace,
+                                                          item_indent, nxt, nind)
+        j += 1
+    if cur is not None:
+        items.append(cur)
+    # `key:` with nothing under it is an EMPTY LIST, not a missing field. Writing
+    # a bare `escalations:` is the natural way to say "none" and must not read as
+    # an omission — the point of requiring the key is that the agent asserted it.
+    return items, j
+
+
+def _block_list_step(items, cur, cur_is_brace, item_indent, nxt, nind):
+    """One deeper line: open a new entry (closing the previous into `items`) or extend
+    the open one. Returns the new (cur, cur_is_brace, item_indent)."""
+    stripped = strip_comment(nxt.lstrip())
+    if item_indent is None and nxt.lstrip().startswith("- "):
+        item_indent = nind
+    if nind == item_indent and nxt.lstrip().startswith("- "):
         if cur is not None:
             items.append(cur)
-        # `key:` with nothing under it is an EMPTY LIST, not a missing field. Writing
-        # a bare `escalations:` is the natural way to say "none" and must not read as
-        # an omission — the point of requiring the key is that the agent asserted it.
-        out[k] = items
-        i = j
-    return out
+        cur = stripped[2:]
+        return cur, cur.lstrip().startswith("{"), item_indent
+    if cur is not None:
+        return _continued_item(cur, cur_is_brace, stripped), cur_is_brace, item_indent
+    return cur, cur_is_brace, item_indent
+
+
+def _continued_item(cur, cur_is_brace, stripped):
+    if cur_is_brace:
+        if bracket_depth(cur) > 0:
+            return cur + " " + stripped
+        # else: balanced already — stray deeper content, not ours.
+        return cur
+    return cur + ", " + stripped
 
 
 def _repo_root_for_feature(feature_dir):
