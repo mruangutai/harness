@@ -1,8 +1,8 @@
-# Handoff — FEAT-67-complex-function-second-wave, validate → ship — review pin cf568b130bbd7d88d0ff900cd88886ae33ce622c, seq-3
+# Handoff — FEAT-67-complex-function-second-wave, validate → ship — validated SHA cf568b130bbd7d88d0ff900cd88886ae33ce622c, seq-3
 
 ## Next
 
-Present `notes/ship-review-validate-validator.md` to the operator. Merge, issue creation for unstruck backlog rows, and deployment remain user-gated.
+Present `notes/ship-review-validate-validator.md` to the operator. Merge, issue creation for unstruck backlog rows, and deployment remain user-gated. The record-only validation seam is pinned at `61988bc6dcd2db7e353c849f7e3a12aaa65c4aca`; the five readers reviewed `cf568b130bbd7d88d0ff900cd88886ae33ce622c` before those records were added.
 
 ## Trust
 
