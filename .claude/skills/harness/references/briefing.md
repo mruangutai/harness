@@ -38,8 +38,7 @@ Read this when one of the three triggers fires: `ship-feature` completes · a le
    seat and no fresh approval question comes of this: the signature stands, the ledger is the
    audit.
 4. **Write it** to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md`
-   — plain English, conclusions first, the one artifact addressed to a human. Then
-   `bin/render-brief.py <that path>` renders the reading view; the markdown stays the record and
-   the HTML is **never hand-authored** (DEC-141).
+   — plain English, conclusions first, the one artifact addressed to a human. The markdown
+   is the record; no rendered view is produced (FEAT-68).
 5. **Return it** as `briefing:` in your digest. The main session presents it and sends the
    instruction — ship, fix, re-scope, stop — back down to you.
