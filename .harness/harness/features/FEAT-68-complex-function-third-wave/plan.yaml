@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-68-complex-function-third-wave
 approval:
-  status: pending
+  date: '2026-09-27'
+  approved_by: molchairuangutai
+  status: approved
 status: plan
 mission: patch
 source_issues: []

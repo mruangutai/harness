@@ -27,5 +27,13 @@
       "reason": "Cause known; bounded five-function refactor plus unused renderer removal; no new interface, schema, or enforcement surface."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/FEAT-68-complex-function-third-wave/BRIEF.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "c206eea6b43b1e82858fc3b4d946589d80957ea292f70b5f8935d55a84f11a04"
+  }
 }
