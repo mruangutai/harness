@@ -1,6 +1,6 @@
 # FEAT-68 — clean-checkout implementation-pin receipts
 
-Written 2026-09-27T18:04:15+00:00, AFTER the pin it names; this file is not inside `9ab1813e`.
+Written 2026-09-27T20:11:02+00:00, AFTER the pin it names; this file is not inside `9ab1813e`.
 
 - implementation pin: `9ab1813e86067ca4a21a84f49364cf4f453055b4`
 - baseline: `e655f14a56a14bf1777cae55a19195c9af10505d` (the signed plan; = origin/main at the signed plan)
@@ -11,29 +11,33 @@ Written 2026-09-27T18:04:15+00:00, AFTER the pin it names; this file is not insi
 ## Reproduction (VF-04)
 
 - baseline: `e655f14a56a14bf1777cae55a19195c9af10505d`; implementation pin: `9ab1813e86067ca4a21a84f49364cf4f453055b4`.
-- The three scripts are preserved verbatim under `notes/receipt-scripts/` (copies of the `/tmp` files
-  the receipts were produced with; identical bytes):
+- The three scripts are preserved verbatim under `notes/receipt-scripts/` (authoritative; `feat68-cleanpin.py` loads its grade-assertion sibling by its own directory and
+  reads the baseline json from `/tmp/feat68-baseline.json` or `$FEAT68_BASELINE_JSON` — fix c2, VF-04-C2):
   - `feat68-baseline.py` — runs the 57 named suites in a checkout and writes exit/stdout/stderr + sha1 per suite;
   - `feat68-cleanpin.py <pin> <baseline>` — creates the two detached checkouts under
     `.claude/worktrees/harness/` (`feat68-cleanpin-<pin>`, `feat68-base-<baseline>`), asserts the pin
     checkout is clean, runs the 57 suites at the pin, compares against the baseline json under the
     checkout-root normalisation, runs the grade assertion in both checkouts and writes this file;
   - `feat68-grade-assert.py` — the plan's inline grade assertion, extracted verbatim from T-01 `verify`.
-- Exact invocations, from the repository root `/Users/molchairuangutai/GitHub/harness`:
+- Exact invocations, from the repository root `/Users/molchairuangutai/GitHub/harness`, with
+  `SCRIPTS=.harness/harness/features/FEAT-68-complex-function-third-wave/notes/receipt-scripts`
+  (the scripts' home in this feature tree; the `/tmp` copies they were first run from are byte-identical):
   1. `git worktree add --detach .claude/worktrees/harness/feat68-base-e655f14a e655f14a56a14bf1777cae55a19195c9af10505d`
-  2. `python3 notes/receipt-scripts/feat68-baseline.py "$PWD/.claude/worktrees/harness/feat68-base-e655f14a" /tmp/feat68-baseline.json`
-     (the script reads the suite list from its own body; the json path is what `feat68-cleanpin.py` opens)
-  3. `python3 notes/receipt-scripts/feat68-cleanpin.py 9ab1813e e655f14a`
-     (creates `.claude/worktrees/harness/feat68-cleanpin-9ab1813e` detached at the pin, or reuses it; `git status --porcelain` must be empty)
+  2. `python3 $SCRIPTS/feat68-baseline.py "$PWD/.claude/worktrees/harness/feat68-base-e655f14a" /tmp/feat68-baseline.json`
+     (the script reads the suite list from its own body; the json path is what step 3 opens — override
+     with `FEAT68_BASELINE_JSON=<path>` if written elsewhere)
+  3. `python3 $SCRIPTS/feat68-cleanpin.py 9ab1813e e655f14a`
+     (creates `.claude/worktrees/harness/feat68-cleanpin-9ab1813e` detached at the pin, or reuses it;
+     `git status --porcelain` must be empty; the grade assertion is loaded from
+     `$SCRIPTS/feat68-grade-assert.py`, the sibling file, and run in both checkouts)
 - Environment: macOS, `python3` = CPython 3.14.5 (`/opt/homebrew`), `git` worktrees; suites are the
   57 `tests/**/test-*.py` files naming one of the five changed modules or a `*_support.py` helper that does.
 
 ## Owning suites at the pin vs baseline (SC-02)
 
-Compared after ONE normalisation, on both sides: each checkout's own absolute root replaced by `<checkout>`
-(three `ok` lines in `test-validate-digest.py` print the agent file's absolute path, which names the checkout that
-ran the suite and nothing else). No other substitution is applied; every remaining byte difference is a
-divergence and is ledgered in `notes/build-divergences.md` (D-01..D-05) with its exact old/new bytes.
+Compared after ONE normalisation, on both sides: each checkout's own absolute root replaced by `<checkout>` (three `ok` lines in
+`test-validate-digest.py` print the agent file's absolute path, which names the checkout that ran the suite and nothing else).
+No other substitution is applied; every remaining byte difference is a divergence and is ledgered in `notes/build-divergences.md` (D-01..D-05) with its exact old/new bytes.
 The sha1 columns are of the raw bytes and so differ for that one suite; the `identical` column is the normalised comparison.
 
 | suite | exit base→pin | stdout sha base / pin | stderr sha base / pin | identical |
@@ -70,7 +74,7 @@ The sha1 columns are of the raw bytes and so differ for that one suite; the `ide
 | `tests/integration/test-gh-sync-record.py` | 0→0 | 771343fa68b7 / 771343fa68b7 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-gh-sync-ship.py` | 0→0 | 99076664d68d / 99076664d68d | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-gh-sync-start-task.py` | 0→0 | 455f467d39e6 / 455f467d39e6 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/integration/test-harness-yaml.py` | 0→0 | 7aab10214ebe / 7aab10214ebe | c0659f251557 / ab7ba7d5aa2d | **NO** |
+| `tests/integration/test-harness-yaml.py` | 0→0 | 7aab10214ebe / 7aab10214ebe | c0659f251557 / 646e85d6c783 | **NO** |
 | `tests/integration/test-inflight-registry.py` | 0→0 | 174c3796f75b / 174c3796f75b | 1e3e411e9bdb / 1e3e411e9bdb | yes |
 | `tests/integration/test-inject-expertise.py` | 0→0 | 8407d740b416 / 8407d740b416 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-layout-migration.py` | 0→0 | a045494df541 / a045494df541 | da39a3ee5e6b / da39a3ee5e6b | yes |
@@ -83,7 +87,7 @@ The sha1 columns are of the raw bytes and so differ for that one suite; the `ide
 | `tests/integration/test-validate-digest.py` | 0→0 | 72e2cffb6855 / c75206100a62 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-validate-feature-json.py` | 0→0 | 3fb3ca62430b / 3fb3ca62430b | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-worktree-terminal.py` | 0→0 | 1704dcb63d55 / 1704dcb63d55 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/unit/test-artifact-accessors.py` | 0→0 | da39a3ee5e6b / da39a3ee5e6b | f784a74d59f0 / 8f25ab8ab73c | **NO** |
+| `tests/unit/test-artifact-accessors.py` | 0→0 | da39a3ee5e6b / da39a3ee5e6b | f784a74d59f0 / c5e4fcf314ac | **NO** |
 | `tests/unit/test-config-shape-matrix.py` | 0→0 | 849446963b7b / 849446963b7b | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-factory-claim.py` | 0→0 | dad0a9479a29 / dad0a9479a29 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-factory-config.py` | 0→0 | 1827616bffd7 / 1827616bffd7 | da39a3ee5e6b / da39a3ee5e6b | yes |
@@ -91,9 +95,9 @@ The sha1 columns are of the raw bytes and so differ for that one suite; the `ide
 | `tests/unit/test-gh-board.py` | 0→0 | c7d324c4b552 / c7d324c4b552 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-gh-cost-log.py` | 0→0 | 7ecc739a6f4e / 7ecc739a6f4e | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/unit/test-handoff-done-when.py` | 0→0 | 866c66363614 / 866c66363614 | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/unit/test-harness-boundary.py` | 0→0 | 4207e374f3e6 / 4207e374f3e6 | ee9111cf9ddb / 5ff995e518a6 | **NO** |
+| `tests/unit/test-harness-boundary.py` | 0→0 | 4207e374f3e6 / 4207e374f3e6 | ee9111cf9ddb / bdf7630c58e9 | **NO** |
 | `tests/unit/test-no-distribution.py` | 0→0 | 87f31e1d378d / 87f31e1d378d | da39a3ee5e6b / da39a3ee5e6b | yes |
-| `tests/unit/test-suite-independence.py` | 0→0 | 221f3ce81707 / 35d3f42454b0 | 0ba9a268e611 / c1dcd42b75e3 | **NO** |
+| `tests/unit/test-suite-independence.py` | 0→0 | 221f3ce81707 / 35d3f42454b0 | 0ba9a268e611 / d036f2c22309 | **NO** |
 | `tests/unit/test-wayfind.py` | 0→0 | d9e7c19eee65 / d9e7c19eee65 | da39a3ee5e6b / da39a3ee5e6b | yes |
 
 All identical (normalised): **NO** (53/57).
@@ -103,7 +107,7 @@ All identical (normalised): **NO** (53/57).
 `tests/integration/test-harness-yaml.py (stderr)`:
 ```
 -PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpkbvkh756/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpkbvkh756/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
-+PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpae99yjt5/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpae99yjt5/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
++PyYAML is not importable and the bootstrap marker at /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpuz9xuqz8/.harness/.pyyaml-bootstrap could not be written ([Errno 13] Permission denied: '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpuz9xuqz8/.harness/.pyyaml-bootstrap'), so a one-time grant cannot be recorded — failing closed rather than granting one that never expires.
 ```
 
 `tests/integration/test-validate-digest.py (stdout)`:
@@ -119,13 +123,13 @@ All identical (normalised): **NO** (53/57).
 `tests/unit/test-artifact-accessors.py (stderr)`:
 ```
 -Ran 24 tests in 0.122s
-+Ran 24 tests in 0.105s
++Ran 24 tests in 0.108s
 ```
 
 `tests/unit/test-harness-boundary.py (stderr)`:
 ```
 -harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpc63ro8j0' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpenh3yza9'.
-+harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpujmk9hky' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp17b9a1kl'.
++harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpu0qzo3z_' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp11922gu8'.
 ```
 
 `tests/unit/test-suite-independence.py (stdout)`:
@@ -139,7 +143,7 @@ All identical (normalised): **NO** (53/57).
 `tests/unit/test-suite-independence.py (stderr)`:
 ```
 -ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp9sv7_pg1
-+ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpf59d0rrb
++ERROR could not resolve scan root above /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpizakwf7r
 ```
 
 ## SC-01: the plan's inline grade assertion (T-01 verify) at the pin — green
@@ -185,6 +189,10 @@ T-01 verify run above); no `render-brief` / `md_to_html` reference remains outsi
 logs, decision records and feature-history dirs.
 
 ## History of this receipt
+
+This version was regenerated by the recorded step-3 invocation in `## Reproduction` (fix c2), so the
+file is exactly what that command produces; D-02..D-05's `new:` bytes in the ledger are this run's.
+
 
 The first version (commit `ae0b41d7`) compared against a baseline captured in the feature
 worktree and applied two further normalisations (mkdtemp paths, unittest timing). Validate c0

@@ -18,7 +18,7 @@ status = subprocess.check_output(["git", "-C", pin_dir, "status", "--porcelain"]
 assert not status, "pin checkout is dirty"
 
 FEATURE_WT = base_dir
-base = json.load(open("/tmp/feat68-baseline.json"))
+base = json.load(open(os.environ.get("FEAT68_BASELINE_JSON", "/tmp/feat68-baseline.json")))
 suites = list(base)
 rows = []
 for s in suites:
@@ -35,7 +35,7 @@ for s in suites:
 # tree has no git history for cb6f80... in its own paths, so the assertion is run there with
 # `root` = the baseline checkout and the pre-image read from the same ref; the three retained
 # drivers grade 1 there, which is the red.
-ASSERT = open("/tmp/feat68-grade-assert.py").read()
+ASSERT = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "feat68-grade-assert.py")).read()
 lock = subprocess.run([sys.executable, "-c", ASSERT], cwd=pin_dir, capture_output=True, text=True)
 red = subprocess.run([sys.executable, "-c", ASSERT], cwd=base_dir, capture_output=True, text=True)
 
@@ -45,8 +45,9 @@ out = [f"# FEAT-68 — clean-checkout implementation-pin receipts", "",
        f"- pin checkout: `{pin_dir}` (detached, `git status --porcelain` empty)", f"- baseline checkout: `{base_dir}` (detached)",
        f"- baseline receipts: captured in the clean detached baseline checkout (`git status --porcelain` empty) (`/tmp/feat68-baseline.py` → `/tmp/feat68-baseline.json`); exit status and sha1 of stdout/stderr per suite.", "",
        "## Owning suites at the pin vs baseline (SC-02)", "",
-       "Compared after replacing each checkout's own absolute root with `<checkout>` on both sides: one stderr line in each of three suites names a fresh `mkdtemp()` directory (normalised to `<tmpdir>`), `test-artifact-accessors.py`'s unittest footer carries a wall-clock (`Ran N tests in <t>s`), and three `ok` lines in",
-       "`test-validate-digest.py` print the agent file's absolute path, which names the checkout that ran the suite and nothing else.",
+       "Compared after ONE normalisation, on both sides: each checkout's own absolute root replaced by `<checkout>` (three `ok` lines in",
+       "`test-validate-digest.py` print the agent file's absolute path, which names the checkout that ran the suite and nothing else).",
+       "No other substitution is applied; every remaining byte difference is a divergence and is ledgered in `notes/build-divergences.md` (D-01..D-05) with its exact old/new bytes.",
        "The sha1 columns are of the raw bytes and so differ for that one suite; the `identical` column is the normalised comparison.", "",
        "| suite | exit base→pin | stdout sha base / pin | stderr sha base / pin | identical |", "|---|---|---|---|---|"]
 for s, be, pe, po, bo, pe_, be_, same in rows:

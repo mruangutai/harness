@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-68-complex-function-third-wave",
   "pr": null,
   "review_sha": "ab17ca17",
-  "cycles_used": 4,
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -76,6 +76,16 @@
       "tokens": 90926,
       "ended_at": "2026-09-27T18:55:39+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "fix-c2-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T20:18:36+00:00",
+      "ended_at": "2026-09-27T20:18:54+00:00",
+      "cycles_used": 1,
+      "tokens": null
     }
   ],
   "judgements": [
@@ -148,13 +158,20 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "The final c2 panel still finds VF-04-C2 and both signed fix rounds are exhausted; stop rework and escalate the one remaining must-fix to the operator."
+    },
+    {
+      "at": "2026-09-27T20:18:36+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes VF-04-C2 to the main session; the operator authorised a third evidence-only round (A-4, rework 3/120)"
     }
   ],
   "mission": "patch",
   "rework": {
-    "rounds": 2,
-    "wall_clock_minutes": 90,
-    "decision": ".harness/harness/features/FEAT-68-complex-function-third-wave/BRIEF.md"
+    "rounds": 3,
+    "wall_clock_minutes": 120,
+    "decision": ".harness/harness/features/FEAT-68-complex-function-third-wave/notes/answers-validate-validator.md"
   },
   "signed_task_hashes": {
     "T-01": "c206eea6b43b1e82858fc3b4d946589d80957ea292f70b5f8935d55a84f11a04"

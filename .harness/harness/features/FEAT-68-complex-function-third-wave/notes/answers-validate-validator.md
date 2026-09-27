@@ -11,3 +11,7 @@
   `/tmp/feat68-baseline-worktree.json` outside the record.
 - A-3 (VF-02): the implementation pin is `9ab1813e`; `0c15bad6` was a superseded candidate
   (D-13). The red-first receipt and the clean-pin receipt say so.
+- A-4 (validate c2, VF-04-C2): the operator authorised one additional evidence-only fix round
+  beyond the signed 2 rounds / 90 min ("yes", 2026-09-27) — rework raised to 3 rounds / 120 min
+  in feature.json with this file as the decision. Scope: the two reproduction paths and the
+  grade-script staging in the preserved `feat68-cleanpin.py`; nothing else.
