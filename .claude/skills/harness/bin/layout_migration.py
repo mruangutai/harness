@@ -236,42 +236,58 @@ def scan(root, table=None):
     feature_dirs = doc_roots = reader_files = 0
     segments = _declared_segments(root)
     for surface in SURFACES:                     # iterate the ENUM, never the table
-        rows = [r for r in table if r.surface == surface]
-        shapes, n, undeclared = _evidence(root, surface, segments)
+        report, n, readable = _scan_surface(root, table, surface, segments)
         if surface == "features":
             feature_dirs = n
         else:
             doc_roots = n
-        readers = [(r.path, _reader_formset(root, r)) for r in rows]
-        reader_files += sum(1 for _p, f in readers if f != "unreadable")
-
-        if not rows:
-            surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, [], "no-rows")
-            continue
-        if undeclared:
-            surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, readers,
-                                              "undeclared-segment", tuple(undeclared))
-            continue
-        if any(f == "unreadable" for _p, f in readers):
-            surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, readers, "unreadable")
-            continue
-        if any(f == "neither" for _p, f in readers):
-            surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, readers, "neither")
-            continue
-        if not shapes:
-            surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, readers, "no-evidence")
-            continue
-        if (len(shapes) == 2 or any(f == "both" for _p, f in readers)
-                or any(f != next(iter(shapes)) for _p, f in readers)):
-            surfaces[surface] = SurfaceReport(surface, MIXED, shapes, readers, None)
-            continue
-        # THE NON-EMPTY PRECONDITION IS NOT DECORATION: over an empty reader set
-        # "every reader carries exactly that form" is vacuously true, which is issue
-        # #148 inside this feature's own verdict logic. The no-rows branch above is
-        # what keeps this line honest.
-        surfaces[surface] = SurfaceReport(surface, CLEAN, shapes, readers, None)
+        reader_files += readable
+        surfaces[surface] = report
 
     return Result(root, True, surfaces, feature_dirs, doc_roots, reader_files)
+
+
+def _scan_surface(root, table, surface, segments):
+    """One surface: (its report, evidence count, readable reader count) (FEAT-68)."""
+    rows = [r for r in table if r.surface == surface]
+    shapes, n, undeclared = _evidence(root, surface, segments)
+    readers = [(r.path, _reader_formset(root, r)) for r in rows]
+    readable = sum(1 for _p, f in readers if f != "unreadable")
+    return _surface_report(surface, rows, shapes, readers, undeclared), n, readable
+
+
+def _surface_report(surface, rows, shapes, readers, undeclared):
+    """The verdict for one surface, in the order the inline chain always tested (FEAT-68)."""
+    if not rows:
+        return SurfaceReport(surface, CANNOT_VERIFY, shapes, [], "no-rows")
+    if undeclared:
+        return SurfaceReport(surface, CANNOT_VERIFY, shapes, readers,
+                             "undeclared-segment", tuple(undeclared))
+    reason = _cannot_verify_reason(shapes, readers)
+    if reason:
+        return SurfaceReport(surface, CANNOT_VERIFY, shapes, readers, reason)
+    if _is_mixed(shapes, readers):
+        return SurfaceReport(surface, MIXED, shapes, readers, None)
+    # THE NON-EMPTY PRECONDITION IS NOT DECORATION: over an empty reader set
+    # "every reader carries exactly that form" is vacuously true, which is issue
+    # #148 inside this feature's own verdict logic. The no-rows branch above is
+    # what keeps this line honest.
+    return SurfaceReport(surface, CLEAN, shapes, readers, None)
+
+
+def _is_mixed(shapes, readers):
+    return (len(shapes) == 2 or any(f == "both" for _p, f in readers)
+            or any(f != next(iter(shapes)) for _p, f in readers))
+
+
+def _cannot_verify_reason(shapes, readers):
+    if any(f == "unreadable" for _p, f in readers):
+        return "unreadable"
+    if any(f == "neither" for _p, f in readers):
+        return "neither"
+    if not shapes:
+        return "no-evidence"
+    return None
 
 
 def blame(rep):
