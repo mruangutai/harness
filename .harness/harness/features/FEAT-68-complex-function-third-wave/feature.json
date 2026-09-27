@@ -2,7 +2,7 @@
   "feature_id": "FEAT-68-complex-function-third-wave",
   "branch": "feat/FEAT-68-complex-function-third-wave",
   "pr": null,
-  "review_sha": "b6b8c28d4a71bfe8ba25482eceee24d28a9e15d6",
+  "review_sha": "9d495ccdf9f8216a54a06356fe8c14227f190938",
   "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
@@ -106,6 +106,16 @@
       "ended_at": "2026-09-27T21:12:01+00:00",
       "cycles_used": 1,
       "tokens": null
+    },
+    {
+      "id": "validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T21:14:46+00:00",
+      "tokens": 90194,
+      "ended_at": "2026-09-27T21:40:15+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -206,6 +216,20 @@
       "kind": "regate",
       "decision": "main-session-fix",
       "reason": "DEC-174 routes VF-04-C3/VF-05-C3 to the main session; operator-authorised fourth evidence-only round (A-5, rework 4/150)"
+    },
+    {
+      "at": "2026-09-27T21:14:34+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "The operator authorized a fourth evidence-only round in A-5; fix c3 passed receipt-only at 9d495ccd, so continue under the raised 4-round/150-minute ruling to one final c4 five-reader panel."
+    },
+    {
+      "at": "2026-09-27T21:40:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The final c4 panel still finds VAL-C4-01 after the operator-authorized fourth evidence round; the 4-round ruling is exhausted, so stop rework and return the complete must-fix to the operator."
     }
   ],
   "mission": "patch",
