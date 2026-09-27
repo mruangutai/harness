@@ -89,6 +89,7 @@ if __name__ == "__main__":
 
 
 import sys, os, re, json, fnmatch
+import collections
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
 # It used to be defined in this heredoc, which is why bash-write-guard.py could not
@@ -541,10 +542,36 @@ def approval_guard(rel, agent_name):
     Adding an explicit main-session branch would be a second carve-out to keep in sync,
     and issue #132 records what happened the last time this file grew one.
     """
+    if not _approval_guard_applies():
+        return
+    entries = _approval_grants()
+    disk = _approval_disk_text(rel) if entries is not None else None
+    if disk is None:
+        return
+    lines = disk.splitlines()
+
+    # FEAT-67: one driver, one rule per tool form. Each entry's context is derived once,
+    # read-only, and the first entry whose glob matches under Write or Edit ends the guard,
+    # as the inline `return`s always did; any other tool matches no rule and continues.
+    for frag, raw in _matching_grants(entries, rel):
+        if _apply_fragment_rule(_governed_fragment(rel, agent_name, frag, raw, disk, lines)):
+            return
+
+
+def _matching_grants(entries, rel):
+    for glob, frag, raw in entries:
+        if frag is None:
+            continue                      # fragment-less grant contributes no denial
+        if not fnmatch.fnmatch(rel, glob):
+            continue
+        yield frag, raw
+
+
+def _approval_guard_applies():
     if not APPROVAL_GUARD:
-        return
+        return False
     if _tool == "NotebookEdit":
-        return
+        return False
 
     # EXISTENCE FIRST, AND THE ORDER IS LOAD-BEARING. A first write cannot change a
     # signature that does not exist yet, so there is nothing to say -- and saying it anyway
@@ -552,159 +579,205 @@ def approval_guard(rel, agent_name):
     # "noise on an exit-0 path is indistinguishable from a verdict". Reading the record
     # before this check made every passing write to a non-existent path under a fixture
     # manifest print the unreadable-list warning, and it cost a real regression.
-    if not os.path.exists(target):
-        return
+    return os.path.exists(target)
 
+
+def _apply_fragment_rule(fragment):
+    """Run the rule for the current tool form; True when one ran (the guard is over)."""
+    if _tool == "Write":
+        _approval_write_rule(fragment)
+        return True
+    if _tool == "Edit":
+        _approval_edit_rule(fragment)
+        return True
+    return False
+
+
+def _approval_grants():
+    """The main_session.writes entries, or None (after the warning) when unreadable."""
     entries, problem = _approval_entries(manifest)
     if problem:
         print("check-domain: the main_session.writes exclusion list was unreadable (%s) "
               "— NO fragment denial was applied. This line is the only thing that notices "
               "a deleted entry." % (problem,), file=sys.stderr)
-        return
+        return None
+    return entries
 
+
+def _approval_disk_text(rel):
     try:
-        disk = open(_claimed_abs(target), encoding="utf-8").read()
+        return open(_claimed_abs(target), encoding="utf-8").read()
     except (OSError, UnicodeDecodeError) as exc:
         print("check-domain: could not read %s (%r) — no fragment denial applied."
               % (rel, exc), file=sys.stderr)
+        return None
+
+
+# FEAT-67: everything a rule reads about one governed fragment, derived once per entry.
+_GovernedFragment = collections.namedtuple(
+    "_GovernedFragment",
+    "rel agent_name frag raw is_key rng absent on_disk_block disk lines")
+
+
+def _governed_fragment(rel, agent_name, frag, raw, disk, lines):
+    is_key = frag.endswith(":")
+    rng = _yaml_key_range(lines, frag) if is_key else _heading_range(lines, frag)
+
+    # AN ABSENT FRAGMENT IS STILL GOVERNED. Skipping here was the third demonstrated
+    # bypass and the worst, because it CHAINS: one Edit deletes the block (allowed under
+    # the old containment limb A), and with no key left on disk this `continue` skipped
+    # the guard entirely, so a second Edit wrote a forged block back. Two allowed moves
+    # to forge a signature. The file EXISTING with no signature does not mean anything
+    # may create one -- only that there is no block to overlap, so limb A has nothing to
+    # say and limb B carries the whole check.
+    absent = rng is None
+    if absent:
+        rng = (len(lines), len(lines))
+    on_disk_block = "" if absent else "\n".join(lines[rng[0]:rng[1]])
+    return _GovernedFragment(rel, agent_name, frag, raw, is_key, rng, absent,
+                             on_disk_block, disk, lines)
+
+
+def _deny_fragment(fragment, why):
+    print("check-domain: BLOCKED — %s may not change %s in %s."
+          % (fragment.agent_name, fragment.frag, fragment.rel), file=sys.stderr)
+    print("  %s" % (why,), file=sys.stderr)
+    print("  That fragment is granted to the MAIN SESSION alone by "
+          "main_session.writes: %r (DEC-120 — only the main session has a user "
+          "channel, so only it can hold a signature the user gave)." % (fragment.raw,),
+          file=sys.stderr)
+    print("  Every other write to this file goes through "
+          "plan-merge.py, which carries the base approval bytes forward untouched.",
+          file=sys.stderr)
+    sys.exit(2)
+
+
+def _approval_write_rule(fragment):
+    proposed = ti.get("content")
+    if not isinstance(proposed, str):
         return
-    lines = disk.splitlines()
+    if fragment.is_key:
+        _write_key_rule(fragment, proposed)
+    else:
+        _write_heading_rule(fragment, proposed.splitlines())
 
-    for glob, frag, raw in entries:
-        if frag is None:
-            continue                      # fragment-less grant contributes no denial
-        if not fnmatch.fnmatch(rel, glob):
+
+def _write_key_rule(fragment, proposed):
+    # PARSE both sides and compare the loaded value. A whitespace-only reflow
+    # is not a signature change, and denying it would make plan-merge.py output
+    # undeniable-by-luck.
+    frag = fragment.frag
+    try:
+        old = harness_yaml.load_str(fragment.disk, target).get(frag[:-1])
+        new = harness_yaml.load_str(proposed, target).get(frag[:-1])
+    except (harness_yaml.YamlParseError, AttributeError) as exc:
+        print("check-domain: could not parse one side of %s (%r) — allowing; a "
+              "gate that blocks on its own parse failure breaks every write the "
+              "moment the payload shape changes." % (fragment.rel, exc), file=sys.stderr)
+        return
+    if old != new:
+        _deny_fragment(fragment, "the %s value differs from the one on disk." % (frag,))
+
+
+def _write_heading_rule(fragment, plines):
+    prng = _heading_range(plines, fragment.frag)
+    new_block = "\n".join(plines[prng[0]:prng[1]]) if prng else None
+    if new_block is None or new_block.strip() != fragment.on_disk_block.strip():
+        _deny_fragment(fragment, "the %s section body differs from the one on disk."
+                       % (fragment.frag,))
+
+
+def _approval_edit_rule(fragment):
+    old_s = ti.get("old_string")
+    new_s = ti.get("new_string")
+
+    # LIMB A — OVERLAP, not containment. THE PANEL DEFEATED THE CONTAINMENT VERSION
+    # THREE WAYS and every one crossed a boundary of the range rather than staying
+    # inside it. An old_string that starts one line ABOVE the block, or ends one line
+    # BELOW it, is not a substring of the block but still replaces every byte of it.
+    #
+    #   reproduced, all three ALLOWED before this fix:
+    #     "feature: X\n\napproval:\n  status: pending\n..." -> quoted key, children at 4
+    #     the same span -> "feature: X"                      (deletes the block)
+    #     old_string "tasks:" against a file with NO key     (re-introduces a forged one)
+    #
+    # So the test is INTERSECTION of byte ranges. Locate old_string in the file and ask
+    # whether its span touches the fragment's span at all.
+    denied_a = False
+    if not fragment.absent and isinstance(old_s, str) and old_s:
+        denied_a = _edit_overlap_limb(fragment, old_s)
+
+    # LIMB B — what new_string INTRODUCES. Token-match the key rather than a prefix
+    # test, so a QUOTED key cannot slip past, and govern ANY deeper indent rather than
+    # only the exact on-disk one, because re-indenting children 2 -> 4 was the other
+    # half of the demonstrated bypass.
+    if not denied_a and isinstance(new_s, str) and new_s:
+        _edit_introduce_limb(fragment, new_s)
+
+
+def _edit_overlap_limb(fragment, old_s):
+    """Limb A. Returns whether it denied (a denial exits; the flag is kept for limb B's
+    guard exactly as the inline form kept `denied_a`)."""
+    disk, lines, rng, on_disk_block = (fragment.disk, fragment.lines, fragment.rng,
+                                       fragment.on_disk_block)
+    b0 = disk.find(old_s)
+    if b0 != -1:
+        b1 = b0 + len(old_s)
+        # the fragment's byte span, derived from the same line list
+        pre = "\n".join(lines[:rng[0]])
+        f0 = len(pre) + (1 if rng[0] else 0)
+        f1 = f0 + len(on_disk_block)
+        if b0 < f1 and f0 < b1:
+            _deny_fragment(fragment, "old_string OVERLAPS the on-disk %s block (bytes %d-%d "
+                           "against the block at %d-%d), so this edit rewrites part "
+                           "or all of the signature." % (fragment.frag, b0, b1, f0, f1))
+            return True
+    elif old_s in on_disk_block:
+        # not found verbatim in the file but is block text -- still governed
+        _deny_fragment(fragment, "old_string is text inside the on-disk %s block."
+                       % (fragment.frag,))
+        return True
+    return False
+
+
+def _signature_child_keys(lines, rng, ind):
+    if not ind:
+        return []
+    return [l.strip().split(":")[0].strip("\"'")
+            for l in lines[rng[0] + 1:rng[1]]
+            if l.strip() and (len(l) - len(l.lstrip())) == ind and ":" in l]
+
+
+def _edit_introduce_limb(fragment, new_s):
+    frag, is_key = fragment.frag, fragment.is_key
+    key = frag[:-1] if is_key else frag
+    ind = _child_indent(fragment.lines, fragment.rng)
+    kids = _signature_child_keys(fragment.lines, fragment.rng, ind)
+    for nl in new_s.splitlines():
+        stripped = nl.strip()
+        if not stripped or ":" not in stripped:
             continue
-
-        is_key = frag.endswith(":")
-        rng = _yaml_key_range(lines, frag) if is_key else _heading_range(lines, frag)
-
-        # AN ABSENT FRAGMENT IS STILL GOVERNED. Skipping here was the third demonstrated
-        # bypass and the worst, because it CHAINS: one Edit deletes the block (allowed under
-        # the old containment limb A), and with no key left on disk this `continue` skipped
-        # the guard entirely, so a second Edit wrote a forged block back. Two allowed moves
-        # to forge a signature. The file EXISTING with no signature does not mean anything
-        # may create one -- only that there is no block to overlap, so limb A has nothing to
-        # say and limb B carries the whole check.
-        absent = rng is None
-        if absent:
-            rng = (len(lines), len(lines))
-        on_disk_block = "" if absent else "\n".join(lines[rng[0]:rng[1]])
-
-        def deny_fragment(why):
-            print("check-domain: BLOCKED — %s may not change %s in %s."
-                  % (agent_name, frag, rel), file=sys.stderr)
-            print("  %s" % (why,), file=sys.stderr)
-            print("  That fragment is granted to the MAIN SESSION alone by "
-                  "main_session.writes: %r (DEC-120 — only the main session has a user "
-                  "channel, so only it can hold a signature the user gave)." % (raw,),
-                  file=sys.stderr)
-            print("  Every other write to this file goes through "
-                  "plan-merge.py, which carries the base approval bytes forward untouched.",
-                  file=sys.stderr)
-            sys.exit(2)
-
-        if _tool == "Write":
-            proposed = ti.get("content")
-            if not isinstance(proposed, str):
-                return
-            plines = proposed.splitlines()
-            if is_key:
-                # PARSE both sides and compare the loaded value. A whitespace-only reflow
-                # is not a signature change, and denying it would make plan-merge.py output
-                # undeniable-by-luck.
-                try:
-                    old = harness_yaml.load_str(disk, target).get(frag[:-1])
-                    new = harness_yaml.load_str(proposed, target).get(frag[:-1])
-                except (harness_yaml.YamlParseError, AttributeError) as exc:
-                    print("check-domain: could not parse one side of %s (%r) — allowing; a "
-                          "gate that blocks on its own parse failure breaks every write the "
-                          "moment the payload shape changes." % (rel, exc), file=sys.stderr)
-                    return
-                if old != new:
-                    deny_fragment("the %s value differs from the one on disk." % (frag,))
-            else:
-                prng = _heading_range(plines, frag)
-                new_block = "\n".join(plines[prng[0]:prng[1]]) if prng else None
-                if new_block is None or new_block.strip() != on_disk_block.strip():
-                    deny_fragment("the %s section body differs from the one on disk."
-                                  % (frag,))
-            return
-
-        if _tool == "Edit":
-            old_s = ti.get("old_string")
-            new_s = ti.get("new_string")
-
-            # LIMB A — OVERLAP, not containment. THE PANEL DEFEATED THE CONTAINMENT VERSION
-            # THREE WAYS and every one crossed a boundary of the range rather than staying
-            # inside it. An old_string that starts one line ABOVE the block, or ends one line
-            # BELOW it, is not a substring of the block but still replaces every byte of it.
-            #
-            #   reproduced, all three ALLOWED before this fix:
-            #     "feature: X\n\napproval:\n  status: pending\n..." -> quoted key, children at 4
-            #     the same span -> "feature: X"                      (deletes the block)
-            #     old_string "tasks:" against a file with NO key     (re-introduces a forged one)
-            #
-            # So the test is INTERSECTION of byte ranges. Locate old_string in the file and ask
-            # whether its span touches the fragment's span at all.
-            denied_a = False
-            if not absent and isinstance(old_s, str) and old_s:
-                b0 = disk.find(old_s)
-                if b0 != -1:
-                    b1 = b0 + len(old_s)
-                    # the fragment's byte span, derived from the same line list
-                    pre = "\n".join(lines[:rng[0]])
-                    f0 = len(pre) + (1 if rng[0] else 0)
-                    f1 = f0 + len(on_disk_block)
-                    if b0 < f1 and f0 < b1:
-                        denied_a = True
-                        deny_fragment("old_string OVERLAPS the on-disk %s block (bytes %d-%d "
-                                      "against the block at %d-%d), so this edit rewrites part "
-                                      "or all of the signature." % (frag, b0, b1, f0, f1))
-                elif old_s in on_disk_block:
-                    # not found verbatim in the file but is block text -- still governed
-                    denied_a = True
-                    deny_fragment("old_string is text inside the on-disk %s block."
-                                  % (frag,))
-
-            # LIMB B — what new_string INTRODUCES. Token-match the key rather than a prefix
-            # test, so a QUOTED key cannot slip past, and govern ANY deeper indent rather than
-            # only the exact on-disk one, because re-indenting children 2 -> 4 was the other
-            # half of the demonstrated bypass.
-            if not denied_a and isinstance(new_s, str) and new_s:
-                key = frag[:-1] if is_key else frag
-                ind = _child_indent(lines, rng)
-                kids = []
-                if ind:
-                    kids = [l.strip().split(":")[0].strip("\"'")
-                            for l in lines[rng[0] + 1:rng[1]]
-                            if l.strip() and (len(l) - len(l.lstrip())) == ind and ":" in l]
-                for nl in new_s.splitlines():
-                    stripped = nl.strip()
-                    if not stripped or ":" not in stripped:
-                        continue
-                    tok = stripped.split(":")[0].strip().strip("\"'")
-                    depth = len(nl) - len(nl.lstrip())
-                    # the fragment's OWN key, at ANY indent and quoted or not
-                    if is_key and tok == key:
-                        deny_fragment("new_string introduces or rewrites the %s key (as %r at "
-                                      "indent %d). Quoting it or moving its indent does not "
-                                      "make it a different key." % (frag, stripped[:40], depth))
-                    if not is_key and stripped.lstrip("#").strip() == frag.lstrip("#").strip():
-                        deny_fragment("new_string introduces or rewrites the %s heading."
-                                      % (frag,))
-                    # A CHILD KEY OF THE SIGNATURE, AT ITS ON-DISK INDENT ONLY -- and the
-                    # narrowness is deliberate, measured, not timid. "At this indent or
-                    # DEEPER" was the first fix and it DENIED EVERY LEGITIMATE TASK EDIT:
-                    # approval children sit at 2 and task keys at 4, so `status:` at indent 4
-                    # is both a task key and "deeper than the signature". The re-indenting
-                    # attack this was meant to catch is already caught by limb A, which now
-                    # tests OVERLAP -- any payload that re-indents the block must span it.
-                    if ind and kids and tok in kids and depth == ind:
-                        deny_fragment("new_string carries the signature child key %r at the "
-                                      "on-disk indent %d of the %s block."
-                                      % (tok, ind, frag))
-            return
+        tok = stripped.split(":")[0].strip().strip("\"'")
+        depth = len(nl) - len(nl.lstrip())
+        # the fragment's OWN key, at ANY indent and quoted or not
+        if is_key and tok == key:
+            _deny_fragment(fragment, "new_string introduces or rewrites the %s key (as %r at "
+                           "indent %d). Quoting it or moving its indent does not "
+                           "make it a different key." % (frag, stripped[:40], depth))
+        if not is_key and stripped.lstrip("#").strip() == frag.lstrip("#").strip():
+            _deny_fragment(fragment, "new_string introduces or rewrites the %s heading."
+                           % (frag,))
+        # A CHILD KEY OF THE SIGNATURE, AT ITS ON-DISK INDENT ONLY -- and the
+        # narrowness is deliberate, measured, not timid. "At this indent or
+        # DEEPER" was the first fix and it DENIED EVERY LEGITIMATE TASK EDIT:
+        # approval children sit at 2 and task keys at 4, so `status:` at indent 4
+        # is both a task key and "deeper than the signature". The re-indenting
+        # attack this was meant to catch is already caught by limb A, which now
+        # tests OVERLAP -- any payload that re-indents the block must span it.
+        if ind and kids and tok in kids and depth == ind:
+            _deny_fragment(fragment, "new_string carries the signature child key %r at the "
+                           "on-disk indent %d of the %s block."
+                           % (tok, ind, frag))
 
 
 
