@@ -2,7 +2,7 @@
   "feature_id": "FEAT-68-complex-function-third-wave",
   "branch": "feat/FEAT-68-complex-function-third-wave",
   "pr": null,
-  "review_sha": "ab17ca17",
+  "review_sha": "b6b8c28d4a71bfe8ba25482eceee24d28a9e15d6",
   "cycles_used": 5,
   "max_total_cycles": 10,
   "runs": [
@@ -86,6 +86,16 @@
       "ended_at": "2026-09-27T20:18:54+00:00",
       "cycles_used": 1,
       "tokens": null
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T20:21:15+00:00",
+      "tokens": 105350,
+      "ended_at": "2026-09-27T20:48:03+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -165,6 +175,20 @@
       "kind": "regate",
       "decision": "main-session-fix",
       "reason": "DEC-174 routes VF-04-C2 to the main session; the operator authorised a third evidence-only round (A-4, rework 3/120)"
+    },
+    {
+      "at": "2026-09-27T20:20:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "The operator authorized the third evidence-only round in A-4; fix c2 passed receipt-only at b6b8c28d, so continue under the raised 3-round/120-minute ruling to one final c3 panel."
+    },
+    {
+      "at": "2026-09-27T20:48:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The c3 panel found VF-04-C3 and new-class high-severity VF-05-C3 after the operator-authorized third round; the 3-round ruling is exhausted, so stop rework and escalate the complete must-fix set."
     }
   ],
   "mission": "patch",
