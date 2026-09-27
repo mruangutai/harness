@@ -35,5 +35,17 @@
   },
   "signed_task_hashes": {
     "T-01": "59dc7a181d84fd6267f3ae92296045925ac04ed3aae948eb1bbfcdb59ca85e2c"
+  },
+  "github": {
+    "milestone": 90,
+    "parent": 1941,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1942
+    },
+    "source_issues": [],
+    "build_entry": "opened"
   }
 }
