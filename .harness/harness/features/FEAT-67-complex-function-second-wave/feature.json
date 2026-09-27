@@ -2,7 +2,7 @@
   "feature_id": "FEAT-67-complex-function-second-wave",
   "branch": "feat/FEAT-67-complex-function-second-wave",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "cf568b130bbd7d88d0ff900cd88886ae33ce622c",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -26,6 +26,16 @@
       "ended_at": "2026-09-27T15:00:39+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T15:03:51+00:00",
+      "tokens": 132072,
+      "ended_at": "2026-09-27T15:28:59+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [
@@ -42,6 +52,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "DEC-174: T-01 is main-session-direct; the main session builds in the worktree"
+    },
+    {
+      "at": "2026-09-27T15:03:39+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Proceed to the first validation gate at pinned review_sha cf568b13 within the approved 2-round / 90-minute rework ruling."
     }
   ],
   "mission": "patch",
