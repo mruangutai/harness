@@ -812,23 +812,9 @@ def _audit_findings(root, board, repo_name):
     # line escape from inside this module.
     notes = []
 
-    # Class 1 -- DECLARATION. Call 1/4.
-    declared = _declared_stations(board)
-    options = factory_gh.project_field_options(owner, number, field)
-    # NO value_to_key INVERSION (FEAT-41 T-02): a lowercase station IS its own key, so the
-    # station name is recovered from the column by asking the declaration in the same order
-    # rather than by inverting a mapping that no longer exists.
-    column_to_station = {
-        factory_config.station_column(s): s
-        for s in factory_config.station_names(board)
-    }
-    for value in _missing_options(declared, options):
-        key = column_to_station.get(value, "?")
-        findings.append(_finding(
-            "DECLARATION",
-            f"DECLARATION: station {key!r} (declared value {value!r}) is not among project "
-            f"{number}'s Status options",
-        ))
+    # FEAT-68: one class per function, called in the order the four network calls are named
+    # above; each returns its findings and the driver keeps the list order.
+    findings.extend(_declaration_findings(board, owner, number, field))
 
     # The closed-issue read feeding classes 2, 3 and 4. Call 2/4.
     issues = factory_gh.run_gh(
@@ -839,50 +825,13 @@ def _audit_findings(root, board, repo_name):
 
     # Class 2 -- STATION. Call 3/4.
     stations = gh_board.board_stations(board, repo_name)
-    for issue in issues:
-        num = issue.get("number")
-        if num in stations and stations[num] != done_station:
-            findings.append(_finding(
-                "STATION",
-                f"STATION: issue #{num} reads {stations[num]!r}, expected {done_station!r}",
-                issue_number=num, expected=done_station,
-            ))
-
-    # Class 3 -- REASON.
-    for issue in issues:
-        if issue.get("stateReason") is None:
-            num = issue.get("number")
-            names = {l.get("name") for l in issue.get("labels", []) if isinstance(l, dict)}
-            findings.append(_finding(
-                "REASON", f"REASON: issue #{num} is closed with no state_reason",
-                issue_number=num, abandoned=("abandoned" in names),
-            ))
-
-    # Class 4 -- LABEL.
-    for issue in issues:
-        reason = (issue.get("stateReason") or "").upper()
-        if reason == "NOT_PLANNED":
-            names = {l.get("name") for l in issue.get("labels", []) if isinstance(l, dict)}
-            if "abandoned" not in names:
-                num = issue.get("number")
-                findings.append(_finding(
-                    "LABEL",
-                    f"LABEL: issue #{num} is not_planned and carries no 'abandoned' label",
-                    issue_number=num,
-                ))
+    findings.extend(_station_findings(issues, stations, done_station))
+    findings.extend(_reason_findings(issues))
+    findings.extend(_label_findings(issues))
 
     # Class 5 -- WORKFLOW. Call 4/4.
     notes.append(_WORKFLOW_HEADER)
-    workflows = factory_gh.project_workflows(owner, number)
-    by_name = {w["name"]: w for w in workflows}
-    for name in _REQUIRED_WORKFLOWS:
-        w = by_name.get(name)
-        if w is None:
-            findings.append(_finding(
-                "WORKFLOW", f"WORKFLOW: {name!r} is MISSING -- {_WORKFLOW_SUFFIX}"))
-        elif not w.get("enabled"):
-            findings.append(_finding(
-                "WORKFLOW", f"WORKFLOW: {name!r} is disabled -- {_WORKFLOW_SUFFIX}"))
+    findings.extend(_workflow_findings(owner, number))
 
     # Class 6 -- STATUS. No call, EXCEPT it self-skips for any repo but this checkout's own
     # (#783's fix -- see `_status_findings`'s own docstring for the ruling and why). This
@@ -897,6 +846,87 @@ def _audit_findings(root, board, repo_name):
                      f"({own_repo!r}); this checkout's on-disk features are never that repo's")
 
     return findings, notes
+
+
+def _declaration_findings(board, owner, number, field):
+    # Class 1 -- DECLARATION. Call 1/4.
+    declared = _declared_stations(board)
+    options = factory_gh.project_field_options(owner, number, field)
+    # NO value_to_key INVERSION (FEAT-41 T-02): a lowercase station IS its own key, so the
+    # station name is recovered from the column by asking the declaration in the same order
+    # rather than by inverting a mapping that no longer exists.
+    column_to_station = {
+        factory_config.station_column(s): s
+        for s in factory_config.station_names(board)
+    }
+    return [_finding(
+        "DECLARATION",
+        f"DECLARATION: station {column_to_station.get(value, '?')!r} (declared value "
+        f"{value!r}) is not among project {number}'s Status options",
+    ) for value in _missing_options(declared, options)]
+
+
+def _station_findings(issues, stations, done_station):
+    findings = []
+    for issue in issues:
+        num = issue.get("number")
+        if num in stations and stations[num] != done_station:
+            findings.append(_finding(
+                "STATION",
+                f"STATION: issue #{num} reads {stations[num]!r}, expected {done_station!r}",
+                issue_number=num, expected=done_station,
+            ))
+    return findings
+
+
+def _issue_label_names(issue):
+    return {l.get("name") for l in issue.get("labels", []) if isinstance(l, dict)}
+
+
+def _reason_findings(issues):
+    # Class 3 -- REASON.
+    findings = []
+    for issue in issues:
+        if issue.get("stateReason") is None:
+            num = issue.get("number")
+            names = _issue_label_names(issue)
+            findings.append(_finding(
+                "REASON", f"REASON: issue #{num} is closed with no state_reason",
+                issue_number=num, abandoned=("abandoned" in names),
+            ))
+    return findings
+
+
+def _label_findings(issues):
+    # Class 4 -- LABEL.
+    findings = []
+    for issue in issues:
+        reason = (issue.get("stateReason") or "").upper()
+        if reason == "NOT_PLANNED":
+            names = _issue_label_names(issue)
+            if "abandoned" not in names:
+                num = issue.get("number")
+                findings.append(_finding(
+                    "LABEL",
+                    f"LABEL: issue #{num} is not_planned and carries no 'abandoned' label",
+                    issue_number=num,
+                ))
+    return findings
+
+
+def _workflow_findings(owner, number):
+    workflows = factory_gh.project_workflows(owner, number)
+    by_name = {w["name"]: w for w in workflows}
+    findings = []
+    for name in _REQUIRED_WORKFLOWS:
+        w = by_name.get(name)
+        if w is None:
+            findings.append(_finding(
+                "WORKFLOW", f"WORKFLOW: {name!r} is MISSING -- {_WORKFLOW_SUFFIX}"))
+        elif not w.get("enabled"):
+            findings.append(_finding(
+                "WORKFLOW", f"WORKFLOW: {name!r} is disabled -- {_WORKFLOW_SUFFIX}"))
+    return findings
 
 
 def audit_findings(repo_arg=None):
