@@ -8,10 +8,32 @@ Written 2026-09-27T18:04:15+00:00, AFTER the pin it names; this file is not insi
 - baseline checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat68-base-e655f14a` (detached)
 - baseline receipts: captured in the clean detached baseline checkout (`git status --porcelain` empty) (`/tmp/feat68-baseline.py` → `/tmp/feat68-baseline.json`); exit status and sha1 of stdout/stderr per suite.
 
+## Reproduction (VF-04)
+
+- baseline: `e655f14a56a14bf1777cae55a19195c9af10505d`; implementation pin: `9ab1813e86067ca4a21a84f49364cf4f453055b4`.
+- The three scripts are preserved verbatim under `notes/receipt-scripts/` (copies of the `/tmp` files
+  the receipts were produced with; identical bytes):
+  - `feat68-baseline.py` — runs the 57 named suites in a checkout and writes exit/stdout/stderr + sha1 per suite;
+  - `feat68-cleanpin.py <pin> <baseline>` — creates the two detached checkouts under
+    `.claude/worktrees/harness/` (`feat68-cleanpin-<pin>`, `feat68-base-<baseline>`), asserts the pin
+    checkout is clean, runs the 57 suites at the pin, compares against the baseline json under the
+    checkout-root normalisation, runs the grade assertion in both checkouts and writes this file;
+  - `feat68-grade-assert.py` — the plan's inline grade assertion, extracted verbatim from T-01 `verify`.
+- Exact invocations, from the repository root `/Users/molchairuangutai/GitHub/harness`:
+  1. `git worktree add --detach .claude/worktrees/harness/feat68-base-e655f14a e655f14a56a14bf1777cae55a19195c9af10505d`
+  2. `python3 notes/receipt-scripts/feat68-baseline.py "$PWD/.claude/worktrees/harness/feat68-base-e655f14a" /tmp/feat68-baseline.json`
+     (the script reads the suite list from its own body; the json path is what `feat68-cleanpin.py` opens)
+  3. `python3 notes/receipt-scripts/feat68-cleanpin.py 9ab1813e e655f14a`
+     (creates `.claude/worktrees/harness/feat68-cleanpin-9ab1813e` detached at the pin, or reuses it; `git status --porcelain` must be empty)
+- Environment: macOS, `python3` = CPython 3.14.5 (`/opt/homebrew`), `git` worktrees; suites are the
+  57 `tests/**/test-*.py` files naming one of the five changed modules or a `*_support.py` helper that does.
+
 ## Owning suites at the pin vs baseline (SC-02)
 
-Compared after replacing each checkout's own absolute root with `<checkout>` on both sides: one stderr line in each of three suites names a fresh `mkdtemp()` directory (normalised to `<tmpdir>`), `test-artifact-accessors.py`'s unittest footer carries a wall-clock (`Ran N tests in <t>s`), and three `ok` lines in
-`test-validate-digest.py` print the agent file's absolute path, which names the checkout that ran the suite and nothing else.
+Compared after ONE normalisation, on both sides: each checkout's own absolute root replaced by `<checkout>`
+(three `ok` lines in `test-validate-digest.py` print the agent file's absolute path, which names the checkout that
+ran the suite and nothing else). No other substitution is applied; every remaining byte difference is a
+divergence and is ledgered in `notes/build-divergences.md` (D-01..D-05) with its exact old/new bytes.
 The sha1 columns are of the raw bytes and so differ for that one suite; the `identical` column is the normalised comparison.
 
 | suite | exit base→pin | stdout sha base / pin | stderr sha base / pin | identical |

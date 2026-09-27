@@ -1,6 +1,6 @@
 # FEAT-68 — red-first receipts
 
-Written after the implementation pin `9ab1813e` (this file is not inside it; `0c15bad6` was a
+Written after the implementation pin `9ab1813e` (`9ab1813e86067ca4a21a84f49364cf4f453055b4`; this file is not inside it; `0c15bad6` was a
 superseded candidate — its first full unit run failed the bar-4 lock, ledger D-13). Base
 `e655f14a56a14bf1777cae55a19195c9af10505d` = origin/main at the signed plan.
 

@@ -1,6 +1,7 @@
 # FEAT-68 — build divergence ledger
 
-Base `e655f14a56a14bf1777cae55a19195c9af10505d` (= origin/main at the signed plan). Every
+Base `e655f14a56a14bf1777cae55a19195c9af10505d` (= origin/main at the signed plan); implementation
+pin `9ab1813e86067ca4a21a84f49364cf4f453055b4`. Every
 owning-suite comparison is exit status + stdout bytes + stderr bytes between a clean detached
 checkout of the base and a clean detached checkout of the pin, after the ONE signed
 normalisation — each checkout's own absolute root → `<checkout>` (BRIEF SC-02; FEAT-66 D-09;
