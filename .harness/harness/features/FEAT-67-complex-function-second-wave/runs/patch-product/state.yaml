@@ -1,0 +1,36 @@
+schema_version: 2
+run_id: patch-product
+run_uid: dee204b0a1124b9fa28e014463c31bd2
+feature: FEAT-67-complex-function-second-wave
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-67-complex-function-second-wave/BRIEF.md
+      - .harness/harness/features/FEAT-67-complex-function-second-wave/plan.yaml
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-67-complex-function-second-wave/plan.yaml
+    note: Pending patch intake drafted with one task and no reader wave.
+    evidence:
+      check_exit: 0
+      tasks_checked: 1
+      anchors_resolved: 19
+      brief_lines: 57
+      approval_status: pending
+      source_issue_count: 0
+cycles_used: 0
+verdict: PASS
+digest: .harness/harness/features/FEAT-67-complex-function-second-wave/runs/patch-product/digest.md
