@@ -2,8 +2,8 @@
 
 **BLUF.** The operator runs this in order.
 
-**Status (2026-09-25).** Steps 1 and 2 are complete; step 3 is open, owned by the first real
-post-merge feature. Cutover evidence and accepted deviations: `notes/cutover-evidence.md`.
+**Status (2026-09-28).** Steps 1 and 2 are complete. Step 3 is waived by the operator (see step 3).
+Cutover evidence and accepted deviations: `notes/cutover-evidence.md`.
 
 1. Record a live probe PASS before merge.
 2. Do the one-time cutover after merge and before any OMP session loads the changed hook.
@@ -115,7 +115,14 @@ for FEAT-65's owner.
 
 ## 3. After merge: the first real feature
 
-- [ ] The first real feature planned, built and validated after merge must record, in **its own**
+- [x] **Waived by the operator, 2026-09-28.** Claim-at-start and release-at-settle are automatic
+      (the run-start hook and settlement), proven by the pinned test matrix and the live OMP probe
+      PASS 29/29 against real runtime ids. Post-merge features FEAT-67 and FEAT-68 ran governed
+      leads repeatedly without a single-flight refusal, which a leaked claim would have caused. The
+      registry is transient and keeps no history, so this step could only be met by hand, for little
+      added evidence. A future leaked claim surfaces as a loud single-flight refusal and is a new bug.
+
+      Original requirement: the first real feature planned, built and validated after merge must record, in **its own**
       notes:
   - each governed run's claim at run start, bound to its exact runtime id;
   - its settlement release;
