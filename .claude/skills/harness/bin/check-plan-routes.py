@@ -884,12 +884,18 @@ def live_invariant_numbers(root):
     set and the caller must not treat it as one: an empty set would make every number in
     every plan look newly claimed and fire on plans that merely cite an existing rule.
     """
-    path = os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.py")
+    # FEAT-69: the invariants live in the check_state/ package beside the entry, so the live
+    # set is the union over the entry and every package file; an unreadable entry is still
+    # None (the script cannot be read), an unreadable package file reads as nothing.
     try:
-        with open(path, encoding="utf-8", errors="replace") as f:
-            return {int(m) for m in INV_TOKEN_RE.findall(f.read())}
+        with open(os.path.join(root, CHECKER_REL), encoding="utf-8", errors="replace") as f:
+            numbers = {int(m) for m in INV_TOKEN_RE.findall(f.read())}
     except OSError:
         return None
+    for _absolute, _relative, text in _checker_package_sources(root):
+        if text is not None:
+            numbers |= {int(m) for m in INV_TOKEN_RE.findall(text)}
+    return numbers
 
 
 def check_invariant_number_collisions(root, findings):
@@ -1858,6 +1864,26 @@ def _call_symbol(tree, node):
 #   invoke check-state.py with it; CI, command entry and pre-commit run the full table.
 BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
 CHECKER_REL = os.path.join(BIN_REL, "check-state.py")
+# FEAT-69: the entry is a bootstrap over the check_state/ package; the locked surface is the
+# entry PLUS every package file, parsed into ONE function table so a helper reached through an
+# import (`from check_state.ctx import ...`) is walked exactly as a same-file helper was.
+CHECKER_PACKAGE_REL = os.path.join(BIN_REL, "check_state")
+CHECKER_TABLE_MODULE = "table"
+# The settled ownership (FEAT-69 BRIEF, by declared reads): the module that must DEFINE each
+# row's run function. A row absent here is a finding -- a new invariant names its family in
+# the lock before it lands, which is the placement rule with teeth.
+ROW_FAMILIES = {
+    "plan": ("INV-35", "INV-3", "INV-4", "INV-5", "INV-34", "INV-32", "INV-44"),
+    "feature_record": ("INV-1", "INV-2", "INV-6", "INV-7", "INV-8", "INV-12", "INV-18", "INV-22",
+                       "INV-23", "INV-33", "INV-39", "INV-40", "INV-43", "INV-47"),
+    "run_state": ("INV-15", "INV-16", "INV-36", "INV-46"),
+    "seams": ("INV-17",),
+    "brief": ("INV-38", "INV-41", "INV-49"),
+    "worktrees": ("INV-25", "INV-27", "INV-29", "INV-31"),
+    "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-28", "INV-30", "INV-37"),
+    "host": ("INV-19", "INV-42", "INV-45", "INV-48"),
+}
+_FAMILY_OF_ROW = {row: family for family, rows in ROW_FAMILIES.items() for row in rows}
 DECISIONS_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
 _BOOTSTRAP_END_TARGET = "root"           # the first top-level `root = ...` closes the bootstrap
 _READER_CALLEES = {"open", "read", "glob", "iglob", "run", "check_output", "Popen", "listdir",
@@ -1873,10 +1899,49 @@ _INPUT_LITERAL = re.compile(r"^[\w.*-]+\.(?:yaml|yml|json|md|py)$")
 _READ_KINDS = ("path:", "git:", "gh:")
 
 
-def _checker_tree(root):
-    path = os.path.join(root, CHECKER_REL)
-    with open(path, encoding="utf-8") as source:
-        return ast.parse(source.read(), filename=CHECKER_REL)
+def _checker_package_sources(root):
+    """(absolute, relative, text) for every check_state/*.py in name order; text is None for a
+    file that cannot be read."""
+    directory = os.path.join(root, CHECKER_PACKAGE_REL)
+    if not os.path.isdir(directory):
+        return []
+    sources = []
+    for name in sorted(os.listdir(directory)):
+        if not name.endswith(".py"):
+            continue
+        absolute = os.path.join(directory, name)
+        try:
+            with open(absolute, encoding="utf-8") as source:
+                text = source.read()
+        except (OSError, UnicodeDecodeError):
+            text = None
+        sources.append((absolute, os.path.join(CHECKER_PACKAGE_REL, name), text))
+    return sources
+
+
+def _checker_module_name(relative):
+    """`check-state` for the entry, the stem for a package file."""
+    return os.path.splitext(os.path.basename(relative))[0]
+
+
+def _checker_trees(root):
+    """[(relative, tree)] for the entry then every package file, and the parse findings for
+    those that did not parse. The entry failing to parse is the one finding that stands alone."""
+    trees, findings = [], []
+    try:
+        with open(os.path.join(root, CHECKER_REL), encoding="utf-8") as source:
+            trees.append((CHECKER_REL, ast.parse(source.read(), filename=CHECKER_REL)))
+    except (OSError, UnicodeDecodeError, SyntaxError) as error:
+        return [], [f"{CHECKER_REL}::<module> source_parse: {error}"]
+    for _absolute, relative, text in _checker_package_sources(root):
+        if text is None:
+            findings.append(f"{relative}::<module> source_parse: unreadable")
+            continue
+        try:
+            trees.append((relative, ast.parse(text, filename=relative)))
+        except (SyntaxError, ValueError) as error:
+            findings.append(f"{relative}::<module> source_parse: {error}")
+    return trees, findings
 
 
 def _bootstrap_end(tree):
@@ -1975,6 +2040,53 @@ def _module_functions(tree):
     return fns
 
 
+def _package_import_module(node):
+    """The `<module>` of a `from check_state.<module> import ...` statement, else None."""
+    if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("check_state."):
+        return node.module.split(".", 1)[1]
+    return None
+
+
+def _package_imports(tree):
+    """{local name: (module, name)} for every `from check_state.<module> import ...` in `tree`."""
+    imports = {}
+    for node in tree.body:
+        module = _package_import_module(node)
+        if module is None:
+            continue
+        for alias in node.names:
+            imports[alias.asname or alias.name] = (module, alias.name)
+    return imports
+
+
+class _PackageFunctions:
+    """FEAT-69: one function table over the entry and every package file. Keys are
+    `<module>.<function>` for module functions and `Ctx.<method>` for the context's methods
+    (the one class); a bare callee resolves in its caller's module first, then through that
+    module's `from check_state.<m> import` bindings -- never through an assignment alias."""
+
+    def __init__(self, trees):
+        self.fns, self.module_of, self.imports = {}, {}, {}
+        for relative, tree in trees:
+            module = _checker_module_name(relative)
+            self.imports[module] = _package_imports(tree)
+            for name, fn in _module_functions(tree).items():
+                key = name if name.startswith("Ctx.") else f"{module}.{name}"
+                self.fns[key] = fn
+                self.module_of[key] = module
+
+    def resolve(self, module, callee):
+        """The table key `callee` names when called from `module`, or None."""
+        if callee.startswith("Ctx."):
+            return callee if callee in self.fns else None
+        if f"{module}.{callee}" in self.fns:
+            return f"{module}.{callee}"
+        bound = self.imports.get(module, {}).get(callee)
+        if bound and f"{bound[0]}.{bound[1]}" in self.fns:
+            return f"{bound[0]}.{bound[1]}"
+        return None
+
+
 def _is_string_assign(node):
     return (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
             and isinstance(node.value.value, str))
@@ -2000,15 +2112,16 @@ def _inv_rows(tree):
     return rows
 
 
-def _reachable(fn_name, fns, seen=None):
-    """`fn_name` and every check-state function it calls, transitively (module functions by
-    name, Ctx methods through `ctx.<method>(...)`)."""
+def _reachable(key, table, seen=None):
+    """`key` and every check-state function it calls, transitively (module functions by name
+    in the caller's module or through its package imports, Ctx methods through
+    `ctx.<method>(...)`), across every file of the package (FEAT-69)."""
     seen = set() if seen is None else seen
-    if fn_name in seen or fn_name not in fns:
+    if key in seen or key not in table.fns:
         return seen
-    seen.add(fn_name)
-    for callee in _called_names(fns[fn_name]):
-        _reachable(callee, fns, seen)
+    seen.add(key)
+    for callee in _called_names(table.fns[key]):
+        _reachable(table.resolve(table.module_of[key], callee), table, seen)
     return seen
 
 
@@ -2115,34 +2228,76 @@ def _declared_covers(literal, declared):
                for d in declared)
 
 
-def _row_inputs(run, fns):
+def _row_inputs(run_key, table):
     """Every literal and git/gh resource the row's function and its helpers observe."""
     literals, resources = set(), set()
-    for fn_name in sorted(_reachable(run, fns)):
-        if fn_name.startswith("Ctx.__init__"):
+    for key in sorted(_reachable(run_key, table)):
+        if key.startswith("Ctx.__init__"):
             continue
-        lits, res = _observed_inputs(fns[fn_name])
+        lits, res = _observed_inputs(table.fns[key])
         literals |= lits
         resources |= res
     return literals, resources
 
 
-def _row_reads_findings(row, fns, relative):
+def _row_family_finding(row, run_key, table, relative):
+    """FEAT-69: the row's run function is DEFINED in the family module its reads name
+    (ROW_FAMILIES); an import alias, an assignment alias or a function in another module
+    is a finding, and a row no family claims is one too."""
+    name, run, _declared, _authority, lineno = row
+    family = _FAMILY_OF_ROW.get(name)
+    if family is None:
+        return (f"{relative}::INVARIANTS:{lineno} {name} belongs to no family in ROW_FAMILIES — name the "
+                f"module its reads place it in before it lands (FEAT-69 SC-03)")
+    if run_key is None:
+        return (f"{relative}::INVARIANTS:{lineno} {name} runs {run!r}, which is not a function defined in "
+                f"the package — an alias is not a definition (FEAT-69 SC-03)")
+    if table.module_of[run_key] != family:
+        return (f"{relative}::INVARIANTS:{lineno} {name} runs {run_key}, defined in check_state/"
+                f"{table.module_of[run_key]}.py, but its reads place it in check_state/{family}.py "
+                f"(FEAT-69 SC-03)")
+    return None
+
+
+def _row_observed_findings(row, run_key, table, relative):
+    """The reads the row's function and its helpers observe but the row does not declare."""
     name, run, declared, _authority, lineno = row
-    findings = [f"{relative}::INVARIANTS:{lineno} {name} declares {d!r}, which is not path:/git:/gh: "
-                f"(FEAT-62 SC-04)" for d in declared if not d.startswith(_READ_KINDS)][:1]
-    literals, resources = _row_inputs(run, fns)
-    findings += [f"{relative}::{run}:{lineno} {name} opens {literal!r} but its row declares no path: read "
-                 f"covering it (FEAT-62 SC-04)"
-                 for literal in sorted(literals) if not _declared_covers(literal, declared)]
+    literals, resources = _row_inputs(run_key, table)
+    findings = [f"{relative}::{run}:{lineno} {name} opens {literal!r} but its row declares no path: read "
+                f"covering it (FEAT-62 SC-04)"
+                for literal in sorted(literals) if not _declared_covers(literal, declared)]
     findings += [f"{relative}::{run}:{lineno} {name} reads {resource} but its row declares no {resource} "
                  f"read (FEAT-62 SC-04)" for resource in sorted(resources) if resource not in declared]
     return findings
 
 
-def _reads_findings(tree, relative):
-    fns = _module_functions(tree)
-    return [f for row in _inv_rows(tree) for f in _row_reads_findings(row, fns, relative)]
+def _row_reads_findings(row, table, relative):
+    name, run, declared, _authority, lineno = row
+    findings = [f"{relative}::INVARIANTS:{lineno} {name} declares {d!r}, which is not path:/git:/gh: "
+                f"(FEAT-62 SC-04)" for d in declared if not d.startswith(_READ_KINDS)][:1]
+    run_key = table.resolve(CHECKER_TABLE_MODULE, run)
+    family = _row_family_finding(row, run_key, table, relative)
+    if family:
+        findings.append(family)
+    if run_key is not None:
+        findings += _row_observed_findings(row, run_key, table, relative)
+    return findings
+
+
+def _table_tree(trees):
+    """The (relative, tree) of the package's table module, or None when it is absent."""
+    return next(((rel, tree) for rel, tree in trees
+                 if _checker_module_name(rel) == CHECKER_TABLE_MODULE), None)
+
+
+def _reads_findings(trees):
+    table = _PackageFunctions(trees)
+    located = _table_tree(trees)
+    if located is None:
+        return [f"{CHECKER_PACKAGE_REL}/{CHECKER_TABLE_MODULE}.py is absent — the table is the one place a "
+                f"row is declared (FEAT-69 SC-03)"]
+    relative, tree = located
+    return [f for row in _inv_rows(tree) for f in _row_reads_findings(row, table, relative)]
 
 
 def _decisions_index(root):
@@ -2161,9 +2316,13 @@ def _decisions_index(root):
     return entries
 
 
-def _authority_findings(tree, relative, root):
+def _authority_findings(trees, root):
     index = _decisions_index(root)
     findings = []
+    located = _table_tree(trees)
+    if located is None:
+        return []                       # _reads_findings already names the absent table
+    relative, tree = located
     if index is None:
         return [f"{relative}::INVARIANTS authority audit CANNOT RUN: {DECISIONS_INDEX_REL} is unreadable "
                 f"(FEAT-62 SC-05)"]
@@ -2282,31 +2441,36 @@ def _broad_catch_finding(rel, name, count):
             f"(FEAT-63 SC-04)")
 
 
-def broad_catch_findings(root):
-    """The census over every bin/ script, in name order."""
+def broad_catch_census_paths(root):
+    """Every Python file the census scans, as (absolute, bin-relative name), in
+    _reader_source_paths' walk order -- bin/*.py and every package beneath it (FEAT-69: the
+    check_state/ files are ceiling-0 like the entry they came from; a ceiling is keyed by the
+    bin-relative name, so a package file can never borrow a sibling's allowance)."""
     bin_dir = os.path.join(root, BIN_REL)
+    return [(absolute, os.path.relpath(absolute, bin_dir)) for absolute, _relative in _reader_source_paths(root)]
+
+
+def broad_catch_findings(root):
+    """The census over every bin/ script and every check_state/ package file, in name order."""
     findings = []
-    for name in sorted(os.listdir(bin_dir)) if os.path.isdir(bin_dir) else []:
-        if not name.endswith(".py"):
-            continue
-        rel = os.path.join(BIN_REL, name)
-        finding = _broad_catch_finding(rel, name, _broad_catch_count(os.path.join(bin_dir, name)))
+    for absolute, name in broad_catch_census_paths(root):
+        finding = _broad_catch_finding(os.path.join(BIN_REL, name), name, _broad_catch_count(absolute))
         if finding:
             findings.append(finding)
     return findings
 
 
 def feat62_findings(root):
-    """The three checker-structure rule families over check-state.py, then the posture scan."""
-    relative = CHECKER_REL
-    try:
-        tree = _checker_tree(root)
-    except (OSError, UnicodeDecodeError, SyntaxError) as error:
-        return [f"{relative}::<module> source_parse: {error}"]
-    findings = _module_body_findings(tree, relative)
-    findings.extend(_reparse_findings(tree, relative))
-    findings.extend(_reads_findings(tree, relative))
-    findings.extend(_authority_findings(tree, relative, root))
+    """The three checker-structure rule families over check-state.py and every check_state/
+    package file (FEAT-69), then the posture scan and the broad-catch census."""
+    trees, findings = _checker_trees(root)
+    if not trees:
+        return findings
+    for relative, tree in trees:
+        findings.extend(_module_body_findings(tree, relative))
+        findings.extend(_reparse_findings(tree, relative))
+    findings.extend(_reads_findings(trees))
+    findings.extend(_authority_findings(trees, root))
     findings.extend(_posture_findings(root))
     findings.extend(broad_catch_findings(root))
     return findings

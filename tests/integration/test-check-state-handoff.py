@@ -18,7 +18,8 @@ import subprocess
 import sys
 import shutil
 import tempfile
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, isolated_bin, run, _root_env)
+from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, check_state_mutant,
+                                 check_state_owner, isolated_bin, run, _root_env)
 
 
 def case_g():
@@ -145,7 +146,7 @@ def case_g():
 #
 # ON THE ASSERTION TEXT, and this is a deliberate divergence from the task wording.
 # The task says to assert "an INV-17 line". The shape message carries NO `INV-17`
-# token — check-state.py:1366 prints it as `  VIOLATION  <feat>: notes/<file> fails
+# token — check_state/seams.py (FEAT-69; was check-state.py:1366) prints it as `  VIOLATION  <feat>: notes/<file> fails
 # the shape (...)` — and the task ALSO says to report through the same bad.append
 # path with the SAME message shape. Adding the token to make the word "INV-17"
 # literally greppable would change the shape the task told me to preserve, so these
@@ -358,16 +359,13 @@ def _feat54_line_cap_case(outcomes):
 
 
 def _feat54_resolution_mutant(iso_root):
-    source = open(SCRIPT, encoding="utf-8").read()
     old = "handoff_done_when.problems(_rel_handoff, _text, root, resolve=False)"
     new = "handoff_done_when.problems(_rel_handoff, _text, root, resolve=True)"
+    owner = check_state_owner(old)            # FEAT-69: INV-17 lives in check_state/seams.py
+    source = open(owner, encoding="utf-8").read() if owner else ""
     if source.count(old) != 1:
         return None
-    mutant = os.path.join(isolated_bin(iso_root), ".check-state-feat54-resolve-mutant.sh")
-    with open(mutant, "w", encoding="utf-8") as file:
-        file.write(source.replace(old, new))
-    shutil.copymode(SCRIPT, mutant)
-    return mutant
+    return check_state_mutant(isolated_bin(iso_root), owner, source.replace(old, new))
 
 
 def _feat54_resolution_mutant_counts(mutant):
@@ -507,7 +505,8 @@ def case_t14_red():
     placed in the tmpdir dies on import and exits non-zero — a code indistinguishable
     from a real finding, which is a green-looking proof that measured nothing. FEAT-30
     Q3 and the FEAT-31 behind-gate proof were both this trap."""
-    src = open(SCRIPT).read()
+    owner = check_state_owner(T14_MARKER)     # FEAT-69: INV-17 lives in check_state/seams.py
+    src = open(owner).read() if owner else ""
     lines = src.splitlines(keepends=True)
     start = next((i for i, l in enumerate(lines) if T14_MARKER in l), None)
     if start is None:
@@ -524,11 +523,8 @@ def case_t14_red():
         return False
 
     iso_root = tempfile.mkdtemp()
-    mpath = os.path.join(isolated_bin(iso_root), ".mutant-check-state-t14.sh")
+    mpath = check_state_mutant(isolated_bin(iso_root), owner, mutant_text)
     try:
-        with open(mpath, "w") as f:
-            f.write(mutant_text)
-        shutil.copymode(SCRIPT, mpath)
         with tempfile.TemporaryDirectory() as tmp:
             bad_note = HANDOFF_GOOD.replace("## Dead ends\n", "## Not A Heading\n")
             _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": bad_note})
@@ -636,7 +632,8 @@ def case_t10_red():
     The mutant lives BESIDE the original for the reason case (t14-red) records: a copy
     in the fixture dir cannot import harness_yaml and dies with a code that looks like
     a finding."""
-    src = open(SCRIPT).read()
+    owner = check_state_owner(T10_MARKER)     # FEAT-69: INV-17 lives in check_state/seams.py
+    src = open(owner).read() if owner else ""
     lines = src.splitlines(keepends=True)
     start = next((i for i, l in enumerate(lines) if T10_MARKER in l), None)
     if start is None:
@@ -659,11 +656,8 @@ def case_t10_red():
         return False
 
     iso_root = tempfile.mkdtemp()
-    mpath = os.path.join(isolated_bin(iso_root), ".mutant-check-state-t10.sh")
+    mpath = check_state_mutant(isolated_bin(iso_root), owner, mutant_text)
     try:
-        with open(mpath, "w") as f:
-            f.write(mutant_text)
-        shutil.copymode(SCRIPT, mpath)
         with tempfile.TemporaryDirectory() as tmp:
             _handoff_fixture(tmp, "Building",
                              {"handoff-plan.md": _empty_section(HANDOFF_GOOD, "## next")})

@@ -20,7 +20,8 @@ import subprocess
 import sys
 import shutil
 import tempfile
-from check_state_support import (SCRIPT, isolated_bin, make_fixture, run, _HOOKS_REL_T,
+from check_state_support import (SCRIPT, check_state_mutant, check_state_owner, isolated_bin,
+                                 make_fixture, run, _HOOKS_REL_T,
     _root_env)
 
 
@@ -185,20 +186,19 @@ def _inv32_mutant_fixture_passes(doc, mutant):
 
 
 def _inv32_mutant_is_discriminating(missing):
-    source = open(SCRIPT, encoding="utf-8").read()
     begin = "# INV-32 BEGIN (FEAT-45 T-07)"
     end = "# INV-32 END (FEAT-45 T-07)"
+    owner = check_state_owner(begin)          # FEAT-69: the table row lives in check_state/table.py
+    source = open(owner, encoding="utf-8").read()
     iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(isolated_bin(iso_root), ".check-state-inv32-mutant.sh")
+    iso = isolated_bin(iso_root)
     try:
         assert begin in source and end in source
         left, rest = source.split(begin, 1)
         _region, right = rest.split(end, 1)
         changed = left + right
         assert changed != source
-        with open(mutant, "w") as file:
-            file.write(changed)
-        shutil.copymode(SCRIPT, mutant)
+        mutant = check_state_mutant(iso, owner, changed)
         sc04_refusal = _inv32_plan(
             finding=[{"id": "PF-sc04", "severity": "high", "disposition": "open"}]
         )
@@ -548,20 +548,19 @@ def case_inv32_era_guard_is_load_bearing():
     """Excise ONLY the era guard and the pre-era case must go red. Without this, an era
     guard that never runs is indistinguishable from one that does — the silent-zero shape
     this repository keeps finding."""
-    source = open(SCRIPT, encoding="utf-8").read()
     begin = "# INV-32 ERA BEGIN (BUG-1071)"
     end = "# INV-32 ERA END (BUG-1071)"
+    owner = check_state_owner(begin)          # FEAT-69: the era guard lives in check_state/plan.py
+    source = open(owner, encoding="utf-8").read() if owner else ""
     iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(isolated_bin(iso_root), ".check-state-inv32-era-mutant.sh")
+    iso = isolated_bin(iso_root)
     try:
         if begin not in source or end not in source:
             print("FAIL - INV-32 era guard markers absent; cannot mutate")
             return False
         left, rest = source.split(begin, 1)
         _region, right = rest.split(end, 1)
-        with open(mutant, "w") as file:
-            file.write(left + right)
-        shutil.copymode(SCRIPT, mutant)
+        mutant = check_state_mutant(iso, owner, left + right)
         pre_era = _inv32_plan(panel_marker=False, date="2026-08-30")
         _rc_real, real_out, _ = _inv32_run(pre_era, era="2026-08-31")
         _rc_mut, mut_out, mut_err = _inv32_run(pre_era, mutant, era="2026-08-31")

@@ -1,0 +1,204 @@
+schema: plan/1
+feature: FEAT-69-long-file-check-state-package
+approval:
+  date: '2026-09-28'
+  approved_by: operator
+  status: approved
+status: review
+mission: plan
+source_issues: []
+baseline:
+  sha: a726bad8
+  branch: feat/FEAT-69-long-file-check-state-package
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Reviewed scope, architecture, traceability, task ordering, and proof gates
+      against the grilling artifact.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Challenged unnecessary work and checked concrete consequences against the
+      drafted plan and repository surfaces.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: Self-scoped the internal enforcement-package refactor and found no end-user
+      interaction.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Graded the applied plan once against each perspective in the grilling artifact.
+  findings:
+  - id: PF-c2128122a0bb540f061d16fb1410fe65
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-04 passes post-receipt HEAD as the immutable implementation pin.
+    disposition: resolved
+  - id: PF-340baf59ff3499fe4a22647112179b9a
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-03's conditional CODEOWNERS extension to check_state/** builds an ownership rule the file explicitly and deliberately rejects
+    disposition: resolved
+  - id: PF-8df76c10f1a644c190f4873f2bcb3ccd
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-03's hard-coded ten-id fixture whitelist ('Regenerate only these moved-source identities') should not exist — the fixture has 22 live check-state.py ids in one flat rows array, and its owning test runs in T-02's verify
+    disposition: resolved
+  - id: PF-bc67c8325e2128cacd86013cfd559654
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's mutation matrix injecting a broad catch 'separately into every package file' builds ~12 mutants to exercise one glob code path
+    disposition: resolved
+    scope: task
+lanes:
+  resolved_at: 6508a183a91e47b552f6032f8f6b29ae7903a485
+  rows:
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: DEC-174 assigns check-state.py, check-plan-routes.py, their imported enforcement surfaces, and their scanners to direct main-session execution.
+  - surface: tests/**
+    lane: main-session-direct
+    reason: DEC-174 assigns each enforcement gate's owning tests to the same direct main-session execution.
+  - surface: .github/workflows/tests.yml
+    lane: main-session-direct
+    reason: The required integration gate is a compatibility consumer of the unchanged check-state.py entry.
+  - surface: .github/CODEOWNERS
+    lane: main-session-direct
+    reason: The existing explanatory comment records deliberate non-ownership of DEC-174 enforcement scripts; compatibility preserves that decision, with only an optional comment update to name the check_state package.
+  - surface: .omp/commands/harness.md
+    lane: main-session-direct
+    reason: Session entry must continue to fork the unchanged check-state.py path.
+  - surface: .harness/harness/features/FEAT-69-long-file-check-state-package/notes/**
+    lane: main-session-direct
+    reason: Immutable-pin receipts and their FEAT-68-derived scripts are inseparable from the direct enforcement refactor.
+decisions:
+  - id: D-01
+    choice: Split check-state.py into a thin hyphenated entry over an importable check_state package with ctx.py, table.py, runner.py, and the eight settled read-family modules; keep Ctx whole and use host.py for the repository-scope shelling family.
+    because: This keeps table discretion and the existing forked interface while making every invariant body's input ownership explicit without adding family entry points.
+    dec: none
+  - id: D-02
+    choice: Extend the FEAT-62 structural lock by parsing the entry and every check_state package file into one combined function table and walking calls transitively across module boundaries before applying the existing four rules and the new reads-family rule.
+    because: A per-module audit silently drops imported helper edges and makes declared reads pass vacuously for an undeclared spawn two helpers deep.
+    dec: none
+tasks:
+  - id: T-01
+    title: Split check-state into the settled package
+    traces:
+    - SC-01
+    - SC-03
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns check-state.py and its proof-bearing cutover directly to the main session.
+    depends_on: []
+    status: review
+    files:
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/check_state
+    verify: |
+      python3 -c 'import importlib.util,pathlib,sys; root=pathlib.Path("."); p=root/".claude/skills/harness/bin/code_grade.py"; s=importlib.util.spec_from_file_location("feat69_code_grade",p); m=importlib.util.module_from_spec(s); sys.modules[s.name]=m; s.loader.exec_module(m); pkg=root/".claude/skills/harness/bin/check_state"; expected={"__init__.py","ctx.py","table.py","runner.py","plan.py","feature_record.py","run_state.py","seams.py","brief.py","worktrees.py","board.py","host.py"}; assert {x.name for x in pkg.glob("*.py")}==expected; paths=[root/".claude/skills/harness/bin/check-state.py",*sorted(pkg.glob("*.py"))]; rows=[r for x in paths for r in m.grade_source(x.read_text(),str(x.relative_to(root)))]; bad=[(r.path,r.qualname,r.grade) for r in rows if r.grade<4]; assert rows and not bad,bad'
+    intent: |
+      Work only in the assigned FEAT-69 worktree. Use the grilling map at a726bad8 without re-deriving it: check-state.py is 5,058 lines; bootstrap is lines 1-118 with root = sys.argv[1] at line 96 as the bootstrap-end sentinel; class Ctx is lines 467-878; invariant bodies are lines 880-4563; INVARIANTS is lines 4599-4750; RETIRED is line 4754; runner logic is lines 4759-5058. The baseline code-grade record is 287 functions: 114 at grade 5, 169 at grade 4, two at grade 3, and two at grade 2. The only below-bar functions are _inv41_invocation at 2, _unquoted_hash_digit at 2, _quoted_scalar_closed at 3, and inv_49 at 3; improve those in the modules where they land while preserving observable behavior.
+
+      Keep check-state.py as the existing hyphenated forked entry and thin it to roughly 150 lines without introducing a file-length gate. Preserve bootstrap root resolution, argv shape, bin-on-sys.path behavior, process exit semantics, and the root = sys.argv[1] sentinel. Add importable check_state/__init__.py. Keep Ctx whole in ctx.py, including parse-once caches, seed findings, spawn boundary, path helpers, and shared context primitives. Put the exact baseline table and all row-selection discretion in table.py; it alone imports every family and owns INVARIANTS in the baseline's exact order. Put row selection, repo and feature passes, collation, reporting, and CLI dispatch behind runner.py. check-state.py never selects families. Family modules never import or know the runner and expose no per-family entry points.
+
+      Move invariant bodies and their private helpers by the settled declared-read ownership, with no omissions or extra families: plan.py owns INV-35/3/4/5/34/32/44; feature_record.py owns INV-1/2/6/7/8/12/18/22/23/33 and ledger INV-39/40/43/47 with collate_feat59; run_state.py owns INV-15/16/36/46; seams.py owns INV-17; brief.py owns INV-38/41/49 and the INV-38..41 helpers currently at lines 332-466; worktrees.py owns INV-25/27/29/31; board.py owns INV-13/21/24/26/28/30/37; host.py owns INV-19/42/45/48. Retain the accepted judgment placements INV-1/2 in feature_record.py and INV-27/31 in worktrees.py. Families export inv_NN(ctx[, feat]) returning the existing bad and warn shape; preserve the ledger collation shape.
+
+      Preserve every invariant's behavior, exact message text, severity, table and finding order, short-circuit, accumulator seeding, feature iteration, retired-number behavior, and return/exit shape. Move existing comments byte-for-byte with their code. Preserve all four load-bearing INV-32 markers: the era BEGIN/END comments at baseline lines 1380/1384 travel with INV-32 in plan.py, and the table-row BEGIN/END comments at baseline lines 4605/4610 travel with that row in table.py. Make no rename beyond what the package forces. Do not change plan-merge.py, validate-digest.py, check-domain.py, gh-sync.py, any unrelated long file, any message, any severity, any invariant order, or any navigation-family .get site.
+
+  - id: T-02
+    title: Make structural locks scanners and canonical audit package aware
+    traces: [SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns check-plan-routes.py, its owning integration test, and the check-skill-refs enforcement scanner directly to the main session.
+    depends_on: [T-01]
+    status: review
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/check-skill-refs.py
+      - tests/integration/test-check-plan-routes.py
+      - tests/unit/test-check-skill-refs.py
+      - tests/integration/canonical-reader-classification.json
+    verify: |
+      python3 tests/integration/test-check-plan-routes.py &&
+      python3 tests/unit/test-check-skill-refs.py
+    intent: |
+      Extend only the package-coupled FEAT-62 enforcement, both invariant-number scanners, and the canonical-reader identities affected by the package split; do not refactor check-plan-routes.py or any other long file. The baseline lock is check-plan-routes.py lines 1832-2330: CHECKER_REL at 1860, _module_functions at 1969, _inv_rows at 1992, _reachable at 2124, feat62_findings at 2299, and consolidation_findings at 2315. Its owning cases are test-check-plan-routes.py lines 2591-2923 and currently mutate a bin copy through _checker_path at 2547. Preserve those anchors' contracts while making the implementation package aware.
+
+      Implement settled option (a). Parse check-state.py and every check_state/*.py file and build one combined module-qualified function table. Resolve direct calls, imported family functions, ctx method calls, and helper-to-helper calls across those ASTs; perform one transitive walk so an undeclared file, git, or gh read and an undeclared spawn two helpers deep still reaches the row. Apply the existing four decomposition rules unchanged over the complete surface: module-body shape after the entry sentinel, no re-parse of runner-shared sources inside invariant bodies, transitive declared reads, and live unstruck authority. Keep posture behavior unchanged. Add the reads-family rule: each table row's run function must be defined in the family module named by that row's declared reads. Do not accept aliases or per-module checks that can pass after dropping an imported edge.
+
+      Apply FEAT-63's broad-catch ceiling of zero to check-state.py and every Python file under check_state, while leaving the unrelated harness_boundary.py allowance unchanged. Add a deterministic enumeration assertion that the ceiling scans the entry and the complete expected set of package Python files. Add only the weakest discriminating broad-catch mutants: one injected into the entry and one into a representative invariant-family module, with each rejected by its named finding. Do not add a per-file mutant matrix.
+
+      Expand the existing mutation harness so it copies the package with bin and mutates package files. Add discriminating cases for a clean package, a module-body violation in a package file, re-parsing in a moved invariant, a direct undeclared read, a cross-module undeclared helper read, a spawn two helpers deep, struck or missing authority, and a row whose function lives outside the family its reads name. Each mutant must fail for its own named finding, and both feat62_findings and consolidation_findings must return their unchanged clean-tree outputs.
+
+      Migrate both text scanners from the entry file to the package surface. check-plan-routes.py _live_invariant_numbers is at baseline lines 886-890; check-skill-refs.py uses CHECK_STATE_REL at line 32 and scans at lines 104-105 for INV-48. Each must read check-state.py plus check_state/*.py deterministically, deduplicate numbers, keep the same user-facing diagnostics, and retain the entry path in any wording that is part of the existing contract. Extend the exact owning tests so a number present only in a family module is live, a missing number remains missing, and duplicate textual citations do not create duplicate findings.
+
+      Before the owning test-check-plan-routes.py audit runs, re-key every canonical-reader fixture row whose source moved from check-state.py to its actual package file, changing its source-derived id and file while preserving artifact, category, disposition, route, remedy, exemption, reason, symbol, and ordinal. Replace the legacy check-state.py scanned_files entry with the actual entry and package source files scanned after the split. Derive the complete affected set from the live canonical-reader scan rather than a fixed count. The ten grilling-supplied identities remain anchored examples and must all be accounted for: station_of::harness_yaml_file#1, <module>::load_plan#1, <module>::json_string#1, <module>::json_file#1, <module>::harness_yaml_file#1, <module>::json_file#2, <module>::json_string#2, <module>::json_string#3, _handoff_exempt::harness_yaml_file#1, and <module>::harness_yaml_file#2. They include station_of and _handoff_exempt but are not the complete live set. The canonical reader audit must pass within T-02; do not defer fixture repair to a successor task.
+
+  - id: T-03
+    title: Migrate owning suites and entry consumers to the package
+    traces: [SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns the check-state gate's owning behavioral tests and compatibility consumers directly to the main session.
+    depends_on: [T-01, T-02]
+    status: review
+    files:
+    - tests/integration/check_state_support.py
+    - tests/integration/test-check-state*.py
+    - .github/workflows/tests.yml
+    - .github/CODEOWNERS
+    - .omp/commands/harness.md
+    - .claude/skills/harness/bin/layout_migration.py
+    - .claude/skills/harness/bin/layout_fixtures.py
+    verify: |
+      python3 tests/integration/test-check-state.py &&
+      python3 tests/integration/test-check-state-entry.py &&
+      python3 tests/integration/test-check-state-plans.py &&
+      python3 tests/integration/test-check-state-records.py &&
+      python3 tests/integration/test-check-state-handoff.py &&
+      python3 tests/integration/test-check-state-worktrees.py &&
+      python3 tests/integration/test-check-state-inv26.py &&
+      python3 tests/integration/test-check-state-feat59.py &&
+      python3 tests/integration/test-check-state-table.py
+    intent: |
+      Preserve the runner boundary established at tests/integration/check_state_support.py lines 24-26: SCRIPT and CHECK_STATE_BIN continue to resolve and fork the hyphenated check-state.py entry, and no suite imports it or a family module as its behavioral entry point. Exercise exactly the nine owning suites from the grilling facts: test-check-state.py, test-check-state-entry.py, test-check-state-plans.py, test-check-state-records.py, test-check-state-handoff.py, test-check-state-worktrees.py, test-check-state-inv26.py, test-check-state-feat59.py, and test-check-state-table.py.
+
+      Update every isolated or scratch bin to copy check-state.py together with the complete check_state package before running or mutating it. The exact baseline copy and patch sites are test-check-state-worktrees.py lines 149-157 and 285-315; test-check-state-records.py lines 192 and 555, which also mutates the four INV-32 markers formerly at check-state.py lines 1380/1384/4605/4610; test-check-state-handoff.py lines 366, 527, and 662, with its line-1366 emission-shape citation; and test-check-state-feat59.py lines 594-597, which patches at the harness_yaml.require_or_die() anchor. Retarget source mutations to the package file that now owns the exact text, make every copy include __init__.py and all family modules, and keep each mutation's original behavioral assertion. A missing source anchor or omitted package file must fail loudly rather than skip a mutant.
+
+      Preserve test-check-state-entry.py lines 383-477, which read check-state.py and check-domain.py as text for shared budget, CHECKPOINT, and handoff literals; move or update only the check-state source lookup needed to assert the same contract across entry plus package. Preserve test-check-state-table.py's exact --list expectations: INV-35 first, INV-44 last among active rows, INV-46 immediately after INV-15, retired rows last, every active row once, metadata unchanged, and sorted feature iteration.
+
+      Preserve external compatibility at the unchanged entry path: .github/workflows/tests.yml lines 276-311 continues to fork it, and .omp/commands/harness.md line 11 continues to use it at session entry. Preserve CODEOWNERS lines 32-43 as a deliberate non-ownership decision for DEC-174 enforcement scripts. Do not add an ownership pattern for check-state.py or check_state/**; update only the existing explanatory comment if it must name the new package. Preserve .agents/skills as the .claude/skills symlinked view. Do not add a compatibility shim, a second CLI, or a family entry point.
+
+  - id: T-04
+    title: Pin the implementation and commit reproducible byte identity receipts
+    traces: [SC-01, SC-02, SC-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable enforcement pin with the direct main-session change.
+    depends_on: [T-01, T-02, T-03]
+    status: review
+    files:
+    - .harness/harness/features/FEAT-69-long-file-check-state-package/notes
+    verify: |
+      python3 -c 'import re,subprocess; rel=".harness/harness/features/FEAT-69-long-file-check-state-package/notes/clean-pin-byte-receipts.generated.md"; receipt_commit=subprocess.check_output(["git","log","-1","--format=%H","HEAD","--",rel],text=True).strip(); assert receipt_commit,"receipt commit not found"; text=subprocess.check_output(["git","show",f"{receipt_commit}:{rel}"],text=True); pins=re.findall(r"(?m)^implementation_pin: ([0-9a-f]{40})$",text); assert len(pins)==1,pins; pin=pins[0]; assert pin!=receipt_commit,"receipt commit must postdate implementation pin"; subprocess.run(["git","merge-base","--is-ancestor",pin,receipt_commit],check=True); subprocess.run(["python3",".harness/harness/features/FEAT-69-long-file-check-state-package/notes/receipt-scripts/feat69-cleanpin.py",pin,"a726bad8"],check=True)'
+    intent: |
+      After T-01 through T-03 are committed, designate their exact full SHA as the immutable implementation pin before creating or committing any receipt script or receipt file. Under notes/receipt-scripts, adapt the FEAT-68 structure as feat69-baseline.py, feat69-cleanpin.py, and feat69-grade-assert.py; do not invent a second proof framework. The baseline and clean-pin scripts must create clean detached baseline and pin checkouts under .claude/worktrees/harness and assert both identities and empty status before measuring.
+
+      The baseline script must define every SC-02 measurement: full-table output over every feature, --list, the nine named check-state suites, clean-tree feat62_findings, and clean-tree consolidation_findings. The grade assertion is the SC-01 lock: it enumerates check-state.py plus every Python file in check_state, requires every function grade to be at least 4, explicitly requires _inv41_invocation, _unquoted_hash_digit, _quoted_scalar_closed, and inv_49 to be present, compares moved functions with baseline pre-images by function identity and grade, and grades genuinely new lock-walker or table-glue functions as new with no exemption. Running this pin assertion against baseline is the committed red-first proof; do not add a file-length ratchet or unrelated permanent grade gate.
+
+      Run each measurement exactly once per checkout and derive every reported byte, hash, diff, and verdict from that execution: one full-table check-state run over every feature; --list; all nine named check-state suites; clean-tree feat62_findings; clean-tree consolidation_findings; and code_grade over check-state.py plus every check_state package Python file. Capture exit status and raw stdout and stderr bytes and hashes. Before comparison, replace only each checkout's raw absolute root with one common token on both sides. Apply no other normalization. Require normalized exit status, stdout, and stderr identity for every SC-02 measurement. Record every remaining difference with its exact old and new bytes in build-divergences.md and leave the proof red unless the operator explicitly rules it; do not reinterpret behavior, message, severity, invariant-order, unrelated-file, or file-length differences as acceptable.
+
+      Run the pin's feat69-grade-assert.py in the clean pin checkout and the same assertion against baseline. The pin run must show every function on the full entry-plus-package surface at grade 4 or better and the baseline run must show the intended red, explicitly naming _inv41_invocation, _unquoted_hash_digit, _quoted_scalar_closed, and inv_49. Record moved-function pre-image identity and grade, and identify every genuinely new function separately.
+
+      Commit notes/receipt-scripts, red-first-receipts.md, clean-pin-byte-receipts.generated.md, the reviewed clean-pin-byte-receipts.md, and build-divergences.md only after the immutable implementation pin exists. The generated receipt must contain exactly one machine-readable line of the form implementation_pin: followed by the full 40-character SHA, and every other receipt must name that same full SHA. Each receipt names the full baseline and pin SHAs, detached checkout paths and clean status, exact commands, execution timestamps, one-execution provenance, exit statuses, raw and normalized hashes, comparison outcomes, grade records, and exact-byte divergence ledger. State explicitly that the receipt commit postdates the pin and does not claim any receipt or receipt script existed inside the pin it evaluates. The terminal verify resolves the pin from the committed generated receipt, proves that pin is a strict ancestor of the receipt commit, and passes the recorded pin to feat69-cleanpin.py rather than using post-receipt HEAD. Do not amend the implementation pin while writing proof; any implementation change creates a new pin and requires every measurement again.
+needs_approval: true
