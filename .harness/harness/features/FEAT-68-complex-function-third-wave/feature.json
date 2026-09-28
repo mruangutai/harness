@@ -264,6 +264,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "The operator authorized the fifth evidence-only round in A-6; fix c4 passed receipt-only at 6b4eeeb9, so continue under the raised 5-round/180-minute ruling to one final c5 five-reader panel."
+    },
+    {
+      "at": "2026-09-28T13:14:29.401822+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "DEC-182 budget (CI route gate, 162 > 50): the 102 deleted html anchors and the 30 untouched owning suites leave files; the deletion is asserted by verify, the suites are proof inputs named in the receipts."
     }
   ],
   "mission": "patch",
