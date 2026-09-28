@@ -418,7 +418,7 @@ def case_9_timeout_override_precedence():
               code == 6 and any("within 0.1s" in line for line in lines) and took < 2,
               (code, lines, took))
 
-        for bad in ("0", "-1", "soon", "nan"):
+        for bad in ("0", "-1", "soon", "nan", "inf", "1e999"):
             saved = os.environ.get(harness_merge.LOCK_TIMEOUT_ENV)
             os.environ[harness_merge.LOCK_TIMEOUT_ENV] = bad
             try:

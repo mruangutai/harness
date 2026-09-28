@@ -27,6 +27,7 @@ python3 stdlib only, no third-party imports, so this runs on any machine that ru
 import contextlib
 import errno
 import fcntl
+import math
 import os
 import tempfile
 import time
@@ -48,9 +49,11 @@ def _default_timeout():
     try:
         value = float(raw)
     except ValueError:
-        raise ValueError(f"{LOCK_TIMEOUT_ENV} must be a positive number, got {raw!r}") from None
-    if not value > 0:
-        raise ValueError(f"{LOCK_TIMEOUT_ENV} must be a positive number, got {raw!r}")
+        raise ValueError(f"{LOCK_TIMEOUT_ENV} must be a positive finite number, got {raw!r}") from None
+    # `inf` would make the deadline unreachable: the LOCKED refusal would never fire and every
+    # default-timeout acquire would hang on a stuck holder, so it is refused like zero.
+    if not (value > 0 and math.isfinite(value)):
+        raise ValueError(f"{LOCK_TIMEOUT_ENV} must be a positive finite number, got {raw!r}")
     return value
 
 

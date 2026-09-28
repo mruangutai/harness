@@ -45,32 +45,13 @@ def cpr():
 failures = []
 
 
-def run(*args, cwd=None, project_dir=None, script=None):
-    """Invoke the checker. `project_dir` sets the root override; None UNSETS it.
-
-    Unsetting is not cosmetic (case 19). Under a hook-invoked suite run the variable
-    IS set to the repo, at which point a wrong-directory test would pass through the
-    env var and prove nothing about the from-__file__ derivation it exists to check.
-
-    BOTH NAMES, SET AND UNSET TOGETHER (FEAT-42 T-13). The checker now resolves through
-    harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, while
-    the reverted sha-3952814 copy read HARNESS first and the host-owned name second. Clearing
-    only one leaves the other set by whatever invoked this suite, and case 19's whole point is
-    that NOTHING is set.
-    """
-    _OVERRIDES = ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")
-    env = {k: v for k, v in os.environ.items() if k not in _OVERRIDES}
-    if project_dir is not None:
-        for _k in _OVERRIDES:
-            env[_k] = project_dir
-    return subprocess.run(
-        [sys.executable, script or SCRIPT, *args],
-        cwd=cwd or REPO_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=60,
-        env=env,
-    )
+def run(*args):
+    """Invoke the checker CLI with both root-override variables UNSET, so it resolves the tree
+    from its own location rather than from whatever invoked this suite."""
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
+    return subprocess.run([sys.executable, SCRIPT, *args], cwd=REPO_ROOT, capture_output=True,
+                          text=True, timeout=60, env=env)
 
 
 def check(name, cond, detail=""):
