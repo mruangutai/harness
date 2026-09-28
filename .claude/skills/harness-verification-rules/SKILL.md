@@ -23,7 +23,9 @@ list. A gap between the two is a finding, not an oversight to quietly close.
 Read `test_matrix` and `test_kinds` from `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`; read `change_type` from each PLAN task.
 If `harness.json` is absent, **stop and say so** — do not invent a matrix.
 
-You may **add** a requirement the diff clearly warrants. You may never drop below the matrix.
+You may **add** a requirement the diff clearly warrants. You may never drop below the matrix:
+`validate-digest.py` refuses a `PASS` with `matrix_ok: true` whose `kinds:` does not report every
+`always` kind for the plan's tasks as `satisfied`; the `when:` kinds remain your call.
 
 **Presence is not satisfied by an unrelated existing test.** A new endpoint is not covered because a
 different endpoint has one. Find the test exercising *this* change, or the kind is missing.

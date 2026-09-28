@@ -360,7 +360,54 @@ def case_qa_unearned_fail():
         check("qa: FAIL with a failing suite is accepted", not any("no gate failed" in e for e in errs), str(errs))
 
 
+MATRIX_JSON = dict(HARNESS_JSON, test_matrix={
+    "logic": {"always": ["unit"]},
+    "cross_module": {"always": ["unit", "functional"]},
+    "docs": {"always": []},
+})
+
+
+def _plan_with(change_types):
+    tasks = "".join(
+        f"  - id: T-0{i+1}\n    title: t{i+1}\n    intent: do it\n    change_type: {ct}\n"
+        f"    execution_mode: team\n    status: {status}\n    files: [src/x.py]\n"
+        f"    verify: true\n    depends_on: []\n"
+        for i, (ct, status) in enumerate(change_types))
+    return f"schema: plan/1\nfeature: {FEAT}\napproval:\n  status: approved\ntasks:\n{tasks}"
+
+
+def case_matrix_floor():
+    v = _validator()
+    with tempfile.TemporaryDirectory() as td:
+        repo, fd, head, _ = _checkout(td)
+        _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(MATRIX_JSON))
+        cfg = _config(td)
+        _write(os.path.join(fd, "plan.yaml"), _plan_with([("logic", "done")]))
+        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: satisfied, cmd: true }]"), fd, cfg)
+        check("floor: the floor kind reported satisfied is accepted", not errs, str(errs))
+        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: missing, cmd: true }]"), fd, cfg)
+        check("floor: matrix_ok true with the floor kind missing is refused, naming it",
+              any("matrix floor requires unit" in e for e in errs), str(errs))
+        no_kinds = _qa("[]").replace("  kinds: []\n", "")
+        errs = _errors(v, "harness-qa", no_kinds, fd, cfg)
+        check("floor: matrix_ok true with kinds absent is refused as unverifiable",
+              any("kinds: is absent" in e and "unit" in e for e in errs), str(errs))
+        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: missing, cmd: true }]", "FAIL")
+                       .replace("matrix_ok: n/a", "matrix_ok: false").replace("suite: n/a", "suite: fail"), fd, cfg)
+        check("floor: a FAIL that reports the gap is not held to the floor",
+              not any("matrix floor" in e for e in errs), str(errs))
+        _write(os.path.join(fd, "plan.yaml"), _plan_with([("cross_module", "done")]))
+        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: satisfied, cmd: true }]"), fd, cfg)
+        check("floor: an excluded kind (functional, cmd null) never enters the floor",
+              not any("matrix floor" in e for e in errs), str(errs))
+        _write(os.path.join(fd, "plan.yaml"), _plan_with([("docs", "done"), ("logic", "todo")]))
+        errs = _errors(v, "harness-qa", _qa("[]"), fd, cfg)
+        check("floor: a docs task and an unstarted logic task impose no floor",
+              not any("matrix floor" in e or "kinds: is absent" in e for e in errs), str(errs))
+
+
 def main():
+    case_matrix_floor()
     case_human_commits()
     case_dirty_tree()
     case_qa_kinds()
