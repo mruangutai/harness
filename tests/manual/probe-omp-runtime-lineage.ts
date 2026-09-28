@@ -2,9 +2,16 @@ import { appendFileSync } from "node:fs";
 
 const OUT = process.env.OMP_LINEAGE_PROBE_OUT;
 
+type ProbeAgentIdentity = {
+	kind: "main" | "sub";
+	id: string;
+	name: string;
+	depth: number;
+	parentId?: string;
+};
+
 type ProbeContext = {
-	agentId?: string;
-	parentAgentId?: string;
+	agent: ProbeAgentIdentity;
 };
 
 type ToolEvent = {
@@ -20,8 +27,7 @@ export default function probe(pi: ProbeApi): void {
 		if (!OUT) return;
 		appendFileSync(OUT, JSON.stringify({
 			tool: event.toolName,
-			agentId: ctx.agentId,
-			parentAgentId: ctx.parentAgentId,
+			agent: ctx.agent,
 		}) + "\n");
 	});
 }

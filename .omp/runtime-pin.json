@@ -1,6 +1,6 @@
 {
-  "repository": "https://github.com/mruangutai/oh-my-pi.git",
-  "ref": "harness-runtime-lineage-v2",
-  "commit": "d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10",
-  "required_capability": "extension-context-runtime-lineage"
+  "repository": "https://github.com/can1357/oh-my-pi.git",
+  "ref": "v18.4.2",
+  "commit": "4620bb8338e0ecace7ea237da9d5088d16068617",
+  "required_capability": "extension-context-agent-identity"
 }

@@ -242,9 +242,16 @@ function runPolicy(
   return { blocked: false, stdout };
 }
 
+function runtimeLineage(ctx?: any): { agentId: string; parentAgentId: string } {
+  const agent = ctx?.agent && typeof ctx.agent === "object" ? ctx.agent as Dict : {};
+  return {
+    agentId: text(agent.id),
+    parentAgentId: text(agent.parentId),
+  };
+}
+
 function basePayload(agent: string, eventName: string, cwd: string, ctx?: any): Dict {
-  const agentId = text(ctx?.agentId);
-  const parentAgentId = text(ctx?.parentAgentId);
+  const { agentId, parentAgentId } = runtimeLineage(ctx);
   return {
     agent_type: agent,
     hook_event_name: eventName,
@@ -919,8 +926,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const detectedFeature = detectMarker(event.systemPrompt, FEATURE_MARKER, "feature");
     const detectedPin = detectMarker(event.systemPrompt, REVIEW_PIN_MARKER, "review pin");
     const detectedMission = detectMarker(event.systemPrompt, MISSION_MARKER, "mission");
-    runtimeAgentId = text(ctx.agentId);
-    runtimeParentAgentId = text(ctx.parentAgentId);
+    ({ agentId: runtimeAgentId, parentAgentId: runtimeParentAgentId } = runtimeLineage(ctx));
     sessionCwd = text(ctx.cwd) || sessionCwd;
     if (detected) currentAgent = detected;
     if (detectedPin) currentReviewPin = detectedPin;
@@ -1007,7 +1013,14 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
     const agentId = runtimeAgentId;
     const parentAgentId = runtimeParentAgentId;
-    const runtimeCtx = { ...ctx, agentId, parentAgentId };
+    const runtimeCtx = {
+      ...ctx,
+      agent: {
+        ...(ctx.agent && typeof ctx.agent === "object" ? ctx.agent : {}),
+        id: agentId,
+        ...(parentAgentId ? { parentId: parentAgentId } : {}),
+      },
+    };
     const mutates = ["write", "edit", "bash"].includes(toolName);
     sessionCwd = text(ctx.cwd) || sessionCwd;
     if (toolName === "task" && !agentId) {
@@ -1111,7 +1124,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
           const receipt = parseClaimReceipt(result.stdout);
           if (receipt) {
             receipts.push(receipt);
-            const parentAgentId = text(ctx.agentId);
+            const parentAgentId = agentId;
             if (parentAgentId) {
               const args = [
                 "attach",
@@ -1184,8 +1197,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const toolName = text(event.toolName);
     const ompMainTask = !currentAgent
       && toolName === "task"
-      && text(ctx.agentId) === "Main"
-      && !text(ctx.parentAgentId);
+      && runtimeAgentId === "Main"
+      && !runtimeParentAgentId;
     if (!currentAgent && !ompMainTask) return;
     const policyAgent = currentAgent || "Main";
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
