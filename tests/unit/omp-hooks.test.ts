@@ -91,6 +91,15 @@ describe("yieldContractText", () => {
     expect(yieldContractText({}, "VERDICT: PASS")).toBe("VERDICT: PASS");
   });
 
+  // #1960: the canonical return yields the fenced digest as a string under `data`. It used to
+  // fall through to JSON.stringify, so the validator got one physical line with literal `\n`
+  // and no line-start anchor matched — every canonical return rejected six times.
+  test("passes string yield data through as the digest text", () => {
+    const digest = "```yaml\nVERDICT: PASS\nDIGEST:\n  headline: x\nartifact: a.md\n```\n";
+    expect(yieldContractText({ type: null, data: digest })).toBe(digest);
+    expect(yieldContractText({ type: null, data: "" }, "VERDICT: PASS")).toBe("VERDICT: PASS");
+  });
+
   test("rewrites an empty yield to explicit last-turn data", () => {
     expect(normalizeYieldInput({ result: {} }, "VERDICT: PASS")).toEqual({
       result: { data: { content: "VERDICT: PASS" } },
