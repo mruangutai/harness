@@ -22,9 +22,22 @@ MEASUREMENTS = [("full_table", [sys.executable, os.path.join(BIN, "check-state.p
                 ("feat62_findings", [sys.executable, "-c", FEAT62]),
                 ("consolidation_findings", [sys.executable, os.path.join(BIN, "check-plan-routes.py"), "--consolidation-audit"])]
 
-res = {}
+# The full-table run is measured over every feature EXCEPT this feature's own record (amendment 2):
+# FEAT-69's directory exists only at the pin, and the checker reporting on it (INV-32 resolved notes,
+# INV-8's gitignored run dir) is the checker working, not the split. Both checkouts are copied to a
+# scratch tree with that one directory removed, so both sides grade the same feature set; the
+# scratch root is what the checkout-root normalisation then replaces. Every other measurement runs
+# in the checkout itself.
+OWN_RECORD = os.path.join(".harness", "harness", "features", "FEAT-69-long-file-check-state-package")
+import shutil, tempfile
+scratch = os.path.join(tempfile.mkdtemp(prefix="feat69-fulltable-"), os.path.basename(os.path.abspath(root)))
+shutil.copytree(root, scratch, symlinks=True, ignore=shutil.ignore_patterns(".git", "__pycache__", "worktrees"))
+shutil.rmtree(os.path.join(scratch, OWN_RECORD), ignore_errors=True)
+
+res = {"full_table_scratch_root": scratch, "full_table_excludes": OWN_RECORD}
 for name, argv in MEASUREMENTS:
-    p = subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800)
+    cwd = scratch if name == "full_table" else root
+    p = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=1800)
     res[name] = {"argv": argv, "exit": p.returncode, "stdout": p.stdout, "stderr": p.stderr,
                  "stdout_sha": hashlib.sha1(p.stdout.encode()).hexdigest(),
                  "stderr_sha": hashlib.sha1(p.stderr.encode()).hexdigest()}
@@ -43,4 +56,5 @@ for f in files:
 res["code_grade"] = {"files": [os.path.relpath(f, root) if os.path.isabs(f) else f for f in files], "functions": grades}
 print(f"code_grade: {len(grades)} function(s) over {len(files)} file(s); below bar 4: "
       f"{[(g['qualname'], g['grade']) for g in grades if g['grade'] < 4]}")
+shutil.rmtree(os.path.dirname(scratch), ignore_errors=True)
 json.dump(res, open(out, "w"))
