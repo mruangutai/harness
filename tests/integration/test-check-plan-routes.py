@@ -1557,7 +1557,11 @@ def _case_27_unreadable(directory):
 
 
 def case_27():
-    """(27) Routes use the owner manifest that the write hook will consult."""
+    """(27) FEAT-43 T-09 / SC-16: routes use the owner manifest that the write hook will consult.
+
+    A branch-local manifest change once produced a false OK at plan time and a rejected write
+    at build; case_27b re-runs that prior validator to prove it. plan-merge.py `check` reaches
+    the same resolution through `resolution_manifest`."""
     with tempfile.TemporaryDirectory() as directory:
         _case_27_owner_manifest(directory)
     with tempfile.TemporaryDirectory() as directory:
