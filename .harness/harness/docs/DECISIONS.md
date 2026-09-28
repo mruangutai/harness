@@ -2809,7 +2809,10 @@ verdict. `harness-code-risk-grading` is cited, not edited. Dropped from the same
 **Corrected 2026-09-28 (probe P59).** The unearned-FAIL refusal contradicted SC-17: a green suite
 with an empty `fail_first` is told to "return FAIL", and the refusal then rejected that FAIL — qa had
 no truthful return and escalated, the DEC-173 shape exactly. The refusal now requires `fail_first`
-to be non-empty; an empty one beside a green suite is itself the failed gate.
+to be non-empty; an empty one beside a green suite is itself the failed gate. **Known residual:** the
+exemption keys on empty-versus-non-empty, while SC-17 demands evidence per automated SC; two automated
+SCs with evidence for one and a green suite is a FAIL the validator still refuses. Closing it needs
+per-SC counting against BRIEF, which no check does yet.
 
 ---
 
@@ -4736,10 +4739,25 @@ plain agent without it, asked a question against the 7,800-line `DECISIONS.md`, 
 index and read ranged slices; neither read the file whole. A rule the default behaviour already
 satisfies is weight with no return. The four rules the same round found load-bearing — placeholder
 refusal, verify-vs-plan cross-check, UNRESOLVED-root refusal, test-first order — stay as written.
-Round 2 (two fixtures each, the second an 11-file diff with an omitted BRIEF decision): the
-reviewer's "read BRIEF and plan, then the diff" ordering and qa's revert-run-capture-restore
-procedure were performed by every arm, skill or not; both cut, keeping the spec pointer and the
-capture-file requirement the validator can check.
+Round 2 (two fixtures each, the second an 11-file diff with an omitted BRIEF decision): qa's
+revert-run-capture-restore procedure was performed by every arm, skill or not, and the controls
+were the more thorough on both fixtures; cut, keeping the capture-file requirement the validator
+can check. The reviewer's "BRIEF and decisions before the diff" was probed the same way and
+performed by every arm — and is **kept**: the probe's predicate (read order) proxies the rule's
+benefit (anchoring resistance), both fixtures handed the spec over salient so the order was forced,
+and the row was pre-registered as a weak discriminator. A null result the fixture design guarantees
+is not evidence. Reduced to one imperative with its reason.
+
+**What the round actually measured (second opinion, fable-advisor).** The variable that separates
+kept from cut is not contract-versus-procedure: test-first order is pure procedure and probed
+load-bearing; "an open question does not block" is verdict semantics and probed redundant. The
+load-bearing rules each demand something the helpfulness default opposes — refuse, block, invert
+the natural order. Rules aligned with the default probe redundant whatever their form. Applying
+this to unprobed rules: a rule born from a recorded incident keeps or gets an adversarial probe (a
+fixture where the procedure opposes the path of least resistance); a rule born speculatively may
+be cut on judgement, behind the observation logs. Two probes on one model tier and small fixtures
+bound nothing statistically; P4's cut rests on a mechanical fact as much as the probe — the `read`
+tool paginates whole-file reads — and that is the durable reason.
 
 ---
 
