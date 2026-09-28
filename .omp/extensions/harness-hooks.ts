@@ -143,6 +143,7 @@ export function yieldContractText(result: unknown, fallback = ""): string {
   const wrapper = result as Dict;
   if (Object.keys(wrapper).length === 0) return fallback;
   const data = wrapper.data;
+  if (typeof data === "string") return data || fallback;
   if (data && typeof data === "object" && !Array.isArray(data)) {
     const content = (data as Dict).content;
     if (typeof content === "string") return content || fallback;

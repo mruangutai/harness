@@ -83,6 +83,12 @@ describe("yieldContractText", () => {
     expect(yieldContractText({ data: { content: "VERDICT: PASS" } })).toBe("VERDICT: PASS");
   });
 
+  test("passes string data through as multi-line digest text (#1960)", () => {
+    const digest = "VERDICT: PASS\nDIGEST:\n  headline: x\nartifact: a.md\n";
+    expect(yieldContractText({ type: null, data: digest })).toBe(digest);
+    expect(yieldContractText({ type: null, data: "" }, "VERDICT: FAIL")).toBe("VERDICT: FAIL");
+  });
+
   test("renders a structured digest for the validator", () => {
     const rendered = yieldContractText({
       data: {
