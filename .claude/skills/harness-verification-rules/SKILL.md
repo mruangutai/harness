@@ -56,8 +56,9 @@ a file path.
 ## Audit test-first compliance
 
 Beyond presence: for each behavioural change in the diff, confirm a test covers it, and where git history
-shows the order, confirm the test came **first**. Report violations as findings — they do not by
-themselves fail the gate.
+shows the order, confirm the test came **first**. Report violations in your artifact and
+`coverage_gaps` — they never fail the gate by themselves; `validate-digest.py` refuses a `FAIL`
+whose suite, matrix and failure count are all green.
 
 **Fail-first evidence is a gate, not an audit note (FEAT-59 SC-17).** For every SC marked
 `verify: automated`, your digest names the test and the evidence that it **failed before the fix** —

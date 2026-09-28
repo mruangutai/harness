@@ -43,8 +43,9 @@ return the gap rather than guess.
    the LITERAL DISPATCH PROMPT: the doer receives it and nothing else about the task. Detail that
    only JUSTIFIES the instruction belongs in `notes/`.
 3. **A `verify:` command** with the expected result: under 60 seconds, unambiguous pass/fail, no
-   human interpretation. If nothing automated is possible:
-   `verify: MANUAL — <what must be built first to make this automatable>`.
+   human interpretation. If nothing automated is possible, write
+   `verify: MANUAL — <what must be built first to make this automatable>` (em dash) — while the plan
+   is `pending`, `harness_yaml.load_plan` refuses any other unautomatable-looking `verify:` shape.
 4. **`traces:`** — the `SC-NN` ids this task serves, as a list. No citable criterion means out of
    scope or an incomplete brief; an SC nothing traces to is an orphan the `scope` reader hunts.
    `D-NN` goes in `decisions:`, not here.

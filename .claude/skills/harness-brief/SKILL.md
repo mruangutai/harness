@@ -48,9 +48,10 @@ process — a heavier lane, a broader criterion, a hedge perspective.
 ## The feature id — you coin it, once
 
 `FEAT-NN-<kebab-slug>` for features, **`BUG-NN-<kebab-slug>` for defects** (independent number
-sequences, same rules, same root `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/`). Slug
-from the destination, 2–4 words — a bare number tells the user nothing (DEC-133). **Immutable once
-created**: recorded references break on rename.
+sequences, same rules, same root `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/`) —
+`check-domain` refuses a first write into a feature directory whose name doesn't match this
+shape. Slug from the destination, 2–4 words — a bare number tells the user nothing (DEC-133).
+**Immutable once created**: recorded references break on rename.
 
 ## Problem — first, always
 
@@ -87,9 +88,9 @@ with `cmd: null` has **no runner**: qa soft-skips it, so an SC resting on it is 
 never fails loudly.
 
 1. **Never rest an SC on a null kind.** Pin it to a kind that exists, or use `inspection`/`uat`.
-2. **Record the gap where the user signs.** If a null kind covers a surface this feature touches,
-   the BRIEF names, one line per gap, what is therefore NOT proven and what carries it instead. A
-   standing runner gap is a **dev-ops task worth raising** — backlog it too (DEC-163).
+2. **Record the gap where the user signs.** `check-state.py` INV-49 flags an SC resting on a kind
+   with no runner, or `verify: manual`, that `## Verification gaps` leaves unnamed (DEC-163). A
+   standing runner gap is a **dev-ops task worth raising** — backlog it too.
 
 ## Constraints
 

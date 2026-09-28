@@ -25,8 +25,9 @@ artifact: <path to what you wrote>
 ```
 ````
 
-**The ```` ```yaml ```` fence is part of the return** — emit both fences; only the fenced block is
-parsed (DEC-172).
+**Wrap the return in a ```` ```yaml ```` fence** (DEC-172). The parser reads the last `VERDICT:`
+block whether or not it is fenced — the host renders a structured yield unfenced — so the fence is
+for readers and for keeping prose out of the block, not a gate.
 
 | VERDICT | Means |
 |---|---|

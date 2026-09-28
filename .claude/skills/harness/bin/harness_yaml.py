@@ -18,6 +18,7 @@ state (PLAN.md T-03).
 """
 import json
 import os
+import re
 import sys
 
 try:
@@ -297,6 +298,77 @@ REQUIRED_TASK_FIELDS = ("id", "title", "change_type", "execution_mode", "files",
 LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
 
 
+# --- Runnable verify: shape (row 86 / harness-spec-driven ~L52-53) ----------------
+# The skill's only instruction for a task with nothing automatable is to write
+# `verify: MANUAL \u2014 <what must be built>` (em dash). Nothing enforced that: a task
+# could write `verify: TBD` or `verify: by inspection` and load clean, which is DEC-100's
+# fail-open shape for the ONE field the runner treats as gospel (`intent:`'s neighbour,
+# same paragraph above).
+#
+# CHECKED ONLY WHILE `approval.status` IS `pending` (row 86's runtime probe). Once a plan
+# is signed its verify: text is carried verbatim by contract (BUG-124) and CANNOT be
+# edited without a reset back to pending — re-validating an APPROVED historical plan
+# would retroactively fail shipped work: surveyed at this commit, 43 of 607 verify:
+# blocks across 99 shipped plan.yaml files open with `#`, `for`, `!`, `gh`, `bun` or
+# `shasum`, none of which this rule's allowlist recognises. A plan still `pending` is the
+# one place the shape can still be fixed for free, before signature freezes the text.
+#
+# "RUNNABLE" IS READ FROM THE CORPUS, NOT INVENTED. Surveyed every verify: first line
+# across every shipped plan.yaml: real automated blocks either name a path/script
+# (contains `/`, or ends `.py`/`.sh`), open with a shell-preamble assignment
+# (`NAME=...`, matching every observed `R="$(git ...)"`, `out=$(...)`, `idx=$(mktemp)`),
+# or open with one of a small set of bare commands this corpus actually uses to start a
+# script (`cd`, `set`, `python3`, `bash`, `git`, `grep`, `test`, `diff`, plus the POSIX
+# no-op commands `true`/`false`, both real binaries and a legitimate one-line
+# always-pass/always-fail fixture verify:). Applied against the 12 tasks in this tree's
+# four currently-pending plans, the rule below rejects none of them — the allowlist is
+# exactly wide enough for what pending work already writes.
+_MANUAL_VERIFY_RE = re.compile(r"^MANUAL \u2014 ")  # em dash, exactly — a hyphen is not this
+_VERIFY_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_VERIFY_BARE_COMMANDS = ("cd", "set", "python3", "bash", "git", "grep", "test", "diff",
+                         "true", "false")
+
+
+def _looks_runnable(first_line):
+    """True if `first_line` opens an invocation rather than prose (row 86): a path/script,
+    a shell-preamble assignment (`R="$(git ...)"`), or one of the corpus's bare commands."""
+    token = first_line.split()[0] if first_line.split() else ""
+    if not token:
+        return False
+    if "/" in token or token.endswith(".py") or token.endswith(".sh"):
+        return True
+    if _VERIFY_ASSIGNMENT_RE.match(token):
+        return True
+    return token.rstrip(":") in _VERIFY_BARE_COMMANDS
+
+
+def _verify_shape_finding(t):
+    """Row 86's finding for one task's verify: field, or None when it is MANUAL em-dash
+    prose or the start of a runnable command — split out of `_validate_plan_verify_shape`
+    so the caller is a plain loop and the message is built in exactly one place."""
+    if not isinstance(t, dict) or not isinstance(t.get("verify"), str):
+        return None  # a bare `true`/`false` is a YAML boolean, legal before this rule
+    first_line = t["verify"].strip().split("\n", 1)[0].strip()
+    if _MANUAL_VERIFY_RE.match(first_line) or _looks_runnable(first_line):
+        return None
+    return (f"tasks[] ({t.get('id') or 'no id'}) verify: {first_line[:60]!r} is neither "
+            "runnable nor manual — accepted forms are `MANUAL \u2014 <what must be built>` "
+            "(em dash) or a command/path invocation")
+
+
+def _validate_plan_verify_shape(doc, tasks, path):
+    """Row 86: a `pending` plan's task `verify:` must be MANUAL em-dash prose or the start
+    of a runnable command. Gated on `approval.status == "pending"` — see the block comment
+    above `_VERIFY_BARE_COMMANDS` for why an approved plan is never re-checked here."""
+    approval = doc.get("approval")
+    if not isinstance(approval, dict) or approval.get("status") != "pending":
+        return
+    for t in tasks:
+        finding = _verify_shape_finding(t)
+        if finding is not None:
+            raise PlanSchemaError(path, finding)
+
+
 
 
 def validate_plan_doc(doc, path):
@@ -320,6 +392,7 @@ def validate_plan_doc(doc, path):
         raise PlanSchemaError(path, "`tasks:` is missing or not a list")
     _validate_station_only(doc, tasks, path)
     _validate_plan_tasks(tasks, path)
+    _validate_plan_verify_shape(doc, tasks, path)
     _validate_plan_depends_on(tasks, path)
     return doc
 

@@ -85,16 +85,17 @@ def _checkout(td, human_messages=()):
     return repo, feature_dir, head, humans
 
 
-def _review(head, verdict="PASS", human=None):
+def _review(head, verdict="PASS", human=None, findings="[]", code_grade="n_a", reasons="[]"):
     human_line = "" if human is None else f"  human_commits_in_scope: {human}\n"
     return f"""VERDICT: {verdict}
 DIGEST:
   headline: reviewer result
   severity_max: low
-  findings: []
+  findings: {findings}
   must_fix: []
-  code_grade: n_a
+  code_grade: {code_grade}
   reviewed: "origin/main..{head}"
+  grade_2_reasons: {reasons}
 {human_line}  files_touched: []
   open_questions: []
   expertise_update: []
@@ -211,10 +212,157 @@ def case_qa_kinds():
               any("does not declare" in e for e in errs), str(errs))
 
 
+def _dev(verdict="PASS", tv="pass", task="T-01", artifact="notes/receipt-harness-backend-dev-T-01.md"):
+    return f"""VERDICT: {verdict}
+DIGEST:
+  headline: dev result
+  tests_added: 1
+  suite: pass
+  blocked_on: none
+  task: {task}
+  task_verify: {tv}
+  files_touched: [src/x.py]
+  open_questions: []
+  expertise_update: []
+artifact: .harness/harness/features/{FEAT}/{artifact}
+"""
+
+
+def _write(path, body):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as fh:
+        fh.write(body)
+
+
+PLAN = f"""schema: plan/1
+feature: {FEAT}
+approval:
+  status: approved
+tasks:
+  - id: T-01
+    title: do it
+    intent: do it
+    execution_mode: team
+    change_type: production
+    files: [src/x.py]
+    verify: python3 tests/unit/test-x.py --strict
+    depends_on: []
+"""
+
+GRADE_2_PY = "def moderate(a, b, c, d):\n" + "".join(
+    f"    if a == {i}:\n        return {i}\n" for i in range(6)) + "    return b if c else d\n"
+
+
+def case_receipt():
+    v = _validator()
+    with tempfile.TemporaryDirectory() as td:
+        repo, fd, head, _ = _checkout(td)
+        cfg = _config(td)
+        _write(os.path.join(fd, "plan.yaml"), PLAN)
+        errs = _errors(v, "harness-backend-dev", _dev(), fd, cfg)
+        check("receipt: task_verify pass with no receipt on disk is refused",
+              any("not on disk" in e for e in errs), str(errs))
+        receipt = os.path.join(fd, "notes", "receipt-harness-backend-dev-T-01.md")
+        _write(receipt, "ran: python3 tests/unit/test-x.py\nok\n")
+        errs = _errors(v, "harness-backend-dev", _dev(), fd, cfg)
+        check("receipt: a receipt without the verbatim verify command is refused",
+              any("verbatim" in e for e in errs), str(errs))
+        _write(receipt, "$ python3 tests/unit/test-x.py --strict\n3 passed\n")
+        errs = _errors(v, "harness-backend-dev", _dev(), fd, cfg)
+        check("receipt: the verbatim command in the receipt is accepted", not errs, str(errs))
+        errs = _errors(v, "harness-backend-dev", _dev(verdict="BLOCKED", tv="n/a"), fd, cfg)
+        check("receipt: a non-pass return is not held to the receipt",
+              not any("receipt" in e for e in errs), str(errs))
+
+
+def case_inspection_citations():
+    v = _validator()
+    with tempfile.TemporaryDirectory() as td:
+        repo, fd, head, _ = _checkout(td)
+        cfg = _config(td)
+        _write(os.path.join(fd, "BRIEF.md"), "## Success criteria\n\n- SC-01: the doc says so\n"
+               "  verify: inspection\n- SC-02: tests pass\n  verify: automated\n"
+               "- SC-03: the config is shaped\n  verify: inspection\n")
+        review = os.path.join(fd, "notes", "review.md")
+        _write(review, "# review\nSC-01 satisfied: docs/notes.md:1\nSC-02 by the suite.\n")
+        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        check("inspection: an inspection SC with no file:line citation is refused, named",
+              any("SC-03" in e and "file:line" in e and "SC-01" not in e.split("cites")[0].split("marks")[1] for e in errs), str(errs))
+        _write(review, "# review\nSC-01 satisfied: docs/notes.md:1\nSC-03 holds, see .harness/harness.json:4\n")
+        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        check("inspection: every inspection SC cited is accepted", not errs, str(errs))
+        os.remove(review)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        check("inspection: an unreadable artifact is not this check's finding",
+              not any("file:line" in e for e in errs), str(errs))
+
+
+def case_findings_order():
+    v = _validator()
+    with tempfile.TemporaryDirectory() as td:
+        repo, fd, head, _ = _checkout(td)
+        cfg = _config(td)
+        unranked = "[{ kind: form, severity: low, summary: a }, { kind: substance, severity: high, summary: b }]"
+        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]", findings=unranked), fd, cfg)
+        check("ranking: low before high is refused", any("not ranked" in e for e in errs), str(errs))
+        ranked = "[{ kind: substance, severity: high, summary: b }, { kind: form, severity: low, summary: a }]"
+        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]", findings=ranked), fd, cfg)
+        check("ranking: high before low is accepted", not any("not ranked" in e for e in errs), str(errs))
+
+
+def case_grade_2_names():
+    v = _validator()
+    with tempfile.TemporaryDirectory() as td:
+        repo = os.path.join(td, "repo")
+        os.makedirs(os.path.join(repo, ".harness"))
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "t@example.com")
+        _git(repo, "config", "user.name", "t")
+        _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(HARNESS_JSON))
+        _write(os.path.join(repo, ".harness", "team-config.yaml"), "agents: {}\n")
+        base = _commit(repo, "readme.txt", "a\n", "A")
+        _git(repo, "update-ref", "refs/remotes/origin/main", base)
+        _git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+        _write(os.path.join(repo, "src", "mod.py"), GRADE_2_PY)
+        head = _commit(repo, "head.txt", "b\n", "head")
+        fd = os.path.join(repo, ".harness", "harness", "features", FEAT)
+        os.makedirs(os.path.join(fd, "notes"))
+        _write(os.path.join(fd, "feature.json"), json.dumps({"feature_id": FEAT, "review_sha": head}))
+        cfg = _config(td)
+        probe = _errors(v, "harness-code-reviewer", _review(head, human="[]", code_grade="grade_2",
+                                                          reasons="[moderate is a dispatch table]"), fd, cfg)
+        if any("disagrees with the mechanical result" in e for e in probe):
+            check("grade2: fixture grades 2 (skipped: fixture graded otherwise)", True, str(probe))
+            return
+        check("grade2: a reason naming the function is accepted", not probe, str(probe))
+        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]", code_grade="grade_2",
+                                                         reasons="[it is fine really]"), fd, cfg)
+        check("grade2: a reason naming no graded function is refused, naming it",
+              any("names none of: moderate" in e for e in errs), str(errs))
+
+
+def case_qa_unearned_fail():
+    v = _validator()
+    with tempfile.TemporaryDirectory() as td:
+        repo, fd, head, _ = _checkout(td)
+        cfg = _config(td)
+        green_fail = _qa("[]", "PASS").replace("VERDICT: PASS", "VERDICT: FAIL")
+        errs = _errors(v, "harness-qa", green_fail, fd, cfg)
+        check("qa: FAIL with every gate green is refused", any("no gate failed" in e for e in errs), str(errs))
+        real_fail = green_fail.replace("failures: 0", "failures: 2").replace("suite: pass", "suite: fail")
+        errs = _errors(v, "harness-qa", real_fail, fd, cfg)
+        check("qa: FAIL with a failing suite is accepted", not any("no gate failed" in e for e in errs), str(errs))
+
+
 def main():
     case_human_commits()
     case_dirty_tree()
     case_qa_kinds()
+    case_receipt()
+    case_inspection_citations()
+    case_findings_order()
+    case_grade_2_names()
+    case_qa_unearned_fail()
     failed = 0
     for name, ok, detail in RESULTS:
         print(("PASS  " if ok else "FAIL  ") + name)

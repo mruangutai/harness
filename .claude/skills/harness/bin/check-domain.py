@@ -852,6 +852,122 @@ def claim_checkout_guard(destination):
     sys.exit(2)
 
 
+# ---------------------------------------------------------------------------
+# ROW 5 (shadowless-P triage) — the observations log has exactly one writer.
+#
+# harness-expertise/SKILL.md :28-31 says "Do NOT Read-then-Write the log" (issue #606):
+# two contexts of one agent, each reading and rewriting the whole file, erase each
+# other's bullets. observations-merge.py is the one route that merges under a lock and
+# replaces atomically (DEC-145). A governed agent's own Write/Edit IS that read-then-
+# write shape -- it never goes through the merge tool. Bash is untouched here: that is
+# observations-merge.py's own route and bash-write-guard.py's question, not this one's.
+# ---------------------------------------------------------------------------
+_OBSERVATIONS_LOG_RE = re.compile(r"^\.harness/[^/]+/features/[^/]+/observations/[^/]+\.md$")
+
+
+def observations_log_guard(rel, agent_name):
+    if _tool not in ("Write", "Edit"):
+        return
+    if not _OBSERVATIONS_LOG_RE.match(rel):
+        return
+    print(f"check-domain: BLOCKED — {agent_name} may not {_tool} {rel} directly.",
+          file=sys.stderr)
+    print("  The observations log has exactly one writer: observations-merge.py, "
+          "invoked via Bash, which merges under a lock and replaces atomically. A "
+          "whole-file Write/Edit races a concurrent context's own append and erases "
+          "it (issue #606).", file=sys.stderr)
+    print("  Append instead: python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/"
+          f"harness/bin/observations-merge.py apply --file {rel} --entries -",
+          file=sys.stderr)
+    sys.exit(2)
+
+
+# ---------------------------------------------------------------------------
+# ROWS 85/102 (shadowless-P triage) — a PLAN.md-era feature is never CONVERTED to
+# plan.yaml.
+#
+# DEC-182: "existing plans are never rewritten or converted ... the reader stays".
+# PLAN.md is edited IN PLACE (harness-spec-driven SKILL.md :24, pm agent :39) -- the
+# converse of that is the one write this rule forbids: introducing a plan.yaml BESIDE
+# a shipped PLAN.md. check-plan-routes.py already refuses a feature carrying both at
+# plan-check time; this stops it landing at all. Placed ahead of the later "plan.yaml
+# has exactly one writer" route denial so the accurate reason is given first; every
+# OTHER plan.yaml write still falls through to that denial unchanged.
+# ---------------------------------------------------------------------------
+_PLAN_YAML_ROUTE_RE = re.compile(r"^(\.harness/[^/]+/features/[^/]+)/plan\.yaml$")
+
+
+def legacy_plan_conversion_guard(rel, agent_name):
+    if _tool not in ("Write", "Edit"):
+        return
+    m = _PLAN_YAML_ROUTE_RE.match(rel)
+    if not m:
+        return
+    feature_dir = m.group(1)
+    try:
+        if os.path.exists(_claimed_abs(target)):
+            return  # plan.yaml already exists -- not a conversion, the generic route denial applies
+        if not os.path.isfile(os.path.join(root, feature_dir, "PLAN.md")):
+            return
+    except OSError as exc:
+        print(f"check-domain: could not read {feature_dir} ({exc!r}) — no conversion "
+              "denial applied.", file=sys.stderr)
+        return
+    print(f"check-domain: BLOCKED — {agent_name} may not create {rel}.", file=sys.stderr)
+    print(f"  {feature_dir}/PLAN.md already ships this feature's plan. DEC-182: existing "
+          "plans are never rewritten or converted -- PLAN.md is edited in place "
+          "(pm agent :39), and its reader stays permanent (harness-spec-driven "
+          "SKILL.md).", file=sys.stderr)
+    print(f"  Edit {feature_dir}/PLAN.md directly instead of introducing a plan.yaml "
+          "beside it.", file=sys.stderr)
+    sys.exit(2)
+
+
+# ---------------------------------------------------------------------------
+# ROW 94 (shadowless-P triage) — the feature id is coined once, in the shape
+# dispatch-guard.py already enforces at spawn.
+#
+# harness-brief SKILL.md :48-53 says "you coin it, once": FEAT-NN-<kebab-slug> or
+# BUG-NN-<kebab-slug>. Nothing checked the SHAPE of the directory a first write
+# actually creates. `_FEATURE_ID_RE` is copied verbatim from dispatch-guard.py's
+# `FEATURE_RE` (~line 198) rather than imported, so this hook never depends on that
+# file's own bootstrap; test-check-domain-grant.py asserts the two literals stay equal.
+# "First write" only: an already-existing directory is grandfathered, the same
+# creation-only posture `_state_yaml_version_floor` uses above for schema_version.
+#
+# A DIRECT CHILD ONLY, not any depth. The naming-establishing writes are the top-level
+# artifacts a feature ever gets (BRIEF.md, PLAN.md, plan.yaml, DESIGN.md, STATE.md,
+# feature.json) -- everything nested (runs/**, observations/**, notes/**) is written well
+# after the directory already exists in every real workflow, and the existing state.yaml
+# fixtures fire straight into `runs/*/state.yaml` with no BRIEF.md ever written first, so
+# matching any depth denied those first-write state-shape cases for an unrelated reason.
+# ---------------------------------------------------------------------------
+_FEATURE_ID_RE = re.compile(r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+")
+_FEATURE_DIR_RE = re.compile(r"^(\.harness/[^/]+/features/([^/]+))/[^/]+$")
+
+
+def feature_dir_name_guard(rel, agent_name):
+    m = _FEATURE_DIR_RE.match(rel)
+    if not m:
+        return
+    feature_dir, name = m.group(1), m.group(2)
+    if _FEATURE_ID_RE.fullmatch(name):
+        return
+    try:
+        if os.path.isdir(os.path.join(root, feature_dir)):
+            return  # not the first write -- an existing directory is grandfathered
+    except OSError as exc:
+        print(f"check-domain: could not read {feature_dir} ({exc!r}) — no feature-dir "
+              "name denial applied.", file=sys.stderr)
+        return
+    print(f"check-domain: BLOCKED — {agent_name} may not create {rel}.", file=sys.stderr)
+    print(f"  {feature_dir} is not a valid feature id. harness-brief coins it once, as "
+          "FEAT-NN-<kebab-slug> or BUG-NN-<kebab-slug> (2-4 word slug).", file=sys.stderr)
+    print("  Route this through harness-brief instead of writing a feature directory "
+          "directly.", file=sys.stderr)
+    sys.exit(2)
+
+
 def domain_check():
     # T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
     # literal text `name:`/`path:` line by line, so it never had to close a bracket or
@@ -1015,6 +1131,9 @@ def _allow_verdict(verdict):
     feature_checkout_guard(verdict["rel"], target)
     claim_checkout_guard(_claimed_abs(target))
     approval_guard(verdict["rel"], agent)
+    observations_log_guard(verdict["rel"], agent)
+    legacy_plan_conversion_guard(verdict["rel"], agent)
+    feature_dir_name_guard(verdict["rel"], agent)
 
 
 def _shared_verdict(verdict):

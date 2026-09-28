@@ -26,9 +26,9 @@ Mid-run you only *observe*; distillation happens later, cold (DEC-145).
 ## Mid-run: append an observation
 
 APPEND what you learn to your observations log — one dated bullet, as granular as you like; it is
-never injected, so detail is free. **Do not Read-then-Write the log** — two contexts of one agent
-each writing the whole file erase each other's bullets (issue #606). Append through the merge
-tool, which merges under a lock and replaces atomically:
+never injected, so detail is free. **Do not Read-then-Write the log** — `check-domain` blocks a
+whole-file Write/Edit to it (issue #606). Append through the merge tool, which merges under a lock
+and replaces atomically:
 
 ```bash
 python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/observations-merge.py apply \

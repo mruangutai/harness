@@ -1,6 +1,6 @@
 ---
 name: harness-craft
-description: The engineering principles index — one line per principle, grouped by the seat that acts on it, each pointing at a leaf under references/ read in full when it applies. Loaded by the five engineering specialists, eng-lead, pm, code-reviewer and qa. Adapted from Lauren Tan's pstack principles (MIT).
+description: The engineering principles index — one line per principle, grouped by the seat that acts on it, each pointing at a leaf under references/ read in full when it applies. Preloaded by the five engineering specialists, pm, code-reviewer and qa; eng-lead reads it by path at dispatch. Adapted from Lauren Tan's pstack principles (MIT).
 user-invocable: false
 ---
 
@@ -15,9 +15,10 @@ leaf in full before applying it**, and read only the leaves that name you, or th
 In your artifact, under a heading `## Principles applied`, name each principle that shaped a
 decision and the specific choice it changed — one line per principle. Cite only a leaf you read
 this run. A citation the reviewer cannot check is decoration: **Build the Lever** counts only when
-the diff carries the script, codemod or generator; a test kept under **Test Behavior** counts only
-when it would fail if every function it imports returned nothing (`harness-code-review` § Absence,
-subject and mutant). The heading is part of the artifact, never a digest key.
+the diff carries the script, codemod or generator; **Delete First** counts only when the diff's
+removals precede its additions. A rule that lives in a preloaded skill rather than a leaf — the
+undefined-return test in `harness-code-review`, the reader-load axes in `harness-codebase-design` —
+is cited by that skill's name, never as a principle. The heading is part of the artifact, never a digest key.
 
 ## Principles
 

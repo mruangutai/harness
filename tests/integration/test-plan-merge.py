@@ -1362,7 +1362,7 @@ def case_high1_apply_cannot_mint_the_station_only_marker():
                     "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
                     "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
                     "    execution_mode: main-session-direct\n    status: done\n"
-                    "    files: [a.py]\n    verify: run it\n    intent: do it\n")
+                    "    files: [a.py]\n    verify: true\n    intent: do it\n")
         before = read(plan)
         prop = os.path.join(root, "prop.yaml")
         write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\nstation_only: true\ntasks: []\n")
@@ -1837,7 +1837,7 @@ def _schema_valid_plan():
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [a.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: done\n"
     )
@@ -1886,7 +1886,7 @@ def case_amend_n1_adjacent_comment_and_blank_survive():
                     "  - id: T-01\n    title: first\n"
                     "    # NOTE: a load-bearing comment BETWEEN two fields\n"
                     "\n"
-                    "    verify: run it\n    status: ready\n")
+                    "    verify: true\n    status: ready\n")
         sha, _ = _sha_of(plan, "tasks", "T-01", "title")
         val = os.path.join(root, "v.txt")
         write(val, "renamed\n")
@@ -1897,7 +1897,7 @@ def case_amend_n1_adjacent_comment_and_blank_survive():
               f"rc={r.returncode} {r.stderr[:200]!r}")
         check("N1: the comment BETWEEN fields survives", "load-bearing comment" in after, after)
         check("N1: the blank line between fields survives",
-              "\n\n    verify: run it" in after, repr(after))
+              "\n\n    verify: true" in after, repr(after))
         check("N1: and the new value landed", "title: renamed" in after, after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -2152,7 +2152,7 @@ def _bug201_base_plan():
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [a.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: done\n"
         "    depends_on: []\n"
@@ -2161,7 +2161,7 @@ def _bug201_base_plan():
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [b.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: done\n"
         "    depends_on: [T-01]\n"
@@ -2182,7 +2182,7 @@ def _bug201_proposal(depends_on_target):
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [c.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: pending\n"
         f"    depends_on: [{depends_on_target}]\n"
@@ -2486,7 +2486,7 @@ def _delete_dangling_plan(legal=True):
     for tid, dep in (("T-01", "[]"), ("T-02", "[T-01]"), ("T-03", "[]")):
         body += (f"  - id: {tid}\n    title: task {tid}\n    change_type: logic\n"
                  f"    execution_mode: main-session-direct\n    files: [{tid}.py]\n"
-                 f"    verify: run it\n    intent: do it\n    status: done\n"
+                 f"    verify: true\n    intent: do it\n    status: done\n"
                  f"    depends_on: {dep}\n")
     return ("schema: plan/1\nfeature: FEAT-99-fixture\nstatus: plan\n"
             "approval:\n  status: pending\ntasks:\n" + body)
@@ -2939,7 +2939,7 @@ def _check_task(tid, files_yaml, agent="harness-backend-dev", mode="team", trace
     agent_line = f"    execution_agent: {agent}\n" if agent else ""
     return (f"  - id: {tid}\n    title: t\n    change_type: logic\n"
             f"    execution_mode: {mode}\n{agent_line}    traces: {traces}\n"
-            f"    files:\n{files_yaml}    verify: run it\n    intent: do it\n")
+            f"    files:\n{files_yaml}    verify: true\n    intent: do it\n")
 
 
 def case_f59_check_passes_on_every_anchor_form():
