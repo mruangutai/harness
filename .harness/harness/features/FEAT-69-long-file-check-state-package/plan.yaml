@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-69-long-file-check-state-package
 approval:
-  status: pending
+  date: '2026-09-28'
+  approved_by: operator
+  status: approved
 status: plan
 mission: plan
 source_issues: []

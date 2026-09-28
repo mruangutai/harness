@@ -27,5 +27,16 @@
       "reason": "cause known and diff bounded, but a new importable surface (the package) and an enforcement change (the lock in check-plan-routes.py) \u2014 third test of the patch rule fails."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 480,
+    "decision": ".harness/harness/features/FEAT-69-long-file-check-state-package/notes/rework-ruling-2026-09-28.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a2a256fac137c81aa446d24797491b51800c82292557f3c64a4749a116b7c64e",
+    "T-02": "e23e251643c15e7ee022dcbe5ce903fe345e860e934d7003bcedd2f4b76821b4",
+    "T-03": "771c4e5546361054f9970d7ba962ae1b81ded099f84b800f7444ac37a444551e",
+    "T-04": "3dfca63ca78cf31c0c0f587b84d96ade5b0ce01291004c142d872d01bc57b6a4"
+  }
 }
