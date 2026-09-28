@@ -2,9 +2,9 @@
 """Manual installation probe for Harness's pinned OMP runtime.
 
 This is intentionally not a CI gate: it launches the installed ``omp`` binary and makes a live
-model call. Run it after installing or changing the pinned downstream OMP build. It fails rather
-than skips when OMP is absent, Main has no runtime identity, the probe extension is not inherited
-by the child, or the child's Write/Edit/Bash callbacks lack exact parent lineage.
+model call. Run it after installing or changing the pinned OMP build. It fails rather than skips
+when OMP is absent, Main has no official ``ctx.agent`` identity, the probe extension is not
+inherited by the child, or the child's Write/Edit/Bash callbacks lack exact parent lineage.
 """
 
 from __future__ import annotations
@@ -100,22 +100,36 @@ def run_probe(omp: str, workdir: Path) -> tuple[subprocess.CompletedProcess[str]
     return proc, out, marker
 
 
+def agent_identity(row: dict[str, object]) -> dict[str, object]:
+    agent = row.get("agent")
+    return agent if isinstance(agent, dict) else {}
+
+
 def verify_parent(rows: list[dict[str, object]]) -> None:
     parent_tasks = [row for row in rows if row.get("tool") == "task"]
     carries_main = any(
-        row.get("agentId") == "Main" and not row.get("parentAgentId")
+        agent_identity(row) == {
+            "kind": "main", "id": "Main", "name": "main", "depth": 0,
+        }
         for row in parent_tasks
     )
-    check("case3: Main task callback carries the authenticated Main identity",
+    check("case3: Main task callback carries the official authenticated identity",
           carries_main, parent_tasks)
 
 
 def verify_child(rows: list[dict[str, object]], marker: Path) -> None:
-    child_rows = [row for row in rows if row.get("parentAgentId") == "Main"]
-    child_ids = {str(row.get("agentId") or "") for row in child_rows} - {""}
+    child_rows = [
+        row for row in rows
+        if agent_identity(row).get("parentId") == "Main"
+    ]
+    child_ids = {str(agent_identity(row).get("id") or "") for row in child_rows} - {""}
+    child_identities = {json.dumps(agent_identity(row), sort_keys=True) for row in child_rows}
     child_tools = {str(row.get("tool") or "").lower() for row in child_rows}
-    check("case4: one child identity is bound to Main",
-          len(child_ids) == 1, {"child_ids": sorted(child_ids), "rows": child_rows})
+    check("case4: one official child identity is bound to Main",
+          len(child_ids) == 1 and len(child_identities) == 1
+          and all(agent_identity(row).get("kind") == "sub" for row in child_rows)
+          and all(agent_identity(row).get("depth") == 1 for row in child_rows),
+          {"child_ids": sorted(child_ids), "identities": sorted(child_identities)})
     check("case5: the inherited extension observes child Write, Edit, and Bash callbacks",
           {"write", "edit", "bash"}.issubset(child_tools), sorted(child_tools))
     check("case6: the child removed its marker through Bash", not marker.exists(), str(marker))

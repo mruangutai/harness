@@ -23,6 +23,20 @@ import {
   yieldContractText,
 } from "../../.omp/extensions/harness-hooks.ts";
 
+function ompContext(cwd: string, id: string, parentId?: string, sessionId = `session-${id}`) {
+  return {
+    cwd,
+    agent: {
+      kind: parentId ? "sub" : "main",
+      id,
+      name: id === "Main" ? "main" : "task",
+      depth: parentId ? 1 : 0,
+      ...(parentId ? { parentId } : {}),
+    },
+    sessionManager: { getSessionId: () => sessionId },
+  };
+}
+
 describe("detectHarnessAgent", () => {
   test("finds the canonical machine-readable marker", () => {
     expect(detectHarnessAgent([
@@ -353,12 +367,9 @@ describe("OMP task lifecycle adapter", () => {
 
   async function start(
     handlers: Map<string, Function>,
-    ctx: Record<string, unknown> = {
-      cwd: "/repo",
-      agentId: "LeadOne",
-      parentAgentId: "OrchestratorOne",
-      sessionManager: { getSessionId: () => "parent-session" },
-    },
+    ctx: Record<string, unknown> = ompContext(
+      "/repo", "LeadOne", "OrchestratorOne", "parent-session",
+    ),
     agent = "harness-eng-lead",
   ) {
     await handlers.get("before_agent_start")?.({
@@ -375,12 +386,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("injects context through the native Python hook", async () => {
     const { handlers, calls } = fixture();
-    const ctx = {
-      cwd: "/repo",
-      agentId: "LeadOne",
-      parentAgentId: "OrchestratorOne",
-      sessionManager: { getSessionId: () => "parent-session" },
-    };
+    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
     const result = await handlers.get("before_agent_start")?.({
       prompt: "HARNESS-FEATURE: FEAT-43-long-run\nlead it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
@@ -426,7 +432,12 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     const partialCtx = {
       cwd: "/repo",
-      agentId: "OrchestratorOne",
+      agent: {
+        kind: "sub",
+        id: "OrchestratorOne",
+        name: "orchestrator",
+        depth: 1,
+      },
       sessionManager: { getSessionId: () => "orchestrator-session" },
     };
     await start(handlers, partialCtx, "harness-orchestrator");
@@ -443,11 +454,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("claims and authorizes the Main-to-orchestrator runtime edge", async () => {
     const { handlers, calls, runner } = fixture();
-    const mainCtx = {
-      cwd: "/repo",
-      agentId: "Main",
-      sessionManager: { getSessionId: () => "main-session" },
-    };
+    const mainCtx = ompContext("/repo", "Main", undefined, "main-session");
     await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx);
     const dispatched = await handlers.get("tool_call")?.({
       toolName: "task",
@@ -474,12 +481,7 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
     }, runner);
-    const childCtx = {
-      cwd: "/repo",
-      agentId: "OrchestratorOne",
-      parentAgentId: "Main",
-      sessionManager: { getSessionId: () => "orchestrator-session" },
-    };
+    const childCtx = ompContext("/repo", "OrchestratorOne", "Main", "orchestrator-session");
     await start(childHandlers, childCtx, "harness-orchestrator");
     expect(await childHandlers.get("tool_call")?.({
       toolName: "write",
@@ -495,12 +497,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("a named child binds at run start and inherits write and Bash policy", async () => {
     const { handlers, calls, runner } = fixture();
-    const parentCtx = {
-      cwd: "/repo",
-      agentId: "LeadOne",
-      parentAgentId: "OrchestratorOne",
-      sessionManager: { getSessionId: () => "lead-session" },
-    };
+    const parentCtx = ompContext("/repo", "LeadOne", "OrchestratorOne", "lead-session");
     await start(handlers, parentCtx);
     const dispatched = await handlers.get("tool_call")?.({
       toolName: "task",
@@ -524,12 +521,7 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
     }, runner);
-    const childCtx = {
-      cwd: "/repo",
-      agentId: "BackendOne",
-      parentAgentId: "LeadOne",
-      sessionManager: { getSessionId: () => "child-session" },
-    };
+    const childCtx = ompContext("/repo", "BackendOne", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
 
     const beforeWrite = calls.length;
@@ -570,12 +562,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("blocks a sibling lineage and isolates a nested child's edit claim", async () => {
     const { handlers, runner } = fixture();
-    const parentCtx = {
-      cwd: "/repo",
-      agentId: "LeadOne",
-      parentAgentId: "OrchestratorOne",
-      sessionManager: { getSessionId: () => "lead-session" },
-    };
+    const parentCtx = ompContext("/repo", "LeadOne", "OrchestratorOne", "lead-session");
     await start(handlers, parentCtx);
     await handlers.get("tool_call")?.({
       toolName: "task",
@@ -592,12 +579,7 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
     }, runner);
-    const childCtx = {
-      cwd: "/repo",
-      agentId: "BackendOne",
-      parentAgentId: "LeadOne",
-      sessionManager: { getSessionId: () => "child-session" },
-    };
+    const childCtx = ompContext("/repo", "BackendOne", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
     await childHandlers.get("tool_call")?.({
       toolName: "task",
@@ -614,12 +596,7 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { goodHandlers.set(name, handler); },
       events: { on: () => () => {} },
     }, runner);
-    const goodCtx = {
-      cwd: "/repo",
-      agentId: "DataOne",
-      parentAgentId: "BackendOne",
-      sessionManager: { getSessionId: () => "grandchild-session" },
-    };
+    const goodCtx = ompContext("/repo", "DataOne", "BackendOne", "grandchild-session");
     await start(goodHandlers, goodCtx, "harness-data-engineer");
     expect(await goodHandlers.get("tool_call")?.({
       toolName: "edit",
@@ -632,12 +609,7 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { siblingHandlers.set(name, handler); },
       events: { on: () => () => {} },
     }, runner);
-    const siblingCtx = {
-      cwd: "/repo",
-      agentId: "DataOne",
-      parentAgentId: "LeadOne",
-      sessionManager: { getSessionId: () => "sibling-session" },
-    };
+    const siblingCtx = ompContext("/repo", "DataOne", "LeadOne", "sibling-session");
     await start(siblingHandlers, siblingCtx, "harness-data-engineer");
     const blocked = await siblingHandlers.get("tool_call")?.({
       toolName: "edit",
@@ -655,12 +627,7 @@ describe("OMP task lifecycle adapter", () => {
       on(name: string, handler: Function) { childHandlers.set(name, handler); },
       events: { on: () => () => {} },
     }, runner);
-    const childCtx = {
-      cwd: "/repo",
-      agentId: "AuthorizeError",
-      parentAgentId: "LeadOne",
-      sessionManager: { getSessionId: () => "child-session" },
-    };
+    const childCtx = ompContext("/repo", "AuthorizeError", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
     expect(await childHandlers.get("tool_call")?.({
       toolName: "write",
@@ -803,7 +770,7 @@ describe("OMP task lifecycle adapter", () => {
   test("releases settled blocking results before the parent resumes", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
     const input = {
       context: "shared",
       tasks: [
@@ -828,7 +795,7 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     expect(calls.filter((call) =>
       call.script === "inflight_registry.py" && call.args[0] === "attach"
-    )).toHaveLength(0);
+    )).toHaveLength(2);
     expect(await handlers.get("tool_call")?.({
       toolName: "yield", input: { data: { content: "VERDICT: PASS" } },
     }, ctx)).toBeUndefined();
@@ -839,10 +806,7 @@ describe("OMP task lifecycle adapter", () => {
   // later user turn is not a source.
   test("forwards the assignment's HARNESS-REVIEW-PIN to the digest validator", async () => {
     const { handlers, calls } = fixture();
-    const ctx = {
-      cwd: "/repo", agentId: "Lead.Child", parentAgentId: "Lead",
-      sessionManager: { getSessionId: () => "parent-session" },
-    };
+    const ctx = ompContext("/repo", "Lead.Child", "Lead", "parent-session");
     await handlers.get("before_agent_start")?.({
       prompt: "HARNESS-FEATURE: FEAT-43-long-run\nreview it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-code-reviewer"],
@@ -878,10 +842,7 @@ describe("OMP task lifecycle adapter", () => {
   // gate fields are pinned to their did-nothing spelling rather than fabricated.
   test("forwards the assignment's HARNESS-MISSION to the digest validator", async () => {
     const { handlers, calls } = fixture();
-    const ctx = {
-      cwd: "/repo", agentId: "Lead.Child", parentAgentId: "Lead",
-      sessionManager: { getSessionId: () => "parent-session" },
-    };
+    const ctx = ompContext("/repo", "Lead.Child", "Lead", "parent-session");
     await handlers.get("before_agent_start")?.({
       prompt: "HARNESS-FEATURE: FEAT-61-consolidation\ndistill your log",
       systemPrompt: ["HARNESS_AGENT_ID: harness-qa"],
@@ -1821,12 +1782,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   }
 
   function ctxFor(root: string, agentId: string, parentAgentId?: string) {
-    return {
-      cwd: root,
-      agentId,
-      ...(parentAgentId ? { parentAgentId } : {}),
-      sessionManager: { getSessionId: () => `session-${agentId}` },
-    };
+    return ompContext(root, agentId, parentAgentId);
   }
 
   async function begin(

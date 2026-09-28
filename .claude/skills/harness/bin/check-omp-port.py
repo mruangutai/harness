@@ -59,12 +59,12 @@ def runtime_pin_errors(root: Path) -> list[str]:
     requirements = (
         (re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit") or "")) is not None,
          ".omp/runtime-pin.json commit must be a 40-character Git commit"),
-        (str(pin.get("repository") or "").endswith("/oh-my-pi.git"),
-         ".omp/runtime-pin.json repository must identify the downstream OMP fork"),
-        (str(pin.get("ref") or "").startswith("harness-runtime-lineage-"),
-         ".omp/runtime-pin.json ref must identify an immutable Harness lineage tag"),
-        (pin.get("required_capability") == "extension-context-runtime-lineage",
-         ".omp/runtime-pin.json must require extension-context-runtime-lineage"),
+        (pin.get("repository") == "https://github.com/can1357/oh-my-pi.git",
+         ".omp/runtime-pin.json repository must identify the official upstream OMP repository"),
+        (re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", str(pin.get("ref") or "")) is not None,
+         ".omp/runtime-pin.json ref must identify an immutable upstream OMP release tag"),
+        (pin.get("required_capability") == "extension-context-agent-identity",
+         ".omp/runtime-pin.json must require extension-context-agent-identity"),
     )
     return [message for satisfied, message in requirements if not satisfied]
 
