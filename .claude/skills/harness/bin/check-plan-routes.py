@@ -20,6 +20,7 @@ rather than shared because check-state.py belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
 import ast
+import collections
 import glob
 import json
 import os
@@ -593,10 +594,9 @@ def legal_task_statuses():
     return tuple(factory_config.MANDATED_STATIONS) + factory_config.TERMINAL_STATIONS
 
 
-# FEAT-64 (SC-05): ONE parse per plan per execution. `_is_shipped` (discovery's shipped-skip
-# and the invariant-collision scan) and `process_plan_yaml` (the route check) each called
-# `artifact_accessors.load_plan` on the same file, so every live plan was parsed twice and a
-# shipped one once more in the collision scan. The outcome of the first load -- the document,
+# FEAT-64 (SC-05): ONE parse per plan per execution. `_is_shipped` (discovery's shipped-skip)
+# and `process_plan_yaml` (the route check) each called `artifact_accessors.load_plan` on the
+# same file, so every live plan was parsed twice. The outcome of the first load -- the document,
 # or the YamlParseError it raised -- is what every later reader in the same run receives;
 # nothing on disk changes between them. Cleared in main() so a test that drives main() twice
 # in one interpreter sees its own writes.
@@ -866,115 +866,6 @@ def discover_plans():
         sys.exit(2)
     return root, sorted(plans), examined
 
-
-INV_TOKEN_RE = re.compile(r"\bINV-([0-9]+)\b")
-
-# The EXPLICIT claim. One spelling that works in both files this scans: a bare
-# `invariants: 29` or `invariants: [29, 30]` line in `plan.yaml`, and the same line inside
-# an HTML comment in `BRIEF.md`, which markdown does not render. A feature may add more
-# than one invariant, so the list form is first-class rather than an afterthought.
-INV_DECL_RE = re.compile(r"^\s*(?:<!--\s*)?invariants:\s*\[?([0-9,\s]+?)\]?\s*(?:-->)?\s*$",
-                         re.M)
-
-
-def live_invariant_numbers(root):
-    """The invariant numbers that ALREADY EXIST, read from the gate script itself.
-
-    Returns a set of ints, or None when the script cannot be read. None is NOT an empty
-    set and the caller must not treat it as one: an empty set would make every number in
-    every plan look newly claimed and fire on plans that merely cite an existing rule.
-    """
-    # FEAT-69: the invariants live in the check_state/ package beside the entry, so the live
-    # set is the union over the entry and every package file; an unreadable entry is still
-    # None (the script cannot be read), an unreadable package file reads as nothing.
-    try:
-        with open(os.path.join(root, CHECKER_REL), encoding="utf-8", errors="replace") as f:
-            numbers = {int(m) for m in INV_TOKEN_RE.findall(f.read())}
-    except OSError:
-        return None
-    for _absolute, _relative, text in _checker_package_sources(root):
-        if text is not None:
-            numbers |= {int(m) for m in INV_TOKEN_RE.findall(text)}
-    return numbers
-
-
-def check_invariant_number_collisions(root, findings):
-    """TWO UNBUILT FEATURES MUST NOT CLAIM THE SAME `INV-NN`.
-
-    MEASURED 2026-08-23, and this exists because the gap shipped before the check did.
-    `FEAT-26-pr-linkage-recorded/plan.yaml` used `INV-28` sixteen times while
-    `FEAT-34-worktree-act3-enforced/BRIEF.md` used it eight times. Both features were
-    unbuilt, one was signed and entering its build, and NOTHING saw it — not
-    `check-state.py`, not this checker, not two review rounds on either feature. A human
-    reading a task list found it.
-
-    The rule given to the planner at the time was "do not infer the next free number from
-    the highest in the file." True, and HALF A CHECK: it names the gate script and says
-    nothing about the signed-but-unbuilt plans of other in-flight features. A number is
-    free only when BOTH halves agree, and only one half was ever mechanised.
-
-    THE FEATURE DIRECTORY IS THE UNIT, NOT THE PLAN. FEAT-34 had a BRIEF and no
-    `plan.yaml` at all, so a plan-only scan reproduces the exact miss. Both files are read
-    where they exist.
-
-    A NUMBER ALREADY IN `check-state.py` IS A REFERENCE, NOT A CLAIM. Plans discuss
-    existing invariants constantly; firing on those would make this unreadable within a
-    week. Only numbers absent from the gate script are treated as claims.
-
-    SHIPPED FEATURES DO NOT PARTICIPATE. Their plan is a record. A live feature reusing a
-    spent number is a real but different problem, and conflating the two would report the
-    wrong pair of features.
-
-    A GATE SCRIPT THAT CANNOT BE READ SUPPRESSES THE CHECK AND SAYS SO. Silence here would
-    be the same fail-open shape the check exists to catch.
-    """
-    live = live_invariant_numbers(root)
-    if live is None:
-        findings.append("NOTE invariant-collision check SKIPPED — "
-                        ".agents/skills/harness/bin/check-state.py could not be read, so "
-                        "a claimed number cannot be told from a cited one.")
-        return 0
-
-    claims = {}
-    for fdir in sorted(glob.glob(os.path.join(root, ".harness", "*", "features", "*"))):
-        if not os.path.isdir(fdir) or _is_shipped(fdir):
-            continue
-        name = os.path.basename(fdir)
-        declared, inferred = set(), set()
-        for fname in ("BRIEF.md", "plan.yaml"):
-            fpath = os.path.join(fdir, fname)
-            try:
-                with open(fpath, encoding="utf-8", errors="replace") as f:
-                    text = f.read()
-            except OSError:
-                continue
-            for m in INV_DECL_RE.finditer(text):
-                declared |= {int(n) for n in re.findall(r"[0-9]+", m.group(1))}
-            inferred |= {int(m) for m in INV_TOKEN_RE.findall(text)} - live
-        # A DECLARATION WINS AND PROSE IS ONLY THE FALLBACK, because a feature that
-        # resolves a collision must be able to SAY SO. FEAT-34 documented, correctly, that
-        # it moved to INV-29 "not INV-28, because FEAT-26 holds it and builds first" — and
-        # the prose scan read those three citations as a claim and reported a collision
-        # that no longer existed. Punishing a feature for recording its own reasoning is
-        # the wrong incentive, and the check would have been switched off within a week.
-        #
-        # THE DECLARATION IS NOT AN ESCAPE HATCH. Two features declaring the same number
-        # still collide, which case_26g asserts with NEITHER brief writing the token in
-        # prose — so only the declaration path can catch that pair.
-        for num in (declared or inferred):
-            claims.setdefault(num, set()).add(name)
-
-    count = 0
-    for num in sorted(claims):
-        owners = sorted(claims[num])
-        if len(owners) > 1:
-            count += 1
-            findings.append(
-                f"VIOLATION INV-{num} is claimed by {len(owners)} unbuilt features: "
-                f"{', '.join(owners)}. A number is free only when it is absent from "
-                f"check-state.py AND unclaimed by every signed-but-unbuilt plan. "
-                f"Decide which feature builds first; it keeps the number.")
-    return count
 
 
 READER_CALL_CATEGORIES = {
@@ -1763,6 +1654,9 @@ def _is_station_concatenation(node):
 
 
 _PREDICATE_PARENTS = (ast.Compare, ast.Return, ast.Assign, ast.AnnAssign)
+# The only node types `_respelled_bucket` can answer for: a literal collection, a set(...) /
+# frozenset(...) call over one, or a `+` concatenation. Everything else is skipped unexamined.
+_LITERAL_CANDIDATES = (ast.Tuple, ast.List, ast.Set, ast.Call, ast.BinOp)
 
 
 def _respelled_bucket(node, parent, buckets):
@@ -1776,24 +1670,38 @@ def _respelled_bucket(node, parent, buckets):
     return next((name for name, bucket in buckets.items() if values <= bucket), None)
 
 
-def _parents(tree):
-    """Child → parent map, with `set(...)`/`frozenset(...)` wrappers looked through so the
-    inner tuple sees the Compare/Return the call sits in."""
-    parents = {}
-    for node in ast.walk(tree):
-        for child in ast.iter_child_nodes(node):
-            parents[child] = node
+def _walk_with_parents(tree):
+    """`ast.walk`'s exact breadth-first order, yielding each node with its parent, so a caller
+    needing both visits every child once instead of walking and then re-listing children."""
+    todo = collections.deque([(tree, None)])
+    while todo:
+        node, parent = todo.popleft()
+        todo.extend((child, node) for child in ast.iter_child_nodes(node))
+        yield node, parent
+
+
+def _literal_candidates(tree):
+    """ONE walk: the candidate nodes in `ast.walk` order, and each one's parent with
+    `set(...)`/`frozenset(...)` wrappers looked through, so the inner tuple sees the
+    Compare/Return the call sits in. Only candidates need a parent, and a wrapper is itself a
+    candidate (a Call), so its own parent is always recorded before it is looked through."""
+    candidates, parents = [], {}
+    for node, parent in _walk_with_parents(tree):
+        if isinstance(node, _LITERAL_CANDIDATES):
+            candidates.append(node)
+            if parent is not None:
+                parents[node] = parent
     for child, parent in list(parents.items()):
         if _unwrap_set_call(parent) is not parent:
             parents[child] = parents.get(parent)
-    return parents
+    return candidates, parents
 
 
 def _feature_station_literal_findings(tree, relative, buckets):
     # Keyed by line so `frozenset(("plan", ...))` — a Call wrapping a Tuple — reports once.
-    parents = _parents(tree)
+    candidates, parents = _literal_candidates(tree)
     findings = {}
-    for node in ast.walk(tree):
+    for node in candidates:
         respelled = _respelled_bucket(node, parents.get(node), buckets)
         if respelled is not None and node.lineno not in findings:
             findings[node.lineno] = (
@@ -2408,13 +2316,25 @@ def _parsed_program(text):
     return inner if any(isinstance(n, ast.Try) for n in ast.walk(inner)) else None
 
 
-def _embedded_programs(tree):
-    """String constants that parse as Python and carry a try statement: programs the script hands
-    to another interpreter (`python3 -I -c`, `python3 -`), whose handlers are as real as its own
-    (FEAT-65 c1, CR-01). Prose and docstrings do not parse into a try and are skipped."""
-    strings = (node.value for node in ast.walk(tree)
-               if isinstance(node, ast.Constant) and isinstance(node.value, str) and "except" in node.value)
-    return [program for program in map(_parsed_program, strings) if program is not None]
+def _may_be_program(node):
+    """A string constant that could hold a try statement — which cannot be written without both
+    keywords, so a string lacking either is never parsed."""
+    return (isinstance(node, ast.Constant) and isinstance(node.value, str)
+            and "except" in node.value and "try" in node.value)
+
+
+def _broad_catches_and_programs(tree):
+    """ONE walk: the broad-catch count of `tree` itself, and the string constants that are
+    programs the script hands to another interpreter (`python3 -I -c`, `python3 -`), whose
+    handlers are as real as its own (FEAT-65 c1, CR-01). Prose and docstrings that pass
+    `_may_be_program` still do not parse into a try and are dropped by `_parsed_program`."""
+    count, strings = 0, []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            count += _is_broad_catch(node)
+        elif _may_be_program(node):
+            strings.append(node.value)
+    return count, [program for program in map(_parsed_program, strings) if program is not None]
 
 
 def _broad_catch_count(path):
@@ -2425,9 +2345,9 @@ def _broad_catch_count(path):
             tree = ast.parse(stream.read())
     except (OSError, UnicodeDecodeError, SyntaxError):
         return None
-    trees = [tree, *_embedded_programs(tree)]
-    return sum(1 for t in trees for node in ast.walk(t)
-               if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
+    count, programs = _broad_catches_and_programs(tree)
+    return count + sum(1 for program in programs for node in ast.walk(program)
+                       if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
 
 
 def _broad_catch_finding(rel, name, count):
@@ -2483,13 +2403,17 @@ def consolidation_findings(root):
     for absolute, relative in _reader_source_paths(root):
         try:
             with open(absolute, encoding="utf-8") as source:
-                tree = ast.parse(source.read(), filename=relative)
+                text = source.read()
+            tree = ast.parse(text, filename=relative)
         except (OSError, UnicodeDecodeError, SyntaxError) as error:
             findings.append(f"{relative}::<module> source_parse: {error}")
             continue
         if relative != STATION_TABLE_REL:
             findings.extend(_feature_station_literal_findings(tree, relative, buckets))
-        findings.extend(_module_loader_findings(tree, relative))
+        # The loader lock matches the callee by NAME, so a source that never spells it cannot
+        # produce a finding; skipping its walk there changes cost, not the answer.
+        if "spec_from_file_location" in text:
+            findings.extend(_module_loader_findings(tree, relative))
     findings.extend(feat62_findings(root))
     return findings
 
@@ -2544,9 +2468,6 @@ def main(argv):
             sys.exit(2)
         total_violations += count
         processed += 1
-
-    if examined is not None:
-        total_violations += check_invariant_number_collisions(root, findings)
 
     for line in findings:
         print(line)

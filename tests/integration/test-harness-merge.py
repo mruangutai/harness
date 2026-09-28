@@ -380,6 +380,65 @@ def case_8_acquire_live_holder():
     check("case8: refusal lines name the lock path", names_path, lines)
 
 
+def _refusal_under(lock_path, env_value, **kwargs):
+    """(code, lines, seconds) for one acquire against a held lock with the override set."""
+    saved = os.environ.get(harness_merge.LOCK_TIMEOUT_ENV)
+    os.environ[harness_merge.LOCK_TIMEOUT_ENV] = env_value
+    start = time.monotonic()
+    try:
+        with harness_merge.acquire(lock_path, **kwargs):
+            return None, [], time.monotonic() - start
+    except harness_merge.MergeRefusal as exc:
+        return exc.code, exc.lines, time.monotonic() - start
+    finally:
+        if saved is None:
+            os.environ.pop(harness_merge.LOCK_TIMEOUT_ENV, None)
+        else:
+            os.environ[harness_merge.LOCK_TIMEOUT_ENV] = saved
+
+
+def case_9_timeout_override_precedence():
+    """HARNESS_LOCK_TIMEOUT_SECONDS replaces the DEFAULT budget only: it shortens a refusal
+    against a live holder, an explicit `timeout=` still wins over it, and a value that is not a
+    positive number is refused loudly rather than read as zero or as the default."""
+    import fcntl
+    d = tempfile.mkdtemp()
+    lock_path = os.path.join(d, "held.lock")
+    holder = os.open(lock_path, os.O_CREAT | os.O_RDWR)
+    fcntl.flock(holder, fcntl.LOCK_EX)
+    try:
+        code, lines, took = _refusal_under(lock_path, "0.2")
+        check("case9: the override still refuses a live holder with exit 6", code == 6, code)
+        check("case9: the refusal names the overridden budget",
+              any("within 0.2s" in line for line in lines), lines)
+        check("case9: and takes the short budget, not the 10s default", took < 2, took)
+
+        code, lines, took = _refusal_under(lock_path, "30", timeout=0.1)
+        check("case9: an explicit timeout= wins over the override",
+              code == 6 and any("within 0.1s" in line for line in lines) and took < 2,
+              (code, lines, took))
+
+        for bad in ("0", "-1", "soon", "nan", "inf", "1e999"):
+            saved = os.environ.get(harness_merge.LOCK_TIMEOUT_ENV)
+            os.environ[harness_merge.LOCK_TIMEOUT_ENV] = bad
+            try:
+                with harness_merge.acquire(lock_path, timeout=None):
+                    raised = None
+            except ValueError as exc:
+                raised = str(exc)
+            except harness_merge.MergeRefusal as exc:
+                raised = f"MergeRefusal {exc.code}"
+            finally:
+                if saved is None:
+                    os.environ.pop(harness_merge.LOCK_TIMEOUT_ENV, None)
+                else:
+                    os.environ[harness_merge.LOCK_TIMEOUT_ENV] = saved
+            check(f"case9: override {bad!r} is refused loudly, naming the variable",
+                  raised is not None and harness_merge.LOCK_TIMEOUT_ENV in raised, raised)
+    finally:
+        os.close(holder)
+
+
 def main():
     case_1_create_from_missing()
     case_2_apply_to_existing()
@@ -389,6 +448,7 @@ def main():
     case_6_no_torn_read()
     case_7_require_destination()
     case_8_acquire_live_holder()
+    case_9_timeout_override_precedence()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:
