@@ -2814,6 +2814,13 @@ exemption keys on empty-versus-non-empty, while SC-17 demands evidence per autom
 SCs with evidence for one and a green suite is a FAIL the validator still refuses. Closing it needs
 per-SC counting against BRIEF, which no check does yet.
 
+**Amended 2026-09-28 — the matrix floor is computed.** `matrix_ok: true` on a qa PASS was a bare
+claim: nothing compared the kinds reported against what `test_matrix.<change_type>.always` requires
+for the plan's tasks. The validator now derives that floor (started tasks only; kinds `harness.json`
+excludes dropped; the `when:` half stays qa's judgement per DEC-212) and refuses a PASS whose
+`kinds:` does not report each floor kind `satisfied` — or omits `kinds:` altogether when a floor
+exists. A FAIL that reports the gap is unaffected.
+
 ---
 
 ## DEC-128 — The orchestrator exists: agent, playbook, and three doors

@@ -2234,12 +2234,76 @@ def _qa_fail_first_errors(seen, passing):
 
 def _qa_kinds_errors(seen, verdict, feature_dir):
     kinds = seen.get("kinds")
-    if not (isinstance(kinds, list) and kinds):
-        return []
     qa_root = (_repo_root_for_feature(feature_dir) if feature_dir
                else _root_or_none())
     test_kinds = _load_test_kinds(qa_root)[0] if qa_root else None
-    return _qa_kind_errors(kinds, verdict, test_kinds)
+    err = _qa_kind_errors(kinds, verdict, test_kinds) if isinstance(kinds, list) and kinds else []
+    if verdict == "PASS" and seen.get("matrix_ok") is True and feature_dir and qa_root:
+        err += _matrix_floor_errors(kinds, _matrix_floor(qa_root, feature_dir, test_kinds))
+    return err
+
+
+_MATRIX_UNSTARTED = ("todo",)
+
+
+def _load_matrix_inputs(root, feature_dir):
+    """`(test_matrix, tasks)` from the checkout's harness.json and the plan, or `(None, None)`."""
+    try:
+        matrix = artifact_accessors.load_harness_json(
+            os.path.join(root, ".harness", "harness.json")).get("test_matrix")
+        tasks = artifact_accessors.load_plan(os.path.join(feature_dir, "plan.yaml")).get("tasks")
+    except (OSError, artifact_accessors.ArtifactAccessError, harness_yaml.YamlParseError):
+        return None, None
+    if not isinstance(matrix, dict) or not isinstance(tasks, list):
+        return None, None
+    return matrix, tasks
+
+
+def _always_kinds(matrix, task):
+    if not isinstance(task, dict) or task.get("status") in _MATRIX_UNSTARTED:
+        return ()
+    row = matrix.get(task.get("change_type")) or {}
+    return tuple(k for k in row.get("always") or [] if isinstance(k, str))
+
+
+def _excluded_kinds(test_kinds):
+    return {k for k, p in (test_kinds or {}).items()
+            if isinstance(p, dict) and (p.get("status") == "excluded" or p.get("cmd") is None)}
+
+
+def _matrix_floor(root, feature_dir, test_kinds):
+    """harness-verification-rules § the matrix is a floor: the kinds `test_matrix.<change_type>.always`
+    requires across the plan's started tasks, minus kinds the policy excludes. The `when:` half is
+    qa's judgement (DEC-212) and is not computed here. None when the floor cannot be derived."""
+    matrix, tasks = _load_matrix_inputs(root, feature_dir)
+    if matrix is None:
+        return None
+    floor = {k for task in tasks for k in _always_kinds(matrix, task)}
+    return sorted(floor - _excluded_kinds(test_kinds))
+
+
+def _satisfied_kinds(kinds):
+    entries = [parse_member_entry(str(raw)) for raw in kinds]
+    return {str(e.get("kind", "")).strip() for e in entries
+            if str(e.get("state", "")).strip() == "satisfied"}
+
+
+def _matrix_floor_errors(kinds, floor):
+    """`matrix_ok: true` on a PASS claims every floor kind ran and passed; the `kinds:` list
+    must say so, kind by kind."""
+    if not floor:
+        return []
+    if not isinstance(kinds, list) or not kinds:
+        return [f"matrix_ok: true but kinds: is absent — the matrix floor for this plan is "
+                f"{', '.join(floor)}; report each with its state, or the claim is unverifiable."]
+    missing = [k for k in floor if k not in _satisfied_kinds(kinds)]
+    if not missing:
+        return []
+    plural = "it" if len(missing) == 1 else "them"
+    return [f"matrix_ok: true but the matrix floor requires {', '.join(missing)} "
+            f"(test_matrix.<change_type>.always for this plan's tasks) and kinds: does not report "
+            f"{plural} satisfied. The floor is never lowered: run the kind, or return FAIL with it "
+            f"missing."]
 
 
 # Generic `lead` is the archive-reader persona used by check-state for
