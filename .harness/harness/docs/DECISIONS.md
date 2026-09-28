@@ -4724,6 +4724,14 @@ to an agent that relays nothing to the user; charging every agent for a rule onl
 context-budget failure the constraint in `CLAUDE.md` exists to prevent. Placement follows *who can
 act on the rule*, not *where rules of this kind usually live*.
 
+**Amended by the skills optimization pass (2026-09-28) — one universal rule cut on probe evidence,
+not the placement principle.** "Never read an authority file whole: index first" was preloaded ×16.
+Probed (P4, `.harness/notes/probe-list-2026-09-28.md`): a `harness-backend-dev` with the skill and a
+plain agent without it, asked a question against the 7,800-line `DECISIONS.md`, both grepped the
+index and read ranged slices; neither read the file whole. A rule the default behaviour already
+satisfies is weight with no return. The four rules the same round found load-bearing — placeholder
+refusal, verify-vs-plan cross-check, UNRESOLVED-root refusal, test-first order — stay as written.
+
 ---
 
 ## DEC-178 — Cost tracking is removed entirely: the meter, the budgets, the invariant and every reporting surface

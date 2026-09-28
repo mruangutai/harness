@@ -79,6 +79,5 @@ not block you**: raise it, do what you can, return; a member never waits on a hu
 ## Consulting decisions — cited is a floor, never a ceiling
 
 Cited decisions are the **minimum**, not the set: the dispatcher's framing is a hypothesis.
-**Never read an authority file whole**: index first, then only the entries that bear on your task.
 **Go broader** when a citation references an uncited decision, when the citations do not cover what
 you judge, or when your Expertise implies an omitted rule.
