@@ -38,5 +38,23 @@
     "T-02": "e23e251643c15e7ee022dcbe5ce903fe345e860e934d7003bcedd2f4b76821b4",
     "T-03": "771c4e5546361054f9970d7ba962ae1b81ded099f84b800f7444ac37a444551e",
     "T-04": "3dfca63ca78cf31c0c0f587b84d96ade5b0ce01291004c142d872d01bc57b6a4"
+  },
+  "github": {
+    "milestone": 92,
+    "parent": 1971,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 1972,
+      "T-02": 1973,
+      "T-03": 1974,
+      "T-04": 1975
+    },
+    "source_issues": [],
+    "build_entry": "opened"
   }
 }
