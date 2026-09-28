@@ -13,9 +13,8 @@ wastes the quality pass). Stage 1 must complete before Stage 2 begins, and the s
 
 ## Stage 1 — spec compliance
 
-Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` and the plan's
-decisions — `plan.yaml`'s `decisions:` list (legacy features: `PLAN.md ## Decisions`) — then the
-diff. Ask four questions:
+The spec is `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` plus the plan's
+`decisions:` list (legacy features: `PLAN.md ## Decisions`). Ask four questions of the diff:
 
 1. Does every change serve a documented `SC-NN` or `D-NN`?
 2. Is anything here that **no** criterion asked for? *(scope creep — a finding even when it is an

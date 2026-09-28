@@ -4736,6 +4736,10 @@ plain agent without it, asked a question against the 7,800-line `DECISIONS.md`, 
 index and read ranged slices; neither read the file whole. A rule the default behaviour already
 satisfies is weight with no return. The four rules the same round found load-bearing — placeholder
 refusal, verify-vs-plan cross-check, UNRESOLVED-root refusal, test-first order — stay as written.
+Round 2 (two fixtures each, the second an 11-file diff with an omitted BRIEF decision): the
+reviewer's "read BRIEF and plan, then the diff" ordering and qa's revert-run-capture-restore
+procedure were performed by every arm, skill or not; both cut, keeping the spec pointer and the
+capture-file requirement the validator can check.
 
 ---
 
