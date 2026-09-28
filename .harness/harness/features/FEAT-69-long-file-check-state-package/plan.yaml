@@ -39,29 +39,25 @@ panel:
     reader: code-reviewer
     kind: substance
     summary: T-04 passes post-receipt HEAD as the immutable implementation pin.
-    disposition: open
+    disposition: resolved
   - id: PF-340baf59ff3499fe4a22647112179b9a
     severity: med
     reader: should-not-exist
     kind: substance
-    summary: T-03's conditional CODEOWNERS extension to check_state/** builds an ownership
-      rule the file explicitly and deliberately rejects
-    disposition: open
+    summary: T-03's conditional CODEOWNERS extension to check_state/** builds an ownership rule the file explicitly and deliberately rejects
+    disposition: resolved
   - id: PF-8df76c10f1a644c190f4873f2bcb3ccd
     severity: high
     reader: should-not-exist
     kind: substance
-    summary: "T-03's hard-coded ten-id fixture whitelist ('Regenerate only these moved-source\
-      \ identities') should not exist \u2014 the fixture has 22 live check-state.py\
-      \ ids in one flat rows array, and its owning test runs in T-02's verify"
-    disposition: open
+    summary: T-03's hard-coded ten-id fixture whitelist ('Regenerate only these moved-source identities') should not exist — the fixture has 22 live check-state.py ids in one flat rows array, and its owning test runs in T-02's verify
+    disposition: resolved
   - id: PF-bc67c8325e2128cacd86013cfd559654
     severity: low
     reader: should-not-exist
     kind: proportionality
-    summary: T-02's mutation matrix injecting a broad catch 'separately into every
-      package file' builds ~12 mutants to exercise one glob code path
-    disposition: open
+    summary: T-02's mutation matrix injecting a broad catch 'separately into every package file' builds ~12 mutants to exercise one glob code path
+    disposition: resolved
     scope: task
 lanes:
   resolved_at: 6508a183a91e47b552f6032f8f6b29ae7903a485
