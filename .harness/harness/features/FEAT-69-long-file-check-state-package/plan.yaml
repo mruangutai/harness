@@ -4,7 +4,7 @@ approval:
   date: '2026-09-28'
   approved_by: operator
   status: approved
-status: building
+status: review
 mission: plan
 source_issues: []
 baseline:
@@ -99,7 +99,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns check-state.py and its proof-bearing cutover directly to the main session.
     depends_on: []
-    status: ready
+    status: review
     files:
     - .claude/skills/harness/bin/check-state.py
     - .claude/skills/harness/bin/check_state
@@ -121,7 +121,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns check-plan-routes.py, its owning integration test, and the check-skill-refs enforcement scanner directly to the main session.
     depends_on: [T-01]
-    status: ready
+    status: review
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/check-skill-refs.py
@@ -151,7 +151,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns the check-state gate's owning behavioral tests and compatibility consumers directly to the main session.
     depends_on: [T-01, T-02]
-    status: ready
+    status: review
     files:
     - tests/integration/check_state_support.py
     - tests/integration/test-check-state*.py
@@ -186,7 +186,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable enforcement pin with the direct main-session change.
     depends_on: [T-01, T-02, T-03]
-    status: ready
+    status: review
     files:
     - .harness/harness/features/FEAT-69-long-file-check-state-package/notes
     verify: |
