@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-69-long-file-check-state-package
-- run: none
-- squad: none
-- status: awaiting-user
+- run: .harness/harness/features/FEAT-69-long-file-check-state-package/runs/validate-validator/state.yaml
+- squad: validator
+- status: blocked
 
 ## Open Questions
 
-- Operator signature is required for BRIEF.md and plan.yaml; proposed rework ruling: 2 rounds, 480 wall-clock minutes.
+- none
