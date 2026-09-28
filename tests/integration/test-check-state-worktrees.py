@@ -20,7 +20,7 @@ import subprocess
 import sys
 import shutil
 import tempfile
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, make_fixture, run,
+from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, copy_check_state, make_fixture, run,
     _HOOKS_REL_T, _hb, _root_env)
 
 
@@ -146,9 +146,8 @@ def case_u():
         isobin = os.path.join(tmp2, ".agents", "skills", "harness", "bin")
         os.makedirs(isobin)
         _bin = os.path.dirname(os.path.abspath(SCRIPT))
-        for fn in ("check-state.py", "harness_yaml.py"):
-            shutil.copy(os.path.join(_bin, fn), os.path.join(isobin, fn))
-        os.chmod(os.path.join(isobin, "check-state.py"), 0o755)
+        copy_check_state(isobin)              # FEAT-69: the entry and its package
+        shutil.copy(os.path.join(_bin, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
         b = _repo(os.path.join(tmp2, "B"))
         _add_wt(b, os.path.join(tmp2, "B-sib"))
         make_fixture(b, '{}', "  parent: 40")
@@ -290,7 +289,7 @@ def case_x():
         import shutil
         bindir = os.path.join(tmp, "binx")
         os.makedirs(bindir)
-        shutil.copy(SCRIPT, os.path.join(bindir, "check-state.py"))
+        copy_check_state(bindir)              # FEAT-69: the entry and its package
         # EVERY MODULE EXCEPT layout_migration.py, STATED AS THAT RATHER THAN AS A LIST.
         #
         # This was an explicit list of the script's imports, and the list was the defect. It

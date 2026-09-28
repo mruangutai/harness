@@ -33,6 +33,48 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..
 from isolated_bin import isolated_bin        # re-exported to the two mutation cases
 import harness_boundary as _hb
 
+# FEAT-69: check-state.py is a thin entry over the check_state/ package beside it. A source
+# read or a mutant targets the package file that OWNS the text, never the entry; a scratch
+# bin copies both. All three resolve from SCRIPT so a CHECK_STATE_BIN override still points
+# every case at the same tree.
+PACKAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(SCRIPT)), "check_state")
+
+
+def check_state_files():
+    """The entry plus every check_state/*.py beside it, entry first, then sorted."""
+    return [SCRIPT] + sorted(os.path.join(PACKAGE_DIR, f) for f in os.listdir(PACKAGE_DIR)
+                             if f.endswith(".py"))
+
+
+def check_state_source():
+    """Every check-state source file's text, concatenated in check_state_files() order — the
+    unit a literal-agreement case reads."""
+    return "".join(open(p, encoding="utf-8").read() for p in check_state_files())
+
+
+def check_state_owner(needle):
+    """The one source file whose text contains `needle`, or None when none or several do."""
+    hits = [p for p in check_state_files() if needle in open(p, encoding="utf-8").read()]
+    return hits[0] if len(hits) == 1 else None
+
+
+def check_state_mutant(iso_bin, owner, mutant_text):
+    """Overwrite `owner`'s copy under the isolated bin `iso_bin` with `mutant_text` and return
+    the entry to fork there. `owner` is a path from check_state_files()."""
+    rel = os.path.relpath(os.path.realpath(owner), os.path.dirname(os.path.realpath(SCRIPT)))
+    with open(os.path.join(iso_bin, rel), "w", encoding="utf-8") as file:
+        file.write(mutant_text)
+    return os.path.join(iso_bin, "check-state.py")
+
+
+def copy_check_state(dst_bin):
+    """Copy the entry (executable) and the package into `dst_bin`."""
+    import shutil
+    shutil.copy(SCRIPT, os.path.join(dst_bin, "check-state.py"))
+    os.chmod(os.path.join(dst_bin, "check-state.py"), 0o755)
+    shutil.copytree(PACKAGE_DIR, os.path.join(dst_bin, "check_state"),
+                    ignore=shutil.ignore_patterns("__pycache__"))
+
 HARNESS_JSON_SYNC_ON = """{
   "github": {"sync": true, "repo": "org/repo"}
 }
