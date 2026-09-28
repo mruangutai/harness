@@ -117,18 +117,28 @@ def verify_parent(rows: list[dict[str, object]]) -> None:
           carries_main, parent_tasks)
 
 
+def is_official_child(identity: dict[str, object]) -> bool:
+    return identity.get("kind") == "sub" and identity.get("depth") == 1
+
+
+def child_identity_evidence(
+    child_rows: list[dict[str, object]],
+) -> tuple[bool, set[str], set[str]]:
+    identities = [agent_identity(row) for row in child_rows]
+    child_ids = {str(identity.get("id") or "") for identity in identities} - {""}
+    serialized = {json.dumps(identity, sort_keys=True) for identity in identities}
+    stable = len(child_ids) == 1 and len(serialized) == 1
+    return stable and all(map(is_official_child, identities)), child_ids, serialized
+
+
 def verify_child(rows: list[dict[str, object]], marker: Path) -> None:
     child_rows = [
         row for row in rows
         if agent_identity(row).get("parentId") == "Main"
     ]
-    child_ids = {str(agent_identity(row).get("id") or "") for row in child_rows} - {""}
-    child_identities = {json.dumps(agent_identity(row), sort_keys=True) for row in child_rows}
+    is_bound, child_ids, child_identities = child_identity_evidence(child_rows)
     child_tools = {str(row.get("tool") or "").lower() for row in child_rows}
-    check("case4: one official child identity is bound to Main",
-          len(child_ids) == 1 and len(child_identities) == 1
-          and all(agent_identity(row).get("kind") == "sub" for row in child_rows)
-          and all(agent_identity(row).get("depth") == 1 for row in child_rows),
+    check("case4: one official child identity is bound to Main", is_bound,
           {"child_ids": sorted(child_ids), "identities": sorted(child_identities)})
     check("case5: the inherited extension observes child Write, Edit, and Bash callbacks",
           {"write", "edit", "bash"}.issubset(child_tools), sorted(child_tools))
