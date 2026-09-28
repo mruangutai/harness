@@ -2544,12 +2544,28 @@ def _feat62_findings_for_tree(mutate=None):
         return cpr().feat62_findings(td)
 
 
-def _checker_path(root):
-    return os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.py")
+def _checker_path(root, module=None):
+    """The entry, or the check_state/<module>.py package file (FEAT-69)."""
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    return os.path.join(bin_dir, "check-state.py") if module is None else os.path.join(bin_dir, "check_state", module + ".py")
+
+
+def _checker_files(root):
+    """The entry then every package file, in name order (FEAT-69)."""
+    package = os.path.join(root, ".claude", "skills", "harness", "bin", "check_state")
+    return [_checker_path(root)] + sorted(os.path.join(package, n) for n in os.listdir(package) if n.endswith(".py"))
+
+
+def _owning_checker_file(root, needle):
+    """FEAT-69: the ONE checker source file whose text carries `needle` — a mutant edits the
+    file that owns its anchor, wherever the split put it."""
+    owners = [p for p in _checker_files(root) if needle in open(p, encoding="utf-8").read()]
+    assert len(owners) == 1, f"mutant anchor {needle!r} owned by {len(owners)} file(s): {owners}"
+    return owners[0]
 
 
 def _edit_checker(root, old, new, count=1):
-    path = _checker_path(root)
+    path = _owning_checker_file(root, old)
     with open(path, encoding="utf-8") as stream:
         source = stream.read()
     assert source.count(old) >= count, f"mutant anchor {old!r} not found"
@@ -2557,8 +2573,8 @@ def _edit_checker(root, old, new, count=1):
         stream.write(source.replace(old, new, count))
 
 
-def _append_checker(root, source):
-    with open(_checker_path(root), "a", encoding="utf-8") as stream:
+def _append_checker(root, source, module=None):
+    with open(_checker_path(root, module), "a", encoding="utf-8") as stream:
         stream.write(source)
 
 
@@ -2648,7 +2664,7 @@ def case_feat62_reads_lock():
     _misdeclared_resource_checks()
     # Reached through a HELPER, not the row's own function: the lock walks the call graph.
     def via_helper(root):
-        _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n")
+        _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n", "host")
         _edit_checker(root, _INV19_HEAD, _INV19_HEAD + "    _inv19_probe(ctx)\n")
     f = _feat62_findings_for_tree(via_helper)
     check("feat62_reads_lock_follows_helpers", _only_finding(f, "INV-19", "opens 'team-config.yaml'"), "\n".join(f))
@@ -2814,6 +2830,122 @@ def case_feat63_broad_catch_census():
 
 
 
+# ------------------------------------------------------------------- FEAT-69 T-02 ---
+# The lock over the check_state/ PACKAGE: one function table across the entry and every
+# package file, one transitive walk that follows `from check_state.<m> import` bindings and
+# `ctx.<method>` calls, the four FEAT-62 rules over every file, the reads-family rule, and a
+# zero broad-catch ceiling for every package file. Each mutant fails for ITS OWN finding.
+
+_FEAT69_PACKAGE = ("__init__.py", "ctx.py", "table.py", "runner.py", "plan.py", "feature_record.py",
+                   "run_state.py", "seams.py", "brief.py", "worktrees.py", "board.py", "host.py")
+_INV47_HEAD = "def inv_47(ctx, feat):\n"
+
+
+def _feat69_package_body_checks():
+    """A module-body violation in a PACKAGE file (not the entry) is a finding naming that file."""
+    f = _feat62_findings_for_tree(lambda root: _append_checker(
+        root, "\nfor _p in glob.glob(os.path.join('x', 'plan.yaml')):\n    pass\n", "board"))
+    check("feat69_module_body_rule_covers_a_package_file",
+          _only_finding(f, "check_state/board.py::<module>", "for block at module scope"), "\n".join(f))
+
+
+def _feat69_cross_module_checks():
+    """An undeclared read reached ONLY through an imported helper (feature_record.inv_47 ->
+    feature_record._note_verdict -> run_state._inv15_digest_verdict, two helpers deep, across a
+    module boundary) is a finding on the row; a git spawn placed there is one too."""
+    def deep_read(root):
+        _edit_checker(root, "def _inv15_digest_verdict(",
+                      "def _inv15_digest_verdict(*_a, **_k):\n    open('secret.yaml')\n"
+                      "    return _inv15_digest_verdict_real(*_a, **_k)\n\n\ndef _inv15_digest_verdict_real(")
+    f = _feat62_findings_for_tree(deep_read)
+    check("feat69_reads_lock_follows_an_imported_helper_two_calls_deep",
+          any(all(n in x for n in ("INV-47", "opens 'secret.yaml'")) for x in f)
+          and all("opens 'secret.yaml'" in x for x in f), "\n".join(f))
+    def deep_spawn(root):
+        _edit_checker(root, "def _inv15_digest_verdict(",
+                      "def _inv15_digest_verdict(*_a, **_k):\n    subprocess.run(['git', 'status'])\n"
+                      "    return _inv15_digest_verdict_real(*_a, **_k)\n\n\ndef _inv15_digest_verdict_real(")
+    f = _feat62_findings_for_tree(deep_spawn)
+    check("feat69_reads_lock_sees_a_spawn_two_helpers_deep_across_modules",
+          any(all(n in x for n in ("INV-47", "reads git:status")) for x in f)
+          and all("reads git:status" in x for x in f), "\n".join(f))
+    # A ctx METHOD reached through `ctx.<m>(...)` from a family module: the walk crosses into ctx.py.
+    def ctx_method(root):
+        _edit_checker(root, "    def station(self, feat):\n",
+                      "    def station(self, feat):\n        self.spawn(['gh', 'auth', 'status'])\n")
+    f = _feat62_findings_for_tree(ctx_method)
+    check("feat69_reads_lock_walks_into_ctx_methods_from_a_family",
+          bool(f) and all("reads gh:auth" in x for x in f), "\n".join(f))
+
+
+def _feat69_family_checks():
+    """A row whose function is DEFINED outside the family its reads name fails; an import
+    alias and an assignment alias are not definitions; a row no family claims fails."""
+    def moved(root):
+        _edit_checker(root, "from check_state.host import ", "from check_state.board import inv_19\nfrom check_state.host import ")
+        _edit_checker(root, "inv_19, ", "")
+        _append_checker(root, "\n\ndef inv_19(ctx):\n    return [], []\n", "board")
+    f = _feat62_findings_for_tree(moved)
+    check("feat69_row_defined_outside_its_family_fails",
+          _only_finding(f, "INV-19", "defined in check_state/board.py", "check_state/host.py"), "\n".join(f))
+    def alias(root):
+        _edit_checker(root, "inv_19, ", "")
+        _append_checker(root, "\ninv_19 = inv_42\n", "table")
+    f = _feat62_findings_for_tree(alias)
+    check("feat69_assignment_alias_is_not_a_definition",
+          _only_finding(f, "INV-19", "not a function defined in the package"), "\n".join(f))
+    def unclaimed(root):
+        _edit_checker(root, 'Inv("INV-19", inv_19,', 'Inv("INV-99", inv_19,')
+    f = _feat62_findings_for_tree(unclaimed)
+    check("feat69_row_no_family_claims_fails",
+          _only_finding(f, "INV-99", "belongs to no family"), "\n".join(f))
+
+
+def _feat69_census_checks():
+    """The broad-catch census enumerates the entry and the complete package (deterministic), and
+    a catch injected into the entry or into a family module is one finding naming that file."""
+    scanned = {name for _abs, name in cpr().broad_catch_census_paths(REPO_ROOT)}
+    expected = {"check-state.py", *(os.path.join("check_state", n) for n in _FEAT69_PACKAGE)}
+    check("feat69_census_scans_entry_and_every_package_file", expected <= scanned,
+          f"missing {sorted(expected - scanned)}")
+    f = _feat62_findings_for_tree(lambda root: _append_checker(root, _BROAD_CATCH))
+    check("feat69_census_entry_broad_catch_is_one_finding_naming_check_state",
+          len(f) == 1 and "bin/check-state.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
+    f = _feat62_findings_for_tree(lambda root: _append_checker(root, _BROAD_CATCH, "plan"))
+    check("feat69_census_family_broad_catch_is_one_finding_naming_the_module",
+          len(f) == 1 and "check_state/plan.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
+
+
+def _feat69_scanner_checks():
+    """`live_invariant_numbers` reads the package: a number only a family module spells is
+    live; a missing number stays missing; duplicate spellings count once."""
+    mod = cpr()
+    with tempfile.TemporaryDirectory() as td:
+        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
+        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
+        _append_checker(td, "\n# INV-777 lives here and nowhere else; INV-777 twice.\n", "host")
+        live = mod.live_invariant_numbers(td)
+        check("feat69_live_numbers_include_a_number_only_a_family_module_spells",
+              777 in live and 19 in live and 1 in live, repr(sorted(live)[-5:]))
+        check("feat69_live_numbers_missing_number_stays_missing", 999 not in live, "")
+        check("feat69_live_numbers_is_a_set_so_duplicates_count_once", isinstance(live, set), "")
+        os.remove(_checker_path(td))
+        check("feat69_live_numbers_unreadable_entry_is_None", mod.live_invariant_numbers(td) is None, "")
+
+
+def case_feat69_package_lock():
+    """FEAT-69 SC-03: the FEAT-62 lock walks the check_state/ package as one tree; the shipped
+    package is clean; every mutant fails for its own finding."""
+    clean = _feat62_findings_for_tree()
+    check("feat69_clean_package_has_no_findings", clean == [], "\n".join(clean))
+    _feat69_package_body_checks()
+    _feat69_cross_module_checks()
+    _feat69_family_checks()
+    _feat69_census_checks()
+    _feat69_scanner_checks()
+
+
+
 # ---------------------------------------------------------------------------------------------
 # FEAT-64 T-03 (SC-03, SC-05): _manifest_deviation's silent fallback is for the manifest's own
 # failure classes; an unrelated defect escapes. And a plan is parsed ONCE per execution: the
@@ -2969,6 +3101,7 @@ CASES = (
     case_feat64_manifest_deviation_defect_escapes,
     case_feat64_plan_is_parsed_once_per_execution,
     case_feat64_broad_catch_census_wave4,
+    case_feat69_package_lock,
 )
 
 

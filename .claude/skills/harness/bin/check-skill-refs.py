@@ -30,6 +30,15 @@ from pathlib import Path
 SKILLS_REL = Path(".claude") / "skills"
 DECISIONS_REL = ".harness/harness/docs/DECISIONS.md"
 CHECK_STATE_REL = SKILLS_REL / "harness" / "bin" / "check-state.py"
+# FEAT-69: the invariants live in the check_state/ package beside the entry; an INV number is
+# implemented when any of those files spells it. The entry stays in the finding's wording
+# because it is the gate an operator runs.
+CHECK_STATE_PACKAGE_REL = SKILLS_REL / "harness" / "bin" / "check_state"
+
+
+def check_state_sources(root: Path) -> list[Path]:
+    """The entry plus every check_state/*.py, in a fixed order."""
+    return [root / CHECK_STATE_REL] + sorted((root / CHECK_STATE_PACKAGE_REL).glob("*.py"))
 AGENTS_REL = Path(".omp") / "agents"
 
 # `.claude/skills/` is the authoring path; these files legitimately spell it.
@@ -86,7 +95,8 @@ def scan(root: Path) -> list[str]:
         return []  # no skills tree here (a fixture, a product repo): nothing to resolve
     decisions = (root / DECISIONS_REL).read_text(encoding="utf-8")
     dec_ids = set(re.findall(r"^## (DEC-\d+)", decisions, re.M))
-    inv_ids = set(INV_RE.findall((root / CHECK_STATE_REL).read_text(encoding="utf-8")))
+    inv_ids = {inv for source in check_state_sources(root)
+               for inv in INV_RE.findall(source.read_text(encoding="utf-8"))}
     skill_names = {p.parent.name for p in (root / SKILLS_REL).glob("*/SKILL.md")}
     agent_names = {p.stem for p in (root / AGENTS_REL).glob("harness-*.md")}
     headings = {f: {h.strip() for h in HEADING_RE.findall(f.read_text(encoding="utf-8"))} for f in files}

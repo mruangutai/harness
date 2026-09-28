@@ -6,10 +6,20 @@ import glob, os
 import handoff_policy
 import harness_boundary
 from check_state.ctx import SEAM_NOTES, STATUS_ORDER, read
-try:
-    handoff_done_when = harness_boundary.load_repo_module("handoff_done_when")
-except harness_boundary.RepoModuleError as _hdw_error:
-    handoff_done_when, _handoff_done_when_error = None, _hdw_error.cause
+# FEAT-69: the entry's bootstrap used to carry this import guard; a package module's body
+# holds no try (FEAT-62 module-body rule), so the module is loaded on first use and cached
+# for the life of the process -- same module, same failure, same wording.
+_HANDOFF_DONE_WHEN = {}
+
+
+def _handoff_done_when():
+    """(module, None) when handoff_done_when imports, else (None, the import's cause)."""
+    if "loaded" not in _HANDOFF_DONE_WHEN:
+        try:
+            _HANDOFF_DONE_WHEN["loaded"] = (harness_boundary.load_repo_module("handoff_done_when"), None)
+        except harness_boundary.RepoModuleError as _hdw_error:
+            _HANDOFF_DONE_WHEN["loaded"] = (None, _hdw_error.cause)
+    return _HANDOFF_DONE_WHEN["loaded"]
 HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
 HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
 
@@ -125,6 +135,7 @@ def _inv17_done_when_problems(ctx, hl, _rel_handoff, _text):
     root = ctx.root
     _done_when_problems = []
     if "## done when" in hl:
+        handoff_done_when, _handoff_done_when_error = _handoff_done_when()
         if handoff_done_when is None:
             _done_when_problems.append(
                 "handoff_done_when.py could not be imported: "
