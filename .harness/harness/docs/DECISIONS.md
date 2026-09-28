@@ -4308,7 +4308,7 @@ one author who hit it wrote the warning into the data file instead of fixing the
 beside FEAT-03's `squad:` line, which went away with the YAML file itself under DEC-191.
 
 **Why the line scanner was always going to lose.** This defect shape is documented repeatedly in-tree,
-and #11 is not its first appearance. `check-state.py:105-107` names two priors in its own comment —
+and #11 is not its first appearance. the run parser's own comment (check-state.py lines 105-107 at the time; the record is read by `Ctx.record`, `check_state/ctx.py:458` since FEAT-69) named two priors —
 the digest parser (DEC-123) and INV-4 (DEC-129), both single-format bugs — alongside DEC-101's own
 INV-12 false positive the first time a real orchestrator wrote block-form YAML. Separately,
 `validate-digest.py:247-272` documents **five** hand-patches of the same class, one of which (F4) is
@@ -4348,8 +4348,8 @@ inside the tool, and it expires by construction rather than by anyone rememberin
 
 **Two hazards for the implementer, both real:**
 
-- **`safe_load` returns typed values; the regex returned strings.** `check-state.py:120` is
-  `cu.isdigit()` on `cycles_used` — an `int` under `safe_load`, and `.isdigit()` on an `int` raises.
+- **`safe_load` returns typed values; the regex returned strings.** `cycles_used` was read as
+  `cu.isdigit()` (check-state.py line 120 at the time; `check_state/feature_record.py:183` since FEAT-69) — an `int` under `safe_load`, and `.isdigit()` on an `int` raises.
   Every consumer of a parsed value must be walked for str-assumptions.
 - **A bare date-shaped scalar becomes a `datetime.date`.** Run ids like `2026-07-31-01-product` carry
   trailing text and stay strings, but an id that is exactly `2026-07-31` would silently become a date
@@ -7241,7 +7241,7 @@ milestone and the parent and source issues only — never historical task sub-is
 `recovered-terminal` (`gh-sync.py:1277-1323`). While GitHub is unavailable that recovery stays
 non-terminal and `post-merge-sweep.py` keeps the worktree (`post-merge-sweep.py:222-231`).
 `check-state.py` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
-terminal and its task statuses are absent (`check-state.py:1983-2018`). One frozen set,
+terminal and its task statuses are absent (`check_state/board.py:328-341`, INV-37; moved from check-state.py by FEAT-69). One frozen set,
 `feature_schema.BUILD_ENTRY_ERA_EXEMPT`, bounds INV-37 and both refusals to the post-receipt era.
 
 **Over:** making the mirror a gate on GitHub itself — DEC-138 forbids it, and every refusal here
@@ -7268,7 +7268,7 @@ config lands, because the failure of the reverse order has no symptom but an una
 `FleetError`, and `factory_config.py --check-product-configs` is what names it — a check that is
 OPERATOR-RUN, with no standing invariant behind it. `check-state.py` never reads a member's config
 from its remote, and its only network calls record nothing when the network is unavailable, because
-an offline environment must never become a red gate (`check-state.py:2270-2273`). So nothing grades
+an offline environment must never become a red gate (`check_state/ctx.py:254`, `Ctx.gh_ok`; moved from check-state.py by FEAT-69). So nothing grades
 a fleet member's remote config on every run, and a member whose `harness.json` is deleted after
 onboarding stays invisible until the next build against it.
 

@@ -1,7 +1,4 @@
-"""The OMP port and the skill tree resolve: INV-19/42/45/48.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""The OMP port and the skill tree resolve: INV-19/42/45/48. (FEAT-69)"""
 import os, sys
 import harness_boundary
 # --- INV-9 retired under DEC-233; the number is never reused (DEC-205). Host enforcement is

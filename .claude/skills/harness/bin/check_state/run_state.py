@@ -1,7 +1,4 @@
-"""A run's checkpoint and digest agree with the record: INV-15/16/36/46.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""A run's checkpoint and digest agree with the record: INV-15/16/36/46. (FEAT-69)"""
 import os, re, sys
 import artifact_accessors
 import harness_boundary

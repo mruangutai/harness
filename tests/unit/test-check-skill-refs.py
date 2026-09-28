@@ -83,8 +83,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         dst = Path(tmp)
         copy_tree(dst)
-        with open(dst / refs.CHECK_STATE_PACKAGE_REL / "host.py", "a", encoding="utf-8") as fh:
-            fh.write("\n# INV-777: spelled in a family module only\n")
+        plant(dst, "harness/bin/check_state/host.py", "# INV-777: spelled in a family module only")
         plant(dst, "harness-uat/SKILL.md", "Graded by INV-777; INV-20 twice (INV-20).")
         findings = refs.scan(dst)
         check("package_only_number_is_implemented", not any("INV-777" in f for f in findings), "\n".join(findings))

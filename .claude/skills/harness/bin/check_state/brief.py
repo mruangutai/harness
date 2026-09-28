@@ -1,7 +1,4 @@
-"""BRIEF.md's perspectives and SCs are dischargeable: INV-38/41/49.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""BRIEF.md's perspectives and SCs are dischargeable: INV-38/41/49. (FEAT-69)"""
 import re
 # --- INV-38..41 (FEAT-59 proportional flow; SC-10, SC-15, SC-16, SC-21; DEC-174 direct work).
 # Four invariants over the FEAT-59 record shapes, sharing ONE era predicate defined once here.

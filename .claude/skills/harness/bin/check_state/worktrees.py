@@ -1,7 +1,4 @@
-"""git worktrees live where and as long as the layout says: INV-25/27/29/31.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""git worktrees live where and as long as the layout says: INV-25/27/29/31. (FEAT-69)"""
 import os
 import harness_boundary
 _HOOKS_REL = os.path.join(".claude", "skills", "harness", "hooks")

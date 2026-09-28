@@ -1,7 +1,4 @@
-"""plan.yaml is a well-formed, approved record: INV-35/3/4/5/34/32/44.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""plan.yaml is a well-formed, approved record: INV-35/3/4/5/34/32/44. (FEAT-69)"""
 import os, re
 from check_state.ctx import approved, has_approval_block, read
 # --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately

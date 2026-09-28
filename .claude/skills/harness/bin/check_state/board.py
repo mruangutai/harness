@@ -1,7 +1,4 @@
-"""The GitHub mirror agrees with disk: INV-13/21/24/26/28/30/37.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""The GitHub mirror agrees with disk: INV-13/21/24/26/28/30/37. (FEAT-69)"""
 import os, re
 import artifact_accessors
 import harness_boundary

@@ -2869,7 +2869,11 @@ def _feat69_cross_module_checks():
     check("feat69_reads_lock_sees_a_spawn_two_helpers_deep_across_modules",
           any(all(n in x for n in ("INV-47", "reads git:status")) for x in f)
           and all("reads git:status" in x for x in f), "\n".join(f))
-    # A ctx METHOD reached through `ctx.<m>(...)` from a family module: the walk crosses into ctx.py.
+    _feat69_ctx_method_check()
+
+
+def _feat69_ctx_method_check():
+    """A ctx METHOD reached through `ctx.<m>(...)` from a family module: the walk crosses into ctx.py."""
     def ctx_method(root):
         _edit_checker(root, "    def station(self, feat):\n",
                       "    def station(self, feat):\n        self.spawn(['gh', 'auth', 'status'])\n")

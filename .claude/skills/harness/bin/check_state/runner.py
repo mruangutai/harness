@@ -1,7 +1,4 @@
-"""Row selection, the repo and feature passes, collation, reporting and the CLI.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""Row selection, the repo and feature passes, collation, reporting and the CLI. (FEAT-69)"""
 import os, re, sys
 from check_state.ctx import Ctx
 from check_state.table import INVARIANTS, RETIRED

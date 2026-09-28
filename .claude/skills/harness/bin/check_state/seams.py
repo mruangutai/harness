@@ -1,7 +1,5 @@
-"""Every phase seam left a well-formed handoff note: INV-17.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""Every phase seam left a well-formed handoff note: INV-17. (FEAT-69)"""
+import functools
 import glob, os
 import handoff_policy
 import harness_boundary
@@ -9,17 +7,13 @@ from check_state.ctx import SEAM_NOTES, STATUS_ORDER, read
 # FEAT-69: the entry's bootstrap used to carry this import guard; a package module's body
 # holds no try (FEAT-62 module-body rule), so the module is loaded on first use and cached
 # for the life of the process -- same module, same failure, same wording.
-_HANDOFF_DONE_WHEN = {}
-
-
+@functools.cache
 def _handoff_done_when():
     """(module, None) when handoff_done_when imports, else (None, the import's cause)."""
-    if "loaded" not in _HANDOFF_DONE_WHEN:
-        try:
-            _HANDOFF_DONE_WHEN["loaded"] = (harness_boundary.load_repo_module("handoff_done_when"), None)
-        except harness_boundary.RepoModuleError as _hdw_error:
-            _HANDOFF_DONE_WHEN["loaded"] = (None, _hdw_error.cause)
-    return _HANDOFF_DONE_WHEN["loaded"]
+    try:
+        return harness_boundary.load_repo_module("handoff_done_when"), None
+    except harness_boundary.RepoModuleError as _hdw_error:
+        return None, _hdw_error.cause
 HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
 HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
 

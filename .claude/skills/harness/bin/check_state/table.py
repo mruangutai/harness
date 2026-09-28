@@ -1,7 +1,4 @@
-"""THE INVARIANT TABLE: the one place a row is declared and the one place discretion lives.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""THE INVARIANT TABLE: the one place a row is declared and the one place discretion lives. (FEAT-69)"""
 from check_state.board import inv_13, inv_21, inv_24, inv_26, inv_28, inv_30, inv_37
 from check_state.brief import inv_38, inv_41, inv_49
 from check_state.feature_record import (

@@ -1934,11 +1934,12 @@ def _checker_trees(root):
     except (OSError, UnicodeDecodeError, SyntaxError) as error:
         return [], [f"{CHECKER_REL}::<module> source_parse: {error}"]
     for _absolute, relative, text in _checker_package_sources(root):
+        if text is None:
+            findings.append(f"{relative}::<module> source_parse: unreadable")
+            continue
         try:
-            if text is None:
-                raise OSError("unreadable")
             trees.append((relative, ast.parse(text, filename=relative)))
-        except (OSError, SyntaxError, ValueError) as error:
+        except (SyntaxError, ValueError) as error:
             findings.append(f"{relative}::<module> source_parse: {error}")
     return trees, findings
 
@@ -2441,18 +2442,12 @@ def _broad_catch_finding(rel, name, count):
 
 
 def broad_catch_census_paths(root):
-    """Every Python file the census scans, as (absolute, bin-relative name), in walk order:
-    bin/*.py, then check_state/*.py (FEAT-69 -- the package files are ceiling-0 like the
-    entry they came from; a ceiling is keyed by the bin-relative name, so a package file
-    can never borrow a sibling's allowance)."""
+    """Every Python file the census scans, as (absolute, bin-relative name), in
+    _reader_source_paths' walk order -- bin/*.py and every package beneath it (FEAT-69: the
+    check_state/ files are ceiling-0 like the entry they came from; a ceiling is keyed by the
+    bin-relative name, so a package file can never borrow a sibling's allowance)."""
     bin_dir = os.path.join(root, BIN_REL)
-    if not os.path.isdir(bin_dir):
-        return []
-    paths = [(os.path.join(bin_dir, name), name) for name in sorted(os.listdir(bin_dir))
-             if name.endswith(".py")]
-    for absolute, _relative, _text in _checker_package_sources(root):
-        paths.append((absolute, os.path.relpath(absolute, bin_dir)))
-    return paths
+    return [(absolute, os.path.relpath(absolute, bin_dir)) for absolute, _relative in _reader_source_paths(root)]
 
 
 def broad_catch_findings(root):

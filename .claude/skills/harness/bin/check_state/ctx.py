@@ -1,10 +1,6 @@
-"""The parse-once runner context and the primitives every family shares.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""The parse-once runner context and the primitives every family shares. (FEAT-69)"""
 import glob, os, re, subprocess, sys
 import artifact_accessors
-import factory_config
 import harness_boundary
 import harness_yaml
 def read(p):

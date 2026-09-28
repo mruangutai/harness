@@ -1,7 +1,4 @@
-"""feature.json is internally consistent and matches disk: INV-1/2/6/7/8/12/18/22/23/33 and the ledger INV-39/40/43/47.
-
-FEAT-69: split out of check-state.py by declared reads; bodies and comments moved byte-for-byte.
-"""
+"""feature.json is internally consistent and matches disk: INV-1/2/6/7/8/12/18/22/23/33 and the ledger INV-39/40/43/47. (FEAT-69)"""
 import glob, os, re
 import harness_boundary
 import harness_yaml
