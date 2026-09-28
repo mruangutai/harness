@@ -2806,6 +2806,14 @@ ranked by severity, highest first; a `grade_2` claim's `grade_2_reasons` must na
 verdict. `harness-code-risk-grading` is cited, not edited. Dropped from the same list: requiring
 `## Principles applied` in receipts (code-review already rules an absent section is not a finding).
 
+**Corrected 2026-09-28 (probe P59).** The unearned-FAIL refusal contradicted SC-17: a green suite
+with an empty `fail_first` is told to "return FAIL", and the refusal then rejected that FAIL — qa had
+no truthful return and escalated, the DEC-173 shape exactly. The refusal now requires `fail_first`
+to be non-empty; an empty one beside a green suite is itself the failed gate. **Known residual:** the
+exemption keys on empty-versus-non-empty, while SC-17 demands evidence per automated SC; two automated
+SCs with evidence for one and a green suite is a FAIL the validator still refuses. Closing it needs
+per-SC counting against BRIEF, which no check does yet.
+
 ---
 
 ## DEC-128 — The orchestrator exists: agent, playbook, and three doors
@@ -4723,6 +4731,33 @@ agents, so a rule placed there is paid for at all 16 spawns. "Probe before you r
 to an agent that relays nothing to the user; charging every agent for a rule only the relaying tiers can act on is the
 context-budget failure the constraint in `CLAUDE.md` exists to prevent. Placement follows *who can
 act on the rule*, not *where rules of this kind usually live*.
+
+**Amended by the skills optimization pass (2026-09-28) — one universal rule cut on probe evidence,
+not the placement principle.** "Never read an authority file whole: index first" was preloaded ×16.
+Probed (P4, `.harness/notes/probe-list-2026-09-28.md`): a `harness-backend-dev` with the skill and a
+plain agent without it, asked a question against the 7,800-line `DECISIONS.md`, both grepped the
+index and read ranged slices; neither read the file whole. A rule the default behaviour already
+satisfies is weight with no return. The four rules the same round found load-bearing — placeholder
+refusal, verify-vs-plan cross-check, UNRESOLVED-root refusal, test-first order — stay as written.
+Round 2 (two fixtures each, the second an 11-file diff with an omitted BRIEF decision): qa's
+revert-run-capture-restore procedure was performed by every arm, skill or not, and the controls
+were the more thorough on both fixtures; cut, keeping the capture-file requirement the validator
+can check. The reviewer's "BRIEF and decisions before the diff" was probed the same way and
+performed by every arm — and is **kept**: the probe's predicate (read order) proxies the rule's
+benefit (anchoring resistance), both fixtures handed the spec over salient so the order was forced,
+and the row was pre-registered as a weak discriminator. A null result the fixture design guarantees
+is not evidence. Reduced to one imperative with its reason.
+
+**What the round actually measured (second opinion, fable-advisor).** The variable that separates
+kept from cut is not contract-versus-procedure: test-first order is pure procedure and probed
+load-bearing; "an open question does not block" is verdict semantics and probed redundant. The
+load-bearing rules each demand something the helpfulness default opposes — refuse, block, invert
+the natural order. Rules aligned with the default probe redundant whatever their form. Applying
+this to unprobed rules: a rule born from a recorded incident keeps or gets an adversarial probe (a
+fixture where the procedure opposes the path of least resistance); a rule born speculatively may
+be cut on judgement, behind the observation logs. Two probes on one model tier and small fixtures
+bound nothing statistically; P4's cut rests on a mechanical fact as much as the probe — the `read`
+tool paginates whole-file reads — and that is the durable reason.
 
 ---
 

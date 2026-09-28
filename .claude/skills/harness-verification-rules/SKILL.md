@@ -63,8 +63,7 @@ whose suite, matrix and failure count are all green.
 **Fail-first evidence is a gate, not an audit note (FEAT-59 SC-17).** For every SC marked
 `verify: automated`, your digest names the test and the evidence that it **failed before the fix** —
 the path of the captured failing run, or the receipt line that records it (`1 failed before 3f2a9c1`).
-Where the fix and its test landed together, reproduce the failing state in a worktree (revert the
-production change, run the test, capture the output, restore) and cite that capture. A green suite
+Where the fix and its test landed together, the capture you cite is your own reproduction. A green suite
 with no fail-first evidence is `FAIL`, not `PASS`: passing proves the tests pass today, and a test that
 never failed constrains nothing.
 

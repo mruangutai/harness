@@ -1,7 +1,7 @@
 ---
 name: migrate-callers-then-delete
 title: Migrate Callers, Then Delete Legacy APIs
-description: "Apply when introducing a new internal API while old callers still exist. Migrate the callers and delete the old API in the same wave instead of preserving compatibility layers."
+description: "Apply when renaming, replacing, or removing any function, module, field, or API that has existing callers. Migrate every caller and delete the old name in the same wave; never leave an alias, shim, or re-export."
 seats: [harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-code-reviewer]
 ---
 # Migrate Callers, Then Delete Legacy APIs
