@@ -2,15 +2,15 @@
 
 implementation_pin: db488aa7c78e392c788bd5839a43ebf4ba562ea1
 
-Written 2026-09-28T21:51:35+00:00 (measurements started 2026-09-28T21:48:01+00:00), AFTER the pin it names; this file and its commit are not inside the pin.
+Written 2026-09-28T21:56:43+00:00 (measurements started 2026-09-28T21:53:12+00:00), AFTER the pin it names; this file and its commit are not inside the pin.
 
 - implementation pin: `db488aa7c78e392c788bd5839a43ebf4ba562ea1`
 - baseline: `a726bad8f74d23e6c1f07409383bb88d1da8fbcf` (the amended plan's baseline; origin/main when the worktree was cut)
-- pin checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat69-cleanpin-db488aa7` (detached, `git status --porcelain` empty, asserted)
+- pin checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat69-cleanpin-db488aa7c78e392c788bd5839a43ebf4ba562ea1` (detached, `git status --porcelain` empty, asserted)
 - baseline checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat69-base-a726bad8` (detached, `git status --porcelain` empty, asserted)
 - one execution per measurement per checkout: `feat69-baseline.py <checkout> <json>` ran once in each; the JSONs are the only source of every byte, hash, diff and verdict here.
 - normalisation: each measurement's own absolute root replaced by `<checkout>`, on both sides, and nothing else. Every remaining difference is listed below verbatim and ruled in `notes/build-divergences.md`.
-- full-table scope (amendment 2): every feature except this feature's own record (`.harness/harness/features/FEAT-69-long-file-check-state-package`), measured in a scratch copy of each checkout with that directory removed (`/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat69-fulltable-fre83gjb/feat69-base-a726bad8` / `/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat69-fulltable-10a_y1gp/feat69-cleanpin-db488aa7`, deleted after the run); the checker reporting on its own feature record is the checker working, not the split.
+- full-table scope (amendment 2): every feature except this feature's own record (`.harness/harness/features/FEAT-69-long-file-check-state-package`), measured in a scratch copy of each checkout with that directory removed (`/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat69-fulltable-pp83xdky/feat69-base-a726bad8` / `/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat69-fulltable-g8s1lsy5/feat69-cleanpin-db488aa7c78e392c788bd5839a43ebf4ba562ea1`, deleted after the run); the checker reporting on its own feature record is the checker working, not the split.
 
 ## SC-02 measurements at the pin vs baseline
 
