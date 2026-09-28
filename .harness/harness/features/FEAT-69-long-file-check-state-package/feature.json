@@ -63,6 +63,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Continue from approved plan into validation after the main-session-direct implementation and committed receipts reached review."
+    },
+    {
+      "at": "2026-09-28T21:52:08+00:00",
+      "by": "operator",
+      "kind": "amendment",
+      "decision": "SC-02.scope",
+      "reason": "full-table byte identity is measured over every feature except this feature's own record (notes/amendments-2-full-table-scope.md); operator ruled: fix the measurement, no per-line ruling"
     }
   ],
   "mission": "plan",

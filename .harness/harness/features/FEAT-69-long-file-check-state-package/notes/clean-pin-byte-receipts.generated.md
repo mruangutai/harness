@@ -2,20 +2,21 @@
 
 implementation_pin: db488aa7c78e392c788bd5839a43ebf4ba562ea1
 
-Written 2026-09-28T20:55:06+00:00 (measurements started 2026-09-28T20:52:45+00:00), AFTER the pin it names; this file and its commit are not inside the pin.
+Written 2026-09-28T21:51:35+00:00 (measurements started 2026-09-28T21:48:01+00:00), AFTER the pin it names; this file and its commit are not inside the pin.
 
 - implementation pin: `db488aa7c78e392c788bd5839a43ebf4ba562ea1`
 - baseline: `a726bad8f74d23e6c1f07409383bb88d1da8fbcf` (the amended plan's baseline; origin/main when the worktree was cut)
-- pin checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat69-cleanpin-db488aa7c78e392c788bd5839a43ebf4ba562ea1` (detached, `git status --porcelain` empty, asserted)
+- pin checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat69-cleanpin-db488aa7` (detached, `git status --porcelain` empty, asserted)
 - baseline checkout: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat69-base-a726bad8` (detached, `git status --porcelain` empty, asserted)
 - one execution per measurement per checkout: `feat69-baseline.py <checkout> <json>` ran once in each; the JSONs are the only source of every byte, hash, diff and verdict here.
-- normalisation: each checkout's own absolute root replaced by `<checkout>`, on both sides, and nothing else. Every remaining difference is listed below verbatim and ruled in `notes/build-divergences.md`.
+- normalisation: each measurement's own absolute root replaced by `<checkout>`, on both sides, and nothing else. Every remaining difference is listed below verbatim and ruled in `notes/build-divergences.md`.
+- full-table scope (amendment 2): every feature except this feature's own record (`.harness/harness/features/FEAT-69-long-file-check-state-package`), measured in a scratch copy of each checkout with that directory removed (`/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat69-fulltable-fre83gjb/feat69-base-a726bad8` / `/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/feat69-fulltable-10a_y1gp/feat69-cleanpin-db488aa7`, deleted after the run); the checker reporting on its own feature record is the checker working, not the split.
 
 ## SC-02 measurements at the pin vs baseline
 
 | measurement | exit base→pin | stdout sha base / pin | stderr sha base / pin | identical (normalised) |
 |---|---|---|---|---|
-| `full_table` | 1→1 | 1fa9d50121a0 / ec8aeace7bab | da39a3ee5e6b / da39a3ee5e6b | **NO** |
+| `full_table` | 1→1 | 348603ed1cc9 / 348603ed1cc9 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `list` | 0→0 | 45a149dc9ba1 / 45a149dc9ba1 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-check-state.py` | 0→0 | bb5b723f03a6 / bb5b723f03a6 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `tests/integration/test-check-state-entry.py` | 0→0 | d6ff164f5622 / d6ff164f5622 | da39a3ee5e6b / da39a3ee5e6b | yes |
@@ -29,18 +30,11 @@ Written 2026-09-28T20:55:06+00:00 (measurements started 2026-09-28T20:52:45+00:0
 | `feat62_findings` | 0→0 | 01fc388f4736 / 01fc388f4736 | da39a3ee5e6b / da39a3ee5e6b | yes |
 | `consolidation_findings` | 0→0 | 2fb3441a33fe / 2fb3441a33fe | da39a3ee5e6b / da39a3ee5e6b | yes |
 
-All identical (normalised): **NO** (12/13).
+All identical (normalised): **yes** (13/13).
 
 ### Differences after the one normalisation, exact lines
 
-`full_table (stdout)`:
-```
-+  note       INV-32: FEAT-69-long-file-check-state-package finding PF-c2128122a0bb540f061d16fb1410fe65 disposition resolved.
-+  note       INV-32: FEAT-69-long-file-check-state-package finding PF-340baf59ff3499fe4a22647112179b9a disposition resolved.
-+  note       INV-32: FEAT-69-long-file-check-state-package finding PF-8df76c10f1a644c190f4873f2bcb3ccd disposition resolved.
-+  note       INV-32: FEAT-69-long-file-check-state-package finding PF-bc67c8325e2128cacd86013cfd559654 disposition resolved.
-+  note       FEAT-69-long-file-check-state-package: run plan-product is referenced but its dir is absent (pruned, or never created).
-```
+none
 
 ## SC-01: feat69-grade-assert.py at the pin (with the baseline record for moved/new classification) — green
 

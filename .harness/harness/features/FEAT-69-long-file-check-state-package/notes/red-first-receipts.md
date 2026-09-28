@@ -25,7 +25,7 @@ Reading: the 287 baseline functions all reappear at the pin by qualname with the
 
 ## SC-02 — fail-first is the baseline-versus-pin comparison itself
 
-The pin side of the byte comparison cannot exist before the implementation, so the comparison is the fail-first form (BRIEF SC-02 `fail-first:`). Result: 12 of 13 measurements byte-identical after the one normalisation; the full-table run's five differing lines are ledgered with exact bytes and rulings in `notes/build-divergences.md` (D-02 the feature's own panel notes, D-03 the gitignored run directory; D-01, foreign worktree state, appeared only in a superseded first execution).
+The pin side of the byte comparison cannot exist before the implementation, so the comparison is the fail-first form (BRIEF SC-02 `fail-first:`). Result: 13 of 13 measurements byte-identical after the one normalisation (full table over every feature except this feature's own record, amendment 2); `notes/build-divergences.md` carries no live divergence.
 
 ## SC-03 fail-first — the structural mutants are NOT discriminated by the pre-FEAT-69 lock, and are by the pin's
 
