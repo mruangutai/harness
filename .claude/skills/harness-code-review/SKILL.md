@@ -23,8 +23,8 @@ diff. Ask four questions:
 3. Is any criterion or decision **missing** a corresponding change? *(omission)*
 4. Do the details match the specific values and constraints that were decided — not just the intent?
 
-Also verify any `SC-NN` marked `verify: inspection`. **This is where those are checked**, and each needs
-a `file:line` citation.
+Also verify any `SC-NN` marked `verify: inspection`. **This is where those are checked**: one line in
+your artifact naming the SC and a `file:line` — `validate-digest.py` refuses a review that cites none.
 
 Report per violation: the path, the `SC`/`D` it relates to, and which of the three kinds it is.
 
@@ -118,7 +118,8 @@ Every finding states **specific inputs or state → specific wrong outcome.**
 > control, so a network blip is indistinguishable from "this document has no authors."
 
 "This could be fragile" is not a finding. If you cannot say how it breaks, drop it. **Rank what you
-report** — an unread list gates nothing.
+report**, highest severity first — an unread list gates nothing, and `validate-digest.py` refuses
+an unranked `findings` list.
 
 **Every finding carries `kind`** (DEC-228; `validate-digest.py` refuses a finding without one, and
 `substantive` is a violation, not a synonym): `substance` would change shipped code and re-gates

@@ -13,8 +13,7 @@ Aim for the most result with the least code. When evolving a system, remove comp
 **The pattern:**
 - **Prefer deletion.** When asked to refactor or improve, look for removals before additions. Sequence removal before construction; cut before you polish.
 - **Minimize the diff.** Make the smallest change that solves the problem. Fewer lines beat "elegant" boilerplate.
-- **Keep the call hierarchy flat.** If answering a question means tracing more than three files or layers, flatten it. A rich interface that hides substantial work is not a deep call chain.
-- **Consolidate decisions.** Do not repeat the same choice in several places. Put it behind one source of truth and pass the result as a simple flag.
+- **Flatten and consolidate** by `harness-codebase-design`'s reader-load axes: layers to trace and decisions repeated across sites are both removals, not additions.
 - **Question the threading.** If a task asks you to pass a new signal through types, schemas, and pipelines, stop and look for a more direct path.
 - **Sweat the small leaks.** Remove tiny pass-throughs, representation leaks, and duplicated choices before they spread; small leaks compound into permanent coordination costs.
 - **Design for observed usage.** No speculative validators, parsers, or guards beyond what the spec demands. The same goes for prompts and templates: redundant instructions are dead weight. A reference with no novel content is deleted, not left as a stub.

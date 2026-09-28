@@ -1232,6 +1232,126 @@ def _mechanical_code_grade(root, review_sha):
     return result, range_text, error
 
 
+def _grade_2_qualnames(root, review_sha):
+    """Qualnames the repository grades exactly 2 over the canonical range, or None when
+    that cannot be computed — the grade enforcement above has already refused then."""
+    base_oid, head_oid, error = _canonical_review_range(root, review_sha)
+    test_kinds = None if error else _load_test_kinds(root)[0]
+    if test_kinds is None:
+        return None
+    try:
+        gated, _informational = gated_set(root, base_oid, head_oid)
+        records, _result = classify(gated, test_kinds)
+    except (OSError, subprocess.SubprocessError, ValueError, SyntaxError):
+        return None  # the grade enforcement already refused this range, with its repair
+    return sorted({r["qualname"] for r in records if r.get("grade") == 2})
+
+
+def _grade_2_reasons_error(reasons, qualnames):
+    """harness-code-risk-grading: one written reason per `REASON REQUIRED` function,
+    naming it. A reason that names no graded function is decoration."""
+    if not qualnames:
+        return None
+    text = " ".join(str(r) for r in reasons)
+    unnamed = [q for q in qualnames if q.split(".")[-1] not in text]
+    if not unnamed:
+        return None
+    return (f"grade_2_reasons names none of: {', '.join(unnamed)}. code-grade.py printed "
+            f"REASON REQUIRED for each; write one reason per function, naming it, or "
+            f"return code_grade: fail.")
+
+
+SC_LINE_RE = re.compile(r"^\s*-\s*(SC-\d+)\s*:", re.M)
+VERIFY_LINE_RE = re.compile(r"^\s*verify:\s*(\S+)", re.M)
+CITATION_RE = re.compile(r"[\w./-]+\.\w+:\d+")
+
+
+def _inspection_sc_ids(brief_text):
+    """SC ids whose next `verify:` line reads `inspection`."""
+    ids = []
+    for match in SC_LINE_RE.finditer(brief_text):
+        verify = VERIFY_LINE_RE.search(brief_text, match.end())
+        if verify and verify.group(1) == "inspection":
+            ids.append(match.group(1))
+    return ids
+
+
+def _read_or_none(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
+def _cited_sc_ids(body):
+    """SC ids on artifact lines that also carry a `path:line` citation."""
+    return {sc for line in body.splitlines() if CITATION_RE.search(line)
+            for sc in re.findall(r"SC-\d+", line)}
+
+
+def _inspection_citation_error(feature_dir, root, artifact):
+    """harness-code-review § Stage 1: every `verify: inspection` SC is verified in the
+    review artifact with a `file:line` citation on a line that names the SC. Silent when
+    BRIEF or the artifact cannot be read — an unreadable artifact is DEC-156's finding."""
+    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md")) if feature_dir else None
+    wanted = _inspection_sc_ids(brief) if brief else []
+    body = wanted and _read_or_none(
+        artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
+    if not body:
+        return None
+    missing = [sc for sc in wanted if sc not in _cited_sc_ids(body)]
+    if not missing:
+        return None
+    return (f"BRIEF marks {', '.join(missing)} `verify: inspection` and the review artifact "
+            f"cites no file:line for them. Inspection SCs are checked here and nowhere else: "
+            f"for each, one line naming the SC and the path:line that satisfies it.")
+
+
+def _plan_task(feature_dir, task_id):
+    """The plan.yaml task mapping with `id == task_id`, or None."""
+    try:
+        plan = artifact_accessors.load_plan(os.path.join(feature_dir, "plan.yaml"))
+    except (OSError, harness_yaml.YamlParseError):
+        return None
+    return next((task for task in plan.get("tasks") or []
+                 if isinstance(task, dict) and task.get("id") == task_id), None)
+
+
+def _plan_verify_for(feature_dir, task_id):
+    """The `verify:` string plan.yaml carries for `task_id`, or None."""
+    verify = (_plan_task(feature_dir, task_id) or {}).get("verify")
+    return verify.strip() if isinstance(verify, str) and verify.strip() else None
+
+
+def _receipt_error(feature_dir, root, artifact, task_id):
+    """harness-digest-dev § verify receipt: `task_verify: pass` is a claim; the receipt
+    named by `artifact:` must exist and carry the task's `verify:` command verbatim."""
+    body = _read_or_none(artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
+    if body is None:
+        return (f"task_verify: pass but the receipt {artifact} is not on disk. The receipt "
+                f"holds the verify command and its verbatim output; write it before returning.")
+    verify = _plan_verify_for(feature_dir, task_id) if feature_dir else None
+    if verify and verify not in body:
+        return (f"task_verify: pass but the receipt {artifact} does not carry the task's "
+                f"verify command verbatim ({verify[:80]!r}). Paste the command as plan.yaml "
+                f"spells it, then its output.")
+    return None
+
+
+def _findings_order_error(findings):
+    """harness-code-review: findings are ranked — severity never rises down the list."""
+    ranks = []
+    for raw in findings:
+        sev = str(parse_member_entry(str(raw)).get("severity", "")).strip()
+        if sev in SEV:
+            ranks.append(SEV.index(sev))
+    if ranks == sorted(ranks, reverse=True):
+        return None
+    return ("findings are not ranked: a lower severity precedes a higher one. An unread "
+            "list gates nothing — order by severity, highest first.")
+
+
 def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None,
                                  review_pin=None):
     """REQ-01: check a code reviewer's `code_grade` claim against the result this
@@ -2022,6 +2142,28 @@ def _near_miss(allowed, val):
     return extra
 
 
+def _artifact_line(text):
+    """The digest's last `artifact:` value, unquoted, or None."""
+    m = None
+    for mm in re.finditer(r"^\s*artifact:\s*(\S+)", text, re.M):
+        m = mm
+    return strip_comment(m.group(1)).strip("\"'") if m else None
+
+
+def _dev_receipt_errors(seen, m, text, feature_dir):
+    """harness-digest-dev: a `task_verify: pass` return names a receipt that exists and
+    carries the task's verify command. Silent when no checkout root resolves."""
+    if not (m and m.group(1) == "PASS" and seen.get("task_verify") == "pass"):
+        return []
+    artifact = _artifact_line(text)
+    fd, _dir_error = _resolve_feature_dir(text, feature_dir)
+    if not artifact or not fd or not os.path.isdir(fd):
+        return []  # no feature on disk to hold a receipt — DEC-156 owns that finding
+    error = _receipt_error(fd, _repo_root_for_feature(fd), artifact,
+                           str(seen.get("task", "")).strip())
+    return [error] if error else []
+
+
 def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, *,
                     config_path, feature_dir, branch_override, review_pin):
     """The rules one persona is held to beyond the common ones, in inline order. The raw
@@ -2031,6 +2173,8 @@ def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, *,
     err = []
     if persona == "qa":
         err += _qa_errors(seen, m, feature_dir)
+    if persona in ("dev", "dev-ops"):
+        err += _dev_receipt_errors(seen, m, text, feature_dir)
     if raw_persona != "lead":
         err += _undeclared_errors(seen, all_fields, raw_persona)
     if raw_persona == "harness-code-reviewer":
@@ -2054,7 +2198,22 @@ def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, *,
 def _qa_errors(seen, m, feature_dir):
     verdict = m.group(1) if m else None
     return (_qa_fail_first_errors(seen, verdict == "PASS")
-            + _qa_kinds_errors(seen, verdict, feature_dir))
+            + _qa_kinds_errors(seen, verdict, feature_dir)
+            + _qa_unearned_fail_errors(seen, verdict))
+
+
+def _qa_unearned_fail_errors(seen, verdict):
+    """harness-verification-rules § test-first audit: violations are findings in the
+    artifact and never fail the gate by themselves. A FAIL with every gate green
+    reports a failure no gate produced."""
+    green = (seen.get("suite") == "pass" and seen.get("matrix_ok") is True
+             and seen.get("failures") == 0)
+    if verdict != "FAIL" or not green:
+        return []
+    return ["VERDICT: FAIL with suite: pass, matrix_ok: true and failures: 0 — no gate "
+            "failed. A test-first violation or a coverage concern is a finding in the "
+            "artifact (and a coverage_gaps entry), not a verdict; return PASS with it "
+            "recorded, or name the gate that failed."]
 
 
 def _qa_fail_first_errors(seen, passing):
@@ -2117,11 +2276,19 @@ def _reviewer_errors(seen, text, m, persona, mission, *,
                              review_pin=review_pin)
     if code_grade == "grade_2":
         err += _grade_2_reason_errors(seen.get("grade_2_reasons"))
+    err += _findings_rank_errors(seen.get("findings"))
     if code_grade == "fail" and passing:
         err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
                    "a gate that failed cannot have passed.")
     err += _review_policy_errors(seen, review_policy, passing)
     return err
+
+
+def _findings_rank_errors(findings):
+    if not (isinstance(findings, list) and findings):
+        return []
+    error = _findings_order_error(findings)
+    return [error] if error else []
 
 
 def _grade_2_reason_errors(reasons):
@@ -2175,7 +2342,24 @@ def _ordinary_review_errors(text, code_grade, reviewed, m, seen, feature_dir, re
         err.append(grade_error)
     if not bound_failed and m and m.group(1) in ("PASS", "FAIL"):
         err += _bound_tree_errors(text, feature_dir, review_pin, seen)
+        err += _bound_artifact_errors(text, feature_dir, review_pin, seen, code_grade)
     return err
+
+
+def _bound_artifact_errors(text, feature_dir, review_pin, seen, code_grade):
+    """Grade-2 reasons name the graded functions; inspection SCs are cited in the
+    artifact. Both read the checkout the review is bound to."""
+    fd, root, review_sha, _e = _review_binding(text, feature_dir, review_pin)
+    if not (root and review_sha):
+        return []
+    err = []
+    if code_grade == "grade_2":
+        err.append(_grade_2_reasons_error(seen.get("grade_2_reasons") or [],
+                                          _grade_2_qualnames(root, review_sha)))
+    artifact = _artifact_line(text)
+    if artifact:
+        err.append(_inspection_citation_error(fd, root, artifact))
+    return [e for e in err if e]
 
 
 def _bound_tree_errors(text, feature_dir, review_pin, seen):

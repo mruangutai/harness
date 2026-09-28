@@ -3946,6 +3946,86 @@ def inv_41(ctx, feat):
                        f"state is a merge-time check, not a feature criterion (SC-16).")
     return bad, warn
 
+# INV-49 (DEC-163): harness-brief's own rule ("Record the gap where the user signs") had no
+# mechanical check -- DEC-163 names it explicitly as one of three surfacings and marks only the
+# other two (check-state's own gap note and the init interview) as built; the BRIEF-authoring half
+# stayed prose. An SC resting on `verify: automated` whose named evidence kind harness.json does
+# not declare runnable (`cmd: null` or `status: excluded`), or whose method is `manual`/spelled
+# `MANUAL --`, is a promise nothing proves -- DEC-163 requires that gap named in prose, at the
+# signature, or it is silently absorbed exactly as #1033's config-shape gap was. Runs in the same
+# by-perspective SC loop as INV-38/41 and shares their scope: an old-shape or abandoned feature's
+# BRIEF is skipped for INV-1/2's reason. Violation-class, matching INV-41's own posture.
+_INV49_VERIFY_RE = re.compile(r"\bverify:\s*([A-Za-z][A-Za-z0-9_-]*)")
+_INV49_EVIDENCE_RE = re.compile(r"\bevidence:\s*([A-Za-z0-9_]+(?:\s*,\s*[A-Za-z0-9_]+)*)", re.I)
+_INV49_MANUAL_DASH_RE = re.compile(r"MANUAL\s*[—–-]")
+_VERIFICATION_GAPS_HEADING = re.compile(r"^##\s+Verification.*\bgaps\b", re.M | re.I)
+
+
+def _brief_verification_gaps(txt):
+    """The body of the `## Verification gaps` section (through the next `## `), or None when
+    the BRIEF carries no such heading at all."""
+    m = _VERIFICATION_GAPS_HEADING.search(txt)
+    if not m:
+        return None
+    body = txt[m.end():]
+    nxt = re.search(r"^##\s", body, re.M)
+    return body[:nxt.start()] if nxt else body
+
+
+def _kind_unrunnable(cj, kind):
+    """A test_kinds entry harness.json does NOT declare runnable: absent, `cmd: null`, or
+    `status: excluded` -- the two shapes DEC-163 names, plus a kind nobody declared at all."""
+    info = ((cj or {}).get("test_kinds") or {}).get(kind)
+    if not isinstance(info, dict):
+        return True
+    if info.get("cmd") is None:
+        return True
+    return str(info.get("status", "")).strip().lower() == "excluded"
+
+
+def _inv49_verify_method(text):
+    m = _INV49_VERIFY_RE.search(text)
+    return m.group(1).strip().lower() if m else None
+
+
+def _inv49_evidence_kinds(text):
+    m = _INV49_EVIDENCE_RE.search(text)
+    return [k.strip() for k in m.group(1).split(",") if k.strip()] if m else []
+
+
+def _inv49_gap_reason(cj, text):
+    """Why `text`'s SC needs a `## Verification gaps` line, or None when it needs none."""
+    method = _inv49_verify_method(text)
+    if method == "manual" or _INV49_MANUAL_DASH_RE.search(text):
+        return "verify: manual"
+    if method != "automated":
+        return None
+    unrunnable = [k for k in _inv49_evidence_kinds(text) if _kind_unrunnable(cj, k)]
+    return f"evidence kind {', '.join(unrunnable)} with no runner" if unrunnable else None
+
+
+def _inv49_sc_hit(feat, sid, reason):
+    return (f"INV-49 {feat}: BRIEF.md {sid} rests on {reason} but '## Verification gaps' names "
+            f"no line for {sid} — record the gap where the user signs (DEC-163).")
+
+
+def inv_49(ctx, feat):
+    bad, warn = [], []
+    brief = ctx.briefs.get(feat)
+    # A record with no plan.yaml has no station and no signature: a DEC-174 direct build
+    # (FEAT-59) that predates test_kinds. It is outside the planned flow this rule grades.
+    if brief is None or feat in ctx.abandoned or not _brief_is_by_perspective(brief) \
+            or ctx.plan_docs.get(feat) is None:
+        return bad, warn
+    cj = ctx.cj if isinstance(ctx.cj, dict) else {}
+    gaps = _brief_verification_gaps(brief)
+    for _sid, _tag, _text in _brief_scs(brief):
+        _reason = _inv49_gap_reason(cj, _text)
+        if _reason and (gaps is None or _sid not in gaps):
+            bad.append(_inv49_sc_hit(feat, _sid, _reason))
+    return bad, warn
+
+
 # INV-39 (SC-15, DEC-157): the cycle budget is a bound, and a raise is a recorded decision.
 #
 # TODAY NOTHING ENFORCES `cycles_used <= max_total_cycles`. INV-7 bounds cycles_used from
@@ -4649,6 +4729,9 @@ INVARIANTS = (
             "every declared perspective is discharged by a tagged SC, and every SC tag is declared", "DEC-231"),
         Inv("INV-41", inv_41, "feature", (_BRIEF, _PLAN_YAML),
             "an SC that invokes a gate script scopes it to the feature", "DEC-231"),
+        Inv("INV-49", inv_49, "feature", (_BRIEF, _HARNESS_JSON),
+            "an SC resting on a kind with no runner, or verify: manual, is named under "
+            "'## Verification gaps'", "DEC-163"),
     )),
     Group("ledger", (
         Inv("INV-39", inv_39, "feature", (_FEATURE_JSON, _BRIEF, _HARNESS_JSON),

@@ -10,7 +10,7 @@ Encode the real domain in a data structure instead of scattering it across condi
 
 **Why:** Scattered booleans, repeated shape assumptions, and branching spread across files are accidental complexity. A structure that matches the domain makes invalid states unrepresentable and deletes branches. Choosing it at write time is cheap; recovering it later reads as a refactor and gets deferred.
 
-The vocabulary comes from `.harness/glossary.md`, the domain's ubiquitous language (`harness-spec-driven`): a structure named in the glossary's terms is one the next reader already knows.
+Name the structure in the domain's own vocabulary — the target project's glossary or BRIEF where it has one; when the domain is harness itself, `<HARNESS_CONTROL_PLANE_ROOT>/.harness/glossary.md` (`harness-spec-driven`). A structure named in terms the next reader already knows needs no comment.
 
 **Reach for structures like these:**
 - A state machine instead of scattered booleans, phases, or lifecycle checks.

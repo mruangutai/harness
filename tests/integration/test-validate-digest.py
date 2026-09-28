@@ -4125,7 +4125,8 @@ def _reviewer_digest_for(result, base_oid, head_oid, artifact="a.md"):
     """A digest claiming `result` over `base..head`, carrying the VERDICT and the
     grade-2 reasons that result's OWN pre-existing rules already require — so a
     rejection below is the mechanical mismatch, never an unrelated schema error."""
-    extra = {"grade_2_reasons": "[one auditable reason]"} if result == "grade_2" else {}
+    # The reason NAMES the graded function: a reason naming none is refused (consumer audit).
+    extra = {"grade_2_reasons": "[moderate is a dispatch table]"} if result == "grade_2" else {}
     digest = reviewer_digest(result, reviewed=f"{base_oid}..{head_oid}",
                              artifact=artifact, **extra)
     if result == "fail":

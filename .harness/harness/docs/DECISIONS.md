@@ -2796,6 +2796,16 @@ must be one of `satisfied | missing | not_applicable | locally_run | misconfigur
 outright. All three say nothing when git or the policy cannot be read — the grade enforcement
 already refuses that checkout with its own repair. `tests/integration/test-validate-digest-shadows.py`.
 
+**Amended again, same pass — five more computed checks.** A dev or dev-ops `task_verify: pass`
+requires the receipt its `artifact:` names to exist and to carry the task's `verify:` verbatim
+from `plan.yaml`. A code review with a PASS or FAIL: every BRIEF SC marked `verify: inspection`
+must be cited in the review artifact on a line naming the SC and a `file:line`; `findings` must be
+ranked by severity, highest first; a `grade_2` claim's `grade_2_reasons` must name each function
+`code_grade.classify` grades 2 over the canonical range. A qa `FAIL` with `suite: pass`,
+`matrix_ok: true` and `failures: 0` is refused — a test-first violation is a finding, never a
+verdict. `harness-code-risk-grading` is cited, not edited. Dropped from the same list: requiring
+`## Principles applied` in receipts (code-review already rules an absent section is not a finding).
+
 ---
 
 ## DEC-128 — The orchestrator exists: agent, playbook, and three doors
@@ -3344,6 +3354,14 @@ distilled. Displacement-at-cap is the one mechanism no run has yet exercised.
 Supersedes the mid-run write discipline of DEC-24/66/67 (the op format, IDs, and who-holds-the-pen
 all survive; only the *when* moved) and DEC-25/68's overflow flow becomes the escalation path when
 a distilling agent cannot condense under the caps.
+
+**Amended by the skills optimization pass (2026-09-18) — the "one writer" clause is now
+enforced at write time, not left to `harness-expertise` prose alone.** `check-domain.py`'s
+`observations_log_guard` refuses a governed agent's Write/Edit against
+`.harness/*/features/*/observations/*.md`, whatever the agent's own domain otherwise permits;
+only `observations-merge.py`, invoked via Bash, still lands bytes there. Nothing about the
+mid-run/distillation split changes — this closes the one route issue #606 found open, a
+whole-file Write/Edit racing the merge tool's own lock.
 
 
 ---
@@ -4366,6 +4384,13 @@ The practical sequencing: fence the 13 templates whenever convenient, then make 
 parser's behavior once no unfenced returns remain. Agent files are read at spawn, so the
 `harness-init` step 9 restart caveat still applies to the template change.
 
+**Amended by the skills optimization pass (2026-09-18) — the rejection half is withdrawn, not the
+fence.** The templates were fenced as ruled. Rejection of unfenced returns cannot ship under OMP:
+`harness-hooks.ts` `yieldContractText` renders a structured yield payload as bare YAML lines, so a
+legitimate host-produced return arrives unfenced. `validate-digest.py` therefore keeps reading the
+last `VERDICT:` block wherever it sits; `harness-handoff` no longer claims only the fenced block is
+parsed. The fence stays in every template for readers and to keep prose out of the block.
+
 ## DEC-173 — "nothing happened" gets a spelling: `n/a`, and declining a gate is not passing it
 
 An audit of every persona's did-nothing state (`.harness/notes/audit-digest-schema-nothing-happened-2026-08-02.md`,
@@ -5073,6 +5098,16 @@ Existing issues are not rewritten, so the corpus is mixed.
 **Amended by FEAT-41-one-station-vocabulary — the shape-gate clause, which was silent rather than wrong.** This entry says "`plan.yaml` is deliberately absent from `check-domain.py`'s shape gate". It is present now, under REQ-05. The argument here is not reversed, because it never addressed this case: it weighed a BUDGET and a PARSE check, and ruled both out — correctly, and those rulings stand. A WRITE DENIAL is a third thing it did not consider. `plan.yaml` now has exactly one writer, `plan-merge.py`, whose verbs validate a station before opening the file, so an editor write is not a shape violation to be measured but a route that no longer exists. Nothing here duplicates `check-plan-routes.py`: that tool judges a document, the gate refuses an author.
 
 **Two field rules the skill now states in one line each (FEAT-60).** `traces:` carries `SC-NN` only; `D-NN` goes in the `decisions:` block — carrying both made the field mean two things and nothing ever read the second. And `pending` is not a station and never was one: the six stations are the ones `harness.json` declares, plus `abandoned`, and `plan-merge.py` refuses any other value with exit 4.
+
+**Amended by the skills optimization pass (2026-09-18) — a task's `verify:` shape is now checked while a plan is still `pending`, not the free-form field this entry left it.** `harness-spec-driven` SKILL.md's only instruction for a task with nothing automatable was prose nothing enforced: write `verify: MANUAL — <what must be built>` (em dash). `harness_yaml.validate_plan_doc` — the one function `load_plan` and `plan-merge.py check` both call, per this entry's "nothing in it is prose for a human" — now raises `PlanSchemaError` when a `pending` plan's task `verify:` is neither that exact MANUAL prefix nor the start of a runnable command (a path/script, a shell-preamble assignment, or one of a small corpus-derived bare-command allowlist). Gated on `approval.status == "pending"`, never on an approved plan: surveyed at this commit, 43 of 607 shipped `verify:` blocks across 99 plan.yaml files open with a shape (`#`, `for`, `!`, `gh`, `bun`, `shasum`) this rule's allowlist does not recognise, and DEC-182's own forward-only stance — "shipped plans are never route-checked again" — rules out re-validating them. Not a new enforcement point: it lives inside the one home this entry already established, so `load_plan`, `plan-merge.py check`, and `check-state.py` agree by construction rather than by a second copy of the rule.
+
+**Amended by the skills optimization pass (2026-09-18) — the "never converted" clause is now
+checked at write time, not left to `harness-spec-driven`/pm-agent prose alone.**
+`check-domain.py`'s `legacy_plan_conversion_guard` refuses creating a `plan.yaml` beside a
+feature dir that already ships a `PLAN.md`, before falling through to the existing
+single-writer route denial that covers every other `plan.yaml` write. Nothing about the
+conversion prohibition changes — a shipped `PLAN.md` is still edited in place, never rewritten
+into `plan.yaml`; this only stops the one route that was never blocked by name.
 
 ---
 
@@ -6827,6 +6862,18 @@ accepts for the other three. A separate, unfixed risk survives outside this deci
 `gh-sync.py`'s `board_lifecycle.audit_findings` call site degrades a consumer-side shape crash to a
 stderr line that `ship` does not fail on — hardening that swallow is future work, not part of this
 matrix binding.
+
+**Amended by the skills optimization pass (2026-09-18) — investigated whether `touches_config_shape`
+could be made mechanical in `check-state.py`, not implemented it.** Triage row 62 asked for a
+`config_shape` predicate in `check-state.py`, computed from `merge-base(origin/main, review_sha)..review_sha`
+against the files this decision's own `harness.json`/`fleet.yaml` text names. This decision's own
+**Tradeoff accepted** paragraph already answers the question: "the predicate is a judgment call, not
+a mechanical diff rule — a boundary case ... is qa's call, same latitude DEC-35 already accepts for
+the other three." A predicate DEC-212 itself declares non-mechanical is not a candidate for a
+deterministic disk-diff check; building one would either narrow the judgment DEC-212 explicitly
+preserves or silently diverge from it. No `check-state.py` change was made for this row; the
+predicate stays qa-judged at gate time, exactly as chosen above, and `harness-verification-rules`'s
+prose (SKILL.md:31-33) is left as prose because nothing enforces it mechanically.
 ## DEC-213 — Harness's own tests live under tests/**, the directory is the kind, and tests/** is control-plane
 
 **Chose:** Harness's own executable tests live at the repository root under `tests/unit/**` and
@@ -7649,6 +7696,17 @@ perspective block with the SCs.
 **Record:** refs DEC-132, DEC-133, DEC-215, DEC-228, DEC-230.
 
 **Why an empty perspective is omitted (moved from `harness-brief` under FEAT-60).** A perspective with nothing to say is omitted rather than written as `none`, because an empty promise is still a promise the goal-check has to grade.
+
+**Amended by the skills optimization pass (2026-09-18) — added a sibling check-state.py invariant
+for `harness-brief`'s own "record the gap" rule, not changed INV-38 or INV-41's own logic.**
+Triage row 98 measured that DEC-163's BRIEF-authoring surfacing ("pm ... must record, where the
+user signs, what is therefore NOT proven") had no mechanical check, unlike its check-state.py and
+init-interview siblings. `check-state.py` INV-49 now runs in the same by-perspective SC loop as
+INV-38/41 (same scope: old-shape and abandoned BRIEFs are skipped) and flags an SC whose `verify:
+automated` names an `evidence:` kind harness.json does not declare runnable (`cmd: null` or
+`status: excluded`), or whose method is `manual`/spelled `MANUAL —`, when `## Verification gaps`
+names no line for that SC — violation-class, matching INV-41's own posture. INV-38 and INV-41
+themselves are unchanged.
 
 ## DEC-232 — Plan anchors are symbols — `path`, `path#symbol`, `{path, quote}` — a line number is refused at write, and a stale anchor at build is the builder's
 

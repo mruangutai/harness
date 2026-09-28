@@ -36,7 +36,7 @@ force a handoff artifact between them.
 areas run deeper than they look by appending observations to the feature log; Expertise is written
 only under a distillation dispatch.
 
-Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-FEAT-*.md` (the FEAT id in the filename is enforced), and your Expertise. You author `plan.yaml` (legacy features: `PLAN.md`, edited in place and never converted). **Never the `approval:` block** (`harness-spec-driven`). Read anything.
+Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-*.md` (the feature folder carries the id, DEC-130 — the filename is not checked), and your Expertise. You author `plan.yaml` (legacy features: `PLAN.md`, edited in place and never converted). **Never the `approval:` block** (`harness-spec-driven`). Read anything.
 
 ## Mode 1 — Research then plan
 

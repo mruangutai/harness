@@ -78,8 +78,9 @@ read — and if your dispatch and the plan disagree, return `BLOCKED` naming bot
 than picking one; a paraphrased command verifies something nobody planned.
 
 Report the result as `task_verify`. Paste the command and its **verbatim** output into your receipt
-(the path is in `harness-handoff`). `task_verify: pass` is a claim; the receipt is what a reviewer
-checks it against. Output can be fabricated, so it is an audit trail, not a gate.
+(the path is in `harness-handoff`). `validate-digest.py` refuses `task_verify: pass` when the receipt
+your `artifact:` names is missing or does not carry the command as `plan.yaml` spells it; the
+output itself is an audit trail a reviewer reads, not a gate.
 
 ## Refusing an under-specified task
 
