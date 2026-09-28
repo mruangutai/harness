@@ -8,7 +8,7 @@ status: building
 mission: plan
 source_issues: []
 baseline:
-  sha: e6f8493b
+  sha: a726bad8
   branch: feat/FEAT-69-long-file-check-state-package
 panel:
   last_run: plan-product
@@ -106,7 +106,7 @@ tasks:
     verify: |
       python3 -c 'import importlib.util,pathlib,sys; root=pathlib.Path("."); p=root/".claude/skills/harness/bin/code_grade.py"; s=importlib.util.spec_from_file_location("feat69_code_grade",p); m=importlib.util.module_from_spec(s); sys.modules[s.name]=m; s.loader.exec_module(m); pkg=root/".claude/skills/harness/bin/check_state"; expected={"__init__.py","ctx.py","table.py","runner.py","plan.py","feature_record.py","run_state.py","seams.py","brief.py","worktrees.py","board.py","host.py"}; assert {x.name for x in pkg.glob("*.py")}==expected; paths=[root/".claude/skills/harness/bin/check-state.py",*sorted(pkg.glob("*.py"))]; rows=[r for x in paths for r in m.grade_source(x.read_text(),str(x.relative_to(root)))]; bad=[(r.path,r.qualname,r.grade) for r in rows if r.grade<4]; assert rows and not bad,bad'
     intent: |
-      Work only in the assigned FEAT-69 worktree. Use the grilling map at e6f8493b without re-deriving it: check-state.py is 5,058 lines; bootstrap is lines 1-118 with root = sys.argv[1] at line 96 as the bootstrap-end sentinel; class Ctx is lines 467-878; invariant bodies are lines 880-4563; INVARIANTS is lines 4599-4750; RETIRED is line 4754; runner logic is lines 4759-5058. The baseline code-grade record is 287 functions: 114 at grade 5, 169 at grade 4, two at grade 3, and two at grade 2. The only below-bar functions are _inv41_invocation at 2, _unquoted_hash_digit at 2, _quoted_scalar_closed at 3, and inv_49 at 3; improve those in the modules where they land while preserving observable behavior.
+      Work only in the assigned FEAT-69 worktree. Use the grilling map at a726bad8 without re-deriving it: check-state.py is 5,058 lines; bootstrap is lines 1-118 with root = sys.argv[1] at line 96 as the bootstrap-end sentinel; class Ctx is lines 467-878; invariant bodies are lines 880-4563; INVARIANTS is lines 4599-4750; RETIRED is line 4754; runner logic is lines 4759-5058. The baseline code-grade record is 287 functions: 114 at grade 5, 169 at grade 4, two at grade 3, and two at grade 2. The only below-bar functions are _inv41_invocation at 2, _unquoted_hash_digit at 2, _quoted_scalar_closed at 3, and inv_49 at 3; improve those in the modules where they land while preserving observable behavior.
 
       Keep check-state.py as the existing hyphenated forked entry and thin it to roughly 150 lines without introducing a file-length gate. Preserve bootstrap root resolution, argv shape, bin-on-sys.path behavior, process exit semantics, and the root = sys.argv[1] sentinel. Add importable check_state/__init__.py. Keep Ctx whole in ctx.py, including parse-once caches, seed findings, spawn boundary, path helpers, and shared context primitives. Put the exact baseline table and all row-selection discretion in table.py; it alone imports every family and owns INVARIANTS in the baseline's exact order. Put row selection, repo and feature passes, collation, reporting, and CLI dispatch behind runner.py. check-state.py never selects families. Family modules never import or know the runner and expose no per-family entry points.
 
@@ -153,11 +153,13 @@ tasks:
     depends_on: [T-01, T-02]
     status: ready
     files:
-      - tests/integration/check_state_support.py
-      - tests/integration/test-check-state*.py
-      - .github/workflows/tests.yml
-      - .github/CODEOWNERS
-      - .omp/commands/harness.md
+    - tests/integration/check_state_support.py
+    - tests/integration/test-check-state*.py
+    - .github/workflows/tests.yml
+    - .github/CODEOWNERS
+    - .omp/commands/harness.md
+    - .claude/skills/harness/bin/layout_migration.py
+    - .claude/skills/harness/bin/layout_fixtures.py
     verify: |
       python3 tests/integration/test-check-state.py &&
       python3 tests/integration/test-check-state-entry.py &&
@@ -188,7 +190,7 @@ tasks:
     files:
     - .harness/harness/features/FEAT-69-long-file-check-state-package/notes
     verify: |
-      python3 -c 'import re,subprocess; rel=".harness/harness/features/FEAT-69-long-file-check-state-package/notes/clean-pin-byte-receipts.generated.md"; receipt_commit=subprocess.check_output(["git","log","-1","--format=%H","HEAD","--",rel],text=True).strip(); assert receipt_commit,"receipt commit not found"; text=subprocess.check_output(["git","show",f"{receipt_commit}:{rel}"],text=True); pins=re.findall(r"(?m)^implementation_pin: ([0-9a-f]{40})$",text); assert len(pins)==1,pins; pin=pins[0]; assert pin!=receipt_commit,"receipt commit must postdate implementation pin"; subprocess.run(["git","merge-base","--is-ancestor",pin,receipt_commit],check=True); subprocess.run(["python3",".harness/harness/features/FEAT-69-long-file-check-state-package/notes/receipt-scripts/feat69-cleanpin.py",pin,"e6f8493b"],check=True)'
+      python3 -c 'import re,subprocess; rel=".harness/harness/features/FEAT-69-long-file-check-state-package/notes/clean-pin-byte-receipts.generated.md"; receipt_commit=subprocess.check_output(["git","log","-1","--format=%H","HEAD","--",rel],text=True).strip(); assert receipt_commit,"receipt commit not found"; text=subprocess.check_output(["git","show",f"{receipt_commit}:{rel}"],text=True); pins=re.findall(r"(?m)^implementation_pin: ([0-9a-f]{40})$",text); assert len(pins)==1,pins; pin=pins[0]; assert pin!=receipt_commit,"receipt commit must postdate implementation pin"; subprocess.run(["git","merge-base","--is-ancestor",pin,receipt_commit],check=True); subprocess.run(["python3",".harness/harness/features/FEAT-69-long-file-check-state-package/notes/receipt-scripts/feat69-cleanpin.py",pin,"a726bad8"],check=True)'
     intent: |
       After T-01 through T-03 are committed, designate their exact full SHA as the immutable implementation pin before creating or committing any receipt script or receipt file. Under notes/receipt-scripts, adapt the FEAT-68 structure as feat69-baseline.py, feat69-cleanpin.py, and feat69-grade-assert.py; do not invent a second proof framework. The baseline and clean-pin scripts must create clean detached baseline and pin checkouts under .claude/worktrees/harness and assert both identities and empty status before measuring.
 

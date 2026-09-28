@@ -25,6 +25,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "cause known and diff bounded, but a new importable surface (the package) and an enforcement change (the lock in check-plan-routes.py) \u2014 third test of the patch rule fails."
+    },
+    {
+      "at": "2026-09-28T20:31:47.196363+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "INV-27's coupled-reader row for the features-path join moves with the join into check_state/ctx.py (layout_migration's own precedent); its fixture row moves with it. Found by the first full-table diff against the baseline."
     }
   ],
   "mission": "plan",
