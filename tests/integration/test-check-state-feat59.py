@@ -937,8 +937,8 @@ date: 2026-09-11
 """
 
 
-def _inv49_check(brief):
-    return _check(_in_era(), brief, harness_json=_INV49_HARNESS_JSON)
+def _inv49_check(brief, station="building"):
+    return _check(_in_era(), brief, harness_json=_INV49_HARNESS_JSON, station=station)
 
 
 def _inv49_with_gap(brief, sentence):
@@ -992,6 +992,12 @@ def case_inv49_inspection_exempt():
              not _lines(out, "INV-49"), out[:400])]
 
 
+def case_inv49_no_plan_exempt():
+    _, out = _inv49_check(_INV49_BASE, station=None)
+    return [("(49.h) a record with no plan.yaml (DEC-174 direct build) is outside the rule",
+             not _lines(out, "INV-49"), out[:400])]
+
+
 def case_inv49_old_shape_exempt():
     _, out = _check(_legacy(), BRIEF_OLD, harness_json=_INV49_HARNESS_JSON)
     return [("(49.g) an old-shape BRIEF is not graded", not _lines(out, "INV-49"), out[:400])]
@@ -1002,7 +1008,8 @@ def case_inv49():
     `verify: manual`, needs a line naming it under `## Verification gaps`."""
     return (case_inv49_no_gap_section() + case_inv49_gap_recorded() + case_inv49_active_kind()
             + case_inv49_manual_no_gap() + case_inv49_manual_gap_recorded()
-            + case_inv49_inspection_exempt() + case_inv49_old_shape_exempt())
+            + case_inv49_inspection_exempt() + case_inv49_old_shape_exempt()
+            + case_inv49_no_plan_exempt())
 
 
 

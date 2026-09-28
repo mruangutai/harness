@@ -4012,7 +4012,10 @@ def _inv49_sc_hit(feat, sid, reason):
 def inv_49(ctx, feat):
     bad, warn = [], []
     brief = ctx.briefs.get(feat)
-    if brief is None or feat in ctx.abandoned or not _brief_is_by_perspective(brief):
+    # A record with no plan.yaml has no station and no signature: a DEC-174 direct build
+    # (FEAT-59) that predates test_kinds. It is outside the planned flow this rule grades.
+    if brief is None or feat in ctx.abandoned or not _brief_is_by_perspective(brief) \
+            or ctx.plan_docs.get(feat) is None:
         return bad, warn
     cj = ctx.cj if isinstance(ctx.cj, dict) else {}
     gaps = _brief_verification_gaps(brief)
