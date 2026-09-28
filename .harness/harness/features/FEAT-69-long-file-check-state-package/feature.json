@@ -32,6 +32,20 @@
       "kind": "amendment",
       "decision": "T-03.files",
       "reason": "INV-27's coupled-reader row for the features-path join moves with the join into check_state/ctx.py (layout_migration's own precedent); its fixture row moves with it. Found by the first full-table diff against the baseline."
+    },
+    {
+      "at": "2026-09-28T20:48:11+00:00",
+      "by": "operator",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "amendment 1: the baseline SHA is a726bad8 (e6f8493b predates INV-49); the field's only change is that SHA (notes/amendments-1-baseline.md, -1b)"
+    },
+    {
+      "at": "2026-09-28T20:48:15+00:00",
+      "by": "operator",
+      "kind": "amendment",
+      "decision": "T-04.verify",
+      "reason": "amendment 1: the baseline SHA is a726bad8 (e6f8493b predates INV-49); the field's only change is that SHA (notes/amendments-1-baseline.md, -1b)"
     }
   ],
   "mission": "plan",
