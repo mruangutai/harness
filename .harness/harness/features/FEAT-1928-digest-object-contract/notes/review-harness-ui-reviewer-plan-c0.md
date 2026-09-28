@@ -1,0 +1,1 @@
+PASS — Prototype gate: NOT REQUIRED; BRIEF.md and plan.yaml change machine-routed digest schemas, hooks, validators, durable file rendering/readers, tests, and documentation, with no rendered or interactive end-user UI surface, so DESIGN.md and a high-fidelity prototype are out of scope.

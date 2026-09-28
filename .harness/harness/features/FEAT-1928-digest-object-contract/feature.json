@@ -1,0 +1,60 @@
+{
+  "feature_id": "FEAT-1928-digest-object-contract",
+  "branch": "feat/FEAT-1928-digest-object-contract",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T20:07:55+00:00",
+      "tokens": 120966,
+      "ended_at": "2026-09-28T20:57:58+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-product-c1",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-28T20:58:22+00:00",
+      "ended_at": "2026-09-28T20:59:11+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T20:59:20+00:00",
+      "tokens": 125582,
+      "ended_at": "2026-09-28T21:15:09+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-28T20:07:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new enforcement surfaces (schema files + drift invariant, dispatch refusal, hook write into run dirs); diff spans 8 agent files, 3 skills, ~26 test files; DEC-174 main-session-direct."
+    },
+    {
+      "at": "2026-09-28T20:58:11+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "substance",
+      "reason": "The signable plan omits dispatch-guard.py and tests/integration/test-dispatch-guard.py despite the operator's explicit DEC-174 enforcement-layer constraint, so shipped coverage would change."
+    }
+  ],
+  "mission": "plan"
+}
