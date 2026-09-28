@@ -238,7 +238,6 @@ SELF_GRADING_ALLOWLIST = {
     # the grade could not have moved and no REASON REQUIRED line was ever demanded for it.
     ("check-plan-routes.py", "parse_files"): 2,
     ("check-plan-routes.py", "process_task"): 2,
-    ("check-plan-routes.py", "process_plan_yaml"): 1,
     ("check-plan-routes.py", "discover_plans"): 1,
     ("check-plan-routes.py", "check_invariant_number_collisions"): 2,
     ("test-check-plan-routes.py", "case_18"): 2,

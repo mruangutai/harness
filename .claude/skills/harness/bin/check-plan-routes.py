@@ -386,7 +386,6 @@ def process_plan_yaml(path, findings, root, manifest_root):
     tokens because load_plan says so.
     """
     import harness_yaml
-    import plan_anchors
     try:
         doc = _load_plan_once(path)
     except harness_yaml.YamlParseError as e:
@@ -395,9 +394,18 @@ def process_plan_yaml(path, findings, root, manifest_root):
         print(f"check-plan-routes: {path} does not load: {e}", file=sys.stderr)
         return None
 
-    violations = 0
-    _legal = legal_task_statuses()
+    legal = legal_task_statuses()
+    # FEAT-68: findings are reported in this sequence; each rule returns its violation count.
+    violations = _feature_station_rule(doc, findings, legal)
+    for t in doc["tasks"]:
+        tid = str(t["id"])
+        violations += _budget_rule(t, tid, findings)
+        violations += _task_status_rule(t, tid, findings, legal)
+        violations += _routing_rule(t, tid, findings, root, manifest_root)
+    return violations
 
+
+def _feature_station_rule(doc, findings, legal):
     # THE FEATURE'S OWN STATION, checked exactly like a task's (FEAT-41 T-04). It is optional:
     # a plan that has not been given a station is not a plan that is wrong about one, and T-07 is
     # what makes this key the station of record. But a value OUTSIDE the vocabulary is a
@@ -406,83 +414,111 @@ def process_plan_yaml(path, findings, root, manifest_root):
     feature_station = doc.get("status")
     if feature_station is not None and (
             not isinstance(feature_station, str)
-            or feature_station not in _legal):
+            or feature_station not in legal):
         findings.append(
             f"VIOLATION top-level status {feature_station!r} is not one of "
-            f"{_legal} (case sensitive)")
-        violations += 1
+            f"{legal} (case sensitive)")
+        return 1
+    return 0
 
-    for t in doc["tasks"]:
-        tid = str(t["id"])
-        mode = t["execution_mode"]
 
-        budget_lines = 0
-        for f in BUDGETED_FIELDS:
-            v = t.get(f)
-            if isinstance(v, str):
-                budget_lines += len(v.splitlines()) or 1
-            elif isinstance(v, list):
-                budget_lines += len(v)
-            elif v is not None:
-                budget_lines += 1
-        if budget_lines > MACHINE_LINES_PER_TASK:
-            findings.append(
-                f"VIOLATION {tid}: {budget_lines} machine-field lines — budget is "
-                f"{MACHINE_LINES_PER_TASK} per task (DEC-182). Detail that only JUSTIFIES "
-                f"the instruction belongs in notes/, not in the contract.")
-            violations += 1
+def _budget_lines(t):
+    budget_lines = 0
+    for f in BUDGETED_FIELDS:
+        v = t.get(f)
+        if isinstance(v, str):
+            budget_lines += len(v.splitlines()) or 1
+        elif isinstance(v, list):
+            budget_lines += len(v)
+        elif v is not None:
+            budget_lines += 1
+    return budget_lines
 
-        status = t.get("status")
-        if status is not None and (
-                not isinstance(status, str) or status not in _legal):
-            # Not str()-coerced first (DEC-203): a list stringifies to something that
-            # happens not to be in the tuple, which gives the right answer for the wrong
-            # reason and stops giving it the moment the tuple grows. Case sensitive on
-            # purpose, and the case that matters has changed with the vocabulary: the board no
-            # longer stores a capitalised name anywhere, so the typo a person will actually make
-            # is `pending` — the word this file itself accepted until FEAT-41 T-04 — or a
-            # capitalised column name copied off the GitHub board by eye.
-            findings.append(
-                f"VIOLATION {tid}: status {status!r} is not one of {_legal} "
-                f"(case sensitive)")
-            violations += 1
 
-        # AN ANCHOR IS RESOLVED BY ITS PATH (FEAT-59 C4). `a.py#foo` and `{path: a.py, quote:
-        # ...}` name a place INSIDE a.py; the grant question is about a.py. plan_anchors.py owns
-        # the grammar; asking check-domain about `a.py#foo` would answer NOBODY for a granted
-        # file, which is the false violation issue #134 already taught this file to fear.
-        paths = [plan_anchors.path_of(f) for f in t["files"]]
-        globs = [f for f in paths if "*" in f or "?" in f]
-        literals = [f for f in paths if f not in globs]
-        for g in globs:
-            findings.append(f"UNRESOLVED-GLOB {tid} {g}")
+def _budget_rule(t, tid, findings):
+    budget_lines = _budget_lines(t)
+    if budget_lines > MACHINE_LINES_PER_TASK:
+        findings.append(
+            f"VIOLATION {tid}: {budget_lines} machine-field lines — budget is "
+            f"{MACHINE_LINES_PER_TASK} per task (DEC-182). Detail that only JUSTIFIES "
+            f"the instruction belongs in notes/, not in the contract.")
+        return 1
+    return 0
 
-        nobody, granted = [], set()
-        for entry in literals:
-            agents = resolve_agents(entry, root, manifest_root)
-            if agents:
-                granted.update(agents)
-            else:
-                nobody.append(entry)
 
-        if nobody:
-            if mode == LEGAL_MAIN_SESSION_TOKEN:
-                findings.append(
-                    f"OK {tid}: declared main-session-direct ({', '.join(nobody)} ungranted)")
-            else:
-                for path_ in nobody:
-                    findings.append(
-                        f"VIOLATION {tid}: {path_} ungranted (NOBODY); execution_mode is "
-                        f"{mode} — legal tokens: {LEGAL_TOKENS}")
-                    violations += 1
-        elif literals:
-            if mode == LEGAL_MAIN_SESSION_TOKEN:
-                findings.append(
-                    f"DEVIATION {tid} {', '.join(literals)} granted to "
-                    f"{', '.join(sorted(granted))} but declared main-session-direct")
-            else:
-                findings.append(f"OK {tid} granted to {', '.join(sorted(granted))}")
-    return violations
+def _task_status_rule(t, tid, findings, legal):
+    status = t.get("status")
+    if status is not None and (
+            not isinstance(status, str) or status not in legal):
+        # Not str()-coerced first (DEC-203): a list stringifies to something that
+        # happens not to be in the tuple, which gives the right answer for the wrong
+        # reason and stops giving it the moment the tuple grows. Case sensitive on
+        # purpose, and the case that matters has changed with the vocabulary: the board no
+        # longer stores a capitalised name anywhere, so the typo a person will actually make
+        # is `pending` — the word this file itself accepted until FEAT-41 T-04 — or a
+        # capitalised column name copied off the GitHub board by eye.
+        findings.append(
+            f"VIOLATION {tid}: status {status!r} is not one of {legal} "
+            f"(case sensitive)")
+        return 1
+    return 0
+
+
+def _routing_rule(t, tid, findings, root, manifest_root):
+    mode = t["execution_mode"]
+    literals = _literal_paths(t, tid, findings)
+    nobody, granted = _resolve_grants(literals, root, manifest_root)
+    if nobody:
+        return _ungranted_findings(tid, mode, nobody, findings)
+    if literals:
+        _granted_findings(tid, mode, literals, granted, findings)
+    return 0
+
+
+def _literal_paths(t, tid, findings):
+    import plan_anchors
+    # AN ANCHOR IS RESOLVED BY ITS PATH (FEAT-59 C4). `a.py#foo` and `{path: a.py, quote:
+    # ...}` name a place INSIDE a.py; the grant question is about a.py. plan_anchors.py owns
+    # the grammar; asking check-domain about `a.py#foo` would answer NOBODY for a granted
+    # file, which is the false violation issue #134 already taught this file to fear.
+    paths = [plan_anchors.path_of(f) for f in t["files"]]
+    globs = [f for f in paths if "*" in f or "?" in f]
+    literals = [f for f in paths if f not in globs]
+    for g in globs:
+        findings.append(f"UNRESOLVED-GLOB {tid} {g}")
+    return literals
+
+
+def _resolve_grants(literals, root, manifest_root):
+    nobody, granted = [], set()
+    for entry in literals:
+        agents = resolve_agents(entry, root, manifest_root)
+        if agents:
+            granted.update(agents)
+        else:
+            nobody.append(entry)
+    return nobody, granted
+
+
+def _ungranted_findings(tid, mode, nobody, findings):
+    if mode == LEGAL_MAIN_SESSION_TOKEN:
+        findings.append(
+            f"OK {tid}: declared main-session-direct ({', '.join(nobody)} ungranted)")
+        return 0
+    for path_ in nobody:
+        findings.append(
+            f"VIOLATION {tid}: {path_} ungranted (NOBODY); execution_mode is "
+            f"{mode} — legal tokens: {LEGAL_TOKENS}")
+    return len(nobody)
+
+
+def _granted_findings(tid, mode, literals, granted, findings):
+    if mode == LEGAL_MAIN_SESSION_TOKEN:
+        findings.append(
+            f"DEVIATION {tid} {', '.join(literals)} granted to "
+            f"{', '.join(sorted(granted))} but declared main-session-direct")
+    else:
+        findings.append(f"OK {tid} granted to {', '.join(sorted(granted))}")
 
 
 def process_plan(path, findings, root, manifest_root):

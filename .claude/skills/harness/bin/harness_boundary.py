@@ -873,58 +873,75 @@ def classify(abs_target, root, globs, shared, label):
     base, _glob_filter, target_side_test = select_base(
         _abs_target, root, workspace_root, workspace_bases, fleet_path, label)
     if base is None:
-        # OUT-OF-PLACE WORKTREE (issue #103), checked BEFORE the fall-through below.
-        # A sibling worktree of this repository is outside both bases, so it lands here
-        # and no grant can reach it — which is exactly why it used to be waved through
-        # as "not our problem". It is not a scratch path: it is a checkout of this
-        # repository in a place nobody merges from.
-        _wt_owner = worktree_owner(real(abs_target))
-        if _wt_owner is not None and not _wt_owner[2]:
-            # owner_root None means the pointer did not PARSE. Refused either way — a
-            # checkout this code cannot place is not a checkout it may write into — but
-            # the caller says which, because "unparseable" and "in the wrong place" want
-            # different remedies from a human.
-            return {"outcome": "out_of_place_worktree", "rel": None, "base": None,
-                    "advertise": [], "shared_advertise": [],
-                    "checkout": _wt_owner[0], "owner_root": _wt_owner[1],
-                    "unparsed": _wt_owner[1] is None,
-                    "expected": worktree_refusal_location(_wt_owner[1])}
+        return _no_base_verdict(abs_target, root)
 
-        # WRONG CHECKOUT, SAME REPOSITORY (issue #895). abs_target can be outside
-        # BOTH bases and still be a real mistake rather than a scratch path: the main
-        # checkout, seen from a session rooted in one of its own worktrees, or a
-        # sibling worktree either way. Domain grants are declared once and matched by
-        # relative path SHAPE — the identical path exists, unrefused, in every
-        # checkout of the family — which is exactly what let FEAT-40's ship
-        # write-back land in main from a worktree session (commit 3952814). Checked
-        # AFTER out-of-place-worktree (an illegitimate placement is refused on that
-        # ground first) and BEFORE the not-a-domain-question fall-through, because
-        # /tmp and an unrelated repository are not this: this is the SAME repository,
-        # just the wrong tree of it.
-        _target_owner = _wt_owner[1] if _wt_owner is not None else None
-        _root_owner = worktree_owner(real(root))
-        _root_owner_root = _root_owner[1] if _root_owner is not None else None
-        if (_target_owner is not None and _root_owner_root is not None
-                and real(_target_owner) == real(_root_owner_root)):
-            return {"outcome": "wrong_checkout", "rel": None, "base": None,
-                    "advertise": [], "shared_advertise": [],
-                    "checkout": _wt_owner[0], "root": real(root)}
-
-        # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.py already said so
-        # ("outside repo — not this hook's problem"), and check-domain did not: a
-        # scratch script at /tmp/x.py was legal via Bash and blocked via Write, so an
-        # agent learned to route around a hook whose own message said not to. /tmp,
-        # /var/folders and unrelated checkouts keep exactly today's behaviour.
-        return {"outcome": "not_a_domain_question", "rel": None, "base": None,
-                "advertise": [], "shared_advertise": []}
-
-    _abs_root = real(root)
+    # FEAT-68: allow and shared are decided before deny; the deny lists are built last.
     applicable_globs = [g for g in globs if _glob_filter(g)]
     applicable_shared = [s for s in shared if _glob_filter(s)]
 
     # Compare base-relative, so an absolute tool path and a relative glob still meet.
     rel = os.path.relpath(_abs_target, base)
+    rel_candidates = _rel_candidates(_abs_target, base, rel)
 
+    verdict = _match_verdict(rel, base, rel_candidates, applicable_globs, applicable_shared,
+                             target_side_test)
+    if verdict is not None:
+        return verdict
+    return _deny_verdict(rel, base, real(root), applicable_globs, applicable_shared)
+
+
+def _no_base_verdict(abs_target, root):
+    # OUT-OF-PLACE WORKTREE (issue #103), checked BEFORE the fall-through below.
+    # A sibling worktree of this repository is outside both bases, so it lands here
+    # and no grant can reach it — which is exactly why it used to be waved through
+    # as "not our problem". It is not a scratch path: it is a checkout of this
+    # repository in a place nobody merges from.
+    _wt_owner = worktree_owner(real(abs_target))
+    if _wt_owner is not None and not _wt_owner[2]:
+        # owner_root None means the pointer did not PARSE. Refused either way — a
+        # checkout this code cannot place is not a checkout it may write into — but
+        # the caller says which, because "unparseable" and "in the wrong place" want
+        # different remedies from a human.
+        return {"outcome": "out_of_place_worktree", "rel": None, "base": None,
+                "advertise": [], "shared_advertise": [],
+                "checkout": _wt_owner[0], "owner_root": _wt_owner[1],
+                "unparsed": _wt_owner[1] is None,
+                "expected": worktree_refusal_location(_wt_owner[1])}
+
+    # WRONG CHECKOUT, SAME REPOSITORY (issue #895). abs_target can be outside
+    # BOTH bases and still be a real mistake rather than a scratch path: the main
+    # checkout, seen from a session rooted in one of its own worktrees, or a
+    # sibling worktree either way. Domain grants are declared once and matched by
+    # relative path SHAPE — the identical path exists, unrefused, in every
+    # checkout of the family — which is exactly what let FEAT-40's ship
+    # write-back land in main from a worktree session (commit 3952814). Checked
+    # AFTER out-of-place-worktree (an illegitimate placement is refused on that
+    # ground first) and BEFORE the not-a-domain-question fall-through, because
+    # /tmp and an unrelated repository are not this: this is the SAME repository,
+    # just the wrong tree of it.
+    if _is_wrong_checkout(_wt_owner, root):
+        return {"outcome": "wrong_checkout", "rel": None, "base": None,
+                "advertise": [], "shared_advertise": [],
+                "checkout": _wt_owner[0], "root": real(root)}
+
+    # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.py already said so
+    # ("outside repo — not this hook's problem"), and check-domain did not: a
+    # scratch script at /tmp/x.py was legal via Bash and blocked via Write, so an
+    # agent learned to route around a hook whose own message said not to. /tmp,
+    # /var/folders and unrelated checkouts keep exactly today's behaviour.
+    return {"outcome": "not_a_domain_question", "rel": None, "base": None,
+            "advertise": [], "shared_advertise": []}
+
+
+def _is_wrong_checkout(_wt_owner, root):
+    _target_owner = _wt_owner[1] if _wt_owner is not None else None
+    _root_owner = worktree_owner(real(root))
+    _root_owner_root = _root_owner[1] if _root_owner is not None else None
+    return (_target_owner is not None and _root_owner_root is not None
+            and real(_target_owner) == real(_root_owner_root))
+
+
+def _rel_candidates(_abs_target, base, rel):
     # WORKTREES (DEC-143). A git worktree under `<WORKTREES_SEGMENT>/<name>/` is a full
     # checkout, but to this rule it was just a subdirectory: the same repo-relative path
     # that globs ALLOW in the main checkout arrived prefixed and matched nothing — so in
@@ -947,26 +964,36 @@ def classify(abs_target, root, globs, shared, label):
         # `!= base`, not `!= root`: when the target resolves against a product base the
         # checkout IS that base, and adding an identical second candidate would be noise.
         rel_candidates.append(_ck[1])
+    return rel_candidates
 
+
+def _match_verdict(rel, base, rel_candidates, applicable_globs, applicable_shared,
+                   target_side_test):
     # A match is accepted only where the base's target-side test passes. In the product
     # base that test is constant-True and the filtering already happened on the globs;
     # in the harness base every glob is live but only a control-plane target may be
     # granted by one. Discarding the match here rather than filtering globs above is
     # what makes `.harness/*/docs/**` grant <harness>/.harness/harness/docs/guide.md
     # while refusing <harness>/src/main.py under a `src/**` grant.
-    if any(matches(r, g) for r in rel_candidates for g in applicable_globs
-           if target_side_test(r)):
+    if _reached(rel_candidates, applicable_globs, target_side_test):
         return {"outcome": "allow", "rel": rel, "base": base,
                 "advertise": [], "shared_advertise": []}
 
-    if any(matches(r, g) for r in rel_candidates for g in applicable_shared
-           if target_side_test(r)):
+    if _reached(rel_candidates, applicable_shared, target_side_test):
         # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
         # write, but the caller says so — an unnoticed shared-file edit is how two
         # agents collide.
         return {"outcome": "shared", "rel": rel, "base": base,
                 "advertise": [], "shared_advertise": []}
+    return None
 
+
+def _reached(rel_candidates, globs, target_side_test):
+    return any(matches(r, g) for r in rel_candidates for g in globs
+               if target_side_test(r))
+
+
+def _deny_verdict(rel, base, abs_root, applicable_globs, applicable_shared):
     # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the rejected
     # path leaves an agent with no basis for choosing a valid alternative, so the caller
     # always prints what it MAY write — and these are the lists it prints.
@@ -976,18 +1003,22 @@ def classify(abs_target, root, globs, shared, label):
     # base, is being sent round a loop it cannot exit. In the product base that is the
     # non-control-plane globs; in the harness base, the globs some control-plane target
     # could actually satisfy.
-    if base == _abs_root:
-        _advertise = [g for g in applicable_globs
-                      if is_control_plane_glob(g) or any(
-                          matches(e.rstrip("*").rstrip("/"), g) or matches(g.rstrip("*").rstrip("/"), e)
-                          for e in HARNESS_CONTROL_PLANE)]
-        _shared_advertise = [s for s in applicable_shared if is_control_plane_glob(s)]
+    if base == abs_root:
+        _advertise, _shared_advertise = _harness_advertise(applicable_globs, applicable_shared)
     else:
         _advertise = list(applicable_globs)
         _shared_advertise = list(applicable_shared)
-
     return {"outcome": "deny", "rel": rel, "base": base,
             "advertise": _advertise, "shared_advertise": _shared_advertise}
+
+
+def _harness_advertise(applicable_globs, applicable_shared):
+    _advertise = [g for g in applicable_globs
+                  if is_control_plane_glob(g) or any(
+                      matches(e.rstrip("*").rstrip("/"), g) or matches(g.rstrip("*").rstrip("/"), e)
+                      for e in HARNESS_CONTROL_PLANE)]
+    _shared_advertise = [s for s in applicable_shared if is_control_plane_glob(s)]
+    return _advertise, _shared_advertise
 
 
 def worktree_owner(path):

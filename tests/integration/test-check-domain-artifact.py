@@ -90,8 +90,8 @@ def _feat50_mutant_between(start, end, iso):
 def _feat50_binding_red_case(root, target, refused):
     iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
-        '        feature_checkout_guard(_verdict["rel"], target)\n',
-        '        approval_guard(rel, agent)\n', iso)
+        '    feature_checkout_guard(verdict["rel"], target)\n',
+        '    approval_guard(verdict["rel"], agent)\n', iso)
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": target, "content": "x"}}
     muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,

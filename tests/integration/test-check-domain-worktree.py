@@ -653,9 +653,9 @@ def _bug895_mutant_hook():
     with open(os.path.join(HERE, "harness_boundary.py"), encoding="utf-8") as f:
         source = f.read()
     start = source.find(
-        '        # WRONG CHECKOUT, SAME REPOSITORY (issue #895).')
+        '    # WRONG CHECKOUT, SAME REPOSITORY (issue #895).')
     end = source.find(
-        '        # NOT A DOMAIN QUESTION, unchanged.')
+        '    # NOT A DOMAIN QUESTION, unchanged.')
     if start < 0 or end < 0 or end <= start:
         return None
     mutated = source[:start] + source[end:]

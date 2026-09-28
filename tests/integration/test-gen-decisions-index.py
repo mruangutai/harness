@@ -41,7 +41,7 @@ GEN = os.environ.get("GEN_DECISIONS_INDEX_BIN") or os.path.join(
 # own variants — `^- (DEC-\d+)\b(.*)$` and `^- (DEC-\d+).*?::\s*(.*)$` — and both were
 # looser than the generator's about the ' :: ' separator, so a row the test happily
 # parsed was one the generator silently treated as absent. Same importlib-by-path
-# mechanism test-render-brief.py uses for a hyphenated module.
+# mechanism the other hyphenated-module tests use.
 import importlib.util   # noqa: E402 — must follow BIN_DIR
 
 _spec = importlib.util.spec_from_file_location("gen_decisions_index", GEN)
