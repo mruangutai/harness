@@ -5910,7 +5910,8 @@ def run_bug1898_exact_release_cases():
     return fails
 
 
-def main():
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
     checks = (
         run_canonical_reader_strictness_cases,
         run_feat65_guard_cases,
@@ -5934,6 +5935,17 @@ def main():
         run_t04_unknown_key_cases,
         run_t08_revision_proof,
     )
+    # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
+    # mutant pass reads only the [bug1898] lines, and without this it paid for every group.
+    if argv[:1] == ["--only"] and len(argv) == 2:
+        by_name = {check.__name__: check for check in checks}
+        if argv[1] not in by_name:
+            print(f"unknown group {argv[1]!r}; groups: {', '.join(by_name)}", file=sys.stderr)
+            return 2
+        checks = (by_name[argv[1]],)
+    elif argv:
+        print(f"usage: {os.path.basename(__file__)} [--only <group>]", file=sys.stderr)
+        return 2
     fails = sum(check() for check in checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0

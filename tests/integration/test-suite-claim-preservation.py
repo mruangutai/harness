@@ -28,6 +28,9 @@ sys.path.insert(0, str(BIN))
 import inflight_registry  # noqa: E402
 
 SUITE = ROOT / "tests" / "integration" / "test-validate-digest.py"
+# The mutant pass reads only the [bug1898] lines, so it runs only that group; the pinned pass
+# stays the whole suite, because its claim is that a REAL suite run releases nothing unrelated.
+EXACT_RELEASE_GROUP = "run_bug1898_exact_release_cases"
 FEATURE = "BUG-1898-suite-sentinel-%d" % os.getpid()
 EXACT_RELEASE_FAIL = "FAIL  [bug1898] "
 # The two checks a persona-wide release must redden: two orchestrators share the persona and
@@ -80,8 +83,8 @@ def seed_sentinels():
     return [row for row in rows() if row.get("claim_id") in claim_ids]
 
 
-def run_suite(env=None):
-    run = subprocess.run([sys.executable, str(SUITE)], cwd=ROOT, capture_output=True,
+def run_suite(env=None, *args):
+    run = subprocess.run([sys.executable, str(SUITE), *args], cwd=ROOT, capture_output=True,
                          text=True, timeout=1800, env=env)
     return run.returncode, run.stdout + run.stderr
 
@@ -111,7 +114,8 @@ def mutant_run():
         with open(copy / "inflight_registry.py", "a", encoding="utf-8") as handle:
             handle.write(PERSONA_RELEASE)
         code, output = run_suite(dict(os.environ,
-                                      VALIDATE_DIGEST_BIN=str(copy / "validate-digest.py")))
+                                      VALIDATE_DIGEST_BIN=str(copy / "validate-digest.py")),
+                                 "--only", EXACT_RELEASE_GROUP)
         reddened = {line[len(EXACT_RELEASE_FAIL):] for line in output.splitlines()
                     if line.startswith(EXACT_RELEASE_FAIL)}
         check("a persona-wide release reddens exactly the parent-settlement checks",

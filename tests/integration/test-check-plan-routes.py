@@ -754,46 +754,67 @@ def _yaml_project(td, files=".harness/harness.json", extra="", status="ready"):
     return fd
 
 
-# TWO FIXTURE SHAPES, EACH WRITTEN ONCE. The task-status cases and the top-level-station cases
-# each ran the same four lines per value — build a project, run, assert — six times over, which
-# is what put this case at cognitive 16 and ABC 47.9 while the code did one simple thing twice.
-def _run_with_task_status(status):
-    """Run the checker against a project whose single task carries `status`."""
+# ONE RUN PER POLARITY. Each value used to get its own project and its own checker spawn — 21
+# spawns for two cases. Tasks carry independent statuses and features carry independent
+# stations, so one plan with a task per value (and one project with a feature per station)
+# asks the same question of the same code; each violation line names its own value, and the
+# violation TOTAL pins that no value was silently accepted or double-counted.
+_TASK_BLOCK = PLAN_YAML.split("tasks:\n", 1)[1]
+
+
+def _run_with_task_statuses(statuses):
+    """Run the checker against ONE plan whose task T-NN carries statuses[NN - 1].
+    A status of None writes no `status:` key on that task — the absent shape."""
+    blocks = []
+    for index, status in enumerate(statuses, 1):
+        block = (_TASK_BLOCK % ".harness/harness.json").replace("id: T-01", f"id: T-{index:02d}")
+        blocks.append(block.replace("    status: ready\n", "" if status is None
+                                    else f"    status: {status}\n"))
     with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, status=status)
+        fd = _yaml_project(td)
+        with open(os.path.join(fd, "plan.yaml"), "w", encoding="utf-8") as stream:
+            stream.write(PLAN_YAML.split("tasks:\n", 1)[0] + "tasks:\n" + "".join(blocks))
         return run(project_dir=td)
 
 
-def _run_with_top_level_status(status):
-    """Run the checker against a project whose plan carries a TOP-LEVEL `status`.
-
-    `status=None` writes no key at all — the absent-station shape, which is legal: a plan that
-    has not been given a station is not a plan that is wrong about one. The template has no
-    top-level status, so the absent case is the untouched file rather than a deletion.
-    """
+def _run_with_top_level_statuses(statuses):
+    """Run the checker against ONE project with a feature per entry, each plan carrying that
+    TOP-LEVEL `status` (None writes no key — the absent station, which is legal: a plan not
+    yet given a station is un-migrated rather than wrong)."""
     with tempfile.TemporaryDirectory() as td:
-        feature_dir = _yaml_project(td)
-        path = os.path.join(feature_dir, "plan.yaml")
-        with open(path, encoding="utf-8") as stream:
-            body = stream.read()
-        if status is not None:
-            body = body.replace("feature: FEAT-A\n",
-                                f"feature: FEAT-A\nstatus: {status}\n", 1)
-        with open(path, "w", encoding="utf-8") as stream:
-            stream.write(body)
+        _yaml_project(td)
+        features = os.path.join(td, ".harness", "harness", "features")
+        shutil.rmtree(os.path.join(features, "FEAT-A"))
+        for index, status in enumerate(statuses, 1):
+            fd = os.path.join(features, f"FEAT-{index:02d}")
+            os.makedirs(fd)
+            head = f"feature: FEAT-{index:02d}\n" + ("" if status is None else f"status: {status}\n")
+            with open(os.path.join(fd, "plan.yaml"), "w", encoding="utf-8") as stream:
+                stream.write((PLAN_YAML % ".harness/harness.json").replace("feature: FEAT-A\n", head, 1))
         return run(project_dir=td)
 
 
-def _check_station_accepted(name, result):
-    check(name, result.returncode == 0 and "0 violation(s)" in result.stdout,
-          f"exit {result.returncode}: {result.stdout[:200]!r}")
+def _reports_total(result, count):
+    """The summary line states exactly `count`; a substring test would read 15 as 5."""
+    return re.search(rf"^{count} violation\(s\) across", result.stdout, re.M) is not None
 
 
-def _check_station_violation(name, value, result):
-    """A rejection must NAME THE VALUE. An exit code alone would pass on any violation at
-    all, including one about a path — so the offending word is asserted in the output."""
-    check(name, result.returncode == 1 and repr(value) in result.stdout,
-          f"exit {result.returncode}: {result.stdout[:300]!r}")
+def _check_all_accepted(name, result):
+    check(name, result.returncode == 0 and _reports_total(result, 0),
+          f"exit {result.returncode}: {result.stdout[:400]!r}")
+
+
+def _check_each_rejected(prefix, values, result, line_of):
+    """A rejection must NAME THE VALUE on its own line. An exit code alone would pass on any
+    violation at all, including one about a path — so each offending word is asserted."""
+    lines = result.stdout.splitlines()
+    for index, value in enumerate(values, 1):
+        check(f"{prefix}_{value}_is_a_VIOLATION_naming_the_value",
+              any(line_of(index) in line and repr(value) in line for line in lines),
+              f"exit {result.returncode}: {result.stdout[:400]!r}")
+    check(f"{prefix}_exits_1_with_one_violation_per_value",
+          result.returncode == 1 and _reports_total(result, len(values)),
+          f"exit {result.returncode}: {result.stdout[-200:]!r}")
 
 
 def case_41_t04_task_station_vocabulary():
@@ -802,6 +823,7 @@ def case_41_t04_task_station_vocabulary():
     The point of the change is that one word now means one thing everywhere, so the cases that
     matter most are the NEGATIVE ones: `pending`, which was plan.yaml's own third value and is
     now nothing at all, and `Building`, the capitalised board spelling a person actually types.
+    An ABSENT task status is legal (the corpus predates the field).
     """
     # The vocabulary is READ, not respelled — six stations plus the terminal marker.
     # A FUNCTION, not a module constant: the import it needs is lazy so cases 19b/19b2/21 can
@@ -810,33 +832,26 @@ def case_41_t04_task_station_vocabulary():
     check("case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_stations",
           legal == ("backlog", "plan", "ready", "building", "review", "done", "abandoned", "rejected"),
           f"got {legal!r}")
-
-    for station in legal:
-        _check_station_accepted(f"case_41b_task_status_{station}_is_accepted",
-                                _run_with_task_status(station))
+    _check_all_accepted("case_41b_every_legal_task_status_and_an_absent_one_are_accepted",
+                        _run_with_task_statuses(legal + (None,)))
 
     # `pending` is THE regression this task exists to prevent: it was legal yesterday.
-    for bad in ("pending", "Building", "Done", "shipped", "in-progress"):
-        _check_station_violation(f"case_41c_task_status_{bad}_is_a_VIOLATION_naming_the_value",
-                                 bad, _run_with_task_status(bad))
+    bad = ("pending", "Building", "Done", "shipped", "in-progress")
+    rejected = _run_with_task_statuses(bad)
+    _check_each_rejected("case_41c_task_status", bad, rejected, lambda i: f"VIOLATION T-{i:02d}")
+    check("case_41c_the_violation_names_every_legal_value",
+          all(repr(v) in rejected.stdout for v in legal), rejected.stdout[:400])
 
 
 def case_41_t04_top_level_station_vocabulary():
     """FEAT-41 T-04: the feature's own top-level station is checked exactly like a task's,
     except that its ABSENCE is legal — T-07 is what adds the key to most plans, and until then
     a plan without one is un-migrated rather than wrong."""
-    absent = _run_with_top_level_status(None)
-    check("case_41d_an_absent_top_level_status_is_not_a_violation",
-          absent.returncode == 0, f"exit {absent.returncode}: {absent.stdout[:200]!r}")
-
-    for station in ("ready", "building", "done", "abandoned"):
-        _check_station_accepted(f"case_41e_top_level_status_{station}_is_accepted",
-                                _run_with_top_level_status(station))
-
-    for bad in ("pending", "Done", "nonsense"):
-        _check_station_violation(
-            f"case_41f_top_level_status_{bad}_is_a_VIOLATION_naming_the_value",
-            bad, _run_with_top_level_status(bad))
+    _check_all_accepted("case_41d_an_absent_or_legal_top_level_status_is_accepted",
+                        _run_with_top_level_statuses((None, "ready", "building", "done", "abandoned")))
+    bad = ("pending", "Done", "nonsense")
+    _check_each_rejected("case_41f_top_level_status", bad, _run_with_top_level_statuses(bad),
+                         lambda i: "VIOLATION top-level status")
 
 
 def case_23():
@@ -887,12 +902,29 @@ def case_23():
     # it moves. `cap` here is production's own value.
     cap = cpr().MACHINE_LINES_PER_TASK
 
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, files=", ".join(f'"src/f{i}.py"' for i in range(cap + 40)))
-        r = run(project_dir=td)
-        check("case_23e_the_per_task_machine_budget_fires",
-              f"machine-field lines — budget is {cap}" in r.stdout,
-              f"exit {r.returncode}: {r.stdout[:240]!r}")
+    # SIZED WITH `traces:`, NEVER `files:`. Both count identically against the budget, but
+    # every files entry costs a check-domain.py subprocess: 23e and 23h once carried cap + 40
+    # entries each, ~180 resolver spawns and 14s of this file's wall clock, and a search over
+    # `files:` once timed this case out at two minutes. `traces:` is never resolved, and
+    # case_23j pins that `files:` entries count toward the same total.
+    def _traces(n):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td)
+            p = os.path.join(fd, "plan.yaml")
+            src = re.sub(r"^    traces:.*$", "", open(p).read(), flags=re.M)
+            with open(p, "w") as f:
+                f.write(src.rstrip("\n") +
+                        "\n    traces: [" + ", ".join(f"REQ-{i:02d}"
+                                                      for i in range(n)) + "]\n")
+            return run(project_dir=td)
+
+    # ONE over-budget run answers three questions. The fixture's single `files:` entry is
+    # GRANTED, so a non-zero exit can only come from the budget.
+    probe = cap + 40
+    over_budget = _traces(probe)
+    check("case_23e_the_per_task_machine_budget_fires",
+          f"machine-field lines — budget is {cap}" in over_budget.stdout,
+          f"exit {over_budget.returncode}: {over_budget.stdout[:240]!r}")
 
     # ...and does NOT fire on a normal task, or it is a cap on having tasks at all.
     with tempfile.TemporaryDirectory() as td:
@@ -905,47 +937,26 @@ def case_23():
     # suite green, because case_23e asserts on stdout alone and every sibling in this file
     # asserts on the exit code. A finding that does not change the exit status is a
     # comment: check-plan-routes.py's whole contract is that CI reads its exit code.
-    #
-    # The fixture's files are GRANTED, so a non-zero exit can only come from the budget.
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, files=", ".join(f'"{GRANTED_PATH}"' for _ in range(cap + 40)))
-        r = run(project_dir=td)
-        check("case_23h_an_over_budget_task_sets_the_EXIT_CODE_not_just_stdout",
-              r.returncode == 1 and "ungranted" not in r.stdout,
-              f"exit {r.returncode}: {r.stdout[:240]!r}")
+    check("case_23h_an_over_budget_task_sets_the_EXIT_CODE_not_just_stdout",
+          over_budget.returncode == 1 and "ungranted" not in over_budget.stdout,
+          f"exit {over_budget.returncode}: {over_budget.stdout[:240]!r}")
 
     # THE BOUNDARY, both sides, ONE LINE APART. `>` -> `>=` survived every earlier
     # assertion because they all crossed the cap by 40, and in the real corpus FEAT-06
     # T-01 measures exactly AT the cap — the one value where the two operators disagree.
     #
-    # Tuned with `traces:`, not `files:`. Both count identically against the budget, but
-    # every files entry costs a check-domain.py subprocess: a search over `files:` ran 110
-    # of them and this case timed out at two minutes. `traces:` is never resolved.
-    #
-    # THREE RUNS, NO SEARCH. Run 1 goes far over and REPORTS its own total, which gives
-    # the fixture's fixed overhead exactly. Runs 2 and 3 then sit on the boundary. Reading
-    # the overhead beats assuming it: the fixture gains a field and an assumed constant
-    # silently stops testing the boundary while still passing.
-    def _traces(n):
-        with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td)
-            p = os.path.join(fd, "plan.yaml")
-            src = re.sub(r"^    traces:.*$", "", open(p).read(), flags=re.M)
-            with open(p, "w") as f:
-                f.write(src.rstrip("\n") +
-                        "\n    traces: [" + ", ".join(f"REQ-{i:02d}"
-                                                      for i in range(n)) + "]\n")
-            return run(project_dir=td).stdout
-
-    probe = cap + 40
-    m = re.search(r"(\d+) machine-field lines", _traces(probe))
+    # NO SEARCH. The over-budget run REPORTS its own total, which gives the fixture's fixed
+    # overhead exactly; two more runs then sit on the boundary. Reading the overhead beats
+    # assuming it: the fixture gains a field and an assumed constant silently stops testing
+    # the boundary while still passing.
+    m = re.search(r"(\d+) machine-field lines", over_budget.stdout)
     if not m:
         check("case_23i_the_budget_boundary_is_exact", False,
               "probe run did not report a total; boundary untested")
     else:
         overhead = int(m.group(1)) - probe          # everything that is not `traces:`
         at, over = cap - overhead, cap - overhead + 1
-        silent, fires = _traces(at), _traces(over)
+        silent, fires = _traces(at).stdout, _traces(over).stdout
         check("case_23i_the_budget_boundary_is_exact",
               f"budget is {cap}" not in silent and f"budget is {cap}" in fires,
               f"overhead={overhead}; {at} traces (=={cap}) must be silent, "
@@ -1211,73 +1222,6 @@ def case_24():
     return all(results)
 
 
-def case_25():
-    """(25) DEC-203 board truth: a task's status, when present, is one of exactly
-    pending / building / done — case sensitive on purpose. "Building" (capital B) is the
-    board's own spelling of the same idea and is the typo a person will actually make;
-    today it would read as not-done forever and the card would silently never move. An
-    absent status is legal (the live corpus predates the field).
-    """
-    # The CLEAN case the whole enum exists for — asserted first.
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, status="building")
-        r = run(project_dir=td)
-        check("case_25a_status_building_is_CLEAN",
-              r.returncode == 0 and "VIOLATION" not in r.stdout,
-              f"exit {r.returncode}: {r.stdout[:200]!r}")
-
-    # Capital B — the board's own spelling — is a VIOLATION naming the three legal values.
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, status="Building")
-        r = run(project_dir=td)
-        legal = cpr().legal_task_statuses()
-        ok = (r.returncode != 0
-              and "VIOLATION T-01" in r.stdout
-              and "Building" in r.stdout
-              and all(v in r.stdout for v in legal))
-        check("case_25b_status_Building_capital_B_is_a_VIOLATION_naming_the_legal_values",
-              ok, f"exit {r.returncode}: {r.stdout[:300]!r}, legal={legal}")
-
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, status="in-progress")
-        r = run(project_dir=td)
-        check("case_25c_status_in_progress_is_a_VIOLATION",
-              r.returncode != 0 and "VIOLATION T-01" in r.stdout,
-              f"exit {r.returncode}: {r.stdout[:200]!r}")
-
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, status=None)
-        r = run(project_dir=td)
-        check("case_25d_no_status_at_all_is_CLEAN",
-              r.returncode == 0 and "VIOLATION" not in r.stdout,
-              f"exit {r.returncode}: {r.stdout[:200]!r}")
-
-    # A second task carrying `status: done`, alongside T-01's default `status: pending`
-    # (via _yaml_project's default), are both CLEAN in the same plan.
-    with tempfile.TemporaryDirectory() as td:
-        fd = _yaml_project(td)
-        second_task = (
-            "  - id: T-02\n"
-            "    title: second task\n"
-            "    traces: [REQ-01]\n"
-            "    change_type: logic\n"
-            "    execution_mode: team\n"
-            "    execution_agent: harness-dev-ops\n"
-            "    depends_on: []\n"
-            "    status: done\n"
-            f'    files: ["{GRANTED_PATH}"]\n'
-            "    verify: |\n"
-            "      true\n"
-            "    intent: |\n"
-            "      do it\n"
-        )
-        with open(os.path.join(fd, "plan.yaml"), "a") as f:
-            f.write(second_task)
-        r = run(project_dir=td)
-        check("case_25e_status_done_and_status_pending_are_both_CLEAN",
-              r.returncode == 0 and "VIOLATION" not in r.stdout,
-              f"exit {r.returncode}: {r.stdout[:300]!r}")
-
 
 def case_20():
     """(20) Root resolution is now the FOURTH copy in this tree. D-02 does not forbid
@@ -1514,166 +1458,6 @@ def case_20():
           f"is how the previous draft passed while missing its own target")
     return ok and seen_any >= 2
 
-
-def _inv_project(td, features):
-    """A fixture project with N feature dirs and a stub check-state.py.
-
-    `features` is a list of (dir_name, station, brief_text, plan_text_or_None). A plan of
-    None writes NO plan.yaml at all — that is the FEAT-34 shape, the one that actually got
-    through: a signed BRIEF claiming an invariant number, with no plan yet in existence, so
-    a plan-only scan never sees it. Such a feature has nowhere to record a station and is
-    therefore never shipped, which is the migration's own rule (FEAT-41 T-07) rather than a
-    fixture limitation.
-
-    THE STATION GOES IN plan.yaml, LOWERCASE, and feature.json carries none — `_is_shipped`
-    reads the plan now, and feature-schema.json's additionalProperties would reject the key.
-    """
-    import shutil as _sh
-    os.makedirs(os.path.join(td, ".harness"), exist_ok=True)
-    _sh.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
-              os.path.join(td, ".harness", "team-config.yaml"))
-    binp = os.path.join(td, ".claude", "skills", "harness", "bin")
-    os.makedirs(binp, exist_ok=True)
-    # The LIVE set. Only these three exist in this fixture's gate script.
-    with open(os.path.join(binp, "check-state.py"), "w") as f:
-        f.write("#!/bin/bash\n# INV-1 something\n# INV-2 another\n# INV-3 a third\n")
-    for name, station, brief, plan in features:
-        fd = os.path.join(td, ".harness", "harness", "features", name)
-        os.makedirs(fd, exist_ok=True)
-        with open(os.path.join(fd, "feature.json"), "w") as f:
-            json.dump({"feature_id": name}, f)
-        with open(os.path.join(fd, "BRIEF.md"), "w") as f:
-            f.write(brief)
-        if plan is not None:
-            with open(os.path.join(fd, "plan.yaml"), "w") as f:
-                f.write(f"status: {station}\n" + plan)
-    return td
-
-
-_INV_PLAN = ("approval:\n  status: approved\n\ntasks:\n"
-             "  - id: T-01\n    title: t\n    traces: [REQ-01]\n"
-             "    change_type: logic\n    execution_mode: main-session-direct\n"
-             "    execution_reason: none\n    status: ready\n"
-             "    files:\n      - .harness/harness.json\n"
-             "    verify: |\n      true\n    intent: |\n      x\n")
-
-
-def case_26():
-    """(26) TWO UNBUILT FEATURES CANNOT CLAIM THE SAME INV NUMBER.
-
-    MEASURED 2026-08-23, and this case exists because the main session shipped the gap it
-    is closing. FEAT-26's plan.yaml used `INV-28` sixteen times and FEAT-34's BRIEF used it
-    eight times. Both were unbuilt, both were signed or about to be, and NOTHING saw it —
-    not check-state.py, not this checker, not two review rounds. It was found by a human
-    reading a task list.
-
-    The instruction given to pm at the time was "do not infer the next free number from the
-    highest in the file". Correct, and half a check: it names check-state.py and says
-    nothing about the signed-but-unbuilt plans of other in-flight features. A number is
-    free only when BOTH halves agree, and only one half was mechanised.
-
-    WHY THE FEATURE DIR AND NOT THE PLAN. FEAT-34 had no plan.yaml at all — a BRIEF and
-    nothing else. A plan-only scan would have reproduced the exact miss, which is why
-    case_26c writes a feature with no plan and expects it to still participate.
-    """
-    # (a) THE COLLISION. Two unshipped features, same unclaimed number, both named.
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            ("FEAT-A", "ready", "The new invariant is INV-9.\n", _INV_PLAN),
-            ("FEAT-B", "plan", "Add INV-9, which reports the thing.\n", _INV_PLAN),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        ok = (r.returncode != 0 and "INV-9" in out
-              and "FEAT-A" in out and "FEAT-B" in out)
-        check("case_26a_two_unbuilt_features_claiming_INV-9_is_a_VIOLATION_naming_both",
-              ok, f"exit {r.returncode}: {out[:400]!r}")
-
-    # (b) DIFFERENT numbers are clean — without this, "always violate" passes (a).
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            ("FEAT-A", "ready", "The new invariant is INV-9.\n", _INV_PLAN),
-            ("FEAT-B", "plan", "Add INV-10, which reports the thing.\n", _INV_PLAN),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        check("case_26b_distinct_INV_numbers_are_CLEAN",
-              r.returncode == 0 and "INV-9" not in out and "INV-10" not in out,
-              f"exit {r.returncode}: {out[:400]!r}")
-
-    # (c) THE SHAPE THAT ACTUALLY GOT THROUGH: a feature with a BRIEF and NO plan.yaml.
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            ("FEAT-A", "ready", "Add INV-9 to the gate.\n", _INV_PLAN),
-            ("FEAT-B", "plan", "The new invariant is INV-9.\n", None),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        ok = (r.returncode != 0 and "INV-9" in out
-              and "FEAT-A" in out and "FEAT-B" in out)
-        check("case_26c_a_feature_with_a_BRIEF_and_NO_plan_still_collides",
-              ok, f"exit {r.returncode}: {out[:400]!r}")
-
-    # (d) A number ALREADY LIVE in check-state.py is a REFERENCE, not a claim. Two features
-    #     citing INV-2 are discussing an invariant that exists; that must stay clean or the
-    #     check fires on every plan that mentions an existing rule.
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            ("FEAT-A", "ready", "This interacts with INV-2.\n", _INV_PLAN),
-            ("FEAT-B", "plan", "INV-2 already grades that card.\n", _INV_PLAN),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        check("case_26d_two_features_citing_a_LIVE_invariant_is_CLEAN",
-              r.returncode == 0 and "VIOLATION" not in out,
-              f"exit {r.returncode}: {out[:400]!r}")
-
-    # (e) A SHIPPED feature's claim is a record, not a contract. Its number is spent, and a
-    #     live feature reusing it is a different problem from two live features colliding.
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            ("FEAT-A", "done", "Added INV-9.\n", _INV_PLAN),
-            ("FEAT-B", "plan", "The new invariant is INV-9.\n", _INV_PLAN),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        check("case_26e_a_SHIPPED_feature_does_not_collide_with_a_live_one",
-              r.returncode == 0 and "VIOLATION" not in out,
-              f"exit {r.returncode}: {out[:400]!r}")
-
-    # (f) A DECLARATION WINS OVER PROSE. FEAT-B declares 10 and merely CITES 9 while
-    #     explaining why it moved. That is history, not a claim, and the check must not
-    #     fire on a feature for documenting the collision it already resolved.
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            ("FEAT-A", "ready", "Add INV-9 to the gate.\n", _INV_PLAN),
-            ("FEAT-B", "plan",
-             "<!-- invariants: 10 -->\nThe new invariant is INV-10, not INV-9, "
-             "because FEAT-A holds INV-9 and builds first.\n", _INV_PLAN),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        check("case_26f_a_DECLARATION_beats_a_prose_citation",
-              r.returncode == 0 and "VIOLATION INV-9" not in out,
-              f"exit {r.returncode}: {out[:400]!r}")
-
-    # (g) THE DECLARATION IS NOT AN ESCAPE HATCH. Two features DECLARING the same number
-    #     still collide — without this, "declare anything and be excused" passes (f).
-    with tempfile.TemporaryDirectory() as td:
-        _inv_project(td, [
-            # NEITHER BRIEF WRITES THE TOKEN `INV-9` IN PROSE. If it did, the prose scan
-            # alone would catch the pair and this case would pass without the declaration
-            # path existing at all — which is exactly how it passed before the feature
-            # was implemented.
-            ("FEAT-A", "ready", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
-            ("FEAT-B", "plan", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
-        ])
-        r = run(project_dir=td)
-        out = r.stdout + r.stderr
-        ok = (r.returncode != 0 and "INV-9" in out
-              and "FEAT-A" in out and "FEAT-B" in out)
-        check("case_26g_two_features_DECLARING_the_same_number_still_collide",
-              ok, f"exit {r.returncode}: {out[:400]!r}")
 
 
 def write_prior_route_validator(directory):
@@ -2374,581 +2158,6 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_discovery_cannot_narrow,
 )
 
-def _normalised_receipt(result, td):
-    return {"exit": result.returncode,
-            "stdout": result.stdout.replace(td, "<TD>"),
-            "stderr": result.stderr.replace(td, "<TD>")}
-
-
-def _run_with_top_level_status_receipt(status):
-    with tempfile.TemporaryDirectory() as td:
-        feature_dir = _yaml_project(td)
-        path = os.path.join(feature_dir, "plan.yaml")
-        with open(path, encoding="utf-8") as stream:
-            body = stream.read()
-        if status is not None:
-            body = body.replace("feature: FEAT-A\n",
-                                f"feature: FEAT-A\nstatus: {status}\n", 1)
-        with open(path, "w", encoding="utf-8") as stream:
-            stream.write(body)
-        return _normalised_receipt(run(project_dir=td), td)
-
-
-def _run_with_task_status_receipt(status):
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, status=status)
-        return _normalised_receipt(run(project_dir=td), td)
-
-
-def case_feat61_lifecycle_receipt():
-    """FEAT-61 T-05 / SC-01: the station migration changes NO byte this checker emits.
-
-    The receipt was captured against the pre-migration script (see `captured_at` in the
-    fixture) for every station in the vocabulary, the capitalised `Done` that must be
-    checked rather than skipped, and the absent-status shape — as a top-level station and as
-    a task status. Exit code, stdout and stderr are compared whole; the fixture's temp dir is
-    the only normalisation. A drift in the skip decision (`_is_shipped`), in a violation
-    line, or in the summary reddens the exact station that moved.
-    """
-    with open(os.path.join(FIXTURE_DIR, "feat61-check-plan-routes-lifecycle.receipt.json"),
-              encoding="utf-8") as stream:
-        receipt = json.load(stream)
-    for family, runner in (("top_level_status", _run_with_top_level_status_receipt),
-                           ("task_status", _run_with_task_status_receipt)):
-        for key, expected in receipt[family].items():
-            got = runner(None if key == "None" else key)
-            check(f"feat61_receipt_{family}_{key}_byte_identical", got == expected,
-                  f"expected {expected!r}\n     got {got!r}")
-
-
-def _consolidation_findings_for_tree(mutate=None):
-    """Run `consolidation_findings` over a COPY of bin/ so a mutant never touches the live
-    tree. `mutate(bin_dir)` edits the copy; None runs the tree as shipped."""
-    with tempfile.TemporaryDirectory() as td:
-        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
-        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
-        # FEAT-62's authority audit reads the decisions index and is LOUD without it — a bin/
-        # copy alone is not a tree the audit can pass, so the index rides along.
-        index_rel = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
-        os.makedirs(os.path.dirname(os.path.join(td, index_rel)))
-        shutil.copy(os.path.join(REPO_ROOT, index_rel), os.path.join(td, index_rel))
-        if mutate is not None:
-            mutate(copy_bin)
-        return cpr().consolidation_findings(td)
-
-
-def _append_to_gh_board(bin_dir, source):
-    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
-        stream.write(source)
-
-
-def _append_station_literal_mutant(bin_dir):
-    # A predicate that respells the active bucket instead of calling is_active.
-    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
-                        '    return station in ("plan", "ready", "building", "review")\n')
-
-
-def _append_drifted_bucket_mutant(bin_dir):
-    # Validate c1 CR-01: a copied active bucket that has ALREADY drifted — `review` omitted.
-    # A feature in review is classified inactive by this predicate, and an exact-set lock
-    # never sees it. Also the finished bucket drifted to two names, assigned not compared.
-    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
-                        '    return station in ("plan", "ready", "building")\n'
-                        '\n\n_MUTANT_OVER = frozenset({"done", "abandoned"})\n')
-
-
-def _append_work_started_control(bin_dir):
-    # D-11 negative control: the historical one-off spans both buckets and is NOT a respelling.
-    _append_to_gh_board(bin_dir, '\n\ndef _control_work_started(statuses):\n'
-                        '    return not set(statuses).isdisjoint({"building", "review", "done"})\n'
-                        '\n\ndef _control_columns():\n'
-                        '    return [k.capitalize() for k in ("ready", "building", "review")]\n')
-
-
-def _append_second_loader_mutant(bin_dir):
-    _append_to_gh_board(bin_dir, '\n\ndef _mutant_load(path):\n'
-                        '    import importlib.util\n'
-                        '    spec = importlib.util.spec_from_file_location("m", path)\n'
-                        '    return spec\n')
-
-
-def _mutant_findings(mutate, symbol, respelled):
-    """Findings from a mutant, plus whether exactly one names `symbol` and `respelled`."""
-    findings = _consolidation_findings_for_tree(mutate)
-    own = [f for f in findings if symbol in f and respelled in f]
-    return findings, len(findings) == len(own) and bool(own)
-
-
-def case_feat61_station_lock():
-    """FEAT-61 T-05 / SC-07, lock 1: the station lock passes on the shipped tree, fails on a
-    bucket copied whole AND on one that has already drifted to a subset (validate c1 CR-01),
-    and stays silent on the D-11 negative control — `_work_started`'s cross-bucket trio and a
-    `for` over station keys.
-    """
-    clean = _consolidation_findings_for_tree()
-    check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
-    station, ok = _mutant_findings(_append_station_literal_mutant, "gh_board.py::_mutant_is_live",
-                                   "respells factory_config.ACTIVE_STATIONS")
-    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding", ok, "\n".join(station))
-    drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
-    check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
-          len(drifted) == 2
-          and "gh_board.py::_mutant_is_live" in drifted[0]
-          and "respells factory_config.ACTIVE_STATIONS" in drifted[0]
-          and "gh_board.py::<module>" in drifted[1]
-          and "respells factory_config.FINISHED_STATIONS" in drifted[1],
-          "\n".join(drifted))
-    control = _consolidation_findings_for_tree(_append_work_started_control)
-    check("feat61_lock_d11_cross_bucket_predicate_and_key_iteration_are_not_flagged",
-          control == [], "\n".join(control))
-
-
-def case_feat61_loader_lock():
-    """FEAT-61 T-05 / SC-07, lock 2: a second spec_from_file_location under bin/ fails for its
-    own finding only, and the CLI reports the shipped tree clean at exit 0."""
-    loader, ok = _mutant_findings(_append_second_loader_mutant, "gh_board.py::_mutant_load",
-                                  "second spec_from_file_location")
-    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding", ok, "\n".join(loader))
-    r = run("--consolidation-audit")
-    check("feat61_lock_cli_reports_clean_and_exits_0",
-          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
-          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
-
-
-# ---------------------------------------------------------------------------------------------
-# FEAT-62 T-02: the three checker-structure locks and the --changed posture scan, each proven
-# RED on an isolated mutant of the tree and silent on the tree as shipped. Mutants edit a COPY
-# that carries bin/, the decisions index, the workflows and the hooks — the four surfaces the
-# FEAT-62 rules read — so no case touches the live tree.
-_FEAT62_TREE_RELS = (
-    os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md"),
-)
-_FEAT62_TREE_DIRS = (
-    os.path.join(".github", "workflows"),
-    os.path.join(".claude", "skills", "harness", "hooks"),
-)
-
-
-def _feat62_findings_for_tree(mutate=None):
-    """`feat62_findings` over a COPY of the surfaces it reads; `mutate(root)` edits the copy."""
-    with tempfile.TemporaryDirectory() as td:
-        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
-        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
-        for rel in _FEAT62_TREE_RELS:
-            os.makedirs(os.path.dirname(os.path.join(td, rel)), exist_ok=True)
-            shutil.copy(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
-        for rel in _FEAT62_TREE_DIRS:
-            shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
-        if mutate is not None:
-            mutate(td)
-        return cpr().feat62_findings(td)
-
-
-def _checker_path(root, module=None):
-    """The entry, or the check_state/<module>.py package file (FEAT-69)."""
-    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
-    return os.path.join(bin_dir, "check-state.py") if module is None else os.path.join(bin_dir, "check_state", module + ".py")
-
-
-def _checker_files(root):
-    """The entry then every package file, in name order (FEAT-69)."""
-    package = os.path.join(root, ".claude", "skills", "harness", "bin", "check_state")
-    return [_checker_path(root)] + sorted(os.path.join(package, n) for n in os.listdir(package) if n.endswith(".py"))
-
-
-def _owning_checker_file(root, needle):
-    """FEAT-69: the ONE checker source file whose text carries `needle` — a mutant edits the
-    file that owns its anchor, wherever the split put it."""
-    owners = [p for p in _checker_files(root) if needle in open(p, encoding="utf-8").read()]
-    assert len(owners) == 1, f"mutant anchor {needle!r} owned by {len(owners)} file(s): {owners}"
-    return owners[0]
-
-
-def _edit_checker(root, old, new, count=1):
-    path = _owning_checker_file(root, old)
-    with open(path, encoding="utf-8") as stream:
-        source = stream.read()
-    assert source.count(old) >= count, f"mutant anchor {old!r} not found"
-    with open(path, "w", encoding="utf-8") as stream:
-        stream.write(source.replace(old, new, count))
-
-
-def _append_checker(root, source, module=None):
-    with open(_checker_path(root, module), "a", encoding="utf-8") as stream:
-        stream.write(source)
-
-
-def _only_finding(findings, *needles):
-    own = [f for f in findings if all(n in f for n in needles)]
-    return bool(own) and len(own) == len(findings)
-
-
-_TABLE_HEAD = "\nINVARIANTS = ("
-
-# Module-scope shapes injected before the table so the mutant still runs: (name, statement,
-# the finding it must produce and nothing else).
-_MODULE_BODY_MUTANTS = (
-    ("loop", 'for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):\n'
-             '    if read(_p) is None:\n        pass\n', ("<module>", "for block at module scope")),
-    ("conditional", 'if not os.path.isfile(os.path.join(H, "glossary.md")):\n    pass\n',
-     ("conditional at module scope",)),
-    # `except OSError`, not `except Exception`: the FEAT-63 broad-catch census would fire on the
-    # latter too, and this mutant isolates the module-body rule.
-    ("try", 'try:\n    _x = subprocess.run(["git", "status"], capture_output=True)\n'
-            'except OSError:\n    _x = None\n', ("try block at module scope",)),
-    ("read", '_early = read(os.path.join(H, "harness.json"))\n', ("reads the tree at module scope", "read")),
-)
-
-
-def _inject_before_table(statement):
-    return lambda root: _edit_checker(root, _TABLE_HEAD, "\n" + statement + _TABLE_HEAD)
-
-
-def case_feat62_module_body_lock():
-    """SC-03: module-scope invariant execution is refused; the shipped tree passes."""
-    clean = _feat62_findings_for_tree()
-    check("feat62_clean_tree_has_no_findings", clean == [], "\n".join(clean))
-    for name, statement, needles in _MODULE_BODY_MUTANTS:
-        f = _feat62_findings_for_tree(_inject_before_table(statement))
-        check(f"feat62_module_body_{name}_mutant_fails_for_its_own_finding",
-              _only_finding(f, *needles), "\n".join(f))
-    # Same family: an invariant body re-parsing a source the context already holds.
-    def reparse(root):
-        _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
-                      "def inv_2(ctx, feat):\n    _again = artifact_accessors.load_plan(ctx.path(feat, 'plan.yaml'))\n    \"\"\"")
-    f = _feat62_findings_for_tree(reparse)
-    # The reparse also OPENS plan.yaml undeclared, so the reads lock fires too — both are true.
-    check("feat62_reparse_mutant_fails_for_its_own_finding",
-          any(all(n in x for n in ("inv_2", "re-parses a runner-shared source", "load_plan")) for x in f)
-          and all("inv_2" in x or "INV-2 " in x for x in f), "\n".join(f))
-
-
-_INV19_HEAD = "def inv_19(ctx):\n"
-_INV19_READS = '("path:.harness/glossary.md",)'
-_PEEK = "    _peek = read(os.path.join(ctx.H, 'team-config.yaml'))\n"
-
-# An undeclared input opened by INV-19's own body: (name, first statement, its finding).
-_UNDECLARED_MUTANTS = (
-    ("file", _PEEK, ("opens 'team-config.yaml'", "declares no path: read")),
-    ("git", "    subprocess.run(['git', 'status'], capture_output=True)\n", ("reads git:status", "declares no git:status read")),
-    ("gh", "    _gh_bin = 'gh'\n    subprocess.run([_gh_bin, 'auth', 'status'], capture_output=True)\n",
-     ("reads gh:auth", "declares no gh:auth read")),
-)
-
-# A row whose declaration names the right BINARY but the wrong RESOURCE (GC-02): the lock
-# matches the operation/endpoint, so a false declaration is a finding, not a pass.
-_MISDECLARED_MUTANTS = (
-    ("gh_board", '"gh:auth", "gh:board"', '"gh:auth"', ("INV-26", "reads gh:board", "declares no gh:board read")),
-    ("gh_endpoint", '"gh:auth", "gh:milestones"', '"gh:auth", "gh:issues"',
-     ("INV-30", "reads gh:milestones", "declares no gh:milestones read")),
-    ("git_op", '"git:show", "git:log"', '"git:status", "git:log"', ("INV-33", "reads git:show", "declares no git:show read")),
-)
-
-
-def _misdeclared_resource_checks():
-    for name, before, after, needles in _MISDECLARED_MUTANTS:
-        f = _feat62_findings_for_tree(lambda root: _edit_checker(root, before, after))
-        check(f"feat62_reads_misdeclared_{name}_resource_fails", _only_finding(f, *needles), "\n".join(f))
-
-
-def _inv19_prefixed(statement):
-    return lambda root: _edit_checker(root, _INV19_HEAD, _INV19_HEAD + statement)
-
-
-def case_feat62_reads_lock():
-    """SC-04: an input a function opens without declaring it — a file, a git spawn, a gh
-    spawn — fails for its own finding; a declared one is silent."""
-    for name, statement, needles in _UNDECLARED_MUTANTS:
-        f = _feat62_findings_for_tree(_inv19_prefixed(statement))
-        check(f"feat62_reads_undeclared_{name}_mutant_fails", _only_finding(f, "INV-19", *needles), "\n".join(f))
-    _misdeclared_resource_checks()
-    # Reached through a HELPER, not the row's own function: the lock walks the call graph.
-    def via_helper(root):
-        _append_checker(root, "\n\ndef _inv19_probe(ctx):\n    return read(os.path.join(ctx.H, 'team-config.yaml'))\n", "host")
-        _edit_checker(root, _INV19_HEAD, _INV19_HEAD + "    _inv19_probe(ctx)\n")
-    f = _feat62_findings_for_tree(via_helper)
-    check("feat62_reads_lock_follows_helpers", _only_finding(f, "INV-19", "opens 'team-config.yaml'"), "\n".join(f))
-    # And the negative control: the same read, DECLARED, is silent.
-    def declared(root):
-        _edit_checker(root, _INV19_HEAD, _INV19_HEAD + _PEEK)
-        _edit_checker(root, _INV19_READS, '("path:.harness/glossary.md", "path:.harness/team-config.yaml")')
-    f = _feat62_findings_for_tree(declared)
-    check("feat62_reads_declared_input_is_silent", f == [], "\n".join(f))
-    f = _feat62_findings_for_tree(lambda root: _edit_checker(root, _INV19_READS, '("glossary.md",)'))
-    # An unprefixed declaration covers nothing, so the file it meant to declare is ALSO reported.
-    check("feat62_reads_unprefixed_declaration_fails",
-          any(all(n in x for n in ("INV-19", "not path:/git:/gh:")) for x in f)
-          and all("INV-19" in x for x in f), "\n".join(f))
-
-
-def case_feat62_authority_audit():
-    """SC-05: a missing or STRUCK authority fails; every live row resolves."""
-    def missing(root):
-        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
-                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-9999"')
-    f = _feat62_findings_for_tree(missing)
-    check("feat62_authority_missing_decision_fails",
-          _only_finding(f, "INV-19", "DEC-9999", "does not resolve"), "\n".join(f))
-    def struck(root):
-        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
-                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-90"')
-    f = _feat62_findings_for_tree(struck)
-    check("feat62_authority_struck_decision_fails",
-          _only_finding(f, "INV-19", "DEC-90", "STRUCK", "DEC-188"), "\n".join(f))
-    # Striking a decision the table stands on reddens the rows that cite it — the DEC-188
-    # mechanism — proven by striking DEC-162 in the COPY's index.
-    def strike_in_index(root):
-        path = os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
-        with open(path, encoding="utf-8") as stream:
-            text = stream.read()
-        line = next(l for l in text.splitlines() if l.startswith("- DEC-162 "))
-        head, _, ruling = line.partition(" :: ")
-        with open(path, "w", encoding="utf-8") as stream:
-            stream.write(text.replace(line, f"{head} :: STRUCK 2026-09-21 under DEC-188 — {ruling}"))
-    f = _feat62_findings_for_tree(strike_in_index)
-    check("feat62_authority_striking_a_cited_decision_reddens_its_rows",
-          _only_finding(f, "INV-19", "DEC-162", "STRUCK"), "\n".join(f))
-    def no_index(root):
-        os.remove(os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md"))
-    f = _feat62_findings_for_tree(no_index)
-    check("feat62_authority_unreadable_index_is_loud_not_silent",
-          _only_finding(f, "CANNOT RUN", "DECISIONS-INDEX.md"), "\n".join(f))
-
-
-def case_feat62_changed_posture():
-    """SC-06: a workflow or hook invoking check-state.py --changed fails; the live tree has none
-    and CI still runs the full checker."""
-    def workflow(root):
-        with open(os.path.join(root, ".github", "workflows", "tests.yml"), "a", encoding="utf-8") as stream:
-            stream.write("\n      - run: python3 .claude/skills/harness/bin/check-state.py --changed\n")
-    f = _feat62_findings_for_tree(workflow)
-    check("feat62_posture_workflow_mutant_fails",
-          _only_finding(f, "workflows/tests.yml", "--changed", "edit-loop verb"), "\n".join(f))
-    def hook(root):
-        with open(os.path.join(root, ".claude", "skills", "harness", "hooks", "post-merge"), "a",
-                  encoding="utf-8") as stream:
-            stream.write('\npython3 "$HARNESS_BIN/check-state.py" --changed\n')
-    f = _feat62_findings_for_tree(hook)
-    check("feat62_posture_hook_mutant_fails",
-          _only_finding(f, "hooks/post-merge", "--changed"), "\n".join(f))
-    with open(os.path.join(REPO_ROOT, ".github", "workflows", "tests.yml"), encoding="utf-8") as stream:
-        wf = stream.read()
-    check("feat62_posture_ci_runs_the_full_checker",
-          "check-state.py" in wf and "--changed" not in wf, wf[:200])
-    r = run("--consolidation-audit")
-    check("feat62_cli_reports_clean_and_exits_0",
-          r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
-          f"exit {r.returncode}: {r.stdout[-300:]!r} {r.stderr[-200:]!r}")
-
-
-
-
-# ------------------------------------------------------------------- FEAT-63 T-03 ---
-
-def _bin_path(root, name):
-    return os.path.join(root, ".claude", "skills", "harness", "bin", name)
-
-
-def _append_bin(root, name, source):
-    with open(_bin_path(root, name), "a", encoding="utf-8") as stream:
-        stream.write(source)
-
-
-def case_feat63_reparse_lock_covers_both_json_loaders():
-    """SC-05: a checker re-parse of feature.json or harness.json inside an invariant is a
-    shared-source-reparse finding, like load_plan's; the shipped tree is clean."""
-    for loader, arg in (("load_feature_json", "ctx.path(feat, 'feature.json')"),
-                        ("load_harness_json", "os.path.join(ctx.H, 'harness.json')")):
-        def reparse(root, loader=loader, arg=arg):
-            _edit_checker(root, "def inv_2(ctx, feat):\n    \"\"\"",
-                          f"def inv_2(ctx, feat):\n    _again = artifact_accessors.{loader}({arg})\n    \"\"\"")
-        f = _feat62_findings_for_tree(reparse)
-        check(f"feat63_reparse_{loader}_mutant_fails_for_its_own_finding",
-              any(all(n in x for n in ("inv_2", "re-parses a runner-shared source", loader)) for x in f)
-              and all("inv_2" in x or "INV-2 " in x for x in f), "\n".join(f))
-
-
-_BROAD_CATCH = "\n\ndef _feat63_mutant():\n    try:\n        pass\n    except Exception:\n        pass\n"
-_BARE_CATCH = "\n\ndef _feat63_mutant():\n    try:\n        pass\n    except:\n        pass\n"
-
-
-def _reduce_one_broad_catch(root):
-    # FEAT-65: harness_boundary.py is the only script with an allowance left to reduce.
-    path = _bin_path(root, "harness_boundary.py")
-    src = open(path, encoding="utf-8").read()
-    assert "except Exception" in src
-    open(path, "w", encoding="utf-8").write(src.replace("except Exception", "except OSError", 1))
-
-
-def _feat63_checker_ceiling_checks():
-    """check-state.py's ceiling is zero: both syntaxes, each its own mutant, one finding each."""
-    for name, source in (("except_exception", _BROAD_CATCH), ("bare_except", _BARE_CATCH)):
-        f = _feat62_findings_for_tree(lambda root, s=source: _append_checker(root, s))
-        check(f"feat63_census_checker_{name}_mutant_is_one_finding_naming_check_state",
-              len(f) == 1 and "check-state.py" in f[0] and "broad catch" in f[0] and "ceiling 0" in f[0]
-              and "1 " in f[0], "\n".join(f))
-
-
-def _feat63_frozen_ceiling_checks():
-    """The one script with an allowance (harness_boundary.py, FEAT-65): +1 fails naming THAT
-    file and both counts; -1 is clean; allowance never transfers; an unlisted script — every
-    hook is one now — has a zero ceiling."""
-    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "harness_boundary.py", _BROAD_CATCH))
-    check("feat63_census_frozen_script_plus_one_is_one_finding_naming_it",
-          len(f) == 1 and "harness_boundary.py" in f[0] and "check-state.py" not in f[0]
-          and " 3 " in f[0] and "ceiling 2" in f[0], "\n".join(f))
-    f = _feat62_findings_for_tree(_reduce_one_broad_catch)
-    check("feat63_census_frozen_script_minus_one_is_clean", f == [], "\n".join(f))
-    f = _feat62_findings_for_tree(lambda root: (_reduce_one_broad_catch(root),
-                                                _append_bin(root, "gh-sync.py", _BROAD_CATCH)))
-    check("feat63_census_allowance_never_transfers_between_files",
-          len(f) == 1 and "gh-sync.py" in f[0], "\n".join(f))
-    def newcomer(root):
-        with open(_bin_path(root, "brand_new_helper.py"), "w", encoding="utf-8") as s:
-            s.write("import os\n" + _BROAD_CATCH)
-    f = _feat62_findings_for_tree(newcomer)
-    check("feat63_census_unlisted_script_has_a_zero_ceiling",
-          len(f) == 1 and "brand_new_helper.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
-
-
-def _feat65_hook_ceiling_checks():
-    """Every hook is unlisted now: one broad catch in any of them is a finding against zero."""
-    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "check-domain.py", _BROAD_CATCH))
-    check("feat65_census_a_hook_plus_one_is_one_finding_against_ceiling_0",
-          len(f) == 1 and "check-domain.py" in f[0] and " 1 " in f[0] and "ceiling 0" in f[0],
-          "\n".join(f))
-
-
-def case_feat63_broad_catch_census():
-    """SC-04: ONE AST census over every bin script -- check-state.py at zero, every other
-    script frozen at its recorded count; the shipped tree is clean."""
-    clean = _feat62_findings_for_tree()
-    check("feat63_census_clean_tree_has_no_findings", clean == [], "\n".join(clean))
-    _feat63_checker_ceiling_checks()
-    _feat63_frozen_ceiling_checks()
-    _feat65_hook_ceiling_checks()
-
-
-
-# ------------------------------------------------------------------- FEAT-69 T-02 ---
-# The lock over the check_state/ PACKAGE: one function table across the entry and every
-# package file, one transitive walk that follows `from check_state.<m> import` bindings and
-# `ctx.<method>` calls, the four FEAT-62 rules over every file, the reads-family rule, and a
-# zero broad-catch ceiling for every package file. Each mutant fails for ITS OWN finding.
-
-_FEAT69_PACKAGE = ("__init__.py", "ctx.py", "table.py", "runner.py", "plan.py", "feature_record.py",
-                   "run_state.py", "seams.py", "brief.py", "worktrees.py", "board.py", "host.py")
-_INV47_HEAD = "def inv_47(ctx, feat):\n"
-
-
-def _feat69_package_body_checks():
-    """A module-body violation in a PACKAGE file (not the entry) is a finding naming that file."""
-    f = _feat62_findings_for_tree(lambda root: _append_checker(
-        root, "\nfor _p in glob.glob(os.path.join('x', 'plan.yaml')):\n    pass\n", "board"))
-    check("feat69_module_body_rule_covers_a_package_file",
-          _only_finding(f, "check_state/board.py::<module>", "for block at module scope"), "\n".join(f))
-
-
-def _feat69_cross_module_checks():
-    """An undeclared read reached ONLY through an imported helper (feature_record.inv_47 ->
-    feature_record._note_verdict -> run_state._inv15_digest_verdict, two helpers deep, across a
-    module boundary) is a finding on the row; a git spawn placed there is one too."""
-    def deep_read(root):
-        _edit_checker(root, "def _inv15_digest_verdict(",
-                      "def _inv15_digest_verdict(*_a, **_k):\n    open('secret.yaml')\n"
-                      "    return _inv15_digest_verdict_real(*_a, **_k)\n\n\ndef _inv15_digest_verdict_real(")
-    f = _feat62_findings_for_tree(deep_read)
-    check("feat69_reads_lock_follows_an_imported_helper_two_calls_deep",
-          any(all(n in x for n in ("INV-47", "opens 'secret.yaml'")) for x in f)
-          and all("opens 'secret.yaml'" in x for x in f), "\n".join(f))
-    def deep_spawn(root):
-        _edit_checker(root, "def _inv15_digest_verdict(",
-                      "def _inv15_digest_verdict(*_a, **_k):\n    subprocess.run(['git', 'status'])\n"
-                      "    return _inv15_digest_verdict_real(*_a, **_k)\n\n\ndef _inv15_digest_verdict_real(")
-    f = _feat62_findings_for_tree(deep_spawn)
-    check("feat69_reads_lock_sees_a_spawn_two_helpers_deep_across_modules",
-          any(all(n in x for n in ("INV-47", "reads git:status")) for x in f)
-          and all("reads git:status" in x for x in f), "\n".join(f))
-    _feat69_ctx_method_check()
-
-
-def _feat69_ctx_method_check():
-    """A ctx METHOD reached through `ctx.<m>(...)` from a family module: the walk crosses into ctx.py."""
-    def ctx_method(root):
-        _edit_checker(root, "    def station(self, feat):\n",
-                      "    def station(self, feat):\n        self.spawn(['gh', 'auth', 'status'])\n")
-    f = _feat62_findings_for_tree(ctx_method)
-    check("feat69_reads_lock_walks_into_ctx_methods_from_a_family",
-          bool(f) and all("reads gh:auth" in x for x in f), "\n".join(f))
-
-
-def _feat69_family_checks():
-    """A row whose function is DEFINED outside the family its reads name fails; an import
-    alias and an assignment alias are not definitions; a row no family claims fails."""
-    def moved(root):
-        _edit_checker(root, "from check_state.host import ", "from check_state.board import inv_19\nfrom check_state.host import ")
-        _edit_checker(root, "inv_19, ", "")
-        _append_checker(root, "\n\ndef inv_19(ctx):\n    return [], []\n", "board")
-    f = _feat62_findings_for_tree(moved)
-    check("feat69_row_defined_outside_its_family_fails",
-          _only_finding(f, "INV-19", "defined in check_state/board.py", "check_state/host.py"), "\n".join(f))
-    def alias(root):
-        _edit_checker(root, "inv_19, ", "")
-        _append_checker(root, "\ninv_19 = inv_42\n", "table")
-    f = _feat62_findings_for_tree(alias)
-    check("feat69_assignment_alias_is_not_a_definition",
-          _only_finding(f, "INV-19", "not a function defined in the package"), "\n".join(f))
-    def unclaimed(root):
-        _edit_checker(root, 'Inv("INV-19", inv_19,', 'Inv("INV-99", inv_19,')
-    f = _feat62_findings_for_tree(unclaimed)
-    check("feat69_row_no_family_claims_fails",
-          _only_finding(f, "INV-99", "belongs to no family"), "\n".join(f))
-
-
-def _feat69_census_checks():
-    """The broad-catch census enumerates the entry and the complete package (deterministic), and
-    a catch injected into the entry or into a family module is one finding naming that file."""
-    scanned = {name for _abs, name in cpr().broad_catch_census_paths(REPO_ROOT)}
-    expected = {"check-state.py", *(os.path.join("check_state", n) for n in _FEAT69_PACKAGE)}
-    check("feat69_census_scans_entry_and_every_package_file", expected <= scanned,
-          f"missing {sorted(expected - scanned)}")
-    f = _feat62_findings_for_tree(lambda root: _append_checker(root, _BROAD_CATCH))
-    check("feat69_census_entry_broad_catch_is_one_finding_naming_check_state",
-          len(f) == 1 and "bin/check-state.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
-    f = _feat62_findings_for_tree(lambda root: _append_checker(root, _BROAD_CATCH, "plan"))
-    check("feat69_census_family_broad_catch_is_one_finding_naming_the_module",
-          len(f) == 1 and "check_state/plan.py" in f[0] and "ceiling 0" in f[0], "\n".join(f))
-
-
-def _feat69_scanner_checks():
-    """`live_invariant_numbers` reads the package: a number only a family module spells is
-    live; a missing number stays missing; duplicate spellings count once."""
-    mod = cpr()
-    with tempfile.TemporaryDirectory() as td:
-        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
-        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
-        _append_checker(td, "\n# INV-777 lives here and nowhere else; INV-777 twice.\n", "host")
-        live = mod.live_invariant_numbers(td)
-        check("feat69_live_numbers_include_a_number_only_a_family_module_spells",
-              777 in live and 19 in live and 1 in live, repr(sorted(live)[-5:]))
-        check("feat69_live_numbers_missing_number_stays_missing", 999 not in live, "")
-        check("feat69_live_numbers_is_a_set_so_duplicates_count_once", isinstance(live, set), "")
-        os.remove(_checker_path(td))
-        check("feat69_live_numbers_unreadable_entry_is_None", mod.live_invariant_numbers(td) is None, "")
-
-
-def case_feat69_package_lock():
-    """FEAT-69 SC-03: the FEAT-62 lock walks the check_state/ package as one tree; the shipped
-    package is clean; every mutant fails for its own finding."""
-    clean = _feat62_findings_for_tree()
-    check("feat69_clean_package_has_no_findings", clean == [], "\n".join(clean))
-    _feat69_package_body_checks()
-    _feat69_cross_module_checks()
-    _feat69_family_checks()
-    _feat69_census_checks()
-    _feat69_scanner_checks()
-
-
 
 # ---------------------------------------------------------------------------------------------
 # FEAT-64 T-03 (SC-03, SC-05): _manifest_deviation's silent fallback is for the manifest's own
@@ -3030,43 +2239,6 @@ def case_feat64_plan_is_parsed_once_per_execution():
               f"rc={r.returncode} calls={calls} stdout={r.stdout[-300:]!r}")
 
 
-_FEAT64_ZEROED = ("factory_decompose.py", "feature_schema.py", "gh_cost_log.py", "handoff_done_when.py",
-                  "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
-                  "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
-                  "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py")
-
-
-def _feat64_ceiling_checks(mod):
-    for name in _FEAT64_ZEROED:
-        check(f"feat64_ceiling_{name}_is_zero", mod.BROAD_CATCH_CEILINGS.get(name, 0) == 0,
-              f"ceiling {mod.BROAD_CATCH_CEILINGS.get(name)!r}")
-    check("feat64_ceiling_harness_boundary_is_exactly_two",
-          mod.BROAD_CATCH_CEILINGS.get("harness_boundary.py") == 2,
-          f"ceiling {mod.BROAD_CATCH_CEILINGS.get('harness_boundary.py')!r}")
-
-
-def _feat64_zero_ceiling_mutant_checks():
-    """One new catch of either syntax in a lib and in a tool: one finding, naming that file,
-    `1` against `ceiling 0`."""
-    for family, name in (("lib", "handoff_policy.py"), ("tool", "gh-sync.py")):
-        for syntax, source in (("except_exception", _BROAD_CATCH), ("bare_except", _BARE_CATCH)):
-            f = _feat62_findings_for_tree(lambda root, n=name, s=source: _append_bin(root, n, s))
-            check(f"feat64_census_{family}_{syntax}_mutant_is_one_finding_naming_{name}",
-                  len(f) == 1 and name in f[0] and "broad catch" in f[0] and "ceiling 0" in f[0]
-                  and " 1 " in f[0], "\n".join(f))
-
-
-def case_feat64_broad_catch_census_wave4():
-    """SC-04: the sixteen FEAT-64 files sit at a ZERO ceiling; harness_boundary.py's two designed
-    catches hold at exactly two, so a third fails against two; a reduction elsewhere is clean."""
-    _feat64_ceiling_checks(cpr())
-    _feat64_zero_ceiling_mutant_checks()
-    f = _feat62_findings_for_tree(lambda root: _append_bin(root, "harness_boundary.py", _BROAD_CATCH))
-    check("feat64_census_third_harness_boundary_catch_fails_against_two",
-          len(f) == 1 and "harness_boundary.py" in f[0] and "3 " in f[0] and "ceiling 2" in f[0],
-          "\n".join(f))
-    f = _feat62_findings_for_tree(_reduce_one_broad_catch)
-    check("feat64_census_reduction_mutant_is_clean", f == [], "\n".join(f))
 
 
 CASES = (
@@ -3087,25 +2259,13 @@ CASES = (
     case_22,
     case_23,
     case_24,
-    case_25,
-    case_26,
     case_27,
     case_41_t04_task_station_vocabulary,
     case_41_t04_top_level_station_vocabulary,
     case_41_t07_is_shipped_reads_the_plan,
-    case_feat61_lifecycle_receipt,
-    case_feat61_station_lock,
-    case_feat61_loader_lock,
-    case_feat62_module_body_lock,
-    case_feat62_reads_lock,
-    case_feat62_authority_audit,
-    case_feat62_changed_posture,
-    case_feat63_reparse_lock_covers_both_json_loaders,
-    case_feat63_broad_catch_census,
     case_feat64_manifest_deviation_defect_escapes,
     case_feat64_plan_is_parsed_once_per_execution,
-    case_feat64_broad_catch_census_wave4,
-    case_feat69_package_lock,
+
 )
 
 

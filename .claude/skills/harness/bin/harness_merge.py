@@ -35,6 +35,23 @@ import time
 USE_FLOCK = True
 LOCK_TIMEOUT_SECONDS = 10.0
 LOCK_RETRY_INTERVAL = 0.05
+# A caller-environment override of the DEFAULT only; an explicit `timeout=` still wins. It
+# exists for the tests that observe a real LOCKED refusal: each one otherwise waits the whole
+# 10s budget, and shortening it changes how long a refusal takes, never whether it happens.
+LOCK_TIMEOUT_ENV = "HARNESS_LOCK_TIMEOUT_SECONDS"
+
+
+def _default_timeout():
+    raw = os.environ.get(LOCK_TIMEOUT_ENV)
+    if raw is None:
+        return LOCK_TIMEOUT_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f"{LOCK_TIMEOUT_ENV} must be a positive number, got {raw!r}") from None
+    if not value > 0:
+        raise ValueError(f"{LOCK_TIMEOUT_ENV} must be a positive number, got {raw!r}")
+    return value
 
 
 class MergeRefusal(Exception):
@@ -50,7 +67,7 @@ class MergeRefusal(Exception):
 
 @contextlib.contextmanager
 def _acquire_flock(lock_path, timeout=None):
-    timeout = LOCK_TIMEOUT_SECONDS if timeout is None else timeout
+    timeout = _default_timeout() if timeout is None else timeout
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR)
     try:
         deadline = time.monotonic() + timeout
@@ -79,7 +96,7 @@ def _acquire_excl(lock_path, timeout=None):
     NEVER selected at runtime — nothing sets USE_FLOCK to False except a test's mutated copy
     of this file — and it exists only to prove the flock branch is what survives a SIGKILLed
     holder: this branch leaves its lock file behind and every later acquire then times out."""
-    timeout = LOCK_TIMEOUT_SECONDS if timeout is None else timeout
+    timeout = _default_timeout() if timeout is None else timeout
     deadline = time.monotonic() + timeout
     while True:
         try:
