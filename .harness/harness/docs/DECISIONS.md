@@ -2806,6 +2806,11 @@ ranked by severity, highest first; a `grade_2` claim's `grade_2_reasons` must na
 verdict. `harness-code-risk-grading` is cited, not edited. Dropped from the same list: requiring
 `## Principles applied` in receipts (code-review already rules an absent section is not a finding).
 
+**Corrected 2026-09-28 (probe P59).** The unearned-FAIL refusal contradicted SC-17: a green suite
+with an empty `fail_first` is told to "return FAIL", and the refusal then rejected that FAIL — qa had
+no truthful return and escalated, the DEC-173 shape exactly. The refusal now requires `fail_first`
+to be non-empty; an empty one beside a green suite is itself the failed gate.
+
 ---
 
 ## DEC-128 — The orchestrator exists: agent, playbook, and three doors

@@ -348,7 +348,13 @@ def case_qa_unearned_fail():
         cfg = _config(td)
         green_fail = _qa("[]", "PASS").replace("VERDICT: PASS", "VERDICT: FAIL")
         errs = _errors(v, "harness-qa", green_fail, fd, cfg)
-        check("qa: FAIL with every gate green is refused", any("no gate failed" in e for e in errs), str(errs))
+        check("qa: FAIL with every gate green and fail-first evidence present is refused",
+              any("no gate failed" in e for e in errs), str(errs))
+        no_evidence = green_fail.replace("fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]",
+                                         "fail_first: []")
+        errs = _errors(v, "harness-qa", no_evidence, fd, cfg)
+        check("qa: FAIL with a green suite and NO fail-first evidence is the mandated return (P59)",
+              not any("no gate failed" in e for e in errs), str(errs))
         real_fail = green_fail.replace("failures: 0", "failures: 2").replace("suite: pass", "suite: fail")
         errs = _errors(v, "harness-qa", real_fail, fd, cfg)
         check("qa: FAIL with a failing suite is accepted", not any("no gate failed" in e for e in errs), str(errs))

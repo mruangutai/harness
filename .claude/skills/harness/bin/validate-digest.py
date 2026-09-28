@@ -2207,13 +2207,13 @@ def _qa_unearned_fail_errors(seen, verdict):
     artifact and never fail the gate by themselves. A FAIL with every gate green
     reports a failure no gate produced."""
     green = (seen.get("suite") == "pass" and seen.get("matrix_ok") is True
-             and seen.get("failures") == 0)
+             and seen.get("failures") == 0 and bool(seen.get("fail_first")))
     if verdict != "FAIL" or not green:
-        return []
-    return ["VERDICT: FAIL with suite: pass, matrix_ok: true and failures: 0 — no gate "
-            "failed. A test-first violation or a coverage concern is a finding in the "
-            "artifact (and a coverage_gaps entry), not a verdict; return PASS with it "
-            "recorded, or name the gate that failed."]
+        return []  # an empty fail_first beside a green suite is itself the failed gate (SC-17)
+    return ["VERDICT: FAIL with suite: pass, matrix_ok: true, failures: 0 and fail_first "
+            "evidence present — no gate failed. A test-first violation or a coverage "
+            "concern is a finding in the artifact (and a coverage_gaps entry), not a "
+            "verdict; return PASS with it recorded, or name the gate that failed."]
 
 
 def _qa_fail_first_errors(seen, passing):
