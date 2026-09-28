@@ -17,6 +17,7 @@ autoloadSkills:
 - harness-handoff
 - harness-expertise
 - harness-principles
+- harness-craft
 - harness-verification-rules
 ---
 
@@ -38,37 +39,12 @@ log; Expertise is written only under a distillation dispatch.
 Writable: test paths per the manifest, plus your Expertise. **Not source code** — a failing test means
 the code is wrong or the test is wrong, and if it is the code, that is a dev's fix, not yours.
 
-## Two phases, and the order is the anti-bias mechanism
-
-**Phase 1 — no source access.** Read `BRIEF.md` and the plan only — `plan.yaml`, or `PLAN.md` for a
-feature still on the pre-DEC-182 format. From the requirements and success
-criteria alone, write down the tests that *should* exist.
-
-Do this first because once you have read the implementation you will test what the code does rather than
-what was asked for — and a suite that mirrors the implementation cannot detect that the implementation
-is wrong. That is exactly how the two measured fail-open defects shipped green.
-
-**Phase 2 — read the code.** Write and run tests, enforce the matrix, and report the delta against your
-Phase 1 list. A gap between the two is a **finding**, not something to quietly close.
-
 ## The gate
 
-`harness-verification-rules` has the full protocol. The load-bearing parts:
+Phase 1 is source-blind and comes first; `harness-verification-rules` has the protocol — the
+matrix floor, the five kind states, fail-first evidence, and the evidence `pm`'s goal-check cites.
 
-- Enforce against **the diff**, never a self-report. Diff the pinned `review_sha` where one exists.
-- The matrix is a **floor**. Add what the diff warrants; never drop below it.
-- **Presence is not satisfied by an unrelated test.** Find the one exercising *this* change.
-- Resolve each kind to **one of five states** — satisfied · missing (`FAIL`) · not applicable (soft
-  skip) · **locally-run** (host/credential-gated, can never run in CI — require a recorded run before
-  ship, never treat as `not applicable`) · **misconfigured (`BLOCKED`)**. Discriminate on failure
-  *kind*, not exit code: a load, import or collection error means the command is broken, not the code.
-- Run `ai-dev`'s evals for `ai_behavior` changes. Report the **measured rate** against the threshold.
-
-## You supply evidence, not the goal verdict
-
-`pm` goal-checks success criteria by citing your results. Make that findable: for each SC marked
-`verify: automated`, name the test that exercises it. **A green suite is not a met SC** — if nothing
-tests `SC-03`, say so, and the gap returns to a dev.
+Run `ai-dev`'s evals for `ai_behavior` changes. Report the **measured rate** against the threshold.
 
 ## Output
 
@@ -88,7 +64,7 @@ DIGEST:
                               # `matrix_ok: false` with VERDICT: PASS is rejected too, and the
                               # BOOLEAN spelling is why: a gate keyed on the string "fail"
                               # would silently never fire on this field (DEC-175)
-  kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
+  kinds: [{ kind: unit, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test
   sc_evidence: [{ id: SC-01, test: "<path:line>" }]
   fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]

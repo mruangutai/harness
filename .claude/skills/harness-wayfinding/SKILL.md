@@ -38,10 +38,10 @@ saved, and where:
 
 The order is always **decide → record on the ticket → gist on the map**. Writing a local markdown
 copy of a decision that already lives on a ticket is the two-copies drift this org keeps finding
-(the digest.md gap, the qa-gate matrix table) — do not do it.
+(the digest.md gap, the hand-copied test-matrix table) — do not do it.
 
 **Every tracker operation goes through `bin/wayfind.py`**, never hand-typed `gh`:
-`map <n>` · `frontier <n>` · `chart` · `ticket <map#> <type> "<title>"` · `block <n> --by <n>` ·
+`map <n>` · `round <n>` · `frontier <n>` · `chart` · `ticket <map#> <type> "<title>"` · `block <n> --by <n>` ·
 `claim <n>` · `resolve <n> <file>`. Mutations are **dry-run until `--apply`**. Three operations are
 traps by hand and the script exists for them: the sub-issue API takes the child's internal `id` and
 not its `number`; the frontier is a compound query no single `gh` call expresses; and a ticket

@@ -9,7 +9,7 @@ user-invocable: false
 Your Expertise file is **already in your context**, injected at spawn if it exists; you never
 read it yourself.
 
-Memory has **two layers**; confusing them is the failure this skill prevents:
+Memory has **two layers**:
 
 | Layer | File | Written | Injected at spawn |
 |---|---|---|---|
@@ -21,8 +21,7 @@ Memory has **two layers**; confusing them is the failure this skill prevents:
 Craft is the default: **could this be true and useful in a repository you have never seen?** If yes,
 it is craft (full rule: `harness-distill`).
 
-Why the split: Expertise written mid-run bloats into incident narrative that taxes every spawn
-(DEC-145). Mid-run you only *observe*; distillation happens later, cold.
+Mid-run you only *observe*; distillation happens later, cold (DEC-145).
 
 ## Mid-run: append an observation
 
@@ -40,8 +39,7 @@ Entries arrive on stdin in the log's own format: a `# Observations — <your-age
 title, then `- <date>: <observation>` bullets.
 
 Do NOT write your Expertise file mid-run. Your DIGEST's `expertise_update` is `[]` on a normal
-run — the usual case, not a failure. Observations are invisible to the DIGEST; the log is its own
-record.
+run — the usual case, not a failure.
 
 **Decision versus observation — a hard boundary, unchanged (DEC-23):**
 
@@ -60,15 +58,6 @@ The procedure, the entry format, the ops schema and the caps are **not preloaded
 spawns never write the file.
 
 **When your dispatch says "distill", read
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first.** Until then, do not
-touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`.
-
-## Red flags
-
-| Thought | Reality |
-|---|---|
-| "This is durable, straight into Expertise" | Mid-run, nothing goes into Expertise. Observe now, distill cold |
-| "This decision was important, into the log it goes" | Decisions are approval-gated. Wrong home |
-| "I learned a lot today" | Almost none of it is durable craft. `expertise_update: []` is the usual return |
-| "The harness misbehaved, I'll record the workaround" | That is a bug report. Raise it as an `open_question`; a workaround in Expertise outlives the fix |
-| "I'm distilling, I know the format" | Read `harness-distill` anyway. It is not in your context, and writing from your new entries alone deletes every earlier one (DEC-125) |
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first** — writing from your
+new entries alone deletes every earlier one (DEC-125). Until then, do not touch
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`.
