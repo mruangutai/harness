@@ -7,7 +7,7 @@ The generated file `notes/clean-pin-byte-receipts.generated.md` is the measureme
 - Implementation pin: `db488aa7c78e392c788bd5839a43ebf4ba562ea1` — the last build commit (T-01 `89c7020e`, T-03 `76723e90`, T-02 `3975a8bf`, simplify pass `264f534a`, amendment 1 `cebe2d69`, amendment 1b `db488aa7`).
 - Baseline: `a726bad8f74d23e6c1f07409383bb88d1da8fbcf` — `origin/main` when the worktree was cut (amendment 1 corrected the signed plan's `e6f8493b`, which predates INV-49).
 - Checkouts: `.claude/worktrees/harness/feat69-cleanpin-db488aa7` and `.claude/worktrees/harness/feat69-base-a726bad8`, both created detached by the script, both asserted at their SHA with `git status --porcelain` empty before any measurement.
-- Chronology: measurements ran 2026-09-28T20:48:57Z–20:51:18Z; the receipt scripts, the generated receipt, this file, `red-first-receipts.md` and `build-divergences.md` were committed together AFTER the pin, in the commit that follows it. Nothing in the pin references any receipt.
+- Chronology: the committed generated receipt is T-04's verify execution, measurements 2026-09-28T20:52:45Z–20:55:06Z (a first execution at 20:48:57Z–20:51:18Z over the same pin and baseline is superseded; its one extra difference, D-01, is ledgered); the receipt scripts, the generated receipt, this file, `red-first-receipts.md` and `build-divergences.md` were committed together AFTER the pin, in the commit that follows it. Nothing in the pin references any receipt.
 
 ## Reproduction, exactly as run
 
@@ -24,7 +24,7 @@ That one command creates or reuses both detached checkouts, runs `feat69-baselin
 Thirteen measurements per checkout: the full-table `check-state.py` run over every feature; `check-state.py --list`; the nine owning suites (`test-check-state`, `-entry`, `-plans`, `-records`, `-handoff`, `-worktrees`, `-inv26`, `-feat59`, `-table`); clean-tree `feat62_findings`; clean-tree `consolidation_findings` (`check-plan-routes.py --consolidation-audit`). Comparison after the one normalisation (each checkout's absolute root → `<checkout>`).
 
 - Identical: 12 of 13 — `--list`, all nine suites, both lock runs — exit status, stdout bytes and stderr bytes.
-- Not identical: `full_table` (exit 1 → 1). Seven differing lines, all quoted verbatim in the generated file and ruled in `build-divergences.md`: D-01 a foreign worktree's dirty clause changed between the two executions; D-02 four INV-32 notes for FEAT-69's own resolved panel findings (the record exists only at the pin); D-03 one INV-8 note for FEAT-69's gitignored `plan-product` run directory. None is produced by the split.
+- Not identical: `full_table` (exit 1 → 1). Five differing lines, all quoted verbatim in the generated file and ruled in `build-divergences.md`: D-02 four INV-32 notes for FEAT-69's own resolved panel findings (the record exists only at the pin); D-03 one INV-8 note for FEAT-69's gitignored `plan-product` run directory. (D-01, a foreign worktree's dirty clause, appeared only in the superseded first execution.) None is produced by the split.
 
 ## SC-01
 
