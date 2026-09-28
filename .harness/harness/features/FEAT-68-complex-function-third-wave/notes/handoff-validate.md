@@ -1,37 +1,38 @@
-# Handoff — FEAT-68-complex-function-third-wave, validate → ship — written at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5, seq-13
+# Handoff — FEAT-68-complex-function-third-wave, validate → ship — written after f10f19eab87863374c51a260a2f69beecaa27be9, seq-14
 
 ## Next
 
-The main session presents `notes/ship-review-validate-c5-validator.md` to the operator for the ship, fix, re-scope, or stop decision. Do not merge, open a pull request, deploy, or create an HTML briefing before that decision. If the operator accepts shipping, preserve proposed backlog row B-1 unless they strike it by ID.
+The main session presents `notes/ship-review-validate-c6-validator.md` to the operator for the ship, fix, re-scope, or stop decision. Do not merge, open a pull request, deploy, or create an HTML briefing before that decision. Preserve proposed backlog row B-1 unless the operator strikes it by ID.
 
 ## Trust
 
-- The final five-reader validation panel passed with no must-fix items or open questions — runs/validate-c5-validator/digest.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- QA passed 41 unit files, 70 integration files, all signed assertions, and the fail-first/equivalent gate — notes/review-harness-qa-c5.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- All ten D-01 through D-05 old/new values match the generated raw blocks verbatim and D-02 through D-04 contain no ellipsis — notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c5.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- The immutable implementation pin remains 9ab1813e86067ca4a21a84f49364cf4f453055b4 and the later fixes are evidence-only — runs/fix-c4-main-direct/digest.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- The Markdown ship briefing exists with no HTML sibling, completing SC-05's sequenced observation — notes/ship-review-validate-c5-validator.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- One low bytecode-hygiene advisory survives as proposed backlog row B-1 and is non-gating — runs/validate-c5-validator/digest.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
+- The c6 five-reader panel passed with no must-fix items or open questions — `runs/validate-c6-validator/digest.md` — verified at `f10f19eab87863374c51a260a2f69beecaa27be9`.
+- The amended T-01 files field is route-clean and resolves 15/15 truthful touched anchors — `notes/review-harness-qa-c6.md` — verified at `f10f19eab87863374c51a260a2f69beecaa27be9`.
+- Unchanged T-01.verify still proves deletion of 102 baseline HTML derivatives and the receipts still name all 30 owning suites — `notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c6.md`.
+- SC-01 through SC-05 and both declared perspectives are met — `notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c6.md`.
+- The immutable implementation pin remains `9ab1813e86067ca4a21a84f49364cf4f453055b4`; c6 changed no product code.
+- The Markdown c6 ship briefing exists with no HTML sibling — `notes/ship-review-validate-c6-validator.md`.
 
 ## Dead ends
 
-- Do not re-run another validation panel over 6b4eeeb9; c5 is the clean panel and the five authorised evidence rounds are exhausted — notes/answers-validate-validator.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- Do not change production or move the implementation pin; every authorised rework round after build was evidence-only — notes/answers-validate-validator.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- Do not render or hand-author an HTML briefing; Markdown is the only record required by SC-05 — BRIEF.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- Do not silently drop the bytecode advisory; the briefing gives it stable row ID B-1 for the operator to accept or strike — notes/ship-review-validate-c5-validator.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
-- Do not merge or deploy from this phase; both actions remain user-gated — notes/ship-review-validate-c5-validator.md — verified-at 6b4eeeb96e2088aa2f0a624ae11fc8674d4a0fe5
+- Do not rerun the broad unit/integration matrix for the plan-only amendment; c6 measured that no executable input changed and revalidated the relevant route, anchor, deletion, suite, and fail-first bindings.
+- Do not change production or move the immutable implementation pin.
+- Do not render or hand-author an HTML briefing.
+- Do not silently drop the low bytecode advisory; the briefing retains proposed backlog row B-1.
+- Do not merge or deploy from this phase; both actions remain user-gated.
 
 ## Working set
 
-- `notes/ship-review-validate-c5-validator.md`
-- `runs/validate-c5-validator/digest.md`
-- `notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c5.md`
+- `notes/ship-review-validate-c6-validator.md`
+- `runs/validate-c6-validator/digest.md`
+- `notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c6.md`
+- `notes/review-harness-qa-c6.md`
 - `BRIEF.md`
 - `feature.json`
 
 ## Done when
 
-Scope: operator ship decision for the clean FEAT-68 c5 result
+Scope: operator ship decision for the clean FEAT-68 c6 result
 Authority: brief-perspective:.harness/harness/features/FEAT-68-complex-function-third-wave/BRIEF.md#operator
 Authority: brief-perspective:.harness/harness/features/FEAT-68-complex-function-third-wave/BRIEF.md#code maintainer
 Authority: plan-task:T-01.verify
