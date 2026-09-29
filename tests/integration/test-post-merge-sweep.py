@@ -91,6 +91,13 @@ REAL_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_
 BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
+# The entry scripts' sibling packages (check_state/, plan_merge/ — FEAT-69/FEAT-70), linked as
+# directories so a fixture entry finds the package beside it.
+BIN_PACKAGES = sorted(
+    d for d in os.listdir(BIN_DIR)
+    if os.path.isdir(os.path.join(BIN_DIR, d)) and d != "__pycache__"
+    and os.path.exists(os.path.join(BIN_DIR, d, "__init__.py"))
+)
 
 _ROOT_RE = re.compile(r"^post-merge-sweep: resolved repository root: (.+)$", re.M)
 
@@ -140,7 +147,7 @@ def _install_fixture_bin(fixture_root):
     invoke in place of the module-level SWEEP constant."""
     fixture_bin = os.path.join(fixture_root, ".claude", "skills", "harness", "bin")
     os.makedirs(fixture_bin, exist_ok=True)
-    for name in BIN_ENTRIES:
+    for name in BIN_ENTRIES + BIN_PACKAGES:
         os.symlink(os.path.join(BIN_DIR, name), os.path.join(fixture_bin, name))
     return os.path.join(fixture_bin, "post-merge-sweep.py")
 
