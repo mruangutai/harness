@@ -11,8 +11,8 @@ from plan_merge.text import (
     _render_field, _structured_field_lines,
 )
 from plan_merge.guards import (
-    _die, _locked_plan_update, _refuse_illegal_anchors, _reload_or_refuse, _resolve_plan,
-    _schema_error, _sole_item,
+    _die, _locked_plan_update, _refuse_illegal_amendment, _refuse_illegal_anchors,
+    _reload_or_refuse, _resolve_plan, _sole_item,
 )
 
 def _verify_amend(spliced_bytes, key, iid, field, want):
@@ -160,7 +160,48 @@ def _amended_text(cur, first, last, rendered, want, args, base_doc, result):
     return "".join(cur[:first] + rendered + cur[last:])
 
 
-def cmd_amend(args):
+def _amend_request(args):
+    """(want_value, value_text): a structured replacement loaded from --value-file, or the
+    text one read verbatim. (FEAT-70, from cmd_amend)"""
+    if args.yaml_value:
+        return _load_structured_value(args.value_file), None
+    with open(args.value_file, encoding="utf-8") as fh:
+        return None, fh.read()
+
+
+def _locate_under_lock(cur, args):
+    """(first, last, indent) of the field under the lock, or the two vanished refusals.
+    (FEAT-70, from cmd_amend.transform)"""
+    s2, e2, i2 = _item_range(cur, args.key, args.id)
+    if s2 is None:
+        raise harness_merge.MergeRefusal(
+            3, [f"plan-merge: {args.id} vanished from {args.key}: under the lock."])
+    loc2 = _field_block(cur, s2, e2, i2, args.field)
+    if loc2 is None:
+        raise harness_merge.MergeRefusal(
+            4, [f"plan-merge: {args.id}.{args.field} vanished under the lock."])
+    return loc2
+
+
+def _amend_rendered(cur, raw, located, args, want_value, value_text):
+    """(rendered lines, expected reload value) for the replacement. (FEAT-70, from
+    cmd_amend.transform)"""
+    f2, l2, ind2 = located
+    if not args.yaml_value:
+        rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
+        return rendered, _expected_value(rendered, ind2, args.field)
+    current = _parsed_value(raw, args.key, args.id, args.field)
+    if not isinstance(current, (list, dict)):
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {args.id}.{args.field} is not a list or mapping under "
+                "the lock; --yaml-value cannot change a scalar field's type."])
+    return _structured_field_lines(ind2, args.field, want_value), want_value
+
+
+def _amend_preflight(args):
+    """Everything before the lock: the key vocabulary, destination, the field's current bytes
+    and hash, `--show`, and the compare-and-swap preconditions. Returns the resolved plan path.
+    (FEAT-70, from cmd_amend)"""
     import hashlib
 
     if args.key not in AMENDABLE_KEYS:
@@ -180,13 +221,12 @@ def cmd_amend(args):
         _amend_show(lines, located, args.field, actual, raw, args.key, args.id,
                     yaml_value=args.yaml_value)
     _amend_preconditions(args, actual)
-    if args.yaml_value:
-        want_value = _load_structured_value(args.value_file)
-        value_text = None
-    else:
-        with open(args.value_file, encoding="utf-8") as fh:
-            value_text = fh.read()
-        want_value = None
+    return resolved
+
+
+def cmd_amend(args):
+    resolved = _amend_preflight(args)
+    want_value, value_text = _amend_request(args)
     result = {}
 
     def transform(base_bytes):
@@ -203,45 +243,21 @@ def cmd_amend(args):
                 8, [f"plan-merge: the plan on disk does not parse, so amend cannot tell whether "
                     f"its own splice made things worse — {exc}"])
         cur = raw.splitlines(keepends=True)
-        s2, e2, i2 = _item_range(cur, args.key, args.id)
-        if s2 is None:
-            raise harness_merge.MergeRefusal(
-                3, [f"plan-merge: {args.id} vanished from {args.key}: under the lock."])
-        loc2 = _field_block(cur, s2, e2, i2, args.field)
-        if loc2 is None:
-            raise harness_merge.MergeRefusal(
-                4, [f"plan-merge: {args.id}.{args.field} vanished under the lock."])
-        f2, l2, ind2 = loc2
+        f2, l2, ind2 = _locate_under_lock(cur, args)
         _require_locked_hash(cur[f2:l2], args.expect_sha256, args.id, args.field)
-        if args.yaml_value:
-            current = _parsed_value(raw, args.key, args.id, args.field)
-            if not isinstance(current, (list, dict)):
-                raise harness_merge.MergeRefusal(
-                    5, [f"plan-merge: {args.id}.{args.field} is not a list or mapping under "
-                        "the lock; --yaml-value cannot change a scalar field's type."])
-            rendered = _structured_field_lines(ind2, args.field, want_value)
-            want = want_value
-        else:
-            rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
-            want = _expected_value(rendered, ind2, args.field)
+        rendered, want = _amend_rendered(cur, raw, (f2, l2, ind2), args, want_value, value_text)
         spliced = _amended_text(cur, f2, l2, rendered, want, args, base_doc, result)
         reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
         # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan
         # mid-authoring legitimately does not, and refusing to amend it would make this verb
         # useless exactly where it is needed most.
-        if _schema_error(base_doc) is None:
-            err = _schema_error(reloaded)
-            if err:
-                raise harness_merge.MergeRefusal(
-                    8, [f"plan-merge: the amended plan would not be legal — {err}"])
+        _refuse_illegal_amendment(base_doc, reloaded)
         return spliced.encode("utf-8")
 
     try:
         _locked_plan_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:
-        for line in refusal.lines:
-            print(line, file=sys.stderr)
-        sys.exit(refusal.code)
+        _die(refusal.code, *refusal.lines)
     print(f"AMENDED {args.key}:{args.id}.{args.field}")
     if result.get("reset"):
         print(APPROVAL_RESET_LINE)

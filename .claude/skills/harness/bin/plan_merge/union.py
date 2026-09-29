@@ -46,6 +46,16 @@ def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, rep
     must reload as the BASE item with exactly those fields at their new values — the fields the
     proposal omitted intact, a proposal `status` NOT laid over (review F7) — because a field
     splice one line long or one line short still parses (the `_verify_amend` lesson)."""
+    reloaded = _reload_spliced(spliced_bytes)
+    _verify_schema_preserved(base_doc, reloaded)
+    _verify_union_ids(reloaded, base_doc, prop_doc, out_order)
+    _verify_replaced(reloaded, replaced)
+    return reloaded
+
+
+def _reload_spliced(spliced_bytes):
+    """The spliced bytes as a mapping, or the two parse refusals verbatim. (FEAT-70, from
+    _verify_spliced)"""
     try:
         reloaded = harness_yaml.load_str(spliced_bytes.decode("utf-8"), "<merged plan>")
     except harness_yaml.YamlParseError as exc:
@@ -61,6 +71,12 @@ def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, rep
         raise harness_merge.MergeRefusal(
             5, ["UNPARSEABLE: the merged plan is not a mapping — REFUSING to write it."]
         )
+    return reloaded
+
+
+def _verify_schema_preserved(base_doc, reloaded):
+    """The do-no-harm schema rule: a legal base must reload legal. (FEAT-70, from
+    _verify_spliced)"""
     # AND IT MUST BE A LEGAL PLAN, NOT MERELY LEGAL YAML (FEAT-41 HIGH-1). `safe_load` above
     # answers "is this YAML"; the schema answers "can a reader act on it". Without this, `apply`
     # minted `station_only: true` onto a task-bearing signed plan, reported APPLIED, exited 0, and
@@ -83,14 +99,26 @@ def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, rep
                  "  the base satisfied the plan schema and the merged result does not, so the "
                  "change itself is what the schema refuses."],
             )
+
+
+def _expected_union_ids(base_doc, prop_doc, key):
+    """Base ids in order, then the proposal's ids not already present. (FEAT-70, from
+    _verify_spliced)"""
+    want = [_item_id(i) for i in (base_doc.get(key) or [])]
+    for item in prop_doc.get(key) or []:
+        iid = _item_id(item)
+        if iid not in want:
+            want.append(iid)
+    return want
+
+
+def _verify_union_ids(reloaded, base_doc, prop_doc, out_order):
+    """Every union key in `out_order` reloads with exactly the computed ids, in order. (FEAT-70,
+    from _verify_spliced)"""
     for key in UNION_KEYS:
         if key not in out_order:
             continue
-        want = [_item_id(i) for i in (base_doc.get(key) or [])]
-        for item in prop_doc.get(key) or []:
-            iid = _item_id(item)
-            if iid not in want:
-                want.append(iid)
+        want = _expected_union_ids(base_doc, prop_doc, key)
         got = [_item_id(i) for i in (reloaded.get(key) or [])]
         if got != want:
             raise harness_merge.MergeRefusal(
@@ -102,9 +130,6 @@ def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, rep
                     f"  reloaded ids: {got!r}",
                 ],
             )
-    _verify_replaced(reloaded, replaced)
-    return reloaded
-
 
 def _verify_replaced(reloaded, replaced):
     """Each replaced item must reload as the BASE item with the REPORTED changes laid over it."""
@@ -170,10 +195,7 @@ def _replace_fields(base_lines, s, e, item, prop_lines, ps, pe, pitem, iid, key)
     dash_indent = DASH_RE.match(lines[0]).group(1)
     prop_dash = DASH_RE.match(prop_lines[ps]).group(1)
     indent = _field_indent(lines, dash_indent)
-    differing = [(field, value) for field, value in pitem.items()
-                 if field != "id" and (field not in item or item[field] != value)]
-    changed = [(field, value) for field, value in differing if field != STATION_FIELD]
-    ignored = [(field, value) for field, value in differing if field == STATION_FIELD]
+    changed, ignored = _differing_fields(item, pitem)
     for field, value in changed:
         rendered = _proposal_field_lines(prop_lines, ps, pe, prop_dash, field, value, indent,
                                          iid, key)
@@ -183,6 +205,18 @@ def _replace_fields(base_lines, s, e, item, prop_lines, ps, pe, pitem, iid, key)
         return [(iid, field, item.get(field, _ABSENT), value) for field, value in pairs]
 
     return lines, rows(changed), rows(ignored)
+
+
+def _differing_fields(item, pitem):
+    """(changed, ignored): the proposal's (field, value) pairs that differ from the base item,
+    `id` excluded, split into the ones to splice and the STATION_FIELD ones never laid over.
+    (FEAT-70, from _replace_fields)"""
+    changed, ignored = [], []
+    for field, value in pitem.items():
+        if field == "id" or item.get(field, _ABSENT) == value:
+            continue
+        (ignored if field == STATION_FIELD else changed).append((field, value))
+    return changed, ignored
 
 
 # A field the base item does not carry, for the REPLACED receipt. Distinct from None, which is
@@ -603,6 +637,15 @@ def _print_apply_receipt(merged):
         print(f"ADDED {eid}")
     for eid in merged.preserved:
         print(f"PRESERVED {eid}")
+    _print_field_rows(merged)
+    if merged.reset:
+        print(APPROVAL_RESET_LINE)
+    if merged.ignored_approval:
+        print("IGNORED-APPROVAL: proposal's approval block was not written; base's kept")
+
+
+def _print_field_rows(merged):
+    """The REPLACED and IGNORED lines of the receipt. (FEAT-70, from _print_apply_receipt)"""
     for iid, field, old, new in merged.replaced:
         was = "<absent>" if old is _ABSENT else repr(old)
         print(f"REPLACED {iid}.{field}: {was} -> {new!r}")
@@ -610,7 +653,3 @@ def _print_apply_receipt(merged):
         keeps = "none" if old is _ABSENT else repr(old)
         print(f"IGNORED {iid}.{field}: proposal's {new!r} was not written; the station is "
               f"set-task-station's (base keeps {keeps})")
-    if merged.reset:
-        print(APPROVAL_RESET_LINE)
-    if merged.ignored_approval:
-        print("IGNORED-APPROVAL: proposal's approval block was not written; base's kept")

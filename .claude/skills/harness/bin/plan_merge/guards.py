@@ -163,6 +163,17 @@ def _schema_error(doc):
     return None
 
 
+
+def _refuse_illegal_amendment(base_doc, reloaded):
+    """DO NO HARM: hold an amended plan to the schema only when the BASE satisfied it. A plan
+    mid-authoring legitimately does not, and refusing to amend it would make the verb useless
+    exactly where it is needed most. One refusal for `amend` and `record-amendments`. (FEAT-70)"""
+    if _schema_error(base_doc) is None:
+        err = _schema_error(reloaded)
+        if err:
+            raise harness_merge.MergeRefusal(
+                8, [f"plan-merge: the amended plan would not be legal — {err}"])
+
 def _anchor_faults(doc):
     """`  <task id> files: <message>` for every `files:` entry plan_anchors refuses, in order."""
     tasks = (doc.get("tasks") or []) if isinstance(doc, dict) else []

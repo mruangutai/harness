@@ -207,29 +207,52 @@ def _task_status_line(lines, task_id):
     if "tasks" not in ranges:
         return None, []
     lo, hi = ranges["tasks"]
-    ids_present = []
-    start = None
-    indent = ""
-    for i in range(lo, hi):
-        line = lines[i]
-        m = TASK_ID_RE.match(line)
-        if m:
-            ids_present.append(m.group(2))
-            if m.group(2) == task_id and start is None:
-                start, indent = i, m.group(1)
-            elif start is not None and m.group(1) == indent:
-                break
+    start, indent, ids_present = _task_search(lines, lo, hi, task_id)
     if start is None:
         return None, ids_present
-    for j in range(start, len(lines)):
-        m2 = TASK_ID_RE.match(lines[j])
-        if m2 and j != start and m2.group(1) == indent:
+    found = _status_in_task(lines, start, indent)
+    if found is None:
+        return None, ids_present
+    return found
+
+
+def _task_search(lines, lo, hi, task_id):
+    """(start, indent, ids_present) for `task_id` within the tasks range [lo, hi): the id list
+    collects every `- id:` seen — the target's own and its terminator's included, in text
+    order, the FIRST match of a duplicated id kept — and the scan stops only at a later item
+    at the target's indent. Absent: (None, "", ids_present). (FEAT-70, from _task_status_line)"""
+    ids_present = []
+    start, indent = None, ""
+    for i in range(lo, hi):
+        m = TASK_ID_RE.match(lines[i])
+        if not m:
+            continue
+        ids_present.append(m.group(2))
+        if start is None:
+            if m.group(2) == task_id:
+                start, indent = i, m.group(1)
+        elif m.group(1) == indent:
             break
+    return start, indent, ids_present
+
+
+def _closes_item(line, indent):
+    """True when `line` opens the next item at `indent` — the end of the item being scanned."""
+    m = TASK_ID_RE.match(line)
+    return bool(m) and m.group(1) == indent
+
+
+def _status_in_task(lines, start, indent):
+    """(index, indent) of the first `status:` line nested deeper than the item opened at
+    `start`, scanning to the input's end and stopping at the next item at the same indent;
+    None when the item carries no status of its own. (FEAT-70, from _task_status_line)"""
+    for j in range(start + 1, len(lines)):
+        if _closes_item(lines[j], indent):
+            return None
         ms = STATUS_LINE_RE.match(lines[j])
         if ms and len(ms.group(1)) > len(indent):
             return j, ms.group(1)
-    return None, ids_present
-
+    return None
 
 def cmd_set_task_station(args):
     resolved = _resolve_plan(args.file)

@@ -21,6 +21,16 @@ def _index_top_keys(text):
                carried from the BASE side untouched; a proposal's preamble is never consulted.
     """
     lines = text.splitlines(keepends=True)
+    positions = _top_key_positions(lines)
+    order = [name for name, _ in positions]
+    ranges = _half_open_ranges(positions, len(lines))
+    preamble_end = positions[0][1] if positions else len(lines)
+    return lines, order, ranges, lines[:preamble_end]
+
+
+def _top_key_positions(lines):
+    """[(name, line_index)] for the FIRST occurrence of each top-level key, in file order.
+    (FEAT-70, from _index_top_keys)"""
     positions = []
     seen = set()
     for i, line in enumerate(lines):
@@ -28,13 +38,14 @@ def _index_top_keys(text):
         if m and m.group(1) not in seen:
             positions.append((m.group(1), i))
             seen.add(m.group(1))
-    order = [name for name, _ in positions]
-    ranges = {}
-    for idx, (name, start) in enumerate(positions):
-        end = positions[idx + 1][1] if idx + 1 < len(positions) else len(lines)
-        ranges[name] = (start, end)
-    preamble_end = positions[0][1] if positions else len(lines)
-    return lines, order, ranges, lines[:preamble_end]
+    return positions
+
+
+def _half_open_ranges(positions, end):
+    """{name: (start, next_start_or_end)} over consecutive (name, start) positions; the one
+    fold every locator's ranges come from. (FEAT-70, from _index_top_keys / _index_list_items)"""
+    starts = [start for _, start in positions] + [end]
+    return {name: (starts[i], starts[i + 1]) for i, (name, _) in enumerate(positions)}
 
 
 def _index_list_items(lines, key_range):
@@ -43,21 +54,25 @@ def _index_list_items(lines, key_range):
     order; the caller zips this against the already-safe_load-ed list for that key, in the
     order PyYAML preserves for a block sequence."""
     start, end = key_range
+    dash_lines = _dash_lines_at_first_indent(lines, start, end)
+    starts = dash_lines + [end]
+    return [(starts[i], starts[i + 1]) for i in range(len(dash_lines))]
+
+
+def _dash_lines_at_first_indent(lines, start, end):
+    """Indices of every dash line in [start, end) at the indent of the first one. (FEAT-70,
+    from _index_list_items)"""
     dash_lines = []
     indent = None
     for i in range(start, end):
         m = DASH_RE.match(lines[i])
-        if m:
-            cur = m.group(1)
-            if indent is None:
-                indent = cur
-            if cur == indent:
-                dash_lines.append(i)
-    ranges = []
-    for idx, s in enumerate(dash_lines):
-        e = dash_lines[idx + 1] if idx + 1 < len(dash_lines) else end
-        ranges.append((s, e))
-    return ranges
+        if not m:
+            continue
+        if indent is None:
+            indent = m.group(1)
+        if m.group(1) == indent:
+            dash_lines.append(i)
+    return dash_lines
 
 
 def _field_lines(indent, key, value):
@@ -217,16 +232,30 @@ def _item_range(lines, key, iid):
     if key not in ranges:
         return None, None, []
     lo, hi = ranges[key]
+    return _item_range_within(lines, lo, hi, iid)
+
+
+def _item_range_within(lines, lo, hi, iid):
+    """`_item_range`'s scan over one key's range [lo, hi): (start, end, indent) of the FIRST
+    `- id: iid`, ended by the next item at its indent or shallower, else by `hi`; absent,
+    (None, None, ids_present). (FEAT-70, from _item_range)"""
     ids_present, start, indent = [], None, ""
     for i in range(lo, hi):
         m = ITEM_ID_RE.match(lines[i])
         if not m:
             continue
         ids_present.append(m.group(2))
-        if m.group(2) == iid and start is None:
-            start, indent = i, m.group(1)
-        elif start is not None and len(m.group(1)) <= len(indent):
+        if start is None:
+            if m.group(2) == iid:
+                start, indent = i, m.group(1)
+        elif len(m.group(1)) <= len(indent):
             return start, i, indent
+    return _item_closed_by_range(start, hi, indent, ids_present)
+
+
+def _item_closed_by_range(start, hi, indent, ids_present):
+    """The item found ran to the end of its key's range — or was never found. (FEAT-70, from
+    _item_range)"""
     if start is None:
         return None, None, ids_present
     return start, hi, indent
@@ -317,14 +346,25 @@ def _find_field_line(lines, start, end, item_indent, field):
     i = start
     while i < end:
         m = SIBLING_KEY_RE.match(lines[i])
-        if m and m.group(2) == field and len(m.group(1)) > len(item_indent):
+        if _is_own_field(m, field, item_indent):
             return i, m.group(1)
-        head = BLOCK_HEAD_RE.match(lines[i])
-        if head and len(head.group(1)) > len(item_indent):
+        if _opens_nested_block(lines[i], item_indent):
             i = _block_scalar_end(lines, i, end)   # opaque text, never scanned for keys
             continue
         i += 1
     return None, ""
+
+
+def _is_own_field(m, field, item_indent):
+    """The SIBLING_KEY_RE match is `field:` nested inside the item. (FEAT-70, from
+    _find_field_line)"""
+    return bool(m) and m.group(2) == field and len(m.group(1)) > len(item_indent)
+
+
+def _opens_nested_block(line, item_indent):
+    """`line` is a block-scalar header nested inside the item. (FEAT-70, from _find_field_line)"""
+    head = BLOCK_HEAD_RE.match(line)
+    return bool(head) and len(head.group(1)) > len(item_indent)
 
 
 def _plain_scalar_end(lines, first, end, indent):
@@ -443,10 +483,17 @@ def _parsed_value(raw, key, iid, field):
         doc = harness_yaml.load_str(raw, "<base plan>")
     except harness_yaml.YamlParseError:
         return _UNPARSEABLE
-    for item in (doc or {}).get(key) or []:
+    item = _item_by_id((doc or {}).get(key) or [], iid)
+    return _UNPARSEABLE if item is None else item.get(field)
+
+
+def _item_by_id(items, iid):
+    """The first mapping in `items` whose `id` is `iid`, else None. (FEAT-70, from
+    _parsed_value)"""
+    for item in items:
         if isinstance(item, dict) and item.get("id") == iid:
-            return item.get(field)
-    return _UNPARSEABLE
+            return item
+    return None
 
 
 def _structured_field_lines(indent, field, value):

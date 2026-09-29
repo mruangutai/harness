@@ -210,13 +210,18 @@ def _panel_own_end(lines, start, end):
     _keys, indent = _sub_key_lines(lines, start + 1, end)
     width = len(indent or "")
     index = end
-    while index > start + 1:
-        line = lines[index - 1]
-        body = line.lstrip()
-        if body and not (body.startswith("#") and len(line) - len(body) <= width):
-            break
+    while index > start + 1 and _is_document_tail(lines[index - 1], width):
         index -= 1
     return index
+
+
+def _is_document_tail(line, width):
+    """A blank line, or a comment at `width` or shallower: the document's, not the block's.
+    (FEAT-70, from _panel_own_end)"""
+    body = line.lstrip()
+    if not body:
+        return True
+    return body.startswith("#") and len(line) - len(body) <= width
 
 
 def _panel_spliced(base_text, panel):

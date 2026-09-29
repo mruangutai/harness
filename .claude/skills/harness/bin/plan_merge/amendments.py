@@ -10,8 +10,8 @@ import amendment_contract
 import feature_json_write
 import harness_merge
 from plan_merge.guards import (
-    _die, _reload_or_refuse, _replace_bytes, _resolve_plan, _restore_plan, _schema_error,
-    _sole_item,
+    _die, _refuse_illegal_amendment, _reload_or_refuse, _replace_bytes, _resolve_plan,
+    _restore_plan, _sole_item,
 )
 from plan_merge.text import _field_block, _item_range, _render_field, _structured_field_lines
 from plan_merge.panel import _lead_digest
@@ -130,11 +130,7 @@ def _amended_plan_bytes(base_bytes, entries):
     spliced = "".join(_splice_amendments(lines, entries)).encode("utf-8")
     reloaded = _reload_or_refuse(spliced)
     _verify_amendments_landed(reloaded, entries)
-    if _schema_error(base_doc) is None:
-        err = _schema_error(reloaded)
-        if err:
-            raise harness_merge.MergeRefusal(
-                8, [f"plan-merge: the amended plan would not be legal — {err}"])
+    _refuse_illegal_amendment(base_doc, reloaded)
     if reloaded.get("approval") != base_doc.get("approval"):
         raise harness_merge.MergeRefusal(
             8, ["plan-merge: the splice touched approval: — REFUSING (DEC-120)."])
