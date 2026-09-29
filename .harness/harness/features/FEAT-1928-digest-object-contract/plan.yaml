@@ -1,13 +1,10 @@
 schema: plan/1
 feature: FEAT-1928-digest-object-contract
 approval:
-  date: '2026-09-28'
+  date: '2026-09-29'
   approved_by: main-session
-  status: pending
-  reset_at: '2026-09-29T01:42:49+00:00'
-  reset_reason: apply T-04
-  resume_station: ready
-status: plan
+  status: approved
+status: ready
 mission: plan
 source_issues: [1928]
 baseline:

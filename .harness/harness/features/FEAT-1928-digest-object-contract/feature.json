@@ -100,12 +100,13 @@
   "rework": {
     "rounds": 2,
     "wall_clock_minutes": 90,
-    "decision": ".harness/harness/features/FEAT-1928-digest-object-contract/notes/approval-2026-09-28.md"
+    "decision": ".harness/harness/features/FEAT-1928-digest-object-contract/notes/approval-2026-09-29.md"
   },
   "signed_task_hashes": {
-    "T-01": "8267705904d81f4142e54e6fad61168610023cda49f72f266caa31c9288bd3fb",
-    "T-02": "a9747851ce30be18fafe5f4c8b6df922dae34f110863ac37fcec0f12d25e89cb",
-    "T-03": "4145c9764b9e7e0b9ee39ebde8d31443a61be416a9ee20fa5f3e889360430c38"
+    "T-01": "d2f46bf36e13970e92503181d2d19f6636c5f7ca747063bf7243a86d4958de79",
+    "T-02": "1a292e26304a841447882959e9b81e3ffe479b04ab1cbcd9e4bc9af24e92e591",
+    "T-03": "4145c9764b9e7e0b9ee39ebde8d31443a61be416a9ee20fa5f3e889360430c38",
+    "T-04": "6eaddb885c69f1b152aafaf42bc3fe73f66ec04bb4d19be6ee5dbd5147842f9d"
   },
   "github": {
     "milestone": 93,
@@ -113,12 +114,14 @@
     "attached": [
       "T-01",
       "T-02",
-      "T-03"
+      "T-03",
+      "T-04"
     ],
     "issues": {
       "T-01": 1978,
       "T-02": 1979,
-      "T-03": 1980
+      "T-03": 1980,
+      "T-04": 1992
     },
     "source_issues": [
       1928
