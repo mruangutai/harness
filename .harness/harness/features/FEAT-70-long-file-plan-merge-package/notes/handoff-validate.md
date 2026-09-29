@@ -1,4 +1,4 @@
-# Handoff — FEAT-70-long-file-plan-merge-package, validate → ship review — written at 01af5a511f356d76ee91ced8922e2d53e71479e3, seq-2
+# Handoff — FEAT-70-long-file-plan-merge-package, validate → ship review — written at 01af5a511f356d76ee91ced8922e2d53e71479e3, seq-4
 
 ## Next
 
