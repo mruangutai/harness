@@ -142,7 +142,7 @@ lanes:
   - surface: .claude/skills/harness/bin/digest_schema.py, digest_record.py, and digest-schemas/**
     lane: main-session-direct
     reason: DEC-174 makes the digest enforcement library, durable reader, and canonical schemas direct work.
-  - surface: .claude/skills/harness/bin/validate-digest.py, check-state.py and check_state/**, and plan-merge.py or bin/plan_merge/** after FEAT-70
+  - surface: .claude/skills/harness/bin/plan_merge/**
     lane: main-session-direct
     reason: DEC-174 routes validators and gates through the main session.
   - surface: .claude/skills/harness/bin/dispatch-guard.py and tests/integration/test-dispatch-guard.py
@@ -320,16 +320,23 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 routes plan gate readers and their owning tests through the main session; FEAT-70 is the pre-start package-location gate.
     files:
-      - .claude/skills/harness/bin/plan-merge.py#_lead_digest
-      - .claude/skills/harness/bin/plan-merge.py#_digest_mapping
-      - .claude/skills/harness/bin/plan-merge.py#_digest_findings
-      - .claude/skills/harness/bin/plan-merge.py#cmd_record_amendments
-      - .claude/skills/harness/bin/plan-merge.py#cmd_record_panel
-      - .claude/skills/harness/references/panel-recording.md
-      - tests/integration/test-plan-merge.py#case_f59_record_panel_writes_from_a_lead_digest
+    - .claude/skills/harness/bin/plan_merge/panel.py#_lead_digest
+    - .claude/skills/harness/bin/plan_merge/panel.py#_digest_mapping
+    - .claude/skills/harness/bin/plan_merge/panel.py#_digest_findings
+    - .claude/skills/harness/bin/plan_merge/panel.py#cmd_record_panel
+    - .claude/skills/harness/bin/plan_merge/amendments.py#cmd_record_amendments
+    - .claude/skills/harness/bin/plan_merge/panel.py#_fenced_blocks
+    - .claude/skills/harness/bin/plan_merge/panel.py#_digest_finding
+    - .claude/skills/harness/bin/plan_merge/panel.py#_digest_readers
+    - .claude/skills/harness/bin/plan_merge/amendments.py#_digest_amendments
+    - .claude/skills/harness/references/panel-recording.md
+    - tests/integration/test-plan-merge.py#case_f59_record_panel_writes_from_a_lead_digest
+    - tests/integration/canonical-reader-classification.json
     verify: |
-      python3 tests/integration/test-plan-merge.py
+      python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test
     intent: |
-      FEAT-70 is a hard pre-start gate for this task only. Do not edit any plan digest-reader code until FEAT-70 has merged into this feature worktree. T-01 and T-02 remain independent of FEAT-70 and runnable while this task waits. Immediately after FEAT-70 merges and before implementation, locate _lead_digest, _digest_mapping, _digest_findings, cmd_record_amendments, and cmd_record_panel in the new bin/plan_merge package. Use the control-plane plan-merge.py apply or amend verb to replace every source files entry in this task with the exact package module#symbol location for all five symbols. If FEAT-70 lands before the first operator re-signature of this reconciled plan, complete the re-anchor and check before that signature. Otherwise, the required post-FEAT-70 files-field amendment resets any standing approval; after the amendment, do not begin implementation until the operator has re-signed the amended plan. Invoke the check verb through the resolved post-FEAT-70 plan-merge CLI entry point with --file .harness/harness/features/FEAT-1928-digest-object-contract/plan.yaml and --root /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract, and require zero failures before implementation.
+      Use .claude/skills/harness/bin/plan-merge.py as the CLI entry and keep every plan write routed through that entry. Replace _lead_digest and _digest_mapping text parsing with digest_record.py's final-fenced-mapping reader. Have _digest_findings, _digest_finding, _digest_readers, _digest_amendments, cmd_record_amendments, and cmd_record_panel consume structured DIGEST keys without regexes, bare-text fallback, or live persona-schema validation. Delete FENCED_BLOCK_RE and _fenced_blocks. Remove or repoint amendments.py's from plan_merge.panel import _lead_digest import so the package boundary remains correct.
 
-      Replace _lead_digest and _digest_mapping text parsing with digest_record.py's final-fenced-mapping reader. Update _digest_findings, cmd_record_amendments digest parsing, and cmd_record_panel to consume the returned structured DIGEST keys without regexes, whole-file bare-text fallback, or live persona-schema validation. Preserve record-panel finding identity, exact severities, kinds, proportionality scopes, dispositions, resolved_by values, resolutions, and every recorded ran or skipped reader status across panel cycles. Preserve record-amendments comparisons, judgements, parity, and refusal diagnostics while changing only the historical mapping input. Update panel-recording.md to describe validator-owned fenced YAML as the durable input and keep all plan writes routed through plan-merge.py. Add or update plan-merge integration cases only for consumer behavior: structured-key consumption; actionable refusal when malformed or absent durable input reaches the plan-merge consumer boundary; reader-history and finding-identity preservation, including resolved finding carry-forward; and record-amendments parity. Do not repeat digest_record.py library coverage for final-block selection, historical extra-key acceptance, or byte-identity hashing; T-01's durable-reader unit test alone owns those properties. Run the targeted integration file with zero FAIL lines.
+      Remove or retarget the row for .claude/skills/harness/bin/plan_merge/panel.py::_digest_mapping::harness_yaml_string#1 in tests/integration/canonical-reader-classification.json and run the canonical-reader self-test. Keep case_feat70_record_amendments_after_a_block_scalar_splice green. Preserve the existing historical-reader boundaries: this task covers plan consumers only and must not duplicate digest_record.py coverage for final-block selection, historical extra-key acceptance, or byte-identity hashing.
+
+      Preserve record-panel finding identity, exact severities, kinds, proportionality scopes, dispositions, resolved_by values, resolutions, and every ran or skipped reader status across cycles. Preserve record-amendments comparisons, judgements, parity, and refusal diagnostics. Preserve the validator-owned fenced YAML language in panel-recording.md, plan-merge-only writes, and actionable refusals when malformed or absent durable input reaches the plan-merge consumer boundary. Add or update plan-merge integration coverage only for these consumer behaviors and run the task verify with zero FAIL lines.
