@@ -1,0 +1,7 @@
+# FEAT-69 — amendment 2 (DEC-174 main-session-direct, operator-ruled): the full-table measurement excludes the feature's own record
+
+Validate c0 VAL-01: the full-table run at the pin carried five lines the baseline could not — four INV-32 "disposition resolved" notes for FEAT-69's own panel findings and one INV-8 note for its gitignored `plan-product` run directory — because FEAT-69's feature directory exists only at the pin. SC-02 as signed says a non-root difference "leaves this criterion unmet unless the operator rules otherwise", which made every feature with a feature record undecidable without a ruling.
+
+Operator's ruling (2026-09-28): no per-line ruling; fix the measurement instead. SC-02's full-table run is measured over every feature EXCEPT this feature's own record (`.harness/harness/features/FEAT-69-long-file-check-state-package`), in a scratch copy of each checkout with that directory removed, so both sides grade the same feature set. The checker reporting on its own record is the checker working, not the split. `--list`, the nine suites and both lock runs are unchanged in scope.
+
+Applied in `receipt-scripts/feat69-baseline.py` and `feat69-cleanpin.py` (5e2a769a); the receipt names the scope and the scratch roots. Result on re-run: 13/13 identical, no differences. Ledgered as an amendment judgement `SC-02.scope` (plan-merge's `record-amendments` does not address BRIEF text; the SC's own text stands with this note as its reading).

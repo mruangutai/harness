@@ -98,7 +98,10 @@ READER_TABLE = [
     Row("features", ".agents/skills/harness/bin/factory_config.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".agents/skills/harness/bin/check-state.py",
+    # FEAT-69: the features-path joins moved wholesale from check-state.py into the runner
+    # context, check_state/ctx.py, so this row moves with them (the factory_config precedent
+    # above); the entry no longer carries the string at all.
+    Row("features", ".agents/skills/harness/bin/check_state/ctx.py",
         r'os\.path\.join\(H, "features"',  # balance: )
         r'os\.path\.join\(H, [^,)]+, "features"'),
     # factory_config.py's own docs-path row was removed here (FEAT-42 T-04): the root

@@ -20,6 +20,7 @@ rather than shared because check-state.py belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
 import ast
+import collections
 import glob
 import json
 import os
@@ -593,10 +594,9 @@ def legal_task_statuses():
     return tuple(factory_config.MANDATED_STATIONS) + factory_config.TERMINAL_STATIONS
 
 
-# FEAT-64 (SC-05): ONE parse per plan per execution. `_is_shipped` (discovery's shipped-skip
-# and the invariant-collision scan) and `process_plan_yaml` (the route check) each called
-# `artifact_accessors.load_plan` on the same file, so every live plan was parsed twice and a
-# shipped one once more in the collision scan. The outcome of the first load -- the document,
+# FEAT-64 (SC-05): ONE parse per plan per execution. `_is_shipped` (discovery's shipped-skip)
+# and `process_plan_yaml` (the route check) each called `artifact_accessors.load_plan` on the
+# same file, so every live plan was parsed twice. The outcome of the first load -- the document,
 # or the YamlParseError it raised -- is what every later reader in the same run receives;
 # nothing on disk changes between them. Cleared in main() so a test that drives main() twice
 # in one interpreter sees its own writes.
@@ -866,109 +866,6 @@ def discover_plans():
         sys.exit(2)
     return root, sorted(plans), examined
 
-
-INV_TOKEN_RE = re.compile(r"\bINV-([0-9]+)\b")
-
-# The EXPLICIT claim. One spelling that works in both files this scans: a bare
-# `invariants: 29` or `invariants: [29, 30]` line in `plan.yaml`, and the same line inside
-# an HTML comment in `BRIEF.md`, which markdown does not render. A feature may add more
-# than one invariant, so the list form is first-class rather than an afterthought.
-INV_DECL_RE = re.compile(r"^\s*(?:<!--\s*)?invariants:\s*\[?([0-9,\s]+?)\]?\s*(?:-->)?\s*$",
-                         re.M)
-
-
-def live_invariant_numbers(root):
-    """The invariant numbers that ALREADY EXIST, read from the gate script itself.
-
-    Returns a set of ints, or None when the script cannot be read. None is NOT an empty
-    set and the caller must not treat it as one: an empty set would make every number in
-    every plan look newly claimed and fire on plans that merely cite an existing rule.
-    """
-    path = os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.py")
-    try:
-        with open(path, encoding="utf-8", errors="replace") as f:
-            return {int(m) for m in INV_TOKEN_RE.findall(f.read())}
-    except OSError:
-        return None
-
-
-def check_invariant_number_collisions(root, findings):
-    """TWO UNBUILT FEATURES MUST NOT CLAIM THE SAME `INV-NN`.
-
-    MEASURED 2026-08-23, and this exists because the gap shipped before the check did.
-    `FEAT-26-pr-linkage-recorded/plan.yaml` used `INV-28` sixteen times while
-    `FEAT-34-worktree-act3-enforced/BRIEF.md` used it eight times. Both features were
-    unbuilt, one was signed and entering its build, and NOTHING saw it — not
-    `check-state.py`, not this checker, not two review rounds on either feature. A human
-    reading a task list found it.
-
-    The rule given to the planner at the time was "do not infer the next free number from
-    the highest in the file." True, and HALF A CHECK: it names the gate script and says
-    nothing about the signed-but-unbuilt plans of other in-flight features. A number is
-    free only when BOTH halves agree, and only one half was ever mechanised.
-
-    THE FEATURE DIRECTORY IS THE UNIT, NOT THE PLAN. FEAT-34 had a BRIEF and no
-    `plan.yaml` at all, so a plan-only scan reproduces the exact miss. Both files are read
-    where they exist.
-
-    A NUMBER ALREADY IN `check-state.py` IS A REFERENCE, NOT A CLAIM. Plans discuss
-    existing invariants constantly; firing on those would make this unreadable within a
-    week. Only numbers absent from the gate script are treated as claims.
-
-    SHIPPED FEATURES DO NOT PARTICIPATE. Their plan is a record. A live feature reusing a
-    spent number is a real but different problem, and conflating the two would report the
-    wrong pair of features.
-
-    A GATE SCRIPT THAT CANNOT BE READ SUPPRESSES THE CHECK AND SAYS SO. Silence here would
-    be the same fail-open shape the check exists to catch.
-    """
-    live = live_invariant_numbers(root)
-    if live is None:
-        findings.append("NOTE invariant-collision check SKIPPED — "
-                        ".agents/skills/harness/bin/check-state.py could not be read, so "
-                        "a claimed number cannot be told from a cited one.")
-        return 0
-
-    claims = {}
-    for fdir in sorted(glob.glob(os.path.join(root, ".harness", "*", "features", "*"))):
-        if not os.path.isdir(fdir) or _is_shipped(fdir):
-            continue
-        name = os.path.basename(fdir)
-        declared, inferred = set(), set()
-        for fname in ("BRIEF.md", "plan.yaml"):
-            fpath = os.path.join(fdir, fname)
-            try:
-                with open(fpath, encoding="utf-8", errors="replace") as f:
-                    text = f.read()
-            except OSError:
-                continue
-            for m in INV_DECL_RE.finditer(text):
-                declared |= {int(n) for n in re.findall(r"[0-9]+", m.group(1))}
-            inferred |= {int(m) for m in INV_TOKEN_RE.findall(text)} - live
-        # A DECLARATION WINS AND PROSE IS ONLY THE FALLBACK, because a feature that
-        # resolves a collision must be able to SAY SO. FEAT-34 documented, correctly, that
-        # it moved to INV-29 "not INV-28, because FEAT-26 holds it and builds first" — and
-        # the prose scan read those three citations as a claim and reported a collision
-        # that no longer existed. Punishing a feature for recording its own reasoning is
-        # the wrong incentive, and the check would have been switched off within a week.
-        #
-        # THE DECLARATION IS NOT AN ESCAPE HATCH. Two features declaring the same number
-        # still collide, which case_26g asserts with NEITHER brief writing the token in
-        # prose — so only the declaration path can catch that pair.
-        for num in (declared or inferred):
-            claims.setdefault(num, set()).add(name)
-
-    count = 0
-    for num in sorted(claims):
-        owners = sorted(claims[num])
-        if len(owners) > 1:
-            count += 1
-            findings.append(
-                f"VIOLATION INV-{num} is claimed by {len(owners)} unbuilt features: "
-                f"{', '.join(owners)}. A number is free only when it is absent from "
-                f"check-state.py AND unclaimed by every signed-but-unbuilt plan. "
-                f"Decide which feature builds first; it keeps the number.")
-    return count
 
 
 READER_CALL_CATEGORIES = {
@@ -1757,6 +1654,9 @@ def _is_station_concatenation(node):
 
 
 _PREDICATE_PARENTS = (ast.Compare, ast.Return, ast.Assign, ast.AnnAssign)
+# The only node types `_respelled_bucket` can answer for: a literal collection, a set(...) /
+# frozenset(...) call over one, or a `+` concatenation. Everything else is skipped unexamined.
+_LITERAL_CANDIDATES = (ast.Tuple, ast.List, ast.Set, ast.Call, ast.BinOp)
 
 
 def _respelled_bucket(node, parent, buckets):
@@ -1770,24 +1670,38 @@ def _respelled_bucket(node, parent, buckets):
     return next((name for name, bucket in buckets.items() if values <= bucket), None)
 
 
-def _parents(tree):
-    """Child → parent map, with `set(...)`/`frozenset(...)` wrappers looked through so the
-    inner tuple sees the Compare/Return the call sits in."""
-    parents = {}
-    for node in ast.walk(tree):
-        for child in ast.iter_child_nodes(node):
-            parents[child] = node
+def _walk_with_parents(tree):
+    """`ast.walk`'s exact breadth-first order, yielding each node with its parent, so a caller
+    needing both visits every child once instead of walking and then re-listing children."""
+    todo = collections.deque([(tree, None)])
+    while todo:
+        node, parent = todo.popleft()
+        todo.extend((child, node) for child in ast.iter_child_nodes(node))
+        yield node, parent
+
+
+def _literal_candidates(tree):
+    """ONE walk: the candidate nodes in `ast.walk` order, and each one's parent with
+    `set(...)`/`frozenset(...)` wrappers looked through, so the inner tuple sees the
+    Compare/Return the call sits in. Only candidates need a parent, and a wrapper is itself a
+    candidate (a Call), so its own parent is always recorded before it is looked through."""
+    candidates, parents = [], {}
+    for node, parent in _walk_with_parents(tree):
+        if isinstance(node, _LITERAL_CANDIDATES):
+            candidates.append(node)
+            if parent is not None:
+                parents[node] = parent
     for child, parent in list(parents.items()):
         if _unwrap_set_call(parent) is not parent:
             parents[child] = parents.get(parent)
-    return parents
+    return candidates, parents
 
 
 def _feature_station_literal_findings(tree, relative, buckets):
     # Keyed by line so `frozenset(("plan", ...))` — a Call wrapping a Tuple — reports once.
-    parents = _parents(tree)
+    candidates, parents = _literal_candidates(tree)
     findings = {}
-    for node in ast.walk(tree):
+    for node in candidates:
         respelled = _respelled_bucket(node, parents.get(node), buckets)
         if respelled is not None and node.lineno not in findings:
             findings[node.lineno] = (
@@ -1858,6 +1772,26 @@ def _call_symbol(tree, node):
 #   invoke check-state.py with it; CI, command entry and pre-commit run the full table.
 BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
 CHECKER_REL = os.path.join(BIN_REL, "check-state.py")
+# FEAT-69: the entry is a bootstrap over the check_state/ package; the locked surface is the
+# entry PLUS every package file, parsed into ONE function table so a helper reached through an
+# import (`from check_state.ctx import ...`) is walked exactly as a same-file helper was.
+CHECKER_PACKAGE_REL = os.path.join(BIN_REL, "check_state")
+CHECKER_TABLE_MODULE = "table"
+# The settled ownership (FEAT-69 BRIEF, by declared reads): the module that must DEFINE each
+# row's run function. A row absent here is a finding -- a new invariant names its family in
+# the lock before it lands, which is the placement rule with teeth.
+ROW_FAMILIES = {
+    "plan": ("INV-35", "INV-3", "INV-4", "INV-5", "INV-34", "INV-32", "INV-44"),
+    "feature_record": ("INV-1", "INV-2", "INV-6", "INV-7", "INV-8", "INV-12", "INV-18", "INV-22",
+                       "INV-23", "INV-33", "INV-39", "INV-40", "INV-43", "INV-47"),
+    "run_state": ("INV-15", "INV-16", "INV-36", "INV-46"),
+    "seams": ("INV-17",),
+    "brief": ("INV-38", "INV-41", "INV-49"),
+    "worktrees": ("INV-25", "INV-27", "INV-29", "INV-31"),
+    "board": ("INV-13", "INV-21", "INV-24", "INV-26", "INV-28", "INV-30", "INV-37"),
+    "host": ("INV-19", "INV-42", "INV-45", "INV-48"),
+}
+_FAMILY_OF_ROW = {row: family for family, rows in ROW_FAMILIES.items() for row in rows}
 DECISIONS_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
 _BOOTSTRAP_END_TARGET = "root"           # the first top-level `root = ...` closes the bootstrap
 _READER_CALLEES = {"open", "read", "glob", "iglob", "run", "check_output", "Popen", "listdir",
@@ -1873,10 +1807,49 @@ _INPUT_LITERAL = re.compile(r"^[\w.*-]+\.(?:yaml|yml|json|md|py)$")
 _READ_KINDS = ("path:", "git:", "gh:")
 
 
-def _checker_tree(root):
-    path = os.path.join(root, CHECKER_REL)
-    with open(path, encoding="utf-8") as source:
-        return ast.parse(source.read(), filename=CHECKER_REL)
+def _checker_package_sources(root):
+    """(absolute, relative, text) for every check_state/*.py in name order; text is None for a
+    file that cannot be read."""
+    directory = os.path.join(root, CHECKER_PACKAGE_REL)
+    if not os.path.isdir(directory):
+        return []
+    sources = []
+    for name in sorted(os.listdir(directory)):
+        if not name.endswith(".py"):
+            continue
+        absolute = os.path.join(directory, name)
+        try:
+            with open(absolute, encoding="utf-8") as source:
+                text = source.read()
+        except (OSError, UnicodeDecodeError):
+            text = None
+        sources.append((absolute, os.path.join(CHECKER_PACKAGE_REL, name), text))
+    return sources
+
+
+def _checker_module_name(relative):
+    """`check-state` for the entry, the stem for a package file."""
+    return os.path.splitext(os.path.basename(relative))[0]
+
+
+def _checker_trees(root):
+    """[(relative, tree)] for the entry then every package file, and the parse findings for
+    those that did not parse. The entry failing to parse is the one finding that stands alone."""
+    trees, findings = [], []
+    try:
+        with open(os.path.join(root, CHECKER_REL), encoding="utf-8") as source:
+            trees.append((CHECKER_REL, ast.parse(source.read(), filename=CHECKER_REL)))
+    except (OSError, UnicodeDecodeError, SyntaxError) as error:
+        return [], [f"{CHECKER_REL}::<module> source_parse: {error}"]
+    for _absolute, relative, text in _checker_package_sources(root):
+        if text is None:
+            findings.append(f"{relative}::<module> source_parse: unreadable")
+            continue
+        try:
+            trees.append((relative, ast.parse(text, filename=relative)))
+        except (SyntaxError, ValueError) as error:
+            findings.append(f"{relative}::<module> source_parse: {error}")
+    return trees, findings
 
 
 def _bootstrap_end(tree):
@@ -1975,6 +1948,53 @@ def _module_functions(tree):
     return fns
 
 
+def _package_import_module(node):
+    """The `<module>` of a `from check_state.<module> import ...` statement, else None."""
+    if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("check_state."):
+        return node.module.split(".", 1)[1]
+    return None
+
+
+def _package_imports(tree):
+    """{local name: (module, name)} for every `from check_state.<module> import ...` in `tree`."""
+    imports = {}
+    for node in tree.body:
+        module = _package_import_module(node)
+        if module is None:
+            continue
+        for alias in node.names:
+            imports[alias.asname or alias.name] = (module, alias.name)
+    return imports
+
+
+class _PackageFunctions:
+    """FEAT-69: one function table over the entry and every package file. Keys are
+    `<module>.<function>` for module functions and `Ctx.<method>` for the context's methods
+    (the one class); a bare callee resolves in its caller's module first, then through that
+    module's `from check_state.<m> import` bindings -- never through an assignment alias."""
+
+    def __init__(self, trees):
+        self.fns, self.module_of, self.imports = {}, {}, {}
+        for relative, tree in trees:
+            module = _checker_module_name(relative)
+            self.imports[module] = _package_imports(tree)
+            for name, fn in _module_functions(tree).items():
+                key = name if name.startswith("Ctx.") else f"{module}.{name}"
+                self.fns[key] = fn
+                self.module_of[key] = module
+
+    def resolve(self, module, callee):
+        """The table key `callee` names when called from `module`, or None."""
+        if callee.startswith("Ctx."):
+            return callee if callee in self.fns else None
+        if f"{module}.{callee}" in self.fns:
+            return f"{module}.{callee}"
+        bound = self.imports.get(module, {}).get(callee)
+        if bound and f"{bound[0]}.{bound[1]}" in self.fns:
+            return f"{bound[0]}.{bound[1]}"
+        return None
+
+
 def _is_string_assign(node):
     return (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
             and isinstance(node.value.value, str))
@@ -2000,15 +2020,16 @@ def _inv_rows(tree):
     return rows
 
 
-def _reachable(fn_name, fns, seen=None):
-    """`fn_name` and every check-state function it calls, transitively (module functions by
-    name, Ctx methods through `ctx.<method>(...)`)."""
+def _reachable(key, table, seen=None):
+    """`key` and every check-state function it calls, transitively (module functions by name
+    in the caller's module or through its package imports, Ctx methods through
+    `ctx.<method>(...)`), across every file of the package (FEAT-69)."""
     seen = set() if seen is None else seen
-    if fn_name in seen or fn_name not in fns:
+    if key in seen or key not in table.fns:
         return seen
-    seen.add(fn_name)
-    for callee in _called_names(fns[fn_name]):
-        _reachable(callee, fns, seen)
+    seen.add(key)
+    for callee in _called_names(table.fns[key]):
+        _reachable(table.resolve(table.module_of[key], callee), table, seen)
     return seen
 
 
@@ -2115,34 +2136,76 @@ def _declared_covers(literal, declared):
                for d in declared)
 
 
-def _row_inputs(run, fns):
+def _row_inputs(run_key, table):
     """Every literal and git/gh resource the row's function and its helpers observe."""
     literals, resources = set(), set()
-    for fn_name in sorted(_reachable(run, fns)):
-        if fn_name.startswith("Ctx.__init__"):
+    for key in sorted(_reachable(run_key, table)):
+        if key.startswith("Ctx.__init__"):
             continue
-        lits, res = _observed_inputs(fns[fn_name])
+        lits, res = _observed_inputs(table.fns[key])
         literals |= lits
         resources |= res
     return literals, resources
 
 
-def _row_reads_findings(row, fns, relative):
+def _row_family_finding(row, run_key, table, relative):
+    """FEAT-69: the row's run function is DEFINED in the family module its reads name
+    (ROW_FAMILIES); an import alias, an assignment alias or a function in another module
+    is a finding, and a row no family claims is one too."""
+    name, run, _declared, _authority, lineno = row
+    family = _FAMILY_OF_ROW.get(name)
+    if family is None:
+        return (f"{relative}::INVARIANTS:{lineno} {name} belongs to no family in ROW_FAMILIES — name the "
+                f"module its reads place it in before it lands (FEAT-69 SC-03)")
+    if run_key is None:
+        return (f"{relative}::INVARIANTS:{lineno} {name} runs {run!r}, which is not a function defined in "
+                f"the package — an alias is not a definition (FEAT-69 SC-03)")
+    if table.module_of[run_key] != family:
+        return (f"{relative}::INVARIANTS:{lineno} {name} runs {run_key}, defined in check_state/"
+                f"{table.module_of[run_key]}.py, but its reads place it in check_state/{family}.py "
+                f"(FEAT-69 SC-03)")
+    return None
+
+
+def _row_observed_findings(row, run_key, table, relative):
+    """The reads the row's function and its helpers observe but the row does not declare."""
     name, run, declared, _authority, lineno = row
-    findings = [f"{relative}::INVARIANTS:{lineno} {name} declares {d!r}, which is not path:/git:/gh: "
-                f"(FEAT-62 SC-04)" for d in declared if not d.startswith(_READ_KINDS)][:1]
-    literals, resources = _row_inputs(run, fns)
-    findings += [f"{relative}::{run}:{lineno} {name} opens {literal!r} but its row declares no path: read "
-                 f"covering it (FEAT-62 SC-04)"
-                 for literal in sorted(literals) if not _declared_covers(literal, declared)]
+    literals, resources = _row_inputs(run_key, table)
+    findings = [f"{relative}::{run}:{lineno} {name} opens {literal!r} but its row declares no path: read "
+                f"covering it (FEAT-62 SC-04)"
+                for literal in sorted(literals) if not _declared_covers(literal, declared)]
     findings += [f"{relative}::{run}:{lineno} {name} reads {resource} but its row declares no {resource} "
                  f"read (FEAT-62 SC-04)" for resource in sorted(resources) if resource not in declared]
     return findings
 
 
-def _reads_findings(tree, relative):
-    fns = _module_functions(tree)
-    return [f for row in _inv_rows(tree) for f in _row_reads_findings(row, fns, relative)]
+def _row_reads_findings(row, table, relative):
+    name, run, declared, _authority, lineno = row
+    findings = [f"{relative}::INVARIANTS:{lineno} {name} declares {d!r}, which is not path:/git:/gh: "
+                f"(FEAT-62 SC-04)" for d in declared if not d.startswith(_READ_KINDS)][:1]
+    run_key = table.resolve(CHECKER_TABLE_MODULE, run)
+    family = _row_family_finding(row, run_key, table, relative)
+    if family:
+        findings.append(family)
+    if run_key is not None:
+        findings += _row_observed_findings(row, run_key, table, relative)
+    return findings
+
+
+def _table_tree(trees):
+    """The (relative, tree) of the package's table module, or None when it is absent."""
+    return next(((rel, tree) for rel, tree in trees
+                 if _checker_module_name(rel) == CHECKER_TABLE_MODULE), None)
+
+
+def _reads_findings(trees):
+    table = _PackageFunctions(trees)
+    located = _table_tree(trees)
+    if located is None:
+        return [f"{CHECKER_PACKAGE_REL}/{CHECKER_TABLE_MODULE}.py is absent — the table is the one place a "
+                f"row is declared (FEAT-69 SC-03)"]
+    relative, tree = located
+    return [f for row in _inv_rows(tree) for f in _row_reads_findings(row, table, relative)]
 
 
 def _decisions_index(root):
@@ -2161,9 +2224,13 @@ def _decisions_index(root):
     return entries
 
 
-def _authority_findings(tree, relative, root):
+def _authority_findings(trees, root):
     index = _decisions_index(root)
     findings = []
+    located = _table_tree(trees)
+    if located is None:
+        return []                       # _reads_findings already names the absent table
+    relative, tree = located
     if index is None:
         return [f"{relative}::INVARIANTS authority audit CANNOT RUN: {DECISIONS_INDEX_REL} is unreadable "
                 f"(FEAT-62 SC-05)"]
@@ -2249,13 +2316,25 @@ def _parsed_program(text):
     return inner if any(isinstance(n, ast.Try) for n in ast.walk(inner)) else None
 
 
-def _embedded_programs(tree):
-    """String constants that parse as Python and carry a try statement: programs the script hands
-    to another interpreter (`python3 -I -c`, `python3 -`), whose handlers are as real as its own
-    (FEAT-65 c1, CR-01). Prose and docstrings do not parse into a try and are skipped."""
-    strings = (node.value for node in ast.walk(tree)
-               if isinstance(node, ast.Constant) and isinstance(node.value, str) and "except" in node.value)
-    return [program for program in map(_parsed_program, strings) if program is not None]
+def _may_be_program(node):
+    """A string constant that could hold a try statement — which cannot be written without both
+    keywords, so a string lacking either is never parsed."""
+    return (isinstance(node, ast.Constant) and isinstance(node.value, str)
+            and "except" in node.value and "try" in node.value)
+
+
+def _broad_catches_and_programs(tree):
+    """ONE walk: the broad-catch count of `tree` itself, and the string constants that are
+    programs the script hands to another interpreter (`python3 -I -c`, `python3 -`), whose
+    handlers are as real as its own (FEAT-65 c1, CR-01). Prose and docstrings that pass
+    `_may_be_program` still do not parse into a try and are dropped by `_parsed_program`."""
+    count, strings = 0, []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            count += _is_broad_catch(node)
+        elif _may_be_program(node):
+            strings.append(node.value)
+    return count, [program for program in map(_parsed_program, strings) if program is not None]
 
 
 def _broad_catch_count(path):
@@ -2266,9 +2345,9 @@ def _broad_catch_count(path):
             tree = ast.parse(stream.read())
     except (OSError, UnicodeDecodeError, SyntaxError):
         return None
-    trees = [tree, *_embedded_programs(tree)]
-    return sum(1 for t in trees for node in ast.walk(t)
-               if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
+    count, programs = _broad_catches_and_programs(tree)
+    return count + sum(1 for program in programs for node in ast.walk(program)
+                       if isinstance(node, ast.ExceptHandler) and _is_broad_catch(node))
 
 
 def _broad_catch_finding(rel, name, count):
@@ -2282,31 +2361,36 @@ def _broad_catch_finding(rel, name, count):
             f"(FEAT-63 SC-04)")
 
 
-def broad_catch_findings(root):
-    """The census over every bin/ script, in name order."""
+def broad_catch_census_paths(root):
+    """Every Python file the census scans, as (absolute, bin-relative name), in
+    _reader_source_paths' walk order -- bin/*.py and every package beneath it (FEAT-69: the
+    check_state/ files are ceiling-0 like the entry they came from; a ceiling is keyed by the
+    bin-relative name, so a package file can never borrow a sibling's allowance)."""
     bin_dir = os.path.join(root, BIN_REL)
+    return [(absolute, os.path.relpath(absolute, bin_dir)) for absolute, _relative in _reader_source_paths(root)]
+
+
+def broad_catch_findings(root):
+    """The census over every bin/ script and every check_state/ package file, in name order."""
     findings = []
-    for name in sorted(os.listdir(bin_dir)) if os.path.isdir(bin_dir) else []:
-        if not name.endswith(".py"):
-            continue
-        rel = os.path.join(BIN_REL, name)
-        finding = _broad_catch_finding(rel, name, _broad_catch_count(os.path.join(bin_dir, name)))
+    for absolute, name in broad_catch_census_paths(root):
+        finding = _broad_catch_finding(os.path.join(BIN_REL, name), name, _broad_catch_count(absolute))
         if finding:
             findings.append(finding)
     return findings
 
 
 def feat62_findings(root):
-    """The three checker-structure rule families over check-state.py, then the posture scan."""
-    relative = CHECKER_REL
-    try:
-        tree = _checker_tree(root)
-    except (OSError, UnicodeDecodeError, SyntaxError) as error:
-        return [f"{relative}::<module> source_parse: {error}"]
-    findings = _module_body_findings(tree, relative)
-    findings.extend(_reparse_findings(tree, relative))
-    findings.extend(_reads_findings(tree, relative))
-    findings.extend(_authority_findings(tree, relative, root))
+    """The three checker-structure rule families over check-state.py and every check_state/
+    package file (FEAT-69), then the posture scan and the broad-catch census."""
+    trees, findings = _checker_trees(root)
+    if not trees:
+        return findings
+    for relative, tree in trees:
+        findings.extend(_module_body_findings(tree, relative))
+        findings.extend(_reparse_findings(tree, relative))
+    findings.extend(_reads_findings(trees))
+    findings.extend(_authority_findings(trees, root))
     findings.extend(_posture_findings(root))
     findings.extend(broad_catch_findings(root))
     return findings
@@ -2319,13 +2403,17 @@ def consolidation_findings(root):
     for absolute, relative in _reader_source_paths(root):
         try:
             with open(absolute, encoding="utf-8") as source:
-                tree = ast.parse(source.read(), filename=relative)
+                text = source.read()
+            tree = ast.parse(text, filename=relative)
         except (OSError, UnicodeDecodeError, SyntaxError) as error:
             findings.append(f"{relative}::<module> source_parse: {error}")
             continue
         if relative != STATION_TABLE_REL:
             findings.extend(_feature_station_literal_findings(tree, relative, buckets))
-        findings.extend(_module_loader_findings(tree, relative))
+        # The loader lock matches the callee by NAME, so a source that never spells it cannot
+        # produce a finding; skipping its walk there changes cost, not the answer.
+        if "spec_from_file_location" in text:
+            findings.extend(_module_loader_findings(tree, relative))
     findings.extend(feat62_findings(root))
     return findings
 
@@ -2380,9 +2468,6 @@ def main(argv):
             sys.exit(2)
         total_violations += count
         processed += 1
-
-    if examined is not None:
-        total_violations += check_invariant_number_collisions(root, findings)
 
     for line in findings:
         print(line)

@@ -1,0 +1,132 @@
+{
+  "feature_id": "FEAT-69-long-file-check-state-package",
+  "branch": "feat/FEAT-69-long-file-check-state-package",
+  "pr": 1981,
+  "review_sha": "bec83b523a7a1e071988aedfb7c85babd6389c42",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T19:24:43+00:00",
+      "tokens": 186136,
+      "ended_at": "2026-09-28T19:58:12+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-28T20:59:18+00:00",
+      "tokens": 112451,
+      "ended_at": "2026-09-28T21:14:46+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "main-session",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T21:52:35+00:00",
+      "ended_at": "2026-09-28T21:56:51+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T21:59:55+00:00",
+      "tokens": 98203,
+      "ended_at": "2026-09-28T22:15:59+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-28T19:24:26+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and diff bounded, but a new importable surface (the package) and an enforcement change (the lock in check-plan-routes.py) \u2014 third test of the patch rule fails."
+    },
+    {
+      "at": "2026-09-28T20:31:47.196363+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-03.files",
+      "reason": "INV-27's coupled-reader row for the features-path join moves with the join into check_state/ctx.py (layout_migration's own precedent); its fixture row moves with it. Found by the first full-table diff against the baseline."
+    },
+    {
+      "at": "2026-09-28T20:48:11+00:00",
+      "by": "operator",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "amendment 1: the baseline SHA is a726bad8 (e6f8493b predates INV-49); the field's only change is that SHA (notes/amendments-1-baseline.md, -1b)"
+    },
+    {
+      "at": "2026-09-28T20:48:15+00:00",
+      "by": "operator",
+      "kind": "amendment",
+      "decision": "T-04.verify",
+      "reason": "amendment 1: the baseline SHA is a726bad8 (e6f8493b predates INV-49); the field's only change is that SHA (notes/amendments-1-baseline.md, -1b)"
+    },
+    {
+      "at": "2026-09-28T20:59:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue from approved plan into validation after the main-session-direct implementation and committed receipts reached review."
+    },
+    {
+      "at": "2026-09-28T21:52:08+00:00",
+      "by": "operator",
+      "kind": "amendment",
+      "decision": "SC-02.scope",
+      "reason": "full-table byte identity is measured over every feature except this feature's own record (notes/amendments-2-full-table-scope.md); operator ruled: fix the measurement, no per-line ruling"
+    },
+    {
+      "at": "2026-09-28T21:52:35+00:00",
+      "by": "operator",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "validate c0 FAIL: VAL-01 (full-table scope, amendment 2) and VAL-02 (SC-03 fail-first receipt); both receipt-form, DEC-174 main session"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 480,
+    "decision": ".harness/harness/features/FEAT-69-long-file-check-state-package/notes/rework-ruling-2026-09-28.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a2a256fac137c81aa446d24797491b51800c82292557f3c64a4749a116b7c64e",
+    "T-02": "e23e251643c15e7ee022dcbe5ce903fe345e860e934d7003bcedd2f4b76821b4",
+    "T-03": "771c4e5546361054f9970d7ba962ae1b81ded099f84b800f7444ac37a444551e",
+    "T-04": "3dfca63ca78cf31c0c0f587b84d96ade5b0ce01291004c142d872d01bc57b6a4"
+  },
+  "github": {
+    "milestone": 92,
+    "parent": 1971,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 1972,
+      "T-02": 1973,
+      "T-03": 1974,
+      "T-04": 1975
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}

@@ -77,6 +77,18 @@ def main() -> int:
         check("every_finding_names_the_planted_file",
               all(f.startswith("harness-uat/SKILL.md:") for f in findings), joined)
 
+    # FEAT-69: the invariants live in check_state/*.py beside the entry. A number only a
+    # family module spells is implemented; an unspelled one is still not; spelling a number
+    # twice in a skill is one finding, not two.
+    with tempfile.TemporaryDirectory() as tmp:
+        dst = Path(tmp)
+        copy_tree(dst)
+        plant(dst, "harness/bin/check_state/host.py", "# INV-777: spelled in a family module only")
+        plant(dst, "harness-uat/SKILL.md", "Graded by INV-777; INV-20 twice (INV-20).")
+        findings = refs.scan(dst)
+        check("package_only_number_is_implemented", not any("INV-777" in f for f in findings), "\n".join(findings))
+        check("unspelled_number_is_still_a_finding", sum("cites INV-20" in f for f in findings) == 1, "\n".join(findings))
+
     if failures:
         print(f"\n{len(failures)} failure(s): {failures}")
         return 1

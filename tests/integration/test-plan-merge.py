@@ -41,6 +41,10 @@ TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
 # case writes, with no per-call-site rule.
 os.environ.pop("HARNESS_AGENT_TYPE", None)
 
+# The environment for a case that holds a lock and observes the verb's LOCKED refusal. The
+# refusal is real; only its retry budget shrinks from harness_merge's 10s default.
+SHORT_LOCK_ENV = dict(os.environ, HARNESS_LOCK_TIMEOUT_SECONDS="0.5")
+
 RESULTS = []
 
 
@@ -2639,8 +2643,8 @@ def case_delete_items_inherits_the_destination_and_lock_refusals():
 
     THE LOCK REFUSAL IS OBSERVED, NOT ASSERTED ABOUT. The test process holds an exclusive flock
     on the plan's own lock file and then runs the verb, so exit 6 comes from the real retry
-    budget. It costs harness_merge.LOCK_TIMEOUT_SECONDS of wall clock once, which is what a
-    guarantee nobody has to take on faith costs.
+    loop. The verb runs under SHORT_LOCK_ENV, so the wait is half a second rather than the
+    10s production default: a shorter budget changes how long the refusal takes, not whether.
 
     A MUTANT THAT REDDENS THIS: writing the file directly instead of through
     `harness_merge.locked_update` — the tempting simplification, and the one that reintroduces
@@ -2662,7 +2666,7 @@ def case_delete_items_inherits_the_destination_and_lock_refusals():
         try:
             fcntl.flock(held, fcntl.LOCK_EX)
             locked = run_verb("delete-items", "--file", plan, "--task", "T-01",
-                              "--reason", "the lock is held elsewhere")
+                              "--reason", "the lock is held elsewhere", env=SHORT_LOCK_ENV)
         finally:
             os.close(held)
         out = locked.stdout + locked.stderr
@@ -4038,10 +4042,10 @@ def _canonical_hash(task):
                                       ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
-def _record(plan, digest_text, root):
+def _record(plan, digest_text, root, env=None):
     digest = os.path.join(root, "digest.md")
     write(digest, digest_text)
-    return run_verb("record-amendments", "--file", plan, "--digest", digest)
+    return run_verb("record-amendments", "--file", plan, "--digest", digest, env=env)
 
 
 _PENDING_PLAN = _AMEND_PLAN.replace("status: approved", "status: pending")
@@ -4314,7 +4318,7 @@ def _record_with_ledger_locked(plan, fj, root, amendments):
     holder = open(fj + ".lock", "w")
     fcntl.flock(holder, fcntl.LOCK_EX)
     try:
-        return _record(plan, _digest_with(amendments), root)
+        return _record(plan, _digest_with(amendments), root, env=SHORT_LOCK_ENV)
     finally:
         fcntl.flock(holder, fcntl.LOCK_UN)
         holder.close()
