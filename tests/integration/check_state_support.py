@@ -16,6 +16,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -67,13 +68,22 @@ def check_state_mutant(iso_bin, owner, mutant_text):
     return os.path.join(iso_bin, "check-state.py")
 
 
+def copy_executable_package(entry, package_name, dst_bin):
+    """Copy a forked entry script (executable, under its own basename) and the package that
+    sits beside it into `dst_bin`, `__pycache__` excluded. The one implementation of that copy
+    for the two entry-plus-package tools under test (check-state.py, plan-merge.py); a proof that
+    mutates a copied tree edits the owner module in the copy, never a lone entry file. (FEAT-70)"""
+    package_dir = os.path.join(os.path.dirname(os.path.realpath(entry)), package_name)
+    target = os.path.join(dst_bin, os.path.basename(entry))
+    shutil.copy(entry, target)
+    os.chmod(target, 0o755)
+    shutil.copytree(package_dir, os.path.join(dst_bin, package_name),
+                    ignore=shutil.ignore_patterns("__pycache__"))
+
+
 def copy_check_state(dst_bin):
     """Copy the entry (executable) and the package into `dst_bin`."""
-    import shutil
-    shutil.copy(SCRIPT, os.path.join(dst_bin, "check-state.py"))
-    os.chmod(os.path.join(dst_bin, "check-state.py"), 0o755)
-    shutil.copytree(PACKAGE_DIR, os.path.join(dst_bin, "check_state"),
-                    ignore=shutil.ignore_patterns("__pycache__"))
+    copy_executable_package(SCRIPT, "check_state", dst_bin)
 
 HARNESS_JSON_SYNC_ON = """{
   "github": {"sync": true, "repo": "org/repo"}

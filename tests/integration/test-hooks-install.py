@@ -57,6 +57,14 @@ REAL_SHIM = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "hooks", "po
 BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
 )
+# The entry scripts' sibling packages (check_state/, plan_merge/ — FEAT-69/FEAT-70). An entry copied
+# without its package imports nothing, and gh-sync ship's set-feature-station would fail inside the
+# fixture for a reason the sweep is not testing.
+BIN_PACKAGES = sorted(
+    d for d in os.listdir(BIN_DIR)
+    if os.path.isdir(os.path.join(BIN_DIR, d)) and d != "__pycache__"
+    and os.path.exists(os.path.join(BIN_DIR, d, "__init__.py"))
+)
 
 # The two literal command strings SKILL.md's per-clone step carries. Asserted verbatim present
 # in case_commands_verbatim_in_skill() before anything else runs them.
@@ -119,6 +127,9 @@ def _install_real_bin_and_hook(root):
         dst = os.path.join(bin_dst, name)
         shutil.copy2(os.path.join(BIN_DIR, name), dst)
         os.chmod(dst, 0o755)
+    for name in BIN_PACKAGES:
+        shutil.copytree(os.path.join(BIN_DIR, name), os.path.join(bin_dst, name),
+                        ignore=shutil.ignore_patterns("__pycache__"))
     hooks_dst_dir = os.path.join(root, ".claude", "skills", "harness", "hooks")
     os.makedirs(hooks_dst_dir, exist_ok=True)
     hook_dst = os.path.join(hooks_dst_dir, "post-merge")

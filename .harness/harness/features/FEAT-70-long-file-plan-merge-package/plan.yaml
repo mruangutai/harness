@@ -1,0 +1,153 @@
+schema: plan/1
+feature: FEAT-70-long-file-plan-merge-package
+approval:
+  date: '2026-09-28'
+  approved_by: operator
+  status: approved
+status: review
+mission: plan
+source_issues: []
+baseline:
+  sha: 9e531b34fc04f752cedf51586dc13c460580901a
+  branch: feat/FEAT-70-long-file-plan-merge-package
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    artifact: .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/review-harness-code-reviewer-plan-c1.md
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    artifact: none
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    artifact: .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/review-harness-ui-reviewer-plan-c0.md
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    artifact: .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/research-FEAT-70-long-file-plan-merge-package-goalcheck-plan.md
+  findings:
+  - id: PF-b81946176b41e9a34d3a6521dcb29a3c
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 specifies a second executable-plus-package copy implementation instead of one reusable integration-support operation.
+    disposition: resolved
+    resolved_by: T-01
+    resolution: T-01 now owns check_state_support.py and specifies one generalized copy_executable_package operation extracted from copy_check_state, with both check-state and plan-merge delegates and PLAN_MERGE_BIN selecting the plan entry and sibling package; no independent second copy implementation remains in the plan.
+  - id: PF-5a2f0315a74baa10be3dbd92b88e82a4
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: 'T-02''s frozen-baseline-driver transcript-identity comparison is designed to fail at the pin and should not exist in this form: the baseline suite asserts monolith source text and private in-process imports that the settled split removes from the entry'
+    disposition: resolved
+    resolved_by: T-01, T-02
+    resolution: SC-02 and T-02 now require each checkout's own 107 applicable pre-existing cases green, compare only public behavioral subprocess records and the fixed scratch-plan proof, and keep private/source assertions package-aware at the pin; T-01 forbids dead re-exports and source padding.
+  - id: PF-9d58f7b7ff37672dcc6c0310fc9b135e
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: BRIEF constraints and D-02 freeze exact helper names and loop mechanics for the two decompositions grilling explicitly left unspecified
+    disposition: dismissed
+    resolution: The operator explicitly required the plan to inspect and specify the exact behavior-preserving decomposition with no implementation decision unresolved. D-02 and the matching constraints therefore remain deliberately exact rather than adopting this proportionality recommendation.
+    scope: task
+  - id: PF-30522a8c4477a03105e2cd58d669507f
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: The signature-time rework recommendation (2 rounds, 480 minutes) appears nowhere in the settled grilling record
+    disposition: dismissed
+    resolution: The operator explicitly required the pending recommendation of 2 rounds and 480 wall-clock minutes based on FEAT-69 precedent. It remains advisory, unsigned, and does not change either pending approval.
+    scope: task
+lanes:
+  resolved_at: 9e531b34fc04f752cedf51586dc13c460580901a
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 assigns the canonical plan writer and every imported enforcement surface directly to the main session.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 assigns an enforcement gate's owning behavioral and classification tests to the same direct main-session execution.
+    - surface: .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/**
+      lane: main-session-direct
+      reason: Immutable-pin receipt scripts and evidence are inseparable from the direct canonical-writer refactor they grade.
+decisions:
+  - id: D-01
+    choice: Place the complete approval reset and resume family in stations.py, with approval.py importing it for revoke.
+    because: Task and feature stations are the discriminating inputs and the resume station is the family's central decision, so the settled input-ownership rule outweighs its approval-block output.
+    dec: none
+  - id: D-02
+    choice: Decompose _task_status_line into _task_search and _status_in_task plus its coordinator, and decompose _verify_spliced into _reload_spliced, _verify_schema_preserved, _expected_union_ids, and _verify_union_ids plus its coordinator.
+    because: These seams isolate search, reload, schema, and ordered-id responsibilities at grade 4 or better while retaining every current boundary, return shape, refusal, and message.
+    dec: none
+tasks:
+  - id: T-01
+    title: Split plan-merge into the settled package and fix block-scalar amendments
+    traces: [SC-01, SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns plan-merge.py, its source classification, and its owning tests directly to the main session because they gate every plan write.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/plan-merge.py
+    - .claude/skills/harness/bin/plan[-_]merge*
+    - tests/integration/test-plan-merge.py
+    - tests/integration/check_state_support.py
+    - tests/integration/canonical-reader-classification.json
+    verify: |
+      python3 -c 'import importlib.util,pathlib,sys; r=pathlib.Path("."); p=r/".claude/skills/harness/bin/plan_merge"; want={"__init__.py","text.py","guards.py","union.py","approval.py","stations.py","panel.py","amend.py","amendments.py","delete.py","check.py"}; assert {x.name for x in p.glob("*.py")}==want; g=r/".claude/skills/harness/bin/code_grade.py"; s=importlib.util.spec_from_file_location("feat70_grade",g); m=importlib.util.module_from_spec(s); sys.modules[s.name]=m; s.loader.exec_module(m); paths=[r/".claude/skills/harness/bin/plan-merge.py",*sorted(p.glob("*.py"))]; bad=[(q.path,q.qualname,q.grade) for x in paths for q in m.grade_source(x.read_text(),str(x)) if q.grade<4]; assert not bad,bad; sys.path.insert(0,str(r/".claude/skills/harness/bin")); e=importlib.util.spec_from_file_location("feat70_entry",paths[0]); n=importlib.util.module_from_spec(e); e.loader.exec_module(n); assert callable(n.signed_task_hash)' &&
+      python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-state-worktrees.py && python3 tests/integration/test-check-plan-routes.py
+    intent: |
+      Work only in the assigned FEAT-70 worktree at baseline 9e531b34fc04f752cedf51586dc13c460580901a. Before production edits, add the SC-03 regression to test-plan-merge.py and run it red: record-amendments receives a valid two-entry digest, the first entry replaces a block-scalar field and the second replaces another allowed field, and baseline crashes before both entries and the ledger can land. Retain that case as the observable atomicity regression; after the fix it must assert both requested values, block-scalar reload identity, a valid two-entry amendment ledger, no partial plan or ledger write on refusal, exit zero, and no traceback.
+
+      Keep .claude/skills/harness/bin/plan-merge.py at its exact hyphenated path as a roughly 250-line forked entry. It contains the existing docstring, imports and required public re-exports, _register_record_panel, _register_sign_approval, _register_amend, _register_delete_items, the one unchanged VERBS dispatch table, and main. It remains the only CLI. Preserve argv, exit codes, stdout, stderr, lock behavior, signal behavior, and every byte written. Preserve signed_task_hash as a callable import from the entry for check-state INV-40. Do not edit any current caller, introduce a shim, add a family entry point, or create a second dispatcher.
+
+      Create plan_merge/__init__.py and exactly ten implementation modules. text.py owns the shared regexes and all generic indexing, field extraction, render, splice, reindent, item-boundary, and deletion-boundary primitives, including _index_top_keys, _index_list_items, _field_lines, _item_range, _field_block, _render_field, _structured_field_lines, _reindent, _splice_out, and _item_delete_end. guards.py owns _resolve_plan, _legal_stations, _refuse_illegal_station, _reload_or_refuse, _schema_error, _die, _locked_plan_update, _replace_bytes, _restore_plan, _refuse_governed_agent, and anchor validation. union.py owns apply and add-tasks, MergeResult, _verify_spliced, receipt rendering, replacement logic, and the UNION_MERGE, PRESERVE_BASE_BYTES, and APPROVAL_REFUSAL proof switches. approval.py owns sign-approval, revoke-approval, rework recording, signed task hashes, and approval-signature helpers. stations.py owns set-task-station, set-feature-station, station classification, and the complete reset/resume family from _now_iso through _maybe_reset_approval, including RESET_FIELDS, _RESET_LINE_RE, _approval_status, _replace_approval_reset, _reset_approval_lines, _task_statuses, _review_complete, _WORK_STARTED, _work_started, _resume_station, _verify_reset, and _approval_reset_context. approval.py calls that stations family for revoke rather than duplicating it. panel.py owns panel and lanes validators, byte-preserving panel splice, record-panel, set-key, set-panel, set-lanes, and KEY_VALIDATORS so its forward binding remains within one module. amend.py owns amend, amendments.py owns record-amendments and the all-or-nothing plan-plus-ledger update, delete.py owns delete-items, and check.py owns check.
+
+      Fix the crash in text.py by changing _render_field's block-scalar return contract from one joined list element to the list of physical lines that every splice consumer indexes. Do not special-case record-amendments or the test digest. Consolidate TASK_ID_RE and ITEM_ID_RE into one shared text.py regex. Move comments and banners byte-for-byte with the code they describe and make no rename beyond package-qualified imports and the explicitly named grade decompositions.
+
+      In stations.py, implement _task_search(lines, lo, hi, task_id) as the current tasks-range loop: append each matched id before testing the target or terminator, retain the first target, and stop only on a later item at the target indent. Implement _status_in_task(lines, start, indent) as the current scan from start through the input end: stop at the next item of the same indent and return the first status line whose indentation is deeper. _task_status_line uses _index_top_keys to obtain only the tasks range, delegates to those helpers, and returns the exact current index/indent or None/id-list tuples. Preserve the append-before-break terminator id, scan-to-end behavior for a final task, duplicate-first behavior, id ordering, and caller refusal text.
+
+      In union.py, _reload_spliced decodes and loads the candidate and preserves both current parse refusals and the mapping refusal verbatim. _verify_schema_preserved applies the existing do-no-harm rule only when the base passes _schema_error and preserves the three-line refusal. _expected_union_ids returns base ids in order followed by proposal ids not already present. _verify_union_ids iterates UNION_KEYS, skips keys absent from out_order, compares exact ordered ids, and preserves the existing refusal. _verify_spliced retains its full signature including unused added_ids, calls those helpers in the current order, then _verify_replaced, and returns the reloaded mapping.
+
+      Bring every function in the entry and package to code grade 4 or better. The baseline grade-2 functions are _task_status_line, _verify_spliced, cmd_amend, and cmd_amend.transform; the grade-3 functions are _item_range, _index_list_items, _find_field_line, _parsed_value, _index_top_keys, _print_apply_receipt, _panel_own_end, and _replace_fields. Improve each in its owner without changing public or internal observable behavior. All new helpers must also meet the bar; no exemption and no file-length gate.
+
+      In check_state_support.py, extract copy_check_state's current shutil behavior into the single generalized copy_executable_package(entry, package_name, dst_bin) operation. It resolves the package as package_name beside realpath(entry), copies the entry to dst_bin under its basename while preserving executable mode, copies the complete sibling package without __pycache__, and is the only implementation of those copy semantics. Keep copy_check_state as a thin delegate using SCRIPT and check_state so existing check-state callers do not change. In test-plan-merge.py, add copy_plan_merge(dst_bin) only as a thin delegate to that shared operation using CLI selected from PLAN_MERGE_BIN and sibling plan_merge. Every isolated-bin, in-process import, and source-mutation proof must use that copied tree; do not add independent shutil.copy/copytree logic.
+
+      Update the same 107 pre-existing test-plan-merge cases for package ownership without changing their observable assertions. case_amend_f2_under_lock_hash_is_pinned loads _require_locked_hash from plan_merge/amend.py and reads its wiring source there; case_delete_items_verify_catches_a_boundary_error_that_still_parses loads _verify_deletion from plan_merge/delete.py and reads its wiring source there. Resolve both owners from the PLAN_MERGE_BIN entry's sibling package, including overridden isolated copies. Convert every mutation that formerly copied or patched only plan-merge.py to copy the full tree and patch the owner module. Keep the three proof switches in union.py and retain each proof's original discriminating behavior. Do not add private entry re-exports, keep stale monolith source assertions, or pad entry source to satisfy them.
+
+      Re-key exactly the 15 canonical-reader-classification rows currently sourced from plan-merge.py. Change only each row's source-derived file and id to its actual plan_merge owner and preserve artifact, category, DEC-174 category, disposition, route, exemption, reason, remedy, symbol, task, and ordinal. Replace the legacy scanned_files source with the unchanged entry plus __init__.py and all ten modules. The owning classification suite must remain green. Do not edit validate-digest.py, check-domain.py, gh-sync.py, or unrelated long files.
+  - id: T-02
+    title: Pin the implementation and commit reproducible identity receipts
+    traces: [SC-01, SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable canonical-writer pin with the direct main-session change.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/**
+    verify: |
+      python3 -c 'import re,subprocess; rel=".harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/clean-pin-byte-receipts.generated.md"; c=subprocess.check_output(["git","log","-1","--format=%H","HEAD","--",rel],text=True).strip(); assert c,"receipt commit not found"; t=subprocess.check_output(["git","show",f"{c}:{rel}"],text=True); p=re.findall(r"(?m)^implementation_pin: ([0-9a-f]{40})$",t); assert len(p)==1,p; pin=p[0]; assert pin!=c; assert "baseline: 9e531b34fc04f752cedf51586dc13c460580901a" in t; assert re.search(r"(?m)^baseline_existing_cases: 107/107 PASS$",t); assert re.search(r"(?m)^pin_existing_cases: 107/107 PASS$",t); assert re.search(r"(?m)^behavioral_identity: PASS$",t); assert re.search(r"(?m)^scratch_identity: PASS$",t); assert re.search(r"(?m)^overall: PASS$",t); subprocess.run(["git","merge-base","--is-ancestor",pin,c],check=True); subprocess.run(["python3",".harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/receipt-scripts/feat70-grade-assert.py",pin,"9e531b34fc04f752cedf51586dc13c460580901a"],check=True)'
+    intent: |
+      After T-01 is committed and green, designate that exact full SHA as the immutable implementation pin before creating any receipt script or receipt file. Under notes/receipt-scripts adapt the FEAT-69 structure as feat70-baseline.py, feat70-cleanpin.py, and feat70-grade-assert.py; do not introduce a second proof framework. The scripts create clean detached baseline and pin checkouts under .claude/worktrees/harness, assert the exact checked-out SHAs and empty status before measurement, never fetch or use GitHub, and delete no pre-existing worktree.
+
+      The grade assertion enumerates the entry and the exact eleven Python files in plan_merge at the pin, requires every function at grade 4 or better, requires all twelve named baseline below-bar identities to be present at their package owners, and proves signed_task_hash remains importable from the entry. Parse the baseline monolith as the pre-image table: match every moved function by its qualified identity, record baseline and pin grades, require unchanged moved bodies to retain grade identity, require the twelve named functions to improve to at least 4, and list each genuinely new function separately at grade 4 or better. Run the pin assertion against both snapshots so baseline is the committed red and pin is green.
+
+      For SC-02, run the baseline checkout's own baseline test-plan-merge.py against its monolith and the pin checkout's package-aware test-plan-merge.py against its entry plus package. In each checkout assert that CASES contains exactly the same 107 pre-existing case identities, that every one runs, the process exits zero, and no FAIL result is printed; separately require the pin's added SC-03 regression green. Never run the frozen baseline driver against the pin, and do not compare whole-suite transcripts: baseline-only monolith source reads and private in-process imports are structurally invalid after the split, while T-01's package-aware equivalents must remain green at the pin.
+
+      Build the exact baseline-versus-pin identity ledger from public CLI subprocess behavior exercised by the 107-case corpus, excluding only results produced solely by monolith source-text inspection or direct private-helper calls. For every included subprocess observation, align the stable case identity and invocation ordinal and record argv, fixture context, exit status, stdout bytes, stderr bytes, plan bytes before and after, and hashes. A missing, added, reordered, or unalignable behavioral invocation is a difference, not an exclusion. Preserve concurrency trial order and every public refusal or success path. This comparison is independent of the two suite-pass receipts, so package-aware rewrites of private assertions cannot mask a CLI difference.
+
+      Discover every .harness/harness/features/*/plan.yaml tracked at the implementation pin except FEAT-70-long-file-plan-merge-package. Make an independent scratch copy for each implementation and preserve discovery order. For each plan, run check; load its current top-level station and run set-feature-station to that same value; for each task in document order run set-task-station to its explicit station or ready when absent; then for each task or decision string field other than id and status, in document and field order, run amend --show. Record every command, exit status, stdout, stderr, before bytes, after bytes, and hashes. Do not include record-amendments in this script because it crashes at baseline; SC-03 is its red-first proof.
+
+      Run each baseline and pin measurement once and derive every reported byte, hash, difference, and verdict from that execution. Before comparison replace only each checkout's raw absolute root bytes with one common token on both sides. Apply no other normalization, filtering, sorting, message rewriting, or accepted-difference rule. Require normalized exit status, stdout, stderr, and resulting plan bytes to match for every behavioral subprocess record and the scratch-plan script. Put every remaining difference in build-divergences.md with exact old and new bytes and leave overall red unless the operator explicitly rules it.
+
+      Record the SC-03 case separately: the same new two-entry digest test must fail against the baseline implementation at the block-scalar list-shape defect and pass at the pin with both fields and the atomic ledger update. Capture commands, exit values, stdout, stderr, plan bytes, ledger bytes, and hashes. This intended behavior difference does not enter the SC-02 identity ledger.
+
+      Commit notes/receipt-scripts, red-first-receipts.md, clean-pin-byte-receipts.generated.md, clean-pin-byte-receipts.md, and build-divergences.md only after the immutable pin exists. The generated receipt contains exactly one implementation_pin line with the full 40-character SHA, exactly one baseline line naming 9e531b34fc04f752cedf51586dc13c460580901a, and the exact lines baseline_existing_cases: 107/107 PASS, pin_existing_cases: 107/107 PASS, behavioral_identity: PASS, scratch_identity: PASS, and overall: PASS only when every required comparison and assertion passes. Every receipt names both full SHAs, detached checkout paths and clean status, exact commands, timestamps, one-execution provenance, raw and normalized hashes, comparison outcomes, grade tables, regression outcomes, and the exact-byte divergence ledger. State that the receipt commit postdates the pin and that no receipt or script is claimed to exist in the pin. Do not amend the implementation pin; any production or test change selects a new pin and reruns every measurement.
+needs_approval: true
