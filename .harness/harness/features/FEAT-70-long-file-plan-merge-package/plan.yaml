@@ -92,7 +92,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns plan-merge.py, its source classification, and its owning tests directly to the main session because they gate every plan write.
     depends_on: []
-    status: review
+    status: done
     files:
     - .claude/skills/harness/bin/plan-merge.py
     - .claude/skills/harness/bin/plan[-_]merge*
@@ -129,7 +129,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable canonical-writer pin with the direct main-session change.
     depends_on: [T-01]
-    status: review
+    status: done
     files:
       - .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/**
     verify: |
