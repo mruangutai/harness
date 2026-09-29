@@ -16,6 +16,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -69,10 +70,9 @@ def check_state_mutant(iso_bin, owner, mutant_text):
 
 def copy_executable_package(entry, package_name, dst_bin):
     """Copy a forked entry script (executable, under its own basename) and the package that
-    sits beside it into `dst_bin`, `__pycache__` excluded. The ONE implementation of that copy
-    for every entry-plus-package tool under test (check-state.py, plan-merge.py); a proof that
+    sits beside it into `dst_bin`, `__pycache__` excluded. The one implementation of that copy
+    for the two entry-plus-package tools under test (check-state.py, plan-merge.py); a proof that
     mutates a copied tree edits the owner module in the copy, never a lone entry file. (FEAT-70)"""
-    import shutil
     package_dir = os.path.join(os.path.dirname(os.path.realpath(entry)), package_name)
     target = os.path.join(dst_bin, os.path.basename(entry))
     shutil.copy(entry, target)

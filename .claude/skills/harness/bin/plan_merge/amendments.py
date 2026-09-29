@@ -13,7 +13,9 @@ from plan_merge.guards import (
     _die, _refuse_illegal_amendment, _reload_or_refuse, _replace_bytes, _resolve_plan,
     _restore_plan, _sole_item,
 )
-from plan_merge.text import _field_block, _item_range, _render_field, _structured_field_lines
+from plan_merge.text import (
+    _field_block, _item_by_id, _item_range, _render_field, _structured_field_lines,
+)
 from plan_merge.panel import _lead_digest
 
 # ---------------------------------------------------------------------------
@@ -59,8 +61,7 @@ def _digest_amendments(digest):
 
 def _amendment_against_plan(entry, plan_doc, what):
     """Refuse unless `entry.task` exists in `plan_doc` and its field equals `entry.was`."""
-    task = next((t for t in (plan_doc.get("tasks") or [])
-                 if isinstance(t, dict) and t.get("id") == entry["task"]), None)
+    task = _item_by_id(plan_doc.get("tasks") or [], entry["task"])
     if task is None:
         raise harness_merge.MergeRefusal(
             3, [f"plan-merge: {entry['task']} is not a task in the plan ({what}); an "

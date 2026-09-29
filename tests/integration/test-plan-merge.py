@@ -25,6 +25,7 @@ import tempfile
 
 import yaml
 import artifact_accessors
+from check_state_support import copy_executable_package
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -2031,7 +2032,6 @@ def _load_owner(module):
 
 def copy_plan_merge(dst_bin):
     """The entry and its package copied into `dst_bin`, the one way a proof copies this tool."""
-    from check_state_support import copy_executable_package
     copy_executable_package(CLI, "plan_merge", dst_bin)
 
 

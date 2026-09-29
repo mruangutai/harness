@@ -43,7 +43,7 @@ def _top_key_positions(lines):
 
 def _half_open_ranges(positions, end):
     """{name: (start, next_start_or_end)} over consecutive (name, start) positions; the one
-    fold every locator's ranges come from. (FEAT-70, from _index_top_keys / _index_list_items)"""
+    fold behind the top-key ranges. (FEAT-70, from _index_top_keys)"""
     starts = [start for _, start in positions] + [end]
     return {name: (starts[i], starts[i + 1]) for i, (name, _) in enumerate(positions)}
 

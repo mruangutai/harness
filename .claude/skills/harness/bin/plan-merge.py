@@ -112,26 +112,22 @@ Exit codes are the interface:
 
 python3 stdlib plus PyYAML (DEC-171 requires it here). Reads go through harness_yaml.py, same as
 every other harness tool (issue #720): a duplicate mapping key refuses here exactly as it would
-downstream, instead of merging clean and breaking the next reader. `import yaml` survives ONLY
-for `yaml.safe_dump` — harness_yaml.py exposes no serializer, and this file never re-renders a
-whole document through one regardless (see D-03 below); it splices bytes and re-parses its own
-splice as a self-check.
+downstream, instead of merging clean and breaking the next reader. `import yaml` survives in the
+package ONLY for `yaml.safe_dump` — harness_yaml.py exposes no serializer, and the tool never
+re-renders a whole document through one regardless (see D-03 below); it splices bytes and
+re-parses its own splice as a self-check.
+
+Since FEAT-70 the verbs live in `plan_merge/` beside this file — `text` (splice primitives),
+`guards` (destination, reload, schema, the one write route), and one module per verb family —
+and this file is the argparse table plus `main`. It stays the one CLI every caller forks and the
+import surface check-state's INV-40 loads `signed_task_hash` from.
 """
 import argparse
-import hashlib
-import json
 import os
-import re
 import sys
-import tempfile
-from datetime import datetime, timedelta, timezone
-
-import yaml
 
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BIN_DIR)
-# The verbs live in the plan_merge package; this file is the one CLI every caller forks and
-# the import surface check-state's INV-40 loads `signed_task_hash` from. (FEAT-70)
 from plan_merge.amend import AMENDABLE_KEYS, cmd_amend  # noqa: E402
 from plan_merge.union import cmd_apply  # noqa: E402
 from plan_merge.check import cmd_check  # noqa: E402
@@ -151,6 +147,12 @@ from plan_merge.approval import signed_task_hash  # noqa: E402,F401  INV-40's im
 # than a lossy compression of five paragraphs. If a verb ever needs an optional argument, this
 # table is the wrong shape for it and it gets its own registration — do not add a `required`
 # column and keep pretending the rows are uniform.
+#
+# THE TABLE AND THE FOUR REGISTRARS STAY IN THE ENTRY (FEAT-70). They are the CLI's shape — argv
+# in, handler out — and the one place a reader sees every verb at once; a verb module knows its
+# handler and nothing of how it is invoked. Moving a registrar beside its handler would put the
+# dispatch table in ten places.
+
 _FILE = ("--file", "path to the plan.yaml")
 
 

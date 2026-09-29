@@ -183,10 +183,9 @@ def _locate_under_lock(cur, args):
     return loc2
 
 
-def _amend_rendered(cur, raw, located, args, want_value, value_text):
-    """(rendered lines, expected reload value) for the replacement. (FEAT-70, from
-    cmd_amend.transform)"""
-    f2, l2, ind2 = located
+def _amend_rendered(cur, raw, f2, l2, ind2, args, want_value, value_text):
+    """(rendered lines, expected reload value) for the replacement at [f2, l2) with field indent
+    `ind2`. (FEAT-70, from cmd_amend.transform)"""
     if not args.yaml_value:
         rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
         return rendered, _expected_value(rendered, ind2, args.field)
@@ -202,8 +201,6 @@ def _amend_preflight(args):
     """Everything before the lock: the key vocabulary, destination, the field's current bytes
     and hash, `--show`, and the compare-and-swap preconditions. Returns the resolved plan path.
     (FEAT-70, from cmd_amend)"""
-    import hashlib
-
     if args.key not in AMENDABLE_KEYS:
         _die(2, f"plan-merge: --key {args.key} is not amendable — expected one of: "
                 f"{', '.join(AMENDABLE_KEYS)}. `approval:` is the main session's alone "
@@ -214,7 +211,7 @@ def _amend_preflight(args):
         raw = fh.read().decode("utf-8")
     lines = raw.splitlines(keepends=True)
     located = _amend_locate(args, resolved, lines)
-    first, last, indent = located
+    first, last, _ = located
     actual = hashlib.sha256("".join(lines[first:last]).encode("utf-8")).hexdigest()
 
     if args.show:
@@ -245,7 +242,7 @@ def cmd_amend(args):
         cur = raw.splitlines(keepends=True)
         f2, l2, ind2 = _locate_under_lock(cur, args)
         _require_locked_hash(cur[f2:l2], args.expect_sha256, args.id, args.field)
-        rendered, want = _amend_rendered(cur, raw, (f2, l2, ind2), args, want_value, value_text)
+        rendered, want = _amend_rendered(cur, raw, f2, l2, ind2, args, want_value, value_text)
         spliced = _amended_text(cur, f2, l2, rendered, want, args, base_doc, result)
         reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
         # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan

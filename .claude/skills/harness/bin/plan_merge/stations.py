@@ -6,7 +6,9 @@ from datetime import timezone
 
 import factory_config
 import harness_merge
-from plan_merge.text import _approval_span, _field_lines, _index_top_keys, _sub_key_lines
+from plan_merge.text import (
+    ITEM_ID_RE, _approval_span, _field_lines, _index_top_keys, _sub_key_lines,
+)
 from plan_merge.guards import (
     _legal_stations, _locked_plan_update, _refuse_illegal_station, _reload_or_refuse,
     _resolve_plan,
@@ -181,9 +183,7 @@ APPROVAL_RESET_LINE = ("APPROVAL-RESET: the plan was approved and its task set o
                        "changed; approval.status is pending until the main session signs again")
 
 
-TASK_ID_RE = re.compile(r"^(\s*)-\s+id:\s*(\S+)\s*$")
-
-
+# The item-id regex is text.py's ITEM_ID_RE: one pattern, two former copies (FEAT-70).
 STATUS_LINE_RE = re.compile(r"^(\s*)status:\s*(.*)$")
 
 
@@ -224,7 +224,7 @@ def _task_search(lines, lo, hi, task_id):
     ids_present = []
     start, indent = None, ""
     for i in range(lo, hi):
-        m = TASK_ID_RE.match(lines[i])
+        m = ITEM_ID_RE.match(lines[i])
         if not m:
             continue
         ids_present.append(m.group(2))
@@ -238,7 +238,7 @@ def _task_search(lines, lo, hi, task_id):
 
 def _closes_item(line, indent):
     """True when `line` opens the next item at `indent` — the end of the item being scanned."""
-    m = TASK_ID_RE.match(line)
+    m = ITEM_ID_RE.match(line)
     return bool(m) and m.group(1) == indent
 
 
