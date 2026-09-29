@@ -31,6 +31,11 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
+# The verbs live in the plan_merge package beside the entry (FEAT-70). A helper under test is
+# loaded from the module that OWNS it, resolved from the entry actually selected — so an
+# overridden PLAN_MERGE_BIN copy brings its own package, and a proof that mutates a copied
+# tree edits the owner module there.
+PACKAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(CLI)), "plan_merge")
 TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
 
 # This suite shells out to plan-merge.py, whose cmd_sign_approval reads HARNESS_AGENT_TYPE
@@ -1301,14 +1306,14 @@ def case_f02_verify_signature_comparison_loop_is_not_dead_code():
     and the one remaining path — a duplicate key surviving the splice — is now caught by
     `harness_yaml.load_str` before `_verify_signature`'s comparison ever runs (see the case
     above). So the comparison loop's liveness can no longer be proven by any real document;
-    it is exercised directly, in-process, via `_load_pm()` — the suite's own documented
-    escape hatch for helper-level unit tests no end-to-end path can reach.
+    it is exercised directly, in-process, via `_load_owner("approval")` — the suite's own
+    documented escape hatch for helper-level unit tests no end-to-end path can reach.
 
     It remains real defense-in-depth: a future writer that bypasses `_field_lines` (a new
     field, a refactor) would still be caught here rather than shipping a signature that
     reloads as something else.
     """
-    pm = _load_pm()
+    pm = _load_owner("approval")
     spliced = ("schema: plan/1\nfeature: FEAT-99-fixture\n"
                "approval:\n  status: approved\n  approved_by: someone-else\n"
                "tasks:\n  - id: T-01\n    title: t\n").encode("utf-8")
@@ -1759,11 +1764,7 @@ def case_amend_v3_identity_check_is_live():
     pin defence in depth is to call it. An end-to-end case would have to ship a locator bug to
     exercise it.
     """
-    sys.path.insert(0, HERE)
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_owner("amend")
 
     doc = ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
            "  - id: T-01\n    title: actual\n    status: ready\n").encode("utf-8")
@@ -2010,14 +2011,28 @@ def case_amend_f1_non_text_field_is_refused():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def _load_pm():
-    """The tool as a module, for unit-testing helpers no end-to-end path can reach."""
-    import importlib.util
-    sys.path.insert(0, HERE)
-    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+def owner_path(module):
+    """`plan_merge/<module>.py` beside the entry under test (FEAT-70)."""
+    return os.path.join(PACKAGE_DIR, f"{module}.py")
+
+
+def _load_owner(module):
+    """One package module as a module object, for unit-testing helpers no end-to-end path can
+    reach. Loaded through the package (sys.path at the entry's bin) so its sibling imports
+    resolve to the same tree the entry forks."""
+    import importlib
+    bin_dir = os.path.dirname(os.path.realpath(CLI))
+    if sys.path[:1] != [bin_dir]:
+        sys.path.insert(0, bin_dir)
+    for name in [n for n in sys.modules if n == "plan_merge" or n.startswith("plan_merge.")]:
+        del sys.modules[name]
+    return importlib.import_module(f"plan_merge.{module}")
+
+
+def copy_plan_merge(dst_bin):
+    """The entry and its package copied into `dst_bin`, the one way a proof copies this tool."""
+    from check_state_support import copy_executable_package
+    copy_executable_package(CLI, "plan_merge", dst_bin)
 
 
 def case_amend_f2_under_lock_hash_is_pinned():
@@ -2031,7 +2046,7 @@ def case_amend_f2_under_lock_hash_is_pinned():
     So it was extracted and is tested directly, the same remedy `_verify_amend` got. A guarantee
     that no test can reach is a guarantee nobody is keeping.
     """
-    mod = _load_pm()
+    mod = _load_owner("amend")
     block = ["    title: actual\n"]
     good = __import__("hashlib").sha256("".join(block).encode("utf-8")).hexdigest()
 
@@ -2061,7 +2076,7 @@ def case_amend_f2_under_lock_hash_is_pinned():
     # inside one flock. So the wiring is asserted at the source level and named for what it is
     # — a reachability check, not a behavioural one. Together they cover "it refuses correctly"
     # and "it is actually wired in", which is the pair a behavioural test alone cannot give.
-    src = read(CLI)
+    src = read(owner_path("amend"))
     check("F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)",
           "_require_locked_hash(cur[f2:l2]" in src,
           "the under-lock call site is gone: the guarantee is unreachable")
@@ -2691,7 +2706,7 @@ def case_delete_items_verify_catches_a_boundary_error_that_still_parses():
     MUTANTS: comparing ids instead of whole items (the missing-field half goes green), or
     deleting the call from `_deleted_bytes` (the reachability check goes red).
     """
-    mod = _load_pm()
+    mod = _load_owner("delete")
     base_doc = yaml.safe_load(_delete_plan())
     requested = [("tasks", "T-01")]
 
@@ -2727,7 +2742,7 @@ def case_delete_items_verify_catches_a_boundary_error_that_still_parses():
     check("delete-verify: the CORRECT deletion is accepted (or this case refuses everything)",
           isinstance(accepted, dict), f"got={accepted!r}")
 
-    src = read(CLI)
+    src = read(owner_path("delete"))
     check("delete-verify: and the check is WIRED IN (reachability, not behaviour)",
           "_verify_deletion(spliced, base_doc, requested)" in src,
           "the verification call site is gone: the guarantee is unreachable")
