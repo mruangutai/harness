@@ -1,0 +1,34 @@
+{
+ "accept": false,
+ "case": "case_grade_2_names#00",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0278",
+ "input_sha256": "7e05edb911a9d643",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "code_grade": "grade_2",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "grade_2_reasons": [
+    "moderate is a dispatch table"
+   ],
+   "headline": "reviewer result",
+   "human_commits_in_scope": [],
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "origin/main..143fe149385546e169282ef714bbc29ad9b34020",
+   "severity_max": "low"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "code_grade='grade_2' disagrees with the mechanical result this repository computes over f8d5b6a6b729678f07cfec6f79bf1bbb092ead0a..143fe149385546e169282ef714bbc29ad9b34020: expected 'pass'. The reviewer's enum is an audit claim, not evidence of itself \u2014 rerun code-grade.py over the canonical range and report what it reports.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: []\n  must_fix: []\n  code_grade: grade_2\n  reviewed: \"origin/main..143fe149385546e169282ef714bbc29ad9b34020\"\n  grade_2_reasons: [moderate is a dispatch table]\n  human_commits_in_scope: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/review.md\n",
+ "why_no_object": ""
+}

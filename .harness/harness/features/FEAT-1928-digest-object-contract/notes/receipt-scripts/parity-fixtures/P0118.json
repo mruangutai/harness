@@ -1,0 +1,28 @@
+{
+ "accept": true,
+ "case": "FEAT-59 findings: [] is accepted \u2014 an explicit empty list asserts you looked",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0118",
+ "input_sha256": "84e3a14fb2893182",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "headline": "nothing security-relevant in the diff",
+   "must_fix": [],
+   "open_questions": [],
+   "severity_max": "none"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/sec.md"
+ },
+ "persona": "harness-security-reviewer",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: nothing security-relevant in the diff\n  severity_max: none\n  findings: []\n  must_fix: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/sec.md\n",
+ "why_no_object": ""
+}

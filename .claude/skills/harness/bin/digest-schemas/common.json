@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/common.json",
+  "title": "Harness digest shared definitions",
+  "$defs": {
+    "verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "ESCALATE"
+      ]
+    },
+    "artifact": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "text": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "unset": {
+      "type": "string",
+      "pattern": "^([Nn][Oo][Nn][Ee]|[Nn][Uu][Ll][Ll]|[Nn]/[Aa])$"
+    },
+    "integer": {
+      "type": "integer"
+    },
+    "boolean": {
+      "type": "boolean"
+    },
+    "list": {
+      "type": "array"
+    },
+    "severity": {
+      "enum": [
+        "none",
+        "low",
+        "med",
+        "high",
+        "critical"
+      ]
+    },
+    "severity_nullable": {
+      "anyOf": [
+        {
+          "enum": [
+            "none",
+            "low",
+            "med",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "pass_fail_nullable": {
+      "anyOf": [
+        {
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "boolean_nullable": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "risk_nullable": {
+      "anyOf": [
+        {
+          "enum": [
+            "low",
+            "med",
+            "high"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "surface_nullable": {
+      "anyOf": [
+        {
+          "enum": [
+            "S",
+            "M",
+            "L"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "contract_nullable": {
+      "anyOf": [
+        {
+          "enum": [
+            "written",
+            "updated"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^(T-[0-9]+|none)$"
+    },
+    "universal_open_questions": {
+      "type": "array"
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "substance",
+            "form",
+            "proportionality"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "task",
+            "mission"
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "proportionality"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "scope"
+        ]
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/finding"
+      }
+    },
+    "fail_first_entry": {
+      "type": "object",
+      "required": [
+        "sc",
+        "evidence"
+      ],
+      "properties": {
+        "sc": {
+          "type": "string",
+          "pattern": "^SC-[0-9]+$"
+        },
+        "evidence": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      }
+    },
+    "fail_first": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/fail_first_entry"
+      }
+    },
+    "kind_entry": {
+      "type": "object",
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "satisfied",
+            "missing",
+            "not_applicable",
+            "locally_run",
+            "misconfigured"
+          ]
+        }
+      }
+    },
+    "kinds": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/kind_entry"
+      }
+    },
+    "member": {
+      "type": "object",
+      "anyOf": [
+        {
+          "required": [
+            "verdict"
+          ]
+        },
+        {
+          "required": [
+            "status"
+          ]
+        }
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "status": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      }
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/member"
+      }
+    },
+    "amendment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task",
+        "field",
+        "was",
+        "now",
+        "reason"
+      ],
+      "properties": {
+        "task": {
+          "type": "string",
+          "pattern": "^T-[0-9]{2,}$"
+        },
+        "field": {
+          "enum": [
+            "intent",
+            "files",
+            "verify"
+          ]
+        },
+        "was": {
+          "type": [
+            "string",
+            "array"
+          ]
+        },
+        "now": {
+          "type": [
+            "string",
+            "array"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[^\\n]*\\S[^\\n]*\\n?$",
+          "maxLength": 240
+        }
+      },
+      "if": {
+        "properties": {
+          "field": {
+            "const": "files"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "was": {
+            "type": "array"
+          },
+          "now": {
+            "type": "array"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "was": {
+            "type": "string"
+          },
+          "now": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "amendments": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/amendment"
+      }
+    },
+    "judgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "superseded_by",
+        "reason"
+      ],
+      "properties": {
+        "kind": {
+          "const": "reject"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "const": "none"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[^\\n]*\\S[^\\n]*\\n?$",
+          "maxLength": 240
+        }
+      }
+    },
+    "grade_2_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "\\S"
+      }
+    }
+  }
+}

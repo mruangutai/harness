@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "enum near-miss is caught, not normalized",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0030",
+ "input_sha256": "839b9acc55ac80b6",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "substance",
+     "reader": "code-reviewer",
+     "severity": "med",
+     "summary": "off-by-one"
+    }
+   ],
+   "headline": "one finding",
+   "must_fix": [],
+   "open_questions": [],
+   "severity_max": "medium"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/notes/review-code.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - severity_max='medium' is not in ['critical', 'high', 'low', 'med', 'none'] (did you mean 'med'?).\n  - missing 'code_grade' \u2014 every field is required; write one of ['fail', 'grade_2', 'n_a', 'pass'] \u2014 a single enum value, never a list. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'reviewed' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - code_grade cannot be bound to review_sha: artifact '.harness/notes/review-code.md' does not nam",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: one finding\n  severity_max: medium\n  findings: [{ kind: substance, severity: med, reader: code-reviewer, summary: \"off-by-one\" }]\n  must_fix: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/notes/review-code.md\n",
+ "why_no_object": ""
+}

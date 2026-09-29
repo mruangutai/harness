@@ -1,0 +1,34 @@
+{
+ "accept": true,
+ "case": "dev-ops suite: n/a still accepted (it had the value before DEC-173)",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0081",
+ "input_sha256": "b8caa88e08579ff1",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "applied": [
+    ".gitignore"
+   ],
+   "change_type": "config",
+   "expertise_update": [],
+   "files_touched": [
+    ".gitignore"
+   ],
+   "headline": "gitignore merged; nothing to test",
+   "open_questions": [],
+   "suite": "n/a",
+   "task": "T-01",
+   "task_verify": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/devops.md"
+ },
+ "persona": "harness-dev-ops",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: gitignore merged; nothing to test\n  change_type: config\n  applied: [.gitignore]\n  suite: n/a\n  task: T-01\n  task_verify: pass\n  open_questions: []\n  files_touched: [.gitignore]\n  expertise_update: []\nartifact: notes/devops.md\n",
+ "why_no_object": ""
+}

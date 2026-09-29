@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-dev-ops.json",
+  "title": "harness-dev-ops digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "change_type",
+        "applied",
+        "suite",
+        "task"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "change_type": {
+          "enum": [
+            "config",
+            "scaffolding",
+            "infra",
+            "ci"
+          ]
+        },
+        "applied": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "suite": {
+          "$ref": "common.json#/$defs/pass_fail_nullable"
+        },
+        "task": {
+          "$ref": "common.json#/$defs/task_id"
+        },
+        "task_verify": {
+          "$ref": "common.json#/$defs/pass_fail_nullable"
+        },
+        "test_kinds_written": {
+          "$ref": "common.json#/$defs/list"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "task": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "task"
+            ]
+          },
+          "then": {
+            "properties": {
+              "task_verify": {
+                "$ref": "common.json#/$defs/unset"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "task_verify"
+            ]
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

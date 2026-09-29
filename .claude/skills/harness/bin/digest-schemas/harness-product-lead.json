@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-product-lead.json",
+  "title": "harness-product-lead digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "team",
+        "steps_run",
+        "cycles_used",
+        "members",
+        "must_fix",
+        "branch",
+        "escalations",
+        "adequacy_notes"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "team": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "steps_run": {
+          "$ref": "common.json#/$defs/integer"
+        },
+        "cycles_used": {
+          "$ref": "common.json#/$defs/integer"
+        },
+        "members": {
+          "$ref": "common.json#/$defs/members"
+        },
+        "must_fix": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "branch": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "escalations": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "adequacy_notes": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "sc_status": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "needs_approval": {
+          "$ref": "common.json#/$defs/boolean"
+        },
+        "severity_max": {
+          "$ref": "common.json#/$defs/severity_nullable"
+        },
+        "matrix_ok": {
+          "$ref": "common.json#/$defs/boolean_nullable"
+        },
+        "coverage_gaps": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "findings": {
+          "$ref": "common.json#/$defs/findings"
+        },
+        "readers": {
+          "$ref": "common.json#/$defs/list"
+        }
+      }
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

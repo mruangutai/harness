@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "case_matrix_floor#02",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0246",
+ "input_sha256": "13428dd0f4bd16ad",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/fail.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "qa result",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "matrix_ok: true but kinds: is absent \u2014 the matrix floor for this plan is unit; report each with its state, or the claim is unverifiable.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: qa result\n  matrix_ok: true\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/qa.md\n",
+ "why_no_object": ""
+}

@@ -1,0 +1,37 @@
+{
+ "accept": true,
+ "case": "rejected: reject judgement with a superseding issue is accepted",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0052",
+ "input_sha256": "d966a3d2cc0e69f9",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 0,
+   "expertise_update": [],
+   "feature": "BUG-285-yaml-loader-pin",
+   "files_touched": [],
+   "headline": "superseded by the canonical-reader ticket",
+   "judgement": {
+    "kind": "reject",
+    "reason": "#285 superseded by #1594 on 2026-09-10",
+    "superseded_by": 1594
+   },
+   "open_questions": [],
+   "runs": [
+    "plan-product"
+   ],
+   "status": "rejected"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/BUG-285-yaml-loader-pin/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: superseded by the canonical-reader ticket\n  feature: BUG-285-yaml-loader-pin\n  status: rejected\n  runs: [plan-product]\n  cycles_used: 0\n  briefing: none\n  judgement: { kind: reject, superseded_by: 1594, reason: \"#285 superseded by #1594 on 2026-09-10\" }\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/features/BUG-285-yaml-loader-pin/feature.json\n",
+ "why_no_object": ""
+}

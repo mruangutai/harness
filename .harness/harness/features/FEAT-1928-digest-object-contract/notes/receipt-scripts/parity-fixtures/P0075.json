@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "matrix_ok: n/a with VERDICT PASS is REJECTED \u2014 the gate did not run",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0075",
+ "input_sha256": "d220c7e4d7ff7e45",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "the suite could not be run; no runner resolves in this project",
+   "matrix_ok": "n/a",
+   "open_questions": [],
+   "suite": "n/a"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - suite='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.\n  - matrix_ok='n/a' declines to report a gate, but VERDICT is PASS \u2014 a gate that did not run cannot have passed. Return BLOCKED or FAIL, or report the real result.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: the suite could not be run; no runner resolves in this project\n  suite: n/a\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: n/a\n  fail_first: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/notes/qa.md\n",
+ "why_no_object": ""
+}

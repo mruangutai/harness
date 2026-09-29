@@ -1,0 +1,16 @@
+{
+ "accept": false,
+ "case": "run_t51_suspension_cases#003",
+ "counterpart": "missing",
+ "exit": 2,
+ "id": "P0195",
+ "input_sha256": "e3b0c44298fc1c14",
+ "mode": "hook",
+ "object": null,
+ "persona": "harness-product-lead",
+ "reasons": "check-digest: BLOCKED - returned with children in flight (harness-product-lead)\n  - harness-pm [FEAT-09-exact-claims] started 2026-09-29T21:05:09.179167+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpagjqkydz/.agents/skills/harne",
+ "source": "hook-group:run_t51_suspension_cases",
+ "syntax_only": true,
+ "text": null,
+ "why_no_object": "no digest text in payload"
+}

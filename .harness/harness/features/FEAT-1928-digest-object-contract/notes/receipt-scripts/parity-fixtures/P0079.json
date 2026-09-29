@@ -1,0 +1,30 @@
+{
+ "accept": false,
+ "case": "matrix_ok: mostly is STILL rejected after n/a became legal",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0079",
+ "input_sha256": "6d99cf88c60fb1ae",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "the suite could not be run; no runner resolves in this project",
+   "matrix_ok": "mostly",
+   "open_questions": [],
+   "suite": "n/a"
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": ".harness/features/FEAT-01/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - matrix_ok='mostly' must be a bool, not str \u2014 a string like \"mostly\" silently soft-fails a hard gate.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: the suite could not be run; no runner resolves in this project\n  suite: n/a\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: \"mostly\"\n  fail_first: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/notes/qa.md\n",
+ "why_no_object": ""
+}

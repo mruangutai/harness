@@ -1,0 +1,2044 @@
+{
+ "baseline_sha": "70c3377679b0c28aa969044453e3454a33c059cb",
+ "results": {
+  "P0000": [
+   "run_canonical_reader_strictness_cases#000",
+   "cli-group:run_canonical_reader_strictness_cases",
+   "Explore",
+   true,
+   0
+  ],
+  "P0001": [
+   "lead, block-style members + bare empty key",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0002": [
+   "amendments: the three BUG-285 recommendations are accepted eng-lead amendments",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0003": [
+   "amendments: absent is legal",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0004": [
+   "amendments: empty list is legal",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0005": [
+   "amendments: inline mappings for all three fields",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0006": [
+   "amendments: block mapping entry",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0007": [
+   "amendments: unknown key is refused naming index and key",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0008": [
+   "amendments: missing key is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0009": [
+   "amendments: not a list is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0010": [
+   "amendments: entry that is not a mapping is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0011": [
+   "amendments: SC id as task is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0012": [
+   "amendments: decision id as task is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0013": [
+   "amendments: field outside intent/files/verify is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0014": [
+   "amendments: empty reason is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0015": [
+   "amendments: reason over 240 is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0016": [
+   "amendments: intent with a list value is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0017": [
+   "amendments: files with a string value is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0018": [
+   "amendments: files with a line-number anchor is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0019": [
+   "amendments: files with a bad mapping entry is refused",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0020": [
+   "amendments: second entry's fault is reported at its index",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0021": [
+   "amendments: a product lead may not carry the field",
+   "cli",
+   "harness-product-lead",
+   false,
+   1
+  ],
+  "P0022": [
+   "amendments: a validator lead may not carry the field",
+   "cli",
+   "harness-validator-lead",
+   false,
+   1
+  ],
+  "P0023": [
+   "lead, fully inline lists",
+   "cli",
+   "harness-validator-lead",
+   true,
+   0
+  ],
+  "P0024": [
+   "nested must_fix must NOT satisfy the top-level one",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0025": [
+   "three fields on one line loses two",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0026": [
+   "doer, inline \u2014 unchanged behaviour",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0027": [
+   "main-session (DEC-174 direct build) validates as dev",
+   "cli",
+   "main-session",
+   true,
+   0
+  ],
+  "P0028": [
+   "main-session with task_verify fail and VERDICT PASS is refused like any dev",
+   "cli",
+   "main-session",
+   false,
+   1
+  ],
+  "P0029": [
+   "drifted key spelling is caught",
+   "cli",
+   "harness-code-reviewer",
+   false,
+   1
+  ],
+  "P0030": [
+   "enum near-miss is caught, not normalized",
+   "cli",
+   "harness-code-reviewer",
+   false,
+   1
+  ],
+  "P0031": [
+   "open_questions as a count, not a list",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0032": [
+   "bare key followed by nothing is an empty list",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0033": [
+   "inline # comments are stripped, not parsed",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0034": [
+   "# inside a quoted value survives",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0035": [
+   "no VERDICT at all",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0036": [
+   "PASS over a failing member is rejected",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0037": [
+   "FAIL over an escalating member is rejected",
+   "cli",
+   "harness-validator-lead",
+   false,
+   1
+  ],
+  "P0038": [
+   "lead may report worse than its members",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0039": [
+   "a members entry with no verdict is rejected",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0040": [
+   "a skipped member is explicit and excluded from worst-wins",
+   "cli",
+   "harness-product-lead",
+   true,
+   0
+  ],
+  "P0041": [
+   "all skipped members cannot support a lead verdict",
+   "cli",
+   "harness-product-lead",
+   false,
+   1
+  ],
+  "P0042": [
+   "mandatory member cannot be laundered as skipped",
+   "cli",
+   "harness-validator-lead",
+   false,
+   1
+  ],
+  "P0043": [
+   "DIGEST: with a trailing comment is still recognized",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0044": [
+   "block-mapping member entries spanning lines are accepted",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0045": [
+   "a member's nested headline does not satisfy the top-level one",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0046": [
+   "an int does not satisfy a str-typed field",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0047": [
+   "a bare NULLABLE scalar key must not silently become an empty list",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0048": [
+   "a nested open_questions count must not trip the top-level check",
+   "cli",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0049": [
+   "drift in a UNIVERSAL field is caught, not just schema fields",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0050": [
+   "orchestrator digest with the reconciled schema",
+   "cli",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0051": [
+   "orchestrator briefing is NULLABLE \u2014 `none` when nothing was written",
+   "cli",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0052": [
+   "rejected: reject judgement with a superseding issue is accepted",
+   "cli",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0053": [
+   "rejected: superseded_by none (should not be planned) is accepted",
+   "cli",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0054": [
+   "rejected: no judgement mapping is refused naming it",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0055": [
+   "rejected: kind other than reject is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0056": [
+   "rejected: superseded_by zero is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0057": [
+   "rejected: superseded_by negative is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0058": [
+   "rejected: superseded_by boolean is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0059": [
+   "rejected: empty reason is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0060": [
+   "rejected: reason over 240 characters is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0061": [
+   "rejected: multiline reason is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0062": [
+   "rejected: a missing key is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0063": [
+   "rejected: an extra key is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0064": [
+   "rejected: cycles_used must be integer zero",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0065": [
+   "a judgement mapping on any other status is refused",
+   "cli",
+   "harness-orchestrator",
+   false,
+   1
+  ],
+  "P0066": [
+   "echo shadow: valid real FAIL after a template echo still validates",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0067": [
+   "echo shadow: missing matrix_ok in the real block is not masked by the echo",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0068": [
+   "echo shadow: lead roll-up must read the real members, not the echo",
+   "cli",
+   "harness-eng-lead",
+   false,
+   1
+  ],
+  "P0069": [
+   "dev refusing an under-specified task can say suite: n/a",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0070": [
+   "suite: n/a with VERDICT PASS is a fail-open and is REJECTED",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0071": [
+   "an analysis dev -- task: none AND files_touched: [] -- may say suite: n/a with PASS",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0072": [
+   "task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, because `task: none` is a claim and the edit is the fact",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0073": [
+   "a REAL task whose verify passed still owes a suite result -- suite: n/a with PASS is REJECTED even with nothing touched",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0074": [
+   "qa that cannot run the suite can say matrix_ok: n/a",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0075": [
+   "matrix_ok: n/a with VERDICT PASS is REJECTED \u2014 the gate did not run",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0076": [
+   "reviewer scoping out of a non-UI diff may PASS with severity_max: n/a",
+   "cli",
+   "harness-ui-reviewer",
+   true,
+   0
+  ],
+  "P0077": [
+   "visual-designer deciding no DESIGN.md is needed may say contract: n/a",
+   "cli",
+   "harness-visual-designer",
+   true,
+   0
+  ],
+  "P0078": [
+   "pm blocked before sizing may say surface: n/a and risk: n/a",
+   "cli",
+   "harness-pm",
+   true,
+   0
+  ],
+  "P0079": [
+   "matrix_ok: mostly is STILL rejected after n/a became legal",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0080": [
+   "severity_max: medium is STILL rejected after n/a became legal",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0081": [
+   "dev-ops suite: n/a still accepted (it had the value before DEC-173)",
+   "cli",
+   "harness-dev-ops",
+   true,
+   0
+  ],
+  "P0082": [
+   "dev missing task_verify under a real task is rejected",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0083": [
+   "dev task_verify: fail + PASS is rejected",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0084": [
+   "dev task_verify: n/a + PASS is rejected",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0085": [
+   "dev-ops task_verify: fail + PASS is rejected \u2014 no carve-out on this value either",
+   "cli",
+   "harness-dev-ops",
+   false,
+   1
+  ],
+  "P0086": [
+   "dev-ops task_verify: n/a + PASS is rejected \u2014 no carve-out",
+   "cli",
+   "harness-dev-ops",
+   false,
+   1
+  ],
+  "P0087": [
+   "dev task_verify: n/a + BLOCKED is the honest refusal, accepted",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0088": [
+   "dev task_verify: n/a + FAIL is accepted \u2014 the same refusal, other verdict",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0089": [
+   "dev-ops task_verify: n/a + BLOCKED is accepted \u2014 refusal, not the carve-out",
+   "cli",
+   "harness-dev-ops",
+   true,
+   0
+  ],
+  "P0090": [
+   "dev-ops task_verify: n/a + FAIL is accepted",
+   "cli",
+   "harness-dev-ops",
+   true,
+   0
+  ],
+  "P0091": [
+   "qa carries neither new field and is still accepted",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0092": [
+   "dev task: none with task_verify omitted is accepted \u2014 D-07's escape hatch",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0093": [
+   "dev-ops task: none with task_verify omitted is accepted",
+   "cli",
+   "harness-dev-ops",
+   true,
+   0
+  ],
+  "P0094": [
+   "dev task: bogus is rejected \u2014 the field is constrained",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0095": [
+   "dev omitting task entirely is rejected \u2014 the field is required",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0096": [
+   "dev task: none + task_verify: fail is rejected as a contradiction",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0097": [
+   "dev task: none + task_verify: n/a is accepted \u2014 the honest DEC-121 spelling",
+   "cli",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0098": [
+   "dev suite: fail + PASS is rejected \u2014 the fail-value gate",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0099": [
+   "qa suite: fail + PASS is rejected",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0100": [
+   "qa matrix_ok: false + PASS is rejected \u2014 the BOOLEAN half",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0101": [
+   "dev-ops suite: fail + PASS stays accepted \u2014 D-03 ruling, not a claim it is right",
+   "cli",
+   "harness-dev-ops",
+   true,
+   0
+  ],
+  "P0102": [
+   "a documentor digest carries neither new field and is still accepted",
+   "cli",
+   "harness-documentor",
+   true,
+   0
+  ],
+  "P0103": [
+   "code reviewer omission of code_grade is rejected",
+   "cli",
+   "harness-code-reviewer",
+   false,
+   1
+  ],
+  "P0104": [
+   "code_grade's missing-field hint names the four legal values, not the list wording",
+   "cli",
+   "harness-code-reviewer",
+   false,
+   1
+  ],
+  "P0105": [
+   "task_verify's missing-field hint names its real values, not the none wording",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0106": [
+   "task's missing-field hint names a task id, not the list wording",
+   "cli",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0107": [
+   "FEAT-59 finding without kind is rejected, naming the entry and the enum",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0108": [
+   "FEAT-59 finding with a kind outside the enum is rejected, naming the value",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0109": [
+   "FEAT-59 kind: substantive (near-miss) is rejected, not normalised",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0110": [
+   "FEAT-59 a bare-string finding has no kind and is rejected",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0111": [
+   "FEAT-59 the error names the offending entry's index, not the first",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0112": [
+   "FEAT-59 kind: substance is accepted (inline entry)",
+   "cli",
+   "harness-ui-reviewer",
+   true,
+   0
+  ],
+  "P0113": [
+   "FEAT-59 kind: form is accepted (block-mapping entry)",
+   "cli",
+   "harness-ui-reviewer",
+   true,
+   0
+  ],
+  "P0114": [
+   "FEAT-59 kind: proportionality with scope: mission is accepted",
+   "cli",
+   "harness-ui-reviewer",
+   true,
+   0
+  ],
+  "P0115": [
+   "DEC-228 kind: proportionality with scope: task is accepted",
+   "cli",
+   "harness-ui-reviewer",
+   true,
+   0
+  ],
+  "P0116": [
+   "DEC-228 kind: proportionality without scope is rejected, naming both scopes",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0117": [
+   "DEC-228 kind: proportionality with a scope outside task|mission is rejected",
+   "cli",
+   "harness-ui-reviewer",
+   false,
+   1
+  ],
+  "P0118": [
+   "FEAT-59 findings: [] is accepted \u2014 an explicit empty list asserts you looked",
+   "cli",
+   "harness-security-reviewer",
+   true,
+   0
+  ],
+  "P0119": [
+   "FEAT-59 findings as an INT count is rejected \u2014 it is a list of kinded entries",
+   "cli",
+   "harness-security-reviewer",
+   false,
+   1
+  ],
+  "P0120": [
+   "FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:",
+   "cli",
+   "harness-validator-lead",
+   true,
+   0
+  ],
+  "P0121": [
+   "FEAT-59 lead findings passthrough: an entry without kind is rejected",
+   "cli",
+   "harness-validator-lead",
+   false,
+   1
+  ],
+  "P0122": [
+   "FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED \u2014 a green suite with no fail-first evidence is not a pass",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0123": [
+   "FEAT-59 qa PASS with populated fail_first is accepted",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0124": [
+   "FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted \u2014 no gate ran",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0125": [
+   "FEAT-59 qa FAIL with fail_first: [] is accepted \u2014 the gate is on PASS",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0126": [
+   "FEAT-59 qa omitting fail_first is rejected \u2014 every field is required",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0127": [
+   "FEAT-59 fail_first's missing-field hint names the entry shape, not `[]`",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0128": [
+   "FEAT-59 fail_first entry without sc is rejected, naming the index",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0129": [
+   "FEAT-59 fail_first entry with empty evidence is rejected, naming the index",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0130": [
+   "FEAT-59 fail_first bare-string entry is rejected",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0131": [
+   "FEAT-59 fail_first sc must be an SC-NN id",
+   "cli",
+   "harness-qa",
+   false,
+   1
+  ],
+  "P0132": [
+   "FEAT-59 fail_first block-mapping entries are accepted",
+   "cli",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0133": [
+   "#1854: a member's nested block list stays inside that member",
+   "cli",
+   "harness-validator-lead",
+   true,
+   0
+  ],
+  "P0134": [
+   "#1854: a nested list does not hide a member that genuinely lacks a verdict",
+   "cli",
+   "harness-validator-lead",
+   false,
+   1
+  ],
+  "P0135": [
+   "#1854: a nested member verdict still rolls up worst-wins",
+   "cli",
+   "harness-validator-lead",
+   false,
+   1
+  ],
+  "P0136": [
+   "run_empty_red_case#000",
+   "hook-group:run_empty_red_case",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0137": [
+   "run_dec156_worktree_red_case#000",
+   "hook-group:run_dec156_worktree_red_case",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0138": [
+   "run_bug919_qa_matrix_cases#000",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0139": [
+   "run_bug919_qa_matrix_cases#001",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0140": [
+   "run_bug919_qa_matrix_cases#002",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0141": [
+   "run_bug919_qa_matrix_cases#003",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0142": [
+   "run_bug919_qa_matrix_cases#004",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0143": [
+   "run_bug919_qa_matrix_cases#005",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0144": [
+   "run_bug919_qa_matrix_cases#006",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0145": [
+   "run_bug919_qa_matrix_cases#007",
+   "hook-group:run_bug919_qa_matrix_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0146": [
+   "run_joint_hint_case#000",
+   "cli-group:run_joint_hint_case",
+   "harness-backend-dev",
+   false,
+   1
+  ],
+  "P0147": [
+   "run_joint_hint_case#001",
+   "cli-group:run_joint_hint_case",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0148": [
+   "run_joint_hint_case#002",
+   "cli-group:run_joint_hint_case",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0149": [
+   "run_code_grade_cases#000",
+   "cli-group:run_code_grade_cases",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0150": [
+   "run_code_grade_cases#001",
+   "cli-group:run_code_grade_cases",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0151": [
+   "run_code_grade_cases#002",
+   "cli-group:run_code_grade_cases",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0152": [
+   "F1.1 quoted headline text must not satisfy the verdict lookup",
+   "hook",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0153": [
+   "F1.2 multi-line inline members list is followed to its close",
+   "hook",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0154": [
+   "F1.3 unquoted apostrophe must not fuse list entries",
+   "hook",
+   "harness-validator-lead",
+   false,
+   2
+  ],
+  "P0155": [
+   "F1.4 empty members against a nonzero steps_run is rejected",
+   "hook",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0156": [
+   "fail-open crash: list-valued enum is a reported violation, not a crash",
+   "hook",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0157": [
+   "empty-string: a present but blank final message is the persona's violation",
+   "hook",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0158": [
+   "absent-key: nothing supplied to validate is OUR gap, and is said so",
+   "hook",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0159": [
+   "null-passthrough: an explicitly null final message is the same our-gap branch",
+   "hook",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0160": [
+   "pass-through: non-harness agent_type is not governed",
+   "hook",
+   "Explore",
+   true,
+   0
+  ],
+  "P0161": [
+   "pass-through: stop_hook_active avoids the infinite-block loop",
+   "hook",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0162": [
+   "DEC-156: narrative digest.md with no contract block is exit 2",
+   "hook",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0163": [
+   "DEC-156: digest.md carrying the same valid block is exit 0",
+   "hook",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0164": [
+   "DEC-156: missing digest in a resolved run directory is refused",
+   "hook",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0165": [
+   "DEC-156: file check governs leads only \u2014 a dev's artifact is not read",
+   "hook",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0166": [
+   "dec156-worktree-narrative: worktree narrative digest is rejected",
+   "hook",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0167": [
+   "dec156-worktree-valid: valid worktree digest passes",
+   "hook",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0168": [
+   "dec156-worktree-nofeature: absent feature preserves fail-open fallback",
+   "hook",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0169": [
+   "F6 missing agent_type key is loud, not silent",
+   "hook",
+   null,
+   true,
+   0
+  ],
+  "P0170": [
+   "echo shadow [hook]: missing matrix_ok behind an echo is exit 2",
+   "hook",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0171": [
+   "#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
+   "hook",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0172": [
+   "#1855: the same qa return outside distill is still the fail-open it always was",
+   "hook",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0173": [
+   "#1855: qa on a distill dispatch may not decorate the return with a suite it did not run",
+   "hook",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0174": [
+   "#1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range",
+   "hook",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0175": [
+   "#1855: the same reviewer return outside distill is refused at the binding",
+   "hook",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0176": [
+   "#1855: a distill reviewer claiming a grade is refused \u2014 there is no diff to grade",
+   "hook",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0177": [
+   "#1855: an unknown mission changes nothing",
+   "hook",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0178": [
+   "run_bug1305_artifact_resolution_cases#000",
+   "hook-group:run_bug1305_artifact_resolution_cases",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0179": [
+   "run_bug1305_artifact_resolution_cases#001",
+   "hook-group:run_bug1305_artifact_resolution_cases",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0180": [
+   "run_bug1305_artifact_resolution_cases#002",
+   "hook-group:run_bug1305_artifact_resolution_cases",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0181": [
+   "run_bug1305_artifact_resolution_cases#003",
+   "hook-group:run_bug1305_artifact_resolution_cases",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0182": [
+   "run_bug1305_artifact_resolution_cases#004",
+   "hook-group:run_bug1305_artifact_resolution_cases",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0183": [
+   "run_t09#000",
+   "hook-group:run_t09",
+   "harness-pm",
+   true,
+   0
+  ],
+  "P0184": [
+   "run_t09#001",
+   "hook-group:run_t09",
+   "harness-pm",
+   false,
+   2
+  ],
+  "P0185": [
+   "run_t09#002",
+   "hook-group:run_t09",
+   "harness-pm",
+   true,
+   0
+  ],
+  "P0186": [
+   "run_t09#003",
+   "hook-group:run_t09",
+   "harness-documentor",
+   false,
+   2
+  ],
+  "P0187": [
+   "run_t09#004",
+   "hook-group:run_t09",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0188": [
+   "run_t09#005",
+   "hook-group:run_t09",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0189": [
+   "run_t09#006",
+   "hook-group:run_t09",
+   "harness-pm",
+   true,
+   0
+  ],
+  "P0190": [
+   "run_t09#007",
+   "hook-group:run_t09",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0191": [
+   "run_t09#008",
+   "hook-group:run_t09",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0192": [
+   "run_t51_suspension_cases#000",
+   "hook-group:run_t51_suspension_cases",
+   "harness-product-lead",
+   false,
+   2
+  ],
+  "P0193": [
+   "run_t51_suspension_cases#001",
+   "hook-group:run_t51_suspension_cases",
+   "harness-product-lead",
+   false,
+   2
+  ],
+  "P0194": [
+   "run_t51_suspension_cases#002",
+   "hook-group:run_t51_suspension_cases",
+   "harness-product-lead",
+   false,
+   2
+  ],
+  "P0195": [
+   "run_t51_suspension_cases#003",
+   "hook-group:run_t51_suspension_cases",
+   "harness-product-lead",
+   false,
+   2
+  ],
+  "P0196": [
+   "run_bug1898_exact_release_cases#000",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-ai-dev",
+   false,
+   2
+  ],
+  "P0197": [
+   "run_bug1898_exact_release_cases#001",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-ai-dev",
+   false,
+   2
+  ],
+  "P0198": [
+   "run_bug1898_exact_release_cases#002",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-backend-dev",
+   false,
+   2
+  ],
+  "P0199": [
+   "run_bug1898_exact_release_cases#003",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-backend-dev",
+   false,
+   2
+  ],
+  "P0200": [
+   "run_bug1898_exact_release_cases#004",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0201": [
+   "run_bug1898_exact_release_cases#005",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0202": [
+   "run_bug1898_exact_release_cases#006",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-data-engineer",
+   false,
+   2
+  ],
+  "P0203": [
+   "run_bug1898_exact_release_cases#007",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-data-engineer",
+   false,
+   2
+  ],
+  "P0204": [
+   "run_bug1898_exact_release_cases#008",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-dev-ops",
+   false,
+   2
+  ],
+  "P0205": [
+   "run_bug1898_exact_release_cases#009",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-dev-ops",
+   false,
+   2
+  ],
+  "P0206": [
+   "run_bug1898_exact_release_cases#010",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-documentor",
+   false,
+   2
+  ],
+  "P0207": [
+   "run_bug1898_exact_release_cases#011",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-documentor",
+   false,
+   2
+  ],
+  "P0208": [
+   "run_bug1898_exact_release_cases#012",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0209": [
+   "run_bug1898_exact_release_cases#013",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0210": [
+   "run_bug1898_exact_release_cases#014",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-frontend-dev",
+   false,
+   2
+  ],
+  "P0211": [
+   "run_bug1898_exact_release_cases#015",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-frontend-dev",
+   false,
+   2
+  ],
+  "P0212": [
+   "run_bug1898_exact_release_cases#016",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   false,
+   2
+  ],
+  "P0213": [
+   "run_bug1898_exact_release_cases#017",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   false,
+   2
+  ],
+  "P0214": [
+   "run_bug1898_exact_release_cases#018",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-pm",
+   false,
+   2
+  ],
+  "P0215": [
+   "run_bug1898_exact_release_cases#019",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-pm",
+   false,
+   2
+  ],
+  "P0216": [
+   "run_bug1898_exact_release_cases#020",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-product-lead",
+   false,
+   2
+  ],
+  "P0217": [
+   "run_bug1898_exact_release_cases#021",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-product-lead",
+   false,
+   2
+  ],
+  "P0218": [
+   "run_bug1898_exact_release_cases#022",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0219": [
+   "run_bug1898_exact_release_cases#023",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0220": [
+   "run_bug1898_exact_release_cases#024",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-security-reviewer",
+   false,
+   2
+  ],
+  "P0221": [
+   "run_bug1898_exact_release_cases#025",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-security-reviewer",
+   false,
+   2
+  ],
+  "P0222": [
+   "run_bug1898_exact_release_cases#026",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-ui-reviewer",
+   false,
+   2
+  ],
+  "P0223": [
+   "run_bug1898_exact_release_cases#027",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-ui-reviewer",
+   false,
+   2
+  ],
+  "P0224": [
+   "run_bug1898_exact_release_cases#028",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-validator-lead",
+   false,
+   2
+  ],
+  "P0225": [
+   "run_bug1898_exact_release_cases#029",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-validator-lead",
+   false,
+   2
+  ],
+  "P0226": [
+   "run_bug1898_exact_release_cases#030",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-visual-designer",
+   false,
+   2
+  ],
+  "P0227": [
+   "run_bug1898_exact_release_cases#031",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-visual-designer",
+   false,
+   2
+  ],
+  "P0228": [
+   "run_bug1898_exact_release_cases#032",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0229": [
+   "run_bug1898_exact_release_cases#033",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0230": [
+   "run_bug1898_exact_release_cases#034",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0231": [
+   "run_bug1898_exact_release_cases#035",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   false,
+   2
+  ],
+  "P0232": [
+   "run_bug1898_exact_release_cases#036",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   false,
+   2
+  ],
+  "P0233": [
+   "run_bug1898_exact_release_cases#037",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0234": [
+   "run_bug1898_exact_release_cases#038",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   false,
+   2
+  ],
+  "P0235": [
+   "run_bug1898_exact_release_cases#039",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0236": [
+   "run_bug1898_exact_release_cases#040",
+   "hook-group:run_bug1898_exact_release_cases",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0237": [
+   "run_template_cases#000",
+   "cli-group:run_template_cases",
+   "lead",
+   true,
+   0
+  ],
+  "P0238": [
+   "run_template_cases#001",
+   "cli-group:run_template_cases",
+   "lead",
+   true,
+   0
+  ],
+  "P0239": [
+   "run_t04_unknown_key_cases#000",
+   "cli-group:run_t04_unknown_key_cases",
+   "harness-eng-lead",
+   false,
+   2
+  ],
+  "P0240": [
+   "run_t04_unknown_key_cases#001",
+   "cli-group:run_t04_unknown_key_cases",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0241": [
+   "run_t08_revision_proof#000",
+   "cli-group:run_t08_revision_proof",
+   "harness-pm",
+   false,
+   2
+  ],
+  "P0242": [
+   "run_t08_revision_proof#001",
+   "cli-group:run_t08_revision_proof",
+   "harness-backend-dev",
+   false,
+   2
+  ],
+  "P0243": [
+   "run_t08_revision_proof#002",
+   "cli-group:run_t08_revision_proof",
+   "harness-documentor",
+   false,
+   2
+  ],
+  "P0244": [
+   "case_matrix_floor#00",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0245": [
+   "case_matrix_floor#01",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0246": [
+   "case_matrix_floor#02",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0247": [
+   "case_matrix_floor#03",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0248": [
+   "case_matrix_floor#04",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0249": [
+   "case_matrix_floor#05",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0250": [
+   "case_human_commits#00",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0251": [
+   "case_human_commits#01",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0252": [
+   "case_human_commits#02",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0253": [
+   "case_human_commits#03",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0254": [
+   "case_human_commits#04",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0255": [
+   "case_human_commits#05",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0256": [
+   "case_dirty_tree#00",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0257": [
+   "case_dirty_tree#01",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0258": [
+   "case_dirty_tree#02",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0259": [
+   "case_dirty_tree#03",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0260": [
+   "case_dirty_tree#04",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0261": [
+   "case_qa_kinds#00",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0262": [
+   "case_qa_kinds#01",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0263": [
+   "case_qa_kinds#02",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0264": [
+   "case_qa_kinds#03",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0265": [
+   "case_qa_kinds#04",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0266": [
+   "case_qa_kinds#05",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0267": [
+   "case_qa_kinds#06",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0268": [
+   "case_qa_kinds#07",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0269": [
+   "case_receipt#00",
+   "shadow",
+   "harness-backend-dev",
+   false,
+   2
+  ],
+  "P0270": [
+   "case_receipt#01",
+   "shadow",
+   "harness-backend-dev",
+   false,
+   2
+  ],
+  "P0271": [
+   "case_receipt#02",
+   "shadow",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0272": [
+   "case_receipt#03",
+   "shadow",
+   "harness-backend-dev",
+   true,
+   0
+  ],
+  "P0273": [
+   "case_inspection_citations#00",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0274": [
+   "case_inspection_citations#01",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0275": [
+   "case_inspection_citations#02",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0276": [
+   "case_findings_order#00",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0277": [
+   "case_findings_order#01",
+   "shadow",
+   "harness-code-reviewer",
+   true,
+   0
+  ],
+  "P0278": [
+   "case_grade_2_names#00",
+   "shadow",
+   "harness-code-reviewer",
+   false,
+   2
+  ],
+  "P0279": [
+   "case_qa_unearned_fail#00",
+   "shadow",
+   "harness-qa",
+   false,
+   2
+  ],
+  "P0280": [
+   "case_qa_unearned_fail#01",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0281": [
+   "case_qa_unearned_fail#02",
+   "shadow",
+   "harness-qa",
+   true,
+   0
+  ],
+  "P0282": [
+   "S1/S2/S3 orchestrator child DIGEST",
+   "claim-lifecycle",
+   "harness-orchestrator",
+   true,
+   0
+  ],
+  "P0283": [
+   "S3 nested lead LEAD_DIGEST",
+   "claim-lifecycle",
+   "harness-eng-lead",
+   true,
+   0
+  ],
+  "P0284": [
+   "INV-15/46 BUG-440 lead digest FAIL",
+   "reader",
+   "lead",
+   true,
+   0
+  ],
+  "P0285": [
+   "INV-15/46 BUG-440 lead digest PASS",
+   "reader",
+   "lead",
+   true,
+   0
+  ],
+  "P0286": [
+   "INV-15 BUG-440 run X bare 'VERDICT: FAIL'",
+   "reader",
+   "lead",
+   false,
+   2
+  ],
+  "P0287": [
+   "INV-15 feat59 _digest_run 'VERDICT: PASS'",
+   "reader",
+   "lead",
+   false,
+   2
+  ],
+  "P0288": [
+   "INV-47 _QA_BLOCKED note",
+   "reader",
+   "lead",
+   false,
+   2
+  ],
+  "P0289": [
+   "INV-47 _QA_PASS note",
+   "reader",
+   "lead",
+   false,
+   2
+  ],
+  "P0290": [
+   "INV-47 _UI_NA note",
+   "reader",
+   "lead",
+   false,
+   2
+  ]
+ },
+ "shadow_check_results": 36,
+ "validate_digest_sha256": "9fbec17bedd7e570c5431239a5ac8d9bdff3b1331bd139d1b4b5cc31999860a6"
+}

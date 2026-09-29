@@ -1,0 +1,35 @@
+{
+ "accept": true,
+ "case": "FEAT-59 qa PASS with populated fail_first is accepted",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0123",
+ "input_sha256": "c3b642fef9812b18",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/qa-r1/fail-first-SC-01.txt: 1 failed before 3f2a9c1",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first: [{ sc: SC-01, evidence: \"notes/qa-r1/fail-first-SC-01.txt: 1 failed before 3f2a9c1\" }]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

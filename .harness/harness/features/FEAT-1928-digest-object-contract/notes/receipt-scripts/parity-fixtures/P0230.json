@@ -1,0 +1,18 @@
+{
+ "accept": false,
+ "case": "run_bug1898_exact_release_cases#034",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0230",
+ "input_sha256": "27141c518ed48be3",
+ "mode": "hook",
+ "object": {
+  "VERDICT": "PASS"
+ },
+ "persona": "harness-qa",
+ "reasons": "check-digest: released harness-qa's claim Lead.Qa for BUG-98-exact-release.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - no DIGEST: block.\n  - no artifact: path.\n  - DIGEST has no headline: \u2014 the orchestrator routes on this.\n  - missing 'suite' \u2014 every field is required; write one of ['fail', 'pass'] \u2014 what gets rejected for this role is a placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder itself (`n/a` with ",
+ "source": "hook-group:run_bug1898_exact_release_cases",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\n",
+ "why_no_object": ""
+}

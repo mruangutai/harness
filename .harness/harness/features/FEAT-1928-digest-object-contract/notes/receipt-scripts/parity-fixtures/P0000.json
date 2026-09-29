@@ -1,0 +1,16 @@
+{
+ "accept": true,
+ "case": "run_canonical_reader_strictness_cases#000",
+ "counterpart": "extra",
+ "exit": 0,
+ "id": "P0000",
+ "input_sha256": "a4044b4721c03965",
+ "mode": "hook",
+ "object": null,
+ "persona": "Explore",
+ "reasons": "check-digest: the hook failed internally (ArtifactAccessError: SubagentStop hook payload: invalid JSON: duplicate key: 'agent_type') \u2014 passing through; this is not a pass, nothing was checked.",
+ "source": "cli-group:run_canonical_reader_strictness_cases",
+ "syntax_only": true,
+ "text": "not governed",
+ "why_no_object": "not a mapping (str)"
+}

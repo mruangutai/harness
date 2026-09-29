@@ -1,0 +1,37 @@
+{
+ "accept": true,
+ "case": "FEAT-59 kind: form is accepted (block-mapping entry)",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0113",
+ "input_sha256": "8490dbe0485af0a6",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "form",
+     "reader": "ui-reviewer",
+     "severity": "high",
+     "summary": "DESIGN.md table header drifted"
+    }
+   ],
+   "headline": "one blocking finding",
+   "must_fix": [
+    "fail-open branch in auth"
+   ],
+   "open_questions": [],
+   "severity_max": "high"
+  },
+  "VERDICT": "FAIL",
+  "artifact": "notes/ui-review.md"
+ },
+ "persona": "harness-ui-reviewer",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: one blocking finding\n  severity_max: high\n  findings:\n    - kind: form\n      severity: high\n      reader: ui-reviewer\n      summary: \"DESIGN.md table header drifted\"\n  must_fix: [\"fail-open branch in auth\"]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/ui-review.md\n",
+ "why_no_object": ""
+}

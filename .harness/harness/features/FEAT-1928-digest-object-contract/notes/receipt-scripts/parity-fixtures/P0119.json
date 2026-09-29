@@ -1,0 +1,28 @@
+{
+ "accept": false,
+ "case": "FEAT-59 findings as an INT count is rejected \u2014 it is a list of kinded entries",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0119",
+ "input_sha256": "b541db1bcf9f8ab3",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": 0,
+   "headline": "nothing security-relevant in the diff",
+   "must_fix": [],
+   "open_questions": [],
+   "severity_max": "none"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/sec.md"
+ },
+ "persona": "harness-security-reviewer",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - findings=0 must be a list.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: nothing security-relevant in the diff\n  severity_max: none\n  findings: 0\n  must_fix: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/sec.md\n",
+ "why_no_object": ""
+}

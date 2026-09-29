@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "run_t08_revision_proof#000",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0241",
+ "input_sha256": "1e1888c9129faa64",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "decisions": 1,
+   "expertise_update": [],
+   "feasibility": "clear",
+   "files_touched": [],
+   "flags": [],
+   "headline": "scoped the surface and wrote the plan",
+   "needs_approval": false,
+   "open_questions": [],
+   "recommend": "proceed",
+   "risk": "low",
+   "rogue_revision_probe": true,
+   "sc_status": [],
+   "surface": "S",
+   "tasks": 3
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/plan.yaml"
+ },
+ "persona": "harness-pm",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - undeclared digest key(s): 'rogue_revision_probe'. The digest contract is closed. Declare the field in .claude/skills/harness/bin/validate-digest.py: a lower-tier field carried by a lead belongs in PASSTHROUGH; a field in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; a new required persona field belongs in SCHEMAS and must also be documented under DEC-21",
+ "source": "cli-group:run_t08_revision_proof",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: scoped the surface and wrote the plan\n  feasibility: clear\n  surface: S\n  recommend: proceed\n  risk: low\n  tasks: 3\n  decisions: 1\n  needs_approval: false\n  flags: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\n  sc_status: []\n  rogue_revision_probe: true\nartifact: .harness/features/FEAT-01/plan.yaml\n",
+ "why_no_object": ""
+}

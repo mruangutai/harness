@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-code-reviewer.json",
+  "title": "harness-code-reviewer digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "severity_max",
+        "findings",
+        "must_fix",
+        "code_grade",
+        "reviewed"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "severity_max": {
+          "$ref": "common.json#/$defs/severity_nullable"
+        },
+        "findings": {
+          "$ref": "common.json#/$defs/findings"
+        },
+        "must_fix": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "code_grade": {
+          "enum": [
+            "pass",
+            "fail",
+            "grade_2",
+            "n_a"
+          ]
+        },
+        "reviewed": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "spec_violations": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "human_commits_in_scope": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "grade_2_reasons": {
+          "$ref": "common.json#/$defs/grade_2_reasons"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code_grade": {
+                "const": "grade_2"
+              }
+            },
+            "required": [
+              "code_grade"
+            ]
+          },
+          "then": {
+            "required": [
+              "grade_2_reasons"
+            ],
+            "properties": {
+              "grade_2_reasons": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

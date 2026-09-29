@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-data-engineer.json",
+  "title": "harness-data-engineer digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "tests_added",
+        "suite",
+        "blocked_on",
+        "task"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "tests_added": {
+          "$ref": "common.json#/$defs/integer"
+        },
+        "suite": {
+          "$ref": "common.json#/$defs/pass_fail_nullable"
+        },
+        "blocked_on": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "task": {
+          "$ref": "common.json#/$defs/task_id"
+        },
+        "task_verify": {
+          "$ref": "common.json#/$defs/pass_fail_nullable"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "task": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "task"
+            ]
+          },
+          "then": {
+            "properties": {
+              "task_verify": {
+                "$ref": "common.json#/$defs/unset"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "task_verify"
+            ]
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

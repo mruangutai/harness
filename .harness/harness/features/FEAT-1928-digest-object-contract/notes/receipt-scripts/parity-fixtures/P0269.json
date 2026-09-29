@@ -1,0 +1,32 @@
+{
+ "accept": false,
+ "case": "case_receipt#00",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0269",
+ "input_sha256": "2c97da5bcae8c35e",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [
+    "src/x.py"
+   ],
+   "headline": "dev result",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "task_verify": "pass",
+   "tests_added": 1
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "task_verify: pass but the receipt .harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md is not on disk. The receipt holds the verify command and its verbatim output; write it before returning.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: dev result\n  tests_added: 1\n  suite: pass\n  blocked_on: none\n  task: T-01\n  task_verify: pass\n  files_touched: [src/x.py]\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/receipt-harness-backend-dev-T-01.md\n",
+ "why_no_object": ""
+}

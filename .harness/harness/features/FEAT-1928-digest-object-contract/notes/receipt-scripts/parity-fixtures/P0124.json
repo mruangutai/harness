@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted \u2014 no gate ran",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0124",
+ "input_sha256": "9297a48e1a03a85a",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": "n/a",
+   "open_questions": [],
+   "suite": "n/a"
+  },
+  "VERDICT": "BLOCKED",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: BLOCKED\nDIGEST:\n  headline: suite green\n  suite: n/a\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: n/a\n  fail_first: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

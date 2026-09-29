@@ -1,0 +1,18 @@
+{
+ "accept": false,
+ "case": "run_bug1898_exact_release_cases#040",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0236",
+ "input_sha256": "27141c518ed48be3",
+ "mode": "hook",
+ "object": {
+  "VERDICT": "PASS"
+ },
+ "persona": "harness-qa",
+ "reasons": "check-digest: could not read /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpe6dp07ir/.claude/worktrees/BUG-98's claim registry (UnreadableRegistry('unreadable in-flight claim registries: /private/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpe6dp07ir/.claude/worktrees/BUG-98/.harness/.inflight-claims.json')); nothing was released and the registry was left as found.\nYour return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not ap",
+ "source": "hook-group:run_bug1898_exact_release_cases",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\n",
+ "why_no_object": ""
+}

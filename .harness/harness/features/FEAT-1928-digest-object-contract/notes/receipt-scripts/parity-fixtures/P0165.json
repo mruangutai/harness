@@ -1,0 +1,30 @@
+{
+ "accept": true,
+ "case": "DEC-156: file check governs leads only \u2014 a dev's artifact is not read",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0165",
+ "input_sha256": "37d4c86486e5de20",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "built",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "task_verify": "pass",
+   "tests_added": 2
+  },
+  "VERDICT": "PASS",
+  "artifact": "runs/r1/notes.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: built\n  tests_added: 2\n  suite: pass\n  task: T-01\n  task_verify: pass\n  blocked_on: none\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: runs/r1/notes.md\n",
+ "why_no_object": ""
+}

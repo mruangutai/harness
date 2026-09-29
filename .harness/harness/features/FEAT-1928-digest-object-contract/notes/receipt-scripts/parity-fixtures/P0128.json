@@ -1,0 +1,34 @@
+{
+ "accept": false,
+ "case": "FEAT-59 fail_first entry without sc is rejected, naming the index",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0128",
+ "input_sha256": "ec792435448e1b3f",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "x.txt"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first[0] sc=None is not an SC-NN id \u2014 '{ evidence: \"x.txt\" }'. Each entry is { sc: SC-NN, evidence: <path or receipt line> }.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first: [{ evidence: \"x.txt\" }]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

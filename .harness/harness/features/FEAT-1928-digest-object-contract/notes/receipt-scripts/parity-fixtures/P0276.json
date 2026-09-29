@@ -1,0 +1,43 @@
+{
+ "accept": false,
+ "case": "case_findings_order#00",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0276",
+ "input_sha256": "99687d1f657888a2",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "code_grade": "n_a",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "form",
+     "severity": "low",
+     "summary": "a"
+    },
+    {
+     "kind": "substance",
+     "severity": "high",
+     "summary": "b"
+    }
+   ],
+   "grade_2_reasons": [],
+   "headline": "reviewer result",
+   "human_commits_in_scope": [],
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "origin/main..1a9dca0d1b79791ec06a17c966b463056eef948f",
+   "severity_max": "low"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "findings are not ranked: a lower severity precedes a higher one. An unread list gates nothing \u2014 order by severity, highest first.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: [{ kind: form, severity: low, summary: a }, { kind: substance, severity: high, summary: b }]\n  must_fix: []\n  code_grade: n_a\n  reviewed: \"origin/main..1a9dca0d1b79791ec06a17c966b463056eef948f\"\n  grade_2_reasons: []\n  human_commits_in_scope: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/review.md\n",
+ "why_no_object": ""
+}

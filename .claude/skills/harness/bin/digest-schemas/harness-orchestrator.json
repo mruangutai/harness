@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-orchestrator.json",
+  "title": "harness-orchestrator digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "feature",
+        "status",
+        "runs",
+        "cycles_used",
+        "briefing"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "feature": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "status": {
+          "enum": [
+            "in_progress",
+            "in_review",
+            "shipped",
+            "blocked",
+            "awaiting_user",
+            "rejected"
+          ]
+        },
+        "runs": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "cycles_used": {
+          "$ref": "common.json#/$defs/integer"
+        },
+        "briefing": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "judgement": {
+          "$ref": "common.json#/$defs/judgement"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "rejected"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "judgement"
+            ],
+            "properties": {
+              "cycles_used": {
+                "const": 0
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "judgement"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

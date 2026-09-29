@@ -1,0 +1,34 @@
+{
+ "accept": false,
+ "case": "run_bug1898_exact_release_cases#004",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0200",
+ "input_sha256": "b1f2fd6efdee5a6c",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "decisions": 1,
+   "expertise_update": [],
+   "feasibility": "clear",
+   "files_touched": [],
+   "flags": [],
+   "headline": "scoped the surface and wrote the plan",
+   "needs_approval": false,
+   "open_questions": [],
+   "recommend": "proceed",
+   "risk": "low",
+   "sc_status": [],
+   "surface": "S",
+   "tasks": 3
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/plan.yaml"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "check-digest: REFUSED harness-code-reviewer's return: it names no exact harness_feature and harness_agent_id, so its claim cannot be found without guessing by persona, and nothing was released. A run that holds no claim of its own yields a BLOCKED digest naming why.",
+ "source": "hook-group:run_bug1898_exact_release_cases",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: scoped the surface and wrote the plan\n  feasibility: clear\n  surface: S\n  recommend: proceed\n  risk: low\n  tasks: 3\n  decisions: 1\n  needs_approval: false\n  flags: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\n  sc_status: []\nartifact: .harness/features/FEAT-01/plan.yaml\n",
+ "why_no_object": ""
+}

@@ -1,0 +1,32 @@
+{
+ "accept": false,
+ "case": "case_inspection_citations#00",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0273",
+ "input_sha256": "817def50a519b24b",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "code_grade": "n_a",
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "grade_2_reasons": [],
+   "headline": "reviewer result",
+   "human_commits_in_scope": [],
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "origin/main..1a9dca0d1b79791ec06a17c966b463056eef948f",
+   "severity_max": "low"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/review.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "BRIEF marks SC-03 `verify: inspection` and the review artifact cites no file:line for them. Inspection SCs are checked here and nowhere else: for each, one line naming the SC and the path:line that satisfies it.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: reviewer result\n  severity_max: low\n  findings: []\n  must_fix: []\n  code_grade: n_a\n  reviewed: \"origin/main..1a9dca0d1b79791ec06a17c966b463056eef948f\"\n  grade_2_reasons: []\n  human_commits_in_scope: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/review.md\n",
+ "why_no_object": ""
+}

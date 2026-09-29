@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "FEAT-59 fail_first entry with empty evidence is rejected, naming the index",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0129",
+ "input_sha256": "476d028efa1a1d10",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - fail_first[0] has no evidence: \u2014 '{ sc: SC-01, evidence: \"\" }'. Name the captured failing output (a path) or the receipt line that shows the test FAILED before the fix.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first: [{ sc: SC-01, evidence: \"\" }]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/qa.md\n",
+ "why_no_object": ""
+}

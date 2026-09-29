@@ -1,0 +1,32 @@
+{
+ "accept": true,
+ "case": "# inside a quoted value survives",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0034",
+ "input_sha256": "f199dea35bb30638",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [
+    "src/a.ts"
+   ],
+   "headline": "closes #42 \u2014 token refresh",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-01",
+   "task_verify": "pass",
+   "tests_added": 2
+  },
+  "VERDICT": "PASS",
+  "artifact": "x.md"
+ },
+ "persona": "harness-backend-dev",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: \"closes #42 \u2014 token refresh\"\n  tests_added: 2\n  suite: pass\n  blocked_on: none\n  task: T-01\n  task_verify: pass\n  files_touched: [src/a.ts]\n  open_questions: []\n  expertise_update: []\nartifact: x.md\n",
+ "why_no_object": ""
+}

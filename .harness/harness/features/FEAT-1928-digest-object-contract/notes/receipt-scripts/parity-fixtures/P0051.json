@@ -1,0 +1,32 @@
+{
+ "accept": true,
+ "case": "orchestrator briefing is NULLABLE \u2014 `none` when nothing was written",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0051",
+ "input_sha256": "d470a3663bb57266",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "briefing": "none",
+   "cycles_used": 1,
+   "expertise_update": [],
+   "feature": "FEAT-01",
+   "files_touched": [],
+   "headline": "mid-flight, no briefing yet",
+   "open_questions": [],
+   "runs": [
+    "r1"
+   ],
+   "status": "in_progress"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/feature.json"
+ },
+ "persona": "harness-orchestrator",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: mid-flight, no briefing yet\n  feature: FEAT-01\n  status: in_progress\n  runs: [r1]\n  cycles_used: 1\n  # THE NEW CONTRACT (SC-04): the money field this schema used to require is simply\n  # absent. This case is the DETECTOR \u2014 at ae2443d it was REJECTED for a missing\n  # required field, so it can only go green once the schema entry is gone. Named\n  # without its literal spelling because SC-01's sweep asserts that spelling appears\n  # in no file outside the four it enumerates.\n  briefing: none\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/feature.json\n",
+ "why_no_object": ""
+}

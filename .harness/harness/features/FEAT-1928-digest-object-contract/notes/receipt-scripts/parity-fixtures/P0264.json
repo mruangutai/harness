@@ -1,0 +1,41 @@
+{
+ "accept": false,
+ "case": "case_qa_kinds#03",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0264",
+ "input_sha256": "05883b84e1868b37",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/fail.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "qa result",
+   "kinds": [
+    {
+     "kind": "unit",
+     "state": "misconfigured"
+    }
+   ],
+   "matrix_ok": "n/a",
+   "open_questions": [],
+   "suite": "n/a"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "kinds[0] (unit) is misconfigured but VERDICT is FAIL \u2014 a kind that cannot run is BLOCKED, never a verdict on the code.",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: qa result\n  matrix_ok: n/a\n  suite: n/a\n  failures: 0\n  coverage_gaps: []\n  fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]\n  kinds: [{ kind: unit, state: misconfigured }]\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/qa.md\n",
+ "why_no_object": ""
+}

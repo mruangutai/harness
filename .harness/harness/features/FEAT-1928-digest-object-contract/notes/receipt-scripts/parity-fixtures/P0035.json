@@ -1,0 +1,21 @@
+{
+ "accept": false,
+ "case": "no VERDICT at all",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0035",
+ "input_sha256": "642b095f0b2f8d25",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "headline": "whatever"
+  },
+  "artifact": "x.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - no VERDICT: line \u2014 this is a contract violation, not a verdict of any kind.\n  - missing 'suite' \u2014 every field is required; write one of ['fail', 'pass'] \u2014 what gets rejected for this role is a placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder itself (`n/a` with FAIL or BLOCKED is the honest refusal). An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'failures' \u2014 every field is required; write `[]` if there are none. An absent field is ambiguous; an explicit empty one asserts you looked.\n  - missing 'coverage",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "DIGEST:\n  headline: whatever\nartifact: x.md\n",
+ "why_no_object": ""
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.invalid/digest-schemas/harness-visual-designer.json",
+  "title": "harness-visual-designer digest return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "VERDICT",
+    "DIGEST",
+    "artifact"
+  ],
+  "properties": {
+    "VERDICT": {
+      "$ref": "common.json#/$defs/verdict"
+    },
+    "DIGEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "open_questions",
+        "files_touched",
+        "expertise_update",
+        "contract",
+        "mockups",
+        "direction_choices"
+      ],
+      "properties": {
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "open_questions": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "expertise_update": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "contract": {
+          "$ref": "common.json#/$defs/contract_nullable"
+        },
+        "mockups": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "direction_choices": {
+          "$ref": "common.json#/$defs/list"
+        },
+        "needs_prototype": {
+          "$ref": "common.json#/$defs/boolean"
+        },
+        "why": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "prototype": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "artifact": {
+      "$ref": "common.json#/$defs/artifact"
+    }
+  }
+}

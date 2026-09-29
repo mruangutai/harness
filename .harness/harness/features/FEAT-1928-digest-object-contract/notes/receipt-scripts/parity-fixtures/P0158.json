@@ -1,0 +1,16 @@
+{
+ "accept": true,
+ "case": "absent-key: nothing supplied to validate is OUR gap, and is said so",
+ "counterpart": "missing",
+ "exit": 0,
+ "id": "P0158",
+ "input_sha256": "e3b0c44298fc1c14",
+ "mode": "hook",
+ "object": null,
+ "persona": "harness-qa",
+ "reasons": "check-digest: harness-qa's return carries no last_assistant_message (absent or null) \u2014 this is our gap, not harness-qa's; the return was NOT VALIDATED.",
+ "source": "hook",
+ "syntax_only": true,
+ "text": null,
+ "why_no_object": "no digest text in payload"
+}

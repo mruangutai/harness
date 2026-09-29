@@ -1,0 +1,40 @@
+{
+ "accept": false,
+ "case": "a member's nested headline does not satisfy the top-level one",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0045",
+ "input_sha256": "6965e7cc571b1c93",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "members": [
+    {
+     "headline": "did the thing",
+     "persona": "backend-dev",
+     "step": "s1",
+     "verdict": "PASS"
+    }
+   ],
+   "must_fix": [],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 1,
+   "team": "build"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - DIGEST has no headline: \u2014 the orchestrator routes on this.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  team: build\n  steps_run: 1\n  cycles_used: 0\n  members:\n    - step: s1\n      persona: backend-dev\n      headline: \"did the thing\"\n      verdict: PASS\n  must_fix: []\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

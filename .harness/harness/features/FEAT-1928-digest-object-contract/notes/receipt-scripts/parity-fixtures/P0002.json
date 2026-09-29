@@ -1,0 +1,88 @@
+{
+ "accept": true,
+ "case": "amendments: the three BUG-285 recommendations are accepted eng-lead amendments",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0002",
+ "input_sha256": "65ecd37da7314233",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "amendments": [
+    {
+     "field": "intent",
+     "now": "Keep the keyword-only text source; no second accessor and no exemption",
+     "reason": "the exemption would let a caller bypass the accessor the task exists to make canonical",
+     "task": "T-03",
+     "was": "Add a second text accessor with a compatibility exemption"
+    },
+    {
+     "field": "verify",
+     "now": "parse_gh_json accepts any JSON value",
+     "reason": "gh api returns arrays for list endpoints; an object-only reader refuses real output",
+     "task": "T-03",
+     "was": "parse_gh_json accepts objects only"
+    },
+    {
+     "field": "files",
+     "now": [
+      {
+       "path": ".claude/skills/harness/bin/check-domain.py",
+       "quote": "def manifest_domains(agent=None)"
+      }
+     ],
+     "reason": "the symbol anchor moved to a content anchor once the signature gained agent=None",
+     "task": "T-03",
+     "was": [
+      ".claude/skills/harness/bin/check-domain.py#manifest_domains"
+     ]
+    }
+   ],
+   "branch": "feat/auth",
+   "cycles_used": 1,
+   "escalations": null,
+   "expertise_update": [],
+   "files_touched": [
+    "src/auth.ts",
+    "test/auth.spec.ts"
+   ],
+   "headline": "auth endpoints built; qa found a missing refresh-token path",
+   "members": [
+    {
+     "files_touched": [
+      "src/auth.ts"
+     ],
+     "headline": "jwt mw",
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    },
+    {
+     "must_fix": [
+      "refresh path untested"
+     ],
+     "persona": "qa",
+     "severity_max": "high",
+     "step": "qa",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "refresh path untested"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "build"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/features/FEAT-01/runs/r1/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: auth endpoints built; qa found a missing refresh-token path\n  team: build\n  steps_run: 3\n  cycles_used: 1\n  members:\n    - { step: build, persona: backend-dev, verdict: PASS, headline: \"jwt mw\", files_touched: [src/auth.ts] }\n    - { step: qa, persona: qa, verdict: FAIL, severity_max: high, must_fix: [\"refresh path untested\"] }\n  must_fix: [\"refresh path untested\"]\n  branch: feat/auth\n  files_touched: [src/auth.ts, test/auth.spec.ts]\n  open_questions: []\n  escalations:\n  expertise_update: []\n  sc_status: []\n  amendments:\n    - { task: T-03, field: intent, was: \"Add a second text accessor with a compatibility exemption\", now: \"Keep the keyword-only text source; no second accessor and no exemption\", reason: \"the exemption would let a caller bypass the accessor the task exists to make canonical\" }\n    - { task: T-03, field: verify, was: \"parse_gh_json accepts objects only\", now: \"parse_gh_json accepts any JSON value\", reason: \"gh api returns arrays for list endpoints; an object-only reader refuses real output\" }\n    - { task: T-03, field: files, was: [.claude/skills/harness/bin/check-domain.py#manifest_domains], now: [{ path: .claude/skills/harness/bin/check-domain.py, quote: \"def manifest_domains(agent=None)\" }], reason: \"the symbol anchor moved to a content anchor once the signature gained agent=None\" }\n  adequacy_notes: []\nartifact: .harness/features/FEAT-01/runs/r1/digest.md\n",
+ "why_no_object": ""
+}

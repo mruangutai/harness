@@ -1,0 +1,53 @@
+{
+ "accept": false,
+ "case": "F1.3 unquoted apostrophe must not fuse list entries",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0154",
+ "input_sha256": "069a6ebdc55e0d97",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "panel ran",
+   "members": [
+    {
+     "persona": "code-reviewer",
+     "step": "s1",
+     "verdict": "PASS"
+    },
+    {
+     "headline": "didn't stop",
+     "persona": "qa",
+     "step": "s2",
+     "verdict": "PASS"
+    },
+    {
+     "persona": "security-reviewer",
+     "step": "s3",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "fix it"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "review"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-validator-lead",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - VERDICT is PASS but a member returned FAIL ('{ step: s3, persona: security-reviewer, verdict: FAIL }'). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: panel ran\n  team: review\n  steps_run: 3\n  cycles_used: 0\n  members: [{ step: s1, persona: code-reviewer, verdict: PASS }, { step: s2, persona: qa, headline: didn't stop, verdict: PASS }, { step: s3, persona: security-reviewer, verdict: FAIL }]\n  must_fix: [\"fix it\"]\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

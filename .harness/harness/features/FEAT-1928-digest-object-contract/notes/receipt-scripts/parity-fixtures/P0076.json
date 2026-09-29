@@ -1,0 +1,28 @@
+{
+ "accept": true,
+ "case": "reviewer scoping out of a non-UI diff may PASS with severity_max: n/a",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0076",
+ "input_sha256": "1735cdd2eafffa70",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [],
+   "headline": "diff touches no user-facing surface; nothing to review",
+   "must_fix": [],
+   "open_questions": [],
+   "severity_max": "n/a"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/notes/ui-review.md"
+ },
+ "persona": "harness-ui-reviewer",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: diff touches no user-facing surface; nothing to review\n  severity_max: n/a\n  findings: []\n  must_fix: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: .harness/features/FEAT-01/notes/ui-review.md\n",
+ "why_no_object": ""
+}

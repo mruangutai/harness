@@ -1,0 +1,29 @@
+{
+ "accept": true,
+ "case": "dev-ops task: none with task_verify omitted is accepted",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0093",
+ "input_sha256": "7b19b9f9f014113b",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "applied": [],
+   "change_type": "config",
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "x",
+   "open_questions": [],
+   "suite": "n/a",
+   "task": "none"
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-dev-ops",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: x\n  change_type: config\n  applied: []\n  suite: n/a\n  task: none\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

@@ -1,0 +1,28 @@
+{
+ "accept": false,
+ "case": "run_t08_revision_proof#002",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0243",
+ "input_sha256": "202899c8c2ef3dc7",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "docs_updated": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "gaps": [],
+   "headline": "t01 contract probe",
+   "open_questions": [],
+   "rogue_revision_probe": true
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-documentor",
+ "reasons": "Your return does not satisfy the digest contract, so it cannot be accepted. Fix these and return again \u2014 every field is required; say nothing with an explicit `[]`, or `none` for a scalar that genuinely does not apply:\n  - undeclared digest key(s): 'rogue_revision_probe'. The digest contract is closed. Declare the field in .claude/skills/harness/bin/validate-digest.py: a lower-tier field carried by a lead belongs in PASSTHROUGH; a field in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; a new required persona field belongs in SCHEMAS and must also be documented under DEC-21",
+ "source": "cli-group:run_t08_revision_proof",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: t01 contract probe\n  docs_updated: []\n  gaps: []\n\n  open_questions: []\n  files_touched: []\n  expertise_update: []\n  rogue_revision_probe: true\nartifact: a.md\n",
+ "why_no_object": ""
+}

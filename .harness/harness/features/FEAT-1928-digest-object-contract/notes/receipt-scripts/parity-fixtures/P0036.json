@@ -1,0 +1,47 @@
+{
+ "accept": false,
+ "case": "PASS over a failing member is rejected",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0036",
+ "input_sha256": "c5182250c60909f0",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "two of three passed",
+   "members": [
+    {
+     "persona": "backend-dev",
+     "step": "s1",
+     "verdict": "PASS"
+    },
+    {
+     "persona": "qa",
+     "step": "s2",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "refresh path untested"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "build"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - VERDICT is PASS but a member returned FAIL ('{ step: s2, persona: qa, verdict: FAIL }'). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: two of three passed\n  team: build\n  steps_run: 3\n  cycles_used: 0\n  members:\n    - { step: s1, persona: backend-dev, verdict: PASS }\n    - { step: s2, persona: qa, verdict: FAIL }\n  must_fix: [\"refresh path untested\"]\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

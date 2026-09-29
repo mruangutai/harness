@@ -1,0 +1,36 @@
+{
+ "accept": true,
+ "case": "case_qa_unearned_fail#02",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0281",
+ "input_sha256": "dcbe37f0a0178742",
+ "mode": "in-process validate()",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/fail.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 2,
+   "files_touched": [],
+   "headline": "qa result",
+   "kinds": [],
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "fail"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/harness/features/FEAT-77-shadow/notes/qa.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "",
+ "source": "shadow",
+ "syntax_only": false,
+ "text": "VERDICT: FAIL\nDIGEST:\n  headline: qa result\n  matrix_ok: true\n  suite: fail\n  failures: 2\n  coverage_gaps: []\n  fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]\n  kinds: []\n  files_touched: []\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-77-shadow/notes/qa.md\n",
+ "why_no_object": ""
+}

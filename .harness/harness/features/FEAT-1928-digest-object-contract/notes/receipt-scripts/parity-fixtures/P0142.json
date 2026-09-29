@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "run_bug919_qa_matrix_cases#004",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0142",
+ "input_sha256": "ff394f9fba894d2c",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "coverage_gaps": [],
+   "expertise_update": [],
+   "fail_first": [
+    {
+     "evidence": "notes/qa-r1/fail-first-SC-01.txt",
+     "sc": "SC-01"
+    }
+   ],
+   "failures": 0,
+   "files_touched": [],
+   "headline": "suite green",
+   "matrix_ok": true,
+   "open_questions": [],
+   "suite": "pass"
+  },
+  "VERDICT": "PASS",
+  "artifact": "a.md"
+ },
+ "persona": "harness-qa",
+ "reasons": "harness-qa reported VERDICT: PASS with suite: pass and matrix_ok: true, but an independent re-run of run-unit-tests.py at this checkout exited 1 \u2014 the gate reported evidence it did not have (issue #919). Re-run the suite yourself, fix what fails, and return again once it is genuinely green. Tail of the independent run:\n  STUB_RAN",
+ "source": "hook-group:run_bug919_qa_matrix_cases",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: suite green\n  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: true\n  fail_first: [{ sc: SC-01, evidence: \"notes/qa-r1/fail-first-SC-01.txt\" }]\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: a.md\n",
+ "why_no_object": ""
+}

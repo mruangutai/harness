@@ -1,0 +1,37 @@
+{
+ "accept": true,
+ "case": "#1855: code-reviewer on a distill dispatch may PASS with code_grade n_a and no range",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0174",
+ "input_sha256": "8886a903db266624",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "code_grade": "n_a",
+   "expertise_update": [
+    {
+     "file": "/abs/.harness/expertise/harness-code-reviewer.md",
+     "ops": 3
+    }
+   ],
+   "files_touched": [
+    "/abs/.harness/expertise/harness-code-reviewer.md"
+   ],
+   "findings": [],
+   "headline": "accepted three lessons across craft and repository layers",
+   "must_fix": [],
+   "open_questions": [],
+   "reviewed": "none",
+   "severity_max": "n/a"
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/features/FEAT-01/runs/distill-validator/digest.md"
+ },
+ "persona": "harness-code-reviewer",
+ "reasons": "",
+ "source": "hook",
+ "syntax_only": false,
+ "text": "\nVERDICT: PASS\nDIGEST:\n  headline: accepted three lessons across craft and repository layers\n  severity_max: n/a\n  findings: []\n  must_fix: []\n  code_grade: n_a\n  reviewed: none\n  files_touched: [/abs/.harness/expertise/harness-code-reviewer.md]\n  open_questions: []\n  expertise_update: [{file: /abs/.harness/expertise/harness-code-reviewer.md, ops: 3}]\nartifact: .harness/features/FEAT-01/runs/distill-validator/digest.md\n",
+ "why_no_object": ""
+}

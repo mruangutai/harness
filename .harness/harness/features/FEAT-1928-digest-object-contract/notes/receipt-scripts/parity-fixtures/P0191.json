@@ -1,0 +1,58 @@
+{
+ "accept": false,
+ "case": "run_t09#008",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0191",
+ "input_sha256": "d9831c1efe02e440",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "feat/auth",
+   "cycles_used": 1,
+   "escalations": null,
+   "expertise_update": [],
+   "files_touched": [
+    "src/auth.ts",
+    "test/auth.spec.ts"
+   ],
+   "headline": "auth endpoints built; qa found a missing refresh-token path",
+   "members": [
+    {
+     "files_touched": [
+      "src/auth.ts"
+     ],
+     "headline": "jwt mw",
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    },
+    {
+     "must_fix": [
+      "refresh path untested"
+     ],
+     "persona": "qa",
+     "severity_max": "high",
+     "step": "qa",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "refresh path untested"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 3,
+   "team": "build"
+  },
+  "VERDICT": "FAIL",
+  "artifact": ".harness/features/FEAT-01/runs/r1/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "check-digest: BLOCKED - returned with children in flight (harness-eng-lead)\n  - harness-backend-dev [FEAT-09-exact-claims] started 2026-09-29T21:05:08.886284+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpf_1z88_9/.agents/skills/",
+ "source": "hook-group:run_t09",
+ "syntax_only": false,
+ "text": "\nVERDICT: FAIL\nDIGEST:\n  headline: auth endpoints built; qa found a missing refresh-token path\n  team: build\n  steps_run: 3\n  cycles_used: 1\n  members:\n    - { step: build, persona: backend-dev, verdict: PASS, headline: \"jwt mw\", files_touched: [src/auth.ts] }\n    - { step: qa, persona: qa, verdict: FAIL, severity_max: high, must_fix: [\"refresh path untested\"] }\n  must_fix: [\"refresh path untested\"]\n  branch: feat/auth\n  files_touched: [src/auth.ts, test/auth.spec.ts]\n  open_questions: []\n  escalations:\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: .harness/features/FEAT-01/runs/r1/digest.md\n",
+ "why_no_object": ""
+}

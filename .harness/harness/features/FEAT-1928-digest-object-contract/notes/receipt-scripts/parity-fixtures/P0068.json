@@ -1,0 +1,47 @@
+{
+ "accept": false,
+ "case": "echo shadow: lead roll-up must read the real members, not the echo",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0068",
+ "input_sha256": "e134ded907d3074a",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "adequacy_notes": [],
+   "branch": "none",
+   "cycles_used": 0,
+   "escalations": [],
+   "expertise_update": [],
+   "files_touched": [],
+   "headline": "two ran, one failed",
+   "members": [
+    {
+     "persona": "backend-dev",
+     "step": "build",
+     "verdict": "PASS"
+    },
+    {
+     "persona": "qa",
+     "step": "qa",
+     "verdict": "FAIL"
+    }
+   ],
+   "must_fix": [
+    "refresh path untested"
+   ],
+   "open_questions": [],
+   "sc_status": [],
+   "steps_run": 2,
+   "team": "build"
+  },
+  "VERDICT": "PASS",
+  "artifact": "r/digest.md"
+ },
+ "persona": "harness-eng-lead",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - VERDICT is PASS but a member returned FAIL ('{ step: qa, persona: qa, verdict: FAIL }'). The team verdict is the WORST member verdict \u2014 BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on your VERDICT and never opens member entries, so reporting PASS here hides the FAIL.",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS | FAIL | BLOCKED | ESCALATE\nDIGEST:\n  headline: example headline copied from the contract\n  team: build\n  steps_run: 1\n  cycles_used: 0\n  members:\n    - { step: s1, persona: backend-dev, verdict: PASS }\n  must_fix: []\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: .harness/notes/example.md\n\nVERDICT: PASS\nDIGEST:\n  headline: two ran, one failed\n  team: build\n  steps_run: 2\n  cycles_used: 0\n  members:\n    - { step: build, persona: backend-dev, verdict: PASS }\n    - { step: qa, persona: qa, verdict: FAIL }\n  must_fix: [\"refresh path untested\"]\n  branch: none\n  files_touched: []\n  open_questions: []\n  escalations: []\n  expertise_update: []\n  sc_status: []\n  adequacy_notes: []\nartifact: r/digest.md\n",
+ "why_no_object": ""
+}

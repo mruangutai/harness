@@ -1,0 +1,32 @@
+{
+ "accept": true,
+ "case": "main-session (DEC-174 direct build) validates as dev",
+ "counterpart": "",
+ "exit": 0,
+ "id": "P0027",
+ "input_sha256": "d00be7868943b5c2",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "blocked_on": "none",
+   "expertise_update": [],
+   "files_touched": [
+    ".claude/skills/harness/bin/board-station.py"
+   ],
+   "headline": "the eighteen scoped files carry zero broad catches",
+   "open_questions": [],
+   "suite": "pass",
+   "task": "T-03",
+   "task_verify": "pass",
+   "tests_added": 60
+  },
+  "VERDICT": "PASS",
+  "artifact": ".harness/harness/features/FEAT-64-x/notes/red-first-receipts.md"
+ },
+ "persona": "main-session",
+ "reasons": "digest ok",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: the eighteen scoped files carry zero broad catches\n  tests_added: 60\n  suite: pass\n  blocked_on: none\n  task: T-03\n  task_verify: pass\n  files_touched: [.claude/skills/harness/bin/board-station.py]\n  open_questions: []\n  expertise_update: []\nartifact: .harness/harness/features/FEAT-64-x/notes/red-first-receipts.md\n",
+ "why_no_object": ""
+}

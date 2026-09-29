@@ -1,0 +1,23 @@
+{
+ "accept": false,
+ "case": "run_t51_suspension_cases#000",
+ "counterpart": "",
+ "exit": 2,
+ "id": "P0192",
+ "input_sha256": "334a3dde348f13ee",
+ "mode": "hook",
+ "object": {
+  "DIGEST": {
+   "awaiting": [
+    "harness-pm"
+   ]
+  },
+  "VERDICT": "SUSPENDED"
+ },
+ "persona": "harness-product-lead",
+ "reasons": "check-digest: BLOCKED - returned with children in flight (harness-product-lead)\n  - harness-pm [FEAT-09-exact-claims] started 2026-09-29T21:05:08.962202+00:00\n  this is issue #551: a verdict about a member still running is a verdict about something the reporter cannot see.\n  a lead or orchestrator cannot yield while a child is live: the host holds the task call until every child is terminal (DEC-204, DEC-233).\n  your own claim is kept. If one of these is stranded rather than running, release exactly it:\n  python3 /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmp1z3pjz3e/.agents/skills/harne",
+ "source": "hook-group:run_t51_suspension_cases",
+ "syntax_only": false,
+ "text": "VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n    - harness-pm\n",
+ "why_no_object": ""
+}

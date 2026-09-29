@@ -1,0 +1,35 @@
+{
+ "accept": false,
+ "case": "severity_max: medium is STILL rejected after n/a became legal",
+ "counterpart": "",
+ "exit": 1,
+ "id": "P0080",
+ "input_sha256": "5c4fd506e962d329",
+ "mode": "cli",
+ "object": {
+  "DIGEST": {
+   "expertise_update": [],
+   "files_touched": [],
+   "findings": [
+    {
+     "kind": "substance",
+     "reader": "ui-reviewer",
+     "severity": "med",
+     "summary": "focus ring lost"
+    }
+   ],
+   "headline": "reviewed",
+   "must_fix": [],
+   "open_questions": [],
+   "severity_max": "medium"
+  },
+  "VERDICT": "PASS",
+  "artifact": "notes/x.md"
+ },
+ "persona": "harness-ui-reviewer",
+ "reasons": "VERDICT: BLOCKED (contract violation)\n  - severity_max='medium' is not in ['critical', 'high', 'low', 'med', 'none'] (did you mean 'med'?).",
+ "source": "cli",
+ "syntax_only": false,
+ "text": "VERDICT: PASS\nDIGEST:\n  headline: reviewed\n  severity_max: medium\n  findings: [{ kind: substance, severity: med, reader: ui-reviewer, summary: \"focus ring lost\" }]\n  must_fix: []\n  open_questions: []\n  files_touched: []\n  expertise_update: []\nartifact: notes/x.md\n",
+ "why_no_object": ""
+}
