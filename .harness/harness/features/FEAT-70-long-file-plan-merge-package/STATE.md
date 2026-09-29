@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-70-long-file-plan-merge-package
-- run: .harness/harness/features/FEAT-70-long-file-plan-merge-package/runs/validate-validator/state.yaml
+- run: .harness/harness/features/FEAT-70-long-file-plan-merge-package/runs/validate-c1-validator/state.yaml
 - squad: validator
 - status: in-review
-- verdict: FAIL
+- verdict: PASS
 - station: review
 - approval: approved
 
