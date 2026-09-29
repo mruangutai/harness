@@ -19,7 +19,7 @@ same contract. This intended behaviour difference does not enter the SC-02 ident
 case's invocations are dropped from the pin side before alignment).
 
 ## SC-01 — the file-wide grade assertion is RED at the baseline and GREEN at the pin
-`feat70-grade-assert.py 35b42d2a… 9e531b34… --tree 9e531b34…` → exit 1: no package, twelve functions
+`feat70-grade-assert.py 73ba9dce… 9e531b34… --tree 9e531b34…` → exit 1: no package, twelve functions
 below 4, none at their owners. Without `--tree` (the pin) → exit 0. Both transcripts are in the
 generated receipt.
 

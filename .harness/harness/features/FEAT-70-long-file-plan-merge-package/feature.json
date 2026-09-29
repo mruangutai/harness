@@ -26,6 +26,13 @@
       "tokens": 168634,
       "ended_at": "2026-09-29T15:14:57+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "main-session",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-29T15:19:22+00:00"
     }
   ],
   "judgements": [
@@ -42,6 +49,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Continue from the signed plan through completed main-session-direct build work into pinned validation."
+    },
+    {
+      "at": "2026-09-29T15:19:22+00:00",
+      "by": "operator",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "validate c0 FAIL: VAL-01 receipt script function below bar, VAL-02 sweep/hooks fixtures copy bin files without the plan_merge package; DEC-174 main session"
     }
   ],
   "mission": "plan",
