@@ -4375,6 +4375,58 @@ def case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+
+# FEAT-70 SC-03 — a two-entry digest whose FIRST entry GROWS a `|` field.
+_BLOCK_FIRST_PLAN = _AMEND_PLAN.replace(
+    "    verify: python3 a.py\n", "    verify: |\n      python3 a.py\n").replace(
+    "decisions:\n  - id: D-01\n    choice: keep me\n", "decisions: []\n")
+
+_BLOCK_FIRST_NOW = "".join(f"python3 {c}.py\n" for c in "abcdef")
+
+_BLOCK_FIRST_AMENDMENTS = (
+    "  amendments:\n"
+    "    - task: T-01\n      field: verify\n"
+    "      was: \"python3 a.py\\n\"\n"
+    "      now: \"" + _BLOCK_FIRST_NOW.replace("\n", "\\n") + "\"\n"
+    "      reason: the one script was split into six\n"
+    "    - task: T-03\n      field: intent\n"
+    "      was: \"Add a second text accessor with a compatibility exemption\"\n"
+    "      now: \"Keep the one accessor\"\n"
+    "      reason: the exemption would bypass the accessor\n"
+)
+
+
+def case_feat70_record_amendments_after_a_block_scalar_splice():
+    """FEAT-70 SC-03: when the first entry grows a `|` body, the second entry — in ANOTHER
+    task, further down — still lands. `_render_field` returned the rendered block as ONE list
+    element holding several physical lines, so the next `_item_range` walked ranges indexed
+    over the re-joined text against a list that many elements shorter: an IndexError traceback
+    at baseline whenever the growth exceeded the document's tail and no same-indent item
+    terminated the scan (`decisions: []`), a wrong binding otherwise. Both amendments land,
+    the block keeps its form, the ledger carries two entries, and the write is one act."""
+    root, plan, fj = _amend_fixture(plan_text=_BLOCK_FIRST_PLAN)
+    try:
+        run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-01-01")
+        r = _record(plan, _digest_with(_BLOCK_FIRST_AMENDMENTS), root)
+        tasks = {t["id"]: t for t in yaml.safe_load(read(plan))["tasks"]}
+        check("feat70/sc03: exits 0 naming both targets, no traceback",
+              r.returncode == 0 and r.stdout.count("AMENDED T-0") == 2 and "Traceback" not in r.stderr,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("feat70/sc03: the block-scalar field reloads as the digest's now",
+              tasks["T-01"]["verify"] == _BLOCK_FIRST_NOW, repr(tasks["T-01"]))
+        check("feat70/sc03: the `|` header survives with the longer body",
+              "    verify: |\n      python3 a.py\n      python3 b.py\n" in read(plan), read(plan))
+        check("feat70/sc03: the second entry, in the later task, lands",
+              tasks["T-03"]["intent"] == "Keep the one accessor", repr(tasks["T-03"]))
+        js = _json.loads(read(fj)).get("judgements") or []
+        check("feat70/sc03: two amendment judgements in digest order",
+              [j["decision"] for j in js if j["kind"] == "amendment"] == ["T-01.verify", "T-03.intent"],
+              repr(js))
+        check("feat70/sc03: the ledger still validates",
+              not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -4490,6 +4542,7 @@ CASES = (
     case_b1716_record_amendments_is_all_or_nothing,
     case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
     case_feat62_changed_feedback_after_a_plan_write,
+    case_feat70_record_amendments_after_a_block_scalar_splice,
 )
 
 
