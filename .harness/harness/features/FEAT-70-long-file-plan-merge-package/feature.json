@@ -27,5 +27,28 @@
       "reason": "cause known and diff bounded, but a new importable surface (the package), twelve grade fixes in shared text primitives, and a behaviour fix \u2014 the patch rule fails on all three."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 480,
+    "decision": ".harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/rework-ruling-2026-09-28.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "d6a93eb57a870b06fd50242bae5e60ad12807dd287e802bd63a577b1e50b33c6",
+    "T-02": "6d80c621d60bb670e604cf6680ef256b3b2666db20d8c44c540a419f4bd5989e"
+  },
+  "github": {
+    "milestone": 94,
+    "parent": 1987,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 1988,
+      "T-02": 1989
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
 }

@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-70-long-file-plan-merge-package
 approval:
-  status: pending
+  date: '2026-09-28'
+  approved_by: operator
+  status: approved
 status: plan
 mission: plan
 source_issues: []
@@ -90,7 +92,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 assigns plan-merge.py, its source classification, and its owning tests directly to the main session because they gate every plan write.
     depends_on: []
-    status: ready
+    status: building
     files:
     - .claude/skills/harness/bin/plan-merge.py
     - .claude/skills/harness/bin/plan[-_]merge*
@@ -127,7 +129,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable canonical-writer pin with the direct main-session change.
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - .harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/**
     verify: |
