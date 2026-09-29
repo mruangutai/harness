@@ -1,0 +1,31 @@
+{
+  "feature_id": "FEAT-70-long-file-plan-merge-package",
+  "branch": "feat/FEAT-70-long-file-plan-merge-package",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T01:31:56+00:00",
+      "tokens": 132738,
+      "ended_at": "2026-09-29T02:08:42+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-29T01:31:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and diff bounded, but a new importable surface (the package), twelve grade fixes in shared text primitives, and a behaviour fix \u2014 the patch rule fails on all three."
+    }
+  ],
+  "mission": "plan"
+}
