@@ -40,15 +40,19 @@ def grader(tree):
     return cg
 
 
+def _nested_defs(node):
+    """The FunctionDefs inside a top-level def/class, keyed `outer.inner` (one level, as code_grade)."""
+    return {f"{node.name}.{sub.name}": sub for sub in ast.walk(node)
+            if isinstance(sub, ast.FunctionDef) and sub is not node}
+
+
 def bodies(path):
     """{qualname: ast dump of the def, line numbers stripped} for top-level and one-deep nested defs."""
     out = {}
-    for node in ast.parse(path.read_text(encoding="utf-8")).body:
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-            out[node.name] = ast.dump(node, include_attributes=False)
-            for sub in ast.walk(node):
-                if isinstance(sub, ast.FunctionDef) and sub is not node:
-                    out[f"{node.name}.{sub.name}"] = ast.dump(sub, include_attributes=False)
+    tops = [n for n in ast.parse(path.read_text(encoding="utf-8")).body if isinstance(n, (ast.FunctionDef, ast.ClassDef))]
+    for node in tops:
+        out[node.name] = ast.dump(node, include_attributes=False)
+        out.update({q: ast.dump(sub, include_attributes=False) for q, sub in _nested_defs(node).items()})
     return out
 
 
