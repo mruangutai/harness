@@ -81,6 +81,16 @@
       "ended_at": "2026-09-30T00:09:44+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "build-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-30T00:11:23+00:00",
+      "tokens": 74140,
+      "ended_at": "2026-09-30T00:17:48+00:00",
+      "cycles_used": 0
     }
   ],
   "judgements": [

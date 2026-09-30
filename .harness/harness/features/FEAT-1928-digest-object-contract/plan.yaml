@@ -287,7 +287,7 @@ tasks:
       Before deleting the host workaround, add and run probe-digest-object-contract.py in a fresh disposable OMP subprocess against the worktree hook with the configured real provider. The probe must dispatch a governed agent, observe the injected strict schema, force an explicit null yield that receives a retryable tool error, then observe a valid object complete that same job. Record sanitized command, OMP SHA, harness SHA, provider and model, task and job identifiers, transcript evidence, null rejection, retry continuity, valid object, exit status, and timestamp in live-digest-object-probe.md. The receipt verifier must reject dry-run or synthetic receipts. Add digest_object_contract_live to harness.json as locally_run with the probe detector and command. If the job settles on null, stop the task as blocked and amend the design; only after the credentialled live receipt passes may the same task remove yamlLines, yieldContractText, hollowYieldValue, normalizeYieldInput, parser helpers, template-echo shadow selection, and the issue 1676 empty-yield repair. Update complexity expectations and the existing inflight manual probe to use object yields, then run the targeted suites in verify with no compatibility alias or dead text path left.
   - id: T-03
     title: Consolidate doctrine and operator documentation
-    status: ready
+    status: building
     depends_on: [T-02, T-04]
     traces:
     - SC-07
