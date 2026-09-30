@@ -19,6 +19,10 @@ Getting here took three rounds of correction, including **errors in the correcti
 a min-version marker does not count — and a *fix* is not done until it has been run against an input
 that would expose it.
 
+> **Historical boundary.** The unknowns table and §0b onward record the original Claude Code build;
+> they are evidence, not current runtime setup. DEC-233 removed the Claude adapters. §0a below is the
+> current OMP digest procedure; the system contract is SPEC §8 and §10.4.
+
 | Unknown | Result |
 |---|---|
 | `SubagentStart` fires for nested spawns? | **YES** — logged 1 top-level + 3 nested. Expertise reaches members |
@@ -26,87 +30,56 @@ that would expose it.
 | Parallel fan-out from inside a lead? | **YES** — 3 concurrent layer-2 spawns |
 | `PreToolUse` `exit 2` blocks a subagent write? | **YES from `settings.json`** — verified live end-to-end. **NO from agent frontmatter** — 3 forms, 0 executions (DEC-110) |
 
-### 0a — `settings.json` prerequisites (setup, not a spike)
+### 0a — Current OMP digest-object prerequisite
 
-**Six** platform entries the design depends on must be set explicitly — one env var and five hook registrations (DEC-156 added dispatch-guard).
-**A project missing any of them degrades silently rather than erroring** — and for the depth setting,
-what "missing" does depends on the CLI version (below).
+The working path has one live representation:
 
-```json
-{
-  "env": {
-    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "CLI reference now documents the --dry-run flag",
+    "docs_updated": ["docs/cli.md"],
+    "gaps": [],
+    "stale_found": [],
+    "open_questions": [],
+    "files_touched": ["docs/cli.md"],
+    "expertise_update": []
   },
-  "hooks": {
-    "SubagentStart": [
-      { "matcher": "harness-.*",
-        "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] }
-    ],
-    "PreToolUse": [
-      { "matcher": "Write|Edit",
-        "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] }
-    ],
-    "SubagentStop": [
-      { "matcher": "harness-.*",
-        "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook" }] }
-    ]
-  }
-}
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-documentor-<runid>.md"
+}})
 ```
 
-> This snippet is **documentation**; `bin/merge-settings.py` is what executes. The two cannot drift:
-> passing `--template` makes the script fail loudly if the snippet stops describing what it writes.
+This example is complete for `harness-documentor`. For every Harness persona:
 
-⚠️ **All SIX entries are required. Every one of them degrades silently when absent** — that is the
-whole reason they are a hard gate rather than a recommendation:
+1. The dispatcher omits `outputSchema` and `schemaMode`. The OMP task hook refuses either key at
+   task top level or inside `tasks[]` before its claim side effect.
+2. The hook loads `.claude/skills/harness/bin/digest-schemas/harness-<persona>.json`, resolves
+   `common.json`, projects a ref-free provider bundle, and injects it with `schemaMode: strict`.
+3. The agent passes one mapping as YieldTool `data`. The top level is exactly `VERDICT`, `DIGEST`,
+   and `artifact`; every persona-schema property is present. Conditional fields stay present with
+   `none` or `[]`, null is forbidden, and minimal list-item variants are closed.
+4. `validate-digest.py --hook` validates that object directly. It does not parse text, read a last
+   assistant message, echo a template, or manufacture a fallback result.
+5. A lead writes human prose to its existing regular `<run_dir>/digest.md` before yielding. After
+   validation, the validator alone appends deterministic fenced YAML. The agent never writes it.
 
-- no `SubagentStart` → agents start memoryless;
-- no `PreToolUse` → every agent can write anywhere (DEC-110);
-- no `SubagentStop` → malformed digests are accepted and the runner routes on fields that are not
-  there (DEC-122);
-- no `PreToolUse` dispatch-guard → a lead can silently override a member's pinned model (DEC-155/156);
-- wrong depth → the members layer is unreachable, or members can delegate (DEC-120).
+| Failure | Operational response |
+|---|---|
+| Dispatcher supplied `outputSchema` or `schemaMode` | remove the named key and retry the task call; do not merge or override the canonical schema |
+| Schema load, reference resolution or provider projection failed | repair the named canonical schema failure; no loose-schema dispatch is permitted |
+| YieldTool data is missing, null, text, a list, wrapped, or schema-invalid | the same job returns the complete valid object after the retryable tool error |
+| Semantic or cross-file validation failed | correct the named evidence, state or digest field; never synthesize `BLOCKED` on the producer's behalf |
+| Lead artifact is missing, unsafe, outside its checkout family, non-regular, unreadable or unwritable | fix the named path or filesystem condition and retry the yield; never choose another file |
+| A future credentialled live null → retry → valid-object probe fails | stop the cutover and amend the design; unit tests cannot waive the host-settlement gate |
 
-`PreToolUse` and `SubagentStop` dispatch on `agent_type` from the payload rather than a per-agent
-matcher, so one registration each serves the whole roster.
+The durable path is append-only: an identical final fenced mapping causes no write, while a changed
+validated object appends a correction. Historical readers take the last safe fenced mapping without
+retrovalidating it against today's schema or rewriting old records.
 
-| Setting | Enables | If missing |
-|---|---|---|
-| `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` | Pins nesting to orchestrator → lead → member (DEC-120). At 3, members run with the `Agent` tool **withheld**, so "members are always leaves" is enforced mechanically | **Depends on CLI version.** 3 is the current default, so an unset project works *today* — but the default has changed three times. At 2 the members layer is unreachable; on 2.1.217–218 the default was 1, so leads could not spawn at all |
-| `SubagentStart` hook | Expertise injection (SPEC §5.1) | Every agent starts with no Expertise and no error is raised |
-| **`PreToolUse` hook** | **Domain enforcement** (SPEC §4.2) — must be here, not in agent frontmatter, which does not fire (DEC-110) | Every agent can write anywhere. **Fail-open, silent** — the exact failure class this design tries to avoid |
-| **`SubagentStop` hook** | **Digest-contract enforcement** (SPEC §10.4) — `validate-digest.py --hook`, exit 2, which the docs state "prevents the subagent from stopping" (DEC-122) | Malformed digests are accepted by whoever reads them. Also silent: a reader normalizes drift charitably and one routing decision quietly goes wrong |
-
-> **Correction.** An earlier version of this table claimed nesting was "off by default" and that a
-> missing setting collapsed the org to flat. **That is inverted for current versions.** The `sub-agents`
-> page prose says "by default, a subagent can't spawn subagents of its own", which describes the
-> 2.1.217–218 band only; `env-vars` is authoritative and says the default is 3.
-
-**Version bands — the nesting default changed three times across CLI versions, which is why the
-depth is set explicitly rather than inferred from the version in play:**
-
-| CLI version | Nesting default | Configurable |
-|---|---|---|
-| 2.1.172 – 2.1.216 | on, up to **5** layers | no |
-| 2.1.217 – 2.1.218 | **1** (off) | yes |
-| **≥ 2.1.219** | **3** (on) | yes |
-
-**CLI ≥ 2.1.217 is the floor for all three spawn env vars** — a compatibility fact to check against
-the bands above, declared nowhere in config — and set the depth explicitly to `3` in every project.
-Setting it explicitly is correct in *all* bands — relying on the default means the org silently
-reshapes the next time it moves.
-
-**Belt-and-suspenders, and the actually-reliable mechanism:** "members are always leaves" is enforced
-independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the
-setting; the depth cap is defence in depth, not the primary control.
-
-**`harness-init` must write all five entries in this control-plane clone, and the
-state-consistency check must verify them there** — a silent degradation to flat, to memoryless
-agents, to delegating members, or to unvalidated digests is exactly the failure class this design
-tries to avoid.
+This is an OMP-native contract. Claude Code has no supported YieldTool-object digest path, and no
+`SubagentStop` or last-assistant-message compatibility route is retained. This digest cutover does
+not change broader provider-neutral hook policy or `AGENTS.md` (DEC-237).
 
 ### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
@@ -382,6 +355,10 @@ plane: that repository's own `harness.json` on its `default_branch`, its `fleet.
 its central per-segment tree. The first `BRIEF.md`, its approval and any design pass are
 `/harness-plan`'s, so the division-of-labour table and the interview steps below name `/harness-init`
 for jobs `harness-add-repo` now owns.
+
+> **Historical Claude artifact list.** The `settings.json` block below records what Task 12 built;
+> it is not setup guidance. DEC-233 later deleted those compatibility adapters. Current digest
+> setup is §0a, and this feature does not reinstate any of the entries below.
 
 ### What it is
 

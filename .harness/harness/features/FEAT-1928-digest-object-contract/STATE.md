@@ -3,11 +3,10 @@
 ## Current
 
 - feature: FEAT-1928-digest-object-contract
-- run: .harness/harness/features/FEAT-1928-digest-object-contract/runs/plan-amend-T03-product/state.yaml
+- run: .harness/harness/features/FEAT-1928-digest-object-contract/runs/build-docs-resume-product/state.yaml
 - squad: product
-- status: blocked
+- status: awaiting_user
 
 ## Open Questions
 
-- Main session must revoke plan.yaml approval for the authorized DEC-237 T-03 amendment, leaving both BRIEF.md and plan.yaml pending for operator re-signature.
-- The post-amendment plan check resolves all six T-03 anchors but fails on T-04's stale `_digest_mapping` and `_fenced_blocks` anchors; T-04 changes were outside this assignment and must be routed separately before re-signature.
+- The main session must repair or bypass the pre-cutover hook defect that releases the product lead's claim after accepting its valid PASS object but before validator-owned append. Two product-lead attempts reproduced the same ordering defect; the six T-03 docs and scoped verification are complete, but `runs/build-docs-resume-product/digest.md` cannot receive its required contract block and the ledger run cannot close.

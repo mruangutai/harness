@@ -58,23 +58,44 @@ main session ──▶ orchestrator ──▶ lead ──▶ members
      (user channel)   (one per flow)                depth 3: members are always leaves
 ```
 
-Handoff is **by file path, never by conversation**. Each agent writes an artifact and returns a
-compact **digest**:
+Handoff is **by file path, never by conversation**. Each agent writes an artifact, then returns one
+typed object through YieldTool — never YAML/JSON text:
 
-```
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line, conclusion first>
-  files_touched: [...]        # doers
-  open_questions: [...]       # non-empty routes to the user
-artifact: <path>
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "CLI reference now documents the --dry-run flag",
+    "docs_updated": ["docs/cli.md"],
+    "gaps": [],
+    "stale_found": [],
+    "open_questions": [],
+    "files_touched": ["docs/cli.md"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-documentor-<runid>.md"
+}})
 ```
 
-Members report digests to their lead; the lead **collates and assesses** them — including sending
-work back — into a **team digest** at `<run>/digest.md`; the orchestrator assesses across teams,
-routes questions between leads, delegates another cycle, or calls a briefing with you. Same artifact
-type at every tier. `bin/validate-digest.py` checks the shape, because a reader normalizes drift
-charitably and then one routing decision quietly goes wrong.
+That example is the complete `harness-documentor` shape. Each persona's exact closed schema is
+`.agents/skills/harness/bin/digest-schemas/harness-<persona>.json`, with shared definitions in
+`common.json`. Every declared property is required, including conditionally meaningful fields; use
+`none` or `[]` when the schema calls for no value, never null or omission. Minimal list items are
+closed too.
+
+The task hook refuses dispatcher-supplied `outputSchema` or `schemaMode`, then injects the target
+persona's canonical schema in strict mode. YieldTool validates `data` as the object; malformed data
+returns an actionable retryable tool error to the same job. There is no prose parser, last-message
+fallback, host-synthesized digest, or compatibility alias.
+
+Members yield objects to their lead. A lead first writes the human team report at
+`<run>/digest.md`, then yields its object. `validate-digest.py` alone appends the validated object as
+fenced YAML; an identical final record causes no write, and a changed one appends rather than
+replaces history. A missing, unsafe, non-regular, outside-checkout, unreadable or unwritable target
+refuses the yield until the named path problem is fixed.
+
+This digest path is OMP-native. Claude Code has no supported YieldTool-object digest path and no
+`SubagentStop` compatibility route is retained (DEC-237).
 
 **Cross-squad work is not one team.** A lead cannot dispatch another squad's members or spawn a peer
 lead, so multi-squad lifecycles are sequenced by the orchestrator as one run per squad.

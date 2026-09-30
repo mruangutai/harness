@@ -1168,73 +1168,52 @@ copy.
 **Handoff is by file path, never by conversation** — fresh-context subagents cannot inherit history
 and should not. Each persona *writes* a durable artifact and *returns* a compact signal.
 
-**The three-part return (all 16 agents, leads and the orchestrator included):**
+**Working return — one object through YieldTool, never serialized text:**
 
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "CLI reference now documents the --dry-run flag",
+    "docs_updated": ["docs/cli.md"],
+    "gaps": [],
+    "stale_found": [],
+    "open_questions": [],
+    "files_touched": ["docs/cli.md"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-documentor-<runid>.md"
+}})
 ```
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE   # control — drives DAG transitions
-                                    #   PASS    = done (may carry advisory notes)
-                                    #   FAIL    = gate failed → retry/loop_back is meaningful
-                                    #   BLOCKED = cannot proceed → loop-back is futile, escalate
-                                    #   ESCALATE= surface to the tier above (lead→orchestrator→user)
-DIGEST:                             # routing — orchestrator reads THIS, not the artifact
-  headline: <one-line BLUF>
-  <persona-specific routing fields>
-  open_questions:                   # a LIST of structured items, never a count
-    - { id: Q1, question: "<text>", blocking: true, options: [...] }
-  files_touched: [<paths>]          # doers; `[]` if none
-  expertise_update: [<ops>]         # `[]` if nothing durable was learned — the usual case
-artifact: <path>                    # the focal, high-SNR handoff doc — read by the CONSUMER persona
-```
 
-**Every field is required** (DEC-121). Say "nothing" with an explicit `[]` — or `none` for a scalar
-that is genuinely inapplicable — never by omitting the key. Absence is ambiguous (found nothing, or
-never looked?) and emptiness is not, which matters most for `open_questions`, where silence is
-indistinguishable from a dropped question. Enforced at source by the `SubagentStop` hook (§8.3).
+That is the complete `harness-documentor` shape. All sixteen Harness personas use the same closed
+top level — exactly `VERDICT`, `DIGEST`, and `artifact` — with a persona-specific closed `DIGEST`.
+`VERDICT` drives the DAG: `PASS` is done, `FAIL` means a retry or loop-back is meaningful,
+`BLOCKED` means it is not, and `ESCALATE` surfaces a decision to the tier above. The orchestrator
+routes on `VERDICT` and `DIGEST`; it does not open the artifact. A lead may read a member artifact,
+and must when its assessment depends on it.
 
-- The artifact is the focal point, high signal-to-noise — full content stays on disk, read only by
-  the downstream persona that needs it. **Never pasted into a return.**
-- **The orchestrator never opens member artifacts** — it routes on VERDICT + DIGEST only. A **lead
-  may** read its members' artifacts, and must, in order to assess.
+Every property declared by the persona schema is required (DEC-121, DEC-237). A conditionally
+meaningful property stays present when the condition is false. Use the schema's explicit sentinel
+— `none` for an inapplicable scalar and `[]` for an empty list — rather than omitting the key; JSON
+null is never a sentinel. Minimal list-item variants are closed objects too: every required item key
+must be present and undeclared item keys are refused.
 
-### 8.1 DIGEST schemas are NORMATIVE
+The artifact is the focal, high-signal handoff document. Full content stays on disk for the
+downstream consumer and is never pasted into the returned object.
 
-The runner routes on these exact field names and enum values, so they are a contract. Field names
-and enums may not drift per persona.
+### 8.1 Persona JSON Schemas are NORMATIVE
 
-- **pm** (both phases): `feasibility: clear|risky|blocked`, `surface: S|M|L`,
-  `flags: [security, migration, external-api, …]`, `recommend: proceed|spike|reframe|halt`,
-  `tasks: <n>`, `decisions: <n>`, `needs_approval: bool`, `risk: low|med|high`
-- **eng devs** (frontend / backend / ai / data): `tests_added: <n>`, `suite: pass|fail`,
-  `blocked_on: <text|none>`, `task: T-NN|none`, `task_verify: pass|fail|n/a` (binds only when
-  `task` names a real `T-NN`: `n/a` means the task's `verify:` was refused or never ran, and both
-  `fail` and `n/a` are REJECTED alongside `VERDICT: PASS` — every PLAN task carries a `verify:`,
-  so "not applicable" is never the honest answer. The one exception is `task: none`, a dispatch
-  carrying no PLAN task, which may omit `task_verify` or report it `n/a` and still return PASS)
-- **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`,
-  `fail_first: [{ sc: SC-NN, evidence: <path or receipt line> }]` (one per `verify: automated` SC —
-  the evidence its test FAILED before the fix; `PASS` with `matrix_ok: true` and `fail_first: []` is
-  REJECTED, a green suite with no fail-first evidence is not a pass; `matrix_ok: n/a` may carry `[]`)
-- **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`,
-  `findings: [{ kind: substance|form|proportionality, scope?: task|mission, severity, reader, summary, why? }]` (a LIST,
-  never a count; `kind` is REQUIRED on every entry — substance would change shipped code, form is
-  document/digest/record shape only and never re-gates, proportionality says more is planned than
-  the change needs and carries `scope: task` (pm trims the task) or `scope: mission` (the only
-  finding that downgrades the mission, DEC-228)), `must_fix: [<item>]`
-- **visual-designer:** `contract: written|updated`, `mockups: [<paths>]`,
-  `direction_choices: [<…>]`
-- **documentor:** `docs_updated: [<paths>]`, `gaps: [<…>]`
-- **dev-ops:** `change_type: config|scaffolding|infra|ci`, `applied: [<paths>]`,
-  `suite: pass|fail|n/a` (TDD-exempt work reports `n/a`), `task: T-NN|none`,
-  `task_verify: pass|fail|n/a` (asymmetric to `suite`: here `n/a` means the task's `verify:` was
-  refused or never ran, and both `fail` and `n/a` are REJECTED alongside `VERDICT: PASS` — every
-  PLAN task carries a `verify:`, so "not applicable" is never the honest answer. The one
-  exception is `task: none`, a dispatch carrying no PLAN task, which may omit
-  `task_verify` or report it `n/a` and still return PASS)
-- **leads:** the **consolidated DIGEST** schema in §10.4 is their persona schema — they are not
-  exempt from the three-part return
+The one authored schema set is `.claude/skills/harness/bin/digest-schemas/`:
+`harness-<persona>.json` for each of the sixteen personas and `common.json` for shared definitions.
+OMP reaches the same files through `.agents/skills`. These files — not a Markdown field table or
+example — own field names, types, required sets, enums, alternatives, list-item shapes and closure.
 
-All personas additionally carry `expertise_update` (`[]` when nothing was learned — never omitted,
-DEC-121) and `expertise_full` (§5).
+`digest_schema.py` validates the canonical files for Python consumers. The OMP task hook resolves
+their external references and projects the same files into the strict provider schema. Examples in
+agent and skill prose show how to call YieldTool, but no parser extracts or echoes them and they are
+never a compatibility contract. Read the target persona file before producing or consuming a live
+object.
 
 ### 8.2 Conditional routing
 
@@ -1249,37 +1228,48 @@ DEC-121) and `expertise_full` (§5).
 - an unclassifiable finding, mission or finding class → `awaiting_user` with ONE question and the
   harness's recommendation; never the heavier route by default (DEC-230)
 
-### 8.3 Malformed or missing return
+### 8.3 Dispatch, rejection and durable-record failures
 
-**The contract is enforced by a `SubagentStop` hook, not by prose** (DEC-122). `validate-digest.py
---hook` is one of the mandatory `settings.json` prerequisites: it receives `last_assistant_message`
-and `agent_type`, and **`exit 2` prevents the subagent from stopping**, so a malformed return is
-rejected at source. This covers all 16 agents including the leads, which runner prose never could —
-leads have no `Bash` to run a validator with. Advisory-first was considered and rejected: an advisory
-validator is exactly the "looks enforced, isn't" state that produced DEC-110 and DEC-119.
+**Dispatch:** the OMP task hook owns structured-output configuration
+(`.omp/extensions/harness-hooks.ts:278`). A Harness dispatcher must not supply `outputSchema` or
+`schemaMode`, either at the task top level or inside `tasks[]`; the hook
+refuses the call before its claim side effect and names the forbidden location. It resolves the
+target persona's canonical schema, projects a ref-free provider bundle and injects that bundle with
+`schemaMode: strict`. An unreadable or malformed schema, missing persona, unresolved or escaping
+reference, reference cycle, or unsupported projection keyword refuses dispatch. There is no loose
+schema fallback.
 
-**Enforcement is one rejection per consecutive stop sequence, not a guarantee of eventual
-correctness (BUILD task 22).** `stop_hook_active` is a deliberate pass-through (below), so an agent
-that ignores the stderr feedback and re-emits the identical malformed digest **immediately, in the
-same stop sequence,** is accepted — the platform caps this at one wasted turn, not an infinite loop,
-but "the agent must fix it before it can finish" overstated what the mechanism actually does.
-**The bound is per stop sequence, never once per run (DEC-199).** The hook keeps no state marking a
-return already refused and reads live children fresh, so an agent woken later — by a child's
-completion — is validated again and can be refused again on that wake. What it guarantees is narrower and still real: no
-malformed digest reaches its lead *silently*, and every rejection is visible in the agent's own
-transcript as actionable feedback.
+**Yield:** YieldTool `data` must itself be the object. Missing data, JSON null, a string, a list, a
+wrapper around the object, undeclared properties, omitted required properties, and semantic or
+cross-file violations all produce an actionable retryable tool error. The same job corrects the
+object and yields again. The hook passes that mapping directly to `validate-digest.py --hook`
+(`.omp/extensions/harness-hooks.ts:1108`; `.claude/skills/harness/bin/validate-digest.py:2200`); it
+does not parse assistant prose, inspect a last message, select a template echo, or synthesize a
+`BLOCKED` digest. A tool error is not permission for a host to record a substitute return.
 
-Three deliberate pass-throughs, so what the hook declines to govern is explicit: an `agent_type`
-that is absent or not `harness-*` (`Explore`, `general-purpose` and the rest have no digest
-contract); `stop_hook_active` (blocking again would loop forever with no operator escape); and
-**our own failure** — unreadable payload, unknown persona, exception — which fails **open, loudly on
-stderr**, because a hook that blocks on its own bug wedges every agent in every project.
+**Lead artifact:** before yielding, a lead writes its human report to the existing regular
+`<run_dir>/digest.md`. After the object validates, the validator alone appends its deterministic
+fenced YAML rendering (`.claude/skills/harness/bin/validate-digest.py:1859`).
+It refuses a missing target, traversal, a symlink or non-regular target, a
+path outside the registered checkout family, or any read/write failure. The operator fixes the
+named path or filesystem problem and the same job retries; the validator never falls back to a
+different file. If the final fenced mapping is structurally identical, it writes nothing. If the
+validated object changed, it appends a new record rather than replacing history.
 
-The host-side path remains as the fallback for whatever the hook passes through: if a member returns
-no `VERDICT`, an unparseable `DIGEST`, or nothing at all, the host **re-prompts that step once**,
-asking only for the contract block. On a second failure it records
-`VERDICT: BLOCKED (contract violation)` and escalates. **The host never guesses a verdict** —
-silent misrouting is worse than a halt.
+Historical readers scan from the end for the final safe fenced mapping
+(`.claude/skills/harness/bin/digest_record.py:1`). They do not apply today's live persona schema,
+rewrite old bytes, or mistake historical prose for a current return.
+
+**Live cutover gate:** deleting the text and null-repair paths required a credentialled OMP run in
+which explicit null was rejected and the same job then completed with a valid object under its
+injected strict schema. Unit and integration tests do not substitute for this host settlement
+probe. If that live gate fails for a future cutover, stop and amend the design; do not waive it with
+a green local suite.
+
+**Host boundary:** this object-only digest path is OMP-native. Claude Code has no supported
+YieldTool-object digest path here, and no `SubagentStop` or last-assistant-message compatibility
+route is retained. That limitation does not broaden the provider-neutral hook policy or alter
+`AGENTS.md`; those are outside this feature (DEC-233, DEC-237).
 
 ### 8.4 Artifact output discipline — the `harness-handoff` skill
 
@@ -1660,78 +1650,62 @@ and assesses** those into its **team digest** and reports that to the orchestrat
 assesses across teams. There is no second document class — the lead's output is a digest of digests,
 written to `<run_dir>/digest.md` (DEC-119).
 
+```js
+yield({data: {
+  "VERDICT": "FAIL",
+  "DIGEST": {
+    "headline": "export build lands but QA found no fail-first evidence for SC-02",
+    "team": "build",
+    "steps_run": 3,
+    "cycles_used": 1,
+    "members": [
+      {"step": "implement", "persona": "harness-backend-dev", "verdict": "PASS", "headline": "export endpoint streams CSV", "files_touched": ["src/export.py"]},
+      {"step": "qa", "persona": "harness-qa", "verdict": "FAIL", "headline": "SC-02 lacks fail-first evidence", "files_touched": []},
+      {"step": "advise", "persona": "fable-advisor", "status": "skipped", "reason": "agent not resolvable on this host"}
+    ],
+    "must_fix": ["record fail-first evidence for SC-02"],
+    "files_touched": ["src/export.py"],
+    "branch": "feat/export",
+    "open_questions": [],
+    "escalations": [],
+    "expertise_update": [],
+    "adequacy_notes": [],
+    "sc_status": [],
+    "needs_approval": "none",
+    "severity_max": "none",
+    "matrix_ok": false,
+    "coverage_gaps": ["SC-02 has no fail-first evidence"],
+    "findings": [],
+    "readers": [],
+    "amendments": []
+  },
+  "artifact": "<run_dir>/digest.md"
+}})
 ```
-VERDICT: <roll-up>                  # worst member verdict: BLOCKED > ESCALATE > FAIL > PASS
-                                    #   ESCALATE outranks FAIL so a needed user
-                                    #   decision is never masked by a fixable failure
-DIGEST:
-  headline: <one line — what the team achieved, not what it did>
-  team: <name>                        # one key per line — see the note below
-  steps_run: <n>
-  cycles_used: <n>
-  members:                            # per-member roll-up → orchestrator appends these to STATE.md
-    - { step: build, persona: backend-dev, verdict: PASS, headline: "...", files_touched: [...] }
-    - { step: qa,    persona: qa,          verdict: FAIL, severity_max: high, must_fix: [...] }
-    - { step: advisor, persona: fable-advisor, status: skipped, reason: "persona unavailable" }
-  must_fix: [<union of blocking findings>]
-  files_touched: [<union across members>]
-                                      # universal (§8) — required of leads too, `[]` if none
-  branch: <branch|none>               # `none` if the team mutated no repo
-  open_questions: [<structured items, unioned from members>]
-  escalations:                        # §10.5 — routing AND resolution are both recorded
-    - { id: E1, raised_by: harness-eng-lead, question: "is partial SSO acceptable for v1?",
-        domain: product, routed_to: harness-product-lead,
-        resolution: "yes, Google only for v1", decided_by: harness-product-lead,
-        recorded_as: D-07 }
-  expertise_update: [<ops from this lead, §5.3>]
-  adequacy_notes: [<what this PASS does not cover>]  # `[]` when nothing; never omitted
-  # Optional passthroughs when produced by a member: sc_status, needs_approval,
-  # severity_max, matrix_ok, coverage_gaps.
-artifact: <run_dir>/digest.md         # the collated report, written for a HUMAN — see below
-```
 
-**The block above is the lead's RETURN. `<run_dir>/digest.md` is prose, and deliberately so.**
+**The object above is the lead's live return. The lead writes the human report first; only the
+validator appends its fenced YAML record to `<run_dir>/digest.md`.**
 
-Two different readers, two different forms. The return is the machine channel: the orchestrator
-routes on `VERDICT` + `DIGEST` and never opens the artifact (§8), and the `SubagentStop` hook
-validates the return at source. The artifact is what a human opens when they want to know what the
-team actually concluded — ranked `must_fix` with the ordering reasoned, the assessment that only the
-lead could make, dismissals recorded with reasons, open questions.
+The object is the machine channel: the orchestrator routes on `VERDICT` and `DIGEST` and never
+opens the artifact (§8). The prose already in the artifact is the human channel: ranked `must_fix`
+with its ordering reasoned, the assessment only the lead could make, dismissals with reasons, and
+open questions. Once validation succeeds, the durable file holds both without asking the lead to
+copy the object. The lead never authors the fence. A structurally identical final mapping is not
+duplicated; a changed validated object appends a correction instead of rewriting history.
 
-Requiring the contract block in the file too would duplicate every field in two places with nothing
-checking the copy. Observed live (DEC-124): a lead returned a valid block and wrote an excellent
-prose report, and the earlier wording made that look like a
-deviation when it was the better outcome.
+The persona schema requires every property shown, including the conditionally meaningful roll-ups.
+A team that escalated nothing writes `escalations: []`; one that changed no repository writes
+`branch: none`; one whose PASS needs no qualification writes `adequacy_notes: []`. Null and omission
+are not alternatives. The canonical lead schemas, not this example, own the exact fields and enums.
 
-The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each member that
-ran carries its own `verdict:`**. Only the optional external `fable-advisor` may instead carry
-`status: skipped`, its persona, and the host reason when it did not run. Skips do not enter
-worst-wins, but at least one member must have run before the lead may claim a verdict. The team
-verdict is computed from the members that ran, and `validate-digest.py` rejects a roll-up that
-reports better than its worst member (reporting *worse* is allowed; a lead may have a reason its
-members could not see). Bare-string entries like `[qa PASS]` are not a substitute: they drop
-`step` and `files_touched`, which is the granularity the field exists to carry.
+Each member that ran uses the closed five-key shape `{step, persona, verdict, headline,
+files_touched}`. Only the optional external `fable-advisor` may instead use the closed skipped shape
+`{step, persona, status, reason}`. Skips do not enter worst-wins, but at least one member must have
+run before the lead may claim a verdict. `validate-digest.py` rejects a team verdict better than its
+worst member; reporting worse is allowed when the lead has evidence its members could not see.
 
-**One key per line.** An earlier version of this template packed `team`, `steps_run` and
-`cycles_used` onto a single source line to save space. That is not YAML: a lead copying it verbatim
-emitted one field named `team` whose value was the rest of the line, and lost the other two —
-silently, because the two lost fields simply read as absent. The normative example could not pass
-the validator that enforces it. Lists may be written either inline (`must_fix: []`) or as an
-indented block; both are accepted, and a bare `escalations:` with nothing under it is an empty
-list, not an omission.
-
-**Every uncommented field above is required** (DEC-121). A team that escalated nothing writes
-`escalations: []`; one that mutated no repo writes `branch: none`; one whose PASS needs no
-qualification writes `adequacy_notes: []`. Absence is ambiguous and an explicit empty value is not
-— and the first version of the validator skipped absent fields, which let a real lead digest ship
-missing `members:` while reporting "ok".
-
-`adequacy_notes` qualifies a PASS: it does not gate like `must_fix` or reach the user like
-`open_questions`, but it prevents a green verdict being read as broader than the work performed.
-
-The commented passthroughs are optional, not lead-owned required fields. For example, `sc_status`
-originates in pm's goal-check (§11.6) and is surfaced only when that member result is rolled up, so
-the orchestrator can read whether the feature is actually done without opening member entries.
+`adequacy_notes` qualifies a PASS. It neither gates like `must_fix` nor reaches the user like
+`open_questions`; it prevents a green verdict from being read more broadly than the work performed.
 
 **Escalations are recorded, not just routed.** An `escalations` entry captures the question, the lead
 that raised it, where it was routed, **and how it was resolved** — so a lateral lead-to-lead decision

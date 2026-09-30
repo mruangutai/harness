@@ -326,26 +326,29 @@ context — hence leads-only, matching the delegation rule that the orchestrator
 lead into its squad. Clearing absorbed entries keeps `feedback.md` a queue, not a growing archive.
 **Tradeoff accepted:** behavioral feedback reaches a worker only through how its lead delegates.
 
-## DEC-29 — The three-part return; the orchestrator never opens member artifacts
+## DEC-29 — The live return is one typed object; the orchestrator never opens member artifacts
 
-**Chose:** every agent returns `VERDICT:` (control) + `DIGEST:` (routing) + `artifact:` (a path).
-**Over:** a bare verdict token; returning artifact content inline.
+**Chose:** every Harness agent returns one object through YieldTool whose top level is exactly
+`VERDICT`, `DIGEST`, and `artifact`.
+**Over:** a bare verdict token; returning artifact content inline; serializing the object as prose.
 **Because:** it resolves two competing pressures at once. The artifact is the focal, high-SNR handoff
-document, so its full content must stay on disk and be read only by the downstream persona that needs
+document, so its full content stays on disk and is read only by the downstream persona that needs
 it — never pasted into a return. But VERDICT alone cannot drive conditional routing. The DIGEST gives
 just enough structured signal to route **without opening the artifact**, keeping the coordinator's
-context small. A lead *may* read its members' artifacts, and must, in order to assess.
-**Tradeoff accepted:** DIGEST field names and enums become a contract that may not drift per
-persona — the runner routes on exact values.
+context small. A lead *may* read its members' artifacts, and must when its assessment turns on them.
+**Tradeoff accepted:** DIGEST field names, types, list-entry shapes and enums are a closed contract;
+the provider and validator reject drift rather than normalizing it.
 
-## DEC-30 — A malformed return is re-prompted once, then BLOCKED — never guessed
+## DEC-30 — A malformed live return is a retryable tool error, never a guessed verdict
 
-**Chose:** re-prompt the step once for the contract block; on a second failure record
-`VERDICT: BLOCKED (contract violation)` and escalate.
-**Over:** inferring a verdict from the text; failing the whole crew immediately.
-**Because:** this is the most common LLM-runner failure and was previously unhandled. **Silent
-misrouting is worse than a halt.**
-**Tradeoff accepted:** one wasted re-prompt per occurrence.
+**Chose:** reject a missing, null, string, list, wrapped, or schema-invalid YieldTool `data` value
+with an actionable tool error; the agent retries by yielding the complete object.
+**Over:** inferring a verdict from prose; reading the last assistant message; synthesizing a
+`BLOCKED` result for the agent; accepting a second text form.
+**Because:** silent misrouting is worse than a halt, and OMP's tool error keeps the same job alive so
+the producer can correct its own object.
+**Tradeoff accepted:** a producer can spend another turn correcting the return, but no host repair
+path can fabricate evidence or settle the job on malformed data.
 
 ## DEC-31 — Reviewers are advisory-only; no hard blocks on style or opinion
 
@@ -2397,52 +2400,6 @@ same trap DEC-119 recorded. The `SubagentStop` hook that makes it mandatory is t
 
 ---
 
-## DEC-122 — The digest contract is enforced by a `SubagentStop` hook, mandatory from day one
-
-DEC-121 made every digest field required. That was still prose, and this repo has now learned the
-same lesson three times: a parallel-safety claim guarded only by prose, DEC-110 (domain
-enforcement silently absent), DEC-101/119 (a validator built and never wired). `validate-digest.py`
-now runs as a **`SubagentStop` hook** — the fourth mandatory `settings.json` prerequisite.
-
-Verified against `code.claude.com/docs/en/hooks`: `SubagentStop` receives `last_assistant_message`
-and `agent_type`, and **"exit 2 … prevents the subagent from stopping"**. So a malformed return is
-rejected at source and the agent must fix it before it can finish — enforcement, not a request. It
-covers all 16 agents including leads, which the runner prose never could, because leads have no
-`Bash` to run a validator with.
-
-**Advisory-first was considered and rejected.** An advisory validator is exactly the "looks
-enforced, isn't" state that produced DEC-110 and DEC-119. Hedging on it was the wrong instinct.
-
-### Proven live, not just wired
-
-A `harness-qa` agent was instructed to return the single word `done` and to omit the VERDICT,
-DIGEST and artifact entirely. It could not:
-
-- the hook's rejection text appears **in the subagent's own transcript**, so stderr reached it as
-  actionable feedback;
-- it took **4 assistant turns** — attempt, rejection, correction;
-- the final return was a complete, contract-satisfying digest, including a legitimate
-  `VERDICT: BLOCKED` and a blocking `open_questions` entry explaining that no work had been supplied.
-
-### Three deliberate pass-throughs
-
-The hook is shared by every subagent in the project, so what it declines to govern matters as much
-as what it blocks:
-
-| Condition | Why |
-|---|---|
-| `agent_type` absent or not `harness-*` | `Explore`, `general-purpose` and the rest have no digest contract. Governing them would break every unrelated subagent |
-| `stop_hook_active` | Set when we are already re-running after a stop hook blocked. Blocking again is an infinite loop with no operator escape |
-| Our own failure — unreadable payload, unknown persona, exception | **Fail open, loudly on stderr.** `check-domain.py` set this precedent: a hook that blocks on its own bug wedges every agent in every project the moment a payload shape changes. Blocking is for *their* contract violation, never ours |
-
-That last row is a deliberate asymmetry. Everywhere else this design prefers failing closed; here,
-the blast radius of our own bug is every subagent everywhere, and the failure is loud rather than
-silent — which is the property that actually matters.
-
-
-
-
----
 
 ## DEC-123 — The lead verdict roll-up is computed, not trusted
 
@@ -2643,30 +2600,20 @@ this project keeps paying for.
 
 ---
 
-## DEC-126 — Group templates centralize where a group has 2+ agents; singletons stay inline
+## DEC-126 — Canonical persona schemas own the live return shape; examples are not contracts
 
-The user's cut, after seeing the 4 dev `## Output` blocks were byte-identical copies: a group of
-2+ agents sharing one digest schema shares one canonical template; a schema with exactly one agent
-keeps its template inline, because a central file for one reader is pure indirection.
+Each of the sixteen runtime Harness personas has one closed JSON Schema under
+`.claude/skills/harness/bin/digest-schemas/`; shared definitions live in `common.json` and are
+reached by external references. The files own field names, types, enums, required sets, nested
+entry shapes and `additionalProperties: false`. `digest_schema.py` validates the same files in
+Python, while the OMP adapter resolves and projects them into the strict provider bundle injected
+at dispatch. There is no second hand-authored field table.
 
-Applied:
-- **devs (4, identical)** → new flat skill `harness-digest-dev`, added to the four `skills:` lists;
-  agent files carry a pointer, not a copy.
-- **leads (3)** → the canonical copy already existed: `harness-team` "Reporting up", preloaded on
-  all three since the collation work. The inline blocks written earlier today duplicated it and are
-  replaced with a pointer plus each lead's per-role extras (`needs_approval`; `severity_max`),
-  with `adequacy_notes` required of all three leads in the canonical block.
-- **reviewers (3) stay inline, deliberately** — measured first: their blocks share only
-  `severity_max/findings/must_fix`; the bulk is role-specific (code: `spec_violations`,
-  `review_sha`, `human_commits_in_scope`; security: `threat_model`, `scope_reason`). Centralizing
-  five shared lines while keeping large inline extras adds indirection without removing duplication.
-- **singletons (pm, qa, visual-designer, documentor, dev-ops) stay inline** per the rule.
-
-Delivery is `skills:` preload — full content at spawn, zero tool calls, proven by this morning's
-probe — so the pointer costs nothing at runtime. The canonical dev template validates against the
-dev schema; the lead template was already validated when harness-team was fixed.
-
----
+Agent and skill prose carries a schema pointer and may carry one complete YieldTool example so a
+reader can see how to call the tool. That example is explanatory: no validator parses it, no
+template is echoed into a return, and agreement is obtained by loading the schema rather than by
+comparing prose blocks. A schema change therefore updates its canonical JSON file and every real
+consumer, not a grouped Markdown template.
 
 ## DEC-127 — The digest gate's own defects, found by a live review panel, are fixed — and enforcement's real shape is now written down
 
@@ -3653,17 +3600,15 @@ enforcing them, and all three drifted in the same run:
 3. **Dispatch parameters.** DEC-155's `model:` override ran unsanctioned because nothing inspects
    Agent-call inputs.
 
-Same answer as DEC-122 — prose guarding a contract is unenforceable, a script guards it:
+The current digest answer is DEC-237: one object contract guarded at the dispatch and yield
+boundaries, with one validator-owned durable representation:
 
-- **validate-digest.py --hook, extended:** after a lead's in-message return validates, the hook
-  resolves the return's `artifact:` path and validates the FILE against the same lead schema;
-  a non-conforming file is exit 2 while the lead is still alive to fix it. If the path cannot be
-  resolved from the hook's vantage (worktrees, cwd drift), it passes through LOUDLY and the sweep
-  below catches it — fail-open-with-signal, per the hook's own precedent, because blocking on our
-  resolution bug would wedge legitimate leads.
+- **validate-digest.py --hook:** validates the yielded lead object, resolves its `artifact:` to a
+  safe existing regular `digest.md`, and appends the validated object as fenced YAML after the
+  lead's prose unless the final fenced mapping is already structurally identical. Missing, unsafe,
+  unreadable or unwritable targets refuse the yield while the lead can correct them.
 - **check-state.py INV-15:** for every run with `status: complete` and a lead host, `digest.md`
-  must exist and pass `validate-digest.py lead` — the deterministic backstop that runs from repo
-  root and cannot be fooled by cwd.
+  must exist and expose a readable final fenced mapping — the deterministic backstop from repo root.
 - **check-state.py INV-16 (mechanizes DEC-154):** run state.yaml top-level keys must come from
   the checkpoint whitelist (seed fields + loop fields + pins), and no key may repeat. Prose keys
   (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection with their routing:
@@ -3674,8 +3619,9 @@ Same answer as DEC-122 — prose guarding a contract is unenforceable, a script 
   model choice at the user channel is the user's. Registered in settings.snippet.json and
   checked by INV-9 like the other four mandatory hooks (now five).
 
-Honest scope: the hook file-check is one-shot (`stop_hook_active` passes through, by design), so
-a lead that fails the file check once and returns unchanged is caught by INV-15, not the hook.
+The live OMP path has no stop-message or file-copy fallback: the yielded object is the value
+validated and, for a lead, the value appended to the durable record. Historical records remain
+readable through their final fenced mapping without retroactive live-schema validation (DEC-237).
 INV-16's whitelist will need a new key added when the checkpoint legitimately grows a field —
 that cost is the point: growing the checkpoint becomes a decision, not an accretion.
 
@@ -4358,53 +4304,6 @@ inside the tool, and it expires by construction rather than by anyone rememberin
 **Do not pin `/usr/bin/python3`.** Apple's system Python ships PyYAML 6.0.1, which makes pinning it
 look free. It is macOS-only and deprecated for scripting; it would make the harness unrunnable on
 Linux, in CI, and in the distributable package this repo is aiming at.
-
-## DEC-172 — the agent return gets a `yaml` fence, and unfenced returns are blocked
-
-`validate-digest.py` carries five hand-patches (`:247-272`) for one root cause: the three-part return
-is **already a well-formed YAML mapping** — `VERDICT:` scalar, `DIGEST:` mapping, `artifact:` scalar
-— floating in free prose with no delimiter (`harness-handoff/SKILL.md:14-22`). Every patch is
-boundary detection: where the block starts, what the base indent is, when a dedent ends it, whether
-`DIGEST:` may carry a trailing comment (F4 — the same bug as issue #11, fixed independently in a
-second file). None of them are YAML bugs.
-
-**The return is wrapped in a ```` ```yaml ```` fence.** Extraction becomes one unambiguous match and
-`safe_load` does everything else, which deletes all five patch classes at once.
-
-**Rejected: DIGEST as a real `.yaml` file** with the return carrying its path. It looks like
-"pointers not payloads" but is not. The hook validates `last_assistant_message` (`:645`), so a path
-would still have to be located in prose — the parse moves rather than disappears. The DIGEST is the
-compact routing signal that rule deliberately keeps inline; `artifact:` is already the pointer. And
-it would change the return contract for all 16 agents plus DEC-122 — a larger feature, orthogonal to
-removing regex, and available later at no extra cost if it is ever wanted.
-
-**Unfenced returns are BLOCKED, with no deprecation window.** Consistent with the fail-closed posture
-above, and safe here because `validate-digest.py` already returns 0 when `stop_hook_active` is set,
-so a blocked agent retries once and cannot loop.
-
-**13 files carry a return template** — nine `.claude/agents/harness-*.md` plus four skills
-(`harness-handoff`, `harness-digest-dev`, `harness-team`, `harness-tdd-enforcement`), counted with
-`grep -rln '^DIGEST:'`. It is not 16: seven of the sixteen agents carry no template of their own and
-inherit `harness-handoff`'s.
-
-**The ordering constraint binds in one direction only.** The templates and the parser do not have to
-land in the same ship. The current parser already accepts a fenced return — verified against
-`validate-digest.py` with a fenced digest, and with a fenced digest surrounded by prose: both
-`digest ok`, exit 0, because the `artifact:` key at column 0 already ends the block and a
-closing ``` fence at column 0 is an ordinary dedent it handles. **Templates may therefore ship
-FIRST, independently and safely.** What must not ship first is the parser's *rejection* of
-unfenced returns — that is the half that breaks every not-yet-updated agent.
-
-The practical sequencing: fence the 13 templates whenever convenient, then make rejection the
-parser's behavior once no unfenced returns remain. Agent files are read at spawn, so the
-`harness-init` step 9 restart caveat still applies to the template change.
-
-**Amended by the skills optimization pass (2026-09-18) — the rejection half is withdrawn, not the
-fence.** The templates were fenced as ruled. Rejection of unfenced returns cannot ship under OMP:
-`harness-hooks.ts` `yieldContractText` renders a structured yield payload as bare YAML lines, so a
-legitimate host-produced return arrives unfenced. `validate-digest.py` therefore keeps reading the
-last `VERDICT:` block wherever it sits; `harness-handoff` no longer claims only the fenced block is
-parsed. The fence stays in every template for readers and to keep prose out of the block.
 
 ## DEC-173 — "nothing happened" gets a spelling: `n/a`, and declining a gate is not passing it
 
@@ -6244,9 +6143,10 @@ copied into `AGENTS.md`.
 
 **Enforcement reuses policy and replaces delivery.** The OMP extension converts native `write`,
 hash-anchored `edit`, `bash`, `task`, and `yield` events into the tested script contracts.
-`tool_call` denies before execution; `tool_result` reports post-write shape failures; `yield` is the
-task-agent stop boundary and validates structured OMP results after rendering them into the
-normative digest text. The TypeScript layer owns no domain, branch, Expertise or digest rule.
+`tool_call` denies before execution; `tool_result` reports post-write shape failures; `task`
+receives the persona's strict schema; and `yield` validates the returned object directly. The
+TypeScript layer derives digest structure from the canonical schemas and owns no second contract
+(DEC-237).
 
 **The control plane expands.** `.agents/**`, `.omp/**`, and `AGENTS.md` are Harness-owned paths in
 `harness_boundary.py`; hidden-root grants remain checkout-local and never reach a product
@@ -6666,13 +6566,11 @@ under lead authority, not an exception granted case by case. Origin:
 that is not one of the sixteen harness personas.
 
 **It is a precedent needing a signature because the reader's return is structurally unvalidated.**
-Three facts, in this order. One, `SubagentStop` fires for that reader, but `validate-digest.py`
-returns 0 immediately for a non-harness `agent_type`
-(`.claude/skills/harness/bin/validate-digest.py:906`) — a deliberate decline to govern an agent that
-carries no digest contract — so no schema ever grades what the reader returned. Two, digest coverage
-therefore comes only from the wrapping lead's own stop event, graded against the lead schema: the
-reader's findings are validated as a part of the lead's digest, or not at all. Three, the
-compensating control is contractual rather than mechanical. The reader's prompt requires a
+Three facts, in this order. One, the task hook injects strict schemas only for `harness-*` personas;
+an external reader carries no canonical Harness schema, so its own return is not graded as a Harness
+digest. Two, digest coverage therefore comes from the wrapping lead's yielded object, graded against
+the lead schema: the reader's findings are validated as part of that object, or not at all. Three,
+the compensating control is contractual rather than mechanical. The reader's prompt requires a
 self-emitted severity on every finding, with the sentinel value `unrated` for a finding the reader
 will not rate, and the lead TRANSCRIBES an absence rather than inventing a value.
 
@@ -6702,7 +6600,7 @@ that survives — the code-reviewer's plan-target binding, `reviewed: plan:<path
 `code_grade: n_a`, accepted only while the plan is pending with no pinned `review_sha`.
 
 **DEC-207's number is retired, not reused.** `validate-digest.py`, `check-state.py` INV-6,
-`feature-schema.json` and their tests cite it for that binding, and DEC-209 and DEC-216 cite it here.
+`feature-schema.json` and their tests cite it for that binding, and DEC-209 cites it here.
 
 ## DEC-208 — A run's own record is enforced, not expected: an empty return is refused, a feature artifact is bound to its worktree on both governed write routes, a recorded digest cannot be replaced, and a lead's digest is resolved in the checkout the lead runs in
 
@@ -6805,9 +6703,9 @@ evidence that nothing changed), a missing or malformed `test_kinds` policy in th
 re-pin the review and rerun — never to fall back to the base the digest names.
 
 **Fail-closed, with no traceback.** A grading crash becomes a named refusal, because a crash escaping
-that boundary is indistinguishable from a hook defect (DEC-127) and leaves the claim ungraded, which
-is the state this decision exists to remove. A refusal is the ordinary digest rejection DEC-122 put
-behind this hook, never an acceptance and never an ambiguous exit.
+that boundary leaves the claim ungraded, which is the state this decision exists to remove. A
+refusal is the ordinary object-contract rejection DEC-237 puts behind YieldTool, never an acceptance
+and never an ambiguous exit.
 
 **A deletion-only Python range grades `pass`, not `n_a`.** `n_a` means the canonical range changed no
 `.py` path at all. Where the only Python change is a deletion, a Python path did change; there is
@@ -7061,32 +6959,6 @@ run cannot decide a release.
 **Evidence:** FEAT-54 and
 `.harness/notes/grilling-handoff-done-when-2026-09-02.md`.
 
-## DEC-216 — A persona's documented output block is an enforced half of the digest contract
-
-**Chose:** BUG-1303. The block a persona is instructed to write must carry every field
-`validate-digest.py`'s schema requires of that persona, and `tests/integration/test-validate-digest.py`
-checks that agreement mechanically rather than leaving it to whoever last edited either side. Measured
-at `c369fb1f`, `.claude/agents/harness-code-reviewer.md` and its `.omp` twin documented no `code_grade`
-at all while the validator required one, so the reviewer's own documented digest was invalid in every
-phase — and in the plan phase a reviewer that had done its job settled as failed. Doctrine alone was
-refused because the divergence is silent on both sides: the validator never reads the block, the
-block's author never runs the validator, nothing asserts anything false, and the pointer just dies.
-
-**The check runs one way.** Required-by-schema must be documented, while a documented field the schema
-does not enumerate stays legal, because `SCHEMAS` holds only the enum-and-typed required fields whereas
-`headline`, `files_touched` and `open_questions` are required elsewhere in `validate()`. Checked is
-those plus the reviewer's inline per-persona extension, `code_grade` and `reviewed`, which `validate()`
-applies in code rather than as data: `_required_contracts`, which `run_documented_contract_cases`
-calls (`tests/integration/test-validate-digest.py`), is that extension's hand-written mirror, so a
-future inline extension must update that site or the guard silently under-checks the persona it
-extends. Scope is the persona's own block, mechanically located, never the whole file: seven of the
-sixteen personas share two files, so a whole-file search would let one field name in unrelated
-prose satisfy all seven.
-
-**Unchanged:** DEC-207 is unamended and plan-review mode's semantics are untouched; the SEC-01
-`review_sha` binding, DEC-209's mechanical recomputation of `code_grade` and INV-6 all stand; and
-`validate-digest.py` is not edited by BUG-1303 at all. Refs: DEC-207, DEC-209, DEC-174.
-
 ## DEC-217 — Bugfix test kinds follow the changed surface instead of an unconditional unit label
 
 **Chose:** replace `test_matrix.bugfix.always: [unit]` with two fixed conditional legs while
@@ -7328,48 +7200,6 @@ premise expired, when `deploy.sh` was deleted in commit 45859123.
 
 **Record:** refs DEC-221, DEC-06, DEC-120, DEC-174.
 
-## DEC-223 — The digest contract is closed, and the run-state step vocabulary with it
-
-**Chose:** a return carries declared keys only. An undeclared key on a new digest is refused, and
-refused with ONE message naming every offending key together with the route each would have to take
-to become legal: `PASSTHROUGH` for a lower-tier field a lead carries up, `DOCUMENTED_OPTIONAL` for a
-field in a persona's documented output block, `SCHEMAS` for a new required persona field — which
-DEC-216 then also requires be documented — and none of the three for a per-dispatch answer, which
-belongs in `adequacy_notes` or in a step's `evidence` container. One message for all offending keys,
-not one per key, because the message is the entire instruction the producer receives.
-
-**The legal set is derived from what every persona is documented to write.** A documented field that
-no schema declares is declared in an optional typed `DOCUMENTED_OPTIONAL` table keyed by the RAW
-agent type rather than in `SCHEMAS`: a `SCHEMAS` member is required under DEC-121, so every producer
-of that persona would have to carry it, and the three reviewer agents collapse to one canonical
-persona whose output modes are not interchangeable — `mode` is legal on a UI review and nowhere
-else, which a per-persona table can express and a shared schema cannot. A lower tier's field riding
-up a lead roll-up is declared in the optional typed `PASSTHROUGH` table for the same reason: a lead
-that ran no QA step must not be required to claim `matrix_ok`. Agreement between a persona's
-documented block and its declaration is asserted mechanically in BOTH directions — a required field
-missing from the block, and a documented field nothing declares — with `.omp/agents` the source of
-record, because `.claude/agents` is generated from it.
-
-**`adequacy_notes` is required of every lead**, which closes issue 37. An optional field for the one
-signal a lead's own assessment carries is indistinguishable from an absent one, so no consumer can
-rely on it; required, its absence is a rejected return rather than silence.
-
-**Run state is closed on the same terms.** A `steps[]` entry has a closed 22-key shape, of which
-`evidence` is a governed free-form container — lower-case identifier keys, scalar or scalar-array
-values — carrying matchable per-dispatch facts that do not belong in the step vocabulary. The shape
-is enforced on `check-domain.py`'s write payload path and reported at rest by `check-state.py`, both
-gated on `schema_version` 2. Creation of a run `state.yaml` below version 2 is refused, so no new run
-can opt out, while the 356 historical version-1 runs stay legal and unrewritten and updates to them
-keep working.
-
-**The one hole is named deliberately.** `stop_hook_active` short-circuits validation, so a
-re-prompted return is not re-validated; that passthrough stays open, and it is exactly why the
-refusal message must be one-shot sufficient — the producer may get one reading of it and no second
-gate behind it.
-
-**Record:** refs DEC-121, DEC-122, DEC-126, DEC-154, DEC-160, DEC-173, DEC-174, DEC-191, DEC-208,
-DEC-216.
-
 ## DEC-224 — Squad isolation binds the build team; the plan, validate and fix teams host personas from other squads, and independence is persona-level
 
 **Chose:** DEC-118's bound — a lead never dispatches outside its squad — holds for `build.yaml` and
@@ -7591,7 +7421,7 @@ late. The rule as first written had one word for two findings; it now has two.
 
 **Record:** strikes the universal rule of DEC-207, whose heading and strike record stay because the
 digest validator, the state check and their tests cite that number for the plan-target binding this
-entry now holds. Refs: DEC-176, DEC-188, DEC-207, DEC-209, DEC-216, DEC-225, DEC-229, DEC-230.
+entry now holds. Refs: DEC-176, DEC-188, DEC-207, DEC-209, DEC-225, DEC-229, DEC-230, DEC-237.
 
 **One reader rule stated here (moved from `harness-brief` under FEAT-60).** An orphan SC — a criterion no task traces to — is a `substance` finding, because a criterion nothing builds toward is a promise nothing will keep.
 
@@ -7636,10 +7466,10 @@ edit visible (INV-40). The safety case for builder-side amendments is independen
 QA derives its coverage from the BRIEF with no source access; code-review Stage 1 is anchored on the
 BRIEF's success criteria and the plan's decisions only; Stage 2 with `code-grade.py` is recomputed
 from the reviewed diff by `validate-digest.py`; validate is never re-anchored on task text. DEC-174's
-routing boundary and DEC-223's closed-contract rule are unchanged — `amendments` is a closed
+routing boundary and DEC-237's closed object rule are unchanged — `amendments` is a closed
 five-key shape on the engineering lead's digest alone.
 
-**Record:** amends FEAT-45 plan D-03. Refs: DEC-32, DEC-120, DEC-174, DEC-182, DEC-223, DEC-226, DEC-228, DEC-230.
+**Record:** amends FEAT-45 plan D-03. Refs: DEC-32, DEC-120, DEC-174, DEC-182, DEC-226, DEC-228, DEC-230, DEC-237.
 
 ## DEC-230 — The judgement ledger: every autonomous judgement is a `judgements[]` entry, and uncertainty asks once with a recommendation
 
@@ -7931,3 +7761,75 @@ the 5500 budget with `harness-team` already cut to its resident core; the seat t
 least often per spawn is the one to pay per read. Budget after the wave is in
 `check-skill-weight.py`'s output on the landing commit; the optimization pass that preceded this
 (57.2k → 50.7k) is what made room.
+
+---
+
+## DEC-237 — Live digests are closed YieldTool objects; only the validator renders durable fenced YAML
+
+**Chose:** a Harness agent's live return is the mapping passed as YieldTool `data`, with exactly
+`VERDICT`, `DIGEST`, and `artifact` at the top level. A string, `null`, list, missing `data`, wrapper,
+assistant message, or serialized YAML/JSON block is not another spelling of the contract. It is
+refused as a retryable tool error, and the same job must yield a valid object to complete. There is
+no parser, template-echo selection, last-message fallback, issue-1676 hollow-yield repair, alias, or
+deprecation window.
+
+**Canonical schemas and the 2026-09-29 build ruling.** The sixteen closed persona schemas under
+`.claude/skills/harness/bin/digest-schemas/`, plus their external shared definitions, are the one
+structural authority for Python validation and provider projection. Every property declared by a
+live persona schema is required. `none` for an inapplicable scalar and `[]` for an empty list are
+the absence sentinels; JSON null is forbidden. A field whose relevance is conditional is still
+present with its sentinel when the condition is false. Minimal list-entry forms are closed objects:
+their required keys are all present and undeclared keys are refused. This replaces DEC-223's
+documented-optional tier; required, optional and passthrough Markdown tables no longer define a
+second contract.
+
+**Dispatch owns schema delivery.** Before any claim side effect, the OMP task hook refuses
+dispatcher-supplied `outputSchema` or `schemaMode` at the top level or in any `tasks[]` item and
+names the forbidden location. It loads the target Harness persona's canonical schema, resolves and
+projects a ref-free provider bundle, and injects that bundle with `schemaMode: strict`. A missing
+persona, unreadable or malformed schema, unresolved reference, directory escape, cycle, or
+unsupported projection keyword refuses the dispatch; there is no loose fallback. Non-Harness
+dispatches retain their own contract.
+
+**Yield owns live validation.** The hook passes YieldTool `data` directly to
+`validate-digest.py --hook`. The validator applies the canonical schema and then the existing
+semantic and cross-file rules: verdict gates, member roll-up, claims and live children, artifact
+ownership, task receipts, review pins and code grade, suite evidence and repository state. Invalid
+shape or semantics refuses the tool call with the actionable violations; it does not inspect
+assistant text or synthesize a replacement result.
+
+**Only the validator renders a durable digest.** A lead first writes its human assessment to an
+existing regular `digest.md`. After its object passes live validation, `validate-digest.py` resolves
+that artifact inside the registered checkout family, rejects traversal, a missing target, a
+symlink, a non-regular file, an outside absolute path, or a read/write failure, and appends a
+deterministic fenced YAML rendering. It writes nothing when the file's final fenced mapping is
+structurally identical; a changed validated object extends the file. Agents never author that
+fence. DEC-208's five rules remain textually and semantically unchanged.
+
+**Historical reads are deliberately weaker and read-only.** `digest_record.py` scans a durable
+record from the end and returns the last YAML-labelled or unlabelled fenced block that safely loads
+to a mapping. Historical consumers use those structured keys without applying today's live persona
+schema, rewriting bytes, selecting by a `VERDICT` token, or grandfathering by date. Historical prose
+is never accepted as a live return.
+
+**The deletion gate was live.** Removing the text and null-repair paths required a fresh,
+credentialled OMP job to receive an error for explicit null and then complete the same job with a
+valid object under the injected strict schema. Unit and integration tests cannot satisfy that host
+settlement gate. A failed live run blocks the cutover and requires a design amendment; it cannot be
+waived by a green local suite. The recorded OpenAI probe passed on 2026-09-30.
+
+**Host boundary and scope.** This digest path is OMP-native. Claude Code has no supported
+YieldTool-object digest path here; DEC-233 already removed its compatibility adapters, and this
+decision does not restore a `SubagentStop` or last-assistant-message route. Broader
+provider-neutral hook wording and `AGENTS.md` policy are outside this feature and remain a separate
+decision.
+
+**Number allocation.** The fetched `origin/main` record ended at DEC-235. DEC-236 is allocated by
+FEAT-1896. DEC-237 through DEC-548 appeared only on `feat/FEAT-46-decision-standard`, a stale,
+divergent branch dated 2026-09-04 with no pull request. By the operator's 2026-09-29 ruling that
+branch is not an allocation and must renumber against main if revived, so DEC-237 is the next
+unallocated number. Any other allocation would have required amending the signed plan rather than
+silently renumbering this decision.
+
+**Record:** FEAT-1928. Refs: DEC-29, DEC-30, DEC-121, DEC-126, DEC-156, DEC-174, DEC-202, DEC-205,
+DEC-208, DEC-233.
