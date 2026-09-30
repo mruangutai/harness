@@ -56,4 +56,6 @@ Harness agents return a machine-routed digest as YAML inside Markdown inside a s
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: operator (via main session)
+date: 2026-09-29

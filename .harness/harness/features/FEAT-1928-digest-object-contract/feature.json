@@ -131,12 +131,12 @@
   "rework": {
     "rounds": 2,
     "wall_clock_minutes": 90,
-    "decision": ".harness/harness/features/FEAT-1928-digest-object-contract/notes/approval-2026-09-29.md"
+    "decision": ".harness/harness/features/FEAT-1928-digest-object-contract/notes/approval-2026-09-29b.md"
   },
   "signed_task_hashes": {
     "T-01": "d2f46bf36e13970e92503181d2d19f6636c5f7ca747063bf7243a86d4958de79",
     "T-02": "1a292e26304a841447882959e9b81e3ffe479b04ab1cbcd9e4bc9af24e92e591",
-    "T-03": "4145c9764b9e7e0b9ee39ebde8d31443a61be416a9ee20fa5f3e889360430c38",
+    "T-03": "950b29b5fd94947144db6e68370b34a9ad246f0302948c11880fb0b4d99fbda2",
     "T-04": "6eaddb885c69f1b152aafaf42bc3fe73f66ec04bb4d19be6ee5dbd5147842f9d"
   },
   "github": {
