@@ -17,9 +17,12 @@ RUNS = [
     ("validate-c2-validator", "PASS", "c" * 40),
     ("fix-c3-eng", "PASS", "d" * 40),
     ("validate-c4-validator", "FAIL", "e" * 40),
-    ("validate-ship-validator", "PASS", PIN),
+    ("validate-ship-validator", "PASS", "9" * 40),   # GC-02: the bundle need not name the pin
+    ("briefing-reconciliation-validator", "PASS", "8" * 40),
+    ("distill-validator", "PASS", "7" * 40),
+    ("simplify-eng", "PASS", PIN),                   # bound to the pin by its bundle
 ]
-EXPECTED_KEPT = ["validate-c2-validator", "validate-ship-validator"]
+EXPECTED_KEPT = ["simplify-eng", "validate-c2-validator", "validate-ship-validator"]
 
 
 def check(name, condition, detail=""):
@@ -67,7 +70,7 @@ def dry_run_cases(root, feat):
 def retention_cases(root, feat):
     pruned = tool(root, "--feature", "FEAT-9-thing")
     kept = remaining(feat)
-    check("keeps the pin's run and the last PASS validate, drops the rest", kept == EXPECTED_KEPT, str(kept))
+    check("keeps every PASS validate run and any run bound to the pin; drops eng/fix/failed/reconciliation/distill", kept == EXPECTED_KEPT, str(kept))
     check("exit 0 and names what it removed", pruned.returncode == 0 and "fix-c3-eng" in pruned.stdout, pruned.stdout + pruned.stderr)
     extra = tool(root, "--feature", "FEAT-9-thing", "--keep", "validate-c2-validator")
     check("an explicit --keep is honoured and a second run is a no-op", extra.returncode == 0 and remaining(feat) == EXPECTED_KEPT, extra.stdout)
@@ -76,10 +79,12 @@ def retention_cases(root, feat):
 def refusal_cases(root):
     other = root / "other"
     checkout(other)
-    nopin = feature(other, [("validate-c1-validator", "PASS", "a" * 40)], review_sha=None)
+    nopin = feature(other, [("validate-c1-validator", "PASS", "a" * 40), ("build-eng", "PASS", "b" * 40)], review_sha="none")
     refused = tool(other, "--feature", "FEAT-9-thing")
-    untouched = (nopin / "runs" / "validate-c1-validator").exists()
-    check("refuses a feature with no review_sha — nothing shipped, nothing pruned", refused.returncode == 2 and untouched, refused.stderr)
+    untouched = (nopin / "runs" / "build-eng").exists()
+    check("refuses the placeholder review_sha 'none' — nothing shipped, nothing pruned", refused.returncode == 2 and untouched, refused.stderr)
+    typo = tool(root, "--feature", "FEAT-9-thing", "--keep", "validate-c2-validatr")
+    check("refuses a --keep that names no run directory", typo.returncode == 2 and "validate-c2-validatr" in typo.stderr, typo.stderr)
     absent = tool(root, "--feature", "FEAT-404")
     check("refuses an unknown feature", absent.returncode == 2, absent.stderr)
 

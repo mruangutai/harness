@@ -1072,6 +1072,34 @@ def case_feat64_unrelated_defect_escapes():
                  os.path.isdir(dest), f"dest={dest}")]
 
 
+def case_prototype_node_modules():
+    """#1995: a `node_modules/` anywhere under `.harness/` is removed by the sweep and named under
+    `--dry-run` but left standing; a `node_modules/` outside `.harness/` is not the sweep's."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _repo(os.path.join(tmp, "R"))
+        os.makedirs(os.path.join(repo, ".harness"), exist_ok=True)
+        with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as f:
+            f.write("schema: team-config/1\n")
+        sweep = _install_fixture_bin(repo)
+        leaked = os.path.join(repo, ".harness", "harness", "features", "FEAT-02-proto",
+                              "notes", "prototypes", "FEAT-02", "node_modules")
+        os.makedirs(os.path.join(leaked, "vite"))
+        legit = os.path.join(repo, "client", "node_modules")
+        os.makedirs(legit)
+        _gh_log, env = _stub_gh(tmp)
+
+        dry = subprocess.run([sweep, "--dry-run"], cwd=repo, capture_output=True, text=True, env=env)
+        results.append(("--dry-run names the leaked node_modules and leaves it",
+                         "would remove .harness/harness/features/FEAT-02-proto" in dry.stdout and os.path.isdir(leaked),
+                         f"stdout={dry.stdout!r}"))
+        wet = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
+        results.append(("sweep removes node_modules under .harness/ and nothing outside it",
+                         wet.returncode == 0 and not os.path.exists(leaked) and os.path.isdir(legit),
+                         f"exit={wet.returncode} stdout={wet.stdout!r} stderr={wet.stderr!r}"))
+    return results
+
+
 def main():
     results = (
         case_feat64_unrelated_defect_escapes()
@@ -1089,6 +1117,7 @@ def main():
         + case_t07_build_entry_receipt()
         + case_linked_worktree_main_checkout()
         + case_duplicate_receipt_inputs()
+        + case_prototype_node_modules()
     )
     ok = True
     for name, passed, detail in results:

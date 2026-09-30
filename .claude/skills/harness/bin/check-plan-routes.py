@@ -1781,7 +1781,7 @@ CHECKER_TABLE_MODULE = "table"
 # row's run function. A row absent here is a finding -- a new invariant names its family in
 # the lock before it lands, which is the placement rule with teeth.
 ROW_FAMILIES = {
-    "plan": ("INV-35", "INV-3", "INV-4", "INV-5", "INV-34", "INV-32", "INV-44"),
+    "plan": ("INV-35", "INV-3", "INV-4", "INV-5", "INV-34", "INV-32", "INV-44", "INV-51"),
     "feature_record": ("INV-1", "INV-2", "INV-6", "INV-7", "INV-8", "INV-12", "INV-18", "INV-22",
                        "INV-23", "INV-33", "INV-39", "INV-40", "INV-43", "INV-47"),
     "run_state": ("INV-15", "INV-16", "INV-36", "INV-46"),

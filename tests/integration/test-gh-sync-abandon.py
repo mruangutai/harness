@@ -57,10 +57,12 @@ def main():
         runsA = os.path.join(featA, "runs")
         os.makedirs(os.path.join(runsA, "validate-c1-validator", "ui", "evidence"))
         open(os.path.join(runsA, "validate-c1-validator", "ui", "evidence", "shot.webp"), "wb").write(b"RIFF")
-        open(os.path.join(featA, "notes", "abandon.md") if os.path.isdir(os.path.join(featA, "notes")) else os.path.join(featA, "abandon-note.md"), "w").write("kept\n")
+        noteA = os.path.join(featA, "abandon-note.md")
+        open(noteA, "w").write("kept\n")
         r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
         check("abandon --yes removes the feature's runs/ evidence (#1996)",
               not os.path.exists(runsA) and "removed runs/validate-c1-validator" in r.stdout, r.stdout + r.stderr)
+        check("abandon prunes only runs/: the feature's notes stay", os.path.exists(noteA) and os.path.exists(os.path.join(featA, "feature.json")))
         logA = calls(tmpA)
         patchedA = [l for l in logA if "api -X PATCH" in l and "issues/" in l and "state_reason=not_planned" in l]
         check("abandon closes 3 subs not_planned",

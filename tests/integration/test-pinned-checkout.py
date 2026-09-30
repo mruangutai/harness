@@ -30,8 +30,11 @@ def tool(cwd, *args):
     return subprocess.run([sys.executable, str(TOOL), *args], cwd=cwd, capture_output=True, text=True)
 
 
-def add(repo, run_id, sha):
-    return tool(repo, "add", "--run-id", run_id, "--sha", sha)
+KEY = ("--feature", "FEAT-9-thing", "--persona")
+
+
+def add(repo, run_id, sha, persona="qa"):
+    return tool(repo, "add", *KEY, persona, "--run-id", run_id, "--sha", sha)
 
 
 def make_repo(tmp):
@@ -59,7 +62,7 @@ def add_cases(repo, first):
     added = add(repo, "validate-c1-qa", first)
     path = added.stdout.strip()
     check("add prints the checkout path and exits 0", added.returncode == 0 and bool(path), added.stderr)
-    check("checkout lives under the disposable pins root", Path(path).resolve() == pins_root(repo) / "validate-c1-qa", path)
+    check("checkout lives under the disposable pins root", Path(path).resolve() == pins_root(repo) / "FEAT-9-thing--validate-c1-qa--qa", path)
     at_pin = git(path, "rev-parse", "HEAD") == first and (Path(path) / "a.txt").read_text() == "one\n"
     check("checkout is detached at exactly the pin", at_pin)
     again = add(repo, "validate-c1-qa", first)
@@ -74,13 +77,19 @@ def add_refusal_cases(repo, first):
     check("add refuses an abbreviated sha", short.returncode == 2 and "40-hex" in short.stderr, short.stderr)
     missing = add(repo, "validate-c3-qa", "0" * 40)
     check("add refuses a sha the repository does not have", missing.returncode == 2 and "not a commit" in missing.stderr, missing.stderr)
+    other = add(repo, "validate-c1-qa", first, persona="code")
+    same_run_own_tree = other.returncode == 0 and other.stdout.strip() != str(pins_root(repo) / "FEAT-9-thing--validate-c1-qa--qa")
+    check("a second reader on the same run id gets its own checkout", same_run_own_tree, other.stdout + other.stderr)
+    dashed = tool(repo, "add", "--feature", "FEAT-9--x", "--persona", "qa", "--run-id", "r", "--sha", first)
+    check("a key part containing '--' is refused (the separator)", dashed.returncode == 2, dashed.stderr)
 
 
 def remove_cases(repo, path):
-    removed = tool(repo, "remove", "--run-id", "validate-c1-qa")
-    gone = not Path(path).exists() and "validate-c1-qa" not in git(repo, "worktree", "list")
-    check("remove deletes the checkout and its worktree entry", removed.returncode == 0 and gone, removed.stderr)
-    check("remove of an absent run is a no-op success", tool(repo, "remove", "--run-id", "validate-c1-qa").returncode == 0)
+    removed = tool(repo, "remove", *KEY, "qa", "--run-id", "validate-c1-qa")
+    listed = git(repo, "worktree", "list")
+    gone = not Path(path).exists() and "validate-c1-qa--qa" not in listed and "validate-c1-qa--code" in listed
+    check("remove deletes this reader's checkout and worktree entry, not the other reader's", removed.returncode == 0 and gone, removed.stderr)
+    check("remove of an absent run is a no-op success", tool(repo, "remove", *KEY, "qa", "--run-id", "validate-c1-qa").returncode == 0)
 
 
 def sweep_cases(repo, first):
@@ -95,9 +104,21 @@ def sweep_cases(repo, first):
     check("sweep --dry-run names the checkout and leaves it", dry.returncode == 0 and fresh.exists() and "validate-c5-qa" in dry.stdout, dry.stdout)
 
 
+def classify_cases(repo, first):
+    """A pin is not a feature worktree: worktree_terminal.classify must not emit it as an
+    unresolved record, or INV-29 turns every session's check-state red for the run's whole life."""
+    sys.path.insert(0, str(TOOL.parent))
+    import worktree_terminal
+    add(repo, "validate-c6-qa", first)
+    records = worktree_terminal.classify(str(repo))
+    pins = [r for r in records if ".pins" in r["path"]]
+    check("classify skips pinned checkouts (no INV-29 unresolved record)", pins == [], str(pins))
+
+
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         repo, first = make_repo(tmp)
+        classify_cases(repo, first)
         path = add_cases(repo, first)
         add_refusal_cases(repo, first)
         remove_cases(repo, path)

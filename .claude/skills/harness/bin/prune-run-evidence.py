@@ -5,8 +5,9 @@ The UI lane commits `runs/<id>/ui/` (results.json + WebPs) per run so a reader's
 bound to a pin (FEAT-1821). Nothing pruned them: two features reached 98 run ids. At ship the
 evidence that still means something is
 
-  * every run whose results.json names the shipped `review_sha` as served_bundle_commit, and
-  * the last validate run recorded PASS before that pin,
+  * every validate run (`validate-…`, squad validator) recorded PASS — a reader's judgement lives
+    in its validate run's directory, so this keeps the last PASS of every reader, and
+  * every run whose results.json names the shipped `review_sha` as served_bundle_commit,
 
 plus anything named with --keep. Every other `runs/<id>/` directory under the feature is deleted
 in the ship commit; the digests and notes that cite them stay (a pointer to pruned evidence is a
@@ -24,6 +25,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary  # noqa: E402
+import harness_yaml  # noqa: E402
 
 
 def _refuse(message):
@@ -50,24 +52,29 @@ def _served_commit(run_dir):
         return None
 
 
-def _last_pass_validate(record, pin_runs):
-    """The most recent validate run recorded PASS that is not already kept for the pin."""
-    for run in reversed(record.get("runs") or []):
-        if run.get("squad") == "validator" and run.get("verdict") == "PASS" and run.get("id") not in pin_runs:
-            return run.get("id")
-    return None
+def _is_validate_run(run):
+    """A validate run is the one whose runs/<id>/ the readers write their evidence into; its id
+    is `validate-…` and its squad is validator. Reconciliation and distill runs share the squad
+    and are not evidence (reviewer finding on FEAT-1821: `distill-validator` was the sole keeper)."""
+    return run.get("squad") == "validator" and str(run.get("id", "")).startswith("validate-")
+
+
+def _passing_validate_runs(record):
+    return {run.get("id") for run in record.get("runs") or [] if _is_validate_run(run) and run.get("verdict") == "PASS"}
 
 
 def keep_set(feature_dir, record, explicit):
+    """What stays: every validate run recorded PASS (a reader's judgement lives in its validate
+    run's directory, so this is 'the last PASS of each reader' and every earlier PASS too),
+    every run whose bundle names the shipped pin, and anything named with --keep. feature.json
+    runs carry no sha of their own, and served_bundle_commit need not equal a later
+    evidence-commit review_sha (FEAT-1821 GC-02), so neither key alone is trusted."""
     pin = record.get("review_sha")
     runs_dir = os.path.join(feature_dir, "runs")
-    present = sorted(os.listdir(runs_dir)) if os.path.isdir(runs_dir) else []
+    present = sorted(name for name in os.listdir(runs_dir)
+                     if os.path.isdir(os.path.join(runs_dir, name))) if os.path.isdir(runs_dir) else []
     pin_runs = {name for name in present if _served_commit(os.path.join(runs_dir, name)) == pin}
-    keep = set(pin_runs) | set(explicit)
-    last = _last_pass_validate(record, pin_runs)
-    if last:
-        keep.add(last)
-    return present, keep
+    return present, pin_runs | _passing_validate_runs(record) | set(explicit)
 
 
 def _build_parser():
@@ -89,7 +96,8 @@ def _load_record(args):
         return f"no feature {args.feature!r} under {root}"
     with open(os.path.join(feature_dir, "feature.json"), encoding="utf-8") as handle:
         record = json.load(handle)
-    if not record.get("review_sha"):
+    pin = record.get("review_sha")
+    if not isinstance(pin, str) or pin.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
         return f"{args.feature} has no review_sha — nothing is shipped, so nothing is pruned"
     return feature_dir, record
 
@@ -113,6 +121,9 @@ def main(argv=None):
         return _refuse(loaded)
     feature_dir, record = loaded
     present, keep = keep_set(feature_dir, record, args.keep)
+    unmatched = sorted(set(args.keep) - set(present))
+    if unmatched:
+        return _refuse(f"--keep names no run directory: {', '.join(unmatched)}")
     _prune(feature_dir, present, keep, args.dry_run)
     return 0
 

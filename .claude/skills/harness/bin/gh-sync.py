@@ -1724,8 +1724,11 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     # this write's business). Reaching here already proves `skip()` did not fire.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
-    _prune_abandoned_runs(feat_dir)
     _record_station(feat_dir, "abandoned")
+    # After the station, never before: the station is the record every reader keys on, and a
+    # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues with
+    # no station. INV-51 catches a prune that did not happen.
+    _prune_abandoned_runs(feat_dir)
 
 
 def _apply_abandon_plan(plan, rec, repo, reason_file, close_and_reseat):

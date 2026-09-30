@@ -43,6 +43,7 @@ _bootstrap_sys.path[:] = [
     if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
 ]
 import os
+import shutil
 import subprocess
 import sys
 
@@ -331,7 +332,25 @@ def main():
     for rec in records:
         _handle_record(rec, main_checkout_root, cwd_real)
     _sweep_pinned_checkouts(main_checkout_root)
+    _sweep_prototype_node_modules(main_checkout_root)
     return 0
+
+
+def _sweep_prototype_node_modules(main_checkout_root):
+    """#1995: a prototype under `.harness/**` never gets its own `npm install`; the ignore rule
+    keeps a leaked one out of git, and this removes it so it does not stay on disk unseen
+    (FEAT-53's 131 MB). Dry-run stays dry."""
+    harness_root = os.path.join(main_checkout_root, ".harness")
+    for dirpath, dirnames, _files in os.walk(harness_root):
+        if "node_modules" not in dirnames:
+            continue
+        target = os.path.join(dirpath, "node_modules")
+        dirnames.remove("node_modules")
+        if DRY_RUN:
+            print(f"post-merge-sweep: node_modules: would remove {os.path.relpath(target, main_checkout_root)}")
+            continue
+        shutil.rmtree(target, ignore_errors=True)
+        print(f"post-merge-sweep: node_modules: removed {os.path.relpath(target, main_checkout_root)}")
 
 
 def _sweep_pinned_checkouts(main_checkout_root):

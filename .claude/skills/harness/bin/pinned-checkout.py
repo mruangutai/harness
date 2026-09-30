@@ -3,11 +3,12 @@
 
 A reader that must judge the exact `review_sha` checks it out here, never with a bare
 `git worktree add --detach` into a path nobody sweeps. Every checkout lives under ONE root,
-`<owner>/.claude/worktrees/.pins/<run-id>/`, so `remove` needs only the run id and `sweep`
-can find what a dead run left behind.
+`<owner>/.claude/worktrees/.pins/<feature>--<run-id>--<persona>/`. One reader's checkout is
+its own: a validator-lead starts qa, code, security, ui and pm on the same run id at once, and
+run ids repeat across features, so the key is all three. `sweep` finds what a dead run left.
 
-  add    --run-id R --sha S     print the checkout path (idempotent for the same pin)
-  remove --run-id R             delete the checkout and its worktree registration
+  add    --feature F --run-id R --persona P --sha S   print the checkout path (idempotent for the same pin)
+  remove --feature F --run-id R --persona P          delete the checkout and its worktree registration
   sweep  [--older-than-hours H] [--dry-run]   remove checkouts untouched for H hours (default 24)
 
 The checkout carries no node_modules, no build and no evidence of its own; the reader installs
@@ -23,7 +24,6 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary  # noqa: E402
 
-PINS_SEGMENT = ".pins"
 SHA_LEN = 40
 
 
@@ -48,17 +48,30 @@ def _owner_root():
 
 
 def _pins_root(owner_root):
-    return os.path.join(owner_root, harness_boundary.WORKTREES_SEGMENT, PINS_SEGMENT)
+    return os.path.join(owner_root, harness_boundary.WORKTREES_SEGMENT, harness_boundary.PINS_SEGMENT)
 
 
-def _valid_run_id(run_id):
-    return bool(run_id) and "/" not in run_id and run_id not in (".", "..")
+def _valid_segment(value):
+    return bool(value) and "/" not in value and "--" not in value and value not in (".", "..")
+
+
+def _pin_name(args):
+    """None when a key part is unusable, else the one directory name for this reader's checkout."""
+    parts = (args.feature, args.run_id, args.persona)
+    if not all(_valid_segment(part) for part in parts):
+        return None
+    return "--".join(parts)
+
+
+def _is_own_worktree(dest):
+    top = _git(dest, "rev-parse", "--show-toplevel")
+    return top.returncode == 0 and os.path.realpath(top.stdout.strip()) == os.path.realpath(dest)
 
 
 def _pin_refusal(owner_root, args):
     """The reason `add` cannot proceed, or None."""
-    if not _valid_run_id(args.run_id):
-        return f"run id {args.run_id!r} must be one path segment"
+    if _pin_name(args) is None:
+        return "--feature, --run-id and --persona must each be one path segment without '--'"
     sha = args.sha.strip().lower()
     if len(sha) != SHA_LEN or any(c not in "0123456789abcdef" for c in sha):
         return f"sha {args.sha!r} must be the full 40-hex commit id, never abbreviated"
@@ -68,6 +81,8 @@ def _pin_refusal(owner_root, args):
 
 
 def _existing_pin_refusal(dest, sha):
+    if not _is_own_worktree(dest):
+        return f"{dest} exists but is not a checkout of its own; remove it first"
     head = _git(dest, "rev-parse", "HEAD").stdout.strip()
     if head == sha:
         return None
@@ -79,7 +94,7 @@ def cmd_add(owner_root, args):
     if refusal:
         return _refuse(refusal)
     sha = args.sha.strip().lower()
-    dest = os.path.join(_pins_root(owner_root), args.run_id)
+    dest = os.path.join(_pins_root(owner_root), _pin_name(args))
     if os.path.isdir(dest):
         refusal = _existing_pin_refusal(dest, sha)
         if refusal:
@@ -103,9 +118,10 @@ def _remove_one(owner_root, dest):
 
 
 def cmd_remove(owner_root, args):
-    if not _valid_run_id(args.run_id):
-        return _refuse(f"run id {args.run_id!r} must be one path segment")
-    dest = os.path.join(_pins_root(owner_root), args.run_id)
+    name = _pin_name(args)
+    if name is None:
+        return _refuse("--feature, --run-id and --persona must each be one path segment without '--'")
+    dest = os.path.join(_pins_root(owner_root), name)
     if not os.path.exists(dest):
         return 0
     return 0 if _remove_one(owner_root, dest) else _refuse(f"could not remove {dest}")
@@ -122,22 +138,28 @@ def cmd_sweep(owner_root, args):
     pins = _pins_root(owner_root)
     if not os.path.isdir(pins):
         return 0
-    verb = "would remove" if args.dry_run else "removed"
+    failed = 0
     for name, dest in _stale_pins(pins, time.time() - args.older_than_hours * 3600):
-        print(f"{verb} {name}")
-        if not args.dry_run:
-            _remove_one(owner_root, dest)
-    return 0
+        if args.dry_run:
+            print(f"would remove {name}")
+        elif _remove_one(owner_root, dest):
+            print(f"removed {name}")
+        else:
+            failed += 1
+            print(f"could not remove {name}", file=sys.stderr)
+    return 1 if failed else 0
 
 
 def _build_parser():
     parser = argparse.ArgumentParser(prog="pinned-checkout.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_add = sub.add_parser("add")
-    p_add.add_argument("--run-id", required=True)
-    p_add.add_argument("--sha", required=True)
     p_remove = sub.add_parser("remove")
-    p_remove.add_argument("--run-id", required=True)
+    for sub_parser in (p_add, p_remove):
+        sub_parser.add_argument("--feature", required=True)
+        sub_parser.add_argument("--run-id", required=True)
+        sub_parser.add_argument("--persona", required=True)
+    p_add.add_argument("--sha", required=True)
     p_sweep = sub.add_parser("sweep")
     p_sweep.add_argument("--older-than-hours", type=float, default=24.0)
     p_sweep.add_argument("--dry-run", action="store_true")
