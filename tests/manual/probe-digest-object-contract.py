@@ -68,6 +68,7 @@ UNDER_TEST = (
     ".claude/skills/harness/bin/digest_schema.py",
     ".claude/skills/harness/bin/digest-schemas/harness-documentor.json",
     ".claude/skills/harness/bin/digest-schemas/common.json",
+    "tests/manual/probe-digest-object-contract.py",
 )
 # Only fields the documentor schema has and no other persona's does prove the bundle is its own.
 PERSONA_FIELDS = ('"docs_updated"', '"stale_found"')
@@ -209,7 +210,7 @@ def valid_object(artifact_rel: str) -> dict:
         "DIGEST": {
             "headline": "FEAT-1928 live digest-object probe child settled",
             "open_questions": [], "files_touched": [], "expertise_update": [],
-            "docs_updated": [], "gaps": [],
+            "docs_updated": [], "gaps": [], "stale_found": [],
         },
         "artifact": artifact_rel,
     }
@@ -503,7 +504,7 @@ def derive(records: list[dict]) -> dict:
 
 def without_nulls(value):
     """`value` with every null-valued key dropped. A strict provider grammar (OpenAI's) makes
-    each optional property nullable, so the model sends `stale_found: null`; OMP strips an
+    each optional property nullable, so the model may send `<optional>: null`; OMP strips an
     optional null before the tool runs (ai/src/utils/validation.ts), and the structured-output
     check below shows the object OMP actually accepted."""
     if isinstance(value, dict):
@@ -582,8 +583,10 @@ def harness_identity() -> dict:
 
 def run_live(args, expected: dict, artifact: Path) -> dict:
     log = Path(os.environ.get("TMPDIR", "/tmp")) / f"feat1928-digest-probe-{os.getpid()}.log"
+    # Identity is taken before the probe writes anything: its own receipt and transcript are
+    # tracked files, and rewriting them must not read as an uncommitted change under test.
     meta = {"started_at": utc_now(), "stderr_log": str(log).replace(HOME, "~"),
-            "injected_bundle_sha256": injected_bundle_sha()}
+            "injected_bundle_sha256": injected_bundle_sha(), "harness": harness_identity()}
     artifact.parent.mkdir(parents=True, exist_ok=False)
     artifact.write_text("# FEAT-1928 live digest-object probe artifact\n\nDeleted after the run.\n",
                         encoding="utf-8")
@@ -633,7 +636,7 @@ def build_record(args, run: dict, expected: dict, transcript_sha: str) -> dict:
         "cwd": "<worktree>",
         "omp": {"launcher": str(omp).replace(HOME, "~"), "runtime": str(runtime).replace(HOME, "~"),
                 "sha": head, "pin": pinned_commit()},
-        "harness": harness_identity(),
+        "harness": run["harness"],
         "provider": args.provider,
         "main_model": args.model,
         "child_model": evidence["job"]["resolved_model"],
@@ -750,6 +753,14 @@ def verify(receipt: Path) -> int:
     check("the Harness HEAD is a commit in this repository", bool(re.fullmatch(r"[0-9a-f]{40}", head))
           and subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"{head}^{{commit}}"],
                              capture_output=True).returncode == 0, head)
+    check("the run was taken at a clean tree: no uncommitted paths",
+          record["harness"].get("uncommitted_paths") == 0, record["harness"].get("uncommitted_paths"))
+    committed = {rel: hashlib.sha256(subprocess.run(["git", "-C", str(ROOT), "show", f"{head}:{rel}"],
+                                                    capture_output=True).stdout).hexdigest()
+                 for rel in UNDER_TEST}
+    check("every file under test is byte-identical to that commit's",
+          committed == record["harness"].get("under_test_sha256"),
+          {rel for rel in UNDER_TEST if committed[rel] != record["harness"]["under_test_sha256"].get(rel)})
     check("the recorded run passed and exited 0",
           record.get("verdict") == "PASS" and not record.get("failed")
           and record["exit_status"]["probe_exit"] == 0 and record["exit_status"]["job_exit_code"] == 0,
