@@ -55,6 +55,19 @@ A genuine `FAIL` looks like a **named** test with an assertion diff. Misconfigur
 `MODULE_NOT_FOUND`, `ImportError`, `No test files found`, a collection `ERROR`, or a "test" whose name is
 a file path.
 
+**Need the tree at the pin, not the attached worktree? Use the disposable pin checkout (#1994).**
+Never a bare `git worktree add --detach` into a path nobody sweeps — sixteen of those, at ~800 MB
+each with `node_modules`, leaked from one feature. From the feature worktree:
+
+```sh
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py add --run-id <run-id> --sha "$review_sha"   # prints the path
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py remove --run-id <run-id>                    # on return, always
+```
+
+It lives under `.claude/worktrees/.pins/<run-id>/`, refuses an abbreviated or unknown sha, and the
+post-merge sweep removes anything a dead run leaves behind after a day. Install and build inside it;
+copy evidence out to the feature's `runs/<run-id>/` before removing.
+
 ## Audit test-first compliance
 
 Beyond presence: for each behavioural change in the diff, confirm a test covers it, and where git history

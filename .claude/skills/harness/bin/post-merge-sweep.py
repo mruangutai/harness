@@ -330,7 +330,22 @@ def main():
     # as a clean run.
     for rec in records:
         _handle_record(rec, main_checkout_root, cwd_real)
+    _sweep_pinned_checkouts(main_checkout_root)
     return 0
+
+
+def _sweep_pinned_checkouts(main_checkout_root):
+    """#1994: a validator's detached checkout at a pin lives under `.claude/worktrees/.pins/` and
+    is removed on the reader's return; a dead run leaves it behind. Sweep what is older than a
+    day. Dry-run stays dry."""
+    argv = ["python3", os.path.join(BIN_DIR, "pinned-checkout.py"), "sweep", "--older-than-hours", "24"]
+    if DRY_RUN:
+        argv.append("--dry-run")
+    proc = subprocess.run(argv, cwd=main_checkout_root, capture_output=True, text=True)
+    for line in proc.stdout.splitlines():
+        print(f"post-merge-sweep: pins: {line}")
+    if proc.returncode != 0:
+        print(f"post-merge-sweep: pins sweep exited {proc.returncode}: {proc.stderr.strip()}")
 
 
 sys.exit(main())

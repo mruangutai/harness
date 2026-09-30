@@ -19,6 +19,10 @@
 # Worktrees live inside .claude/ in some projects and must never be committed
 # or scanned as source (they duplicate every file).
 .claude/worktrees/
+# A prototype under notes/prototypes/<FEAT>/ is source only (#1995): serving it uses the
+# dashboard client's toolchain, never an `npm install` inside .harness/ — 131 MB of untracked
+# node_modules replicated into every worktree and outside every sweep.
+.harness/**/node_modules/
 
 # harness: compiled bytecode and merge-settings backups are never committed
 __pycache__/
