@@ -183,7 +183,7 @@ needs_approval: true
 tasks:
   - id: T-01
     title: Establish canonical persona schemas and adapters
-    status: ready
+    status: review
     depends_on: []
     traces:
     - SC-03
@@ -227,7 +227,7 @@ tasks:
       The live-schema unit test must enumerate all 16 personas, prove representative valid objects pass, and prove missing, extra, wrong-type, and near-miss enum objects fail. The durable-reader unit test owns historical selection and byte preservation separately. Update canonical-reader-classification.json with canonical rows for every detected read in digest_schema.py and digest_record.py, set every new row's execution_route to main-session-direct, add both module paths to scanned_files, and run the canonical-reader self-test.
   - id: T-02
     title: Hard-cut runtime, readers, and returns to digest objects
-    status: ready
+    status: review
     depends_on: [T-01]
     traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08]
     change_type: cross_module
@@ -310,7 +310,7 @@ tasks:
       Update the current prescriptive sections of SPEC.md, BUILD.md, org.html, and .harness/README.md so live agent returns are typed objects, the hook injects and validates schemas, and only validate-digest.py owns the appended fenced YAML block. Remove parser, template-echo, last-message fallback, agent-authored fence, and issue 1676 repair instructions from current doctrine, while leaving clearly historical narratives historical. State that broader provider-neutral wording for hook policy and AGENTS.md is not part of this feature. Document the operator failure path for forbidden dispatch schema keys, invalid object returns, unsafe artifact writes, and a failed live host gate without implying that unit tests can satisfy the live gate. Run the decision generator test and exact index diff.
   - id: T-04
     title: Migrate plan digest readers after FEAT-70
-    status: ready
+    status: review
     depends_on: [T-01]
     traces: [SC-07]
     change_type: cross_module
