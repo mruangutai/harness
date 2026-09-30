@@ -1677,6 +1677,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     if not yes:
         for _kind, _num, line in plan:
             print(f"gh-sync: would {line}")
+        _prune_abandoned_runs(feat_dir, dry_run=True)
         print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
               "close the issues listed above")
         return
@@ -1714,46 +1715,74 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
             print(f"gh-sync: ERROR - #{num} closed but not labelled `abandoned`: {out}",
                   file=sys.stderr)
 
-    for kind, num, _line in plan:
-        if kind == "comment":
-            ok, out = gh_try(["issue", "comment", str(num), "--repo", repo,
-                              "--body-file", reason_file])
-            if ok:
-                print(f"gh-sync: reason posted on parent #{num}")
-            else:
-                print(f"gh-sync: ERROR - reason not posted on parent #{num}: {out}",
-                      file=sys.stderr)
-        elif kind == "issue":
-            if rec["parent"] is not None:
-                _detach_from_parent(repo, rec["parent"], num)
-            _close_and_reseat(num, "issue")
-        elif kind == "milestone":
-            ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/milestones/{num}",
-                              "-f", "state=closed"])
-            if ok:
-                print(f"gh-sync: milestone #{num} closed")
-            else:
-                print(f"gh-sync: ERROR - milestone #{num} not closed: {out}",
-                      file=sys.stderr)
-        elif kind == "parent":
-            _close_and_reseat(num, "parent")
+    _apply_abandon_plan(plan, rec, repo, reason_file, _close_and_reseat)
 
-    if failed:
-        nums = ", ".join(f"#{n}" for n in failed)
-        print(f"gh-sync: FAILED {len(failed)} of {len(plan)} — {nums} did not close and "
-              f"nothing downstream reports it")
-
-    if rec["parent"] is None:
-        print("gh-sync: no parent recorded — reason not posted")
-    if rec["milestone"] is None:
-        print("gh-sync: no milestone recorded — nothing to close")
+    _report_abandon_gaps(failed, plan, rec)
 
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above (that guard is a conjunction with the issues check, not
     # this write's business). Reaching here already proves `skip()` did not fire.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
+    _prune_abandoned_runs(feat_dir)
     _record_station(feat_dir, "abandoned")
+
+
+def _apply_abandon_plan(plan, rec, repo, reason_file, close_and_reseat):
+    """Every write in the plan, in plan order; one failure never stops the next (see cmd_abandon)."""
+    for kind, num, _line in plan:
+        if kind == "comment":
+            _post_abandon_reason(repo, num, reason_file)
+        elif kind == "issue":
+            if rec["parent"] is not None:
+                _detach_from_parent(repo, rec["parent"], num)
+            close_and_reseat(num, "issue")
+        elif kind == "milestone":
+            _close_milestone(repo, num)
+        elif kind == "parent":
+            close_and_reseat(num, "parent")
+
+
+def _post_abandon_reason(repo, num, reason_file):
+    ok, out = gh_try(["issue", "comment", str(num), "--repo", repo, "--body-file", reason_file])
+    if ok:
+        print(f"gh-sync: reason posted on parent #{num}")
+    else:
+        print(f"gh-sync: ERROR - reason not posted on parent #{num}: {out}", file=sys.stderr)
+
+
+def _close_milestone(repo, num):
+    ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/milestones/{num}", "-f", "state=closed"])
+    if ok:
+        print(f"gh-sync: milestone #{num} closed")
+    else:
+        print(f"gh-sync: ERROR - milestone #{num} not closed: {out}", file=sys.stderr)
+
+
+def _report_abandon_gaps(failed, plan, rec):
+    if failed:
+        nums = ", ".join(f"#{n}" for n in failed)
+        print(f"gh-sync: FAILED {len(failed)} of {len(plan)} — {nums} did not close and "
+              f"nothing downstream reports it")
+    if rec["parent"] is None:
+        print("gh-sync: no parent recorded — reason not posted")
+    if rec["milestone"] is None:
+        print("gh-sync: no milestone recorded — nothing to close")
+
+
+def _prune_abandoned_runs(feat_dir, dry_run=False):
+    """#1996: an abandoned feature's `runs/` evidence has no reader left. FEAT-53's 380 WebPs
+    (49 MB) rode on its successor's branch for a week because abandon recorded the decision and
+    kept the artifacts. Every `runs/<id>/` goes; notes and digests that cite them stay. The dry
+    run names them, as it names every other write."""
+    runs_dir = os.path.join(feat_dir, "runs")
+    if not os.path.isdir(runs_dir):
+        return
+    verb = "would remove" if dry_run else "removed"
+    for name in sorted(os.listdir(runs_dir)):
+        print(f"gh-sync: {verb} runs/{name}")
+    if not dry_run:
+        shutil.rmtree(runs_dir)
 
 
 def _reject_successor(value):

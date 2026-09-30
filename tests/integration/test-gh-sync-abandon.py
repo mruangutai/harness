@@ -54,7 +54,13 @@ def main():
         )
         reasonA = os.path.join(tmpA, "reason.txt")
         open(reasonA, "w").write("budget cut — deprioritized this quarter")
+        runsA = os.path.join(featA, "runs")
+        os.makedirs(os.path.join(runsA, "validate-c1-validator", "ui", "evidence"))
+        open(os.path.join(runsA, "validate-c1-validator", "ui", "evidence", "shot.webp"), "wb").write(b"RIFF")
+        open(os.path.join(featA, "notes", "abandon.md") if os.path.isdir(os.path.join(featA, "notes")) else os.path.join(featA, "abandon-note.md"), "w").write("kept\n")
         r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
+        check("abandon --yes removes the feature's runs/ evidence (#1996)",
+              not os.path.exists(runsA) and "removed runs/validate-c1-validator" in r.stdout, r.stdout + r.stderr)
         logA = calls(tmpA)
         patchedA = [l for l in logA if "api -X PATCH" in l and "issues/" in l and "state_reason=not_planned" in l]
         check("abandon closes 3 subs not_planned",
@@ -356,7 +362,10 @@ def main():
     # --- without --yes: it makes NO write at all ---------------------------------------------------
     with tempfile.TemporaryDirectory() as tmpA1:
         featA1, reasonA1 = _abandon_fixture(tmpA1)
+        os.makedirs(os.path.join(featA1, "runs", "validate-c1-validator", "ui"))
         r = run(["abandon", featA1, "--reason-file", reasonA1], tmpA1)
+        check("abandon dry run: names the runs/ it would remove and leaves it (#1996)",
+              os.path.isdir(os.path.join(featA1, "runs", "validate-c1-validator")) and "would remove runs/validate-c1-validator" in r.stdout, r.stdout)
         logA1 = calls(tmpA1)
         wouldA1 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: would ")]
         check("abandon dry run: exits 0", r.returncode == 0, r.stdout + r.stderr)

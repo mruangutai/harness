@@ -19,7 +19,7 @@ from check_state.feature_record import (
     inv_8,
 )
 from check_state.host import inv_19, inv_42, inv_45, inv_48
-from check_state.plan import inv_3, inv_32, inv_34, inv_35, inv_4, inv_44, inv_5
+from check_state.plan import inv_3, inv_32, inv_34, inv_35, inv_4, inv_44, inv_5, inv_51
 from check_state.run_state import inv_15, inv_16, inv_36, inv_46
 from check_state.seams import inv_17
 from check_state.worktrees import inv_25, inv_27, inv_29, inv_31
@@ -217,6 +217,10 @@ INVARIANTS = (
         Inv("INV-47", inv_47, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/notes/review-harness-*.md"),
             "a validate run recorded PASS has no same-cycle member review at FAIL or BLOCKED", "DEC-156"),
     ), collate=collate_feat59),
+    Group("abandoned-evidence", (
+        Inv("INV-51", inv_51, "feature", (_PLAN_YAML, "path:.harness/*/features/*/runs/*/"),
+            "an abandoned feature carries no runs/ evidence", "#1996"),
+    )),
     Group("rejected-shape", (
         Inv("INV-44", inv_44, "feature", (_FEATURE_JSON, _PLAN_YAML, _BRIEF),
             "a REJECTED record has exactly one shape: one run, zero cycles, a reject judgement, nothing signed", "DEC-230"),
