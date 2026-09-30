@@ -7932,7 +7932,7 @@ least often per spawn is the one to pay per read. Budget after the wave is in
 `check-skill-weight.py`'s output on the landing commit; the optimization pass that preceded this
 (57.2k → 50.7k) is what made room.
 
-## DEC-237 — Run evidence has a reader or it has no home: ship keeps the passing validate runs, abandon keeps nothing, and a checkout at a pin is disposable
+## DEC-238 — Run evidence has a reader or it has no home: ship keeps the passing validate runs, abandon keeps nothing, and a checkout at a pin is disposable
 
 A feature's `runs/<id>/` is evidence for one reader: the goal-check at ship, and a later reader
 who re-opens the shipped pin. Nothing else reads it, and it is the bulk of what a feature carries
@@ -7944,12 +7944,12 @@ is therefore a function of station, applied by the command that moves the statio
   station, after the station is written so a failed prune leaves closed issues with a station and
   a finding rather than no station. `check-state` **INV-51** (`abandoned-evidence`): a feature
   at station `abandoned` still holding `runs/` is a VIOLATION naming the run ids.
-- **Ship keeps the record and drops the rest.** `prune-run-evidence.py` keeps every validate run
-  (`validate-…`, squad validator) recorded PASS — a reader's judgement lives in its validate run's
-  directory, so that is the last PASS of every reader and every earlier PASS — and every run whose
-  `results.json` names the shipped `review_sha`; it deletes engineering, fix, product,
-  reconciliation and distill run directories, and refuses a feature whose `review_sha` is unset
-  or a `PLACEHOLDER_UNSET` value. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
+- **Ship keeps the record and drops the rest.** `prune-run-evidence.py` keeps every validator-squad
+  validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — the validator-lead hosts the fix
+  team too, so after a failed validate a reader's last PASS lives in a fix run — and every run
+  whose `results.json` names the shipped `review_sha`; it deletes engineering, product,
+  reconciliation and distill run directories, and refuses a feature whose `review_sha` is unset,
+  empty or a `PLACEHOLDER_UNSET` value. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
   committed at all (`runs/*/ui/traces/` is ignored); the gate reads them from disk.
 - **A checkout at a pin is disposable and keyed to one reader.** A validator that needs the tree
   at `review_sha` takes it from `pinned-checkout.py add --feature --run-id --persona --sha`, under

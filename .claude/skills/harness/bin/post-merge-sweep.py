@@ -350,7 +350,8 @@ def _sweep_prototype_node_modules(main_checkout_root):
             print(f"post-merge-sweep: node_modules: would remove {os.path.relpath(target, main_checkout_root)}")
             continue
         shutil.rmtree(target, ignore_errors=True)
-        print(f"post-merge-sweep: node_modules: removed {os.path.relpath(target, main_checkout_root)}")
+        outcome = "could not remove" if os.path.lexists(target) else "removed"
+        print(f"post-merge-sweep: node_modules: {outcome} {os.path.relpath(target, main_checkout_root)}")
 
 
 def _sweep_pinned_checkouts(main_checkout_root):

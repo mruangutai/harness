@@ -1719,9 +1719,10 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
     _report_abandon_gaps(failed, plan, rec)
 
-    # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
-    # the milestone check above (that guard is a conjunction with the issues check, not
-    # this write's business). Reaching here already proves `skip()` did not fire.
+    # LAST GITHUB-VISIBLE STATEMENT of the successful path (T-01/FEAT-23) — structural, not
+    # re-gated on the milestone check above (that guard is a conjunction with the issues check,
+    # not this write's business). Reaching here already proves `skip()` did not fire. The prune
+    # that follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
     _record_station(feat_dir, "abandoned")

@@ -219,7 +219,7 @@ INVARIANTS = (
     ), collate=collate_feat59),
     Group("abandoned-evidence", (
         Inv("INV-51", inv_51, "feature", (_PLAN_YAML, "path:.harness/*/features/*/runs/*/"),
-            "an abandoned feature carries no runs/ evidence", "DEC-237"),
+            "an abandoned feature carries no runs/ evidence", "DEC-238"),
     )),
     Group("rejected-shape", (
         Inv("INV-44", inv_44, "feature", (_FEATURE_JSON, _PLAN_YAML, _BRIEF),

@@ -5,8 +5,8 @@ The UI lane commits `runs/<id>/ui/` (results.json + WebPs) per run so a reader's
 bound to a pin (FEAT-1821). Nothing pruned them: two features reached 98 run ids. At ship the
 evidence that still means something is
 
-  * every validate run (`validate-…`, squad validator) recorded PASS — a reader's judgement lives
-    in its validate run's directory, so this keeps the last PASS of every reader, and
+  * every validator-squad validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — a
+    reader's judgement lives in that run's directory, so this keeps the last PASS of every reader, and
   * every run whose results.json names the shipped `review_sha` as served_bundle_commit,
 
 plus anything named with --keep. Every other `runs/<id>/` directory under the feature is deleted
@@ -20,6 +20,7 @@ Exit 2 is refusal: no such feature, or no review_sha (nothing is shipped, so not
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -52,15 +53,19 @@ def _served_commit(run_dir):
         return None
 
 
+# feature-record.py's run-token shapes: `validate-…` and `fix-cN-…` are the runs whose runs/<id>/
+# the readers write their evidence into. The validator-lead hosts the fix team too, so after a
+# FAILed validate every reader's last PASS lives in a fix run (five recent ships had no validate-*
+# PASS at all). Reconciliation and distill runs share the squad and are not evidence.
+_EVIDENCE_RUN = re.compile(r"(?:^|-)(?:validate|fix)-")
+
+
 def _is_validate_run(run):
-    """A validate run is the one whose runs/<id>/ the readers write their evidence into; its id
-    is `validate-…` and its squad is validator. Reconciliation and distill runs share the squad
-    and are not evidence (reviewer finding on FEAT-1821: `distill-validator` was the sole keeper)."""
-    return run.get("squad") == "validator" and str(run.get("id", "")).startswith("validate-")
+    return run.get("squad") == "validator" and bool(_EVIDENCE_RUN.search(str(run.get("id", ""))))
 
 
 def _passing_validate_runs(record):
-    return {run.get("id") for run in record.get("runs") or [] if _is_validate_run(run) and run.get("verdict") == "PASS"}
+    return {run.get("id") for run in record.get("runs") or [] if _is_validate_run(run) and str(run.get("verdict", "")).upper() == "PASS"}
 
 
 def keep_set(feature_dir, record, explicit):
@@ -97,7 +102,7 @@ def _load_record(args):
     with open(os.path.join(feature_dir, "feature.json"), encoding="utf-8") as handle:
         record = json.load(handle)
     pin = record.get("review_sha")
-    if not isinstance(pin, str) or pin.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
+    if not isinstance(pin, str) or not pin.strip() or pin.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
         return f"{args.feature} has no review_sha — nothing is shipped, so nothing is pruned"
     return feature_dir, record
 
