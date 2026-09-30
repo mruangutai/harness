@@ -247,11 +247,6 @@ SELF_GRADING_ALLOWLIST = {
     ("test-validate-digest.py", "run_cli_cases"): 1,
     ("test-validate-digest.py", "run_t09"): 1,
     ("test-validate-digest.py", "run_hook_cases"): 2,
-    ("validate-digest.py", "strip_comment"): 2,
-    ("validate-digest.py", "split_items"): 2,
-    ("validate-digest.py", "top_level_colon"): 3,
-    ("validate-digest.py", "bracket_depth"): 3,
-    ("validate-digest.py", "hook_mode"): 1,
 }
 
 

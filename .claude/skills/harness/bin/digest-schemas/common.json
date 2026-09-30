@@ -29,9 +29,6 @@
     "boolean": {
       "type": "boolean"
     },
-    "list": {
-      "type": "array"
-    },
     "severity": {
       "enum": [
         "none",
@@ -125,13 +122,16 @@
       "type": "string",
       "pattern": "^(T-[0-9]+|none)$"
     },
-    "universal_open_questions": {
-      "type": "array"
-    },
     "finding": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
-        "kind"
+        "kind",
+        "scope",
+        "severity",
+        "reader",
+        "summary",
+        "why"
       ],
       "properties": {
         "kind": {
@@ -142,10 +142,29 @@
           ]
         },
         "scope": {
-          "enum": [
-            "task",
-            "mission"
+          "anyOf": [
+            {
+              "enum": [
+                "task",
+                "mission"
+              ]
+            },
+            {
+              "$ref": "common.json#/$defs/unset"
+            }
           ]
+        },
+        "severity": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "reader": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "summary": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "why": {
+          "$ref": "common.json#/$defs/text"
         }
       },
       "if": {
@@ -153,12 +172,27 @@
           "kind": {
             "const": "proportionality"
           }
-        }
+        },
+        "required": [
+          "kind"
+        ]
       },
       "then": {
-        "required": [
-          "scope"
-        ]
+        "properties": {
+          "scope": {
+            "enum": [
+              "task",
+              "mission"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "scope": {
+            "$ref": "common.json#/$defs/unset"
+          }
+        }
       }
     },
     "findings": {
@@ -169,6 +203,7 @@
     },
     "fail_first_entry": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "sc",
         "evidence"
@@ -179,8 +214,7 @@
           "pattern": "^SC-[0-9]+$"
         },
         "evidence": {
-          "type": "string",
-          "pattern": "\\S"
+          "$ref": "common.json#/$defs/text"
         }
       }
     },
@@ -192,12 +226,16 @@
     },
     "kind_entry": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
-        "state"
+        "kind",
+        "state",
+        "cmd",
+        "named_tests"
       ],
       "properties": {
         "kind": {
-          "type": "string"
+          "$ref": "common.json#/$defs/text"
         },
         "state": {
           "enum": [
@@ -207,6 +245,12 @@
             "locally_run",
             "misconfigured"
           ]
+        },
+        "cmd": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "named_tests": {
+          "$ref": "common.json#/$defs/integer_nullable"
         }
       }
     },
@@ -216,35 +260,17 @@
         "$ref": "common.json#/$defs/kind_entry"
       }
     },
-    "member": {
-      "type": "object",
-      "anyOf": [
-        {
-          "required": [
-            "verdict"
-          ]
-        },
-        {
-          "required": [
-            "status"
-          ]
-        }
-      ],
-      "properties": {
-        "verdict": {
-          "type": "string",
-          "pattern": "\\S"
-        },
-        "status": {
-          "type": "string",
-          "pattern": "\\S"
-        }
-      }
-    },
     "members": {
       "type": "array",
       "items": {
-        "$ref": "common.json#/$defs/member"
+        "anyOf": [
+          {
+            "$ref": "common.json#/$defs/member_ran"
+          },
+          {
+            "$ref": "common.json#/$defs/member_skipped"
+          }
+        ]
       }
     },
     "amendment": {
@@ -270,15 +296,23 @@
           ]
         },
         "was": {
-          "type": [
-            "string",
-            "array"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "common.json#/$defs/plan_file_entries"
+            }
           ]
         },
         "now": {
-          "type": [
-            "string",
-            "array"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "common.json#/$defs/plan_file_entries"
+            }
           ]
         },
         "reason": {
@@ -297,10 +331,10 @@
       "then": {
         "properties": {
           "was": {
-            "type": "array"
+            "$ref": "common.json#/$defs/plan_file_entries"
           },
           "now": {
-            "type": "array"
+            "$ref": "common.json#/$defs/plan_file_entries"
           }
         }
       },
@@ -356,6 +390,491 @@
       "items": {
         "type": "string",
         "pattern": "\\S"
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "open_question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "question",
+        "blocking"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "question": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "blocking": {
+          "$ref": "common.json#/$defs/boolean"
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/open_question"
+      }
+    },
+    "expertise_update": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "common.json#/$defs/expertise_write"
+          },
+          {
+            "$ref": "common.json#/$defs/expertise_drop"
+          }
+        ]
+      }
+    },
+    "sc_status_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "verdict",
+        "method",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "verdict": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "method": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "evidence": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "sc_status": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/sc_status_entry"
+      }
+    },
+    "coverage_gaps": {
+      "$ref": "common.json#/$defs/string_list"
+    },
+    "sc_evidence_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "test"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "test": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "sc_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/sc_evidence_entry"
+      }
+    },
+    "must_fix": {
+      "$ref": "common.json#/$defs/string_list"
+    },
+    "spec_violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "path",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "scope_creep",
+            "omission",
+            "mismatch"
+          ]
+        },
+        "path": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "ref": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "spec_violations": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/spec_violation"
+      }
+    },
+    "threat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary",
+        "stride",
+        "mitigated"
+      ],
+      "properties": {
+        "boundary": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "stride": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "mitigated": {
+          "$ref": "common.json#/$defs/boolean"
+        }
+      }
+    },
+    "threat_model": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/threat"
+      }
+    },
+    "contract_violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "actual",
+        "specified"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "actual": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "specified": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "contract_violations": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/contract_violation"
+      }
+    },
+    "escalation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "raised_by",
+        "question",
+        "domain",
+        "routed_to",
+        "resolution",
+        "decided_by",
+        "recorded_as"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "raised_by": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "question": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "domain": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "routed_to": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "resolution": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "decided_by": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "recorded_as": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "escalations": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/escalation"
+      }
+    },
+    "reader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reader",
+        "status",
+        "persona",
+        "reason"
+      ],
+      "properties": {
+        "reader": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "status": {
+          "enum": [
+            "ran",
+            "skipped"
+          ]
+        },
+        "persona": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "reason": {
+          "$ref": "common.json#/$defs/text"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "skipped"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "not": {
+              "$ref": "common.json#/$defs/unset"
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "reason": {
+            "$ref": "common.json#/$defs/unset"
+          }
+        }
+      }
+    },
+    "readers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/reader"
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "squad",
+        "verdict"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "squad": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "verdict": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/run"
+      }
+    },
+    "plan_file_entry": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/text"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "quote"
+          ],
+          "properties": {
+            "path": {
+              "$ref": "common.json#/$defs/text"
+            },
+            "quote": {
+              "$ref": "common.json#/$defs/text"
+            }
+          }
+        }
+      ]
+    },
+    "plan_file_entries": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/plan_file_entry"
+      }
+    },
+    "integer_nullable": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "mode_nullable": {
+      "anyOf": [
+        {
+          "enum": [
+            "A",
+            "B"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/unset"
+        }
+      ]
+    },
+    "expertise_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "target",
+        "section",
+        "entry",
+        "why"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "add",
+            "replace"
+          ]
+        },
+        "target": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "section": {
+          "enum": [
+            "Patterns",
+            "Gotchas",
+            "Outcomes",
+            "Open"
+          ]
+        },
+        "entry": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "why": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "expertise_drop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "target",
+        "section",
+        "why"
+      ],
+      "properties": {
+        "op": {
+          "const": "drop"
+        },
+        "target": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "section": {
+          "enum": [
+            "Patterns",
+            "Gotchas",
+            "Outcomes",
+            "Open"
+          ]
+        },
+        "why": {
+          "$ref": "common.json#/$defs/text"
+        }
+      }
+    },
+    "member_ran": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step",
+        "persona",
+        "verdict",
+        "headline",
+        "files_touched"
+      ],
+      "properties": {
+        "step": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "persona": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "verdict": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "headline": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "files_touched": {
+          "$ref": "common.json#/$defs/string_list"
+        }
+      }
+    },
+    "member_skipped": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step",
+        "persona",
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "step": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "persona": {
+          "$ref": "common.json#/$defs/text"
+        },
+        "status": {
+          "const": "skipped"
+        },
+        "reason": {
+          "$ref": "common.json#/$defs/text"
+        }
       }
     }
   }

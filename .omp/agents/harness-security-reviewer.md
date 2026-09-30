@@ -84,29 +84,38 @@ positives train people to ignore you.
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL
-DIGEST:
-  headline: <one line>
-  in_scope: <bool>
-  scope_reason: "<why this diff has or lacks a surface>"
-  severity_max: none|low|med|high|critical|n/a
-                              # n/a = scoped OUT; nothing in this diff for this
-                              # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: [{ kind: substance|form|proportionality, scope: task|mission, severity: <sev>, reader: security-reviewer, summary: "<one line>", why: "<optional>" }]
-                              # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
-                              # code; form = document/digest/record shape only, fixed in-run and
-                              # never re-gates; proportionality = more is planned than the change
-                              # needs, and REQUIRES scope: task (one task over-builds — trimmed at
-                              # apply, never a downgrade) or mission (the plan lane exceeds the
-                              # work — the only finding that downgrades, DEC-228). [] if none
-  must_fix: [<item>]
-  threat_model: [{ boundary: ..., stride: T|I|E|..., mitigated: <bool> }]
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`.claude/skills/harness/bin/digest-schemas/harness-security-reviewer.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "export endpoint validates tenant ownership; one low advisory",
+    "in_scope": true,
+    "scope_reason": "diff adds an authenticated HTTP endpoint that reads tenant data",
+    "severity_max": "low",
+    "findings": [{"kind": "substance", "scope": "none", "severity": "low", "reader": "security-reviewer", "summary": "export filename echoes the tenant slug in logs", "why": "info disclosure in shared log sink (export.py:51)"}],
+    "must_fix": [],
+    "threat_model": [{"boundary": "client -> /export", "stride": "I", "mitigated": true}],
+    "open_questions": [],
+    "files_touched": [],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md"
+}})
 ```
-````
+
+- `VERDICT`: `PASS` or `FAIL` only. `in_scope`: boolean; `scope_reason`: why this diff has or
+  lacks a surface.
+- `severity_max`: `none|low|med|high|critical|n/a`. `n/a` = scoped OUT; nothing in this diff for
+  this role to judge. PASS with `n/a` is legitimate (DEC-173).
+- `findings`: `[]` if none; every entry carries all of `{kind, scope, severity, reader, summary,
+  why}`. `kind` is REQUIRED (FEAT-59 SC-06): `substance` = would change shipped code; `form` =
+  document/digest/record shape only, fixed in-run and never re-gates; `proportionality` = more is
+  planned than the change needs, and REQUIRES `scope: task` (one task over-builds — trimmed at
+  apply, never a downgrade) or `mission` (the plan lane exceeds the work — the only finding that
+  downgrades, DEC-228). `scope` is always present: `none` for substance and form.
+- `threat_model`: `{boundary, stride: T|I|E|..., mitigated: <bool>}`; `[]` when none.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

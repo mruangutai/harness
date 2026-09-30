@@ -22,29 +22,30 @@
         "files_touched",
         "expertise_update",
         "docs_updated",
-        "gaps"
+        "gaps",
+        "stale_found"
       ],
       "properties": {
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "docs_updated": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "gaps": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "stale_found": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         }
       }
     },

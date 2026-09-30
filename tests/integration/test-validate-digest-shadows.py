@@ -3,7 +3,8 @@
 
 Each is a predicate over data the repository owns, exercised end to end through
 `validate()` on a purpose-built git checkout — never by calling the helper alone, because
-the plausible bug is a helper that exists and is never reached.
+the plausible bug is a helper that exists and is never reached. Every return is a digest
+OBJECT `{VERDICT, DIGEST, artifact}` (FEAT-1928), exactly as an agent yields it.
 
   human_commits_in_scope   computed from `[harness:human]` commits in the canonical range
   dirty tree               a PASS/FAIL over tracked modifications outside .harness/ is refused
@@ -85,43 +86,47 @@ def _checkout(td, human_messages=()):
     return repo, feature_dir, head, humans
 
 
-def _review(head, verdict="PASS", human=None, findings="[]", code_grade="n_a", reasons="[]"):
-    human_line = "" if human is None else f"  human_commits_in_scope: {human}\n"
-    return f"""VERDICT: {verdict}
-DIGEST:
-  headline: reviewer result
-  severity_max: low
-  findings: {findings}
-  must_fix: []
-  code_grade: {code_grade}
-  reviewed: "origin/main..{head}"
-  grade_2_reasons: {reasons}
-{human_line}  files_touched: []
-  open_questions: []
-  expertise_update: []
-artifact: .harness/harness/features/{FEAT}/notes/review.md
-"""
+def _review(head, verdict="PASS", human=(), findings=(), code_grade="n_a", reasons=()):
+    """A reviewer object; `human=None` omits human_commits_in_scope, every other field is
+    always present (FEAT-1928 ruling: `[]` spells none)."""
+    digest = {
+        "headline": "reviewer result", "severity_max": "low", "findings": list(findings),
+        "must_fix": [], "code_grade": code_grade, "reviewed": f"origin/main..{head}",
+        "files_touched": [], "open_questions": [], "expertise_update": [],
+        "spec_violations": [], "grade_2_reasons": list(reasons),
+    }
+    if human is not None:
+        digest["human_commits_in_scope"] = list(human)
+    return {"VERDICT": verdict, "DIGEST": digest,
+            "artifact": f".harness/harness/features/{FEAT}/notes/review.md"}
+
+
+FAIL_FIRST = [{"sc": "SC-01", "evidence": "notes/fail.txt"}]
 
 
 def _qa(kinds, verdict="PASS"):
-    gate = "matrix_ok: true\n  suite: pass" if verdict == "PASS" else "matrix_ok: n/a\n  suite: n/a"
-    return f"""VERDICT: {verdict}
-DIGEST:
-  headline: qa result
-  {gate}
-  failures: 0
-  coverage_gaps: []
-  fail_first: [{{ sc: SC-01, evidence: notes/fail.txt }}]
-  kinds: {kinds}
-  files_touched: []
-  open_questions: []
-  expertise_update: []
-artifact: .harness/harness/features/{FEAT}/notes/qa.md
-"""
+    gated = verdict == "PASS"
+    digest = {
+        "headline": "qa result", "matrix_ok": True if gated else "n/a",
+        "suite": "pass" if gated else "n/a", "failures": 0, "coverage_gaps": [],
+        "fail_first": list(FAIL_FIRST), "files_touched": [], "open_questions": [],
+        "expertise_update": [], "kinds": list(kinds), "sc_evidence": [],
+    }
+    return {"VERDICT": verdict, "DIGEST": digest,
+            "artifact": f".harness/harness/features/{FEAT}/notes/qa.md"}
 
 
-def _errors(v, persona, text, feature_dir, config):
-    return v.validate(persona, text, config, feature_dir, branch_override=None)
+def _with(obj, verdict=None, **fields):
+    """A copy of digest object `obj` with VERDICT and/or DIGEST fields replaced."""
+    out = json.loads(json.dumps(obj))
+    if verdict:
+        out["VERDICT"] = verdict
+    out["DIGEST"].update(fields)
+    return out
+
+
+def _errors(v, persona, obj, feature_dir, config):
+    return v.validate(persona, obj, config, feature_dir, branch_override=None)
 
 
 def _config(td):
@@ -137,23 +142,23 @@ def case_human_commits():
         repo, fd, head, humans = _checkout(td, ("[harness:human] hand edit", "bot edit"))
         cfg = _config(td)
         check("human: an honest list is accepted",
-              not _errors(v, "harness-code-reviewer", _review(head, human=f"[{humans[0][:10]}]"), fd, cfg),
-              str(_errors(v, "harness-code-reviewer", _review(head, human=f"[{humans[0][:10]}]"), fd, cfg)))
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+              not _errors(v, "harness-code-reviewer", _review(head, human=[humans[0][:10]]), fd, cfg),
+              str(_errors(v, "harness-code-reviewer", _review(head, human=[humans[0][:10]]), fd, cfg)))
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("human: an empty list over a range with a human commit is refused",
               any("human_commits_in_scope" in e and humans[0][:12] in e for e in errs), str(errs))
-        errs = _errors(v, "harness-code-reviewer", _review(head), fd, cfg)
-        check("human: omitting the field is the same refusal",
-              any("human_commits_in_scope" in e for e in errs), str(errs))
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=None), fd, cfg)
+        check("human: omitting the field is refused as a missing required field",
+              any("missing 'human_commits_in_scope'" in e for e in errs), str(errs))
         errs = _errors(v, "harness-code-reviewer",
-                       _review(head, human=f"[{humans[0][:10]}, {humans[1][:10]}]"), fd, cfg)
+                       _review(head, human=[humans[0][:10], humans[1][:10]]), fd, cfg)
         check("human: a bot commit claimed as human is refused and named",
               any("not in the range" in e and humans[1][:10] in e for e in errs), str(errs))
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
         cfg = _config(td)
         check("human: no human commits and [] is accepted",
-              not _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg))
+              not _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg))
 
 
 def case_dirty_tree():
@@ -164,22 +169,22 @@ def case_dirty_tree():
         with open(os.path.join(repo, "readme.txt"), "a") as fh:
             fh.write("hand edit\n")
         for verdict in ("PASS", "FAIL"):
-            errs = _errors(v, "harness-code-reviewer", _review(head, verdict, human="[]"), fd, cfg)
+            errs = _errors(v, "harness-code-reviewer", _review(head, verdict, human=[]), fd, cfg)
             check(f"dirty: a {verdict} over a modified tracked file is refused, naming it",
                   any("readme.txt" in e and "pinnable" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-code-reviewer", _review(head, "BLOCKED", human="[]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, "BLOCKED", human=[]), fd, cfg)
         check("dirty: BLOCKED is the honest return and is accepted",
               not any("pinnable" in e for e in errs), str(errs))
         _git(repo, "checkout", "--", "readme.txt")
         with open(os.path.join(repo, ".harness", "harness.json"), "a") as fh:
             fh.write("\n")
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("dirty: a change under .harness/ does not count",
               not any("pinnable" in e for e in errs), str(errs))
         _git(repo, "checkout", "--", ".harness/harness.json")
         with open(os.path.join(repo, "scratch.txt"), "w") as fh:
             fh.write("untracked\n")
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("dirty: an untracked file does not count",
               not any("pinnable" in e for e in errs), str(errs))
 
@@ -189,43 +194,39 @@ def case_qa_kinds():
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
         cfg = _config(td)
-        ok = "[{ kind: unit, state: satisfied, cmd: true, named_tests: 3 }, { kind: functional, state: not_applicable }]"
+        ok = [{"kind": "unit", "state": "satisfied", "cmd": "true", "named_tests": 3},
+              {"kind": "functional", "state": "not_applicable", "cmd": "none",
+               "named_tests": "none"}]
         check("kinds: satisfied on a runnable kind and not_applicable on an excluded one pass",
               not _errors(v, "harness-qa", _qa(ok), fd, cfg),
               str(_errors(v, "harness-qa", _qa(ok), fd, cfg)))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: green }]"), fd, cfg)
-        check("kinds: an unknown state is refused", any("state='green'" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: misconfigured }]", "FAIL"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([{"kind": "unit", "state": "green", "cmd": "true", "named_tests": 1}]), fd, cfg)
+        check("kinds: an unknown state is refused",
+              any("kinds[0].state" in e and "'green'" in e for e in errs), str(errs))
+        errs = _errors(v, "harness-qa", _qa([{"kind": "unit", "state": "misconfigured", "cmd": "true", "named_tests": 1}], "FAIL"), fd, cfg)
         check("kinds: misconfigured under a FAIL verdict is refused",
               any("misconfigured" in e and "BLOCKED" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: misconfigured }]", "BLOCKED"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([{"kind": "unit", "state": "misconfigured", "cmd": "true", "named_tests": 1}], "BLOCKED"), fd, cfg)
         check("kinds: misconfigured under BLOCKED is accepted",
               not any("misconfigured" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: not_applicable }]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([{"kind": "unit", "state": "not_applicable", "cmd": "true", "named_tests": 1}]), fd, cfg)
         check("kinds: not_applicable on a kind with a runnable cmd is refused",
               any("not_applicable" in e and "runnable cmd" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: functional, state: satisfied }]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([{"kind": "functional", "state": "satisfied", "cmd": "true", "named_tests": 1}]), fd, cfg)
         check("kinds: satisfied on a kind with no cmd is refused",
               any("no cmd" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: e2e, state: satisfied }]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([{"kind": "e2e", "state": "satisfied", "cmd": "true", "named_tests": 1}]), fd, cfg)
         check("kinds: a kind harness.json does not declare is refused",
               any("does not declare" in e for e in errs), str(errs))
 
 
 def _dev(verdict="PASS", tv="pass", task="T-01", artifact="notes/receipt-harness-backend-dev-T-01.md"):
-    return f"""VERDICT: {verdict}
-DIGEST:
-  headline: dev result
-  tests_added: 1
-  suite: pass
-  blocked_on: none
-  task: {task}
-  task_verify: {tv}
-  files_touched: [src/x.py]
-  open_questions: []
-  expertise_update: []
-artifact: .harness/harness/features/{FEAT}/{artifact}
-"""
+    return {"VERDICT": verdict,
+            "DIGEST": {"headline": "dev result", "tests_added": 1, "suite": "pass",
+                       "blocked_on": "none", "task": task, "task_verify": tv,
+                       "files_touched": ["src/x.py"], "open_questions": [],
+                       "expertise_update": []},
+            "artifact": f".harness/harness/features/{FEAT}/{artifact}"}
 
 
 def _write(path, body):
@@ -285,14 +286,14 @@ def case_inspection_citations():
                "- SC-03: the config is shaped\n  verify: inspection\n")
         review = os.path.join(fd, "notes", "review.md")
         _write(review, "# review\nSC-01 satisfied: docs/notes.md:1\nSC-02 by the suite.\n")
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("inspection: an inspection SC with no file:line citation is refused, named",
               any("SC-03" in e and "file:line" in e and "SC-01" not in e.split("cites")[0].split("marks")[1] for e in errs), str(errs))
         _write(review, "# review\nSC-01 satisfied: docs/notes.md:1\nSC-03 holds, see .harness/harness.json:4\n")
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("inspection: every inspection SC cited is accepted", not errs, str(errs))
         os.remove(review)
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[]), fd, cfg)
         check("inspection: an unreadable artifact is not this check's finding",
               not any("file:line" in e for e in errs), str(errs))
 
@@ -302,12 +303,14 @@ def case_findings_order():
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
         cfg = _config(td)
-        unranked = "[{ kind: form, severity: low, summary: a }, { kind: substance, severity: high, summary: b }]"
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]", findings=unranked), fd, cfg)
+        low = {"kind": "form", "scope": "none", "severity": "low", "reader": "code",
+               "summary": "a", "why": "a drifted"}
+        high = {"kind": "substance", "scope": "none", "severity": "high", "reader": "code",
+                "summary": "b", "why": "b fails open"}
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[], findings=[low, high]), fd, cfg)
         check("ranking: low before high is refused", any("not ranked" in e for e in errs), str(errs))
-        ranked = "[{ kind: substance, severity: high, summary: b }, { kind: form, severity: low, summary: a }]"
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]", findings=ranked), fd, cfg)
-        check("ranking: high before low is accepted", not any("not ranked" in e for e in errs), str(errs))
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[], findings=[high, low]), fd, cfg)
+        check("ranking: high before low is accepted", not errs, str(errs))
 
 
 def case_grade_2_names():
@@ -329,14 +332,14 @@ def case_grade_2_names():
         os.makedirs(os.path.join(fd, "notes"))
         _write(os.path.join(fd, "feature.json"), json.dumps({"feature_id": FEAT, "review_sha": head}))
         cfg = _config(td)
-        probe = _errors(v, "harness-code-reviewer", _review(head, human="[]", code_grade="grade_2",
-                                                          reasons="[moderate is a dispatch table]"), fd, cfg)
+        probe = _errors(v, "harness-code-reviewer", _review(head, human=[], code_grade="grade_2",
+                                                          reasons=["moderate is a dispatch table"]), fd, cfg)
         if any("disagrees with the mechanical result" in e for e in probe):
             check("grade2: fixture grades 2 (skipped: fixture graded otherwise)", True, str(probe))
             return
         check("grade2: a reason naming the function is accepted", not probe, str(probe))
-        errs = _errors(v, "harness-code-reviewer", _review(head, human="[]", code_grade="grade_2",
-                                                         reasons="[it is fine really]"), fd, cfg)
+        errs = _errors(v, "harness-code-reviewer", _review(head, human=[], code_grade="grade_2",
+                                                         reasons=["it is fine really"]), fd, cfg)
         check("grade2: a reason naming no graded function is refused, naming it",
               any("names none of: moderate" in e for e in errs), str(errs))
 
@@ -346,16 +349,15 @@ def case_qa_unearned_fail():
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
         cfg = _config(td)
-        green_fail = _qa("[]", "PASS").replace("VERDICT: PASS", "VERDICT: FAIL")
+        green_fail = _with(_qa([], "PASS"), verdict="FAIL")
         errs = _errors(v, "harness-qa", green_fail, fd, cfg)
         check("qa: FAIL with every gate green and fail-first evidence present is refused",
               any("no gate failed" in e for e in errs), str(errs))
-        no_evidence = green_fail.replace("fail_first: [{ sc: SC-01, evidence: notes/fail.txt }]",
-                                         "fail_first: []")
+        no_evidence = _with(green_fail, fail_first=[])
         errs = _errors(v, "harness-qa", no_evidence, fd, cfg)
         check("qa: FAIL with a green suite and NO fail-first evidence is the mandated return (P59)",
               not any("no gate failed" in e for e in errs), str(errs))
-        real_fail = green_fail.replace("failures: 0", "failures: 2").replace("suite: pass", "suite: fail")
+        real_fail = _with(green_fail, failures=2, suite="fail")
         errs = _errors(v, "harness-qa", real_fail, fd, cfg)
         check("qa: FAIL with a failing suite is accepted", not any("no gate failed" in e for e in errs), str(errs))
 
@@ -376,6 +378,10 @@ def _plan_with(change_types):
     return f"schema: plan/1\nfeature: {FEAT}\napproval:\n  status: approved\ntasks:\n{tasks}"
 
 
+UNIT_SATISFIED = {"kind": "unit", "state": "satisfied", "cmd": "true", "named_tests": 3}
+UNIT_MISSING = {"kind": "unit", "state": "missing", "cmd": "true", "named_tests": "none"}
+
+
 def case_matrix_floor():
     v = _validator()
     with tempfile.TemporaryDirectory() as td:
@@ -383,27 +389,26 @@ def case_matrix_floor():
         _write(os.path.join(repo, ".harness", "harness.json"), json.dumps(MATRIX_JSON))
         cfg = _config(td)
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("logic", "done")]))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: satisfied, cmd: true }]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([UNIT_SATISFIED]), fd, cfg)
         check("floor: the floor kind reported satisfied is accepted", not errs, str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: missing, cmd: true }]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([UNIT_MISSING]), fd, cfg)
         check("floor: matrix_ok true with the floor kind missing is refused, naming it",
               any("matrix floor requires unit" in e for e in errs), str(errs))
-        no_kinds = _qa("[]").replace("  kinds: []\n", "")
-        errs = _errors(v, "harness-qa", no_kinds, fd, cfg)
-        check("floor: matrix_ok true with kinds absent is refused as unverifiable",
-              any("kinds: is absent" in e and "unit" in e for e in errs), str(errs))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: missing, cmd: true }]", "FAIL")
-                       .replace("matrix_ok: n/a", "matrix_ok: false").replace("suite: n/a", "suite: fail"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([]), fd, cfg)
+        check("floor: matrix_ok true with kinds: [] is refused as unverifiable",
+              any("kinds: [] reports no kind" in e and "unit" in e for e in errs), str(errs))
+        errs = _errors(v, "harness-qa", _with(_qa([UNIT_MISSING], "FAIL"), matrix_ok=False,
+                                              suite="fail"), fd, cfg)
         check("floor: a FAIL that reports the gap is not held to the floor",
               not any("matrix floor" in e for e in errs), str(errs))
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("cross_module", "done")]))
-        errs = _errors(v, "harness-qa", _qa("[{ kind: unit, state: satisfied, cmd: true }]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([UNIT_SATISFIED]), fd, cfg)
         check("floor: an excluded kind (functional, cmd null) never enters the floor",
               not any("matrix floor" in e for e in errs), str(errs))
         _write(os.path.join(fd, "plan.yaml"), _plan_with([("docs", "done"), ("logic", "todo")]))
-        errs = _errors(v, "harness-qa", _qa("[]"), fd, cfg)
+        errs = _errors(v, "harness-qa", _qa([]), fd, cfg)
         check("floor: a docs task and an unstarted logic task impose no floor",
-              not any("matrix floor" in e or "kinds: is absent" in e for e in errs), str(errs))
+              not errs, str(errs))
 
 
 def main():

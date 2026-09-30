@@ -8,6 +8,11 @@ the parser rejected SPEC 10.4's own normative template, and separately accepted 
 `must_fix` nested inside a member entry as the top-level roll-up. Neither was
 noticed because each was only ever exercised by the example that happened to pass.
 
+FEAT-1928: every return is a digest OBJECT `{VERDICT, DIGEST, artifact}`. The fixtures
+below are written in YAML notation because it is the readable way to spell a nested
+mapping; `obj_of` turns each into the object, and the validator only ever receives that
+object — as JSON on the CLI, as `digest_object` in a hook payload, or in-process.
+
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
 import os as _anchor_os, sys as _anchor_sys
@@ -15,7 +20,9 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import contextlib, importlib.util, json, re, subprocess, sys, os, shutil, tempfile, time
+import contextlib, importlib.util, json, subprocess, sys, os, shutil, tempfile, time
+import copy
+import yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -26,6 +33,54 @@ from isolated_bin import isolated_bin
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
+
+
+def obj_of(text):
+    """The digest object a fixture spells in YAML notation. The validator never parses this
+    text; it receives the mapping."""
+    return yaml.safe_load(text)
+
+
+# FEAT-1928 operator ruling: every DIGEST field is required and a field that does not apply
+# is spelled `none` (scalar) or `[]` (list). These are the fields that ruling made required;
+# a fixture here names only the fields its case is about, so each one it leaves out is filled
+# with that not-applicable spelling. A case that pins the omission itself passes
+# `complete=False` and gets the object exactly as written.
+_LEAD_NOT_APPLICABLE = {"adequacy_notes": [], "sc_status": [], "needs_approval": "none",
+                        "severity_max": "none", "matrix_ok": "none", "coverage_gaps": [],
+                        "findings": [], "readers": []}
+_DEV_NOT_APPLICABLE = {"task_verify": "n/a"}
+_NOT_APPLICABLE = {
+    "harness-eng-lead": {**_LEAD_NOT_APPLICABLE, "amendments": []},
+    "harness-product-lead": _LEAD_NOT_APPLICABLE,
+    "harness-validator-lead": _LEAD_NOT_APPLICABLE,
+    "harness-backend-dev": _DEV_NOT_APPLICABLE, "harness-frontend-dev": _DEV_NOT_APPLICABLE,
+    "harness-ai-dev": _DEV_NOT_APPLICABLE, "harness-data-engineer": _DEV_NOT_APPLICABLE,
+    "harness-dev-ops": {**_DEV_NOT_APPLICABLE, "test_kinds_written": []},
+    "harness-qa": {"kinds": [], "sc_evidence": []},
+    "harness-code-reviewer": {"spec_violations": [], "human_commits_in_scope": [],
+                              "grade_2_reasons": []},
+    "harness-security-reviewer": {"in_scope": "none", "scope_reason": "none",
+                                  "threat_model": []},
+    "harness-ui-reviewer": {"mode": "none", "in_scope": "none", "states_unspecified": [],
+                            "contract_violations": [], "a11y": []},
+    "harness-visual-designer": {"needs_prototype": "none", "why": "none", "prototype": "none"},
+    "harness-documentor": {"stale_found": []},
+    "harness-orchestrator": {"judgement": "none"},
+}
+_PERSONA_ALIASES = {"lead": "harness-eng-lead", "dev": "harness-backend-dev",
+                    "reviewer": "harness-code-reviewer"}
+
+
+def fixture(persona, text, complete=True):
+    """`obj_of(text)` with every ruling-required field it omits spelled not-applicable."""
+    obj = obj_of(text) if isinstance(text, str) else copy.deepcopy(text)
+    digest = obj.get("DIGEST") if isinstance(obj, dict) else None
+    if complete and isinstance(digest, dict):
+        filler = _NOT_APPLICABLE.get(_PERSONA_ALIASES.get(persona, persona), {})
+        for field, value in filler.items():
+            digest.setdefault(field, list(value) if isinstance(value, list) else value)
+    return obj
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 # Vendored fixture data for check_prior_validator (Q11 cycle-27): the pre-FEAT-43 revision
 # of validate-digest.py/harness_yaml.py, committed inert so the control needs no `git show`
@@ -33,539 +88,22 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 FIXTURE_DIR = os.path.join(TESTS_DIR, "fixtures")
 PRE_FEATURE_REVISION = "df63193f7ec9798d9660904e0e4e7c78d52358f5"
 
-# The two normative templates (DEC-123) must validate — extracted from their
-# SOURCE FILES and run through the validator, not eyeballed. (name, file, heading)
-TEMPLATES = [
-    ("SPEC §10.4", os.path.join(REPO_ROOT, ".harness/harness/docs/SPEC.md"),
-     "### 10.4 The team digest"),
-    ("harness-team \"Reporting up\"",
-     os.path.join(REPO_ROOT, ".agents/skills/harness-team/SKILL.md"),
-     "## Reporting up"),
-]
-
-
-def extract_fenced_block(path, anchor):
-    """Pull the normative return template out of a doc, after `anchor`.
-
-    Line-based on purpose. DEC-172 wrapped every template in a ```yaml fence, and
-    that fence is itself DISPLAYED inside a four-backtick fence so the doc can show
-    the backticks an agent must emit. Substring-scanning for "```" matches the first
-    three characters of the outer ```` and captures nothing — which is exactly how
-    this broke. Target the inner ```yaml line and stop at the next bare ```.
-    """
-    lines = open(path).read().split("\n")
-    start = next(i for i, l in enumerate(lines) if anchor in l)
-    open_at = next(i for i in range(start, len(lines))
-                   if lines[i].strip() in ("```yaml", "```"))
-    close_at = next(i for i in range(open_at + 1, len(lines))
-                    if lines[i].strip() == "```")
-    return "\n".join(lines[open_at + 1:close_at]) + "\n"
-
-
-def fill_placeholders(text):
-    """Fill a normative template's `<placeholder>` markers with concrete, valid
-    values so it can be run through the validator as a real digest. Every
-    substitution is mechanical — no restructuring, no correcting the template.
-    """
-    text = text.replace("<roll-up>", "FAIL")           # worst member below is FAIL
-    text = re.sub(r"\[<[^\]\n]*>\]", "[]", text)        # `[<prose>]` list placeholders
-    text = re.sub(r"\[\.\.\.\]", "[]", text)            # `[...]` list placeholders
-    text = re.sub(r"\[\{[^\]\n]*\}\]", "[]", text)      # `[{ key, key, ... }]` shorthand
-    text = text.replace('"..."', '"example"')
-    text = (text.replace("<id>", "s1")
-                .replace("<p>", "backend-dev")
-                .replace("<v>", "PASS"))
-    text = re.sub(r"<branch\s*\|\s*none>", "none", text)
-    text = text.replace("<n>", "1").replace("<run_dir>", "r")
-    text = re.sub(r"<[^>\n]*>", "example", text)        # anything else scalar
-    return text
-
-
-def run_template_cases():
-    fails = 0
-    for name, path, anchor in TEMPLATES:
-        filled = fill_placeholders(extract_fenced_block(path, anchor))
-        r = subprocess.run([VALIDATE, "lead"], input=filled,
-                           capture_output=True, text=True)
-        if r.returncode == 0:
-            print(f"ok    [template] {name}")
-        else:
-            fails += 1
-            print(f"FAIL  [template] {name}")
-            for l in r.stdout.strip().splitlines():
-                print(f"      | {l}")
-    print(f"\n{len(TEMPLATES) - fails}/{len(TEMPLATES)} template cases passed.")
-    return fails
-
-
-# Matches only the template's `severity_max: a|b|c` instruction line, never
-# prose like "severity_max >= high" (no `|`-joined alternatives after the
-# colon) — confirmed against all six reviewer files before this landed.
-_SEVERITY_LINE_RE = re.compile(r"^\s*severity_max:\s*([A-Za-z0-9_/]+(?:\|[A-Za-z0-9_/]+)+)\s*$")
-
-
-def _reviewer_severity_expected(validator):
-    """Expected `severity_max` vocabulary, derived from the validator's own
-    `SEV`/`NULLABLE` — never a retyped literal, which is exactly how this
-    drifted one narrowing ago."""
-    expected = set(validator.SEV)
-    if "severity_max" in validator.NULLABLE:
-        expected.add("n/a")
-    return expected
-
-
-def _reviewer_template_paths(validator):
-    """(path, persona) for every reviewer-schema agent template under
-    `.omp/agents`, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
-    so a fourth reviewer persona cannot silently escape this check.
-
-    A missing `agents_dir` yields zero paths rather than raising —
-    `_report_missing_templates` is what turns that into a loud, named failure
-    instead of a silent empty discovery (c22 send-back).
-    """
-    paths = []
-    agents_dir = os.path.join(REPO_ROOT, ".omp", "agents")
-    try:
-        fnames = sorted(os.listdir(agents_dir))
-    except FileNotFoundError:
-        return paths
-    for fname in fnames:
-        if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
-            paths.append((os.path.join(agents_dir, fname), fname[:-3]))
-    return paths
-
-
-# The reviewer personas already shipped — the floor
-# `_reviewer_template_paths`'s discovery must clear. Not an equality: a
-# legitimately-added fourth persona is still picked up by that mechanical
-# discovery and never fails this check; it only catches discovery finding
-# FEWER than these.
-_EXPECTED_REVIEWER_PERSONAS = ("code", "security", "ui")
-
-
-def _expected_reviewer_template_paths():
-    """Every persona path discovery must find at minimum."""
-    return [
-        os.path.join(REPO_ROOT, ".omp", "agents", f"harness-{persona}-reviewer.md")
-        for persona in _EXPECTED_REVIEWER_PERSONAS
-    ]
-
-
-def _report_missing_templates(discovered_paths):
-    """FAIL, naming it, for every expected reviewer template discovery did
-    not find. Discovery breaking (renamed persona, missing agents_dir) must
-    read as a named failure, never as a smaller-but-still-passing count."""
-    fails = 0
-    for expected_path in _expected_reviewer_template_paths():
-        if expected_path not in discovered_paths:
-            fails += 1
-            print(f"FAIL  [severity_max enum] expected reviewer template missing: {expected_path}")
-    return fails
-
-
-def _severity_line_values(path):
-    """Every `severity_max: a|b|c` alternative-set instructed by `path`."""
-    with open(path) as f:
-        lines = f.read().split("\n")
-    return [set(m.group(1).split("|"))
-            for m in map(_SEVERITY_LINE_RE.match, lines) if m]
-
-
-def _report_template_has_lines(path, count):
-    """FAIL, naming it, if a discovered reviewer template yielded zero
-    `severity_max` lines — a regex/format failure on that file, never a
-    silent zero that drops out of the checked total."""
-    if count:
-        return 0
-    print(f"FAIL  [severity_max enum] {path} — no severity_max line found")
-    return 1
-
-
-def _report_severity_drift(path, instructed, expected):
-    """Print and count the drift (if any) between one instructed set and the
-    validator's expected vocabulary. Both directions count as drift: a value
-    the template offers that the validator rejects, and a value the
-    validator accepts that the template never offers."""
-    only_template = instructed - expected
-    only_validator = expected - instructed
-    if not (only_template or only_validator):
-        print(f"ok    [severity_max enum] {path}")
-        return 0
-    print(f"FAIL  [severity_max enum] {path}")
-    if only_template:
-        print(f"      | instructs {sorted(only_template)} — validator REJECTS these")
-    if only_validator:
-        print(f"      | validator accepts {sorted(only_validator)} — template never offers these")
-    return 1
-
-
-def run_reviewer_severity_enum_cases():
-    """Guard against `severity_max` enum drift between the validator's own
-    vocabulary and the reviewer agent templates that instruct agents what to
-    write (BUILD task 22 / c22).
-
-    FEAT-43 narrowed `SEV` (dropped `info`) inside its own reviewed range and
-    only harness-code-reviewer.md followed; harness-security-reviewer.md and
-    harness-ui-reviewer.md (`.omp/agents`) kept
-    instructing the old vocabulary, which the validator then rejects as a
-    contract violation the moment a reviewer's worst finding is `info`.
-
-    Zero discovered templates used to read as zero checks and zero
-    failures — a pass, indistinguishable from health, the moment either
-    discovery seam (the regex, `_reviewer_template_paths`) broke silently
-    (c22 send-back). `checked` now starts at the floor's size, so it can
-    never reach zero, and both seams are asserted explicitly below.
-    """
-    spec = importlib.util.spec_from_file_location("_validator_severity_guard", VALIDATE)
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    expected = _reviewer_severity_expected(validator)
-
-    discovered = _reviewer_template_paths(validator)
-    discovered_paths = {path for path, _ in discovered}
-    fails = _report_missing_templates(discovered_paths)
-    checked = len(_expected_reviewer_template_paths())
-
-    for path, _persona in discovered:
-        values = _severity_line_values(path)
-        checked += 1
-        fails += _report_template_has_lines(path, len(values))
-        for instructed in values:
-            checked += 1
-            fails += _report_severity_drift(path, instructed, expected)
-
-    print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
-    return fails
-
-def _find(lines, predicate, start=0, stop=None, step=1):
-    """Index of the first line in [start, stop) satisfying predicate, else None."""
-    stop = len(lines) if stop is None else stop
-    for index in range(start, stop, step):
-        if predicate(lines[index]):
-            return index
-    return None
-
-
-def _is_fence(line):
-    return line.strip().startswith("```")
-
-
-def _skill_documented_block(lines, heading=None):
-    start = 0
-    if heading is not None:
-        start = _find(lines, lambda line: line.strip() == f"## {heading}")
-        if start is None:
-            return None
-    digest_at = _find(lines, lambda line: line.lstrip().startswith("DIGEST:"), start)
-    if digest_at is None:
-        return None
-    open_at = _find(lines, _is_fence, digest_at - 1, -1, -1)
-    close_at = _find(lines, _is_fence, digest_at + 1)
-    if open_at is None or close_at is None:
-        return None
-    return "\n".join(lines[open_at + 1:close_at])
-
-
-def _agent_documented_block(lines):
-    output_at = None
-    for index, line in enumerate(lines):
-        if line.strip() == "## Output":
-            output_at = index
-            break
-    if output_at is None:
-        return None
-    end_at = len(lines)
-    for index in range(output_at + 1, len(lines)):
-        if re.match(r"^#{1,2}\s", lines[index]):
-            end_at = index
-            break
-    return "\n".join(lines[output_at:end_at])
-
-
-def documented_block(source_text, source_path):
-    """Return the documented DIGEST block for an agent or shared skill.
-
-    A skill path may carry `#<heading>` to select the block under that `##` heading
-    when one skill documents several schemas (harness-digest-dev: `dev`, `dev-ops`).
-    """
-    lines = source_text.splitlines()
-    path, _, heading = source_path.partition("#")
-    if path.endswith("SKILL.md"):
-        return _skill_documented_block(lines, heading or None)
-    return _agent_documented_block(lines)
-
-
-def documented_contract_gaps(required_fields, documented_text):
-    """Required field names that do not begin a line in the documented block."""
-    return sorted(
-        field for field in required_fields
-        if not re.search(rf"^\s*{re.escape(field)}\s*:", documented_text, re.MULTILINE)
-    )
-
-
-CONTRACT_SOURCES = {
-    "harness-pm": [".omp/agents/harness-pm.md"],
-    "harness-qa": [".omp/agents/harness-qa.md"],
-    "harness-documentor": [".omp/agents/harness-documentor.md"],
-    "harness-dev-ops": [".claude/skills/harness-digest-dev/SKILL.md#dev-ops"],
-    "harness-visual-designer": [".omp/agents/harness-visual-designer.md"],
-    "harness-code-reviewer": [".omp/agents/harness-code-reviewer.md"],
-    "harness-security-reviewer": [".omp/agents/harness-security-reviewer.md"],
-    "harness-ui-reviewer": [".omp/agents/harness-ui-reviewer.md"],
-    "harness-orchestrator": [".omp/agents/harness-orchestrator.md"],
-    "harness-frontend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
-    "harness-backend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
-    "harness-ai-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
-    "harness-data-engineer": [".claude/skills/harness-digest-dev/SKILL.md"],
-    # #1895: the main session's own direct build (DEC-174) returns the dev contract.
-    "main-session": [".claude/skills/harness-digest-dev/SKILL.md"],
-    "harness-product-lead": [".claude/skills/harness-team/SKILL.md"],
-    "harness-eng-lead": [".claude/skills/harness-team/SKILL.md"],
-    "harness-validator-lead": [".claude/skills/harness-team/SKILL.md"],
-}
-
-
-def documented_contract_results(roster, sources, required_by_persona, read_source):
-    """Grade each registry persona against only its mapped documented block."""
-    results = []
-    for persona in sorted(roster):
-        persona_sources = sources.get(persona)
-        if not persona_sources:
-            results.append((
-                False,
-                f"{persona}: present in validator registry but has no documented-contract source mapped",
-            ))
-            continue
-        for source_path in persona_sources:
-            source_text = read_source(source_path)
-            if source_text is None:
-                results.append((False, f"{persona}: documented-contract source absent: {source_path}"))
-                continue
-            block = documented_block(source_text, source_path)
-            if block is None:
-                results.append((
-                    False,
-                    f"{persona}: documented block could not be located: {source_path}",
-                ))
-                continue
-            gaps = documented_contract_gaps(required_by_persona[persona], block)
-            results.append((
-                not gaps,
-                f"{persona}: {source_path}"
-                + (f" missing fields: {', '.join(gaps)}" if gaps else ""),
-            ))
-    return results
-
-
-PRE_FIX_REVIEWER_BLOCK = """
-## Output
-
-````
-```yaml
-VERDICT: PASS | FAIL
-DIGEST:
-  headline: <one line>
-  severity_max: none|low|med|high|critical|n/a
-  findings: <n>
-  must_fix: [<item>]
-  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
-  reviewed: "base..<review_sha>"
-  human_commits_in_scope: [<sha>]
-  open_questions:
-  files_touched: [<paths>]
-  expertise_update: [<ops>]
-artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
-```
-````
-"""
-
-
-def _contract_source(path):
-    try:
-        with open(os.path.join(REPO_ROOT, path.partition("#")[0])) as source:
-            return source.read()
-    except FileNotFoundError:
-        return None
-
-
-def _report_contract_result(ok, line):
-    print(f"{'ok  ' if ok else 'FAIL'}  [documented contract] {line}")
-    return 0 if ok else 1
-
-
-def _required_contracts(validator, roster):
-    required = {
-        persona: set(validator.SCHEMAS[validator.norm(persona)])
-        for persona in roster
-    }
-    required["harness-code-reviewer"].update(("code_grade", "reviewed"))
-    return required
-
-
-def _derive_plan_mode_code_grade(validator):
-    """SC-03: the plan-mode `code_grade` value is not typed here — it is derived by
-    probing the validator's OWN plan-mode rule, `_pending_plan_review_error`
-    (validate-digest.py:1026-1032), across every member of `validator.CODE_GRADE_VALUES`
-    (validate-digest.py:616) and keeping whichever single member that rule does not
-    reject for its grade. Renaming the accepted grade in `CODE_GRADE_VALUES` changes
-    what this probe keeps, so the derived value tracks the validator instead of a
-    retyped literal.
-
-    Returns (grade, None) when exactly one member qualifies. Returns (None, reason)
-    when zero or more than one member qualifies, or when the probe itself raises —
-    never a silent default, never `None` masquerading as success.
-    """
-    try:
-        with tempfile.TemporaryDirectory() as td:
-            config = os.path.join(td, "harness.json")
-            write_review_config(config, "advisory_unless_high")
-            feature_dir, plan_path, artifact, _digest = _plan_review_fixture(
-                os.path.join(td, "plan-mode-probe"))
-            qualifying = []
-            for grade in sorted(validator.CODE_GRADE_VALUES):
-                digest = reviewer_digest(
-                    grade, reviewed=f"plan:{plan_path}", artifact=artifact)
-                errors = _plan_review_errors(validator, config, feature_dir, digest)
-                if not any("code_grade must be" in error for error in errors):
-                    qualifying.append(grade)
-    except Exception as exc:
-        return None, f"probe raised {exc!r}"
-    if len(qualifying) != 1:
-        return None, (
-            f"expected exactly one qualifying member of CODE_GRADE_VALUES, "
-            f"found {qualifying!r}"
-        )
-    return qualifying[0], None
-
-
-def _reviewer_plan_mode_results(validator):
-    reviewer_sources = (
-        ".omp/agents/harness-code-reviewer.md",
-        ".claude/skills/harness-code-review/SKILL.md",
-    )
-    reviewed_token = "reviewed: " + validator._PLAN_REVIEW_PREFIX
-    derived_grade, derive_error = _derive_plan_mode_code_grade(validator)
-    results = []
-    if derive_error:
-        results.append((
-            False,
-            f"plan-mode code_grade derivation from CODE_GRADE_VALUES failed: {derive_error}",
-        ))
-        return results
-    code_grade_line = re.compile(
-        rf"^\s*code_grade\s*:.*\b{re.escape(derived_grade)}\b", re.MULTILINE)
-    for source_path in reviewer_sources:
-        source_text = _contract_source(source_path) or ""
-        results.append((
-            reviewed_token in source_text,
-            f"{source_path} plan-mode token {reviewed_token!r}",
-        ))
-        results.append((
-            code_grade_line.search(source_text) is not None,
-            f"{source_path} plan-mode token 'code_grade: ... {derived_grade}'",
-        ))
-        if source_path.endswith("harness-code-reviewer.md"):
-            fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
-            results.append((
-                fragment in source_text,
-                f"{source_path} plan-mode token {fragment!r}",
-            ))
-    return results
-
-
-def _discrimination_ok():
-    pre_fix_gaps = documented_contract_gaps(("code_grade",), PRE_FIX_REVIEWER_BLOCK)
-    with_code_grade = PRE_FIX_REVIEWER_BLOCK.replace(
-        '  reviewed: "base..<review_sha>"',
-        '  code_grade: pass|fail|grade_2|n_a\n  reviewed: "base..<review_sha>"',
-    )
-    return (
-        pre_fix_gaps == ["code_grade"]
-        and documented_contract_gaps(("code_grade",), with_code_grade) == []
-    )
-
-
-def _synthetic_contract_results():
-    roster = ("unmapped", "empty", "absent", "unlocatable", "outside", "control")
-    sources = {
-        "empty": [],
-        "absent": ["absent.md"],
-        "unlocatable": ["unlocatable.md"],
-        "outside": ["outside.md"],
-        "control": ["control.md"],
-    }
-    required = {persona: {"needed"} for persona in roster}
-    source_text = {
-        "unlocatable.md": "needed: yes\n# No output section\n",
-        "outside.md": "needed: outside\n## Output\nother: value\n",
-        "control.md": "## Output\nneeded: yes\n",
-    }
-    return documented_contract_results(roster, sources, required, source_text.get)
-
-
-def _contains_line(lines, *terms):
-    return any(all(term in line for term in terms) for line in lines)
-
-
-def _completeness_ok(results):
-    failures = [line for ok, line in results if not ok]
-    controls = [line for ok, line in results if ok]
-    checks = (
-        _contains_line(failures, "unmapped", "no documented-contract source"),
-        _contains_line(failures, "empty", "no documented-contract source"),
-        _contains_line(failures, "absent.md", "absent"),
-        _contains_line(failures, "unlocatable.md", "could not be located"),
-        _contains_line(failures, "outside", "needed"),
-        controls == ["control: control.md"],
-    )
-    return all(checks)
-
-
-def _report_group_result(label, ok):
-    print(f"{'ok  ' if ok else 'FAIL'}  {label}")
-    return 0 if ok else 1
-
-
-def run_documented_contract_cases():
-    """Keep persona output instructions aligned with the validator's schema."""
-    spec = importlib.util.spec_from_file_location("_validator_contract_guard", VALIDATE)
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    roster = sorted(validator.ALIAS)
-    results = documented_contract_results(
-        roster, CONTRACT_SOURCES, _required_contracts(validator, roster), _contract_source)
-    results.extend(_reviewer_plan_mode_results(validator))
-    fails = sum(_report_contract_result(ok, line) for ok, line in results)
-    fails += _report_group_result(
-        "[documented contract discrimination] omitted field reported, present field accepted",
-        _discrimination_ok(),
-    )
-    fails += _report_group_result(
-        "[documented contract completeness] unmapped persona, absent source, "
-        "unlocatable block and out-of-block field each reported by name",
-        _completeness_ok(_synthetic_contract_results()),
-    )
-    return fails
 
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
-# (name, agent_type, last_assistant_message text or None, payload_overrides dict,
+# (name, payload carrying `digest_object` (any JSON value, as a yield sends it),
 #  expect_exit, must_mention_on_stderr)
 HOOK_CASES = []
 
 
-def case(name, persona, text, ok, mentions=None):
-    if persona in ("harness-product-lead", "harness-eng-lead",
-                   "harness-validator-lead", "lead") and "  adequacy_notes:" not in text:
-        text = text.replace("\nartifact:", "\n  adequacy_notes: []\nartifact:")
-    CASES.append((name, persona, text.strip() + "\n", ok, mentions))
+def case(name, persona, text, ok, mentions=None, complete=True):
+    CASES.append((name, persona, fixture(persona, text, complete), ok, mentions))
 
 
-def hook_case(name, agent_type, text, expect_exit, mentions=None, **overrides):
-    if agent_type in ("harness-product-lead", "harness-eng-lead",
-                      "harness-validator-lead", "lead") and "  adequacy_notes:" not in text:
-        text = text.replace("\nartifact:", "\n  adequacy_notes: []\nartifact:")
-    payload = {"agent_type": agent_type, "last_assistant_message": text}
+def hook_case(name, agent_type, text, expect_exit, mentions=None, complete=True, **overrides):
+    payload = {"agent_type": agent_type,
+               "digest_object": fixture(agent_type, text, complete) if isinstance(text, str)
+               else text}
     payload.update(overrides)
     HOOK_CASES.append((name, payload, expect_exit, mentions))
 
@@ -579,18 +117,18 @@ DIGEST:
   cycles_used: 1
   members:
     - { step: build, persona: backend-dev, verdict: PASS, headline: "jwt mw", files_touched: [src/auth.ts] }
-    - { step: qa, persona: qa, verdict: FAIL, severity_max: high, must_fix: ["refresh path untested"] }
+    - { step: qa, persona: qa, verdict: FAIL, headline: "refresh path untested", files_touched: [] }
   must_fix: ["refresh path untested"]
   branch: feat/auth
   files_touched: [src/auth.ts, test/auth.spec.ts]
   open_questions: []
-  escalations:
+  escalations: []
   expertise_update: []
   sc_status: []
   adequacy_notes: []
 artifact: .harness/features/FEAT-01/runs/r1/digest.md
 """
-case("lead, block-style members + bare empty key", "harness-eng-lead", LEAD_BLOCK, True)
+case("lead, block-style members", "harness-eng-lead", LEAD_BLOCK, True)
 
 
 # BUG-1716 T-02 (SC-01/SC-06, D-02): `amendments` — the eng-lead's optional list of in-build
@@ -612,7 +150,8 @@ BUG285_AMENDMENTS = """\
 """
 case("amendments: the three BUG-285 recommendations are accepted eng-lead amendments",
      "harness-eng-lead", _amended(BUG285_AMENDMENTS), True)
-case("amendments: absent is legal", "harness-eng-lead", LEAD_BLOCK, True)
+case("amendments: absent is refused — every field is required, `[]` says none",
+     "harness-eng-lead", LEAD_BLOCK, False, "missing 'amendments'", complete=False)
 case("amendments: empty list is legal", "harness-eng-lead", _amended("[]"), True)
 case("amendments: inline mappings for all three fields",
      "harness-eng-lead", _amended(
@@ -626,9 +165,6 @@ case("amendments: unknown key is refused naming index and key", "harness-eng-lea
      _amended('[{ task: T-01, field: intent, was: "a", now: "b", reason: "r", by: me }]'), False, "by")
 case("amendments: missing key is refused", "harness-eng-lead",
      _amended('[{ task: T-01, field: intent, was: "a", reason: "r" }]'), False, "now")
-# A scalar, not a block mapping: parse_digest reads a nested block mapping under a list-typed
-# key as `[]` (the same limit the members roll-up lives with), so the type gate is pinned on
-# the shape the parser CAN distinguish.
 case("amendments: not a list is refused", "harness-eng-lead",
      LEAD_BLOCK.replace("  adequacy_notes: []\n", "  amendments: none\n  adequacy_notes: []\n"),
      False, "amendments")
@@ -674,7 +210,7 @@ DIGEST:
   team: review
   steps_run: 5
   cycles_used: 0
-  members: [{ step: s1, persona: code-reviewer, verdict: PASS }, { step: s2, persona: qa, verdict: PASS }]
+  members: [{ step: s1, persona: code-reviewer, verdict: PASS, headline: "s1 ran", files_touched: [] }, { step: s2, persona: qa, verdict: PASS, headline: "s2 ran", files_touched: [] }]
   must_fix: []
   branch: none
   files_touched: []
@@ -706,13 +242,13 @@ DIGEST:
 artifact: .harness/features/FEAT-01/runs/r3/digest.md
 """, False, "must_fix")
 
-# SPEC 10.4 packed three fields onto one source line for compactness. That is not
-# YAML, and a lead copying it verbatim loses two required fields silently.
-case("three fields on one line loses two", "harness-eng-lead", """
+# The object counterpart of SPEC 10.4's old one-line packing (`team: build  steps_run: 3
+# cycles_used: 0`, which lost two fields): a return missing them is refused, naming both.
+case("a lead return missing steps_run and cycles_used is refused, naming both", "harness-eng-lead", """
 VERDICT: PASS
 DIGEST:
   headline: done
-  team: build            steps_run: 3   cycles_used: 0
+  team: build
   members: []
   must_fix: []
   branch: none
@@ -722,7 +258,7 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: x.md
-""", False, "steps_run")
+""", False, ["missing 'steps_run'", "missing 'cycles_used'"])
 
 case("doer, inline — unchanged behaviour", "harness-backend-dev", """
 VERDICT: PASS
@@ -778,7 +314,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two blocking findings
   severity_max: high
-  findings: [{ kind: substance, severity: high, reader: code-reviewer, summary: "fail-open branch in auth" }, { kind: substance, severity: high, reader: code-reviewer, summary: "unhandled rejection" }]
+  findings: [{ kind: substance, scope: none, severity: high, reader: code-reviewer, summary: "fail-open branch in auth", why: "the reader states its reason" }, { kind: substance, scope: none, severity: high, reader: code-reviewer, summary: "unhandled rejection", why: "the reader states its reason" }]
   must-fix: ["fail-open branch in auth"]
   files_touched: []
   open_questions: []
@@ -791,7 +327,7 @@ VERDICT: FAIL
 DIGEST:
   headline: one finding
   severity_max: medium
-  findings: [{ kind: substance, severity: med, reader: code-reviewer, summary: "off-by-one" }]
+  findings: [{ kind: substance, scope: none, severity: med, reader: code-reviewer, summary: "off-by-one", why: "the reader states its reason" }]
   must_fix: []
   files_touched: []
   open_questions: []
@@ -816,12 +352,11 @@ DIGEST:
   open_questions: 0
   expertise_update: []
 artifact: .harness/notes/qa.md
-""", False, "COUNT")
+""", False, "open_questions: 0 is not of type 'array'")
 
-# A bare `escalations:` with a DEEPER KEY under it is a mapping, not a list, and the
-# lead almost certainly meant a list. It parses to [] — which is a legitimate "none".
-# Recorded as accepted so the behaviour is a decision rather than an accident.
-case("bare key followed by nothing is an empty list", "harness-eng-lead", """
+# A list field is a list: null (a bare `key:` in YAML) is not the empty list `[]` that
+# asserts "none" — the object contract has one spelling for nothing, and it is explicit.
+case("a null list field is refused — null is not an empty list", "harness-eng-lead", """
 VERDICT: PASS
 DIGEST:
   headline: clean run
@@ -829,60 +364,22 @@ DIGEST:
   steps_run: 1
   cycles_used: 0
   members:
-    - { step: build, persona: backend-dev, verdict: PASS }
-  must_fix:
+    - { step: build, persona: backend-dev, verdict: PASS, headline: "build ran", files_touched: [] }
+  must_fix: []
   branch: none
   files_touched: []
-  open_questions:
-  escalations:
-  expertise_update:
-  sc_status:
-artifact: x.md
-""", True)
-
-# SPEC 10.4 and the runner both annotate their templates inline, so agents copy the
-# comments too. `steps_run: 3  # …` parsed as a string; `members:  # …` parsed as a
-# scalar and hid the block under it. The validator rejected its own documented format.
-case("inline # comments are stripped, not parsed", "harness-eng-lead", """
-VERDICT: PASS
-DIGEST:
-  headline: clean
-  team: build                     # one key per line
-  steps_run: 3                    # not a string
-  cycles_used: 0
-  members:                        # per-member roll-up — NOT optional
-    - { step: s1, persona: backend-dev, verdict: PASS }
-  must_fix: []
-  branch: none                    # `none` if nothing was mutated
-  files_touched: [src/auth.ts]    # union across members
   open_questions: []
-  escalations: []
+  escalations: null
   expertise_update: []
-  sc_status: []                   # [] if no goal-check ran
-artifact: r/digest.md             # not state.yaml
-""", True)
-
-# A `#` inside quotes or brackets is content, not a comment.
-case("# inside a quoted value survives", "harness-backend-dev", """
-VERDICT: PASS
-DIGEST:
-  headline: "closes #42 — token refresh"
-  tests_added: 2
-  suite: pass
-  blocked_on: none
-  task: T-01
-  task_verify: pass
-  files_touched: [src/a.ts]
-  open_questions: []
-  expertise_update: []
+  sc_status: []
 artifact: x.md
-""", True)
+""", False, "escalations: None is not of type 'array'")
 
 case("no VERDICT at all", "harness-qa", """
 DIGEST:
   headline: whatever
 artifact: x.md
-""", False, "no VERDICT")
+""", False, "missing 'VERDICT'")
 
 
 # The roll-up is the only part of collation that is arithmetic. It was prose with a
@@ -895,8 +392,8 @@ DIGEST:
   steps_run: 3
   cycles_used: 0
   members:
-    - { step: s1, persona: backend-dev, verdict: PASS }
-    - { step: s2, persona: qa, verdict: FAIL }
+    - { step: s1, persona: backend-dev, verdict: PASS, headline: "s1 ran", files_touched: [] }
+    - { step: s2, persona: qa, verdict: FAIL, headline: "s2 ran", files_touched: [] }
   must_fix: ["refresh path untested"]
   branch: none
   files_touched: []
@@ -917,8 +414,8 @@ DIGEST:
   steps_run: 4
   cycles_used: 0
   members:
-    - { step: s1, persona: code-reviewer, verdict: FAIL }
-    - { step: s2, persona: security-reviewer, verdict: ESCALATE }
+    - { step: s1, persona: code-reviewer, verdict: FAIL, headline: "s1 ran", files_touched: [] }
+    - { step: s2, persona: security-reviewer, verdict: ESCALATE, headline: "s2 ran", files_touched: [] }
   must_fix: ["fail-open branch"]
   branch: none
   files_touched: []
@@ -938,7 +435,7 @@ DIGEST:
   steps_run: 2
   cycles_used: 0
   members:
-    - { step: s1, persona: backend-dev, verdict: PASS }
+    - { step: s1, persona: backend-dev, verdict: PASS, headline: "s1 ran", files_touched: [] }
   must_fix: []
   branch: none
   files_touched: []
@@ -979,7 +476,7 @@ DIGEST:
   steps_run: 1
   cycles_used: 0
   members:
-    - { step: scope, persona: code-reviewer, verdict: PASS }
+    - { step: scope, persona: code-reviewer, verdict: PASS, headline: "scope ran", files_touched: [] }
     - { step: should-not-exist, persona: fable-advisor, status: skipped, reason: persona unavailable }
   must_fix: []
   branch: none
@@ -1018,7 +515,7 @@ DIGEST:
   steps_run: 2
   cycles_used: 0
   members:
-    - { step: code, persona: code-reviewer, verdict: PASS }
+    - { step: code, persona: code-reviewer, verdict: PASS, headline: "code ran", files_touched: [] }
     - { step: qa, persona: qa, status: skipped, reason: environment unavailable }
   must_fix: []
   branch: none
@@ -1053,33 +550,7 @@ DIGEST:
   steps_run: 2
   cycles_used: 1
   members:
-    - { step: qa, persona: qa, headline: "verdict: PASS on retry", verdict: FAIL }
-  must_fix: ["fix it"]
-  branch: none
-  files_touched: []
-  open_questions: []
-  escalations: []
-  expertise_update: []
-  sc_status: []
-artifact: r/digest.md
-""", 2, "worst member verdict")
-
-# F1 repro 2 — multi-line inline `members: [` list. The old parser took only
-# the FIRST line of an unclosed inline value, so `members: [` alone parsed to
-# `[]` and the roll-up guard (gated on `isinstance(members, list)`) saw an
-# empty list and emitted silence over a masked FAIL.
-hook_case("F1.2 multi-line inline members list is followed to its close",
-          "harness-eng-lead", """
-VERDICT: PASS
-DIGEST:
-  headline: two ran
-  team: build
-  steps_run: 2
-  cycles_used: 0
-  members: [
-    { step: build, persona: backend-dev, verdict: PASS },
-    { step: qa, persona: qa, verdict: FAIL }
-  ]
+    - { step: qa, persona: qa, headline: "verdict: PASS on retry", verdict: FAIL, files_touched: [] }
   must_fix: ["fix it"]
   branch: none
   files_touched: []
@@ -1095,7 +566,8 @@ artifact: r/digest.md
 # every character until end-of-string with no closing match — fusing entry 2
 # and entry 3 into one item. The OLD roll-up (a bare `re.search` for
 # `verdict:` ANYWHERE in that fused string) then matched entry 2's own,
-# earlier, `verdict: PASS` first and never saw entry 3's real `verdict: FAIL`.
+# earlier, `verdict: PASS` first and never saw entry 3's real `verdict: FAIL`. As an
+# object the three members are three mappings; the roll-up must still see entry 3's FAIL.
 hook_case("F1.3 unquoted apostrophe must not fuse list entries",
           "harness-validator-lead", """
 VERDICT: PASS
@@ -1104,7 +576,7 @@ DIGEST:
   team: review
   steps_run: 3
   cycles_used: 0
-  members: [{ step: s1, persona: code-reviewer, verdict: PASS }, { step: s2, persona: qa, headline: didn't stop, verdict: PASS }, { step: s3, persona: security-reviewer, verdict: FAIL }]
+  members: [{ step: s1, persona: code-reviewer, verdict: PASS, headline: "s1 ran", files_touched: [] }, { step: s2, persona: qa, headline: didn't stop, verdict: PASS, files_touched: [] }, { step: s3, persona: security-reviewer, verdict: FAIL, headline: "s3 ran", files_touched: [] }]
   must_fix: ["fix it"]
   branch: none
   files_touched: []
@@ -1146,7 +618,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two findings
   severity_max: [low, med]
-  findings: [{ kind: form, severity: low, reader: code-reviewer, summary: "a" }, { kind: substance, severity: med, reader: code-reviewer, summary: "b" }]
+  findings: [{ kind: form, scope: none, severity: low, reader: code-reviewer, summary: "a", why: "the reader states its reason" }, { kind: substance, scope: none, severity: med, reader: code-reviewer, summary: "b", why: "the reader states its reason" }]
   must_fix: []
   files_touched: []
   open_questions: []
@@ -1154,83 +626,64 @@ DIGEST:
 artifact: .harness/notes/review-code.md
 """, 2, "must be a single value")
 
-# --- D-01 (issue #1056): PRESENCE, not truthiness -----------------------------
-# Absent, null and empty-string were ONE branch, so the platform's gap and the persona's
-# contract violation were indistinguishable and both exited 0. Five FEAT-45 returns were
-# empty and nothing in the record said so. Each case asserts the EXIT CODE and the stderr
-# TEXT, because exit 0 alone is what the defect also returned.
+QA_REAL_FAIL_MISSING_MATRIX = """
+VERDICT: FAIL
+DIGEST:
+  headline: refresh path fails under load
+  suite: fail
+  failures: 2
+  coverage_gaps: ["refresh path"]
+  fail_first: []
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/qa.md
+"""
+QA_REAL_FAIL = QA_REAL_FAIL_MISSING_MATRIX.replace("  fail_first: []\n",
+                                                   "  matrix_ok: false\n  fail_first: []\n")
 
-hook_case("empty-string: a present but blank final message is the persona's violation",
-          "harness-qa", "   \n", 2, mentions="harness-qa")
+# --- FEAT-1928 SC-02: the yield's `data` IS the digest, or there is none ---------------
+# D-01 (#1056) told absent, null and blank TEXT apart so the platform's gap was not mistaken
+# for the persona's violation. Under the object contract the host hands over `data` as the
+# agent yielded it, so every one of these is the agent's to fix: the hook blocks (exit 2)
+# with the one instruction, and nothing is read from anywhere else.
+OBJECT_INSTRUCTION = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})"
 
-def _absent_key_case():
-    # The key omitted ENTIRELY — hook_case always sets it, so the payload is built here.
-    HOOK_CASES.append((
-        "absent-key: nothing supplied to validate is OUR gap, and is said so",
-        {"agent_type": "harness-qa"}, 0,
-        ("not validated", "our", "harness-qa")))
-_absent_key_case()
+HOOK_CASES.append(("object [hook]: absent data is refused with the object instruction",
+                   {"agent_type": "harness-qa"}, 2, (OBJECT_INSTRUCTION, "absent")))
+hook_case("object [hook]: null data is refused with the object instruction",
+          "harness-qa", None, 2, mentions=(OBJECT_INSTRUCTION, "NoneType"))
+HOOK_CASES.append(("object [hook]: string data carrying digest TEXT is refused, never parsed",
+                   {"agent_type": "harness-qa", "digest_object": QA_REAL_FAIL}, 2,
+                   (OBJECT_INSTRUCTION, "a str")))
+HOOK_CASES.append(("object [hook]: blank string data is refused",
+                   {"agent_type": "harness-qa", "digest_object": "   \n"}, 2, OBJECT_INSTRUCTION))
+HOOK_CASES.append(("object [hook]: a list is refused",
+                   {"agent_type": "harness-qa", "digest_object": [fixture("harness-qa", QA_REAL_FAIL)]}, 2,
+                   (OBJECT_INSTRUCTION, "a list")))
 
-hook_case("null-passthrough: an explicitly null final message is the same our-gap branch",
-          "harness-qa", None, 0, mentions=("not validated", "our", "harness-qa"))
-
-# --- The two deliberate pass-throughs (DEC-122), each asserted at exit 0 ---
+# --- The deliberate pass-throughs, each asserted at exit 0 — and each only for a mapping ---
 
 hook_case("pass-through: non-harness agent_type is not governed",
           "Explore", "VERDICT: PASS\nDIGEST:\nartifact: x.md\n", 0)
+HOOK_CASES.append(("pass-through: non-harness agent_type is not governed, whatever data it yields",
+                   {"agent_type": "Explore", "digest_object": "not a digest"}, 0, None))
+hook_case("pass-through: stop_hook_active passes a mapping unvalidated",
+          "harness-qa", QA_REAL_FAIL_MISSING_MATRIX, 0, stop_hook_active=True)
+HOOK_CASES.append(("stop_hook_active does not pass string data",
+                   {"agent_type": "harness-qa", "digest_object": "done", "stop_hook_active": True},
+                   2, OBJECT_INSTRUCTION))
+# F6: an absent agent_type key is LOUD on stderr — distinguishable from a present
+# non-harness value (silent, above) — and still refuses what cannot be a digest.
+HOOK_CASES.append(("F6 missing agent_type key is loud, not silent",
+                   {"digest_object": fixture("harness-qa", QA_REAL_FAIL)}, 0, "agent_type"))
+HOOK_CASES.append(("F6 missing agent_type with string data is refused",
+                   {"digest_object": "whatever"}, 2, OBJECT_INSTRUCTION))
 
-hook_case("pass-through: stop_hook_active avoids the infinite-block loop",
-          "harness-qa", "done", 0, stop_hook_active=True)
-
-# --- DEC-156: a lead's WRITTEN digest.md must carry the contract block too ---
-# The kaya-ai FEAT-02 audit found every run digest.md was narrative markdown while
-# every in-message return had passed this hook — the durable copy (the one a
-# successor reads) was never looked at. These cases pin the file check: real files
-# in a tempdir, artifact path resolved via the payload's `cwd`.
-import tempfile
-_D156 = tempfile.mkdtemp(prefix="vd-dec156-")
-
-def _dec156_case(name, file_content, expect_exit, mentions=None,
-                 agent="harness-eng-lead", fname="digest.md"):
-    rd = tempfile.mkdtemp(dir=_D156)
-    rel = os.path.join("runs", "r1", fname)
-    os.makedirs(os.path.dirname(os.path.join(rd, rel)))
-    # THE ROOT IS THE OVERRIDE NOW, NOT THE PAYLOAD cwd (FEAT-42 T-17). These fixtures used
-    # to be found by joining the artifact path onto payload["cwd"]; cwd was deleted as a root
-    # input because nothing SETS where an agent stands. The tmpdir therefore has to be a real
-    # harness root — resolve_root honours the override only when the marker is under it — and
-    # the runner has to hand it over per case.
-    os.makedirs(os.path.join(rd, ".harness"), exist_ok=True)
-    with open(os.path.join(rd, ".harness", "team-config.yaml"), "w") as f:
-        f.write("agents: {}\n")
-    if file_content is not None:
-        with open(os.path.join(rd, rel), "w") as f:
-            f.write(file_content)
-    msg = LEAD_BLOCK.replace(
-        "artifact: .harness/features/FEAT-01/runs/r1/digest.md", f"artifact: {rel}")
-    HOOK_CASES.append((name,
-                       {"agent_type": agent, "last_assistant_message": msg, "cwd": rd,
-                        "_root": rd},
-                       expect_exit, mentions))
-
-_dec156_case("DEC-156: narrative digest.md with no contract block is exit 2",
-             "# Team digest — T-01\n\n**PASS.** All gates green, see tables below.\n",
-             2, mentions="digest FILE")
-_dec156_case("DEC-156: digest.md carrying the same valid block is exit 0",
-             LEAD_BLOCK, 0)
-_dec156_case("DEC-156: missing digest in a resolved run directory is refused",
-             None, 2, mentions="missing")
-_dec156_case("DEC-156: file check governs leads only — a dev's artifact is not read",
-             "# notes, not a digest\n", 0, agent="harness-backend-dev", fname="notes.md")
-# The dev case needs a valid dev message, not a lead one — rebuild its payload.
-_n, _p, _e, _m = HOOK_CASES.pop()
-_p["last_assistant_message"] = (
-    "VERDICT: PASS\nDIGEST:\n  headline: built\n  tests_added: 2\n  suite: pass\n"
-    "  task: T-01\n  task_verify: pass\n"
-    "  blocked_on: none\n  files_touched: []\n  open_questions: []\n"
-    "  expertise_update: []\nartifact: runs/r1/notes.md\n")
-HOOK_CASES.append((_n, _p, _e, _m))
-
+# --- SC-07 (DEC-156, DEC-208): the lead's durable digest.md ends with its validated object ---
+# The lead writes the human assessment; the validator appends the fenced YAML record. Only
+# the file-resolution half is a HOOK_CASES row; the byte-level append rules are
+# run_lead_append_cases, which reads the file back after each fire.
 # Root and checkout must differ here. `_dec156_case` makes them coincide, so the old
 # owner-root join and the corrected feature-checkout join name the same file and cannot
 # distinguish the worktree-resolution defect.
@@ -1257,7 +710,7 @@ def _write_optional_digest(worktree, rel, file_content):
 def _dec156_worktree_payload(root, rel, feature):
     msg = LEAD_BLOCK.replace(
         "artifact: .harness/features/FEAT-01/runs/r1/digest.md", f"artifact: {rel}")
-    payload = {"agent_type": "harness-eng-lead", "last_assistant_message": msg,
+    payload = {"agent_type": "harness-eng-lead", "digest_object": fixture("harness-eng-lead", msg),
                "_root": root}
     if feature:
         payload["harness_feature"] = "FEAT-X-thing"
@@ -1278,71 +731,20 @@ def _dec156_worktree_case(name, file_content, expect_exit, mentions=None, featur
 
 
 _dec156_worktree_case(
-    "dec156-worktree-narrative: worktree narrative digest is rejected",
-    "# narrative digest, no contract block\n", 2, mentions="digest FILE")
+    "dec156-worktree-narrative: the worktree digest gains the validated block",
+    "# narrative digest, no contract block\n", 0, mentions="appended")
 _dec156_worktree_case(
-    "dec156-worktree-valid: valid worktree digest passes",
-    LEAD_BLOCK, 0)
+    "dec156-worktree-valid: a worktree digest already ending in the object is left alone",
+    "# narrative\n\n```yaml\n" + yaml.safe_dump(
+        fixture("harness-eng-lead", LEAD_BLOCK.replace("artifact: .harness/features/FEAT-01/runs/r1/digest.md",
+                                  "artifact: runs/r1/digest.md")), sort_keys=False) + "```\n", 0)
 _dec156_worktree_case(
-    "dec156-worktree-nofeature: absent feature preserves fail-open fallback",
-    "# narrative digest, no contract block\n", 0, mentions="not found", feature=False)
-
-
-# F6: absent agent_type key must be LOUD on stderr — distinguishable from a
-# present-but-non-harness value (which stays silent, asserted above).
-def _missing_agent_type_case():
-    payload = {"last_assistant_message": "whatever"}
-    HOOK_CASES.append(("F6 missing agent_type key is loud, not silent",
-                        payload, 0, "agent_type"))
-_missing_agent_type_case()
+    "dec156-worktree-nofeature: an unresolvable lead digest refuses the return",
+    "# narrative digest, no contract block\n", 2, mentions="resolves to no run directory",
+    feature=False)
 
 
 # --- Fold-ins (BUILD task 22) ---
-
-# F4: DIGEST: with a trailing comment must still be recognized — SPEC 8's own
-# normative template writes it exactly this way, so the validator rejected the
-# format it teaches agents to copy.
-case("DIGEST: with a trailing comment is still recognized", "harness-backend-dev", """
-VERDICT: PASS
-DIGEST:                             # routing — orchestrator reads THIS
-  headline: jwt middleware added, suite green
-  tests_added: 4
-  suite: pass
-  blocked_on: none
-  task: T-01
-  task_verify: pass
-  files_touched: [src/auth.ts]
-  open_questions: []
-  expertise_update: []
-artifact: .harness/notes/impl-auth.md
-""", True)
-
-# F5: standard YAML block-mapping member entries (`- step: s1` / newline /
-# `  verdict: PASS`) must be accepted — SPEC 10.4's own `escalations` example
-# is written across lines, and it is legal YAML.
-case("block-mapping member entries spanning lines are accepted", "harness-eng-lead", """
-VERDICT: FAIL
-DIGEST:
-  headline: qa failed on the refresh path
-  team: build
-  steps_run: 2
-  cycles_used: 0
-  members:
-    - step: build
-      persona: backend-dev
-      verdict: PASS
-    - step: qa
-      persona: qa
-      verdict: FAIL
-  must_fix: ["refresh path untested"]
-  branch: none
-  files_touched: []
-  open_questions: []
-  escalations: []
-  expertise_update: []
-  sc_status: []
-artifact: r/digest.md
-""", True)
 
 # F7: `headline` must be read at the DIGEST block's own level. No top-level
 # headline, but a block-style member happens to carry its OWN `headline:` at a
@@ -1366,7 +768,7 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: r/digest.md
-""", False, "no headline")
+""", False, "missing 'headline'")
 
 # F12: str-typed fields hit no type branch before this fix — an int silently
 # satisfied a `str` field.
@@ -1378,7 +780,7 @@ DIGEST:
   steps_run: 1
   cycles_used: 0
   members:
-    - { step: s1, persona: backend-dev, verdict: PASS }
+    - { step: s1, persona: backend-dev, verdict: PASS, headline: "s1 ran", files_touched: [] }
   must_fix: []
   branch: none
   files_touched: []
@@ -1387,7 +789,7 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: r/digest.md
-""", False, "must be a non-empty string")
+""", False, "team: 7 is not of type 'string'")
 
 # F12: a bare `branch:` with nothing under it parses to `[]`, which is not the
 # literal `none` DEC-121 requires for an inapplicable NULLABLE scalar.
@@ -1399,7 +801,7 @@ DIGEST:
   steps_run: 1
   cycles_used: 0
   members:
-    - { step: s1, persona: backend-dev, verdict: PASS }
+    - { step: s1, persona: backend-dev, verdict: PASS, headline: "s1 ran", files_touched: [] }
   must_fix: []
   branch:
   files_touched: []
@@ -1408,13 +810,13 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: r/digest.md
-""", False, "must be a non-empty string")
+""", False, "branch: None is not of type 'string'")
 
-# F13: the open_questions-is-a-count check must read the DIGEST's OWN top-level
-# value from the parsed map, not a whole-text regex — a NESTED
-# `open_questions: 0` inside a member entry, appearing before the real
-# top-level list, must not produce a false positive on an otherwise-valid digest.
-case("a nested open_questions count must not trip the top-level check", "harness-eng-lead", """
+# F13 was a text-parser defect: a NESTED `open_questions: 0` inside a member entry tripped
+# the top-level count check. As an object the member is its own mapping, and the FEAT-1928
+# ruling closes it to {step, persona, verdict, headline, files_touched}: a member carrying
+# any other key is refused at that member, and the top-level list is never confused with it.
+case("a member entry carrying open_questions is refused at that member", "harness-eng-lead", """
 VERDICT: PASS
 DIGEST:
   headline: clean
@@ -1425,6 +827,8 @@ DIGEST:
     - step: s1
       persona: backend-dev
       verdict: PASS
+      headline: "s1 ran"
+      files_touched: []
       open_questions: 0
   must_fix: []
   branch: none
@@ -1434,7 +838,7 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: r/digest.md
-""", True)
+""", False, ["members[0]", "!open_questions is a COUNT"])
 
 # F15: the drift-spelling check must cover UNIVERSAL fields too, not just the
 # persona schema — `files-touched` (hyphenated) is drift of the universal
@@ -1462,7 +866,7 @@ DIGEST:
   headline: FEAT-01 shipped
   feature: FEAT-01
   status: shipped
-  runs: [r1, r2]
+  runs: [{ id: r1, squad: build, verdict: PASS }, { id: r2, squad: validate, verdict: PASS }]
   cycles_used: 2
   briefing: .harness/notes/ship-review-FEAT-01-r2.md
   files_touched: []
@@ -1477,7 +881,7 @@ DIGEST:
   headline: mid-flight, no briefing yet
   feature: FEAT-01
   status: in_progress
-  runs: [r1]
+  runs: [{ id: r1, squad: build, verdict: PASS }]
   cycles_used: 1
   # THE NEW CONTRACT (SC-04): the money field this schema used to require is simply
   # absent. This case is the DETECTOR — at ae2443d it was REJECTED for a missing
@@ -1503,7 +907,7 @@ DIGEST:
   headline: superseded by the canonical-reader ticket
   feature: BUG-285-yaml-loader-pin
   status: {status}
-  runs: [plan-product]
+  runs: [{{ id: plan-product, squad: product, verdict: PASS }}]
   cycles_used: {cycles}
   briefing: none
 {judgement_yaml}  files_touched: []
@@ -1519,8 +923,9 @@ case("rejected: reject judgement with a superseding issue is accepted", "harness
 case("rejected: superseded_by none (should not be planned) is accepted", "harness-orchestrator",
      _reject_digest("  judgement: { kind: reject, superseded_by: none, reason: \"already fixed on main\" }\n"),
      True)
-case("rejected: no judgement mapping is refused naming it", "harness-orchestrator",
-     _reject_digest(""), False, "judgement")
+case("rejected: judgement none is refused, naming the mapping a rejection carries",
+     "harness-orchestrator", _reject_digest("  judgement: none\n"), False,
+     ["judgement='none' on status: rejected", "a rejection carries one mapping"])
 case("rejected: kind other than reject is refused", "harness-orchestrator",
      _reject_digest("  judgement: { kind: succession, superseded_by: 1594, reason: \"x\" }\n"),
      False, "kind")
@@ -1549,131 +954,40 @@ case("rejected: an extra key is refused", "harness-orchestrator",
      False, "by")
 case("rejected: cycles_used must be integer zero", "harness-orchestrator",
      _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\" }\n", cycles=1),
-     False, "cycles_used")
+     False, ["cycles_used=1 on status: rejected", "write 0"])
 case("a judgement mapping on any other status is refused", "harness-orchestrator",
      _reject_digest("  judgement: { kind: reject, superseded_by: 1594, reason: \"x\" }\n", status="shipped"),
-     False, "judgement")
-
+     False, "judgement is `none` unless status is rejected")
 
 
 # =====================================================================
-# FEAT-02 T-01: echo shadowing. An agent that echoes the harness-handoff
-# contract template before its real return gets the ECHO validated: the
-# verdict regex (:380), parse_digest's DIGEST anchor (:283), and the
-# artifact check (:388) are all first-match-wins, and the template line
-# `VERDICT: PASS | FAIL | BLOCKED | ESCALATE` captures as a valid PASS.
-# Per review advisory A-1 the echo blocks below are FILLED and
-# schema-valid for their persona — a bare-placeholder echo is rejected
-# on missing fields pre-fix, which would not reproduce the defect.
+# FEAT-1928: the return IS the object. There is no text to echo a template into and no
+# "last block" to pick, so the FEAT-02 echo-shadow cases became these: a wrapped object,
+# a JSON string and a list are not a digest, and a real object missing a field is refused
+# for that field in both modes.
 # =====================================================================
 
-QA_ECHO = """
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: example headline copied from the contract
-  suite: pass
-  failures: 0
-  coverage_gaps: []
-  matrix_ok: true
-  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
-  files_touched: []
-  open_questions: []
-  expertise_update: []
-artifact: .harness/notes/example.md
-"""
-
-LEAD_ECHO = """
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: example headline copied from the contract
-  team: build
-  steps_run: 1
-  cycles_used: 0
-  members:
-    - { step: s1, persona: backend-dev, verdict: PASS }
-  must_fix: []
-  branch: none
-  files_touched: []
-  open_questions: []
-  escalations: []
-  expertise_update: []
-  sc_status: []
-artifact: .harness/notes/example.md
-"""
-
-QA_REAL_FAIL_MISSING_MATRIX = """
-VERDICT: FAIL
-DIGEST:
-  headline: refresh path fails under load
-  suite: fail
-  failures: 2
-  coverage_gaps: ["refresh path"]
-  files_touched: []
-  open_questions: []
-  expertise_update: []
-artifact: .harness/notes/qa.md
-"""
-
-# (1) Echo + fully valid real FAIL: must exit 0 with the REAL block routed.
-# Pre-fix this is green by coincidence (the echo validates too) — it exists
-# to pin post-fix behaviour, paired with (2) which is red pre-fix.
-case("echo shadow: valid real FAIL after a template echo still validates",
-     "harness-qa", QA_ECHO + """
-VERDICT: FAIL
-DIGEST:
-  headline: refresh path fails under load
-  suite: fail
-  failures: 2
-  coverage_gaps: ["refresh path"]
-  matrix_ok: true
-  fail_first: []
-  files_touched: []
-  open_questions: []
-  expertise_update: []
-artifact: .harness/notes/qa.md
-""", True)
-
-# (2) Echo + real block MISSING matrix_ok: must be REJECTED for the missing
-# field. Pre-fix it falsely exits 0 — the echoed (complete) block is the one
-# validated and the real return is never examined.
-case("echo shadow: missing matrix_ok in the real block is not masked by the echo",
-     "harness-qa", QA_ECHO + QA_REAL_FAIL_MISSING_MATRIX, False, "matrix_ok")
-
-# (3) Lead echo + real lead block whose members carry a FAIL under a top-level
-# PASS: the roll-up must see the REAL members and reject. Pre-fix the echoed
-# all-PASS block shadows and the roll-up never runs on the real one.
-case("echo shadow: lead roll-up must read the real members, not the echo",
-     "harness-eng-lead", LEAD_ECHO + """
-VERDICT: PASS
-DIGEST:
-  headline: two ran, one failed
-  team: build
-  steps_run: 2
-  cycles_used: 0
-  members:
-    - { step: build, persona: backend-dev, verdict: PASS }
-    - { step: qa, persona: qa, verdict: FAIL }
-  must_fix: ["refresh path untested"]
-  branch: none
-  files_touched: []
-  open_questions: []
-  escalations: []
-  expertise_update: []
-  sc_status: []
-artifact: r/digest.md
-""", False, "worst")
-
-# (4) Hook-mode variant of (2): the SubagentStop hook is the mandatory mode
-# (DEC-122), so the shadowing must be caught there too — exit 2, matrix_ok
-# named on stderr. Pre-fix: exit 0, the masked return ships.
-hook_case("echo shadow [hook]: missing matrix_ok behind an echo is exit 2",
-          "harness-qa", QA_ECHO + QA_REAL_FAIL_MISSING_MATRIX, 2, "matrix_ok")
+case("object: a real FAIL object validates", "harness-qa", QA_REAL_FAIL, True)
+case("object: a real object missing matrix_ok is refused for that field",
+     "harness-qa", QA_REAL_FAIL_MISSING_MATRIX, False, "missing 'matrix_ok'")
+CASES.append(("object: a wrapped {data: ...} object is not a digest", "harness-qa",
+              {"data": fixture("harness-qa", QA_REAL_FAIL)}, False,
+              ["missing 'VERDICT'", "'data' was unexpected"]))
+CASES.append(("object: a list is not a digest", "harness-qa", [fixture("harness-qa", QA_REAL_FAIL)], False,
+              "neither one JSON digest object"))
+CASES.append(("object: a JSON string is not a digest", "harness-qa", "VERDICT: FAIL", False,
+              "neither one JSON digest object"))
+hook_case("object [hook]: missing matrix_ok is exit 2, naming the field",
+          "harness-qa", QA_REAL_FAIL_MISSING_MATRIX, 2, "missing 'matrix_ok'")
+HOOK_CASES.append(("object [hook]: a wrapped {data: ...} object is exit 2",
+                   {"agent_type": "harness-qa", "digest_object": {"data": fixture("harness-qa", QA_REAL_FAIL)}},
+                   2, "missing 'VERDICT'"))
 
 
 def run_cli_cases():
     fails = 0
-    for name, persona, text, want_ok, mentions in CASES:
-        r = subprocess.run([VALIDATE, persona], input=text,
+    for name, persona, obj, want_ok, mentions in CASES:
+        r = subprocess.run([VALIDATE, persona], input=json.dumps(obj),
                            capture_output=True, text=True)
         got_ok = r.returncode == 0
         bad = []
@@ -1752,7 +1066,7 @@ def _t09_root():
 def _t09_fire(root, agent, text, hook=None, governed=True, **extra):
     """Fire the hook as a governed return (HOOK_IDENTITY merged in), or with `governed`
     False, exactly the identity passed and nothing else."""
-    payload = {"agent_type": agent, "last_assistant_message": text, "cwd": root}
+    payload = {"agent_type": agent, "digest_object": fixture(agent, text), "cwd": root}
     payload.update(extra)
     return subprocess.run([hook or VALIDATE, "--hook"],
                           input=json.dumps(_governed(payload) if governed else payload),
@@ -1999,7 +1313,7 @@ def _t51_missing_message(reg):
             "harness_agent_id": T51_PARENT_ID,
         }
         if include_null:
-            payload["last_assistant_message"] = None
+            payload["digest_object"] = None
         result = subprocess.run(
             [VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
             capture_output=True, text=True,
@@ -2011,14 +1325,13 @@ def _t51_missing_message(reg):
         )
         results.extend([
             _t51_result(
-                f"a live child with {label} last_assistant_message is refused",
+                f"a live child with {label} yield data is refused",
                 result, 2,
             ),
             (f"the {label}-message refusal leaves the parent claim live",
              parent is not None, repr(parent)),
         ])
     return results
-
 
 
 def run_t51_suspension_cases():
@@ -2037,7 +1350,6 @@ def run_t51_suspension_cases():
             fails += 1
             print("     ", detail[:500])
     return fails
-
 
 
 _ISOLATED_ROOT = None
@@ -2105,11 +1417,186 @@ def run_hook_cases():
     return fails
 
 
+# --- SC-07: the sanctioned append, read back byte for byte -------------------------------
+APPEND_REL = os.path.join("runs", "r1", "digest.md")
+APPEND_PROSE = "# Team digest — T-01\n\nThe lead's human assessment, written by the lead.\n"
+
+
+def _append_root():
+    root = tempfile.mkdtemp(prefix="vd-append-")
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
+        marker.write("agents: {}\n")
+    os.makedirs(os.path.join(root, "runs", "r1"), exist_ok=True)
+    return root, os.path.join(root, APPEND_REL)
+
+
+def _append_lead_object(**digest):
+    obj = fixture("harness-eng-lead", LEAD_BLOCK.replace("artifact: .harness/features/FEAT-01/runs/r1/digest.md",
+                                    f"artifact: {APPEND_REL}"))
+    obj["DIGEST"].update(digest)
+    return obj
+
+
+def _fenced(obj):
+    return "\n```yaml\n" + yaml.safe_dump(obj, sort_keys=False) + "```\n"
+
+
+def _append_fire(root, obj, agent="harness-eng-lead"):
+    payload = {"agent_type": agent, "digest_object": obj}
+    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
+                          capture_output=True, text=True,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+
+
+def _read_bytes(path):
+    """The file's bytes (through a symlink), or None when there is no file."""
+    if not os.path.isfile(path):
+        return None
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
+def _remove_append_root(root):
+    for dirpath, _dirs, files in os.walk(root):
+        for leaf in files:
+            if not os.path.islink(os.path.join(dirpath, leaf)):
+                os.chmod(os.path.join(dirpath, leaf), 0o644)
+    shutil.rmtree(root, ignore_errors=True)
+
+
+def _append_prepare(prior, prepare):
+    """A fixture root with `prior` written (None = no file) and `prepare` applied; returns
+    (root, path, skip-reason or None)."""
+    root, path = _append_root()
+    if prior is not None:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(prior)
+    return root, path, prepare(root, path) if prepare else None
+
+
+def _append_case(name, prior, obj, want_exit, expect_bytes, agent="harness-eng-lead",
+                 mention=None, prepare=None):
+    """Write `prior`, fire, and compare the file's bytes with `expect_bytes(prior_bytes)`
+    — None meaning "unchanged"."""
+    root, path, skip = _append_prepare(prior, prepare)
+    try:
+        if skip:
+            return name, True, skip
+        before = _read_bytes(path)
+        result = _append_fire(root, obj, agent)
+        after = _read_bytes(path)
+        want = before if expect_bytes is None else expect_bytes(before)
+        ok = (result.returncode == want_exit and after == want
+              and (mention or "").lower() in result.stderr.lower())
+        return name, ok, f"exit={result.returncode} bytes-match={after == want} {result.stderr.strip()[:400]}"
+    finally:
+        _remove_append_root(root)
+
+
+def _make_readonly(root, path):
+    os.chmod(path, 0o444)
+    if os.access(path, os.W_OK):
+        return "skipped: running with privileges that ignore file modes"
+    return None
+
+
+def _make_symlink(root, path):
+    target = os.path.join(root, "elsewhere.md")
+    with open(target, "w", encoding="utf-8") as handle:
+        handle.write(APPEND_PROSE)
+    os.remove(path)
+    os.symlink(target, path)
+    return None
+
+
+def _cli_never_writes():
+    root, path = _append_root()
+    try:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(APPEND_PROSE)
+        obj = _append_lead_object()
+        obj["artifact"] = path
+        result = subprocess.run([VALIDATE, "harness-eng-lead"], input=json.dumps(obj),
+                                capture_output=True, text=True)
+        with open(path, encoding="utf-8") as handle:
+            unchanged = handle.read() == APPEND_PROSE
+        return ("the direct CLI validates a lead object and never writes its digest",
+                result.returncode == 0 and unchanged, f"exit={result.returncode} {result.stdout}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def run_lead_append_cases():
+    """SC-07: after a lead object passes every live check the hook appends it to the
+    registered digest.md as one fenced YAML block — never when it equals the last one,
+    always after the existing bytes, refusing when the file cannot be resolved or written;
+    a non-lead and the CLI never write."""
+    obj = _append_lead_object()
+    cases = _append_rule_cases(obj)
+    cases += [_repeated_yield_appends_once(obj), _cli_never_writes()]
+    fails = 0
+    for name, ok, detail in cases:
+        print(f"ok    [append] {name}" if ok else f"FAIL  [append] {name}\n      | {detail}")
+        fails += 0 if ok else 1
+    print(f"\n{len(cases) - fails}/{len(cases)} SC-07 append cases passed.")
+    return fails
+
+
+def _append_rule_cases(obj):
+    earlier = _append_lead_object(headline="an earlier assessment of the same run")
+    historical = dict(earlier, DIGEST=dict(earlier["DIGEST"], legacy_field="kept as written"))
+    doc_obj = fixture("harness-documentor", "VERDICT: PASS\nDIGEST:\n  headline: docs updated\n  docs_updated: []\n"
+                     "  gaps: []\n  files_touched: []\n  open_questions: []\n"
+                     f"  expertise_update: []\nartifact: {APPEND_REL}\n")
+    bad_lead = _append_lead_object()
+    bad_lead["VERDICT"] = "PASS"  # a FAIL member under a PASS lead: the roll-up refuses it
+    appended = lambda before: before + _fenced(obj).encode("utf-8")
+    return [
+        _append_case("identical to the last fenced mapping: nothing is written",
+                     APPEND_PROSE + _fenced(obj), obj, 0, None),
+        _append_case("a changed object is appended as a correction, prior bytes intact",
+                     APPEND_PROSE + _fenced(earlier), obj, 0, appended, mention="as a correction"),
+        _append_case("a historical block outside today's schema is compared, never validated",
+                     APPEND_PROSE + _fenced(historical), obj, 0, appended),
+        _append_case("prose with no fenced block gains the block after the prose",
+                     APPEND_PROSE, obj, 0, appended, mention="appended"),
+        _append_case("prose with no trailing newline still gets a fence on its own line",
+                     APPEND_PROSE.rstrip("\n"), obj, 0, appended),
+        _append_case("a missing digest in the resolved run directory is refused, nothing created",
+                     None, obj, 2, None, mention="missing"),
+        _append_case("an unwritable digest is refused and left unchanged",
+                     APPEND_PROSE, obj, 2, None, mention="cannot be written",
+                     prepare=_make_readonly),
+        _append_case("a symlinked digest is not a safe target and is refused",
+                     APPEND_PROSE, obj, 2, None, mention="not a regular file",
+                     prepare=_make_symlink),
+        _append_case("an invalid lead object is refused before any write",
+                     APPEND_PROSE, bad_lead, 2, None, mention="WORST member verdict"),
+        _append_case("a non-lead return naming the same digest.md never writes it",
+                     APPEND_PROSE, doc_obj, 0, None, agent="harness-documentor"),
+    ]
+
+
+def _repeated_yield_appends_once(obj):
+    root, path = _append_root()
+    try:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(APPEND_PROSE)
+        first, second = _append_fire(root, obj), _append_fire(root, obj)
+        text = open(path, encoding="utf-8").read()
+        return ("a repeated identical yield appends once, then nothing",
+                first.returncode == 0 and second.returncode == 0
+                and text == APPEND_PROSE + _fenced(obj), text[-200:])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
     msg = LEAD_BLOCK.replace(
         "artifact: .harness/features/FEAT-01/runs/r1/digest.md",
         f"artifact: {artifact}")
-    payload = {"agent_type": "harness-eng-lead", "last_assistant_message": msg}
+    payload = {"agent_type": "harness-eng-lead", "digest_object": fixture("harness-eng-lead", msg)}
     if feature:
         payload["harness_feature"] = "FEAT-X-thing"
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
@@ -2138,11 +1625,16 @@ def _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire):
     failures = 0
     with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
         digest.write("# narrative digest, no contract block\n")
+    # SC-07: the located narrative gains the validated block rather than refusing the return.
     failures += _bug1305_artifact_expect(
-        "located non-compliant digest is refused", fire(rel), 2, (run_dir, "digest"))
-    with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
-        digest.write(LEAD_BLOCK)
-    failures += _bug1305_artifact_expect("located compliant digest passes", fire(rel), 0)
+        "located narrative digest gains the validated block", fire(rel), 0,
+        (run_dir, "appended"))
+    failures += _bug1305_artifact_expect(
+        "a second identical yield writes nothing more", fire(rel), 0)
+    with open(os.path.join(worktree, rel), encoding="utf-8") as digest:
+        if digest.read().count("```yaml") != 1:
+            failures += _bug1305_artifact_expect(
+                "the located digest carries exactly one appended block", fire(rel), -1)
     os.unlink(os.path.join(worktree, rel))
     failures += _bug1305_artifact_expect(
         "existing run directory without digest is refused",
@@ -2153,18 +1645,19 @@ def _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire):
 def _bug1305_other_artifact_cases(root, iso_root, fire):
     copied_validate = os.path.join(isolated_bin(iso_root), "validate-digest.py")
     failures = _bug1305_artifact_expect(
-        "unresolvable artifact lookup still fails open",
+        "an unresolvable artifact lookup refuses the return (SC-07)",
         fire("runs/absent/digest.md", feature=False, binary=copied_validate),
-        0, ("not found from the hook's vantage",))
+        2, ("resolves to no run directory",))
     absolute = os.path.join(root, "absolute", "digest.md")
     os.makedirs(os.path.dirname(absolute), exist_ok=True)
     with open(absolute, "w", encoding="utf-8") as digest:
         digest.write("# narrative digest, no contract block\n")
     failures += _bug1305_artifact_expect(
-        "absolute artifact path is used verbatim", fire(absolute), 2,
-        (os.path.dirname(absolute), "digest"))
+        "absolute artifact path is used verbatim", fire(absolute), 0,
+        (absolute, "appended"))
     failures += _bug1305_artifact_expect(
-        "non-digest artifact remains outside this check", fire("runs/r1/notes.md"), 0)
+        "a lead artifact that is not a digest.md is refused", fire("runs/r1/notes.md"), 2,
+        ("is not one",))
     return failures
 
 
@@ -2231,7 +1724,7 @@ def _bug919_fire(stub_path, text=QA_UNCONDITIONAL_PASS, agent="harness-qa", extr
         env.pop("RUN_UNIT_TESTS_BIN", None)
     if extra_env:
         env.update(extra_env)
-    payload = {"agent_type": agent, "last_assistant_message": text}
+    payload = {"agent_type": agent, "digest_object": fixture(agent, text)}
     return subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
                           capture_output=True, text=True, env=env)
 
@@ -2279,7 +1772,7 @@ def _bug919_red_case(red):
     root = _isolated_root()
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root,
               RUN_UNIT_TESTS_BIN=red)
-    payload = {"agent_type": "harness-qa", "last_assistant_message": QA_UNCONDITIONAL_PASS}
+    payload = {"agent_type": "harness-qa", "digest_object": fixture("harness-qa", QA_UNCONDITIONAL_PASS)}
     try:
         _install_mutant(mutant, mutant_source)
         muted = subprocess.run([mutant, "--hook"], input=json.dumps(_governed(payload)),
@@ -2370,7 +1863,7 @@ def _bug1756_in_process_reverify(green, raising):
     with contextlib.redirect_stderr(err):
         try:
             code = validator.check_qa_matrix_claim(
-                "harness-qa", QA_PASS_WITH_KINDS, {"harness_feature": None})
+                "harness-qa", fixture("harness-qa", QA_PASS_WITH_KINDS), {"harness_feature": None})
         except Exception as exc:  # the fail-open contract broken: a crash, not a verdict
             return None, f"{err.getvalue()}RAISED {type(exc).__name__}: {exc}"
     return code, err.getvalue()
@@ -2491,14 +1984,14 @@ def run_bug919_resolve_by_artifact_case():
     owner = tempfile.mkdtemp(prefix="vd-919-owner-")
     os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
     worktree = _linked_worktree_fixture(owner, "process-gaps")
-    text = (f"artifact: {worktree}/.harness/harness/features/FEAT-63-thing/notes/"
-            f"review-harness-qa-c2.md\n")
+    artifact = (f"{worktree}/.harness/harness/features/FEAT-63-thing/notes/"
+                f"review-harness-qa-c2.md")
     original_root_fn = validator._root_or_none
     validator._root_or_none = lambda: owner
     saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
     try:
         resolved = validator._resolve_run_unit_tests_bin(
-            {"harness_feature": "FEAT-63-thing"}, text)
+            {"harness_feature": "FEAT-63-thing"}, artifact)
     finally:
         validator._root_or_none = original_root_fn
         if saved_env is not None:
@@ -2510,9 +2003,6 @@ def run_bug919_resolve_by_artifact_case():
              "digest's artifact, not the owner root")
     print(f"ok    {label}" if ok else f"FAIL  {label}\n      | got {resolved!r}")
     return 0 if ok else 1
-
-
-
 
 
 # --- DEC-173: "nothing happened" must have a truthful encoding -----------------
@@ -2684,7 +2174,7 @@ VERDICT: PASS
 DIGEST:
   headline: reviewed
   severity_max: medium
-  findings: [{ kind: substance, severity: med, reader: ui-reviewer, summary: "focus ring lost" }]
+  findings: [{ kind: substance, scope: none, severity: med, reader: ui-reviewer, summary: "focus ring lost", why: "the reader states its reason" }]
   must_fix: []
   open_questions: []
   files_touched: []
@@ -2735,7 +2225,7 @@ def _dev(v="PASS", suite="pass", task="T-01", tv="pass"):
 
 # (a) DETECTOR — the requirement binds only because `task` names a real id.
 case("dev missing task_verify under a real task is rejected",
-     "harness-backend-dev", _dev(tv=None), False, "task_verify")
+     "harness-backend-dev", _dev(tv=None), False, "missing 'task_verify'", complete=False)
 # (b) DETECTOR — REQ-01's whole point.
 case("dev task_verify: fail + PASS is rejected",
      "harness-backend-dev", _dev(tv="fail"), False, "task_verify")
@@ -2838,9 +2328,12 @@ artifact: a.md
 # keys are ignored, so this was green then too. It cannot show the field was ADDED;
 # (h2) is what can. Kept because an acceptance clause with no rejection partner is
 # the vacuous shape this feature exists to remove.
-case("dev task: none with task_verify omitted is accepted — D-07's escape hatch",
-     "harness-backend-dev", _dev(task="none", tv=None), True)
-case("dev-ops task: none with task_verify omitted is accepted",
+# FEAT-1928 ruling: D-07's escape hatch is now spelled, not omitted — `task_verify: n/a`
+# under `task: none` (accepted below); omitting it is a missing required field.
+case("dev task: none with task_verify omitted is refused — the hatch is `n/a` now",
+     "harness-backend-dev", _dev(task="none", tv=None), False, "missing 'task_verify'",
+     complete=False)
+case("dev-ops task: none with task_verify omitted is refused",
      "harness-dev-ops", """
 VERDICT: PASS
 DIGEST:
@@ -2853,7 +2346,7 @@ DIGEST:
   files_touched: []
   expertise_update: []
 artifact: a.md
-""", True)
+""", False, "missing 'task_verify'", complete=False)
 # (h2) DETECTOR PAIR. The first shows `task` is CONSTRAINED, the second that it is
 # REQUIRED. A field that is required but unconstrained is precisely the "unknown key
 # ignored" shape — measured: a re.Pattern falls through every other branch in silence.
@@ -2864,7 +2357,8 @@ case("dev omitting task entirely is rejected — the field is required",
 # (j2-i) DETECTOR — the contradiction gate (D-08c). One error, naming the actionable
 # field, rather than two that disagree.
 case("dev task: none + task_verify: fail is rejected as a contradiction",
-     "harness-backend-dev", _dev(task="none", tv="fail"), False, "task")
+     "harness-backend-dev", _dev(task="none", tv="fail"), False,
+     ["task_verify='fail' but task=none", "!does not match"])
 # (j2-i, second half) REGRESSION — this is what proves the rejection above is about
 # the CONTRADICTION and not about `task: none` refusing every value (D-08b).
 case("dev task: none + task_verify: n/a is accepted — the honest DEC-121 spelling",
@@ -2980,7 +2474,7 @@ artifact: a.md
 # NULLABLE field emits the old hint into the same error list and false-reds the
 # negative assertion.
 case("task_verify's missing-field hint names its real values, not the none wording",
-     "harness-backend-dev", _dev(tv=None), False,
+     "harness-backend-dev", _dev(tv=None), False, complete=False, mentions=
      # SC-18a: the hint must say what is rejected is a placeholder ALONGSIDE
      # `VERDICT: PASS` — never that placeholders are disallowed. That distinction is
      # what keeps `suite: n/a` + BLOCKED legal (REQ-03/SC-06), and the hint already
@@ -2990,6 +2484,16 @@ case("task_verify's missing-field hint names its real values, not the none wordi
 case("task's missing-field hint names a task id, not the list wording",
      "harness-backend-dev", _dev(task=None), False,
      ["task", "T-NN", "none", "!if there are none"])
+# FEAT-1928 ruling (REQ-11): a field that does not apply is spelled `none`, never omitted,
+# so a missing nullable field's hint names its real type AND the `none` spelling.
+case("a lead missing needs_approval is told true, false or `none`",
+     "harness-validator-lead", LEAD_BLOCK, False,
+     ["missing 'needs_approval'", "true or false, or `none` if it does not apply"],
+     complete=False)
+case("an orchestrator missing judgement is told the mapping or `none`",
+     "harness-orchestrator", _reject_digest("", status="in_progress"), False,
+     ["missing 'judgement'", "every key present, or `none` if it does not apply"],
+     complete=False)
 
 # =====================================================================
 # FEAT-59 SC-06 / C2 — every finding carries a KIND. `findings` was an INT count
@@ -3017,10 +2521,10 @@ artifact: notes/ui-review.md
 """
 
 
-case("FEAT-59 finding without kind is rejected, naming the entry and the enum",
+case("FEAT-59 finding without kind is rejected, naming the entry",
      "harness-ui-reviewer", _ui_review(
          '    - { severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
-     False, ["findings[0]", "kind", "substance", "form", "proportionality"])
+     False, "findings[0]: 'kind' is a required property")
 case("FEAT-59 finding with a kind outside the enum is rejected, naming the value",
      "harness-ui-reviewer", _ui_review(
          '    - { kind: style, severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
@@ -3032,24 +2536,26 @@ case("FEAT-59 kind: substantive (near-miss) is rejected, not normalised",
      False, ["findings[0]", "substantive"])
 case("FEAT-59 a bare-string finding has no kind and is rejected",
      "harness-ui-reviewer", _ui_review('    - "fail-open branch in auth"'),
-     False, ["findings[0]", "kind"])
+     False, "findings[0]: 'fail-open branch in auth' is not of type 'object'")
 # The index in the message is the SECOND entry when the first is fine.
 case("FEAT-59 the error names the offending entry's index, not the first",
      "harness-ui-reviewer", _ui_review(
-         '    - { kind: substance, severity: high, reader: ui-reviewer, summary: "a" }\n'
+         '    - { kind: substance, scope: none, severity: high, reader: ui-reviewer, summary: "a", why: "the reader states its reason" }\n'
          '    - { severity: low, reader: ui-reviewer, summary: "b" }'),
      False, ["findings[1]", "!findings[0]"])
 # Each member of the enum is ACCEPTED — inline and block-mapping styles both.
 case("FEAT-59 kind: substance is accepted (inline entry)",
      "harness-ui-reviewer", _ui_review(
-         '    - { kind: substance, severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+         '    - { kind: substance, scope: none, severity: high, reader: ui-reviewer, summary: "fail-open branch", why: "the reader states its reason" }'),
      True)
 case("FEAT-59 kind: form is accepted (block-mapping entry)",
      "harness-ui-reviewer", _ui_review(
          '    - kind: form\n'
+         '      scope: none\n'
          '      severity: high\n'
          '      reader: ui-reviewer\n'
-         '      summary: "DESIGN.md table header drifted"'),
+         '      summary: "DESIGN.md table header drifted"\n'
+         '      why: "the table no longer matches DESIGN.md"'),
      True)
 case("FEAT-59 kind: proportionality with scope: mission is accepted",
      "harness-ui-reviewer", _ui_review(
@@ -3059,15 +2565,15 @@ case("FEAT-59 kind: proportionality with scope: mission is accepted",
 case("DEC-228 kind: proportionality with scope: task is accepted",
      "harness-ui-reviewer", _ui_review(
          '    - { kind: proportionality, scope: task, severity: med, reader: ui-reviewer, '
-         'summary: "T-03 ships one-shot scaffolding as a durable flag" }'),
+         'summary: "T-03 ships one-shot scaffolding as a durable flag", why: "the flag outlives T-03" }'),
      True)
 # The BUG-285-canonical-reader defect: four task-scope findings summed into a mission downgrade.
 # Without scope the route is undecidable, so a scope-less proportionality finding is refused.
-case("DEC-228 kind: proportionality without scope is rejected, naming both scopes",
+case("DEC-228 kind: proportionality without scope is rejected, naming the entry",
      "harness-ui-reviewer", _ui_review(
          '    - { kind: proportionality, severity: high, reader: ui-reviewer, '
          'summary: "a plan for a five-line fix" }'),
-     False, ["findings[0]", "scope", "task", "mission"])
+     False, "findings[0]: 'scope' is a required property")
 case("DEC-228 kind: proportionality with a scope outside task|mission is rejected",
      "harness-ui-reviewer", _ui_review(
          '    - { kind: proportionality, scope: whole, severity: high, reader: ui-reviewer, '
@@ -3100,15 +2606,15 @@ DIGEST:
   files_touched: []
   expertise_update: []
 artifact: notes/sec.md
-""", False, ["findings", "list"])
+""", False, "findings: 0 is not of type 'array'")
 # A validator-lead digest may carry the consolidated panel findings and the readers
 # roster (PlanMerge's `record-panel --digest` reads both); the same kind rule binds.
 case("FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:",
      "harness-validator-lead", LEAD_BLOCK.replace(
          "\n  sc_status: []",
          "\n  sc_status: []\n"
-         "  readers: [{ reader: scope, status: ran }, { reader: should-not-exist, status: skipped, persona: fable-advisor, reason: host refusal }]\n"
-         "  findings: [{ kind: substance, severity: high, reader: scope, summary: \"SC-03 has no task\" }]"),
+         "  readers: [{ reader: scope, status: ran, persona: harness-pm, reason: none }, { reader: should-not-exist, status: skipped, persona: fable-advisor, reason: host refusal }]\n"
+         "  findings: [{ kind: substance, scope: none, severity: high, reader: scope, summary: \"SC-03 has no task\", why: \"the reader states its reason\" }]"),
      True)
 case("FEAT-59 lead findings passthrough: an entry without kind is rejected",
      "harness-validator-lead", LEAD_BLOCK.replace(
@@ -3172,7 +2678,7 @@ case("FEAT-59 fail_first bare-string entry is rejected",
      "harness-qa", _qa(fail_first='["SC-01 failed first"]'), False, ["fail_first[0]"])
 case("FEAT-59 fail_first sc must be an SC-NN id",
      "harness-qa", _qa(fail_first='[{ sc: T-01, evidence: "x.txt" }]'), False,
-     ["fail_first[0]", "SC-NN"])
+     ["fail_first[0].sc", "^SC-"])
 case("FEAT-59 fail_first block-mapping entries are accepted",
      "harness-qa", _qa().replace(
          "  fail_first: []",
@@ -3193,7 +2699,8 @@ case("FEAT-59 fail_first block-mapping entries are accepted",
 # passes through on `stop_hook_active`), so the second attempt would ship unchecked.
 def run_joint_hint_case():
     def run(text):
-        r = subprocess.run([VALIDATE, "harness-backend-dev"], input=text.strip() + "\n",
+        r = subprocess.run([VALIDATE, "harness-backend-dev"],
+                           input=json.dumps(fixture("harness-backend-dev", text, complete=False)),
                            capture_output=True, text=True)
         return r.returncode, r.stdout
 
@@ -3207,9 +2714,9 @@ def run_joint_hint_case():
     # about the hints — they would just be two more acceptance cases.
     if "none" not in low:
         bad.append("task's hint must license `none`")
-    if "omit this field entirely" not in low:
-        bad.append("task_verify's hint must license omitting it under task: none")
-    for label, text in (("task: none + task_verify omitted", _dev(task="none", tv=None)),
+    if "`n/a` if this dispatch carries no plan task" not in low:
+        bad.append("task_verify's hint must license `n/a` under task: none")
+    for label, text in (("task: none + task_verify: n/a", _dev(task="none", tv="n/a")),
                         ("task: T-01 + task_verify: pass", _dev(task="T-01", tv="pass"))):
         rc2, out2 = run(text)
         if rc2 != 0:
@@ -3323,86 +2830,8 @@ def _plan_review_fixture(root):
 
 
 def _plan_review_errors(validator, config, feature_dir, digest, branch_override=None):
-    return validator.validate(
-        "harness-code-reviewer", digest, config, feature_dir, branch_override
+    return validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", digest), config, feature_dir, branch_override
     )
-
-
-def _t01_digest(persona, extras):
-    """A minimal valid return for each persona that owns documented optionals."""
-    extra_lines = "\n".join(
-        f"  {key}: {json.dumps(value)}" for key, value in extras.items())
-    bodies = {
-        "harness-security-reviewer": """  severity_max: none
-  findings: []
-  must_fix: []""",
-        "harness-ui-reviewer": """  severity_max: none
-  findings: []
-  must_fix: []""",
-        "harness-qa": """  suite: pass
-  failures: 0
-  coverage_gaps: []
-  matrix_ok: true
-  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]""",
-        "harness-documentor": """  docs_updated: []
-  gaps: []""",
-        "harness-dev-ops": """  change_type: config
-  applied: []
-  suite: pass
-  task: none""",
-        "harness-visual-designer": """  contract: written
-  mockups: []
-  direction_choices: []""",
-    }
-    return f"""VERDICT: PASS
-DIGEST:
-  headline: t01 contract probe
-{bodies[persona]}
-{extra_lines}
-  open_questions: []
-  files_touched: []
-  expertise_update: []
-artifact: a.md
-"""
-
-
-def _t01_code_reviewer_errors(validator, extras):
-    with tempfile.TemporaryDirectory() as td:
-        config = os.path.join(td, "harness.json")
-        write_review_config(config, "advisory_unless_high")
-        feature_dir, plan_path, artifact, _digest = _plan_review_fixture(td)
-        extra_lines = "\n".join(
-            f"  {key}: {json.dumps(value)}" for key, value in extras.items())
-        digest = reviewer_digest(
-            "n_a", reviewed=f"plan:{plan_path}", artifact=artifact).replace(
-                "  reviewed:", extra_lines + "\n  reviewed:")
-        return validator.validate(
-            "harness-code-reviewer", digest, config, feature_dir)
-
-
-def _t01_declared_fields(validator, raw_persona):
-    canonical = validator.norm(raw_persona)
-    declared = (
-        {"headline"}
-        | set(validator.UNIVERSAL)
-        | set(validator.SCHEMAS[canonical])
-        | set(validator.PASSTHROUGH.get(canonical, {}))
-        | set(validator.DOCUMENTED_OPTIONAL.get(raw_persona, {}))
-    )
-    if raw_persona == "harness-code-reviewer":
-        declared.update(("code_grade", "reviewed", "grade_2_reasons"))
-    return declared
-
-
-def _t01_reverse_contract_gaps(validator, raw_persona):
-    gaps = []
-    for source_path in CONTRACT_SOURCES[raw_persona]:
-        block = documented_block(_contract_source(source_path), source_path) or ""
-        documented = set(re.findall(
-            r"^  ([a-z][a-z0-9_]*):", block, re.MULTILINE))
-        for key in sorted(documented - _t01_declared_fields(validator, raw_persona)):
-            gaps.append(f"{raw_persona}: {key}: {source_path}")
-    return gaps
 
 
 def _load_validator(tag):
@@ -3412,192 +2841,30 @@ def _load_validator(tag):
     return validator
 
 
-def _t01_lead_option_failures(validator, field, value):
-    failures = []
-    present = _t04_with_fields(LEAD_BLOCK, {field: value})
-    errors = validator.validate("harness-eng-lead", present)
-    if errors:
-        failures.append(f"lead correct {field}: {errors}")
-    wrong = "sever" if field == "severity_max" else "wrong"
-    bad = _t04_with_fields(LEAD_BLOCK, {field: wrong})
-    if not any(field in error for error in
-               validator.validate("harness-eng-lead", bad)):
-        failures.append(f"lead wrong {field} accepted")
-    if validator.validate("harness-eng-lead", LEAD_BLOCK):
-        failures.append(f"lead omitted optional {field} rejected")
-    return failures
-
-
-def _t01_adequacy_failures(validator):
-    failures = []
-    missing = LEAD_BLOCK.replace("  adequacy_notes: []\n", "")
-    if not any("adequacy_notes" in error for error in
-               validator.validate("harness-eng-lead", missing)):
-        failures.append("lead omission of adequacy_notes accepted")
-    if validator.validate("harness-eng-lead", LEAD_BLOCK):
-        failures.append("lead adequacy_notes empty list rejected")
-    if validator.validate("lead", missing):
-        failures.append("archived generic lead digest lost historical readability")
-    return failures
-
-
-def _t01_documented_option_failures(validator, persona, field, value):
-    failures = []
-    correct = ({field: value})
-    run_errors = (_t01_code_reviewer_errors(validator, correct)
-                  if persona == "harness-code-reviewer"
-                  else validator.validate(persona, _t01_digest(persona, correct)))
-    if run_errors:
-        failures.append(f"{persona} correct {field}: {run_errors}")
-    wrong = "wrong" if isinstance(value, (bool, list)) else []
-    invalid = ({field: wrong})
-    bad_errors = (_t01_code_reviewer_errors(validator, invalid)
-                  if persona == "harness-code-reviewer"
-                  else validator.validate(persona, _t01_digest(persona, invalid)))
-    if not any(field in error for error in bad_errors):
-        failures.append(f"{persona} wrong {field} accepted")
-    return failures
-
-
-def _t01_reverse_failures(validator):
-    failures = [
-        "reverse contract " + gap
-        for persona in CONTRACT_SOURCES
-        for gap in _t01_reverse_contract_gaps(validator, persona)
-    ]
-    if not failures:
-        print("ok    [T-01] every documented key is declared")
-    removed = validator.DOCUMENTED_OPTIONAL["harness-documentor"].pop("stale_found")
-    try:
-        discriminated = _t01_reverse_contract_gaps(
-            validator, "harness-documentor")
-    finally:
-        validator.DOCUMENTED_OPTIONAL["harness-documentor"]["stale_found"] = removed
-    if not any("stale_found" in gap for gap in discriminated):
-        failures.append("reverse contract discrimination did not name stale_found")
-    return failures
-
-
-def _t01_lead_values():
-    return {
-        "sc_status": [], "needs_approval": False, "severity_max": "none",
-        "matrix_ok": True, "coverage_gaps": [],
-    }
-
-
-def _t01_documented_values():
-    return {
-        "harness-code-reviewer": {
-            "spec_violations": [], "human_commits_in_scope": []},
-        "harness-security-reviewer": {
-            "in_scope": True, "scope_reason": "security relevant", "threat_model": []},
-        "harness-ui-reviewer": {
-            "mode": "A", "in_scope": True, "states_unspecified": [],
-            "contract_violations": [], "a11y": []},
-        "harness-qa": {"kinds": [], "sc_evidence": []},
-        "harness-documentor": {"stale_found": []},
-        "harness-dev-ops": {"test_kinds_written": []},
-        "harness-visual-designer": {
-            "needs_prototype": False, "why": "not interactive", "prototype": "none"},
-    }
-
-
-def _t01_all_failures(validator, lead_values, documented):
-    failures = [
-        failure
-        for field, value in lead_values.items()
-        for failure in _t01_lead_option_failures(validator, field, value)
-    ]
-    failures.extend(_t01_adequacy_failures(validator))
-    failures.extend(
-        failure
-        for persona, fields in documented.items()
-        for field, value in fields.items()
-        for failure in _t01_documented_option_failures(
-            validator, persona, field, value)
-    )
-    failures.extend(_t01_reverse_failures(validator))
-    return failures
-
-
-def _t01_report(failures, lead_values, documented):
-    for failure in failures:
-        print("FAIL  [T-01] " + failure)
-    total = 1 + len(lead_values) * 3 + 3 + sum(
-        len(fields) * 2 for fields in documented.values()) + 2
-    print(f"\n{total - len(failures)}/{total} T-01 schema cases passed.")
-    return len(failures)
-
-
-def run_t01_schema_cases():
-    """T-01: optional typed fields and documentation agree in both directions."""
-    validator = _load_validator("_validator_t01")
-    missing_tables = [
-        name for name in ("PASSTHROUGH", "DOCUMENTED_OPTIONAL")
-        if not hasattr(validator, name)
-    ]
-    if missing_tables:
-        print("FAIL  [T-01] missing declarations: " + ", ".join(missing_tables))
-        return 1
-    lead_values = _t01_lead_values()
-    documented = _t01_documented_values()
-    failures = _t01_all_failures(validator, lead_values, documented)
-    return _t01_report(failures, lead_values, documented)
+_T04_UNIVERSAL = "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
+_T04_BASES = {
+    "harness-dev-ops": "  change_type: ci\n  applied: []\n  suite: pass\n  task: T-01\n  task_verify: pass\n",
+    "harness-security-reviewer": "  severity_max: none\n  findings: []\n  must_fix: []\n",
+    "harness-ui-reviewer": "  severity_max: none\n  findings: []\n  must_fix: []\n",
+    "harness-qa": ("  suite: pass\n  failures: 0\n  coverage_gaps: []\n  matrix_ok: n/a\n"
+                   "  fail_first: []\n"),
+    "harness-documentor": "  docs_updated: []\n  gaps: []\n",
+    "harness-visual-designer": "  contract: written\n  mockups: []\n  direction_choices: []\n",
+    "harness-orchestrator": ("  feature: FEAT-X\n  status: in_progress\n  runs: []\n"
+                             "  cycles_used: 0\n  briefing: none\n"),
+}
 
 
 def _t04_base_digest(persona):
-    canonical = {
-        "harness-frontend-dev": "harness-backend-dev",
-        "harness-ai-dev": "harness-backend-dev",
-        "harness-data-engineer": "harness-backend-dev",
-        "main-session": "harness-backend-dev",  # #1895: the dev contract
-        "harness-product-lead": "harness-eng-lead",
-        "harness-validator-lead": "harness-eng-lead",
-    }.get(persona, persona)
-    if canonical == "harness-backend-dev":
+    """A minimal valid return for one persona, in fixture notation."""
+    if persona == "harness-backend-dev":
         return _dev()
-    if canonical == "harness-eng-lead":
+    if persona == "harness-eng-lead":
         return LEAD_BLOCK
-    if canonical == "harness-dev-ops":
-        return _t01_digest(canonical, {}).replace(
-            "  task: none", "  task: T-01")
-    if canonical in (
-            "harness-security-reviewer", "harness-ui-reviewer", "harness-qa",
-            "harness-documentor", "harness-visual-designer"):
-        return _t01_digest(canonical, {})
-    if canonical == "harness-pm":
+    if persona == "harness-pm":
         return PM_OK
-    if canonical == "harness-orchestrator":
-        return """VERDICT: PASS
-DIGEST:
-  headline: build advanced
-  feature: FEAT-X
-  status: in_progress
-  runs: []
-  cycles_used: 0
-  briefing: none
-  open_questions: []
-  files_touched: []
-  expertise_update: []
-artifact: a.md
-"""
-    raise AssertionError(f"no T-04 base digest for {persona}")
-
-
-def _t04_sample(allowed):
-    if isinstance(allowed, set):
-        return "pass" if "pass" in allowed else sorted(allowed)[0]
-    if isinstance(allowed, re.Pattern):
-        return "T-01"
-    if allowed is list:
-        return []
-    if allowed is bool:
-        return True
-    if allowed is int:
-        return 0
-    if allowed is str:
-        return "value"
-    raise AssertionError(f"no sample for {allowed!r}")
+    return (f"VERDICT: BLOCKED\nDIGEST:\n  headline: base return\n{_T04_BASES[persona]}"
+            f"{_T04_UNIVERSAL}artifact: a.md\n")
 
 
 def _t04_with_fields(text, fields):
@@ -3609,54 +2876,21 @@ def _t04_with_fields(text, fields):
 def _t04_canonical_failures(validator, probes):
     failures = []
     for canonical, persona in probes.items():
+        base = fixture(persona, _t04_base_digest(persona))
+        if validator.validate(persona, base):
+            failures.append(f"{canonical}: the base return is not valid: "
+                            f"{validator.validate(persona, base)}")
         rogue = f"rogue_{canonical.replace('-', '_')}"
-        digest = _t04_with_fields(_t04_base_digest(persona), {rogue: 1})
-        errors = validator.validate(persona, digest)
-        if not any("undeclared digest key" in error for error in errors):
-            failures.append(f"{canonical}: one undeclared key was accepted")
-    return failures
-
-
-def _t04_documented_set_errors(validator, persona):
-    if persona == "harness-code-reviewer":
-        extras = {
-            field: _t04_sample(allowed)
-            for field, allowed in
-            validator.DOCUMENTED_OPTIONAL.get(persona, {}).items()
-        }
-        return _t01_code_reviewer_errors(validator, extras)
-    digest = _t04_base_digest(persona)
-    seen = validator.parse_digest(digest)
-    declared = {
-        **validator.SCHEMAS[validator.norm(persona)],
-        **validator.PASSTHROUGH.get(validator.norm(persona), {}),
-        **validator.DOCUMENTED_OPTIONAL.get(persona, {}),
-    }
-    source = CONTRACT_SOURCES[persona][0]
-    block = documented_block(_contract_source(source), source) or ""
-    documented = set(re.findall(
-        r"^  ([a-z][a-z0-9_]*):", block, re.MULTILINE))
-    extras = {
-        field: _t04_sample(declared[field])
-        for field in documented - set(seen)
-        if field in declared
-    }
-    return validator.validate(persona, _t04_with_fields(digest, extras))
-
-
-def _t04_documented_failures(validator):
-    failures = []
-    for persona in CONTRACT_SOURCES:
-        errors = _t04_documented_set_errors(validator, persona)
-        if errors:
-            failures.append(
-                f"{persona}: full documented field set rejected: {errors}")
+        errors = validator.validate(persona, fixture(persona, _t04_with_fields(
+            _t04_base_digest(persona), {rogue: 1})))
+        if not any("undeclared digest key" in error and rogue in error for error in errors):
+            failures.append(f"{canonical}: one undeclared key was accepted: {errors}")
     return failures
 
 
 def _t04_three_key_failures(validator, digest):
     errors = [
-        error for error in validator.validate("harness-eng-lead", digest)
+        error for error in validator.validate("harness-eng-lead", fixture("harness-eng-lead", digest))
         if "undeclared digest key" in error
     ]
     if len(errors) != 1:
@@ -3664,8 +2898,7 @@ def _t04_three_key_failures(validator, digest):
     message = errors[0]
     tokens = (
         "rogue_alpha", "rogue_beta", "rogue_gamma",
-        "digest contract is closed", "validate-digest.py", "PASSTHROUGH",
-        "DOCUMENTED_OPTIONAL", "SCHEMAS",
+        "digest contract is closed", "digest-schemas/harness-eng-lead.json",
     )
     return [
         f"three-key message omitted {token}"
@@ -3677,7 +2910,7 @@ def _t04_hook_failures(digest):
     failures = []
     base = {
         "agent_type": "harness-eng-lead",
-        "last_assistant_message": digest,
+        "digest_object": fixture("harness-eng-lead", digest),
     }
     # BUG-1898: every --hook fire names a throwaway root; unrooted, these resolved to the live
     # checkout and released a persona's real claim there.
@@ -3697,12 +2930,30 @@ def _t04_hook_failures(digest):
     return failures
 
 
+def _t04_lead_field_failures(validator):
+    """T-08's object half: every optional field a lead carries up from a member is accepted
+    on a lead, and a member-only field (qa's) is refused there as undeclared."""
+    failures = []
+    carried = {"sc_status": [], "needs_approval": False, "severity_max": "none",
+               "matrix_ok": True, "coverage_gaps": [], "readers": [], "findings": []}
+    for field, value in carried.items():
+        errors = validator.validate("harness-eng-lead", fixture("harness-eng-lead", _t04_with_fields(LEAD_BLOCK, {field: value})))
+        if errors:
+            failures.append(f"declared lead field {field} was rejected: {errors}")
+    for field in ("failures", "suite", "kinds"):
+        errors = validator.validate("harness-eng-lead", fixture("harness-eng-lead", _t04_with_fields(LEAD_BLOCK, {field: []})))
+        if not any("undeclared digest key" in error for error in errors):
+            failures.append(f"member-only field {field} was accepted on a lead")
+    return failures
+
+
 def run_t04_unknown_key_cases():
     """T-04: the digest key set is closed and one refusal is sufficient."""
     validator = _load_validator("_validator_t04")
     canonical_probes = {
         "pm": "harness-pm", "dev": "harness-backend-dev",
         "qa": "harness-qa", "reviewer": "harness-security-reviewer",
+        "ui-reviewer": "harness-ui-reviewer",
         "visual-designer": "harness-visual-designer",
         "documentor": "harness-documentor", "dev-ops": "harness-dev-ops",
         "lead": "harness-eng-lead", "orchestrator": "harness-orchestrator",
@@ -3710,121 +2961,13 @@ def run_t04_unknown_key_cases():
     three = _t04_with_fields(
         LEAD_BLOCK, {"rogue_alpha": 1, "rogue_beta": 2, "rogue_gamma": 3})
     failures = _t04_canonical_failures(validator, canonical_probes)
-    failures.extend(_t04_documented_failures(validator))
     failures.extend(_t04_three_key_failures(validator, three))
     failures.extend(_t04_hook_failures(three))
+    failures.extend(_t04_lead_field_failures(validator))
     for failure in failures:
         print("FAIL  [T-04] " + failure)
-    total = len(canonical_probes) + len(CONTRACT_SOURCES) + 9
+    total = 2 * len(canonical_probes) + 7 + 10
     print(f"\n{total - len(failures)}/{total} T-04 undeclared digest key cases passed.")
-    return len(failures)
-
-
-def _t08_fixture():
-    fixture_path = os.path.join(
-        FIXTURE_DIR, "pre-t04-validate-digest.py.fixture")
-    with open(fixture_path, encoding="utf-8") as handle:
-        source = handle.read()
-    failures = []
-    if "DOCUMENTED_OPTIONAL" not in source:
-        failures.append(
-            "pre-T-04 fixture does not contain T-01's DOCUMENTED_OPTIONAL")
-    if "undeclared digest key" in source:
-        failures.append("pre-T-04 fixture already contains T-04's rejection")
-    return source, failures
-
-
-def _t08_compare_payload(prior_path, persona, payload, env):
-    hook_payload = json.dumps(_governed({
-        "agent_type": persona, "last_assistant_message": payload,
-    }))
-    prior = subprocess.run(
-        [sys.executable, prior_path, "--hook"], input=hook_payload,
-        capture_output=True, text=True, env=env)
-    current = subprocess.run(
-        [sys.executable, VALIDATE, "--hook"], input=hook_payload,
-        capture_output=True, text=True, env=env)
-    failures = []
-    if prior.returncode != 0:
-        failures.append(
-            f"pre-change validator rejected {persona}: {prior.stderr.strip()}")
-    if current.returncode != 2 or "undeclared digest key" not in current.stderr:
-        failures.append(f"current validator did not reject {persona}'s probe")
-    return failures
-
-
-def _t08_revision_failures(source, payloads):
-    failures = []
-    # Sibling imports resolve through PYTHONPATH below, so keep the temporary
-    # prior-validator copy outside the live checkout.
-    with tempfile.TemporaryDirectory(prefix="t08-validator-") as td:
-        prior_path = os.path.join(td, "validate-digest.py")
-        with open(prior_path, "w", encoding="utf-8") as handle:
-            handle.write(source)
-        env = dict(os.environ, HARNESS_PROJECT_DIR=_isolated_root())
-        current_path = env.get("PYTHONPATH", "")
-        env["PYTHONPATH"] = os.path.dirname(VALIDATE) + (
-            os.pathsep + current_path if current_path else "")
-        for persona, payload in payloads:
-            failures.extend(
-                _t08_compare_payload(prior_path, persona, payload, env))
-    return failures
-
-
-def _t08_replay_failure(validator, field, value):
-    digest = _t04_with_fields(LEAD_BLOCK, {field: value})
-    if field == "adequacy_notes":
-        digest = LEAD_BLOCK.replace(
-            "  adequacy_notes: []",
-            "  adequacy_notes: [qualification recorded]")
-    errors = validator.validate("harness-eng-lead", digest)
-    return [f"declared lead field {field} was rejected: {errors}"] if errors else []
-
-
-def _t08_non_passthrough_failure(validator, field):
-    errors = validator.validate(
-        "harness-eng-lead", _t04_with_fields(LEAD_BLOCK, {field: []}))
-    if any("undeclared digest key" in error for error in errors):
-        return []
-    return [f"non-passthrough lead field {field} was accepted"]
-
-
-def run_t08_revision_proof():
-    """T-08: the strict rejection is new, while every declared lead field replays."""
-    source, failures = _t08_fixture()
-    payloads = [
-        ("harness-pm", _t04_with_fields(
-            PM_OK, {"rogue_revision_probe": True})),
-        ("harness-backend-dev", _t04_with_fields(
-            _t04_base_digest("harness-backend-dev"),
-            {"rogue_revision_probe": True})),
-        ("harness-documentor", _t04_with_fields(
-            _t04_base_digest("harness-documentor"),
-            {"rogue_revision_probe": True})),
-    ]
-    if not failures:
-        failures.extend(_t08_revision_failures(source, payloads))
-    validator = _load_validator("_validator_t08")
-    replay = {
-        "adequacy_notes": ["qualification recorded"], "sc_status": [],
-        "needs_approval": False, "severity_max": "none", "matrix_ok": True,
-        "coverage_gaps": [],
-    }
-    failures.extend(
-        failure
-        for field, value in replay.items()
-        for failure in _t08_replay_failure(validator, field, value)
-    )
-    failures.extend(
-        failure
-        for field in ("failures", "suite", "kinds")
-        for failure in _t08_non_passthrough_failure(validator, field)
-    )
-    for failure in failures:
-        print("FAIL  [T-08] " + failure)
-    if not failures:
-        print("ok    [T-08] pre-change validator accepts unknown keys while current rejects")
-    print(f"{10 - len(failures)}/10 T-08 revision and lead replay cases passed.")
     return len(failures)
 
 
@@ -3878,14 +3021,11 @@ def check_pending_plan_review(validator, config, root, failures):
 
 def check_review_policy(validator, config, feature_dir, failures):
     guarded = reviewer_digest("pass", must_fix="[needs repair]")
-    if not any("review policy" in error for error in validator.validate(
-            "harness-code-reviewer", guarded, config, feature_dir)):
+    if not any("review policy" in error for error in validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", guarded), config, feature_dir)):
         failures.append("advisory_unless_high must reject must_fix with PASS")
-    if validator.validate("harness-code-reviewer",
-                          reviewer_digest(severity_max="none"), config, feature_dir):
+    if validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest(severity_max="none")), config, feature_dir):
         failures.append("none severity must be accepted by review policy")
-    if not any("severity_max" in error for error in validator.validate(
-            "harness-code-reviewer", reviewer_digest(severity_max="info"),
+    if not any("severity_max" in error for error in validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest(severity_max="info")),
             config, feature_dir)):
         failures.append("info severity must be rejected by the policy vocabulary")
     return guarded
@@ -3925,18 +3065,15 @@ def write_review_config(config, review):
 
 
 def check_code_grade_state(validator, config, feature_dir, failures):
-    if not any("code_grade" in error for error in validator.validate(
-            "harness-code-reviewer", reviewer_digest("fail"), config, feature_dir)):
+    if not any("code_grade" in error for error in validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("fail")), config, feature_dir)):
         failures.append("fail-plus-PASS must reject")
     reasoned_grade_2 = reviewer_digest(
         "grade_2", grade_2_reasons="[one auditable reason]")
-    if not any("expected 'pass'" in error for error in validator.validate(
-            "harness-code-reviewer", reasoned_grade_2, config, feature_dir)):
+    if not any("expected 'pass'" in error for error in validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reasoned_grade_2), config, feature_dir)):
         failures.append("a reasoned grade_2 claim over a range that grades 'pass' must "
                         "still reject on the mechanical mismatch — a written reason "
                         "buys the VERDICT, never the grade")
-    if not any("grade_2_reasons" in error for error in validator.validate(
-            "harness-code-reviewer", reviewer_digest("grade_2"), config, feature_dir)):
+    if not any("grade_2_reasons" in error for error in validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("grade_2")), config, feature_dir)):
         failures.append("grade_2 without written reasons must reject")
 
 
@@ -3966,8 +3103,7 @@ N_A_REFUSAL_SUBSTRINGS = (
 
 
 def _assert_n_a_rejects(validator, config, feature_dir, reviewed, message, failures):
-    errors = validator.validate(
-            "harness-code-reviewer", reviewer_digest("n_a", reviewed=reviewed),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("n_a", reviewed=reviewed)),
             config, feature_dir)
     if not any(substring in error for error in errors
                for substring in N_A_REFUSAL_SUBSTRINGS):
@@ -3977,8 +3113,7 @@ def _assert_n_a_rejects(validator, config, feature_dir, reviewed, message, failu
 def _check_option_like_revisions(validator, config, feature_dir, td, failures):
     output_path = os.path.join(td, "must-not-exist")
     for revision in ("--no-patch..HEAD", f"--output={output_path}..HEAD"):
-        errors = validator.validate(
-            "harness-code-reviewer", reviewer_digest("n_a", reviewed=revision),
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("n_a", reviewed=revision)),
             config, feature_dir)
         if not any("reviewed range" in error for error in errors):
             failures.append(f"option-like revision {revision!r} must reject")
@@ -4140,7 +3275,7 @@ def _run_hook(root, agent_type, text):
     only 2 rejects and a crash exits 1 while the digest ships unvalidated (DEC-127)."""
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = root
-    payload = {"agent_type": agent_type, "last_assistant_message": text}
+    payload = {"agent_type": agent_type, "digest_object": fixture(agent_type, text)}
     result = subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
                             capture_output=True, text=True, env=env)
     return result.returncode, result.stderr
@@ -4180,14 +3315,12 @@ def check_mechanical_result_discrimination(td, failures):
         repo, base_oid, head_oid = make_graded_repo(td, f"grade-{name}", head_files)
         feature_dir = make_feature_dir(repo, review_sha=head_oid,
                                        feat=f"FEAT-GRADE-{name.upper()}")
-        errors = validator.validate(
-            "harness-code-reviewer", _reviewer_digest_for(expected, base_oid, head_oid),
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for(expected, base_oid, head_oid)),
             config, feature_dir)
         if errors:
             failures.append(f"a canonical range grading {expected!r} must ACCEPT the "
                             f"matching claim: {errors}")
-        errors = validator.validate(
-            "harness-code-reviewer", _reviewer_digest_for(wrong, base_oid, head_oid),
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for(wrong, base_oid, head_oid)),
             config, feature_dir)
         if not any(f"expected {expected!r}" in error for error in errors):
             failures.append(f"code_grade={wrong!r} over a range grading {expected!r} "
@@ -4263,14 +3396,12 @@ def check_digest_base_cannot_move_result(td, failures):
     oid_c = _commit_file(repo, "c.txt", "c\n", "C")
     feature_dir = make_feature_dir(repo, review_sha=oid_c, feat="FEAT-DIGEST-BASE")
     for base in (oid_a, oid_b):
-        errors = validator.validate(
-            "harness-code-reviewer", _reviewer_digest_for("pass", base, oid_c),
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("pass", base, oid_c)),
             config, feature_dir)
         if not any("expected 'fail'" in error for error in errors):
             failures.append(f"a digest-supplied base ({base[:12]}) must not change the "
                             f"mechanical result: {errors}")
-    errors = validator.validate(
-        "harness-code-reviewer", _reviewer_digest_for("fail", oid_a, oid_b),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("fail", oid_a, oid_b)),
         config, feature_dir)
     if not any("review_sha" in error for error in errors):
         failures.append(f"the digest's HEAD must still be bound to review_sha: {errors}")
@@ -4288,13 +3419,11 @@ def check_deletion_only_range(td, failures):
         td, "deletion-only", {}, base_files={"src/gone.py": CLEAN_PY},
         removals=("src/gone.py",))
     feature_dir = make_feature_dir(repo, review_sha=head_oid, feat="FEAT-DELETION")
-    errors = validator.validate(
-        "harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid)),
         config, feature_dir)
     if errors:
         failures.append(f"a deletion-only Python range must accept 'pass': {errors}")
-    errors = validator.validate(
-        "harness-code-reviewer", _reviewer_digest_for("n_a", base_oid, head_oid),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("n_a", base_oid, head_oid)),
         config, feature_dir)
     if not any("expected 'pass'" in error for error in errors):
         failures.append(f"a deletion-only Python range is not n_a: {errors}")
@@ -4313,8 +3442,7 @@ def check_missing_test_kinds(td, failures):
         td, "no-test-kinds", {"src/clean.py": CLEAN_PY})
     _write_repo_file(repo, ".harness/harness.json", json.dumps({"gates": {}}))
     feature_dir = make_feature_dir(repo, review_sha=head_oid, feat="FEAT-NO-KINDS")
-    errors = validator.validate(
-        "harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid)),
         config, feature_dir)
     if not any("test_kinds" in error for error in errors):
         failures.append(f"a checkout with no test_kinds policy must refuse the code "
@@ -4340,8 +3468,7 @@ def check_malformed_test_kinds(td, failures):
     _write_repo_file(repo, ".harness/harness.json", json.dumps(
         {"gates": {}, "test_kinds": {"unit": {"status": "active"}}}))
     feature_dir = make_feature_dir(repo, review_sha=head_oid, feat="FEAT-BAD-KINDS")
-    errors = validator.validate(
-        "harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", _reviewer_digest_for("pass", base_oid, head_oid)),
         config, feature_dir)
     if not any("TestKindsError" in error for error in errors):
         failures.append(f"a grader exception must become a NAMED refusal, never an "
@@ -4363,7 +3490,7 @@ def _assert_honest_artifact_resolves(validator, repo, failures):
     """The accept half: a real artifact path still resolves, and the root it yields is
     the checkout it names. Without this, a validator wired to refuse every artifact path
     would pass the refusal cases below."""
-    honest = "artifact: .harness/harness/features/FEAT-TRAVERSAL/notes/review.md\n"
+    honest = ".harness/harness/features/FEAT-TRAVERSAL/notes/review.md"
     feature_dir, error = validator._feature_dir_from_artifact(honest, repo)
     expected = os.path.join(repo, ".harness", "harness", "features", "FEAT-TRAVERSAL")
     if error or feature_dir != expected:
@@ -4397,8 +3524,7 @@ def check_artifact_path_traversal(td, failures):
     _assert_honest_artifact_resolves(validator, repo, failures)
 
     for hostile in HOSTILE_ARTIFACT_PATHS:
-        feature_dir, error = validator._feature_dir_from_artifact(
-            f"artifact: {hostile}\n", repo)
+        feature_dir, error = validator._feature_dir_from_artifact(hostile, repo)
         if feature_dir is not None or not error:
             failures.append(f"a traversing artifact path {hostile!r} must be refused, "
                             f"got {feature_dir!r}")
@@ -4409,7 +3535,7 @@ def check_artifact_path_traversal(td, failures):
     original_root = validator._root_or_none
     validator._root_or_none = lambda: repo
     try:
-        errors = validator.validate("harness-code-reviewer", hostile_digest, config)
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", hostile_digest), config)
     finally:
         validator._root_or_none = original_root
     if not any("relative segment" in error for error in errors):
@@ -4427,7 +3553,7 @@ def _assert_symlinked_component_refused(validator, root, link_name, target, fail
     if not os.path.lexists(link):
         os.symlink(target, link)
     feature_dir, error = validator._feature_dir_from_artifact(
-        f"artifact: .harness/{link_name}/features/FEAT-LINKED/notes/review.md\n", root)
+        f".harness/{link_name}/features/FEAT-LINKED/notes/review.md", root)
     if feature_dir is not None or not error:
         failures.append(f"{label} must be refused by the realpath containment check, "
                         f"got {feature_dir!r}")
@@ -4464,7 +3590,7 @@ def check_symlinked_feature_component(td, failures):
     inside = os.path.join(root, ".harness", "harness", "features", "FEAT-INSIDE")
     os.makedirs(inside, exist_ok=True)
     feature_dir, error = validator._feature_dir_from_artifact(
-        "artifact: .harness/harness/features/FEAT-INSIDE/notes/review.md\n", root)
+        ".harness/harness/features/FEAT-INSIDE/notes/review.md", root)
     if error or feature_dir != inside:
         failures.append(f"the containment check must still admit a real in-tree feature "
                         f"directory: {feature_dir!r} {error!r}")
@@ -4488,8 +3614,8 @@ def check_artifact_in_linked_worktree_binds_there(td, failures):
     worktree = _linked_worktree_fixture(owner, "distill-FEAT-Z")
     feature_dir = os.path.join(worktree, ".harness", "harness", "features", "FEAT-Z-thing")
     os.makedirs(os.path.join(feature_dir, "notes"), exist_ok=True)
-    text = f"artifact: {feature_dir}/notes/review-harness-code-reviewer-delta.md\n"
-    resolved, error = validator._feature_dir_from_artifact(text, owner)
+    artifact = f"{feature_dir}/notes/review-harness-code-reviewer-delta.md"
+    resolved, error = validator._feature_dir_from_artifact(artifact, owner)
     if error or os.path.realpath(resolved or "") != os.path.realpath(feature_dir):
         failures.append(f"#1883: an absolute artifact inside a linked worktree must bind "
                         f"to that worktree's feature dir: {resolved!r} {error!r}")
@@ -4500,7 +3626,7 @@ def check_artifact_in_linked_worktree_binds_there(td, failures):
     outside = os.path.join(td, "not-a-worktree", ".harness", "harness", "features", "FEAT-Z-thing")
     os.makedirs(outside, exist_ok=True)
     resolved, error = validator._feature_dir_from_artifact(
-        f"artifact: {outside}/notes/review.md\n", owner)
+        f"{outside}/notes/review.md", owner)
     if resolved is not None or "resolves outside this checkout" not in (error or ""):
         failures.append(f"#1883: an absolute artifact outside the worktree family must "
                         f"still be refused: {resolved!r} {error!r}")
@@ -4519,13 +3645,13 @@ def check_judgment_outranks_clean_grade(td, failures):
     feature_dir = make_feature_dir(repo, review_sha=head_oid, feat="FEAT-JUDGMENT")
     guarded = reviewer_digest("pass", reviewed=f"{base_oid}..{head_oid}",
                               must_fix="[needs repair]", artifact="a.md")
-    errors = validator.validate("harness-code-reviewer", guarded, config, feature_dir)
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", guarded), config, feature_dir)
     if not any("review policy" in error for error in errors):
         failures.append(f"a clean mechanical grade must not override a failing "
                         f"must_fix: {errors}")
     high = reviewer_digest("pass", reviewed=f"{base_oid}..{head_oid}",
                            severity_max="high", artifact="a.md")
-    errors = validator.validate("harness-code-reviewer", high, config, feature_dir)
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", high), config, feature_dir)
     if not any("review policy" in error for error in errors):
         failures.append(f"a clean mechanical grade must not override a high-severity "
                         f"review-policy result: {errors}")
@@ -4650,17 +3776,13 @@ def make_review_sha_repo(td):
 
 
 def _assert_derived_accepts(validator, config, feature_dir, reviewed, message, failures):
-    errors = validator.validate(
-        "harness-code-reviewer",
-        reviewer_digest("n_a", reviewed=reviewed, artifact="a.md"), config, feature_dir)
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("n_a", reviewed=reviewed, artifact="a.md")), config, feature_dir)
     if errors:
         failures.append(f"{message}: {errors}")
 
 
 def _assert_derived_rejects(validator, config, feature_dir, reviewed, substring, message, failures):
-    errors = validator.validate(
-        "harness-code-reviewer",
-        reviewer_digest("n_a", reviewed=reviewed, artifact="a.md"), config, feature_dir)
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("n_a", reviewed=reviewed, artifact="a.md")), config, feature_dir)
     if not any(substring in error for error in errors):
         failures.append(f"{message}: {errors}")
 
@@ -4720,9 +3842,7 @@ def _assert_repair_named(validator, config, feature_dir, oid, repair, failures):
     """SC-11 asks for a refusal that carries a REMEDIATION, not only a cause. A message
     naming what broke and not what to do about it leaves a reviewer with a red gate and
     no next step, which is how a fail-closed check gets worked around instead of fixed."""
-    errors = validator.validate(
-        "harness-code-reviewer",
-        reviewer_digest("pass", reviewed=f"{oid}..{oid}", artifact="a.md"),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("pass", reviewed=f"{oid}..{oid}", artifact="a.md")),
         config, feature_dir)
     if not any(repair in error for error in errors):
         failures.append(f"the refusal must carry its repair ({repair!r}), not only its "
@@ -4737,7 +3857,7 @@ def _assert_grade_refused(validator, config, feature_dir, oid, grade, substring,
     digest = _reviewer_digest_for(grade, oid, oid) if grade in ("fail", "grade_2") \
         else reviewer_digest(grade, reviewed=f"{oid}..{oid}", artifact="a.md",
                              **(extra or {}))
-    errors = validator.validate("harness-code-reviewer", digest, config, feature_dir)
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", digest), config, feature_dir)
     if not any(substring in error for error in errors):
         failures.append(f"code_grade={grade!r} must be REFUSED when the canonical range "
                         f"cannot be derived ({substring!r}): {errors}")
@@ -4766,9 +3886,7 @@ def check_unresolvable_default_branch(td, failures):
     for grade in ("pass", "fail", "grade_2", "n_a"):
         _assert_grade_refused(validator, config, feature_dir, oid, grade,
                               "default branch", failures)
-    errors = validator.validate(
-        "harness-code-reviewer",
-        reviewer_digest("pass", reviewed=f"{oid}..{oid}", artifact="a.md"),
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", reviewer_digest("pass", reviewed=f"{oid}..{oid}", artifact="a.md")),
         config, feature_dir)
     if not any("repair origin/HEAD" in error for error in errors):
         failures.append(f"the refusal must carry its repair, not only its cause: {errors}")
@@ -4851,14 +3969,14 @@ def check_review_sha_binding(validator, config, feature_dir, td, failures):
     everything would still pass a rejection-only test.
     """
     honest = reviewer_digest("pass", reviewed=f"{PRE_FEATURE_REVISION}..{REVIEW_SHA}")
-    if validator.validate("harness-code-reviewer", honest, config, feature_dir):
+    if validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", honest), config, feature_dir):
         failures.append("an honest range whose head matches review_sha must accept")
 
     # The reproduction of the live bypass: a resolvable, self-consistent no-op
     # range whose head is simply not review_sha. Before SEC-01 this validated
     # for ANY resolvable commit; now only a head equal to review_sha does.
     forged = reviewer_digest("n_a", reviewed="HEAD..HEAD")
-    errors = validator.validate("harness-code-reviewer", forged, config, feature_dir)
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", forged), config, feature_dir)
     if not any("review_sha" in error for error in errors):
         failures.append("a resolvable no-op range whose head != review_sha must "
                         "reject, naming review_sha (the SEC-01 bypass)")
@@ -4866,7 +3984,7 @@ def check_review_sha_binding(validator, config, feature_dir, td, failures):
     check_review_sha_binding_unconditional(validator, config, feature_dir, failures)
 
     missing_feature_dir = os.path.join(td, "no-such-feature-anywhere")
-    errors = validator.validate("harness-code-reviewer", honest, config,
+    errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", honest), config,
                                 missing_feature_dir)
     if not errors:
         failures.append("an unresolvable feature.json must fail closed, not "
@@ -4876,7 +3994,7 @@ def check_review_sha_binding(validator, config, feature_dir, td, failures):
 
 
 def _pin_errors(validator, config, feature_dir, digest, review_pin=None):
-    return validator.validate("harness-code-reviewer", digest, config, feature_dir,
+    return validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", digest), config, feature_dir,
                               review_pin=review_pin)
 
 
@@ -4935,7 +4053,7 @@ def check_review_sha_binding_unconditional(validator, config, feature_dir, failu
     for grade, extra in (("pass", {}), ("fail", {}),
                          ("grade_2", {"grade_2_reasons": "[one reason]"})):
         forged_other = reviewer_digest(grade, reviewed="HEAD..HEAD", **extra)
-        errors = validator.validate("harness-code-reviewer", forged_other,
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", forged_other),
                                     config, feature_dir)
         if not any("review_sha" in error for error in errors):
             failures.append(f"code_grade={grade!r} with a forged no-op range "
@@ -4959,7 +4077,7 @@ DIGEST:
 artifact: a.md
 """
     for persona in ("harness-ui-reviewer", "harness-security-reviewer"):
-        if validator.validate(persona, other_reviewer_digest, config, feature_dir):
+        if validator.validate(persona, fixture(persona, other_reviewer_digest), config, feature_dir):
             failures.append(f"{persona} must not require code_grade/reviewed — "
                             f"SEC-01 binds harness-code-reviewer only")
 
@@ -5067,7 +4185,7 @@ def check_branch_corroboration(validator, config, td, failures):
         forged = reviewer_digest(
             "pass", reviewed=f"{base_oid}..{head_oid}",
             artifact=".harness/harness/features/FEAT-OTHER-SHIPPED/notes/review.md")
-        errors = validator.validate("harness-code-reviewer", forged, config,
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", forged), config,
                                     feature_dir=None,
                                     branch_override=CURRENT_CHECKOUT_BRANCH)
         if not any("does not match the current checkout" in error for error in errors):
@@ -5080,7 +4198,7 @@ def check_branch_corroboration(validator, config, td, failures):
         honest = reviewer_digest(
             "pass", reviewed=f"{base_oid}..{head_oid}",
             artifact=".harness/harness/features/FEAT-UNDER-REVIEW/notes/review.md")
-        errors = validator.validate("harness-code-reviewer", honest, config,
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", honest), config,
                                     feature_dir=None,
                                     branch_override=CURRENT_CHECKOUT_BRANCH)
         if errors:
@@ -5089,7 +4207,7 @@ def check_branch_corroboration(validator, config, td, failures):
 
         # ADDITIVE GUARANTEE 1: current branch undeterminable -> behave
         # exactly as before (accept), never a NEW rejection.
-        errors = validator.validate("harness-code-reviewer", forged, config,
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", forged), config,
                                     feature_dir=None, branch_override=None)
         if errors:
             failures.append("an undeterminable current checkout branch must not "
@@ -5102,7 +4220,7 @@ def check_branch_corroboration(validator, config, td, failures):
         no_branch = reviewer_digest(
             "pass", reviewed=f"{base_oid}..{head_oid}",
             artifact=".harness/harness/features/FEAT-NO-BRANCH/notes/review.md")
-        errors = validator.validate("harness-code-reviewer", no_branch, config,
+        errors = validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", no_branch), config,
                                     feature_dir=None,
                                     branch_override=CURRENT_CHECKOUT_BRANCH)
         if errors:
@@ -5114,12 +4232,12 @@ def check_branch_corroboration(validator, config, td, failures):
 
 def check_config_errors(validator, config, feature_dir, guarded, failures):
     write_review_config(config, "advisory")
-    if validator.validate("harness-code-reviewer", guarded, config, feature_dir):
+    if validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", guarded), config, feature_dir):
         failures.append("advisory must accept the same digest")
     with open(config, "w") as f:
         json.dump({}, f)
     try:
-        validator.validate("harness-code-reviewer", guarded, config, feature_dir)
+        validator.validate("harness-code-reviewer", fixture("harness-code-reviewer", guarded), config, feature_dir)
         failures.append("missing gates must raise")
     except ValueError as error:
         if "gates" not in str(error):
@@ -5269,47 +4387,13 @@ def _remove_mutant(path):
         pass
 
 
-def _empty_red_mutant(source):
-    head = '    raw = d.get("last_assistant_message", _ABSENT)'
-    start = source.find(head)
-    end = source.find("\n        return 2\n", start)
-    if start < 0 or end < start:
-        return None
-    end += len("\n        return 2\n")
-    truthiness = (
-        '    text = d.get("last_assistant_message") or ""\n'
-        '    if not text.strip():\n'
-        '        print(f"check-digest: {agent} returned no final message to validate.",\n'
-        '              file=sys.stderr)\n'
-        '        return 0\n')
-    return source[:start] + truthiness + source[end:]
-
-
-def _empty_red_failures(real, old):
-    failures = 0
-    if old.returncode not in (0, 2) or "Traceback (most recent call last)" in old.stderr:
-        failures += _red_failure(
-            "empty-red", "INCONCLUSIVE: the mutant crashed (exit %d) rather than returning "
-            "a verdict:\n      | %s"
-            % (old.returncode, old.stderr.strip().replace("\n", "\n      | ")))
-    if real.returncode != 2:
-        failures += _red_failure(
-            "empty-red", "the real validator must exit 2 on a blank final message, got %d"
-            % real.returncode)
-    if old.returncode != 0:
-        failures += _red_failure(
-            "empty-red", "the truthiness revert must exit 0 — if it does not, the "
-            "empty-string case is not what proves the fix, got %d" % old.returncode)
-    return failures
-
-
 def _bug919_red_mutant():
-    """Read VALIDATE's own source and remove the `if norm(agent) == "qa":` dispatch to
+    """Read VALIDATE's own source and remove the `if family == "qa":` dispatch to
     check_qa_matrix_claim, leaving everything else — including check_qa_matrix_claim
     itself, now simply unreachable — intact. Returns None if the anchor is absent."""
     with open(VALIDATE, encoding="utf-8") as source_file:
         source = source_file.read()
-    anchor = '        if norm(agent) == "qa":\n            return check_qa_matrix_claim(agent, text, d)\n'
+    anchor = '    if family == "qa":\n        return check_qa_matrix_claim(agent, obj, d)\n'
     if anchor not in source:
         return None
     mutant_source = source.replace(anchor, "", 1)
@@ -5318,60 +4402,30 @@ def _bug919_red_mutant():
     return mutant_source
 
 
-def run_empty_red_case():
-    """empty-red — prove the blank-string case distinguishes the truthiness regression."""
-    with open(VALIDATE, encoding="utf-8") as source_file:
-        source = source_file.read()
-    mutant_source = _empty_red_mutant(source)
-    if mutant_source is None:
-        return _red_failure(
-            "empty-red", "INCONCLUSIVE: the presence branch was not found by its source text")
-    if mutant_source == source:
-        return _red_failure(
-            "empty-red", "INCONCLUSIVE: the mutant is byte-identical to the original")
-
-    iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(
-        isolated_bin(iso_root), ".validate-digest-empty-red-%d.py" % os.getpid())
-    payload = {"agent_type": "harness-qa", "last_assistant_message": "   \n"}
-    root = _isolated_root()
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
-    try:
-        _install_mutant(mutant, mutant_source)
-        failures = _empty_red_failures(
-            _fire_hook_binary(VALIDATE, payload, env),
-            _fire_hook_binary(mutant, payload, env))
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
-
-    if not failures:
-        print("ok    [empty-red] the empty-string refusal fails against the truthiness revert")
-    print("\n%d/1 empty-red cases passed." % (0 if failures else 1,))
-    return 1 if failures else 0
-
-
 def _dec156_owner_root_mutant(source):
     start = source.find("def _durable_artifact_candidates(")
-    end = source.find("\ndef _missing_durable_artifact(", start)
+    end = source.find("\n\n\n", start)
     if start < 0 or end <= start:
         return None
     old_candidates = (
         "def _durable_artifact_candidates(path, payload):\n"
         "    return ([path] if os.path.isabs(path) else "
-        "[os.path.join(_root_or_none() or \"\", path)])\n\n")
-    return source[:start] + old_candidates + source[end + 1:]
+        "[os.path.join(_root_or_none() or \"\", path)])")
+    return source[:start] + old_candidates + source[end:]
 
 
 def _dec156_red_is_green(real, old):
-    return (real.returncode == 2
-            and old.returncode == 0
+    """SC-07: the real validator finds the worktree digest and appends (0); the owner-root
+    join finds no run directory and refuses (2)."""
+    return (real.returncode == 0
+            and old.returncode == 2
             and "Traceback (most recent call last)" not in old.stderr)
 
 
 def run_dec156_worktree_red_case():
-    """dec156-worktree-red: the narrative case fails against the owner-root join."""
+    """dec156-worktree-red: the worktree digest is found only by the feature-checkout join."""
     root, _worktree, _rel, payload = _dec156_worktree_case(
-        "red-fixture", "# narrative digest, no contract block\n", 2)
+        "red-fixture", "# narrative digest, no contract block\n", 0)
     HOOK_CASES.pop()
     payload = dict(payload)
     payload.pop("_root", None)
@@ -5446,7 +4500,7 @@ def _duplicate_feature_json_failures(validator, td):
 def _duplicate_hook_payload_failures():
     payload = (
         '{"agent_type":"Explore","agent_type":"Explore",'
-        '"last_assistant_message":"not governed"}')
+        '"digest_object":"not governed"}')
     hook = subprocess.run(
         [sys.executable, VALIDATE, "--hook"], input=payload,
         capture_output=True, text=True,
@@ -5540,7 +4594,7 @@ DIGEST:
   fail_first: []
   open_questions: []
   files_touched: [/abs/.harness/expertise/harness-qa.md]
-  expertise_update: [{file: /abs/.harness/expertise/harness-qa.md, ops: 3}]
+  expertise_update: [{ op: add, target: /abs/.harness/expertise/harness-qa.md, section: Patterns, entry: "WHEN a suite is green DO record the fail-first receipt", why: "three runs lost it" }]
 artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
 """
 REVIEWER_DISTILL = """
@@ -5554,7 +4608,7 @@ DIGEST:
   reviewed: none
   files_touched: [/abs/.harness/expertise/harness-code-reviewer.md]
   open_questions: []
-  expertise_update: [{file: /abs/.harness/expertise/harness-code-reviewer.md, ops: 3}]
+  expertise_update: [{ op: add, target: /abs/.harness/expertise/harness-code-reviewer.md, section: Gotchas, entry: "WHEN a grade is n_a DO name the range", why: "two reviews skipped it" }]
 artifact: .harness/features/FEAT-01/runs/distill-validator/digest.md
 """
 hook_case("#1855: qa on a distill dispatch may PASS with suite/matrix_ok n/a",
@@ -5597,7 +4651,7 @@ def _feat65_fire(sibling, override, argv=("--hook",), payload=None, stdin=None):
         with open(os.path.join(iso, sibling), "a", encoding="utf-8") as handle:
             handle.write("\n\n" + override)
     if payload is None:
-        payload = {"agent_type": "harness-qa", "last_assistant_message": "VERDICT: PASS\n"}
+        payload = {"agent_type": "harness-qa", "digest_object": "VERDICT: PASS\n"}
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     return subprocess.run([os.path.join(iso, "validate-digest.py"), *argv],
                           input=json.dumps(_governed(payload)) if stdin is None else stdin,
@@ -5636,10 +4690,11 @@ def run_feat65_guard_cases():
     # policy's root through harness_boundary on every validate() call.
     cli_defect = _feat65_fire(
         "harness_boundary.py", "def resolve_root(bin_dir, strict=True):\n" + raise_rt,
-        argv=("harness-code-reviewer",), stdin="VERDICT: PASS\nartifact: x.md\n")
+        argv=("harness-code-reviewer",),
+        stdin=json.dumps({"VERDICT": "PASS", "DIGEST": {}, "artifact": "x.md"}))
     line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
     unreadable_head = ("check-digest: the hook failed internally (ArtifactAccessError: "
-                       "SubagentStop hook payload: invalid JSON: ")
+                       "yield hook payload: invalid JSON: ")
     return _feat65_report([
         ("a defect reading the payload passes through with exactly the hook_guard line",
          payload_defect.stderr == line and payload_defect.stdout == ""
@@ -5798,7 +4853,7 @@ def _b1898_release_reads_the_feature_worktree():
 def _b1898_orchestrator_digest():
     return (
         "VERDICT: PASS\nDIGEST:\n  headline: %(f)s shipped\n  feature: %(f)s\n"
-        "  status: shipped\n  runs: [r1]\n  cycles_used: 1\n  briefing: none\n"
+        "  status: shipped\n  runs: [{ id: r1, squad: build, verdict: PASS }]\n  cycles_used: 1\n  briefing: none\n"
         "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
         "artifact: .harness/features/%(f)s/feature.json\n" % {"f": B1898_FEATURE})
 
@@ -5916,7 +4971,6 @@ def main(argv=None):
         run_canonical_reader_strictness_cases,
         run_feat65_guard_cases,
         run_cli_cases,
-        run_empty_red_case,
         run_dec156_worktree_red_case,
         run_bug919_qa_matrix_cases,
         run_bug919_resolve_fallback_case,
@@ -5925,15 +4979,11 @@ def main(argv=None):
         run_code_grade_cases,
         run_hook_cases,
         run_bug1305_artifact_resolution_cases,
+        run_lead_append_cases,
         run_t09,
         run_t51_suspension_cases,
         run_bug1898_exact_release_cases,
-        run_template_cases,
-        run_reviewer_severity_enum_cases,
-        run_documented_contract_cases,
-        run_t01_schema_cases,
         run_t04_unknown_key_cases,
-        run_t08_revision_proof,
     )
     # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
     # mutant pass reads only the [bug1898] lines, and without this it paid for every group.

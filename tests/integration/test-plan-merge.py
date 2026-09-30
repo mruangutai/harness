@@ -2928,6 +2928,16 @@ def case_f59_record_panel_refuses_a_finding_without_kind():
         r4 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
         check("record-panel refuses a digest with no DIGEST block", r4.returncode == 5,
               f"rc={r4.returncode} {r4.stderr!r}")
+        # FEAT-1928 SC-07: the durable record is the LAST fenced mapping, never bare text.
+        bare = yaml.safe_dump({"VERDICT": "PASS", "DIGEST": {"readers": _READERS, "findings": []}})
+        write(digest, bare)
+        r5 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses an unfenced digest (no bare-text fallback)",
+              r5.returncode == 5 and "fenced" in r5.stderr, f"rc={r5.returncode} {r5.stderr!r}")
+        write(digest, _digest_md(_READERS, []) + "```yaml\nVERDICT: PASS\nDIGEST: corrected\n```\n")
+        r6 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel reads the last fenced mapping and refuses its non-mapping DIGEST",
+              r6.returncode == 5 and "DIGEST" in r6.stderr, f"rc={r6.returncode} {r6.stderr!r}")
         check("every record-panel refusal leaves the plan byte-identical", read(plan) == before)
     finally:
         shutil.rmtree(root, ignore_errors=True)

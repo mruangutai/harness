@@ -25,20 +25,23 @@
         "findings",
         "must_fix",
         "code_grade",
-        "reviewed"
+        "reviewed",
+        "spec_violations",
+        "human_commits_in_scope",
+        "grade_2_reasons"
       ],
       "properties": {
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "severity_max": {
           "$ref": "common.json#/$defs/severity_nullable"
@@ -47,7 +50,7 @@
           "$ref": "common.json#/$defs/findings"
         },
         "must_fix": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/must_fix"
         },
         "code_grade": {
           "enum": [
@@ -61,10 +64,10 @@
           "$ref": "common.json#/$defs/text"
         },
         "spec_violations": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/spec_violations"
         },
         "human_commits_in_scope": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "grade_2_reasons": {
           "$ref": "common.json#/$defs/grade_2_reasons"
@@ -83,12 +86,16 @@
             ]
           },
           "then": {
-            "required": [
-              "grade_2_reasons"
-            ],
             "properties": {
               "grade_2_reasons": {
                 "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "grade_2_reasons": {
+                "maxItems": 0
               }
             }
           }

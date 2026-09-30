@@ -10,7 +10,9 @@ python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py re
   --file <plan.yaml> --digest <lead digest.md> --cycle N
 ```
 
-It writes the top-level `panel` key from the lead's fenced DIGEST block: one `panel.readers` entry
+It writes the top-level `panel` key from the lead's fenced DIGEST block — the LAST fenced yaml block
+in the digest.md that loads to a mapping (a later block is a correction; unfenced text is refused):
+one `panel.readers` entry
 for EVERY named reader, `skipped` ones included with the persona and the lead's reason, every
 finding with its `kind` and severity carried byte for byte. A run whose only work is copying one
 file into another is the zero-value run FEAT-59 removed (DEC-229) — the verb does the copy.

@@ -840,8 +840,13 @@ def case_t06_build_entry_invariant():
     return all(outcomes)
 
 
-def _bug440_digest(validator, verdict):
-    text = f"""VERDICT: {verdict}
+def _bug440_digest(verdict):
+    return f"""# synthetic lead digest
+
+prose narrative a successor reads first
+
+```yaml
+VERDICT: {verdict}
 DIGEST:
   headline: synthetic BUG-440 fixture
   team: eng
@@ -857,9 +862,9 @@ DIGEST:
   expertise_update: []
   sc_status: []
 artifact: fixture/digest.md
+historical_only_key: accepted without live-schema validation
+```
 """
-    assert validator.validate("lead", text) == [], text
-    return text
 
 
 def _bug440_build(tmp, entries, runs):
@@ -888,17 +893,8 @@ def _bug440_validate_fixture(tmp, entries, runs):
     return fdir, code, out, before == after
 
 
-def _bug440_validator():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "validate_digest_bug440", os.path.join(_anchor_bin, "validate-digest.py"))
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    return validator
-
-
-def _bug440_mixed_case(validator):
-    digest = lambda verdict: _bug440_digest(validator, verdict)
+def _bug440_mixed_case():
+    digest = _bug440_digest
     runs = [
         ("M", "harness-eng-lead", "complete", digest("FAIL")),
         ("E", "harness-product-lead", "complete", digest("PASS")),
@@ -924,29 +920,28 @@ def _bug440_mixed_case(validator):
     ))
 
 
-def _bug440_blocking_case(validator):
+def _bug440_blocking_case():
     with tempfile.TemporaryDirectory() as tmp:
         _, code, out, _ = _bug440_validate_fixture(
             tmp, ("M",), [("M", "harness-eng-lead", "complete",
-                           _bug440_digest(validator, "FAIL"))])
+                           _bug440_digest("FAIL"))])
     return code == 1 and "INV-46" in out
 
 
-def _bug440_clean_case(validator):
+def _bug440_clean_case():
     with tempfile.TemporaryDirectory() as tmp:
         _, code, out, _ = _bug440_validate_fixture(
             tmp, ("E",), [("E", "harness-product-lead", "complete",
-                           _bug440_digest(validator, "PASS"))])
+                           _bug440_digest("PASS"))])
     return code == 0 and "INV-46" not in out
 
 
 def case_bug440_digest_verdict_reconciliation():
     """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
-    validator = _bug440_validator()
     ok = all((
-        _bug440_mixed_case(validator),
-        _bug440_blocking_case(validator),
-        _bug440_clean_case(validator),
+        _bug440_mixed_case(),
+        _bug440_blocking_case(),
+        _bug440_clean_case(),
     ))
     print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-46 reconciles digest verdicts without mutation")
     return ok

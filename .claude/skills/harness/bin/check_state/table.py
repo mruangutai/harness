@@ -137,10 +137,10 @@ INVARIANTS = (
         Inv("INV-36", inv_36, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/.run-identity"),
             "a run directory's checkpoint carries the identity recorded when it was first written", "DEC-154"),
         Inv("INV-15", inv_15, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
-                                          "path:.agents/skills/harness/bin/validate-digest.py"),
-            "a complete lead-hosted run's digest.md exists and satisfies the lead contract", "DEC-156"),
+                                          "path:.claude/skills/harness/bin/digest_record.py"),
+            "a complete lead-hosted run's digest.md exists and its final fenced mapping carries VERDICT, DIGEST and artifact", "DEC-156"),
         Inv("INV-46", inv_46, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/digest.md", _FEATURE_JSON,
-                                          "path:.agents/skills/harness/bin/validate-digest.py"),
+                                          "path:.claude/skills/harness/bin/digest_record.py"),
             "a contract-clean lead digest's VERDICT agrees with every verdict feature.json records for that run", "DEC-156"),
     )),
     Group("glossary", (
@@ -214,7 +214,8 @@ INVARIANTS = (
             "every autonomous judgement -- mission, regate, succession, amendment -- leaves a ledger entry", "DEC-229"),
         Inv("INV-43", inv_43, "feature", (_FEATURE_JSON, _BRIEF, _HANDOFF, _HARNESS_JSON),
             "a succession judgement is recorded no later than the successor's first run", "DEC-227"),
-        Inv("INV-47", inv_47, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/notes/review-harness-*.md"),
+        Inv("INV-47", inv_47, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/notes/review-harness-*.md",
+                                          "path:.claude/skills/harness/bin/digest_record.py"),
             "a validate run recorded PASS has no same-cycle member review at FAIL or BLOCKED", "DEC-156"),
     ), collate=collate_feat59),
     Group("rejected-shape", (

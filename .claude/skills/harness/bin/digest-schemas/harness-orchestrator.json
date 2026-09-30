@@ -25,20 +25,21 @@
         "status",
         "runs",
         "cycles_used",
-        "briefing"
+        "briefing",
+        "judgement"
       ],
       "properties": {
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "feature": {
           "$ref": "common.json#/$defs/text"
@@ -54,7 +55,7 @@
           ]
         },
         "runs": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/runs"
         },
         "cycles_used": {
           "$ref": "common.json#/$defs/integer"
@@ -63,7 +64,14 @@
           "$ref": "common.json#/$defs/text"
         },
         "judgement": {
-          "$ref": "common.json#/$defs/judgement"
+          "anyOf": [
+            {
+              "$ref": "common.json#/$defs/judgement"
+            },
+            {
+              "$ref": "common.json#/$defs/unset"
+            }
+          ]
         }
       },
       "allOf": [
@@ -79,20 +87,20 @@
             ]
           },
           "then": {
-            "required": [
-              "judgement"
-            ],
             "properties": {
+              "judgement": {
+                "$ref": "common.json#/$defs/judgement"
+              },
               "cycles_used": {
                 "const": 0
               }
             }
           },
           "else": {
-            "not": {
-              "required": [
-                "judgement"
-              ]
+            "properties": {
+              "judgement": {
+                "$ref": "common.json#/$defs/unset"
+              }
             }
           }
         }

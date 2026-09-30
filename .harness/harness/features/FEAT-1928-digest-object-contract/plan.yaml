@@ -4,7 +4,7 @@ approval:
   date: '2026-09-29'
   approved_by: main-session
   status: approved
-status: ready
+status: building
 mission: plan
 source_issues: [1928]
 baseline:

@@ -510,7 +510,7 @@ DIGEST:
   steps_run: 1
   cycles_used: 0
   members:
-    - { step: reader, persona: code-reviewer, verdict: FAIL }
+    - { step: reader, persona: code-reviewer, verdict: FAIL, headline: "reader blocker", files_touched: [] }
   must_fix: [reader blocker]
   branch: feat/example
   files_touched: []
@@ -519,15 +519,24 @@ DIGEST:
   expertise_update: []
   sc_status: []
   adequacy_notes: []
+  needs_approval: none
+  severity_max: none
+  matrix_ok: none
+  coverage_gaps: []
+  findings: []
+  readers: []
 artifact: .harness/harness/features/FEAT-D-thing/runs/r1/digest.md
 """
     corrected = invalid.replace("VERDICT: PASS", "VERDICT: FAIL", 1)
-    combined = invalid + "\n" + corrected
+    # FEAT-1928: the durable record is prose followed by fenced YAML blocks; the last fenced
+    # mapping is the record, so a correction is one more complete block after the first.
+    recorded = "# lead assessment\n\n```yaml\n" + invalid + "```\n"
+    combined = recorded + "\n```yaml\n" + corrected + "```\n"
     root, path = _feat50_digest_fixture()
-    _feat50_write_text(path, invalid)
+    _feat50_write_text(path, recorded)
     response = _bug1305_digest_write(root, path, combined)
     validation = subprocess.run(
-        [os.path.join(_anchor_bin, "validate-digest.py"), "lead"],
+        [os.path.join(_anchor_bin, "validate-digest.py"), "harness-validator-lead"],
         input=combined, capture_output=True, text=True)
     return (
         "a complete corrected block repairs an invalid digest append-only",

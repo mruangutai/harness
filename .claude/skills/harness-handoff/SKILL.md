@@ -11,23 +11,34 @@ durable artifact, compact signal.
 
 ## Your return — three parts, always
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line, the conclusion — not what you did>
-  <your role's fields — see your role rule>
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }
-  files_touched: [<work paths>]   # excludes the required artifact receipt; [] for read-only work
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <path to what you wrote>
-```
-````
+Return one object through YieldTool — `yield({data: {VERDICT, DIGEST, artifact}})` — never a
+fenced YAML block and never text: a string, `null` or absent `data` is rejected with an instruction
+to return the object. Your persona's field list is its schema,
+`.agents/skills/harness/bin/digest-schemas/harness-<persona>.json` (shared definitions in
+`common.json`). One complete example, for `harness-documentor`
+(`.agents/skills/harness/bin/digest-schemas/harness-documentor.json`):
 
-**Wrap the return in a ```` ```yaml ```` fence** (DEC-172). The parser reads the last `VERDICT:`
-block whether or not it is fenced — the host renders a structured yield unfenced — so the fence is
-for readers and for keeping prose out of the block, not a gate.
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "CLI reference now documents the --dry-run flag",
+    "docs_updated": ["docs/cli.md"],
+    "gaps": [],
+    "stale_found": [],
+    "open_questions": [{"id": "Q1", "question": "Document the deprecated --force alias?", "blocking": false}],
+    "files_touched": ["docs/cli.md"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-documentor-<runid>.md"
+}})
+```
+
+Every persona carries `headline` (one line, the conclusion — not what you did), `open_questions`
+(`{id, question, blocking}`), `files_touched` (work paths; excludes the required artifact receipt;
+`[]` for read-only work) and `expertise_update` (`[]` except under a distillation dispatch —
+harness-expertise), plus your role's fields — see your role rule. `artifact` is the path to what
+you wrote. Durable fenced YAML in a digest.md is validator-owned output, never yours to write.
 
 | VERDICT | Means |
 |---|---|

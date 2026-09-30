@@ -13,7 +13,7 @@ INV-43 succession-seam (BUG-1723 SC-03): the succession judgement for a handoff 
 recorded no later than run N+1 started; one recorded AFTER that run is a retrospective
 correction, which means one context crossed the seam DEC-159 draws; an unreadable timestamp
 is CANNOT VERIFY, never a silent pass.
-FEAT-61 T-03: the three sibling-module loads (validate-digest, check-skill-weight, plan-merge)
+FEAT-61 T-03: the sibling-module loads (check-skill-weight, plan-merge)
 go through harness_boundary.load_repo_module and the INV-16 step schema through
 artifact_accessors.load_run_step_contract; each site keeps its own catch boundary, fallback
 and finding text, which is what the cases assert.
@@ -519,7 +519,7 @@ def case_inv40_signed_text():
 
 # ------------------------------------------------------------------- FEAT-61 T-03 ---
 # Every case runs a COPY of bin/ (isolated_bin) with exactly one sibling replaced by a
-# probe, or plants validate-digest.py under the FIXTURE root where INV-15 looks for it.
+# probe.
 # The assertions are on the gate's own finding lines: a load failure is a CANNOT RUN
 # naming the exception's class and text, never a traceback and never silence.
 
@@ -684,33 +684,41 @@ def case_feat61_run_schema_natural_errors():
     return results
 
 
-def _digest_run(validate_digest_text):
-    """A complete lead run with a digest, and `.agents/skills/harness/bin/validate-digest.py`
-    planted under the fixture root holding `validate_digest_text`."""
+def _digest_run(digest_text):
+    """The findings naming run r1 (INV-15's lines carry the path, not the tag) for a complete lead run whose durable digest.md holds `digest_text`,
+    and whether INV-15 left the file byte-identical."""
     with tempfile.TemporaryDirectory() as tmp:
         fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
         _write(os.path.join(fdir, "runs", "r1", "state.yaml"),
                "run_id: r1\nstatus: complete\nhost: harness-eng-lead\n")
-        _write(os.path.join(fdir, "runs", "r1", "digest.md"), "VERDICT: PASS\n")
-        _write(os.path.join(tmp, ".agents", "skills", "harness", "bin", "validate-digest.py"),
-               validate_digest_text)
-        return run(tmp)
+        dg = os.path.join(fdir, "runs", "r1", "digest.md")
+        _write(dg, digest_text)
+        _, out = run(tmp)
+        with open(dg, encoding="utf-8") as f:
+            return _violations(out, "runs/r1"), out, f.read() == digest_text
 
 
-def case_feat61_validate_digest():
-    """load_repo_module behind INV-15: the exec exception and the missing-validate() fallback
-    each leave digests UNCHECKED with the reason in the finding."""
+_RECORD_HEAD = "# lead digest\n\nprose narrative\n\n```yaml\n"
+
+
+def case_feat1928_durable_digest_record():
+    """FEAT-1928 SC-07: INV-15 reads the durable digest through digest_record's final fenced
+    mapping — the required top-level keys decide, never the live persona schema and never a
+    bare VERDICT line; a historical record's extra keys are accepted and bytes never change."""
     results = []
-    _, out = _digest_run(_RAISING_MODULE)
-    v = _violations(out, "INV-15")
-    results.append(("(61.h) a validate-digest exec exception reports digests UNCHECKED naming it",
-                    len(v) == 1 and "will not import (FEAT-61 T-03 injected exec failure)" in v[0]
-                    and "Digest files are UNCHECKED" in v[0], out[:600]))
-    _, out = _digest_run("validate = None\n")
-    v = _violations(out, "INV-15")
-    results.append(("(61.i) a validate-digest without a callable validate() takes the same fallback",
-                    len(v) == 1 and "will not import (it defines no validate() function)" in v[0],
+    v, out, same = _digest_run("VERDICT: PASS\nDIGEST:\n  headline: bare\nartifact: a.md\n")
+    results.append(("(1928.a) a bare-text digest with no fenced mapping is an INV-15 finding",
+                    len(v) == 1 and "no fenced YAML block loads to a mapping" in v[0] and same,
                     out[:600]))
+    v, out, same = _digest_run(_RECORD_HEAD + "VERDICT: PASS\nDIGEST:\n  headline: h\n```\n")
+    results.append(("(1928.b) a final mapping missing a required key names it",
+                    len(v) == 1 and "['artifact']" in v[0] and same, out[:600]))
+    v, out, same = _digest_run(
+        _RECORD_HEAD + "VERDICT: FAIL\nDIGEST: {}\nartifact: a.md\n```\n\ncorrection:\n\n"
+        "```yaml\nVERDICT: PASS\nDIGEST:\n  headline: h\n  retired_key: kept\n"
+        "artifact: a.md\nhistorical_extra: [1, 2]\n```\n")
+    results.append(("(1928.c) a historical final mapping with out-of-schema keys is accepted",
+                    v == [] and same, out[:600]))
     return results
 
 # ----------------------------------------------------------------------------- INV-43 ---
@@ -1154,9 +1162,9 @@ def case_feat63_inv23_import_boundary():
 
 # ----------------------------------------------------------------------------- INV-47 ---
 
-_QA_BLOCKED = "# qa c2\n\nVERDICT: BLOCKED\nDIGEST:\n  headline: runner exit 1 unreconciled\n"
-_QA_PASS = "# qa c2\n\nVERDICT: PASS\nDIGEST:\n  headline: green\n"
-_UI_NA = "# ui c2\n\nVERDICT: n/a\nDIGEST:\n  headline: no UI surface\n"
+_QA_BLOCKED = "# qa c2\n\n```yaml\nVERDICT: BLOCKED\nDIGEST:\n  headline: runner exit 1 unreconciled\n```\n"
+_QA_PASS = "# qa c2\n\n```yaml\nVERDICT: PASS\nDIGEST:\n  headline: green\n```\n"
+_UI_NA = "# ui c2\n\n```yaml\nVERDICT: n/a\nDIGEST:\n  headline: no UI surface\n```\n"
 
 
 def _validate_runs(*verdicts):
@@ -1214,7 +1222,7 @@ def main():
     return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
                         + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
-                        + case_feat61_validate_digest()
+                        + case_feat1928_durable_digest_record()
                         + case_inv41() + case_inv49() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv43_era_config() + case_inv44()

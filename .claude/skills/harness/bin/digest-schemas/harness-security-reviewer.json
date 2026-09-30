@@ -23,20 +23,23 @@
         "expertise_update",
         "severity_max",
         "findings",
-        "must_fix"
+        "must_fix",
+        "in_scope",
+        "scope_reason",
+        "threat_model"
       ],
       "properties": {
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "severity_max": {
           "$ref": "common.json#/$defs/severity_nullable"
@@ -45,16 +48,16 @@
           "$ref": "common.json#/$defs/findings"
         },
         "must_fix": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/must_fix"
         },
         "in_scope": {
-          "$ref": "common.json#/$defs/boolean"
+          "$ref": "common.json#/$defs/boolean_nullable"
         },
         "scope_reason": {
           "$ref": "common.json#/$defs/text"
         },
         "threat_model": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/threat_model"
         }
       }
     },

@@ -69,22 +69,31 @@ needs no approval. The prototype is the gate; mockups are how you get there.
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line>
-  contract: written|updated|n/a    # ONLY these three — the validator rejects anything else.
-                                   # n/a = this feature needs no DESIGN.md (DEC-173)
-  needs_prototype: <bool>
-  why: "<one line — the user reads this>"
-  mockups: [<paths>]
-  prototype: <path|none>
-  direction_choices: [<the alternatives you considered and rejected>]
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/DESIGN.md>
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`.claude/skills/harness/bin/digest-schemas/harness-visual-designer.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "DESIGN.md written; the export flow needs a clickable prototype",
+    "contract": "written",
+    "needs_prototype": true,
+    "why": "the two-step export is new interaction the user has not seen",
+    "mockups": ["<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/mockups/export.html"],
+    "prototype": "none",
+    "direction_choices": ["single-step modal: rejected, hides the scope choice"],
+    "open_questions": [],
+    "files_touched": ["<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/DESIGN.md"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/DESIGN.md"
+}})
 ```
-````
+
+- `contract`: `written|updated|n/a` — ONLY these three; the validator rejects anything else.
+  `n/a` = this feature needs no DESIGN.md (DEC-173).
+- `needs_prototype`: boolean. `why`: one line — the user reads this. `prototype`: path or `none`.
+- `direction_choices`: the alternatives you considered and rejected.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

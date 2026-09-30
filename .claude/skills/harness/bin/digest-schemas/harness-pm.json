@@ -36,13 +36,13 @@
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "feasibility": {
           "enum": [
@@ -75,10 +75,10 @@
           "$ref": "common.json#/$defs/boolean"
         },
         "flags": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "sc_status": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/sc_status"
         }
       }
     },

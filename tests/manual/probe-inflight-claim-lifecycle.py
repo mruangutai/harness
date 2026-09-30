@@ -20,7 +20,8 @@ the session, result-row and agent ids it observes; it never predicts names.
   S5  Every governed child settled, and the feature registry is empty at the end.
 
 A skipped or unobserved scenario is a FAIL, never a pass. Cleanup releases only the sentinel
-claim this probe seeded and deletes only the wake marker it asked for.
+claim this probe seeded and deletes only the wake marker and the nested lead's run digest it
+asked for. Every child yields its digest as an object (FEAT-1928).
 
 `--dry-run` checks the prerequisites and prints the planned command, cwd and scenarios. It
 starts nothing and is never a receipt. Live mode appends its receipt to
@@ -49,6 +50,10 @@ BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 NOTES = ROOT / ".harness" / "harness" / "features" / FEATURE / "notes"
 RECEIPT = NOTES / "live-omp-probe.md"
 WAKE_MARKER = NOTES / "probe-wake-marker.txt"
+# FEAT-1928 SC-07: a lead's artifact is its run digest.md, which the lead writes (the human
+# part) and the validator appends the yielded object to. The probe's nested lead writes this
+# one and cleanup deletes it, like the wake marker.
+LEAD_RUN_DIGEST = ROOT / ".harness" / "harness" / "features" / FEATURE / "runs" / "probe" / "digest.md"
 SUITE = ("python3", "tests/integration/test-validate-digest.py")
 DEFAULT_MODEL = "anthropic/claude-sonnet-5"
 SENTINEL_FEATURE = "BUG-1898-probe-sentinel"
@@ -65,35 +70,31 @@ SCENARIOS = (
      "one real suite run leaves a separately seeded unrelated live claim intact"),
     ("S5-settled-empty", "every governed child settled and the feature registry is empty"),
 )
-DIGEST = """VERDICT: PASS
-DIGEST:
-  headline: BUG-1898 live probe child settled
-  feature: {feature}
-  status: in_progress
-  runs: []
-  cycles_used: 0
-  briefing: none
-  files_touched: []
-  open_questions: []
-  expertise_update: []
-artifact: .harness/harness/features/{feature}/feature.json""".format(feature=FEATURE)
+# FEAT-1928: each child yields its digest as an OBJECT — `yield({data: <this mapping>})`.
+DIGEST = {
+    "VERDICT": "PASS",
+    "DIGEST": {
+        "headline": "BUG-1898 live probe child settled",
+        "feature": FEATURE, "status": "in_progress", "runs": [], "cycles_used": 0,
+        "briefing": "none", "judgement": "none", "files_touched": [], "open_questions": [],
+        "expertise_update": [],
+    },
+    "artifact": f".harness/harness/features/{FEATURE}/feature.json",
+}
 # A nested child must be a lead: an orchestrator may dispatch only the three leads, so a
 # nested scout is refused at spawn preflight and no lineage id ever appears.
-LEAD_DIGEST = """VERDICT: PASS
-DIGEST:
-  headline: BUG-1898 live probe nested lead settled
-  team: probe
-  steps_run: 0
-  cycles_used: 0
-  members: []
-  must_fix: []
-  branch: none
-  escalations: []
-  adequacy_notes: []
-  open_questions: []
-  files_touched: []
-  expertise_update: []
-artifact: .harness/harness/features/{feature}/feature.json""".format(feature=FEATURE)
+LEAD_DIGEST = {
+    "VERDICT": "PASS",
+    "DIGEST": {
+        "headline": "BUG-1898 live probe nested lead settled",
+        "team": "probe", "steps_run": 0, "cycles_used": 0, "members": [], "must_fix": [],
+        "branch": "none", "escalations": [], "adequacy_notes": [], "open_questions": [],
+        "files_touched": [], "expertise_update": [], "sc_status": [], "needs_approval": "none",
+        "severity_max": "none", "matrix_ok": "none", "coverage_gaps": [], "findings": [],
+        "readers": [], "amendments": [],
+    },
+    "artifact": f".harness/harness/features/{FEATURE}/runs/probe/digest.md",
+}
 CHILD_PREAMBLE = (
     "HARNESS-FEATURE: {feature}\nHARNESS-FEATURE-TREE-ROOT: {root}\n"
     "This is a scripted Harness live probe (BUG-1898), not feature work. Read nothing, change "
@@ -331,8 +332,9 @@ class Session:
 # Scenarios
 # ---------------------------------------------------------------------------------------
 
-def child_task(steps: str, digest: str = DIGEST) -> str:
-    return f"{CHILD_PREAMBLE}\n{steps}\nThen yield exactly this digest as your result:\n{digest}"
+def child_task(steps: str, digest: dict = DIGEST) -> str:
+    return (f"{CHILD_PREAMBLE}\n{steps}\nThen yield exactly this object as your result's data, "
+            f"yield({{data: <object>}}), with no other text:\n{json.dumps(digest)}")
 
 
 def governed_rows(agent_ids) -> list[dict]:
@@ -392,7 +394,8 @@ def s2_wake_reclaim(s: Session, orch: str | None, timeout: float) -> None:
 
 def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
     mark = len(s.lifecycle)
-    lead = child_task("There are no steps.", LEAD_DIGEST)
+    lead = child_task(f"Use the write tool to create {LEAD_RUN_DIGEST} containing exactly: "
+                      "# probe lead assessment", LEAD_DIGEST)
     nested = child_task("Use the task tool exactly once (blocking): agent harness-eng-lead, "
                         f"name Probe, task:\n{lead}")
     plain = child_task("There are no steps.")
@@ -503,6 +506,8 @@ def s5_settled_empty(orch: str | None, governed: list[str], sentinel: dict) -> N
                               claim_id=sentinel["claim_id"])
     if WAKE_MARKER.exists():
         WAKE_MARKER.unlink()
+    if LEAD_RUN_DIGEST.exists():
+        LEAD_RUN_DIGEST.unlink()
     check("S5: every governed child observed", orch is not None and len(governed) == 2,
           [orch, *governed])
     check("S5: the feature registry is empty at probe end", registry_rows() == [],

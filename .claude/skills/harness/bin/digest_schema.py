@@ -116,6 +116,11 @@ class SchemaStore:
         self._load_all()
         return self._documents[canonical_persona(persona)]
 
+    def common_defs(self):
+        """The shared `$defs` of common.json, from the same strict load as the personas."""
+        self._load_all()
+        return self._documents[COMMON].get("$defs") or {}
+
     def validator(self, persona):
         persona = canonical_persona(persona)
         if persona not in self._validators:
@@ -141,6 +146,11 @@ _STORE = SchemaStore()
 def load_schema(persona):
     """The live schema document for `persona`, loaded strictly once per process."""
     return _STORE.schema(persona)
+
+
+def common_defs():
+    """common.json's `$defs`, for callers that word errors from the schema's shared parts."""
+    return _STORE.common_defs()
 
 
 def validate_object(persona, mapping):

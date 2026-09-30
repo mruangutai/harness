@@ -48,34 +48,40 @@ Run `ai-dev`'s evals for `ai_behavior` changes. Report the **measured rate** aga
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line>
-  suite: pass|fail|n/a        # n/a ONLY if the suite could not be run at all.
-                              # `suite: fail` with VERDICT: PASS is rejected — a gate that
-                              # FAILED cannot have passed, and reporting the failure honestly
-                              # while claiming PASS is the same fail-open as declining it
-  failures: <n>
-  matrix_ok: <bool>|n/a       # a BOOL. "mostly" is a contract violation.
-                              # n/a ONLY if the matrix could not be evaluated;
-                              # n/a with VERDICT: PASS is rejected — DEC-173.
-                              # `matrix_ok: false` with VERDICT: PASS is rejected too, and the
-                              # BOOLEAN spelling is why: a gate keyed on the string "fail"
-                              # would silently never fire on this field (DEC-175)
-  kinds: [{ kind: unit, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd: "...", named_tests: <n> }]
-  coverage_gaps: [<area>]     # include Phase 1 expectations with no test
-  sc_evidence: [{ id: SC-01, test: "<path:line>" }]
-  fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]
-                              # per `verify: automated` SC: the evidence the test FAILED before
-                              # the fix. PASS + matrix_ok: true + [] is rejected — a green suite
-                              # with no fail-first evidence is not a pass (FEAT-59 SC-17).
-                              # [] only with matrix_ok: n/a or a non-PASS verdict
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <path>
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`.claude/skills/harness/bin/digest-schemas/harness-qa.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "every automated SC has a failing-before, passing-after test",
+    "suite": "pass",
+    "failures": 0,
+    "matrix_ok": true,
+    "kinds": [{"kind": "unit", "state": "satisfied", "cmd": "python3 -m pytest tests/unit", "named_tests": 6}],
+    "coverage_gaps": [],
+    "sc_evidence": [{"id": "SC-01", "test": "tests/unit/test_export.py:40"}],
+    "fail_first": [{"sc": "SC-01", "evidence": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/qa-<runid>.md"}],
+    "open_questions": [],
+    "files_touched": ["tests/unit/test_export.py"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/qa-<runid>.md"
+}})
 ```
-````
+
+- `suite`: `pass|fail|n/a` — `n/a` ONLY if the suite could not be run at all. `suite: fail` with
+  `VERDICT: PASS` is rejected — a gate that FAILED cannot have passed, and reporting the failure
+  honestly while claiming PASS is the same fail-open as declining it.
+- `matrix_ok`: a BOOLEAN, or `n/a`. "mostly" is a contract violation. `n/a` ONLY if the matrix
+  could not be evaluated; `n/a` with `VERDICT: PASS` is rejected — DEC-173. `false` with
+  `VERDICT: PASS` is rejected too, and the boolean spelling is why: a gate keyed on the string
+  "fail" would silently never fire on this field (DEC-175).
+- `kinds`: `{kind, state: satisfied|missing|not_applicable|locally_run|misconfigured, cmd, named_tests}`.
+- `coverage_gaps`: include Phase 1 expectations with no test. `sc_evidence`: `{id, test: "<path:line>"}`.
+- `fail_first`: `{sc, evidence}` per `verify: automated` SC — the evidence the test FAILED before
+  the fix. PASS + `matrix_ok: true` + `[]` is rejected — a green suite with no fail-first evidence
+  is not a pass (FEAT-59 SC-17). `[]` only with `matrix_ok: n/a` or a non-PASS verdict.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

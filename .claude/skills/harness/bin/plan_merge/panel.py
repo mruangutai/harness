@@ -1,9 +1,9 @@
 """`panel:` / `lanes:` validation and splice, `record-panel`, and `set-key` / `set-panel` / `set-lanes`. (FEAT-70)"""
 import os
-import re
 import sys
 import yaml
 
+import digest_record
 import harness_merge
 import harness_yaml
 import panel_findings
@@ -402,43 +402,23 @@ def cmd_set_lanes(args):
     sys.exit(0)
 
 
-FENCED_BLOCK_RE = re.compile(r"^[ \t]*```[^\n]*\n(.*?)^[ \t]*```", re.M | re.S)
-
-
-def _fenced_blocks(text):
-    """The bodies of every ``` fenced block in `text`, in order; an unclosed fence is dropped."""
-    return [m.group(1) for m in FENCED_BLOCK_RE.finditer(text)]
-
-
-def _digest_mapping(block, path):
-    """The DIGEST mapping in one candidate block, or None when it is not a lead return."""
-    try:
-        doc = harness_yaml.load_str(block, path)
-    except harness_yaml.YamlParseError:
-        return None
-    digest = doc.get("DIGEST") if isinstance(doc, dict) else None
-    return digest if isinstance(digest, dict) else None
-
-
 def _lead_digest(path):
     """The DIGEST mapping of a validator-lead return on disk, or a refusal.
 
-    The return contract (harness-handoff, DEC-172) is one fenced yaml block — VERDICT, DIGEST,
-    artifact — with prose allowed around it. The LAST fenced block carrying a DIGEST mapping
-    wins, the rule validate-digest.py applies to echoed templates; a file with no fence is read
-    whole as a last resort so a bare return still records."""
+    The durable record (harness-handoff, DEC-172) is prose followed by fenced yaml blocks;
+    digest_record reads the LAST fenced block that loads to a mapping (a later block is a
+    correction, DEC-208). No bare-text fallback and no live persona-schema validation: its
+    DIGEST must be a mapping, and the consumers below check the keys they use."""
     try:
-        with open(path, encoding="utf-8") as fh:
-            text = fh.read()
-    except OSError as exc:
-        raise harness_merge.MergeRefusal(5, [f"plan-merge: cannot read digest {path}: {exc}"])
-    for block in reversed(_fenced_blocks(text) or [text]):
-        digest = _digest_mapping(block, path)
-        if digest is not None:
-            return digest
-    raise harness_merge.MergeRefusal(
-        5, [f"plan-merge: {path} carries no fenced yaml block with a DIGEST: mapping — the "
-            "validator lead's return is what record-panel transcribes, and nothing else."])
+        record = digest_record.load_record(path)
+    except digest_record.DigestRecordError as exc:
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {exc}"])
+    digest = record.get("DIGEST")
+    if not isinstance(digest, dict):
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {path}'s last fenced yaml block has no DIGEST: mapping — the "
+                "validator lead's return is what record-panel transcribes, and nothing else."])
+    return digest
 
 
 def _digest_finding(finding, where):

@@ -78,24 +78,36 @@ cannot manufacture evidence — do not soften a `not_met`.
 
 ## Output
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line>
-  feasibility: clear|risky|blocked
-  surface: S|M|L|n/a          # n/a ONLY if blocked before sizing was possible
-  flags: [security, migration, external-api, ...]
-  recommend: proceed|spike|reframe|halt
-  tasks: <n>
-  decisions: <n>
-  needs_approval: <bool>
-  risk: low|med|high|n/a      # n/a ONLY if blocked before assessment was possible
-  sc_status: [{ id: SC-01, verdict: met, method: automated, evidence: "<pointer>" }]
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <path>
+Return an object through YieldTool — never fenced YAML text. The field list is the schema,
+`.claude/skills/harness/bin/digest-schemas/harness-pm.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "plan for rate-limited export is ready for signature",
+    "feasibility": "clear",
+    "surface": "M",
+    "flags": ["external-api"],
+    "recommend": "proceed",
+    "tasks": 4,
+    "decisions": 2,
+    "needs_approval": true,
+    "risk": "med",
+    "sc_status": [{"id": "SC-01", "verdict": "met", "method": "automated", "evidence": "tests/unit/test_export.py:40"}],
+    "open_questions": [],
+    "files_touched": ["<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/plan.yaml"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md"
+}})
 ```
-````
+
+- `feasibility`: `clear|risky|blocked`. `recommend`: `proceed|spike|reframe|halt`.
+- `surface`: `S|M|L|n/a` — `n/a` ONLY if blocked before sizing was possible.
+- `risk`: `low|med|high|n/a` — `n/a` ONLY if blocked before assessment was possible.
+- `flags`: e.g. `security`, `migration`, `external-api`. `tasks`, `decisions`: integers.
+  `needs_approval`: boolean.
+- `sc_status`: `{id, verdict, method, evidence}` per SC.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
+  none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).

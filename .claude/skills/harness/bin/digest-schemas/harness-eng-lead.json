@@ -28,20 +28,28 @@
         "must_fix",
         "branch",
         "escalations",
-        "adequacy_notes"
+        "adequacy_notes",
+        "sc_status",
+        "needs_approval",
+        "severity_max",
+        "matrix_ok",
+        "coverage_gaps",
+        "findings",
+        "readers",
+        "amendments"
       ],
       "properties": {
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "team": {
           "$ref": "common.json#/$defs/text"
@@ -56,22 +64,22 @@
           "$ref": "common.json#/$defs/members"
         },
         "must_fix": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/must_fix"
         },
         "branch": {
           "$ref": "common.json#/$defs/text"
         },
         "escalations": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/escalations"
         },
         "adequacy_notes": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "sc_status": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/sc_status"
         },
         "needs_approval": {
-          "$ref": "common.json#/$defs/boolean"
+          "$ref": "common.json#/$defs/boolean_nullable"
         },
         "severity_max": {
           "$ref": "common.json#/$defs/severity_nullable"
@@ -80,13 +88,13 @@
           "$ref": "common.json#/$defs/boolean_nullable"
         },
         "coverage_gaps": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/coverage_gaps"
         },
         "findings": {
           "$ref": "common.json#/$defs/findings"
         },
         "readers": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/readers"
         },
         "amendments": {
           "$ref": "common.json#/$defs/amendments"

@@ -71,6 +71,13 @@
       "ended_at": "2026-09-29T20:07:49+00:00",
       "cycles_used": 0,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "PENDING",
+      "started_at": "2026-09-29T20:59:28+00:00"
     }
   ],
   "judgements": [

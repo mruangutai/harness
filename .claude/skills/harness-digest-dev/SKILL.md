@@ -17,44 +17,62 @@ The **main session** returns this same contract when it builds a feature directl
 (`feature-record.py run-start --agent main-session`): it wrote the diff, so it owns the same
 `task` / `task_verify` / `suite` receipt, and `close-run` validates its digest as `dev` (#1895).
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line — what now works, not what you did>
-  tests_added: <n>
-  suite: pass|fail|n/a
-  task: T-NN|none
-  task_verify: pass|fail|n/a   # omit when task: none
-  blocked_on: <text|none>
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<work paths>]   # exclude the required `artifact:` receipt
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <path>
+Return an object through YieldTool — never fenced YAML text. The field list is the schema for
+your persona, e.g. `.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json` (frontend,
+ai and data-engineer have their own `harness-<persona>.json` with the same fields); one complete
+example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "export endpoint streams CSV and enforces the tenant filter",
+    "tests_added": 3,
+    "suite": "pass",
+    "task": "T-03",
+    "task_verify": "pass",
+    "blocked_on": "none",
+    "open_questions": [],
+    "files_touched": ["src/export.py", "tests/unit/test_export.py"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-backend-dev-<runid>.md"
+}})
 ```
-````
+
+- `headline`: what now works, not what you did. `task`: `T-NN|none`; `task_verify`:
+  `pass|fail|n/a`, always present — `none` when `task: none`. `blocked_on`: text or `none`.
+- `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: work paths; exclude
+  the required `artifact` receipt. `expertise_update`: `[]` except under a distillation dispatch
+  (harness-expertise).
 
 ## dev-ops
 
-````
-```yaml
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line>
-  change_type: config|scaffolding|infra|ci
-  applied: [<paths>]
-  suite: pass|fail|n/a
-  task: T-NN|none
-  task_verify: pass|fail|n/a   # omit when task: none
-  test_kinds_written: [<kind: cmd>]   # when you ran detection
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <path>
+Schema: `.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`; one complete example:
+
+```js
+yield({data: {
+  "VERDICT": "PASS",
+  "DIGEST": {
+    "headline": "CI runs the unit suite on every pull request",
+    "change_type": "ci",
+    "applied": [".github/workflows/ci.yml"],
+    "suite": "pass",
+    "task": "T-05",
+    "task_verify": "pass",
+    "test_kinds_written": ["unit: python3 -m pytest tests/unit"],
+    "open_questions": [],
+    "files_touched": [".github/workflows/ci.yml"],
+    "expertise_update": []
+  },
+  "artifact": "<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-harness-dev-ops-<runid>.md"
+}})
 ```
-````
+
+- `change_type`: `config|scaffolding|infra|ci`. `task_verify`: always present — `none` when
+  `task: none`. `test_kinds_written`: `<kind: cmd>` entries when you ran detection, else `[]`.
+- `open_questions`: `[]` if none. `files_touched`: `[]` if you changed none. `expertise_update`:
+  `[]` except under a distillation dispatch (harness-expertise).
 
 ## Field rules — both schemas
 
@@ -62,7 +80,7 @@ artifact: <path>
   scalar. The `SubagentStop` hook rejects a return missing any of them.
 - **`task`** is your task's id, verbatim from your dispatch. `none` ONLY when the dispatch carries
   no PLAN task at all — a distillation, an investigation, an architecture review (DEC-175). Then
-  omit `task_verify`: there was no command.
+  `task_verify` is `none`: there was no command.
 - **`task_verify`** is the check the plan declared for your task, never your test suite. `fail` or
   `n/a` alongside `VERDICT: PASS` is rejected for every persona, dev-ops included; `n/a` means you
   refused the task or were blocked.
@@ -88,22 +106,23 @@ The zero-placeholder gate (`harness-tdd-enforcement`) refuses a task before exec
 return, complete on purpose — a refusal digest missing any field is rejected and retried, and the
 retry is where unvalidated work ships (DEC-173/175):
 
-````
-```yaml
-VERDICT: BLOCKED
-DIGEST:
-  headline: task T-12 is under-specified and cannot be executed as written
-  tests_added: 0
-  suite: n/a
-  task: T-12
-  task_verify: n/a
-  blocked_on: "T-12 contains a placeholder at <location>; needs pm revision"
-  open_questions: []
-  files_touched: []
-  expertise_update: []
-artifact: none
+```js
+yield({data: {
+  "VERDICT": "BLOCKED",
+  "DIGEST": {
+    "headline": "task T-12 is under-specified and cannot be executed as written",
+    "tests_added": 0,
+    "suite": "n/a",
+    "task": "T-12",
+    "task_verify": "n/a",
+    "blocked_on": "T-12 contains a placeholder at <location>; needs pm revision",
+    "open_questions": [],
+    "files_touched": [],
+    "expertise_update": []
+  },
+  "artifact": "none"
+}})
 ```
-````
 
 dev-ops returns the same refusal in its own schema.
 

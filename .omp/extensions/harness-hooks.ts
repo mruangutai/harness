@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DigestSchemaBundleError, loadDigestSchemaBundle } from "./digest-schema.ts";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
 const FEATURE_MARKER = /^HARNESS-FEATURE: ((?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+)$/gm;
@@ -91,94 +92,6 @@ function text(value: unknown): string {
   if (typeof value === "string") return value;
   if (value === undefined) return "";
   return JSON.stringify(value);
-}
-
-function yamlScalar(value: unknown): string {
-  if (value === null) return "null";
-  if (typeof value === "boolean" || typeof value === "number") return String(value);
-  const valueText = text(value);
-  return /^[A-Za-z0-9_.\/ -]+$/.test(valueText) && !/^(true|false|null)$/i.test(valueText)
-    ? valueText
-    : JSON.stringify(valueText);
-}
-
-function yamlLines(value: Dict, indent = 0): string[] {
-  const pad = " ".repeat(indent);
-  const lines: string[] = [];
-  for (const [key, item] of Object.entries(value)) {
-    if (Array.isArray(item)) {
-      if (item.length === 0) {
-        lines.push(`${pad}${key}: []`);
-      } else if (item.every((entry) => entry === null || typeof entry !== "object")) {
-        lines.push(`${pad}${key}: [${item.map(yamlScalar).join(", ")}]`);
-      } else {
-        lines.push(`${pad}${key}:`);
-        for (const entry of item) {
-          if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-            lines.push(`${pad}  - ${yamlScalar(entry)}`);
-            continue;
-          }
-          const nested = yamlLines(entry as Dict, indent + 4);
-          if (nested.length === 0) {
-            lines.push(`${pad}  - {}`);
-          } else {
-            lines.push(`${pad}  - ${nested[0].trimStart()}`);
-            lines.push(...nested.slice(1));
-          }
-        }
-      }
-    } else if (item && typeof item === "object") {
-      lines.push(`${pad}${key}:`);
-      lines.push(...yamlLines(item as Dict, indent + 2));
-    } else {
-      lines.push(`${pad}${key}: ${yamlScalar(item)}`);
-    }
-  }
-  return lines;
-}
-
-export function yieldContractText(result: unknown, fallback = ""): string {
-  if (typeof result === "string") return result || fallback;
-  if (!result || typeof result !== "object" || Array.isArray(result)) return text(result) || fallback;
-  const wrapper = result as Dict;
-  if (Object.keys(wrapper).length === 0) return fallback;
-  const data = wrapper.data;
-  if (typeof data === "string") return data || fallback;
-  if (data && typeof data === "object" && !Array.isArray(data)) {
-    const content = (data as Dict).content;
-    if (typeof content === "string") return content || fallback;
-    const rendered = yamlLines(data as Dict).join("\n");
-    return rendered ? `${rendered}\n` : fallback;
-  }
-  if (typeof wrapper.content === "string") return wrapper.content || fallback;
-  return text(result) || fallback;
-}
-
-// A yield envelope that names `data` or `error` but carries nothing under it (#1676). The
-// host finalizer reads such a yield as "null data" and settles the job exit 1 — while the
-// complete digest sits in the assistant text the model wrote just before yielding. The
-// repair below used to key on the KEY being present (`"data" in envelope`), so `data: null`,
-// `data: ""`, `data: {}` and `data: []` all passed through unrepaired: a well-formed return,
-// verified on disk, recorded as a failed run. Measured five times across BUG-285 and BUG-380.
-export function hollowYieldValue(value: unknown): boolean {
-  if (value === null || value === undefined) return true;
-  if (typeof value === "string") return !value.trim();
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === "object") return Object.keys(value as Dict).length === 0;
-  return false;
-}
-
-export function normalizeYieldInput(input: Dict, fallback: string): Dict {
-  // Current OMP yields `{data|error}` directly; older hosts wrap that envelope in `result`.
-  // Preserve either explicit form. Only synthesize legacy `result` data for an empty yield.
-  if ("data" in input || "error" in input) return input;
-  const result = input.result;
-  if (result && typeof result === "object" && !Array.isArray(result)) {
-    const envelope = result as Dict;
-    if (!hollowYieldValue(envelope.data) || !hollowYieldValue(envelope.error)) return input;
-  }
-  if (!fallback.trim()) return input;
-  return { ...input, result: { data: { content: fallback } } };
 }
 
 // A gate's machine-readable answer is one JSON object on one stdout line; every other line
@@ -362,6 +275,46 @@ function taskModelOverride(input: Dict): string | undefined {
     : undefined;
 }
 
+// FEAT-1928: the digest contract a harness child yields against is the hook's to supply, and
+// only the hook's. Agent frontmatter cannot set schemaMode and OMP defaults to permissive, so a
+// dispatcher-supplied schema or mode would replace or loosen that contract. Refused wherever
+// it can appear, the main session included — the FEAT-65 collision came from the main session.
+const SCHEMA_CONTROLS = ["outputSchema", "schemaMode"];
+const DIGEST_SCHEMA_DIR = join(gateRoot(), BIN, "digest-schemas");
+
+function schemaControlRefusal(input: Dict): string | undefined {
+  const found = SCHEMA_CONTROLS.filter((key) => Object.hasOwn(input, key));
+  if (Array.isArray(input.tasks)) {
+    input.tasks.forEach((item, index) => {
+      if (!item || typeof item !== "object") return;
+      found.push(...SCHEMA_CONTROLS.filter((key) => Object.hasOwn(item, key))
+        .map((key) => `tasks[${index}].${key}`));
+    });
+  }
+  return found.length
+    ? `Harness dispatches never carry ${found.join(", ")}: the hook injects each harness `
+      + "persona's strict digest schema itself. Remove the field and dispatch again."
+    : undefined;
+}
+
+// The revised task input with every harness target carrying its persona's strict bundle, or
+// undefined when no target is a harness persona. Other targets and every other field — the
+// batch shape, context, names, tools — are passed through as given. A bundle that cannot load
+// throws DigestSchemaBundleError; there is no loose fallback.
+function withDigestSchemas(input: Dict): Dict | undefined {
+  const governed = (item: Dict): Dict => text(item.agent).startsWith("harness-")
+    ? { ...item, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, text(item.agent)), schemaMode: "strict" }
+    : item;
+  if (Array.isArray(input.tasks)) {
+    const given = input.tasks;
+    const tasks = given.map((item) =>
+      item && typeof item === "object" && !Array.isArray(item) ? governed(item as Dict) : item);
+    return tasks.some((item, index) => item !== given[index]) ? { ...input, tasks } : undefined;
+  }
+  const flat = governed(input);
+  return flat === input ? undefined : flat;
+}
+
 function parseClaimReceipt(stdout: string): ClaimReceipt | undefined {
   for (const parsed of jsonLines(stdout)) {
     const raw = parsed.harness_claim as Dict | undefined;
@@ -426,7 +379,11 @@ export function heldRunReason(refusal: RunAnswer): string {
     + "Every tool is refused for this run; yield a BLOCKED digest that names this cause.";
 }
 
-const BLOCKED_VERDICT = /^VERDICT:\s*BLOCKED\b/m;
+// FEAT-1928: the yield's `data` IS the digest. Anything but one object is refused here, before
+// the validator runs, with the shape the agent must return instead.
+const RETURN_THE_OBJECT = "Harness agents must return the digest as an object: "
+  + "yield({data: {VERDICT, DIGEST, artifact}}) — a string, null, list or missing `data` is "
+  + "not a digest.";
 const MISSING_CAPABILITY = "Harness requires OMP's runtime lineage capability; install the "
   + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
 
@@ -484,24 +441,6 @@ function messageText(message: unknown): string {
     if (part && typeof part === "object" && "text" in part) return text((part as Dict).text);
     return "";
   }).join("");
-}
-
-function lastAssistantText(messages: unknown): string {
-  if (!Array.isArray(messages)) return "";
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i] as Dict;
-    if (message?.role !== "assistant") continue;
-    const content = message.content;
-    if (typeof content === "string") return content;
-    if (Array.isArray(content)) {
-      return content.map((part) => {
-        if (typeof part === "string") return part;
-        if (part && typeof part === "object" && "text" in part) return text((part as Dict).text);
-        return "";
-      }).join("");
-    }
-  }
-  return "";
 }
 
 // --- FEAT-44 (issue #923): the OMP-native orchestrator context advisory ------
@@ -801,7 +740,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let currentMission: string | undefined;
   let dispatchCaptured = false;
   let claimsReconciled = false;
-  let lastAssistantMessage = "";
   let runtimeAgentId = "";
   let runtimeParentAgentId = "";
   // BUG-1898: a governed run is unready until it holds a claim bound to its runtime id, and
@@ -996,8 +934,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureDispatchFromMessage(candidate);
-    const found = lastAssistantText([candidate]);
-    if (found.trim()) lastAssistantMessage = found;
   });
 
   pi.on("message_end", async (event: Dict) => {
@@ -1005,8 +941,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? event.message
       : event;
     captureDispatchFromMessage(candidate);
-    const found = lastAssistantText([candidate]);
-    if (found.trim()) lastAssistantMessage = found;
   });
 
   pi.on("tool_call", async (event: Dict, ctx: any) => {
@@ -1092,7 +1026,19 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
     }
     if (!reason && toolName === "task") {
-      reason = ompMainTask ? undefined : taskModelOverride(input);
+      // FEAT-1928: schema controls are refused and every harness target's bundle is loaded
+      // BEFORE dispatch-guard.py runs, so a schema-refused dispatch never records a claim.
+      reason = schemaControlRefusal(input)
+        ?? (ompMainTask ? undefined : taskModelOverride(input));
+      if (!reason) {
+        try {
+          revisedInput = withDigestSchemas(input);
+        } catch (error) {
+          if (!(error instanceof DigestSchemaBundleError)) throw error;
+          reason = `Harness dispatch refused: ${error.message} A harness agent is never `
+            + "dispatched without its strict digest schema.";
+        }
+      }
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
@@ -1160,34 +1106,23 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
     }
     if (!reason && toolName === "yield") {
-      const normalized = normalizeYieldInput(input, lastAssistantMessage);
-      const payload = ("data" in normalized || "error" in normalized)
-        ? normalized : normalized.result;
-      const contract = yieldContractText(payload, lastAssistantMessage);
-      // The two outcomes #1676 asks to tell apart. No fallback and no payload: nothing
-      // was produced, and the block below says so. A payload repaired from the assistant
-      // text: a digest WAS produced and the envelope dropped it — repaired here, named
-      // under HARNESS_HOOK_DEBUG, so the host never sees the null-data yield at all.
-      if (normalized !== input) {
-        debug(`yield agent=${currentAgent} envelope carried no data; repaired from the last assistant message`);
-      }
-      if (!contract.trim()) {
-        reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; no digest was produced — neither the yield payload nor the last assistant message carries one.";
-      } else if (currentAgent && runGate.state !== "ready" && !BLOCKED_VERDICT.test(contract)) {
+      const digest = input.data;
+      if (!digest || typeof digest !== "object" || Array.isArray(digest)) {
+        reason = RETURN_THE_OBJECT;
+      } else if (currentAgent && runGate.state !== "ready" && (digest as Dict).VERDICT !== "BLOCKED") {
         reason = `${heldReason()} This run may yield only a BLOCKED digest.`;
       } else {
         const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
           ...basePayload(policyAgent, "SubagentStop", ctx.cwd, runtimeCtx),
           stop_hook_active: false,
-          last_assistant_message: contract,
+          digest_object: digest,
           harness_feature: currentFeature,
           harness_review_pin: currentReviewPin,
           harness_mission: currentMission,
         });
-        debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
+        debug(`yield agent=${currentAgent} value=${JSON.stringify(digest).slice(0, 500)}`);
         debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
         reason = result.blocked ? result.reason : undefined;
-        if (!reason && normalized !== input) revisedInput = normalized;
       }
     }
     if (reason) return { block: true, reason };
@@ -1350,22 +1285,10 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     settleRun(text(event.parentToolCallId) || undefined, agentId, sessionCwd);
   });
 
-  pi.on("agent_end", async (event: Dict, ctx: any) => {
+  pi.on("agent_end", async () => {
     if (!currentAgent) return;
     // The turn is over and its claim released on yield; a later wake must claim again.
     runGate = { state: "unready" };
-    const finalText = lastAssistantText(event.messages);
-    if (!finalText.trim()) return;
-    // Notification-only backstop. Normal task agents are validated on `yield`.
-    const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-      ...basePayload(currentAgent, "SubagentStop", ctx.cwd, ctx),
-      stop_hook_active: true,
-      last_assistant_message: finalText,
-      harness_feature: currentFeature,
-      harness_review_pin: currentReviewPin,
-      harness_mission: currentMission,
-    });
-    if (result.reason && result.blocked) ctx.ui?.notify?.(result.reason, "warning");
   });
 }
 

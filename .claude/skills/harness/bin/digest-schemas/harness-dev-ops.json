@@ -24,20 +24,22 @@
         "change_type",
         "applied",
         "suite",
-        "task"
+        "task",
+        "task_verify",
+        "test_kinds_written"
       ],
       "properties": {
         "headline": {
           "$ref": "common.json#/$defs/text"
         },
         "open_questions": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/open_questions"
         },
         "files_touched": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "expertise_update": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/expertise_update"
         },
         "change_type": {
           "enum": [
@@ -48,7 +50,7 @@
           ]
         },
         "applied": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         },
         "suite": {
           "$ref": "common.json#/$defs/pass_fail_nullable"
@@ -60,7 +62,7 @@
           "$ref": "common.json#/$defs/pass_fail_nullable"
         },
         "test_kinds_written": {
-          "$ref": "common.json#/$defs/list"
+          "$ref": "common.json#/$defs/string_list"
         }
       },
       "allOf": [
@@ -81,11 +83,6 @@
                 "$ref": "common.json#/$defs/unset"
               }
             }
-          },
-          "else": {
-            "required": [
-              "task_verify"
-            ]
           }
         }
       ]
