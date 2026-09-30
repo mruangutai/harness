@@ -88,11 +88,11 @@ suggestion to continue other work does not override this (DEC-201).
 `completed_at`. A repeated delivery after resume is an idempotent no-op, never a second dispatch or
 GitHub transition (DEC-204).
 
-**The digest contract is enforced for you** — `validate-digest.py --hook` on `SubagentStop`
-(DEC-122). Route *on* the fields, never re-adjudicate them: charitable normalization is how drift
-stays invisible (DEC-101). The hook fails open, so a return can be well-formed yet substantively
-wrong; on a missing or contradictory `VERDICT`, re-prompt **once**, then record
-`BLOCKED (contract violation)` — never infer.
+**The digest contract is enforced for you** — the OMP hook injects your persona's strict schema
+and `validate-digest.py --hook` checks every yielded object (DEC-237). Route *on* the fields, never
+re-adjudicate them: charitable normalization is how drift stays invisible (DEC-101). A return can
+be well-formed yet substantively wrong; on a missing or contradictory `VERDICT`, re-prompt
+**once**, then record `BLOCKED (contract violation)` — never infer.
 
 **f. Apply `on_fail`.** Only on `FAIL`; `BLOCKED` and `ESCALATE` always stop the branch and go up —
 the agent could not proceed, so retrying is wrong. `halt` stops the run; `continue` records the

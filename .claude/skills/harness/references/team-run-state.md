@@ -5,7 +5,7 @@ Read this when opening a run (`harness-team` §1–2), again whenever the team f
 step under `on_fail: loop_back` (§3f), and at close-out (§5). The skill carries the rules — seed
 before the first dispatch, checkpoint not notebook (DEC-154), cycles are send-backs counted in
 your `state.yaml`; this is the key contract and the procedures. Evidence and history: DEC-113,
-DEC-117, DEC-119, DEC-154, DEC-156, DEC-157, DEC-182, DEC-223.
+DEC-117, DEC-119, DEC-154, DEC-156, DEC-157, DEC-182, DEC-237.
 
 ## Resolve the team
 

@@ -405,7 +405,7 @@ def cmd_set_lanes(args):
 def _lead_digest(path):
     """The DIGEST mapping of a validator-lead return on disk, or a refusal.
 
-    The durable record (harness-handoff, DEC-172) is prose followed by fenced yaml blocks;
+    The durable record (DEC-237) is prose followed by fenced yaml blocks the validator appends;
     digest_record reads the LAST fenced block that loads to a mapping (a later block is a
     correction, DEC-208). No bare-text fallback and no live persona-schema validation: its
     DIGEST must be a mapping, and the consumers below check the keys they use."""
