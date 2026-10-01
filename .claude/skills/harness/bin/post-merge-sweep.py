@@ -340,8 +340,8 @@ def _sweep_prototype_node_modules(main_checkout_root):
     """#1995: a prototype under `.harness/**` never gets its own `npm install`; the ignore rule
     keeps a leaked one out of git, and this removes it so it does not stay on disk unseen
     (FEAT-53's 131 MB). Dry-run stays dry."""
-    harness_root = os.path.join(main_checkout_root, ".harness")
-    for dirpath, dirnames, _files in os.walk(harness_root):
+    harness_dir = os.path.join(main_checkout_root, ".harness")
+    for dirpath, dirnames, _files in os.walk(harness_dir):
         if "node_modules" not in dirnames:
             continue
         target = os.path.join(dirpath, "node_modules")
