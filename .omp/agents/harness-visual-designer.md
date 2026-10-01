@@ -65,7 +65,7 @@ When `needs_prototype: true`, build something **interactive and real enough to j
 - Lives in `notes/prototypes/<FEAT>/`, committed, so what the user approved is on the record.
 - Source only under `notes/prototypes/<FEAT>/` — `src/`, `package.json`, a config. Never run
   `npm install` there (#1995): serve it with a toolchain that already exists in the repository, e.g.
-  `npx --prefix <client-package> vite <prototype-dir>`, and say so in the artifact. `.harness/**/node_modules/`
+  `npx --prefix <client-package> vite <prototype-dir>`, and say so in the artifact. `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**/node_modules/`
   is ignored, and the post-merge sweep removes any that appears.
 
 **Mockups are different and ungated.** Throwaway HTML for exploring a direction costs nothing and

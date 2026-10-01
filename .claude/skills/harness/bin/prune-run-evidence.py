@@ -94,8 +94,8 @@ def _build_parser():
 def _load_record(args):
     """(feature_dir, record) or a refusal string."""
     root = args.root or harness_boundary.root_above(os.getcwd())
-    if root is None or not os.path.isdir(os.path.join(root, ".harness")):
-        return "not inside a harness checkout"
+    if root is None or not os.path.isfile(os.path.join(root, ".harness", "team-config.yaml")):
+        return "not inside a harness checkout (no .harness/team-config.yaml above cwd)"
     feature_dir = _feature_dir(root, args.feature)
     if feature_dir is None:
         return f"no feature {args.feature!r} under {root}"

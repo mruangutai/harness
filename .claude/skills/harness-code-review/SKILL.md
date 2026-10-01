@@ -179,7 +179,7 @@ python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.
 python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py remove --feature <FEAT> --run-id <run-id> --persona <persona>                    # on return, always
 ```
 
-It lives under `.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/` — yours alone, so returning never deletes a sibling reader's tree — refuses an abbreviated or unknown sha, and the
+It lives under `<HARNESS_CONTROL_PLANE_ROOT>/.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/` — yours alone, so returning never deletes a sibling reader's tree — refuses an abbreviated or unknown sha, and the
 control-plane post-merge sweep removes anything a dead run leaves behind after a day (a fleet repository has no hook: `remove` on return is the only cleanup there). Install and build inside it;
 copy evidence out to the feature's `runs/<run-id>/` before removing.
 
