@@ -170,6 +170,19 @@ git status --porcelain
 | Modified tracked files outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** A tree matching no commit has no pinnable verdict — return `BLOCKED` and ask for a `[harness:human]` commit or a stash |
 | Unattributed commits that look manual | A finding — attribution is what makes review scope derivable |
 
+**Need the tree at the pin, not the attached worktree? Use the disposable pin checkout (#1994).**
+Never a bare `git worktree add --detach` into a path nobody sweeps — sixteen of those, at ~800 MB
+each with `node_modules`, leaked from one feature. From the feature worktree:
+
+```sh
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py add --feature <FEAT> --run-id <run-id> --persona <persona> --sha "$review_sha"   # prints the path
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py remove --feature <FEAT> --run-id <run-id> --persona <persona>                    # on return, always
+```
+
+It lives under `<HARNESS_CONTROL_PLANE_ROOT>/.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/` — yours alone, so returning never deletes a sibling reader's tree — refuses an abbreviated or unknown sha, and the
+control-plane post-merge sweep removes anything a dead run leaves behind after a day (a fleet repository has no hook: `remove` on return is the only cleanup there). Install and build inside it;
+copy evidence out to the feature's `runs/<run-id>/` before removing.
+
 ## Before there is a SHA: plan-phase review
 
 No `review_sha` yet → the plan is the target (DEC-207): grade `BRIEF.md` and `plan.yaml` as the

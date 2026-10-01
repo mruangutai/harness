@@ -7931,3 +7931,37 @@ the 5500 budget with `harness-team` already cut to its resident core; the seat t
 least often per spawn is the one to pay per read. Budget after the wave is in
 `check-skill-weight.py`'s output on the landing commit; the optimization pass that preceded this
 (57.2k → 50.7k) is what made room.
+
+## DEC-238 — Run evidence has a reader or it has no home: ship keeps the passing validate runs, abandon keeps nothing, and a checkout at a pin is disposable
+
+A feature's `runs/<id>/` is evidence for one reader: the goal-check at ship, and a later reader
+who re-opens the shipped pin. Nothing else reads it, and it is the bulk of what a feature carries
+(FEAT-53's `runs/` was 380 WebPs, 49 MB, riding on its successor's branch for a week after the
+feature was abandoned; the branches around it held 64 trace ZIPs, 616 MB of `.git`). Retention
+is therefore a function of station, applied by the command that moves the station, never by hand:
+
+- **Abandon prunes.** `gh-sync.py abandon` removes `runs/` in the same act as recording the
+  station, after the station is written so a failed prune leaves closed issues with a station and
+  a finding rather than no station. `check-state` **INV-51** (`abandoned-evidence`): a feature
+  at station `abandoned` still holding `runs/` is a VIOLATION naming the run ids.
+- **Ship keeps the record and drops the rest.** `prune-run-evidence.py` keeps every validator-squad
+  validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — the validator-lead hosts the fix
+  team too, so after a failed validate a reader's last PASS lives in a fix run — and every run
+  whose `results.json` names the shipped `review_sha`; it deletes engineering, product,
+  reconciliation and distill run directories, and refuses a feature whose `review_sha` is unset,
+  empty or a `PLACEHOLDER_UNSET` value. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
+  committed at all (`runs/*/ui/traces/` is ignored); the gate reads them from disk.
+- **A checkout at a pin is disposable and keyed to one reader.** A validator that needs the tree
+  at `review_sha` takes it from `pinned-checkout.py add --feature --run-id --persona --sha`, under
+  `.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/`, and removes it on return. The key is all
+  three parts because one validate run dispatches five readers at once and run ids repeat across
+  features; a bare run id let the first reader home delete a sibling's live tree.
+  `worktree_terminal.classify` skips the pins root (a pin is not a feature worktree, so INV-29
+  never reports it) and the control-plane post-merge sweep removes pins older than a day. A
+  fleet repository has no hook: there, `remove` on return is the only cleanup.
+- **Prototypes never install.** A prototype under `.harness/**` is served with a toolchain the
+  repository already has; `.harness/**/node_modules/` is ignored and the post-merge sweep removes
+  any that appears.
+
+Refs: #1994 #1995 #1996 #1997; DEC-193 (worktree shape), DEC-203 (abandon's backlog rule),
+DEC-156 (validate runs are the review record).

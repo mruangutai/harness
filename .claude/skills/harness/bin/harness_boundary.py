@@ -34,6 +34,9 @@ from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 # this constant from there would hand the shape gate a dependency the fail-closed rule
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
+# A validator's disposable checkout at a pin (#1994) lives under <owner>/<WORKTREES_SEGMENT>/<PINS_SEGMENT>/.
+# It is not a feature worktree: worktree_terminal.classify skips it and pinned-checkout.py sweeps it.
+PINS_SEGMENT = ".pins"
 
 # THE RUN-ARTIFACT PATTERNS, shared between check-domain.py (content or route
 # guards on Write/Edit) and bash-write-guard.py (route-only refusal on Bash).
