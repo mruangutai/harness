@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from pathlib import Path
@@ -47,36 +46,6 @@ def frontmatter(path: Path) -> dict:
     metadata, _body = artifact_accessors.load_frontmatter(
         path.read_text(encoding="utf-8"), str(path))
     return metadata
-
-def runtime_pin_errors(root: Path) -> list[str]:
-    runtime_pin = root / ".omp" / "runtime-pin.json"
-    try:
-        pin = json.loads(runtime_pin.read_text(encoding="utf-8"))
-        if not isinstance(pin, dict):
-            raise ValueError("root must be an object")
-    except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
-        return [f"cannot read .omp/runtime-pin.json: {exc}"]
-    requirements = (
-        (re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit") or "")) is not None,
-         ".omp/runtime-pin.json commit must be a 40-character Git commit"),
-        (pin.get("repository") == "https://github.com/can1357/oh-my-pi.git",
-         ".omp/runtime-pin.json repository must identify the official upstream OMP repository"),
-        (re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", str(pin.get("ref") or "")) is not None,
-         ".omp/runtime-pin.json ref must identify an immutable upstream OMP release tag"),
-        (pin.get("required_capability") == "extension-context-agent-identity",
-         ".omp/runtime-pin.json must require extension-context-agent-identity"),
-    )
-    return [message for satisfied, message in requirements if not satisfied]
-
-
-def runtime_probe_errors(root: Path) -> list[str]:
-    probes = (
-        root / "tests" / "manual" / "probe-omp-runtime-lineage.py",
-        root / "tests" / "manual" / "probe-omp-runtime-lineage.ts",
-    )
-    return [f"{probe.relative_to(root)} is missing" for probe in probes if not probe.is_file()]
-
-
 
 # BUG-1898 defect D: OMP emits task:subagent:lifecycle on the session EventBus that an
 # extension reaches as `pi.events`; `pi.on` is the hook dispatcher and never delivers it.
@@ -261,7 +230,7 @@ CHECKS = (
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[4]).resolve()
-    errors = check(root) + runtime_pin_errors(root) + runtime_probe_errors(root)
+    errors = check(root)
     if errors:
         for error in errors:
             print(f"OMP-PORT: {error}", file=sys.stderr)

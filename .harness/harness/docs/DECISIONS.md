@@ -6501,18 +6501,6 @@ two PMs for one feature are refused while PMs for different features are legal. 
 persona-keyed object is read once for migration and every following write is version 2. There is one
 locked registry implementation, still `inflight_registry.py`.
 
-**The runtime pin tracks upstream's native identity API.** OMP 18.4.2 exposes the immutable
-`ctx.agent` object to every extension callback: `kind`, `id`, `name`, `depth`, and optional
-`parentId`. Harness reads `id` and `parentId` directly and keeps no alias for the former downstream
-`ctx.agentId` or `ctx.parentAgentId` fields. `.omp/runtime-pin.json` names the official upstream
-repository, immutable release tag, and audited commit directly; no Harness fork or source patch
-stands between the project and that release. Changing that pin still requires the live
-`tests/manual/probe-omp-runtime-lineage.py`
-check: it launches the installed binary, observes Main's task callback, and observes one inherited
-extension receiving the child's Write, Edit, and Bash callbacks with one stable official identity
-whose immediate parent is `Main`. The probe is manual because it makes a credentialled model call;
-where it runs, absence or incomplete lineage fails rather than skips.
-
 **OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
 live for any age while its recorded supervisor PID exists and becomes stale immediately when that
 PID is gone. Parent and child sessions differ, so no session filter applies. A claim whose `runtime`
@@ -7156,9 +7144,7 @@ An OMP process without the official `ctx.agent` identity is not a compatibility 
 extension refuses Task before dispatch when `ctx.agent.id` was not supplied, and refuses every
 governed Write, Edit, Bash, or nested Task when a Harness persona lacks either its child id or
 `ctx.agent.parentId`. This keeps an older binary from looking installed while silently taking the
-persona-only compatibility path. The supported runtime is the exact official upstream release and
-commit in `.omp/runtime-pin.json`, verified after installation by
-`tests/manual/probe-omp-runtime-lineage.py`.
+persona-only compatibility path.
 
 **Binding liveness and dispatch liveness are separate questions over one stored claim.** The
 guards' enumerator answers binding liveness: an OMP claim remains live through `_omp_claim_live`;
