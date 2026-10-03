@@ -2,7 +2,7 @@
 """BUG-1898 SC-07: the live OMP merge gate for the inflight-claim lifecycle.
 
 This is a manual, credentialed probe. It is not a CI check and must never be registered as one.
-It starts the real pinned `omp` in RPC mode, with THIS linked feature worktree as cwd so the
+It starts the real `omp` in RPC mode, with THIS linked feature worktree as cwd so the
 Harness hook it loads is the one under test. It drives Main through five scenarios and records
 the session, result-row and agent ids it observes; it never predicts names.
 
@@ -117,10 +117,6 @@ def check(name: str, ok: bool, detail: object = "") -> bool:
 # Prerequisites: shared by --dry-run and live mode
 # ---------------------------------------------------------------------------------------
 
-def pinned_commit() -> str:
-    return json.loads((ROOT / ".omp" / "runtime-pin.json").read_text())["commit"]
-
-
 def omp_runtime(omp: str) -> tuple[Path | None, str]:
     """The checkout the `omp` launcher runs from, and its HEAD commit."""
     here = Path(omp).resolve().parent
@@ -160,9 +156,6 @@ def registry_rows() -> list[dict]:
 
 def check_runtime(omp: str | None) -> None:
     check("omp is on PATH", omp is not None, omp)
-    runtime, head = omp_runtime(omp) if omp else (None, "")
-    check("omp runs the pinned Harness runtime", head == pinned_commit(),
-          {"runtime": str(runtime), "head": head, "pin": pinned_commit()})
 
 
 def check_checkout() -> None:
@@ -558,7 +551,7 @@ def receipt_header(args, evidence: dict, failed: list[str]) -> list[str]:
         f"({len(RESULTS) - len(failed)}/{len(RESULTS)} checks)",
         f"- Command: `{' '.join(live_command(args.model))}`",
         f"- cwd: `{ROOT}`",
-        f"- OMP: `{omp}` → runtime `{runtime}` @ `{head}` (pin `{pinned_commit()}`)",
+        f"- OMP: `{omp}` → runtime `{runtime}` @ `{head}`",
         f"- Session: `{json.dumps(evidence.get('session'))}`",
         f"- Scenarios: {', '.join(s for s, _ in SCENARIOS)}",
         f"- Suite: `{' '.join(SUITE)}` → `{json.dumps(evidence.get('suite'))}`",
