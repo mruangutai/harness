@@ -51,6 +51,6 @@ Governed OMP agents inherit the parent checkout as cwd. Relative file-tool calls
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: molchairuangutai
+date: 2026-10-04

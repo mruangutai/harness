@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-1016-worktree-relative-paths
 approval:
-  status: pending
+  date: '2026-10-04'
+  approved_by: molchairuangutai
+  status: approved
 status: plan
 source_issues: [1016, 1570]
 needs_approval: true

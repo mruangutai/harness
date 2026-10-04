@@ -49,5 +49,31 @@
       "reason": "grilling: cause known, but the fix adds a new enforcement-adapter behaviour (hook rewrites tool input across six tool shapes incl. edit hashline headers); new DEC expected; DEC-174 main-session-direct"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1016-worktree-relative-paths/notes/rework-ruling-2026-10-04.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "1aa77f6e73a124388b6e978622b07946c17f862deb4a4265ddd5c49ddef630be",
+    "T-02": "8c66d08720d7091fa1a34f96929748f267e5a29b874f46651e55aeb30d4b453a"
+  },
+  "github": {
+    "milestone": 96,
+    "parent": 2016,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2017,
+      "T-02": 2018
+    },
+    "source_issues": [
+      1016,
+      1570
+    ],
+    "build_entry": "opened"
+  }
 }
