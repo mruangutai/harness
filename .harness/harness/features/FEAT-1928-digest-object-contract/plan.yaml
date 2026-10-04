@@ -4,7 +4,7 @@ approval:
   date: '2026-10-04'
   approved_by: main-session
   status: approved
-status: building
+status: review
 mission: plan
 source_issues: [1928]
 baseline:
@@ -183,7 +183,7 @@ needs_approval: true
 tasks:
   - id: T-01
     title: Establish canonical persona schemas and adapters
-    status: review
+    status: done
     depends_on: []
     traces:
     - SC-03
@@ -227,7 +227,7 @@ tasks:
       The live-schema unit test must enumerate all 16 personas, prove representative valid objects pass, and prove missing, extra, wrong-type, and near-miss enum objects fail. The durable-reader unit test owns historical selection and byte preservation separately. Update canonical-reader-classification.json with canonical rows for every detected read in digest_schema.py and digest_record.py, set every new row's execution_route to main-session-direct, add both module paths to scanned_files, and run the canonical-reader self-test.
   - id: T-02
     title: Hard-cut runtime, readers, and returns to digest objects
-    status: review
+    status: done
     depends_on: [T-01]
     traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08]
     change_type: cross_module
@@ -289,7 +289,7 @@ tasks:
       Before deleting the host workaround, add and run probe-digest-object-contract.py in a fresh disposable OMP subprocess against the worktree hook with the configured real provider. The probe must dispatch a governed agent, observe the injected strict schema, force an explicit null yield that receives a retryable tool error, then observe a valid object complete that same job. Record sanitized command, installed OMP version, launcher path and sha256, release-tag source SHA explicitly labeled as metadata provenance for a bundled release rather than runtime binary identity (or checkout-runtime HEAD when the invoked runtime actually runs from that checkout), harness SHA, provider and model, task and job identifiers, transcript evidence, null rejection, retry continuity, valid object, exit status, and timestamp in live-digest-object-probe-current.md. For the installed bundled OMP 18.6.0 at /Users/molchairuangutai/.bun/bin/omp, record the launcher sha256 observed for that invocation and the operator-supplied v18.6.0 release-tag source SHA 89d2610993af69427574bde17791df63906ec4e5 as metadata provenance; never substitute an unrelated source checkout HEAD for runtime identity or require a checkout or npm gitHead for the bundled release. Record SC-03's canonical suite checkout path and its observed SHA at the time of the run, all four canonical suite commands, and their results in validator-parity.md; this source-identity evidence is separate from the live runtime receipt and does not impose a verify-time HEAD equality pin. The receipt verifier must reject dry-run or synthetic receipts. Add digest_object_contract_live to harness.json as locally_run with the probe detector and command. If the job settles on null, stop the task as blocked and amend the design; only after the credentialled live receipt passes may the same task remove yamlLines, yieldContractText, hollowYieldValue, normalizeYieldInput, parser helpers, template-echo shadow selection, and the issue 1676 empty-yield repair. Update complexity expectations and the existing inflight manual probe to use object yields, then run the targeted suites in verify with no compatibility alias or dead text path left.
   - id: T-03
     title: Consolidate doctrine and operator documentation
-    status: review
+    status: done
     depends_on: [T-02, T-04]
     traces:
     - SC-07
@@ -312,7 +312,7 @@ tasks:
       Update the current prescriptive sections of SPEC.md, BUILD.md, org.html, and .harness/README.md so live agent returns are typed objects, the hook injects and validates schemas, and only validate-digest.py owns the appended fenced YAML block. Remove parser, template-echo, last-message fallback, agent-authored fence, and issue 1676 repair instructions from current doctrine, while leaving clearly historical narratives historical. State that broader provider-neutral wording for hook policy and AGENTS.md is not part of this feature. Document the operator failure path for forbidden dispatch schema keys, invalid object returns, unsafe artifact writes, and a failed live host gate without implying that unit tests can satisfy the live gate. Run the decision generator test and exact index diff.
   - id: T-04
     title: Migrate plan digest readers after FEAT-70
-    status: review
+    status: done
     depends_on: [T-01]
     traces: [SC-07]
     change_type: cross_module
