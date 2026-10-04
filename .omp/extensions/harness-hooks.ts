@@ -262,6 +262,56 @@ function basePayload(agent: string, eventName: string, cwd: string, ctx?: any): 
   };
 }
 
+// BUG-2003: an internal URI is not a checkout file, so check-domain.py never judges one.
+// `agent://` (messaging) and exactly `xd://report_issue` (defect reports) pass. Every other
+// scheme is refused by name, unknown ones included: some (`conflict://`, `local://`) write real
+// files, and this adapter does not resolve URIs to paths. The main session never gets here.
+const URI_SCHEME = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//;
+
+type DomainTarget = { kind: "file" } | { kind: "allowed" } | { kind: "refused"; reason: string };
+
+function domainTarget(target: unknown): DomainTarget {
+  const scheme = typeof target === "string" ? URI_SCHEME.exec(target)?.[1] : undefined;
+  if (!scheme) return { kind: "file" };
+  if (scheme === "agent" || target === "xd://report_issue") return { kind: "allowed" };
+  const destination = scheme === "xd"
+    ? `xd device "${String(target).slice("xd://".length)}"`
+    : `${scheme}:// scheme`;
+  return {
+    kind: "refused",
+    reason: `Harness refuses ${target}: the ${destination} is not a destination a governed `
+      + "agent may write. Only agent:// and xd://report_issue are.",
+  };
+}
+
+// The write path and every edit path (section sources and MV destinations) pass through ONE
+// decision, pre and post, so edit cannot become the way around a refused scheme and an allowed
+// URI never exempts a sibling file in the same edit.
+function fileDomain(
+  cwd: string,
+  toolName: string,
+  input: Dict,
+  runner: PolicyRunner,
+  args: string[],
+  base: Dict,
+): PolicyResult[] {
+  const targets: Array<[unknown, Dict]> = toolName === "write"
+    ? [[input.path, { file_path: input.path, content: input.content }]]
+    : toolName === "edit"
+      ? extractEditPaths(input.input).map((filePath) => [filePath, { file_path: filePath }])
+      : [];
+  return targets.flatMap(([target, toolInput]): PolicyResult[] => {
+    const decision = domainTarget(target);
+    if (decision.kind === "allowed") return [];
+    if (decision.kind === "refused") return [{ blocked: true, reason: decision.reason, stdout: "" }];
+    return [runner(cwd, "check-domain.py", args, {
+      ...base,
+      tool_name: toolName === "write" ? "Write" : "Edit",
+      tool_input: toolInput,
+    })];
+  });
+}
+
 function preDomain(
   cwd: string,
   agent: string,
@@ -275,21 +325,7 @@ function preDomain(
     ...basePayload(agent, "PreToolUse", cwd, ctx),
     ...(feature ? { harness_feature: feature } : {}),
   };
-  if (toolName === "write") {
-    return [runner(cwd, "check-domain.py", [], {
-      ...base,
-      tool_name: "Write",
-      tool_input: { file_path: input.path, content: input.content },
-    })];
-  }
-  if (toolName === "edit") {
-    return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.py", [], {
-      ...base,
-      tool_name: "Edit",
-      tool_input: { file_path: filePath },
-    }));
-  }
-  return [];
+  return fileDomain(cwd, toolName, input, runner, [], base);
 }
 
 function postDomain(
@@ -301,28 +337,12 @@ function postDomain(
   ctx?: any,
 ): PolicyResult[] {
   const base = basePayload(agent, "PostToolUse", cwd, ctx);
-  if (toolName === "write") {
-    return [runner(cwd, "check-domain.py", ["--post"], {
-      ...base,
-      tool_name: "Write",
-      tool_input: { file_path: input.path, content: input.content },
-    })];
-  }
-  if (toolName === "edit") {
-    return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.py", ["--post"], {
-      ...base,
-      tool_name: "Edit",
-      tool_input: { file_path: filePath },
-    }));
-  }
-  if (toolName === "bash") {
-    return [runner(cwd, "check-domain.py", ["--post"], {
-      ...base,
-      tool_name: "Bash",
-      tool_input: { command: input.command },
-    })];
-  }
-  return [];
+  if (toolName !== "bash") return fileDomain(cwd, toolName, input, runner, ["--post"], base);
+  return [runner(cwd, "check-domain.py", ["--post"], {
+    ...base,
+    tool_name: "Bash",
+    tool_input: { command: input.command },
+  })];
 }
 
 function firstBlock(results: PolicyResult[]): string | undefined {

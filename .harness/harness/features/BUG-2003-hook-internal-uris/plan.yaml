@@ -25,7 +25,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 requires direct main-session changes to the active OMP enforcement adapter and its co-changed test, overriding the patch default team route; harness-backend-dev is the consult-when owner for server-side integration and boundary error handling, not permission to dispatch a team build.
     depends_on: []
-    status: ready
+    status: review
     files:
       - .omp/extensions/harness-hooks.ts#preDomain
       - .omp/extensions/harness-hooks.ts#postDomain
