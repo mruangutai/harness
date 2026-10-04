@@ -60,8 +60,9 @@ MARKER = os.path.join(".harness", "team-config.yaml")
 PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 
 
-# A product's control-plane segment in the harness base: `.harness/<segment>/...`.
-_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)/")
+# A product's control-plane segment in the harness base: `.harness/<segment>` itself, or
+# anything under it — removing the segment directory is a write to that product too.
+_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)(?:/|$)")
 
 
 class RepositoryBases(list):

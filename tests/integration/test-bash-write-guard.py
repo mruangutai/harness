@@ -1668,6 +1668,18 @@ def _repository_bash_happy_routes(results, inflight_registry, feature):
                 _repository_bash_fire(root, f"{carve_out}/{product}/change.md", feature,
                                       "BackendOne", "EngLeadOne"),
                 want, None if want == 0 else "mismatched")
+    # The segment directory itself belongs to its product: removing it through a cache
+    # alias of `.harness` needs that product's binding (R9).
+    os.symlink(os.path.join(root, ".harness"), os.path.join(root, "node_modules", "cp"))
+    for product in ("product-a", "product-b"):
+        os.makedirs(os.path.join(root, ".harness", product), exist_ok=True)
+    for product, want in (("product-a", 0), ("product-b", 2)):
+        _repository_bash_record(
+            results, f"removing the {product} control-plane segment directory exits {want}",
+            _bug1304_bash_fire(root, f"rm -rf node_modules/cp/{product}", "harness-backend-dev",
+                               agent_id="BackendOne", parent_agent_id="EngLeadOne",
+                               feature=feature),
+            want, None if want == 0 else "mismatched")
     _repository_bash_claim(
         inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
     sibling = _repository_bash_fire(
