@@ -2,7 +2,7 @@
   "feature_id": "BUG-1016-worktree-relative-paths",
   "branch": "feat/BUG-1016-worktree-relative-paths",
   "pr": null,
-  "review_sha": "55c99a856321ef9d059b144b6ee2ac2bf1f75096",
+  "review_sha": "ef9cbce243444628d4ca74931be94a576e493dd5",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
@@ -89,6 +89,13 @@
       "tokens": 76238,
       "ended_at": "2026-10-04T17:03:14+00:00",
       "cycles_used": 1
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-04T17:10:01+00:00"
     }
   ],
   "judgements": [
@@ -154,6 +161,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "R2 med substance probed: root misplaced only for all-quote inputs; DEC-174 main-session fix in harness-hooks.ts + regression; awaiting_user, recommend fix"
+    },
+    {
+      "at": "2026-10-04T17:10:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "revalidate-after-r2-fix",
+      "reason": "R2 closed by main-session-direct fix a6a1e9c8 (DEC-174): rootTarget roots a quoted target at leading-whitespace+1; regression test added, 124/0, red when adapter reverted; re-validate over seam pin ef9cbce2"
     }
   ],
   "mission": "plan",
