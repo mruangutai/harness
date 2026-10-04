@@ -1,0 +1,23 @@
+[
+  {
+    "op": "replace",
+    "target": "G-07",
+    "section": "Gotchas",
+    "entry": "WHEN close-run refuses only its judgement stage (reason over the length cap) DO issue the `judgement` verb alone with a shorter reason — the earlier stages have landed and run-end refuses a second close-run.",
+    "why": "displaces the status-Done-before-merge note, settled doctrine now; the judgement cap bit twice this feature"
+  },
+  {
+    "op": "add",
+    "target": "O-02",
+    "section": "Outcomes",
+    "entry": "WHEN opening a run for a single task DO read the executing persona's squad in team-config.yaml before run-start — documentor is product, not eng; a run opened against the wrong lead closes BLOCKED at zero cycles and leaves a dead run record.",
+    "why": "t02 opened against eng-lead by reflex and had to be closed BLOCKED"
+  },
+  {
+    "op": "add",
+    "target": "O-03",
+    "section": "Outcomes",
+    "entry": "WHEN dispatching the three distill squads in one batch DO expect the product squad's pm spawn refused while the validator goal-check (persona harness-pm) holds the single-flight claim — dispatch validator first, or resume product in the same run once validator returns.",
+    "why": "product distill returned BLOCKED on the claim collision and needed a resume dispatch"
+  }
+]

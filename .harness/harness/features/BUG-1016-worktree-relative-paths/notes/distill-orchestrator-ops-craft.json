@@ -1,0 +1,23 @@
+[
+  {
+    "op": "replace",
+    "target": "P-06",
+    "section": "Patterns",
+    "entry": "WHEN a reviewer's finding would cost a fix cycle DO verify its premise at the pinned base and probe its input space before pricing it — an inspection-derived counterexample is often real but narrower than its headline, and a bounded defect routes and prices differently from a class.",
+    "why": "sharpens the premise check with the bounding probe: a nine-input probe turned a 'quote preservation fails' headline into an all-quote-only defect in seconds"
+  },
+  {
+    "op": "replace",
+    "target": "G-06",
+    "section": "Gotchas",
+    "entry": "WHEN an acceptance you hand a lead says the tree must be clean DO exclude the feature record file — run-start and the host token stamp rewrite it during every run, so a clean-tree gate over it fails on the dispatch's own bookkeeping.",
+    "why": "displaces the handoff-note-with-status rule, now enforced by run-start's succession refusal; the clean-tree acceptance failed a simplify dispatch on its own feature.json"
+  },
+  {
+    "op": "replace",
+    "target": "O-07",
+    "section": "Outcomes",
+    "entry": "WHEN a panel finds a surface violating an approved requirement DO decide first whether it is unmet or unmeetable as written: unmet routes as a fix cycle without re-signature, unmeetable as an amendment under approval. A docs task recording the deviation heals neither; it only surfaces the mismatch.",
+    "why": "same rule plus the docs-task trap: a decision written faithfully from the code still failed the SC against the BRIEF until the operator amended the constraint"
+  }
+]
