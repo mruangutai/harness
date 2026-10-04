@@ -4,7 +4,7 @@ approval:
   date: '2026-10-03'
   approved_by: molchairuangutai
   status: approved
-status: ready
+status: review
 source_issues: [2003]
 lanes:
   resolved_at: e0bb9814ab8e0f3f87a908bec2fc997a4b040f52
@@ -25,7 +25,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: DEC-174 requires direct main-session changes to the active OMP enforcement adapter and its co-changed test, overriding the patch default team route; harness-backend-dev is the consult-when owner for server-side integration and boundary error handling, not permission to dispatch a team build.
     depends_on: []
-    status: review
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts#preDomain
       - .omp/extensions/harness-hooks.ts#postDomain
