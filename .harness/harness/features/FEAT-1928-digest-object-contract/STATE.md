@@ -7,10 +7,10 @@
 - squad: main-session-direct
 - status: in_progress
 - tasks: T-01 done, T-02 done, T-03 done, T-04 done
-- review_sha: none
+- review_sha: 828b3605d6334b96a6d21bfc8f93140b6b26a9c2
 - cycles_used: 3 of 10 (simplify-eng closed BLOCKED; its one send-back is counted)
 - handoff: notes/handoff-build.md (seq-14)
-- next: main records the evidence-inclusive review pin → successor runs independent validation from pre-cutover main; all six cards are Review and current verification is recorded in notes/verification-current.md
+- next: successor runs independent validation from pre-cutover main over the recorded pin; all six cards are Review and all seven live under-test hashes match that pin
 
 ## Open Questions
 
