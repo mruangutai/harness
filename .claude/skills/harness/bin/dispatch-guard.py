@@ -344,6 +344,8 @@ if not root:
 
 def _repository_identity(control_root):
     """Validate a repository dispatch against its one fleet-owned feature artifact."""
+    # GRADE-2 REASON: one preflight keeps the artifact, header and fleet correspondence in
+    # one place; splitting it would hide which of the three disagreed.
     harness_dir = os.path.join(control_root, ".harness")
     artifacts = []
     try:

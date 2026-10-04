@@ -70,6 +70,11 @@ class RepositoryBases(list):
     def identity_for(self, base):
         return self._identities.get(real(base))
 
+    def owns_segment(self, segment):
+        """Whether `segment` is a fleet member's control-plane segment (`.harness/<segment>/`)."""
+        return segment in self._identities.values()
+
+
 def root_from_script(bin_dir):
     """The root implied by `bin_dir`'s location, by pure arithmetic. ZERO filesystem
     access and ZERO environment reads — for callers that must not touch cwd or disk.
@@ -902,23 +907,39 @@ def classify(abs_target, root, globs, shared, label):
 
     # Compare base-relative, so an absolute tool path and a relative glob still meet.
     rel = os.path.relpath(_abs_target, base)
-    rel_candidates = _rel_candidates(_abs_target, base, rel)
+    return _base_verdict(rel, base, root, _rel_candidates(_abs_target, base, rel),
+                         applicable_globs, applicable_shared, target_side_test,
+                         workspace_bases)
 
+
+def _base_verdict(rel, base, root, rel_candidates, applicable_globs, applicable_shared,
+                  target_side_test, workspace_bases):
     verdict = _match_verdict(rel, base, rel_candidates, applicable_globs, applicable_shared,
                              target_side_test)
     if verdict is None:
         verdict = _deny_verdict(rel, base, real(root), applicable_globs, applicable_shared)
-    verdict["repository"] = _repository_for(base, root, workspace_bases)
+    verdict["repository"] = _repository_for(base, root, workspace_bases, rel_candidates)
     return verdict
 
 
-def _repository_for(base, root, workspace_bases):
-    """The exact repository identity selected with `base`: "harness" for the control
-    plane, the fleet segment for a product base, None when the fleet names none."""
-    if real(base) == real(root):
-        return "harness"
-    identity_for = getattr(workspace_bases, "identity_for", None)
-    return identity_for(base) if identity_for else None
+_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)/")
+
+
+def _repository_for(base, root, workspace_bases, rel_candidates):
+    """The exact repository identity a target belongs to (FEAT-495, DEC-250): the fleet
+    segment for a product base AND for that product's control-plane segment
+    `.harness/<segment>/` in the harness base; "harness" for the rest of the harness base;
+    None when no fleet names one. Checkout membership is not segment membership, so a
+    product's control-plane files are that product's, wherever the checkout stands."""
+    if real(base) != real(root):
+        identity_for = getattr(workspace_bases, "identity_for", None)
+        return identity_for(base) if identity_for else None
+    owns_segment = getattr(workspace_bases, "owns_segment", None)
+    for candidate in rel_candidates if owns_segment else ():
+        match = _CONTROL_PLANE_SEGMENT.match(candidate)
+        if match and owns_segment(match.group(1)):
+            return match.group(1)
+    return "harness"
 
 
 def _no_base_verdict(abs_target, root):

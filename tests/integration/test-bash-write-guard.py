@@ -1655,6 +1655,16 @@ def _repository_bash_happy_routes(results, inflight_registry, feature):
     )
     for name, response, want, contains in cases:
         _repository_bash_record(results, name, response, want, contains)
+    # A cache-shaped path is noise only while it stays in this checkout: one that resolves
+    # into another product still needs that product's binding (review R2).
+    os.makedirs(os.path.join(root, "node_modules"), exist_ok=True)
+    os.symlink(os.path.dirname(products["product-b"]),
+               os.path.join(root, "node_modules", "foreign"))
+    _repository_bash_record(
+        results, "a cache-shaped path into another product cannot skip its binding",
+        _repository_bash_fire(root, "node_modules/foreign/change.md", feature,
+                              "BackendOne", "EngLeadOne"),
+        2, "mismatched")
     _repository_bash_claim(
         inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
     sibling = _repository_bash_fire(

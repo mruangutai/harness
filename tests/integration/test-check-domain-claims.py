@@ -362,7 +362,12 @@ def _bug1304_domain_partial_registry(results, context, inflight_registry):
 
 
 def _repository_fixture():
-    root = fixture(FIXTURE_MANIFEST)
+    # A wildcard control-plane grant reaches every product's `.harness/<segment>/docs/`, so
+    # the repository decision, not the grant, must keep each product's segment its own.
+    root = fixture(FIXTURE_MANIFEST.replace(
+        "{ path: .harness/allowed/**, upsert: true }",
+        "{ path: .harness/allowed/**, upsert: true }\n"
+        "          - { path: .harness/*/docs/**, upsert: true }"))
     workspace = tempfile.mkdtemp(prefix="harness-repository-binding-")
     os.makedirs(os.path.join(root, ".harness", "factory"), exist_ok=True)
     with open(
@@ -455,6 +460,16 @@ def _repository_happy_routes(results, inflight_registry, feature):
         ("repository binding includes the immediate parent",
          _repository_fire(
              root, products["product-a"], feature, "DocumentorOne", "ProductLeadTwo"),
+         2, "mismatched"),
+        ("repository-bound child writes its own product's control-plane segment",
+         _repository_fire(
+             root, os.path.join(root, ".harness", "product-a", "docs", "change.md"),
+             feature, "DocumentorOne", "ProductLeadOne"),
+         0, None),
+        ("repository-bound child cannot write another product's control-plane segment",
+         _repository_fire(
+             root, os.path.join(root, ".harness", "product-b", "docs", "change.md"),
+             feature, "DocumentorOne", "ProductLeadOne"),
          2, "mismatched"),
     )
     for name, response, want, contains in cases:

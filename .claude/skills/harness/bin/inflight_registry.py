@@ -211,6 +211,8 @@ def _is_number(value):
 def _expire(claims, now):
     """A claim is live only while its OMP supervisor is (DEC-204). Any claim that carries
     another runtime, or none, is expired: there is no other host (DEC-233)."""
+    # GRADE-2 REASON: one lifetime predicate; malformed, released and supervisor-owned rows
+    # are the cases of a single question, and splitting them would only scatter it.
     live = []
     expired = 0
     for claim in claims:
@@ -687,7 +689,10 @@ def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
         if len(exact) == 1:
             selected = exact[0]
         elif not exact:
-            unbound = [claim for claim in candidates if not claim.get("agent_id")]
+            # A repository receipt binds only at run start (FEAT-495): here a released child
+            # could otherwise take a sibling's pending receipt and regain product authority.
+            unbound = [claim for claim in candidates
+                       if not claim.get("agent_id") and claim.get("repository") is None]
             if len(unbound) != 1:
                 data["claims"] = retained
                 return data, False

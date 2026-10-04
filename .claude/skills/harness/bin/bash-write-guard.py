@@ -976,11 +976,13 @@ for name, paths in findings:
         if re.match(r"^\.claude/worktrees/", rel):
             claim_checkout_guard(ap)
             continue
+        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
+        # Before the cache skip: a cache-shaped path can resolve (a symlink) into a product
+        # checkout, and a product write needs its repository binding whatever its spelling.
+        repository_claim_guard(verdict)
         # tmp/cache noise is not a domain question.
         if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
             continue
-        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
-        repository_claim_guard(verdict)
 
         if verdict["outcome"] == "out_of_place_worktree" and verdict.get("unparsed"):
             deny(f"{verdict['checkout']} holds a .git pointer file that does not parse, "
