@@ -967,19 +967,22 @@ for name, paths in findings:
         # DEC-95) is covered exactly like one in the main checkout.
         _run_artifact_guard(_worktree_stripped(rel), ap)
 
-        # BOTH CONTINUES BELOW RUN AHEAD OF classify, AND THAT ORDERING IS BEHAVIOUR.
-        # Worktree carve-out (DEC-153): disposable checkouts are where sanctioned
+        # The repository decision (FEAT-495, DEC-250) runs FIRST: a worktree- or
+        # cache-shaped path can resolve (a symlink) into a product checkout, and a product
+        # write needs its binding whatever its spelling. Only the binding is decided here;
+        # the domain verdict below still waits for both carve-outs.
+        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
+        repository_claim_guard(verdict)
+
+        # BOTH CONTINUES BELOW RUN AHEAD OF the domain verdict, AND THAT ORDERING IS
+        # BEHAVIOUR. Worktree carve-out (DEC-153): disposable checkouts are where sanctioned
         # perturbation proofs live — qa mutates source there to prove a test
-        # discriminates. Moving it after classify would change what qa may do in a
+        # discriminates. Moving it after the verdict would change what qa may do in a
         # worktree. The MAIN checkout stays hard-protected. Reviewers never reach this
         # branch (denied on any write pattern above).
         if re.match(r"^\.claude/worktrees/", rel):
             claim_checkout_guard(ap)
             continue
-        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
-        # Before the cache skip: a cache-shaped path can resolve (a symlink) into a product
-        # checkout, and a product write needs its repository binding whatever its spelling.
-        repository_claim_guard(verdict)
         # tmp/cache noise is not a domain question.
         if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
             continue

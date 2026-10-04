@@ -7963,10 +7963,11 @@ target through DEC-189's shared two-base resolver, which reports the same segmen
 product base and for that product's control-plane segment `.harness/<segment>/` in the Harness
 base: checkout membership is not segment membership. A wildcard domain grant is necessary but no
 longer sufficient for Write or Edit. Every detectable Bash target receives the same repository
-decision after classification and before the cache-noise skip and the existing
-product/outside-root continuation, so a cache-shaped path that resolves into a product is still
-that product's write. Authorization's unique-unbound fallback never selects a repository
-receipt; those bind only at run start, so a released child cannot take a sibling's receipt.
+decision right after classification, ahead of the worktree and cache-noise carve-outs and the
+existing product/outside-root continuation, so a worktree- or cache-shaped path that resolves into
+a product is still that product's write. Authorization's unique-unbound fallback never selects a
+repository receipt; those bind only at run start, so a released child cannot take a sibling's
+receipt.
 
 **The host supplies lineage; text supplies no authority.** Lineage is BUG-1898's run-start claim:
 OMP's `ctx.agent` supplies the child and immediate-parent ids (DEC-204, DEC-218), and the run-start
