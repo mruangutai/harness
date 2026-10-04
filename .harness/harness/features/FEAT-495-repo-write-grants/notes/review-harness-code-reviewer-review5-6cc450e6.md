@@ -1,0 +1,26 @@
+# FAIL — R9 is resolved, but shell-glob deletion still bypasses product binding
+
+Reviewed `9f9a7301d85e40a2f6d8753506e6cef146c8eb85..6cc450e6`; fix delta `2b915789..6cc450e6`. Initial tree clean; no `[harness:human]` commits. Stage 1 compared the complete feature diff against SC-01..SC-08, D-01..D-06 and DEC-250 before Stage 2 traced mutation routes and ran pinned Python grading. Approved T-06 records the run-start cutover; no build-lead amendments digest supplied.
+
+## Findings (ranked)
+
+- **R10 high, substance — SC-01/SC-02 omission:** `bash-write-guard.py:478-495,618-619,974-975,986-987`; `harness_boundary.py:78-85,935-945`. **REASONED [INFERENCE], not probe-executed:** use R9's existing fixture state: product-a child has an exact active claim, both product control-plane directories exist, and `node_modules/cp` symlinks to `.harness`. The child submits `rm -rf node_modules/cp/product-*`. `trailing_files` returns the literal wildcard operand; classification resolves the alias but does not expand the wildcard, so `control_segment` looks up the literal `product-*`, finds no fleet segment, and `_repository_for` returns `harness`. The binding guard exempts that identity, and the lexical cache continue permits the command. The actual shell expands the operand to product-a and product-b directories and deletes both. This is the same cross-repository deletion class as R9, not an undetectable shell command: `rm` and its operand are explicitly extracted. Resolve detectable glob targets before repository authorization, or refuse unresolved product-reaching patterns; add an own-only/foreign-containing glob regression that distinguishes the repository refusal.
+- **R6 med, substance — accepted grade-2 cost:** `dispatch-guard.py:345`, `_repository_identity`: cyclomatic/cognitive/ABC **14/22/37.4**, grade 2. Reason (:347-348): keep artifact/header/fleet correspondence in one cohesive preflight. No new must-fix.
+- **R7 med, substance — accepted grade-2 cost:** `inflight_registry.py:211`, `_expire`: **8/16/15.8**, grade 2. Reason (:214-215): one coherent lifetime predicate; scattering malformed/released/supervisor cases would not improve its interface. No new must-fix.
+- **R11 med, substance — new grade-2 test cost:** `tests/integration/test-bash-write-guard.py:1638`, `_repository_bash_happy_routes`: **7/13/30.5**, grade 2, driver ABC. Required reason: one shared live-claim fixture deliberately tests literal product writes, cache/worktree aliases, terminal segment removal and same-role siblings together; the added cases increase fixture/assertion volume rather than introduce a second authorization model. Nonblocking.
+
+## Prior fixes and specification inspection
+
+- **R9 resolved for its reported literal-directory route:** regex `(?:/|$)` at `harness_boundary.py:66` now attributes the segment directory itself. `test-bash-write-guard.py:1672-1683` submits own/foreign `rm -rf node_modules/cp/<product>` through the real guard, requiring own exit 0 and foreign exit 2 plus `mismatched`. Reverting the terminal alternative would permit the foreign case and redden its assertion. Discrimination is inspected, not mutant-executed.
+- **R1/R2/R8 remain resolved for their reported literal routes:** segment attribution at `harness_boundary.py:78-85,935-945`; own/foreign control-plane Write assertions at `test-check-domain-claims.py:464-473`; Bash binding precedes both carve-outs at `bash-write-guard.py:974-987`; own/foreign cache/worktree alias assertions at `test-bash-write-guard.py:1659-1671`.
+- **R3 remains resolved:** authorization excludes unbound repository receipts at `inflight_registry.py:692-695`; `test-inflight-registry.py:1253-1271` checks released refusal, authorization False, and the sibling receipt remaining unbound. **R4/R5 remain resolved mechanically:** no high grade record; split case-38 functions grade 4; `classify` emits no gated record. R6/R7 retain their accepted reasons.
+- **SC-07 inspection:** both guard routes call the same exact-lineage/repository decision (`check-domain.py:818`; `bash-write-guard.py:894`; `inflight_registry.py:761`), retaining shared two-base classification (`harness_boundary.py:901-921`). R10 limits target attribution, not comparator sharing.
+- SC-03/08: dispatch correspondence/authored-lineage refusal at `dispatch-guard.py:181-192,345-411`; host-only payload construction and pre-mutation authorization at `.omp/extensions/harness-hooks.ts:251-278,1043-1079`; run-start binding/refusals at `test-inflight-registry.py:1208-1250`. SC-04's recorded live PASS 28/28 (`notes/live-omp-probe.md:348-376`) was read, not rerun. SC-05 early resolver remains at `check-domain.py:164`; SC-06 exemptions and same-product siblings remain. DEC-250 preserves the dev-ops recovery exemption. No unrelated shipped change identified; developer receipts contain no Principles applied claims.
+
+Measured: pinned `code-grade.py` — **40 passing records, three med grade-2 records**, no high record. No tests, live probe, mutants, source edits or commits. Main should add the R10 regression, then run deterministic boundary/registry/dispatch/Write/Edit/Bash/OMP suites and pinned grading.
+
+## Principles applied
+
+- Model the Domain: a shell target pattern denotes a set of destinations, not one literal repository segment.
+
+Open questions: none. Must fix R10. `code_grade: grade_2`.

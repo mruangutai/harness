@@ -269,8 +269,12 @@ function preDomain(
   input: Dict,
   runner: PolicyRunner,
   ctx?: any,
+  feature?: string,
 ): PolicyResult[] {
-  const base = basePayload(agent, "PreToolUse", cwd, ctx);
+  const base = {
+    ...basePayload(agent, "PreToolUse", cwd, ctx),
+    ...(feature ? { harness_feature: feature } : {}),
+  };
   if (toolName === "write") {
     return [runner(cwd, "check-domain.py", [], {
       ...base,
@@ -838,6 +842,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     currentFeature = feature;
   };
 
+
   // The pin and the mission have one source: the assignment message (DEC-204), scanned
   // once. A later user turn or a tool result echoing another dispatch is never either.
   const captureDispatchFromMessage = (candidate: unknown): void => {
@@ -1058,12 +1063,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     if (!reason) {
       reason = firstBlock(preDomain(
-        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx,
+        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx, currentFeature,
       ));
     }
     if (!reason && toolName === "bash") {
       const payload = {
         ...basePayload(policyAgent, "PreToolUse", ctx.cwd, runtimeCtx),
+        ...(currentFeature ? { harness_feature: currentFeature } : {}),
         tool_name: "Bash",
         tool_input: { command: input.command },
       };
@@ -1135,6 +1141,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
                 "--parent-agent-id", parentAgentId,
                 "--root", receipt.root,
               ];
+
               const attached = policyRunner(
                 ctx.cwd, "inflight_registry.py", args, {},
               );

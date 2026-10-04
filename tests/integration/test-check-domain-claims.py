@@ -30,7 +30,7 @@ def bug1304_pre_change_hook(dest):
 
 
 def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write",
-                  agent_id=None, parent_agent_id=None):
+                  agent_id=None, parent_agent_id=None, feature=None):
     absolute = destination if os.path.isabs(destination) else os.path.join(root, destination)
     os.makedirs(os.path.dirname(absolute), exist_ok=True)
     if tool == "Edit":
@@ -44,6 +44,8 @@ def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write",
         payload["harness_agent_id"] = agent_id
     if parent_agent_id:
         payload["harness_parent_agent_id"] = parent_agent_id
+    if feature:
+        payload["harness_feature"] = feature
     return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
                           text=True, env=_env(root))
 
@@ -359,6 +361,230 @@ def _bug1304_domain_partial_registry(results, context, inflight_registry):
         results, "partial unreadable", root, context["main"], agent)
 
 
+def _repository_fixture():
+    # A wildcard control-plane grant reaches every product's `.harness/<segment>/docs/`, so
+    # the repository decision, not the grant, must keep each product's segment its own.
+    root = fixture(FIXTURE_MANIFEST.replace(
+        "{ path: .harness/allowed/**, upsert: true }",
+        "{ path: .harness/allowed/**, upsert: true }\n"
+        "          - { path: .harness/*/docs/**, upsert: true }"))
+    workspace = tempfile.mkdtemp(prefix="harness-repository-binding-")
+    os.makedirs(os.path.join(root, ".harness", "factory"), exist_ok=True)
+    with open(
+        os.path.join(root, ".harness", "factory", "fleet.yaml"),
+        "w",
+        encoding="utf-8",
+    ) as handle:
+        json.dump({
+            "schema": "factory-fleet/1",
+            "workspace_root": workspace,
+            "repos": [
+                {"name": "acme/product-a", "default_branch": "main"},
+                {"name": "acme/product-b", "default_branch": "main"},
+            ],
+        }, handle)
+    products = {
+        name: os.path.join(workspace, name, "allowed", "change.md")
+        for name in ("product-a", "product-b")
+    }
+    for target in products.values():
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+    return root, products
+
+
+def _repository_claim(
+    inflight_registry,
+    root,
+    repository,
+    feature,
+    agent_id,
+    parent_agent_id,
+):
+    agent = "harness-documentor"
+    receipt = inflight_registry.claim_with_receipt(
+        root,
+        agent,
+        "harness-product-lead",
+        root,
+        feature=feature,
+        repository=repository,
+    )
+    if not inflight_registry.attach_runtime_identity(
+        root,
+        agent,
+        feature,
+        claim_id=receipt["claim_id"],
+        agent_id=agent_id,
+        parent_agent_id=parent_agent_id,
+    ):
+        raise AssertionError("fixture claim did not attach")
+    return receipt
+
+
+def _repository_fire(root, target, feature, agent_id, parent_agent_id, tool="Write"):
+    return _bug1304_fire(
+        root,
+        target,
+        "harness-documentor",
+        tool=tool,
+        agent_id=agent_id,
+        parent_agent_id=parent_agent_id,
+        feature=feature,
+    )
+
+
+def _record_repository_result(results, name, response, want, contains=None):
+    output = response.stdout + response.stderr
+    ok = response.returncode == want and (contains is None or contains in output)
+    results.append((name, ok, f"exit={response.returncode} output={output[:240]!r}"))
+
+
+def _repository_happy_routes(results, inflight_registry, feature):
+    root, products = _repository_fixture()
+    first = _repository_claim(
+        inflight_registry, root, "product-a", feature, "DocumentorOne", "ProductLeadOne")
+    cases = (
+        ("repository-bound child can repeat Write in its own product",
+         _repository_fire(
+             root, products["product-a"], feature, "DocumentorOne", "ProductLeadOne"),
+         0, None),
+        ("repository-bound child can Edit in its own product",
+         _repository_fire(
+             root, products["product-a"], feature, "DocumentorOne", "ProductLeadOne",
+             tool="Edit"),
+         0, None),
+        ("repository-bound child cannot cross into another product",
+         _repository_fire(
+             root, products["product-b"], feature, "DocumentorOne", "ProductLeadOne"),
+         2, "mismatched"),
+        ("repository binding includes the immediate parent",
+         _repository_fire(
+             root, products["product-a"], feature, "DocumentorOne", "ProductLeadTwo"),
+         2, "mismatched"),
+        ("repository-bound child writes its own product's control-plane segment",
+         _repository_fire(
+             root, os.path.join(root, ".harness", "product-a", "docs", "change.md"),
+             feature, "DocumentorOne", "ProductLeadOne"),
+         0, None),
+        ("repository-bound child cannot write another product's control-plane segment",
+         _repository_fire(
+             root, os.path.join(root, ".harness", "product-b", "docs", "change.md"),
+             feature, "DocumentorOne", "ProductLeadOne"),
+         2, "mismatched"),
+    )
+    for name, response, want, contains in cases:
+        _record_repository_result(results, name, response, want, contains)
+    _repository_claim(
+        inflight_registry, root, "product-a", feature, "DocumentorTwo", "ProductLeadOne")
+    sibling = _repository_fire(
+        root, products["product-a"], feature, "DocumentorTwo", "ProductLeadOne")
+    _record_repository_result(
+        results, "same-role siblings retain distinct valid product claims", sibling, 0)
+    return first
+
+
+def _repository_missing_and_released(results, inflight_registry, feature):
+    missing_root, missing_products = _repository_fixture()
+    missing = _repository_fire(
+        missing_root, missing_products["product-a"], feature, "MissingChild", "ProductLeadOne")
+    _record_repository_result(
+        results, "product write without a repository claim fails closed", missing, 2, "missing")
+
+    released_root, released_products = _repository_fixture()
+    receipt = _repository_claim(
+        inflight_registry, released_root, "product-a", feature,
+        "ReleasedChild", "ProductLeadOne")
+    inflight_registry.release(released_root, claim_id=receipt["claim_id"], feature=feature)
+    released = _repository_fire(
+        released_root, released_products["product-a"], feature,
+        "ReleasedChild", "ProductLeadOne")
+    _record_repository_result(
+        results, "released repository claim fails closed", released, 2, "released")
+
+
+def _repository_stale_and_ambiguous(results, inflight_registry, feature):
+    stale_root, stale_products = _repository_fixture()
+    _repository_claim(
+        inflight_registry, stale_root, "product-a", feature, "StaleChild", "ProductLeadOne")
+    stale_path = os.path.join(stale_root, inflight_registry.REGISTRY_REL)
+    stale_data = json.load(open(stale_path, encoding="utf-8"))
+    stale_data["claims"][0]["supervisor_pid"] = 99999999
+    stale_data["claims"][0].pop("supervisor_started_at", None)
+    with open(stale_path, "w", encoding="utf-8") as handle:
+        json.dump(stale_data, handle)
+    stale = _repository_fire(
+        stale_root, stale_products["product-a"], feature, "StaleChild", "ProductLeadOne")
+    _record_repository_result(
+        results, "stale repository claim fails closed", stale, 2, "stale")
+
+    ambiguous_root, ambiguous_products = _repository_fixture()
+    receipt = _repository_claim(
+        inflight_registry, ambiguous_root, "product-a", feature,
+        "AmbiguousChild", "ProductLeadOne")
+    ambiguous_path = os.path.join(ambiguous_root, inflight_registry.REGISTRY_REL)
+    ambiguous_data = json.load(open(ambiguous_path, encoding="utf-8"))
+    duplicate = dict(ambiguous_data["claims"][0])
+    duplicate["claim_id"] = receipt["claim_id"] + "-duplicate"
+    ambiguous_data["claims"].append(duplicate)
+    with open(ambiguous_path, "w", encoding="utf-8") as handle:
+        json.dump(ambiguous_data, handle)
+    ambiguous = _repository_fire(
+        ambiguous_root, ambiguous_products["product-a"], feature,
+        "AmbiguousChild", "ProductLeadOne")
+    _record_repository_result(
+        results, "ambiguous repository claim fails closed", ambiguous, 2, "ambiguous")
+
+
+def _repository_collision_and_unreadable(
+    results, inflight_registry, feature, first_claim_id,
+):
+    collision_root, collision_products = _repository_fixture()
+    _repository_claim(
+        inflight_registry, collision_root, "product-a", feature,
+        "CollidingChild", "ProductLeadOne")
+    collision_path = os.path.join(collision_root, inflight_registry.REGISTRY_REL)
+    collision_data = json.load(open(collision_path, encoding="utf-8"))
+    foreign = dict(collision_data["claims"][0])
+    foreign["claim_id"] += "-foreign"
+    foreign["feature"] = "FEAT-496-other-dispatch"
+    collision_data["claims"].append(foreign)
+    with open(collision_path, "w", encoding="utf-8") as handle:
+        json.dump(collision_data, handle)
+    collision = _repository_fire(
+        collision_root, collision_products["product-a"], feature,
+        "CollidingChild", "ProductLeadOne")
+    _record_repository_result(
+        results, "reused active runtime identity fails as collision",
+        collision, 2, "collision")
+
+    unreadable_root, unreadable_products = _repository_fixture()
+    unreadable_path = os.path.join(unreadable_root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(unreadable_path), exist_ok=True)
+    with open(unreadable_path, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    unreadable = _repository_fire(
+        unreadable_root, unreadable_products["product-a"], feature,
+        "UnreadableChild", "ProductLeadOne")
+    _record_repository_result(
+        results, "unreadable repository registry fails closed", unreadable, 2, "unreadable")
+    output = unreadable.stdout + unreadable.stderr
+    results.append((
+        "repository refusal does not expose registry paths or claim ids",
+        inflight_registry.REGISTRY_REL not in output and first_claim_id not in output,
+        output[:240],
+    ))
+
+
+def _repository_binding_routes(results, inflight_registry):
+    """FEAT-495: wildcard product grants never outrank exact runtime repository lineage."""
+    feature = "FEAT-495-product-write"
+    first = _repository_happy_routes(results, inflight_registry, feature)
+    _repository_missing_and_released(results, inflight_registry, feature)
+    _repository_stale_and_ambiguous(results, inflight_registry, feature)
+    _repository_collision_and_unreadable(
+        results, inflight_registry, feature, first["claim_id"])
+
+
 def run_bug1304_claim_set():
     """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
     import inflight_registry
@@ -375,6 +601,7 @@ def run_bug1304_claim_set():
     _bug1304_domain_aged_claim(results, context, inflight_registry)
     _bug1304_domain_unreadable(results, context, inflight_registry)
     _bug1304_domain_partial_registry(results, context, inflight_registry)
+    _repository_binding_routes(results, inflight_registry)
 
     failures = 0
     for name, ok, detail in results:

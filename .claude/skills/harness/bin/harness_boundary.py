@@ -16,6 +16,7 @@ verdict and prints nothing: a module shared by two hooks must not decide whose w
 the agent sees.
 """
 
+import fnmatch
 import os
 import re
 import subprocess
@@ -58,6 +59,36 @@ RE_RUN_IDENTITY = re.compile(
 # tarballs and no team-config.yaml, so the bare-directory probe resolved $HOME as a root.
 MARKER = os.path.join(".harness", "team-config.yaml")
 PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
+
+
+# A product's control-plane segment in the harness base: `.harness/<segment>` itself, or
+# anything under it — removing the segment directory is a write to that product too.
+_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)(?:/|$)")
+
+
+class RepositoryBases(list):
+    """Workspace bases with their factory repository identity kept beside the classifier."""
+
+    def __init__(self, bases, identities):
+        super().__init__(bases)
+        self._identities = identities
+
+    def identity_for(self, base):
+        return self._identities.get(real(base))
+
+    def control_segment(self, rel_candidates):
+        """The fleet member whose control-plane segment `.harness/<segment>` holds one of
+        `rel_candidates`, or None. A Bash operand arrives unexpanded, so the segment is
+        matched as a shell glob: one reaching a single member is that member; one reaching
+        several answers with the glob itself, which no claim carries, so it fails closed."""
+        members = set(self._identities.values())
+        for candidate in rel_candidates:
+            match = _CONTROL_PLANE_SEGMENT.match(candidate)
+            reached = sorted(m for m in members
+                             if match and fnmatch.fnmatchcase(m, match.group(1)))
+            if reached:
+                return reached[0] if len(reached) == 1 else match.group(1)
+        return None
 
 
 def root_from_script(bin_dir):
@@ -767,9 +798,15 @@ def resolve_fleet(root, label):
         # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
         fleet = artifact_accessors.load_fleet(fleet_path)
-        bases = [real(factory_config.workspace_path(fleet, e["name"]))
-                 for e in fleet["repos"]]
-        return fleet["workspace_root"], bases, fleet_path
+        bases = [
+            real(factory_config.workspace_path(fleet, entry["name"]))
+            for entry in fleet["repos"]
+        ]
+        identities = {
+            base: factory_config.segment_of(entry["name"])
+            for base, entry in zip(bases, fleet["repos"])
+        }
+        return fleet["workspace_root"], RepositoryBases(bases, identities), fleet_path
     except (artifact_accessors.FleetError, KeyError, TypeError, ValueError) as e:
         print(f"{label}: BLOCKED — the fleet declaration does not load, so no "
               "product path can be identified.", file=sys.stderr)
@@ -826,6 +863,7 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
     return None, None, None
 
 
+
 def is_control_plane_target(rel):
     """The TARGET-side test, used only in the harness base.
 
@@ -857,6 +895,7 @@ def classify(abs_target, root, globs, shared, label):
       base              the base the target resolved against (likewise)
       advertise         the globs the `Permitted for you` line may honestly offer
       shared_advertise  the same for shared paths
+      repository        exact repository identity selected with the base, or None
 
     Note what is NOT returned and never was: `resolve_fleet` and `select_base` still
     exit 2 themselves for an unloadable fleet file and for a path under the workspace
@@ -884,13 +923,32 @@ def classify(abs_target, root, globs, shared, label):
 
     # Compare base-relative, so an absolute tool path and a relative glob still meet.
     rel = os.path.relpath(_abs_target, base)
-    rel_candidates = _rel_candidates(_abs_target, base, rel)
+    return _base_verdict(rel, base, root, _rel_candidates(_abs_target, base, rel),
+                         applicable_globs, applicable_shared, target_side_test,
+                         workspace_bases)
 
+
+def _base_verdict(rel, base, root, rel_candidates, applicable_globs, applicable_shared,
+                  target_side_test, workspace_bases):
     verdict = _match_verdict(rel, base, rel_candidates, applicable_globs, applicable_shared,
                              target_side_test)
-    if verdict is not None:
-        return verdict
-    return _deny_verdict(rel, base, real(root), applicable_globs, applicable_shared)
+    if verdict is None:
+        verdict = _deny_verdict(rel, base, real(root), applicable_globs, applicable_shared)
+    verdict["repository"] = _repository_for(base, root, workspace_bases, rel_candidates)
+    return verdict
+
+
+def _repository_for(base, root, workspace_bases, rel_candidates):
+    """The exact repository identity a target belongs to (FEAT-495, DEC-250): the fleet
+    segment for a product base AND for that product's control-plane segment
+    `.harness/<segment>/` in the harness base; "harness" for the rest of the harness base;
+    None when no fleet names one. Checkout membership is not segment membership, so a
+    product's control-plane files are that product's, wherever the checkout stands."""
+    if real(base) != real(root):
+        identity_for = getattr(workspace_bases, "identity_for", None)
+        return identity_for(base) if identity_for else None
+    control_segment = getattr(workspace_bases, "control_segment", None)
+    return (control_segment(rel_candidates) if control_segment else None) or "harness"
 
 
 def _no_base_verdict(abs_target, root):
