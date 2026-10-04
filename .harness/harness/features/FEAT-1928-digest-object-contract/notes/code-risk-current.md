@@ -37,3 +37,5 @@ Additional grade-2 reasons in the current-main range:
 - `probe-inflight-claim-lifecycle.py::receipt_header`: assemble the provenance envelope together so executed launcher identity and release-source metadata remain visibly distinct.
 
 The earlier numeric totals and candidate SHAs above remain historical evidence, not the final current-main grading result. Final changed-function totals and the clean-source native rerun must be recorded after the source commit.
+
+Final committed source candidate `98b6c38332bf270f4c88dbc89d7b9d044c7b858d`, compared with `af2a958ab06c0d6fc026b363b59fc3147e3982f1`: grader exit 0; 241 gated functions, 230 meeting their bars, 11 grade-2 functions with the written reasons above, zero high findings, zero ungraded files. The fresh actual OpenAI native run at that clean candidate passed 18/18; its receipt independently verified 33/33. The final complete Python pool passed all 120 files using eight workers in 130.15 seconds (`artifact://570`). Subsequent receipt, plan-station, and review-pin commits are metadata only; this paragraph does not claim independent validation or ship acceptance.
