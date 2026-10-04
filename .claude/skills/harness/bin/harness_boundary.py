@@ -60,6 +60,10 @@ MARKER = os.path.join(".harness", "team-config.yaml")
 PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 
 
+# A product's control-plane segment in the harness base: `.harness/<segment>/...`.
+_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)/")
+
+
 class RepositoryBases(list):
     """Workspace bases with their factory repository identity kept beside the classifier."""
 
@@ -70,9 +74,14 @@ class RepositoryBases(list):
     def identity_for(self, base):
         return self._identities.get(real(base))
 
-    def owns_segment(self, segment):
-        """Whether `segment` is a fleet member's control-plane segment (`.harness/<segment>/`)."""
-        return segment in self._identities.values()
+    def control_segment(self, rel_candidates):
+        """The fleet member whose control-plane segment `.harness/<segment>/` holds one of
+        `rel_candidates`, or None."""
+        for candidate in rel_candidates:
+            match = _CONTROL_PLANE_SEGMENT.match(candidate)
+            if match and match.group(1) in self._identities.values():
+                return match.group(1)
+        return None
 
 
 def root_from_script(bin_dir):
@@ -922,9 +931,6 @@ def _base_verdict(rel, base, root, rel_candidates, applicable_globs, applicable_
     return verdict
 
 
-_CONTROL_PLANE_SEGMENT = re.compile(r"^\.harness/([^/]+)/")
-
-
 def _repository_for(base, root, workspace_bases, rel_candidates):
     """The exact repository identity a target belongs to (FEAT-495, DEC-250): the fleet
     segment for a product base AND for that product's control-plane segment
@@ -934,12 +940,8 @@ def _repository_for(base, root, workspace_bases, rel_candidates):
     if real(base) != real(root):
         identity_for = getattr(workspace_bases, "identity_for", None)
         return identity_for(base) if identity_for else None
-    owns_segment = getattr(workspace_bases, "owns_segment", None)
-    for candidate in rel_candidates if owns_segment else ():
-        match = _CONTROL_PLANE_SEGMENT.match(candidate)
-        if match and owns_segment(match.group(1)):
-            return match.group(1)
-    return "harness"
+    control_segment = getattr(workspace_bases, "control_segment", None)
+    return (control_segment(rel_candidates) if control_segment else None) or "harness"
 
 
 def _no_base_verdict(abs_target, root):
