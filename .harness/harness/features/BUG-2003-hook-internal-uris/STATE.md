@@ -3,14 +3,16 @@
 ## Current
 
 - feature: BUG-2003-hook-internal-uris
-- run: .harness/harness/features/BUG-2003-hook-internal-uris/runs/2026-10-03-validate-validator/digest.md
+- run: .harness/harness/features/BUG-2003-hook-internal-uris/runs/2026-10-03-validate-c1-validator/digest.md
 - squad: validator
-- status: in_progress
-- review_sha: 85038f8c1acbb38e2b6f758540941bc5cfdaf1ba
-- verdict: FAIL (V1 substance med, T-01, SC-03 test controls; main-session-direct fix)
-- cycles_used: 0/10
-- rework: round 0 of 1 used
+- status: in_review
+- review_sha: c2170e265c30e36d6252668775ee41a8ebc93fb6
+- verdict: PASS (five readers clean, must_fix empty, severity_max none)
+- cycles_used: 2/10
+- rework: round 1 of 1 used (V1 main-session-direct fix at c2170e26); 23/45 min
+- briefing: .harness/harness/features/BUG-2003-hook-internal-uris/notes/ship-review-validate-c1-validator.md
+- next: operator ship decision — merge feat/BUG-2003-hook-internal-uris
 
 ## Open Questions
 
-- Q1 (non-blocking): live write tool routed agent:// and xd://report_issue to check-domain in the validate run; security note keeps an undeclared `reviewed` key.
+- none blocking; c0 Q1 carried as backlog B-1 in the briefing.

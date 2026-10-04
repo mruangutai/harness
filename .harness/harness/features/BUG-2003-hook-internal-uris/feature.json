@@ -2,8 +2,8 @@
   "feature_id": "BUG-2003-hook-internal-uris",
   "branch": "feat/BUG-2003-hook-internal-uris",
   "pr": null,
-  "review_sha": "85038f8c1acbb38e2b6f758540941bc5cfdaf1ba",
-  "cycles_used": 0,
+  "review_sha": "c2170e265c30e36d6252668775ee41a8ebc93fb6",
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -24,8 +24,18 @@
       "verdict": "FAIL",
       "started_at": "2026-10-04T03:52:39+00:00",
       "tokens": 44505,
-      "ended_at": "2026-10-04T04:00:25+00:00",
-      "cycles_used": 0
+      "ended_at": "2026-10-04T04:05:47+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T04:06:58+00:00",
+      "tokens": 41037,
+      "ended_at": "2026-10-04T04:17:10+00:00",
+      "cycles_used": 1
     }
   ],
   "judgements": [
@@ -42,6 +52,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "V1 is a substance finding on T-01 (SC-03 preservation controls unproven; no runtime defect alleged) inside rework ruling round 1 of 1; T-01 is DEC-174 main-session-direct so the fix returns to the main session instead of a fix run"
+    },
+    {
+      "at": "2026-10-04T04:06:58+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "V1 (SC-03 test controls, T-01) fixed main-session-direct at c2170e26 under DEC-174; re-pinned there (production code unchanged since f9e23bcb) and re-validating the full panel over the new pin"
+    },
+    {
+      "at": "2026-10-04T04:17:12+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "validate c1 over c2170e26 clean on all five readers with zero must-fix; rework round 1 of 1 consumed by the V1 main-session-direct fix; proceed to the ship briefing"
     }
   ],
   "mission": "patch",
