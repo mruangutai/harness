@@ -32,7 +32,12 @@ station per boundary are `github-mirror.md`'s table.
    to justify the step.
 4. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> review`
    BEFORE the team is dispatched: the pin fixes what is reviewed, the station write puts every card
-   at review. When `feature.json` cannot carry the pin — a frozen feature, or a review dispatched
+   at review. **The order is fixed** (#2012): mark every task `done` in `plan.yaml`
+   (`plan-merge.py set-task-station`), commit that as the seam commit, pin `review_sha` to the seam
+   commit, then run `status review`. `status review` refuses while any task is not `done` or
+   `abandoned` (a task left at `review` blocks it), and a `plan.yaml` write after the pin makes
+   the pin stale (INV-33).
+   When `feature.json` cannot carry the pin — a frozen feature, or a review dispatched
    with no feature at all — put `HARNESS-REVIEW-PIN: <sha>` on its own line in the dispatch prompt:
    the host forwards it to the digest validator, which accepts it as the pin when `feature.json`
    has none and refuses it when the two disagree (#1677). It never replaces a recorded pin.
