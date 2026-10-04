@@ -1344,6 +1344,23 @@ describe("OMP task lifecycle adapter", () => {
     }
   });
 
+  test("BUG-1016: a quoted target is rooted inside its quotes, even one made of quotes (R2)", async () => {
+    const { pre } = await rootedHooks();
+    const cases: Array<[string, string]> = [
+      ['"""', `"${WT}/""`],
+      ['""""', `"${WT}/"""`],
+      ['"a b.ts"', `"${WT}/a b.ts"`],
+      [' "x" ', ` "${WT}/x" `],
+    ];
+    for (const [path, rooted] of cases) {
+      expect(await pre("read", { path })).toEqual({ input: { path: rooted } });
+    }
+    // A quoted ~, absolute or scheme target is still an explicit destination.
+    for (const path of ['"~/notes.md"', '"/abs/a.ts"', '"agent://LeadTwo"']) {
+      expect(await pre("read", { path })).toBeUndefined();
+    }
+  });
+
   test("BUG-1016: dot, parent, glob, selector, archive and SQLite text is preserved after the root", async () => {
     const { pre } = await rootedHooks();
     for (const path of [

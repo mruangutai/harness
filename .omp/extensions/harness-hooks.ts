@@ -352,11 +352,15 @@ function postDomain(
 // Absolute, `~` and `scheme://` targets are explicit destinations and are never touched;
 // blank ones are kept verbatim. Quoting and surrounding whitespace survive.
 function rootTarget(raw: string, root: string): string {
-  const target = raw.trim().replace(/^"(.*)"$/, "$1");
+  const trimmed = raw.trim();
+  const quoted = /^"(.*)"$/.exec(trimmed);
+  const target = quoted ? quoted[1] : trimmed;
   if (!target.trim() || isAbsolute(target) || target.startsWith("~") || URI_SCHEME.test(target)) {
     return raw;
   }
-  const at = raw.indexOf(target);
+  // The target starts after the leading whitespace and, when quoted, the opening quote; never
+  // searched for, since a target made of quotes would match the wrapper first.
+  const at = raw.length - raw.trimStart().length + (quoted ? 1 : 0);
   return `${raw.slice(0, at)}${root}/${raw.slice(at)}`;
 }
 
