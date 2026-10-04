@@ -25,6 +25,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import artifact_accessors  # noqa: E402
 import harness_boundary  # noqa: E402
 import harness_yaml  # noqa: E402
 
@@ -99,8 +100,12 @@ def _load_record(args):
     feature_dir = _feature_dir(root, args.feature)
     if feature_dir is None:
         return f"no feature {args.feature!r} under {root}"
-    with open(os.path.join(feature_dir, "feature.json"), encoding="utf-8") as handle:
-        record = json.load(handle)
+    try:
+        record = artifact_accessors.load_feature_json(os.path.join(feature_dir, "feature.json"))
+    except artifact_accessors.FeatureJsonError as error:
+        return str(error)
+    if record is None:
+        return f"{args.feature} has no feature.json under {feature_dir}"
     pin = record.get("review_sha")
     if not isinstance(pin, str) or not pin.strip() or pin.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
         return f"{args.feature} has no review_sha — nothing is shipped, so nothing is pruned"
