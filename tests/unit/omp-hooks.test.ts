@@ -1097,9 +1097,18 @@ describe("OMP task lifecycle adapter", () => {
     const blocked = await hooks.pre("edit", mixedFile) as { block: boolean; reason: string };
     expect(blocked?.block).toBe(true);
     expect(blocked.reason).toBe(`${FORBIDDEN} is outside your domain`);
-    const result = await hooks.post("edit", mixedFile) as { isError: boolean };
+    const result = await hooks.post("edit", mixedFile) as
+      { isError: boolean; content: Array<{ text: string }> };
     expect(result?.isError).toBe(true);
-    expect(hooks.domainTargets(from)).toEqual([FORBIDDEN, FORBIDDEN]);
+    expect(result.content.map((part) => part.text)).toEqual([
+      "ok", `Harness post-write check: ${FORBIDDEN} is outside your domain`,
+    ]);
+    const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
+    expect(gate.map((call) => [call.args, call.payload.tool_name, call.payload.tool_input]))
+      .toEqual([
+        [[], "Edit", { file_path: FORBIDDEN }],
+        [["--post"], "Edit", { file_path: FORBIDDEN }],
+      ]);
 
     from = hooks.calls.length;
     const mixedUri = await hooks.pre("edit", { input: uriEdit("agent://LeadTwo", "conflict://1") }) as
@@ -1122,14 +1131,40 @@ describe("OMP task lifecycle adapter", () => {
     ]);
   });
 
-  test("the main session's writes are untouched, URIs included", async () => {
+  test("a governed out-of-domain file write keeps its exact gate payload and refusal", async () => {
+    const hooks = await governedUriHooks();
+    const from = hooks.calls.length;
+    const input = { path: FORBIDDEN, content: "x" };
+    expect(await hooks.pre("write", input))
+      .toEqual({ block: true, reason: `${FORBIDDEN} is outside your domain` });
+    const result = await hooks.post("write", input) as
+      { isError: boolean; content: Array<{ text: string }> };
+    expect(result?.isError).toBe(true);
+    expect(result.content.map((part) => part.text)).toEqual([
+      "ok", `Harness post-write check: ${FORBIDDEN} is outside your domain`,
+    ]);
+    const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
+    expect(gate.map((call) => [call.args, call.payload.tool_name, call.payload.tool_input]))
+      .toEqual([
+        [[], "Write", { file_path: FORBIDDEN, content: "x" }],
+        [["--post"], "Write", { file_path: FORBIDDEN, content: "x" }],
+      ]);
+    expect(gate[0].payload.harness_feature).toBe("FEAT-43-long-run");
+  });
+
+  test("the main session's writes and edits are untouched, URIs included", async () => {
     const { handlers, calls } = fixture();
     const mainCtx = ompContext("/repo", "Main", undefined, "main-session");
     await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx);
     for (const target of ["conflict://1", "/repo/src/a.ts"]) {
-      expect(await handlers.get("tool_call")?.({
-        toolName: "write", toolCallId: "call-main", input: { path: target, content: "x" },
-      }, mainCtx)).toBeUndefined();
+      for (const [toolName, input] of [
+        ["write", { path: target, content: "x" }],
+        ["edit", { input: `[${target}#1A2B]\nPUT 1:\n+x` }],
+      ] as Array<[string, Record<string, unknown>]>) {
+        const event = { toolName, toolCallId: "call-main", input, content: [{ type: "text", text: "ok" }] };
+        expect(await handlers.get("tool_call")?.(event, mainCtx)).toBeUndefined();
+        expect(await handlers.get("tool_result")?.(event, mainCtx)).toBeUndefined();
+      }
     }
     expect(calls.some((call) => call.script === "check-domain.py")).toBe(false);
   });
