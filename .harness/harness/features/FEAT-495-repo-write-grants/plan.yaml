@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-495-repo-write-grants
-status: building
+status: done
 source_issues: [495]
 
 approval:
