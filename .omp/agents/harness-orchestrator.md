@@ -58,7 +58,9 @@ HARNESS-FEATURE: <FEAT-NN-slug>
 with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
 without it at exit 2. It is the only signal that tells the guard which checkout you were
 assigned to: your process working directory does not follow your assignment, and a claim
-recorded in the wrong checkout is why the previous planning run could not spawn at all.
+recorded in the wrong checkout is why the previous planning run could not spawn at all. In a
+batched `task` call the line opens **each task's own `task` text**: the guard never sees the
+shared `context` block.
 
 ## What you are NOT
 

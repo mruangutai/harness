@@ -1156,6 +1156,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     const mainCtx = ompContext("/repo", "Main", undefined, "main-session");
     await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx);
+    const from = calls.length;
     for (const target of ["conflict://1", "/repo/src/a.ts"]) {
       for (const [toolName, input] of [
         ["write", { path: target, content: "x" }],
@@ -1166,7 +1167,10 @@ describe("OMP task lifecycle adapter", () => {
         expect(await handlers.get("tool_result")?.(event, mainCtx)).toBeUndefined();
       }
     }
-    expect(calls.some((call) => call.script === "check-domain.py")).toBe(false);
+    // The whole runner-call set, not only check-domain.py: the main session's write and
+    // edit callbacks invoke no policy script at all, so no other gate can start judging
+    // its URIs or files unnoticed (#2009).
+    expect(calls.slice(from)).toEqual([]);
   });
 
   test("every file of a multi-section edit is gated, not just the first", async () => {

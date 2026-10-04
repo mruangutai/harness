@@ -164,6 +164,10 @@ def cmd_apply(args):
         result["preserved"] = preserved
         return out_bytes
 
+    # A fresh feature has no observations/ yet, and the lock file lives beside the log, so the
+    # first append needs the directory before the lock can be taken (#2011). The destination
+    # was already validated above, so this creates only a feature's own observations/.
+    os.makedirs(os.path.dirname(resolved), exist_ok=True)
     try:
         harness_merge.locked_update(resolved, transform)
     except harness_merge.MergeRefusal as refusal:

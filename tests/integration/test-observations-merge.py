@@ -304,6 +304,22 @@ def case_create_from_entries():
     )
 
 
+def case_create_without_observations_dir():
+    """Case 8b (#2011) — a fresh feature has no observations/ directory yet; the first apply
+    creates it rather than failing to open the lock file beside the log."""
+    root = tempfile.mkdtemp(prefix="observations-merge-test-c8b-")
+    feature = os.path.join(root, ".harness", "harness", "features", "FEAT-99-fixture")
+    os.makedirs(feature)
+    path = os.path.join(feature, "observations", "harness-pm.md")
+    entries = os.path.join(root, "entries.md")
+    write(entries, BULLET_A)
+
+    r = run_apply(path, entries)
+    check("case8b: first apply on a fresh feature exits 0", r.returncode == 0, r.stdout + r.stderr)
+    content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    check("case8b: the log is created with the entry", BULLET_A in content, content)
+
+
 def case_destination_refusal():
     """Case 9 — DESTINATION REFUSAL, both directions: a source path exits 9 untouched, a
     dot-dot escape wearing a legal tail exits 9, an Expertise file path exits 9, and a
@@ -404,6 +420,7 @@ def main():
     case_multiline_records()
     case_concurrency_real()
     case_create_from_entries()
+    case_create_without_observations_dir()
     case_destination_refusal()
 
     fails = 0

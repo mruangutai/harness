@@ -17,7 +17,6 @@ Settled messaging policy and malformed-edit extraction behavior were not expande
 VERDICT: PASS
 DIGEST:
   headline: Pinned URI classification preserves file-domain enforcement without an exploitable bypass.
-  reviewed: b8e9f9c8f451cfe4b4e211eb97093525b7872c1b..85038f8c1acbb38e2b6f758540941bc5cfdaf1ba
   in_scope: true
   scope_reason: Agent-authored write/edit destinations cross the URI versus filesystem authorization boundary; metadata changes add no separate security surface.
   severity_max: none
