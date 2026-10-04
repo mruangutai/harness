@@ -1,0 +1,8 @@
+# BUG-2003 T-01 pass after fix
+$ bun test tests/unit/omp-hooks.test.ts
+ 106 pass
+ 0 fail
+Discriminating cases (failed before, pass now): agent:// and xd://report_issue skip the domain gate on both routes and stages; every other scheme is refused by name and never reaches check-domain.py; an edit MV destination is judged by the same scheme rule; an allowed URI never exempts a sibling file or a refused URI in the same edit.
+Controls (passed before and after; not red-first evidence): an ordinary file keeps its exact domain-gate payloads; the main session's writes are untouched, URIs included.
+$ python3 tests/unit/test-omp-hooks.py   (the plan verify)
+exit 0
