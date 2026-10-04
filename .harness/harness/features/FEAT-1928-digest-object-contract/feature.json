@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-1928-digest-object-contract",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 15,
+  "cycles_used": 17,
   "max_total_cycles": 20,
   "runs": [
     {
@@ -223,8 +223,18 @@
       "id": "native-proof-rework-main",
       "squad": "engineering",
       "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T19:04:06+00:00",
+      "ended_at": "2026-10-04T19:20:40+00:00",
+      "cycles_used": 2,
+      "tokens": null
+    },
+    {
+      "id": "risk-grade-final-main",
+      "squad": "engineering",
+      "agent": "main-session",
       "verdict": "PENDING",
-      "started_at": "2026-10-04T19:04:06+00:00"
+      "started_at": "2026-10-04T19:20:42+00:00"
     }
   ],
   "judgements": [

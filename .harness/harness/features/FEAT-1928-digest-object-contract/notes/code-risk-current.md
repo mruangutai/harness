@@ -21,3 +21,19 @@ The clean-tree live rerun at that candidate passed 18/18 checks, and its fresh r
 - `tests/unit/test-digest-schemas.py::_object_shape_violations`: the local conjunctions describe the complete closed-object invariant and the three equivalent JSON-null spellings; recursion is already isolated in the shared walker.
 - `tests/integration/test-plan-merge.py::case_f59_record_panel_refuses_a_finding_without_kind`: one fixture demonstrates eight independent consumer-visible refusals followed by the shared atomicity invariant. Its ABC fell from 49.2 (grade 1) to 31.4 (grade 2), below the pre-feature 38.8; refusal checking is centralized without dropping an assertion.
 - `tests/unit/test-digest-dev-skill.py::check_refusal`: one cohesive documentation-contract check validates the concrete BLOCKED example against the actual dev schema, keeps the receipt rule in digest-dev rather than TDD, and checks the dev personas load that skill without inline schemas. These checks share the single refusal-guidance ownership invariant.
+
+## Current-main final pre-pin check
+
+The final comparison against integrated main `af2a958ab06c0d6fc026b363b59fc3147e3982f1` found two high blockers: production `prune-run-evidence.py::_load_record` graded 3, and the current native probe's `derive` graded 1. Main alone applied behavior-preserving refactors under DEC-174: isolate the review-pin predicate, correlate the task result separately, and isolate the native null-yield event evidence.
+
+The actual changed boundaries now grade: `_has_review_pin` 5, `_load_record` 4, `_task_result_job` 4, `_null_rejection` 5, and `derive` 3. `_native_yield_started` grades 2: it intentionally checks one event's type, owning job, tool execution phase, tool name, and call identity together; weakening or scattering that correlation would obscure the exact native execution proved by the receipt.
+
+Before and after refactoring, the actual pruning CLI regression suite passed every check. The actual recorded native transcript independently re-derived identical evidence and passed all 33 receipt checks after the refactor. No assertion or evidence predicate was removed or weakened. That receipt identifies clean executed HEAD `9359457d`, not the subsequent uncommitted refactor; a new clean-tree native run remains required before pinning.
+
+Additional grade-2 reasons in the current-main range:
+
+- `digest_destination.py::authorized_destination`: identity, linked-checkout, registered-run and exact-destination checks form one complete authorization proof; splitting it would hide their coupled fail-closed boundary.
+- `probe-inflight-claim-lifecycle.py::run_live`: resource creation and mandatory session, claim and run-record cleanup share one lifetime and its `try/finally`.
+- `probe-inflight-claim-lifecycle.py::receipt_header`: assemble the provenance envelope together so executed launcher identity and release-source metadata remain visibly distinct.
+
+The earlier numeric totals and candidate SHAs above remain historical evidence, not the final current-main grading result. Final changed-function totals and the clean-source native rerun must be recorded after the source commit.

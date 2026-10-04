@@ -533,16 +533,38 @@ def _bus_yield_results(frames, job_id):
             if event.get("type") == "tool_execution_end" and event.get("toolName") == "yield"]
 
 
+def _task_result_job(end):
+    results = ((end.get("result") or {}).get("details") or {}).get("results") or [{}]
+    return results[0] if isinstance(results[0], dict) else {}
+
+
+def _native_yield_started(frames, job_id, tool_call_id):
+    return any(
+        frame.get("type") == "subagent_event"
+        and (frame.get("payload") or {}).get("id") == job_id
+        and ((frame.get("payload") or {}).get("event") or {}).get("type") == "tool_execution_start"
+        and ((frame.get("payload") or {}).get("event") or {}).get("toolName") == "yield"
+        and ((frame.get("payload") or {}).get("event") or {}).get("toolCallId") == tool_call_id
+        for frame in frames)
+
+
+def _null_rejection(yields, frames, job_id):
+    first = yields[0] if yields else {}
+    return {
+        "text": first.get("result_text"),
+        "rejected_by": rejected_by(str(first.get("result_text") or "")),
+        "native_execution_started": _native_yield_started(frames, job_id, first.get("tool_call_id")),
+    }
+
+
 def derive(records: list[dict]) -> dict:
     frames = [record["frame"] for record in records]
     state = _rpc_response(frames, "get_state")
     start, end, tally = _task_dispatch(frames)
     args = start.get("args") or {}
-    results = ((end.get("result") or {}).get("details") or {}).get("results") or [{}]
-    job = results[0] if isinstance(results[0], dict) else {}
+    job = _task_result_job(end)
     child = _rpc_response(frames, "get_subagent_messages")
     yields = _yields(child.get("entries") or [])
-    first = yields[0] if yields else {}
     return {
         "ready_frame": any(frame.get("type") == "ready" for frame in frames),
         "main_session_id": state.get("sessionId"),
@@ -552,17 +574,7 @@ def derive(records: list[dict]) -> dict:
         "job": _job_evidence(job, frames),
         "child_session": _child_evidence(child),
         "yields": yields,
-        "null_rejection": {
-            "text": first.get("result_text"),
-            "rejected_by": rejected_by(str(first.get("result_text") or "")),
-            "native_execution_started": any(
-                frame.get("type") == "subagent_event"
-                and (frame.get("payload") or {}).get("id") == job.get("id")
-                and ((frame.get("payload") or {}).get("event") or {}).get("type") == "tool_execution_start"
-                and ((frame.get("payload") or {}).get("event") or {}).get("toolName") == "yield"
-                and ((frame.get("payload") or {}).get("event") or {}).get("toolCallId") == first.get("tool_call_id")
-                for frame in frames),
-        },
+        "null_rejection": _null_rejection(yields, frames, job.get("id")),
         "bus_yield_results": _bus_yield_results(frames, job.get("id")),
     }
 
