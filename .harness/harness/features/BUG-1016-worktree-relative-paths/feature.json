@@ -1,0 +1,203 @@
+{
+  "feature_id": "BUG-1016-worktree-relative-paths",
+  "branch": "feat/BUG-1016-worktree-relative-paths",
+  "pr": null,
+  "review_sha": "ef9cbce243444628d4ca74931be94a576e493dd5",
+  "cycles_used": 4,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T14:48:46+00:00",
+      "tokens": 110238,
+      "ended_at": "2026-10-04T15:24:13+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T15:24:26+00:00",
+      "tokens": 67327,
+      "ended_at": "2026-10-04T15:32:27+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-apply-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T15:32:29+00:00",
+      "tokens": 48663,
+      "ended_at": "2026-10-04T15:43:40+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "t02-docs-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-04T15:57:01+00:00",
+      "ended_at": "2026-10-04T15:57:39+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "t02-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T15:57:43+00:00",
+      "tokens": 56889,
+      "ended_at": "2026-10-04T16:10:37+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "build-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T16:11:01+00:00",
+      "tokens": 73646,
+      "ended_at": "2026-10-04T16:22:05+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T16:25:57+00:00",
+      "tokens": 83462,
+      "ended_at": "2026-10-04T16:39:14+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T16:50:46+00:00",
+      "tokens": 76238,
+      "ended_at": "2026-10-04T17:03:14+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T17:10:01+00:00",
+      "tokens": 75134,
+      "ended_at": "2026-10-04T17:24:25+00:00",
+      "cycles_used": 1
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-04T14:48:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "grilling: cause known, but the fix adds a new enforcement-adapter behaviour (hook rewrites tool input across six tool shapes incl. edit hashline headers); new DEC expected; DEC-174 main-session-direct"
+    },
+    {
+      "at": "2026-10-04T15:57:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan\u2192build seam at seq-3; T-01 landed main-session-direct (10f38a42); spend 0 cycles, within ruling; continue with T-02 docs"
+    },
+    {
+      "at": "2026-10-04T15:57:41+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "t02-docs-eng opened against the wrong squad (documentor is product, build.yaml cannot reach it) and closed BLOCKED undispatched at 0 cycles; reopening as t02-docs-product"
+    },
+    {
+      "at": "2026-10-04T16:21:49+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "simplify FAIL is a false premise: the only delta was feature.json run-start + host token stamp; 8/8 angles PASS, no applies; F1 flag-only (DEC-174 file) relayed to main session; proceed to seam"
+    },
+    {
+      "at": "2026-10-04T16:25:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "proceed-to-validate",
+      "reason": "simplify FAIL was a false-premise status check (own run-start in feature.json), 8/8 angles PASS, nothing to re-gate; build\u2192validate seam seq-6, 1/10 cycles, pin 8211687f"
+    },
+    {
+      "at": "2026-10-04T16:25:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "simplify FAIL was a false-premise status check (own run-start in feature.json), 8/8 angles PASS, nothing to re-gate; build\u2192validate seam seq-6, 1/10 cycles, pin 8211687f"
+    },
+    {
+      "at": "2026-10-04T16:39:16+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "R1 (med substance) needs a harness-hooks.ts fix or a BRIEF predicate amendment; both are DEC-174/approval-gated main-session work, no governed fix run possible; return awaiting_user with recommendation"
+    },
+    {
+      "at": "2026-10-04T16:50:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "revalidate-after-brief-amendment",
+      "reason": "R1 closed by operator ruling (a): BRIEF predicate amended at b011c90f, no code change; re-validate over new pin 55c99a85"
+    },
+    {
+      "at": "2026-10-04T17:03:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "R2 med substance probed: root misplaced only for all-quote inputs; DEC-174 main-session fix in harness-hooks.ts + regression; awaiting_user, recommend fix"
+    },
+    {
+      "at": "2026-10-04T17:10:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "revalidate-after-r2-fix",
+      "reason": "R2 closed by main-session-direct fix a6a1e9c8 (DEC-174): rootTarget roots a quoted target at leading-whitespace+1; regression test added, 124/0, red when adapter reverted; re-validate over seam pin ef9cbce2"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1016-worktree-relative-paths/notes/rework-ruling-2026-10-04.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "1aa77f6e73a124388b6e978622b07946c17f862deb4a4265ddd5c49ddef630be",
+    "T-02": "8c66d08720d7091fa1a34f96929748f267e5a29b874f46651e55aeb30d4b453a"
+  },
+  "github": {
+    "milestone": 96,
+    "parent": 2016,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 2017,
+      "T-02": 2018
+    },
+    "source_issues": [
+      1016,
+      1570
+    ],
+    "build_entry": "opened"
+  }
+}

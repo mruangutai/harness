@@ -1,0 +1,128 @@
+schema: plan/1
+feature: BUG-1016-worktree-relative-paths
+approval:
+  date: '2026-10-04'
+  approved_by: molchairuangutai
+  status: approved
+status: review
+source_issues: [1016, 1570]
+needs_approval: true
+panel:
+  last_run: plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Scope and architecture review passed; both tasks necessary and mission proportionate.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1016-worktree-relative-paths/.harness/harness/features/BUG-1016-worktree-relative-paths/notes/review-harness-code-reviewer-plan-c1.md
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: External reader returned three findings; exact source and why in panel-c1.md.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: Reviewed applicability; adapter-only plan has no UI interaction and needs
+      no DESIGN or prototype.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1016-worktree-relative-paths/.harness/harness/features/BUG-1016-worktree-relative-paths/notes/review-harness-ui-reviewer-plan-c1.md
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Once-only exit check passed both stated-intent perspectives.
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1016-worktree-relative-paths/.harness/harness/features/BUG-1016-worktree-relative-paths/notes/research-BUG-1016-worktree-relative-paths-goalcheck-plan.md
+  findings:
+  - id: PF-a04ce645703fce9d4a22de66df1630eb
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: 'Blank/whitespace path-entry rewriting (SC-03 second clause, T-01 paragraph 7) should not be built: live probes show these entries have no cwd-default meaning to replace.'
+    disposition: resolved
+    resolved_by: T-01
+    reason: BRIEF SC-03 and relative predicate plus T-01 and T-02 now preserve explicit blanks byte-for-byte; only genuinely omitted/null search paths default. Grilling Settled specifies omitted paths, not blank-entry semantics. Reader probes are supplied evidence, not rerun here.
+  - id: PF-167168a4fc099a9a415c38a6386db318
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-01's real-filesystem main/worktree fixture ("reads select the worktree bytes and relative writes modify only the worktree") duplicates the literal-path table assertions.
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+    reason: Removed the node:fs fixture requirement; literal handler-returned effective-path tables and pre/post target assertions remain the discriminating adapter boundary evidence.
+  - id: PF-0cdd7bb1cf75fbbbe87dd2bd7f5639c2
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The per-call resolver lookup with no cross-call success cache taxes every governed read/grep/glob with a Python subprocess spawn; a run-scoped cache of the successful root would serve.
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+    reason: BRIEF constraints and T-01/T-02 permit validated-success caching within an isolated governed run, with boundary/authority invalidation, uncached failures/inferred roots and no fallback. Conditional regression cases cover hits, independent siblings/new runs, retry after failure and unchanged readiness/authorization. No mandatory cache subsystem or persistent cache added.
+lanes:
+  resolved_at: af2a958ab06c0d6fc026b363b59fc3147e3982f1
+  rows:
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 active OMP enforcement adapter cannot be executed by a governed team.
+    - surface: tests/unit/omp-hooks.test.ts
+      lane: main-session-direct
+      reason: DEC-174 includes the co-changed enforcement test in the direct-execution carve-out.
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+decisions:
+  - id: D-01
+    choice: Silently root relative filesystem file-tool inputs in the feature worktree while preserving explicit absolute, tilde and scheme destinations.
+    because: Checkout selection must follow the assigned feature without notification noise or changing deliberate explicit targets; adding per-call advisories and treating URI or tilde destinations as relative are rejected.
+    dec: DEC-251
+tasks:
+  - id: T-01
+    title: Scope governed relative file-tool input to the assigned worktree
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 requires the main session to change the active OMP enforcement adapter and its co-changed tests directly; harness-backend-dev is only the consult-when owner for server-side integration and service-boundary error handling, not a team execution route.
+    depends_on: []
+    status: done
+    files:
+      - .omp/extensions/harness-hooks.ts#registerHarnessHooks
+      - path: tests/unit/omp-hooks.test.ts
+        quote: describe("OMP task lifecycle adapter", () => {
+    verify: |
+      python3 tests/unit/test-omp-hooks.py
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1016-worktree-relative-paths. Execute directly in the main session under DEC-174, never through a governed team build. Own only .omp/extensions/harness-hooks.ts and tests/unit/omp-hooks.test.ts. Do not change a gate script, resolver, OMP, Claude Code host, dependency, public API or schema.
+      Test first. Extend the existing registerHarnessHooks fixture, start and ompContext setup and captured tool_call/tool_result handlers. Its PolicyRunner must record cwd, arguments and gate payloads, return an explicit feature-root answer for each scenario, and retain the existing run-start and authorization behavior so tests reach the new path rather than an earlier refusal. Write the cases below, run them against the unmodified adapter and capture the named failures before production edits. Existing passthrough/URI/claim controls may already pass; do not mislabel them red-first. Keep all existing assertions. Expected results must be literal fixture paths, not calculated by the production rewriter. Handler-returned effective-input assertions are the adapter boundary; do not add a redundant node:fs main/worktree read/write fixture.
+      In the governed OMP tool_call path after run readiness and the existing mutation authorization, but before preDomain, transform effective input for exactly read, grep, glob, write, ast_grep, ast_edit and edit. Use the existing revised-input return channel already used for Bash; return the same effective input that policy checks receive, not a rewrite of gate payloads alone. The main/non-governed early return stays ahead of this branch. Bash is not in this branch; leave its command, cwd, environment merging and guards unchanged.
+      Resolve only when a call needs a relative-path/default-path transformation. Invoke the pinned PolicyRunner for inflight_registry.py with feature-root, --feature and the existing currentFeature bound at run start, and --root ctx.cwd. Reuse the established harness_boundary.worktree_for_feature CLI behavior, including exact/prefix discovery; do not call the feature_root Python helper that swallows ambiguity and do not enumerate worktrees in TypeScript. Never read HARNESS-FEATURE-TREE-ROOT or a checkout path from dispatch prose, input or an environment override as rewrite authority. The feature marker identifies the feature; the existing ready claim and runtime lineage establish the governed run. Conflicting/missing feature and held-run behavior remain unchanged.
+      The CLI prints one absolute root on success and prints ctx.cwd when there is no worktree match. Treat a root equal to ctx.cwd as no rewrite, returning the original input including an omitted or null path. On a blocking result, any reason, thrown invocation error, empty output, multiple output roots or nonabsolute output, refuse before the file tool runs with a named feature-root diagnostic; retain the resolver's ambiguity explanation. Do not silently fall back on an ambiguous/error answer. Permit a run-scoped cache of a validated successful CLI root, including its explicit no-match ctx.cwd answer. Isolate it to the current governed run and its feature, resolver root and pinned runner authority; clear it at run start/end and invalidate it if any of those identities changes. Never share it across siblings or runs, cache failures or inferred roots, or replace an error/ambiguity with a fallback. Claim-readiness and mutation authorization still execute before every governed rewrite, even on a cache hit. On a cache miss obtain at most one root per call needing rewriting so list/edit targets do not spawn one resolver each. A success cache is permitted, not a new mandatory caching subsystem.
+      For each of the six path-argument tools, consider string input.path and each semicolon-delimited entry independently. An entry is relative iff it is nonempty/nonblank, node:path.isAbsolute(entry) is false, it does not start with ~, and it has no leading scheme recognized by the existing URI_SCHEME regex in .omp/extensions/harness-hooks.ts; reuse that regex for scheme detection rather than defining a second one. Prefix such an entry with the resolved root and a slash, preserving its remaining text, including dot segments, globs, read selectors, archive members and SQLite query suffixes. Do not realpath, probe existence, normalize selector syntax, remap absolute paths or add a traversal policy. Preserve every excluded entry byte-for-byte, including empty and whitespace-only entries, and preserve semicolon ordering/separators; a mixed list never exempts relative siblings.
+      Apply the omitted-versus-blank default rule in .harness/harness/features/BUG-1016-worktree-relative-paths/BRIEF.md Constraints, Relative filesystem predicate. Retain the excluded-entry preservation above; do not turn a tool refusal/dropped entry into a root search. Never invent a required path for read, write or ast_edit. Preserve all non-path fields, including i, patterns, limits, content and AST rewrite specifications. Do not mutate the caller's original object; return an input revision only when a field actually changes.
+      For edit, rewrite the input string's valid hashline section paths and MV destinations, including each section and quoted MV paths with spaces. Share the section/MV recognition used for rewriting with the existing extractEditPaths: one matcher for extraction and rewriting, not independent header/MV matchers; no new parser abstraction is required. Use the same relative predicate, never rewrite body rows that merely resemble a header or MV, and leave hashes, operation text, content rows and line endings intact. Preserve destination quoting. Keep malformed edit extraction behavior and its existing advisory unchanged; this feature does not convert malformed edits into a new refusal. Ensure preDomain and postDomain judge the effective section/MV destinations that execute, not the old relative names; the post callback must remain correct whether its input is already revised or the original input for that tool call. Assert that extractEditPaths on the revised input yields exactly the effective destinations judged by preDomain and postDomain, including valid-section versus body-row discrimination. A revised absolute path is idempotent and is never prefixed twice.
+      Leave BUG-2003 domainTarget/fileDomain URI classification downstream of rewriting. For writes and edits only agent:// and the exact xd://report_issue remain allowed without check-domain.py calls; every other scheme/device, including local://, conflict://, vault://, ssh://, xd://report_issue/extra and unknown schemes, is refused by its existing named reason. URI and tilde strings stay unrewritten on read/search/AST tools too; do not broaden write permissions to match their passthrough. Mixed edits still gate every ordinary rewritten file and refused URI, before and after, with unchanged check-domain.py payload fields, --post handling and refusal propagation.
+      Add table-driven assertions for each of read, grep, glob, write, ast_grep and ast_edit with a simple relative path and a semicolon list containing relative, absolute, tilde and URI entries; assert revised input and all unrelated fields. Cover dot paths, parent segments, globs, read line/image selectors, archive members and SQLite queries. Cover absent/null cwd defaults for each of grep, glob and ast_grep. Cover explicit empty strings, whitespace-only strings, trailing empty list entries and mixed relative/blank lists remaining byte-for-byte preserved apart from genuinely relative siblings, for all six path tools; blank-only calls require no resolver lookup. Cover missing required paths on the other three tools remaining missing. Cover a multi-section hashline edit, relative and absolute MV destinations, quoted destinations containing spaces, CRLF, content that looks like a header/MV, unmodified hashes and idempotent already-revised input.
+      Cover unique worktree, no-match root, ambiguous refusal, reason/nonzero answer, thrown runner, empty/multiline/nonabsolute root answers, spoofed worktree-path prose/input and independent siblings with different feature-root answers. Verify exact currentFeature in resolver argv, at most one lookup per rewriting call, no lookup for absolute/URI/tilde/blank-only calls and no lookup for Bash/main/non-governed calls. If caching successes, assert repeated calls within one unchanged run reuse the successful answer, new runs and independent siblings resolve independently, and changed feature/root/runner authority cannot reuse an earlier answer; no-match cache hits preserve input too. Whether caching or not, assert a failed resolution refuses and a later call invokes the resolver again, never returning a cached failure or fallback. Exercise existing held-run and authorization refusals, including after a successful cache fill if caching, without letting the new branch bypass them.
+      Exercise a relative write and edit through pre and post with a runner that refuses the effective absolute file and assert the preserved gate refusal, target, content where present, lineage fields and tool name. Repeat BUG-2003's allowed/refused URI and mixed-edit cases with a relative ordinary sibling, including MV. Feed both revised and original inputs to post callbacks and require identical effective file targets. Assert successful rewriting produces no extra advisory/content/notification. Literal handler-returned path assertions must discriminate checkout selection without exercising Node's filesystem separately.
+      Run the literal verify from the assigned worktree after implementation; expected exit 0 and every test in omp-hooks.test.ts passing in under 60 seconds, not just the new selection. Return named red-first and final receipts for SC-01 through SC-06, and pin code for SC-07 inspection. The documentation task follows this one; do not write the DEC or index in this task.
+  - id: T-02
+    title: Record the scoped file-tool adapter contract and decision index
+    traces: [SC-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1016-worktree-relative-paths, after T-01 lands. Consult-when route is harness-documentor for reference docs and user-facing explanation. Own only .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md. This is documentation, not permission to change the generator or a gate; any newly required gate edit must instead be a DEC-174 main-session-direct plan amendment.
+      Add DEC-251 describing the new OMP adapter behavior from T-01, with origins #1016 and #1570 and lineage DEC-174, DEC-250 and DEC-233. Take its contract content from .harness/harness/features/BUG-1016-worktree-relative-paths/BRIEF.md SC-07 and the named Constraints DEC-174, DEC-250, DEC-233, Existing harness_boundary.worktree_for_feature through inflight_registry.py feature-root, The existing tool_call revised-input channel, Relative filesystem predicate, Rewriting is silent and lexical, A validated successful feature-root answer, and BUG-2003's URI classification, as implemented by T-01. State all seven tools by their exact names; six path fields and edit hashline headers/MV destinations; and rewritten execution/pre/post agreement. Use those authoritative references for the predicate, default-path and blank/list-entry contract rather than restating parallel lists in this task. Preserve SC-04's named resolver-error refusal and SC-06's non-governed passthrough coverage in the documented contract. Document permitted successful-root caching confined to one governed run with feature/root/runner authority isolation and run-boundary invalidation, failures and inferred roots uncached, no invented fallback and readiness/authorization checked on every call. Describe the actual T-01 implementation without claiming caching is mandatory. Record why per-call advisories and a new TypeScript discovery implementation were rejected. State that main-session/non-governed behavior, Bash cwd/command, OMP itself and Claude Code hosting are unchanged. Do not resurrect a Claude adapter.
+      DEC-251 is unused at the planning baseline af2a958ab06c0d6fc026b363b59fc3147e3982f1. If another change occupies it before execution, do not overwrite or reuse a decision id; return a plan-amendment request selecting an unused number and updating D-01 before authoring the new entry.
+      Regenerate the index with the worktree's existing .claude/skills/harness/bin/gen-decisions-index.py, then author the new row's one-sentence ruling to describe feature-relative file-tool inputs without changing other hand-written rulings. Do not modify the generator. Run the literal read-only verify from this worktree; expected exit 0 and no diff, under 60 seconds. Verify success proves index consistency only; SC-07 is inspection of git show at review_sha for the new DEC, its index row, registerHarnessHooks and the OMP task lifecycle adapter tests. Carry the new DEC number and the T-01 test-receipt pointer in the documentor handoff, without claiming tests were rerun here.

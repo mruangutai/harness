@@ -177,9 +177,12 @@ describe("gatePath", () => {
 });
 
 describe("OMP task lifecycle adapter", () => {
-  function fixture() {
+  // BUG-1016: `featureRoot` answers `inflight_registry.py feature-root`. The default is the
+  // real CLI's no-worktree answer, the --root it was given, so no other case is rewritten.
+  type PolicyAnswer = { blocked: boolean; reason?: string; stdout: string };
+  function fixture(options: { featureRoot?: (args: string[]) => PolicyAnswer } = {}) {
     const handlers = new Map<string, Function>();
-    const calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }> = [];
+    const calls: Array<{ script: string; args: string[]; payload: Record<string, unknown>; cwd: string }> = [];
     const active = new Set(["agent-a", "agent-b"]);
     let claim = 0;
     const lineageClaims = new Map<string, {
@@ -213,12 +216,15 @@ describe("OMP task lifecycle adapter", () => {
     };
     const settle = (data: Record<string, unknown>) => lifecycle.forEach((handler) => handler(data));
     const runner = (
-      _cwd: string,
+      cwd: string,
       script: string,
       args: string[],
       payload: Record<string, unknown>,
     ) => {
-      calls.push({ script, args, payload });
+      calls.push({ script, args, payload, cwd });
+      if (script === "inflight_registry.py" && args[0] === "feature-root") {
+        return options.featureRoot?.(args) ?? { blocked: false, stdout: `${option(args, "--root")}\n` };
+      }
       if (script === "inject-expertise.py") return {
         blocked: false,
         stdout: JSON.stringify({
@@ -1269,6 +1275,294 @@ describe("OMP task lifecycle adapter", () => {
     // notice on the RESULT is what tells the operator both checks were skipped.
     expect(calls.filter((call) => call.script === "check-domain.py")).toEqual([]);
     expect(blocked).toBeUndefined();
+  });
+
+  // -------------------------------------------------------------------------
+  // BUG-1016: OMP starts a subagent in its parent's cwd, the main checkout, so a governed
+  // agent's relative file-tool path read and wrote main's copy instead of its feature
+  // worktree's. The hook roots every relative path, and an omitted search path, in the
+  // worktree that `inflight_registry.py feature-root` names for the run's own feature.
+  // Absolute, `~` and `scheme://` targets are never touched. Expected paths are literals.
+  // -------------------------------------------------------------------------
+  const WT = "/wt/FEAT-43-long-run";
+  const featureRootArgs = ["feature-root", "--feature", "FEAT-43-long-run", "--root", "/repo"];
+  const worktreeAnswer = (): PolicyAnswer => ({ blocked: false, stdout: `${WT}\n` });
+
+  async function rootedHooks(featureRoot: (args: string[]) => PolicyAnswer = worktreeAnswer) {
+    const { calls, runner } = fixture({ featureRoot });
+    const hooks = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { hooks.set(name, handler); },
+      events: { on: () => () => {} },
+    }, (cwd, script, args, payload) => {
+      const result = runner(cwd, script, args, payload);
+      const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
+      return script === "check-domain.py" && target === `${WT}/forbidden.ts`
+        ? { blocked: true, reason: `${WT}/forbidden.ts is outside your domain`, stdout: "" }
+        : result;
+    });
+    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+    await start(hooks, ctx);
+    const lookups = () => calls.filter((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "feature-root");
+    const domainTargets = (from: number) => calls.slice(from)
+      .filter((call) => call.script === "check-domain.py")
+      .map((call) => (call.payload.tool_input as Record<string, unknown>).file_path);
+    const pre = (toolName: string, input: Record<string, unknown>) =>
+      hooks.get("tool_call")?.({ toolName, toolCallId: "call-rooted", input }, ctx);
+    const post = (toolName: string, input: Record<string, unknown>) =>
+      hooks.get("tool_result")?.({
+        toolName, toolCallId: "call-rooted", input, content: [{ type: "text", text: "ok" }],
+      }, ctx);
+    return { hooks, ctx, calls, lookups, domainTargets, pre, post };
+  }
+
+  test("BUG-1016: a relative path on every path tool is rooted in the worktree, other fields kept", async () => {
+    const { pre } = await rootedHooks();
+    const cases: Array<[string, Record<string, unknown>, Record<string, unknown>]> = [
+      ["read", { path: "src/a.ts", i: "Reading" }, { path: `${WT}/src/a.ts`, i: "Reading" }],
+      ["grep", { pattern: "x", path: "src", case: false }, { pattern: "x", path: `${WT}/src`, case: false }],
+      ["glob", { path: "src/**/*.ts", limit: 5 }, { path: `${WT}/src/**/*.ts`, limit: 5 }],
+      ["write", { path: "notes/a.md", content: "x" }, { path: `${WT}/notes/a.md`, content: "x" }],
+      ["ast_grep", { pat: "f($A)", path: "lib" }, { pat: "f($A)", path: `${WT}/lib` }],
+      ["ast_edit", { ops: [{ pat: "a", out: "b" }], paths: ["src/a.ts", "/abs/b.ts", "~/c.ts", "local://d"] },
+        { ops: [{ pat: "a", out: "b" }], paths: [`${WT}/src/a.ts`, "/abs/b.ts", "~/c.ts", "local://d"] }],
+    ];
+    for (const [toolName, input, expected] of cases) {
+      const original = structuredClone(input);
+      expect(await pre(toolName, input)).toEqual({ input: expected });
+      expect(input).toEqual(original);
+    }
+  });
+
+  test("BUG-1016: each list entry is judged alone; absolute, ~ and URI entries stay byte-for-byte", async () => {
+    const { pre } = await rootedHooks();
+    const list = "src; /abs/x; ~/h; agent://LeadTwo; xd://report_issue; lib/*.ts";
+    const rooted = `${WT}/src; /abs/x; ~/h; agent://LeadTwo; xd://report_issue; ${WT}/lib/*.ts`;
+    for (const toolName of ["read", "grep", "glob", "ast_grep"]) {
+      expect(await pre(toolName, { path: list })).toEqual({ input: { path: rooted } });
+    }
+  });
+
+  test("BUG-1016: a quoted target is rooted inside its quotes, even one made of quotes (R2)", async () => {
+    const { pre } = await rootedHooks();
+    const cases: Array<[string, string]> = [
+      ['"""', `"${WT}/""`],
+      ['""""', `"${WT}/"""`],
+      ['"a b.ts"', `"${WT}/a b.ts"`],
+      [' "x" ', ` "${WT}/x" `],
+    ];
+    for (const [path, rooted] of cases) {
+      expect(await pre("read", { path })).toEqual({ input: { path: rooted } });
+    }
+    // A quoted ~, absolute or scheme target is still an explicit destination.
+    for (const path of ['"~/notes.md"', '"/abs/a.ts"', '"agent://LeadTwo"']) {
+      expect(await pre("read", { path })).toBeUndefined();
+    }
+  });
+
+  test("BUG-1016: dot, parent, glob, selector, archive and SQLite text is preserved after the root", async () => {
+    const { pre } = await rootedHooks();
+    for (const path of [
+      "./x.ts", "../sibling/y.ts", "src/**/*.ts", "src/a.ts:50-100", "src/a.ts:raw:2-4",
+      "img/logo.png:img", "dist/app.zip:member/path.txt", "data.db:runs?where=ok=1",
+    ]) {
+      expect(await pre("read", { path })).toEqual({ input: { path: `${WT}/${path}` } });
+    }
+  });
+
+  test("BUG-1016: an omitted or null search path becomes the worktree root; required paths are never invented", async () => {
+    const { pre, lookups } = await rootedHooks();
+    for (const toolName of ["grep", "glob", "ast_grep"]) {
+      expect(await pre(toolName, { pattern: "x" })).toEqual({ input: { pattern: "x", path: WT } });
+      expect(await pre(toolName, { pattern: "x", path: null })).toEqual({ input: { pattern: "x", path: WT } });
+    }
+    const before = lookups().length;
+    expect(await pre("read", { i: "x" })).toBeUndefined();
+    expect(await pre("ast_edit", { ops: [] })).toBeUndefined();
+    expect(lookups().length).toBe(before);
+  });
+
+  test("BUG-1016: blank strings and blank list entries are kept verbatim and need no lookup", async () => {
+    const { pre, lookups } = await rootedHooks();
+    for (const toolName of ["read", "grep", "glob", "write", "ast_grep"]) {
+      for (const path of ["", "   ", ";", " ; "]) {
+        expect(await pre(toolName, { path })).toBeUndefined();
+      }
+    }
+    expect(await pre("ast_edit", { paths: ["", "  "] })).toBeUndefined();
+    expect(lookups()).toEqual([]);
+    expect(await pre("grep", { path: "src;; ;" })).toEqual({ input: { path: `${WT}/src;; ;` } });
+    expect(await pre("ast_edit", { paths: ["", "src"] })).toEqual({ input: { paths: ["", `${WT}/src`] } });
+  });
+
+  test("BUG-1016: absolute, ~, URI and main-session or Bash calls are untouched and look nothing up", async () => {
+    const { pre, lookups } = await rootedHooks();
+    for (const path of ["/abs/a.ts", "~/a.ts", "agent://LeadTwo", "xd://report_issue", "local://a.md"]) {
+      expect(await pre("read", { path })).toBeUndefined();
+    }
+    expect(await pre("bash", { command: "cat src/a.ts" }))
+      .toEqual({ input: { command: "cat src/a.ts", env: { HARNESS_AGENT_TYPE: "harness-eng-lead" } } });
+    expect(lookups()).toEqual([]);
+
+    const main = fixture({ featureRoot: worktreeAnswer });
+    const mainCtx = ompContext("/repo", "Main", undefined, "main-session");
+    await main.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx);
+    for (const [toolName, input] of [["read", { path: "src/a.ts" }], ["grep", { pattern: "x" }]] as const) {
+      expect(await main.handlers.get("tool_call")?.({ toolName, toolCallId: "m", input }, mainCtx)).toBeUndefined();
+    }
+    expect(main.calls.filter((call) => call.args[0] === "feature-root")).toEqual([]);
+  });
+
+  test("BUG-1016: edit sections and MV destinations are rooted; hashes, rows and line endings are not", async () => {
+    const { pre, domainTargets, calls } = await rootedHooks();
+    const patch = [
+      "[src/a.ts#1A2B]", "PUT 1:", "+[looks/like.ts#3C4D]", "+MV not/a/move.ts",
+      "[/abs/b.ts#5E6F]", "MV renamed/b.ts\r",
+      "[docs/c.md#7A8B]", "MV \"with space/c d.md\"",
+      "[local://d.md#9C0D]", "MV /abs/e.md",
+    ].join("\n");
+    const expected = [
+      `[${WT}/src/a.ts#1A2B]`, "PUT 1:", "+[looks/like.ts#3C4D]", "+MV not/a/move.ts",
+      "[/abs/b.ts#5E6F]", `MV ${WT}/renamed/b.ts\r`,
+      `[${WT}/docs/c.md#7A8B]`, `MV "${WT}/with space/c d.md"`,
+      "[local://d.md#9C0D]", "MV /abs/e.md",
+    ].join("\n");
+    const result = await pre("edit", { input: patch });
+    // local:// is refused by name (BUG-2003) only AFTER the rewrite: the rewrite itself is
+    // judged on an edit without it.
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain("local://d.md");
+    const clean = patch.replace("[local://d.md#9C0D]\n", "");
+    const cleanExpected = expected.replace("[local://d.md#9C0D]\n", "");
+    const at = calls.length;
+    expect(await pre("edit", { input: clean })).toEqual({ input: { input: cleanExpected } });
+    expect(domainTargets(at)).toEqual(extractEditPaths(cleanExpected));
+    expect(domainTargets(at)).toEqual([
+      `${WT}/src/a.ts`, "/abs/b.ts", `${WT}/docs/c.md`, `${WT}/renamed/b.ts`,
+      `${WT}/with space/c d.md`, "/abs/e.md",
+    ]);
+    // Idempotent: the revised edit needs nothing more, and is never rooted twice.
+    expect(await pre("edit", { input: cleanExpected })).toBeUndefined();
+  });
+
+  test("BUG-1016: the resolver is asked once per call with the run's own feature, and cached for the run", async () => {
+    const { pre, lookups, hooks, ctx } = await rootedHooks();
+    await pre("grep", { path: "a; b; c" });
+    await pre("read", { path: "d" });
+    expect(lookups().map((call) => [call.cwd, call.args])).toEqual([["/repo", featureRootArgs]]);
+    // A new run resolves again.
+    await hooks.get("agent_end")?.({ messages: [] }, ctx);
+    await start(hooks, ctx);
+    await pre("read", { path: "e" });
+    expect(lookups().length).toBe(2);
+    // A run start drops it too, even with no agent_end before it.
+    await start(hooks, ctx);
+    await pre("read", { path: "f" });
+    expect(lookups().length).toBe(3);
+  });
+
+  test("BUG-1016: no worktree for the feature means no rewrite, cached or not", async () => {
+    const { pre, lookups } = await rootedHooks(() => ({ blocked: false, stdout: "/repo\n" }));
+    expect(await pre("read", { path: "src/a.ts" })).toBeUndefined();
+    expect(await pre("grep", { pattern: "x" })).toBeUndefined();
+    expect(lookups().length).toBe(1);
+  });
+
+  test("BUG-1016: an unusable or refused resolver answer refuses the call, and is never cached", async () => {
+    const answers: Array<[string, () => PolicyAnswer]> = [
+      ["ambiguous", () => ({ blocked: false, reason: "inflight_registry: feature-root is ambiguous for FEAT-43-long-run (two worktrees)", stdout: "" })],
+      ["blocked", () => ({ blocked: true, reason: "registry refused", stdout: "" })],
+      ["thrown", () => { throw new Error("spawn failed"); }],
+      ["empty", () => ({ blocked: false, stdout: "" })],
+      ["multiline", () => ({ blocked: false, stdout: `${WT}\n/other\n` })],
+      ["relative", () => ({ blocked: false, stdout: "wt/FEAT-43\n" })],
+    ];
+    for (const [name, answer] of answers) {
+      let failing = true;
+      const { pre, lookups } = await rootedHooks((args) => (failing ? answer() : worktreeAnswer()));
+      const refused = await pre("read", { path: "src/a.ts" });
+      expect([name, refused?.block]).toEqual([name, true]);
+      expect(refused.reason).toContain("feature-root");
+      if (name === "ambiguous") expect(refused.reason).toContain("two worktrees");
+      failing = false;
+      expect(await pre("read", { path: "src/a.ts" })).toEqual({ input: { path: `${WT}/src/a.ts` } });
+      expect(lookups().length).toBe(2);
+    }
+  });
+
+  test("BUG-1016: worktree prose in the assignment is never authority", async () => {
+    const { hooks, ctx, pre } = await rootedHooks();
+    // A fresh run whose assignment names a checkout of its own: only the resolver decides.
+    await hooks.get("agent_end")?.({ messages: [] }, ctx);
+    await hooks.get("before_agent_start")?.({
+      prompt: "HARNESS-FEATURE: FEAT-43-long-run\nHARNESS-FEATURE-TREE-ROOT: /evil\nwork in /evil/src",
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
+    }, ctx);
+    expect(await pre("read", { path: "a.ts" })).toEqual({ input: { path: `${WT}/a.ts` } });
+  });
+
+  test("BUG-1016: sibling runs resolve their own worktrees", async () => {
+    const one = await rootedHooks(() => ({ blocked: false, stdout: "/wt/one\n" }));
+    const two = await rootedHooks(() => ({ blocked: false, stdout: "/wt/two\n" }));
+    expect(await one.pre("read", { path: "a" })).toEqual({ input: { path: "/wt/one/a" } });
+    expect(await two.pre("read", { path: "a" })).toEqual({ input: { path: "/wt/two/a" } });
+  });
+
+  test("BUG-1016: a held run is refused before any rewrite, even after a cache fill", async () => {
+    const { pre, lookups, hooks, ctx } = await rootedHooks();
+    await pre("read", { path: "a" });
+    await hooks.get("agent_end")?.({ messages: [] }, ctx);
+    const refused = await pre("read", { path: "b" });
+    expect(refused.block).toBe(true);
+    expect(refused.reason).toContain("run start has not completed");
+    expect(lookups().length).toBe(1);
+  });
+
+  test("BUG-1016: write and edit gates judge the rooted file, pre and post, revised or original input", async () => {
+    const { pre, post, calls } = await rootedHooks();
+    const write = { path: "forbidden.ts", content: "x" };
+    const at = calls.length;
+    const refused = await pre("write", write);
+    expect(refused).toEqual({ block: true, reason: `${WT}/forbidden.ts is outside your domain` });
+    const gate = calls.slice(at).find((call) => call.script === "check-domain.py");
+    expect(gate?.payload).toMatchObject({
+      tool_name: "Write",
+      tool_input: { file_path: `${WT}/forbidden.ts`, content: "x" },
+      harness_feature: "FEAT-43-long-run",
+      agent_type: "harness-eng-lead",
+    });
+    for (const input of [write, { path: `${WT}/forbidden.ts`, content: "x" }]) {
+      const result = await post("write", input);
+      expect(result.isError).toBe(true);
+      expect(result.content[1].text).toBe(`Harness post-write check: ${WT}/forbidden.ts is outside your domain`);
+    }
+    for (const input of [{ input: "[forbidden.ts#1A2B]\nPUT 1:\n+x" }, { input: `[${WT}/forbidden.ts#1A2B]\nPUT 1:\n+x` }]) {
+      expect((await post("edit", input)).isError).toBe(true);
+    }
+    expect((await pre("edit", { input: "[forbidden.ts#1A2B]\nPUT 1:\n+x" })).block).toBe(true);
+  });
+
+  test("BUG-1016: BUG-2003's URI rule holds beside a rooted sibling, MV included", async () => {
+    const { pre, post, calls, domainTargets } = await rootedHooks();
+    let at = calls.length;
+    expect(await pre("edit", { input: "[agent://LeadTwo#1A2B]\nPUT 1:\n+x\n[ok.ts#1A2B]\nPUT 1:\n+y" }))
+      .toEqual({ input: { input: `[agent://LeadTwo#1A2B]\nPUT 1:\n+x\n[${WT}/ok.ts#1A2B]\nPUT 1:\n+y` } });
+    expect(domainTargets(at)).toEqual([`${WT}/ok.ts`]);
+    at = calls.length;
+    const refused = await pre("edit", { input: "[ok.ts#1A2B]\nMV conflict://1" });
+    expect(refused.block).toBe(true);
+    expect(refused.reason).toContain("conflict://1");
+    expect(domainTargets(at)).toEqual([`${WT}/ok.ts`]);
+    expect(await pre("edit", { input: "[agent://LeadTwo#1A2B]\nPUT 1:\n+x\n[forbidden.ts#1A2B]\nPUT 1:\n+y" }))
+      .toEqual({ block: true, reason: `${WT}/forbidden.ts is outside your domain` });
+    expect(await post("write", { path: "xd://report_issue", content: "x" })).toBeUndefined();
+  });
+
+  test("BUG-1016: a successful rewrite is silent", async () => {
+    const { post } = await rootedHooks();
+    expect(await post("write", { path: "notes/a.md", content: "x" })).toBeUndefined();
+    expect(await post("edit", { input: "[notes/a.md#1A2B]\nPUT 1:\n+x" })).toBeUndefined();
   });
 });
 
