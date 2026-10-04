@@ -3,16 +3,17 @@
 ## Current
 
 - feature: BUG-2003-hook-internal-uris
-- run: .harness/harness/features/BUG-2003-hook-internal-uris/runs/2026-10-03-validate-c1-validator/digest.md
+- run: .harness/harness/features/BUG-2003-hook-internal-uris/runs/distill-validator/digest.md
 - squad: validator
-- status: in_review
+- status: shipped
 - review_sha: c2170e265c30e36d6252668775ee41a8ebc93fb6
-- verdict: PASS (five readers clean, must_fix empty, severity_max none)
+- verdict: PASS (distill-product PASS, distill-validator PASS; merged #2007 0d21fd02, station done e5028186)
 - cycles_used: 2/10
-- rework: round 1 of 1 used (V1 main-session-direct fix at c2170e26); 23/45 min
+- rework: round 1 of 1 used; distillation added no cycles
 - briefing: .harness/harness/features/BUG-2003-hook-internal-uris/notes/ship-review-validate-c1-validator.md
-- next: operator ship decision — merge feat/BUG-2003-hook-internal-uris
+- expertise: security-reviewer craft G-09 replaced; orchestrator repository G-01, G-08 replaced, P-11 added; pm, qa, code, ui, both leads unchanged
+- next: main session lands the post-merge distill commit and removes the worktree (INV-29)
 
 ## Open Questions
 
-- none blocking; c0 Q1 carried as backlog B-1 in the briefing.
+- none; B-1..B-5 filed as #2008-#2012, handled by the main session.

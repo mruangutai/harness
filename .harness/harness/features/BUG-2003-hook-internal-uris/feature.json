@@ -36,6 +36,28 @@
       "tokens": 41037,
       "ended_at": "2026-10-04T04:17:10+00:00",
       "cycles_used": 1
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T05:12:07+00:00",
+      "ended_at": "2026-10-04T05:26:51+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T05:12:09+00:00",
+      "ended_at": "2026-10-04T05:27:02+00:00",
+      "cycles_used": 0,
+      "tokens": null,
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -66,6 +88,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "validate c1 over c2170e26 clean on all five readers with zero must-fix; rework round 1 of 1 consumed by the V1 main-session-direct fix; proceed to the ship briefing"
+    },
+    {
+      "at": "2026-10-04T05:27:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "distillation is not rework: the lead's digest reports cycles_used 1 but no gate failed and nothing was re-gated; recorded 0 against the hard budget (DEC-157) and cycles_used stays 2/10"
     }
   ],
   "mission": "patch",
