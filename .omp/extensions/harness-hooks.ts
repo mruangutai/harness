@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DigestSchemaBundleError, loadDigestSchemaBundle } from "./digest-schema.ts";
 
@@ -72,20 +72,20 @@ export function detectHarnessAgent(systemPrompt: unknown): string | undefined {
   return detectMarker(systemPrompt, AGENT_MARKER, "agent");
 }
 
+// One matcher for an edit's targets, a section header `[path#HASH]` or an `MV dest` line, read
+// by extraction (the domain gates) and by BUG-1016's rooting alike, so the two can never
+// disagree on which lines name a file. Body rows start with `+` and never match.
+const EDIT_TARGET = /^(?:\[([^#\r\n]+)#([0-9A-F]{4})\]|MV (.+))$/gm;
+
 export function extractEditPaths(input: unknown): string[] {
   if (typeof input !== "string") return [];
-  const paths: string[] = [];
-  const seen = new Set<string>();
-  const add = (raw: string): void => {
-    const path = raw.trim().replace(/^"(.*)"$/, "$1");
-    if (path && !seen.has(path)) {
-      seen.add(path);
-      paths.push(path);
-    }
-  };
-  for (const match of input.matchAll(/^\[([^#\r\n]+)#[0-9A-F]{4}\]$/gm)) add(match[1]);
-  for (const match of input.matchAll(/^MV (.+)$/gm)) add(match[1]);
-  return paths;
+  const sections: string[] = [];
+  const moves: string[] = [];
+  for (const match of input.matchAll(EDIT_TARGET)) {
+    const path = (match[1] ?? match[3]).trim().replace(/^"(.*)"$/, "$1");
+    if (path) (match[1] === undefined ? moves : sections).push(path);
+  }
+  return [...new Set([...sections, ...moves])];
 }
 
 function text(value: unknown): string {
@@ -197,9 +197,11 @@ function domainTarget(target: unknown): DomainTarget {
   };
 }
 
-// The write path and every edit path (section sources and MV destinations) pass through ONE
-// decision, pre and post, so edit cannot become the way around a refused scheme and an allowed
-// URI never exempts a sibling file in the same edit.
+// The write path, every edit path (section sources and MV destinations) and every ast_edit
+// `paths` entry pass through ONE decision, pre and post, so neither edit tool can become the way
+// around a refused scheme and an allowed URI never exempts a sibling file in the same call.
+// An ast_edit entry may be a directory or glob; it is judged as given, so one reaching outside
+// the agent's domain is refused rather than expanded (#2028).
 function fileDomain(
   cwd: string,
   toolName: string,
@@ -212,7 +214,12 @@ function fileDomain(
     ? [[input.path, { file_path: input.path, content: input.content }]]
     : toolName === "edit"
       ? extractEditPaths(input.input).map((filePath) => [filePath, { file_path: filePath }])
-      : [];
+      : toolName === "ast_edit" && Array.isArray(input.paths)
+        ? input.paths
+          .flatMap((entry) => (typeof entry === "string" ? entry.split(";").map((part) => part.trim()) : [entry]))
+          .filter((filePath) => filePath !== "")
+          .map((filePath): [unknown, Dict] => [filePath, { file_path: filePath }])
+        : [];
   return targets.flatMap(([target, toolInput]): PolicyResult[] => {
     const decision = domainTarget(target);
     if (decision.kind === "allowed") return [];
@@ -248,15 +255,74 @@ function postDomain(
   input: Dict,
   runner: PolicyRunner,
   ctx?: any,
+  feature?: string,
 ): PolicyResult[] {
   const base = basePayload(agent, "PostToolUse", cwd, ctx);
   if (toolName !== "bash") return fileDomain(cwd, toolName, input, runner, ["--post"], base);
+  // #2026: the Bash sweep narrows to the run's own feature's checkouts when it is named.
   return [runner(cwd, "check-domain.py", ["--post"], {
     ...base,
+    ...(feature ? { harness_feature: feature } : {}),
     tool_name: "Bash",
     tool_input: { command: input.command },
   })];
 }
+
+// BUG-1016: OMP starts a subagent in its parent's cwd, the main checkout, so a governed
+// agent's relative path read and wrote main's copy rather than its feature worktree's. Each
+// relative target is rooted in the worktree, lexically: no existence probe, no realpath, and
+// selector text after the path (`:50-100`, an archive member, a SQLite query) is kept as is.
+// Absolute, `~` and `scheme://` targets are explicit destinations and are never touched;
+// blank ones are kept verbatim. Quoting and surrounding whitespace survive.
+function rootTarget(raw: string, root: string): string {
+  const trimmed = raw.trim();
+  const quoted = /^"(.*)"$/.exec(trimmed);
+  const target = quoted ? quoted[1] : trimmed;
+  if (!target.trim() || isAbsolute(target) || target.startsWith("~") || URI_SCHEME.test(target)) {
+    return raw;
+  }
+  // The target starts after the leading whitespace and, when quoted, the opening quote; never
+  // searched for, since a target made of quotes would match the wrapper first.
+  const at = raw.length - raw.trimStart().length + (quoted ? 1 : 0);
+  return `${raw.slice(0, at)}${root}/${raw.slice(at)}`;
+}
+
+const rootPathList = (value: string, root: string): string =>
+  value.split(";").map((entry) => rootTarget(entry, root)).join(";");
+
+const PATH_TOOLS = ["read", "grep", "glob", "write", "ast_grep"];
+// The tools whose omitted path means "search the cwd". read and write require a path, and
+// ast_edit requires `paths`: none is invented for them.
+const ROOT_DEFAULT_TOOLS = ["grep", "glob", "ast_grep"];
+
+// The input the tool runs with once every relative target is rooted at `root`, or undefined
+// when nothing changes. Never mutates `input`.
+function rootedInput(toolName: string, input: Dict, root: string): Dict | undefined {
+  if (toolName === "edit") {
+    if (typeof input.input !== "string") return undefined;
+    const patch = input.input.replace(EDIT_TARGET, (line: string, section?: string, hash?: string, move?: string) =>
+      section !== undefined ? `[${rootTarget(section, root)}#${hash}]` : `MV ${rootTarget(String(move), root)}`);
+    return patch === input.input ? undefined : { ...input, input: patch };
+  }
+  if (toolName === "ast_edit") {
+    if (!Array.isArray(input.paths)) return undefined;
+    const paths = input.paths.map((entry) => (typeof entry === "string" ? rootPathList(entry, root) : entry));
+    return paths.every((entry, index) => entry === (input.paths as unknown[])[index])
+      ? undefined : { ...input, paths };
+  }
+  if (!PATH_TOOLS.includes(toolName)) return undefined;
+  if (input.path === undefined || input.path === null) {
+    return ROOT_DEFAULT_TOOLS.includes(toolName) ? { ...input, path: root } : undefined;
+  }
+  if (typeof input.path !== "string") return undefined;
+  const path = rootPathList(input.path, root);
+  return path === input.path ? undefined : { ...input, path };
+}
+
+// Whether a call has anything to root, decided before any resolver runs: rooting at a
+// placeholder changes the input exactly when rooting at the real worktree would.
+const needsRoot = (toolName: string, input: Dict): boolean =>
+  rootedInput(toolName, input, "/") !== undefined;
 
 function firstBlock(results: PolicyResult[]): string | undefined {
   return results.find((result) => result.blocked)?.reason;
@@ -871,6 +937,43 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ? runGate.reason
       : "Harness run start has not completed; no tool runs before the run holds its claim.";
 
+  // BUG-1016: the worktree this run's relative paths are rooted in, named by the ONE feature-root
+  // resolver for the run's own feature, never by dispatch prose, tool input or the environment.
+  // A validated answer is kept for the run (keyed by run id, feature and checkout, and dropped at
+  // every run boundary); a refusal or an unusable answer is never kept and never guessed past.
+  let featureRootCache: { key: string; root: string } | undefined;
+  const featureRoot = (cwd: string): { root: string } | { reason: string } => {
+    const key = JSON.stringify([runtimeAgentId, currentFeature, cwd]);
+    if (featureRootCache?.key === key) return { root: featureRootCache.root };
+    const refused = (why: string) => ({
+      reason: `Harness could not place this call in ${currentFeature}'s checkout: feature-root ${why}.`,
+    });
+    let answer: PolicyResult;
+    try {
+      answer = policyRunner(cwd, "inflight_registry.py", [
+        "feature-root", "--feature", String(currentFeature), "--root", cwd,
+      ], {});
+    } catch (error) {
+      return refused(`could not run (${error instanceof Error ? error.message : String(error)})`);
+    }
+    if (answer.blocked || answer.reason) return refused(`refused: ${answer.reason || "no reason given"}`);
+    const roots = answer.stdout.split("\n").map((line) => line.trim()).filter(Boolean);
+    if (roots.length !== 1 || !isAbsolute(roots[0])) {
+      return refused(`gave no single absolute root (${JSON.stringify(answer.stdout)})`);
+    }
+    featureRootCache = { key, root: roots[0] };
+    return { root: roots[0] };
+  };
+
+  // A governed call's input rooted in its worktree: undefined when there is nothing to root or
+  // the feature has no worktree (the resolver answers the checkout itself).
+  const rootCall = (cwd: string, toolName: string, input: Dict): { input?: Dict; reason?: string } => {
+    if (!needsRoot(toolName, input)) return {};
+    const resolved = featureRoot(cwd);
+    if ("reason" in resolved) return { reason: resolved.reason };
+    return resolved.root === cwd ? {} : { input: rootedInput(toolName, input, resolved.root) };
+  };
+
   // A child is released by its runtime id wherever its claim lives, and a call's receipts
   // once all of that call's children have settled.
   const settleRun = (callKey: string | undefined, agentId: string, cwd: string): void => {
@@ -891,6 +994,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   const openRun = (ctx: { cwd: string }, prompt: unknown): RunAnswer => {
     runGate = { state: "unready" };
     digestBinding = undefined;
+    featureRootCache = undefined;
     const started = startRun(ctx, prompt);
     runGate = started.ok ? { state: "ready" } : { state: "held", reason: heldRunReason(started) };
     if (started.ok && (currentAgent === "harness-eng-lead" || currentAgent === "harness-product-lead" || currentAgent === "harness-validator-lead")) {
@@ -1002,7 +1106,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         ...(parentAgentId ? { parentId: parentAgentId } : {}),
       },
     };
-    const mutates = ["write", "edit", "bash"].includes(toolName);
+    const mutates = ["write", "edit", "ast_edit", "bash"].includes(toolName);
     sessionCwd = text(ctx.cwd) || sessionCwd;
     if (toolName === "task" && !agentId) {
       return { block: true, reason: MISSING_CAPABILITY };
@@ -1036,9 +1140,17 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         }
       }
     }
+    // BUG-1016: after claim readiness and mutation authorization, before any domain gate, so
+    // every gate judges the input the tool will actually run with.
+    let effectiveInput = input;
+    if (!reason && currentAgent) {
+      const rooted = rootCall(ctx.cwd, toolName, input);
+      reason = rooted.reason;
+      if (rooted.input) effectiveInput = revisedInput = rooted.input;
+    }
     if (!reason) {
       reason = firstBlock(preDomain(
-        ctx.cwd, policyAgent, toolName, input, policyRunner, runtimeCtx, currentFeature,
+        ctx.cwd, policyAgent, toolName, effectiveInput, policyRunner, runtimeCtx, currentFeature,
       ));
     }
     if (!reason && toolName === "bash") {
@@ -1310,8 +1422,12 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         + "neither the pre-write nor the post-write shape check ran on any file. "
         + "This is a notice, not a refusal.");
     }
-    const reason = firstBlock(postDomain(
-      ctx.cwd, policyAgent, toolName, input, policyRunner, ctx,
+    // BUG-1016: the host may hand back the original or the revised input; rooting is
+    // idempotent, so the post gate judges the same files the pre gate did either way.
+    const rooted = currentAgent && ["write", "edit", "ast_edit"].includes(toolName)
+      ? rootCall(ctx.cwd, toolName, input) : {};
+    const reason = rooted.reason ?? firstBlock(postDomain(
+      ctx.cwd, policyAgent, toolName, rooted.input ?? input, policyRunner, ctx, currentFeature,
     ));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
@@ -1341,6 +1457,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!currentAgent) return;
     // The turn is over and its claim released on yield; a later wake must claim again.
     runGate = { state: "unready" };
+    featureRootCache = undefined;
   });
 }
 

@@ -7913,3 +7913,83 @@ Harness's own runtime pin and lineage probe once upstream OMP shipped `ctx.agent
 enforcement-layer change was executed directly in a feature worktree under DEC-174.
 
 Lineage: DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, DEC-218, and DEC-233.
+
+## DEC-251 — Governed OMP file-tool inputs are relative to the assigned feature worktree
+
+**Chose:** a governed OMP agent's `read` of a relative path (for example docs/example.md, lines
+20 to 40) executes against that path under its feature worktree, not the parent's checkout. The adapter silently
+roots relative file-tool inputs through the existing `tool_call` revised-input channel before
+file-domain policy. Origins: #1016 and #1570. This is an adapter change, not a change to OMP.
+
+**Seven tools, six path-bearing interfaces.** `read`, `grep`, `glob`, `write` and `ast_grep`
+use `path`; `ast_edit` uses `paths: string[]`, with each string array entry treated as a
+semicolon-separated path list. It does not take a singular `path`, and absent `paths` is
+not invented. `edit` instead rewrites hashline section headers `[filename#ABCD]` and `MV`
+destinations, including quoted destinations; hashes, patch body rows and other input stay
+unchanged. This corrects the signed task's singular-field description to the actual OMP
+interface recorded by T-01. Since #2028, `ast_edit` is in the hook mutation set (`write`,
+`edit`, `ast_edit`, `bash`): it needs run authorization, and each `paths` entry, rooted, is
+judged pre and post by the same per-target decision as write and edit, BUG-2003's URI rule
+included. A directory or glob entry is judged as given and refused when it falls outside the
+agent's domain.
+
+**The predicate is lexical, entry by entry.** The adapter trims surrounding whitespace and
+removes a surrounding double-quote pair for classification. A nonempty, nonblank target is
+relative only when `node:path.isAbsolute` is false, its first character is not `~`, and it
+has no leading `[A-Za-z][A-Za-z0-9+.-]*://` scheme. It prefixes the root without normalizing
+the remaining text. Explicit absolute, leading-tilde and scheme destinations, blank strings
+and empty/whitespace-only list entries remain byte-for-byte unchanged. Semicolon separator
+order, quoting, surrounding whitespace and tool selectors (line ranges, archive members,
+SQLite queries and glob text) survive. Only omitted/undefined/null `path` defaults to the
+root, and only for `grep`, `glob` and `ast_grep`; required arguments on other tools are never
+invented. Calls with nothing to root require no rewrite lookup. There is no existence probe,
+symlink remapping, new traversal restriction or absolute-path relocation.
+
+**The claim selects the feature; the existing resolver selects the root.** After claim
+readiness and existing mutation authorization, `registerHarnessHooks` calls
+`inflight_registry.py feature-root` with the governed run's `HARNESS-FEATURE` identity and
+runner checkout root. Discovery remains `harness_boundary.worktree_for_feature`, including
+short-name prefix matching and ambiguity refusal. Dispatch checkout prose, environment
+overrides and tool input cannot select or authorize a destination (DEC-250). No matching
+worktree returns the runner checkout and leaves input unchanged. Ambiguity, resolver refusal
+or error, and unusable output refuse by name: `feature-root refused`, `feature-root could
+not run`, or `feature-root gave no single absolute root`, under the common
+`Harness could not place this call in <feature>'s checkout` prefix. No fallback is invented.
+
+**Caching is permitted, not required.** T-01 caches only a validated successful answer:
+exactly one nonblank absolute root from the resolver. Its adapter-local key is runtime agent
+id, feature and runner checkout root; run start and run end clear it. This confines authority
+to one governed run and isolates sibling runs, feature identities, roots and runner instances.
+Failures and inferred roots are never cached. A successful no-match answer may be cached,
+but still causes no rewriting. Cache hits cannot bypass readiness or existing mutation
+authorization, which are checked on every applicable call, or turn resolver refusals into a
+fallback.
+
+**Execution and guards agree.** The pre-write domain gate receives the rewritten ordinary
+file targets, and the host executes that same revised input. Post-write checks for `write`
+and `edit` reapply the idempotent transformation whether OMP returns original or revised
+input, so pre, execution and post judge the same files. Existing refusals remain in force.
+BUG-2003's downstream URI classification is unchanged: write/edit permit only `agent://`
+and exactly `xd://report_issue`; other schemes and device destinations retain their named
+pre/post refusals. An allowed URI never exempts another target in a mixed edit, including
+an `MV` destination.
+
+**Why not advisories or another resolver?** Per-call reminders would add noise while leaving
+the tool executing against the wrong checkout. Silent revised input fixes the destination
+itself. A new TypeScript worktree-discovery implementation would duplicate the existing
+resolver's prefix and ambiguity rules and create a second authority; the adapter delegates
+instead. Successful rewriting adds no tool-result advisory or notification.
+
+**Boundaries and evidence.** Main-session and non-governed calls retain their inputs and
+default-path behavior. Bash command, cwd and existing environment revision are unchanged,
+with no feature-root rewrite lookup. OMP itself and Claude Code hosting are unchanged:
+DEC-233 still makes OMP the only Harness host; no Claude adapter is restored. Under DEC-174,
+T-01's enforcement code and tests were main-session-direct; this decision and index are
+documentation only, and any new gate change requires a main-session-direct plan amendment.
+Implementation: `.omp/extensions/harness-hooks.ts`, `registerHarnessHooks` and its rooting
+helpers. Preserved evidence: BUG-1016's `notes/t01-receipts-main-session.md`, commit
+`10f38a42`, and `tests/unit/omp-hooks.test.ts`'s OMP task lifecycle adapter cases. SC-07
+requires inspection of the decision, index, implementation and tests at pinned `review_sha`;
+the read-only index verification proves index consistency only, not adapter behavior.
+
+Lineage: DEC-174, DEC-250 and DEC-233.
