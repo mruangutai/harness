@@ -27,5 +27,27 @@
       "reason": "cause known (preDomain forwards every write/edit path to check-domain.py); diff bounded to the OMP adapter and its unit test; it narrows an existing check and adds no interface, schema or enforcement surface"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-2003-hook-internal-uris/notes/rework-ruling-2026-10-03.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "a1bcf6ad85c02fd000fe1d18b8b73cd6d8dc2e429527ee3b3e16f74a8add03e7"
+  },
+  "github": {
+    "milestone": 95,
+    "parent": 2005,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2006
+    },
+    "source_issues": [
+      2003
+    ],
+    "build_entry": "opened"
+  }
 }
