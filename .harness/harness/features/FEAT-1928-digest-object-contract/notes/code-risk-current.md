@@ -43,3 +43,9 @@ Final committed source candidate `98b6c38332bf270f4c88dbc89d7b9d044c7b858d`, com
 ## Latest upstream integration
 
 Integrated source `c81a57b6`, compared with current upstream `91e88653`: the pre-cutover control-plane grader exited 0, with 230 functions meeting their bars and the same 11 grade-2 reason requirements named above; no high findings. The complete integrated Python pool passed all 120 files with eight workers in 141.82 seconds (`artifact://710`). The fresh clean-tree native OpenAI YieldTool probe passed 18/18 and its receipt independently verified 33/33. Four separate merge-resolution quality angles passed without an apply or new rework cycles. These are execution and quality evidence, not a substitute for independent validation of the new review pin.
+
+## Readable-append source rework
+
+Final source `ee39d8876cde56e06561266ba02dfc174176559f`, compared with canonical upstream `91e8865346a7bf4e2b8a5bf2033b17f01f8d6b14`: actual unchanged control-plane grader exit 0; 241 gated functions, 230 meeting bars, the same eleven reasoned grade-2 costs, zero high findings and zero ungraded files. `_append_record` remains grade4 (CC6/cognitive6/ABC13.2); `_append_rule_cases` grade3 (CC1/cognitive0/ABC25.5). No grade-2 reason was added or weakened.
+
+Actual append path RED22/24 then GREEN24/24 and the post-fix complete pool 120/120 (142.13s, `artifact://803`) are recorded in `notes/append-visibility-rework.md`, including the actual CLI refusal→append-only prose fence closure→accepted retry→exact canonical readback. The four-angle `runs/simplify-append-eng/digest.md` assessment found no new quality findings and applied nothing. These facts do not pre-claim independent SC-07 closure or final native receipt acceptance.

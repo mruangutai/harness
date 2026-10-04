@@ -299,6 +299,17 @@
       "ended_at": "2026-10-04T22:49:47+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "probe-inflight-claim-20261004T225156Z-23660-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:51:56+00:00",
+      "tokens": 13590,
+      "ended_at": "2026-10-04T22:55:36+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
