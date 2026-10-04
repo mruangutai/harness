@@ -2407,6 +2407,62 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     expect(held?.block).toBe(true);
   });
 
+  // #1908: a parked agent is revived cold — OMP builds a NEW session from its session file,
+  // so the extension runs in a fresh instance, and the hub's message reaches it through
+  // agent.prompt(): agent_start fires, before_agent_start never does. The only record of who
+  // the run is lives in the session file's session_init entry (system prompt + assignment).
+  function revivedCtx(root: string, id: string, parentId: string, agent: string | null, task: string) {
+    const systemPrompt = agent ? `persona\nHARNESS_AGENT_ID: ${agent}` : "plain system prompt";
+    const base = ctxFor(root, id, parentId) as Record<string, any>;
+    return {
+      ...base,
+      sessionManager: {
+        ...base.sessionManager,
+        getEntries: () => [
+          { type: "session_init", id: "i", parentId: null, timestamp: "", systemPrompt, task, tools: [] },
+          { type: "message", id: "m", parentId: "i", timestamp: "", message: { role: "user", content: task } },
+        ],
+      },
+    };
+  }
+
+  test("a cold-revived governed agent recovers its identity and reclaims before writing (#1908)", async () => {
+    const w = world();
+    const revived = session(w.runner);
+    const ctx = revivedCtx(w.root, "Lead.Dev", "Lead", "harness-backend-dev", ASSIGN);
+    await revived.handlers.get("agent_start")?.({ type: "agent_start" }, ctx);
+    expect(governed(w.root).map((row) => [row.agent, row.agent_id, row.parent_agent_id]))
+      .toEqual([["harness-backend-dev", "Lead.Dev", "Lead"]]);
+    expect(await revived.handlers.get("tool_call")?.(write(), ctx)).toBeUndefined();
+    const dispatched = await revived.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "t-revived",
+      input: { agent: "harness-qa", name: "Qa", task: ASSIGN },
+    }, ctx) as { reason?: string } | undefined;
+    expect(dispatched?.reason ?? "").not.toContain("runtime lineage capability");
+  });
+
+  test("a cold-revived governed agent that cannot reclaim is held, never ungoverned (#1908)", async () => {
+    const w = world();
+    const revived = session(w.runner);
+    const ctx = revivedCtx(w.root, "Lead.Dev", "Lead", "harness-backend-dev", "continue");
+    await revived.handlers.get("agent_start")?.({ type: "agent_start" }, ctx);
+    const held = await revived.handlers.get("tool_call")?.(write(), ctx) as
+      { block?: boolean } | undefined;
+    expect(held?.block).toBe(true);
+  });
+
+  test("a cold-revived ungoverned agent keeps its runtime lineage for task (#1908)", async () => {
+    const w = world();
+    const revived = session(w.runner);
+    const ctx = revivedCtx(w.root, "Main.Scout", "Main", null, "look around");
+    await revived.handlers.get("agent_start")?.({ type: "agent_start" }, ctx);
+    const dispatched = await revived.handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "t-scout", input: { agent: "scout", task: "x" },
+    }, ctx) as { reason?: string } | undefined;
+    expect(dispatched?.reason ?? "").not.toContain("runtime lineage capability");
+    expect(governed(w.root)).toEqual([]);
+  });
+
   test("a markerless revival recovers its feature from its one exact live claim", async () => {
     const w = world();
     seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
