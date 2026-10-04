@@ -877,6 +877,28 @@ class SpendTest(FeatureRecordCase):
         self.assertEqual(0, spend["rework_minutes"])
         self.assertEqual(0, spend["rework_rounds"])
 
+    def test_distill_runs_are_not_rework_but_still_count_toward_the_feature(self):
+        """#2032: feature-close distillation (DEC-145) runs after the merge and is not rework.
+        BUG-1016's three concurrent distill runs read as 112 of a 90-minute ruling with no gate
+        failed. Bare and date-prefixed ids alike; a word containing the token is not one."""
+        distill = [
+            {"id": "2026-09-11-09-distill-product", "squad": "product", "verdict": "PASS",
+             "agent": "harness-product-lead", "started_at": "2026-09-11T14:00:00+00:00",
+             "ended_at": "2026-09-11T14:24:00+00:00"},
+            {"id": "distill-validator", "squad": "validator", "verdict": "PASS",
+             "agent": "harness-validator-lead", "started_at": "2026-09-11T14:00:00+00:00",
+             "ended_at": "2026-09-11T14:24:00+00:00"},
+            {"id": "2026-09-11-10-redistill-eng", "squad": "eng", "verdict": "PASS",
+             "agent": "harness-eng-lead", "started_at": "2026-09-11T14:30:00+00:00",
+             "ended_at": "2026-09-11T14:35:00+00:00"},
+        ]
+        self.write(base_doc(runs=self.REWORK_RUNS + distill, github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(205 + 24 + 24 + 5, spend["wall_clock_minutes"])
+        self.assertEqual(105 + 5, spend["rework_minutes"])   # only `redistill-eng` stays in
+        self.assertEqual(2, spend["rework_rounds"])
+        self.assertEqual(6 + 3, spend["runs"])
+
 
 
 class ProposeReworkTest(FeatureRecordCase):

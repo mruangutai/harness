@@ -475,6 +475,9 @@ def _run_seconds(entry):
 # rework-ratio KPI read 0, silently. Token-bounded, not substring: `postfix-eng` is no fix.
 VALIDATE_RUN = re.compile(r"(?:^|-)validate-")
 FIX_RUN = re.compile(r"(?:^|-)fix-")
+# #2032: feature-close distillation (DEC-145) runs after the merge and is never rework. Same
+# token rule: `redistill-eng` is not a distill run.
+DISTILL_RUN = re.compile(r"(?:^|-)distill-")
 
 
 def spend_for(doc):
@@ -482,7 +485,7 @@ def spend_for(doc):
 
     `wall_clock_minutes` is the whole feature — the lagging figure the briefing reports.
     `rework_minutes` and `rework_rounds` are the REWORK WINDOW: every run from the first
-    validate run onward, and the count of fix runs in it. The operator's
+    validate run onward except feature-close distill runs, and the count of fix runs in it. The operator's
     `rework.wall_clock_minutes` ruling is a budget for rework, so the hook compares it to
     the window, never to the whole — before this split a 60-minute plan run and a 40-minute
     build ate 100 of a 120-minute ruling before the first fix round existed.
@@ -494,7 +497,8 @@ def spend_for(doc):
     tokens = sum(measured) if measured else None
     first_validate = next((i for i, entry in enumerate(runs)
                            if VALIDATE_RUN.search(str(entry.get("id", "")))), None)
-    window = runs[first_validate:] if first_validate is not None else []
+    window = [entry for entry in (runs[first_validate:] if first_validate is not None else [])
+              if not DISTILL_RUN.search(str(entry.get("id", "")))]
     github = doc.get("github")
     has_build_entry = isinstance(github, dict) and "build_entry" in github
     return {"runs": len(runs), "wall_clock_minutes": seconds // 60, "tokens": tokens,
