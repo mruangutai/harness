@@ -14,9 +14,9 @@ durable artifact, compact signal.
 Return one object through YieldTool — `yield({data: {VERDICT, DIGEST, artifact}})` — never a
 fenced YAML block and never text: a string, `null` or absent `data` is rejected with an instruction
 to return the object. Your persona's field list is its schema,
-`.agents/skills/harness/bin/digest-schemas/harness-<persona>.json` (shared definitions in
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-<persona>.json` (shared definitions in
 `common.json`). One complete example, for `harness-documentor`
-(`.agents/skills/harness/bin/digest-schemas/harness-documentor.json`):
+(`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-documentor.json`):
 
 ```js
 yield({data: {

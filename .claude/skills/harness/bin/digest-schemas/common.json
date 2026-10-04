@@ -41,13 +41,7 @@
     "severity_nullable": {
       "anyOf": [
         {
-          "enum": [
-            "none",
-            "low",
-            "med",
-            "high",
-            "critical"
-          ]
+          "$ref": "common.json#/$defs/severity"
         },
         {
           "$ref": "common.json#/$defs/unset"

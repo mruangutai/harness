@@ -24,7 +24,7 @@ Harness agents return a machine-routed digest as YAML inside Markdown inside a s
   verify: automated        evidence: unit
 - SC-04 (operator): Through the actual OMP YieldTool path with the injected strict schema, explicit data null produces a retryable schema rejection and the next conforming object completes successfully; the test demonstrates the pre-change failing state.
   verify: automated        evidence: integration
-- SC-05 (operator): At the pinned review_sha, the feature-local live-probe receipt names the Harness and OMP SHAs, provider and model, exact disposable OMP invocation, null-data rejection, retry, valid completion, exit status, and sanitized transcript hash; no dry run or simulated event satisfies this criterion.
+- SC-05 (operator): At the pinned review_sha, the feature-local live-probe receipt names the Harness SHA and the invoked OMP runtime's installed version, launcher path and sha256, with the release-tag source SHA explicitly labeled as metadata provenance for a bundled release rather than runtime binary identity (or checkout-runtime HEAD when the invoked runtime actually runs from that checkout), provider and model, exact disposable OMP invocation, null-data rejection, retry, valid completion, exit status, and sanitized transcript hash; no dry run or simulated event satisfies this criterion.
   verify: inspection
 - SC-06 (reader): Before the text parser is deleted, every baseline validate-digest acceptance and rejection case produces the same verdict from its text fixture and the equivalent object, with mismatches blocking the cutover; permanent object-contract tests demonstrate their pre-change failing states and retain the behavioral boundaries after deletion.
   verify: automated        evidence: integration
@@ -35,7 +35,7 @@ Harness agents return a machine-routed digest as YAML inside Markdown inside a s
 
 ## Verification gaps
 
-- none; unit and integration have active runners, and the credentialled live OMP observation is preserved as the pinned receipt inspected by SC-05.
+- Unit and integration have active runners. SC-05 requires a fresh credentialled receipt identifying the invoked bundled OMP runtime and release metadata separately; the historical live receipt remains unchanged and does not establish installed OMP 18.6.0 identity or behavior. Explicit null rejection, same-job retry continuity, valid completion, and dry-run or synthetic refusal remain mandatory.
 
 ## Constraints
 
@@ -57,5 +57,5 @@ Harness agents return a machine-routed digest as YAML inside Markdown inside a s
 ## Approval
 
 status: approved
-approved-by: operator (via main session)
-date: 2026-09-29
+approved-by: main-session (operator authorized reconciliation and ship)
+date: 2026-10-04

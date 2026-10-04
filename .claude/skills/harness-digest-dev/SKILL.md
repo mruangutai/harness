@@ -18,7 +18,7 @@ The **main session** returns this same contract when it builds a feature directl
 `task` / `task_verify` / `suite` receipt, and `close-run` validates its digest as `dev` (#1895).
 
 Return an object through YieldTool — never fenced YAML text. The field list is the schema for
-your persona, e.g. `.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json` (frontend,
+your persona, e.g. `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-backend-dev.json` (frontend,
 ai and data-engineer have their own `harness-<persona>.json` with the same fields); one complete
 example:
 
@@ -48,7 +48,7 @@ yield({data: {
 
 ## dev-ops
 
-Schema: `.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`; one complete example:
+Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-dev-ops.json`; one complete example:
 
 ```js
 yield({data: {

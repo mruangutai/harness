@@ -1231,21 +1231,16 @@ def _at(obj, parts):
     return obj
 
 
-def _common_defs():
-    return digest_schema.common_defs()
-
-
 def _resolved(node):
     """`node` with a common.json `$ref` followed; wording only, never validation."""
     ref = node.get("$ref") if isinstance(node, dict) else None
     if isinstance(ref, str) and ref.startswith(_COMMON_REF):
-        return _resolved(_common_defs().get(ref[len(_COMMON_REF):], {}))
+        return _resolved(digest_schema.common_defs().get(ref[len(_COMMON_REF):], {}))
     return node if isinstance(node, dict) else {}
 
 
 def _field_schema(canonical, field):
-    properties = digest_schema.load_schema(canonical)["properties"]["DIGEST"]["properties"]
-    return properties.get(field) or {}
+    return _digest_properties(canonical).get(field) or {}
 
 
 def _enum_values(node):

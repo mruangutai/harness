@@ -1,7 +1,7 @@
 schema: plan/1
 feature: FEAT-1928-digest-object-contract
 approval:
-  date: '2026-09-29'
+  date: '2026-10-04'
   approved_by: main-session
   status: approved
 status: building
@@ -233,44 +233,46 @@ tasks:
     change_type: cross_module
     execution_mode: main-session-direct
     files:
-      - .omp/extensions/digest-schema.ts
-      - .omp/extensions/harness-hooks.ts#taskModelOverride
-      - .claude/skills/harness/bin/dispatch-guard.py
-      - .claude/skills/harness/bin/validate-digest.py#validate
-      - .claude/skills/harness/bin/check_state/ctx.py#Ctx
-      - .claude/skills/harness/bin/check_state/run_state.py#_inv15_digest_verdict
-      - .claude/skills/harness/bin/check_state/table.py
-      - .claude/skills/harness/bin/check_state/feature_record.py#_note_verdict
-      - .harness/harness.json
-      - .omp/agents/harness-code-reviewer.md
-      - .omp/agents/harness-documentor.md
-      - .omp/agents/harness-orchestrator.md
-      - .omp/agents/harness-pm.md
-      - .omp/agents/harness-qa.md
-      - .omp/agents/harness-security-reviewer.md
-      - .omp/agents/harness-ui-reviewer.md
-      - .omp/agents/harness-visual-designer.md
-      - .claude/skills/harness-handoff/SKILL.md
-      - .claude/skills/harness-digest-dev/SKILL.md
-      - .claude/skills/harness-team/SKILL.md
-      - .claude/skills/harness/references/team-run-state.md
-      - tests/unit/omp-hooks.test.ts
-      - tests/unit/test-code-grade.py
-      - tests/unit/test-digest-dev-skill.py
-      - tests/unit/test-feature-record.py
-      - tests/integration/test-check-domain-artifact.py
-      - tests/integration/test-dispatch-guard.py
-      - tests/integration/test-check-state-feat59.py
-      - tests/integration/test-check-state-records.py
-      - tests/integration/test-checker-structure-locks.py#_feat69_cross_module_checks
-      - tests/integration/test-validate-digest.py
-      - tests/integration/test-validate-digest-shadows.py
-      - tests/manual/probe-inflight-claim-lifecycle.py
-      - tests/manual/probe-digest-object-contract.py
-      - .harness/harness/features/FEAT-1928-digest-object-contract/notes/validator-parity.md
-      - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe.md
+    - .omp/extensions/digest-schema.ts
+    - .omp/extensions/harness-hooks.ts#taskModelOverride
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .claude/skills/harness/bin/validate-digest.py#validate
+    - .claude/skills/harness/bin/check_state/ctx.py#Ctx
+    - .claude/skills/harness/bin/check_state/run_state.py#_inv15_digest_verdict
+    - .claude/skills/harness/bin/check_state/table.py
+    - .claude/skills/harness/bin/check_state/feature_record.py#_note_verdict
+    - .harness/harness.json
+    - .omp/agents/harness-code-reviewer.md
+    - .omp/agents/harness-documentor.md
+    - .omp/agents/harness-orchestrator.md
+    - .omp/agents/harness-pm.md
+    - .omp/agents/harness-qa.md
+    - .omp/agents/harness-security-reviewer.md
+    - .omp/agents/harness-ui-reviewer.md
+    - .omp/agents/harness-visual-designer.md
+    - .claude/skills/harness-handoff/SKILL.md
+    - .claude/skills/harness-digest-dev/SKILL.md
+    - .claude/skills/harness-team/SKILL.md
+    - .claude/skills/harness/references/team-run-state.md
+    - tests/unit/omp-hooks.test.ts
+    - tests/unit/test-code-grade.py
+    - tests/unit/test-digest-dev-skill.py
+    - tests/unit/test-feature-record.py
+    - tests/integration/test-check-domain-artifact.py
+    - tests/integration/test-dispatch-guard.py
+    - tests/integration/test-check-state-feat59.py
+    - tests/integration/test-check-state-records.py
+    - tests/integration/test-checker-structure-locks.py#_feat69_cross_module_checks
+    - tests/integration/test-validate-digest.py
+    - tests/integration/test-validate-digest-shadows.py
+    - tests/manual/probe-inflight-claim-lifecycle.py
+    - tests/manual/probe-digest-object-contract.py
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/validator-parity.md
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe.md
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.md
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.transcript.jsonl
     verify: |
-      python3 -c 'import subprocess,sys; commands=[["bun","test","tests/unit/omp-hooks.test.ts"],["python3","tests/unit/test-digest-dev-skill.py"],["python3","tests/unit/test-feature-record.py"],["python3","tests/integration/test-check-domain-artifact.py"],["python3","tests/integration/test-dispatch-guard.py"],["python3","tests/integration/test-check-state-feat59.py"],["python3","tests/integration/test-check-state-records.py"],["python3","tests/integration/test-checker-structure-locks.py"],["python3","tests/integration/test-validate-digest.py"],["python3","tests/integration/test-validate-digest-shadows.py"]]; processes=[subprocess.Popen(c) for c in commands]; codes=[p.wait() for p in processes]; raise SystemExit(1 if any(codes) else 0)' && python3 tests/manual/probe-digest-object-contract.py --verify-receipt .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe.md && test "$(git -C /Users/molchairuangutai/GitHub/oh-my-pi rev-parse HEAD)" = d0d1f81054a82d0e76d3f0bce42d8a706fe8cb10 && bun test /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-normalization.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-compatibility.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/anthropic-tool-schema.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/coding-agent/test/tools/provider-schema-compatibility.test.ts
+      python3 -c 'import subprocess,sys; commands=[["bun","test","tests/unit/omp-hooks.test.ts"],["python3","tests/unit/test-digest-dev-skill.py"],["python3","tests/unit/test-feature-record.py"],["python3","tests/integration/test-check-domain-artifact.py"],["python3","tests/integration/test-dispatch-guard.py"],["python3","tests/integration/test-check-state-feat59.py"],["python3","tests/integration/test-check-state-records.py"],["python3","tests/integration/test-checker-structure-locks.py"],["python3","tests/integration/test-validate-digest.py"],["python3","tests/integration/test-validate-digest-shadows.py"]]; processes=[subprocess.Popen(c) for c in commands]; codes=[p.wait() for p in processes]; raise SystemExit(1 if any(codes) else 0)' && python3 tests/manual/probe-digest-object-contract.py --verify-receipt .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.md && bun test /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-normalization.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-compatibility.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/anthropic-tool-schema.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/coding-agent/test/tools/provider-schema-compatibility.test.ts
     intent: |
       Work test-first and keep every source and owning-test edit in the main session under DEC-174. This task is independent of FEAT-70 and must remain runnable while the separately gated plan digest-reader task waits. Before removing any text path, run the baseline validator at baseline SHA against all 135 named CLI cases and every current hook, shadow, claim-lifecycle, and non-plan reader case, then express the same cases as mappings and run the new object validator. Record each case name, old accept or reject result, new accept or reject result, immutable SHAs, commands, and zero mismatches in validator-parity.md. Parser-syntax-only cases must retain their rejection counterpart as a missing, extra, wrong-type, or enum-invalid object case. The permanent tests keep the object cases and consumer semantics, not a baseline checkout, text parser, or compatibility shim.
 
@@ -284,7 +286,7 @@ tasks:
 
       Replace the fenced return templates in the eight named agent files and three named skills with a pointer to that persona's schema file and one complete object example using the exact YieldTool data shape; update team-run-state.md so durable fenced YAML is described only as validator-owned output. Add a census that fails if a live harness return contract still asks an agent to serialize a fenced digest. Preserve each role's current field semantics and the instruction that the object is returned through YieldTool.
 
-      Before deleting the host workaround, add and run probe-digest-object-contract.py in a fresh disposable OMP subprocess against the worktree hook with the configured real provider. The probe must dispatch a governed agent, observe the injected strict schema, force an explicit null yield that receives a retryable tool error, then observe a valid object complete that same job. Record sanitized command, OMP SHA, harness SHA, provider and model, task and job identifiers, transcript evidence, null rejection, retry continuity, valid object, exit status, and timestamp in live-digest-object-probe.md. The receipt verifier must reject dry-run or synthetic receipts. Add digest_object_contract_live to harness.json as locally_run with the probe detector and command. If the job settles on null, stop the task as blocked and amend the design; only after the credentialled live receipt passes may the same task remove yamlLines, yieldContractText, hollowYieldValue, normalizeYieldInput, parser helpers, template-echo shadow selection, and the issue 1676 empty-yield repair. Update complexity expectations and the existing inflight manual probe to use object yields, then run the targeted suites in verify with no compatibility alias or dead text path left.
+      Before deleting the host workaround, add and run probe-digest-object-contract.py in a fresh disposable OMP subprocess against the worktree hook with the configured real provider. The probe must dispatch a governed agent, observe the injected strict schema, force an explicit null yield that receives a retryable tool error, then observe a valid object complete that same job. Record sanitized command, installed OMP version, launcher path and sha256, release-tag source SHA explicitly labeled as metadata provenance for a bundled release rather than runtime binary identity (or checkout-runtime HEAD when the invoked runtime actually runs from that checkout), harness SHA, provider and model, task and job identifiers, transcript evidence, null rejection, retry continuity, valid object, exit status, and timestamp in live-digest-object-probe-current.md. For the installed bundled OMP 18.6.0 at /Users/molchairuangutai/.bun/bin/omp, record the launcher sha256 observed for that invocation and the operator-supplied v18.6.0 release-tag source SHA 89d2610993af69427574bde17791df63906ec4e5 as metadata provenance; never substitute an unrelated source checkout HEAD for runtime identity or require a checkout or npm gitHead for the bundled release. Record SC-03's canonical suite checkout path and its observed SHA at the time of the run, all four canonical suite commands, and their results in validator-parity.md; this source-identity evidence is separate from the live runtime receipt and does not impose a verify-time HEAD equality pin. The receipt verifier must reject dry-run or synthetic receipts. Add digest_object_contract_live to harness.json as locally_run with the probe detector and command. If the job settles on null, stop the task as blocked and amend the design; only after the credentialled live receipt passes may the same task remove yamlLines, yieldContractText, hollowYieldValue, normalizeYieldInput, parser helpers, template-echo shadow selection, and the issue 1676 empty-yield repair. Update complexity expectations and the existing inflight manual probe to use object yields, then run the targeted suites in verify with no compatibility alias or dead text path left.
   - id: T-03
     title: Consolidate doctrine and operator documentation
     status: review
@@ -318,11 +320,9 @@ tasks:
     execution_reason: DEC-174 routes plan gate readers and their owning tests through the main session; FEAT-70 is the pre-start package-location gate.
     files:
     - .claude/skills/harness/bin/plan_merge/panel.py#_lead_digest
-    - .claude/skills/harness/bin/plan_merge/panel.py#_digest_mapping
     - .claude/skills/harness/bin/plan_merge/panel.py#_digest_findings
     - .claude/skills/harness/bin/plan_merge/panel.py#cmd_record_panel
     - .claude/skills/harness/bin/plan_merge/amendments.py#cmd_record_amendments
-    - .claude/skills/harness/bin/plan_merge/panel.py#_fenced_blocks
     - .claude/skills/harness/bin/plan_merge/panel.py#_digest_finding
     - .claude/skills/harness/bin/plan_merge/panel.py#_digest_readers
     - .claude/skills/harness/bin/plan_merge/amendments.py#_digest_amendments

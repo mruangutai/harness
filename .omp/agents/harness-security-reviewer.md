@@ -85,7 +85,7 @@ positives train people to ignore you.
 ## Output
 
 Return an object through YieldTool — never fenced YAML text. The field list is the schema,
-`.claude/skills/harness/bin/digest-schemas/harness-security-reviewer.json`; one complete example:
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/digest-schemas/harness-security-reviewer.json`; one complete example:
 
 ```js
 yield({data: {

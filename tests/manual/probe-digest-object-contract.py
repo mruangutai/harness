@@ -18,13 +18,15 @@ governed dispatch:
 The probe writes the digest's artifact itself, under a temporary `runs/<slug>-product/` dir it
 deletes afterwards (a documentor cannot write run dirs). Every RPC frame it keeps, and the
 child session OMP returns over `get_subagent_messages`, is sanitized into
-notes/live-digest-object-probe.transcript.jsonl. The receipt, notes/live-digest-object-probe.md,
-is derived from that file alone.
+notes/live-digest-object-probe-current.transcript.jsonl. The receipt,
+notes/live-digest-object-probe-current.md, records execution identity and transcript evidence;
+the historical receipt and transcript remain untouched.
 
 `--dry-run` checks the prerequisites and prints the plan. It starts nothing and writes nothing:
-it is never a receipt. `--verify` (or `--verify-receipt PATH`) re-derives every receipt field
-from the recorded transcript, checks its sha256 and the pinned OMP commit, and refuses a
-dry-run, failed or hand-edited receipt.
+it is never a receipt. `--verify` (or `--verify-receipt PATH`) re-derives behavioral evidence
+from the recorded transcript, checks its sha256 and the invoked OMP's source provenance,
+version and launcher sha256, and refuses a dry-run, failed or hand-edited receipt. A packaged
+release's source SHA is release-tag metadata, not binary identity; its launcher hash is the latter.
 """
 
 from __future__ import annotations
@@ -52,8 +54,8 @@ FEATURE = "FEAT-1928-digest-object-contract"
 FEATURE_REL = f".harness/harness/features/{FEATURE}"
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 NOTES = ROOT / FEATURE_REL / "notes"
-RECEIPT = NOTES / "live-digest-object-probe.md"
-TRANSCRIPT = NOTES / "live-digest-object-probe.transcript.jsonl"
+RECEIPT = NOTES / "live-digest-object-probe-current.md"
+TRANSCRIPT = NOTES / "live-digest-object-probe-current.transcript.jsonl"
 PERSONA = "harness-documentor"
 PROBE_ID = "digest-object-contract-live"
 PROVIDERS = {"anthropic": "anthropic/claude-sonnet-5", "openai": "openai-codex/gpt-5.6-terra"}
@@ -105,18 +107,24 @@ def utc_now() -> str:
 # Prerequisites: shared by --dry-run and live mode
 # ---------------------------------------------------------------------------------------
 
-def pinned_commit() -> str:
-    return json.loads((ROOT / ".omp" / "runtime-pin.json").read_text())["commit"]
-
-
 def omp_runtime(omp: str) -> tuple[Path | None, str]:
-    """The checkout the `omp` launcher runs from, and its HEAD commit."""
+    """The runtime checkout or installed package, and its source commit (not a runtime pin)."""
     here = Path(omp).resolve().parent
     for candidate in (here, *here.parents):
         if (candidate / ".git").exists():
             head = subprocess.run(["git", "-C", str(candidate), "rev-parse", "HEAD"],
                                   capture_output=True, text=True)
             return candidate, head.stdout.strip()
+        manifest = candidate / "package.json"
+        if manifest.is_file():
+            package = json.loads(manifest.read_text(encoding="utf-8"))
+            if package.get("name") == "@oh-my-pi/pi-coding-agent":
+                release = subprocess.run(
+                    ["gh", "api", f"repos/can1357/oh-my-pi/git/ref/tags/v{package['version']}",
+                     "--jq", '.object | select(.type == "commit") | .sha'],
+                    capture_output=True, text=True)
+                sha = release.stdout.strip()
+                return candidate, sha if release.returncode == 0 else ""
     return None, ""
 
 
@@ -161,8 +169,9 @@ def preflight(args) -> bool:
     omp = shutil.which("omp")
     check("omp is on PATH", omp is not None, omp)
     runtime, head = omp_runtime(omp) if omp else (None, "")
-    check("omp runs the pinned Harness runtime", head == pinned_commit(),
-          {"runtime": str(runtime), "head": head, "pin": pinned_commit()})
+    check("OMP runtime source commit is identifiable",
+          runtime is not None and bool(re.fullmatch(r"[0-9a-f]{40}", head)),
+          {"runtime": str(runtime), "head": head})
     check("cwd is this feature worktree", Path.cwd().resolve() == ROOT.resolve(),
           {"cwd": str(Path.cwd()), "worktree": str(ROOT)})
     owned = harness_boundary.worktree_owner(str(ROOT))
@@ -635,7 +644,9 @@ def build_record(args, run: dict, expected: dict, transcript_sha: str) -> dict:
         "command": sanitized_command(args),
         "cwd": "<worktree>",
         "omp": {"launcher": str(omp).replace(HOME, "~"), "runtime": str(runtime).replace(HOME, "~"),
-                "sha": head, "pin": pinned_commit()},
+                "sha": head, "launcher_sha256": sha256_file(Path(omp)),
+                "source_provenance": "checkout" if (runtime / ".git").exists() else "release-tag",
+                "version": subprocess.run([omp, "--version"], capture_output=True, text=True).stdout.strip()},
         "harness": run["harness"],
         "provider": args.provider,
         "main_model": args.model,
@@ -662,13 +673,16 @@ def receipt_text(record: dict) -> str:
         "# FEAT-1928 live digest-object probe receipt",
         "",
         "Written by `tests/manual/probe-digest-object-contract.py` from a real, disposable OMP RPC "
-        "process. Every field below is re-derived from the transcript by `--verify`; hand edits fail.",
+        "process. `--verify` checks transcript-derived behavior and recorded runtime identity.",
         "",
         f"- Verdict: **{record['verdict']}** "
         f"({sum(c['ok'] for c in record['checks'])}/{len(record['checks'])} checks)",
         f"- Run: {record['started_at']} → {record['finished_at']}",
         f"- Command: `{record['command']}` (cwd `{record['cwd']}`)",
-        f"- OMP: `{record['omp']['sha']}` (pin `{record['omp']['pin']}`)",
+        f"- OMP runtime: `{record['omp']['version']}`, launcher `{record['omp']['launcher']}` "
+        f"sha256 `{record['omp']['launcher_sha256']}`",
+        f"- OMP source: `{record['omp']['sha']}` "
+        f"({'release-tag metadata provenance, not binary identity' if record['omp']['source_provenance'] == 'release-tag' else 'runtime checkout HEAD'})",
         f"- Harness: HEAD `{record['harness']['head']}` + {record['harness']['uncommitted_paths']} "
         "uncommitted paths; files under test are pinned by sha256 in the record",
         f"- Provider `{record['provider']}`: Main `{record['main_model']}`, "
@@ -747,8 +761,19 @@ def verify(receipt: Path) -> int:
         record.get("ids"))
     check("the child model is the one the job resolved",
           record.get("child_model") == evidence["job"]["resolved_model"], record.get("child_model"))
-    check("OMP was the pinned runtime", record["omp"]["sha"] == record["omp"]["pin"] == pinned_commit(),
-          record["omp"])
+    launcher = Path(str(record["omp"]["launcher"])).expanduser()
+    runtime, omp_sha = omp_runtime(str(launcher)) if launcher.is_file() else (None, "")
+    check("the recorded OMP source commit matches its runtime provenance",
+          bool(re.fullmatch(r"[0-9a-f]{40}", omp_sha))
+          and omp_sha == record["omp"]["sha"]
+          and str(runtime).replace(HOME, "~") == record["omp"]["runtime"], record["omp"])
+    check("the recorded OMP launcher is byte-identical",
+          launcher.is_file() and sha256_file(launcher) == record["omp"].get("launcher_sha256"),
+          record["omp"].get("launcher_sha256"))
+    check("the recorded OMP version matches its launcher",
+          launcher.is_file() and subprocess.run(
+              [str(launcher), "--version"], capture_output=True, text=True).stdout.strip()
+          == record["omp"].get("version"), record["omp"].get("version"))
     head = str(record["harness"]["head"])
     check("the Harness HEAD is a commit in this repository", bool(re.fullmatch(r"[0-9a-f]{40}", head))
           and subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"{head}^{{commit}}"],

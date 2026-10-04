@@ -142,7 +142,7 @@ Never write that fenced block yourself. The digest-of-digests shape: `team-run-s
 **Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar;
 the yield will not complete without them. Return an object through YieldTool — never fenced YAML
 text. The field list is your lead persona's schema, e.g.
-`.agents/skills/harness/bin/digest-schemas/harness-eng-lead.json` (product-lead and validator-lead
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/digest-schemas/harness-eng-lead.json` (product-lead and validator-lead
 have their own `harness-<persona>.json` with the same fields); one complete example:
 
 ```js

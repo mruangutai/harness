@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-1928-digest-object-contract",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 1,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -122,6 +122,38 @@
       "tokens": 50981,
       "ended_at": "2026-09-30T14:43:20+00:00",
       "cycles_used": 0
+    },
+    {
+      "id": "plan-reconcile-T02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T03:31:03+00:00",
+      "tokens": 58727,
+      "ended_at": "2026-10-04T03:42:41+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-reconcile-T02b-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-10-04T03:43:03+00:00",
+      "tokens": 57475,
+      "ended_at": "2026-10-04T03:50:04+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-10-04T03:49:35+00:00",
+      "tokens": 88183,
+      "ended_at": "2026-10-04T04:17:27+00:00",
+      "cycles_used": 1
     }
   ],
   "judgements": [
@@ -145,6 +177,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Operator requested reconciliation of the signed plan against merged main; stale anchors and FEAT-70 ordering require a pending re-signature plan."
+    },
+    {
+      "at": "2026-10-04T03:43:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan-reconcile T-02 receipt path",
+      "reason": "Prior run FAIL only awaits main-session re-signature; main now moves the fresh live receipt to notes/live-digest-object-probe-current.md so T-02 verify/files must name it before signing"
+    },
+    {
+      "at": "2026-10-04T03:49:35+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "simplify read-only four angles",
+      "reason": "Both plan-reconcile FAILs await only main-session re-signature; simplify is the read-only last build step before the pin and does not depend on the signature"
     }
   ],
   "mission": "plan",
@@ -155,9 +201,9 @@
   },
   "signed_task_hashes": {
     "T-01": "d2f46bf36e13970e92503181d2d19f6636c5f7ca747063bf7243a86d4958de79",
-    "T-02": "1a292e26304a841447882959e9b81e3ffe479b04ab1cbcd9e4bc9af24e92e591",
+    "T-02": "3495b9ffc667cf9922d90f5c6a30010dd04d108811f201e14fb2397a0529e299",
     "T-03": "950b29b5fd94947144db6e68370b34a9ad246f0302948c11880fb0b4d99fbda2",
-    "T-04": "6eaddb885c69f1b152aafaf42bc3fe73f66ec04bb4d19be6ee5dbd5147842f9d"
+    "T-04": "f264f37b51bab8701e834a414d61e534074d9d86582d7f72a8f178739f65f90d"
   },
   "github": {
     "milestone": 93,
