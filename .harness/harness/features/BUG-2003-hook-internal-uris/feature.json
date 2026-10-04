@@ -1,0 +1,31 @@
+{
+  "feature_id": "BUG-2003-hook-internal-uris",
+  "branch": "feat/BUG-2003-hook-internal-uris",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T03:31:15+00:00",
+      "tokens": 37436,
+      "ended_at": "2026-10-04T03:43:08+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-10-04T03:31:02+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "cause known (preDomain forwards every write/edit path to check-domain.py); diff bounded to the OMP adapter and its unit test; it narrows an existing check and adds no interface, schema or enforcement surface"
+    }
+  ],
+  "mission": "patch"
+}

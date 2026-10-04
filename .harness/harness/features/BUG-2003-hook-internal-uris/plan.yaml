@@ -1,0 +1,42 @@
+schema: plan/1
+feature: BUG-2003-hook-internal-uris
+approval:
+  status: pending
+status: plan
+source_issues: [2003]
+lanes:
+  resolved_at: e0bb9814ab8e0f3f87a908bec2fc997a4b040f52
+  rows:
+    - surface: .omp/extensions/harness-hooks.ts
+      lane: main-session-direct
+      reason: DEC-174 active OMP enforcement adapter; patch default team route does not apply.
+    - surface: tests/unit/omp-hooks.test.ts
+      lane: main-session-direct
+      reason: DEC-174 includes the co-changed enforcement test in the same carve-out.
+decisions: []
+tasks:
+  - id: T-01
+    title: Classify internal URI targets before file-domain checks
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_agent: harness-backend-dev
+    execution_reason: DEC-174 requires direct main-session changes to the active OMP enforcement adapter and its co-changed test, overriding the patch default team route; harness-backend-dev is the consult-when owner for server-side integration and boundary error handling, not permission to dispatch a team build.
+    depends_on: []
+    status: ready
+    files:
+      - .omp/extensions/harness-hooks.ts#preDomain
+      - .omp/extensions/harness-hooks.ts#postDomain
+      - path: tests/unit/omp-hooks.test.ts
+        quote: describe("OMP task lifecycle adapter", () => {
+    verify: |
+      python3 tests/unit/test-omp-hooks.py
+    intent: |
+      Work only in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2003-hook-internal-uris. This is a DEC-174 main-session-direct change, not a governed team implementation. Touch exactly the two distinct files named by the three anchors; no new exported API, new dependency, schema change, URI resolver, or other host adapter.
+      Add regression cases in tests/unit/omp-hooks.test.ts before modifying production logic. Reuse registerHarnessHooks with the existing captured tool_call/tool_result handlers, fixture/start/ompContext setup, and recorded PolicyRunner calls. Preserve runtime lineage readiness and authorization, so test calls reach preDomain/postDomain instead of an earlier guard. Use a runner refusal for forbidden real-file targets and assert that the hook preserves the gate payload and refusal verbatim; do not reimplement check-domain policy in the adapter.
+      In .omp/extensions/harness-hooks.ts, give preDomain and postDomain one private target decision used by the write input.path and every extractEditPaths result, including section sources and MV destinations. Distinguish ordinary file targets, allowed URI targets, and refused URI targets. Detect a leading scheme:// without resolving or normalizing the destination to a filesystem path. Allow agent:// destinations and only the exact xd://report_issue URI. Every other scheme:// target is refused with a clear reason naming the destination and its scheme or xd device; unknown schemes fail closed. Do not add who-may-message-whom rules or further destination validation.
+      Allowed URI targets produce no check-domain.py call, neither pre-write nor --post, and no URI-domain refusal. Refused URI targets produce a blocking policy result before write/edit and a named error through the existing post-write result composition if that callback is exercised, without invoking check-domain.py or resolving a real path. Ordinary targets retain the existing Write/Edit tool_name, file_path, content where present, base payload, runner cwd, and pre/post arguments. Leave the Bash branch, runtime lineage/claim checks, malformed-edit extraction behavior, and main-session early returns unchanged.
+      Cover each allowed URI with write and hashline edit in both stages, asserting absence of all check-domain.py calls for URI-only inputs and no block/error. Cover xd://ast_edit, xd://lsp, xd://recall, xd://reflect, conflict://1, local://sample.md, vault://_/sample.md, ssh://host/sample.md, and a new unknown scheme in both routes; assert each refusal names its actual destination and no domain checker sees a URI. Include an xd://report_issue suffix or different device case to protect exact matching rather than an xd scheme-wide allowance.
+      Cover edit MV targets and mixed multi-target edits: allowed URI plus forbidden real file must still call the real-file gate and retain its refusal; allowed URI plus refused URI must block by name. Retain pre/post checks for ordinary files and controls showing main-session writes/edits unchanged, including non-allowlisted schemes. A scheme allowance must never apply to an entire mixed edit or make edit a bypass.
+      Capture the named new URI and mixed-target cases failing against the unmodified adapter, then passing after the fix. Existing file/main-session controls may already pass; do not claim these as red-first evidence. Run the literal verify from the assigned worktree after completion; expected exit 0 with all tests in omp-hooks.test.ts passing, within 60 seconds. Do not select only the new cases for the final run. Supply the fail-first and final receipts for SC-01, SC-02, SC-03 and SC-05 and pin the final code for inspection of SC-04.
+
