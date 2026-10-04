@@ -3,14 +3,14 @@
 ## Current
 
 - feature: FEAT-1928-digest-object-contract
-- run: main-session-direct remediation
+- run: native-proof-rework-main
 - squad: main-session (DEC-174)
 - status: building
 - tasks: T-01 done, T-02 building, T-03 done, T-04 done, T-05 building
 - review_sha: none; the previous review is superseded and is not a ship claim
-- cycles_used: 5 of 10, including both observed live-probe send-backs
-- evidence: native null/retry 18/18; actual claim lifecycle 28/28; refactored authorization suite ALL PASSED; canonical-reader self-test ALL PASS
-- remaining: integrate origin/main af2a958a; finish signed verification and simplification; commit clean source; refresh pin-bound receipts; independent validation; ship
+- cycles_used: 15 of 20; operator approved the raised cap; current native-scenario rework remains open
+- evidence: unit and integration ALL PASS; actual claim lifecycle 28/28; quality four-angle assessment PASS with budget escalation resolved; first clean native scenario 17/18 because the model yielded the string "null", not JSON null
+- remaining: finish actual explicit-null clean-source proof; pin final source; independent validation; actual ship, PR merge, issue/milestone closure and own-worktree removal
 - grade-2 reason, authorized_destination: keep identity, checkout, registered-run and exact-path checks in one complete authorization decision rather than scatter its coupled proof across single-use predicate wrappers.
 - grade-2 reason, run_live: the lifecycle operation and its mandatory session/claim/run-record cleanup belong to one try/finally; splitting that lifetime would obscure which resources are still live.
 - grade-2 reason, receipt_header: keep the small provenance envelope assembled in one place so the distinction between executed binary identity and release-source metadata remains visible.
