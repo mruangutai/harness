@@ -4,7 +4,7 @@ approval:
   date: '2026-10-04'
   approved_by: molchairuangutai
   status: approved
-status: review
+status: building
 source_issues: [1016, 1570]
 needs_approval: true
 panel:
