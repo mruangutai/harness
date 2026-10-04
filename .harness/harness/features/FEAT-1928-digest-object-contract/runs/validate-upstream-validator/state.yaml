@@ -1,0 +1,101 @@
+schema_version: 2
+run_id: validate-upstream-validator
+run_uid: 6a842d4a95eb4c0e907996b7c0cdca3b
+feature: FEAT-1928-digest-object-contract
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa
+    persona: qa
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-qa-upstream.md
+    note: Pool and fresh receipts independently bound; existing receipt verifier executed.
+    evidence:
+      review_sha: 3c1923cf2475c1e976b5b941a5b5c7fc445f9e19
+      executed_sha: c81a57b6c7d62a63b52614e4bcb64a07f7d9fa47
+      source_equivalent: true
+      matrix_ok: true
+      unit_files: 46
+      integration_files: 74
+      pool_exit: 0
+      native_checks: 18
+      receipt_checks: 33
+      lifecycle_checks: 28
+      runtime_version: omp/18.6.1
+      parity_cases: 291
+      approved_deltas: 14
+      unplanned_deltas: 0
+      fail_first_sc: [SC-01, SC-02, SC-03, SC-04, SC-06, SC-07]
+  - id: code
+    persona: code-reviewer
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-code-reviewer-upstream.md
+    note: Exact canonical range measured; original fence advisory and eleven costs retained.
+    evidence:
+      review_sha: 3c1923cf2475c1e976b5b941a5b5c7fc445f9e19
+      review_base: 91e8865346a7bf4e2b8a5bf2033b17f01f8d6b14
+      prior_pin: 83746a425d692f2096f53d343594f1ee9ed8890c
+      code_grade: grade_2
+      grade_2_functions: 11
+      passing_functions: 230
+      human_commits: 7
+      severity_max: med
+      grading_artifact: artifact://785
+  - id: security
+    persona: security-reviewer
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-security-reviewer-upstream.md
+    note: Descriptor-bound append closure and separate root/binding lifetimes independently inspected.
+    evidence:
+      review_sha: 3c1923cf2475c1e976b5b941a5b5c7fc445f9e19
+      severity_max: none
+      prior_high_closed: true
+  - id: ui
+    persona: ui-reviewer
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/review-harness-ui-reviewer-upstream.md
+    note: Prior-pin delta has no visual paths; source-only closure and low attribution retained.
+    evidence:
+      review_sha: 3c1923cf2475c1e976b5b941a5b5c7fc445f9e19
+      current_main_changed_paths: 457
+      prior_pin_changed_paths: 94
+      prior_pin_visual_paths: 0
+      severity_max: low
+      browser_receipt_found: false
+  - id: goalcheck
+    persona: pm
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.harness/harness/features/FEAT-1928-digest-object-contract/notes/research-FEAT-1928-digest-object-contract-goalcheck-upstream.md
+    note: Seven SCs met; reader and SC-07 partial, preserving medium advisory without waiver.
+    evidence:
+      review_sha: 3c1923cf2475c1e976b5b941a5b5c7fc445f9e19
+      sc_met: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-08]
+      sc_partial: [SC-07]
+      perspectives_met: [operator, orchestrator, code_maintainer]
+      perspectives_partial: [reader]

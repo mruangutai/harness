@@ -1855,14 +1855,18 @@ def _append_record(found, obj, target):
     if harness_yaml.yaml is None:
         return f"its durable digest {found} cannot be written (PyYAML is not installed)."
     try:
-        last = _last_record(target.read(), found)
+        text = target.read()
+        last = _last_record(text, found)
     except (OSError, UnicodeDecodeError) as error:
         return f"its durable digest {found} cannot be read ({error})."
     if last == obj:
         return None
+    suffix = "\n```yaml\n" + harness_yaml.yaml.safe_dump(obj, sort_keys=False) + "```\n"
+    if _last_record(text + suffix, found) != obj:
+        return (f"its durable digest {found} cannot expose the appended mapping; "
+                "close any unfinished prose fence before returning.")
     try:
-        target.write("\n```yaml\n" + harness_yaml.yaml.safe_dump(obj, sort_keys=False)
-                     + "```\n")
+        target.write(suffix)
         target.flush()
     except OSError as error:
         return f"its durable digest {found} cannot be written ({error})."

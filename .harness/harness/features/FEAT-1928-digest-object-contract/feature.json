@@ -2,8 +2,8 @@
   "feature_id": "FEAT-1928-digest-object-contract",
   "branch": "feat/FEAT-1928-digest-object-contract",
   "pr": null,
-  "review_sha": "c81a57b6c7d62a63b52614e4bcb64a07f7d9fa47",
-  "cycles_used": 18,
+  "review_sha": "3c1923cf2475c1e976b5b941a5b5c7fc445f9e19",
+  "cycles_used": 19,
   "max_total_cycles": 20,
   "runs": [
     {
@@ -274,8 +274,31 @@
       "id": "validate-upstream-validator",
       "squad": "validation",
       "agent": "harness-validator-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-10-04T22:13:33+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:13:33+00:00",
+      "ended_at": "2026-10-04T22:41:02+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "append-visibility-main",
+      "squad": "engineering",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:42:32+00:00",
+      "ended_at": "2026-10-04T22:44:55+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "simplify-append-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:44:57+00:00",
+      "ended_at": "2026-10-04T22:49:47+00:00",
+      "cycles_used": 0,
+      "tokens": null
     }
   ],
   "judgements": [

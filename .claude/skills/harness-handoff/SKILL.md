@@ -40,6 +40,10 @@ Every persona carries `headline` (one line, the conclusion — not what you did)
 harness-expertise), plus your role's fields — see your role rule. `artifact` is the path to what
 you wrote. Durable fenced YAML in a digest.md is validator-owned output, never yours to write.
 
+Close every prose code fence before returning a lead object. The validator refuses an append
+that the durable reader cannot select, without changing existing bytes; correct the human
+assessment's unfinished fence and retry the object.
+
 | VERDICT | Means |
 |---|---|
 | `PASS` | done. May carry advisory notes |
