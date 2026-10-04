@@ -2624,7 +2624,14 @@ else:
     import glob as _glob
     import time as _time
     _now = _time.time()
-    _stamp = os.path.join(root, STAMP)
+    # #2026: a governed run (a well-formed feature in the payload) narrows its sweep below and
+    # keeps its OWN high-water mark, so a narrowed sweep never advances the shared mark past a
+    # sibling's write that only the full sweep reports. A malformed value is not a feature:
+    # it names no mark file and narrows nothing.
+    _sweep_feature = (runtime_feature if isinstance(runtime_feature, str)
+                      and re.fullmatch(r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+", runtime_feature)
+                      else None)
+    _stamp = os.path.join(root, STAMP + ("." + _sweep_feature if _sweep_feature else ""))
     try:
         _since = os.stat(_stamp).st_mtime
     except OSError:
@@ -2647,9 +2654,22 @@ else:
     # carried because `_unmodified_since_commit` below asks git a question that only makes
     # sense relative to ONE checkout, and a worktree is a checkout of its own.
     _sweep = [(root, os.path.join(root, _p)) for _p in SWEEP_GLOBS]
+    # #2026: A GOVERNED RUN SWEEPS ITS OWN CHECKOUTS, NOT ITS SIBLINGS'. The reporter cannot
+    # attribute a write, so sweeping every linked worktree told an agent that files another
+    # feature's agent (or the operator) left uncommitted were "already written" by it, on
+    # every Bash call. A run that names its feature sweeps the root and that feature's own
+    # worktree. An unnamed caller (the main session, a host without the field) keeps the full
+    # sweep. An ambiguous feature keeps the full sweep too: narrowing on a guess would hide.
     try:
         import harness_boundary as _hb_sweep
-        for _wt_root in _hb_sweep.linked_worktrees(root):
+        _worktrees = _hb_sweep.linked_worktrees(root)
+        if _sweep_feature:
+            try:
+                _own = _hb_sweep.worktree_for_feature(root, _sweep_feature)
+                _worktrees = [_own] if _own else []
+            except _hb_sweep.AmbiguousWorktree:
+                pass
+        for _wt_root in _worktrees:
             _sweep.extend((_wt_root, os.path.join(_wt_root, _p)) for _p in SWEEP_GLOBS)
     except (ImportError, OSError, ValueError):
         pass

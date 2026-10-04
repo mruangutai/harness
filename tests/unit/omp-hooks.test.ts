@@ -1025,8 +1025,14 @@ describe("OMP task lifecycle adapter", () => {
   const uriEdit = (...targets: string[]) =>
     targets.map((target) => `[${target}#1A2B]\nPUT 1:\n+x`).join("\n");
 
-  async function governedUriHooks() {
-    const { calls, runner } = fixture();
+  // One governed lead session over the fixture runner, with check-domain.py refusing `forbidden`.
+  // BUG-1016's cases pass a feature-root answer; everything else takes the no-worktree default.
+  async function governedUriHooks(options: {
+    featureRoot?: (args: string[]) => PolicyAnswer;
+    forbidden?: string;
+  } = {}) {
+    const forbidden = options.forbidden ?? FORBIDDEN;
+    const { calls, runner } = fixture({ featureRoot: options.featureRoot });
     const handlers = new Map<string, Function>();
     registerHarnessHooks({
       on(name: string, handler: Function) { handlers.set(name, handler); },
@@ -1034,12 +1040,14 @@ describe("OMP task lifecycle adapter", () => {
     }, (cwd, script, args, payload) => {
       const result = runner(cwd, script, args, payload);
       const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
-      return script === "check-domain.py" && target === FORBIDDEN
-        ? { blocked: true, reason: `${FORBIDDEN} is outside your domain`, stdout: "" }
+      return script === "check-domain.py" && target === forbidden
+        ? { blocked: true, reason: `${forbidden} is outside your domain`, stdout: "" }
         : result;
     });
     const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
     await start(handlers, ctx);
+    const lookups = () => calls.filter((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "feature-root");
     const domainTargets = (from: number) => calls.slice(from)
       .filter((call) => call.script === "check-domain.py")
       .map((call) => (call.payload.tool_input as Record<string, unknown>).file_path);
@@ -1049,7 +1057,7 @@ describe("OMP task lifecycle adapter", () => {
       handlers.get("tool_result")?.({
         toolName, toolCallId: "call-uri", input, content: [{ type: "text", text: "ok" }],
       }, ctx);
-    return { calls, domainTargets, pre, post };
+    return { hooks: handlers, ctx, calls, lookups, domainTargets, pre, post };
   }
 
   const routes = (target: string): Array<[string, Record<string, unknown>]> => [
@@ -1288,34 +1296,8 @@ describe("OMP task lifecycle adapter", () => {
   const featureRootArgs = ["feature-root", "--feature", "FEAT-43-long-run", "--root", "/repo"];
   const worktreeAnswer = (): PolicyAnswer => ({ blocked: false, stdout: `${WT}\n` });
 
-  async function rootedHooks(featureRoot: (args: string[]) => PolicyAnswer = worktreeAnswer) {
-    const { calls, runner } = fixture({ featureRoot });
-    const hooks = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { hooks.set(name, handler); },
-      events: { on: () => () => {} },
-    }, (cwd, script, args, payload) => {
-      const result = runner(cwd, script, args, payload);
-      const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
-      return script === "check-domain.py" && target === `${WT}/forbidden.ts`
-        ? { blocked: true, reason: `${WT}/forbidden.ts is outside your domain`, stdout: "" }
-        : result;
-    });
-    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
-    await start(hooks, ctx);
-    const lookups = () => calls.filter((call) =>
-      call.script === "inflight_registry.py" && call.args[0] === "feature-root");
-    const domainTargets = (from: number) => calls.slice(from)
-      .filter((call) => call.script === "check-domain.py")
-      .map((call) => (call.payload.tool_input as Record<string, unknown>).file_path);
-    const pre = (toolName: string, input: Record<string, unknown>) =>
-      hooks.get("tool_call")?.({ toolName, toolCallId: "call-rooted", input }, ctx);
-    const post = (toolName: string, input: Record<string, unknown>) =>
-      hooks.get("tool_result")?.({
-        toolName, toolCallId: "call-rooted", input, content: [{ type: "text", text: "ok" }],
-      }, ctx);
-    return { hooks, ctx, calls, lookups, domainTargets, pre, post };
-  }
+  const rootedHooks = (featureRoot: (args: string[]) => PolicyAnswer = worktreeAnswer) =>
+    governedUriHooks({ featureRoot, forbidden: `${WT}/forbidden.ts` });
 
   test("BUG-1016: a relative path on every path tool is rooted in the worktree, other fields kept", async () => {
     const { pre } = await rootedHooks();
@@ -1325,8 +1307,8 @@ describe("OMP task lifecycle adapter", () => {
       ["glob", { path: "src/**/*.ts", limit: 5 }, { path: `${WT}/src/**/*.ts`, limit: 5 }],
       ["write", { path: "notes/a.md", content: "x" }, { path: `${WT}/notes/a.md`, content: "x" }],
       ["ast_grep", { pat: "f($A)", path: "lib" }, { pat: "f($A)", path: `${WT}/lib` }],
-      ["ast_edit", { ops: [{ pat: "a", out: "b" }], paths: ["src/a.ts", "/abs/b.ts", "~/c.ts", "local://d"] },
-        { ops: [{ pat: "a", out: "b" }], paths: [`${WT}/src/a.ts`, "/abs/b.ts", "~/c.ts", "local://d"] }],
+      ["ast_edit", { ops: [{ pat: "a", out: "b" }], paths: ["src/a.ts", "/abs/b.ts", "~/c.ts", "agent://d"] },
+        { ops: [{ pat: "a", out: "b" }], paths: [`${WT}/src/a.ts`, "/abs/b.ts", "~/c.ts", "agent://d"] }],
     ];
     for (const [toolName, input, expected] of cases) {
       const original = structuredClone(input);
@@ -1359,6 +1341,72 @@ describe("OMP task lifecycle adapter", () => {
     for (const path of ['"~/notes.md"', '"/abs/a.ts"', '"agent://LeadTwo"']) {
       expect(await pre("read", { path })).toBeUndefined();
     }
+  });
+
+  test("#2026: a governed Bash post sweep names the run's feature", async () => {
+    const { post, calls } = await rootedHooks();
+    const at = calls.length;
+    await post("bash", { command: "ls" });
+    const sweep = calls.slice(at).find((call) => call.script === "check-domain.py");
+    expect(sweep?.payload).toMatchObject({ tool_name: "Bash", harness_feature: "FEAT-43-long-run" });
+    expect(sweep?.args).toEqual(["--post"]);
+  });
+
+  test("#2027: a quoted ~, absolute or scheme target is explicit on every path tool", async () => {
+    const { pre, lookups } = await rootedHooks();
+    for (const toolName of ["read", "grep", "glob", "write", "ast_grep"]) {
+      for (const path of ['"~/notes.md"', '"/abs/a.ts"', '"agent://LeadTwo"', ' "~/x" ']) {
+        expect([toolName, path, await pre(toolName, { path })]).toEqual([toolName, path, undefined]);
+      }
+    }
+    expect(await pre("ast_edit", { paths: ['"~/a.ts"', '"/abs/b.ts"'] })).toBeUndefined();
+    expect(lookups()).toEqual([]);
+  });
+
+  test("#2027: a quote-only edit section or MV destination is rooted inside its quotes", async () => {
+    const { pre, domainTargets, calls } = await rootedHooks();
+    const at = calls.length;
+    expect(await pre("edit", { input: '["""#1A2B]\nPUT 1:\n+x\nMV """"' }))
+      .toEqual({ input: { input: `["${WT}/""#1A2B]\nPUT 1:\n+x\nMV "${WT}/"""` } });
+    expect(domainTargets(at)).toEqual([`${WT}/"`, `${WT}/""`]);
+  });
+
+  test("#2028: ast_edit is a mutation: authorized, and every paths entry is domain-gated pre and post", async () => {
+    const { pre, post, calls, domainTargets } = await rootedHooks();
+    let at = calls.length;
+    expect(await pre("ast_edit", { ops: [{ pat: "a", out: "b" }], paths: ["src", "/abs/lib/**/*.ts"] }))
+      .toEqual({ input: { ops: [{ pat: "a", out: "b" }], paths: [`${WT}/src`, "/abs/lib/**/*.ts"] } });
+    const fromAt = calls.slice(at);
+    expect(fromAt.some((call) => call.script === "inflight_registry.py" && call.args[0] === "authorize")).toBe(true);
+    expect(domainTargets(at)).toEqual([`${WT}/src`, "/abs/lib/**/*.ts"]);
+    expect(fromAt.filter((call) => call.script === "check-domain.py").map((call) => call.payload.tool_name))
+      .toEqual(["Edit", "Edit"]);
+
+    expect(await pre("ast_edit", { ops: [], paths: ["src; forbidden.ts"] }))
+      .toEqual({ block: true, reason: `${WT}/forbidden.ts is outside your domain` });
+    const refused = await pre("ast_edit", { ops: [], paths: ["src", "local://d.md"] });
+    expect(refused.block).toBe(true);
+    expect(refused.reason).toContain("local://d.md");
+
+    at = calls.length;
+    for (const input of [{ ops: [], paths: ["forbidden.ts"] }, { ops: [], paths: [`${WT}/forbidden.ts`] }]) {
+      expect((await post("ast_edit", input)).isError).toBe(true);
+    }
+    expect(domainTargets(at)).toEqual([`${WT}/forbidden.ts`, `${WT}/forbidden.ts`]);
+    expect(calls.slice(at).every((call) => call.script !== "check-domain.py" || call.args.includes("--post")))
+      .toBe(true);
+  });
+
+  test("#2028: an unauthorized run's ast_edit is refused before any gate or rewrite", async () => {
+    const { handlers, calls } = fixture({ featureRoot: worktreeAnswer });
+    const ctx = ompContext("/repo", "AuthorizeError", "OrchestratorOne", "parent-session");
+    await start(handlers, ctx);
+    const at = calls.length;
+    const result = await handlers.get("tool_call")?.({
+      toolName: "ast_edit", toolCallId: "c", input: { ops: [], paths: ["src"] },
+    }, ctx);
+    expect(result).toEqual({ block: true, reason: "authorization gate crashed" });
+    expect(calls.slice(at).map((call) => call.script)).toEqual(["inflight_registry.py"]);
   });
 
   test("BUG-1016: dot, parent, glob, selector, archive and SQLite text is preserved after the root", async () => {

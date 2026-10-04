@@ -171,6 +171,13 @@
       "kind": "regate",
       "decision": "revalidate-after-r2-fix",
       "reason": "R2 closed by main-session-direct fix a6a1e9c8 (DEC-174): rootTarget roots a quoted target at leading-whitespace+1; regression test added, 124/0, red when adapter reverted; re-validate over seam pin ef9cbce2"
+    },
+    {
+      "at": "2026-10-04T19:20:01+00:00",
+      "by": "molchairuangutai",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "#2024: name ast_edit's real interface (paths array) where the signed intent said input.path; wording only, shipped behaviour unchanged"
     }
   ],
   "mission": "plan",
