@@ -389,8 +389,10 @@ def s2_wake_reclaim(s: Session, orch: str | None, timeout: float) -> None:
 def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
     mark = len(s.lifecycle)
     lead = child_task("There are no steps.", LEAD_DIGEST)
+    # No `name:` on the nested dispatch: dispatch-guard refuses one from any governed persona
+    # (#1870), so OMP picks the nested lead's id and the probe reads it from the claim it holds.
     nested = child_task("Use the task tool exactly once (blocking): agent harness-eng-lead, "
-                        f"name Probe, task:\n{lead}")
+                        f"task:\n{lead}")
     plain = child_task("There are no steps.")
     s.prompt("Use the task tool exactly once, as a BACKGROUND (non-blocking) batch of three "
              "tasks with shared context 'BUG-1898 probe batch':\n"
@@ -409,7 +411,7 @@ def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
 def observed_ids(s: Session, governed: list[str], plain_ids: list[str]) -> list[str]:
     """Every id OMP reported to Main (lifecycle frames, its subagent registry) plus every id
     a claim was sampled under. Main sees only its direct children; a nested lead's lineage
-    id (Nest.Probe) reaches the probe through the claim it holds while it runs."""
+    id (Nest.<id>) reaches the probe through the claim it holds while it runs."""
     listed = (s.request({"type": "get_subagents"}) or {}).get("data") or {}
     claimed = {str(r.get("agent_id")) for _ts, rows in s.samples for r in rows
                if r.get("feature") == FEATURE and r.get("agent_id")}
@@ -440,7 +442,7 @@ def nested_ids(s: Session, governed: list[str]) -> list[str]:
 def crossed_rows(s: Session, governed: list[str], plain_ids: list[str]) -> list[dict]:
     """Rows, over every sample, bound to a non-governed id, to another persona's id, or —
     under a governed orchestrator — to anything but the one lead it dispatched: a direct
-    child (`Nest.Probe`, one segment deeper), harness-eng-lead, parented by that
+    child (`Nest.<id>`, one segment deeper), harness-eng-lead, parented by that
     orchestrator. The probe dispatches nothing deeper, so any deeper row is crossed."""
     def crossed(row: dict) -> bool:
         agent_id = str(row.get("agent_id") or "")
@@ -462,7 +464,7 @@ def check_batch_ids(s: Session, governed: list[str], plain_ids: list[str]) -> No
     check("S3: two governed orchestrators started under real ids", len(governed) == 2, governed)
     check("S3: a repeated name produced a suffix id (Name-2)",
           any(i.rsplit("-", 1)[-1].isdigit() for i in every if "-" in i), every)
-    check("S3: a nested lead held a claim under its lineage id (Nest.Probe)",
+    check("S3: a nested lead held a claim under its lineage id (Nest.<id>)",
           len(nested) == 1, nested)
     check("S3: no row ever carried a non-governed id or crossed personas "
           "(the nested row is the dispatched lead, under its own parent)", not stray, stray[:3])
