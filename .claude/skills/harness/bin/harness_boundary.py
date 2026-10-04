@@ -16,6 +16,7 @@ verdict and prints nothing: a module shared by two hooks must not decide whose w
 the agent sees.
 """
 
+import fnmatch
 import os
 import re
 import subprocess
@@ -76,12 +77,17 @@ class RepositoryBases(list):
         return self._identities.get(real(base))
 
     def control_segment(self, rel_candidates):
-        """The fleet member whose control-plane segment `.harness/<segment>/` holds one of
-        `rel_candidates`, or None."""
+        """The fleet member whose control-plane segment `.harness/<segment>` holds one of
+        `rel_candidates`, or None. A Bash operand arrives unexpanded, so the segment is
+        matched as a shell glob: one reaching a single member is that member; one reaching
+        several answers with the glob itself, which no claim carries, so it fails closed."""
+        members = set(self._identities.values())
         for candidate in rel_candidates:
             match = _CONTROL_PLANE_SEGMENT.match(candidate)
-            if match and match.group(1) in self._identities.values():
-                return match.group(1)
+            reached = sorted(m for m in members
+                             if match and fnmatch.fnmatchcase(m, match.group(1)))
+            if reached:
+                return reached[0] if len(reached) == 1 else match.group(1)
         return None
 
 

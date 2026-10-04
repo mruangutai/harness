@@ -1655,6 +1655,18 @@ def _repository_bash_happy_routes(results, inflight_registry, feature):
     )
     for name, response, want, contains in cases:
         _repository_bash_record(results, name, response, want, contains)
+    _repository_bash_alias_routes(results, root, products, feature)
+    _repository_bash_segment_routes(results, root, feature)
+    _repository_bash_claim(
+        inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
+    sibling = _repository_bash_fire(
+        root, products["product-a"], feature, "BackendTwo", "EngLeadOne")
+    _repository_bash_record(
+        results, "same-role Bash siblings retain their own product claims", sibling, 0)
+    return first
+
+
+def _repository_bash_alias_routes(results, root, products, feature):
     # A cache- or worktree-shaped path is a carve-out only while it stays in this checkout:
     # one that resolves into another product still needs that product's binding (R2, R8).
     for carve_out in ("node_modules", os.path.join(".claude", "worktrees")):
@@ -1668,25 +1680,23 @@ def _repository_bash_happy_routes(results, inflight_registry, feature):
                 _repository_bash_fire(root, f"{carve_out}/{product}/change.md", feature,
                                       "BackendOne", "EngLeadOne"),
                 want, None if want == 0 else "mismatched")
-    # The segment directory itself belongs to its product: removing it through a cache
-    # alias of `.harness` needs that product's binding (R9).
+
+
+def _repository_bash_segment_routes(results, root, feature):
+    # The segment directory itself belongs to its product (R9), and an unexpanded glob is
+    # matched against the fleet: one reaching only this product is its own, one that could
+    # reach another fails closed (R10). Both go through a cache alias of `.harness`.
     os.symlink(os.path.join(root, ".harness"), os.path.join(root, "node_modules", "cp"))
     for product in ("product-a", "product-b"):
         os.makedirs(os.path.join(root, ".harness", product), exist_ok=True)
-    for product, want in (("product-a", 0), ("product-b", 2)):
+    for operand, want in (("product-a", 0), ("product-b", 2), ("product-a*", 0),
+                          ("product-*", 2)):
         _repository_bash_record(
-            results, f"removing the {product} control-plane segment directory exits {want}",
-            _bug1304_bash_fire(root, f"rm -rf node_modules/cp/{product}", "harness-backend-dev",
+            results, f"removing control-plane segment {operand} exits {want}",
+            _bug1304_bash_fire(root, f"rm -rf node_modules/cp/{operand}", "harness-backend-dev",
                                agent_id="BackendOne", parent_agent_id="EngLeadOne",
                                feature=feature),
             want, None if want == 0 else "mismatched")
-    _repository_bash_claim(
-        inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
-    sibling = _repository_bash_fire(
-        root, products["product-a"], feature, "BackendTwo", "EngLeadOne")
-    _repository_bash_record(
-        results, "same-role Bash siblings retain their own product claims", sibling, 0)
-    return first
 
 
 def _repository_bash_missing_and_released(results, inflight_registry, feature):
