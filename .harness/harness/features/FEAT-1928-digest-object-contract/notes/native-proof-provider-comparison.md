@@ -1,0 +1,5 @@
+# FEAT-1928 actual native proof provider comparison
+
+Two fresh clean-committed Anthropic scenarios returned 17/18: both generated the string "null" instead of the required JSON null token. Both rejected that call and completed the same child on its valid object retry. Neither is accepted as explicit-null proof. The second exact failed receipt/transcript are preserved under live-digest-object-probe-null-string-fail2.*.
+
+Inspection of the committed earlier 18/18 receipt at 8513e3ff shows it actually used the openai overlay: Main openai-codex/gpt-5.6-terra and child openai-codex/gpt-5.6-sol:medium, with raw data: null. It used the same executed OMP launcher identity (18.6.0, sha256 3fdbf0d27eb43682b26a4bb487c34516b74d1dc12e373177ae3ecc37053cfd72). The next fresh scenario therefore uses that previously successful configured provider; no source, assertion, raw input or transcript is rewritten to manufacture null. Both failed-scenario send-backs count as two proof-rework cycles. Provider normalization is separately covered by the signed real OMP provider suites; this note does not assert that the pending fresh scenario passes.
