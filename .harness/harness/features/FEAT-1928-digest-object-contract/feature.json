@@ -2,7 +2,7 @@
   "feature_id": "FEAT-1928-digest-object-contract",
   "branch": "feat/FEAT-1928-digest-object-contract",
   "pr": null,
-  "review_sha": "83746a425d692f2096f53d343594f1ee9ed8890c",
+  "review_sha": "c81a57b6c7d62a63b52614e4bcb64a07f7d9fa47",
   "cycles_used": 18,
   "max_total_cycles": 20,
   "runs": [
@@ -258,6 +258,24 @@
       "ended_at": "2026-10-04T22:08:20+00:00",
       "cycles_used": 0,
       "tokens": null
+    },
+    {
+      "id": "probe-inflight-claim-20261004T221050Z-2292-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-10-04T22:10:51+00:00",
+      "tokens": 20168,
+      "ended_at": "2026-10-04T22:14:11+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-upstream-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-10-04T22:13:33+00:00"
     }
   ],
   "judgements": [

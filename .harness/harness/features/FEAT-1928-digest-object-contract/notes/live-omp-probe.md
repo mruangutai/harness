@@ -825,3 +825,203 @@ Observed ids and registry snapshots:
   "after": []
 }
 ```
+
+## Live run 2026-10-04T22:14:13+00:00
+
+- Verdict: **PASS** (28/28 checks)
+- Command: `/Users/molchairuangutai/.bun/bin/omp --mode rpc --model openai-codex/gpt-5.6-terra --config /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract/.omp/providers/openai.yml --cwd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract`
+- cwd: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract`
+- OMP: `/Users/molchairuangutai/.bun/bin/omp` → runtime `/Users/molchairuangutai/.bun/install/global/node_modules/@oh-my-pi/pi-coding-agent` @ `2a2c6dcbbb558c0f8145f67f28b3370984f2bf60`
+- Installed version: `18.6.1`; launcher sha256: `348d0987f05eab2f56b6f543933ca6bbb964d8d069cca9a55be3a5efffad041a`
+- Release-tag source SHA above is metadata provenance only, not bundled runtime identity.
+- Harness HEAD: `c81a57b6c7d62a63b52614e4bcb64a07f7d9fa47`; registered engineering run: `probe-inflight-claim-20261004T221050Z-2292-eng`
+- Exercised source sha256: `{".agents/skills/harness/bin/digest_destination.py": "e386daf6b0d85a3cb71c0c6a3965da65b703ae97104736c2d14dd29800690996", ".agents/skills/harness/bin/validate-digest.py": "089ec5f27ef6f8850d4c0354d971ea5d5a51ed60faecbeb36d1672412aafa650", ".omp/extensions/harness-hooks.ts": "456c9af765b8c25351e1a473076a9b2253594671863c2a7e60199090ca850436", "tests/manual/probe-inflight-claim-lifecycle.py": "b968b4726f18a9a4cf28bfb00a22948eff5e13c9c68ebd72e186cf34db534ccb"}`
+- Execution failure: `None`
+- Session: `{"sessionId": "01a108f8-5282-7000-ac2e-57580c51b770", "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770.jsonl"}`
+- Scenarios: S1-orchestrator-background, S2-wake-reclaim, S3-mixed-batch, S4-suite-preservation, S5-settled-empty
+- Suite: `python3 tests/integration/test-validate-digest.py` → `{"returncode": 0, "tail": ["37/37 T-04 undeclared digest key cases passed.", "", "ALL PASSED."]}`
+
+Checks:
+- PASS: omp is on PATH
+- PASS: cwd is this feature worktree
+- PASS: feature_root places the feature in this linked worktree
+- PASS: no fixture substitution: the gates resolve their root to this worktree
+- PASS: no fixture substitution: VALIDATE_DIGEST_BIN is unset
+- PASS: the hook under test is this worktree's
+- PASS: credentials exist for openai-codex
+- PASS: the feature registry holds no rows (cutover done, nothing live)
+- PASS: the RPC session became ready
+- PASS: S1: a background orchestrator started under a real runtime id
+- PASS: S1: its lifecycle settlement completed successfully
+- PASS: S1: its settled run leaves no row
+- PASS: S2: has a settled orchestrator to wake
+- PASS: S2: the woken run's write landed (the hook authorizes only an exact-id claim)
+- PASS: S2: a row bound to the exact woken id was sampled during the wake
+- PASS: S2: the wake settled on the lifecycle bus
+- PASS: S2: and leaves no row
+- PASS: S3: two governed orchestrators started under real ids
+- PASS: S3: a repeated name produced a suffix id (Name-2)
+- PASS: S3: a nested lead held a claim under its lineage id (Nest.<id>)
+- PASS: S3: no row ever carried a non-governed id or crossed personas (the nested row is the dispatched lead, under its own parent)
+- PASS: S3: every governed child completed successfully
+- PASS: S3: and none leaves a row, nested included
+- PASS: S4: the real suite run passed
+- PASS: S4: the seeded unrelated claim is byte-identical after the suite
+- PASS: S4: and the suite changed no other row
+- PASS: S5: every governed child observed
+- PASS: S5: the feature registry is empty at probe end
+
+Observed ids and registry snapshots:
+```json
+{
+  "ids": {
+    "S1/S2 orchestrator": "Scope",
+    "S3 governed": [
+      "Plain",
+      "Nest"
+    ],
+    "lifecycle": [
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_xkc2zFY8TtwHFCup6MiWMvRT|fc_021498b6794dfc69016ac2cef4cc6c87d0ac64dc7aa1f040c1",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_xkc2zFY8TtwHFCup6MiWMvRT|fc_021498b6794dfc69016ac2cef4cc6c87d0ac64dc7aa1f040c1",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Return the BUG-1898 live probe digest object",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_xkc2zFY8TtwHFCup6MiWMvRT|fc_021498b6794dfc69016ac2cef4cc6c87d0ac64dc7aa1f040c1",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_xkc2zFY8TtwHFCup6MiWMvRT|fc_021498b6794dfc69016ac2cef4cc6c87d0ac64dc7aa1f040c1",
+        "detached": true,
+        "agentSource": "project",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Scope.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Plain",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_ptjslXpjfh7X1AFc00hdDSxW|fc_02204057945533de016ac2cf267c0887d09303d1b41c100698",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Plain.jsonl",
+        "index": 2
+      },
+      {
+        "id": "Nest",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_ptjslXpjfh7X1AFc00hdDSxW|fc_02204057945533de016ac2cf267c0887d09303d1b41c100698",
+        "detached": true,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Nest.jsonl",
+        "index": 1
+      },
+      {
+        "id": "Scope-2",
+        "agent": "scout",
+        "parentToolCallId": "call_ptjslXpjfh7X1AFc00hdDSxW|fc_02204057945533de016ac2cf267c0887d09303d1b41c100698",
+        "detached": true,
+        "agentSource": "bundled",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Scope-2.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Scope-2",
+        "agent": "scout",
+        "parentToolCallId": "call_ptjslXpjfh7X1AFc00hdDSxW|fc_02204057945533de016ac2cf267c0887d09303d1b41c100698",
+        "detached": true,
+        "agentSource": "bundled",
+        "description": "Reply with ok",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Scope-2.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Plain",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_ptjslXpjfh7X1AFc00hdDSxW|fc_02204057945533de016ac2cf267c0887d09303d1b41c100698",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Return the BUG-1898 live probe digest object",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Plain.jsonl",
+        "index": 2
+      },
+      {
+        "id": "Nest.FoolishShrew",
+        "agent": "harness-eng-lead",
+        "parentToolCallId": "call_ytrhzIQAWpxMsQDqaz9S88Wa|fc_0b930250daeca0d4016ac2cf4f596887d090109f88a8fcba6b",
+        "detached": false,
+        "agentSource": "project",
+        "status": "started",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Nest/Nest.FoolishShrew.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Nest.FoolishShrew",
+        "agent": "harness-eng-lead",
+        "parentToolCallId": "call_ytrhzIQAWpxMsQDqaz9S88Wa|fc_0b930250daeca0d4016ac2cf4f596887d090109f88a8fcba6b",
+        "detached": false,
+        "agentSource": "project",
+        "description": "Create probe digest and return structured assessment",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Nest/Nest.FoolishShrew.jsonl",
+        "index": 0
+      },
+      {
+        "id": "Nest",
+        "agent": "harness-orchestrator",
+        "parentToolCallId": "call_ptjslXpjfh7X1AFc00hdDSxW|fc_02204057945533de016ac2cf267c0887d09303d1b41c100698",
+        "detached": true,
+        "agentSource": "project",
+        "description": "Run BUG-1898 nested digest object contract probe",
+        "status": "completed",
+        "sessionFile": "/Users/molchairuangutai/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-FEAT-1928-digest-object-contract/2026-10-04T22-10-54-210Z_01a108f8-5282-7000-ac2e-57580c51b770/Nest.jsonl",
+        "index": 1
+      }
+    ]
+  },
+  "sentinel": {
+    "agent": "harness-qa",
+    "agent_id": "Probe.Sentinel",
+    "claim_id": "0b56283f9e9b4acab1a6aa1a606e4811",
+    "cwd": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-1928-digest-object-contract",
+    "dispatcher": "probe-sentinel",
+    "feature": "BUG-1898-probe-sentinel",
+    "parent_agent_id": "Probe",
+    "runtime": "omp",
+    "started_at": 1791151975.688565,
+    "supervisor_pid": 2292,
+    "supervisor_started_at": 1791151850
+  },
+  "before": [],
+  "after": []
+}
+```
