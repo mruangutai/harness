@@ -12,7 +12,13 @@ compared translated and named in its `match` cell.
 - `.claude/skills/harness/bin/validate-digest.py` sha256 at baseline: `9fbec17bedd7e570c5431239a5ac8d9bdff3b1331bd139d1b4b5cc31999860a6`
 - Machine-readable results: `receipt-scripts/baseline.json`; per-case input text, object mapping and baseline reasons: `receipt-scripts/parity-fixtures/P####.json`.
 
-## Commands
+## Historical generation commands
+
+The commands below document the original evidence capture, not current verification commands.
+Its throwaway generators were removed after capture; all 291 fixtures, both machine-readable
+result sets, and the table remain unchanged. Generator source is retained in commit `bfae9e82`
+at this feature's `notes/receipt-scripts/parity-baseline.py` and `parity-object.py` paths
+(`git cat-file -e` confirmed both). Inspect that historical tree to reproduce its capture.
 
 ```
 cd .harness/harness/features/FEAT-1928-digest-object-contract/notes/receipt-scripts

@@ -104,43 +104,46 @@ def errors(persona, obj):
     return digest_schema.validate_object(persona, obj)
 
 
-def array_item_violations(node, at, common, seen=()):
-    """Every array without concrete `items`, and every multi-type `type` list, under `node`."""
+def _schema_nodes(node, at, common, seen=()):
+    """Visit schema nodes in the original depth-first order, following non-cyclic refs."""
     if isinstance(node, list):
-        return [bad for i, child in enumerate(node)
-                for bad in array_item_violations(child, f"{at}/{i}", common, seen)]
+        for index, child in enumerate(node):
+            yield from _schema_nodes(child, f"{at}/{index}", common, seen)
+        return
     if not isinstance(node, dict):
-        return []
+        return
     ref = node.get("$ref")
     if isinstance(ref, str) and ref.startswith("common.json#/$defs/"):
         name = ref.rsplit("/", 1)[1]
-        return [] if name in seen else array_item_violations(common[name], ref, common,
-                                                               seen + (name,))
+        if name not in seen:
+            yield from _schema_nodes(common[name], ref, common, seen + (name,))
+        return
+    yield at, node
+    for key, child in node.items():
+        if isinstance(child, (dict, list)):
+            yield from _schema_nodes(child, f"{at}/{key}", common, seen)
+
+
+def _array_shape_violations(node, at):
     types = node.get("type")
     types = types if isinstance(types, list) else [types]
     out = []
-    if len([t for t in types if t not in (None, "null")]) > 1:
+    if len([kind for kind in types if kind not in (None, "null")]) > 1:
         out.append(f"{at}: type list {node['type']!r} — spell alternatives as anyOf")
     if "array" in types:
         items = node.get("items")
         if not isinstance(items, dict) or not ({"type", "enum", "anyOf", "$ref"} & set(items)):
             out.append(f"{at}: array without typed items ({items!r})")
-    return out + [bad for key, child in node.items() if isinstance(child, (dict, list))
-                  for bad in array_item_violations(child, f"{at}/{key}", common, seen)]
+    return out
 
 
-def object_violations(node, at, common, seen=()):
-    """Every object schema that is open or leaves a property optional, and every JSON null."""
-    if isinstance(node, list):
-        return [bad for i, child in enumerate(node)
-                for bad in object_violations(child, f"{at}/{i}", common, seen)]
-    if not isinstance(node, dict):
-        return []
-    ref = node.get("$ref")
-    if isinstance(ref, str) and ref.startswith("common.json#/$defs/"):
-        name = ref.rsplit("/", 1)[1]
-        return [] if name in seen else object_violations(common[name], ref, common,
-                                                         seen + (name,))
+def array_item_violations(node, at, common, seen=()):
+    """Every array without concrete `items`, and every multi-type `type` list, under `node`."""
+    return [bad for location, schema in _schema_nodes(node, at, common, seen)
+            for bad in _array_shape_violations(schema, location)]
+
+
+def _object_shape_violations(node, at):
     types = node.get("type")
     types = types if isinstance(types, list) else [types]
     out = []
@@ -153,8 +156,13 @@ def object_violations(node, at, common, seen=()):
             out.append(f"{at}: object is not additionalProperties false")
         if sorted(node.get("required") or []) != sorted(keys) or not keys:
             out.append(f"{at}: required {node.get('required')!r} != properties {keys!r}")
-    return out + [bad for key, child in node.items() if isinstance(child, (dict, list))
-                  for bad in object_violations(child, f"{at}/{key}", common, seen)]
+    return out
+
+
+def object_violations(node, at, common, seen=()):
+    """Every object schema that is open or leaves a property optional, and every JSON null."""
+    return [bad for location, schema in _schema_nodes(node, at, common, seen)
+            for bad in _object_shape_violations(schema, location)]
 
 
 class PersonaSchemas(unittest.TestCase):
@@ -298,27 +306,35 @@ class PersonaSchemas(unittest.TestCase):
         for bad in ("T-NN", "not-T-01-really"):
             self.assertTrue(errors("harness-backend-dev", make("harness-backend-dev", task=bad)))
 
-    def test_list_entry_shapes(self):
+    def test_finding_entry_shapes(self):
         cr = "harness-code-reviewer"
-        self.assertTrue(errors(cr, make(cr, findings=["kind: substance"])))
-        self.assertTrue(errors(cr, make(cr, findings=[{**FINDING, "kind": "substantive"}])))
-        self.assertTrue(errors(cr, make(cr, findings=[{**FINDING, "kind": "proportionality"}])))
-        self.assertTrue(errors(cr, make(cr, findings=[{**FINDING, "scope": "task"}])))
-        self.assertTrue(errors(cr, make(cr, findings=[{"kind": "form"}])))
-        self.assertTrue(errors(cr, make(cr, must_fix=[{"id": "F1"}])))
-        self.assertTrue(errors(cr, make(cr, grade_2_reasons=[])))
-        self.assertTrue(errors(cr, make(cr, spec_violations=[{"kind": "drift", "path": "a",
-                                                              "ref": "SC-01"}])))
+        invalid = (
+            ("findings", ["kind: substance"]),
+            ("findings", [{**FINDING, "kind": "substantive"}]),
+            ("findings", [{**FINDING, "kind": "proportionality"}]),
+            ("findings", [{**FINDING, "scope": "task"}]),
+            ("findings", [{"kind": "form"}]),
+            ("must_fix", [{"id": "F1"}]),
+            ("grade_2_reasons", []),
+            ("spec_violations", [{"kind": "drift", "path": "a", "ref": "SC-01"}]),
+        )
+        for field, value in invalid:
+            with self.subTest(field=field, value=value):
+                self.assertTrue(errors(cr, make(cr, **{field: value})))
+
+    def test_qa_entry_shapes(self):
         qa = "harness-qa"
         self.assertTrue(errors(qa, make(qa, fail_first=[{"sc": "SC-NN", "evidence": "x"}])))
         self.assertTrue(errors(qa, make(qa, fail_first=[{"sc": "SC-01", "evidence": " "}])))
         kind = {"kind": "unit", "state": "satisfied", "cmd": "pytest", "named_tests": 4}
         self.assertEqual(errors(qa, make(qa, kinds=[{**kind, "state": "not_applicable",
                                                      "cmd": "none", "named_tests": "none"}])), [])
-        self.assertTrue(errors(qa, make(qa, kinds=[{**kind, "state": "done"}])))
-        self.assertTrue(errors(qa, make(qa, kinds=[{"kind": "unit", "state": "satisfied"}])))
-        self.assertTrue(errors(qa, make(qa, kinds=[{**kind, "cmd": None}])))
+        for bad in ({**kind, "state": "done"}, {"kind": "unit", "state": "satisfied"},
+                    {**kind, "cmd": None}):
+            self.assertTrue(errors(qa, make(qa, kinds=[bad])), bad)
         self.assertTrue(errors(qa, make(qa, open_questions=[{"id": "Q1", "question": "x"}])))
+
+    def test_lead_member_shapes(self):
         lead = "harness-eng-lead"
         skipped = {"step": "advise", "persona": "fable-advisor", "status": "skipped",
                    "reason": "agent not resolvable"}
@@ -327,13 +343,20 @@ class PersonaSchemas(unittest.TestCase):
                     {**skipped, "verdict": "PASS"},
                     {"step": "s1", "persona": "harness-qa", "verdict": "PASS"}):
             self.assertTrue(errors(lead, make(lead, members=[bad])), bad)
+
+    def test_expertise_update_shapes(self):
+        lead = "harness-eng-lead"
         write = {"op": "add", "target": "P-01", "section": "Patterns", "entry": "WHEN x DO y",
                  "why": "seen twice"}
         drop = {"op": "drop", "target": "P-02", "section": "Gotchas", "why": "stale"}
         self.assertEqual(errors(lead, make(lead, expertise_update=[write, drop])), [])
         for bad in ({**drop, "entry": "none"}, {**write, "op": "merge"},
-                    {**write, "section": "Rules"}, {k: v for k, v in write.items() if k != "why"}):
+                    {**write, "section": "Rules"}, {key: value for key, value in write.items()
+                                                  if key != "why"}):
             self.assertTrue(errors(lead, make(lead, expertise_update=[bad])), bad)
+
+    def test_amendment_entry_shapes(self):
+        lead = "harness-eng-lead"
         files = {"task": "T-01", "field": "files", "was": ["a.py", {"path": "b.py", "quote": "x"}],
                  "now": ["a.py"], "reason": "r"}
         self.assertEqual(errors(lead, make(lead, amendments=[files])), [])
@@ -346,12 +369,16 @@ class PersonaSchemas(unittest.TestCase):
                       {"task": "T-01", "field": "intent", "was": "a", "now": "b", "reason": "r",
                        "by": "me"}):
             self.assertTrue(errors(lead, make(lead, amendments=[entry])), entry)
+
+    def test_reader_entry_shapes(self):
         vl = "harness-validator-lead"
         reader = {"reader": "advisor", "status": "skipped", "persona": "fable-advisor",
                   "reason": "host refusal"}
         self.assertEqual(errors(vl, make(vl, readers=[reader])), [])
         self.assertTrue(errors(vl, make(vl, readers=[{**reader, "reason": "none"}])))
         self.assertTrue(errors(vl, make(vl, readers=[{**reader, "status": "ran"}])))
+
+    def test_list_entry_shapes(self):
         self.assertTrue(errors("harness-orchestrator", make("harness-orchestrator", runs=["r1"])))
 
     def test_reject_judgement_binds_to_status(self):

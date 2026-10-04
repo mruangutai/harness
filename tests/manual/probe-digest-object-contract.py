@@ -165,13 +165,16 @@ def feature_rows() -> list[dict]:
     return [row for row in rows if row.get("feature") == FEATURE]
 
 
-def preflight(args) -> bool:
+def _preflight_omp():
     omp = shutil.which("omp")
     check("omp is on PATH", omp is not None, omp)
     runtime, head = omp_runtime(omp) if omp else (None, "")
     check("OMP runtime source commit is identifiable",
           runtime is not None and bool(re.fullmatch(r"[0-9a-f]{40}", head)),
           {"runtime": str(runtime), "head": head})
+
+
+def _preflight_placement():
     check("cwd is this feature worktree", Path.cwd().resolve() == ROOT.resolve(),
           {"cwd": str(Path.cwd()), "worktree": str(ROOT)})
     owned = harness_boundary.worktree_owner(str(ROOT))
@@ -179,6 +182,9 @@ def preflight(args) -> bool:
     placed = inflight_registry.feature_root(owner, FEATURE) if owner else ""
     check("feature_root places the feature in this linked worktree",
           os.path.realpath(placed) == os.path.realpath(ROOT), {"owner": str(owner), "root": placed})
+
+
+def _preflight_no_substitution():
     check("no fixture substitution: the gates resolve their root to this worktree",
           os.path.realpath(harness_boundary.resolve_root(str(BIN), strict=False))
           == os.path.realpath(ROOT))
@@ -186,11 +192,23 @@ def preflight(args) -> bool:
           "VALIDATE_DIGEST_BIN" not in os.environ, os.environ.get("VALIDATE_DIGEST_BIN"))
     check("the hook under test is this worktree's",
           all((ROOT / rel).is_file() for rel in UNDER_TEST[:2]), str(ROOT / ".omp"))
-    check("the provider overlay exists", overlay(args.provider).is_file(), str(overlay(args.provider)))
+
+
+def _preflight_provider(args):
+    provider_overlay = overlay(args.provider)
+    check("the provider overlay exists", provider_overlay.is_file(), str(provider_overlay))
     child_provider = persona_role_model(args.provider).split("/", 1)[0]
     for provider in dict.fromkeys((args.model.split("/", 1)[0], child_provider)):
         check(f"credentials exist for {provider}", has_credentials(provider), provider)
-    check("the feature holds no live claim", feature_rows() == [], feature_rows())
+
+
+def preflight(args) -> bool:
+    _preflight_omp()
+    _preflight_placement()
+    _preflight_no_substitution()
+    _preflight_provider(args)
+    rows = feature_rows()
+    check("the feature holds no live claim", rows == [], rows)
     return all(ok for _name, ok, _detail in RESULTS)
 
 
@@ -444,70 +462,101 @@ def injected_bundle_sha() -> str:
     return canonical_sha(json.loads(run.stdout))
 
 
+def _rpc_response(frames, command):
+    return next(((frame.get("data") or {}) for frame in frames
+                 if frame.get("type") == "response" and frame.get("command") == command
+                 and frame.get("success")), {})
+
+
+def _dispatch_evidence(args):
+    # OMP bakes a tool_call hook's revision into the call itself, so these are the args
+    # the task tool executed. The hook refuses a dispatcher-supplied outputSchema or
+    # schemaMode outright, so a dispatched call that carries them carries the hook's.
+    items = _dispatch_items(args)
+    return {
+        "agents": [item.get("agent") for item in items],
+        "top_level_schema_controls": sorted(key for key in SCHEMA_CONTROLS if key in args),
+        "executed_schema_modes": [item.get("schemaMode") for item in items],
+        "executed_output_schema_sha256": [canonical_sha(item["outputSchema"])
+                                          if "outputSchema" in item else None for item in items],
+        "task_first_line": str(next(iter(items), {}).get("task", "")).split("\n")[0],
+    }
+
+
+def _job_evidence(job, frames):
+    job_id = job.get("id")
+    structured = job.get("structuredOutput") or {}
+    return {
+        "id": job_id,
+        "agent": job.get("agent"),
+        "exit_code": job.get("exitCode"),
+        "resolved_model": job.get("resolvedModel"),
+        "structured_output": {key: structured.get(key)
+                              for key in ("source", "mode", "status", "data", "error")},
+        "lifecycle": [payload.get("status") for payload in
+                      ((frame.get("payload") or {}) for frame in frames
+                       if frame.get("type") == "subagent_lifecycle")
+                      if payload.get("id") == job_id],
+    }
+
+
+def _assistant_models(entries):
+    assistants = [entry["message"] for entry in entries if entry.get("type") == "message"
+                  and isinstance(entry.get("message"), dict)
+                  and entry["message"].get("role") == "assistant"]
+    return sorted({f"{message.get('provider')}/{message.get('model')}" for message in assistants})
+
+
+def _persona_schema_lines(init):
+    prompt = str(init.get("systemPrompt") or "")
+    return [line.strip()[:200] for line in prompt.splitlines()
+            if any(field in line for field in PERSONA_FIELDS)][:6]
+
+
+def _child_evidence(child):
+    entries = child.get("entries") or []
+    header = next((entry for entry in entries if entry.get("type") == "session"), {})
+    init = next((entry for entry in entries if entry.get("type") == "session_init"), {})
+    return {
+        "session_id": header.get("id"),
+        "session_file": child.get("sessionFile"),
+        "agent": init.get("agent"),
+        "providers_models": _assistant_models(entries),
+        "persona_schema_lines": _persona_schema_lines(init),
+    }
+
+
+def _bus_yield_results(frames, job_id):
+    bus = [((frame.get("payload") or {}).get("event") or {}) for frame in frames
+           if frame.get("type") == "subagent_event" and (frame.get("payload") or {}).get("id") == job_id]
+    return [bool(event.get("isError")) for event in bus
+            if event.get("type") == "tool_execution_end" and event.get("toolName") == "yield"]
+
+
 def derive(records: list[dict]) -> dict:
     frames = [record["frame"] for record in records]
-    state = next(((f.get("data") or {}) for f in frames if f.get("type") == "response"
-                  and f.get("command") == "get_state" and f.get("success")), {})
+    state = _rpc_response(frames, "get_state")
     start, end, tally = _task_dispatch(frames)
     args = start.get("args") or {}
     results = ((end.get("result") or {}).get("details") or {}).get("results") or [{}]
     job = results[0] if isinstance(results[0], dict) else {}
-    job_id = job.get("id")
-    child = next(((f.get("data") or {}) for f in frames if f.get("type") == "response"
-                  and f.get("command") == "get_subagent_messages" and f.get("success")), {})
-    entries = child.get("entries") or []
-    header = next((e for e in entries if e.get("type") == "session"), {})
-    init = next((e for e in entries if e.get("type") == "session_init"), {})
-    prompt = str(init.get("systemPrompt") or "")
-    assistants = [e["message"] for e in entries if e.get("type") == "message"
-                  and isinstance(e.get("message"), dict) and e["message"].get("role") == "assistant"]
-    yields = _yields(entries)
-    bus = [((f.get("payload") or {}).get("event") or {}) for f in frames
-           if f.get("type") == "subagent_event" and (f.get("payload") or {}).get("id") == job_id]
+    child = _rpc_response(frames, "get_subagent_messages")
+    yields = _yields(child.get("entries") or [])
     first = yields[0] if yields else {}
-    structured = job.get("structuredOutput") or {}
     return {
-        "ready_frame": any(f.get("type") == "ready" for f in frames),
+        "ready_frame": any(frame.get("type") == "ready" for frame in frames),
         "main_session_id": state.get("sessionId"),
         "task_tool_call_id": start.get("toolCallId"),
         "task_calls": tally,
-        # OMP bakes a tool_call hook's revision into the call itself, so these are the args
-        # the task tool executed. The hook refuses a dispatcher-supplied outputSchema or
-        # schemaMode outright, so a dispatched call that carries them carries the hook's.
-        "dispatch": {
-            "agents": [item.get("agent") for item in _dispatch_items(args)],
-            "top_level_schema_controls": sorted(key for key in SCHEMA_CONTROLS if key in args),
-            "executed_schema_modes": [item.get("schemaMode") for item in _dispatch_items(args)],
-            "executed_output_schema_sha256": [canonical_sha(item["outputSchema"]) if "outputSchema" in item
-                                              else None for item in _dispatch_items(args)],
-            "task_first_line": str(next(iter(_dispatch_items(args)), {}).get("task", "")).split("\n")[0],
-        },
-        "job": {
-            "id": job_id,
-            "agent": job.get("agent"),
-            "exit_code": job.get("exitCode"),
-            "resolved_model": job.get("resolvedModel"),
-            "structured_output": {key: structured.get(key)
-                                  for key in ("source", "mode", "status", "data", "error")},
-            "lifecycle": [p.get("status") for p in
-                          ((f.get("payload") or {}) for f in frames if f.get("type") == "subagent_lifecycle")
-                          if p.get("id") == job_id],
-        },
-        "child_session": {
-            "session_id": header.get("id"),
-            "session_file": child.get("sessionFile"),
-            "agent": init.get("agent"),
-            "providers_models": sorted({f"{m.get('provider')}/{m.get('model')}" for m in assistants}),
-            "persona_schema_lines": [line.strip()[:200] for line in prompt.splitlines()
-                                     if any(field in line for field in PERSONA_FIELDS)][:6],
-        },
+        "dispatch": _dispatch_evidence(args),
+        "job": _job_evidence(job, frames),
+        "child_session": _child_evidence(child),
         "yields": yields,
         "null_rejection": {
             "text": first.get("result_text"),
             "rejected_by": rejected_by(str(first.get("result_text") or "")),
         },
-        "bus_yield_results": [bool(event.get("isError")) for event in bus
-                              if event.get("type") == "tool_execution_end" and event.get("toolName") == "yield"],
+        "bus_yield_results": _bus_yield_results(frames, job.get("id")),
     }
 
 
@@ -523,13 +572,8 @@ def without_nulls(value):
     return value
 
 
-def evidence_checks(ev: dict, expected: dict, bundle_sha: str) -> list[tuple[str, bool, object]]:
-    """The acceptance, as named predicates over derived evidence."""
-    job, child, yields = ev["job"], ev["child_session"], ev["yields"]
-    structured = job["structured_output"]
-    first = yields[0] if yields else {}
-    later = yields[1:]
-    valid = [y for y in later if without_nulls(y["arguments"].get("data")) == expected]
+def _dispatch_checks(ev, bundle_sha):
+    child, structured = ev["child_session"], ev["job"]["structured_output"]
     return [
         ("the RPC session became ready", ev["ready_frame"], ev["ready_frame"]),
         ("Main dispatched exactly one harness-documentor", ev["dispatch"]["agents"] == [PERSONA],
@@ -547,22 +591,42 @@ def evidence_checks(ev: dict, expected: dict, bundle_sha: str) -> list[tuple[str
         ("OMP ran the job with a caller-supplied schema in strict mode (hook injection)",
          structured.get("source") == "caller" and structured.get("mode") == "strict", structured),
         ("the child's system prompt carries the documentor bundle's own fields",
-         all(any(f in line for line in child["persona_schema_lines"]) for f in PERSONA_FIELDS),
+         all(any(field in line for line in child["persona_schema_lines"]) for field in PERSONA_FIELDS),
          child["persona_schema_lines"]),
+    ]
+
+
+def _null_yield_checks(ev):
+    first = ev["yields"][0] if ev["yields"] else {}
+    return [
         ("the first yield carried data explicitly null",
          bool(first) and first["data_key_present"] and first["arguments"].get("data") is None, first),
         ("the null yield came back as a tool error", bool(first) and first["is_error"], first),
         ("a known component refused the null yield",
          ev["null_rejection"]["rejected_by"] != "unknown", ev["null_rejection"]),
+    ]
+
+
+def _retry_checks(ev, expected):
+    later = ev["yields"][1:]
+    valid = [value for value in later if without_nulls(value["arguments"].get("data")) == expected]
+    return [
         ("the child retried: a later yield in the same session carried the valid object",
-         len(valid) == 1, [y["arguments"] for y in later]),
+         len(valid) == 1, [value["arguments"] for value in later]),
         ("that valid yield was accepted", bool(valid) and not valid[0]["is_error"]
          and "Result submitted" in valid[0]["result_text"], valid),
         ("no yield between the null and the valid one was accepted",
-         bool(valid) and all(y["is_error"] for y in later[:later.index(valid[0])]), later),
+         bool(valid) and all(value["is_error"] for value in later[:later.index(valid[0])]), later),
         ("the live bus saw the same job reject then accept a yield",
          ev["bus_yield_results"][:1] == [True] and ev["bus_yield_results"][-1:] == [False],
          ev["bus_yield_results"]),
+    ]
+
+
+def _completion_checks(ev, expected):
+    job, child = ev["job"], ev["child_session"]
+    structured = job["structured_output"]
+    return [
         ("the same job settled completed", bool(job["id"]) and job["lifecycle"][-1:] == ["completed"],
          {"id": job["id"], "lifecycle": job["lifecycle"]}),
         ("the child session is that job's", str(child["session_file"] or "").endswith(f"/{job['id']}.jsonl")
@@ -571,6 +635,12 @@ def evidence_checks(ev: dict, expected: dict, bundle_sha: str) -> list[tuple[str
         ("OMP validated the object: structured output valid and equal to it",
          structured.get("status") == "valid" and structured.get("data") == expected, structured),
     ]
+
+
+def evidence_checks(ev: dict, expected: dict, bundle_sha: str) -> list[tuple[str, bool, object]]:
+    """The acceptance, as named predicates over derived evidence."""
+    return (_dispatch_checks(ev, bundle_sha) + _null_yield_checks(ev)
+            + _retry_checks(ev, expected) + _completion_checks(ev, expected))
 
 
 # ---------------------------------------------------------------------------------------
@@ -728,39 +798,38 @@ def load_record(receipt: Path) -> dict:
     return json.loads(blocks[0])
 
 
-def verify(receipt: Path) -> int:
-    try:
-        record = load_record(receipt)
-    except (OSError, ValueError) as exc:
-        print(f"FAIL - receipt {receipt} is unreadable: {exc}")
-        return 1
-    transcript = ROOT / str((record.get("transcript") or {}).get("path", ""))
-    if not check("the receipt records a live run, not a dry run",
-                 record.get("probe") == PROBE_ID and record.get("mode") == "live"
-                 and record.get("dry_run") is False, {k: record.get(k) for k in ("probe", "mode", "dry_run")}):
-        return 1
-    if not check("the transcript it names exists inside the feature notes",
-                 transcript.resolve().parent == NOTES.resolve() and transcript.is_file(), str(transcript)):
-        return 1
-    check("the transcript's sha256 matches the receipt",
-          sha256_file(transcript) == record["transcript"]["sha256"], record["transcript"]["sha256"])
-    records = read_transcript(transcript)
+def _verify_frame_record(records, transcript):
     check("the transcript is an ordered frame record",
-          [r.get("seq") for r in records] == list(range(len(records)))
-          and all(isinstance(r.get("frame"), dict) for r in records)
-          and len(records) == record["transcript"]["records"], len(records))
-    evidence = derive(records)
-    check("every evidence field re-derives from the transcript", evidence == record.get("evidence"),
-          "evidence differs")
-    for name, ok, detail in evidence_checks(evidence, record.get("valid_object"),
-                                            record.get("injected_bundle_sha256")):
-        check(name, ok, detail)
+          [record.get("seq") for record in records] == list(range(len(records)))
+          and all(isinstance(record.get("frame"), dict) for record in records)
+          and len(records) == transcript["records"], len(records))
+
+
+def _verify_derived_identity(evidence, record):
     check("the ids match the transcript", record.get("ids") == {
         "main_session": evidence["main_session_id"], "task_tool_call": evidence["task_tool_call_id"],
         "job": evidence["job"]["id"], "child_session": evidence["child_session"]["session_id"]},
         record.get("ids"))
     check("the child model is the one the job resolved",
           record.get("child_model") == evidence["job"]["resolved_model"], record.get("child_model"))
+
+
+def _verify_transcript(record, transcript):
+    check("the transcript's sha256 matches the receipt",
+          sha256_file(transcript) == record["transcript"]["sha256"], record["transcript"]["sha256"])
+    records = read_transcript(transcript)
+    _verify_frame_record(records, record["transcript"])
+    evidence = derive(records)
+    check("every evidence field re-derives from the transcript", evidence == record.get("evidence"),
+          "evidence differs")
+    for name, ok, detail in evidence_checks(evidence, record.get("valid_object"),
+                                            record.get("injected_bundle_sha256")):
+        check(name, ok, detail)
+    _verify_derived_identity(evidence, record)
+    return records
+
+
+def _verify_omp_identity(record):
     launcher = Path(str(record["omp"]["launcher"])).expanduser()
     runtime, omp_sha = omp_runtime(str(launcher)) if launcher.is_file() else (None, "")
     check("the recorded OMP source commit matches its runtime provenance",
@@ -774,27 +843,57 @@ def verify(receipt: Path) -> int:
           launcher.is_file() and subprocess.run(
               [str(launcher), "--version"], capture_output=True, text=True).stdout.strip()
           == record["omp"].get("version"), record["omp"].get("version"))
+
+
+def _committed_under_test(head):
+    return {rel: hashlib.sha256(subprocess.run(["git", "-C", str(ROOT), "show", f"{head}:{rel}"],
+                                               capture_output=True).stdout).hexdigest()
+            for rel in UNDER_TEST}
+
+
+def _verify_harness_identity(record):
     head = str(record["harness"]["head"])
     check("the Harness HEAD is a commit in this repository", bool(re.fullmatch(r"[0-9a-f]{40}", head))
           and subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"{head}^{{commit}}"],
                              capture_output=True).returncode == 0, head)
     check("the run was taken at a clean tree: no uncommitted paths",
           record["harness"].get("uncommitted_paths") == 0, record["harness"].get("uncommitted_paths"))
-    committed = {rel: hashlib.sha256(subprocess.run(["git", "-C", str(ROOT), "show", f"{head}:{rel}"],
-                                                    capture_output=True).stdout).hexdigest()
-                 for rel in UNDER_TEST}
+    committed = _committed_under_test(head)
     check("every file under test is byte-identical to that commit's",
           committed == record["harness"].get("under_test_sha256"),
           {rel for rel in UNDER_TEST if committed[rel] != record["harness"]["under_test_sha256"].get(rel)})
+
+
+def _verify_outcome(record, records):
     check("the recorded run passed and exited 0",
           record.get("verdict") == "PASS" and not record.get("failed")
           and record["exit_status"]["probe_exit"] == 0 and record["exit_status"]["job_exit_code"] == 0,
-          {k: record.get(k) for k in ("verdict", "failed", "exit_status")})
-    started, finished = (dt.datetime.fromisoformat(record[k]) for k in ("started_at", "finished_at"))
-    stamps = [dt.datetime.fromisoformat(r["at"]) for r in records]
+          {key: record.get(key) for key in ("verdict", "failed", "exit_status")})
+    started, finished = (dt.datetime.fromisoformat(record[key]) for key in ("started_at", "finished_at"))
+    stamps = [dt.datetime.fromisoformat(frame["at"]) for frame in records]
     check("the transcript frames fall inside the recorded run",
           bool(stamps) and started <= stamps[0] and stamps[-1] <= finished,
           (record["started_at"], record["finished_at"]))
+
+
+def verify(receipt: Path) -> int:
+    try:
+        record = load_record(receipt)
+    except (OSError, ValueError) as exc:
+        print(f"FAIL - receipt {receipt} is unreadable: {exc}")
+        return 1
+    transcript = ROOT / str((record.get("transcript") or {}).get("path", ""))
+    if not check("the receipt records a live run, not a dry run",
+                 record.get("probe") == PROBE_ID and record.get("mode") == "live"
+                 and record.get("dry_run") is False, {key: record.get(key) for key in ("probe", "mode", "dry_run")}):
+        return 1
+    if not check("the transcript it names exists inside the feature notes",
+                 transcript.resolve().parent == NOTES.resolve() and transcript.is_file(), str(transcript)):
+        return 1
+    records = _verify_transcript(record, transcript)
+    _verify_omp_identity(record)
+    _verify_harness_identity(record)
+    _verify_outcome(record, records)
     failed = [name for name, ok, _ in RESULTS if not ok]
     print(f"{'FAIL' if failed else 'PASS'} - receipt verification {len(RESULTS) - len(failed)}/{len(RESULTS)}")
     return 1 if failed else 0
