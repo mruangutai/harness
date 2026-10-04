@@ -284,9 +284,11 @@ function domainTarget(target: unknown): DomainTarget {
   };
 }
 
-// The write path and every edit path (section sources and MV destinations) pass through ONE
-// decision, pre and post, so edit cannot become the way around a refused scheme and an allowed
-// URI never exempts a sibling file in the same edit.
+// The write path, every edit path (section sources and MV destinations) and every ast_edit
+// `paths` entry pass through ONE decision, pre and post, so neither edit tool can become the way
+// around a refused scheme and an allowed URI never exempts a sibling file in the same call.
+// An ast_edit entry may be a directory or glob; it is judged as given, so one reaching outside
+// the agent's domain is refused rather than expanded (#2028).
 function fileDomain(
   cwd: string,
   toolName: string,
@@ -299,7 +301,12 @@ function fileDomain(
     ? [[input.path, { file_path: input.path, content: input.content }]]
     : toolName === "edit"
       ? extractEditPaths(input.input).map((filePath) => [filePath, { file_path: filePath }])
-      : [];
+      : toolName === "ast_edit" && Array.isArray(input.paths)
+        ? input.paths
+          .flatMap((entry) => (typeof entry === "string" ? entry.split(";").map((part) => part.trim()) : [entry]))
+          .filter((filePath) => filePath !== "")
+          .map((filePath): [unknown, Dict] => [filePath, { file_path: filePath }])
+        : [];
   return targets.flatMap(([target, toolInput]): PolicyResult[] => {
     const decision = domainTarget(target);
     if (decision.kind === "allowed") return [];
@@ -335,11 +342,14 @@ function postDomain(
   input: Dict,
   runner: PolicyRunner,
   ctx?: any,
+  feature?: string,
 ): PolicyResult[] {
   const base = basePayload(agent, "PostToolUse", cwd, ctx);
   if (toolName !== "bash") return fileDomain(cwd, toolName, input, runner, ["--post"], base);
+  // #2026: the Bash sweep narrows to the run's own feature's checkouts when it is named.
   return [runner(cwd, "check-domain.py", ["--post"], {
     ...base,
+    ...(feature ? { harness_feature: feature } : {}),
     tool_name: "Bash",
     tool_input: { command: input.command },
   })];
@@ -1141,7 +1151,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         ...(parentAgentId ? { parentId: parentAgentId } : {}),
       },
     };
-    const mutates = ["write", "edit", "bash"].includes(toolName);
+    const mutates = ["write", "edit", "ast_edit", "bash"].includes(toolName);
     sessionCwd = text(ctx.cwd) || sessionCwd;
     if (toolName === "task" && !agentId) {
       return { block: true, reason: MISSING_CAPABILITY };
@@ -1454,10 +1464,10 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     // BUG-1016: the host may hand back the original or the revised input; rooting is
     // idempotent, so the post gate judges the same files the pre gate did either way.
-    const rooted = currentAgent && ["write", "edit"].includes(toolName)
+    const rooted = currentAgent && ["write", "edit", "ast_edit"].includes(toolName)
       ? rootCall(ctx.cwd, toolName, input) : {};
     const reason = rooted.reason ?? firstBlock(postDomain(
-      ctx.cwd, policyAgent, toolName, rooted.input ?? input, policyRunner, ctx,
+      ctx.cwd, policyAgent, toolName, rooted.input ?? input, policyRunner, ctx, currentFeature,
     ));
     const content = Array.isArray(event.content) ? event.content : [];
     const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));

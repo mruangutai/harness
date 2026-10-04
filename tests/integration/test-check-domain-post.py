@@ -442,6 +442,52 @@ def run_post():
     return fails
 
 
+def run_sweep_scoped_to_feature():
+    """#2026: a governed Bash sweep reads the root and its OWN feature's worktree only, with a
+    high-water mark of its own; an unnamed caller still sweeps every linked worktree."""
+    results = []
+    d = fixture(FIXTURE_MANIFEST)
+    own = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+    other = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "harness", "FEAT-91"), "FEAT-91")
+
+    def bash(feature=None):
+        payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
+                   "hook_event_name": "PostToolUse", "tool_input": {"command": "true"}}
+        if feature:
+            payload["harness_feature"] = feature
+        return fire_post(d, payload)
+
+    def oversize(checkout, feature):
+        fdir = os.path.join(checkout, ".harness", "harness", "features", feature)
+        os.makedirs(fdir, exist_ok=True)
+        with open(os.path.join(fdir, "feature.json"), "w") as f:
+            f.write(_legal_feature_json(400))
+
+    for feature in (None, "FEAT-90-own"):
+        bash(feature)                                     # settle both marks
+    oversize(other, "FEAT-91")
+    r_own = bash("FEAT-90-own")
+    results.append(("a governed sweep does not report a sibling feature's worktree",
+                    r_own.returncode == 0, f"exit {r_own.returncode}: {r_own.stderr.strip()[:160]}"))
+    r_main = bash()
+    results.append(("the unnamed sweep still reports it, its mark untouched by the governed one",
+                    r_main.returncode == 2 and "FEAT-91" in r_main.stderr,
+                    f"exit {r_main.returncode}: {r_main.stderr.strip()[:160]}"))
+    oversize(own, "FEAT-90")
+    r_mine = bash("FEAT-90-own")
+    results.append(("a governed sweep reports its own feature's worktree",
+                    r_mine.returncode == 2 and "FEAT-90" in r_mine.stderr,
+                    f"exit {r_mine.returncode}: {r_mine.stderr.strip()[:160]}"))
+    shutil.rmtree(d, ignore_errors=True)
+
+    fails = 0
+    print("--- #2026: the Bash sweep is scoped to the run's own feature ---")
+    for name, ok, detail in results:
+        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
+        fails += 0 if ok else 1
+    return fails
+
+
 def run_runs_agent_write_path():
     """FEAT-31 T-15 case F — the half that makes "the WRITE PATH refuses" true rather
     than "the module refuses". SC-07's positional rule is enforced through the same

@@ -8023,8 +8023,11 @@ semicolon-separated path list. It does not take a singular `path`, and absent `p
 not invented. `edit` instead rewrites hashline section headers `[filename#ABCD]` and `MV`
 destinations, including quoted destinations; hashes, patch body rows and other input stay
 unchanged. This corrects the signed task's singular-field description to the actual OMP
-interface recorded by T-01. Pre-existing `ast_edit` is outside the hook mutation set
-(`write`, `edit`, `bash`); this change does not give it mutation authorization or domain gates.
+interface recorded by T-01. Since #2028, `ast_edit` is in the hook mutation set (`write`,
+`edit`, `ast_edit`, `bash`): it needs run authorization, and each `paths` entry, rooted, is
+judged pre and post by the same per-target decision as write and edit, BUG-2003's URI rule
+included. A directory or glob entry is judged as given and refused when it falls outside the
+agent's domain.
 
 **The predicate is lexical, entry by entry.** The adapter trims surrounding whitespace and
 removes a surrounding double-quote pair for classification. A nonempty, nonblank target is
