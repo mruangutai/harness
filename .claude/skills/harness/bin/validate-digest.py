@@ -757,11 +757,27 @@ def parse_digest(text):
       until they balance. If they never do, the field is `_UNPARSED` — reported as a
       violation, never silently coerced to an empty list.
     """
+    # FEAT-67: every helper returns its parsed value and the next cursor explicitly.
+    located = _digest_body(text)
+    if located is None:
+        return {}
+    body, base = located
+    out = {}
+    i = 0
+    while i < len(body):
+        k, v, i = _next_field(body, i, base)
+        if k is not None:
+            out[k] = v
+    return out
+
+
+def _digest_body(text):
+    """The lines under `DIGEST:` and their base indent, or None when either is missing."""
     lines = text.splitlines()
     start = next((i for i, l in enumerate(lines)
                   if re.match(r"^\s*DIGEST:\s*(#.*)?$", l)), None)
     if start is None:
-        return {}
+        return None
 
     body = lines[start + 1:]
     # Base indent = the first real key under DIGEST:. Everything deeper is nested.
@@ -769,89 +785,109 @@ def parse_digest(text):
                  for l in body
                  if l.strip() and re.match(r"^\s*[a-z_][a-z0-9_-]*:", l)), None)
     if base is None:
-        return {}
+        return None
+    return body, base
 
-    out = {}
+
+def _next_field(body, i, base):
+    """Consume from line `i`: (key, value, next cursor); key None when nothing was a field.
+    A dedent below the base indent ends the block by returning the cursor past the end."""
+    line = body[i]
+    if not line.strip():
+        return None, None, i + 1
+    indent = len(line) - len(line.lstrip())
+    if indent < base:
+        return None, None, len(body)   # dedented out of the block (`artifact:`)
+    if indent != base:
+        return None, None, i + 1       # nested — belongs to a member, not to us
+    # NOTE the hyphen in the class: a drifted key like `must-fix` must be PARSED
+    # before it can be reported as drift. Omitting it made this validator blind
+    # to exactly the defect class it exists to catch.
+    m = re.match(r"^\s*([a-z_][a-z0-9_-]*):[ \t]*(.*)$", line)
+    if not m:
+        return None, None, i + 1
+    k, v = m.group(1), strip_comment(m.group(2))
+    if v:
+        value, j = _inline_value(body, i, v)
+        return k, value, j
+    items, j = _block_list(body, i, base)
+    return k, items, j
+
+
+def _inline_value(body, i, v):
+    if v[0] in "[{" and bracket_depth(v) > 0:
+        return _spanning_value(body, i, v)
+    return parse_scalar(v), i + 1
+
+
+def _spanning_value(body, i, v):
+    # Unclosed on this line — an inline list/map spanning lines.
     n = len(body)
-    i = 0
-    while i < n:
-        line = body[i]
-        if not line.strip():
-            i += 1
-            continue
-        indent = len(line) - len(line.lstrip())
-        if indent < base:
-            break                      # dedented out of the block (`artifact:`)
-        if indent != base:
-            i += 1
-            continue                   # nested — belongs to a member, not to us
-        # NOTE the hyphen in the class: a drifted key like `must-fix` must be PARSED
-        # before it can be reported as drift. Omitting it made this validator blind
-        # to exactly the defect class it exists to catch.
-        m = re.match(r"^\s*([a-z_][a-z0-9_-]*):[ \t]*(.*)$", line)
-        if not m:
-            i += 1
-            continue
-        k, v = m.group(1), strip_comment(m.group(2))
-        if v:
-            if v[0] in "[{" and bracket_depth(v) > 0:
-                # Unclosed on this line — an inline list/map spanning lines.
-                joined = v
-                j = i + 1
-                while j < n and bracket_depth(joined) > 0:
-                    joined += " " + strip_comment(body[j]).strip()
-                    j += 1
-                out[k] = parse_scalar(joined) if bracket_depth(joined) == 0 else _UNPARSED
-                i = j
-                continue
-            out[k] = parse_scalar(v)
-            i += 1
-            continue
-        # Empty value: a block list if the next non-blank deeper line is an item.
-        # A `- ` line AT THE ITEM INDENT starts a new entry; every other deeper line
-        # is a continuation of the entry just opened (F5) — joined with ", " for
-        # block-mapping style (`step: s1` / `verdict: PASS`, no existing separator)
-        # or with " " for an inline `{ ... }` still balancing its own brackets
-        # across lines.
-        #
-        # THE ITEM INDENT IS THE ONE THE FIRST `- ` SETS (#1854). Before this, any
-        # deeper `- ` opened a new entry, so a member carrying its own block-style
-        # `files_touched:` list was split into one member per path — well-formed
-        # YAML, five members by safe_load, reported as "has no verdict" per row.
-        items, cur, cur_is_brace, item_indent = [], None, False, None
-        j = i + 1
-        while j < n:
-            nxt = body[j]
-            if not nxt.strip():
-                j += 1
-                continue
-            nind = len(nxt) - len(nxt.lstrip())
-            if nind <= base:
-                break
-            stripped = strip_comment(nxt.lstrip())
-            if item_indent is None and nxt.lstrip().startswith("- "):
-                item_indent = nind
-            if nind == item_indent and nxt.lstrip().startswith("- "):
-                if cur is not None:
-                    items.append(cur)
-                cur = stripped[2:]
-                cur_is_brace = cur.lstrip().startswith("{")
-            elif cur is not None:
-                if cur_is_brace:
-                    if bracket_depth(cur) > 0:
-                        cur += " " + stripped
-                    # else: balanced already — stray deeper content, not ours.
-                else:
-                    cur += ", " + stripped
+    joined = v
+    j = i + 1
+    while j < n and bracket_depth(joined) > 0:
+        joined += " " + strip_comment(body[j]).strip()
+        j += 1
+    return (parse_scalar(joined) if bracket_depth(joined) == 0 else _UNPARSED), j
+
+
+def _block_list(body, i, base):
+    # Empty value: a block list if the next non-blank deeper line is an item.
+    # A `- ` line AT THE ITEM INDENT starts a new entry; every other deeper line
+    # is a continuation of the entry just opened (F5) — joined with ", " for
+    # block-mapping style (`step: s1` / `verdict: PASS`, no existing separator)
+    # or with " " for an inline `{ ... }` still balancing its own brackets
+    # across lines.
+    #
+    # THE ITEM INDENT IS THE ONE THE FIRST `- ` SETS (#1854). Before this, any
+    # deeper `- ` opened a new entry, so a member carrying its own block-style
+    # `files_touched:` list was split into one member per path — well-formed
+    # YAML, five members by safe_load, reported as "has no verdict" per row.
+    n = len(body)
+    items, cur, cur_is_brace, item_indent = [], None, False, None
+    j = i + 1
+    while j < n:
+        nxt = body[j]
+        if not nxt.strip():
             j += 1
+            continue
+        nind = len(nxt) - len(nxt.lstrip())
+        if nind <= base:
+            break
+        cur, cur_is_brace, item_indent = _block_list_step(items, cur, cur_is_brace,
+                                                          item_indent, nxt, nind)
+        j += 1
+    if cur is not None:
+        items.append(cur)
+    # `key:` with nothing under it is an EMPTY LIST, not a missing field. Writing
+    # a bare `escalations:` is the natural way to say "none" and must not read as
+    # an omission — the point of requiring the key is that the agent asserted it.
+    return items, j
+
+
+def _block_list_step(items, cur, cur_is_brace, item_indent, nxt, nind):
+    """One deeper line: open a new entry (closing the previous into `items`) or extend
+    the open one. Returns the new (cur, cur_is_brace, item_indent)."""
+    stripped = strip_comment(nxt.lstrip())
+    if item_indent is None and nxt.lstrip().startswith("- "):
+        item_indent = nind
+    if nind == item_indent and nxt.lstrip().startswith("- "):
         if cur is not None:
             items.append(cur)
-        # `key:` with nothing under it is an EMPTY LIST, not a missing field. Writing
-        # a bare `escalations:` is the natural way to say "none" and must not read as
-        # an omission — the point of requiring the key is that the agent asserted it.
-        out[k] = items
-        i = j
-    return out
+        cur = stripped[2:]
+        return cur, cur.lstrip().startswith("{"), item_indent
+    if cur is not None:
+        return _continued_item(cur, cur_is_brace, stripped), cur_is_brace, item_indent
+    return cur, cur_is_brace, item_indent
+
+
+def _continued_item(cur, cur_is_brace, stripped):
+    if cur_is_brace:
+        if bracket_depth(cur) > 0:
+            return cur + " " + stripped
+        # else: balanced already — stray deeper content, not ours.
+        return cur
+    return cur + ", " + stripped
 
 
 def _repo_root_for_feature(feature_dir):
@@ -1023,6 +1059,126 @@ def _load_test_kinds(root):
     return kinds, None
 
 
+# The three checks below replace prose that only the consuming LLM enforced (consumer
+# audit, 2026-09-18). Each is a predicate over data the repository owns — the git log at
+# the pin, the working tree at return, harness.json's test_kinds — and each REFUSES only
+# a positive finding: when git or the policy cannot be read the check says nothing, because
+# the grade enforcement above already refuses that checkout with its own repair.
+
+HUMAN_COMMIT_MARK = "[harness:human]"
+
+
+def _human_commits_in_range(root, base_oid, head_oid):
+    """Full OIDs of `[harness:human]` commits in `base..head`, or None when git cannot say."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", root, "log", "--format=%H", "--fixed-strings",
+             "--grep=" + HUMAN_COMMIT_MARK, f"{base_oid}..{head_oid}"],
+            text=True, capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _prefix_matches(short, full_oids):
+    return bool(short) and any(oid.startswith(short) for oid in full_oids)
+
+
+def _human_commit_disagreement(actual, claimed):
+    """`(unreported, not_in_range)`: human commits the digest omits, and claimed SHAs
+    no human commit in the range begins with."""
+    unreported = [a for a in actual if not any(a.startswith(c) for c in claimed if c)]
+    not_in_range = [c for c in claimed if not _prefix_matches(c, actual)]
+    return unreported, not_in_range
+
+
+def _human_commits_error(root, review_sha, reported):
+    """harness-code-review § Review a pinned SHA: every `[harness:human]` commit in the
+    reviewed range is reported in `human_commits_in_scope`, and nothing else is. The
+    list is COMPUTED from the canonical range and the digest's list is compared to it,
+    abbreviated SHAs accepted; `reported` is None when the digest omits the field."""
+    base_oid, head_oid, range_error = _canonical_review_range(root, review_sha)
+    actual = None if range_error else _human_commits_in_range(root, base_oid, head_oid)
+    if actual is None:
+        return None
+    claimed = [str(item).strip().strip("'\"") for item in (reported or [])]
+    unreported, not_in_range = _human_commit_disagreement(actual, claimed)
+    if not unreported and not not_in_range:
+        return None
+    parts = ["unreported " + ", ".join(a[:12] for a in unreported)] if unreported else []
+    parts += ["not in the range " + ", ".join(not_in_range)] if not_in_range else []
+    return (f"human_commits_in_scope disagrees with the reviewed range ({'; '.join(parts)}). "
+            f"Every {HUMAN_COMMIT_MARK} commit in {base_oid[:12]}..{head_oid[:12]} is in scope "
+            f"and inherits no earlier review; report exactly that set.")
+
+
+def _dirty_tree_error(root):
+    """harness-code-review § Review a pinned SHA: a tree matching no commit has no
+    pinnable verdict. Tracked modifications outside `.harness/` at return time refuse a
+    PASS or FAIL; the honest return is BLOCKED asking for a commit or a stash."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", root, "status", "--porcelain", "--untracked-files=no"],
+            text=True, capture_output=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    dirty = [line[3:] for line in result.stdout.splitlines()
+             if len(line) > 3 and not line[3:].lstrip("\"").startswith(".harness/")]
+    if not dirty:
+        return None
+    shown = ", ".join(dirty[:5]) + (" …" if len(dirty) > 5 else "")
+    return (f"the working tree carries uncommitted changes outside .harness/ ({shown}); a tree "
+            f"matching no commit has no pinnable verdict. Return BLOCKED and ask for a "
+            f"{HUMAN_COMMIT_MARK} commit or a stash, then review the pin.")
+
+
+KIND_STATES = {"satisfied", "missing", "not_applicable", "locally_run", "misconfigured"}
+
+
+def _qa_kind_policy_error(i, kind, state, test_kinds):
+    """The harness.json cross-check for one kinds entry, or None."""
+    policy = test_kinds.get(kind)
+    if not isinstance(policy, dict):
+        return f"kinds[{i}] names {kind!r}, which harness.json test_kinds does not declare."
+    excluded = policy.get("status") == "excluded" or policy.get("cmd") is None
+    if state == "not_applicable" and not excluded:
+        return (f"kinds[{i}] ({kind}) claims not_applicable but harness.json carries a "
+                f"runnable cmd for it — a kind that ran is satisfied or missing; one that "
+                f"could not run is misconfigured (BLOCKED).")
+    if state == "satisfied" and policy.get("cmd") is None:
+        return (f"kinds[{i}] ({kind}) claims satisfied but harness.json has no cmd for it — "
+                f"nothing could have run.")
+    return None
+
+
+def _qa_kind_entry_errors(i, raw, verdict, test_kinds):
+    entry = parse_member_entry(str(raw))
+    kind = str(entry.get("kind", "")).strip()
+    state = str(entry.get("state", "")).strip()
+    if state not in KIND_STATES:
+        return [f"kinds[{i}] ({kind or '?'}) state={state!r} is not one of "
+                f"{sorted(KIND_STATES)}."]
+    err = []
+    if state == "misconfigured" and verdict in ("PASS", "FAIL"):
+        err.append(f"kinds[{i}] ({kind}) is misconfigured but VERDICT is {verdict} — a kind "
+                   f"that cannot run is BLOCKED, never a verdict on the code.")
+    policy_error = test_kinds and _qa_kind_policy_error(i, kind, state, test_kinds)
+    return err + ([policy_error] if policy_error else [])
+
+
+def _qa_kind_errors(kinds, verdict, test_kinds):
+    """harness-verification-rules § five states, checked against harness.json: `state`
+    is one of KIND_STATES; `misconfigured` is BLOCKED, never a verdict; `not_applicable`
+    is legal only for a kind the policy excludes; `satisfied` needs a runnable `cmd`.
+    `test_kinds` None means the policy could not be read — only the shape rules run."""
+    return [error for i, raw in enumerate(kinds)
+            for error in _qa_kind_entry_errors(i, raw, verdict, test_kinds)]
+
+
 def _classify_canonical_range(root, base_oid, head_oid, test_kinds):
     """`code_grade.classify` over the canonical range's gated functions, as
     `(result, error)`.
@@ -1040,7 +1196,10 @@ def _classify_canonical_range(root, base_oid, head_oid, test_kinds):
                       f"{base_oid[:12]}..{head_oid[:12]} does not parse "
                       f"({exc.msg}, line {exc.lineno}) — fix the committed syntax "
                       f"error and rerun.")
-    except Exception as exc:
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        # git absent or refusing (OSError, CalledProcessError), an unresolvable revision or a
+        # malformed test_kinds policy (ValueError, TestKindsError), or output that is not text
+        # (UnicodeDecodeError) — the grader's own boundary classes (FEAT-65).
         return None, (_GRADE_PREFIX + f"grading {base_oid[:12]}..{head_oid[:12]} "
                       f"failed ({type(exc).__name__}: {exc}).")
     return result, None
@@ -1071,6 +1230,126 @@ def _mechanical_code_grade(root, review_sha):
         return None, range_text, error
     result, error = _classify_canonical_range(root, base_oid, head_oid, test_kinds)
     return result, range_text, error
+
+
+def _grade_2_qualnames(root, review_sha):
+    """Qualnames the repository grades exactly 2 over the canonical range, or None when
+    that cannot be computed — the grade enforcement above has already refused then."""
+    base_oid, head_oid, error = _canonical_review_range(root, review_sha)
+    test_kinds = None if error else _load_test_kinds(root)[0]
+    if test_kinds is None:
+        return None
+    try:
+        gated, _informational = gated_set(root, base_oid, head_oid)
+        records, _result = classify(gated, test_kinds)
+    except (OSError, subprocess.SubprocessError, ValueError, SyntaxError):
+        return None  # the grade enforcement already refused this range, with its repair
+    return sorted({r["qualname"] for r in records if r.get("grade") == 2})
+
+
+def _grade_2_reasons_error(reasons, qualnames):
+    """harness-code-risk-grading: one written reason per `REASON REQUIRED` function,
+    naming it. A reason that names no graded function is decoration."""
+    if not qualnames:
+        return None
+    text = " ".join(str(r) for r in reasons)
+    unnamed = [q for q in qualnames if q.split(".")[-1] not in text]
+    if not unnamed:
+        return None
+    return (f"grade_2_reasons names none of: {', '.join(unnamed)}. code-grade.py printed "
+            f"REASON REQUIRED for each; write one reason per function, naming it, or "
+            f"return code_grade: fail.")
+
+
+SC_LINE_RE = re.compile(r"^\s*-\s*(SC-\d+)\s*:", re.M)
+VERIFY_LINE_RE = re.compile(r"^\s*verify:\s*(\S+)", re.M)
+CITATION_RE = re.compile(r"[\w./-]+\.\w+:\d+")
+
+
+def _inspection_sc_ids(brief_text):
+    """SC ids whose next `verify:` line reads `inspection`."""
+    ids = []
+    for match in SC_LINE_RE.finditer(brief_text):
+        verify = VERIFY_LINE_RE.search(brief_text, match.end())
+        if verify and verify.group(1) == "inspection":
+            ids.append(match.group(1))
+    return ids
+
+
+def _read_or_none(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return None
+
+
+def _cited_sc_ids(body):
+    """SC ids on artifact lines that also carry a `path:line` citation."""
+    return {sc for line in body.splitlines() if CITATION_RE.search(line)
+            for sc in re.findall(r"SC-\d+", line)}
+
+
+def _inspection_citation_error(feature_dir, root, artifact):
+    """harness-code-review § Stage 1: every `verify: inspection` SC is verified in the
+    review artifact with a `file:line` citation on a line that names the SC. Silent when
+    BRIEF or the artifact cannot be read — an unreadable artifact is DEC-156's finding."""
+    brief = _read_or_none(os.path.join(feature_dir, "BRIEF.md")) if feature_dir else None
+    wanted = _inspection_sc_ids(brief) if brief else []
+    body = wanted and _read_or_none(
+        artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
+    if not body:
+        return None
+    missing = [sc for sc in wanted if sc not in _cited_sc_ids(body)]
+    if not missing:
+        return None
+    return (f"BRIEF marks {', '.join(missing)} `verify: inspection` and the review artifact "
+            f"cites no file:line for them. Inspection SCs are checked here and nowhere else: "
+            f"for each, one line naming the SC and the path:line that satisfies it.")
+
+
+def _plan_task(feature_dir, task_id):
+    """The plan.yaml task mapping with `id == task_id`, or None."""
+    try:
+        plan = artifact_accessors.load_plan(os.path.join(feature_dir, "plan.yaml"))
+    except (OSError, harness_yaml.YamlParseError):
+        return None
+    return next((task for task in plan.get("tasks") or []
+                 if isinstance(task, dict) and task.get("id") == task_id), None)
+
+
+def _plan_verify_for(feature_dir, task_id):
+    """The `verify:` string plan.yaml carries for `task_id`, or None."""
+    verify = (_plan_task(feature_dir, task_id) or {}).get("verify")
+    return verify.strip() if isinstance(verify, str) and verify.strip() else None
+
+
+def _receipt_error(feature_dir, root, artifact, task_id):
+    """harness-digest-dev § verify receipt: `task_verify: pass` is a claim; the receipt
+    named by `artifact:` must exist and carry the task's `verify:` command verbatim."""
+    body = _read_or_none(artifact if os.path.isabs(artifact) else os.path.join(root, artifact))
+    if body is None:
+        return (f"task_verify: pass but the receipt {artifact} is not on disk. The receipt "
+                f"holds the verify command and its verbatim output; write it before returning.")
+    verify = _plan_verify_for(feature_dir, task_id) if feature_dir else None
+    if verify and verify not in body:
+        return (f"task_verify: pass but the receipt {artifact} does not carry the task's "
+                f"verify command verbatim ({verify[:80]!r}). Paste the command as plan.yaml "
+                f"spells it, then its output.")
+    return None
+
+
+def _findings_order_error(findings):
+    """harness-code-review: findings are ranked — severity never rises down the list."""
+    ranks = []
+    for raw in findings:
+        sev = str(parse_member_entry(str(raw)).get("severity", "")).strip()
+        if sev in SEV:
+            ranks.append(SEV.index(sev))
+    if ranks == sorted(ranks, reverse=True):
+        return None
+    return ("findings are not ranked: a lower severity precedes a higher one. An unread "
+            "list gates nothing — order by severity, highest first.")
 
 
 def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None,
@@ -1223,7 +1502,7 @@ def _read_review_sha(feature_dir):
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
         doc = artifact_accessors.load_feature_json(fj_path)
-    except Exception as e:
+    except artifact_accessors.FeatureJsonError as e:
         return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
                        f"could not be read ({e}), so the claim is not trusted.")
     sha = doc.get("review_sha") if isinstance(doc, dict) else None
@@ -1288,7 +1567,7 @@ def _read_feature_branch(feature_dir):
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
         doc = artifact_accessors.load_feature_json(fj_path)
-    except Exception:
+    except artifact_accessors.FeatureJsonError:
         return None
     branch = doc.get("branch") if isinstance(doc, dict) else None
     if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
@@ -1378,7 +1657,8 @@ def _resolve_plan_review_path(reviewed):
 def _pending_plan_status_error(plan_path):
     try:
         plan = artifact_accessors.load_plan(plan_path)
-    except Exception as exc:
+    except harness_yaml.YamlParseError as exc:
+        # load_plan's one exported class: PlanSchemaError is a YamlParseError too (FEAT-65).
         return f"reviewed plan target {plan_path!r} could not be read ({exc})."
     approval = plan.get("approval") if isinstance(plan, dict) else None
     status = approval.get("status") if isinstance(approval, dict) else None
@@ -1394,7 +1674,7 @@ def _pinned_feature_review_error(feature_dir):
         return None
     try:
         feature = artifact_accessors.load_feature_json(feature_json)
-    except Exception as exc:
+    except artifact_accessors.FeatureJsonError as exc:
         return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
     review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
     if not isinstance(review_sha, str) \
@@ -1513,6 +1793,9 @@ def _missing_field_default_hint(field, allowed):
     SCALAR (currently only `code_grade`), which needs its legal values named
     instead. Isolated here, not as a new elif in `validate`, so this fix does
     not grow a function already far past the grade bar (pre-existing).
+    FEAT-66: `validate` is now a driver at the bar and the hint chain lives in
+    `_missing_field_hint`; this helper stays because that chain is itself at
+    the bar's edge, not because `validate` is.
     """
     if field == "code_grade":
         vals = sorted(a for a in allowed if isinstance(a, str))
@@ -1528,12 +1811,37 @@ def _missing_field_default_hint(field, allowed):
 
 def validate(persona, text, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
              review_pin=None, mission=None):
-    err = []
     raw_persona = persona
     persona = norm(persona)
-    schema = SCHEMAS.get(persona)
+    schema = _persona_schema(raw_persona, persona)
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
+
+    # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
+    # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
+    # real return. Every anchor below is first-match, so the echo used to shadow
+    # the real block. The contract mandates the real return LAST, so slice from
+    # the last line-start VERDICT: and validate only that. No anchor at all keeps
+    # whole-text behavior — the "no VERDICT" path stays byte-identical.
+    text = _return_tail(text)
+
+    # --- VERDICT: exact token, exact spelling.
+    m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)
+    seen = parse_digest(text)
+    optional_fields = _optional_fields(raw_persona, persona)
+    all_fields = {**schema, **UNIVERSAL, **optional_fields}
+    err = _common_errors(m, text, seen, all_fields, optional_fields, persona, mission)
+    err += _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission,
+                           config_path=config_path, feature_dir=feature_dir,
+                           branch_override=branch_override, review_pin=review_pin)
+    return err
+
+
+def _persona_schema(raw_persona, persona):
+    """The persona's required fields, or None for a persona this file does not know."""
+    schema = SCHEMAS.get(persona)
+    if schema is None:
+        return None
     if raw_persona == "harness-code-reviewer":
         # CANONICAL SPELLING (batch contract, wave 2): a gated record that is below
         # bar and NOT grade 2 — one that blocks the build exactly as grade 1 does —
@@ -1542,48 +1850,10 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
         # that meaning and is reused rather than added to.
         schema = {**schema, "code_grade": set(CODE_GRADE_VALUES),
                   "reviewed": str}
+    return schema
 
-    # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
-    # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
-    # real return. Every anchor below is first-match, so the echo used to shadow
-    # the real block. The contract mandates the real return LAST, so slice from
-    # the last line-start VERDICT: and validate only that. No anchor at all keeps
-    # whole-text behavior — the "no VERDICT" path stays byte-identical.
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        text = text[anchors[-1].start():]
 
-    # --- VERDICT: exact token, exact spelling.
-    m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)
-    if not m:
-        err.append("no VERDICT: line — this is a contract violation, not a verdict of any kind.")
-    elif m.group(1) not in VERDICTS:
-        err.append(f"VERDICT is {m.group(1)!r}; must be exactly one of {sorted(VERDICTS)}.")
-
-    if not re.search(r"^\s*DIGEST:", text, re.M):
-        err.append("no DIGEST: block.")
-    if not re.search(r"^\s*artifact:\s*\S+", text, re.M):
-        err.append("no artifact: path.")
-
-    seen = parse_digest(text)
-    review_policy = None
-    if raw_persona == "harness-code-reviewer":
-        review_policy = load_policy(review_config_path(config_path))["review"]
-
-    # F7: `headline` must be at the DIGEST block's OWN level, read from `seen` (which
-    # only holds base-indent keys) rather than matched anywhere in the text at any
-    # depth. A lead digest with no top-level headline but a block-style member that
-    # happens to carry its own `headline:` used to pass — the orchestrator routes on
-    # the TOP-level headline and never opens member entries.
-    hl = seen.get("headline")
-    if not (isinstance(hl, str) and hl.strip()):
-        err.append("DIGEST has no headline: — the orchestrator routes on this.")
-
-    # --- catch DRIFTED key spellings before reporting them as merely missing.
-    # F15: iterate the FULL field set (schema + universal), not schema alone — a
-    # universal field like `files_touched` drifting to `files-touched` was reported
-    # as merely missing rather than as the drift it is; fails closed either way, but
-    # the wrong message.
+def _optional_fields(raw_persona, persona):
     optional_fields = {
         **PASSTHROUGH.get(persona, {}),
         **DOCUMENTED_OPTIONAL.get(raw_persona, {}),
@@ -1594,169 +1864,17 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # harness-*-lead type and still require adequacy_notes.
     if raw_persona == "lead":
         optional_fields["adequacy_notes"] = list
-    all_fields = {**schema, **UNIVERSAL, **optional_fields}
-    for k in list(seen):
-        for want in all_fields:
-            if k != want and k.replace("-", "_").lower() == want:
-                err.append(f"key {k!r} is drifted spelling of {want!r} — the runner "
-                           f"routes on the exact name and will not see it.")
+    return optional_fields
 
+
+def _common_errors(m, text, seen, all_fields, optional_fields, persona, mission):
+    """The rules every persona is held to, in the order the inline body ran them."""
+    err = _verdict_errors(m, text)
+    err += _headline_errors(seen)
+    err += _drift_errors(seen, all_fields)
+    passing = bool(m) and m.group(1) == "PASS"
     for field, allowed in all_fields.items():
-        if field not in seen:
-            if field in optional_fields:
-                continue
-            # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
-            # governed field is not required of it at all.
-            if _unbound(field, seen):
-                continue
-            # REQ-11: a hint must name a value that will actually VALIDATE. Before
-            # this, `task_verify` inherited "write `none`" — which the gate above
-            # then rejects alongside PASS — and `task` would have inherited "write
-            # `[]`", which its own regex rejects. Four branches, most specific first.
-            if isinstance(allowed, re.Pattern):
-                hint = ("your task's `T-NN` id exactly as your dispatch carries it "
-                        "(T-05), or `none` if this dispatch carries no PLAN task")
-            elif field in GATE_FIELDS.get(persona, ()) and isinstance(allowed, set):
-                # The isinstance guard is not decoration: qa's `matrix_ok` is in
-                # GATE_FIELDS with `allowed is bool`, and sorted() over a type raises.
-                #
-                # WORDING: do NOT say a placeholder is disallowed. This branch also
-                # fires on a missing `suite` for dev, and `suite: n/a` with BLOCKED is
-                # LEGAL (REQ-03/SC-06). The gate is on the PAIRING, so the hint says so.
-                vals = sorted(a for a in allowed if isinstance(a, str))
-                hint = (f"one of {vals} — what gets rejected for this role is a "
-                        f"placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder "
-                        f"itself (`n/a` with FAIL or BLOCKED is the honest refusal)")
-                # JOINTLY FOLLOWABLE (SC-18c). Without this clause a return omitting
-                # both fields gets hint (8a) offering `task: none` and this hint
-                # demanding a real value — and `task: none` + `task_verify: pass` is
-                # then rejected by the conditional. A hint routing an agent into a
-                # second rejection is REQ-11's own defect class, re-created by its fix,
-                # and the re-prompted return is NOT re-validated (see below).
-                if field in CONDITIONAL:
-                    hint += (f", or omit this field entirely if this dispatch carries "
-                             f"no PLAN task and you wrote `{CONDITIONAL[field]}: none`")
-            elif field in NULLABLE:
-                hint = "`none` if genuinely not applicable"
-            else:
-                # `code_grade` is handled inside this helper rather than as its
-                # own elif here: `validate` is already far past the grade bar
-                # (pre-existing), and a single-value ENUM SCALAR like
-                # `code_grade` needs a hint naming its legal values, not the
-                # generic "`[]` if there are none" — which sent a reviewer who
-                # omitted it straight into a second, guaranteed rejection
-                # (REQ-11's own defect class). SC-19 stays intact: the field is
-                # still named literally in the outer message below.
-                hint = _missing_field_default_hint(field, allowed)
-            # HONEST LIMIT: a re-prompted return is not re-validated —
-            # `:845` is `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
-            # value ships the second attempt unvalidated. That passthrough is
-            # pre-existing and deliberate; this edit stops the hint POINTING at it and
-            # does not close it.
-            err.append(f"missing {field!r} — every field is required; write {hint}. "
-                       f"An absent field is ambiguous; an explicit empty one asserts you looked.")
-            continue
-        val = seen[field]
-        if val is _UNPARSED:
-            err.append(f"{field!r} could not be parsed — its brackets/quotes never "
-                       f"balanced. Fix the YAML rather than resubmitting as-is.")
-            continue
-        # #1855: on a mission with no gate subject the field is PINNED to its
-        # did-nothing spelling — one error, one actionable field, and the gate,
-        # enum and binding checks below never see it. Before D-08 so a mission
-        # dispatch that also carries `task: none` reads the same either way.
-        pinned = _mission_pinned_value(field, persona, mission)
-        if pinned is not None:
-            if val != pinned:
-                err.append(f"{field}={val!r} on a {mission} dispatch — this mission "
-                           f"reviews no diff and runs no suite, so a gate value here is "
-                           f"decoration rather than evidence. Write `{field}: {pinned}`.")
-            continue
-        # D-08(b)/(c). Placed BEFORE the NULLABLE branch on purpose: after it,
-        # D-08(b) would be unreachable for a placeholder value.
-        if _unbound(field, seen):
-            if isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
-                # D-08(b): `n/a` is the honest DEC-121 spelling for a field with no
-                # answer, and the n/a-with-PASS gate does NOT bind here — there was no
-                # gate to decline.
-                continue
-            # D-08(c): the `continue` below short-circuits both the enum check and the
-            # fail gate, so this produces exactly ONE error, naming the actionable
-            # field, rather than two that disagree about what is wrong.
-            err.append(f"{field}={val!r} but {CONDITIONAL[field]}=none — a dispatch "
-                       f"carrying no PLAN task has no verify: command to report on. "
-                       f"Omit {field} or write `n/a`, or name the task's T-NN id in "
-                       f"`{CONDITIONAL[field]}`.")
-            continue
-        if field in NULLABLE and isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
-            # DEC-173: declining a GATE while claiming PASS is the fail-open the
-            # widened NULLABLE would otherwise have created. Reported here rather
-            # than as a separate pass so the message lands next to the field.
-            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS" \
-                    and not _nothing_to_gate(field, persona, seen):
-                err.append(f"{field}={val!r} declines to report a gate, but VERDICT is "
-                           f"PASS — a gate that did not run cannot have passed. Return "
-                           f"BLOCKED or FAIL, or report the real result.")
-            continue
-        # THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch above —
-        # nesting it inside is exactly why `suite: fail` + PASS was accepted for five
-        # features. ADDITIVE: it appends and does not `continue`, so a value that is
-        # both a gate failure and a schema violation still reports both.
-        expected = GATE_FAIL_VALUES.get(persona, {})
-        if field in expected and m and m.group(1) == "PASS":
-            want = expected[field]
-            # TYPE-STRICT, and the reason is not stylistic: `0 == False` is True in
-            # Python, so a bare equality would fire on `matrix_ok: 0`.
-            # `isinstance(0, bool)` is False, which is what makes this correct.
-            if val == want and isinstance(val, type(want)):
-                err.append(f"{field}={val!r} reports a gate as FAILED, but VERDICT is "
-                           f"PASS — a gate that failed cannot have passed. Fix until it "
-                           f"passes, or return FAIL or BLOCKED.")
-        if isinstance(allowed, set):
-            # F: fail-open crash. `val` can be a LIST (`severity_max: [low, med]`
-            # parses via parse_scalar's `[...]` branch) while `allowed` is a set —
-            # `val not in allowed` then raises TypeError on the unhashable list,
-            # which propagated all the way out of `validate()` uncaught. In `--hook`
-            # mode that meant exit 1, and only exit 2 blocks (DEC-100/DEC-122), so
-            # the ENTIRE gate went dark for that return with no signal. Report it as
-            # the real violation it is instead of crashing past it.
-            if isinstance(val, list):
-                err.append(f"{field}={val!r} must be a single value from "
-                           f"{sorted(a for a in allowed if isinstance(a, str))}, not a list.")
-            elif val not in allowed:
-                extra = ""
-                if isinstance(val, str):
-                    near = [a for a in allowed if isinstance(a, str)
-                            and (a.startswith(val[:3]) or val.startswith(a[:3]))]
-                    if near: extra = f" (did you mean {near[0]!r}?)"
-                err.append(f"{field}={val!r} is not in {sorted(allowed)}{extra}.")
-        elif isinstance(allowed, re.Pattern):
-            # LOAD-BEARING, not stylistic. Measured in the interpreter: a re.Pattern
-            # is not a set and is none of bool/int/list/str, so WITHOUT this branch it
-            # falls through the whole chain in SILENCE and `task: bogus` is ACCEPTED —
-            # the "unknown key ignored" shape this file exists to remove.
-            if not (isinstance(val, str) and allowed.fullmatch(val)):
-                err.append(f"{field}={val!r} is not a task id — write your task's "
-                           f"`T-NN` id exactly as your dispatch carries it (T-05), or "
-                           f"`none` if this dispatch carries no PLAN task.")
-        elif allowed is bool and not isinstance(val, bool):
-            err.append(f"{field}={val!r} must be a bool, not {type(val).__name__} "
-                       f"— a string like \"mostly\" silently soft-fails a hard gate.")
-        elif allowed is int and (not isinstance(val, int) or isinstance(val, bool)):
-            # F12/bool: `bool` is an `int` subclass in Python — `open_questions: true`
-            # parsed by `parse_scalar` to `True` would otherwise pass an `int` field.
-            err.append(f"{field}={val!r} must be an integer.")
-        elif allowed is list and not isinstance(val, list):
-            err.append(f"{field}={val!r} must be a list.")
-        elif allowed is str and not (isinstance(val, str) and val.strip()):
-            # F12: `str`-typed fields (`team`, `branch`, `blocked_on`,
-            # `briefing`) hit no type branch at all before this — `team: 7` passed
-            # as an int, and a bare `branch:` with nothing under it parsed to `[]`
-            # and passed, though DEC-121 requires the literal `none` for an
-            # inapplicable NULLABLE scalar, not silence.
-            err.append(f"{field}={val!r} must be a non-empty string"
-                       + (" (write the literal `none` if genuinely inapplicable)."
-                          if field in NULLABLE else "."))
+        err += _field_errors(field, allowed, seen, persona, optional_fields, mission, passing)
 
     # --- FEAT-59 SC-06: every finding carries a KIND (FINDING_KINDS). Generic over
     # personas on purpose — `findings` is required of a reviewer and optional on a
@@ -1765,154 +1883,655 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # drift. Guarded on `list`: a non-list already reported "must be a list" above.
     findings = seen.get("findings")
     if isinstance(findings, list):
-        err.extend(_finding_kind_errors(findings))
+        err += _finding_kind_errors(findings)
+    return err
 
-    # --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass.
-    # `matrix_ok: true` says the tests PASS; `fail_first` is what says they ever
-    # FAILED, and a test that never failed constrains nothing (the Iron Law,
-    # harness-tdd-enforcement). Bound to the same triple #919 re-verifies —
-    # VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` (no gate ran) and every
-    # non-PASS verdict may truthfully carry `[]`. TYPE-STRICT on `True` for the
-    # reason GATE_FAIL_VALUES is: `1 == True` in Python and `matrix_ok: 1` is not a
-    # bool (already rejected above; not doubled here).
+
+def _verdict_errors(m, text):
+    err = []
+    if not m:
+        err.append("no VERDICT: line — this is a contract violation, not a verdict of any kind.")
+    elif m.group(1) not in VERDICTS:
+        err.append(f"VERDICT is {m.group(1)!r}; must be exactly one of {sorted(VERDICTS)}.")
+
+    if not re.search(r"^\s*DIGEST:", text, re.M):
+        err.append("no DIGEST: block.")
+    if not re.search(r"^\s*artifact:\s*\S+", text, re.M):
+        err.append("no artifact: path.")
+    return err
+
+
+# F7: `headline` must be at the DIGEST block's OWN level, read from `seen` (which
+# only holds base-indent keys) rather than matched anywhere in the text at any
+# depth. A lead digest with no top-level headline but a block-style member that
+# happens to carry its own `headline:` used to pass — the orchestrator routes on
+# the TOP-level headline and never opens member entries.
+def _headline_errors(seen):
+    hl = seen.get("headline")
+    if not (isinstance(hl, str) and hl.strip()):
+        return ["DIGEST has no headline: — the orchestrator routes on this."]
+    return []
+
+
+# --- catch DRIFTED key spellings before reporting them as merely missing.
+# F15: iterate the FULL field set (schema + universal), not schema alone — a
+# universal field like `files_touched` drifting to `files-touched` was reported
+# as merely missing rather than as the drift it is; fails closed either way, but
+# the wrong message.
+def _drift_errors(seen, all_fields):
+    return [f"key {k!r} is drifted spelling of {want!r} — the runner "
+            f"routes on the exact name and will not see it."
+            for k in list(seen) for want in all_fields
+            if k != want and k.replace("-", "_").lower() == want]
+
+
+def _field_errors(field, allowed, seen, persona, optional_fields, mission, passing):
+    """One field's errors: absent, unparsed, short-circuited, or checked against its gate
+    and its type — the inline loop body, with each `continue` a return."""
+    if field not in seen:
+        return _missing_field_errors(field, allowed, seen, persona, optional_fields)
+    val = seen[field]
+    if val is _UNPARSED:
+        return [f"{field!r} could not be parsed — its brackets/quotes never "
+                f"balanced. Fix the YAML rather than resubmitting as-is."]
+    short = _field_short_circuit(field, val, seen, persona, mission, passing)
+    if short is not None:
+        return short
+    return _fail_value_errors(field, val, persona, passing) + _field_type_errors(field, allowed, val)
+
+
+def _missing_field_errors(field, allowed, seen, persona, optional_fields):
+    if field in optional_fields:
+        return []
+    # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
+    # governed field is not required of it at all.
+    if _unbound(field, seen):
+        return []
+    hint = _missing_field_hint(field, allowed, persona)
+    # HONEST LIMIT: a re-prompted return is not re-validated —
+    # `:845` is `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
+    # value ships the second attempt unvalidated. That passthrough is
+    # pre-existing and deliberate; this edit stops the hint POINTING at it and
+    # does not close it.
+    return [f"missing {field!r} — every field is required; write {hint}. "
+            f"An absent field is ambiguous; an explicit empty one asserts you looked."]
+
+
+# REQ-11: a hint must name a value that will actually VALIDATE. Before
+# this, `task_verify` inherited "write `none`" — which the gate above
+# then rejects alongside PASS — and `task` would have inherited "write
+# `[]`", which its own regex rejects. Four branches, most specific first.
+def _missing_field_hint(field, allowed, persona):
+    if isinstance(allowed, re.Pattern):
+        hint = ("your task's `T-NN` id exactly as your dispatch carries it "
+                "(T-05), or `none` if this dispatch carries no PLAN task")
+    elif field in GATE_FIELDS.get(persona, ()) and isinstance(allowed, set):
+        # The isinstance guard is not decoration: qa's `matrix_ok` is in
+        # GATE_FIELDS with `allowed is bool`, and sorted() over a type raises.
+        #
+        # WORDING: do NOT say a placeholder is disallowed. This branch also
+        # fires on a missing `suite` for dev, and `suite: n/a` with BLOCKED is
+        # LEGAL (REQ-03/SC-06). The gate is on the PAIRING, so the hint says so.
+        vals = sorted(a for a in allowed if isinstance(a, str))
+        hint = (f"one of {vals} — what gets rejected for this role is a "
+                f"placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder "
+                f"itself (`n/a` with FAIL or BLOCKED is the honest refusal)")
+        # JOINTLY FOLLOWABLE (SC-18c). Without this clause a return omitting
+        # both fields gets hint (8a) offering `task: none` and this hint
+        # demanding a real value — and `task: none` + `task_verify: pass` is
+        # then rejected by the conditional. A hint routing an agent into a
+        # second rejection is REQ-11's own defect class, re-created by its fix,
+        # and the re-prompted return is NOT re-validated (see below).
+        if field in CONDITIONAL:
+            hint += (f", or omit this field entirely if this dispatch carries "
+                     f"no PLAN task and you wrote `{CONDITIONAL[field]}: none`")
+    elif field in NULLABLE:
+        hint = "`none` if genuinely not applicable"
+    else:
+        # `code_grade` is handled inside this helper rather than as its
+        # own elif here: `validate` is already far past the grade bar
+        # (pre-existing), and a single-value ENUM SCALAR like
+        # `code_grade` needs a hint naming its legal values, not the
+        # generic "`[]` if there are none" — which sent a reviewer who
+        # omitted it straight into a second, guaranteed rejection
+        # (REQ-11's own defect class). SC-19 stays intact: the field is
+        # still named literally in the outer message below.
+        # FEAT-66: the loop body is `_missing_field_hint` now, at the bar;
+        # the helper stays so this chain does not grow past it.
+        hint = _missing_field_default_hint(field, allowed)
+    return hint
+
+
+def _field_short_circuit(field, val, seen, persona, mission, passing):
+    """The errors to report INSTEAD of the gate and type checks, or None to run them."""
+    # #1855: on a mission with no gate subject the field is PINNED to its
+    # did-nothing spelling — one error, one actionable field, and the gate,
+    # enum and binding checks below never see it. Before D-08 so a mission
+    # dispatch that also carries `task: none` reads the same either way.
+    pinned = _mission_pinned_value(field, persona, mission)
+    if pinned is not None:
+        if val != pinned:
+            return [f"{field}={val!r} on a {mission} dispatch — this mission "
+                    f"reviews no diff and runs no suite, so a gate value here is "
+                    f"decoration rather than evidence. Write `{field}: {pinned}`."]
+        return []
+    # D-08(b)/(c). Placed BEFORE the NULLABLE branch on purpose: after it,
+    # D-08(b) would be unreachable for a placeholder value.
+    if _unbound(field, seen):
+        return _unbound_field_errors(field, val)
+    if field in NULLABLE and isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
+        return _declined_gate_errors(field, val, seen, persona, passing)
+    return None
+
+
+def _unbound_field_errors(field, val):
+    if isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
+        # D-08(b): `n/a` is the honest DEC-121 spelling for a field with no
+        # answer, and the n/a-with-PASS gate does NOT bind here — there was no
+        # gate to decline.
+        return []
+    # D-08(c): the `continue` below short-circuits both the enum check and the
+    # fail gate, so this produces exactly ONE error, naming the actionable
+    # field, rather than two that disagree about what is wrong.
+    return [f"{field}={val!r} but {CONDITIONAL[field]}=none — a dispatch "
+            f"carrying no PLAN task has no verify: command to report on. "
+            f"Omit {field} or write `n/a`, or name the task's T-NN id in "
+            f"`{CONDITIONAL[field]}`."]
+
+
+def _declined_gate_errors(field, val, seen, persona, passing):
+    # DEC-173: declining a GATE while claiming PASS is the fail-open the
+    # widened NULLABLE would otherwise have created. Reported here rather
+    # than as a separate pass so the message lands next to the field.
+    if field in GATE_FIELDS.get(persona, ()) and passing \
+            and not _nothing_to_gate(field, persona, seen):
+        return [f"{field}={val!r} declines to report a gate, but VERDICT is "
+                f"PASS — a gate that did not run cannot have passed. Return "
+                f"BLOCKED or FAIL, or report the real result."]
+    return []
+
+
+# THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch above —
+# nesting it inside is exactly why `suite: fail` + PASS was accepted for five
+# features. ADDITIVE: it appends and does not `continue`, so a value that is
+# both a gate failure and a schema violation still reports both.
+def _fail_value_errors(field, val, persona, passing):
+    expected = GATE_FAIL_VALUES.get(persona, {})
+    if field in expected and passing:
+        want = expected[field]
+        # TYPE-STRICT, and the reason is not stylistic: `0 == False` is True in
+        # Python, so a bare equality would fire on `matrix_ok: 0`.
+        # `isinstance(0, bool)` is False, which is what makes this correct.
+        if val == want and isinstance(val, type(want)):
+            return [f"{field}={val!r} reports a gate as FAILED, but VERDICT is "
+                    f"PASS — a gate that failed cannot have passed. Fix until it "
+                    f"passes, or return FAIL or BLOCKED."]
+    return []
+
+
+def _field_type_errors(field, allowed, val):
+    if isinstance(allowed, set):
+        return _enum_errors(field, allowed, val)
+    if isinstance(allowed, re.Pattern):
+    # LOAD-BEARING, not stylistic. Measured in the interpreter: a re.Pattern
+    # is not a set and is none of bool/int/list/str, so WITHOUT this branch it
+    # falls through the whole chain in SILENCE and `task: bogus` is ACCEPTED —
+    # the "unknown key ignored" shape this file exists to remove.
+        if not (isinstance(val, str) and allowed.fullmatch(val)):
+            return [f"{field}={val!r} is not a task id — write your task's "
+                    f"`T-NN` id exactly as your dispatch carries it (T-05), or "
+                    f"`none` if this dispatch carries no PLAN task."]
+        return []
+    return (_flag_or_count_errors(field, allowed, val) + _list_type_errors(field, allowed, val)
+            + _text_type_errors(field, allowed, val))
+
+
+def _flag_or_count_errors(field, allowed, val):
+    if allowed is bool and not isinstance(val, bool):
+        return [f"{field}={val!r} must be a bool, not {type(val).__name__} "
+                f"— a string like \"mostly\" silently soft-fails a hard gate."]
+    if allowed is int and (not isinstance(val, int) or isinstance(val, bool)):
+    # F12/bool: `bool` is an `int` subclass in Python — `open_questions: true`
+    # parsed by `parse_scalar` to `True` would otherwise pass an `int` field.
+        return [f"{field}={val!r} must be an integer."]
+    return []
+
+
+def _list_type_errors(field, allowed, val):
+    if allowed is list and not isinstance(val, list):
+        return [f"{field}={val!r} must be a list."]
+    return []
+
+
+def _text_type_errors(field, allowed, val):
+    # F12: `str`-typed fields (`team`, `branch`, `blocked_on`,
+    # `briefing`) hit no type branch at all before this — `team: 7` passed
+    # as an int, and a bare `branch:` with nothing under it parsed to `[]`
+    # and passed, though DEC-121 requires the literal `none` for an
+    # inapplicable NULLABLE scalar, not silence.
+    if allowed is str and not (isinstance(val, str) and val.strip()):
+        return [f"{field}={val!r} must be a non-empty string"
+                + (" (write the literal `none` if genuinely inapplicable)."
+                   if field in NULLABLE else ".")]
+    return []
+
+
+def _enum_errors(field, allowed, val):
+    # F: fail-open crash. `val` can be a LIST (`severity_max: [low, med]`
+    # parses via parse_scalar's `[...]` branch) while `allowed` is a set —
+    # `val not in allowed` then raises TypeError on the unhashable list,
+    # which propagated all the way out of `validate()` uncaught. In `--hook`
+    # mode that meant exit 1, and only exit 2 blocks (DEC-100/DEC-122), so
+    # the ENTIRE gate went dark for that return with no signal. Report it as
+    # the real violation it is instead of crashing past it.
+    if isinstance(val, list):
+        return [f"{field}={val!r} must be a single value from "
+                f"{sorted(a for a in allowed if isinstance(a, str))}, not a list."]
+    if val not in allowed:
+        return [f"{field}={val!r} is not in {sorted(allowed)}{_near_miss(allowed, val)}."]
+    return []
+
+
+def _near_miss(allowed, val):
+    """` (did you mean …?)` when a string value shares a prefix with a legal one, else ``."""
+    extra = ""
+    if isinstance(val, str):
+        near = [a for a in allowed if isinstance(a, str)
+                and (a.startswith(val[:3]) or val.startswith(a[:3]))]
+        if near: extra = f" (did you mean {near[0]!r}?)"
+    return extra
+
+
+def _artifact_line(text):
+    """The digest's last `artifact:` value, unquoted, or None."""
+    m = None
+    for mm in re.finditer(r"^\s*artifact:\s*(\S+)", text, re.M):
+        m = mm
+    return strip_comment(m.group(1)).strip("\"'") if m else None
+
+
+def _dev_receipt_errors(seen, m, text, feature_dir):
+    """harness-digest-dev: a `task_verify: pass` return names a receipt that exists and
+    carries the task's verify command. Silent when no checkout root resolves."""
+    if not (m and m.group(1) == "PASS" and seen.get("task_verify") == "pass"):
+        return []
+    artifact = _artifact_line(text)
+    fd, _dir_error = _resolve_feature_dir(text, feature_dir)
+    if not artifact or not fd or not os.path.isdir(fd):
+        return []  # no feature on disk to hold a receipt — DEC-156 owns that finding
+    error = _receipt_error(fd, _repo_root_for_feature(fd), artifact,
+                           str(seen.get("task", "")).strip())
+    return [error] if error else []
+
+
+def _persona_errors(raw_persona, persona, seen, m, text, all_fields, mission, *,
+                    config_path, feature_dir, branch_override, review_pin):
+    """The rules one persona is held to beyond the common ones, in inline order. The raw
+    persona (`harness-code-reviewer`, `harness-eng-lead`, the archive-reader `lead`) and
+    the normalized one (`qa`, `lead`, `orchestrator`) are both consulted, as before."""
+    passing = bool(m) and m.group(1) == "PASS"
+    err = []
     if persona == "qa":
-        fail_first = seen.get("fail_first")
-        if isinstance(fail_first, list):
-            err.extend(_fail_first_errors(fail_first))
-            matrix_ok = seen.get("matrix_ok")
-            if not fail_first and m and m.group(1) == "PASS" \
-                    and matrix_ok is True and isinstance(matrix_ok, bool):
-                err.append("fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
-                           "green suite with no fail-first evidence is not a pass. For each "
-                           "`verify: automated` SC name the test and the evidence it FAILED "
-                           "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
-                           "or return FAIL.")
-
-    # Generic `lead` is the archive-reader persona used by check-state for
-    # historical digest files; it cannot recover the producing raw persona or
-    # contract era. Current returns always carry harness-*-lead and are closed.
+        err += _qa_errors(seen, m, feature_dir)
+    if persona in ("dev", "dev-ops"):
+        err += _dev_receipt_errors(seen, m, text, feature_dir)
     if raw_persona != "lead":
-        legal_fields = set(all_fields) | {"headline"}
-        if raw_persona == "harness-code-reviewer":
-            legal_fields.add("grade_2_reasons")
-        undeclared = sorted(set(seen) - legal_fields)
-        if undeclared:
-            names = ", ".join(repr(field) for field in undeclared)
-            err.append(
-                f"undeclared digest key(s): {names}. The digest contract is closed. "
-                "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
-                "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
-                "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
-                "a new required persona field belongs in SCHEMAS and must also be "
-                "documented under DEC-216. A per-dispatch answer is not a digest key: "
-                "put a PASS qualification in adequacy_notes or a per-step fact in the "
-                "run state steps evidence container."
-            )
-
+        err += _undeclared_errors(seen, all_fields, raw_persona)
     if raw_persona == "harness-code-reviewer":
-        code_grade = seen.get("code_grade")
-        reviewed = seen.get("reviewed")
-        # #1855: a distill dispatch has no diff to bind or grade; the field loop above
-        # already pinned `code_grade`/`reviewed` to their did-nothing spelling.
-        grades_a_diff = _mission_pinned_value("code_grade", persona, mission) is None
-        # SEC-01 still runs before branching on the grade. DEC-207 adds one
-        # separately-bound target: plan:<path> for a pending pre-signature plan.
-        binding_error = grades_a_diff and code_grade_bound_to_review(
-            text, reviewed, code_grade, feature_dir, branch_override, review_pin
-        )
-        if binding_error:
-            err.append(binding_error)
-        if grades_a_diff and code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
-            # BUG-1081: the mechanical result is RECOMPUTED here, for every ordinary
-            # code review, and the digest's enum is rejected when it disagrees. Before
-            # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
-            # the reviewer's word, so a skipped, crashed or misreported grader passed.
-            grade_error = code_grade_enforcement_error(
-                text, reviewed, code_grade, feature_dir, review_pin)
-            if grade_error:
-                err.append(grade_error)
-        if code_grade == "grade_2":
-            reasons = seen.get("grade_2_reasons")
-            if not isinstance(reasons, list) or not reasons \
-                    or not all(isinstance(reason, str) and reason.strip()
-                               for reason in reasons):
-                err.append("code_grade='grade_2' requires non-empty grade_2_reasons.")
-        if code_grade == "fail" and m and m.group(1) == "PASS":
-            err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
-                       "a gate that failed cannot have passed.")
-        must_fix = seen.get("must_fix")
-        severity_max = seen.get("severity_max")
-        if isinstance(must_fix, list) and severity_max in SEV \
-                and evaluate_review(review_policy, must_fix, severity_max) == "FAIL" \
-                and m and m.group(1) == "PASS":
-            err.append(f"review policy {review_policy!r} reports a gate as FAILED, but "
-                       "VERDICT is PASS — a gate that failed cannot have passed.")
-
-    # --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
-    #
-    # This is the only part of collation that is arithmetic rather than judgement, and
-    # it was the one thing stated in prose with a validator sitting next to it that
-    # could check it and didn't — the DEC-110 / DEC-119 shape exactly. A lead
-    # reporting PASS over a failing member is the single most consequential digest
-    # error possible: the orchestrator routes on VERDICT and never opens member
-    # entries (SPEC 8), so a masked FAIL ships.
-    #
-    # ESCALATE outranks FAIL deliberately: a decision only the user can make must not
-    # be hidden behind a failure the team could have fixed.
+        err += _reviewer_errors(seen, text, m, persona, mission,
+                                config_path=config_path, feature_dir=feature_dir,
+                                branch_override=branch_override, review_pin=review_pin)
     if persona == "lead" and m:
-        members = seen.get("members")
-        steps_run = seen.get("steps_run")
-        # F1 cross-check: `members: []` alongside `steps_run: 3` used to sail
-        # through — SPEC 10.4 calls `members` "NOT optional", and a team that ran
-        # steps but reported zero members is never legitimate. Checked whether or
-        # not the roll-up itself can run, since an empty list makes the roll-up a
-        # no-op (there is nothing to rank).
-        if (isinstance(members, list) and isinstance(steps_run, int)
-                and len(members) == 0 and steps_run > 0):
-            err.append(f"members: [] but steps_run={steps_run} — a team that ran "
-                       f"{steps_run} step(s) reported zero members; that is never "
-                       f"legitimate (SPEC 10.4: members is NOT optional).")
+        err += _lead_rollup_errors(seen, m.group(1))
+    err += _tail_errors(seen, raw_persona, persona)
+    return err
 
-        if isinstance(members, list) and members:
-            RANK = {"PASS": 0, "FAIL": 1, "ESCALATE": 2, "BLOCKED": 3}
-            top = m.group(1)
-            worst, worst_src = None, None
-            for item in members:
-                fields = parse_member_entry(str(item))
-                skipped, skip_error = _skipped_member_error(fields)
-                if skip_error:
-                    err.append(skip_error)
-                    continue
-                if skipped:
-                    continue
-                mv = fields.get("verdict")
-                if not mv:
-                    # Their data, not our bug — the normative template carries a
-                    # verdict in every member entry, and without one the roll-up is
-                    # undecidable. Looked up by KEY, never by matching `verdict:`
-                    # as text anywhere in the entry (F1) — a quoted headline like
-                    # `"verdict: PASS on retry"` must not satisfy this.
-                    err.append(f"a members entry has no verdict: — {str(item)[:60]!r}. "
-                               f"Every member entry needs one; the team verdict is the "
-                               f"worst of them and cannot be computed otherwise.")
-                    continue
-                v = str(mv).upper()
-                if v not in RANK:
-                    err.append(f"member verdict {mv!r} is not one of "
-                               f"{sorted(RANK)} — the roll-up cannot rank it.")
-                    continue
-                if worst is None or RANK[v] > RANK[worst]:
-                    worst, worst_src = v, str(item)[:60]
-            if worst is None:
-                err.append("members records no member actually ran — a lead verdict cannot "
-                           "claim an outcome for an entirely skipped team.")
-            if worst and top in RANK and RANK[top] < RANK[worst]:
-                err.append(f"VERDICT is {top} but a member returned {worst} "
-                           f"({worst_src!r}). The team verdict is the WORST member verdict "
-                           f"— BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on "
-                           f"your VERDICT and never opens member entries, so reporting "
-                           f"{top} here hides the {worst}.")
 
+# --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass.
+# `matrix_ok: true` says the tests PASS; `fail_first` is what says they ever
+# FAILED, and a test that never failed constrains nothing (the Iron Law,
+# harness-tdd-enforcement). Bound to the same triple #919 re-verifies —
+# VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` (no gate ran) and every
+# non-PASS verdict may truthfully carry `[]`. TYPE-STRICT on `True` for the
+# reason GATE_FAIL_VALUES is: `1 == True` in Python and `matrix_ok: 1` is not a
+# bool (already rejected above; not doubled here).
+def _qa_errors(seen, m, feature_dir):
+    verdict = m.group(1) if m else None
+    return (_qa_fail_first_errors(seen, verdict == "PASS")
+            + _qa_kinds_errors(seen, verdict, feature_dir)
+            + _qa_unearned_fail_errors(seen, verdict))
+
+
+def _qa_unearned_fail_errors(seen, verdict):
+    """harness-verification-rules § test-first audit: violations are findings in the
+    artifact and never fail the gate by themselves. A FAIL with every gate green
+    reports a failure no gate produced."""
+    green = (seen.get("suite") == "pass" and seen.get("matrix_ok") is True
+             and seen.get("failures") == 0 and bool(seen.get("fail_first")))
+    if verdict != "FAIL" or not green:
+        return []  # an empty fail_first beside a green suite is itself the failed gate (SC-17)
+    return ["VERDICT: FAIL with suite: pass, matrix_ok: true, failures: 0 and fail_first "
+            "evidence present — no gate failed. A test-first violation or a coverage "
+            "concern is a finding in the artifact (and a coverage_gaps entry), not a "
+            "verdict; return PASS with it recorded, or name the gate that failed."]
+
+
+def _qa_fail_first_errors(seen, passing):
+    fail_first = seen.get("fail_first")
+    if not isinstance(fail_first, list):
+        return []
+    err = _fail_first_errors(fail_first)
+    matrix_ok = seen.get("matrix_ok")
+    if not fail_first and passing \
+            and matrix_ok is True and isinstance(matrix_ok, bool):
+        err.append("fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
+                   "green suite with no fail-first evidence is not a pass. For each "
+                   "`verify: automated` SC name the test and the evidence it FAILED "
+                   "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
+                   "or return FAIL.")
+    return err
+
+
+def _qa_kinds_errors(seen, verdict, feature_dir):
+    kinds = seen.get("kinds")
+    qa_root = (_repo_root_for_feature(feature_dir) if feature_dir
+               else _root_or_none())
+    test_kinds = _load_test_kinds(qa_root)[0] if qa_root else None
+    err = _qa_kind_errors(kinds, verdict, test_kinds) if isinstance(kinds, list) and kinds else []
+    if verdict == "PASS" and seen.get("matrix_ok") is True and feature_dir and qa_root:
+        err += _matrix_floor_errors(kinds, _matrix_floor(qa_root, feature_dir, test_kinds))
+    return err
+
+
+_MATRIX_UNSTARTED = ("todo",)
+
+
+def _load_matrix_inputs(root, feature_dir):
+    """`(test_matrix, tasks)` from the checkout's harness.json and the plan, or `(None, None)`."""
+    try:
+        matrix = artifact_accessors.load_harness_json(
+            os.path.join(root, ".harness", "harness.json")).get("test_matrix")
+        tasks = artifact_accessors.load_plan(os.path.join(feature_dir, "plan.yaml")).get("tasks")
+    except (OSError, artifact_accessors.ArtifactAccessError, harness_yaml.YamlParseError):
+        return None, None
+    if not isinstance(matrix, dict) or not isinstance(tasks, list):
+        return None, None
+    return matrix, tasks
+
+
+def _always_kinds(matrix, task):
+    if not isinstance(task, dict) or task.get("status") in _MATRIX_UNSTARTED:
+        return ()
+    row = matrix.get(task.get("change_type")) or {}
+    return tuple(k for k in row.get("always") or [] if isinstance(k, str))
+
+
+def _excluded_kinds(test_kinds):
+    return {k for k, p in (test_kinds or {}).items()
+            if isinstance(p, dict) and (p.get("status") == "excluded" or p.get("cmd") is None)}
+
+
+def _matrix_floor(root, feature_dir, test_kinds):
+    """harness-verification-rules § the matrix is a floor: the kinds `test_matrix.<change_type>.always`
+    requires across the plan's started tasks, minus kinds the policy excludes. The `when:` half is
+    qa's judgement (DEC-212) and is not computed here. None when the floor cannot be derived."""
+    matrix, tasks = _load_matrix_inputs(root, feature_dir)
+    if matrix is None:
+        return None
+    floor = {k for task in tasks for k in _always_kinds(matrix, task)}
+    return sorted(floor - _excluded_kinds(test_kinds))
+
+
+def _satisfied_kinds(kinds):
+    entries = [parse_member_entry(str(raw)) for raw in kinds]
+    return {str(e.get("kind", "")).strip() for e in entries
+            if str(e.get("state", "")).strip() == "satisfied"}
+
+
+def _matrix_floor_errors(kinds, floor):
+    """`matrix_ok: true` on a PASS claims every floor kind ran and passed; the `kinds:` list
+    must say so, kind by kind."""
+    if not floor:
+        return []
+    if not isinstance(kinds, list) or not kinds:
+        return [f"matrix_ok: true but kinds: is absent — the matrix floor for this plan is "
+                f"{', '.join(floor)}; report each with its state, or the claim is unverifiable."]
+    missing = [k for k in floor if k not in _satisfied_kinds(kinds)]
+    if not missing:
+        return []
+    plural = "it" if len(missing) == 1 else "them"
+    return [f"matrix_ok: true but the matrix floor requires {', '.join(missing)} "
+            f"(test_matrix.<change_type>.always for this plan's tasks) and kinds: does not report "
+            f"{plural} satisfied. The floor is never lowered: run the kind, or return FAIL with it "
+            f"missing."]
+
+
+# Generic `lead` is the archive-reader persona used by check-state for
+# historical digest files; it cannot recover the producing raw persona or
+# contract era. Current returns always carry harness-*-lead and are closed.
+def _undeclared_errors(seen, all_fields, raw_persona):
+    legal_fields = set(all_fields) | {"headline"}
+    if raw_persona == "harness-code-reviewer":
+        legal_fields.add("grade_2_reasons")
+    undeclared = sorted(set(seen) - legal_fields)
+    if not undeclared:
+        return []
+    names = ", ".join(repr(field) for field in undeclared)
+    return [
+        f"undeclared digest key(s): {names}. The digest contract is closed. "
+        "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
+        "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
+        "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
+        "a new required persona field belongs in SCHEMAS and must also be "
+        "documented under DEC-216. A per-dispatch answer is not a digest key: "
+        "put a PASS qualification in adequacy_notes or a per-step fact in the "
+        "run state steps evidence container."
+    ]
+
+
+def _reviewer_errors(seen, text, m, persona, mission, *,
+                     config_path, feature_dir, branch_override, review_pin):
+    passing = bool(m) and m.group(1) == "PASS"
+    review_policy = load_policy(review_config_path(config_path))["review"]
+    code_grade = seen.get("code_grade")
+    reviewed = seen.get("reviewed")
+    err = _code_grade_errors(text, code_grade, reviewed, persona, mission, m, seen,
+                             feature_dir=feature_dir, branch_override=branch_override,
+                             review_pin=review_pin)
+    if code_grade == "grade_2":
+        err += _grade_2_reason_errors(seen.get("grade_2_reasons"))
+    err += _findings_rank_errors(seen.get("findings"))
+    if code_grade == "fail" and passing:
+        err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
+                   "a gate that failed cannot have passed.")
+    err += _review_policy_errors(seen, review_policy, passing)
+    return err
+
+
+def _findings_rank_errors(findings):
+    if not (isinstance(findings, list) and findings):
+        return []
+    error = _findings_order_error(findings)
+    return [error] if error else []
+
+
+def _grade_2_reason_errors(reasons):
+    if not isinstance(reasons, list) or not reasons \
+            or not all(isinstance(reason, str) and reason.strip()
+                       for reason in reasons):
+        return ["code_grade='grade_2' requires non-empty grade_2_reasons."]
+    return []
+
+
+def _review_policy_errors(seen, review_policy, passing):
+    must_fix = seen.get("must_fix")
+    severity_max = seen.get("severity_max")
+    if isinstance(must_fix, list) and severity_max in SEV \
+            and evaluate_review(review_policy, must_fix, severity_max) == "FAIL" \
+            and passing:
+        return [f"review policy {review_policy!r} reports a gate as FAILED, but "
+                "VERDICT is PASS — a gate that failed cannot have passed."]
+    return []
+
+
+def _code_grade_errors(text, code_grade, reviewed, persona, mission, m, seen, *,
+                       feature_dir, branch_override, review_pin):
+    err = []
+    # #1855: a distill dispatch has no diff to bind or grade; the field loop above
+    # already pinned `code_grade`/`reviewed` to their did-nothing spelling.
+    grades_a_diff = _mission_pinned_value("code_grade", persona, mission) is None
+    # SEC-01 still runs before branching on the grade. DEC-207 adds one
+    # separately-bound target: plan:<path> for a pending pre-signature plan.
+    binding_error = grades_a_diff and code_grade_bound_to_review(
+        text, reviewed, code_grade, feature_dir, branch_override, review_pin
+    )
+    if binding_error:
+        err.append(binding_error)
+    if grades_a_diff and code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
+        err += _ordinary_review_errors(text, code_grade, reviewed, m, seen,
+                                       feature_dir, review_pin, bool(binding_error))
+    return err
+
+
+def _ordinary_review_errors(text, code_grade, reviewed, m, seen, feature_dir, review_pin,
+                            bound_failed):
+    # BUG-1081: the mechanical result is RECOMPUTED here, for every ordinary
+    # code review, and the digest's enum is rejected when it disagrees. Before
+    # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
+    # the reviewer's word, so a skipped, crashed or misreported grader passed.
+    err = []
+    grade_error = code_grade_enforcement_error(
+        text, reviewed, code_grade, feature_dir, review_pin)
+    if grade_error:
+        err.append(grade_error)
+    if not bound_failed and m and m.group(1) in ("PASS", "FAIL"):
+        err += _bound_tree_errors(text, feature_dir, review_pin, seen)
+        err += _bound_artifact_errors(text, feature_dir, review_pin, seen, code_grade)
+    return err
+
+
+def _bound_artifact_errors(text, feature_dir, review_pin, seen, code_grade):
+    """Grade-2 reasons name the graded functions; inspection SCs are cited in the
+    artifact. Both read the checkout the review is bound to."""
+    fd, root, review_sha, _e = _review_binding(text, feature_dir, review_pin)
+    if not (root and review_sha):
+        return []
+    err = []
+    if code_grade == "grade_2":
+        err.append(_grade_2_reasons_error(seen.get("grade_2_reasons") or [],
+                                          _grade_2_qualnames(root, review_sha)))
+    artifact = _artifact_line(text)
+    if artifact:
+        err.append(_inspection_citation_error(fd, root, artifact))
+    return [e for e in err if e]
+
+
+def _bound_tree_errors(text, feature_dir, review_pin, seen):
+    """The dirty-tree and human-commit checks over the checkout the review is bound to."""
+    _fd, root, review_sha, _e = _review_binding(text, feature_dir, review_pin)
+    if not (root and review_sha):
+        return []
+    return [error for error in (_dirty_tree_error(root),
+                                _human_commits_error(root, review_sha,
+                                                     seen.get("human_commits_in_scope")))
+            if error]
+
+
+# --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
+#
+# This is the only part of collation that is arithmetic rather than judgement, and
+# it was the one thing stated in prose with a validator sitting next to it that
+# could check it and didn't — the DEC-110 / DEC-119 shape exactly. A lead
+# reporting PASS over a failing member is the single most consequential digest
+# error possible: the orchestrator routes on VERDICT and never opens member
+# entries (SPEC 8), so a masked FAIL ships.
+#
+# ESCALATE outranks FAIL deliberately: a decision only the user can make must not
+# be hidden behind a failure the team could have fixed.
+def _lead_rollup_errors(seen, top):
+    members = seen.get("members")
+    err = _empty_members_errors(members, seen.get("steps_run"))
+    if isinstance(members, list) and members:
+        err += _member_rank_errors(members, top)
+    return err
+
+
+def _empty_members_errors(members, steps_run):
+    # F1 cross-check: `members: []` alongside `steps_run: 3` used to sail
+    # through — SPEC 10.4 calls `members` "NOT optional", and a team that ran
+    # steps but reported zero members is never legitimate. Checked whether or
+    # not the roll-up itself can run, since an empty list makes the roll-up a
+    # no-op (there is nothing to rank).
+    if (isinstance(members, list) and isinstance(steps_run, int)
+            and len(members) == 0 and steps_run > 0):
+        return [f"members: [] but steps_run={steps_run} — a team that ran "
+                f"{steps_run} step(s) reported zero members; that is never "
+                f"legitimate (SPEC 10.4: members is NOT optional)."]
+    return []
+
+
+RANK = {"PASS": 0, "FAIL": 1, "ESCALATE": 2, "BLOCKED": 3}
+
+
+def _member_rank_errors(members, top):
+    worst, worst_src, err = _worst_member(members)
+    if worst is None:
+        err.append("members records no member actually ran — a lead verdict cannot "
+                   "claim an outcome for an entirely skipped team.")
+    if worst and top in RANK and RANK[top] < RANK[worst]:
+        err.append(f"VERDICT is {top} but a member returned {worst} "
+                   f"({worst_src!r}). The team verdict is the WORST member verdict "
+                   f"— BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on "
+                   f"your VERDICT and never opens member entries, so reporting "
+                   f"{top} here hides the {worst}.")
+    return err
+
+
+def _worst_member(members):
+    """(worst verdict, its entry's head, errors) over the members that actually ran."""
+    err = []
+    worst, worst_src = None, None
+    for item in members:
+        v, error = _member_verdict(item)
+        if error:
+            err.append(error)
+        elif _outranks(v, worst):
+            worst, worst_src = v, str(item)[:60]
+    return worst, worst_src, err
+
+
+def _outranks(v, worst):
+    """A ranked member verdict `v` that is worse than the worst seen so far (None = none yet)."""
+    return v is not None and (worst is None or RANK[v] > RANK[worst])
+
+
+def _member_verdict(item):
+    """(ranked verdict or None for a skipped member, error or None) for one entry."""
+    fields = parse_member_entry(str(item))
+    skipped, skip_error = _skipped_member_error(fields)
+    if skip_error:
+        return None, skip_error
+    if skipped:
+        return None, None
+    mv = fields.get("verdict")
+    if not mv:
+            # Their data, not our bug — the normative template carries a
+            # verdict in every member entry, and without one the roll-up is
+            # undecidable. Looked up by KEY, never by matching `verdict:`
+            # as text anywhere in the entry (F1) — a quoted headline like
+            # `"verdict: PASS on retry"` must not satisfy this.
+        return None, (f"a members entry has no verdict: — {str(item)[:60]!r}. "
+                      f"Every member entry needs one; the team verdict is the "
+                      f"worst of them and cannot be computed otherwise.")
+    v = str(mv).upper()
+    if v not in RANK:
+        return None, (f"member verdict {mv!r} is not one of "
+                      f"{sorted(RANK)} — the roll-up cannot rank it.")
+    return v, None
+
+
+def _tail_errors(seen, raw_persona, persona):
+    err = []
     # --- open_questions is a LIST of structured items, never a count (SPEC 8).
     # F13: read from `seen` — the parsed, DIGEST's-own-level value — rather than a
     # whole-text regex. The old regex matched a NESTED `open_questions: 0` (e.g.
@@ -1943,7 +2562,7 @@ def _root_or_none():
         import harness_boundary
         return harness_boundary.resolve_root(
             os.path.dirname(os.path.realpath(__file__)), strict=False)
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return None
 
 def _hook_feature_dir(text, feature):
@@ -1957,15 +2576,12 @@ def _hook_feature_dir(text, feature):
         checkout_root = inflight_registry.feature_root(owner_root, feature)
         feature_dir, error = _feature_dir_from_artifact(text, checkout_root)
         return None if error else feature_dir
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return None
 
 
 def _durable_artifact_path(text):
-    tail = text
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        tail = text[anchors[-1].start():]
+    tail = _return_tail(text)
     matches = list(re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M))
     if not matches:
         return None
@@ -1980,7 +2596,7 @@ def _feature_artifact_root(owner_root, feature):
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import inflight_registry
         return inflight_registry.feature_root(owner_root, feature)
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return None
 
 
@@ -2025,12 +2641,9 @@ def _missing_durable_artifact(agent, path, candidates):
 
 
 def _validate_durable_artifact(agent, found):
-    try:
-        ferrs = validate(agent, open(found, encoding="utf-8").read())
-    except Exception as e:
-        print(f"check-digest: internal error validating {found} ({e!r}) — passing through; "
-              f"this is our bug, not theirs.", file=sys.stderr)
-        return 0
+    # No local own-failure catch (FEAT-65): a defect validating the durable copy reaches
+    # hook_guard, which passes through and names it in the one template.
+    ferrs = validate(agent, open(found, encoding="utf-8").read())
     if not ferrs:
         return 0
     print(
@@ -2067,13 +2680,9 @@ def check_artifact_file(agent, text, payload):
 def _qa_claims_unconditional_pass(text):
     """True iff `text`'s tail-anchored return is VERDICT: PASS with suite: pass AND
     matrix_ok: true — the one claim #919 exists to independently re-verify."""
-    tail = text
-    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
-    if anchors:
-        tail = text[anchors[-1].start():]
-    verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", tail, re.M)
-    if (verdict_match.group(1) if verdict_match else None) != "PASS":
+    if _return_verdict(text) != "PASS":
         return False
+    tail = _return_tail(text)
     seen = parse_digest(tail)
     return seen.get("suite") == "pass" and seen.get("matrix_ok") is True
 
@@ -2132,7 +2741,7 @@ def _resolve_run_unit_tests_bin(payload, text=""):
             sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
             import inflight_registry
             base = inflight_registry.feature_root(owner_root, feature)
-        except Exception:
+        except (ImportError, OSError, ValueError):
             base = None
     if not base:
         return None
@@ -2168,7 +2777,7 @@ def _reverify_suite(run_bin, kinds=()):
         try:
             result = subprocess.run([sys.executable, run_bin, *extra], capture_output=True,
                                     text=True, timeout=1800)
-        except Exception:
+        except (OSError, subprocess.SubprocessError, ValueError):
             return None
         if result.returncode != 0:
             return result
@@ -2224,6 +2833,140 @@ def check_qa_matrix_claim(agent, text, payload):
 _ABSENT = object()
 
 
+def _return_tail(text):
+    """A return from its LAST line-start `VERDICT:` on — the real block, which the contract
+    puts last, so an echoed template earlier in the message never shadows it. No anchor
+    leaves the text whole."""
+    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
+    return text[anchors[-1].start():] if anchors else text
+
+
+def _return_verdict(text):
+    """The verdict of the LAST `VERDICT:` block in a return, or None."""
+    match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail(text), re.M)
+    return match.group(1) if match else None
+
+
+def _exact_run_identity(d):
+    """(feature, runtime agent id) when the payload names both exactly, else (None, None).
+
+    BUG-1898: these two values are the ONLY claim selector the hook may use. A missing,
+    blank, padded or non-string value is absent — never a reason to widen the selector to
+    the persona, which is how a suite run or a re-validation released a live stranger."""
+    feature = d.get("harness_feature")
+    agent_id = d.get("harness_agent_id")
+    exact = all(isinstance(value, str) and value and value == value.strip()
+                for value in (feature, agent_id))
+    return (feature, agent_id) if exact else (None, None)
+
+
+def _identity_refusal(agent, verdict):
+    """No exact identity: release nothing. A BLOCKED return is the one way out for a run
+    T-02 holds without a claim, so it proceeds to validation; any other return is refused."""
+    if verdict == "BLOCKED":
+        print(f"check-digest: {agent}'s BLOCKED return names no exact feature and runtime "
+              "id; no claim was looked up or released.", file=sys.stderr)
+        return None
+    print(f"check-digest: REFUSED {agent}'s return: it names no exact harness_feature and "
+          "harness_agent_id, so its claim cannot be found without guessing by persona, and "
+          "nothing was released. A run that holds no claim of its own yields a BLOCKED "
+          "digest naming why.", file=sys.stderr)
+    return 2
+
+
+def _dispatches(agent):
+    """Only a lead or the orchestrator dispatches, so only they can hold live children."""
+    return norm(agent) in ("lead", "orchestrator")
+
+
+def _held_children(reg, root, agent, feature, agent_id):
+    """Live claims whose parent is this exact run, in `root`'s registry. Raises
+    UnreadableRegistry rather than reading "cannot read" as "no children"."""
+    if not _dispatches(agent):
+        return []
+    return [
+        claim for claim in reg.live_claims(root, None, parent_agent_id=agent_id)
+        if claim.get("feature", reg.LEGACY_FEATURE) == feature
+    ]
+
+
+def _children_refusal(reg, root, agent, children):
+    for line in reg.children_refusal_lines(
+            agent, [(claim.get("agent"), claim) for claim in children]):
+        print(line, file=sys.stderr)
+    print("  your own claim is kept. If one of these is stranded rather than running, "
+          "release exactly it:", file=sys.stderr)
+    for claim in children:
+        print("  %s" % reg.release_cmd(
+            root, claim.get("agent"), claim.get("feature"),
+            agent_id=claim.get("agent_id"), claim_id=claim.get("claim_id"),
+        ), file=sys.stderr)
+    return 2
+
+
+def _unreadable_registry(agent, root, error, d):
+    """F-01: "cannot read" is never "no live child". A dispatching parent's return is held
+    unless it is BLOCKED — its one way out while the operator repairs the file; a leaf holds
+    no children and goes on. Either way nothing is written, so the file stays as found."""
+    verdict = _return_verdict(str(d.get("last_assistant_message") or ""))
+    if _dispatches(agent) and verdict != "BLOCKED":
+        print(f"check-digest: REFUSED {agent}'s return: {root}'s claim registry is unreadable "
+              f"({error!r}), so this run cannot tell whether it holds a live child. Nothing was "
+              "released. A retry cannot succeed until the operator repairs the registry; "
+              "yield a BLOCKED digest naming this cause.", file=sys.stderr)
+        return 2
+    print(f"check-digest: could not read {root}'s claim registry ({error!r}); nothing was "
+          "released and the registry was left as found.", file=sys.stderr)
+    return None
+
+
+def _registry_errand(reg, d, agent):
+    """T-09 (#551) and BUG-1898: release this run's claim, or refuse the return while it
+    holds a live child. Returns an exit code to return, or None to go on validating.
+
+    Exact or nothing: the claim is selected by feature AND runtime id only, in the registry
+    `feature_root` places the feature in — the one resolver dispatch-guard and the OMP hook
+    also use, so the claim a guard wrote is the claim released here. A parent with a live
+    child keeps its own claim (DEC-233), and every recovery command names one claim."""
+    feature, agent_id = _exact_run_identity(d)
+    if feature is None:
+        return _identity_refusal(
+            agent, _return_verdict(str(d.get("last_assistant_message") or "")))
+    owner_root = _root_or_none()
+    if owner_root is None:
+        print("check-digest: no checkout root from this vantage; the #551 claim was "
+              "neither released nor checked.", file=sys.stderr)
+        return None
+    return _settle_in(reg, d, agent, reg.feature_root(owner_root, feature), feature, agent_id)
+
+
+def _settle_in(reg, d, agent, root, feature, agent_id):
+    """Settle this exact run in `root`'s registry: refuse while it holds a live child, else
+    release its own claim. Strict reads come before any write: the locked writer parses a
+    corrupt file as empty, so releasing into an unreadable registry would erase every claim
+    it holds."""
+    try:
+        own = reg.live_claims(root, None, agent_id=agent_id)
+        children = _held_children(reg, root, agent, feature, agent_id)
+    except (reg.UnreadableRegistry, OSError) as error:
+        return _unreadable_registry(agent, root, error, d)
+    if children:
+        return _children_refusal(reg, root, agent, children)
+    if own:
+        _release_own(reg, root, agent, feature, agent_id)
+    return None
+
+
+def _release_own(reg, root, agent, feature, agent_id):
+    try:
+        if reg.release(root, agent=agent, feature=feature, agent_id=agent_id):
+            print(f"check-digest: released {agent}'s claim {agent_id} for {feature}.",
+                  file=sys.stderr)
+    except (reg.UnreadableRegistry, reg.harness_merge.MergeRefusal, OSError) as error:
+        print(f"check-digest: could not release {agent}'s claim ({error!r}); it expires with "
+              "its supervisor. Not blocking on our own errand.", file=sys.stderr)
+
+
 def hook_mode():
     """SubagentStop hook: reject a malformed digest at source.
 
@@ -2244,13 +2987,15 @@ def hook_mode():
        same reason: a hook that blocks on its own bug wedges every agent in every
        project the moment a payload shape changes. Blocking is for THEIR contract
        violation, never ours.
+
+    The third pass-through is harness_boundary.hook_guard's (FEAT-65): this function runs
+    under `hook_guard(hook_mode, "check-digest")`, so an unreadable payload
+    (ArtifactAccessError) and any exception out of validate() print the guard's one template
+    and exit 0. The "no schema" decline below stays a local, typed answer. The direct CLI
+    at the bottom of this file is NOT wrapped: its defects stay loud and nonzero.
     """
-    try:
-        d = artifact_accessors.read_hook_payload(
-            sys.stdin.read(), "SubagentStop hook payload")
-    except Exception as e:
-        print(f"check-digest: unreadable hook payload ({e}) — passing through.", file=sys.stderr)
-        return 0
+    d = artifact_accessors.read_hook_payload(
+        sys.stdin.read(), "SubagentStop hook payload")
 
     # F6: absent `agent_type` and a PRESENT non-harness one are different situations
     # and used to be silently identical. A present `Explore`/`general-purpose` value
@@ -2282,86 +3027,14 @@ def hook_mode():
     try:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import inflight_registry as _reg
-    except Exception as _e:
+    except ImportError as _e:
         print(f"check-digest: inflight_registry unavailable ({_e!r}) — the #551 claim was "
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
 
     if _reg is not None:
-        # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
-        # the payload cwd. The old note here said cwd had to come first so this released from
-        # the same registry dispatch-guard.py wrote to — but that guard now takes its root
-        # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
-        # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
-        # which is why it was never a root.
-        _root = _root_or_none()
-
-        if _root is None:
-            print("check-digest: no checkout root from this vantage — the #551 claim was "
-                  "neither released nor checked.", file=sys.stderr)
-        else:
-            # Read the return contract before releasing the parent's claim: a return with
-            # live children is nonterminal and therefore still owns that claim.
-            _feature = d.get("harness_feature")
-            _kids = []
-            if norm(agent) in ("lead", "orchestrator"):
-                try:
-                    _kids = _reg.live_children(_root, agent, feature=_feature)
-                except Exception as _e:
-                    print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
-                          f"#551 return contract is not enforced for this return.",
-                          file=sys.stderr)
-
-            _raw_return = str(d.get("last_assistant_message") or "")
-            _anchors = list(re.finditer(r"^\s*VERDICT:", _raw_return, re.M))
-            _return_tail = _raw_return[_anchors[-1].start():] if _anchors else _raw_return
-            _verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail, re.M)
-            _return_verdict = _verdict_match.group(1) if _verdict_match else None
-            # Terminal returns release. A return with live children does not: under a blocking
-            # host a parent cannot yield while a child runs (DEC-204), so the parent is still
-            # the only owner able to resume those children safely (DEC-233).
-            _keep_parent = bool(_kids and _return_verdict not in VERDICTS)
-            if not _keep_parent:
-                _agent_id = d.get("harness_agent_id")
-                _job_id = d.get("harness_job_id")
-                try:
-                    _released = _reg.release(
-                        _root,
-                        agent=agent,
-                        feature=_feature,
-                        agent_id=_agent_id,
-                        job_id=_job_id,
-                    )
-                    if _released:
-                        print(f"check-digest: released the #551 claim for {agent}.",
-                              file=sys.stderr)
-                except Exception as _e:
-                    print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
-                          f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
-                          file=sys.stderr)
-
-            if _kids:
-                if _return_verdict not in VERDICTS:
-                    print(
-                        f"check-digest: REFUSED unvalidated return from {agent}; "
-                        "live children still make this parent nonterminal.",
-                        file=sys.stderr,
-                    )
-                for _line in _reg.children_refusal_lines(agent, _kids):
-                    print(_line, file=sys.stderr)
-                try:
-                    print("  if one of these is stranded rather than running, release "
-                          "exactly it:", file=sys.stderr)
-                    for _persona, _c in _kids:
-                        print(
-                            "  %s" % _reg.release_cmd(
-                                _root, _persona, feature=_c.get("feature")
-                            ),
-                            file=sys.stderr,
-                        )
-                except Exception as _e:
-                    print(f"check-digest: could not compose the release command "
-                          f"({_e!r}).", file=sys.stderr)
-                return 2
+        _refused = _registry_errand(_reg, d, agent)
+        if _refused is not None:
+            return _refused
 
     # PRESENCE, NOT TRUTHINESS. Absent, null and empty-string used to be ONE branch, so
     # the PLATFORM's gap — nothing supplied to validate — and the PERSONA's contract
@@ -2394,6 +3067,9 @@ def hook_mode():
     # and — because only exit 2 blocks (DEC-100/DEC-122) — the digest shipped
     # completely unvalidated with no signal at all. That is a worse outcome than
     # the "decline to govern" pass-throughs above, which at least say so.
+    #
+    # THE LOUD FAIL-OPEN IS hook_guard's NOW (FEAT-65). Only the policy refusal is answered
+    # here, because it is THEIR verdict (exit 2), not our failure.
     try:
         _pin = d.get("harness_review_pin")
         _mission = d.get("harness_mission")
@@ -2404,10 +3080,6 @@ def hook_mode():
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
-    except Exception as e:
-        print(f"check-digest: internal error validating {agent}'s return ({e!r}) — "
-              f"passing through; this is our bug, not theirs.", file=sys.stderr)
-        return 0
     if not errs:
         # Message valid. For leads, the DURABLE copy must comply too (DEC-156) —
         # the orchestrator's successor reads runs/<id>/digest.md, never this message.
@@ -2428,14 +3100,14 @@ def hook_mode():
 
 if __name__ == "__main__":
     if "--hook" in sys.argv:
-        sys.exit(hook_mode())
+        sys.exit(harness_boundary.hook_guard(hook_mode, "check-digest"))
     # F14: CLI mode crashed with UnicodeEncodeError under an ASCII locale
     # (LC_ALL=C), truncating the printed reasons before the operator saw them.
     # Hook mode was already safe (stderr defaults to backslashreplace); make
     # stdout match it rather than raise on a non-ASCII byte in a digest value.
     try:
         sys.stdout.reconfigure(errors="backslashreplace")
-    except Exception:
+    except (AttributeError, OSError, ValueError):
         pass
     if len(sys.argv) < 2:
         print("usage: validate-digest.py <persona> [file]   |   --hook  (SubagentStop)"); sys.exit(2)

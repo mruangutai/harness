@@ -47,7 +47,10 @@ def _resolve_root():
         with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
             import harness_boundary
             return harness_boundary.resolve_root(_bootstrap_bin)
-    except Exception:
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
         return ""
 
 
@@ -83,7 +86,7 @@ REASON = (
 try:
     config_path = os.path.join(ROOT, ".harness", "harness.json")
     g = _artifact_accessors.load_harness_json(config_path).get("github") or {}
-except Exception:
+except _artifact_accessors.ArtifactAccessError:
     g = {}
 if not g.get("sync"):
     sys.exit(0)
@@ -92,7 +95,7 @@ try:
     payload = _artifact_accessors.read_hook_payload(
         sys.stdin.read(), "gh-close-gate hook payload")
     cmd = (payload.get("tool_input") or {}).get("command") or ""
-except Exception:
+except _artifact_accessors.ArtifactAccessError:
     sys.exit(0)
 
 # Shell operators shlex hands back as their own tokens. They are separators, never words.

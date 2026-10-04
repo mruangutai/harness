@@ -23,9 +23,9 @@ Factory agents receive role-wide wildcard grants, while the OMP pre-write adapte
 - SC-03 (orchestrator): Every governed factory-product dispatch validates the repository header, creates a repository-bound claim before spawn, and binds that claim to OMP's host-provided child and immediate-parent runtime identities; missing lineage or an unbound/foreign claim refuses before a governed mutation.
   verify: automated
   evidence: integration
-- SC-04 (orchestrator): A live OMP session proves restricted children inherit the approved project extension, every child policy callback receives non-empty `ctx.agentId` and `ctx.parentAgentId`, and two concurrent same-role children receive distinct child identities under the correct immediate parent, without putting authority in prompt text, tool arguments, or session artifacts.
+- SC-04 (orchestrator): A live OMP session proves governed children inherit the project extension, every child policy callback receives the host's child and immediate-parent ids (`ctx.agent.id`, `ctx.agent.parentId`), and concurrent same-persona children receive distinct child identities under the correct immediate parent, without putting authority in prompt text, tool arguments, or session artifacts.
   verify: automated
-  evidence: omp_runtime_lineage
+  evidence: inflight_claim_lifecycle_live
 - SC-05 (code maintainer): `check-domain.py --resolve --feature FEAT-495-repo-write-grants` preserves its current plan-time ownership result without runtime-lineage or repository-binding lookup.
   verify: automated
   evidence: integration
@@ -41,7 +41,7 @@ Factory agents receive role-wide wildcard grants, while the OMP pre-write adapte
 
 ## Verification gaps
 
-- `omp_runtime_lineage` is locally run: CI cannot prove a credentialed live OMP child receives rebound project extensions and host-provided runtime lineage. The required `tests/manual/probe-omp-runtime-lineage.py` result is recorded before ship; deterministic hook and guard integration tests cover claim binding, concurrency, refusal categories, and both write routes.
+- `inflight_claim_lifecycle_live` is locally run: CI cannot prove a credentialed live OMP child receives the project extension and host-provided runtime lineage. Upstream OMP now supplies that lineage natively (#2000 dropped Harness's own runtime pin and lineage probe), so SC-04 reuses BUG-1898's live merge-gate probe, `tests/manual/probe-inflight-claim-lifecycle.py`, whose S3 scenario observes distinct child ids and lineage under a real parent. Its receipt is recorded before ship; deterministic hook and guard integration tests cover repository binding, concurrency, refusal categories, and both write routes.
 
 ## Constraints
 

@@ -14,85 +14,108 @@ import os as _bootstrap_os
 import site as _bootstrap_site
 import sys as _bootstrap_sys
 
-_bootstrap_bin = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
-_bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
+if __name__ == "__main__":
+    _bootstrap_bin = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+    _bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
 
 
-def _bootstrap_run_dir_globs():
-    """Return the former helper interpreter's captured stdout and exit status."""
-    captured_out = _bootstrap_io.StringIO()
-    captured_err = _bootstrap_io.StringIO()
-    prior_out, prior_err = _bootstrap_sys.stdout, _bootstrap_sys.stderr
-    _bootstrap_sys.path.insert(0, _bootstrap_bin)
+    def _bootstrap_run_dir_globs():
+        """Return the former helper interpreter's captured stdout and exit status."""
+        captured_out = _bootstrap_io.StringIO()
+        captured_err = _bootstrap_io.StringIO()
+        prior_out, prior_err = _bootstrap_sys.stdout, _bootstrap_sys.stderr
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        try:
+            _bootstrap_sys.stdout, _bootstrap_sys.stderr = captured_out, captured_err
+            import artifact_accessors as bootstrap_artifacts
+            import harness_boundary as bootstrap_boundary
+            import harness_yaml as bootstrap_yaml
+
+            bootstrap_root = bootstrap_boundary.resolve_root(_bootstrap_bin, strict=False)
+            manifest_path = _bootstrap_os.path.join(
+                bootstrap_root, ".harness", "team-config.yaml")
+            bootstrap_artifacts.manifest_domains(manifest_path, agent=None)
+            for grant in bootstrap_boundary.run_dir_grant_globs(bootstrap_root):
+                print(grant)
+            status = "0"
+        except ImportError:
+            status = "1"
+        except (bootstrap_artifacts.ArtifactAccessError, bootstrap_yaml.YamlParseError,
+                OSError, ValueError):
+            # The manifest unreadable or unparseable, PyYAML unavailable to this python3
+            # (MissingDependency is a YamlParseError), the fleet file bad (FEAT-65).
+            status = "1"
+        finally:
+            _bootstrap_sys.stdout, _bootstrap_sys.stderr = prior_out, prior_err
+            _bootstrap_sys.path.pop(0)
+        return captured_out.getvalue().rstrip("\n"), status
+
+
+    _bootstrap_globs, _bootstrap_derived = _bootstrap_run_dir_globs()
+
+    # The policy interpreter formerly used `python3 -I`. Drop the invoking directory,
+    # PYTHONPATH and user-site entries before its imports, then let the unchanged body add
+    # the trusted bin directory at its original boundary.
+    _bootstrap_pythonpath = {
+        _bootstrap_os.path.realpath(entry)
+        for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(_bootstrap_os.pathsep)
+        if entry
+    }
+    _bootstrap_user_sites = _bootstrap_site.getusersitepackages()
+    if isinstance(_bootstrap_user_sites, str):
+        _bootstrap_user_sites = [_bootstrap_user_sites]
+    _bootstrap_unsafe = _bootstrap_pythonpath | {
+        _bootstrap_os.path.realpath(_bootstrap_bin),
+        _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
+        *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
+    }
+    _bootstrap_sys.path[:] = [
+        entry for entry in _bootstrap_sys.path
+        if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
+    ]
+
+    # The helper was a separate interpreter. Do not leak its project or YAML modules into
+    # the isolated policy phase.
+    for _bootstrap_name, _bootstrap_module in list(_bootstrap_sys.modules.items()):
+        if _bootstrap_name == "__main__":
+            continue
+        _bootstrap_file = getattr(_bootstrap_module, "__file__", None)
+        if (_bootstrap_name == "yaml" or _bootstrap_name.startswith("yaml.")
+                or (_bootstrap_file and _bootstrap_os.path.commonpath([
+                    _bootstrap_os.path.realpath(_bootstrap_file),
+                    _bootstrap_os.path.realpath(_bootstrap_bin),
+                ]) == _bootstrap_os.path.realpath(_bootstrap_bin))):
+            _bootstrap_sys.modules.pop(_bootstrap_name, None)
+
+    _bootstrap_os.environ["HARNESS_GUARD_BIN_DIR"] = _bootstrap_bin
+    _bootstrap_os.environ["HARNESS_RUN_DIR_GLOBS"] = _bootstrap_globs
+    _bootstrap_os.environ["HARNESS_RUN_DIR_DERIVED"] = _bootstrap_derived
+    _bootstrap_sys.stdin = _bootstrap_io.StringIO(_bootstrap_payload)
+
+    # THE HOOK'S OWN-FAILURE POSTURE IS harness_boundary.hook_guard (FEAT-65), wired as
+    # check-domain.py wires it — see the note there. The policy body below is module-level
+    # flow, so the guard wraps its EXECUTION: this process runs the bootstrap once (including
+    # the import-path isolation above), then re-runs this file as module
+    # `dispatch_guard_body`, under whose name the bootstrap is skipped and the body reads
+    # the environment and stdin the bootstrap fixed. The guard module is imported from the
+    # same declared bin directory the body imports from. A tree without it runs unguarded.
+    _bootstrap_sys.path.insert(0, _bootstrap_os.environ["HARNESS_GUARD_BIN_DIR"])
     try:
-        _bootstrap_sys.stdout, _bootstrap_sys.stderr = captured_out, captured_err
-        import artifact_accessors as bootstrap_artifacts
-        import harness_boundary as bootstrap_boundary
+        import harness_boundary as _bootstrap_boundary
+    except (ImportError, SyntaxError):
+        _bootstrap_boundary = None
+    if _bootstrap_boundary is not None:
+        _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "dispatch-guard", "dispatch_guard_body"))
 
-        bootstrap_root = bootstrap_boundary.resolve_root(_bootstrap_bin, strict=False)
-        manifest_path = _bootstrap_os.path.join(
-            bootstrap_root, ".harness", "team-config.yaml")
-        bootstrap_artifacts.manifest_domains(manifest_path, agent=None)
-        for grant in bootstrap_boundary.run_dir_grant_globs(bootstrap_root):
-            print(grant)
-        status = "0"
-    except Exception:
-        status = "1"
-    finally:
-        _bootstrap_sys.stdout, _bootstrap_sys.stderr = prior_out, prior_err
-        _bootstrap_sys.path.pop(0)
-    return captured_out.getvalue().rstrip("\n"), status
-
-
-_bootstrap_globs, _bootstrap_derived = _bootstrap_run_dir_globs()
-
-# The policy interpreter formerly used `python3 -I`. Drop the invoking directory,
-# PYTHONPATH and user-site entries before its imports, then let the unchanged body add
-# the trusted bin directory at its original boundary.
-_bootstrap_pythonpath = {
-    _bootstrap_os.path.realpath(entry)
-    for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(_bootstrap_os.pathsep)
-    if entry
-}
-_bootstrap_user_sites = _bootstrap_site.getusersitepackages()
-if isinstance(_bootstrap_user_sites, str):
-    _bootstrap_user_sites = [_bootstrap_user_sites]
-_bootstrap_unsafe = _bootstrap_pythonpath | {
-    _bootstrap_os.path.realpath(_bootstrap_bin),
-    _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
-    *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
-}
-_bootstrap_sys.path[:] = [
-    entry for entry in _bootstrap_sys.path
-    if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
-]
-
-# The helper was a separate interpreter. Do not leak its project or YAML modules into
-# the isolated policy phase.
-for _bootstrap_name, _bootstrap_module in list(_bootstrap_sys.modules.items()):
-    if _bootstrap_name == "__main__":
-        continue
-    _bootstrap_file = getattr(_bootstrap_module, "__file__", None)
-    if (_bootstrap_name == "yaml" or _bootstrap_name.startswith("yaml.")
-            or (_bootstrap_file and _bootstrap_os.path.commonpath([
-                _bootstrap_os.path.realpath(_bootstrap_file),
-                _bootstrap_os.path.realpath(_bootstrap_bin),
-            ]) == _bootstrap_os.path.realpath(_bootstrap_bin))):
-        _bootstrap_sys.modules.pop(_bootstrap_name, None)
-
-_bootstrap_os.environ["HARNESS_GUARD_BIN_DIR"] = _bootstrap_bin
-_bootstrap_os.environ["HARNESS_RUN_DIR_GLOBS"] = _bootstrap_globs
-_bootstrap_os.environ["HARNESS_RUN_DIR_DERIVED"] = _bootstrap_derived
-_bootstrap_sys.stdin = _bootstrap_io.StringIO(_bootstrap_payload)
 
 import sys, json, os
 
+sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
+import artifact_accessors
 try:
-    sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
-    import artifact_accessors
     d = artifact_accessors.read_hook_payload(
         sys.stdin.read(), "dispatch-guard hook payload")
-except Exception as e:
+except artifact_accessors.ArtifactAccessError as e:
     detail = e.__cause__ if isinstance(
         e.__cause__, json.JSONDecodeError) else e
     print(f"dispatch-guard: unreadable hook payload ({detail}) — passing through.",
@@ -123,6 +146,20 @@ if model and not omp_main:
           file=sys.stderr)
     print("  decided above you and recorded (DEC-155). Re-dispatch without the model parameter.",
           file=sys.stderr)
+    sys.exit(2)
+
+# A named subagent is a persistent, addressable peer; the org runs plain subagents whose
+# only identity is the persona and the feature line (DEC-233). The playbook says never to
+# pass `name:`, and until now nothing checked. Same shape as the `model:` refusal above.
+name_param = ti.get("name")
+if name_param and not omp_main:
+    print(f"dispatch-guard: BLOCKED — {agent} passed name: {name_param!r} in a dispatch.",
+          file=sys.stderr)
+    print("  Every governed dispatch is a plain subagent addressed by persona and feature",
+          file=sys.stderr)
+    print("  line; a named peer outlives the tool call and escapes single-flight. Re-dispatch",
+          file=sys.stderr)
+    print("  without the name parameter.", file=sys.stderr)
     sys.exit(2)
 
 # ---------------------------------------------------------------------------
@@ -209,7 +246,7 @@ declared_repository = repository_lines[0] if repository_lines else None
 try:
     import harness_boundary as hb
     import inflight_registry as reg
-except Exception as exc:
+except ImportError as exc:
     print("dispatch-guard: registry libraries unavailable (%s) — passing through." % (exc,),
           file=sys.stderr)
     sys.exit(0)
@@ -220,62 +257,85 @@ except Exception as exc:
 # strands that claim in the registry (D-04). Fails OPEN on its own breakage (no
 # vocabulary, unparseable manifest, an exception) — only a POSITIVE finding
 # blocks (DEC-100).
-try:
-    globs = [line for line in (os.environ.get("HARNESS_RUN_DIR_GLOBS") or "").splitlines()
-             if line.strip()]
-    refs = hb.run_dir_refs(prompt)
-    if refs:
-        if not globs:
-            if os.environ.get("HARNESS_RUN_DIR_DERIVED") == "0":
-                print("dispatch-guard: run-dir shape check SKIPPED -- the manifest declares no "
-                      "run-dir write grant, so the slug vocabulary is empty.", file=sys.stderr)
-            else:
-                print("dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary "
-                      "derivation failed (manifest unreadable, unparseable, or PyYAML unavailable "
-                      "to that python3).", file=sys.stderr)
+#
+# NO LOCAL CATCH (FEAT-65): the vocabulary helpers raise nothing of their own, so the
+# absorbing `except` here was for defects only; those reach hook_guard, which is the same
+# fail-open, said once.
+globs = [line for line in (os.environ.get("HARNESS_RUN_DIR_GLOBS") or "").splitlines()
+         if line.strip()]
+refs = hb.run_dir_refs(prompt)
+if refs:
+    if not globs:
+        if os.environ.get("HARNESS_RUN_DIR_DERIVED") == "0":
+            print("dispatch-guard: run-dir shape check SKIPPED -- the manifest declares no "
+                  "run-dir write grant, so the slug vocabulary is empty.", file=sys.stderr)
         else:
-            bad = [ref for ref in refs if not hb.run_dir_slug_ok(ref, globs)]
-            if bad:
-                forms = hb.run_dir_forms(globs)
-                for repo, feature_id, slug in bad:
-                    tail = ".harness/%s/features/%s/runs/%s" % (repo, feature_id, slug)
-                    print("dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any "
-                          "squad lead." % (slug,), file=sys.stderr)
-                    print("  %s" % (tail.replace(".harness/", "[.]harness/"),), file=sys.stderr)
-                print("  compliant forms: %s" % (", ".join(forms),), file=sys.stderr)
-                print("  the squad suffix trails the purpose -- the parent directory already "
-                      "carries the feature id.", file=sys.stderr)
-                print("  a run-dir path being quoted rather than directed is spelled with "
-                      "[.]harness/ in place of .harness/; the paths above are already in that "
-                      "form.", file=sys.stderr)
-                sys.exit(2)
-except SystemExit:
-    raise
-except Exception as exc:
-    print("dispatch-guard: run-dir shape check failed (%s: %s) -- passing through."
-          % (type(exc).__name__, exc), file=sys.stderr)
+            print("dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary "
+                  "derivation failed (manifest unreadable, unparseable, or PyYAML unavailable "
+                  "to that python3).", file=sys.stderr)
+    else:
+        bad = [ref for ref in refs if not hb.run_dir_slug_ok(ref, globs)]
+        if bad:
+            forms = hb.run_dir_forms(globs)
+            for repo, feature_id, slug in bad:
+                tail = ".harness/%s/features/%s/runs/%s" % (repo, feature_id, slug)
+                print("dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any "
+                      "squad lead." % (slug,), file=sys.stderr)
+                print("  %s" % (tail.replace(".harness/", "[.]harness/"),), file=sys.stderr)
+            print("  compliant forms: %s" % (", ".join(forms),), file=sys.stderr)
+            print("  the squad suffix trails the purpose -- the parent directory already "
+                  "carries the feature id.", file=sys.stderr)
+            print("  a run-dir path being quoted rather than directed is spelled with "
+                  "[.]harness/ in place of .harness/; the paths above are already in that "
+                  "form.", file=sys.stderr)
+            sys.exit(2)
 
 
-def _root_for(flow):
-    owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
-                                 strict=False)
-    if not owner_root:
-        return None
+# THE ALLOWLIST. A persona may dispatch only what its own frontmatter `spawns:` names.
+# Until now that list was org documentation the playbooks restated as prose ("delegate to a
+# lead, never a member"; "no lead is in another lead's spawns"; a task outside your squad
+# escalates); the reviewer≠author independence of DEC-175 rests on it. Read from the
+# DISPATCHER's file at the owner root. Fails OPEN when that file or its key cannot be read
+# (a checkout without the persona is not a violation), loudly; only a persona present in
+# the file and absent from its list blocks (DEC-100). `spawns: []` is a real, empty list.
+if not omp_main:
     try:
-        for wt in hb.linked_worktrees(owner_root):
-            if os.path.basename(wt) == flow:
-                return wt
-    except Exception:
-        pass
-    return owner_root
+        _owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                                      strict=False)
+        _dispatcher_file = os.path.join(_owner_root, ".omp", "agents", agent + ".md")
+        _fm = open(_dispatcher_file, encoding="utf-8").read().split("---", 2)[1]
+        _m = re.search(r"(?m)^spawns:[ \t]*(\[[^\]\n]*\])?[ \t]*$((?:\n[ \t]*-[^\n]*)*)", _fm)
+        if _m is None:
+            raise ValueError("no spawns key")
+        if _m.group(1) is not None:
+            _allowed = [s.strip().strip("'\"") for s in _m.group(1)[1:-1].split(",")
+                        if s.strip()]
+        else:
+            _allowed = [ln.strip()[1:].strip().strip("'\"")
+                        for ln in _m.group(2).splitlines() if ln.strip()]
+    except (hb.AmbiguousWorktree, OSError, IndexError, ValueError) as exc:
+        print("dispatch-guard: spawns allowlist unreadable for %s (%s) -- passing through."
+              % (agent, exc), file=sys.stderr)
+    else:
+        if dispatched not in _allowed:
+            print("dispatch-guard: BLOCKED -- %s may not dispatch %s; its spawns: list is %s."
+                  % (agent, dispatched, ", ".join(_allowed) or "empty"), file=sys.stderr)
+            print("  A persona dispatches only what its frontmatter names. A task owned by",
+                  file=sys.stderr)
+            print("  another squad is an ESCALATE to the orchestrator, which routes it to the",
+                  file=sys.stderr)
+            print("  owning lead; a member is reached through its lead, never directly.",
+                  file=sys.stderr)
+            sys.exit(2)
 
-
-try:
-    root = _root_for(declared)
-except Exception as exc:
-    root = None
-    print("dispatch-guard: could not resolve the checkout for %s (%s) — no claim recorded."
-          % (declared, exc), file=sys.stderr)
+# The checkout whose registry holds this dispatch's claims — the one resolver every reader
+# uses. BUG-1898: this once matched a linked worktree's basename by EQUALITY, so a
+# short-form worktree (`BUG-97` for `BUG-97-short-form`) sent the claim to the owner
+# checkout while authorize and validate-digest, which prefix-match through feature_root,
+# looked in the worktree. One resolver, one registry.
+owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                             strict=False)
+root = reg.feature_root(owner_root, declared) if owner_root else None
 if not root:
     print("dispatch-guard: no checkout root for this dispatch — no claim recorded.",
           file=sys.stderr)
@@ -298,6 +358,8 @@ def _repository_identity(control_root):
         if not os.path.isfile(feature_path):
             continue
         feature_doc = artifact_accessors.load_feature_json(feature_path)
+        if not isinstance(feature_doc, dict):
+            raise ValueError("repository-tier feature artifact is not a mapping")
         factory = feature_doc.get("factory")
         repo_name = factory.get("repo") if isinstance(factory, dict) else None
         if feature_doc.get("feature_id") != declared or not isinstance(repo_name, str):
@@ -339,7 +401,8 @@ try:
     repository = _repository_identity(
         hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
                         strict=False))
-except Exception as exc:
+except (ValueError, OSError, artifact_accessors.FeatureJsonError,
+        artifact_accessors.FleetError) as exc:
     print(
         "dispatch-guard: BLOCKED — repository dispatch identity is invalid (%s)."
         % (exc,),
@@ -352,8 +415,7 @@ except Exception as exc:
 # T-09 -- a shell-less persona cannot resolve the feature tree itself. The
 # dispatcher supplies the resolved value and this block checks it before claim.
 try:
-    owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
-                                 strict=False)
+    # owner_root is set: a dispatch with no checkout root exited above.
     tools_file = os.path.join(owner_root, ".omp", "agents", dispatched + ".md")
     raw_agent = open(tools_file, encoding="utf-8").read()
     frontmatter = raw_agent.split("---", 2)[1]
@@ -361,7 +423,7 @@ try:
     if tools_match is None:
         raise ValueError("no tools key")
     has_bash = bool(re.search(r"(?m)^\s*-\s*bash\s*$", tools_match.group(1)))
-except Exception as exc:
+except (OSError, ValueError, IndexError) as exc:
     print("dispatch-guard: could not read tool grants for %s (%s) -- passing through."
           % (dispatched, exc), file=sys.stderr)
     has_bash = True
@@ -388,9 +450,6 @@ if not has_bash:
         print("dispatch-guard: BLOCKED -- feature tree for %s is ambiguous (%s)."
               % (declared, exc), file=sys.stderr)
         sys.exit(2)
-    except Exception as exc:
-        print("dispatch-guard: feature tree resolver failed (%s) -- passing through." % (exc,),
-              file=sys.stderr)
     else:
         if os.path.realpath(declared_root) != os.path.realpath(expected_root):
             print("dispatch-guard: BLOCKED -- declared feature-tree root %s disagrees with resolver %s."
@@ -420,16 +479,6 @@ try:
         for line in reg.refusal_lines(dispatched, existing, command):
             print(line, file=sys.stderr)
         sys.exit(2)
-    correlation = {
-        "agent": dispatched,
-        "feature": declared,
-    }
-    if repository is not None:
-        correlation["repository"] = repository
-    if d.get("harness_agent_id"):
-        correlation["parent_agent_id"] = d.get("harness_agent_id")
-    if ti.get("name"):
-        correlation["requested_agent_id"] = ti.get("name")
     receipt = reg.claim_with_receipt(
         root,
         dispatched,
@@ -438,7 +487,6 @@ try:
         feature=declared,
         supervisor_pid=supervisor_pid,
         repository=repository,
-        dispatch_correlation=correlation,
     )
     if receipt is None:
         print("dispatch-guard: BLOCKED — single-flight claim raced for %s in %s."
@@ -450,12 +498,10 @@ try:
             "feature": declared,
             "agent": dispatched,
             "claim_id": receipt.get("claim_id"),
-            **({"repository": repository} if repository is not None else {}),
         }
     }, sort_keys=True))
-except SystemExit:
-    raise
-except Exception as exc:
+except (reg.UnreadableRegistry, reg.harness_merge.MergeRefusal, OSError) as exc:
+    # The registry's own failure classes (FEAT-65): unreadable, lock refused, unwritable.
     print("dispatch-guard: claim step failed (%s: %s) — passing through, the dispatch is NOT "
           "blocked." % (type(exc).__name__, exc), file=sys.stderr)
     sys.exit(0)

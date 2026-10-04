@@ -64,7 +64,9 @@ def _resolve_root():
         with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
             import harness_boundary
             return harness_boundary.resolve_root(_bootstrap_bin)
-    except Exception:
+    except (ImportError, ValueError):
+        # The module did not import, or resolve_root refused (strict: no MARKER) -- the two
+        # shapes "no root" takes (FEAT-65).
         return ""
 
 
@@ -75,7 +77,9 @@ def _agent_from_stdin():
         payload = artifact_accessors.read_hook_payload(
             _bootstrap_sys.stdin.read(), "inject-expertise hook payload")
         return payload.get("agent_type", "")
-    except Exception:
+    except ImportError:
+        return ""
+    except artifact_accessors.ArtifactAccessError:
         return ""
 
 

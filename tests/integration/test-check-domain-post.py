@@ -761,9 +761,11 @@ def _handoff_validator_exception_case(results, root, valid):
     os.makedirs(isolated_bin)
     isolated_hook = os.path.join(isolated_bin, "check-domain.py")
     shutil.copy2(HOOK, isolated_hook)
-    shutil.copy2(
-        os.path.join(_anchor_bin, "artifact_accessors.py"),
-        os.path.join(isolated_bin, "artifact_accessors.py"))
+    # FEAT-65: the validator is called through harness_boundary.call_repo_module, so the
+    # copy carries the boundary module and its one repo import too; without them the
+    # refusal would name a missing module instead of the injected validator failure.
+    for sibling in ("artifact_accessors.py", "harness_boundary.py", "run_identity.py"):
+        shutil.copy2(os.path.join(_anchor_bin, sibling), os.path.join(isolated_bin, sibling))
     with open(os.path.join(isolated_bin, "handoff_done_when.py"), "w") as f:
         f.write("def problems(*args, **kwargs):\n    raise RuntimeError('injected failure')\n")
     isolated_target = os.path.join(

@@ -22,6 +22,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1181,134 +1182,70 @@ def case_37_live_claims_refuses_unreadable_registry():
           inflight_registry.live_claims(missing, agent) == [])
 
 
-
-def case_38_repository_bound_attachment():
-    """Factory claims bind a child id only to one exact repository."""
+def case_38_repository_binding_through_run_start():
+    """FEAT-495: the dispatch receipt carries the repository; the run-start claim binds the
+    child's runtime id to that receipt; a product write needs that exact live binding."""
     root = tempfile.mkdtemp()
-    now = time.time()
-    first = inflight_registry.claim_with_receipt(
-        root, "harness-backend-dev", "harness-eng-lead", root, now=now,
-        feature="FEAT-495", supervisor_pid=os.getpid(),
-        repository="product-a", dispatch_correlation={
-            "agent": "harness-backend-dev", "feature": "FEAT-495",
-            "repository": "product-a"})
-    second = inflight_registry.claim_with_receipt(
-        root, "harness-backend-dev", "harness-eng-lead", root, now=now + 1,
-        feature="FEAT-495", supervisor_pid=os.getpid(),
-        repository="product-a")
-    foreign = inflight_registry.claim_with_receipt(
-        root, "harness-backend-dev", "harness-eng-lead", root, now=now + 2,
-        feature="FEAT-495", supervisor_pid=os.getpid(),
-        repository="product-b")
-    missing_repository = inflight_registry.attach_runtime_identity(
-        root, "harness-backend-dev", "FEAT-495", agent_id="child-1")
-    attached = inflight_registry.attach_runtime_identity(
-        root, "harness-backend-dev", "FEAT-495", agent_id="child-1",
-        parent_agent_id="lead-1",
-        claim_id=first["claim_id"], repository="product-a")
-    idempotent = inflight_registry.attach_runtime_identity(
-        root, "harness-backend-dev", "FEAT-495", agent_id="child-1",
-        parent_agent_id="lead-1",
-        claim_id=first["claim_id"], repository="product-a")
-    second_child = inflight_registry.attach_runtime_identity(
-        root, "harness-backend-dev", "FEAT-495", agent_id="child-2",
-        parent_agent_id="lead-1",
-        claim_id=second["claim_id"], repository="product-a")
-    data = _read_raw(root)["claims"]
-    check("case38: factory receipt keeps optional repository and correlation",
-          first["repository"] == "product-a"
-          and first["dispatch_correlation"]["repository"] == "product-a", first)
-    allowed = inflight_registry.repository_binding(
-        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1", "lead-1")
-    mismatch = inflight_registry.repository_binding(
-        root, "harness-backend-dev", "FEAT-495", "product-b", "child-1", "lead-1")
-    released = inflight_registry.release(root, agent_id="child-1")
-    release_state = inflight_registry.repository_binding(
-        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1", "lead-1")
-    check("case38: exact active id is the sole allowed repository binding",
-          allowed == "allow" and mismatch == "mismatched", (allowed, mismatch))
-    check("case38: released repository binding remains explicitly denied",
-          released is True and release_state == "released", release_state)
-    check("case38: identical product children attach independently",
-          attached is True and idempotent is True and second_child is True, data)
-    check("case38: repository-less attachment refuses cross-product candidates",
-          missing_repository is False, data)
-    check("case38: foreign product remains pending",
-          foreign["claim_id"] in [c["claim_id"] for c in data if not c.get("agent_id")],
-          data)
+    agent, feature = "harness-backend-dev", "FEAT-495"
 
+    def dispatched(repository, parent):
+        receipt = inflight_registry.claim_with_receipt(
+            root, agent, "harness-eng-lead", root, feature=feature,
+            supervisor_pid=os.getpid(), repository=repository)
+        inflight_registry.attach_runtime_identity(
+            root, agent, feature, claim_id=receipt["claim_id"], parent_agent_id=parent)
+        return receipt
 
-def case_39_runtime_identity_collision_and_repository_cli():
-    """One host identity cannot authorize two active dispatches.
+    def binding(repository, agent_id, parent="lead-1", feature=feature):
+        return inflight_registry.repository_binding(
+            root, agent, feature, repository, agent_id, parent)
 
-    Sharing an immediate parent is legal for concurrent siblings. Reusing either a
-    child's own id or changing the parent already attached to one claim is a named
-    collision, never a generic missing-claim result.
-    """
-    root = tempfile.mkdtemp()
-    first = inflight_registry.claim_with_receipt(
-        root, "harness-backend-dev", "harness-eng-lead", root,
-        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
-    second = inflight_registry.claim_with_receipt(
-        root, "harness-backend-dev", "harness-eng-lead", root,
-        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
+    first = dispatched("product-a", "lead-1")
+    started = inflight_registry.claim_run_start(
+        root, agent, feature, "child-1", "lead-1", supervisor_pid=os.getpid())
+    check("case38: run-start binds the unique repository receipt",
+          started["ok"] and started["outcome"] == "bound"
+          and started["claim"]["claim_id"] == first["claim_id"]
+          and started["claim"]["repository"] == "product-a", started)
+    dispatched("product-a", "lead-1")
+    sibling = inflight_registry.claim_run_start(
+        root, agent, feature, "child-2", "lead-1", supervisor_pid=os.getpid())
+    check("case38: same-role siblings under one parent bind independently",
+          sibling["outcome"] == "bound"
+          and binding("product-a", "child-1") == "allow"
+          and binding("product-a", "child-2") == "allow",
+          (sibling, binding("product-a", "child-1"), binding("product-a", "child-2")))
+    check("case38: another repository is refused as mismatched",
+          binding("product-b", "child-1") == "mismatched", binding("product-b", "child-1"))
+    check("case38: a different immediate parent is refused",
+          binding("product-a", "child-1", parent="other-lead") == "mismatched",
+          binding("product-a", "child-1", parent="other-lead"))
+    check("case38: missing lineage is refused",
+          binding("product-a", None) == "missing", binding("product-a", None))
 
-    first_state = inflight_registry.attach_runtime_identity_state(
-        root, "harness-backend-dev", "FEAT-495",
-        agent_id="BackendOne", parent_agent_id="LeadOne",
-        claim_id=first["claim_id"], repository="product-a")
-    sibling_state = inflight_registry.attach_runtime_identity_state(
-        root, "harness-backend-dev", "FEAT-495",
-        agent_id="BackendTwo", parent_agent_id="LeadOne",
-        claim_id=second["claim_id"], repository="product-a")
-    reused_child = inflight_registry.attach_runtime_identity_state(
-        root, "harness-backend-dev", "FEAT-495",
-        agent_id="BackendOne", parent_agent_id="LeadOne",
-        claim_id=second["claim_id"], repository="product-a")
-    changed_parent = inflight_registry.attach_runtime_identity_state(
-        root, "harness-backend-dev", "FEAT-495",
-        agent_id="BackendOne", parent_agent_id="OtherLead",
-        claim_id=first["claim_id"], repository="product-a")
-    check("case39: concurrent same-role siblings may share their immediate parent",
-          first_state == "attached" and sibling_state == "attached",
-          (first_state, sibling_state))
-    check("case39: reused child identity has the distinct collision state",
-          reused_child == "collision", reused_child)
-    check("case39: changing an attached claim's parent has the distinct collision state",
-          changed_parent == "collision", changed_parent)
+    unbound = inflight_registry.claim_run_start(
+        root, agent, feature, "child-3", "lead-2", supervisor_pid=os.getpid())
+    check("case38: a run with no repository receipt gets no product binding",
+          unbound["outcome"] == "created"
+          and binding("product-a", "child-3", parent="lead-2") == "mismatched",
+          (unbound, binding("product-a", "child-3", parent="lead-2")))
 
-    cli_root = tempfile.mkdtemp()
-    receipt = inflight_registry.claim_with_receipt(
-        cli_root, "harness-backend-dev", "harness-eng-lead", cli_root,
-        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
-    competing = inflight_registry.claim_with_receipt(
-        cli_root, "harness-backend-dev", "harness-eng-lead", cli_root,
-        feature="FEAT-495", supervisor_pid=os.getpid(), repository="product-a")
-    cli_ok = inflight_registry.main([
-        "attach", "--root", cli_root,
-        "--agent", "harness-backend-dev", "--feature", "FEAT-495",
-        "--agent-id", "BackendThree", "--parent-agent-id", "LeadOne",
-        "--claim-id", receipt["claim_id"], "--repository", "product-a",
-    ])
-    state = inflight_registry.repository_binding(
-        cli_root, "harness-backend-dev", "FEAT-495", "product-a",
-        "BackendThree", "LeadOne")
-    check("case39: attach CLI preserves the repository selector",
-          cli_ok == 0 and state == "allow", (cli_ok, state))
+    inflight_registry.claim_run_start(
+        root, agent, "FEAT-496", "child-1", "lead-1", supervisor_pid=os.getpid())
+    check("case38: a runtime id reused by another active dispatch is a collision",
+          binding("product-a", "child-1") == "collision", binding("product-a", "child-1"))
 
-    collision_err = io.StringIO()
-    with contextlib.redirect_stderr(collision_err):
-        collision_rc = inflight_registry.main([
-            "attach", "--root", cli_root,
-            "--agent", "harness-backend-dev", "--feature", "FEAT-495",
-            "--agent-id", "BackendThree", "--parent-agent-id", "LeadOne",
-            "--claim-id", competing["claim_id"], "--repository", "product-a",
-        ])
-    check("case39: attach CLI fails closed and names runtime identity collision",
-          collision_rc == 2 and "collision" in collision_err.getvalue().lower(),
-          (collision_rc, collision_err.getvalue()))
+    released = inflight_registry.release(root, feature=feature, agent_id="child-2")
+    check("case38: a released repository claim is refused as released",
+          released is True and binding("product-a", "child-2") == "released",
+          (released, binding("product-a", "child-2")))
 
-
+    with open(os.path.join(root, inflight_registry.REGISTRY_REL), "w",
+              encoding="utf-8") as handle:
+        handle.write("{not json")
+    check("case38: an unreadable registry is refused as unreadable",
+          binding("product-a", "child-1") == "unreadable", binding("product-a", "child-1"))
+    shutil.rmtree(root, ignore_errors=True)
 
 
 CASES = (
@@ -1333,9 +1270,296 @@ CASES = (
     case_34_children_refusal_names_suspension, case_35_feature_root_cli,
     case_36_live_claims_read_only_and_binding_horizon,
     case_37_live_claims_refuses_unreadable_registry,
-    case_38_repository_bound_attachment,
-    case_39_runtime_identity_collision_and_repository_cli,
+    case_38_repository_binding_through_run_start,
 )
+
+
+# ---------------------------------------------------------------------------------------
+# BUG-1898 T-01 — one feature-root resolver and the run-start claim. Every case works on
+# real registry files under fresh tempdirs and asserts rows and results, never calls.
+# ---------------------------------------------------------------------------------------
+BUG1898_FEATURE = "BUG-98-run-start"
+
+
+def _bug1898_seed(root, claims):
+    """Write `claims` (supervised by this live process) as a version-2 registry."""
+    _write_raw(root, {"schema_version": inflight_registry.SCHEMA_VERSION, "claims": [
+        {**_bug1304_claim(None, BUG1898_FEATURE, time.time()), "claim_id": "seed-%d" % index,
+         **extra}
+        for index, extra in enumerate(claims)]})
+
+
+def _bug1898_start(root, agent, agent_id, parent="Lead", feature=BUG1898_FEATURE):
+    return inflight_registry.claim_run_start(
+        root, agent, feature, agent_id, parent, supervisor_pid=os.getpid())
+
+
+BUG1898_DEV = "harness-backend-dev"
+
+
+def _bug1898_rows(root, agent=BUG1898_DEV):
+    return _claims_for(_read_raw(root), agent)
+
+
+def case_38a_run_start_creates_then_reuses():
+    root = tempfile.mkdtemp()
+    created = _bug1898_start(root, BUG1898_DEV, "Lead.Dev")
+    pairs = [(r.get("agent_id"), r.get("parent_agent_id")) for r in _bug1898_rows(root)]
+    check("case38: a run with no receipt creates a claim bound to its exact id",
+          created.get("outcome") == "created" and pairs == [("Lead.Dev", "Lead")],
+          (created, pairs))
+    again = _bug1898_start(root, BUG1898_DEV, "Lead.Dev")
+    check("case38: a settled agent woken under its id reuses that one claim",
+          again.get("outcome") == "reused" and len(_bug1898_rows(root)) == 1,
+          (again, _read_raw(root)))
+
+
+def case_38b_run_start_binds_the_unique_receipt():
+    root = tempfile.mkdtemp()
+    _bug1898_seed(root, [{"agent": BUG1898_DEV, "parent_agent_id": "Lead",
+                          "claim_id": "receipt"}])
+    bound = _bug1898_start(root, BUG1898_DEV, "Lead.Dev")
+    rows = [(r["claim_id"], r.get("agent_id")) for r in _bug1898_rows(root)]
+    check("case38: the unique unbound parent receipt is bound, not duplicated",
+          bound.get("outcome") == "bound" and rows == [("receipt", "Lead.Dev")],
+          (bound, rows))
+
+
+def case_38c_run_start_never_picks_an_ambiguous_receipt():
+    root = tempfile.mkdtemp()
+    _bug1898_seed(root, [{"agent": BUG1898_DEV, "parent_agent_id": "Lead", "claim_id": "r1"},
+                         {"agent": BUG1898_DEV, "parent_agent_id": "Lead", "claim_id": "r2"}])
+    first = _bug1898_start(root, BUG1898_DEV, "Lead.A")
+    rows = sorted((r["claim_id"] in ("r1", "r2"), r.get("agent_id") or "")
+                  for r in _bug1898_rows(root))
+    check("case38: an ambiguous receipt pair is never selected; the run gets its own claim",
+          first.get("outcome") == "created"
+          and rows == [(False, "Lead.A"), (True, ""), (True, "")], (first, rows))
+
+
+def case_38d_run_start_ignores_another_parents_receipt():
+    root = tempfile.mkdtemp()
+    _bug1898_seed(root, [{"agent": BUG1898_DEV, "parent_agent_id": "Other",
+                          "claim_id": "foreign"}])
+    other = _bug1898_start(root, BUG1898_DEV, "Lead.Dev")
+    foreign = [r.get("agent_id") for r in _bug1898_rows(root) if r["claim_id"] == "foreign"]
+    check("case38: another parent's receipt is never bound",
+          other.get("outcome") == "created" and foreign == [None], (other, foreign))
+
+
+def case_38e_run_start_parallel_persona_keeps_two_claims():
+    root = tempfile.mkdtemp()
+    _bug1898_start(root, BUG1898_DEV, "Lead.A")
+    parallel = _bug1898_start(root, BUG1898_DEV, "Lead.B")
+    ids = sorted(r.get("agent_id") for r in _bug1898_rows(root))
+    check("case38: a persona outside SINGLE_FLIGHT_AGENTS keeps two live same-feature claims",
+          parallel.get("ok") is True and ids == ["Lead.A", "Lead.B"], (parallel, ids))
+
+
+def case_38f_run_start_refuses_a_crossed_lineage():
+    root = tempfile.mkdtemp()
+    _bug1898_seed(root, [{"agent": BUG1898_DEV, "parent_agent_id": "Lead",
+                          "agent_id": "Lead.Dev"}])
+    crossed = _bug1898_start(root, BUG1898_DEV, "Lead.Dev", parent="Impostor")
+    parents = [r.get("parent_agent_id") for r in _bug1898_rows(root)]
+    check("case38: an exact id under a different parent is refused, not rebound",
+          crossed.get("ok") is False and crossed.get("retryable") is False
+          and parents == ["Lead"], (crossed, parents))
+
+
+def case_39a_run_start_one_pm_conflict_is_retryable():
+    root = tempfile.mkdtemp()
+    _bug1898_seed(root, [{"agent": "harness-pm", "agent_id": "Lead.Holder",
+                          "parent_agent_id": "Lead"}])
+    second = _bug1898_start(root, "harness-pm", "Lead.Second")
+    check("case39: a second live pm is refused, naming the holder, retryable after it settles",
+          second.get("cause") == "single-flight" and second.get("retryable") is True
+          and "Lead.Holder" in second.get("message", "")
+          and len(_bug1898_rows(root, "harness-pm")) == 1, (second, _read_raw(root)))
+    inflight_registry.release(root, feature=BUG1898_FEATURE, agent_id="Lead.Holder")
+    retried = _bug1898_start(root, "harness-pm", "Lead.Second")
+    check("case39: once the holder settles the same run start succeeds",
+          retried.get("ok") is True, retried)
+
+
+def case_39b_run_start_leaves_an_unreadable_registry_as_found():
+    root = tempfile.mkdtemp()
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(path))
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("{not json")
+    corrupt = _bug1898_start(root, BUG1898_DEV, "Lead.Dev")
+    with open(path, encoding="utf-8") as handle:
+        after = handle.read()
+    check("case39: an unreadable registry is a non-retryable operator condition, left as found",
+          corrupt.get("cause") == "unreadable" and corrupt.get("retryable") is False
+          and path in corrupt.get("message", "") and after == "{not json", corrupt)
+
+
+def _bug1898_find_cli(owner, agent_id):
+    r = subprocess.run([sys.executable, CLI, "find-run", "--agent-id", agent_id, "--root", owner],
+                       capture_output=True, text=True)
+    try:
+        return r.returncode, json.loads(r.stdout or "{}")
+    except ValueError:
+        return r.returncode, {"raw": r.stdout + r.stderr}
+
+
+def _bug1898_owner_and_linked():
+    """An owner checkout holding qa run Lead.Owner and a linked worktree holding pm run
+    Lead.Linked, each in its own registry."""
+    owner = tempfile.mkdtemp()
+    linked = _linked_worktree(owner, BUG1898_FEATURE)
+    _bug1898_seed(owner, [{"agent": "harness-qa", "agent_id": "Lead.Owner",
+                           "parent_agent_id": "Lead", "feature": "FEAT-7-owner"}])
+    _bug1898_seed(linked, [{"agent": "harness-pm", "agent_id": "Lead.Linked",
+                            "parent_agent_id": "Lead"}])
+    return owner, linked
+
+
+def case_40a_find_run_places_a_unique_match():
+    owner, linked = _bug1898_owner_and_linked()
+    found = inflight_registry.find_run_claim(owner, "Lead.Linked")
+    check("case40: a unique match in a linked worktree yields its feature and that registry root",
+          (found.get("feature"), found.get("root")) == (BUG1898_FEATURE, linked), found)
+    found = inflight_registry.find_run_claim(owner, "Lead.Owner")
+    check("case40: a unique owner-root match yields the owner root",
+          (found.get("feature"), found.get("root")) == ("FEAT-7-owner", owner), found)
+
+
+def case_40b_find_run_refuses_missing_and_ambiguous():
+    owner, _linked = _bug1898_owner_and_linked()
+    missing = inflight_registry.find_run_claim(owner, "Lead")
+    check("case40: zero exact matches refuse; a parent id or persona is never a match",
+          missing.get("ok") is False and missing.get("cause") == "not-found", missing)
+    code, cli = _bug1898_find_cli(owner, "nobody")
+    check("case40: the find-run command exits 2 with the structured refusal",
+          code == 2 and cli.get("ok") is False, (code, cli))
+    _bug1898_seed(owner, [{"agent": "harness-pm", "agent_id": "Lead.Linked",
+                           "parent_agent_id": "Lead", "feature": "FEAT-7-owner"}])
+    dup = inflight_registry.find_run_claim(owner, "Lead.Linked")
+    check("case40: the same id in two registries refuses rather than choosing",
+          dup.get("ok") is False and dup.get("cause") == "ambiguous", dup)
+
+
+def case_40c_find_run_refuses_any_unreadable_registry():
+    owner, linked = _bug1898_owner_and_linked()
+    with open(os.path.join(linked, inflight_registry.REGISTRY_REL), "w") as handle:
+        handle.write("[]")
+    bad = inflight_registry.find_run_claim(owner, "Lead.Owner")
+    check("case40: any unreadable registry refuses, non-retryable, even with a match elsewhere",
+          bad.get("cause") == "unreadable" and bad.get("retryable") is False, bad)
+
+
+def case_41_run_start_cli_resolves_the_feature_worktree():
+    owner = tempfile.mkdtemp()
+    linked = _linked_worktree(owner, "BUG-98")
+    r = subprocess.run([sys.executable, CLI, "run-start", "--root", owner,
+                        "--feature", BUG1898_FEATURE, "--agent", "harness-qa",
+                        "--agent-id", "Lead.Qa", "--parent-agent-id", "Lead",
+                        "--supervisor-pid", str(os.getpid())],
+                       capture_output=True, text=True)
+    written = [os.path.exists(os.path.join(root, inflight_registry.REGISTRY_REL))
+               for root in (linked, owner)]
+    try:
+        reported = json.loads(r.stdout).get("root")
+    except ValueError:
+        reported = None
+    check("case41: run-start writes the registry feature_root resolves (short-form worktree)",
+          r.returncode == 0 and written == [True, False] and reported == linked,
+          r.stdout + r.stderr)
+
+
+CASES = CASES + (
+    case_38a_run_start_creates_then_reuses,
+    case_38b_run_start_binds_the_unique_receipt,
+    case_38c_run_start_never_picks_an_ambiguous_receipt,
+    case_38d_run_start_ignores_another_parents_receipt,
+    case_38e_run_start_parallel_persona_keeps_two_claims,
+    case_38f_run_start_refuses_a_crossed_lineage,
+    case_39a_run_start_one_pm_conflict_is_retryable,
+    case_39b_run_start_leaves_an_unreadable_registry_as_found,
+    case_40a_find_run_places_a_unique_match,
+    case_40b_find_run_refuses_missing_and_ambiguous,
+    case_40c_find_run_refuses_any_unreadable_registry,
+    case_41_run_start_cli_resolves_the_feature_worktree,
+)
+
+
+def _feat65_ps_probe_checks(inflight_registry):
+    """The ps probe absorbs only its own classes and still answers None on them."""
+    real_run = inflight_registry.subprocess.run
+    if os.path.exists("/proc"):
+        return
+    def _raise_os(*a, **k):
+        raise OSError("FEAT-65 ps unavailable")
+    inflight_registry.subprocess.run = _raise_os
+    try:
+        check("feat65: a failing ps probe still answers None",
+              inflight_registry._read_process_start_time(os.getpid()) is None)
+    finally:
+        inflight_registry.subprocess.run = real_run
+
+    def _raise_rt(*a, **k):
+        raise RuntimeError("FEAT-65 injected")
+    inflight_registry.subprocess.run = _raise_rt
+    try:
+        inflight_registry._read_process_start_time(os.getpid())
+        check("feat65: an unrelated defect in the ps probe escapes", False, "returned")
+    except RuntimeError:
+        check("feat65: an unrelated defect in the ps probe escapes", True)
+    finally:
+        inflight_registry.subprocess.run = real_run
+
+
+def _feat65_feature_root_checks(inflight_registry, root):
+    """feature_root absorbs the lookup's own AmbiguousWorktree/OSError; a defect escapes."""
+    real_lookup = inflight_registry.harness_boundary.worktree_for_feature
+
+    def _ambiguous(owner_root, feature):
+        raise inflight_registry.harness_boundary.AmbiguousWorktree("FEAT-65 two candidates")
+    inflight_registry.harness_boundary.worktree_for_feature = _ambiguous
+    try:
+        check("feat65: an ambiguous worktree lookup falls back to the owner root",
+              inflight_registry.feature_root(root, "FEAT-65-x") == root)
+    finally:
+        inflight_registry.harness_boundary.worktree_for_feature = real_lookup
+
+    def _defect(owner_root, feature):
+        raise RuntimeError("FEAT-65 injected")
+    inflight_registry.harness_boundary.worktree_for_feature = _defect
+    try:
+        inflight_registry.feature_root(root, "FEAT-65-x")
+        check("feat65: an unrelated lookup defect escapes feature_root", False, "returned")
+    except RuntimeError:
+        check("feat65: an unrelated lookup defect escapes feature_root", True)
+    finally:
+        inflight_registry.harness_boundary.worktree_for_feature = real_lookup
+
+
+def case_feat65_typed_probes():
+    """FEAT-65 SC-10 and the settled probe tuples: the process-identity probes and the feature
+    worktree lookup absorb only their producers' classes; anything else is loud — and the
+    direct command has no entrypoint guard, so the same defect is a traceback, nonzero."""
+    import inflight_registry
+    root = tempfile.mkdtemp()
+    _feat65_ps_probe_checks(inflight_registry)
+    _feat65_feature_root_checks(inflight_registry, root)
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(os.path.dirname(inflight_registry.__file__), mbin)
+    with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as handle:
+        handle.write("\n\ndef worktree_for_feature(owner_root, feature_id):\n"
+                     "    raise RuntimeError('FEAT-65 injected')\n")
+    r = subprocess.run([sys.executable, os.path.join(mbin, "inflight_registry.py"),
+                        "feature-root", "--feature", "FEAT-65-x", "--root", root],
+                       capture_output=True, text=True)
+    check("feat65: the direct feature-root command stays loud and nonzero on a defect",
+          r.returncode not in (0, 2) and "FEAT-65 injected" in r.stderr
+          and "failed internally" not in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+
+
+CASES = CASES + (case_feat65_typed_probes,)
 
 
 def main():

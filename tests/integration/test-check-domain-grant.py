@@ -13,7 +13,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
-import json, os, shutil, subprocess, sys, tempfile
+import json, os, re, shutil, subprocess, sys, tempfile
 from isolated_bin import isolated_bin
 from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
     _legal_feature_json, drive, fire, fixture, fixture_fleet)
@@ -548,7 +548,6 @@ shared:
             assert inflight_registry.attach_runtime_identity(
                 root, agent, "FEAT-fleet-test", agent_id=child,
                 parent_agent_id=parent, claim_id=receipt["claim_id"],
-                repository="widget",
             )
             repository_identities[key] = (child, parent)
         child, parent = repository_identities[key]
@@ -1085,6 +1084,121 @@ def run_schema():
         " ".join((denied.stderr or "").split())[:160])
     fails += _schema_crash_cases(root, rel, illegal)
     shutil.rmtree(root, ignore_errors=True)
+    return fails
+
+
+# ---------------------------------------------------------------------------
+# shadowless-P triage rows 5, 85/102, 94 — three narrow check-domain refusals that
+# replace prose nothing enforced. Each plants the defect AND its honest counterpart.
+# ---------------------------------------------------------------------------
+SHADOW_MANIFEST = FIXTURE_MANIFEST.replace(
+    "- { path: .harness/*/features/*/runs/*/state.yaml, upsert: true }",
+    "- { path: .harness/*/features/*/runs/*/state.yaml, upsert: true }\n"
+    "          - { path: .harness/*/features/*/observations/*.md, upsert: true }\n"
+    "          - { path: .harness/*/features/*/plan.yaml, upsert: true }\n"
+    "          - { path: .harness/*/features/*/BRIEF.md, upsert: true }\n"
+    "          - { path: .harness/*/features/*/notes/*.md, upsert: true }")
+
+SHADOW = []
+
+
+def shadow(name, ok, detail=""):
+    SHADOW.append((name, ok, detail))
+
+
+def _run_observations_log_cases(root):
+    # ROW 5 — the observations log has exactly one writer (observations-merge.py, Bash).
+    obs_defect = fire(root, ".harness/repo/features/FEAT-1-thing/observations/harness-documentor.md")
+    shadow("Write to the observations log is BLOCKED — only observations-merge.py may write it",
+           obs_defect.returncode == 2 and "observations-merge.py" in obs_defect.stderr,
+           f"exit {obs_defect.returncode}: {obs_defect.stderr.strip()[:200]}")
+
+    obs_honest = fire(root, ".harness/repo/features/FEAT-1-thing/notes/observations-mention.md")
+    shadow("a path that merely mentions 'observations', outside observations/, still writes",
+           obs_honest.returncode == 0,
+           f"exit {obs_honest.returncode}: {obs_honest.stderr.strip()[:200]}")
+
+
+def _run_plan_conversion_cases(root):
+    # ROWS 85/102 — a PLAN.md-era feature is never CONVERTED to plan.yaml.
+    legacy_dir = os.path.join(root, ".harness", "repo", "features", "FEAT-2-legacy")
+    os.makedirs(legacy_dir)
+    with open(os.path.join(legacy_dir, "PLAN.md"), "w", encoding="utf-8") as f:
+        f.write("# legacy plan\n")
+    conversion = fire(root, ".harness/repo/features/FEAT-2-legacy/plan.yaml")
+    shadow("creating plan.yaml beside a shipped PLAN.md is BLOCKED (DEC-182: never converted)",
+           conversion.returncode == 2 and "PLAN.md already ships" in conversion.stderr,
+           f"exit {conversion.returncode}: {conversion.stderr.strip()[:200]}")
+
+    fresh_conversion = fire(root, ".harness/repo/features/FEAT-3-fresh/plan.yaml")
+    shadow("a FRESH feature's first plan.yaml write is not the legacy-conversion denial "
+           "(only plan.yaml's own single-writer route denial fires)",
+           fresh_conversion.returncode == 2
+           and "PLAN.md already ships" not in fresh_conversion.stderr,
+           f"exit {fresh_conversion.returncode}: {fresh_conversion.stderr.strip()[:200]}")
+
+
+def _run_feature_dir_name_cases(root):
+    # ROW 94 — the feature id is coined once, in the shape dispatch-guard.py already
+    # enforces at spawn.
+    bad_name = fire(root, ".harness/repo/features/not-a-feature-id/BRIEF.md")
+    shadow("a first write into a malformed feature dir name is BLOCKED",
+           bad_name.returncode == 2 and "not a valid feature id" in bad_name.stderr,
+           f"exit {bad_name.returncode}: {bad_name.stderr.strip()[:200]}")
+
+    good_name = fire(root, ".harness/repo/features/FEAT-4-good-name/BRIEF.md")
+    shadow("a first write into a well-formed feature dir name writes",
+           good_name.returncode == 0,
+           f"exit {good_name.returncode}: {good_name.stderr.strip()[:200]}")
+
+    grandfathered_dir = os.path.join(root, ".harness", "repo", "features", "legacy-no-regex")
+    os.makedirs(grandfathered_dir)
+    grandfathered = fire(root, ".harness/repo/features/legacy-no-regex/BRIEF.md")
+    shadow("an EXISTING malformed-name feature dir is grandfathered — only the first "
+           "write is checked",
+           grandfathered.returncode == 0,
+           f"exit {grandfathered.returncode}: {grandfathered.stderr.strip()[:200]}")
+
+
+def run_shadow_checks():
+    root = fixture(SHADOW_MANIFEST)
+    _run_observations_log_cases(root)
+    _run_plan_conversion_cases(root)
+    _run_feature_dir_name_cases(root)
+    shutil.rmtree(root, ignore_errors=True)
+    fails = 0
+    for name, ok, detail in SHADOW:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(SHADOW) - fails}/{len(SHADOW)} shadow-check cases passed.")
+    return fails
+
+
+def run_feature_id_regex_parity():
+    """check-domain's `_FEATURE_ID_RE` is a COPY of dispatch-guard.py's `FEATURE_RE`
+    (row 94) — copied rather than imported so this hook never depends on that file's own
+    bootstrap. A copy that drifts silently stops meaning what its comment says, so the
+    two literal pattern strings are compared here rather than trusted to stay in sync.
+    """
+    domain_src = open(os.path.join(HERE, "check-domain.py"), encoding="utf-8").read()
+    dispatch_src = open(os.path.join(HERE, "dispatch-guard.py"), encoding="utf-8").read()
+    domain_m = re.search(r'_FEATURE_ID_RE = re\.compile\(r"(.+)"\)', domain_src)
+    dispatch_m = re.search(r'FEATURE_RE = re\.compile\(r"(.+)"\)', dispatch_src)
+    fails = 0
+    if not (domain_m and dispatch_m):
+        print("FAIL  feature-id regex parity\n      | one of the two literals could not "
+              f"be found (domain={bool(domain_m)}, dispatch={bool(dispatch_m)})")
+        return 1
+    if domain_m.group(1) != dispatch_m.group(1):
+        print("FAIL  feature-id regex parity\n      | check-domain._FEATURE_ID_RE "
+              f"{domain_m.group(1)!r} != dispatch-guard.FEATURE_RE {dispatch_m.group(1)!r}")
+        fails += 1
+    else:
+        print("ok    feature-id regex parity: check-domain._FEATURE_ID_RE == "
+              "dispatch-guard.FEATURE_RE")
     return fails
 
 

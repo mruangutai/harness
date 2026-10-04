@@ -404,17 +404,15 @@ def _repository_claim(
         feature=feature,
         repository=repository,
     )
-    state = inflight_registry.attach_runtime_identity_state(
+    if not inflight_registry.attach_runtime_identity(
         root,
         agent,
         feature,
         claim_id=receipt["claim_id"],
         agent_id=agent_id,
         parent_agent_id=parent_agent_id,
-        repository=repository,
-    )
-    if state != "attached":
-        raise AssertionError(f"fixture claim did not attach: {state}")
+    ):
+        raise AssertionError("fixture claim did not attach")
     return receipt
 
 

@@ -154,7 +154,8 @@ def _read_process_start_time(pid):
         with open("/proc/stat", "rb") as handle:
             boot = next(l for l in handle if l.startswith(b"btime "))
         return int(float(boot.split()[1]) + float(tail[19]) / os.sysconf("SC_CLK_TCK"))
-    except Exception:
+    except (OSError, ValueError, IndexError, StopIteration):
+        # No /proc, an unreadable or short stat line, or no btime row (FEAT-65).
         pass
     try:
         # macOS and anything else without /proc. One fork per distinct pid per run.
@@ -170,7 +171,9 @@ def _read_process_start_time(pid):
                              env={**os.environ, "LC_ALL": "C", "LC_TIME": "C"})
         line = out.stdout.strip()
         return int(time.mktime(time.strptime(line, "%a %b %d %H:%M:%S %Y"))) if line else None
-    except Exception:
+    except (OSError, subprocess.SubprocessError, ValueError):
+        # No ps, a ps that failed or timed out, or a start time that does not parse
+        # (FEAT-65). None: liveness falls to the 24-hour backstop.
         return None
 
 
@@ -264,8 +267,12 @@ def _visible(claim, feature=None):
     return feature is None or claim.get("feature", LEGACY_FEATURE) == feature
 
 
-def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
-    """Return claims that still bind ``agent`` to worktrees, without mutating state."""
+def _read_strict(root):
+    """Every claim row in `root`'s registry, or [] when there is no registry.
+
+    Unlike `_parse`, which the locked writers use and which reads a corrupt file as empty,
+    this raises UnreadableRegistry: a reader that answers a question about ownership must
+    not mistake "cannot read" for "nothing is claimed"."""
     path = _registry_path(root)
     try:
         with open(path, "r", encoding="utf-8", errors="strict") as handle:
@@ -279,24 +286,27 @@ def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
         raw = json.loads(text)
     except (json.JSONDecodeError, ValueError) as error:
         raise UnreadableRegistry(path) from error
-    if not isinstance(raw, dict):
+    if not _known_shape(raw):
         raise UnreadableRegistry(path)
-    is_v2 = (
-        raw.get("schema_version") == SCHEMA_VERSION
-        and isinstance(raw.get("claims"), list)
-    )
-    is_v1 = (
-        "schema_version" not in raw
-        and all(isinstance(key, str) and isinstance(entries, list)
-                for key, entries in raw.items())
-    )
-    if not (is_v2 or is_v1):
-        raise UnreadableRegistry(path)
+    return _parse(text, path)["claims"]
 
+
+def _known_shape(raw):
+    """A version-2 document, or a version-1 `{persona: [claims]}` map."""
+    if not isinstance(raw, dict):
+        return False
+    if "schema_version" in raw:
+        return raw["schema_version"] == SCHEMA_VERSION and isinstance(raw.get("claims"), list)
+    return all(isinstance(key, str) and isinstance(entries, list)
+               for key, entries in raw.items())
+
+
+def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
+    """Return claims that still bind ``agent`` to worktrees, without mutating state."""
     live, _expired = _expire(
         [
             claim
-            for claim in _parse(text, path)["claims"]
+            for claim in _read_strict(root)
             if _matches(
                 claim,
                 agent=agent,
@@ -310,6 +320,192 @@ def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):
     return sorted(live, key=lambda claim: claim["started_at"])
 
 
+def _refusal(cause, retryable, message):
+    return {"ok": False, "cause": cause, "retryable": retryable, "message": message}
+
+
+def find_run_claim(owner_root, agent_id, now=None):
+    """Which live claim does the OMP run `agent_id` hold, and in which registry? (BUG-1898)
+
+    Read-only. Enumerates the owner checkout plus every linked worktree and matches by the
+    EXACT runtime agent id only — never persona, dispatch name, cwd or session. It is how a
+    run that lost its feature marker (an OMP restart, a revival) finds its feature again.
+    Exactly one match answers {ok, feature, root, claim}; zero, several, or any unreadable
+    registry is a structured refusal, because a guess here would bind a run to a stranger."""
+    matches, unreadable = _live_claims_for_run(owner_root, agent_id,
+                                               time.time() if now is None else now)
+    if unreadable:
+        return _refusal(
+            "unreadable", False,
+            "cannot place run %s: unreadable claim registries %s; the operator must repair "
+            "them" % (agent_id, ", ".join(sorted(unreadable))))
+    if not matches:
+        return _refusal(
+            "not-found", False,
+            "no live claim is bound to run %s in %s or its linked worktrees"
+            % (agent_id, owner_root))
+    if len(matches) > 1:
+        return _refusal(
+            "ambiguous", False,
+            "run %s is bound in %d registries (%s); refusing to choose"
+            % (agent_id, len(matches), ", ".join(sorted(root for root, _ in matches))))
+    root, claim = matches[0]
+    return {"ok": True, "feature": claim.get("feature", LEGACY_FEATURE), "root": root,
+            "claim": dict(claim)}
+
+
+def _live_claims_for_run(owner_root, agent_id, now):
+    """Scan the owner checkout and each linked worktree for live claims bound to exactly
+    `agent_id`: ([(root, claim)], [unreadable registry paths])."""
+    roots = [owner_root] + [
+        root for root in harness_boundary.linked_worktrees(owner_root) if root != owner_root
+    ]
+    matches = []
+    unreadable = []
+    for root in roots:
+        try:
+            live = live_claims(root, None, now=now, agent_id=agent_id)
+        except UnreadableRegistry as error:
+            unreadable.extend(error.paths)
+            continue
+        matches.extend((root, claim) for claim in live)
+    return matches, unreadable
+
+
+def release_run(owner_root, agent_id, now=None):
+    """Release the one live claim bound to run `agent_id`, in whichever registry holds it
+    (BUG-1898): `find_run_claim`'s answer, then the exact feature + runtime-id release under
+    that registry's lock. Anything but a unique match releases nothing and is refused."""
+    found = find_run_claim(owner_root, agent_id, now)
+    if not found["ok"]:
+        return found
+    removed = release(found["root"], feature=found["feature"], agent_id=agent_id)
+    if removed is not True:
+        return _refusal("not-found", False,
+                        "run %s's claim changed before it could be released" % agent_id)
+    return found
+
+
+def _reuse_exact(exact, agent_id, parent_agent_id):
+    """A run already bound to its id reuses that claim — unless another parent holds it."""
+    if any(c.get("parent_agent_id") not in (None, "", parent_agent_id) for c in exact):
+        return "refused", _refusal(
+            "lineage", False,
+            "run %s is already claimed under a different parent; refusing to rebind"
+            % agent_id)
+    return "reused", exact[0]
+
+
+def claim_run_start(root, agent, feature, agent_id, parent_agent_id, supervisor_pid=None,
+                    cwd="", now=None):
+    """The run-start claim (BUG-1898): make the OMP run `agent_id` hold exactly one claim
+    bound to it, in one locked update, before its first write.
+
+    Exactly one outcome:
+      reused  — a live claim is already bound to this exact id (a woken, settled agent);
+      bound   — the UNIQUE live, unbound receipt dispatch left for this persona under this
+                parent now carries the id;
+      created — no receipt could be chosen (none, or an ambiguous set, which is never
+                picked from), so the run gets a new claim of its own.
+    Refusals are structured for the hook: a live holder of a single-flight persona is
+    retryable once it settles; a lineage mismatch or an unreadable registry is not. The
+    registry is read strictly first, so a corrupt file is refused and left as found rather
+    than overwritten by a writer that would read it as empty."""
+    now = time.time() if now is None else now
+    supervisor_pid = os.getpid() if supervisor_pid is None else supervisor_pid
+    try:
+        _read_strict(root)
+    except UnreadableRegistry as error:
+        return _refusal(
+            "unreadable", False,
+            "cannot claim run %s: unreadable claim registry %s; the operator must repair it"
+            % (agent_id, ", ".join(error.paths)))
+
+    def mutator(data):
+        live, retained, _expired = _expire_where(
+            data.get("claims", []), now,
+            lambda claim: _matches(claim, agent=agent, feature=feature),
+        )
+        data["claims"] = retained
+        mine = [c for c in live if _matches(c, agent=agent, feature=feature)]
+        outcome, subject = _run_start_decision(mine, agent, feature, agent_id, parent_agent_id)
+        if outcome == "refused":
+            return data, subject
+        if outcome == "bound":
+            subject["agent_id"] = agent_id
+        elif outcome == "created":
+            subject = _claim_entry(agent, feature, "run-start", cwd, supervisor_pid, now,
+                                   agent_id=agent_id, parent_agent_id=parent_agent_id)
+            data["claims"].append(subject)
+        return data, {"ok": True, "outcome": outcome, "claim": dict(subject)}
+
+    result = _update_registry(root, mutator)
+    result["root"] = root
+    return result
+
+
+def _run_start_decision(mine, agent, feature, agent_id, parent_agent_id):
+    """Choose, without mutating, what `claim_run_start` does with this persona's live
+    same-feature claims `mine`: ("reused"|"bound", claim), ("created", None) or
+    ("refused", refusal)."""
+    exact, receipts, others = _partition_for_run(mine, agent_id, parent_agent_id)
+    if exact:
+        return _reuse_exact(exact, agent_id, parent_agent_id)
+    single = is_single_flight(agent)
+    if len(receipts) == 1 and (not single or others == receipts):
+        return "bound", receipts[0]
+    if single and others:
+        return "refused", _single_flight_refusal(agent, feature, others)
+    return "created", None
+
+
+def _partition_for_run(mine, agent_id, parent_agent_id):
+    """(claims bound to this exact run, this parent's unbound receipts, every claim not
+    bound to this exact run). The last includes the receipts: a single-flight persona binds
+    its receipt only when that receipt is the one live claim, and is refused otherwise."""
+    exact = [c for c in mine if c.get("agent_id") == agent_id]
+    receipts = [c for c in mine if _is_unbound_receipt(c, parent_agent_id)]
+    others = [c for c in mine if c.get("agent_id") != agent_id]
+    return exact, receipts, others
+
+
+def _is_unbound_receipt(claim, parent_agent_id):
+    """A dispatch receipt this parent left, not yet carrying a run's id."""
+    return (not claim.get("agent_id") and claim.get("runtime") == "omp"
+            and claim.get("parent_agent_id") == parent_agent_id)
+
+
+def _single_flight_refusal(agent, feature, holders):
+    named = ", ".join(sorted(
+        c.get("agent_id") or "an unbound dispatch (claim %s)" % c.get("claim_id")
+        for c in holders))
+    return _refusal("single-flight", True,
+                    "%s for %s is already held by %s; retry after it settles"
+                    % (agent, feature, named))
+
+
+def _claim_entry(agent, feature, dispatcher, cwd, supervisor_pid, now, **identity):
+    """The one claim row every writer records; `identity` carries a run's runtime ids."""
+    entry = {
+        "claim_id": uuid.uuid4().hex,
+        "started_at": now,
+        "feature": feature,
+        "agent": agent,
+        "dispatcher": dispatcher,
+        "cwd": cwd,
+        "runtime": "omp",
+        "supervisor_pid": supervisor_pid,
+        **identity,
+    }
+    # Pinned at claim time so a later recycled pid can be told apart from this one.
+    # Absent when the OS declines to report it; `_omp_claim_live` then falls back
+    # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
+    started_at = _process_start_time(supervisor_pid)
+    if started_at is not None:
+        entry["supervisor_started_at"] = started_at
+    return entry
+
+
 def is_single_flight(agent):
     return agent in SINGLE_FLIGHT_AGENTS
 
@@ -317,7 +513,7 @@ def feature_root(owner_root, feature):
     """Resolve the checkout assigned to `feature`, falling back to the supplied owner root."""
     try:
         resolved = harness_boundary.worktree_for_feature(owner_root, feature)
-    except Exception:
+    except (harness_boundary.AmbiguousWorktree, OSError):
         return owner_root
     return resolved if resolved is not None else owner_root
 
@@ -376,7 +572,6 @@ def claim_with_receipt(
     feature=LEGACY_FEATURE,
     supervisor_pid=None,
     repository=None,
-    dispatch_correlation=None,
 ):
     """Record a claim owned by `supervisor_pid` — the OMP process that holds the dispatching
     `task` call (DEC-204). Absent, the claiming process is the supervisor: that is what a
@@ -395,26 +590,8 @@ def claim_with_receipt(
         ):
             data["claims"] = retained
             return data, None
-        entry = {
-            "claim_id": uuid.uuid4().hex,
-            "started_at": now,
-            "feature": feature,
-            "agent": agent,
-            "dispatcher": dispatcher,
-            "cwd": cwd,
-            "runtime": "omp",
-            "supervisor_pid": supervisor_pid,
-        }
-        # Pinned at claim time so a later recycled pid can be told apart from this one.
-        # Absent when the OS declines to report it; `_omp_claim_live` then falls back
-        # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
-        started_at = _process_start_time(supervisor_pid)
-        if started_at is not None:
-            entry["supervisor_started_at"] = started_at
-        if repository is not None:
-            entry["repository"] = repository
-        if dispatch_correlation is not None:
-            entry["dispatch_correlation"] = dict(dispatch_correlation)
+        identity = {"repository": repository} if repository is not None else {}
+        entry = _claim_entry(agent, feature, dispatcher, cwd, supervisor_pid, now, **identity)
         live.append(entry)
         retained.append(entry)
         data["claims"] = retained
@@ -424,7 +601,7 @@ def claim_with_receipt(
 
 
 def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE,
-          supervisor_pid=None, repository=None, dispatch_correlation=None):
+          supervisor_pid=None, repository=None):
     return claim_with_receipt(
         root,
         agent,
@@ -434,247 +611,65 @@ def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE,
         feature=feature,
         supervisor_pid=supervisor_pid,
         repository=repository,
-        dispatch_correlation=dispatch_correlation,
     ) is not None
 
 
-def _identity_registry_roots(root):
-    """Registries that can already own an OMP runtime id visible from ``root``."""
-    owner = harness_boundary.worktree_owner(root)
-    owner_root = owner[1] if owner and owner[1] else root
-    roots = [owner_root] + harness_boundary.linked_worktrees(owner_root)
-    return sorted({os.path.realpath(item) for item in roots})
+def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None,
+                            parent_agent_id=None):
+    """Attach stable OMP runtime lineage to one live claim.
 
-
-def _live_registry_claims(root, now):
-    """Strict, read-only live claims for collision checks."""
-    path = _registry_path(root)
-    try:
-        with open(path, "r", encoding="utf-8", errors="strict") as handle:
-            text = handle.read()
-    except FileNotFoundError:
-        return []
-    except (OSError, UnicodeError) as error:
-        raise UnreadableRegistry(path) from error
-    try:
-        raw = json.loads(text)
-    except (json.JSONDecodeError, ValueError) as error:
-        raise UnreadableRegistry(path) from error
-    if (
-        not isinstance(raw, dict)
-        or raw.get("schema_version") != SCHEMA_VERSION
-        or not isinstance(raw.get("claims"), list)
-    ):
-        raise UnreadableRegistry(path)
-    live, _expired = _expire(raw["claims"], now)
-    return live
-
-
-def _claims_with_agent_id(claims, agent_id):
-    if not agent_id:
-        return []
-    return [claim for claim in claims if claim.get("agent_id") == agent_id]
-
-
-def _identity_claims_at_root(root, claim_id, agent_id, parent_agent_id, now):
-    claims = [
-        claim for claim in _live_registry_claims(root, now)
-        if claim.get("claim_id") != claim_id
-    ]
-    return (
-        _claims_with_agent_id(claims, agent_id),
-        _claims_with_agent_id(claims, parent_agent_id),
-    )
-
-
-def _identity_claim_groups(root, claim_id, agent_id, parent_agent_id, now):
-    """Collect other live claims that use either requested runtime identity."""
-    child_claims = []
-    parent_claims = []
-    for registry_root in _identity_registry_roots(root):
-        children, parents = _identity_claims_at_root(
-            registry_root, claim_id, agent_id, parent_agent_id, now)
-        child_claims.extend(children)
-        parent_claims.extend(parents)
-    return child_claims, parent_claims
-
-
-def _child_identity_collides(child_claims, expected_child):
-    if not child_claims:
-        return False
-    if expected_child is None or len(child_claims) != 1:
-        return True
-    agent, feature, parent, repository = expected_child
-    child = child_claims[0]
-    return (
-        child.get("agent") != agent
-        or child.get("feature", LEGACY_FEATURE) != feature
-        or child.get("parent_agent_id") != parent
-        or child.get("repository") != repository
-    )
-
-
-def _foreign_identity_collision(
-    root,
-    claim_id,
-    feature,
-    agent_id,
-    parent_agent_id,
-    now,
-    expected_child=None,
-):
-    """Whether another active dispatch already owns the requested host lineage."""
-    child_claims, parent_claims = _identity_claim_groups(
-        root, claim_id, agent_id, parent_agent_id, now)
-    return (
-        _child_identity_collides(child_claims, expected_child)
-        or len(parent_claims) > 1
-        or any(claim.get("feature", LEGACY_FEATURE) != feature for claim in parent_claims)
-    )
-
-
-def _attachment_conflicts(claim, agent_id, job_id, parent_agent_id):
-    return (
-        (agent_id and claim.get("agent_id") not in (None, "", agent_id))
-        or (job_id and claim.get("job_id") not in (None, "", job_id))
-        or (
-            parent_agent_id
-            and claim.get("parent_agent_id") not in (None, "", parent_agent_id)
-        )
-    )
-
-
-def _matching_attachment_claims(live, agent, feature, claim_id, repository):
-    return [
-        claim for claim in live
-        if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
-        and claim.get("repository") == repository
-    ]
-
-
-def _single_attachment_target(candidates):
-    if len(candidates) > 1:
-        return None, "ambiguous"
-    return (candidates[0], "attached") if candidates else (None, "missing")
-
-
-def _attachment_target(
-    live, agent, feature, claim_id, repository, agent_id, job_id, parent_agent_id,
-):
-    matches = _matching_attachment_claims(
-        live, agent, feature, claim_id, repository)
-    if any(
-        _attachment_conflicts(claim, agent_id, job_id, parent_agent_id)
-        for claim in matches
-    ):
-        return None, "collision"
-    candidates = [
-        claim for claim in matches
-        if not _attachment_conflicts(claim, agent_id, job_id, parent_agent_id)
-    ]
-    return _single_attachment_target(candidates)
-
-
-def _apply_runtime_identity(target, agent_id, job_id, parent_agent_id):
-    for key, value in (
-        ("agent_id", agent_id),
-        ("job_id", job_id),
-        ("parent_agent_id", parent_agent_id),
-    ):
-        if value:
-            target[key] = value
-
-
-def attach_runtime_identity_state(
-    root,
-    agent,
-    feature,
-    agent_id=None,
-    job_id=None,
-    claim_id=None,
-    parent_agent_id=None,
-    repository=None,
-):
-    """Attach stable OMP runtime lineage, returning a named authorization state."""
+    Repeating the same attachment is idempotent. A conflicting child, job, or
+    parent identity is refused rather than moving the claim to another runtime.
+    """
     path = _registry_path(root)
     if not os.path.exists(path) or not (agent_id or job_id or parent_agent_id):
-        return "missing"
-    now = time.time()
-    try:
-        if _foreign_identity_collision(
-                root, claim_id, feature, agent_id, parent_agent_id, now):
-            return "collision"
-    except UnreadableRegistry:
-        return "unreadable"
+        return False
 
+    # GRADE-2 REASON: selection and identity mutation must remain inside one locked
+    # registry update; splitting them would reintroduce a claim-binding TOCTOU race.
     def mutator(data):
         live, retained, _expired = _expire_where(
             data.get("claims", []),
-            now,
+            time.time(),
             lambda claim: _matches(
                 claim, agent=agent, feature=feature, claim_id=claim_id
             ),
         )
-        target, state = _attachment_target(
-            live,
-            agent,
-            feature,
-            claim_id,
-            repository,
-            agent_id,
-            job_id,
-            parent_agent_id,
-        )
-        if target is not None:
-            _apply_runtime_identity(target, agent_id, job_id, parent_agent_id)
+        matches = [
+            claim for claim in live
+            if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
+            and (not agent_id or claim.get("agent_id") in (None, "", agent_id))
+            and (not job_id or claim.get("job_id") in (None, "", job_id))
+            and (not parent_agent_id
+                 or claim.get("parent_agent_id") in (None, "", parent_agent_id))
+        ]
+        if len(matches) != 1:
+            data["claims"] = retained
+            return data, False
+        if agent_id:
+            matches[0]["agent_id"] = agent_id
+        if job_id:
+            matches[0]["job_id"] = job_id
+        if parent_agent_id:
+            matches[0]["parent_agent_id"] = parent_agent_id
         data["claims"] = retained
-        return data, state
+        return data, True
 
     return _update_registry(root, mutator)
 
 
-def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None,
-                            parent_agent_id=None, repository=None):
-    return attach_runtime_identity_state(
-        root,
-        agent,
-        feature,
-        agent_id=agent_id,
-        job_id=job_id,
-        claim_id=claim_id,
-        parent_agent_id=parent_agent_id,
-        repository=repository,
-    ) == "attached"
-
-
-def authorize_runtime_identity_state(
-    root, agent, feature, agent_id, parent_agent_id, repository=None,
-):
+def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
     """Authorize and, when unique, bind an OMP child to its parent claim."""
     path = _registry_path(root)
     if not os.path.exists(path) or not all((agent, feature, agent_id, parent_agent_id)):
-        return "missing"
-    now = time.time()
-    try:
-        if _foreign_identity_collision(
-            root,
-            None,
-            feature,
-            agent_id,
-            parent_agent_id,
-            now,
-            expected_child=(agent, feature, parent_agent_id, repository),
-        ):
-            return "collision"
-    except UnreadableRegistry:
-        return "unreadable"
+        return False
 
-    # GRADE-2 REASON: exact-match selection, unique unbound fallback, collision
-    # detection, and binding form one locked authorization transaction.
+    # GRADE-2 REASON: exact-match selection, unique unbound fallback, and binding
+    # form one locked authorization transaction and cannot safely be split.
     def mutator(data):
         live, retained, _expired = _expire_where(
             data.get("claims", []),
-            now,
+            time.time(),
             lambda claim: _matches(claim, agent=agent, feature=feature),
         )
         candidates = [
@@ -686,56 +681,25 @@ def authorize_runtime_identity_state(
                 parent_agent_id=parent_agent_id,
             )
             and claim.get("runtime") == "omp"
-            and claim.get("repository") == repository
             and claim.get("agent_id") in (None, "", agent_id)
         ]
         exact = [claim for claim in candidates if claim.get("agent_id") == agent_id]
         if len(exact) == 1:
             selected = exact[0]
-        elif len(exact) > 1:
-            data["claims"] = retained
-            return data, "collision"
-        else:
+        elif not exact:
             unbound = [claim for claim in candidates if not claim.get("agent_id")]
             if len(unbound) != 1:
                 data["claims"] = retained
-                return data, "ambiguous" if len(unbound) > 1 else "missing"
+                return data, False
             selected = unbound[0]
+        else:
+            data["claims"] = retained
+            return data, False
         selected["agent_id"] = agent_id
         data["claims"] = retained
-        return data, "authorized"
+        return data, True
 
     return _update_registry(root, mutator)
-
-
-def authorize_runtime_identity(
-    root, agent, feature, agent_id, parent_agent_id, repository=None,
-):
-    return authorize_runtime_identity_state(
-        root,
-        agent,
-        feature,
-        agent_id,
-        parent_agent_id,
-        repository=repository,
-    ) == "authorized"
-
-
-def _read_repository_claims(root):
-    path = _registry_path(root)
-    try:
-        with open(path, "r", encoding="utf-8", errors="strict") as handle:
-            raw = json.load(handle)
-    except FileNotFoundError:
-        return "missing", None
-    except (OSError, UnicodeError, ValueError):
-        return "unreadable", None
-    valid = (
-        isinstance(raw, dict)
-        and raw.get("schema_version") == SCHEMA_VERSION
-        and isinstance(raw.get("claims"), list)
-    )
-    return (None, raw["claims"]) if valid else ("unreadable", None)
 
 
 def _repository_claim_groups(
@@ -798,12 +762,17 @@ def repository_binding(
     parent_agent_id,
     now=None,
 ):
-    """Return the fail-closed state of one exact factory repository binding."""
+    """Return the fail-closed state of one exact factory repository binding (FEAT-495).
+
+    The run-start claim (BUG-1898) carries the runtime lineage; the dispatch receipt it
+    bound carries the repository. A product write is allowed only when exactly one live
+    claim matches the child, its immediate parent, feature, role, and repository."""
     if not all((agent, feature, repository, agent_id, parent_agent_id)):
         return "missing"
-    read_state, claims = _read_repository_claims(root)
-    if read_state is not None:
-        return read_state
+    try:
+        claims = _read_strict(root)
+    except UnreadableRegistry:
+        return "unreadable"
     identity_claims, exact = _repository_claim_groups(
         claims, agent, feature, repository, agent_id, parent_agent_id)
     current = time.time() if now is None else now
@@ -828,7 +797,6 @@ def repository_binding_refusal(agent, repository, state):
         "its immediate parent, feature, role, and repository. Retry from the dispatch "
         "that owns this product.",
     )
-
 
 
 
@@ -864,6 +832,8 @@ def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id
             return data, 0
         target = matches[0]
         if target.get("repository") is not None:
+            # A repository-bound claim is tombstoned rather than dropped, so a write that
+            # races its release is refused as "released", not as "missing".
             target["released_at"] = time.time()
             data["claims"] = retained
             return data, True
@@ -915,7 +885,7 @@ def reconcile(root, feature=None, now=None):
     return _update_registry(root, mutator)
 
 
-def release_cmd(root, agent, feature):
+def release_cmd(root, agent, feature, agent_id=None, claim_id=None):
     # A featureless claim is real — LEGACY_FEATURE exists for exactly those, and `_matches`
     # reads them as `claim.get("feature", LEGACY_FEATURE)`.
     #
@@ -924,13 +894,22 @@ def release_cmd(root, agent, feature):
     # and the printed remedy was `--feature ''`. That selector matches no claim at all, so
     # an operator was handed a well-formed command that ran clean and removed nothing.
     # Silent non-remedy, not a crash.
+    #
+    # BUG-1898: a claim bound to a runtime id, or one known claim, is named EXACTLY — a
+    # persona selector is the single-flight guard's remedy, never a recovery command for one
+    # run among several of the same persona.
     feature = feature or LEGACY_FEATURE
+    if agent_id:
+        selector = ["--agent-id", agent_id]
+    elif claim_id:
+        selector = ["--claim-id", claim_id]
+    else:
+        selector = ["--agent", agent]
     parts = [
         "python3",
         os.path.join(root, ".agents/skills/harness/bin/inflight_registry.py"),
         "release",
-        "--agent",
-        agent,
+        *selector,
     ]
     parts.extend(["--feature", feature])
     parts.extend(["--root", root])
@@ -1042,7 +1021,7 @@ def _attach_command(root, rest):
     if not agent or not feature:
         print("inflight_registry: attach requires --agent and --feature", file=sys.stderr)
         return 1
-    state = attach_runtime_identity_state(
+    ok = attach_runtime_identity(
         root,
         agent,
         feature,
@@ -1050,16 +1029,8 @@ def _attach_command(root, rest):
         job_id=_option(rest, "--job-id"),
         claim_id=_option(rest, "--claim-id"),
         parent_agent_id=_option(rest, "--parent-agent-id"),
-        repository=_option(rest, "--repository"),
     )
-    if state == "attached":
-        return 0
-    print(
-        "inflight_registry: %s - runtime lineage attach %s"
-        % ("BLOCKED" if state in ("collision", "ambiguous", "unreadable") else "refused", state),
-        file=sys.stderr,
-    )
-    return 2 if state in ("collision", "ambiguous", "unreadable") else 1
+    return 0 if ok else 1
 
 
 def _authorize_command(root, rest):
@@ -1075,22 +1046,56 @@ def _authorize_command(root, rest):
         )
         return 1
     target_root = feature_root(root, feature)
-    state = authorize_runtime_identity_state(
-        target_root,
-        agent,
-        feature,
-        agent_id,
-        parent_agent_id,
-        repository=_option(rest, "--repository"),
-    )
-    if state == "authorized":
+    if authorize_runtime_identity(target_root, agent, feature, agent_id, parent_agent_id):
         return 0
     print(
-        "inflight_registry: BLOCKED - runtime child lineage %s"
-        % ("identity collision" if state == "collision" else state),
+        "inflight_registry: BLOCKED - runtime child lineage has no matching claim",
         file=sys.stderr,
     )
     return 2
+
+
+def _run_start_command(root, rest):
+    agent = _option(rest, "--agent")
+    feature = _option(rest, "--feature")
+    agent_id = _option(rest, "--agent-id")
+    parent_agent_id = _option(rest, "--parent-agent-id")
+    supervisor_pid = _option(rest, "--supervisor-pid")
+    if not all((agent, feature, agent_id, parent_agent_id)) or (
+        supervisor_pid is not None and not supervisor_pid.isdigit()
+    ):
+        print(
+            "inflight_registry: run-start requires --agent, --feature, --agent-id, "
+            "--parent-agent-id, and an integer --supervisor-pid",
+            file=sys.stderr,
+        )
+        return 1
+    result = claim_run_start(
+        feature_root(root, feature), agent, feature, agent_id, parent_agent_id,
+        supervisor_pid=int(supervisor_pid) if supervisor_pid else None, cwd=root,
+    )
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] else 2
+
+
+def _find_run_command(root, rest):
+    agent_id = _option(rest, "--agent-id")
+    if not agent_id:
+        print("inflight_registry: find-run requires --agent-id", file=sys.stderr)
+        return 1
+    result = find_run_claim(root, agent_id)
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] else 2
+
+
+def _release_run_command(root, rest):
+    agent_id = _option(rest, "--agent-id")
+    if not agent_id:
+        print("inflight_registry: release-run requires --agent-id", file=sys.stderr)
+        return 1
+    result = release_run(root, agent_id)
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["ok"] else 2
 
 
 def _release_command(root, rest):
@@ -1127,21 +1132,20 @@ COMMANDS = {
     "list": _list_command,
     "attach": _attach_command,
     "authorize": _authorize_command,
+    "run-start": _run_start_command,
+    "find-run": _find_run_command,
+    "release-run": _release_run_command,
     "release": _release_command,
     "release-all": _release_all_command,
     "reconcile": _reconcile_command,
 }
 
 
-
-
 def main(argv=None):
     argv = list(argv) if argv is not None else sys.argv[1:]
     if not argv:
-        print(
-            "usage: inflight_registry.py {list|attach|authorize|release|release-all|reconcile|feature-root} [options]",
-            file=sys.stderr,
-        )
+        print("usage: inflight_registry.py {%s} [options]" % "|".join(COMMANDS),
+              file=sys.stderr)
         return 1
     command = argv[0]
     root, rest = _resolve_root(argv[1:])

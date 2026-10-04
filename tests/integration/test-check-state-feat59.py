@@ -903,6 +903,115 @@ def case_inv41():
                     not _lines(out, "INV-41"), out[:400]))
     return results
 
+# ----------------------------------------------------------------------------- INV-49 ---
+
+# A dedicated harness.json declaring test_kinds: `unit` is active (a real cmd); `integration`
+# is excluded (cmd: null, status: excluded) — the two shapes DEC-163 names as "no runner".
+_INV49_HARNESS_JSON = (
+    '{\n  "github": {"sync": false, "repo": null},\n  "seam_era_start": null,\n'
+    '  "budgets": {"max_total_cycles": 10, "max_total_runs": 20},\n'
+    '  "test_kinds": {\n'
+    '    "unit": {"cmd": "run-unit-tests.py --kind unit", "status": "active"},\n'
+    '    "integration": {"cmd": null, "status": "excluded"}\n'
+    '  }\n}\n')
+
+_INV49_BASE = """# BRIEF — FEAT-TEST
+
+## Problem
+
+A fixture.
+
+## Done when — by perspective
+
+**operator** — I trust the record.
+
+## Success criteria
+
+- SC-01 (operator): the excluded kind result is recorded.
+  verify: automated  evidence: integration
+
+## Approval
+
+status: approved
+date: 2026-09-11
+"""
+
+
+def _inv49_check(brief, station="building"):
+    return _check(_in_era(), brief, harness_json=_INV49_HARNESS_JSON, station=station)
+
+
+def _inv49_with_gap(brief, sentence):
+    return brief.replace(
+        "\n## Approval\n", f"\n## Verification gaps\n\n- {sentence}\n\n## Approval\n")
+
+
+def case_inv49_no_gap_section():
+    _, out = _inv49_check(_INV49_BASE)
+    v = _violations(out, "INV-49")
+    return [("(49.a) an excluded-kind SC with no gaps section is a VIOLATION naming it",
+             len(v) == 1 and "SC-01" in v[0] and "integration" in v[0], out[:400])]
+
+
+def case_inv49_gap_recorded():
+    with_gap = _inv49_with_gap(
+        _INV49_BASE, "SC-01 rests on `integration`, which is excluded: carried by inspection instead.")
+    _, out = _inv49_check(with_gap)
+    return [("(49.b) the same SC named under '## Verification gaps' is silent",
+             not _lines(out, "INV-49"), out[:400])]
+
+
+def case_inv49_active_kind():
+    runnable = _INV49_BASE.replace("evidence: integration", "evidence: unit")
+    _, out = _inv49_check(runnable)
+    return [("(49.c) an active kind needs no gaps line even when absent",
+             not _lines(out, "INV-49"), out[:400])]
+
+
+def case_inv49_manual_no_gap():
+    manual = _INV49_BASE.replace("verify: automated  evidence: integration", "verify: manual")
+    _, out = _inv49_check(manual)
+    v = _violations(out, "INV-49")
+    return [("(49.d) verify: manual needs a gaps line naming the SC too",
+             len(v) == 1 and "SC-01" in v[0] and "manual" in v[0], out[:400])]
+
+
+def case_inv49_manual_gap_recorded():
+    manual = _INV49_BASE.replace("verify: automated  evidence: integration", "verify: manual")
+    manual_with_gap = _inv49_with_gap(
+        manual, "SC-01 is verify: manual: carried by the operator's own read.")
+    _, out = _inv49_check(manual_with_gap)
+    return [("(49.e) a manual SC named under '## Verification gaps' is silent",
+             not _lines(out, "INV-49"), out[:400])]
+
+
+def case_inv49_inspection_exempt():
+    inspection = _INV49_BASE.replace("verify: automated  evidence: integration", "verify: inspection")
+    _, out = _inv49_check(inspection)
+    return [("(49.f) verify: inspection never needs a gaps line",
+             not _lines(out, "INV-49"), out[:400])]
+
+
+def case_inv49_no_plan_exempt():
+    _, out = _inv49_check(_INV49_BASE, station=None)
+    return [("(49.h) a record with no plan.yaml (DEC-174 direct build) is outside the rule",
+             not _lines(out, "INV-49"), out[:400])]
+
+
+def case_inv49_old_shape_exempt():
+    _, out = _check(_legacy(), BRIEF_OLD, harness_json=_INV49_HARNESS_JSON)
+    return [("(49.g) an old-shape BRIEF is not graded", not _lines(out, "INV-49"), out[:400])]
+
+
+def case_inv49():
+    """DEC-163: an SC resting on a kind harness.json declares no runner for, or on
+    `verify: manual`, needs a line naming it under `## Verification gaps`."""
+    return (case_inv49_no_gap_section() + case_inv49_gap_recorded() + case_inv49_active_kind()
+            + case_inv49_manual_no_gap() + case_inv49_manual_gap_recorded()
+            + case_inv49_inspection_exempt() + case_inv49_old_shape_exempt()
+            + case_inv49_no_plan_exempt())
+
+
 
 def _report(results):
     ok = True
@@ -1106,7 +1215,7 @@ def main():
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
                         + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
                         + case_feat61_validate_digest()
-                        + case_inv41() + case_inv43_chronology() + case_inv43_unreadable()
+                        + case_inv41() + case_inv49() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv43_era_config() + case_inv44()
                         + case_feat63_inv23_import_boundary() + case_inv47_member_verdicts()) else 1

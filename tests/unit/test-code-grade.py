@@ -238,16 +238,12 @@ SELF_GRADING_ALLOWLIST = {
     # the grade could not have moved and no REASON REQUIRED line was ever demanded for it.
     ("check-plan-routes.py", "parse_files"): 2,
     ("check-plan-routes.py", "process_task"): 2,
-    ("check-plan-routes.py", "process_plan_yaml"): 1,
     ("check-plan-routes.py", "discover_plans"): 1,
-    ("check-plan-routes.py", "check_invariant_number_collisions"): 2,
     ("test-check-plan-routes.py", "case_18"): 2,
     ("test-check-plan-routes.py", "case_19"): 1,
     ("test-check-plan-routes.py", "case_22"): 2,
     ("test-check-plan-routes.py", "case_23"): 1,
     ("test-check-plan-routes.py", "case_24"): 1,
-    ("test-check-plan-routes.py", "case_25"): 2,
-    ("test-check-plan-routes.py", "case_26"): 1,
     ("test-validate-digest.py", "run_cli_cases"): 1,
     ("test-validate-digest.py", "run_t09"): 1,
     ("test-validate-digest.py", "run_hook_cases"): 2,
@@ -255,8 +251,6 @@ SELF_GRADING_ALLOWLIST = {
     ("validate-digest.py", "split_items"): 2,
     ("validate-digest.py", "top_level_colon"): 3,
     ("validate-digest.py", "bracket_depth"): 3,
-    ("validate-digest.py", "parse_digest"): 1,
-    ("validate-digest.py", "validate"): 1,
     ("validate-digest.py", "hook_mode"): 1,
 }
 

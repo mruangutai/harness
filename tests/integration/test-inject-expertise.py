@@ -412,8 +412,25 @@ def case13():
 
 
 
+def case_feat65():
+    """FEAT-65: no guard here — typed boundaries only. A defect in the shared resolver is loud
+    (traceback, nonzero), never an empty injection."""
+    mbin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(os.path.dirname(SCRIPT), mbin)
+    with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as f:
+        f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
+    root, home = tempfile.mkdtemp(), fresh_home()
+    r = run_hook(root, home, json.dumps({"agent_type": "harness-qa"}).encode(),
+                 script=os.path.join(mbin, "inject-expertise.py"))
+    stderr = r.stderr.decode("utf-8", "replace")
+    report("feat65: an unexpected resolver defect is loud and nonzero, not absorbed",
+           r.returncode not in (0, 2) and "FEAT-65 injected" in stderr,
+           f"rc={r.returncode} stderr={stderr[-200:]!r}")
+
+
 def main():
     case1()
+    case_feat65()
     case2()
     case3()
     case4()

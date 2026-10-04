@@ -1,0 +1,1 @@
+Mode A — PASS, scoped out: BRIEF.md and plan.yaml specify an internal CLI/package refactor that preserves the existing command interface and output bytes, plus a non-visual block-scalar crash fix; no new or changed user-facing visual/interactive surface requires DESIGN.md, so the high-fidelity prototype/user-approval gate is not required.

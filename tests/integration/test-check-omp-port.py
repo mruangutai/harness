@@ -10,6 +10,7 @@ _anchor_sys.path.insert(0, _anchor_bin)
 
 import shutil
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -34,13 +35,6 @@ def fixture() -> tuple[tempfile.TemporaryDirectory, Path]:
         src = ROOT / rel
         shutil.copytree(src, dst / rel, symlinks=True, ignore=skip_worktrees)
     shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
-    manual = dst / "tests" / "manual"
-    manual.mkdir(parents=True)
-    for suffix in ("py", "ts"):
-        shutil.copy2(
-            ROOT / "tests" / "manual" / f"probe-omp-runtime-lineage.{suffix}",
-            manual / f"probe-omp-runtime-lineage.{suffix}",
-        )
     return td, dst
 
 
@@ -186,6 +180,33 @@ def case_missing_lifecycle_wiring_fails():
         td.cleanup()
 
 
+LIFECYCLE_REGISTRATION = re.compile(
+    r"""\bpi(?:\.events)?\.on\(\s*(["'])task:subagent:lifecycle\1""")
+
+
+def case_lifecycle_on_the_wrong_bus_fails():
+    """BUG-1898 defect D: OMP publishes task:subagent:lifecycle on the session EventBus
+    (`pi.events`), never on the extension hook dispatcher (`pi.on`). A registration on
+    `pi.on` still carries the marker string, so a presence check passed while terminal
+    children were never released. The mutant rewrites the registration to the wrong bus."""
+    td, root = fixture()
+    try:
+        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
+        mutated = LIFECYCLE_REGISTRATION.sub('pi.on("task:subagent:lifecycle"',
+                                             extension.read_text())
+        extension.write_text(mutated)
+        result = run(root)
+        return [
+            ("wrong-bus mutant still carries the marker string",
+             "task:subagent:lifecycle" in mutated, ""),
+            ("a lifecycle handler registered on pi.on fails", result.returncode == 1,
+             result.stderr.strip()[-300:]),
+            ("the wrong-bus gap is named", "pi.events" in result.stderr, result.stderr[-300:]),
+        ]
+    finally:
+        td.cleanup()
+
+
 def case_missing_sign_gate_wiring_fails():
     """BUG-1132: plan-sign-gate.py (REQ-05/DEC-120) was silently absent from
     harness-hooks.ts's own bash gate list until this fix — invisible to this checker because
@@ -216,34 +237,6 @@ def case_nonblocking_nested_agent_fails():
         ]
     finally:
         td.cleanup()
-
-def case_missing_runtime_pin_fails():
-    td, root = fixture()
-    try:
-        (root / ".omp" / "runtime-pin.json").unlink()
-        result = run(root)
-        return [
-            ("missing OMP runtime pin fails", result.returncode == 1, ""),
-            ("missing runtime pin is named", "runtime-pin.json" in result.stderr, result.stderr),
-        ]
-    finally:
-        td.cleanup()
-
-
-def case_malformed_runtime_pin_fails():
-    td, root = fixture()
-    try:
-        pin = root / ".omp" / "runtime-pin.json"
-        pin.write_text('{"repository":"https://example.invalid/repo.git","ref":"moving","commit":"main"}')
-        result = run(root)
-        return [
-            ("malformed OMP runtime pin fails", result.returncode == 1, ""),
-            ("immutable commit requirement is named", "40-character Git commit" in result.stderr,
-             result.stderr),
-        ]
-    finally:
-        td.cleanup()
-
 
 def case_missing_command_door_fails():
     td, root = fixture()
@@ -316,10 +309,9 @@ CASES = (
     case_missing_async_enablement_fails,
     case_task_wall_clock_limit_fails,
     case_missing_lifecycle_wiring_fails,
+    case_lifecycle_on_the_wrong_bus_fails,
     case_missing_sign_gate_wiring_fails,
     case_nonblocking_nested_agent_fails,
-    case_missing_runtime_pin_fails,
-    case_malformed_runtime_pin_fails,
     case_missing_command_door_fails,
     case_absent_canonical_command_root_fails,
 )

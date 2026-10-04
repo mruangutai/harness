@@ -25,12 +25,18 @@ import tempfile
 
 import yaml
 import artifact_accessors
+from check_state_support import copy_executable_package
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
+# The verbs live in the plan_merge package beside the entry (FEAT-70). A helper under test is
+# loaded from the module that OWNS it, resolved from the entry actually selected — so an
+# overridden PLAN_MERGE_BIN copy brings its own package, and a proof that mutates a copied
+# tree edits the owner module there.
+PACKAGE_DIR = os.path.join(os.path.dirname(os.path.realpath(CLI)), "plan_merge")
 TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
 
 # This suite shells out to plan-merge.py, whose cmd_sign_approval reads HARNESS_AGENT_TYPE
@@ -40,6 +46,10 @@ TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
 # Popping once here covers run_apply, run_verb, and any raw subprocess.run or Popen a future
 # case writes, with no per-call-site rule.
 os.environ.pop("HARNESS_AGENT_TYPE", None)
+
+# The environment for a case that holds a lock and observes the verb's LOCKED refusal. The
+# refusal is real; only its retry budget shrinks from harness_merge's 10s default.
+SHORT_LOCK_ENV = dict(os.environ, HARNESS_LOCK_TIMEOUT_SECONDS="0.5")
 
 RESULTS = []
 
@@ -1297,14 +1307,14 @@ def case_f02_verify_signature_comparison_loop_is_not_dead_code():
     and the one remaining path — a duplicate key surviving the splice — is now caught by
     `harness_yaml.load_str` before `_verify_signature`'s comparison ever runs (see the case
     above). So the comparison loop's liveness can no longer be proven by any real document;
-    it is exercised directly, in-process, via `_load_pm()` — the suite's own documented
-    escape hatch for helper-level unit tests no end-to-end path can reach.
+    it is exercised directly, in-process, via `_load_owner("approval")` — the suite's own
+    documented escape hatch for helper-level unit tests no end-to-end path can reach.
 
     It remains real defense-in-depth: a future writer that bypasses `_field_lines` (a new
     field, a refactor) would still be caught here rather than shipping a signature that
     reloads as something else.
     """
-    pm = _load_pm()
+    pm = _load_owner("approval")
     spliced = ("schema: plan/1\nfeature: FEAT-99-fixture\n"
                "approval:\n  status: approved\n  approved_by: someone-else\n"
                "tasks:\n  - id: T-01\n    title: t\n").encode("utf-8")
@@ -1362,7 +1372,7 @@ def case_high1_apply_cannot_mint_the_station_only_marker():
                     "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
                     "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
                     "    execution_mode: main-session-direct\n    status: done\n"
-                    "    files: [a.py]\n    verify: run it\n    intent: do it\n")
+                    "    files: [a.py]\n    verify: true\n    intent: do it\n")
         before = read(plan)
         prop = os.path.join(root, "prop.yaml")
         write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\nstation_only: true\ntasks: []\n")
@@ -1755,11 +1765,7 @@ def case_amend_v3_identity_check_is_live():
     pin defence in depth is to call it. An end-to-end case would have to ship a locator bug to
     exercise it.
     """
-    sys.path.insert(0, HERE)
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_owner("amend")
 
     doc = ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
            "  - id: T-01\n    title: actual\n    status: ready\n").encode("utf-8")
@@ -1837,7 +1843,7 @@ def _schema_valid_plan():
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [a.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: done\n"
     )
@@ -1886,7 +1892,7 @@ def case_amend_n1_adjacent_comment_and_blank_survive():
                     "  - id: T-01\n    title: first\n"
                     "    # NOTE: a load-bearing comment BETWEEN two fields\n"
                     "\n"
-                    "    verify: run it\n    status: ready\n")
+                    "    verify: true\n    status: ready\n")
         sha, _ = _sha_of(plan, "tasks", "T-01", "title")
         val = os.path.join(root, "v.txt")
         write(val, "renamed\n")
@@ -1897,7 +1903,7 @@ def case_amend_n1_adjacent_comment_and_blank_survive():
               f"rc={r.returncode} {r.stderr[:200]!r}")
         check("N1: the comment BETWEEN fields survives", "load-bearing comment" in after, after)
         check("N1: the blank line between fields survives",
-              "\n\n    verify: run it" in after, repr(after))
+              "\n\n    verify: true" in after, repr(after))
         check("N1: and the new value landed", "title: renamed" in after, after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -2006,14 +2012,27 @@ def case_amend_f1_non_text_field_is_refused():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def _load_pm():
-    """The tool as a module, for unit-testing helpers no end-to-end path can reach."""
-    import importlib.util
-    sys.path.insert(0, HERE)
-    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+def owner_path(module):
+    """`plan_merge/<module>.py` beside the entry under test (FEAT-70)."""
+    return os.path.join(PACKAGE_DIR, f"{module}.py")
+
+
+def _load_owner(module):
+    """One package module as a module object, for unit-testing helpers no end-to-end path can
+    reach. Loaded through the package (sys.path at the entry's bin) so its sibling imports
+    resolve to the same tree the entry forks."""
+    import importlib
+    bin_dir = os.path.dirname(os.path.realpath(CLI))
+    if sys.path[:1] != [bin_dir]:
+        sys.path.insert(0, bin_dir)
+    for name in [n for n in sys.modules if n == "plan_merge" or n.startswith("plan_merge.")]:
+        del sys.modules[name]
+    return importlib.import_module(f"plan_merge.{module}")
+
+
+def copy_plan_merge(dst_bin):
+    """The entry and its package copied into `dst_bin`, the one way a proof copies this tool."""
+    copy_executable_package(CLI, "plan_merge", dst_bin)
 
 
 def case_amend_f2_under_lock_hash_is_pinned():
@@ -2027,7 +2046,7 @@ def case_amend_f2_under_lock_hash_is_pinned():
     So it was extracted and is tested directly, the same remedy `_verify_amend` got. A guarantee
     that no test can reach is a guarantee nobody is keeping.
     """
-    mod = _load_pm()
+    mod = _load_owner("amend")
     block = ["    title: actual\n"]
     good = __import__("hashlib").sha256("".join(block).encode("utf-8")).hexdigest()
 
@@ -2057,7 +2076,7 @@ def case_amend_f2_under_lock_hash_is_pinned():
     # inside one flock. So the wiring is asserted at the source level and named for what it is
     # — a reachability check, not a behavioural one. Together they cover "it refuses correctly"
     # and "it is actually wired in", which is the pair a behavioural test alone cannot give.
-    src = read(CLI)
+    src = read(owner_path("amend"))
     check("F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)",
           "_require_locked_hash(cur[f2:l2]" in src,
           "the under-lock call site is gone: the guarantee is unreachable")
@@ -2152,7 +2171,7 @@ def _bug201_base_plan():
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [a.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: done\n"
         "    depends_on: []\n"
@@ -2161,7 +2180,7 @@ def _bug201_base_plan():
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [b.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: done\n"
         "    depends_on: [T-01]\n"
@@ -2182,7 +2201,7 @@ def _bug201_proposal(depends_on_target):
         "    change_type: logic\n"
         "    execution_mode: main-session-direct\n"
         "    files: [c.py]\n"
-        "    verify: run it\n"
+        "    verify: true\n"
         "    intent: do it\n"
         "    status: pending\n"
         f"    depends_on: [{depends_on_target}]\n"
@@ -2486,7 +2505,7 @@ def _delete_dangling_plan(legal=True):
     for tid, dep in (("T-01", "[]"), ("T-02", "[T-01]"), ("T-03", "[]")):
         body += (f"  - id: {tid}\n    title: task {tid}\n    change_type: logic\n"
                  f"    execution_mode: main-session-direct\n    files: [{tid}.py]\n"
-                 f"    verify: run it\n    intent: do it\n    status: done\n"
+                 f"    verify: true\n    intent: do it\n    status: done\n"
                  f"    depends_on: {dep}\n")
     return ("schema: plan/1\nfeature: FEAT-99-fixture\nstatus: plan\n"
             "approval:\n  status: pending\ntasks:\n" + body)
@@ -2639,8 +2658,8 @@ def case_delete_items_inherits_the_destination_and_lock_refusals():
 
     THE LOCK REFUSAL IS OBSERVED, NOT ASSERTED ABOUT. The test process holds an exclusive flock
     on the plan's own lock file and then runs the verb, so exit 6 comes from the real retry
-    budget. It costs harness_merge.LOCK_TIMEOUT_SECONDS of wall clock once, which is what a
-    guarantee nobody has to take on faith costs.
+    loop. The verb runs under SHORT_LOCK_ENV, so the wait is half a second rather than the
+    10s production default: a shorter budget changes how long the refusal takes, not whether.
 
     A MUTANT THAT REDDENS THIS: writing the file directly instead of through
     `harness_merge.locked_update` — the tempting simplification, and the one that reintroduces
@@ -2662,7 +2681,7 @@ def case_delete_items_inherits_the_destination_and_lock_refusals():
         try:
             fcntl.flock(held, fcntl.LOCK_EX)
             locked = run_verb("delete-items", "--file", plan, "--task", "T-01",
-                              "--reason", "the lock is held elsewhere")
+                              "--reason", "the lock is held elsewhere", env=SHORT_LOCK_ENV)
         finally:
             os.close(held)
         out = locked.stdout + locked.stderr
@@ -2687,7 +2706,7 @@ def case_delete_items_verify_catches_a_boundary_error_that_still_parses():
     MUTANTS: comparing ids instead of whole items (the missing-field half goes green), or
     deleting the call from `_deleted_bytes` (the reachability check goes red).
     """
-    mod = _load_pm()
+    mod = _load_owner("delete")
     base_doc = yaml.safe_load(_delete_plan())
     requested = [("tasks", "T-01")]
 
@@ -2723,7 +2742,7 @@ def case_delete_items_verify_catches_a_boundary_error_that_still_parses():
     check("delete-verify: the CORRECT deletion is accepted (or this case refuses everything)",
           isinstance(accepted, dict), f"got={accepted!r}")
 
-    src = read(CLI)
+    src = read(owner_path("delete"))
     check("delete-verify: and the check is WIRED IN (reachability, not behaviour)",
           "_verify_deletion(spliced, base_doc, requested)" in src,
           "the verification call site is gone: the guarantee is unreachable")
@@ -2939,7 +2958,7 @@ def _check_task(tid, files_yaml, agent="harness-backend-dev", mode="team", trace
     agent_line = f"    execution_agent: {agent}\n" if agent else ""
     return (f"  - id: {tid}\n    title: t\n    change_type: logic\n"
             f"    execution_mode: {mode}\n{agent_line}    traces: {traces}\n"
-            f"    files:\n{files_yaml}    verify: run it\n    intent: do it\n")
+            f"    files:\n{files_yaml}    verify: true\n    intent: do it\n")
 
 
 def case_f59_check_passes_on_every_anchor_form():
@@ -4038,10 +4057,10 @@ def _canonical_hash(task):
                                       ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
-def _record(plan, digest_text, root):
+def _record(plan, digest_text, root, env=None):
     digest = os.path.join(root, "digest.md")
     write(digest, digest_text)
-    return run_verb("record-amendments", "--file", plan, "--digest", digest)
+    return run_verb("record-amendments", "--file", plan, "--digest", digest, env=env)
 
 
 _PENDING_PLAN = _AMEND_PLAN.replace("status: approved", "status: pending")
@@ -4314,7 +4333,7 @@ def _record_with_ledger_locked(plan, fj, root, amendments):
     holder = open(fj + ".lock", "w")
     fcntl.flock(holder, fcntl.LOCK_EX)
     try:
-        return _record(plan, _digest_with(amendments), root)
+        return _record(plan, _digest_with(amendments), root, env=SHORT_LOCK_ENV)
     finally:
         fcntl.flock(holder, fcntl.LOCK_UN)
         holder.close()
@@ -4368,6 +4387,58 @@ def case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error():
               "restored byte for byte" in r.stderr, r.stderr)
         check("b1716/io: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
               read(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# FEAT-70 SC-03 — a two-entry digest whose FIRST entry GROWS a `|` field.
+_BLOCK_FIRST_PLAN = _AMEND_PLAN.replace(
+    "    verify: python3 a.py\n", "    verify: |\n      python3 a.py\n").replace(
+    "decisions:\n  - id: D-01\n    choice: keep me\n", "decisions: []\n")
+
+_BLOCK_FIRST_NOW = "".join(f"python3 {c}.py\n" for c in "abcdef")
+
+_BLOCK_FIRST_AMENDMENTS = (
+    "  amendments:\n"
+    "    - task: T-01\n      field: verify\n"
+    "      was: \"python3 a.py\\n\"\n"
+    "      now: \"" + _BLOCK_FIRST_NOW.replace("\n", "\\n") + "\"\n"
+    "      reason: the one script was split into six\n"
+    "    - task: T-03\n      field: intent\n"
+    "      was: \"Add a second text accessor with a compatibility exemption\"\n"
+    "      now: \"Keep the one accessor\"\n"
+    "      reason: the exemption would bypass the accessor\n"
+)
+
+
+def case_feat70_record_amendments_after_a_block_scalar_splice():
+    """FEAT-70 SC-03: when the first entry grows a `|` body, the second entry — in ANOTHER
+    task, further down — still lands. `_render_field` returned the rendered block as ONE list
+    element holding several physical lines, so the next `_item_range` walked ranges indexed
+    over the re-joined text against a list that many elements shorter: an IndexError traceback
+    at baseline whenever the growth exceeded the document's tail and no same-indent item
+    terminated the scan (`decisions: []`), a wrong binding otherwise. Both amendments land,
+    the block keeps its form, the ledger carries two entries, and the write is one act."""
+    root, plan, fj = _amend_fixture(plan_text=_BLOCK_FIRST_PLAN)
+    try:
+        run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-01-01")
+        r = _record(plan, _digest_with(_BLOCK_FIRST_AMENDMENTS), root)
+        tasks = {t["id"]: t for t in yaml.safe_load(read(plan))["tasks"]}
+        check("feat70/sc03: exits 0 naming both targets, no traceback",
+              r.returncode == 0 and r.stdout.count("AMENDED T-0") == 2 and "Traceback" not in r.stderr,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("feat70/sc03: the block-scalar field reloads as the digest's now",
+              tasks["T-01"]["verify"] == _BLOCK_FIRST_NOW, repr(tasks["T-01"]))
+        check("feat70/sc03: the `|` header survives with the longer body",
+              "    verify: |\n      python3 a.py\n      python3 b.py\n" in read(plan), read(plan))
+        check("feat70/sc03: the second entry, in the later task, lands",
+              tasks["T-03"]["intent"] == "Keep the one accessor", repr(tasks["T-03"]))
+        js = _json.loads(read(fj)).get("judgements") or []
+        check("feat70/sc03: two amendment judgements in digest order",
+              [j["decision"] for j in js if j["kind"] == "amendment"] == ["T-01.verify", "T-03.intent"],
+              repr(js))
+        check("feat70/sc03: the ledger still validates",
+              not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -4486,6 +4557,7 @@ CASES = (
     case_b1716_record_amendments_is_all_or_nothing,
     case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
     case_feat62_changed_feedback_after_a_plan_write,
+    case_feat70_record_amendments_after_a_block_scalar_splice,
 )
 
 

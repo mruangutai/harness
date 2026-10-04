@@ -1,0 +1,321 @@
+{
+  "feature_id": "FEAT-68-complex-function-third-wave",
+  "branch": "feat/FEAT-68-complex-function-third-wave",
+  "pr": 1956,
+  "review_sha": "f10f19eab87863374c51a260a2f69beecaa27be9",
+  "cycles_used": 7,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T15:56:29+00:00",
+      "tokens": 85077,
+      "ended_at": "2026-09-27T16:11:44+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "build-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T16:37:46+00:00",
+      "ended_at": "2026-09-27T17:23:15+00:00",
+      "cycles_used": 0,
+      "tokens": null
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T17:26:33+00:00",
+      "tokens": 125688,
+      "ended_at": "2026-09-27T17:50:26+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T17:57:58+00:00",
+      "ended_at": "2026-09-27T18:11:44+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T18:14:35+00:00",
+      "tokens": 98471,
+      "ended_at": "2026-09-27T18:34:22+00:00",
+      "cycles_used": 1
+    },
+    {
+      "id": "fix-c1-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T18:36:48+00:00",
+      "ended_at": "2026-09-27T18:36:51+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T18:39:38+00:00",
+      "tokens": 90926,
+      "ended_at": "2026-09-27T18:55:39+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c2-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T20:18:36+00:00",
+      "ended_at": "2026-09-27T20:18:54+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T20:21:15+00:00",
+      "tokens": 105350,
+      "ended_at": "2026-09-27T20:48:03+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c3-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T21:04:39+00:00",
+      "ended_at": "2026-09-27T21:12:01+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-27T21:14:46+00:00",
+      "tokens": 90194,
+      "ended_at": "2026-09-27T21:40:15+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c4-main-direct",
+      "squad": "eng",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T23:31:07+00:00",
+      "ended_at": "2026-09-27T23:31:40+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c5-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-27T23:34:26+00:00",
+      "tokens": 130887,
+      "ended_at": "2026-09-27T23:54:39+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "validate-c6-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-28T13:21:18+00:00",
+      "tokens": 79638,
+      "ended_at": "2026-09-28T13:37:20+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-27T15:56:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known; bounded five-function refactor plus unused renderer removal; no new interface, schema, or enforcement surface."
+    },
+    {
+      "at": "2026-09-27T16:37:46+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "DEC-174: T-01 is main-session-direct; the main session builds in the worktree"
+    },
+    {
+      "at": "2026-09-27T17:22:42.454908+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "Post-image anchors: the two deleted files drop out, three edited files re-quote their new text, and .omp/commands/harness.md (a render-brief mention the grilling grep missed) joins (ledger D-07)."
+    },
+    {
+      "at": "2026-09-27T17:25:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Proceed to one validate panel under the signed 2-round/90-minute ruling; DEC-174 keeps any fix with the main session."
+    },
+    {
+      "at": "2026-09-27T17:26:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue from the verified build seam into the one pinned validation panel required by SC-01 through SC-05."
+    },
+    {
+      "at": "2026-09-27T17:50:29+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes VF-01 and VF-02 to the main session before any repin or new validation run."
+    },
+    {
+      "at": "2026-09-27T18:13:45+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "The evidence-only c0 fix is committed at 66b9c914; continue within the signed second rework round to one five-reader validation panel."
+    },
+    {
+      "at": "2026-09-27T18:34:33+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes T-01-bound VF-03 and VF-04 to the main session as the second and final signed rework round."
+    },
+    {
+      "at": "2026-09-27T18:39:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Both signed fix rounds are used; run the final c2 panel over ab17ca17, and escalate any remaining must-fix instead of opening another fix round."
+    },
+    {
+      "at": "2026-09-27T18:55:46+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The final c2 panel still finds VF-04-C2 and both signed fix rounds are exhausted; stop rework and escalate the one remaining must-fix to the operator."
+    },
+    {
+      "at": "2026-09-27T20:18:36+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes VF-04-C2 to the main session; the operator authorised a third evidence-only round (A-4, rework 3/120)"
+    },
+    {
+      "at": "2026-09-27T20:20:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "The operator authorized the third evidence-only round in A-4; fix c2 passed receipt-only at b6b8c28d, so continue under the raised 3-round/120-minute ruling to one final c3 panel."
+    },
+    {
+      "at": "2026-09-27T20:48:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The c3 panel found VF-04-C3 and new-class high-severity VF-05-C3 after the operator-authorized third round; the 3-round ruling is exhausted, so stop rework and escalate the complete must-fix set."
+    },
+    {
+      "at": "2026-09-27T21:04:39+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes VF-04-C3/VF-05-C3 to the main session; operator-authorised fourth evidence-only round (A-5, rework 4/150)"
+    },
+    {
+      "at": "2026-09-27T21:14:34+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "The operator authorized a fourth evidence-only round in A-5; fix c3 passed receipt-only at 9d495ccd, so continue under the raised 4-round/150-minute ruling to one final c4 five-reader panel."
+    },
+    {
+      "at": "2026-09-27T21:40:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The final c4 panel still finds VAL-C4-01 after the operator-authorized fourth evidence round; the 4-round ruling is exhausted, so stop rework and return the complete must-fix to the operator."
+    },
+    {
+      "at": "2026-09-27T23:31:07+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "DEC-174 routes VAL-C4-01 to the main session; operator-authorised fifth evidence-only round (A-6, rework 5/180)"
+    },
+    {
+      "at": "2026-09-27T23:34:16+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "The operator authorized the fifth evidence-only round in A-6; fix c4 passed receipt-only at 6b4eeeb9, so continue under the raised 5-round/180-minute ruling to one final c5 five-reader panel."
+    },
+    {
+      "at": "2026-09-28T13:14:29.401822+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "DEC-182 budget (CI route gate, 162 > 50): the 102 deleted html anchors and the 30 untouched owning suites leave files; the deletion is asserted by verify, the suites are proof inputs named in the receipts."
+    },
+    {
+      "at": "2026-09-28T13:20:41+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Re-pin and run one c6 validation panel because the post-c5 T-01.files amendment changed the merge tip while production and prior proof stayed unchanged."
+    },
+    {
+      "at": "2026-09-28T13:21:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue from the c5 validate-to-ship seam only to revalidate the later plan-only T-01.files amendment at the merge tip f10f19ea."
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 5,
+    "wall_clock_minutes": 180,
+    "decision": ".harness/harness/features/FEAT-68-complex-function-third-wave/notes/answers-validate-validator.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "c206eea6b43b1e82858fc3b4d946589d80957ea292f70b5f8935d55a84f11a04"
+  },
+  "github": {
+    "milestone": 91,
+    "parent": 1952,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1953
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}

@@ -148,7 +148,7 @@ tasks:
     # reading source text and a member loading YAML would compare different strings and
     # block a correct task.
     verify: |
-      <command that returns pass/fail in under 60s>
+      <path/to/command that returns pass/fail in under 60s, or MANUAL — <what must be built> if nothing is automatable (harness_yaml enforces this shape while status is pending)>
 
     # THE DISPATCH PROMPT. The agent doing the work receives this and nothing else about
     # the task, so it must be complete: the actual logic, types, structure and values —

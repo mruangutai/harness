@@ -47,7 +47,10 @@ def _resolve_root():
         with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
             import harness_boundary
             return harness_boundary.resolve_root(_bootstrap_bin)
-    except Exception:
+    except (ModuleNotFoundError, ValueError):
+        # FEAT-64: the module did not import (a missing first-party sibling), or resolve_root
+        # refused (strict: no MARKER anywhere) -- the two shapes "no root" takes, matching
+        # check-state.py's copy. The four gate copies narrow the same way in FEAT-65.
         return ""
 
 
@@ -195,7 +198,7 @@ def feature_for(branch):
             ROOT, ".harness", "*", "features", "*", "feature.json")):
         try:
             document = artifact_accessors.load_feature_json(path)
-        except Exception:
+        except artifact_accessors.FeatureJsonError:
             continue
         if document.get("branch") == branch:
             owners.append((os.path.dirname(path), document))
@@ -217,7 +220,7 @@ def _read_request():
         payload = artifact_accessors.read_hook_payload(
             sys.stdin.read(), "merge-gate hook payload")
         command = (payload.get("tool_input") or {}).get("command") or ""
-    except Exception:
+    except artifact_accessors.ArtifactAccessError:
         return None
     return github, command
 
@@ -258,12 +261,9 @@ def _handle_owners(feature_schema, github, branch, failure, owners):
         deny(f'merge-gate: {branch} is claimed by more than one feature record ({names}), so this merge cannot be attributed to one feature. Correct the duplicated top-level "branch" field in those feature.json records before merging; no receipt command clears this.')
         return
     feat_dir, document = owners[0]
-    feat = os.path.basename(feat_dir)
-    try:
-        _enforce_receipt(
-            feature_schema, github, branch, failure, feat_dir, document)
-    except Exception:
-        deny(f"merge-gate: could not evaluate {feat}'s Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
+    # No local catch (FEAT-65): the receipt policy reads records already validated at the
+    # load boundary; a defect in it reaches hook_guard's CLOSED form, which still denies.
+    _enforce_receipt(feature_schema, github, branch, failure, feat_dir, document)
 
 
 def _evaluate_merge(command, github):
@@ -284,9 +284,14 @@ def main():
         return
     try:
         _evaluate_merge(command, github)
-    except Exception:
+    except (ImportError, OSError):
+        # feature_schema missing, or git itself failing to run (FEAT-65). Any other failure
+        # is a defect and reaches hook_guard's CLOSED form below, which also denies.
         deny(f"merge-gate: could not evaluate this feature's Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
 
 
 if __name__ == "__main__":
-    main()
+    # CLOSED, not open (FEAT-65): the two deleted catches above denied on any failure, and a
+    # merge gate that passed through on its own bug would be the fail-open DEC-138 forbids.
+    import harness_boundary
+    sys.exit(harness_boundary.hook_guard(main, "merge-gate", fail="closed"))

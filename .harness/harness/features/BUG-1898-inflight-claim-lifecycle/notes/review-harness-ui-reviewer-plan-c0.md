@@ -1,0 +1,1 @@
+PASS — UI review is out of scope: `BRIEF.md` and `plan.yaml` change backend claim lifecycle, enforcement, tests, operator CLI/refusal text, and records but specify no rendered or end-user interaction surface, so no `DESIGN.md` or high-fidelity prototype is required.

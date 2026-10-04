@@ -21,7 +21,7 @@ import subprocess
 import sys
 import tempfile
 import harness_yaml
-from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT,
+from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT, check_state_source,
     make_fixture, run, _run_with_gh, _run_with_gh_streams)
 
 
@@ -385,7 +385,7 @@ def case_o():
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
     # it never opened, which is the failure mode the override exists to expose.
-    sta = open(SCRIPT, encoding="utf-8").read()
+    sta = check_state_source()                # FEAT-69: the entry plus every package file
 
     def budget(text, label, pat):
         m = _re.findall(pat, text)

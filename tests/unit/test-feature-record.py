@@ -928,6 +928,31 @@ class ProposeReworkTest(FeatureRecordCase):
         for token in ("7 tasks", "rework_round_minutes", "45", "plan"):
             self.assertIn(token, basis)
 
+    def test_unparseable_plan_is_refused_by_the_typed_boundary(self):
+        self.write(base_doc(mission="plan"))
+        (self.path.parent / "plan.yaml").write_text("status: [\n", encoding="utf-8")
+        result = self.run_cli("propose-rework", "--file", str(self.path))
+        self.assertEqual(2, result.returncode)
+        self.assertIn("does not load", result.stderr)
+
+    def test_an_unexpected_defect_stays_loud_and_nonzero(self):
+        """FEAT-65 SC-09: feature-record.py is an authoritative direct command and gets no
+        entrypoint guard — a defect behind the plan loader is a traceback, never a refusal
+        dressed as the plan's fault and never exit 0."""
+        self.write(base_doc(mission="plan"))
+        self.plan(2)
+        mbin = Path(tempfile.mkdtemp()) / "bin"
+        shutil.copytree(BIN, mbin)
+        with open(mbin / "artifact_accessors.py", "a", encoding="utf-8") as handle:
+            handle.write("\n\ndef load_plan(path):\n    raise RuntimeError('FEAT-65 injected')\n")
+        result = subprocess.run([sys.executable, str(mbin / "feature-record.py"),
+                                 "propose-rework", "--file", str(self.path)],
+                                capture_output=True, text=True)
+        self.assertNotIn(result.returncode, (0, 2), result.stderr)
+        self.assertIn("FEAT-65 injected", result.stderr)
+        self.assertNotIn("REFUSED", result.stderr)
+        self.assertNotIn("failed internally", result.stderr)
+
     def test_refuses_without_a_mission(self):
         self.write(base_doc())
         self.plan(3)

@@ -15,7 +15,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import contextlib, importlib.util, json, re, subprocess, sys, os, shutil, tempfile
+import contextlib, importlib.util, json, re, subprocess, sys, os, shutil, tempfile, time
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -237,24 +237,30 @@ def run_reviewer_severity_enum_cases():
     print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
-def _skill_documented_block(lines):
-    digest_at = None
-    for index, line in enumerate(lines):
-        if line.lstrip().startswith("DIGEST:"):
-            digest_at = index
-            break
+def _find(lines, predicate, start=0, stop=None, step=1):
+    """Index of the first line in [start, stop) satisfying predicate, else None."""
+    stop = len(lines) if stop is None else stop
+    for index in range(start, stop, step):
+        if predicate(lines[index]):
+            return index
+    return None
+
+
+def _is_fence(line):
+    return line.strip().startswith("```")
+
+
+def _skill_documented_block(lines, heading=None):
+    start = 0
+    if heading is not None:
+        start = _find(lines, lambda line: line.strip() == f"## {heading}")
+        if start is None:
+            return None
+    digest_at = _find(lines, lambda line: line.lstrip().startswith("DIGEST:"), start)
     if digest_at is None:
         return None
-    open_at = None
-    for index in range(digest_at - 1, -1, -1):
-        if lines[index].strip().startswith("```"):
-            open_at = index
-            break
-    close_at = None
-    for index in range(digest_at + 1, len(lines)):
-        if lines[index].strip().startswith("```"):
-            close_at = index
-            break
+    open_at = _find(lines, _is_fence, digest_at - 1, -1, -1)
+    close_at = _find(lines, _is_fence, digest_at + 1)
     if open_at is None or close_at is None:
         return None
     return "\n".join(lines[open_at + 1:close_at])
@@ -277,10 +283,15 @@ def _agent_documented_block(lines):
 
 
 def documented_block(source_text, source_path):
-    """Return the documented DIGEST block for an agent or shared skill."""
+    """Return the documented DIGEST block for an agent or shared skill.
+
+    A skill path may carry `#<heading>` to select the block under that `##` heading
+    when one skill documents several schemas (harness-digest-dev: `dev`, `dev-ops`).
+    """
     lines = source_text.splitlines()
-    if source_path.endswith("SKILL.md"):
-        return _skill_documented_block(lines)
+    path, _, heading = source_path.partition("#")
+    if path.endswith("SKILL.md"):
+        return _skill_documented_block(lines, heading or None)
     return _agent_documented_block(lines)
 
 
@@ -296,7 +307,7 @@ CONTRACT_SOURCES = {
     "harness-pm": [".omp/agents/harness-pm.md"],
     "harness-qa": [".omp/agents/harness-qa.md"],
     "harness-documentor": [".omp/agents/harness-documentor.md"],
-    "harness-dev-ops": [".omp/agents/harness-dev-ops.md"],
+    "harness-dev-ops": [".claude/skills/harness-digest-dev/SKILL.md#dev-ops"],
     "harness-visual-designer": [".omp/agents/harness-visual-designer.md"],
     "harness-code-reviewer": [".omp/agents/harness-code-reviewer.md"],
     "harness-security-reviewer": [".omp/agents/harness-security-reviewer.md"],
@@ -371,7 +382,7 @@ artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-review
 
 def _contract_source(path):
     try:
-        with open(os.path.join(REPO_ROOT, path)) as source:
+        with open(os.path.join(REPO_ROOT, path.partition("#")[0])) as source:
             return source.read()
     except FileNotFoundError:
         return None
@@ -1702,6 +1713,17 @@ def run_cli_cases():
 # SUBPROCESS with its own throwaway checkout so no case can see another.
 # ---------------------------------------------------------------------------
 
+# BUG-1898: OMP is the only host (DEC-233) and its adapter sends every governed return with
+# the run's exact feature and runtime id; the hook refuses a non-BLOCKED return without them.
+# Cases about digest SHAPE carry this neutral identity (no worktree, no claim of that id);
+# a case's own keys win, and a case about a missing value passes it as None.
+HOOK_IDENTITY = {"harness_feature": "FEAT-01-hook-case", "harness_agent_id": "Test.Run"}
+
+
+def _governed(payload):
+    return {**HOOK_IDENTITY, **payload}
+
+
 T09 = []
 
 
@@ -1727,10 +1749,13 @@ def _t09_root():
     return d
 
 
-def _t09_fire(root, agent, text, hook=None, **extra):
+def _t09_fire(root, agent, text, hook=None, governed=True, **extra):
+    """Fire the hook as a governed return (HOOK_IDENTITY merged in), or with `governed`
+    False, exactly the identity passed and nothing else."""
     payload = {"agent_type": agent, "last_assistant_message": text, "cwd": root}
     payload.update(extra)
-    return subprocess.run([hook or VALIDATE, "--hook"], input=json.dumps(payload),
+    return subprocess.run([hook or VALIDATE, "--hook"],
+                          input=json.dumps(_governed(payload) if governed else payload),
                           capture_output=True, text=True,
                           # BOTH NAMES, ONE VALUE (FEAT-42 T-17). The hook resolves through
                           # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR
@@ -1759,6 +1784,7 @@ artifact: .harness/features/FEAT-01/plan.yaml
 """
 
 CHILD_MARK = "BLOCKED - returned with children in flight"
+T09_FEATURE = "FEAT-09-exact-claims"
 
 
 def run_t09():
@@ -1772,10 +1798,21 @@ def run_t09():
             data = json.load(fh) or {}
         return [claim for claim in data.get("claims", []) if claim.get("agent") == agent]
 
+    def run(root, agent, agent_id, parent_id, dispatcher):
+        """One live claim bound to OMP runtime id `agent_id` under `parent_id` (BUG-1898:
+        the hook selects claims by exact feature and runtime id, never by persona)."""
+        entry = reg.claim_with_receipt(root, agent, dispatcher, root, feature=T09_FEATURE)
+        reg.attach_runtime_identity(root, agent, T09_FEATURE, agent_id=agent_id,
+                                    claim_id=entry["claim_id"], parent_agent_id=parent_id)
+
+    def fire(root, agent, agent_id, text, **extra):
+        return _t09_fire(root, agent, text, harness_feature=T09_FEATURE,
+                         harness_agent_id=agent_id, **extra)
+
     # 1. a valid pm return RELEASES its claim
     root = _t09_root()
-    reg.claim(root, "harness-pm", "harness-product-lead", root)
-    r = _t09_fire(root, "harness-pm", PM_OK)
+    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    r = fire(root, "harness-pm", "Lead.Pm", PM_OK)
     t09("1: a valid pm return exits 0", r.returncode == 0,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     t09("1: and its claim is GONE from the registry", not claims(root, "harness-pm"),
@@ -1784,25 +1821,25 @@ def run_t09():
     # 2. an INVALID digest still exits 2 for the contract AND still releases. A blocked
     #    return that leaks its claim can never be re-dispatched.
     root = _t09_root()
-    reg.claim(root, "harness-pm", "harness-product-lead", root)
-    r = _t09_fire(root, "harness-pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n")
+    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    r = fire(root, "harness-pm", "Lead.Pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n")
     t09("2: an invalid digest still exits 2", r.returncode == 2, f"exit {r.returncode}")
     t09("2: and the claim is STILL released, so a re-prompt can be re-dispatched",
         not claims(root, "harness-pm"), repr(claims(root, "harness-pm")))
 
     # 3. stop_hook_active short-circuits and does not raise, with a claim present
     root = _t09_root()
-    reg.claim(root, "harness-pm", "harness-product-lead", root)
-    r = _t09_fire(root, "harness-pm", PM_OK, stop_hook_active=True)
+    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    r = fire(root, "harness-pm", "Lead.Pm", PM_OK, stop_hook_active=True)
     t09("3: stop_hook_active exits 0 with a claim present", r.returncode == 0,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     t09("3: and prints no traceback", "Traceback" not in r.stderr, r.stderr[:200])
 
     # 4. a persona releases its OWN claim and leaves an unrelated one alone. BOTH halves.
     root = _t09_root()
-    reg.claim(root, "harness-documentor", "harness-product-lead", root)
-    reg.claim(root, "harness-pm", "harness-product-lead", root)
-    r = _t09_fire(root, "harness-documentor", PM_OK.replace("VERDICT: PASS", "VERDICT: PASS"))
+    run(root, "harness-documentor", "Lead.Doc", "Lead", "harness-product-lead")
+    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    r = fire(root, "harness-documentor", "Lead.Doc", PM_OK)
     t09("4: the returning persona's own claim is released",
         not claims(root, "harness-documentor"), repr(claims(root, "harness-documentor")))
     t09("4: and an UNRELATED harness-pm claim is untouched",
@@ -1819,13 +1856,14 @@ def run_t09():
     t09("5: and stderr NAMES the missing module", "inflight_registry" in r.stderr,
         r.stderr.strip()[:200])
 
-    # 6. THE D-09 REFUSAL. Two live children, a lead returning. Assert the exit, both children
-    #    by name, the issue, AND that the lead's own claim was released first.
+    # 6. THE D-09 REFUSAL. Two live children of this exact lead run. Assert the exit, both
+    #    children by name, the issue, AND that the lead keeps its own claim (DEC-233: a
+    #    parent with a live child is still their only owner; BUG-1898 T-03).
     root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
-    reg.claim(root, "harness-dev-ops", "harness-eng-lead", root)
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
+    run(root, "harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead", "harness-eng-lead")
+    run(root, "harness-dev-ops", "Orch.Lead.Ops", "Orch.Lead", "harness-eng-lead")
+    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
     t09("6: a lead returning with children in flight exits 2", r.returncode == 2,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
     t09("6: stderr carries the children-in-flight refusal", CHILD_MARK in r.stderr,
@@ -1834,21 +1872,25 @@ def run_t09():
         "harness-backend-dev" in r.stderr and "harness-dev-ops" in r.stderr,
         r.stderr.strip()[:240])
     t09("6: stderr cites the issue", "#551" in r.stderr, r.stderr.strip()[:240])
-    t09("6: the lead's OWN claim was released first",
-        not claims(root, "harness-eng-lead"), repr(claims(root, "harness-eng-lead")))
+    t09("6: the lead KEEPS its own claim while its children are live",
+        len(claims(root, "harness-eng-lead")) == 1, repr(claims(root, "harness-eng-lead")))
 
     # 7. THE ALLOW HALF, asserting the ABSENCE of the marker so a refuse-every-lead build fails.
+    #    A same-persona sibling lead's child is not this lead's child.
     root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
+    run(root, "harness-eng-lead", "Orch.Lead-2", "Orch", "harness-orchestrator")
+    run(root, "harness-backend-dev", "Orch.Lead-2.Dev", "Orch.Lead-2", "harness-eng-lead")
+    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
     t09("7: a lead with NO children carries no children marker", CHILD_MARK not in r.stderr,
         r.stderr.strip()[:240])
 
     # 8. A MEMBER IS NEVER SUBJECT TO IT -- only a lead or the orchestrator dispatches.
     root = _t09_root()
-    reg.claim(root, "harness-pm", "harness-pm", root)
-    r = _t09_fire(root, "harness-pm", PM_OK)
-    t09("8: a member with a claim dispatched by itself still exits 0", r.returncode == 0,
+    run(root, "harness-pm", "Lead.Pm", "Lead", "harness-product-lead")
+    run(root, "harness-qa", "Lead.Pm.Qa", "Lead.Pm", "harness-pm")
+    r = fire(root, "harness-pm", "Lead.Pm", PM_OK)
+    t09("8: a member with a claim naming it as parent still exits 0", r.returncode == 0,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     t09("8: and no children marker", CHILD_MARK not in r.stderr, r.stderr.strip()[:200])
 
@@ -1856,9 +1898,9 @@ def run_t09():
     #    second refusal here would be the infinite stop loop the pass-through prevents.
     #    DO NOT "fix" this case.
     root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, stop_hook_active=True)
+    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
+    run(root, "harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead", "harness-eng-lead")
+    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK, stop_hook_active=True)
     t09("9: stop_hook_active exits 0 WITH children still on disk (D-09's residual)",
         r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     t09("9: and the child claim is still there, so the bound is real",
@@ -1866,19 +1908,20 @@ def run_t09():
         repr(claims(root, "harness-backend-dev")))
 
     # 10. A live child refuses the parent's return, and the refusal names the precise
-    #     single-agent release command rather than release-all, which wipes every claim of
-    #     every agent (following the old advice on 2026-08-26 would have destroyed a live
-    #     one). The former "foreign session is admitted" case is gone with DEC-233: a claim
-    #     is scoped by its OMP supervisor's liveness (DEC-204), not by a session id.
+    #     release command for that ONE claim — its runtime id — never a persona selector
+    #     (which would match every same-persona run) and never release-all, which wipes
+    #     every claim of every agent (following the old advice on 2026-08-26 would have
+    #     destroyed a live one).
     root = _t09_root()
-    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
-    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
-    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    run(root, "harness-eng-lead", "Orch.Lead", "Orch", "harness-orchestrator")
+    run(root, "harness-backend-dev", "Orch.Lead.Dev", "Orch.Lead", "harness-eng-lead")
+    r = fire(root, "harness-eng-lead", "Orch.Lead", LEAD_BLOCK)
     t09("10: a live child refuses the parent's return",
         r.returncode == 2 and CHILD_MARK in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
-    t09("10: and the refusal names the single-agent release command for that child",
-        "--agent harness-backend-dev" in r.stderr and "release-all" not in r.stderr,
+    t09("10: and the refusal names the exact release command for that child",
+        "--agent-id Orch.Lead.Dev" in r.stderr and "--agent harness-backend-dev"
+        not in r.stderr and "release-all" not in r.stderr,
         r.stderr.strip()[:400])
 
     fails = 0
@@ -1893,14 +1936,20 @@ def run_t09():
     return fails
 
 
+T51_PARENT_ID = "Orch.Product"
+
+
 def _t51_fixture(reg, parent="harness-product-lead", children=("harness-pm",)):
     root = _t09_root()
     session = "feat51-session"
-    reg.claim_with_receipt(
-        root, parent, "harness-orchestrator", root
-    )
-    for child in children:
-        reg.claim_with_receipt(root, child, parent, root)
+    for agent, dispatcher, agent_id, parent_id in (
+        [(parent, "harness-orchestrator", T51_PARENT_ID, "Orch")]
+        + [(child, parent, "%s.%s" % (T51_PARENT_ID, child), T51_PARENT_ID)
+           for child in children]
+    ):
+        entry = reg.claim_with_receipt(root, agent, dispatcher, root, feature=T09_FEATURE)
+        reg.attach_runtime_identity(root, agent, T09_FEATURE, agent_id=agent_id,
+                                    claim_id=entry["claim_id"], parent_agent_id=parent_id)
     return root, session
 
 
@@ -1919,6 +1968,7 @@ def _t51_suspended_refused(reg):
         root, "harness-product-lead",
         "VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n    - harness-pm\n",
         session_id=session,
+        harness_feature=T09_FEATURE, harness_agent_id=T51_PARENT_ID,
     )
     parent, _ = reg.live_claim(root, "harness-product-lead")
     return [
@@ -1933,6 +1983,7 @@ def _t51_terminal(reg):
     result = _t09_fire(
         root, "harness-product-lead",
         "VERDICT: PASS\nDIGEST:\n  headline: done\n", session_id=session,
+        harness_feature=T09_FEATURE, harness_agent_id=T51_PARENT_ID,
     )
     return [_t51_result("a terminal PASS with a live child is refused", result, 2)]
 
@@ -1944,11 +1995,13 @@ def _t51_missing_message(reg):
             "agent_type": "harness-product-lead",
             "cwd": root,
             "session_id": session,
+            "harness_feature": T09_FEATURE,
+            "harness_agent_id": T51_PARENT_ID,
         }
         if include_null:
             payload["last_assistant_message"] = None
         result = subprocess.run(
-            [VALIDATE, "--hook"], input=json.dumps(payload),
+            [VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
             capture_output=True, text=True,
             env=dict(os.environ, 
                      HARNESS_PROJECT_DIR=root),
@@ -2027,7 +2080,7 @@ def run_hook_cases():
         _root = payload.pop("_root", None) or _isolated_root()
         env = dict(os.environ)
         env["HARNESS_PROJECT_DIR"] = _root
-        r = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
+        r = subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
                            capture_output=True, text=True, env=env)
         bad = []
         if r.returncode != want_exit:
@@ -2063,7 +2116,7 @@ def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
     if not feature:
         env.pop("HARNESS_PROJECT_DIR", None)
     return subprocess.run(
-        [binary, "--hook"], input=json.dumps(payload), capture_output=True,
+        [binary, "--hook"], input=json.dumps(_governed(payload)), capture_output=True,
         text=True, env=env)
 
 
@@ -2179,7 +2232,7 @@ def _bug919_fire(stub_path, text=QA_UNCONDITIONAL_PASS, agent="harness-qa", extr
     if extra_env:
         env.update(extra_env)
     payload = {"agent_type": agent, "last_assistant_message": text}
-    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
+    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
                           capture_output=True, text=True, env=env)
 
 
@@ -2229,7 +2282,7 @@ def _bug919_red_case(red):
     payload = {"agent_type": "harness-qa", "last_assistant_message": QA_UNCONDITIONAL_PASS}
     try:
         _install_mutant(mutant, mutant_source)
-        muted = subprocess.run([mutant, "--hook"], input=json.dumps(payload),
+        muted = subprocess.run([mutant, "--hook"], input=json.dumps(_governed(payload)),
                                capture_output=True, text=True, env=env)
     finally:
         shutil.rmtree(iso_root, ignore_errors=True)
@@ -2399,8 +2452,10 @@ def run_bug919_resolve_fallback_case():
     original_root_fn = validator._root_or_none
     original_feature_root = inflight_registry.feature_root
     validator._root_or_none = lambda: "/some/owner/root"
+    # FEAT-65: the lookup's own boundary class, not an arbitrary one — the fallback is
+    # typed now, and an unrelated exception is a defect that reaches hook_guard instead.
     def _raise(root, feature):
-        raise LookupError("no unambiguous worktree for %r" % feature)
+        raise OSError("no unambiguous worktree for %r" % feature)
     inflight_registry.feature_root = _raise
     saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
     try:
@@ -3624,15 +3679,18 @@ def _t04_hook_failures(digest):
         "agent_type": "harness-eng-lead",
         "last_assistant_message": digest,
     }
+    # BUG-1898: every --hook fire names a throwaway root; unrooted, these resolved to the live
+    # checkout and released a persona's real claim there.
+    env = dict(os.environ, HARNESS_PROJECT_DIR=_isolated_root())
     rejected = subprocess.run(
-        [sys.executable, VALIDATE, "--hook"], input=json.dumps(base),
-        capture_output=True, text=True, env=dict(os.environ))
+        [sys.executable, VALIDATE, "--hook"], input=json.dumps(_governed(base)),
+        capture_output=True, text=True, env=env)
     if rejected.returncode != 2:
         failures.append(f"hook returned {rejected.returncode}, not exit 2")
     bypassed = subprocess.run(
         [sys.executable, VALIDATE, "--hook"],
-        input=json.dumps({**base, "stop_hook_active": True}),
-        capture_output=True, text=True, env=dict(os.environ))
+        input=json.dumps(_governed({**base, "stop_hook_active": True})),
+        capture_output=True, text=True, env=env)
     if bypassed.returncode != 0:
         failures.append(
             f"stop_hook_active passthrough returned {bypassed.returncode}")
@@ -3677,9 +3735,9 @@ def _t08_fixture():
 
 
 def _t08_compare_payload(prior_path, persona, payload, env):
-    hook_payload = json.dumps({
+    hook_payload = json.dumps(_governed({
         "agent_type": persona, "last_assistant_message": payload,
-    })
+    }))
     prior = subprocess.run(
         [sys.executable, prior_path, "--hook"], input=hook_payload,
         capture_output=True, text=True, env=env)
@@ -3703,7 +3761,7 @@ def _t08_revision_failures(source, payloads):
         prior_path = os.path.join(td, "validate-digest.py")
         with open(prior_path, "w", encoding="utf-8") as handle:
             handle.write(source)
-        env = dict(os.environ)
+        env = dict(os.environ, HARNESS_PROJECT_DIR=_isolated_root())
         current_path = env.get("PYTHONPATH", "")
         env["PYTHONPATH"] = os.path.dirname(VALIDATE) + (
             os.pathsep + current_path if current_path else "")
@@ -4067,7 +4125,8 @@ def _reviewer_digest_for(result, base_oid, head_oid, artifact="a.md"):
     """A digest claiming `result` over `base..head`, carrying the VERDICT and the
     grade-2 reasons that result's OWN pre-existing rules already require — so a
     rejection below is the mechanical mismatch, never an unrelated schema error."""
-    extra = {"grade_2_reasons": "[one auditable reason]"} if result == "grade_2" else {}
+    # The reason NAMES the graded function: a reason naming none is refused (consumer audit).
+    extra = {"grade_2_reasons": "[moderate is a dispatch table]"} if result == "grade_2" else {}
     digest = reviewer_digest(result, reviewed=f"{base_oid}..{head_oid}",
                              artifact=artifact, **extra)
     if result == "fail":
@@ -4082,7 +4141,7 @@ def _run_hook(root, agent_type, text):
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = root
     payload = {"agent_type": agent_type, "last_assistant_message": text}
-    result = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
+    result = subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
                             capture_output=True, text=True, env=env)
     return result.returncode, result.stderr
 
@@ -5193,7 +5252,7 @@ def _red_failure(label, detail):
 
 def _fire_hook_binary(binary, payload, env):
     return subprocess.run([sys.executable, binary, "--hook"],
-                          input=json.dumps(payload), capture_output=True,
+                          input=json.dumps(_governed(payload)), capture_output=True,
                           text=True, env=env)
 
 
@@ -5390,11 +5449,13 @@ def _duplicate_hook_payload_failures():
         '"last_assistant_message":"not governed"}')
     hook = subprocess.run(
         [sys.executable, VALIDATE, "--hook"], input=payload,
-        capture_output=True, text=True)
+        capture_output=True, text=True,
+        env=dict(os.environ, HARNESS_PROJECT_DIR=_isolated_root()))
+    # FEAT-65: the typed ArtifactAccessError reaches hook_guard and is named in its template.
     refused = (
         hook.returncode == 0
         and "duplicate key" in hook.stderr
-        and "unreadable hook payload" in hook.stderr
+        and "check-digest: the hook failed internally (ArtifactAccessError:" in hook.stderr
     )
     return [] if refused else [
         "duplicate hook payload did not take the typed fail-open path"]
@@ -5514,9 +5575,346 @@ hook_case("#1855: an unknown mission changes nothing",
           "harness-qa", QA_DISTILL, 2, "gate", harness_mission="polish")
 
 
-def main():
+# --- FEAT-65: the hook's own failure is harness_boundary.hook_guard's ONE template -------
+# Hook mode runs under `hook_guard(hook_mode, "check-digest")`. The two local "internal error
+# … passing through" catches and the "unreadable hook payload" catch are gone: an unexpected
+# defect anywhere in hook mode prints the template line and exits 0; process control escapes;
+# and the direct CLI is NOT wrapped — its defects stay loud and nonzero.
+
+GUARD_LINE = ("check-digest: the hook failed internally ({detail}) — passing through; "
+              "this is not a pass, nothing was checked.\n")
+
+
+def _feat65_fire(sibling, override, argv=("--hook",), payload=None, stdin=None):
+    """Fire a copy of the validator whose `sibling` module ends with `override` (an appended
+    def wins). `sibling` None fires the unmodified copy."""
+    root = tempfile.mkdtemp(prefix="vd-feat65-")
+    os.makedirs(os.path.join(root, ".harness"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as handle:
+        handle.write("schema_version: 1\n")
+    iso = isolated_bin(root)
+    if sibling is not None:
+        with open(os.path.join(iso, sibling), "a", encoding="utf-8") as handle:
+            handle.write("\n\n" + override)
+    if payload is None:
+        payload = {"agent_type": "harness-qa", "last_assistant_message": "VERDICT: PASS\n"}
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+    return subprocess.run([os.path.join(iso, "validate-digest.py"), *argv],
+                          input=json.dumps(_governed(payload)) if stdin is None else stdin,
+                          capture_output=True, text=True, env=env)
+
+
+def _feat65_guarded(result, line):
+    """Pass-through: exit 0, stderr ending in the template, and never the old sentences."""
+    legacy = ("Not blocking on our own errand", "internal error validating", "unreadable hook payload")
+    return (result.returncode == 0 and result.stderr.endswith(line)
+            and not any(old in result.stderr for old in legacy))
+
+
+def _feat65_escaped(result, code=None):
+    """Process control escaped the guard: nonzero (or the named code) and no template."""
+    exit_ok = result.returncode != 0 if code is None else result.returncode == code
+    return exit_ok and "failed internally" not in result.stderr
+
+
+def run_feat65_guard_cases():
+    raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
+    payload_defect = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n" + raise_rt)
+    unreadable_payload = _feat65_fire(None, "", stdin="{not json")
+    registry_defect = _feat65_fire(
+        "inflight_registry.py",
+        "def live_claims(root, agent, now=None, agent_id=None, parent_agent_id=None):\n"
+        + raise_rt)
+    interrupt = _feat65_fire(
+        "artifact_accessors.py",
+        "def read_hook_payload(text, context):\n    raise KeyboardInterrupt()\n")
+    deliberate_exit = _feat65_fire(
+        "artifact_accessors.py", "def read_hook_payload(text, context):\n    raise SystemExit(7)\n")
+    # The direct CLI reads its persona and text itself; a defect in the validator core must
+    # stay a loud traceback, never a pass-through. The reviewer persona resolves the review
+    # policy's root through harness_boundary on every validate() call.
+    cli_defect = _feat65_fire(
+        "harness_boundary.py", "def resolve_root(bin_dir, strict=True):\n" + raise_rt,
+        argv=("harness-code-reviewer",), stdin="VERDICT: PASS\nartifact: x.md\n")
+    line = GUARD_LINE.format(detail="RuntimeError: FEAT-65 injected")
+    unreadable_head = ("check-digest: the hook failed internally (ArtifactAccessError: "
+                       "SubagentStop hook payload: invalid JSON: ")
+    return _feat65_report([
+        ("a defect reading the payload passes through with exactly the hook_guard line",
+         payload_defect.stderr == line and payload_defect.stdout == ""
+         and _feat65_guarded(payload_defect, line), payload_defect),
+        ("an unreadable payload is the hook's own failure and takes the same template",
+         unreadable_payload.stderr.startswith(unreadable_head)
+         and _feat65_guarded(unreadable_payload, line[line.index(" — passing through"):]),
+         unreadable_payload),
+        ("a defect in the registry errand is no longer reported in its own sentence",
+         _feat65_guarded(registry_defect, line), registry_defect),
+        ("KeyboardInterrupt escapes the guard",
+         _feat65_escaped(interrupt) and "KeyboardInterrupt" in interrupt.stderr, interrupt),
+        ("a deliberate SystemExit keeps its own exit code",
+         _feat65_escaped(deliberate_exit, 7), deliberate_exit),
+        ("the direct CLI is not wrapped: a validator defect is loud and nonzero",
+         _feat65_escaped(cli_defect) and cli_defect.returncode != 2
+         and "FEAT-65 injected" in cli_defect.stderr, cli_defect),
+    ])
+
+
+def _feat65_report(cases):
+    fails = 0
+    for name, ok, result in cases:
+        if ok:
+            print(f"ok    [feat65] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [feat65] {name}\n      | exit {result.returncode}: "
+                  f"{result.stderr.strip()[:400]!r}")
+    print(f"\n{len(cases) - fails}/{len(cases)} FEAT-65 guard cases passed.")
+    return fails
+
+
+# ---------------------------------------------------------------------------
+# BUG-1898 T-03 — the digest hook releases EXACTLY one run's claim, in the registry the
+# feature lives in, or nothing. Every case fires the real hook as a subprocess against its
+# own throwaway checkout (HARNESS_PROJECT_DIR), seeds real registry rows supervised by this
+# live process, and asserts the rows left behind.
+# ---------------------------------------------------------------------------
+B1898_FEATURE = "BUG-98-exact-release"
+B1898 = []
+
+
+def _b1898_check(name, ok, detail=""):
+    B1898.append((name, ok, detail))
+
+
+def _b1898_personas():
+    return sorted(name[:-3] for name in os.listdir(os.path.join(ROOT, ".omp", "agents"))
+                  if name.startswith("harness-") and name.endswith(".md"))
+
+
+def _b1898_seed(root, rows):
+    path = os.path.join(root, ".harness", ".inflight-claims.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    claims = []
+    for index, row in enumerate(rows):
+        claim = {"claim_id": "b1898-%d" % index, "started_at": time.time() - 60 + index, "cwd": root,
+                 "dispatcher": "run-start", "runtime": "omp", "supervisor_pid": os.getpid(),
+                 "feature": B1898_FEATURE}
+        claim.update(row)
+        claims.append(claim)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump({"schema_version": 2, "claims": claims}, handle)
+
+
+def _b1898_rows(root):
+    path = os.path.join(root, ".harness", ".inflight-claims.json")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle).get("claims", [])
+
+
+def _b1898_one_claim_per_persona():
+    root = _t09_root()
+    _b1898_seed(root, [{"agent": persona, "agent_id": "Lead.%s" % persona,
+                        "parent_agent_id": "Lead"} for persona in _b1898_personas()])
+    return root
+
+
+def _b1898_missing_identity_releases_nothing():
+    """Seed one live exact-id claim for every governed persona, then fire each persona's
+    return with the feature OR the runtime id missing. The pre-fix hook fell back to a
+    persona-wide (or feature-wide) release and removed that persona's seeded claim."""
+    for persona in _b1898_personas():
+        for missing, identity in (
+            ("runtime id", {"harness_feature": B1898_FEATURE}),
+            ("feature", {"harness_agent_id": "Lead.%s" % persona}),
+        ):
+            root = _b1898_one_claim_per_persona()
+            before = _b1898_rows(root)
+            r = _t09_fire(root, persona, PM_OK, **identity, governed=False)
+            _b1898_check("%s return missing its %s is refused" % (persona, missing),
+                         r.returncode == 2 and "harness_agent_id" in r.stderr
+                         and "harness_feature" in r.stderr,
+                         "exit %d: %s" % (r.returncode, r.stderr.strip()[-240:]))
+            _b1898_check("%s return missing its %s releases nothing" % (persona, missing),
+                         _b1898_rows(root) == before, repr(_b1898_rows(root))[:240])
+
+
+def _b1898_blocked_return_without_identity():
+    """A run T-02 holds (no claim, often no feature) may still yield BLOCKED: that return
+    touches no registry and is not refused for the identity it lacks."""
+    root = _b1898_one_claim_per_persona()
+    before = _b1898_rows(root)
+    r = _t09_fire(root, "harness-qa", "VERDICT: BLOCKED\nDIGEST:\n  headline: held\n", governed=False)
+    _b1898_check("a BLOCKED return without identity is not refused for identity",
+                 "harness_agent_id" not in r.stderr, r.stderr.strip()[-240:])
+    _b1898_check("and it releases nothing", _b1898_rows(root) == before,
+                 repr(_b1898_rows(root))[:240])
+
+
+def _b1898_qa_yields_while_pm_live():
+    """Occurrence-1 invariant: QA's digest is validated while PM is live, and PM's row
+    survives byte-for-byte. No historical cause is claimed by this case."""
+    root = _t09_root()
+    _b1898_seed(root, [
+        {"agent": "harness-pm", "agent_id": "Lead.Pm", "parent_agent_id": "Lead"},
+        {"agent": "harness-qa", "agent_id": "Lead.Qa", "parent_agent_id": "Lead"},
+    ])
+    pm_before = [row for row in _b1898_rows(root) if row["agent"] == "harness-pm"]
+    _t09_fire(root, "harness-qa", "VERDICT: PASS\n",
+                harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
+    rows = _b1898_rows(root)
+    _b1898_check("occurrence-1: QA's exact claim is released",
+                 [row["agent"] for row in rows] == ["harness-pm"], repr(rows)[:240])
+    _b1898_check("occurrence-1: PM's claim id, ids and timestamps survive unchanged",
+                 [row for row in rows if row["agent"] == "harness-pm"] == pm_before,
+                 repr(rows)[:240])
+
+
+def _b1898_owner_and_worktree():
+    owner = _t09_root()
+    worktree = _linked_worktree_fixture(owner, "BUG-98")
+    return owner, worktree
+
+
+def _b1898_release_reads_the_feature_worktree():
+    """Defect E: the guard claims in the feature worktree's registry; the hook released in
+    the owner checkout's and left the real claim behind."""
+    owner, worktree = _b1898_owner_and_worktree()
+    _b1898_seed(worktree, [{"agent": "harness-qa", "agent_id": "Lead.Qa",
+                            "parent_agent_id": "Lead"}])
+    _b1898_seed(owner, [{"agent": "harness-qa", "agent_id": "Other.Qa",
+                         "parent_agent_id": "Other", "feature": "FEAT-7-owner"}])
+    owner_before = _b1898_rows(owner)
+    _t09_fire(owner, "harness-qa", "VERDICT: PASS\n",
+                harness_feature=B1898_FEATURE, harness_agent_id="Lead.Qa", governed=False)
+    _b1898_check("the claim is released from the feature worktree's registry",
+                 _b1898_rows(worktree) == [], repr(_b1898_rows(worktree))[:240])
+    _b1898_check("and the owner checkout's registry is untouched",
+                 _b1898_rows(owner) == owner_before, repr(_b1898_rows(owner))[:240])
+
+
+def _b1898_orchestrator_digest():
+    return (
+        "VERDICT: PASS\nDIGEST:\n  headline: %(f)s shipped\n  feature: %(f)s\n"
+        "  status: shipped\n  runs: [r1]\n  cycles_used: 1\n  briefing: none\n"
+        "  files_touched: []\n  open_questions: []\n  expertise_update: []\n"
+        "artifact: .harness/features/%(f)s/feature.json\n" % {"f": B1898_FEATURE})
+
+
+B1898_PARENT = {"harness_feature": B1898_FEATURE, "harness_agent_id": "Main.Orch"}
+
+
+def _b1898_parent_with_live_child():
+    """In the feature worktree: parent Main.Orch with live child Main.Orch.Lead, and a second
+    parent Main.Orch-2 with its own child that no case may touch."""
+    owner, worktree = _b1898_owner_and_worktree()
+    _b1898_seed(worktree, [
+        {"agent": "harness-orchestrator", "agent_id": "Main.Orch", "parent_agent_id": "Main"},
+        {"agent": "harness-eng-lead", "agent_id": "Main.Orch.Lead",
+         "parent_agent_id": "Main.Orch"},
+        {"agent": "harness-orchestrator", "agent_id": "Main.Orch-2", "parent_agent_id": "Main"},
+        {"agent": "harness-qa", "agent_id": "Main.Orch-2.Qa", "parent_agent_id": "Main.Orch-2"},
+    ])
+    return owner, worktree
+
+
+def _b1898_ids(root):
+    return sorted(row.get("agent_id") for row in _b1898_rows(root))
+
+
+def _b1898_held_child_refuses_the_parent():
+    """The held-child gate on exact ids: a parent with a live child is refused, keeps its
+    own claim, and is told how to release exactly that child."""
+    owner, worktree = _b1898_parent_with_live_child()
+    r = _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT, governed=False)
+    _b1898_check("a parent with an exact live child is refused",
+                 r.returncode == 2 and CHILD_MARK in r.stderr,
+                 "exit %d: %s" % (r.returncode, r.stderr.strip()[-300:]))
+    _b1898_check("and every claim, its own included, remains",
+                 _b1898_ids(worktree) == ["Main.Orch", "Main.Orch-2", "Main.Orch-2.Qa",
+                                          "Main.Orch.Lead"], _b1898_ids(worktree))
+    _b1898_check("the recovery command targets the one child exactly",
+                 "--agent-id Main.Orch.Lead" in r.stderr and "--feature " + B1898_FEATURE
+                 in r.stderr and os.path.realpath(worktree) in r.stderr,
+                 r.stderr.strip()[-400:])
+    _b1898_check("and never a persona-wide or bulk release",
+                 "--agent harness-eng-lead" not in r.stderr and "release-all" not in r.stderr
+                 and "Main.Orch-2" not in r.stderr, r.stderr.strip()[-400:])
+
+
+def _b1898_settled_child_frees_the_parent():
+    """Once that child settles, the identical yield passes and releases only the parent."""
+    owner, worktree = _b1898_parent_with_live_child()
+    _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT, governed=False)
+    _reg_module().release(worktree, feature=B1898_FEATURE, agent_id="Main.Orch.Lead")
+    r = _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT, governed=False)
+    _b1898_check("after the child settles the identical yield passes",
+                 r.returncode == 0, "exit %d: %s" % (r.returncode, r.stderr.strip()[-300:]))
+    _b1898_check("and releases only the parent",
+                 _b1898_ids(worktree) == ["Main.Orch-2", "Main.Orch-2.Qa"], _b1898_ids(worktree))
+
+
+B1898_UNREADABLE_MARK = "cannot tell whether it holds a live child"
+
+
+def _b1898_unreadable_registry_holds_the_parent():
+    """F-01: "cannot read" is never "no live child". An unreadable registry refuses a
+    dispatch-capable parent's return, leaves the file as found, and lets only a BLOCKED
+    return — the parent's one way out while the operator repairs it — go on. A leaf, which
+    holds no children, is not held by it."""
+    owner, worktree = _b1898_parent_with_live_child()
+    path = os.path.join(worktree, ".harness", ".inflight-claims.json")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("{not json")
+    r = _t09_fire(owner, "harness-orchestrator", _b1898_orchestrator_digest(), **B1898_PARENT,
+                  governed=False)
+    _b1898_check("an unreadable registry refuses a parent's PASS return",
+                 r.returncode == 2 and B1898_UNREADABLE_MARK in r.stderr,
+                 "exit %d: %s" % (r.returncode, r.stderr.strip()[-300:]))
+    _b1898_check("and names the unreadable registry and the BLOCKED way out",
+                 os.path.realpath(worktree) in r.stderr and "BLOCKED" in r.stderr,
+                 r.stderr.strip()[-400:])
+    blocked = _b1898_orchestrator_digest().replace("VERDICT: PASS", "VERDICT: BLOCKED", 1)
+    r = _t09_fire(owner, "harness-orchestrator", blocked, **B1898_PARENT, governed=False)
+    _b1898_check("a parent's BLOCKED return is not held by the unreadable registry",
+                 B1898_UNREADABLE_MARK not in r.stderr, r.stderr.strip()[-300:])
+    r = _t09_fire(owner, "harness-qa", "VERDICT: PASS\n", governed=False,
+                  harness_feature=B1898_FEATURE, harness_agent_id="Main.Orch-2.Qa")
+    _b1898_check("a leaf's return is not held by it",
+                 B1898_UNREADABLE_MARK not in r.stderr, r.stderr.strip()[-300:])
+    with open(path, encoding="utf-8") as handle:
+        _b1898_check("the unreadable registry is left exactly as found",
+                     handle.read() == "{not json", "registry rewritten")
+
+
+def run_bug1898_exact_release_cases():
+    for case_fn in (
+        _b1898_missing_identity_releases_nothing,
+        _b1898_blocked_return_without_identity,
+        _b1898_qa_yields_while_pm_live,
+        _b1898_release_reads_the_feature_worktree,
+        _b1898_held_child_refuses_the_parent,
+        _b1898_settled_child_frees_the_parent,
+        _b1898_unreadable_registry_holds_the_parent,
+    ):
+        case_fn()
+    fails = 0
+    for name, ok, detail in B1898:
+        print(("ok    " if ok else "FAIL  ") + "[bug1898] " + name)
+        if not ok:
+            fails += 1
+            print("      | %s" % (detail,))
+    print("\n%d/%d BUG-1898 exact-release checks passed." % (len(B1898) - fails, len(B1898)))
+    return fails
+
+
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
     checks = (
         run_canonical_reader_strictness_cases,
+        run_feat65_guard_cases,
         run_cli_cases,
         run_empty_red_case,
         run_dec156_worktree_red_case,
@@ -5529,6 +5927,7 @@ def main():
         run_bug1305_artifact_resolution_cases,
         run_t09,
         run_t51_suspension_cases,
+        run_bug1898_exact_release_cases,
         run_template_cases,
         run_reviewer_severity_enum_cases,
         run_documented_contract_cases,
@@ -5536,6 +5935,17 @@ def main():
         run_t04_unknown_key_cases,
         run_t08_revision_proof,
     )
+    # `--only <group>` runs one group by its function name. test-suite-claim-preservation.py's
+    # mutant pass reads only the [bug1898] lines, and without this it paid for every group.
+    if argv[:1] == ["--only"] and len(argv) == 2:
+        by_name = {check.__name__: check for check in checks}
+        if argv[1] not in by_name:
+            print(f"unknown group {argv[1]!r}; groups: {', '.join(by_name)}", file=sys.stderr)
+            return 2
+        checks = (by_name[argv[1]],)
+    elif argv:
+        print(f"usage: {os.path.basename(__file__)} [--only <group>]", file=sys.stderr)
+        return 2
     fails = sum(check() for check in checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0

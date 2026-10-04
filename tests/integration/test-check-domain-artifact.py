@@ -90,8 +90,8 @@ def _feat50_mutant_between(start, end, iso):
 def _feat50_binding_red_case(root, target, refused):
     iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
-        '        feature_checkout_guard(_verdict["rel"], target)\n',
-        '        approval_guard(rel, agent)\n', iso)
+        '    feature_checkout_guard(verdict["rel"], target)\n',
+        '    approval_guard(verdict["rel"], agent)\n', iso)
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": target, "content": "x"}}
     muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
@@ -162,8 +162,9 @@ def _feat50_digest_post_case(root, path, prior):
 def _feat50_digest_red_case(root, path, clobber):
     iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
-        "    # Issues #1058/#1619: a lead reused a cycle's run directory",
-        "    if RE_FEATURE_JSON.match(rel):", iso)
+        "def _rule_run_digest(rel, content, lines, shown, absolute_path):\n"
+        "    if absolute_path is None:\n        return []\n    out = []\n",
+        "    return out\n", iso)
     muted = _feat50_digest_fire(root, path, "wholly different digest\n", hook=mutant)
     ok = clobber.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("digest-clobber-red", ok,
@@ -277,8 +278,9 @@ def _bug1124_unreadable_case(root, path):
 def _bug1124_red_case(root, path, collision):
     iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
-        "        # Issue #1124: the digest guard above (#1058) fires only on digest.md",
-        "        # T-17 / D-08: str() BOTH sides.", iso)
+        "def _state_yaml_prior_refusal(doc, _version, rel, shown, absolute_path):\n"
+        "    if absolute_path is None:\n        return []\n",
+        "\n\ndef _state_yaml_prior_parse(", iso)
     muted = _bug1124_state_fire(root, path,
                                 "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
                                 hook=mutant)

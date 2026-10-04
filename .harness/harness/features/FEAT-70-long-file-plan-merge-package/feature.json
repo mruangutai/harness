@@ -1,0 +1,98 @@
+{
+  "feature_id": "FEAT-70-long-file-plan-merge-package",
+  "branch": "feat/FEAT-70-long-file-plan-merge-package",
+  "pr": 1990,
+  "review_sha": "01af5a511f356d76ee91ced8922e2d53e71479e3",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T01:31:56+00:00",
+      "tokens": 132738,
+      "ended_at": "2026-09-29T02:08:42+00:00",
+      "cycles_used": 1,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-29T15:00:31+00:00",
+      "tokens": 168634,
+      "ended_at": "2026-09-29T15:14:57+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c0-main-direct",
+      "squad": "main-session",
+      "agent": "main-session",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T15:19:22+00:00",
+      "ended_at": "2026-09-29T15:49:35+00:00",
+      "cycles_used": 1,
+      "tokens": null
+    },
+    {
+      "id": "validate-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-29T15:52:34+00:00",
+      "tokens": 83320,
+      "ended_at": "2026-09-29T16:04:40+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-29T01:31:28+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "cause known and diff bounded, but a new importable surface (the package), twelve grade fixes in shared text primitives, and a behaviour fix \u2014 the patch rule fails on all three."
+    },
+    {
+      "at": "2026-09-29T15:00:31+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Continue from the signed plan through completed main-session-direct build work into pinned validation."
+    },
+    {
+      "at": "2026-09-29T15:19:22+00:00",
+      "by": "operator",
+      "kind": "regate",
+      "decision": "main-session-fix",
+      "reason": "validate c0 FAIL: VAL-01 receipt script function below bar, VAL-02 sweep/hooks fixtures copy bin files without the plan_merge package; DEC-174 main session"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 480,
+    "decision": ".harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/rework-ruling-2026-09-28.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "d6a93eb57a870b06fd50242bae5e60ad12807dd287e802bd63a577b1e50b33c6",
+    "T-02": "6d80c621d60bb670e604cf6680ef256b3b2666db20d8c44c540a419f4bd5989e"
+  },
+  "github": {
+    "milestone": 94,
+    "parent": 1987,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 1988,
+      "T-02": 1989
+    },
+    "source_issues": [],
+    "build_entry": "opened"
+  }
+}

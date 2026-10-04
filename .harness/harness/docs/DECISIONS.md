@@ -1370,6 +1370,12 @@ ALLOWED_PATH_RESULT: SUCCEEDED
 
 Selective path blocking works, `exit 2` blocks, and the stderr reason reaches the agent.
 
+Only `exit 2` blocks; a hook's own crash passes through, and that holds for dispatch too. A
+dispatch-guard crash still lets the dispatch through without a receipt. Under OMP the started
+child makes the authoritative claim at run start (DEC-204). A child that cannot claim refuses
+every tool itself and may yield only a BLOCKED digest that names the cause and whether a retry can
+succeed. The guard's pass-through is therefore never an unclaimed governed run.
+
 **Residual gap, stated honestly:** this used a `settings.json` hook, not an *agent-frontmatter* hook.
 Agent definitions are **not live-reloaded** (see below), so the frontmatter variant could not be loaded
 this session. The docs assert it directly — *"Define hooks directly in the subagent's markdown file…
@@ -2191,6 +2197,17 @@ for product-work DAGs, and the filesystem is the registry, so a probe listed the
 anyone might run against a feature). The hierarchy it proved is recorded in DEC-116 and re-exercised
 by every crew run since; the crew definition itself earned nothing further.
 
+**Amended by the skills optimization pass (2026-09-18) — the `spawns:` list is enforced, not
+the depth cap.** DEC-233 removed the platform depth cap this ruling leaned on; from then until
+now "a lead never spawns a lead" and "delegate to a lead, never a member" were prose in two
+playbooks and nothing checked them, while the consumer audit found the reviewer≠author
+independence resting on exactly that list. `dispatch-guard.py` now reads the DISPATCHER's
+`.omp/agents/<persona>.md` frontmatter and refuses a target absent from its `spawns:`; it also
+refuses a `name:` parameter the way it refuses `model:` (DEC-147). Fails open, loudly, when the
+dispatcher file or key is unreadable; `spawns: []` is a real empty list. Main is exempt. The
+ruling — one squad per team, cross-squad leads are two orchestrator dispatches — is unchanged;
+the playbooks now cite the guard instead of restating it.
+
 ---
 
 ## DEC-119 — "team" everywhere, one artifact type per tier, and the two counters get owners
@@ -2766,6 +2783,44 @@ all green. Every new case verified against a saved pre-fix copy of the validator
 (`VALIDATE_DIGEST_BIN` env override): all fail there except the three pass-through cases, which were
 never broken and are asserted unchanged. `check-docs.sh` exits 0 after the doc corrections above.
 
+**Amended by the skills optimization pass (2026-09-18) — three more prose rules become computed
+checks, not a new mechanism.** The consumer audit found the reviewer's hand-edit reconciliation
+and qa's five kind states stated in skills with nothing behind them. `validate-digest.py` now, on
+a code review with a PASS or FAIL verdict, computes `human_commits_in_scope` from
+`[harness:human]` commits in the canonical range and refuses a digest whose list disagrees
+(omitted counts as empty), and refuses any verdict over modified tracked files outside
+`.harness/` — BLOCKED is the honest return there. On a qa return carrying `kinds:`, `state`
+must be one of `satisfied | missing | not_applicable | locally_run | misconfigured`;
+`misconfigured` is refused under PASS or FAIL, `not_applicable` is refused for a kind
+`harness.json` does not exclude, `satisfied` for a kind with no `cmd`, and an undeclared kind
+outright. All three say nothing when git or the policy cannot be read — the grade enforcement
+already refuses that checkout with its own repair. `tests/integration/test-validate-digest-shadows.py`.
+
+**Amended again, same pass — five more computed checks.** A dev or dev-ops `task_verify: pass`
+requires the receipt its `artifact:` names to exist and to carry the task's `verify:` verbatim
+from `plan.yaml`. A code review with a PASS or FAIL: every BRIEF SC marked `verify: inspection`
+must be cited in the review artifact on a line naming the SC and a `file:line`; `findings` must be
+ranked by severity, highest first; a `grade_2` claim's `grade_2_reasons` must name each function
+`code_grade.classify` grades 2 over the canonical range. A qa `FAIL` with `suite: pass`,
+`matrix_ok: true` and `failures: 0` is refused — a test-first violation is a finding, never a
+verdict. `harness-code-risk-grading` is cited, not edited. Dropped from the same list: requiring
+`## Principles applied` in receipts (code-review already rules an absent section is not a finding).
+
+**Corrected 2026-09-28 (probe P59).** The unearned-FAIL refusal contradicted SC-17: a green suite
+with an empty `fail_first` is told to "return FAIL", and the refusal then rejected that FAIL — qa had
+no truthful return and escalated, the DEC-173 shape exactly. The refusal now requires `fail_first`
+to be non-empty; an empty one beside a green suite is itself the failed gate. **Known residual:** the
+exemption keys on empty-versus-non-empty, while SC-17 demands evidence per automated SC; two automated
+SCs with evidence for one and a green suite is a FAIL the validator still refuses. Closing it needs
+per-SC counting against BRIEF, which no check does yet.
+
+**Amended 2026-09-28 — the matrix floor is computed.** `matrix_ok: true` on a qa PASS was a bare
+claim: nothing compared the kinds reported against what `test_matrix.<change_type>.always` requires
+for the plan's tasks. The validator now derives that floor (started tasks only; kinds `harness.json`
+excludes dropped; the `when:` half stays qa's judgement per DEC-212) and refuses a PASS whose
+`kinds:` does not report each floor kind `satisfied` — or omits `kinds:` altogether when a floor
+exists. A FAIL that reports the gap is unaffected.
+
 ---
 
 ## DEC-128 — The orchestrator exists: agent, playbook, and three doors
@@ -3314,6 +3369,14 @@ distilled. Displacement-at-cap is the one mechanism no run has yet exercised.
 Supersedes the mid-run write discipline of DEC-24/66/67 (the op format, IDs, and who-holds-the-pen
 all survive; only the *when* moved) and DEC-25/68's overflow flow becomes the escalation path when
 a distilling agent cannot condense under the caps.
+
+**Amended by the skills optimization pass (2026-09-18) — the "one writer" clause is now
+enforced at write time, not left to `harness-expertise` prose alone.** `check-domain.py`'s
+`observations_log_guard` refuses a governed agent's Write/Edit against
+`.harness/*/features/*/observations/*.md`, whatever the agent's own domain otherwise permits;
+only `observations-merge.py`, invoked via Bash, still lands bytes there. Nothing about the
+mid-run/distillation split changes — this closes the one route issue #606 found open, a
+whole-file Write/Edit racing the merge tool's own lock.
 
 
 ---
@@ -4245,7 +4308,7 @@ one author who hit it wrote the warning into the data file instead of fixing the
 beside FEAT-03's `squad:` line, which went away with the YAML file itself under DEC-191.
 
 **Why the line scanner was always going to lose.** This defect shape is documented repeatedly in-tree,
-and #11 is not its first appearance. `check-state.py:105-107` names two priors in its own comment —
+and #11 is not its first appearance. the run parser's own comment (check-state.py lines 105-107 at the time; the record is read by `Ctx.record`, `check_state/ctx.py:458` since FEAT-69) named two priors —
 the digest parser (DEC-123) and INV-4 (DEC-129), both single-format bugs — alongside DEC-101's own
 INV-12 false positive the first time a real orchestrator wrote block-form YAML. Separately,
 `validate-digest.py:247-272` documents **five** hand-patches of the same class, one of which (F4) is
@@ -4285,8 +4348,8 @@ inside the tool, and it expires by construction rather than by anyone rememberin
 
 **Two hazards for the implementer, both real:**
 
-- **`safe_load` returns typed values; the regex returned strings.** `check-state.py:120` is
-  `cu.isdigit()` on `cycles_used` — an `int` under `safe_load`, and `.isdigit()` on an `int` raises.
+- **`safe_load` returns typed values; the regex returned strings.** `cycles_used` was read as
+  `cu.isdigit()` (check-state.py line 120 at the time; `check_state/feature_record.py:183` since FEAT-69) — an `int` under `safe_load`, and `.isdigit()` on an `int` raises.
   Every consumer of a parsed value must be walked for str-assumptions.
 - **A bare date-shaped scalar becomes a `datetime.date`.** Run ids like `2026-07-31-01-product` carry
   trailing text and stay strings, but an id that is exactly `2026-07-31` would silently become a date
@@ -4335,6 +4398,13 @@ unfenced returns — that is the half that breaks every not-yet-updated agent.
 The practical sequencing: fence the 13 templates whenever convenient, then make rejection the
 parser's behavior once no unfenced returns remain. Agent files are read at spawn, so the
 `harness-init` step 9 restart caveat still applies to the template change.
+
+**Amended by the skills optimization pass (2026-09-18) — the rejection half is withdrawn, not the
+fence.** The templates were fenced as ruled. Rejection of unfenced returns cannot ship under OMP:
+`harness-hooks.ts` `yieldContractText` renders a structured yield payload as bare YAML lines, so a
+legitimate host-produced return arrives unfenced. `validate-digest.py` therefore keeps reading the
+last `VERDICT:` block wherever it sits; `harness-handoff` no longer claims only the fenced block is
+parsed. The fence stays in every template for readers and to keep prose out of the block.
 
 ## DEC-173 — "nothing happened" gets a spelling: `n/a`, and declining a gate is not passing it
 
@@ -4621,6 +4691,8 @@ preloaded by exactly FIVE, those four plus `harness-dev-ops`. The obvious home w
 missed the one persona the ruling had just brought into scope. The same arithmetic runs the other
 way for a rule 11 agents cannot act on: it does not belong in a file all 16 preload.
 
+**Amended 2026-09-18, main session — section 6's home, not its rule.** The receipt clause now lives in `.claude/skills/harness-digest-dev/SKILL.md`, one copy, and `harness-tdd-enforcement` no longer carries it. The preload arithmetic that forced the original placement no longer holds: `harness-dev-ops` preloads `harness-digest-dev`, whose `dev-ops` schema block replaces the one the agent file carried inline, so the skill reaches all FIVE and the topical home is also the covering one. The rule this section generalises to — verify the preload set before choosing a home — is UNCHANGED; it is what made the move safe. `tests/unit/test-digest-dev-skill.py` pins the clause present in `harness-digest-dev` and absent from `harness-tdd-enforcement`, and validates the refusal digest there against `validate-digest.py`.
+
 ## DEC-176 — The signature gate is BATCHED: one review pass produces one consolidated fix, dispatched after the user has read to exhaustion
 
 At the BRIEF/PLAN signature gate the main session now collects **every** change request the user
@@ -4666,6 +4738,33 @@ agents, so a rule placed there is paid for at all 16 spawns. "Probe before you r
 to an agent that relays nothing to the user; charging every agent for a rule only the relaying tiers can act on is the
 context-budget failure the constraint in `CLAUDE.md` exists to prevent. Placement follows *who can
 act on the rule*, not *where rules of this kind usually live*.
+
+**Amended by the skills optimization pass (2026-09-28) — one universal rule cut on probe evidence,
+not the placement principle.** "Never read an authority file whole: index first" was preloaded ×16.
+Probed (P4, `.harness/notes/probe-list-2026-09-28.md`): a `harness-backend-dev` with the skill and a
+plain agent without it, asked a question against the 7,800-line `DECISIONS.md`, both grepped the
+index and read ranged slices; neither read the file whole. A rule the default behaviour already
+satisfies is weight with no return. The four rules the same round found load-bearing — placeholder
+refusal, verify-vs-plan cross-check, UNRESOLVED-root refusal, test-first order — stay as written.
+Round 2 (two fixtures each, the second an 11-file diff with an omitted BRIEF decision): qa's
+revert-run-capture-restore procedure was performed by every arm, skill or not, and the controls
+were the more thorough on both fixtures; cut, keeping the capture-file requirement the validator
+can check. The reviewer's "BRIEF and decisions before the diff" was probed the same way and
+performed by every arm — and is **kept**: the probe's predicate (read order) proxies the rule's
+benefit (anchoring resistance), both fixtures handed the spec over salient so the order was forced,
+and the row was pre-registered as a weak discriminator. A null result the fixture design guarantees
+is not evidence. Reduced to one imperative with its reason.
+
+**What the round actually measured (second opinion, fable-advisor).** The variable that separates
+kept from cut is not contract-versus-procedure: test-first order is pure procedure and probed
+load-bearing; "an open question does not block" is verdict semantics and probed redundant. The
+load-bearing rules each demand something the helpfulness default opposes — refuse, block, invert
+the natural order. Rules aligned with the default probe redundant whatever their form. Applying
+this to unprobed rules: a rule born from a recorded incident keeps or gets an adversarial probe (a
+fixture where the procedure opposes the path of least resistance); a rule born speculatively may
+be cut on judgement, behind the observation logs. Two probes on one model tier and small fixtures
+bound nothing statistically; P4's cut rests on a mechanical fact as much as the probe — the `read`
+tool paginates whole-file reads — and that is the durable reason.
 
 ---
 
@@ -5041,6 +5140,16 @@ Existing issues are not rewritten, so the corpus is mixed.
 **Amended by FEAT-41-one-station-vocabulary — the shape-gate clause, which was silent rather than wrong.** This entry says "`plan.yaml` is deliberately absent from `check-domain.py`'s shape gate". It is present now, under REQ-05. The argument here is not reversed, because it never addressed this case: it weighed a BUDGET and a PARSE check, and ruled both out — correctly, and those rulings stand. A WRITE DENIAL is a third thing it did not consider. `plan.yaml` now has exactly one writer, `plan-merge.py`, whose verbs validate a station before opening the file, so an editor write is not a shape violation to be measured but a route that no longer exists. Nothing here duplicates `check-plan-routes.py`: that tool judges a document, the gate refuses an author.
 
 **Two field rules the skill now states in one line each (FEAT-60).** `traces:` carries `SC-NN` only; `D-NN` goes in the `decisions:` block — carrying both made the field mean two things and nothing ever read the second. And `pending` is not a station and never was one: the six stations are the ones `harness.json` declares, plus `abandoned`, and `plan-merge.py` refuses any other value with exit 4.
+
+**Amended by the skills optimization pass (2026-09-18) — a task's `verify:` shape is now checked while a plan is still `pending`, not the free-form field this entry left it.** `harness-spec-driven` SKILL.md's only instruction for a task with nothing automatable was prose nothing enforced: write `verify: MANUAL — <what must be built>` (em dash). `harness_yaml.validate_plan_doc` — the one function `load_plan` and `plan-merge.py check` both call, per this entry's "nothing in it is prose for a human" — now raises `PlanSchemaError` when a `pending` plan's task `verify:` is neither that exact MANUAL prefix nor the start of a runnable command (a path/script, a shell-preamble assignment, or one of a small corpus-derived bare-command allowlist). Gated on `approval.status == "pending"`, never on an approved plan: surveyed at this commit, 43 of 607 shipped `verify:` blocks across 99 plan.yaml files open with a shape (`#`, `for`, `!`, `gh`, `bun`, `shasum`) this rule's allowlist does not recognise, and DEC-182's own forward-only stance — "shipped plans are never route-checked again" — rules out re-validating them. Not a new enforcement point: it lives inside the one home this entry already established, so `load_plan`, `plan-merge.py check`, and `check-state.py` agree by construction rather than by a second copy of the rule.
+
+**Amended by the skills optimization pass (2026-09-18) — the "never converted" clause is now
+checked at write time, not left to `harness-spec-driven`/pm-agent prose alone.**
+`check-domain.py`'s `legacy_plan_conversion_guard` refuses creating a `plan.yaml` beside a
+feature dir that already ships a `PLAN.md`, before falling through to the existing
+single-writer route denial that covers every other `plan.yaml` write. Nothing about the
+conversion prohibition changes — a shipped `PLAN.md` is still edited in place, never rewritten
+into `plan.yaml`; this only stops the one route that was never blocked by name.
 
 ---
 
@@ -6358,10 +6467,13 @@ different id form is refused. The OMP adapter normalizes both batch and flat tas
 existing dispatch guard for every item, and refuses the whole batch when one item fails. A batch
 cannot start with only part of its checkpoint represented by claims.
 The role marker comes from the system prompt, but the feature marker does not: OMP places the task
-assignment in the first user message. The extension captures that message before the first tool
-call and carries the feature into yield validation and startup reconciliation. Reading only
-`before_agent_start.systemPrompt` was measured losing the feature and falsely treating concurrent
-features as one parent-child tree.
+assignment in the run's first user message, and `before_agent_start` receives that message's text as
+its `prompt` before the first tool call. The extension reads the one `HARNESS-FEATURE` value there;
+two different values are refused. A restart or revival that carries no marker recovers its feature
+only from the one live claim bound to its exact runtime id, searched across the owner checkout's
+registry and every linked worktree's; none, several, or an unreadable registry is a refusal, never a
+guess from persona, dispatch name, cwd, or session. Reading only `before_agent_start.systemPrompt`
+was measured losing the feature and falsely treating concurrent features as one parent-child tree.
 
 
 **Claims use schema version 2.** The registry is one explicit `claims` list. Every entry names
@@ -6369,24 +6481,25 @@ features as one parent-child tree.
 names its supervising PID. Main is not a Harness persona and remains outside persona policy, but
 the OMP adapter submits its top-level Harness task through dispatch preflight using OMP's
 host-derived `Main` runtime id; this creates the orchestrator claim without constraining the user's
-model choice. After dispatch preflight creates any OMP claim, the parent extension atomically
-attaches its host-derived runtime id and, when the task call names the child, that expected child id
-before the task call returns. Before an inherited child may use Write, Edit, or Bash, it presents
-OMP's actual child and parent ids: the registry either verifies the exact pre-bound pair or binds
-the actual child to the one unique parent-bound unnamed claim. A mismatch, ambiguity, missing
-identity, or registry error refuses before the mutation gate runs. Later task results may add job
-identity without changing the attached lineage. Single-flight is keyed by `(feature, persona)`, so
+model choice. After dispatch preflight creates an OMP claim, a receipt, the parent extension
+attaches its own host-derived runtime id to it before the task call returns. It never binds a
+dispatch name, which is not the id OMP gives the child. **Every governed run claims at run start.**
+Before its first tool call, a governed run presents OMP's actual child and parent ids to one locked
+`run-start` step. That step reuses the live claim already bound to that exact id (a woken agent),
+binds the unique unbound receipt its parent left, or creates a claim of its own; it never picks
+from an ambiguous set. A run that cannot claim is held:
+
+- the causes: another live holder of a single-flight persona, a lineage mismatch, an unreadable
+  registry, no exact claim for a markerless revival, or missing runtime identity;
+- the refusal names its cause and whether a retry can succeed;
+- every tool except `yield` is refused, and only a BLOCKED digest may be yielded.
+
+Before Write, Edit, or Bash the registry still verifies the exact child and parent pair; a
+mismatch, ambiguity, missing identity, or registry error refuses before the mutation gate runs.
+Single-flight is keyed by `(feature, persona)`, so
 two PMs for one feature are refused while PMs for different features are legal. The version-1
 persona-keyed object is read once for migration and every following write is version 2. There is one
 locked registry implementation, still `inflight_registry.py`.
-
-**The upstream merge is not a runtime prerequisite.** Until OMP ships the lineage context
-upstream, Harness supports the immutable downstream ref recorded in `.omp/runtime-pin.json`.
-Changing that pin requires the live `tests/manual/probe-omp-runtime-lineage.py` check: it launches
-the installed binary, observes Main's task callback, and observes one inherited extension receiving
-the child's Write, Edit, and Bash callbacks with the same child id and `Main` as immediate parent.
-The probe is manual because it makes a credentialled model call; where it runs, absence or incomplete
-lineage fails rather than skips.
 
 **OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
 live for any age while its recorded supervisor PID exists and becomes stale immediately when that
@@ -6397,13 +6510,29 @@ another feature; only that feature's query or an explicit targeted reconcile rem
 crash recovery from changing an unrelated flow merely because both claims share one registry.
 
 
-**Release is targeted and idempotent.** A settled blocking task result releases its claim directly.
-For a background task, OMP attaches agent/job identity from task result details and releases the
-matching claim on `task:subagent:lifecycle`; `yield` validation remains an idempotent second path.
-A failed preflight or spawn releases claims for items that did not start. Recovery instructions and
-refusals print only feature/agent/claim-targeted commands, never `release-all`. The older command
-remains an operator escape hatch but is not an automated remedy. A lead or orchestrator `yield` is
-refused while any matching child claim remains live; `agent_end` is notification-only.
+**Release is exact and idempotent.** A claim is released only by its feature plus its exact runtime
+id or claim id. The release happens in the registry that `inflight_registry.feature_root` places
+that feature in. That is the one resolver that dispatch preflight, the run-start step, and yield
+validation share.
+
+- **Task results.** Results are keyed by each row's own runtime id, never by array position. A
+  settled row releases that id's claim wherever it lives.
+- **Background children.** A background child's settlement arrives on OMP's
+  `task:subagent:lifecycle`. The extension subscribes to it through `pi.events`, the session event
+  bus; `pi.on` never delivers it. The settlement releases that id's claim, and a woken agent's
+  turns settle the same way.
+- **Dispatch receipts.** A receipt only holds a governed slot across the spawn gap. Once every
+  child of a call has settled, or the call failed as a whole, the receipts no child bound are
+  released. So a receipt only ever rolls back a child that never started.
+- **Yield validation.** Yield validation releases the run's own claim as an idempotent second
+  path. It requires both the feature and the exact runtime id: it releases nothing without them
+  and refuses a non-BLOCKED return that lacks them. A lead or orchestrator `yield` is refused, and
+  keeps its own claim, while any claim whose parent is its exact id remains live.
+- **Recovery commands.** Recovery instructions and refusals print only commands that name one
+  claim, by feature and runtime or claim id. They never print a persona-wide release or
+  `release-all`, which remains an operator escape hatch and is not an automated remedy.
+
+`agent_end` is notification-only.
 
 **A process exit does not pretend detached work survived.** OMP sessions and transcripts persist,
 but running jobs belong to the process. On `--resume`, a dead-PID claim is reconciled before a new
@@ -6439,11 +6568,26 @@ each parent transcript contains no intervening model message or tool call.
 
 
 
-The deterministic suites separately exercise per-feature PM isolation, live/dead OMP supervisors,
-targeted release, schema migration, runtime identity, atomic batch refusal, blocking-result release,
-flat/batch normalization, lifecycle release, and parent-yield refusal. The port checker rejects
-drift in async enablement, wall-clock configuration, nested blocking declarations, task preflight,
-lifecycle wiring, or the GitHub close gate.
+The deterministic suites separately exercise these behaviours:
+
+- per-feature PM isolation;
+- live and dead OMP supervisors;
+- run-start claiming, including wakes, markerless revivals and every held refusal;
+- exact, feature-registry release;
+- id-keyed settlement of mixed and reordered batches;
+- schema migration and runtime identity;
+- atomic batch refusal and flat/batch normalization;
+- parent-yield refusal.
+
+The port checker rejects drift in:
+
+- async enablement and wall-clock configuration;
+- nested blocking declarations and task preflight;
+- a lifecycle listener registered anywhere but `pi.events`;
+- the GitHub close gate.
+
+The live `tests/manual/probe-inflight-claim-lifecycle.py` is the credentialled merge gate for a
+change to this lifecycle.
 
 This decision supersedes DEC-199 only for claim schema, key, liveness, and automated recovery. It
 supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
@@ -6752,6 +6896,18 @@ accepts for the other three. A separate, unfixed risk survives outside this deci
 `gh-sync.py`'s `board_lifecycle.audit_findings` call site degrades a consumer-side shape crash to a
 stderr line that `ship` does not fail on — hardening that swallow is future work, not part of this
 matrix binding.
+
+**Amended by the skills optimization pass (2026-09-18) — investigated whether `touches_config_shape`
+could be made mechanical in `check-state.py`, not implemented it.** Triage row 62 asked for a
+`config_shape` predicate in `check-state.py`, computed from `merge-base(origin/main, review_sha)..review_sha`
+against the files this decision's own `harness.json`/`fleet.yaml` text names. This decision's own
+**Tradeoff accepted** paragraph already answers the question: "the predicate is a judgment call, not
+a mechanical diff rule — a boundary case ... is qa's call, same latitude DEC-35 already accepts for
+the other three." A predicate DEC-212 itself declares non-mechanical is not a candidate for a
+deterministic disk-diff check; building one would either narrow the judgment DEC-212 explicitly
+preserves or silently diverge from it. No `check-state.py` change was made for this row; the
+predicate stays qa-judged at gate time, exactly as chosen above, and `harness-verification-rules`'s
+prose (SKILL.md:31-33) is left as prose because nothing enforces it mechanically.
 ## DEC-213 — Harness's own tests live under tests/**, the directory is the kind, and tests/** is control-plane
 
 **Chose:** Harness's own executable tests live at the repository root under `tests/unit/**` and
@@ -6973,7 +7129,7 @@ DEC-193's shared `harness_boundary.py` seam. OMP contributes its child and immed
 that predicate; Claude Code retains the persona-only call because it exposes no equivalent runtime
 lineage. An unresolvable or ambiguous assignment refuses rather than guessing. Scratch paths and
 unbound Harness-checkout agents retain their prior behavior. Product-repository writes are governed
-separately by DEC-235's repository-bound lineage. Control-plane Expertise distillation remains
+separately by DEC-250's repository-bound lineage. Control-plane Expertise distillation remains
 carved out by its sanctioned merge route, not by a destination glob (DEC-153).
 
 **The two persona residues remain only on compatibility hosts.** On Claude Code, persona P
@@ -6984,13 +7140,11 @@ payloads carry no child or parent runtime identity. OMP's inherited extension an
 context remove both residues on its route without trusting a prompt token: forwarding a child id
 cannot change the immediate parent id OMP supplies.
 
-An OMP process without the lineage context is not a compatibility host. The project extension
-refuses Task before dispatch when no runtime agent id was supplied, and refuses every governed
-Write, Edit, Bash, or nested Task when a Harness persona lacks either its child or immediate-parent
-id. This keeps an older upstream binary from looking installed while silently taking the
-persona-only compatibility path. The supported temporary runtime is the exact downstream ref in
-`.omp/runtime-pin.json`, verified after installation by
-`tests/manual/probe-omp-runtime-lineage.py`.
+An OMP process without the official `ctx.agent` identity is not a compatibility host. The project
+extension refuses Task before dispatch when `ctx.agent.id` was not supplied, and refuses every
+governed Write, Edit, Bash, or nested Task when a Harness persona lacks either its child id or
+`ctx.agent.parentId`. This keeps an older binary from looking installed while silently taking the
+persona-only compatibility path.
 
 **Binding liveness and dispatch liveness are separate questions over one stored claim.** The
 guards' enumerator answers binding liveness: an OMP claim remains live through `_omp_claim_live`;
@@ -7073,7 +7227,7 @@ milestone and the parent and source issues only — never historical task sub-is
 `recovered-terminal` (`gh-sync.py:1277-1323`). While GitHub is unavailable that recovery stays
 non-terminal and `post-merge-sweep.py` keeps the worktree (`post-merge-sweep.py:222-231`).
 `check-state.py` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
-terminal and its task statuses are absent (`check-state.py:1983-2018`). One frozen set,
+terminal and its task statuses are absent (`check_state/board.py:328-341`, INV-37; moved from check-state.py by FEAT-69). One frozen set,
 `feature_schema.BUILD_ENTRY_ERA_EXEMPT`, bounds INV-37 and both refusals to the post-receipt era.
 
 **Over:** making the mirror a gate on GitHub itself — DEC-138 forbids it, and every refusal here
@@ -7100,7 +7254,7 @@ config lands, because the failure of the reverse order has no symptom but an una
 `FleetError`, and `factory_config.py --check-product-configs` is what names it — a check that is
 OPERATOR-RUN, with no standing invariant behind it. `check-state.py` never reads a member's config
 from its remote, and its only network calls record nothing when the network is unavailable, because
-an offline environment must never become a red gate (`check-state.py:2270-2273`). So nothing grades
+an offline environment must never become a red gate (`check_state/ctx.py:254`, `Ctx.gh_ok`; moved from check-state.py by FEAT-69). So nothing grades
 a fleet member's remote config on every run, and a member whose `harness.json` is deleted after
 onboarding stays invisible until the next build against it.
 
@@ -7575,6 +7729,17 @@ perspective block with the SCs.
 
 **Why an empty perspective is omitted (moved from `harness-brief` under FEAT-60).** A perspective with nothing to say is omitted rather than written as `none`, because an empty promise is still a promise the goal-check has to grade.
 
+**Amended by the skills optimization pass (2026-09-18) — added a sibling check-state.py invariant
+for `harness-brief`'s own "record the gap" rule, not changed INV-38 or INV-41's own logic.**
+Triage row 98 measured that DEC-163's BRIEF-authoring surfacing ("pm ... must record, where the
+user signs, what is therefore NOT proven") had no mechanical check, unlike its check-state.py and
+init-interview siblings. `check-state.py` INV-49 now runs in the same by-perspective SC loop as
+INV-38/41 (same scope: old-shape and abandoned BRIEFs are skipped) and flags an SC whose `verify:
+automated` names an `evidence:` kind harness.json does not declare runnable (`cmd: null` or
+`status: excluded`), or whose method is `manual`/spelled `MANUAL —`, when `## Verification gaps`
+names no line for that SC — violation-class, matching INV-41's own posture. INV-38 and INV-41
+themselves are unchanged.
+
 ## DEC-232 — Plan anchors are symbols — `path`, `path#symbol`, `{path, quote}` — a line number is refused at write, and a stale anchor at build is the builder's
 
 **Chose:** a plan task's `files:` entry takes one of three forms — `path`, `path#symbol`, or
@@ -7706,33 +7871,117 @@ flag these five; they are the reference case for "duplication with no available 
 (a feature-station literal outside `factory_config.py`; a second repo-local
 `spec_from_file_location` under `bin/`), neither of which touches the prologues.
 
-## DEC-235 — Product-repository write authority is exact OMP lineage bound to a validated fleet member
+---
+
+## DEC-235 — Engineering craft enters the org as `harness-craft`: a generated per-seat index over leaves read at the seam
+
+Twelve engineering principles from Lauren Tan's pstack (MIT, cursor/plugins, `skills/principle-*`)
+stand as leaves under `harness-craft/references/`, re-homed onto existing machinery the way
+DEC-149 re-homed Pocock's design vocabulary. Five more pstack principles were **not** imported
+because harness already carries them with teeth (prove-it-works → rule 7 and the receipt gates;
+fix-root-causes → `harness-systematic-debugging`; guard-the-context-window, never-block-on-the-human,
+encode-lessons-in-structure → rules 5/11/13 and the handoff/expertise skills), and four were folded
+into their harness homes rather than duplicated: reader load, boundary discipline and
+exhaust-the-design-space into `harness-codebase-design`; the undefined-return test into
+`harness-code-review`'s canonical absence/subject/mutant block. `laziness-protocol` and
+`subtract-before-you-add` merged into one leaf, `delete-first`, because a harness dev meets both at
+the same moment, a task dispatch.
+
+**Shape, and the three choices in it.** (1) Leaves live in `references/`, not as flat
+`harness-principle-*` skills: OMP puts every discovered skill's name and description into every
+agent's system prompt, so twelve flat skills would tax all sixteen seats on every spawn, and
+`references/` is already the "read at the seam, never preloaded" idiom (DEC-158). The cost is that
+a leaf is not `skill://`-addressable; harness reads everything by path already. (2) The index in
+`harness-craft/SKILL.md` is **generated** from each leaf's frontmatter (`description` is the
+trigger, `seats` is who reads it) by `bin/gen-craft-index.py`, and
+`tests/unit/test-gen-craft-index.py` fails on drift. pstack keeps three hand-maintained copies of
+each trigger and they had already diverged; the index here has one source. (3) The index is
+grouped **by seat**, not by concern as pstack groups it: one pstack agent wears every hat, a
+harness persona wears one, so a dev reads the dev section and a reviewer reads the finding shapes.
+
+**The citation contract.** A principle that shaped a decision is named in the artifact under
+`## Principles applied` with the choice it changed, and only a leaf read this run may be cited.
+Two citations are falsifiable by construction and the reviewer checks them: Build the Lever
+without a script in the diff is not applied; a test kept under Test Behavior that passes when every
+import returns nothing is not kept. The heading is an artifact convention, **not a digest key**
+(INV-16: growing the digest is a decision, and no reviewer consumes it mechanically yet).
+
+**Who preloads it.** The five engineering specialists, pm, code-reviewer and qa. The five
+specialists also now preload `harness-codebase-design` (previously eng-lead and code-reviewer
+only), since three folded principles landed there and the reader-load axes are write-time
+guidance. **eng-lead does not preload it**: it uses the index at exactly two cued seams — writing
+a dispatch (`harness-zero-micro-management` step 2) and the post-PASS architecture review
+(`harness-codebase-design` § Applying it) — and reads it by path there, the same route as
+`harness-systematic-debugging` (DEC-158 move 2). Preloading it put eng-lead at 5631 words against
+the 5500 budget with `harness-team` already cut to its resident core; the seat that reads craft
+least often per spawn is the one to pay per read. Budget after the wave is in
+`check-skill-weight.py`'s output on the landing commit; the optimization pass that preceded this
+(57.2k → 50.7k) is what made room.
+
+## DEC-238 — Run evidence has a reader or it has no home: ship keeps the passing validate runs, abandon keeps nothing, and a checkout at a pin is disposable
+
+A feature's `runs/<id>/` is evidence for one reader: the goal-check at ship, and a later reader
+who re-opens the shipped pin. Nothing else reads it, and it is the bulk of what a feature carries
+(FEAT-53's `runs/` was 380 WebPs, 49 MB, riding on its successor's branch for a week after the
+feature was abandoned; the branches around it held 64 trace ZIPs, 616 MB of `.git`). Retention
+is therefore a function of station, applied by the command that moves the station, never by hand:
+
+- **Abandon prunes.** `gh-sync.py abandon` removes `runs/` in the same act as recording the
+  station, after the station is written so a failed prune leaves closed issues with a station and
+  a finding rather than no station. `check-state` **INV-51** (`abandoned-evidence`): a feature
+  at station `abandoned` still holding `runs/` is a VIOLATION naming the run ids.
+- **Ship keeps the record and drops the rest.** `prune-run-evidence.py` keeps every validator-squad
+  validate or fix run (`validate-…`, `fix-cN-…`) recorded PASS — the validator-lead hosts the fix
+  team too, so after a failed validate a reader's last PASS lives in a fix run — and every run
+  whose `results.json` names the shipped `review_sha`; it deletes engineering, product,
+  reconciliation and distill run directories, and refuses a feature whose `review_sha` is unset,
+  empty or a `PLACEHOLDER_UNSET` value. `/harness-ship` runs it before the ship PR. Trace ZIPs are never
+  committed at all (`runs/*/ui/traces/` is ignored); the gate reads them from disk.
+- **A checkout at a pin is disposable and keyed to one reader.** A validator that needs the tree
+  at `review_sha` takes it from `pinned-checkout.py add --feature --run-id --persona --sha`, under
+  `.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/`, and removes it on return. The key is all
+  three parts because one validate run dispatches five readers at once and run ids repeat across
+  features; a bare run id let the first reader home delete a sibling's live tree.
+  `worktree_terminal.classify` skips the pins root (a pin is not a feature worktree, so INV-29
+  never reports it) and the control-plane post-merge sweep removes pins older than a day. A
+  fleet repository has no hook: there, `remove` on return is the only cleanup.
+- **Prototypes never install.** A prototype under `.harness/**` is served with a toolchain the
+  repository already has; `.harness/**/node_modules/` is ignored and the post-merge sweep removes
+  any that appears.
+
+Refs: #1994 #1995 #1996 #1997; DEC-193 (worktree shape), DEC-203 (abandon's backlog rule),
+DEC-156 (validate runs are the review record).
+
+## DEC-250 — Product-repository write authority is exact OMP lineage bound to a validated fleet member
 
 **Chose:** a factory dispatch may mutate one product repository only when one live claim matches the
 tuple `(feature, agent_type, child agent id, immediate parent agent id, repository)`. The repository
 comes from two trusted lookups: dispatch preflight validates the required `HARNESS-REPOSITORY:
-owner/repo` assignment header against the canonical fleet and stores its normalized segment on the
-claim; the write guards classify each target through DEC-189's shared two-base resolver and derive
-the same segment from the selected product base. A wildcard domain grant is necessary but no longer
-sufficient for Write or Edit. Every detectable Bash target receives the same repository decision
-after classification and before the existing product/outside-root continuation.
+owner/repo` assignment header against the repository-tier feature artifact and the canonical fleet,
+and stores the normalized fleet segment on the dispatch receipt; the write guards classify each
+target through DEC-189's shared two-base resolver, which reports the same segment for the selected
+product base. A wildcard domain grant is necessary but no longer sufficient for Write or Edit. Every
+detectable Bash target receives the same repository decision after classification and before the
+existing product/outside-root continuation.
 
-**The host supplies lineage; text supplies no authority.** OMP's inherited hook context supplies the
-actual child and immediate-parent ids. Dispatch may pre-bind the named child as a selector, but the
-first mutation still authorizes OMP's actual pair and may attach an unnamed claim only when exactly
-one parent-bound candidate exists. Prompt prose, caller-authored payload fields, environment
-variables, task names, and task-result details cannot create or change repository authority. The
-adapter strips caller-authored lineage fields before preflight. A nested dispatch gets a new claim
-bound to its own child and immediate parent; it never inherits or forwards its parent's repository
-authority.
+**The host supplies lineage; text supplies no authority.** Lineage is BUG-1898's run-start claim:
+OMP's `ctx.agent` supplies the child and immediate-parent ids (DEC-204, DEC-218), and the run-start
+step binds the child's id to the unique receipt its parent's dispatch left. The receipt carries the
+repository, so binding the run carries it too. A run that bound no repository receipt holds a claim
+without a repository and cannot write any product. Prompt prose, caller-authored payload fields,
+environment variables, task names, and task-result details cannot create or change repository
+authority; dispatch preflight refuses task input that authors runtime-lineage fields. A nested
+dispatch gets its own receipt and run-start claim; it never inherits or forwards its parent's
+repository authority.
 
 **One fail-closed decision is shared by both guards.** `inflight_registry.repository_binding`
-requires one exact live claim. Missing identity or claim, a child reused by another active dispatch,
-parent or repository mismatch, stale or released claims, an unreadable registry, and multiple exact
-claims each produce a distinct denial state and exit 2 without exposing registry paths or claim ids.
-Two same-role siblings may share one parent and repository because their child ids and claims remain
-distinct. Repeated writes by one valid child remain valid. Targeted release revokes repository
-authority immediately; no cached guard verdict survives release.
+requires one exact live claim. Missing identity or claim, a child id held by another active
+dispatch, parent or repository mismatch, stale or released claims, an unreadable registry, and
+multiple exact claims each produce a distinct denial state and exit 2 without exposing registry
+paths or claim ids. Two same-persona siblings may share one parent and repository because their
+child ids and claims remain distinct. Repeated writes by one valid child remain valid. Release
+tombstones a repository-bound claim, so a write racing its release is refused as released; no
+cached guard verdict survives release.
 
 **Scope is factory-only.** A missing fleet keeps the pre-existing non-factory behavior. Harness-base
 self-development, scratch targets, the main-session exemption, `check-domain.py --resolve`, and the
@@ -7741,17 +7990,17 @@ exemption and DEC-193's product-domain pass-through; only exact repository owner
 before that pass-through. A fleet entry is not a credential: it is the allowlisted locator against
 which host-authenticated runtime lineage is checked.
 
-**Why a bearer token was rejected.** The measured OMP task path persists revised task input and makes
+**Why a bearer token was rejected.** The OMP task path persists revised task input and makes
 assignment text visible to the child. A capability carried in the prompt, payload, environment, task
 name, or result would therefore be copyable and forwardable. Runtime lineage is already available at
-the mutation callback and cannot be rewritten by the child, so binding it to the pre-spawn claim is
+the mutation callback and cannot be rewritten by the child, so binding it to the dispatch receipt is
 both narrower and simpler than inventing secret transport.
 
-**Evidence and execution.** The live runtime probe launched two concurrent same-role children and
-observed distinct child ids under one parent, with each child inheriting Write, Edit, and Bash
-callbacks. Deterministic integration cases cover two products, same-role siblings, repeated valid
-writes, cross-product and wrong-parent attempts, every named fail-closed state, release revocation,
-and non-disclosure. This enforcement-layer change was executed directly in a feature worktree under
-DEC-174.
+**Evidence and execution.** Deterministic integration cases cover two products, same-persona
+siblings, repeated valid writes, cross-product and wrong-parent attempts, a run with no repository
+receipt, every named fail-closed state, release revocation, and non-disclosure. The live lineage
+evidence is BUG-1898's locally-run `inflight_claim_lifecycle_live` probe, since #2000 retired
+Harness's own runtime pin and lineage probe once upstream OMP shipped `ctx.agent`. This
+enforcement-layer change was executed directly in a feature worktree under DEC-174.
 
 Lineage: DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, DEC-218, and DEC-233.

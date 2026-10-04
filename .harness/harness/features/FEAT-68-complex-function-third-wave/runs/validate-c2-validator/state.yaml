@@ -1,0 +1,144 @@
+schema_version: 2
+run_id: validate-c2-validator
+run_uid: c63786b6095745cbb56737ac80ec9c3a
+feature: FEAT-68-complex-function-third-wave
+squad: validator
+host: harness-validator-lead
+team: validate
+flow: validate-c2-validator
+status: failed
+review_sha: ab17ca17
+base_sha: e655f14a56a14bf1777cae55a19195c9af10505d
+verdict: FAIL
+severity_max: med
+cycles_used: 0
+digest: .harness/harness/features/FEAT-68-complex-function-third-wave/runs/validate-c2-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-qa-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: harness-validator-lead
+    note: "Matrix green; VF-04 reproduction still cannot execute as recorded."
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-qa-c2.md
+    evidence:
+      matrix_ok: true
+      required_kinds: [unit, integration]
+      unit_discovery: 41
+      integration_discovery: 70
+      fail_first_scs: 3
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: harness-validator-lead
+    note: "Stage 1 failed SC-04; Stage 2 not reached."
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c2.md
+    evidence:
+      stage_one: fail
+      stage_two: not_reached
+      code_grade: pass
+  - id: security
+    persona: harness-security-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-security-reviewer-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: harness-validator-lead
+    note: "Production union clean; audit provenance remains non-reproducible."
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-security-reviewer-c2.md
+    evidence:
+      in_scope: true
+      union_paths: 156
+  - id: ui
+    persona: harness-ui-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-ui-reviewer-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: harness-validator-lead
+    note: "Fresh 156-path census found no surviving built UI."
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-ui-reviewer-c2.md
+    evidence:
+      in_scope: false
+      union_paths: 156
+  - id: goalcheck
+    persona: harness-pm
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs: [.harness/harness/features/FEAT-68-complex-function-third-wave/notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c2.md]
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: none
+    recompleted_at: none
+    routed_by: harness-validator-lead
+    note: "Operator perspective and SC-04 fail on non-executable reproduction."
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c2.md
+    evidence:
+      perspective_grades: 2
+      sc01: met
+      sc02: met
+      sc03: met
+      sc04: not_met
+      sc05: partial

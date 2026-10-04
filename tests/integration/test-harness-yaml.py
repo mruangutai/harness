@@ -635,8 +635,17 @@ def test_exactly_one_guarded_import_in_the_tree():
     # which is what this cap exists to prevent. The alternative considered and rejected was
     # dropping the guard: it breaks no test today, because NOTHING exercises the guarded
     # branch, but it departs from signed text to buy nothing.
+    # FEAT-65: four more hooks now SPELL their first-party sibling guards as `except
+    # ImportError` — bash-write-guard.py and dispatch-guard.py (artifact_accessors,
+    # inflight_registry), inject-expertise.py (harness_boundary, artifact_accessors),
+    # validate-digest.py (inflight_registry). Each was `except Exception` before, i.e. a
+    # guarded import this text needle could not see; narrowing it to the class `import`
+    # raises adds no fallback path, it names one that already existed. Same category as
+    # check-domain.py and feature-worktree.py: first-party siblings, never a third-party
+    # dependency.
     allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
-               "feature-worktree.py"}
+               "feature-worktree.py", "bash-write-guard.py", "dispatch-guard.py",
+               "inject-expertise.py", "validate-digest.py"}
     assert set(guarded_hits) <= allowed, (
         f"unexpected guarded-import file(s) outside the allowed set: "
         f"{set(guarded_hits) - allowed!r}"
@@ -932,6 +941,61 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
                 raise AssertionError(f"ACCEPTED what it must reject: {label}")
 
 
+def _pending_plan(verify_line, approval_status="pending"):
+    """A one-task plan.yaml text with `approval.status: approval_status` and the given
+    `verify:` first line — row 86's fixture shape, shared by every case below."""
+    return (
+        "schema: plan/1\nfeature: FEAT-TEST\napproval:\n"
+        f"  status: {approval_status}\n"
+        "tasks:\n  - id: T-01\n    title: do the thing\n"
+        "    change_type: logic\n    execution_mode: main-session-direct\n"
+        "    files:\n      - src/a.py\n"
+        f"    verify: |\n      {verify_line}\n"
+        "    intent: do it\n"
+    )
+
+
+def test_load_plan_verify_shape_gated_on_pending_approval():
+    """Row 86: harness-spec-driven's only rule for an unautomatable task is
+    `verify: MANUAL — <what must be built>` (em dash) — nothing enforced it, so a task
+    could write `verify: TBD` and load clean. `_validate_plan_verify_shape` now refuses
+    that, but ONLY while `approval.status` is `pending`: an approved plan's verify: text
+    is carried verbatim by contract, and DEC-182 is forward-only — re-validating shipped
+    work is not this rule's job, so the third accepted case below proves the gate holds
+    even when the text itself would fail.
+    """
+    import harness_yaml as hy
+
+    accepted = (
+        ("MANUAL \u2014 build the missing widget", "pending"),
+        ("python3 tests/unit/test-thing.py", "pending"),
+        # A real POSIX binary, and a legitimate always-pass fixture verify: (used by
+        # test-validate-digest.py's plan-review fixtures) — not prose.
+        ("true", "pending"),
+        # THE GATE: an approved plan is never re-checked, even carrying prose that
+        # would fail this shape if it were still pending.
+        ("TBD", "approved"),
+    )
+    for verify_line, status in accepted:
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = artifact_accessors.load_plan(_plan(tmp, _pending_plan(verify_line, status)))
+            assert doc["tasks"][0]["id"] == "T-01", doc
+
+    rejected = (
+        ("MANUAL - build the missing widget", "hyphen, not the em dash"),
+        ("TBD", "not MANUAL and not a command"),
+        ("by inspection", "prose with no command token"),
+    )
+    for verify_line, label in rejected:
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                artifact_accessors.load_plan(_plan(tmp, _pending_plan(verify_line)))
+            except hy.PlanSchemaError as e:
+                assert "T-01" in str(e), f"{label}: message does not name the task: {e}"
+            else:
+                raise AssertionError(f"ACCEPTED what it must reject ({label}): {verify_line!r}")
+
+
 def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
@@ -1124,6 +1188,7 @@ TESTS = [
     test_load_plan_reports_line_and_column_on_malformed_yaml,
     test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
     test_load_plan_accepts_a_station_only_record_and_only_with_a_station,
+    test_load_plan_verify_shape_gated_on_pending_approval,
     test_feat64_load_str_boundary_is_typed,
     test_feat64_require_or_die_cleanup_boundary_is_typed,
 ]

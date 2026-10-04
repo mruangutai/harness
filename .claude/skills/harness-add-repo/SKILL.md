@@ -26,11 +26,14 @@ artifact written to `.harness/notes/`. Its answers seed the repository's own `ha
 ## Preflight — stop if any of these fails
 
 - **Configured control plane** — `.harness/harness.json` must exist here and
-  `python3 .claude/skills/harness/bin/check-state.py` must not report an unconfigured clone. If it
+  `python3 .agents/skills/harness/bin/check-state.py` must not report an unconfigured clone. If it
   is unconfigured, STOP and route to `harness-init`: registration into an unconfigured control
   plane produces artifacts nothing reads.
 - **Templates** — `test -d .agents/skills/harness/templates` must succeed. If the templates directory
   is not readable from here, STOP: there is nothing to instantiate.
+- **Checkout prerequisites** — this checkout has run
+  `.agents/skills/harness/references/checkout-prereqs.md` (ignore rules, PyYAML, jsonschema,
+  relative `core.hooksPath`); `check-state.py` INV-31 reports the hook when it has not. Run it first.
 - **GitHub access** — `gh` must be installed and authenticated against the candidate repository. If it
   is absent or cannot authenticate, STOP: this procedure cannot land the required default-branch
   commit or read the mirror and board state.
@@ -45,7 +48,7 @@ artifact written to `.harness/notes/`. Its answers seed the repository's own `ha
 This order is load-bearing: `product_config` has no disk fallback, so registering a member before its
 config lands has no symptom except an unattributed `FleetError` mid-build.
 
-1. Instantiate `.claude/skills/harness/templates/harness.json` into a checkout of the repository.
+1. Instantiate `.agents/skills/harness/templates/harness.json` into a checkout of the repository.
    Delete its `_template` key; fill `test_kinds` during the technical detection below and the GitHub
    block during the mirror question below.
 2. Land `.harness/harness.json` on that repository's `default_branch`. Harness has no write route
@@ -63,7 +66,7 @@ config lands has no symptom except an unattributed `FleetError` mid-build.
 4. Prove the config is reachable:
 
    ```bash
-   python3 .claude/skills/harness/bin/factory_config.py --check-product-configs --repo <owner>/<repo>
+   python3 .agents/skills/harness/bin/factory_config.py --check-product-configs --repo <owner>/<repo>
    ```
 
    It must exit 0. Exit 2 names `<repo>@<ref>:.harness/harness.json` and the reason: the config has
@@ -118,18 +121,11 @@ The project board follows the mirror question because it needs the repo pinned. 
   `4` a project was created but a follow-up write FAILED — either the link, or the Status field
   after a successful link: **the project exists.** Record the number the message names before
   retrying, or the retry creates a second board.
-- **On a NEW board, `provision` DELETES GitHub's default columns — when your `station_field` is
-  the one GitHub already made.** A brand-new Projects v2 project ships a `Status` single-select
-  carrying `Todo`, `In Progress` and `Done` (measured 2026-08-23 on project 7). Declare
-  `station_field: "Status"`, as every board here does, and `provision` replaces that option set
-  with exactly your declared stations and prints which options it removed. Declare any other
-  name — `"Station"`, say — and there is nothing to replace: `provision` CREATES that field and
-  GitHub's own `Status` field survives untouched, still carrying `Todo` and `In Progress`, as a
-  column the board does not use. Neither behaviour is a bug; the difference is worth knowing
-  before you pick a field name.
-  Either way it touches only a board created in that same run — no items exist yet, so no card
-  can lose its column. On an EXISTING board it only ever ADDS the missing stations and never
-  removes a column.
+- **On a NEW board, `provision` replaces the declared `station_field`'s options with exactly your
+  stations and prints what it removed** — with `station_field: "Status"` (every board here) that is
+  GitHub's default `Todo`/`In Progress`/`Done`. Any other name creates a new field and leaves
+  `Status` as an unused column. Either way it touches only a board created in that same run — no
+  items exist yet, so no card can lose its column. On an EXISTING board it only ever adds.
 - **Provisioning works only for a USER-OWNED board.** Every primitive queries `user(login:)`, and
   an organization-owned project is refused with "organization-owned board not supported". Create
   and configure that by hand; `provision` exits 2 saying so rather than doing something partial.
@@ -144,10 +140,9 @@ neither its trigger nor its action. **Only a click in the project's web UI turns
 operator to do it, then re-run the audit. Registration is not finished until it reports all three
 enabled.
 
-**Accepted cost, ruled by the operator:** this check runs ONCE, here, and never in
-`check-state.py` — that gate runs at every `/harness` door and before every commit, so a network
-call there would fire dozens of times per build. The consequence is real: a workflow switched off
-after registration is invisible until the next registration run.
+This workflow check runs only here, never in `check-state.py` (which fires at every door and
+pre-commit). Consequence: a workflow switched off after registration is invisible until the next
+registration run.
 
 ## Next: plan the first feature
 

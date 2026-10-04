@@ -1,0 +1,121 @@
+schema_version: 2
+run_id: validate-c1-validator
+run_uid: cb40d87e128b431388b962c15cfb8394
+feature: FEAT-68-complex-function-third-wave
+squad: validator
+host: harness-validator-lead
+team: validate
+flow: validate-c1-validator
+status: failed
+review_sha: 66b9c914
+base_sha: e655f14a56a14bf1777cae55a19195c9af10505d
+verdict: FAIL
+severity_max: med
+cycles_used: 1
+digest: .harness/harness/features/FEAT-68-complex-function-third-wave/runs/validate-c1-validator/digest.md
+steps:
+  - id: qa
+    persona: harness-qa
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-qa-c1.md
+    evidence:
+      matrix_ok: true
+      required_kinds: [unit, integration]
+      fail_first_scs: 3
+  - id: code
+    persona: harness-code-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c1.md
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c1-correction.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 1
+    redispatches: 1
+    dispatched_at: seq-1
+    completed_at: seq-2
+    redispatched_at: seq-3
+    recompleted_at: seq-4
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c1-correction.md
+    evidence:
+      stage_one: fail
+      stage_two: not_reached
+      code_grade: pass
+      previous_artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-code-reviewer-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-security-reviewer-c1.md
+    evidence:
+      in_scope: true
+      union_paths: 161
+  - id: ui
+    persona: harness-ui-reviewer
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/review-harness-ui-reviewer-c1.md
+    evidence:
+      in_scope: false
+      union_paths: 177
+  - id: goalcheck
+    persona: harness-pm
+    task: T-01
+    seq: seq-1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-68-complex-function-third-wave/notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    redispatches: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-68-complex-function-third-wave/notes/research-FEAT-68-complex-function-third-wave-goalcheck-validate-c1.md
+    evidence:
+      perspective_grades: 2
+      sc01: met
+      sc02: not_met
+      sc03: met
+      sc04: partial
+      sc05: partial

@@ -6,7 +6,7 @@ source_issues: [495]
 approval:
   status: approved
   approved_by: molchairuangutai
-  date: '2026-09-24'
+  date: '2026-10-03'
 
 panel:
   last_run: plan-panel-lineage-2026-09-24
@@ -98,9 +98,9 @@ lanes:
   - surface: tests/integration/test-bash-write-guard.py
     lane: main-session-direct
     reason: DEC-174; direct test of Bash authorization.
-  - surface: tests/manual/probe-omp-runtime-lineage.py
+  - surface: tests/manual/probe-inflight-claim-lifecycle.py
     lane: main-session-direct
-    reason: locally-run OMP evidence is part of the adapter contract.
+    reason: locally-run OMP evidence for SC-04 (BUG-1898's live merge-gate probe); run, not changed.
   - surface: .harness/harness/docs/DECISIONS.md
     lane: main-session-direct
     reason: the main session owns the resumed feature decision record.
@@ -162,15 +162,14 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/inflight_registry.py
-      - .claude/skills/harness/bin/dispatch-guard.py
-      - .omp/extensions/harness-hooks.ts
-      - tests/unit/test-harness-boundary.py
-      - tests/integration/test-inflight-registry.py
-      - tests/integration/test-dispatch-guard.py
-      - tests/unit/omp-hooks.test.ts
-      - tests/manual/probe-omp-runtime-lineage.py
-    verify: python3 tests/unit/test-harness-boundary.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py && python3 tests/manual/probe-omp-runtime-lineage.py
+    - .claude/skills/harness/bin/inflight_registry.py
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .omp/extensions/harness-hooks.ts
+    - tests/unit/test-harness-boundary.py
+    - tests/integration/test-inflight-registry.py
+    - tests/integration/test-dispatch-guard.py
+    - tests/unit/omp-hooks.test.ts
+    verify: python3 tests/unit/test-harness-boundary.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py
     intent: >-
       Write failing tests first. Reject caller-authored runtime-lineage fields. Validate HARNESS-REPOSITORY and HARNESS-FEATURE against the factory claim, fleet, and repository-tier feature artifact; atomically create the repository-bound claim before spawn. In the trusted OMP task hook, bind that claim to the host-provided parent id and, when available, the named child id; otherwise let the child's first authorized callback attach only to the unique parent-bound claim. Pass repository identity in the claim receipt, fail closed with a distinct collision category when a child or parent identity is already bound to another active dispatch, release the exact claim on completion, and preserve non-Harness pass-through behavior. Prove two same-role children on one product feature remain independently authorized and two independent Kaya feature worktrees retain their existing authorization. Rerun the shared boundary suite after the final registry mutation. Extend the live runtime-lineage probe to launch two concurrent same-role children and require distinct child ids under the correct immediate parent.
 
@@ -220,3 +219,34 @@ tasks:
     intent: >-
       Append the next decision recording the validated repository locator, pre-spawn repository-bound claim, host-provided child and immediate-parent OMP lineage, unique first-write attachment, shared fail-closed guard validation, nested-dispatch isolation, and immediate release revocation. Record that prompt text, payload fields, environment variables, task names, and task results are not authority. Preserve factory-only scope, zero-target Edit refusal, and unchanged resolver, main-session, and self-development behavior; cite DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, and DEC-218, then regenerate the index.
     execution_reason: The main session owns the resumed feature's governing decision record.
+  - id: T-06
+    title: Port repository binding onto BUG-1898 run-start lineage
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-06
+    - SC-07
+    - SC-08
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: null
+    execution_reason: DEC-174; this changes the registry, dispatch guard, both write guards, the OMP adapter, and their tests.
+    depends_on:
+    - T-05
+    status: done
+    files:
+    - .claude/skills/harness/bin/inflight_registry.py
+    - .claude/skills/harness/bin/harness_boundary.py
+    - .claude/skills/harness/bin/check-domain.py
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .omp/extensions/harness-hooks.ts
+    - tests/integration/test-inflight-registry.py
+    - tests/integration/test-dispatch-guard.py
+    - tests/integration/test-check-domain-claims.py
+    - tests/integration/test-check-domain-grant.py
+    - tests/integration/test-bash-write-guard.py
+    - tests/unit/omp-hooks.test.ts
+    verify: python3 tests/unit/test-harness-boundary.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py && python3 tests/integration/test-check-domain-claims.py && python3 tests/integration/test-check-domain-grant.py && python3 tests/integration/test-bash-write-guard.py
+    intent: 'Merge current main and keep only the repository layer on top of BUG-1898''s run-start claim. The dispatch receipt records the validated repository segment; the run-start claim binds the child''s host runtime id to that receipt; authorize and attach stay main''s. Drop this branch''s parallel attach/authorize state machine, the HARNESS-REPOSITORY adapter marker, the unconsumed dispatch-correlation record and receipt field, and the deleted runtime-lineage probe. classify() attaches the selected base''s repository identity to every allow, shared, and deny verdict; both guards keep calling repository_binding. Prove through run-start: unique receipt binding, same-persona siblings, mismatched repository and parent, missing lineage, a created claim with no repository, runtime-id collision, release, and an unreadable registry.'

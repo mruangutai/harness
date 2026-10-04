@@ -1,0 +1,51 @@
+[
+ {
+  "record": "case_feat61_approval_reset_refuses_an_unknown_task_station#1:stderr",
+  "verb": "delete-items",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-28",
+  "reason": "Accepted as an irreducible consequence of the package split — not a measurement defect and not a behavioural change. Python tracebacks embed source coordinates, so moving cmd_delete_items byte-for-byte from plan-merge.py:3521 into plan_merge/delete.py:301 necessarily rewrites each frame's file and line, while every function name in the eight-frame chain, the final FleetError line, exit code, stdout, and plan bytes stay byte-identical — evidence the call chain itself is unchanged. No consumer parses frame coordinates: known consumers read exit codes, stdout, or the last stderr line (gh-sync.py:699), and the test asserts only returncode and the exception message. The rule stays byte-strict; add no traceback normalization, which could mask a future relocation of the raise site. Scope: these two records' stderr only."
+ },
+ {
+  "record": "case_feat61_approval_reset_refuses_an_unknown_task_station#2:stderr",
+  "verb": "delete-items",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-28",
+  "reason": "Accepted as an irreducible consequence of the package split — not a measurement defect and not a behavioural change. Python tracebacks embed source coordinates, so moving cmd_delete_items byte-for-byte from plan-merge.py:3521 into plan_merge/delete.py:301 necessarily rewrites each frame's file and line, while every function name in the eight-frame chain, the final FleetError line, exit code, stdout, and plan bytes stay byte-identical — evidence the call chain itself is unchanged. No consumer parses frame coordinates: known consumers read exit codes, stdout, or the last stderr line (gh-sync.py:699), and the test asserts only returncode and the exception message. The rule stays byte-strict; add no traceback normalization, which could mask a future relocation of the raise site. Scope: these two records' stderr only."
+ },
+ {
+  "record": "scratch#954:.harness/harness/features/BUG-1699-lifecycle-cards/plan.yaml:check:stdout",
+  "verb": "check",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-29",
+  "reason": "The four FAILs are correct tool output on changed input: both checkouts run identical `check` logic; the pin repository simply no longer defines those symbols in plan-merge.py. DEC-232 places anchor resolution at exactly two moments — plan exit and build entry — and these four shipped plans will see neither again; no standing gate resolves shipped-plan symbol anchors (check-state touches none, CI's route check is path-only via plan_anchors.path_of, check-decision-anchors grades DECISIONS.md line anchors). The FEAT-69 precedent does not transfer: DECISIONS.md is a living document under a mechanical rot check; a shipped plan is a closed record whose anchors were true at its own build — BUG-1699's c1 review recorded them resolving. Re-pointing would falsify that record, reset four approvals, and re-pin for zero consumer."
+ },
+ {
+  "record": "scratch#2342:.harness/harness/features/FEAT-1714-reject-verb/plan.yaml:check:stdout",
+  "verb": "check",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-29",
+  "reason": "The four FAILs are correct tool output on changed input: both checkouts run identical `check` logic; the pin repository simply no longer defines those symbols in plan-merge.py. DEC-232 places anchor resolution at exactly two moments — plan exit and build entry — and these four shipped plans will see neither again; no standing gate resolves shipped-plan symbol anchors (check-state touches none, CI's route check is path-only via plan_anchors.path_of, check-decision-anchors grades DECISIONS.md line anchors). The FEAT-69 precedent does not transfer: DECISIONS.md is a living document under a mechanical rot check; a shipped plan is a closed record whose anchors were true at its own build — BUG-1699's c1 review recorded them resolving. Re-pointing would falsify that record, reset four approvals, and re-pin for zero consumer."
+ },
+ {
+  "record": "scratch#6247:.harness/harness/features/FEAT-61-control-plane-consolidation/plan.yaml:check:stdout",
+  "verb": "check",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-29",
+  "reason": "The four FAILs are correct tool output on changed input: both checkouts run identical `check` logic; the pin repository simply no longer defines those symbols in plan-merge.py. DEC-232 places anchor resolution at exactly two moments — plan exit and build entry — and these four shipped plans will see neither again; no standing gate resolves shipped-plan symbol anchors (check-state touches none, CI's route check is path-only via plan_anchors.path_of, check-decision-anchors grades DECISIONS.md line anchors). The FEAT-69 precedent does not transfer: DECISIONS.md is a living document under a mechanical rot check; a shipped plan is a closed record whose anchors were true at its own build — BUG-1699's c1 review recorded them resolving. Re-pointing would falsify that record, reset four approvals, and re-pin for zero consumer."
+ },
+ {
+  "record": "scratch#6449:.harness/harness/features/FEAT-66-complex-function-drivers/plan.yaml:check:exit",
+  "verb": "check",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-29",
+  "reason": "The four FAILs are correct tool output on changed input: both checkouts run identical `check` logic; the pin repository simply no longer defines those symbols in plan-merge.py. DEC-232 places anchor resolution at exactly two moments — plan exit and build entry — and these four shipped plans will see neither again; no standing gate resolves shipped-plan symbol anchors (check-state touches none, CI's route check is path-only via plan_anchors.path_of, check-decision-anchors grades DECISIONS.md line anchors). The FEAT-69 precedent does not transfer: DECISIONS.md is a living document under a mechanical rot check; a shipped plan is a closed record whose anchors were true at its own build — BUG-1699's c1 review recorded them resolving. Re-pointing would falsify that record, reset four approvals, and re-pin for zero consumer."
+ },
+ {
+  "record": "scratch#6449:.harness/harness/features/FEAT-66-complex-function-drivers/plan.yaml:check:stdout",
+  "verb": "check",
+  "by": "fable-advisor (blocking rulings delegated by the operator, 2026-09-28)",
+  "date": "2026-09-29",
+  "reason": "The four FAILs are correct tool output on changed input: both checkouts run identical `check` logic; the pin repository simply no longer defines those symbols in plan-merge.py. DEC-232 places anchor resolution at exactly two moments — plan exit and build entry — and these four shipped plans will see neither again; no standing gate resolves shipped-plan symbol anchors (check-state touches none, CI's route check is path-only via plan_anchors.path_of, check-decision-anchors grades DECISIONS.md line anchors). The FEAT-69 precedent does not transfer: DECISIONS.md is a living document under a mechanical rot check; a shipped plan is a closed record whose anchors were true at its own build — BUG-1699's c1 review recorded them resolving. Re-pointing would falsify that record, reset four approvals, and re-pin for zero consumer."
+ }
+]
