@@ -894,11 +894,53 @@ class SpendTest(FeatureRecordCase):
         ]
         self.write(base_doc(runs=self.REWORK_RUNS + distill, github={"build_entry": "opened"}))
         spend = self.spend()
-        self.assertEqual(205 + 24 + 24 + 5, spend["wall_clock_minutes"])
+        self.assertEqual(205 + 24 + 5, spend["wall_clock_minutes"])   # the two distills overlap
         self.assertEqual(105 + 5, spend["rework_minutes"])   # only `redistill-eng` stays in
         self.assertEqual(2, spend["rework_rounds"])
         self.assertEqual(6 + 3, spend["runs"])
 
+    # #2034: minutes are ELAPSED time, the union of the runs' intervals, not the sum of their
+    # durations. BUG-1016's three distill squads ran 19:07-19:31 together and read as 72 minutes.
+    # Tokens stay a sum: each concurrent run really consumed its own.
+    def timed(self, run_id, start, end=None, tokens=None):
+        entry = {"id": run_id, "squad": "eng", "verdict": "PASS" if end else "PENDING",
+                 "agent": "harness-eng-lead", "started_at": f"2026-09-11T{start}:00+00:00"}
+        if end:
+            entry["ended_at"] = f"2026-09-11T{end}:00+00:00"
+        if tokens is not None:
+            entry["tokens"] = tokens
+        return entry
+
+    def test_concurrent_runs_count_their_shared_time_once(self):
+        self.write(base_doc(runs=[
+            self.timed("a", "10:00", "10:30", tokens=100),
+            self.timed("b", "10:00", "10:30", tokens=200),   # identical span
+            self.timed("c", "10:10", "10:20", tokens=300),   # nested inside a
+            self.timed("d", "10:20", "10:50"),               # overlaps a's tail by 10
+            self.timed("e", "11:00", "11:15"),               # disjoint
+            self.timed("f", "11:15", "11:20"),               # touches e's end exactly
+            self.timed("g", "11:30"),                        # still open: no minutes
+        ]))
+        spend = self.spend()
+        self.assertEqual(50 + 15 + 5, spend["wall_clock_minutes"])   # 10:00-10:50, 11:00-11:20
+        self.assertEqual(600, spend["tokens"])
+        self.assertEqual(7, spend["runs"])
+
+    def test_concurrent_rework_runs_count_their_shared_time_once(self):
+        self.write(base_doc(runs=[
+            self.timed("2026-09-11-01-t01-eng", "09:00", "09:40"),
+            self.timed("2026-09-11-05-validate-validator", "10:00", "10:30"),
+            self.timed("2026-09-11-06-fix-c1-eng", "10:20", "10:50"),
+            self.timed("2026-09-11-07-fix-c1-docs", "10:25", "10:45"),
+        ], github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(50, spend["rework_minutes"])        # 10:00-10:50, not 30+30+20
+        self.assertEqual(2, spend["rework_rounds"])          # rounds still count runs
+        self.assertEqual(40 + 50, spend["wall_clock_minutes"])
+
+    def test_a_run_ending_before_it_starts_adds_no_time(self):
+        self.write(base_doc(runs=[self.timed("a", "10:30", "10:00"), self.timed("b", "11:00", "11:10")]))
+        self.assertEqual(10, self.spend()["wall_clock_minutes"])
 
 
 class ProposeReworkTest(FeatureRecordCase):

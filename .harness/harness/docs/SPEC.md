@@ -2556,8 +2556,9 @@ same as absence of oversight.
 
 **Spend is measured per run and never gates** (DEC-227). Every `runs[]` entry in `feature.json`
 carries `started_at`, `ended_at` and `tokens` — the token count the dispatch result returned, or
-`null` when none was measured; it is never estimated. `feature-record.py spend` sums them; the
-orchestrator reports the sum in every return; and the OMP hook appends one `SPEND:` line on the
+`null` when none was measured; it is never estimated. `feature-record.py spend` sums the tokens and
+measures minutes as elapsed time, the union of the runs' intervals, so concurrent runs share their
+clock (#2034); the orchestrator reports both in every return; and the OMP hook appends one `SPEND:` line on the
 orchestrator's wake when plan-phase minutes exceed `budgets.plan_phase_warn_minutes` (90 by default)
 or build-phase minutes exceed the recorded `rework.wall_clock_minutes` (§11.3). The line names spend,
 budget and phase. Nothing reads it as a gate. The sum is a floor: main-session-direct segments are
