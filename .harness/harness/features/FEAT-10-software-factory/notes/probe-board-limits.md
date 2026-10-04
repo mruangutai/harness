@@ -13,7 +13,7 @@ station rule; board 2 cannot, as it stands.**
 
 | Question | Answer | Command |
 |---|---|---|
-| Boards that exist | `3 Harness` (`PVT_kwHOAAases4BfZ9Z`), `2 kaya-ai` (`PVT_kwHOAAases4Bc7h3`) | `gh project list --owner mruangutai` |
+| Boards that exist | `3 Harness` (`PVT_kwHOAAases4BfZ9Z`), `2 sample-product` (`PVT_kwHOAAases4Bc7h3`) | `gh project list --owner mruangutai` |
 | Items on board 3 today | **150**, `totalCount: 150` | `gh project item-list 3 --owner mruangutai --format json --limit 200` |
 | Do CLOSED issues stay as items | **YES** — #181, #182, #183, #197 are all closed and all still on the board | same, membership test over `content.number` |
 | Item status spread | Done 80, Backlog 69, Ready 1 | same |
@@ -38,8 +38,8 @@ station rule; board 2 cannot, as it stands.**
 | 3 Harness | `Status` | Backlog, Ready, **In progress**, **In review**, Done |
 | 3 Harness | `Priority` | P0, P1, P2 |
 | 3 Harness | `Size` | XS, S, M, L, XL |
-| 2 kaya-ai | `Status` | Todo, **In Progress**, Done |
-| 2 kaya-ai | `Priority` | Urgent, High, Medium, Low |
+| 2 sample-product | `Status` | Todo, **In Progress**, Done |
+| 2 sample-product | `Priority` | Urgent, High, Medium, Low |
 
 Every other field on both boards is a plain `ProjectV2Field`, not a single-select.
 

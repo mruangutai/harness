@@ -1183,7 +1183,7 @@ hook_case("pass-through: stop_hook_active avoids the infinite-block loop",
           "harness-qa", "done", 0, stop_hook_active=True)
 
 # --- DEC-156: a lead's WRITTEN digest.md must carry the contract block too ---
-# The kaya-ai FEAT-02 audit found every run digest.md was narrative markdown while
+# The archived pilot's FEAT-02 audit found every run digest.md was narrative markdown while
 # every in-message return had passed this hook — the durable copy (the one a
 # successor reads) was never looked at. These cases pin the file check: real files
 # in a tempdir, artifact path resolved via the payload's `cwd`.

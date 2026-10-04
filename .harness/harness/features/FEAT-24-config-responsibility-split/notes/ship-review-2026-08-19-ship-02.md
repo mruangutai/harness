@@ -6,7 +6,7 @@
 **no success criterion broken in the code**. Every board now lives in its own repository, one shared
 validator raises on every malformed shape, and an unusable board is a loud, named error instead of a
 silent nothing. I confirmed the central path live rather than from the suite: `board_for` returns
-kaya's board, read from `master`, with a checkout sitting on disk unused.
+sample-product's board, read from `master`, with a checkout sitting on disk unused.
 
 What is *not* finished is **evidence durability**. Five of thirteen criteria rest partly on
 assertions that provably cannot fail. That is a real gap and it is the same gap this feature exists
@@ -109,7 +109,7 @@ and `notes/research-FEAT-24-goalcheck.md`. Ship-refresh was **skipped**: there i
 | B-8 | T-10's verify checks that record amendments EXIST and sit in the right section, never that they are TRUE — how a false entry shipped green | bug |
 | B-9 | `harness.json`'s `integration.detect` names 4 files while `INTEGRATION_SCRIPTS` runs 12 | chore |
 | B-10 | `gh_board.load_board`'s docstring is wrong about three cells that return `None`; every caller guards, so nothing fails today | chore |
-| B-11 | The kaya-ai/board-2 pairing has no ongoing regression check after `case5` dropped two assertions | chore |
+| B-11 | The sample-product/board-2 pairing has no ongoing regression check after `case5` dropped two assertions | chore |
 | B-12 | `factory_land.py` does not commit — T-09 failed with `No commits between master and factory/issue-334` until you committed by hand | bug |
 | B-13 | `gh-sync.py` has no un-start subcommand, so an abandoned dispatch strands cards on `Building` | enhancement |
 | B-14 | `feature.json`'s schema declares no `phase` property while the orchestrator playbook instructs recording one there | bug |

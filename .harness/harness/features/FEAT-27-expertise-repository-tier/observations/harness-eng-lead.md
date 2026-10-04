@@ -74,10 +74,10 @@
   observation about where the rule lives, not a complaint about the guard, which worked both times.
 
 - 2026-08-19: on T-07 I verified the mutant's discriminating power from source BEFORE the member
-  returned, and it changed what I would accept. `kaya` is a plain lowercase token, so the segment
+  returned, and it changed what I would accept. `sample-product` is a plain lowercase token, so the segment
   filter at inject-expertise.py:75-77 does NOT reject it — which is precisely why a dangling
   symlink reddens where an unexpanded glob word cannot. Two independent assertions fail under the
-  mutant: the "kaya" header printed at :114, and stderr, which takes three writes (head, wc, and
+  mutant: the "sample-product" header printed at :114, and stderr, which takes three writes (head, wc, and
   the empty `$( )` making `[ "" -gt 40 ]` a bash integer error at :57-58). Deriving WHY a case can
   fail, not just that it did, is what separates assessing from re-running.
 

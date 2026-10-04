@@ -2,7 +2,7 @@
 
 ## Destination
 
-A factory worker operating in a product checkout can reliably use Harness’s control plane, so the real kaya proof in #496 can run without reading or writing the wrong repository.
+A factory worker operating in a product checkout can reliably use Harness’s control plane, so the real product proof in #496 can run without reading or writing the wrong repository.
 
 ## Settled
 
@@ -16,7 +16,7 @@ None. The planner may choose the narrowest provider-neutral implementation that 
 
 ## Out of scope
 
-- Running or testing kaya-ai product code; #496 exercises the factory and its control plane only.
+- Running or testing the served product's code; #496 exercises the factory and its control plane only.
 - Expanding product-checkout write permissions for control-plane records.
 
 ## Facts I verified (so pm does not re-derive them)

@@ -67,7 +67,7 @@ Row: `- DEC-NN @<line> [tags] refs: <graph> :: <ruling>`.
 - DEC-54 @588 [] refs:  :: Crews are flat and standalone in v1 with no sub-crew composition, so the review panel is listed in both `ship-feature` and `review-team`.
 - DEC-55 @599 [gates,orchestrator] refs:  :: `review-team` is advisory: it returns `must_fix` and the calling context owns remediation and merging.
 - DEC-56 @606 [security] refs:  :: pm's goal-check is its own step after the panel and its assessment, so "did we deliver?" is never averaged with code nits.
-- DEC-57 @613 [qa,security] refs: DEC-08 :: The review panel has no CEO seat and no separate eng-reviewer, and its membership is crew config rather than auto-selected per diff.
+- DEC-57 @613 [qa,security,state] refs: DEC-08 :: The review panel has no CEO seat and no separate eng-reviewer, and its membership is crew config rather than auto-selected per diff.
 - DEC-58 @625 [domain,deploy,tdd] refs: DEC-85 :: Engineering has five peer domains with no catch-all, `dev-ops` owning infra, CI, config, tooling and deploy, and eng-lead routes each task to exactly one.
 - DEC-59 @638 [domain,skills,expertise,state] refs:  :: The declarative `## Skills`, `## Expertise` and `## Domain` body sections buy a uniform shape and greppable auditing, not enforcement — Claude Code does not parse them.
 - DEC-60 @650 [plan,approval,brief,org] refs:  :: `.harness/README.md` is owned by `documentor` and rewritten as a defect fix, because the on-disk version describes a pre-restructure org and omits the hardest-gated schema fields.
@@ -99,10 +99,10 @@ Row: `- DEC-NN @<line> [tags] refs: <graph> :: <ruling>`.
 - DEC-89 @1059 [qa,gates,state] refs:  :: Hand edits are a legal path: they commit with a `[harness:human]` prefix and the state check re-pins `review_sha`, so the reviewer and qa gates re-open for the affected paths.
 - DEC-90 @1075 [expertise,state,cost,orchestrator] refs: DEC-120 DEC-188 :: STRUCK 2026-08-21 under DEC-188 — stated the single-operator scope boundary and claimed no lock anywhere; expertise-merge.py holds one, so the claim is false and the entry is struck.
 - DEC-91 @1090 [state] refs:  :: The value claim is that Claude executes reliably at each stage without mid-stage supervision, since supervision is batched at decision boundaries.
-- DEC-93 @1099 [cost,org,worktree] refs:  :: The pilot carries two instruments: org-arm runs settle cost and touchpoints, while `kaya-ai`'s git history supplies the base defect rate.
-- DEC-94 @1125 [qa,state,tests] refs: DEC-36 :: `kaya-ai` is the pilot host, with `uv run pytest` plus two pnpm suites and no Playwright, so the `ui` kind soft-skips.
+- DEC-93 @1099 [cost,org,worktree] refs:  :: The pilot carries two instruments: org-arm runs settle cost and touchpoints, while the pilot host's git history supplies the base defect rate.
+- DEC-94 @1125 [qa,state,tests] refs: DEC-36 :: The archived pilot product is the pilot host, with `uv run pytest` plus two pnpm suites and no Playwright, so the `ui` kind soft-skips.
 - DEC-95 @1140 [worktree,expertise,state] refs: DEC-85 DEC-89 :: A git worktree is the unit of concurrency — one feature per worktree, as many worktrees as you like, with `.harness/` as per-worktree state.
-- DEC-96 @1170 [org,cost,state,brief] refs:  :: The measured base defect rate in `kaya-ai` history is 0.44 escaped defects per feature, with about 79% of them within reach of the four artifacts.
+- DEC-96 @1170 [org,cost,state,brief] refs:  :: The measured base defect rate in the pilot host's history is 0.44 escaped defects per feature, with about 79% of them within reach of the four artifacts.
 - DEC-97 @1214 [tests,cost,org,qa] refs: DEC-96 :: A throwaway dry run has all four artifacts behaving as specified, and code review catches a fail-open defect that a green happy-path suite misses.
 - DEC-98 @1254 [tests,qa,state] refs: DEC-83 :: `harness-qa-gate` resolves a kind to satisfied, missing, not-applicable or `misconfigured`, discriminating on failure kind rather than test count, and `misconfigured` returns `BLOCKED`.
 - DEC-99 @1283 [cost,org,state,digest] refs: DEC-96 DEC-97 DEC-98 :: The full agentic workflow gets built with its cost monitored in practice, which makes instrumentation a build requirement and lets the org proceed.

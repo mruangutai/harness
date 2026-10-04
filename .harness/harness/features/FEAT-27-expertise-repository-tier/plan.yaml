@@ -139,7 +139,7 @@ tasks:
         [ "$repo" = "$a" ] || { echo "FAIL repo-tier $a resolved to [$repo]"; fail=1; }
         [ "$craft" = "$a" ] || { echo "FAIL craft $a resolved to [$craft]"; fail=1; }
       done
-      other=$($R --resolve ".harness/kaya/expertise/harness-qa.md")
+      other=$($R --resolve ".harness/sample-product/expertise/harness-qa.md")
       [ "$other" = "harness-qa" ] || { echo "FAIL second segment resolved to [$other]"; fail=1; }
       deep=$($R --resolve ".harness/a/b/expertise/harness-qa.md")
       [ "$deep" = "NOBODY" ] || { echo "FAIL two-segment path resolved to [$deep]"; fail=1; }
@@ -314,8 +314,8 @@ tasks:
          repository header's index. This case is the discriminator on two counts: it fails against
          the pre-change hook, which emits no repository header at all and still ships
          "authoritative on conflict".
-      2. Two repository segments present (harness and kaya). Assert both segment headers appear,
-         both bodies appear, and the harness header precedes the kaya header (sorted order). Assert
+      2. Two repository segments present (harness and sample-product). Assert both segment headers appear,
+         both bodies appear, and the harness header precedes the sample-product header (sorted order). Assert
          the precedence substring "repository over project over global" occurs EXACTLY ONCE in the
          output — count occurrences, do not test for presence.
       3. No repository tier, craft only. Assert exit status 0, assert the project-tier header
@@ -785,7 +785,7 @@ tasks:
 
       THE MECHANISM — a dangling symlink, and this part is not negotiable. Inside the case's own
       tempdir call os.symlink with a target that does not exist, at
-      <root>/.harness/kaya/expertise/harness-qa.md. Verified behaviour: bash's glob matches the
+      <root>/.harness/sample-product/expertise/harness-qa.md. Verified behaviour: bash's glob matches the
       dangling link by name, [ -r ] follows the link and is false for EVERY uid including root, and
       nothing is checked into git, so mode preservation is irrelevant. Do NOT use chmod 000 as the
       primary mechanism — it is a no-op when the suite runs as root and git does not preserve the
@@ -797,7 +797,7 @@ tasks:
         - .harness/harness/expertise/harness-qa.md — an ordinary readable repository file with a
           distinguishable body, so the case proves the hook still does its job around the bad entry
           rather than merely emitting nothing.
-        - .harness/kaya/expertise/harness-qa.md — the dangling symlink.
+        - .harness/sample-product/expertise/harness-qa.md — the dangling symlink.
       HOME is a fresh temp dir, as every existing case does via fresh_home(). agent_type is
       "harness-qa".
 
@@ -805,7 +805,7 @@ tasks:
         1. exit status 0.
         2. the injected context contains "## Your Expertise — harness repository (repository tier)"
            and the harness repository body — the unreadable sibling does not suppress the good one.
-        3. the injected context does NOT contain the substring "kaya" anywhere — no header, no
+        3. the injected context does NOT contain the substring "sample-product" anywhere — no header, no
            segment name, no path fragment.
         4. r.stderr is empty. Not "contains no traceback" — empty. Verified: with the guard removed,
            head and wc both fail on the dangling link and bash adds an integer-comparison error, so

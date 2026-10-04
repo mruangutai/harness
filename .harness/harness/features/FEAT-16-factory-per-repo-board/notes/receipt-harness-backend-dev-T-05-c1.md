@@ -283,7 +283,7 @@ ok - case (l3) a per-feature max_total_runs: 30 silences it
 ok - case (l4) INV-22 NEVER gates — exit code identical over and under budget
 ok - case (l5) the CONFIGURED value is read — budget 5 with 7 runs names 5, not 20
 ok - case (l6) budgets present but key missing is REPORTED INACTIVE, never silent
-ok - case (l7) no budgets block at all (the shipped kaya example) is REPORTED INACTIVE
+ok - case (l7) no budgets block at all (the shipped sample-product example) is REPORTED INACTIVE
 ok - case (l8) a boolean budget is REJECTED, not treated as an int (bool subclasses int)
 ok - case (m): INV-9 catches a MISSING PostToolUse check-domain while the PreToolUse one is present
 ok - case (m2): INV-9 rejects a NARROWED PostToolUse matcher, naming the missing tools

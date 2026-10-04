@@ -57,7 +57,7 @@ Because a lower-trust agent cannot write a higher-trust agent's Expertise file (
 new **cross-agent** poisoning path. There is a real **cross-repository** one: `inject-expertise.py`
 globs `.harness/*/expertise/<agent>.md` and injects **every** matching segment on **every** spawn,
 with no way to know which repository the spawn is for (`SPEC.md` says this explicitly). Proven live
-by `test-inject-expertise.py` case2: two segments ("harness" and "kaya") both fire simultaneously
+by `test-inject-expertise.py` case2: two segments ("harness" and "sample-product") both fire simultaneously
 for one spawn, in one context. The only mitigation is a text label
 ("not authoritative for your work — read the segment name") that the model is trusted to honor —
 no code enforces it.
@@ -70,7 +70,7 @@ must-fix here because the risk was already surfaced and signed, not because it d
 
 Rated `med`, not `high`, on **precondition-absent** grounds (G-11): today exactly one segment exists
 in the shipped tree (`harness`, self-referential — verified via `git diff --stat`, all 6 new
-`.harness/harness/expertise/*.md` files hold facts about this repo itself; "kaya" appears only in
+`.harness/harness/expertise/*.md` files hold facts about this repo itself; "sample-product" appears only in
 test fixtures, never in real data). The mechanism that would make this a live cross-tenant leak
 needs a second, *actually distinct and sensitive*, repository segment to exist — that doesn't
 happen in this diff. Two things worth the operator's attention going forward, neither blocking this

@@ -3,10 +3,10 @@
 ## Next
 
 **The operator runs SC-06's UAT**, then takes the ship decision. Protocol is `BRIEF.md ##
-Constraints`: create a throwaway kaya-ai issue, leave it unlabelled/open/unassigned, add it to board
+Constraints`: create a throwaway sample-product issue, leave it unlabelled/open/unassigned, add it to board
 2 at `Ready`, run `factory_claim`, read `Status` back off the board and confirm `Building`; clean up
 by deleting `refs/heads/factory/issue-N`, removing `factory:claimed` and closing the issue. Stop
-after claim — do NOT continue to `factory_land`, which would open a PR against kaya's `master`.
+after claim — do NOT continue to `factory_land`, which would open a PR against sample-product's `master`.
 No agent work is outstanding. On the operator's acceptance: close-out is ONE turn, two concurrent
 dispatches — ship-refresh and distillation — then the CEO briefing. Not before: those fire after the
 SCs pass, and SC-06 gates that on the operator.

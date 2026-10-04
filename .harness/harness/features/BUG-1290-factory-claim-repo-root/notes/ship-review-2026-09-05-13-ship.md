@@ -28,7 +28,7 @@ two repositories carrying the same feature id can no longer be served each other
 **One disclosure that is easy to misread as a failure, and is not.** After this fix, a live claim
 run from `main` *still* reports `no_plan` for FEAT-04. That feature's tree exists only in the
 FEAT-04 worktree and landing it is FEAT-04's work, not this bug's. The brief disclosed this before
-you signed. This change fixes the resolver; it does not by itself light up the Kaya lane.
+you signed. This change fixes the resolver; it does not by itself light up the sample-product lane.
 
 ---
 
@@ -197,7 +197,7 @@ These are defects in the factory itself, not in the change. They are listed beca
 
 - **REQ-04 and SC-04 are fixture-only and stay that way.** DEC-174 keeps `mruangutai/harness` out of
   the live fleet, so no reviewer could exercise the real multi-repository lane. The panel verifies
-  the resolver; it does not verify the Kaya lane end to end. That proof belongs to FEAT-04.
+  the resolver; it does not verify the sample-product lane end to end. That proof belongs to FEAT-04.
 - **Three of the four panel reviewers re-ran suites the qa segment had already run.** The genuinely
   new measurements this cycle were qa's two experiments and the code reviewer's independent probe
   run. The convergence is real, but it is not four independent samples.

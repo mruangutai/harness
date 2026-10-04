@@ -155,7 +155,7 @@ show `git status --porcelain` clean.
   the real case). No source file was touched to run this proof.
 
 **Ruling on the live-smoke question** (per the dispatch's own distinction): T-07 and T-09's
-`verify:` blocks already run live `gh api` against kaya at `master`, and
+`verify:` blocks already run live `gh api` against sample-product at `master`, and
 `test-factory-workspace.py` already smokes a real `git` binary — so *"a live check is
 unprecedented here"* is false; only *"no live network inside the unit suite"* (the BRIEF's actual
 objection) is supported. Given both halves of Gap 2 are now closed by fast, deterministic,
@@ -173,7 +173,7 @@ instruction to report any diff file `lanes:` doesn't list. Not a blocking findin
 edit is correct and necessary), but the lane bookkeeping is incomplete.
 
 All other `lanes:` rows are touched in the diff. The one lane row not expected to appear in this
-repo's diff — kaya-ai's own `harness.json` — is external by design (D-04) and is verified separately
+repo's diff — sample-product's own `harness.json` — is external by design (D-04) and is verified separately
 by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 
 ## SC evidence map
@@ -186,7 +186,7 @@ by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 | SC-04 | `test-gh-board.py` (8 `load_board` raise cases) + `test-factory-config.py` (8 `board_for` raise cases) | met (both T-02 and T-04 green, 16 cases confirmed) |
 | SC-05 | `test-factory-config.py`/`test-gh-board.py:90` null-board and absent-board cases | met |
 | SC-06 | `test-factory-config.py:526,560` no-checkout + no-fallback cases | met |
-| SC-07 | `test-factory-land.py:288` `(M1) pr create base is the fleet's default_branch`, `test-factory-claim.py:709` default_branch case, `test-factory-integration.py:618` `(D-workspace) success: exits 0`, `test-no-distribution.py:166` `case3_presence_kaya_default_branch_is_master` | met (T-03/T-07 green) |
+| SC-07 | `test-factory-land.py:288` `(M1) pr create base is the fleet's default_branch`, `test-factory-claim.py:709` default_branch case, `test-factory-integration.py:618` `(D-workspace) success: exits 0`, `test-no-distribution.py:166` `case3_presence_sample_default_branch_is_master` | met (T-03/T-07 green) |
 | SC-08 | `test-no-distribution.py:160` `case3_absence_harness_is_not_a_fleet_member` | met |
 | SC-09 | inspection — not mine to verify further | n/a (inspection) |
 | SC-10 | T-04's non-reader grep (4 files, positive-controlled) + `test-factory-config.py`/`test-gh-board.py`/`test-gh-sync.py` behavioural cases | met |

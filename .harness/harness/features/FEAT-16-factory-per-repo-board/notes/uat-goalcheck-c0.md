@@ -23,11 +23,11 @@ kills C1 too). Both are the operator's to amend; the criteria themselves hold.
 
 | SC | verdict | method | evidence |
 |---|---|---|---|
-| SC-01 | met | automated | `test-factory-config.py` cases `(3) a repos entry has no board`, `(27)` asserting `repos[mruangutai/kaya-ai].board` in the error, `(28a-d)`; unit suite exit 0 (re-run) |
+| SC-01 | met | automated | `test-factory-config.py` cases `(3) a repos entry has no board`, `(27)` asserting `repos[mruangutai/sample-product].board` in the error, `(28a-d)`; unit suite exit 0 (re-run) |
 | SC-02 | met | automated | `test-factory-config.py:161,198` — `(8b) a leftover top-level board key raises FleetError` + `(8b) the next_step mentions repos[].board` |
 | SC-03 | met | inspection | `notes/board2-capture.md` §2 (Done 118, Review 0, 211 total) and §3 (ids `f75ad846`, `51284156`, `8f8df98a`, `47fc9ee4`, `8c67edb9`, `98236657` — the three anchor ids all present) |
 | SC-04 | met | automated | assertions on recorded call arguments, all three tools: `test-factory-claim.py:952` (P3 refusal names B's board), `test-factory-decompose.py:1148,1155`, `test-factory-land.py:461-466` (`b_markers` non-membership), `test-factory-integration.py:1078` |
-| SC-05 | met | automated | `test-no-distribution.py:294` `kaya_ai_is_paired_with_board_2` (`kaya_board_number == 2`), plus `:264 board_lives_per_repo_not_fleet_level` and `:289 every_repo_declares_its_own_board` |
+| SC-05 | met | automated | `test-no-distribution.py:294` `sample_is_paired_with_board_2` (`sample_board_number == 2`), plus `:264 board_lives_per_repo_not_fleet_level` and `:289 every_repo_declares_its_own_board` |
 | SC-06 | **not_met** | uat | pending operator; live-run protocol is BRIEF `## Constraints`. Nobody but the operator may run it; a board write is parked. No agent work can close this |
 | SC-07 | met | inspection | live read-only `gh project field-list N --owner mruangutai`, unsorted, both boards: board 2 → `Backlog,Plan,Ready,Building,Review,Done` count=6; board 3 → identical string, count=6 |
 | SC-08 | met | automated | `run-unit-tests.py --kind unit` re-run at HEAD → `UNIT_EXIT:0`, zero `^FAIL|^ERROR` lines |

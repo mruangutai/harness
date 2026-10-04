@@ -1,8 +1,13 @@
 # Goal-check — FEAT-12 End copy-based distribution — d543809
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 > **Cycle 2 amendment (2026-08-10).** SC-04 was re-graded from `partial` to **met** after the
-> inspection bound was relaxed for read-only filesystem inspection of kaya's working tree. The
-> missing after-capture now exists at `notes/research-FEAT-12-kaya-agents-after.md`. **Only SC-04
+> inspection bound was relaxed for read-only filesystem inspection of sample-product's working tree. The
+> missing after-capture now exists at `notes/research-FEAT-12-sample-product-agents-after.md`. **Only SC-04
 > changed.** SC-05 stays `partial`, SC-06 stays `not_met`, the other eight stand. Counts in the
 > original BLUF below are superseded by this line: **nine met, one `partial`, one `not_met` and
 > blocking.**
@@ -14,14 +19,14 @@ record: SC-01, SC-02, SC-02b, SC-03, SC-07, SC-08, SC-09, SC-10 all hold, each o
 or a direct inspection, not on suite-green. What falls short is the *cross-repo evidence*:
 
 - **SC-05 is `partial` and cannot be closed by re-running anything.** The before/after manifests are
-  **path lists, not sha256 manifests**. They witness that kaya's `.harness/` still holds the same 377
+  **path lists, not sha256 manifests**. They witness that sample-product's `.harness/` still holds the same 377
   file paths; they cannot detect a content-only modification, which is the exact failure SC-05 exists
   to detect. The before-state no longer exists, so byte-identity can never now be evidenced. This is
   a plan-level problem for the operator, not a fix cycle.
 - ~~**SC-04 is `partial`.**~~ **Closed in cycle 2 — SC-04 is `met`.** Skills and commands clauses are
   met on a captured `REMOTE_CLEAN` verify. The agents clause's missing after-count was captured on
-  2026-08-10 by read-only inspection of kaya's working tree: `0`, with all three parent directories
-  present. Evidence: `notes/research-FEAT-12-kaya-agents-after.md`. See the amended SC-04 row.
+  2026-08-10 by read-only inspection of sample-product's working tree: `0`, with all three parent directories
+  present. Evidence: `notes/research-FEAT-12-sample-product-agents-after.md`. See the amended SC-04 row.
 - **SC-06 is `not_met (awaiting operator UAT)` and blocking.** No runner in this repository can
   observe another repository. Script written: `notes/uat-FEAT-12-sc06.md`.
 
@@ -39,8 +44,8 @@ or a direct inspection, not on suite-green. What falls short is the *cross-repo 
 | SC-01 | automated | **met** | `test-no-distribution.py:62` `case1_absence_no_deploy_sh_tracked_anywhere`; `:65` `case1_absence_no_harness_deploy_command`; `:71` six doors survive. Absence checked directly too: `ls` returns "No such file or directory" for both paths; `git ls-files \| grep -E 'deploy\.sh\|harness-deploy'` is empty. Suite exit 0, 23/23 (qa digest) |
 | SC-02 | automated (integration) | **met** | `test-check-plan-routes.py` `case_21` (def `:544`, writes the synthetic `registry.json` at `:573`) is the registry-independent fixture; the script is in `INTEGRATION_SCRIPTS` (`run-unit-tests.py:18`); `--kind integration` exit 0, 12 PASS at this sha with the real `~/.harness/registry.json` already deleted. **The BRIEF's "case 20" is a rotted pointer — see defect 1** |
 | SC-02b | inspection | **met** | Inspected directly (inspection is the declared method): `~/.harness/registry.json` absent; `global-harness-skills-backup-2026-08-10.tgz` (322620 B) and `global-harness-agents-commands-backup-2026-08-10.tgz` (27515 B) both present. Matches T-09's verify, re-run by the orchestrator (`feature.yaml verified_on_resume`) |
-| SC-03 | automated (unit) | **met** | `test-no-distribution.py:150` `case3_presence_fleet_yaml_safe_loads`, `:153` `..._exactly_two_repos`, `:157` `..._kaya_default_branch_is_master`. Two clauses have **no** standing assertion — the `mruangutai/harness` name, and `factory_config.py` accepting the file (case3 calls `yaml.safe_load` directly). I executed both at this sha: `load_fleet()` returns both repos (`main`/`master`) and `repo_entry(fleet,'mruangutai/kaya-ai')` returns the kaya entry without raising. Behavioural, one-shot — see Q4 |
-| SC-04 | inspection | **met** (cycle 2; was `partial` in cycle 1) | skills+commands: **met** — T-05's verify re-run verbatim by the orchestrator returns `REMOTE_CLEAN` (`feature.yaml kaya_push`), which asserts zero `.claude/skills/harness*` and zero `.claude/commands/harness*` on `origin/master` **and** `review-team.md` present; that capture remains the grading evidence for these two clauses. agents: **witnessed** — `notes/kaya-agents-count-before.txt` = `16` (>0, no vacuous pass) paired with a captured after-count of `0` (`find .claude/agents -maxdepth 1 -name 'harness-*.md' \| wc -l`). Presence half **settled by `test -d`, which Glob cannot do**: all three of `.claude/agents`, `.claude/skills`, `.claude/commands` EXIST; `agents` and `skills` are empty directories, `commands` holds exactly `review-team.md`. Worktrees excluded by construction — `.claude/worktrees/` is a sibling, not a child, of the globbed dirs. Evidence: `notes/research-FEAT-12-kaya-agents-after.md`, kaya `master` `7d2f946`. **Sequence limitation, recorded not softened:** the after-count was captured at goal-check time (2026-08-10), **not** at T-02 time, so it witnesses the current working-tree state, not the state immediately after the deletion. SC-04 is worded against "`kaya-ai` at the state this feature leaves it in" (BRIEF:90), which is the object measured; nothing here attests the count was zero *continuously* since T-02. Corroboration only (not grading evidence): working-tree `harness*` counts under `skills`/`commands` are both 0, and `git ls-tree origin/master -- .claude \| grep -c harness` = 0. **Why the gap existed:** no commit ever touched `.claude/agents` and it is not gitignored — the 16 files were untracked local files, so filesystem inspection was the only method that could ever have evidenced this clause |
+| SC-03 | automated (unit) | **met** | `test-no-distribution.py:150` `case3_presence_fleet_yaml_safe_loads`, `:153` `..._exactly_two_repos`, `:157` `..._sample_default_branch_is_master`. Two clauses have **no** standing assertion — the `mruangutai/harness` name, and `factory_config.py` accepting the file (case3 calls `yaml.safe_load` directly). I executed both at this sha: `load_fleet()` returns both repos (`main`/`master`) and `repo_entry(fleet,'mruangutai/sample-product')` returns the sample-product entry without raising. Behavioural, one-shot — see Q4 |
+| SC-04 | inspection | **met** (cycle 2; was `partial` in cycle 1) | skills+commands: **met** — T-05's verify re-run verbatim by the orchestrator returns `REMOTE_CLEAN` (`feature.yaml product_push`), which asserts zero `.claude/skills/harness*` and zero `.claude/commands/harness*` on `origin/master` **and** `review-team.md` present; that capture remains the grading evidence for these two clauses. agents: **witnessed** — `notes/sample-product-agents-count-before.txt` = `16` (>0, no vacuous pass) paired with a captured after-count of `0` (`find .claude/agents -maxdepth 1 -name 'harness-*.md' \| wc -l`). Presence half **settled by `test -d`, which Glob cannot do**: all three of `.claude/agents`, `.claude/skills`, `.claude/commands` EXIST; `agents` and `skills` are empty directories, `commands` holds exactly `review-team.md`. Worktrees excluded by construction — `.claude/worktrees/` is a sibling, not a child, of the globbed dirs. Evidence: `notes/research-FEAT-12-sample-product-agents-after.md`, sample-product `master` `7d2f946`. **Sequence limitation, recorded not softened:** the after-count was captured at goal-check time (2026-08-10), **not** at T-02 time, so it witnesses the current working-tree state, not the state immediately after the deletion. SC-04 is worded against "`sample-product` at the state this feature leaves it in" (BRIEF:90), which is the object measured; nothing here attests the count was zero *continuously* since T-02. Corroboration only (not grading evidence): working-tree `harness*` counts under `skills`/`commands` are both 0, and `git ls-tree origin/master -- .claude \| grep -c harness` = 0. **Why the gap existed:** no commit ever touched `.claude/agents` and it is not gitignored — the 16 files were untracked local files, so filesystem inspection was the only method that could ever have evidenced this clause |
 | SC-05 | inspection | **partial** | Both manifests opened. 377 lines each, `diff` empty. **Zero 64-hex fields, zero 40-hex fields — there are no sha256 hashes.** No `TOTAL_FILES` line, no `TOP_LEVEL` line, though plan T-01's intent mandated `shasum -a 256` plus both trailing lines. Top-level entries present in the paths: `codebase` (17), `expertise` (43), `features` (314), `harness.json`, `team-config.yaml`, plus `.DS_Store` — **`artifacts` and `notes` appear in zero lines**, plausibly because they hold no files, but the `TOP_LEVEL` line that would settle it is the missing one. See defect 4 |
 | SC-06 | uat | **not_met (awaiting operator UAT)** | Blocking (`gates.uat: blocking_when_uat_criteria_exist`). Cannot be observed from this repository. Script at `notes/uat-FEAT-12-sc06.md` |
 | SC-07 | automated (unit) | **met** | `test-no-distribution.py:95-102` — `ALLOW_LIST` is a **literal two-entry list**, commented "Declared here, never derived from what happens to be present," so it is **named in the test**, not derived: the vacuity risk the SC names does not apply. `TOKEN_RE` `:86` covers all four tokens; exclusions `:89-90` are exactly the four historical trees the SC exempts. Asserted by `case2_absence_no_unswept_distribution_tokens` `:128`, with `case2_presence_scan_reached_the_tree` `:130` guarding an empty scan set. qa mutation-proved the allow-list discriminates (removing the `test-check-plan-routes.py` entry reddens the case) |
@@ -68,11 +73,11 @@ unclosable rather than uncaptured.
    The behaviour is real and verified. **SC-02 is met.** Recommendation: at the operator's next
    signature, re-anchor both citations on the docstring text ("THE BEHAVIOURAL TEST") rather than the
    number — the file gets reordered, and a number anchor rots while the claim survives.
-2. **Plan T-06's `verify:` can never pass.** It calls `factory_config.repo_entry('mruangutai/kaya-ai')`
+2. **Plan T-06's `verify:` can never pass.** It calls `factory_config.repo_entry('mruangutai/sample-product')`
    with one argument; the signature is `repo_entry(fleet, name)` — confirmed by
    `inspect.signature` at this sha — so it raises `TypeError` regardless of outcome. **A plan defect,
    not an SC defect.** I verified SC-03's own clauses directly and they hold. Recommendation: one-line
-   plan correction to `repo_entry(f, 'mruangutai/kaya-ai')` at the operator's signature.
+   plan correction to `repo_entry(f, 'mruangutai/sample-product')` at the operator's signature.
 3. **Plan T-14's `depends_on` is `[T-10, T-11, T-12]` and omits T-08.** Recorded, not fixed. It blocked
    in fact: `segments-layer0-2026-08-10.md:90-94` records T-14's verify returning six hits at `ff75afb`,
    four of them in T-08's and T-11's files. A *covered* concern — no `sc_status` row.
@@ -95,7 +100,7 @@ unclosable rather than uncaptured.
   test (`notes/qa-FEAT-12-qagate.md:124-139`).
 - No emergent success criterion was found. Everything above is either an existing SC's clause or a
   record defect.
-- **Cycle 2, new and non-blocking.** Kaya's working tree at `7d2f946` shows
+- **Cycle 2, new and non-blocking.** The product's working tree at `7d2f946` shows
   ` M .harness/features/FEAT-03-live-review-loop/feature.yaml` — a content-level modification inside
   the very tree SC-05 is worded against. It makes path-set equality visibly weaker than it looks, and
   it is input to the operator's choice between accepting SC-05 as-weakened and restating it. It is

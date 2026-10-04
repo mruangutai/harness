@@ -30,7 +30,7 @@ blocker.
 - SC-04: two-repo/two-board fixtures in claim, decompose, land (and integration) asserting *recorded
   gh call arguments* (board number + station names) match the acted-on repo and never the other's —
   count-based assertions explicitly insufficient per BRIEF.
-- SC-05: a case pinning the kaya-ai → board 2 pairing, failing if either side changes alone.
+- SC-05: a case pinning the sample-product → board 2 pairing, failing if either side changes alone.
 - SC-08/SC-09: `run-unit-tests.py --kind unit` / `--kind integration` both exit 0.
 - SC-13: a claim run scoped via `--repo` to a repo with an empty `ready` station reports "no work
   available" on stderr, empty stdout, exit 1 — not a silent 0.
@@ -85,7 +85,7 @@ per-repo-board cases dated to this feature), both exit 0.
 | SC-01 | evidenced | `test-factory-config.py` case (3) `a repos entry has no board`; cases (27), (28a-d) — per-repo board field rules raise with repos-prefixed key |
 | SC-02 | evidenced | `test-factory-config.py` case (8b) `a leftover top-level board key raises FleetError`, asserts key `board` and `next_step` mentions `repos[].board` |
 | SC-04 | evidenced | `test-factory-claim.py` P1-P4 (asserts query built from each board's own field/option, refusal names the right board, never the other's); `test-factory-decompose.py` T-03 case (asserts `project_item_add`/`project_field_set` issue no call against B's board); `test-factory-land.py` T-04 case (same, via `b_markers` non-membership check); `test-factory-integration.py` case (H) (`no recorded gh call names the other repository's board number` + a power-check that the served repo's own board number IS named). All assert on recorded call **arguments**, not counts, per the BRIEF's requirement. |
-| SC-05 | evidenced | `test-no-distribution.py` `case5`/`kaya_ai_is_paired_with_board_2`, plus its siblings `board_lives_per_repo_not_fleet_level` and `every_repo_declares_its_own_board` — three separate `check()` calls, each independently named |
+| SC-05 | evidenced | `test-no-distribution.py` `case5`/`sample_is_paired_with_board_2`, plus its siblings `board_lives_per_repo_not_fleet_level` and `every_repo_declares_its_own_board` — three separate `check()` calls, each independently named |
 | SC-08 | evidenced | `run-unit-tests.py --kind unit` exit 0 (see above) |
 | SC-09 | evidenced | `run-unit-tests.py --kind integration` exit 0 (see above) |
 | SC-13 | evidenced, with a caveat — see mutation section below | `test-factory-claim.py` P6 (`(P6) SC-13: ...` three checks) |

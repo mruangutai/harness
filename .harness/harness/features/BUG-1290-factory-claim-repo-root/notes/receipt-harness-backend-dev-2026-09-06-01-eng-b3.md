@@ -2,8 +2,8 @@
 
 ## BLUF
 
-Fixed the fixture. `build_features_root()`'s kaya-ai and harness segments now carry
-DIFFERENT, NON-EMPTY `factory.issues` maps (kaya: `{"T-77": 850}`, no `T-88`; harness:
+Fixed the fixture. `build_features_root()`'s sample-product and harness segments now carry
+DIFFERENT, NON-EMPTY `factory.issues` maps (sample-product: `{"T-77": 850}`, no `T-88`; harness:
 `{"T-99": 954}`), and case 5b's harness plan task now depends on `T-99` (was: no
 `depends_on` at all) whose issue is registered CLOSED in the fixture. Both cache-key
 mutants (M1 plan-cache, M2 issue-map-cache) now redden case 5b; M2 previously did not
@@ -13,11 +13,11 @@ mutants (M1 plan-cache, M2 issue-map-cache) now redden case 5b; M2 previously di
 
 - `build_features_root()` docstring (:335-340): rewritten to state both caches now
   discriminate, not just the plan.
-- kaya-ai segment (:373-378): plan unchanged (`T-77 depends_on ["T-88"]`); issue map
-  changed from `{}` to `{"T-77": 850}` — non-empty, still without `T-88`, so kaya still
+- sample-product segment (:373-378): plan unchanged (`T-77 depends_on ["T-88"]`); issue map
+  changed from `{}` to `{"T-77": 850}` — non-empty, still without `T-88`, so sample-product still
   resolves to `unresolvable` without ever calling `issue_view`.
 - harness segment (:380-383): plan's `T-77` now `depends_on=["T-99"]` (was: no
-  `depends_on`, a bare clear task) — a DIFFERENT dep id from kaya's `T-88`, so the
+  `depends_on`, a bare clear task) — a DIFFERENT dep id from sample-product's `T-88`, so the
   plan-cache mutant (M1) still reddens too; issue map changed from `{}` to `{"T-99": 954}`.
 - Case 5b comment (:1179-1183) and a new `rec.issue_data[954] = issue_data(954, "T-99 do
   the thing", state="CLOSED")` line, registering the fixture the Recorder needs when the

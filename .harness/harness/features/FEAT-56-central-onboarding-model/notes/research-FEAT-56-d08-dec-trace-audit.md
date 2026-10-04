@@ -1,5 +1,10 @@
 # Research — FEAT-56 plan `decisions:` → DECISIONS.md trace audit
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **BLUF.** Two mis-maps found and corrected, both confirmed against primary source before amending:
 D-08 pointed at DEC-221 (fleet registration) when its subject is the two-skill split — now DEC-222;
 D-01 pointed at DEC-174 (self-hosting carve-out) when DEC-221 is the entry that literally strikes
@@ -119,7 +124,7 @@ OK T-15: declared main-session-direct (.omp/agents/harness-dev-ops.md, .omp/agen
 OK T-16 granted to harness-documentor
 OK T-17 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-18 granted to harness-dev-ops
-OK T-19: declared main-session-direct (.harness/team-config.yaml, .claude/skills/harness/templates/harness.json, .claude/skills/harness/templates/team-config.yaml, .claude/skills/harness/templates/examples/harness.kaya-ai.json ungranted)
+OK T-19: declared main-session-direct (.harness/team-config.yaml, .claude/skills/harness/templates/harness.json, .claude/skills/harness/templates/team-config.yaml, .claude/skills/harness/templates/examples/harness.<product>.json ungranted)
 OK T-20 granted to harness-documentor
 1 violation(s) across 5 plan(s)
 examined 87 feature dir(s); 82 skipped as shipped

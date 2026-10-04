@@ -41,7 +41,7 @@ Delta: 125 (M1) − 124 (M2) = **1**.
 - In the copy only, inside `build_features_root()`, changed the `harness_seg` plan write
   (originally line 382) from
   `plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"])]))` to
-  `plan_dict(SEG_FEATURE, [task_dict("T-77")]))` — verified the sibling `kaya_seg` write on
+  `plan_dict(SEG_FEATURE, [task_dict("T-77")]))` — verified the sibling `sample_seg` write on
   line 377 (`task_dict("T-77", depends_on=["T-88"])`) was untouched (grep confirmed both lines
   before and after the edit; only line 382 changed).
 - Ran: `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-claim.py` from `/tmp/b16_m3`.

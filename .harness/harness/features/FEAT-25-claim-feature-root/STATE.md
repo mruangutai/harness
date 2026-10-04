@@ -60,10 +60,10 @@ silently.
 
 - S1 (non-blocking, the most consequential; run 2's Q2): #500 alone may not unblock unit 8 (#496).
   `factory_decompose.py:276-283` labels every sub-issue `feature:<id>` and `:360` labels an adopted
-  parent the same way, so a decomposed kaya issue always resolves a feature id; under a fixed
-  `harness` segment a kaya feature directory at `.harness/kaya-ai/features/` is still unreadable
+  parent the same way, so a decomposed sample-product issue always resolves a feature id; under a fixed
+  `harness` segment a sample-product feature directory at `.harness/sample-product/features/` is still unreadable
   and still refused — with a correct message after T-02, but still refused. Operator's choice:
-  place kaya's first feature dir under the harness segment, use an unlabelled first proof issue,
+  place sample-product's first feature dir under the harness segment, use an unlabelled first proof issue,
   or pull unit 7 forward.
 - S2 (downgraded from blocking, with the disproof; run 3's Q1): SC-08's allowlist clause (a) would
   flag `.harness/expertise/*.md` if it were graded after feature-close distillation. The lead

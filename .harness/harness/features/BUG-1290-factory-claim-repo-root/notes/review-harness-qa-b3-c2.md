@@ -44,8 +44,8 @@ OLD (76e26386): MUTANT=plans cases={'5a':'ok','5b':'FAIL', rest ok} total_FAIL_l
 
 ## 4. Collateral — value perturbation, not just key mutation
 
-`build_features_root()`'s two changed segments (`kaya-ai`, `harness`, both under `SEG_FEATURE =
-"FEAT-99-seg"`) are consumed ONLY by cases 5a/5b: grepped `SEG_FEATURE`, `kaya-ai`, and the
+`build_features_root()`'s two changed segments (`sample-product`, `harness`, both under `SEG_FEATURE =
+"FEAT-99-seg"`) are consumed ONLY by cases 5a/5b: grepped `SEG_FEATURE`, `sample-product`, and the
 `REPO_HARNESS_SEG` fixture repo across the whole file — no B*/R*/P*/C*/X case references them.
 Every other case's fleet repo resolves to a different `.harness/<segment>/features` path under the
 same monkeypatched `fixture_features_root`, so the two changed `feature.json`s and the two changed
@@ -54,9 +54,9 @@ same monkeypatched `fixture_features_root`, so the two changed `feature.json`s a
 Confirmed by direct perturbation in the disposable pin worktree (edit, run, restore, verify
 `git status --porcelain` clean after restore):
 
-- kaya's filler value `{"T-77": 850}` → `{"T-77": 999}` (unasserted — kaya's dep is on T-88, absent
-  from kaya's map either way): **0 FAIL lines**, 124/124 pass. This value is not load-bearing;
-  correctly so, since 5a/5b's kaya assertion is about T-88 staying unresolvable, not about T-77's
+- sample-product's filler value `{"T-77": 850}` → `{"T-77": 999}` (unasserted — sample-product's dep is on T-88, absent
+  from sample-product's map either way): **0 FAIL lines**, 124/124 pass. This value is not load-bearing;
+  correctly so, since 5a/5b's sample-product assertion is about T-88 staying unresolvable, not about T-77's
   entry.
 - harness's load-bearing value `{"T-99": 954}` → `{"T-99": 999}` (mismatches `rec.issue_data[954]`,
   the CLOSED issue 5b's harness-clear verdict depends on): **exactly 1 FAIL line**,
@@ -66,8 +66,8 @@ Confirmed by direct perturbation in the disposable pin worktree (edit, run, rest
 ## 5. Stays-green-under-its-own-bug audit (5a/5b only)
 
 5b's check is content-specific, not token-presence: `code == 0 and json.loads(out).get("issue") ==
-952` (harness's own candidate claimed, not kaya's) `and "951" in err and "unresolvable blocker" in
-err` (kaya's candidate named and blocked for the right reason) `and "no plan could be read" not in
+952` (harness's own candidate claimed, not sample-product's) `and "951" in err and "unresolvable blocker" in
+err` (sample-product's candidate named and blocked for the right reason) `and "no plan could be read" not in
 err` (rules out the case degrading into a no_plan/misconfiguration read instead of a real blocker
 verdict). Directly exercised in §2: the exact re-keying bug the fix addresses turns this from `ok`
 to `FAIL` on the pin, and was `ok` (i.e. undetected) on the pre-fix tree — matching what B-3

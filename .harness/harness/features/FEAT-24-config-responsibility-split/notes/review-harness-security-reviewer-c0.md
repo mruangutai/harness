@@ -11,7 +11,7 @@ is a genuine new trust-boundary crossing: the value now comes from whoever can m
 member's default branch, not from the local operator's own git-tracked config, and it drives writes
 made with the **local operator's own `gh` credentials**. `validate_board` never binds the declared
 `owner` to the repository's own owner, so this is a real confused-deputy shape (F1, med) — currently
-precondition-absent because the only live fleet member (`kaya-ai`) is operator-owned. Separately,
+precondition-absent because the only live fleet member (`sample-product`) is operator-owned. Separately,
 SC-06's literal wording claims three distinct tested failure modes for `board_for`'s remote read;
 only one distinct code path actually exists, and the QA gate note marks it "met" on cases that don't
 exercise two of the three (F2, low / F3, info — the JSON-parse leg is keyword-search-bounded, not
@@ -83,7 +83,7 @@ One fleet member with a poisoned or simply broken remote board declaration block
 every other fleet member served in the same run.
 
 **Reachability today: precondition-absent, not live.** The only fleet member at this pin is
-`mruangutai/kaya-ai`, owned by the same person who operates the local `gh` credential
+`mruangutai/sample-product`, owned by the same person who operates the local `gh` credential
 (DEC-174 amendment 3, live-read confirmed `owner mruangutai, number 2`). No third-party attacker
 exists in the current fleet, so this is not exploitable today. It becomes live the moment the fleet
 gains (a) a second member repository, or (b) any collaborator/CI identity on the existing member's

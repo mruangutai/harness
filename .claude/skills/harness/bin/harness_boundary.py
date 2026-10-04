@@ -1006,7 +1006,8 @@ def _rel_candidates(_abs_target, base, rel):
     # WORKTREES (DEC-143). A git worktree under `<WORKTREES_SEGMENT>/<name>/` is a full
     # checkout, but to this rule it was just a subdirectory: the same repo-relative path
     # that globs ALLOW in the main checkout arrived prefixed and matched nothing — so in
-    # a worktree-per-session project, NO doer could write source at all. Found in kaya-ai
+    # a worktree-per-session project, NO doer could write source at all. Found in the
+    # archived pilot product's own repository
     # at the first build dispatch after plan approval, the most expensive possible place.
     #
     # Fix: match the RAW path first (so a glob that deliberately targets the worktree

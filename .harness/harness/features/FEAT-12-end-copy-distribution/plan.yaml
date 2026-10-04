@@ -1,3 +1,9 @@
+# Archival note - product retirement: this plan is a completed historical record. The product it
+# was executed against has been retired; sample-product names below are anonymized historical
+# references, and the evidence captures and product config cited by its tasks were removed from
+# this tree and preserved in the external archive held by the operator. Paths here resolve to
+# nothing locally and are not live instructions. Task ids, dependencies, recorded status and
+# stored signatures are unchanged.
 schema: plan/1
 feature: FEAT-12-end-copy-distribution
 status: done
@@ -7,20 +13,20 @@ approval:
   approved_by: operator
   date: 2026-08-10
   rulings: >-
-    D-06 IS REVERSED: remove kaya's .claude/settings.json.harness-bak in this feature. The plan
+    D-06 IS REVERSED: remove sample-product's .claude/settings.json.harness-bak in this feature. The plan
     deferred it as inert — merge-settings.py writes it and never reads it back — but it is tracked
-    on kaya's origin/master and names six harness scripts this feature deletes, so deferring leaves
-    kaya's master carrying a tracked file that points at paths which no longer exist. Cost is stated
+    on sample-product's origin/master and names six harness scripts this feature deletes, so deferring leaves
+    sample-product's master carrying a tracked file that points at paths which no longer exist. Cost is stated
     in the plan: one path on T-03, one entry on T-05's pathspec. Fold it into those tasks; do not
     add a task.
 
-    RATIFIED, not re-asked: REQ-03's narrowing to kaya's three top-level tooling directories, and
+    RATIFIED, not re-asked: REQ-03's narrowing to sample-product's three top-level tooling directories, and
     the corrected push cost (34 TRACKED files lose their local modifications permanently; all 34 are
     reproducible from this repo, 28 byte-identical at 365a8a9 and 6 present in its object database).
 
-    UNCHANGED AND STILL BINDING: the kaya push is authorized for mruangutai/kaya-ai master, for the
+    UNCHANGED AND STILL BINDING: the sample-product push is authorized for mruangutai/sample-product master, for the
     deletion commit ONLY, staged by explicit pathspec — never git commit -a, never git add . or -A.
-    kaya's 63 unrelated uncommitted entries are not this feature's to touch. Nothing in this
+    sample-product's 63 unrelated uncommitted entries are not this feature's to touch. Nothing in this
     repository may be pushed on that authorization.
 
 lanes:
@@ -63,7 +69,7 @@ lanes:
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
       reason: check-domain.py --resolve returns NOBODY; precedent is FEAT-10 T-01, written main-session-direct on 2026-08-09
-    - surface: /Users/molchairuangutai/GitHub/kaya-ai/**
+    - surface: /Users/molchairuangutai/GitHub/sample-product/**
       lane: main-session-direct
       reason: outside CLAUDE_PROJECT_DIR, so check-domain.py passes it through ungoverned and no team-config lane grants it; the work is a cross-repo destructive change gated on Q1, so it stays with the tier that has an operator channel
     - surface: /Users/molchairuangutai/.harness/registry.json
@@ -73,17 +79,17 @@ lanes:
 decisions:
   - id: D-01
     choice: >-
-      All three distributed surfaces are removed from kaya-ai, not just the skills the operator
+      All three distributed surfaces are removed from sample-product, not just the skills the operator
       ruling names - 21 harness skill directories, 8 harness slash commands, and the harness agent
-      files on kaya's disk. The three are NOT one committed triple, and the plan must not treat them
-      as one. Measured in kaya-ai on 2026-08-10, and superseding every earlier count in this plan:
+      files on sample-product's disk. The three are NOT one committed triple, and the plan must not treat them
+      as one. Measured in sample-product on 2026-08-10, and superseding every earlier count in this plan:
       55 tracked skill files and 8 tracked command files on master, and 16 agent files present on
       disk but tracked by nothing - git ls-files .claude/agents/harness* returns zero rows while
       ls -1 .claude/agents returns 16 files, all matching harness-*.md and nothing else.
       Consequence, stated once here and repeated wherever it binds: the agents deletion is
       WORKING-TREE-ONLY, it produces no commit content, and the remote never carried it. So T-05's
       remote verify carries no agents clause by design, and SC-04's agents half is a claim about
-      kaya's working tree, never about origin/master.
+      sample-product's working tree, never about origin/master.
     because: >-
       deploy.sh derives its payload from all three sets at lines 52 to 59 and copies commands into
       each enrolled project at lines 264 to 268, so the mechanism itself is the authority for
@@ -96,9 +102,9 @@ decisions:
     dec: none
   - id: D-02
     choice: >-
-      kaya-ai's committed .claude/settings.json loses EVERY harness registration, and there are
+      sample-product's committed .claude/settings.json loses EVERY harness registration, and there are
       EIGHT of them across FOUR hook events, not three PreToolUse hooks. Measured with json.load in
-      kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.py; PreToolUse Bash
+      sample-product on 2026-08-10: PreToolUse Bash branch-create-gate.py; PreToolUse Bash
       branch-create-gate.py a second, duplicate time under a different variable spelling; PreToolUse
       Bash bash-write-guard.py; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
       dispatch-guard.py; SubagentStart on matcher harness-.* inject-expertise.py; SubagentStop on
@@ -106,7 +112,7 @@ decisions:
       check-domain.py --post. All eight go, in this feature rather than as a deferral.
     because: >-
       those paths live inside the skill tree D-01 deletes, so leaving them wired makes every Bash,
-      Write, Task and subagent call in any kaya session - including the factory checkouts the fleet
+      Write, Task and subagent call in any sample-product session - including the factory checkouts the fleet
       entry exists to enable - fail on a dangling command, which would ship the fleet entry inert.
       The earlier count of three was wrong and is corrected here rather than left for the builder to
       discover: SC-06 is the operator's own blocking UAT and it spawns a Task, which fires
@@ -135,9 +141,9 @@ decisions:
     dec: DEC-169
   - id: D-06
     choice: >-
-      kaya-ai's .claude/settings.json.harness-bak is declared OUT OF SCOPE and left on master, as a
+      sample-product's .claude/settings.json.harness-bak is declared OUT OF SCOPE and left on master, as a
       deferral on the record rather than an omission. It is tracked on the remote - git ls-tree -r
-      --name-only origin/master lists it beside .claude/settings.json - it is modified in kaya's
+      --name-only origin/master lists it beside .claude/settings.json - it is modified in sample-product's
       working tree, and it registers six harness scripts. After this feature master therefore still
       ships one tracked file naming scripts that no longer exist. No task, REQ or SC here touches it,
       and T-05's pathspec does not match it.
@@ -150,7 +156,7 @@ decisions:
       residue is inert for SC-06 and cannot cause a dangling-hook error. Bringing it in would also
       need a REQ it does not have: REQ-03 is about harness tooling, REQ-06 about dangling hooks, and
       REQ-07 about this repository, and line 325's own comment says the backup exists because
-      merge-settings edits a file the project owns and harness does not - it is kaya's property, not
+      merge-settings edits a file the project owns and harness does not - it is sample-product's property, not
       harness tooling. Inventing a ninth REQ on a brief the operator is about to sign is scope
       widening, so the residue is declared here and in BRIEF's Constraints instead. What a future
       reader needs: deleting it is a one-path change to T-03 and one entry on T-05's pathspec, and
@@ -159,24 +165,24 @@ decisions:
 
 tasks:
   - id: T-01
-    title: Capture the kaya-ai .harness state manifest before any deletion
+    title: Capture the sample-product .harness state manifest before any deletion
     traces: [REQ-04]
     change_type: scaffolding
     execution_mode: main-session-direct
-    execution_reason: the WORK is a read of /Users/molchairuangutai/GitHub/kaya-ai, outside CLAUDE_PROJECT_DIR and granted to no lane; only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path granted to harness-orchestrator. It stays with the seat that runs T-02 to T-05, because a manifest captured by a different seat than the one that deletes is not evidence about the same moment.
+    execution_reason: the WORK is a read of /Users/molchairuangutai/GitHub/sample-product, outside CLAUDE_PROJECT_DIR and granted to no lane; only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path granted to harness-orchestrator. It stays with the seat that runs T-02 to T-05, because a manifest captured by a different seat than the one that deletes is not evidence about the same moment.
     depends_on: []
     status: done
     files:
-      - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt
+      - .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt
     verify: |
-      test -s .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt && awk 'END{print NR}' .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt | awk '$1>50{exit 0} {exit 1}'
+      test -s .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt && awk 'END{print NR}' .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt | awk '$1>50{exit 0} {exit 1}'
     intent: |
-      Write a reproducible content manifest of every file under /Users/molchairuangutai/GitHub/kaya-ai/.harness/ to
-      .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt in this repository.
+      Write a reproducible content manifest of every file under /Users/molchairuangutai/GitHub/sample-product/.harness/ to
+      .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt in this repository.
 
       Produce it with exactly this command, so that the after-capture in T-04 is byte-comparable:
 
-        cd /Users/molchairuangutai/GitHub/kaya-ai && find .harness -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256
+        cd /Users/molchairuangutai/GitHub/sample-product && find .harness -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256
 
       Redirect the output to the file path above. Do not sort the shasum output afterwards, do not
       strip paths, and do not filter anything: the manifest must cover all seven top-level entries -
@@ -189,10 +195,10 @@ tasks:
         TOTAL_FILES <n>
         TOP_LEVEL <the output of `ls -1 .harness` joined by single spaces>
 
-      Write nothing inside kaya-ai. This task is read-only with respect to that repository.
+      Write nothing inside sample-product. This task is read-only with respect to that repository.
 
   - id: T-02
-    title: Delete kaya-ai's copies of the harness skills, slash commands and agents
+    title: Delete sample-product's copies of the harness skills, slash commands and agents
     traces: [REQ-03]
     change_type: scaffolding
     execution_mode: main-session-direct
@@ -200,36 +206,36 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/skills
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/commands
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/agents
-      - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/skills
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/commands
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/agents
+      - .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-agents-count-before.txt
     verify: |
-      cd /Users/molchairuangutai/GitHub/kaya-ai && test "$(ls -1d .claude/skills/harness* 2>/dev/null | wc -l | tr -d ' ')" = 0 && test "$(ls -1 .claude/commands/harness*.md 2>/dev/null | wc -l | tr -d ' ')" = 0 && test -d .claude/agents && test "$(ls -1 .claude/agents/harness-*.md 2>/dev/null | wc -l | tr -d ' ')" = 0 && test -s /Users/molchairuangutai/GitHub/harness/.harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt && test "$(cat /Users/molchairuangutai/GitHub/harness/.harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt)" -gt 0 && test -d .claude/commands && test -f .claude/commands/review-team.md && test -d .harness/expertise && test -d .harness/codebase && test -d .harness/features && test -d .harness/artifacts && test -d .harness/notes && test -f .harness/harness.json && test -f .harness/team-config.yaml
+      cd /Users/molchairuangutai/GitHub/sample-product && test "$(ls -1d .claude/skills/harness* 2>/dev/null | wc -l | tr -d ' ')" = 0 && test "$(ls -1 .claude/commands/harness*.md 2>/dev/null | wc -l | tr -d ' ')" = 0 && test -d .claude/agents && test "$(ls -1 .claude/agents/harness-*.md 2>/dev/null | wc -l | tr -d ' ')" = 0 && test -s /Users/molchairuangutai/GitHub/harness/.harness/features/FEAT-12-end-copy-distribution/notes/sample-product-agents-count-before.txt && test "$(cat /Users/molchairuangutai/GitHub/harness/.harness/features/FEAT-12-end-copy-distribution/notes/sample-product-agents-count-before.txt)" -gt 0 && test -d .claude/commands && test -f .claude/commands/review-team.md && test -d .harness/expertise && test -d .harness/codebase && test -d .harness/features && test -d .harness/artifacts && test -d .harness/notes && test -f .harness/harness.json && test -f .harness/team-config.yaml
     intent: |
-      In the working tree at /Users/molchairuangutai/GitHub/kaya-ai, remove the harness tooling that
+      In the working tree at /Users/molchairuangutai/GitHub/sample-product, remove the harness tooling that
       deploy.sh copied there. Three sets, and only these three:
 
       1. Every directory matching .claude/skills/harness*/ - 21 of them at the time of planning,
          including the 37-file harness/bin/. Remove the directories themselves, not just contents.
       2. Every file matching .claude/commands/harness*.md - 8 of them.
       3. Every file matching .claude/agents/harness-*.md. This set is DIFFERENT IN KIND from the
-         other two and must not be handled as if it were the same. Measured in kaya on 2026-08-10:
+         other two and must not be handled as if it were the same. Measured in sample-product on 2026-08-10:
          git ls-files .claude/agents/harness* returns ZERO rows, while ls -1 .claude/agents returns
          16 files, all matching harness-*.md and nothing else. They are real files on disk and
          deleting them is real work, but they were never committed, so this deletion produces NO
          COMMIT CONTENT and the remote never carried them. That is why T-05's remote verify has no
-         agents clause and why SC-04's agents half is graded against kaya's working tree. It is also
+         agents clause and why SC-04's agents half is graded against sample-product's working tree. It is also
          why git rm cannot be used on them at all.
 
       FIRST, before deleting anything, record the pre-deletion agent count so the 16-to-0 transition
       has a witness that a post-hoc command cannot supply - once the directory is empty, nothing can
-      distinguish "16 were deleted" from "there were never any". Run, in kaya:
+      distinguish "16 were deleted" from "there were never any". Run, in sample-product:
 
         ls -1 .claude/agents | wc -l | tr -d ' '
 
       and write that single number, and nothing else, to
-      .harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt in THIS
+      .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-agents-count-before.txt in THIS
       repository. This task's verify asserts that file exists and holds a number greater than zero,
       alongside the post-deletion count of zero. Also report the same number in your receipt: it is
       SC-04's cited evidence for the agents half.
@@ -239,7 +245,7 @@ tasks:
       deleting the wrong directory outright would produce.
 
       .claude/skills/ IS EXPECTED TO DISAPPEAR, and that is correct rather than an overreach.
-      Measured in kaya on 2026-08-10: ls -1 .claude/skills returns 21 entries and every one of them
+      Measured in sample-product on 2026-08-10: ls -1 .claude/skills returns 21 entries and every one of them
       matches harness*, nothing else is in there. git removes a leading directory that its removals
       leave empty - reproduced in a scratch repository - so the directory goes with its last child.
       Do not recreate it, and do not treat its absence as a fault.
@@ -279,7 +285,7 @@ tasks:
       permanently. Measured on 2026-08-10: 34 tracked harness files under .claude/skills/harness* or
       .claude/commands/harness* carry local modifications. Every one of them is reproducible from
       this repository - 28 are byte-identical to this repo's copy at 365a8a9, and the remaining 6
-      are present in this repo's object database, confirmed by hashing kaya's copy and running
+      are present in this repo's object database, confirmed by hashing sample-product's copy and running
       git cat-file -e on the hash here. Nothing unique is lost. Do not stop and escalate on the
       local-modifications error; it is expected and -f is the answer.
 
@@ -293,15 +299,15 @@ tasks:
       staged entry is either a deletion of a harness* path or the single settings.json modification
       still holds, and holds over what this task staged.
 
-      Two of the tracked paths under those globs are already deleted from disk in kaya
+      Two of the tracked paths under those globs are already deleted from disk in sample-product
       (.claude/skills/harness/bin/cost-report.py and .claude/skills/harness/teams/gate-probe.yaml).
       git ls-files still reports them, git rm -f -r stages their deletion, and ls disagreeing with
       git ls-files is not grounds to stop.
 
-      kaya carries six git worktrees under .claude/worktrees/. Three of them - 333-env-test,
+      sample-product carries six git worktrees under .claude/worktrees/. Three of them - 333-env-test,
       feat02-statements and feat03-live-review-loop - hold their own .claude/skills/harness* tree,
       153 files across 56 directories, and those files are TRACKED content of each worktree's own
-      branch, not untracked. They are invisible to kaya's root git status only because
+      branch, not untracked. They are invisible to sample-product's root git status only because
       .gitignore line 23 ignores the .claude/worktrees/ container in the main tree. Nothing on
       master tracks any worktree path, so the three globs cannot reach them and neither the git rm
       set nor the rm -rf remainder touches them. Do not extend any glob to reach them and do not
@@ -309,7 +315,7 @@ tasks:
       three branches drops its copy on its own when it next merges or rebases master.
 
   - id: T-03
-    title: Unwire all eight harness hook registrations from kaya-ai's settings.json
+    title: Unwire all eight harness hook registrations from sample-product's settings.json
     traces: [REQ-06]
     change_type: config
     execution_mode: main-session-direct
@@ -317,9 +323,9 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/settings.json
     verify: |
-      cd /Users/molchairuangutai/GitHub/kaya-ai && python3 -c "
+      cd /Users/molchairuangutai/GitHub/sample-product && python3 -c "
       import json
       t = open('.claude/settings.json').read()
       d = json.loads(t)
@@ -332,13 +338,13 @@ tasks:
       print('ok', len(cmds), 'hooks remain')
       "
     intent: |
-      Edit /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json so that it no longer
+      Edit /Users/molchairuangutai/GitHub/sample-product/.claude/settings.json so that it no longer
       registers any hook whose command points inside the skill tree T-02 deletes.
 
       There are EIGHT such registrations and they span FOUR hook events, not three PreToolUse hooks.
       An earlier draft of this task enumerated three; that enumeration was wrong, it contradicted
       this task's own headline instruction and its own verify, and a builder who followed it would
-      leave five registrations wired and then fail the verify. Measured with json.load in kaya on
+      leave five registrations wired and then fail the verify. Measured with json.load in sample-product on
       2026-08-10, the full set is:
 
         PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.py
@@ -381,31 +387,31 @@ tasks:
       Do not run any git command in this task.
 
   - id: T-04
-    title: Re-capture kaya-ai's .harness manifest and prove it is unchanged
+    title: Re-capture sample-product's .harness manifest and prove it is unchanged
     traces: [REQ-04]
     change_type: scaffolding
     execution_mode: main-session-direct
-    execution_reason: same as T-01 - the work reads /Users/molchairuangutai/GitHub/kaya-ai, which no lane grants, and only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path
+    execution_reason: same as T-01 - the work reads /Users/molchairuangutai/GitHub/sample-product, which no lane grants, and only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path
     depends_on: [T-02, T-03]
     status: done
     files:
-      - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt
+      - .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-after.txt
     verify: |
-      diff .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt && echo IDENTICAL
+      diff .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-after.txt && echo IDENTICAL
     intent: |
       Repeat T-01's capture verbatim - same command, same appended TOTAL_FILES and TOP_LEVEL lines -
       writing to
-      .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt.
+      .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-after.txt.
 
-      Then diff it against kaya-harness-manifest-before.txt. The diff must be empty. A non-empty
-      diff means the deletion reached kaya's project state and the task FAILS: report it, do not
+      Then diff it against sample-product-harness-manifest-before.txt. The diff must be empty. A non-empty
+      diff means the deletion reached sample-product's project state and the task FAILS: report it, do not
       reconcile the manifests, and do not regenerate the before-capture.
 
       This is the evidence pointer for SC-05, so the artifact must survive the run; do not delete
       either manifest afterwards.
 
   - id: T-05
-    title: Commit and push the kaya-ai tooling removal to master, path-scoped
+    title: Commit and push the sample-product tooling removal to master, path-scoped
     traces: [REQ-03]
     change_type: scaffolding
     execution_mode: main-session-direct
@@ -413,20 +419,20 @@ tasks:
     depends_on: [T-04]
     status: done
     files:
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/skills
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/commands
-      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/skills
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/commands
+      - /Users/molchairuangutai/GitHub/sample-product/.claude/settings.json
     verify: |
-      cd /Users/molchairuangutai/GitHub/kaya-ai && git fetch origin master --quiet && test "$(git ls-tree -r --name-only origin/master | grep -c '^\.claude/skills/harness')" = 0 && test "$(git ls-tree -r --name-only origin/master | grep -c '^\.claude/commands/harness')" = 0 && git ls-tree -r --name-only origin/master | grep -q '^\.claude/commands/review-team.md' && echo REMOTE_CLEAN
+      cd /Users/molchairuangutai/GitHub/sample-product && git fetch origin master --quiet && test "$(git ls-tree -r --name-only origin/master | grep -c '^\.claude/skills/harness')" = 0 && test "$(git ls-tree -r --name-only origin/master | grep -c '^\.claude/commands/harness')" = 0 && git ls-tree -r --name-only origin/master | grep -q '^\.claude/commands/review-team.md' && echo REMOTE_CLEAN
     intent: |
       THE AUTHORIZATION, stated first because it is narrow and because nothing else in this feature
-      pushes anything. The operator ruled on 2026-08-10: commit and PUSH to kaya's master,
-      path-scoped. That authorization covers the repository mruangutai/kaya-ai, the branch master,
+      pushes anything. The operator ruled on 2026-08-10: commit and PUSH to sample-product's master,
+      path-scoped. That authorization covers the repository mruangutai/sample-product, the branch master,
       and the deletion commit ONLY. It authorizes nothing in this repository - the standing "do not
-      push, do not open a PR" still binds here in full - and it authorizes no second commit in kaya.
+      push, do not open a PR" still binds here in full - and it authorizes no second commit in sample-product.
       This task is unconditional; there is no working-tree-only branch any more.
 
-      In /Users/molchairuangutai/GitHub/kaya-ai, on branch master, stage ONLY the paths this feature
+      In /Users/molchairuangutai/GitHub/sample-product, on branch master, stage ONLY the paths this feature
       touched and push.
 
       T-02 has already staged the deletions it derived, because the operator ruled git rm and git rm
@@ -439,7 +445,7 @@ tasks:
 
       Do NOT write git add -- .claude/skills here. T-02's git rm already staged every tracked
       deletion, and .claude/skills/ no longer exists in the index or on disk once its last tracked
-      child is removed - kaya's .claude/skills holds only harness* entries - so that pathspec would
+      child is removed - sample-product's .claude/skills holds only harness* entries - so that pathspec would
       match nothing and abort this task with "fatal: pathspec ... did not match any files",
       reproduced in a scratch repository. Narrowing the add also removes a second hazard: a bare
       .claude/skills pathspec would sweep any unrelated modification under that tree into this
@@ -450,7 +456,7 @@ tasks:
       harness* or the single modification to .claude/settings.json. If any other path is staged,
       unstage it and stop.
 
-      Also confirm `git diff --cached --stat -- .harness` is empty. If it is not, abort: kaya's
+      Also confirm `git diff --cached --stat -- .harness` is empty. If it is not, abort: sample-product's
       project state must not enter this commit.
 
       Commit message subject: "Remove distributed harness tooling; harness is reached via the
@@ -462,7 +468,7 @@ tasks:
       never tracked, so T-02's deletion of the 16 on disk produces no commit content and the remote
       never carried them. A commit body naming files the commit does not contain is a false record.
       For the same reason this task's verify has no agents clause on origin/master, and that absence
-      is deliberate rather than an omission - SC-04's agents half is graded against kaya's working
+      is deliberate rather than an omission - SC-04's agents half is graded against sample-product's working
       tree, on the pre-count T-02 recorded and the post-count of zero.
 
       Then `git push origin master`.
@@ -473,7 +479,7 @@ tasks:
       next factory checkout restores every one of them.
 
   - id: T-06
-    title: Add mruangutai/kaya-ai to the factory fleet declaration
+    title: Add mruangutai/sample-product to the factory fleet declaration
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
@@ -483,20 +489,20 @@ tasks:
     files:
       - .harness/factory/fleet.yaml
     verify: |
-      python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin'); import factory_config; f=factory_config.load_fleet(); r={x['name']:x for x in f['repos']}; assert set(r)=={'mruangutai/harness','mruangutai/kaya-ai'}, r; assert r['mruangutai/kaya-ai']['default_branch']=='master'; assert r['mruangutai/harness']['default_branch']=='main'; print(factory_config.repo_entry('mruangutai/kaya-ai'))"
+      python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin'); import factory_config; f=factory_config.load_fleet(); r={x['name']:x for x in f['repos']}; assert set(r)=={'mruangutai/harness','mruangutai/sample-product'}, r; assert r['mruangutai/sample-product']['default_branch']=='master'; assert r['mruangutai/harness']['default_branch']=='main'; print(factory_config.repo_entry('mruangutai/sample-product'))"
     intent: |
       Add a second entry to the repos list in .harness/factory/fleet.yaml:
 
-        - name: mruangutai/kaya-ai
+        - name: mruangutai/sample-product
           default_branch: master
 
       Keep the existing mruangutai/harness entry with default_branch main, keep the schema, board and
       workspace_root keys unchanged, and keep the file's existing two-space indentation and key
       order.
 
-      default_branch is master, not main - kaya-ai's default branch is master, verified.
+      default_branch is master, not main - sample-product's default branch is master, verified.
 
-      This entry is what keeps kaya reachable at all once the registry is deleted: the registry held
+      This entry is what keeps sample-product reachable at all once the registry is deleted: the registry held
       one local absolute path and the fleet holds GitHub slugs, and the two lists have no entry in
       common, so the fleet does not absorb the registry by default.
 
@@ -869,7 +875,7 @@ tasks:
 
       Case 3 - the fleet declaration is the reachability record.
         Presence: .harness/factory/fleet.yaml safe_loads, its repos list has exactly two entries,
-        and mruangutai/kaya-ai is present with default_branch master.
+        and mruangutai/sample-product is present with default_branch master.
         Absence: no file under .harness/ is named registry.json.
 
       Case 4 - the falsified decisions are struck, and the strike did not overreach.

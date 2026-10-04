@@ -10,7 +10,7 @@ moved to `.harness/harness/features`. Every plan read fails, so `_BlockerCache.t
 exist, and a real plan (`FEAT-24 T-01`) resolves under the migrated path and nowhere else.
 
 It fails closed — no wrong work is handed out, nothing is claimed twice — so the cost is not a
-safety hole but a dead factory. Unit 8, the live kaya proof (#496), takes its work through this
+safety hole but a dead factory. Unit 8, the live sample-product proof (#496), takes its work through this
 tool and therefore cannot start.
 
 The second cost lands on whoever debugs it. The skip message at `factory_claim.py:162-168` says

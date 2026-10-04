@@ -67,20 +67,20 @@ a tempfile:
 ```yaml
 schema: factory-fleet/1
 repos:
-  - name: mruangutai/kaya-ai
+  - name: mruangutai/sample-product
     default_branch: main
     fake: true
 ```
 
 **BEFORE** (`str(e)` on the raised `FleetError`, captured before editing production code):
 ```
-fleet key invalid: repos[mruangutai/kaya-ai].board — give mruangutai/kaya-ai its own board: {...} block with number, station_field and stations in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjri0cl7f.yaml
+fleet key invalid: repos[mruangutai/sample-product].board — give mruangutai/sample-product its own board: {...} block with number, station_field and stations in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpjri0cl7f.yaml
 ```
 Names three fields: number, station_field, stations. Missing `owner`.
 
 **AFTER** (captured after editing):
 ```
-fleet key invalid: repos[mruangutai/kaya-ai].board — give mruangutai/kaya-ai its own board: {...} block with owner, number, station_field and stations in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpew3ovufm.yaml
+fleet key invalid: repos[mruangutai/sample-product].board — give mruangutai/sample-product its own board: {...} block with owner, number, station_field and stations in /var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpew3ovufm.yaml
 ```
 Names all four required fields: owner, number, station_field, stations.
 

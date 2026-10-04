@@ -45,7 +45,7 @@ comprehension over `fleet["repos"]` again (factory_config.py:461) — two linear
 same list before the real work starts.
 
 Fleet size, read from `.harness/factory/fleet.yaml`: **2 declared repos**
-(`mruangutai/kaya-ai`, `mruangutai/harness-factory-smoke`). Two linear scans of length 2 is 4
+(`mruangutai/sample-product`, `mruangutai/harness-factory-smoke`). Two linear scans of length 2 is 4
 comparisons total, dwarfed by the one real network read `--repo` then makes. This is exactly
 the case the dispatch pre-empts: "a list scan over a handful of entries, unmeasurable" — I
 confirm that reading and do not flag it. Even at a fleet 100x larger (200 members), two O(n)

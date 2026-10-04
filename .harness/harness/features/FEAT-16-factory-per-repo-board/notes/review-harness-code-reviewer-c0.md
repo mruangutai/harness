@@ -93,7 +93,7 @@ Read every task's landed diff against its intent text. No divergence found:
 - **T-09** (`test-no-distribution.py` case5): all three named checks present, called from `main()`
   (a case defined but never called would always pass — confirmed it's wired in).
 - **T-07** (`fleet.yaml` + `board2-capture.md`): fleet.yaml carries the per-repo board on
-  `mruangutai/kaya-ai` exactly as specified, retains the DEC-174 am.1 comment; the capture file's
+  `mruangutai/sample-product` exactly as specified, retains the DEC-174 am.1 comment; the capture file's
   figures (211 items, 118/82/11/0/0/0, the three historic option ids) match what SC-03 and D-07
   require, precondition explicitly reported. Empirically re-ran both unit and integration suites at
   this pin — `run-unit-tests.py --kind unit` and `--kind integration` both exit 0, confirming SC-08/
@@ -140,7 +140,7 @@ the old one — I checked by reading the assertions directly rather than trustin
 - `DECISIONS.md` carries `DEC-174 amendment 2` (`grep -c` confirms) and `per repository served`
   (confirms DEC-186 amendment landed, not just its index row) — both read in full; the prose
   accurately restates what the tree now does (per-repo board, rejection of a leftover top-level key,
-  kaya-ai paired with board 2, the rename-not-recreate cost story) and does not touch the original
+  sample-product paired with board 2, the rename-not-recreate cost story) and does not touch the original
   DEC-174 am.1 or DEC-186 text, consistent with append-never-rewrite.
 - `DECISIONS-INDEX.md`: re-ran `gen-decisions-index.py --stdout | diff -q -` against the committed
   file — **exact match**, so the am-span (`am.1-am.2` on DEC-174, `am.1` on DEC-186) is genuinely

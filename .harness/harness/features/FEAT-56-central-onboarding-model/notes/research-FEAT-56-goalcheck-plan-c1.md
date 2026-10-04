@@ -36,7 +36,7 @@ BRIEF as read today, worktree tip.
 - **Row 6 (PARTIAL).** Because T-10 moves `:245-283` verbatim, that same `:279-282` sentence lands
   *inside the registration skill*, and T-10's ban is `! grep -qF 'templates/team-config.yaml'`, which
   the sentence's wording ("from the templates") does not match. T-10 also inherits the "I'll copy the
-  new team-config over theirs" Red-flags row. Consequence: an operator registering `kaya-web` is told
+  new team-config over theirs" Red-flags row. Consequence: an operator registering `sample-product-web` is told
   to instantiate a `team-config.yaml` — the exact one-file-rule violation this feature exists to stop —
   and SC-01's ban plus T-17's split test both look elsewhere.
 - **Row 3 / Row 7 (PARTIAL).** See Q1 and Q7 below. Row 7 additionally: `harness-init`'s preflight keeps

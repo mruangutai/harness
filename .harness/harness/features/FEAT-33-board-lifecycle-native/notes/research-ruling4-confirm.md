@@ -52,7 +52,7 @@ of ` :: ` verbatim (its docstring, `:12-14`), so regeneration cannot flatten am.
 
 - **`T-01`'s harness-first departure — does NOT block.** It is disclosed in `## Constraints` under
   the heading the operator reads at signature; the breakage is latent (a `FleetError` naming
-  `github.board.stations`, reachable only if a `factory_*` command runs against kaya-ai between
+  `github.board.stations`, reachable only if a `factory_*` command runs against sample-product between
   the two merges) and loud. Signing ratifies a stated departure; nothing new is needed to decide it.
 - **FEAT-31 on `run-unit-tests.py` — does NOT block, and it is not the operator's.** Settled from
   the tree: FEAT-31 is `Done` and merged, and `run-unit-tests.py:17` already lists

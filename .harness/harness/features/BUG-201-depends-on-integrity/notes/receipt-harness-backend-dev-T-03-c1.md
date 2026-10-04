@@ -56,7 +56,7 @@ BUG-201 to exercise a DIFFERENT feature's behaviour when a blocker reference doe
 
 - `tests/unit/test-factory-claim.py`: `FEAT-02-block`'s fixture plan (line ~369) has
   `task_dict("T-10", depends_on=["T-99"])` where T-99 is not a task in that plan — built on
-  purpose for the SC-22 "unresolvable blocker" case. Also `kaya_seg`/`harness_seg` fixtures (lines
+  purpose for the SC-22 "unresolvable blocker" case. Also `sample_seg`/`harness_seg` fixtures (lines
   377, 382) use `depends_on=["T-88"]` / `depends_on=["T-99"]` for the unrelated BUG-1290
   segment-resolution cases. `load_plan` now refuses the whole document before factory_claim's
   blocker-gate logic ever runs, so 16 cases (B1, B3, B4, B5, B5-bis, B5-ter, X/SC-13(b),
@@ -76,7 +76,7 @@ BUG-201 to exercise a DIFFERENT feature's behaviour when a blocker reference doe
 
 - `test-factory-claim.py` is owned by **T-05**, but T-05's intent is scoped to *adding* a new,
   separate dangling-fixture pair for consumer-diagnosis cases — it does not touch the pre-existing
-  `FEAT-02-block`/`kaya_seg`/`harness_seg` fixtures, and T-05 has not run yet regardless.
+  `FEAT-02-block`/`sample_seg`/`harness_seg` fixtures, and T-05 has not run yet regardless.
 - `tests/integration/test-check-plan-routes.py` and `tests/integration/test-factory-decompose.py`
   (and `factory_decompose.py` itself) appear in **no task's `files:`** anywhere in this plan. There
   is no task, present or future, assigned to reconcile them.

@@ -171,8 +171,8 @@ tasks:
       task runs, write the fleet file as specified and report the pre-condition as outstanding.
 
       Facts already verified in this tree at 914b6fd, for cross-checking the operator's answers:
-      user-owned Projects v2 boards are number 3 named Harness and number 2 named kaya-ai;
-      mruangutai/harness is public; mruangutai/kaya-ai is private with default branch master;
+      user-owned Projects v2 boards are number 3 named Harness and number 2 named sample-product;
+      mruangutai/harness is public; mruangutai/sample-product is private with default branch master;
       mruangutai/rental-property-automation is private with default branch main.
 
       Add no other keys. Every repository entry must name a personal mruangutai repository;
@@ -401,7 +401,7 @@ tasks:
           factory_cli.run prints str(exc) verbatim behind "factory: {tool}: ". The value part is
           always the repository, the issue number, the field name, the option name or the gh
           subcommand, never the class name and never a traceback. Example shape:
-          "gh issue create failed: mruangutai/kaya-ai — {the first line of the captured standard
+          "gh issue create failed: mruangutai/sample-product — {the first line of the captured standard
           error}". The full argument list and captured standard error stay on the attributes for
           a debugger; they are not the message.
         - run_gh(args, json_out=False) -> str or parsed JSON. Run [GH] + args with

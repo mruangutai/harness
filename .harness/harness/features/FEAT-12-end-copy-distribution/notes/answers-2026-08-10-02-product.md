@@ -3,30 +3,30 @@
 Relayed by the main session. The operator ruled on the blocking question and on the
 non-blocking ones in one pass.
 
-## Q1 — kaya: working tree only, or commit and push? **BLOCKING**
+## Q1 — sample-product: working tree only, or commit and push? **BLOCKING**
 
-**Commit and PUSH to kaya's `master`, path-scoped.** pm's recommendation, taken.
+**Commit and PUSH to sample-product's `master`, path-scoped.** pm's recommendation, taken.
 
 The reasoning is the one pm gave and the main session re-measured: `factory_workspace.py:125`
 clones from the REMOTE, so a working-tree-only deletion is restored by the next factory checkout
 and the ticket's destination is never reached.
 
 **"Path-scoped" is load-bearing, not a style note.** Measured at 2026-08-10:
-**kaya's working tree carries 63 uncommitted files.** They are not this feature's work and must not
+**sample-product's working tree carries 63 uncommitted files.** They are not this feature's work and must not
 be swept into the removal commit. Stage the deletion paths explicitly — never `git commit -a`, never
 `git add .`, never `git add -A`. If the 63 include anything under `.claude/skills/harness*` or
 `.claude/commands/harness*`, STOP and raise it rather than deciding.
 
-The operator's standing "do not push, do not open a PR" applies to THIS repo and is silent on kaya.
-This answer authorizes a push to `mruangutai/kaya-ai` `master` for the deletion commit **only**.
+The operator's standing "do not push, do not open a PR" applies to THIS repo and is silent on sample-product.
+This answer authorizes a push to `mruangutai/sample-product` `master` for the deletion commit **only**.
 
 ## Correction to the plan — T-08's agent count is wrong
 
-The plan removes `.claude/agents/harness-*.md` from kaya. **kaya tracks ZERO harness agent files** —
+The plan removes `.claude/agents/harness-*.md` from sample-product. **sample-product tracks ZERO harness agent files** —
 `git ls-files '.claude/agents/harness*'` returns nothing. The 16 agent files were the `~/.claude/`
 global copies, which the operator deleted on 2026-08-10, ahead of this ticket.
 
-Measured in kaya at 2026-08-10: **55** tracked skill files, **8** tracked command files, **0** agent
+Measured in sample-product at 2026-08-10: **55** tracked skill files, **8** tracked command files, **0** agent
 files, **117** tracked files under `.harness/` which are KEPT.
 
 Do not let a task whose verify is "count equals zero" pass merely because the target never existed.

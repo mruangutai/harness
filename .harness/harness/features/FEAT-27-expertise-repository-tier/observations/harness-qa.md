@@ -26,12 +26,12 @@
   `harness-` prefix) has zero test coverage in the current suite.
 - 2026-08-19: Reproduced T-07's case13 mutant myself at `252fa72` (single-line delete of
   `[ -r "$f" ] || continue`, confirmed by diff, run via `INJECT_EXPERTISE_BIN`): 18/19, case13
-  the only FAIL, and of its five Python `checks` entries only index 3 (`"kaya" not in ctx`) and
+  the only FAIL, and of its five Python `checks` entries only index 3 (`"sample-product" not in ctx`) and
   index 4 (`stderr == ""`) flip — indices 0/1/2 (exit 0, repo header present, repo body present)
   stay green under this specific mutant because the script has no `set -e` (its own trailing
   `exit 0` always fires) and the harness-tier loop iteration is untouched by removing the guard
-  on the kaya iteration. Full `ctx` shows the mutant actually emits a phantom
-  `## Your Expertise — kaya repository (repository tier)` header with an empty body — this is
+  on the sample-product iteration. Full `ctx` shows the mutant actually emits a phantom
+  `## Your Expertise — sample-product repository (repository tier)` header with an empty body — this is
   why assertion 3 exists and is not redundant with assertion 2. Confirms the eng squad's own
   "18/19, exactly two assertions flip" claim independently rather than repeating it.
 - 2026-08-19: The `stderr == ""` strength in case13 (vs. `"Traceback" not in stderr`, the weaker

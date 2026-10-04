@@ -32,7 +32,7 @@ dispatch, not investigated further.
 
 ## SC-09 (inspection) — closed, not merely asserted
 
-Read live via `gh api "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master"`:
+Read live via `gh api "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master"`:
 `github.board` carries `owner: mruangutai, number: 2, station_field: Status`, `stations` with
 exactly the five required keys and DEC-192 values, and none of `project_number`, `project_id`,
 `status_field`, `in_progress_option`. SC-09 is MET, verified against the live merge target, not
@@ -148,7 +148,7 @@ stations check uses set equality (`set(stations.keys()) != set(_STATION_KEYS)`),
 missing AND extra keys — no membership-only gap here. `fleet.yaml`, `.harness/harness.json`,
 `templates/harness.json` all match their task verifies exactly (I diffed each by hand against
 T-06/T-07/T-08's `WHAT MUST BE TRUE AFTERWARDS`). `DECISIONS.md`'s DEC-174 am.3 and DEC-196
-am.1/am.2 read accurately against the code as I independently verified it (kaya's board read live,
+am.1/am.2 read accurately against the code as I independently verified it (sample-product's board read live,
 station derivation, origin-gated close); `gen-decisions-index.py --stdout` is byte-identical to
 `DECISIONS-INDEX.md` at the pin (SC-11 closed). `factory_claim.py`, `factory_land.py`,
 `factory_decompose.py`, `harness_boundary.py`, `wayfind.py`, `layout_migration.py`,
@@ -159,15 +159,15 @@ SC-09 confirmed MET (live remote read). SC-11 confirmed MET (byte-identical inde
 MET (1578/1578 ok-lines, 0 FAIL, 28/28 registered scripts).
 
 **One coverage note, low severity, not must_fix.** `test-no-distribution.py`'s `case5()` deletes two
-checks — `every_repo_declares_its_own_board` and `kaya_ai_is_paired_with_board_2` (former
+checks — `every_repo_declares_its_own_board` and `sample_is_paired_with_board_2` (former
 lines ~282-315). This is a forced consequence of T-02/T-07's redesign, not an unauthorized edit:
 `test-no-distribution.py` is in T-07's own `files:` list, and both checks read `repos[].board`, a
 key `load_fleet` now rejects outright — leaving them unedited would permanently redden the suite, so
 the deletion is structurally inevitable, not gratuitous. The durable part worth recording: before
-this feature, "kaya-ai is paired with board 2" was a local, offline, every-CI-run regression check;
+this feature, "sample-product is paired with board 2" was a local, offline, every-CI-run regression check;
 after it, that fact is checkable only via a live, authenticated `gh api` call, and the only place
 that call still runs is T-07's own task verify — which never runs again after this feature ships. A
-future accidental repoint of kaya's `github.board.number` away from 2 would not be caught by
+future accidental repoint of sample-product's `github.board.number` away from 2 would not be caught by
 anything in the checked-in suite. This mirrors the BRIEF's own disclosed SC-09 trade-off (network
 reads don't belong in the offline unit suite) closely enough that I read it as consistent with the
 feature's accepted cost — noted for the record, not gating.

@@ -24,7 +24,7 @@ DIGEST:
       persona: harness-pm
   findings:
     - reader: scope
-      summary: SC-06 lacks explicit end-to-end verification for two independent Kaya worktrees and two same-role children on one product feature.
+      summary: SC-06 lacks explicit end-to-end verification for two independent sample-product worktrees and two same-role children on one product feature.
       severity: med
       kind: substance
     - reader: scope

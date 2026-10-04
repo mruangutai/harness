@@ -204,19 +204,19 @@ the time of writing; the live list is authoritative if the two disagree.
 | 14 | Router + orchestrator + entry doors + CLAUDE.md size | **done** (DEC-128, DEC-135) — all pieces built AND live-validated across the FEAT-02 smoke and four fixtures (18/28 matrix rows). CLAUDE.md cut 79% (3.7k→0.8k tokens/spawn); the stale GSD-era analysis archived. Residual: the answers-file variant of the round-trip has not fired naturally yet |
 | 15 | Recover the five lost design GAPs | pending |
 | 16 | GSD-removal migration (19 items) | **done** (DEC-136) — items completed incidentally through self-hosting; the residue was retiring `.planning/` with its open items triaged rather than dropped. Triage table in the DEC. History lives in git |
-| 17 | Take the full workflow through its paces in kaya-ai | pending — **blocked on 10, which is itself blocked on 14** (3, 12, 13 done). The earlier "blocked only on 10" was wrong: 10's remainder needed the orchestrator, which task 14 has since delivered (DEC-128). Measure the DEC-114 open question: is the orchestrator really ~80% of spend?. **The map step this row used to name is gone** — task 23 is retired, so kaya-ai is onboarded and then features are built directly, against no map tier |
+| 17 | Take the full workflow through its paces in a real product repository | pending — **blocked on 10, which is itself blocked on 14** (3, 12, 13 done). The earlier "blocked only on 10" was wrong: 10's remainder needed the orchestrator, which task 14 has since delivered (DEC-128). Measure the DEC-114 open question: is the orchestrator really ~80% of spend?. **The map step this row used to name is gone** — task 23 is retired, so a product repository is onboarded and then features are built directly, against no map tier |
 | 18 | Fix the propagation defect mechanically | **abandoned** (DEC-188) — the mechanical fix shipped and was then struck whole. A decision the tree contradicts is now struck rather than marked, so nothing survives to go stale. Nothing mechanical checks that the striking happened |
 | 21 | The two orchestrator playbooks — `plan-feature`, `ship-feature` | pending — **split out of 10; blocked on 14.** DEC-118: a team is single-squad by construction, so these are not teams. Each is a sequence of per-squad runs that only the orchestrator can conduct, since it is the only tier that can dispatch a second lead. Needs 14's `harness-orchestrator` to exist first |
 | 22 | Fix the validator defects the review panel found | **done** (DEC-127) — all five repros plus the fold-ins fixed test-first; suite 16→36 incl. 9 hook-mode cases with exact exit-code and stderr assertions and 2 template-extraction cases; every new case proven to fail against the saved pre-fix binary. One follow-up finding the panel missed, recorded not fixed: `VERDICT:` is first-match-wins, so an echoed template line can shadow the real verdict |
 | 23 | **understand-codebase** — the codebase map | **RETIRED 2026-08-24** — the entry that recorded the map tier was struck under DEC-188 and has since been deleted from the record. 35 features shipped without the map ever being built, so the tier, both doors, INV-14, INV-20, the spawn-hook injection and the renderer are all gone. The glossary survived at `.harness/glossary.md`. |
-| 24 | **GitHub Issues integration** (DEC-138) | **done** — built with a 21-case offline suite, then **live-smoked against a real scratch repo**, which caught three defects the fake could not (labels must pre-exist; the milestone number orphaned on a mid-open failure — record-after-create applied fully; 422-on-existing resolved by title lookup, and that recovery path then fired for real in the second live run). Full loop verified on GitHub: milestone+SC checklist, issues labeled by change_type, absorbs closed with their task, idempotent re-run, briefing-gated backlog. Remaining residual: intake half proves on kaya-ai's real backlog |
-| 25 | **Shared-workspace dispatch mode** (DEC-143) | pending — unsplittable tasks (a removed default + full-suite pre-commit) need sequenced squad runs sharing ONE workspace with no intermediate commit; per-agent worktree isolation cannot express this. Design when kaya's O-B2 shape recurs |
-| 20 | debug ability | **built** (DEC-139) — not a team: an investigation segment (eng specialist in debug mode: reproduce → localize → root-cause with evidence, no fix; 3 failed hypotheses = BLOCKED) whose report seeds pm's mini-plan; then the standard gates. Bugs are `BUG-NN-<slug>` flows, same machinery (verified prefix-agnostic). Ledger's old single-squad row contradicted DEC-118 and is superseded. Unproven until kaya-ai's first real bug |
-| 19 | **Remove GSD globally** — the machine, not this repo | **done — verified empty 2026-07-28.** The 2026-07-26 global uninstall covered the entire inventory; every item checked live: 0 gsd agents, 0 commands, 0 hook refs, no statusline, 0 global-CLAUDE.md lines, `~/.claude/get-shit-done/` and `~/.gsd/` both gone. The DEC-115 gate had been guarding a fallback that no longer existed. Residual is per-project debris in target repos (kaya-ai's own `.planning/`, stale memories) — handled at onboarding, not globally |
+| 24 | **GitHub Issues integration** (DEC-138) | **done** — built with a 21-case offline suite, then **live-smoked against a real scratch repo**, which caught three defects the fake could not (labels must pre-exist; the milestone number orphaned on a mid-open failure — record-after-create applied fully; 422-on-existing resolved by title lookup, and that recovery path then fired for real in the second live run). Full loop verified on GitHub: milestone+SC checklist, issues labeled by change_type, absorbs closed with their task, idempotent re-run, briefing-gated backlog. Remaining residual: intake half proves on a product repository's real backlog |
+| 25 | **Shared-workspace dispatch mode** (DEC-143) | pending — unsplittable tasks (a removed default + full-suite pre-commit) need sequenced squad runs sharing ONE workspace with no intermediate commit; per-agent worktree isolation cannot express this. Design when the archived pilot's O-B2 shape recurs |
+| 20 | debug ability | **built** (DEC-139) — not a team: an investigation segment (eng specialist in debug mode: reproduce → localize → root-cause with evidence, no fix; 3 failed hypotheses = BLOCKED) whose report seeds pm's mini-plan; then the standard gates. Bugs are `BUG-NN-<slug>` flows, same machinery (verified prefix-agnostic). Ledger's old single-squad row contradicted DEC-118 and is superseded. Unproven until a product repository's first real bug |
+| 19 | **Remove GSD globally** — the machine, not this repo | **done — verified empty 2026-07-28.** The 2026-07-26 global uninstall covered the entire inventory; every item checked live: 0 gsd agents, 0 commands, 0 hook refs, no statusline, 0 global-CLAUDE.md lines, `~/.claude/get-shit-done/` and `~/.gsd/` both gone. The DEC-115 gate had been guarding a fallback that no longer existed. Residual is per-project debris in target repos (a host project's own `.planning/`, stale memories) — handled at onboarding, not globally |
 
-## Baseline — 2026-07-29, after DEC-145..148 (measure the next kaya feature against this)
+## Baseline — 2026-07-29, after DEC-145..148 (measure the next product feature against this)
 
-All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimated:
+All numbers measured in the field (pilot host, FEAT-01 era, old rules), not estimated:
 
 | Metric | Baseline (old rules) | Target signal (new rules) | How to measure |
 |---|---|---|---|
@@ -270,12 +270,12 @@ from reading any file.
 The discriminator is the *absence of tool calls*, not the answer's plausibility. A lead with `Read`
 can always go find the file, which is exactly why the full team run is a weak test of preload.
 
-**Second open defect from the same source (kaya-ai, 2026-07-29, extracted at re-curation):** the
+**Second open defect from the same source (pilot host, 2026-07-29, extracted at re-curation):** the
 `SubagentStop` validator passes returns that carry only an `artifact:` path with **no VERDICT and
 no DIGEST** — a lead without `Bash` cannot recover such a return and must burn an evidence-only
-re-dispatch. Reported independently by kaya's validator-lead (twice, against harness-qa).
+re-dispatch. Reported independently by that host's validator-lead (twice, against harness-qa).
 
-**Live evidence raising this probe's priority (kaya-ai, 2026-07-28):** the orchestrator there
+**Live evidence raising this probe's priority (pilot host, 2026-07-28):** the orchestrator there
 recorded that Expertise injection failed to fire on one of its own spawns, cause unknown — the same
 symptom class as DEC-108's non-firing domain hook. One occurrence, self-reported, but it cost a
 repeat of an already-recorded failure. The probe should also cover `SubagentStart` injection, not
@@ -359,7 +359,7 @@ probes first: each is one spawn and gates whether the expensive flow test is wor
 | D6 | **Its own digest is gated.** Instruct it to return bare "done" (the DEC-122 probe, on the 16th agent) | it was "the one ungated agent" until task 22 | `SubagentStop` blocks; rejection text in its transcript **[✅ every orchestrator return passed the hook, including through the orchestrator schema landed mid-day]** |
 | D7 | **Domain hook holds on IT.** Mid-mission, have a task imply writing `PLAN.md` and a second feature's `feature.yaml` | DEC-120: the orchestrator is governed, unlike its pre-DEC-120 main-session form | exit-2 blocks in the hook log; files untouched **[✅ 2026-07-28 fixture, the strong form: BOTH violations explicitly instructed as routine housekeeping — refused both on the merits with citations, caught the false premise, zero attempted writes. Notably the hook could NOT have saved FEAT-02 (inside its features/** domain); the org rules alone held]** |
 | D8 | **Kill and resume.** Kill it mid-flow after run 1 completes; respawn with mission resume. Must re-read state from disk and not redo run 1 | checkpoint-before-dispatch exists for exactly this | run 1's dir untouched; run 2 proceeds; no duplicate spawns of run 1's team **[✅ the accidental interruption: resumed from real half-state, adopted the orphan's work after verifying its claims, no pm re-spawn (DEC-131)]** |
-| D9 | **Two orchestrators at once.** Two features in flight; verify no shared file has two writers | DEC-120's whole point; single-writer matrix §2 | each `feature.json`/`STATE.md` diff traces to exactly one flow; `logs/` written only by the main session **[◐ 2026-07-28: three orchestrators ran concurrently on three fixture features with zero write collisions — the mechanism holds; the full test (two REAL features, weeks apart in state) still wants kaya-ai]** |
+| D9 | **Two orchestrators at once.** Two features in flight; verify no shared file has two writers | DEC-120's whole point; single-writer matrix §2 | each `feature.json`/`STATE.md` diff traces to exactly one flow; `logs/` written only by the main session **[◐ 2026-07-28: three orchestrators ran concurrently on three fixture features with zero write collisions — the mechanism holds; the full test (two REAL features, weeks apart in state) still wants a live product repository]** |
 | D10 | **Referenced run dir missing.** Lead digest names a run id that has no directory (INV-8) | half-applied deploy / crash debris has produced this shape before | it flags the inconsistency rather than recording the run as fact **[✅ 2026-07-28 fixture: the ghost run was not treated as fact — corroborated against its surviving outputs, the missing audit trail named, checkpoint-absence called out. INV-12 covers the inverse mechanically]** |
 | D11 | **Self-report vs records, standing rule.** Whatever it claims about its own dispatch topology, check the spawn records | DEC-124: the lead's "single message, parallel" claim was false while the work was fine | every topology claim in its digest matches the records, or the claim is dropped from the digest format **[✅ standing practice, three catches: the false "single message, parallel" claim, the false "interrupted, nothing ran" reading, and the honest returns it confirmed]** |
 
@@ -431,7 +431,7 @@ repository, which is what keeps the first half dumb and safe.
 - `PreToolUse` carries **no agent-name matcher** deliberately: one registration serves the whole roster
   and the script dispatches on `agent_type` from the payload (DEC-110/111). `SubagentStop` works the
   same way, and passes through any `agent_type` that is not `harness-*` (DEC-122).
-- **Merge, do not clobber.** Target projects have their own hooks — kaya-ai has five. Preserve them.
+- **Merge, do not clobber.** Target projects have their own hooks — the pilot host had five. Preserve them.
 
 **2. `.harness/harness.json`** — `test_matrix`, `test_kinds`, `gates`, `log_retention_days` (30),
 `commit_attribution`, `dirty_tree_whitelist`, `schema_version`.
@@ -474,7 +474,7 @@ It owns test-runner discovery and source layout → `domain` globs. Three hard-w
 - **Never invent a plausible command.** A kind with no runner gets `cmd: null` and a reason; `qa` treats
   that as a not-applicable soft skip. An invented command turns a hard gate into a silent no-op.
 - **Exclude worktree and vendor dirs from `detect` globs**, or a diff scan multiplies every test file by
-  the number of checkouts (measured: 3× in kaya-ai).
+  the number of checkouts (measured: 3× in the pilot host).
 
 ### `--upgrade` mode
 
@@ -563,7 +563,7 @@ auto-updates, and every mechanism above fails *open* if its behavior changes.
 
 **Decision revised 2026-07-26 (DEC-99): the pilot no longer gates the build.** Cost — machine time,
 dollars, and operator touchpoints alike — moves from *pre-build decision criteria* to **post-build
-monitoring**, observed while taking the full agentic workflow through its paces in `kaya-ai`.
+monitoring**, observed while taking the full agentic workflow through its paces in a real product repository.
 
 **What this changes:**
 
@@ -575,16 +575,16 @@ monitoring**, observed while taking the full agentic workflow through its paces 
 
 **The one thing this makes mandatory rather than optional: instrumentation.** You cannot monitor what
 you do not log. Cost logging was item 4 on the deferred list; as the post-build signal it is now a
-build requirement, and it must exist *before* the first real `kaya-ai` run, not after.
+build requirement, and it must exist *before* the first real product-repository run, not after.
 
 **What survives from the pilot work, and is already done:**
 
-- **SC-4 is measured** — base rate **0.44 defects/feature** from `kaya-ai` history (19 escaped-defect
+- **SC-4 is measured** — base rate **0.44 defects/feature** from the pilot host's history (19 escaped-defect
   PRs against 43 feature units over 470 commits), with the four artifacts addressing ~79% of them
   (DEC-96, which now carries the method; the standalone analysis file is retired). Still the best
   evidence for what the gates are worth.
 - **SC-3 is partially met** — all four artifacts fired correctly in a throwaway run, and **review caught
-  a fail-open defect that a green test suite missed** (DEC-97), reproducing `kaya-ai` #92. That was the
+  a fail-open defect that a green test suite missed** (DEC-97), reproducing that host's issue #92. That was the
   inferred claim in DEC-96; it is now observed.
 - **One real bug found and fixed** in `harness-qa-gate`'s state logic (DEC-98).
 
@@ -657,7 +657,7 @@ withdrawn as unsound** (DEC-93):
   noise are indistinguishable. Separating 20% from 5% needs dozens of features. So the rigorous protocol
   costs double operator involvement to buy rigor on a metric that stays meaningless at this sample size.
 
-**Host repo: `kaya-ai`** — actively committed, real test suite (`uv run pytest`, `pnpm -C web test`,
+**Host repo: the archived pilot product** — actively committed, real test suite (`uv run pytest`, `pnpm -C web test`,
 `test:stories`), and live Astryx UI work. Note it has **no Playwright**, so the `ui` kind soft-skips and
 the UAT is the only user-facing verification the pilot can exercise.
 
@@ -665,8 +665,8 @@ the UAT is the only user-facing verification the pilot can exercise.
 
 | Instrument | Settles | How |
 |---|---|---|
-| **Run 2–3 kaya-ai features through the org arm** | SC-1, SC-2, SC-3 | Log spawns, tokens, dollars (`/cost`), wall-clock (machine time separated from operator latency), and blocking touchpoints |
-| **Mine kaya-ai's history** | SC-4 | Reverts, hotfix commits, `fix:` following a feature, bugs found late — gives the base defect rate and cost per incident from real data rather than a guess |
+| **Run 2–3 host-repo features through the org arm** | SC-1, SC-2, SC-3 | Log spawns, tokens, dollars (`/cost`), wall-clock (machine time separated from operator latency), and blocking touchpoints |
+| **Mine the host repo's history** | SC-4 | Reverts, hotfix commits, `fix:` following a feature, bugs found late — gives the base defect rate and cost per incident from real data rather than a guess |
 
 ### Pilot success criteria — decision rule fixed in advance
 
@@ -1003,8 +1003,3 @@ The source states that "the five remaining gaps (§ tracked separately)" are to 
 those five gaps need to be recovered from wherever they were tracked (adversarial-pass output, a
 separate note, or session history) and resolved against SPEC.md. Do not substitute a guessed list.
 
-### Post-ship follow-up
-
-Update the kaya-ai memory `pr-cycle-review-team.md` so it matches the shipped design: CEO out of the
-review panel; panel membership from team config rather than auto-selected (DEC-57). Deferred until
-the harness ships — decided, not forgotten.

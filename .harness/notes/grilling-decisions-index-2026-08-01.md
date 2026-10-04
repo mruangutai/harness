@@ -47,7 +47,7 @@ Measurable: the next self-hosted feature's cache-read-per-output ratio drops mat
   Verified: `deploy.sh` ships skills/agents/commands/templates and **never** `CLAUDE.md`;
   `harness-init` never writes one either. So a rule naming `docs/harness/DECISIONS-INDEX.md` is
   repo-specific, while the discipline (floor-not-ceiling, the four triggers, never read an authority
-  whole) is universal and must travel. `harness-handoff` is preloaded by all 16 agents and kaya's
+  whole) is universal and must travel. `harness-handoff` is preloaded by all 16 agents and the archived pilot's
   copy is byte-identical, so the reach is confirmed.
 - **Superseded DECs are marked in the index, and their text stays put** for this feature. The index
   row carries `SUPERSEDED BY DEC-NN` so an agent knows not to act on it.
@@ -61,8 +61,8 @@ Measurable: the next self-hosted feature's cache-read-per-output ratio drops mat
 
 ## Not yet specified
 
-- What a *fresh* project's decision record contains at init, and whether an existing project (kaya)
-  gets backfilled and by whom. Belongs to the per-project feature below, not sharpenable until its
+- What a *fresh* project's decision record contains at init, and whether an existing project (the archived
+  pilot) gets backfilled and by whom. Belongs to the per-project feature below, not sharpenable until its
   destination is named.
 - Whether the ruling column ever needs a length cap. Suspect yes; no evidence of the failure yet.
 
@@ -75,7 +75,7 @@ Measurable: the next self-hosted feature's cache-read-per-output ratio drops mat
   its whole value without moving a line.
 - **Per-project decision records** — teaching `harness-init` to establish a project's own
   `DECISIONS.md` + index and point that project's `CLAUDE.md` at it. Its own feature, and it is also
-  what finally gives kaya's pre-harness decisions somewhere to live.
+  what finally gives the archived pilot's pre-harness decisions somewhere to live.
 - **`SPEC.md` (2,160 lines) and `BUILD.md` (971)** — the destination is scoped to one file.
 
 ## Facts I verified (so pm does not re-derive them)
@@ -91,8 +91,8 @@ Measurable: the next self-hosted feature's cache-read-per-output ratio drops mat
   most expensive agent (\$16) despite spawning no members — it read the authority to review correctly.
 - **It compounds:** eleven DECs were appended on 2026-07-31 alone.
 - **`deploy.sh` ships `SKILL_DIRS`, `AGENTS`, `COMMANDS`, `templates` — not `CLAUDE.md`.**
-  `harness-init` does not write `CLAUDE.md` either. kaya has **no** decision record of any kind.
-- **kaya's `harness-handoff` is byte-identical to harness's**, confirming a skill edit reaches every
+  `harness-init` does not write `CLAUDE.md` either. The archived pilot has **no** decision record of any kind.
+- **The archived pilot's `harness-handoff` is byte-identical to harness's**, confirming a skill edit reaches every
   deployed project on the next `deploy.sh --apply`.
 - **documentor's domain already includes `docs/**` with `upsert: true`** — no `team-config.yaml`
   change is needed for it to own the index.

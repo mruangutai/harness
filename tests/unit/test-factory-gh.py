@@ -1208,14 +1208,14 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_CREATE_PROJECT_JSON),
 ])
 fgh.subprocess.run = fake
-created = fgh.project_create("owner", "kaya-ai board")
+created = fgh.project_create("owner", "sample-product board")
 restore()
 check("project_create: returns the new project's id and number",
       created == {"id": "PVT_kwHONEW", "number": 7}, f"created={created!r}")
 check("project_create: first call resolves the owner id",
       "login=owner" in calls[0]["argv"], f"calls={calls}")
 check("project_create: second call sends the resolved owner id and the title as variables",
-      "ownerId=U_kwHOOWNER" in calls[1]["argv"] and "title=kaya-ai board" in calls[1]["argv"],
+      "ownerId=U_kwHOOWNER" in calls[1]["argv"] and "title=sample-product board" in calls[1]["argv"],
       f"calls={calls}")
 check("project_create: second call's query mutates createProjectV2",
       any("createProjectV2" in a for a in calls[1]["argv"]), f"calls={calls}")
@@ -1260,11 +1260,11 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_LINK_OK_JSON),
 ])
 fgh.subprocess.run = fake
-link_result = fgh.project_link_repository("PVT_kwHOEXIST", "mruangutai/kaya-ai")
+link_result = fgh.project_link_repository("PVT_kwHOEXIST", "mruangutai/sample-product")
 restore()
 check("project_link_repository: returns None on success", link_result is None, f"r={link_result!r}")
 check("project_link_repository: resolves owner/name split from the repo string",
-      "owner=mruangutai" in calls[0]["argv"] and "name=kaya-ai" in calls[0]["argv"],
+      "owner=mruangutai" in calls[0]["argv"] and "name=sample-product" in calls[0]["argv"],
       f"calls={calls}")
 check("project_link_repository: second call sends the resolved project and repository ids",
       "projectId=PVT_kwHOEXIST" in calls[1]["argv"] and "repositoryId=R_kwHOREPO" in calls[1]["argv"],

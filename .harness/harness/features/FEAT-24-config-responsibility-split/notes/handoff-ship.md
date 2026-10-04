@@ -4,7 +4,7 @@
 
 **Assume the lockout is live and check it first**: run any trivial `Write`. If it is refused with
 `the fleet declaration does not load`, the operator has not yet deleted the `board:` block from
-`.harness/factory/fleet.yaml`'s kaya entry — stop and ask for it, nothing else is possible. Once
+`.harness/factory/fleet.yaml`'s sample-product entry — stop and ask for it, nothing else is possible. Once
 writes work, discharge the three debts my session could not: add the `2026-08-18-5-eng` run entry to
 `feature.json`, set `plan.yaml` T-02 to `done`, then run `gh-sync.py close-task T-02` in that order.
 Then dispatch the T-02 continuation run to `harness-eng-lead` for the post-migration mutation proofs
@@ -13,10 +13,10 @@ then T-03 and T-06, then T-04. T-04 must NOT be committed without T-05, which is
 
 ## Trust
 
-- T-01 `000934b`, T-08 `22814c7`, T-09 kaya PR #335 merged `692672d` — I re-ran all three verifies
+- T-01 `000934b`, T-08 `22814c7`, T-09 sample-product PR #335 merged `692672d` — I re-ran all three verifies
   myself on disk rather than taking them on report: `T-01 GREEN`, `T-08 GREEN`, `T-09 GREEN` —
   verified-at 7a00255
-- D-10's outage window is ZERO, not merely short: kaya's `master` declares its own board before
+- D-10's outage window is ZERO, not merely short: sample-product's `master` declares its own board before
   anything removes the fleet copy — T-09's verify reads it remotely — verified-at 7a00255
 - The cutover trap: `harness_boundary.py:263` (`resolve_fleet` first in `classify`), `:157-169`
   (`load_fleet` then `sys.exit(2)`), `factory_config.py:151-156` (board REQUIRED today), T-02 item 3

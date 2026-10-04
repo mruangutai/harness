@@ -1,5 +1,10 @@
 # Review — PR #1245 (BUG-1033-config-shape-matrix)
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 Reviewed `b7956fc4a053f7dcc9cb2a2d061215d38e4bd9d3..86cd8c496d9d3376ec7859f0ac99b6b3d17d26f9` (`main`'s
 merge-base..HEAD; single commit `86cd8c49`, no `[harness:human]` trailers). No `BRIEF.md`/`plan.yaml`
 exists for this slug (direct worktree/PR flow, per assignment) — Stage 1 checked against issue #1033's
@@ -33,7 +38,7 @@ real diff, and nobody treats that as a defect in the predicate).
 **Nothing elsewhere needed a matching change.** Predicate names are pure prose/data — no script in
 `.claude/skills/harness/bin/` enumerates or validates the fixed-predicate set mechanically (grepped;
 zero hits outside the two skill files, `harness.json`×2, `DECISIONS.md`, `DECISIONS-INDEX.md`, `SPEC.md`
-and the new test). `templates/examples/harness.kaya-ai.json` was correctly left untouched: it is a dated
+and the new test). The archived pilot config (removed from the tree) was correctly left untouched: it is a dated
 (2026-07-26), already-DEC-187-tailored snapshot of one onboarded project's actual config, not a living
 template — it already diverges from `templates/harness.json` in several other ways (no `functional`, a
 `python` kind, `bugfix.always: ["__bug_class__"]`) and updating it here would misrepresent history.

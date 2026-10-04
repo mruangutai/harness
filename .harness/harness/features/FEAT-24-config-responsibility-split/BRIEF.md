@@ -15,7 +15,7 @@ two loaders that read them disagree about failure. `factory_config._validate_boa
 writes are skipped, INV-26 compares nothing, and every gate stays green. Harness's own board record
 has no `stations` key at all, so `gh_board.derive_station` hardcodes `"Building"` and `"Review"` and
 `check-state.py`'s INV-26 hardcodes `"Building"`, `"Done"` and `"Backlog"` — a reader cannot tell
-what harness's columns are without knowing DEC-192 by heart. Meanwhile kaya-ai's own `harness.json`
+what harness's columns are without knowing DEC-192 by heart. Meanwhile sample-product's own `harness.json`
 on `master` still pins `project_id`, `status_field` and `in_progress_option`, the pre-FEAT-18 flat
 keys that do nothing at all, silently, when fed to a loader. The cost is the exact class FEAT-18 was
 built to remove: a typo disables the operator's view of the factory and nothing says so.
@@ -27,7 +27,7 @@ serves, where their checkouts go, and what branch they are cut from — nothing 
 repository's own `harness.json`, on that repository's own default branch, carries its board, its
 stations, its tests, its gates and its budgets. Exactly one loader validates a board, wherever the
 board came from, and it fails loudly with the file and the offending key named. Every station name a
-gate or a factory tool resolves comes from a declaration, not from a literal in code. And kaya-ai's
+gate or a factory tool resolves comes from a declaration, not from a literal in code. And sample-product's
 config stops being stale, so the new loud error cannot fire on a foreign config months from now.
 
 ## Requirements
@@ -42,7 +42,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   exists on this machine.
 - REQ-05: A repository's checkout can still be created, and its branch cut and its pull request
   based, without reading anything that only exists inside that checkout.
-- REQ-06: kaya-ai's own configuration is valid under the new shape on its default branch, and
+- REQ-06: sample-product's own configuration is valid under the new shape on its default branch, and
   carries none of the pre-FEAT-18 pinned identifiers.
 - REQ-07: Every surface that read a value which moved reads it from its new home, and no surface
   reads a key that no longer exists.
@@ -86,12 +86,12 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   `factory_claim` — its pre-clone `default_branch_sha` call carries the fleet entry's branch;
   `factory_workspace` — its end-to-end run succeeds, which it cannot do if the key has left the
   fleet entry, since that is where it reads the branch it cuts the checkout from. Plus
-  `test-no-distribution.py case3_presence_kaya_default_branch_is_master` still passes.
+  `test-no-distribution.py case3_presence_sample_default_branch_is_master` still passes.
   verify: automated      evidence: unit
 - SC-08: `test-no-distribution.py case3_absence_harness_is_not_a_fleet_member` still passes, named
   in the verify by that exact case name.
   verify: automated      evidence: unit
-- SC-09: kaya-ai's `.harness/harness.json` on `master` carries a `board` block with the five
+- SC-09: sample-product's `.harness/harness.json` on `master` carries a `board` block with the five
   stations and none of `project_number`, `project_id`, `status_field`, `in_progress_option`,
   evidenced by the merged pull request and by the output of a `gh api contents` read at `master`.
   verify: inspection
@@ -131,7 +131,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   but it proves nothing about the migration. The classification itself rests on a
   planning-time grep at `ada8e99`, recorded in `plan.yaml`'s `resolved_but_not_written` block, and
   nothing re-runs that survey.
-- The kaya-config criterion is `inspection` rather than `automated` on purpose: the only automatable form would put a
+- The sample-product-config criterion is `inspection` rather than `automated` on purpose: the only automatable form would put a
   live network read of a foreign repository inside the unit suite, which makes the suite fail on a
   lost connection. The evidence is a `gh api` capture plus the merged pull request url.
 
@@ -141,7 +141,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   `harness_boundary.resolve_fleet` needs every name before it can classify any path, and
   `factory_workspace.py:115` reads `default_branch` in order to *create* the checkout. Both are
   forced by availability, not chosen.
-- **Placement is in the product's own repository.** kaya's `harness.json` lives on kaya's `master`.
+- **Placement is in the product's own repository.** sample-product's `harness.json` lives on sample-product's `master`.
   The 2026-08-14 central-placement ruling is superseded by the 2026-08-18 comment on #493.
 - **The config resolver's flag is `--which-config`, never `--resolve`** (#336 D-07).
 - **Harness is not in `fleet.yaml`** (#355), and `test-no-distribution.py
@@ -151,7 +151,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
 - **DEC-189/DEC-193.** No agent seat can be granted a path under a product checkout's `.harness/`;
   the checkout at `workspace_root/<product>` is nonetheless a sanctioned write location.
 - Out of scope: `harness-init`'s rewrite (#206), product boards, `factory_claim.py`'s claim
-  mechanics, cloning or running kaya's own code.
+  mechanics, cloning or running sample-product's own code.
 
 ## Approval
 

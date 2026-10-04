@@ -78,7 +78,7 @@ Ran verbatim (matches `plan.yaml:306-316` exactly, cross-checked before running)
 
     python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin');
     import factory_config as fc; f=fc.load_fleet('.harness/factory/fleet.yaml');
-    print(fc.board_for(f,'mruangutai/kaya-ai')); print(fc.board_station(f,'mruangutai/kaya-ai','ready'))"
+    print(fc.board_for(f,'mruangutai/sample-product')); print(fc.board_station(f,'mruangutai/sample-product','ready'))"
 
 Output (verbatim):
 

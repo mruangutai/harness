@@ -5,7 +5,7 @@ Taken by the main session under FEAT-16 T-07, BEFORE any live factory run and be
 
 - **Date:** 2026-08-12
 - **sha:** `a9558be6062f8b239f015c191c0a0a0349d44ff8`
-- **Board:** `mruangutai` project **2** (kaya-ai), `PVT_kwHOAAases4Bc7h3`
+- **Board:** `mruangutai` project **2** (sample-product), `PVT_kwHOAAases4Bc7h3`
 
 ## 1. Status field, verbatim
 

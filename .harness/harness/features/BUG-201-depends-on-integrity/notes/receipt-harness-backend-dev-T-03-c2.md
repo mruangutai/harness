@@ -11,11 +11,11 @@ Added task entries so every `depends_on` id resolves to a real task in its fixtu
 via the file's own `task_dict` helper (no second fixture style):
 - `FEAT-02-block` plan (`:365-374`): added `task_dict("T-02")`, `task_dict("T-03")`,
   `task_dict("T-04")`, `task_dict("T-99")`.
-- kaya `SEG_FEATURE` plan (`:377`): added `task_dict("T-88")` alongside the existing `T-77`.
+- sample-product `SEG_FEATURE` plan (`:377`): added `task_dict("T-88")` alongside the existing `T-77`.
 - harness `SEG_FEATURE` plan (`:382`): added `task_dict("T-99")` alongside the existing `T-77`.
 
 Confirmed: every `feature.json` `factory.issues` map is byte-for-byte unchanged (`:371-373` block
-map still `{"T-02": 601, "T-03": 602, "T-04": 603}`, no `T-99`; `:378` kaya map still `{"T-77": 850}`,
+map still `{"T-02": 601, "T-03": 602, "T-04": 603}`, no `T-99`; `:378` sample-product map still `{"T-77": 850}`,
 no `T-88`; `:387` harness-seg map still `{"T-99": 954}`). No asserted edge was deleted or retargeted
 — every existing `depends_on` list is untouched; only new sibling task entries were appended.
 125/125 checks pass, including all 16 previously-failing cases; no previously-green case reddened.

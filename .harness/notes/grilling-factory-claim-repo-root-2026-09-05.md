@@ -6,7 +6,7 @@ the detailed scope record — this note is the decision record).
 ## Destination
 `factory_claim.py` reads a claimed issue's plan from `.harness/<segment>/features/<FEAT>/` under the
 Harness root, where `<segment>` comes from the candidate's fleet repository name — so a claim for a
-kaya-ai issue evaluates its blocker gate instead of returning `no_plan`. Ships as a `BUG-1290-*` flow
+sample-product issue evaluates its blocker gate instead of returning `no_plan`. Ships as a `BUG-1290-*` flow
 through the normal gates (DEC-139).
 
 ## Settled
@@ -33,7 +33,7 @@ through the normal gates (DEC-139).
 ## Out of scope
 - Migrating `post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`,
   `feature_schema.py:231` onto the new resolver — they already work; touch only if the change forces it.
-- Landing `.harness/kaya-ai/features/FEAT-04-…` on `main` — it lives only in the FEAT-04 worktree, so a
+- Landing `.harness/sample-product/features/FEAT-04-…` on `main` — it lives only in the FEAT-04 worktree, so a
   live claim run from `main` still sees `no_plan` after this fix. That is FEAT-04's landing, not this bug.
 - Populating FEAT-04's `feature.json` `factory.issues` map (decompose has not recorded receipts yet).
 
@@ -44,10 +44,10 @@ through the normal gates (DEC-139).
 - Segment derivations today: `feature-worktree.py:64-87` (`resolve_repo`, `split("/",1)[-1]`, literal
   `harness`), `worktree_terminal.py:107-129` (reverse direction), `post-merge-sweep.py:163`,
   `quarantine.py:109,171`, `feature_schema.py:231`.
-- `fleet.yaml` repos: `mruangutai/kaya-ai`, `mruangutai/harness-factory-smoke`; `mruangutai/harness`
+- `fleet.yaml` repos: `mruangutai/sample-product`, `mruangutai/harness-factory-smoke`; `mruangutai/harness`
   deliberately absent (DEC-174, asserted by `tests/unit/test-no-distribution.py:178-198`).
 - Feature-id collision is real: `.harness/harness/features/FEAT-04-decisions-index` and
-  `.claude/worktrees/harness/FEAT-04-pdf-parser-evaluation/.harness/kaya-ai/features/FEAT-04-pdf-parser-evaluation`.
+  `.claude/worktrees/harness/FEAT-04-pdf-parser-evaluation/.harness/sample-product/features/FEAT-04-pdf-parser-evaluation`.
 - Tests touching `FEATURES_ROOT`: `tests/unit/test-factory-claim.py:7-16,58-68,336-377,393-420,850-867`;
   `tests/integration/test-factory-integration.py:28-30,879-882`.
-- FEAT-04 (kaya) `feature.json` carries no `factory` key — decompose receipts not yet recorded.
+- FEAT-04 (the served product) `feature.json` carries no `factory` key — decompose receipts not yet recorded.

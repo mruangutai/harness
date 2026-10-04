@@ -92,7 +92,7 @@ which the non-`Status` case is possible.
 **F5 · low · the fleet tripwire's new form is not strictly stronger, and the comment says it is.**
 `test-no-distribution.py:167` builds a SET, so cardinality is gone; `:155-158` and the commit message
 both assert `len(repos)` was "strictly weaker". Failure scenario: `fleet.yaml` gains a duplicate
-`- name: mruangutai/kaya-ai` with `default_branch: main`. `load_fleet` validates entries
+`- name: mruangutai/sample-product` with `default_branch: main`. `load_fleet` validates entries
 independently with no duplicate check (`factory_config.py:175-191`), `found_repos` is unchanged, the
 write-surface tripwire passes, and `repo_entry`'s first-match-wins hands `factory_workspace` the
 wrong branch with nothing red. Fix: `and len(repos) == len(expected_repos)`. The `isinstance(r,
@@ -106,7 +106,7 @@ board remotely and validates `ready`/`building`/`review` against it **before** a
 Failure scenario: if the smoke repo's remote `.harness/harness.json` on `main` does not declare a
 board offering those three options — e.g. if the number the live run created was never written back,
 since provision deliberately never edits a declaration — then `factory_claim --as <login>` with no
-`--repo` refuses at exit 2 for the *whole* fleet, kaya-ai included. Settling this needs a live remote
+`--repo` refuses at exit 2 for the *whole* fleet, sample-product included. Settling this needs a live remote
 read, which this dispatch forbids. Raised as Q1.
 
 ## Stage 1

@@ -1,7 +1,7 @@
-# kaya-ai measurements — taken by harness-orchestrator, 2026-08-10
+# sample-product measurements — taken by harness-orchestrator, 2026-08-10
 
-All commands run in `/Users/molchairuangutai/GitHub/kaya-ai` on branch `master`. These supersede
-every kaya claim in `BRIEF.md` and `plan.yaml` that contradicts them.
+All commands run in `/Users/molchairuangutai/GitHub/sample-product` on branch `master`. These supersede
+every sample-product claim in `BRIEF.md` and `plan.yaml` that contradicts them.
 
 ## M-1 — harness agent files: 0 tracked, 16 on disk untracked
 
@@ -11,7 +11,7 @@ ls -1 .claude/agents                     ->  16 files, ALL matching harness-*.md
 git status --porcelain                   ->  includes `?? .claude/agents/` (the whole dir untracked)
 ```
 
-Both of the operator's numbers are true of different things. The agent files **do exist on kaya's
+Both of the operator's numbers are true of different things. The agent files **do exist on sample-product's
 disk** and deleting them is real work; but they were never committed, so the deletion produces **no
 commit content** and the remote never carried them. Consequence: an agents clause belongs in the
 working-tree verify, never in the remote verify, and `git rm` cannot be used on them.
@@ -34,9 +34,9 @@ git ls-files '.harness/'                 -> 117   (KEPT)
 ```
  M .claude/settings.json                                   (T-03's target)
  M .claude/settings.json.harness-bak                       (see M-5 — addressed by no task)
- M .harness/features/FEAT-03-live-review-loop/feature.yaml (kaya project state, KEPT)
- M pyproject.toml                                          (kaya's own work)
- M uv.lock                                                 (kaya's own work)
+ M .harness/features/FEAT-03-live-review-loop/feature.yaml (sample-product project state, KEPT)
+ M pyproject.toml                                          (sample-product's own work)
+ M uv.lock                                                 (sample-product's own work)
 ```
 
 `BRIEF.md:199` states "The 16 agent files and the 21 uncommitted skill modifications are untracked
@@ -50,14 +50,14 @@ For each of the 34 modified tracked harness files, compared against this reposit
 
 - **28 are byte-identical** to this repo's working-tree copy (`cmp -s`).
 - **6 differ**, and every one of them is present in this repo's object database — `git hash-object`
-  on kaya's copy, then `git cat-file -e <hash>` in `/Users/molchairuangutai/GitHub/harness` returns
+  on sample-product's copy, then `git cat-file -e <hash>` in `/Users/molchairuangutai/GitHub/harness` returns
   success for all six:
   `.claude/commands/harness.md`, `.claude/skills/harness-handoff/SKILL.md`,
   `.claude/skills/harness-wayfinding/SKILL.md`, `.claude/skills/harness/SKILL.md`,
   `.claude/skills/harness/bin/check-state.py`, `.claude/skills/harness/bin/check-docs.sh`.
 
 So the drift is reproducible from this repository in full. `check-docs.sh` is additionally a file
-this repo deleted under #202, so kaya's copy is a stale copy of a struck script.
+this repo deleted under #202, so sample-product's copy is a stale copy of a struck script.
 
 The BRIEF's reason ("untracked") is wrong; this measurement is the correct reason for the same
 conclusion, and it is the sentence that should replace it.

@@ -123,7 +123,7 @@ merges into the product repo.
    would create a second harness-owned location while the first one stays required — strictly worse.
 
 **The unverified thing, stated rather than folded in.** No onboarded product repo exists to check.
-`/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.claude/` holds `commands`, `hooks` and
+`/Users/molchairuangutai/GitHub/harness-factories/sample-product/.claude/` holds `commands`, `hooks` and
 `settings.json` and **no `skills/` directory at all**, and its `settings.json` carries no harness hook
 entries. So neither D-08 nor the seven existing gates have ever run in a fleet repo. That gap is real
 and it is not this feature's to close — it belongs to whatever onboards the first product repo.

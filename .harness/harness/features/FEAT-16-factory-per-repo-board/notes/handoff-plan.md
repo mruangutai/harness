@@ -11,7 +11,7 @@ was owed and was not fabricated to silence the check.
   `feature.json` format is in place and this plan builds once on it rather than being rewritten
   mid-flight.
 - **SC-06 is operator-only and stays `not_met` until they run it.** A live factory claim creates a
-  throwaway issue and a `factory/issue-N` branch in `mruangutai/kaya-ai`, a real product
+  throwaway issue and a `factory/issue-N` branch in `mruangutai/sample-product`, a real product
   repository, and moves a station on live board 2. **The issue used must not be one of the 118 in
   `Done`** — the run moves a station, and moving a finished issue breaks the 118-in-Done criterion.
 - Eleven tasks in three phases. The phasing is itself the finding: a single-shot schema change

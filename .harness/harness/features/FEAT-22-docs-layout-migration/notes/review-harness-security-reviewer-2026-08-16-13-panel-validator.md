@@ -51,7 +51,7 @@ anything:**
   planting a stray `.harness/notes/docs/SPEC.md` alongside the legitimate
   `.harness/harness/docs/SPEC.md`:
   ```
-  declared segments: {'kaya-ai', 'harness'}
+  declared segments: {'sample-product', 'harness'}
   shapes: {'migrated'} count: 1 undeclared: ['.harness/notes/docs/SPEC.md']
   ```
   The stray is classified `undeclared`, not folded into `migrated`/`CLEAN`. Traced onward in
@@ -86,7 +86,7 @@ not only the intended `.harness/harness/docs/**`. This was a **deliberate, signe
 amendment reasons only about the "two of four" arithmetic correction and the string's
 redundancy in `harness_boundary.py`; it does not reason about the wildcard also matching the
 harness's own reserved subdirectories, which are not declared repository segments. Today
-`harness` is the only self-segment and `kaya-ai` the only product segment
+`harness` is the only self-segment and `sample-product` the only product segment
 (`_declared_segments()` output above) — no repo is named `notes`, `expertise`, `factory`,
 `logs`, or `codebase`, so no live collision exists. `SC-05`'s standing test
 (`test-check-domain.py`) pins only the intended path; nothing pins that the grant is confined to

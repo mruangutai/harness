@@ -1,3 +1,9 @@
+# Archival note - product retirement: this plan is a completed historical record. The product it
+# was executed against has been retired; sample-product names below are anonymized historical
+# references, and the evidence captures and product config cited by its tasks were removed from
+# this tree and preserved in the external archive held by the operator. Paths here resolve to
+# nothing locally and are not live instructions. Task ids, dependencies, recorded status and
+# stored signatures are unchanged.
 schema: plan/1
 feature: FEAT-33-board-lifecycle-native
 status: done
@@ -36,7 +42,7 @@ lanes:
     - surface: .claude/commands/harness-plan.md
       lane: main-session-direct
       reason: check-domain.py --resolve returns NOBODY at 46ee87c; no agent domain grants it
-    - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+    - surface: /Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json
       lane: main-session-direct
       reason: check-domain.py --resolve returns NOBODY at 46ee87c; a served repo config on another remote
     - surface: .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-*.md
@@ -71,7 +77,7 @@ decisions:
     because: exactness is what makes a drifted declaration loud, and loosening it permanently to buy a transient cross-repo ordering window is a bad trade.
     dec: none
   - id: D-06
-    choice: kaya-ai's own harness.json on master is updated BEFORE the harness validator widens.
+    choice: sample-product's own harness.json on master is updated BEFORE the harness validator widens.
     because: validate_board is exact-equality, so no order is atomic; this order leaves the interim failure latent and loud rather than silent.
     dec: none
   - id: D-07
@@ -115,8 +121,8 @@ decisions:
     because: integration.detect is tests/integration/** plus 22 explicit filenames and INTEGRATION_SCRIPTS is a matching 22-name array, both re-counted at 46ee87c where an earlier draft said six and fourteen, so a new test-board-lifecycle.py can never be selected as integration; the qa gate refuses an unrelated passing test as coverage, so the three feature-typed tasks would FAIL the gate after being built. test-factory-integration.py is already in both lists, is by its own docstring the only file in the tree that forks a real process against a stub gh, and already answers _project_field_resolve's GraphQL query - so the gate is satisfied by a genuinely covering test with no edit to a runner array and no edit to the matrix, both of which have three concurrent writers.
     dec: DEC-187
   - id: D-13
-    choice: T-01's abandon path is a revert pull request on kaya-ai's master, opened by the operator, and it is stated in T-01 rather than discovered.
-    because: T-01 is an irreversible write into another repository landed first, so abandoning the feature after it merges leaves kaya-ai's master declaring six keys the shipped five-key validator rejects, with no revert lever inside the harness repo. D-06's ordering is kept; only the rollback was missing.
+    choice: T-01's abandon path is a revert pull request on sample-product's master, opened by the operator, and it is stated in T-01 rather than discovered.
+    because: T-01 is an irreversible write into another repository landed first, so abandoning the feature after it merges leaves sample-product's master declaring six keys the shipped five-key validator rejects, with no revert lever inside the harness repo. D-06's ordering is kept; only the rollback was missing.
     dec: none
   - id: D-14
     choice: Every build task verifies with run-unit-tests.py --kind all, and no task verifies a single test script directly, even where one script would bind equally.
@@ -166,7 +172,7 @@ decisions:
 
 tasks:
   - id: T-01
-    title: Declare the plan station in kaya-ai's own harness.json on master
+    title: Declare the plan station in sample-product's own harness.json on master
     traces: [REQ-03]
     change_type: config
     execution_mode: main-session-direct
@@ -174,16 +180,16 @@ tasks:
     depends_on: []
     status: done
     files:
-      - /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+      - /Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json
     verify: |
-      gh api "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master" --jq .content | base64 -d | python3 -c 'import json,sys; s=json.load(sys.stdin)["github"]["board"]["stations"]; assert set(s)=={"backlog","plan","ready","building","review","done"}, s; assert s["plan"]=="Plan", s; print("OK")'
+      gh api "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master" --jq .content | base64 -d | python3 -c 'import json,sys; s=json.load(sys.stdin)["github"]["board"]["stations"]; assert set(s)=={"backlog","plan","ready","building","review","done"}, s; assert s["plan"]=="Plan", s; print("OK")'
     intent: |
-      Add one key to kaya-ai's board station declaration so it names all six columns its board
+      Add one key to sample-product's board station declaration so it names all six columns its board
       already carries.
 
-      The checkout is at /Users/molchairuangutai/GitHub/harness-factories/kaya-ai. Measured
+      The checkout is at /Users/molchairuangutai/GitHub/harness-factories/sample-product. Measured
       2026-08-22: it sits on branch factory/issue-334 and its origin/master is stale, so run
-      `git -C /Users/molchairuangutai/GitHub/harness-factories/kaya-ai fetch origin master` first
+      `git -C /Users/molchairuangutai/GitHub/harness-factories/sample-product fetch origin master` first
       and cut a new branch from origin/master. Do NOT work on factory/issue-334 and do not move
       that branch.
 
@@ -203,19 +209,19 @@ tasks:
       repository's config from the remote at default_branch and never from a checkout - so this
       change is invisible to the harness until it is merged to master.
 
-      This task lands BEFORE T-02 (D-06). Until T-02 merges, kaya-ai's six-key map is rejected by
-      the current five-key validator, which means factory_config.board_for('mruangutai/kaya-ai')
+      This task lands BEFORE T-02 (D-06). Until T-02 merges, sample-product's six-key map is rejected by
+      the current five-key validator, which means factory_config.board_for('mruangutai/sample-product')
       raises FleetError naming github.board.stations. Nothing calls it unless a factory command is
-      run against kaya-ai, so the breakage is latent. Do not run a factory command against kaya-ai
+      run against sample-product, so the breakage is latent. Do not run a factory command against sample-product
       between this task and T-02.
 
       THE ABANDON PATH, stated because this is the one irreversible cross-repository write in the
-      plan and it lands first (D-13). If this feature is abandoned after this task merges, kaya-ai's
+      plan and it lands first (D-13). If this feature is abandoned after this task merges, sample-product's
       master permanently declares six station keys that the SHIPPED five-key validator rejects, and
       there is no revert lever inside the harness repository - factory_config.board_for reads
-      kaya-ai's config from its remote at default_branch, so nothing in the harness checkout can
+      sample-product's config from its remote at default_branch, so nothing in the harness checkout can
       undo it. The abandon path is therefore: open a revert pull request on
-      mruangutai/kaya-ai reverting this task's commit on master, and merge it. Record the merge
+      mruangutai/sample-product reverting this task's commit on master, and merge it. Record the merge
       commit in this feature's notes/. Do not leave the six-key declaration standing against a
       five-key validator, and do not close the abandonment until the same verify command below
       fails, which is the proof the revert landed.
@@ -281,7 +287,7 @@ tasks:
       Do NOT touch gh_board.derive_station. It returns exactly stations["building"],
       stations["review"] or None, and that stays true (D-02). Plan is written at kickoff by
       board-station.py, never derived from task statuses; an all-pending branch would overwrite a
-      card the operator promoted to Ready, whose meaning is documented in kaya-ai's own
+      card the operator promoted to Ready, whose meaning is documented in sample-product's own
       harness.json.
 
       Do NOT touch .claude/skills/harness/bin/check-state.py in THIS task. Re-derived at 46ee87c,
@@ -1046,7 +1052,7 @@ tasks:
 
       - What became false: amendment 1's clause "`plan` is deliberately NOT declared". Measured at
         the SHA this feature ships at, .harness/harness.json's github.board.stations declares six
-        keys - backlog, plan, ready, building, review, done - and kaya-ai's own harness.json on
+        keys - backlog, plan, ready, building, review, done - and sample-product's own harness.json on
         master declares the same six.
       - Why this is not a strike under DEC-188 and amendment 1's REASONING is not falsified.
         Amendment 1 argued that the option resolves BY NAME at the board, so a wrong value fails
@@ -1067,7 +1073,7 @@ tasks:
         returns exactly the building station, the review station, or None. There is no Plan
         derivation and none is wanted. Plan is written at kickoff by board-station.py. An
         all-pending derivation would overwrite a card the operator promoted to Ready, whose meaning
-        is documented in kaya-ai's own harness.json, and that would be a new backwards-move defect
+        is documented in sample-product's own harness.json, and that would be a new backwards-move defect
         of the same class as issue 674.
       - The accepted cost: the required key set is now exact at six across every served repository,
         so a repository joining the fleet with a five-key declaration is rejected until it declares
@@ -1230,10 +1236,10 @@ tasks:
       `board_lifecycle.py audit` exiting 0 against the live board. The grep exists only to prove the
       report was written at all. Do not write "0 findings" unless step 5 actually returned it.
 
-      Do not run this against kaya-ai - that is T-12.
+      Do not run this against sample-product - that is T-12.
 
   - id: T-12
-    title: Reconcile the kaya-ai project from the harness checkout and capture the report
+    title: Reconcile the sample-product project from the harness checkout and capture the report
     traces: [REQ-07]
     change_type: config
     execution_mode: main-session-direct
@@ -1241,36 +1247,36 @@ tasks:
     depends_on: [T-01, T-11]
     status: done
     files:
-      - .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-kaya-ai.md
+      - .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-sample-product.md
     verify: |
       # CORRECTED 2026-08-23. `grep -q "0 findings" <report>` read a report this same session
       # writes -- satisfied by typing the string, so never evidence. Replaced with the LIVE
       # exit status, which is the real gate: audit exits 0 only when the board has zero
       # findings. The own-repo clause is the #783 regression guard: a fix that silenced STATUS
-      # everywhere would pass the kaya-ai clause and fail this one.
-      python3 .claude/skills/harness/bin/board_lifecycle.py audit --repo mruangutai/kaya-ai \
-        && python3 .claude/skills/harness/bin/board_lifecycle.py audit --repo mruangutai/kaya-ai 2>&1 | grep -q "STATUS: skipped" \
+      # everywhere would pass the sample-product clause and fail this one.
+      python3 .claude/skills/harness/bin/board_lifecycle.py audit --repo mruangutai/sample-product \
+        && python3 .claude/skills/harness/bin/board_lifecycle.py audit --repo mruangutai/sample-product 2>&1 | grep -q "STATUS: skipped" \
         && python3 .claude/skills/harness/bin/board_lifecycle.py audit 2>&1 | grep -q "^board_lifecycle: STATUS: /" \
         && echo OK
     intent: |
-      Bring the kaya-ai project - board 2, mruangutai/kaya-ai - to a zero-finding state, AFTER the
+      Bring the sample-product project - board 2, mruangutai/sample-product - to a zero-finding state, AFTER the
       harness project has proved the path (T-11).
 
-      WHICH CHECKOUT: the harness worktree, not a kaya-ai checkout. factory_config.product_config
+      WHICH CHECKOUT: the harness worktree, not a sample-product checkout. factory_config.product_config
       reads a served repository's .harness/harness.json from the REMOTE at default_branch and never
-      from a checkout, so every command below runs from the harness worktree and reaches kaya-ai
-      over the API. The kaya-ai checkout at /Users/molchairuangutai/GitHub/harness-factories/kaya-ai
+      from a checkout, so every command below runs from the harness worktree and reaches sample-product
+      over the API. The sample-product checkout at /Users/molchairuangutai/GitHub/harness-factories/sample-product
       is needed by T-01 alone. Do not touch it here, and do not move its factory/issue-334 branch.
 
-      WHICH BRANCH: kaya-ai's master, and only as already merged by T-01. Confirm T-01 landed
+      WHICH BRANCH: sample-product's master, and only as already merged by T-01. Confirm T-01 landed
       before starting, with
-      `gh api "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master"` - if the six
+      `gh api "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master"` - if the six
       station keys are not on master, factory_config.board_for raises FleetError naming
       github.board.stations and this task cannot run.
 
-      Then the same five steps as T-11, each with --repo mruangutai/kaya-ai: audit, read findings,
+      Then the same five steps as T-11, each with --repo mruangutai/sample-product: audit, read findings,
       reconcile --dry-run, reconcile --apply, audit again. Write the report to
-      .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-kaya-ai.md with the
+      .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-sample-product.md with the
       same contents as T-11's, including a line reading "0 findings".
 
       HOW THIS IS VERIFIED WHEN NO HARNESS-SIDE TEST CAN SEE IT, stated so nobody mistakes the
@@ -1279,7 +1285,7 @@ tasks:
       repository can reach - it is carried by the captured report (inspection) and by SC-11, which
       the OPERATOR runs. Leave SC-11 not_met until they do.
 
-      One thing to expect and not to fix here: kaya-ai's 82 untriaged Backlog items are not
+      One thing to expect and not to fix here: sample-product's 82 untriaged Backlog items are not
       findings. Only CLOSED issues at the wrong station, closed issues with a null reason, and
       not_planned issues without the label are findings. If the audit reports open Backlog items,
       the audit is wrong and this task stops.
@@ -1734,7 +1740,7 @@ tasks:
       second --dry-run returning nothing left to rename against the live repository. Do not write
       "refused: 0" unless step 1 actually returned it.
 
-      Do not run this against kaya-ai. Measured 2026-08-22: kaya-ai's task cards live on the FACTORY
+      Do not run this against sample-product. Measured 2026-08-22: sample-product's task cards live on the FACTORY
       lane, recorded under factory.issues, and this feature makes no claim about their titles.
 
   - id: T-19
@@ -1806,7 +1812,7 @@ tasks:
         orchestrator main-session-direct tasks and nothing instructed the main session to move
         their cards. FEAT-32 carried 9 of 17 tasks in that mode.
       - Ready's ONE meaning across every served board - the plan is signed - and the cost stated
-        rather than discovered: kaya-ai loses a signal it has today, because its own harness.json on
+        rather than discovered: sample-product loses a signal it has today, because its own harness.json on
         master documents Ready as the human pick-up point and after this nothing on board 2 records
         that a human promoted a ticket. A visible label is the route if that turns out to be needed,
         the same shape as the abandoned label, and it is not built here.
@@ -1838,7 +1844,7 @@ tasks:
     depends_on: [T-01, T-19]
     status: done
     files:
-      - /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+      - /Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json
     verify: |
       # PATH CORRECTED 2026-08-23 during the run. The key is at `github._board_ready_note`,
       # NOT `github.board._board_ready_note`. The plan's intent and this verify both named the
@@ -1846,9 +1852,9 @@ tasks:
       # exactly where it was. Rewriting text in place beats relocating a key the plan also said
       # not to restructure. Case-insensitive on "plan is signed" because the note writes it in
       # caps for emphasis.
-      gh api "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master" --jq .content | base64 -d | python3 -c 'import json,sys; n=json.load(sys.stdin)["github"].get("_board_ready_note",""); assert "plan is signed" in n.lower(), n; assert "promot" in n, n; print("OK")'
+      gh api "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master" --jq .content | base64 -d | python3 -c 'import json,sys; n=json.load(sys.stdin)["github"].get("_board_ready_note",""); assert "plan is signed" in n.lower(), n; assert "promot" in n, n; print("OK")'
     intent: |
-      Rewrite the note on kaya-ai's own board declaration so a reader of board 2 learns what Ready
+      Rewrite the note on sample-product's own board declaration so a reader of board 2 learns what Ready
       now means and what it stopped meaning, instead of discovering it when a card changes under
       them.
 
@@ -1857,7 +1863,7 @@ tasks:
       they are. This task changes _board_ready_note and only that key. Keeping them separate means
       T-01 can land on the ordering D-06 requires without waiting for a ruling this task depends on.
 
-      The checkout is /Users/molchairuangutai/GitHub/harness-factories/kaya-ai. Fetch origin master
+      The checkout is /Users/molchairuangutai/GitHub/harness-factories/sample-product. Fetch origin master
       and cut a new branch from it; do not work on factory/issue-334 and do not move that branch.
 
       Rewrite github.board._board_ready_note to state, in that file's own voice:

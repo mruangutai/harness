@@ -182,7 +182,7 @@ unstruck row is carried forward verbatim; anything not listed here dies silently
 | B-9 | chore | `features_root(repo)` is resolved at three call sites in `_BlockerCache`. Measured inert (13.32 µs per call). Shape note only. |
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You have declined to rule on it three times; queued here so it survives. |
 | B-17 | chore | **`build_features_root()`'s docstring overstates the fixture.** It presents both segments' issue maps as load-bearing; measured, only the harness side discriminates. |
-| B-28 | enhancement | **`_5b_property_holds` is a single point of failure for both cases.** Weakening it to `payload.get("issue") == 952` alone leaves both green with kaya-ai's half of the proof gone. Requires editing the assertion itself. |
+| B-28 | enhancement | **`_5b_property_holds` is a single point of failure for both cases.** Weakening it to `payload.get("issue") == 952` alone leaves both green with sample-product's half of the proof gone. Requires editing the assertion itself. |
 | B-29 | enhancement | **A failing `5g` renders a detail tuple shaped exactly like a passing `5b`'s.** Legibility only. |
 | B-30 | chore | **`_5b_property_holds`'s "never raises" docstring is imprecise** — non-dict JSON reaches `.get()` past the guard. Unreachable in practice. |
 

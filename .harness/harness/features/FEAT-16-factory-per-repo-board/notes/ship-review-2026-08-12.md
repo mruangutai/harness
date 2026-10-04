@@ -20,7 +20,7 @@ half-migrated.
 | `factory_config.py` | `load_fleet` learns a per-repo board; `board_for` and a repo-scoped station lookup |
 | `factory_claim.py` | reads a board only once it knows whose board it is |
 | `factory_decompose.py`, `factory_land.py` | publish and land against the acted-on repository's board |
-| `fleet.yaml` | top-level board removed; kaya-ai carries its own on board 2 |
+| `fleet.yaml` | top-level board removed; sample-product carries its own on board 2 |
 | six test files | fixtures migrated; the repo-to-board pairing pinned where a unit gate sees it |
 | `DECISIONS.md`, `SPEC.md` | DEC-174 amendment 2, and three falsehoods this feature created |
 
@@ -43,7 +43,7 @@ touched in either direction. The capture is `notes/board2-capture.md`.
 ## What this does NOT close, stated rather than left to be found
 
 **SC-06 is `not_met`, and it is the only criterion that leaves the fixtures behind.** It requires a
-live factory claim against a real kaya-ai issue on board 2, with the new station **read back off the
+live factory claim against a real sample-product issue on board 2, with the new station **read back off the
 board** rather than inferred from an exit code. It is `verify: uat`, operator-owned, and it mutates
 live product state, so no agent may perform it and no gate can close it.
 

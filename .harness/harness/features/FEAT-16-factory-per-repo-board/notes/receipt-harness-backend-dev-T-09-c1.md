@@ -725,7 +725,7 @@ PASS case2_presence_scan_reached_the_tree
 PASS case3_presence_fleet_yaml_safe_loads
 PASS case3_presence_fleet_has_exactly_one_repo
 PASS case3_absence_harness_is_not_a_fleet_member
-PASS case3_presence_kaya_default_branch_is_master
+PASS case3_presence_sample_default_branch_is_master
 PASS case3_absence_no_registry_json_under_harness
 PASS case4_absence_no_dec12_heading
 PASS case4_absence_no_stale_marker_reintroduced
@@ -736,7 +736,7 @@ PASS case4_presence_exactly_one_dec113_index_row
 PASS case4_absence_no_dec12_index_row
 PASS board_lives_per_repo_not_fleet_level
 PASS every_repo_declares_its_own_board
-PASS kaya_ai_is_paired_with_board_2
+PASS sample_is_paired_with_board_2
 
 ALL PASS
 PASS test-no-distribution.py
@@ -830,8 +830,8 @@ mutant reddens exactly the check it is meant to catch, while a fourth run agains
 unmutated `fleet.yaml` passes clean:
 
 - top-level `board` key reintroduced → `board_lives_per_repo_not_fleet_level` fails, others pass
-- kaya-ai's `stations` missing `review` → `every_repo_declares_its_own_board` fails, others pass
-- kaya-ai's `board.number` changed from 2 to 3 → `kaya_ai_is_paired_with_board_2` fails, others pass
+- sample-product's `stations` missing `review` → `every_repo_declares_its_own_board` fails, others pass
+- sample-product's `board.number` changed from 2 to 3 → `sample_is_paired_with_board_2` fails, others pass
 - real fleet.yaml → all three pass
 
 `.harness/factory/fleet.yaml` itself was never written to disk during this proof — only

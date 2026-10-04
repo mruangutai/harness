@@ -44,7 +44,7 @@ weakened anywhere.** The plan is ready for the signature gate to re-open on it.
   from its verify; stray-key assertions (`set(st) != set(want)`, `"plan" in st`) and an
   `isinstance(st, dict)` guard added in their place; the paragraph justifying the coupling rewritten
   rather than left standing beside its own reversal.
-- **D-10 enforceable** — T-07's verify gains a `gh api` read of kaya's config at `master` through
+- **D-10 enforceable** — T-07's verify gains a `gh api` read of sample-product's config at `master` through
   `validate_board`, failing on unreadable / absent / malformed. This pushed T-07 to 59 machine-field
   lines (budget 50); the new block was compressed to 11 lines rather than trimming any existing
   assertion. T-07 now sits at 49.

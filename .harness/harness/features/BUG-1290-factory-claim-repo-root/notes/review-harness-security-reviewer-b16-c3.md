@@ -41,7 +41,7 @@ load-bearing one — the `finally` is). No tampering-persistence path found.
 to stdout on failure, for every case in the file including 5g; pre-existing pattern, not
 introduced by this diff. Content of `out`/`err` in these cases is entirely synthetic fixture data:
 `AS_LOGIN = "agent-1"` (a literal placeholder, not a real account or token), fixture repo names
-(`acme/widget`, `kaya-ai/...`), fixture issue numbers/titles, and library-generated absolute paths
+(`acme/widget`, `sample-product/...`), fixture issue numbers/titles, and library-generated absolute paths
 under the process's own `TMPDIR`. Nothing derived from a real credential, real login, or
 production system enters this file — the module docstring's guarantee ("nothing here spawns a
 subprocess and nothing touches a real board, repository, or this repository's own

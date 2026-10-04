@@ -156,7 +156,7 @@
 
 - 2026-08-19: I PROPAGATED AN OVERSTATEMENT INTO A COMMIT MESSAGE. My t-07 commit says the weaker
   `"Traceback" not in stderr` wording "would have passed against the mutant". The final qa gate
-  measured it: TWO assertions flip under that mutant — the phantom kaya header AND stderr — so
+  measured it: TWO assertions flip under that mutant — the phantom sample-product header AND stderr — so
   case13 would have failed either way. The same overstatement had already propagated through pm's
   research note and pm's observations log before it reached me; I restated it in my own voice
   without checking, which is exactly P-03's failure, and a commit message cannot be corrected in

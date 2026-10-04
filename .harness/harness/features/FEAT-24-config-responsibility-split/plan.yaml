@@ -87,7 +87,7 @@ lanes:
     - surface: .claude/skills/harness/templates/harness.json
       lane: main-session-direct
       reason: check-domain.py --resolve returned NOBODY at ada8e99
-    - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+    - surface: /Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json
       lane: main-session-direct
       reason: >-
         check-domain.py --resolve returned NOBODY at ada8e99. Forced by DEC-189, which excludes
@@ -134,7 +134,7 @@ lanes:
       resolve: harness-backend-dev
       reason: >-
         Resolved and re-grepped at ada8e99. Zero matches for any moved key. The four pinned ids it
-        is tested against are asserted absent from the SCRIPT, not from kaya's config, so the kaya
+        is tested against are asserted absent from the SCRIPT, not from sample-product's config, so the sample-product
         migration does not touch it.
     - surface: .claude/skills/harness/bin/check-plan-routes.py
       resolve: harness-backend-dev
@@ -203,9 +203,9 @@ decisions:
     dec: none
   - id: D-04
     choice: >-
-      The pen for kaya's .harness/harness.json is the MAIN SESSION, and the route is the existing
-      factory one: an issue on mruangutai/kaya-ai, factory_workspace to materialise the checkout at
-      workspace_root/kaya-ai, a main-session-direct edit there, factory_land to push and open the
+      The pen for sample-product's .harness/harness.json is the MAIN SESSION, and the route is the existing
+      factory one: an issue on mruangutai/sample-product, factory_workspace to materialise the checkout at
+      workspace_root/sample-product, a main-session-direct edit there, factory_land to push and open the
       pull request, and the operator merges it. No new grant is added to team-config.yaml.
     because: >-
       check-domain.py --resolve returned NOBODY for that path at ada8e99, and that is forced rather
@@ -282,13 +282,13 @@ decisions:
     dec: DEC-196
   - id: D-10
     choice: >-
-      Kaya's pull request (T-09) must be MERGED before T-07 removes the board block from
+      The product's pull request (T-09) must be MERGED before T-07 removes the board block from
       fleet.yaml, and the plan orders them that way.
     because: >-
       Between the harness-side cutover and that merge, every factory_decompose and factory_claim
-      run against kaya fails loudly on a config with no board. That is correct behaviour and is
+      run against sample-product fails loudly on a config with no board. That is correct behaviour and is
       stated as designed rather than discovered, but it is a cross-repository sequencing
-      constraint, and T-07's verify enforces it: a gh api read of kaya's config at master that
+      constraint, and T-07's verify enforces it: a gh api read of sample-product's config at master that
       exits non-zero when T-09 is unmerged.
     dec: none
 
@@ -1106,9 +1106,9 @@ tasks:
               print("T-07: repos entry keys are %r, expected name and default_branch" % sorted(e)); fail = 1
           if "board" in e:
               print("T-07: %s still carries a board" % e.get("name")); fail = 1
-      kaya = [e for e in d["repos"] if e.get("name") == "mruangutai/kaya-ai"]
-      if not kaya or kaya[0].get("default_branch") != "master":
-          print("T-07: kaya default_branch is not master"); fail = 1
+      sample-product = [e for e in d["repos"] if e.get("name") == "mruangutai/sample-product"]
+      if not sample-product or sample-product[0].get("default_branch") != "master":
+          print("T-07: sample-product default_branch is not master"); fail = 1
       if any(e.get("name") == "mruangutai/harness" for e in d["repos"]):
           print("T-07: harness must not be a fleet member"); fail = 1
       sys.exit(fail)
@@ -1117,29 +1117,29 @@ tasks:
       import base64, json, subprocess, sys
       sys.path.insert(0, ".claude/skills/harness/bin")
       import factory_config as fc
-      r = subprocess.run(["gh", "api", "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master", "--jq", ".content"], capture_output=True, text=True)
-      if r.returncode != 0: sys.exit("T-07: kaya's config is unreadable on master, so T-09 is not merged: %s" % r.stderr.strip())
+      r = subprocess.run(["gh", "api", "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master", "--jq", ".content"], capture_output=True, text=True)
+      if r.returncode != 0: sys.exit("T-07: sample-product's config is unreadable on master, so T-09 is not merged: %s" % r.stderr.strip())
       b = (json.loads(base64.b64decode(r.stdout)).get("github") or {}).get("board")
-      if not isinstance(b, dict): sys.exit("T-07: kaya's board is absent on master - T-09 must be MERGED before this task removes the fleet copy (D-10)")
-      try: fc.validate_board(b, "github.board", "mruangutai/kaya-ai@master:.harness/harness.json")
-      except fc.FleetError as e: sys.exit("T-07: the one shared validator rejects kaya's board on master: %s" % e)
+      if not isinstance(b, dict): sys.exit("T-07: sample-product's board is absent on master - T-09 must be MERGED before this task removes the fleet copy (D-10)")
+      try: fc.validate_board(b, "github.board", "mruangutai/sample-product@master:.harness/harness.json")
+      except fc.FleetError as e: sys.exit("T-07: the one shared validator rejects sample-product's board on master: %s" % e)
       PY
       out=$(python3 .claude/skills/harness/bin/test-no-distribution.py 2>&1); rc=$?
       has() { printf '%s\n' "$out" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
       has "case3_absence_harness_is_not_a_fleet_member" || { echo "T-07: case3_absence_harness_is_not_a_fleet_member did not pass or did not run"; exit 1; }
-      has "case3_presence_kaya_default_branch_is_master" || { echo "T-07: case3_presence_kaya_default_branch_is_master did not pass or did not run"; exit 1; }
+      has "case3_presence_sample_default_branch_is_master" || { echo "T-07: case3_presence_sample_default_branch_is_master did not pass or did not run"; exit 1; }
       has "case3_absence_no_board_in_fleet" || { echo "T-07: the new no-board case did not pass or did not run"; exit 1; }
       printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-07: a case failed"; exit 1; }
       test "$rc" = 0 || { echo "T-07: the suite exited $rc"; exit 1; }
       echo "T-07 GREEN"
     intent: |
-      DO NOT START THIS TASK UNTIL T-09'S PULL REQUEST IS MERGED ON kaya-ai's master. Between this
-      edit and that merge, every factory_decompose and factory_claim run against kaya fails loudly
+      DO NOT START THIS TASK UNTIL T-09'S PULL REQUEST IS MERGED ON sample-product's master. Between this
+      edit and that merge, every factory_decompose and factory_claim run against sample-product fails loudly
       on a config with no board. That is correct behaviour, and the ordering is what keeps the
       window at zero. Check the pull request state before editing.
 
       AND THE VERIFY NOW ENFORCES THAT ORDERING RATHER THAN ASKING FOR IT. This task's verify reads
-      kaya's .harness/harness.json at master over gh api and runs it through
+      sample-product's .harness/harness.json at master over gh api and runs it through
       factory_config.validate_board - the same validator that will judge the file at runtime. It
       fails if the file is unreadable, if the board is absent, or if the merged board is malformed.
       So a run of this task before T-09's pull request is merged goes red instead of quietly
@@ -1148,7 +1148,7 @@ tasks:
 
       PART A - .harness/factory/fleet.yaml
 
-      1. Delete the whole board block from the mruangutai/kaya-ai entry - owner, number,
+      1. Delete the whole board block from the mruangutai/sample-product entry - owner, number,
          station_field and the three stations. The entry keeps exactly name and default_branch.
       2. Keep default_branch: master. It does not move. factory_workspace reads it to CREATE the
          checkout, so it cannot live inside the checkout.
@@ -1164,8 +1164,8 @@ tasks:
          Item closed workflow keeps landing cards in it, and that ready: Ready is deliberate even
          though Ready is empty, because on this board Backlog means filed-and-untriaged and Ready
          means promoted for the factory, so a claim run that finds nothing has found the truth
-         (D-08) - is carried into kaya's own config by T-09 as _note keys. Leave ONE line here
-         pointing a reader at kaya's .harness/harness.json on master for the board and its
+         (D-08) - is carried into sample-product's own config by T-09 as _note keys. Leave ONE line here
+         pointing a reader at sample-product's .harness/harness.json on master for the board and its
          rationale. Do not restate the rationale in both places.
       6. The DEC-174 am.1 absence comment about mruangutai/harness stays exactly as it is, verbatim.
          It is load-bearing and this feature does not touch it.
@@ -1176,7 +1176,7 @@ tasks:
            case3_absence_no_board_in_fleet
          It asserts that no repos entry carries a board key and that the document has no top-level
          board key. It must be a check() call in case3 beside the existing ones.
-      8. case3_presence_kaya_default_branch_is_master and
+      8. case3_presence_sample_default_branch_is_master and
          case3_absence_harness_is_not_a_fleet_member are NOT modified. If either needs an edit,
          stop and report it - both are load-bearing absences and this feature must not disturb
          them.
@@ -1239,7 +1239,7 @@ tasks:
       5. Change nothing else in the file.
 
   - id: T-09
-    title: kaya-ai's own config moves onto the by-name board shape
+    title: sample-product's own config moves onto the by-name board shape
     traces: [REQ-01, REQ-06]
     change_type: config
     execution_mode: main-session-direct
@@ -1250,15 +1250,15 @@ tasks:
     depends_on: []
     status: done
     files:
-      - /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+      - /Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json
     verify: |
       python3 - <<'PY' || exit 1
       import base64, json, subprocess, sys
       raw = subprocess.run(["gh", "api",
-          "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master",
+          "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master",
           "--jq", ".content"], capture_output=True, text=True)
       if raw.returncode != 0:
-          print("T-09: could not read kaya's config from master: %s" % raw.stderr.strip()); sys.exit(1)
+          print("T-09: could not read sample-product's config from master: %s" % raw.stderr.strip()); sys.exit(1)
       cfg = json.loads(base64.b64decode(raw.stdout))
       g = cfg.get("github") or {}
       fail = 0
@@ -1288,21 +1288,21 @@ tasks:
       PY
       echo "T-09 GREEN"
     intent: |
-      Kaya's .harness/harness.json on master still pins project_id, status_field and
+      The product's .harness/harness.json on master still pins project_id, status_field and
       in_progress_option - the pre-FEAT-18 flat keys D-05 killed, which do nothing at all, silently,
       when fed to a loader - and it carries no board block. Once T-02 and T-04 land, harness reads
-      that file to resolve kaya's board, so it must be valid before T-07 removes the fleet copy.
+      that file to resolve sample-product's board, so it must be valid before T-07 removes the fleet copy.
       THIS TASK MUST BE MERGED BEFORE T-07 IS STARTED.
 
       THIS TASK DEPENDS ON NOTHING, DELIBERATELY. An earlier draft made it depend on T-02 so its
       verify could call factory_config.validate_board. That coupling bought zero defect discovery:
-      the verify reads kaya's config at ?ref=master, which is AFTER the operator merge, so under
+      the verify reads sample-product's config at ?ref=master, which is AFTER the operator merge, so under
       either design the shared validator can only detect a malformed hand-edit, never prevent one -
       and a malformed edit costs a second cross-repository pull request either way. What the
       coupling did buy was delay, on the plan's only human-latency route - an issue, a workspace,
       a hand-edit, a pull request and an operator merge - queued behind the plan's largest task.
       So this route starts first, and the shared-validator check moves to where it can actually
-      gate something: T-07's verify reads kaya's config at master through validate_board and
+      gate something: T-07's verify reads sample-product's config at master through validate_board and
       refuses to pass until the merged board is there, which is also what makes D-10's
       merge-before-T-07 ordering enforceable instead of a prose obligation.
       The verify below therefore carries its own literal oracle - owner, number and station_field
@@ -1316,12 +1316,12 @@ tasks:
       check-domain.py --resolve returns NOBODY and always will. The operator, in the main session,
       performs these steps in order:
 
-        1. Open an issue on mruangutai/kaya-ai describing this migration.
-        2. Run factory_workspace.py --repo mruangutai/kaya-ai --issue <n> to materialise the
-           checkout at workspace_root/kaya-ai and cut factory/issue-<n>. That directory is one of
+        1. Open an issue on mruangutai/sample-product describing this migration.
+        2. Run factory_workspace.py --repo mruangutai/sample-product --issue <n> to materialise the
+           checkout at workspace_root/sample-product and cut factory/issue-<n>. That directory is one of
            the two locations DEC-193 sanctions for writing code under harness authority.
         3. Edit .harness/harness.json in that checkout, as below.
-        4. Run factory_land.py --repo mruangutai/kaya-ai --issue <n> to push and open the pull
+        4. Run factory_land.py --repo mruangutai/sample-product --issue <n> to push and open the pull
            request.
         5. Merge it. Only then may T-07 start.
 
@@ -1348,9 +1348,9 @@ tasks:
       4. Do NOT add default_branch to this file. It stays in fleet.yaml, because factory_workspace
          reads it to create the checkout that holds this file (D-02).
       5. Change nothing else: test_matrix, test_kinds, gates, budgets, cost_model and
-         dirty_tree_whitelist are kaya's own and are not this feature's business. Kaya's test kinds
+         dirty_tree_whitelist are sample-product's own and are not this feature's business. The product's test kinds
          stay unresolved (#336 D-03).
-      6. keep sync: true and repo: mruangutai/kaya-ai exactly as they are.
+      6. keep sync: true and repo: mruangutai/sample-product exactly as they are.
 
   - id: T-10
     title: The two falsified decision statements are amended
@@ -1413,7 +1413,7 @@ tasks:
          .harness/harness.json under github.board, on that repository's default branch, and is
          validated by one shared validator that raises.
       3. State what amendment 2 said that is STILL true and must not be swept away with it: the
-         board is still declared per repository, mruangutai/kaya-ai is still paired with board 2,
+         board is still declared per repository, mruangutai/sample-product is still paired with board 2,
          and the six-value Status vocabulary and the zero-item-writes rename record stand. This is
          a change of FILE, not a return to a fleet-level board.
       4. Record that default_branch did NOT move with the board, and why in one clause:

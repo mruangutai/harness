@@ -10,8 +10,8 @@ confirmed-by: operator
 
 ## Settled
 - The boundary applies only to factory-dispatched work for declared product repositories; Harness self-development and the main session retain their existing behavior.
-- Independent Kaya features may run concurrently in their own worktrees; repository binding must not prevent this.
-- #495 may be planned and built independently while #496 performs its first Kaya proof, but it must ship before concurrent multi-product factory operation is treated as safe.
+- Independent product features may run concurrently in their own worktrees; repository binding must not prevent this.
+- #495 may be planned and built independently while #496 performs its first product proof, but it must ship before concurrent multi-product factory operation is treated as safe.
 - The operator confirmed the plan mission and shared understanding before planning began.
 
 ## Not yet specified
@@ -19,7 +19,7 @@ confirmed-by: operator
 
 ## Out of scope
 - Changing Harness self-development to factory-dispatched work.
-- Delaying or folding #496's first Kaya proof into this feature.
+- Delaying or folding #496's first product proof into this feature.
 - Broader factory redesign outside repository binding and its necessary enforcement proof.
 
 ## Facts I verified (so pm does not re-derive them)

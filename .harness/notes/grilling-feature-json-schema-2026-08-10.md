@@ -91,7 +91,7 @@ Measured 2026-08-10 at `3569a20`.
 - **41 of the 75 appear NOWHERE outside a feature directory** — not in `.claude/`, `docs/`,
   `.github/`, `team-config.yaml` or `harness.json`. Nothing can read them. Among them are BOTH keys
   the ticket singled out as looking like real state — `gate_status` and `sc_tally` — plus
-  `operator_rulings_2026_08_10`, `d06_reversal`, `kaya_measurements`, `verified_by_me`,
+  `operator_rulings_2026_08_10`, `d06_reversal`, `product_measurements`, `verified_by_me`,
   `this_session`, `trigger_gap`, `skipped_segments`, `must_fix_open`, `must_fix_resolved`,
   `panel_result`, `pre_ship_steps`, `build_lanes`, `lane_split` and `approval_gate`.
 

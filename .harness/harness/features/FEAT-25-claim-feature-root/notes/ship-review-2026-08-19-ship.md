@@ -9,7 +9,7 @@ returning nothing at `high`. Four cycles of ten, fourteen runs of twenty.
 **The factory can take work again.** `factory_claim.py:43` was still building its feature root at
 `.harness/features`, the path unit 3 vacated. Every plan read failed, so every candidate came back
 refused and nothing was ever claimed. It failed closed — no wrong work was handed out — but the
-live kaya proof (#496) takes its work through this tool and could not start. That edge is now
+live sample-product proof (#496) takes its work through this tool and could not start. That edge is now
 unblocked.
 
 **And when a refusal is genuine, it says why.** Before, a candidate whose plan could not be read was
@@ -118,7 +118,7 @@ this is everything that survived.
 
 | ID | Nature | What |
 |---|---|---|
-| **B-1** | **decision** | **#500 alone may not unblock unit 8 (#496).** `factory_decompose.py:276-283` and `:360` label every issue `feature:<id>` unconditionally, so a kaya feature directory outside the `harness` segment stays unreadable and is still refused — now with a correct message, but still refused. **Three options: place kaya's first feature directory under the harness segment; use an unlabelled first proof issue; or pull unit 7 (#495) forward.** Yours to settle before unit 8 is dispatched — not this feature's to fix. |
+| **B-1** | **decision** | **#500 alone may not unblock unit 8 (#496).** `factory_decompose.py:276-283` and `:360` label every issue `feature:<id>` unconditionally, so a sample-product feature directory outside the `harness` segment stays unreadable and is still refused — now with a correct message, but still refused. **Three options: place sample-product's first feature directory under the harness segment; use an unlabelled first proof issue; or pull unit 7 (#495) forward.** Yours to settle before unit 8 is dispatched — not this feature's to fix. |
 | B-2 | bug | Fail-open in `test-layout-migration.py:416-418`: `fails += 1` sits inside `if not ok and detail:`, so a failing case with no detail prints `FAIL` and the script exits 0. Reachable at `:304`, `:308`, `:312`. Pre-existing (measured: this feature's whole diff to that file is one hunk adding case 22). One site, one file. Remedy is a one-line dedent. |
 | B-3 | chore | Case 22 pins the features surface as CLEAN but not that `factory_claim.py` is among the readers. Deleting the table row *and* its fixture stub together evades the import guard, so the detector could silently stop judging the file again. Remedy is one assertion — but it is a plan change, since T-03 says "add nothing else". |
 | B-4 | chore | The two new refusal texts are pinned by no byte-exact assertion anywhere in the repository. A wrapping slip that drops a space degrades the diagnostic with every gate green. |

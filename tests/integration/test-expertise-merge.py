@@ -336,7 +336,7 @@ def case_destination_refusal(root):
 
     # ALLOW: both legal tiers (FEAT-27).
     for label, rel in (("project tier", os.path.join(".harness", "expertise")),
-                       ("repository tier", os.path.join(".harness", "kaya", "expertise"))):
+                       ("repository tier", os.path.join(".harness", "sample-product", "expertise"))):
         d = os.path.join(root, rel)
         os.makedirs(d, exist_ok=True)
         f = os.path.join(d, "harness-pm.md")

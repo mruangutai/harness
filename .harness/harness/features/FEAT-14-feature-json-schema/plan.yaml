@@ -632,7 +632,7 @@ tasks:
       2026-08-11 by counting items per column before and after. DO NOT MUTATE EITHER BOARD
       IN THIS TASK; the board work is already done and re-sending an option list is how an
       omitted option deletes itself and strands its items. Read board 3 (Harness) and
-      board 2 (kaya-ai), confirm all six options are present on each, and STOP and report
+      board 2 (sample-product), confirm all six options are present on each, and STOP and report
       if any is missing. Writing Building onto disk while the board has no Building column
       would put the corpus into a vocabulary the operator's own view cannot display.
 

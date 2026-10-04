@@ -39,5 +39,5 @@
 
 ## Not flagged (per shared context, out of scope for this angle)
 
-- The differing `depends_on` fixture ids (T-88 kaya / T-99 harness) — recorded dead end.
+- The differing `depends_on` fixture ids (T-88 sample-product / T-99 harness) — recorded dead end.
 - The `name_X` + try/except idiom — file-wide settled convention.

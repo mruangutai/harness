@@ -94,7 +94,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   (`test-gh-sync.py:177-178`). Trade-off, accepted: watchers of an absorbed issue no longer see it
   close automatically, so the only route from "the feature covered this" to "this is closed" is a
   human signature — the same briefing-gated route DEC-138 am.4 uses for residual findings, chosen
-  because absorption is normally *partial* (kaya's #315/#209/#309/#312/#305 were each only partly
+  because absorption is normally *partial* (sample-product's #315/#209/#309/#312/#305 were each only partly
   covered) and a script must not infer that a partly-covered issue is done.
 - **D-03 — one new module `gh_issues.py`, exposing argv builders plus one lookup, not executors.**
   The two callers have deliberately different failure semantics — `gh-sync.py` skips and exits 0 on

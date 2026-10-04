@@ -1,5 +1,10 @@
 # Review (qa seat, gate-only) — FEAT-33 board-lifecycle-native — c0
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **VERDICT: FAIL.** Independent re-derivation confirms the qa segment's task counts and its 46/46
 suite numbers exactly. But SC-10's own verify — `check-state.py` exits 0 — does not hold when I run
 it right now: exit 1, 2 VIOLATIONs, one of which names **this feature itself**. That contradicts
@@ -99,7 +104,7 @@ drift, itself a report-honesty finding, not a hidden one).
 
 ## SC-11 and the three captured reports
 
-`notes/migration-harness.md`, `notes/migration-kaya-ai.md`, `notes/retitle-harness.md`: I did not
+`notes/migration-harness.md`, `notes/migration-sample-product.md`, `notes/retitle-harness.md`: I did not
 re-verify these captures byte-for-byte (the qa segment already diffed the raw before/after audit
 captures against the narrative and reported a live re-run finding a THIRD, expected-transient
 finding on migration-harness.md). I have no reason to doubt that spot-check. **SC-11 stays `not_met`

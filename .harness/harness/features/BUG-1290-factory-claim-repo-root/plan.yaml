@@ -61,7 +61,7 @@ decisions:
       feature, never on feature alone.
     because: >-
       A FEAT-04 directory exists today under both .harness/harness/features and
-      .harness/kaya-ai/features, so a feature-only key serves one repository's plan to the other.
+      .harness/sample-product/features, so a feature-only key serves one repository's plan to the other.
     dec: none
   - id: D-03
     choice: >-
@@ -335,7 +335,7 @@ tasks:
          mutation proof works by freezing that argument, and a constant patch would make the mutant
          indistinguishable from the correct code.
       4. Extend build_features_root() to lay down two segment roots under one temporary harness root,
-         .harness/kaya-ai/features and .harness/harness/features, each holding a feature directory with
+         .harness/sample-product/features and .harness/harness/features, each holding a feature directory with
          the SAME id whose plan.yaml carries a DIFFERENT task DAG: one whose task is blocked, one whose
          task is clear.
       5. Add these cases, using the existing check(name, cond, detail) idiom and the Recorder-based
@@ -612,7 +612,7 @@ tasks:
          features root for every candidate. The wrapper prints MUTANT ACTIVE the first time it is
          reached, so a proof that never entered the seam is visible instead of silently green.
          The mechanism is measured, not assumed: with the proxy installed BEFORE the suite's own
-         monkeypatch of factory_config.features_root, a kaya-ai candidate still resolves to the
+         monkeypatch of factory_config.features_root, a sample-product candidate still resolves to the
          harness segment root, because the proxy resolves the attribute at CALL time. The
          transcript is in notes/research-BUG-1290-factory-claim-repo-root-fix-c2.md. This is also
          why T-01 step 3 requires the suite's patch to be a function of repo_name.

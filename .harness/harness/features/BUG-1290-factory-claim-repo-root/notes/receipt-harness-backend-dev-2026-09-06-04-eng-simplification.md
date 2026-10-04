@@ -14,7 +14,7 @@ python3 tests/unit/test-factory-claim.py
 ## Lines read
 
 - `:324-398` — `build_features_root()` full body, including the rewritten docstring (335-340)
-  and both fixture blocks (kaya_seg 375-378, harness_seg 380-383).
+  and both fixture blocks (sample_seg 375-378, harness_seg 380-383).
 - `:1163-1233` — cases 5a, 5b, 5c in full, including the rewritten 5b comment (1179-1183) and
   the `check(name_5b, ...)` expression (1202-1206).
 - `git diff --unified=0` — confirms exactly which lines this diff touches, to separate
@@ -40,12 +40,12 @@ the next reader doesn't re-check them cold.
    Checked the rewritten `build_features_root()` docstring (:335-340) and the case 5b comment
    (:1179-1183) against changelog language (`now`, `no longer`, `was`, `previously`, `used to`)
    with a literal grep over just those spans — zero matches. Both read as present-tense
-   statements of what the fixture *is* ("kaya-ai's T-77 depends on an unresolvable T-88... harness's
+   statements of what the fixture *is* ("sample-product's T-77 depends on an unresolvable T-88... harness's
    T-77 depends on T-99 which its OWN map resolves to a closed issue"), not as a record of what
    changed. No apply, no backlog.
 
 3. **A construct with a simpler equivalent (collapsing the two `write_json`/`write_yaml` pairs
-   for kaya_seg and harness_seg into one parameterized helper) — declined, per the batch
+   for sample_seg and harness_seg into one parameterized helper) — declined, per the batch
    context's own trap.** The two blocks (:375-378, :380-383) look near-identical in shape but
    differ in exactly the two places that make case 5b discriminate: the dep id (`T-88` vs.
    `T-99`) and the issue map contents (`{"T-77": 850}` vs. `{"T-99": 954}`). Collapsing them

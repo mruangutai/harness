@@ -1,5 +1,10 @@
 # QA Review C2 — FEAT-56 — pin 9768681c2e290072ce4af7d25c4115603ce4e1ec
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 BLUF: **PASS.** Matrix confirmed at exact baseline (unit exit 0/4 by-design FAILs; integration
 exit 1/exactly 6 failing cases, all `test-check-plan-routes.py`, all the D-14 owner-manifest
 deviation — no seventh failure, no different cause). All three red-capability probes fired
@@ -161,7 +166,7 @@ Built a synthetic root with all four valid doors plus one extra
 - **SC-16 — MET, all clauses, per-file (never a global grep).**
   - `.harness/harness.json`: `json.load` parses OK, `cli_min_version` NOT in mapping.
   - `.claude/skills/harness/templates/harness.json`: parses OK, key absent.
-  - `.claude/skills/harness/templates/examples/harness.kaya-ai.json`: parses OK, key absent.
+  - `.claude/skills/harness/templates/examples/harness.<product>.json`: parses OK, key absent.
   - `.harness/team-config.yaml`: `yaml.safe_load` parses OK, key absent from mapping, content
     matches neither `cli_min_version` nor `floor for the spawn env vars`.
   - `.claude/skills/harness/templates/team-config.yaml`: same, all clauses pass.

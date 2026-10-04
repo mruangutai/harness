@@ -1,5 +1,10 @@
 # Review — FEAT-12 end-copy-distribution — c0
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 Reviewed `278de74..d543809` (`278de74` = `git merge-base main chore/203-end-copy-distribution`).
 `d543809` confirmed as branch tip (`git log -1 d543809`). All citations below read at `d543809`
 via `git show d543809:<path>` unless stated otherwise. Human commits in range (`--grep='\[harness:human\]'`):
@@ -10,20 +15,20 @@ none — `f3452bf`, `8782ee1`, `7f29d6c` are main-session-direct (layer-0 tasks 
 
 ## Must-fix
 
-**T-01/T-04's kaya-`.harness` manifest is not what the signed plan specifies, and it does not carry
+**T-01/T-04's sample-product-`.harness` manifest is not what the signed plan specifies, and it does not carry
 the evidence SC-05 claims it does.**
 
 Plan intent for T-01 directs an exact command: `find .harness -type f -print0 | LC_ALL=C sort -z |
-xargs -0 shasum -a 256`, redirected to `notes/kaya-harness-manifest-before.txt`, followed by two
+xargs -0 shasum -a 256`, redirected to `notes/sample-product-harness-manifest-before.txt`, followed by two
 appended trailer lines `TOTAL_FILES <n>` / `TOP_LEVEL <...>`. T-04 repeats this "verbatim" for the
 after-capture. SC-05 rests on this: *"the same total file count, and the same per-file sha256 ...
 differ in nothing."*
 
 Read at `d543809`:
-- `notes/kaya-harness-manifest-before.txt` — 377 lines, every line a bare path
+- `notes/sample-product-harness-manifest-before.txt` — 377 lines, every line a bare path
   (`.harness/.DS_Store`, `.harness/codebase/.DS_Store`, ...). `grep -cE '^[0-9a-f]{64}'` returns
   `0`. No `TOTAL_FILES` / `TOP_LEVEL` line anywhere (`grep -c` returns `0`).
-- `notes/kaya-harness-manifest-after.txt` — same: 377 lines, `0` hash-shaped lines, `0` trailer
+- `notes/sample-product-harness-manifest-after.txt` — same: 377 lines, `0` hash-shaped lines, `0` trailer
   lines.
 - `diff` between the two is empty (T-04's verify, `diff ... && echo IDENTICAL`, does pass).
 
@@ -34,7 +39,7 @@ independent deviations from the signed intent, both silently accepted:
 1. **No per-file sha256 anywhere in the artifact.** SC-05's specific claim — "the same per-file
    sha256 ... differ in nothing" — is not evidenced by this file at all. What the artifact actually
    proves is a strictly weaker claim: the same *set of file paths* exists before and after. A file
-   whose **content** changed while its name did not (e.g. a stray write landing inside kaya's
+   whose **content** changed while its name did not (e.g. a stray write landing inside sample-product's
    `.harness/` during the T-02/T-03/D-06 deletion work, or any other process touching that
    directory in the same window) would produce byte-identical manifests here and this artifact
    would report `IDENTICAL` regardless.
@@ -49,10 +54,10 @@ this project's history already flags (DEC-169: an absence/consistency check that
 anyway proves nothing about the thing it's supposed to be evidence for).
 
 **Consequence:** SC-05 is the sole verification gap-filler named in the BRIEF's own `## Verification
-gaps` section for REQ-04 ("kaya-ai's own accumulated state under its `.harness/` is untouched by
+gaps` section for REQ-04 ("sample-product's own accumulated state under its `.harness/` is untouched by
 this work, in full"). `feature.yaml`'s `sc_tally` records this SC as not yet formally checked
 (`"formal goal-check pending"`). As delivered, the artifact this feature would point a goal-check at
-cannot actually rule out silent content damage to kaya's `.harness/` state — it can only rule out
+cannot actually rule out silent content damage to sample-product's `.harness/` state — it can only rule out
 added or removed files. This is inspection-verified (Stage 1, `SC-05`), and it fails the "details
 match the specific values decided" test: the plan named `shasum -a 256` and two trailer lines
 specifically, and neither shipped.
@@ -121,7 +126,7 @@ touch either DEC-174-protected territory or contradict the signed plan's directe
   half would pass for that file without ever checking it. Narrow precondition, but it is exactly the
   fail-open shape this review is asked to hunt.
 - **low** — `case3_presence_fleet_has_exactly_two_repos` asserts `len(repos) == 2`. `SC-03` asks for
-  containment ("`repos:` list **contains** `mruangutai/kaya-ai` ... alongside `mruangutai/harness`"),
+  containment ("`repos:` list **contains** `mruangutai/sample-product` ... alongside `mruangutai/harness`"),
   not exclusivity. `SPEC.md` §3.3 (this feature's own new text) advertises "Onboarding a repository
   is one edit" — the very next onboarding will redden this specific assertion in
   `test-no-distribution.py`, pointing debugging effort at the distribution-sweep test rather than at

@@ -85,4 +85,4 @@ What exists, so a later run knows what it is inheriting:
 `chore` / `factory:claimed`, #2 and #4 assigned to `mruangutai`. Projects v2 board 6
 `factory-smoke-a1` with an added `Station` field and 4 items.
 
-Untouched: board 2 (kaya-ai), board 3, `mruangutai/harness`, `mruangutai/harness-factory-smoke`.
+Untouched: board 2 (sample-product), board 3, `mruangutai/harness`, `mruangutai/harness-factory-smoke`.
