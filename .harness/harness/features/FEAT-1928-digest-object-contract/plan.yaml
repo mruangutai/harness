@@ -2,9 +2,9 @@ schema: plan/1
 feature: FEAT-1928-digest-object-contract
 approval:
   date: '2026-10-04'
-  approved_by: main-session
+  approved_by: operator
   status: approved
-status: review
+status: building
 mission: plan
 source_issues: [1928]
 baseline:
@@ -213,21 +213,23 @@ tasks:
     - tests/unit/test-digest-schemas.py
     - tests/unit/test-digest-record.py
     - tests/integration/canonical-reader-classification.json
-    verify: |
-      python3 tests/unit/test-digest-schemas.py && python3 tests/unit/test-digest-record.py && python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test
-    intent: |
-      Work test-first under the DEC-174 direct route. Add common.json and exactly one closed JSON Schema for each of the 16 runtime harness personas, with external file references for shared VERDICT, artifact, and DIGEST structures. Encode every current required field, type, enum, nested object, list-entry shape, nullable n/a rule, and additionalProperties false boundary now declared by validate-digest.py, including persona-specific findings, amendments, sc_status, members, fail_first, code_grade, and task verification fields. Map the existing main-session and lead aliases to the appropriate canonical persona schemas without creating a seventeenth persona file. Do not add frontmatter output schemas, a schema generator, or a duplicated drift invariant.
-
-      Add digest_schema.py as the dependency-light canonical live-schema loader. It must cache strict schema loads, reject duplicate or malformed schema files, validate Python mappings with the installed jsonschema package, expose canonical persona resolution, and decode object-input JSON for the validator CLI so validate-digest.py does not introduce a second JSON reader. It must not parse durable Markdown or implement the provider projection.
-
-      Add digest_record.py as the narrow durable-record loader used only by historical artifact consumers and append comparison. It scans fenced YAML blocks from the end, selects the last block that safely loads to a mapping, and returns that mapping and structured keys without importing digest_schema.py or validating against any live persona schema. It must never accept historical text as a live return, search for a VERDICT token to choose a block, rewrite bytes, or grandfather by date. Its unit test must include historical mappings with extra durable keys, prove the final fenced mapping wins, prove malformed or absent mappings fail actionably, and hash the fixture before and after every read to prove byte identity.
-
-      Both new bin modules have a zero broad-catch ceiling: neither may contain except Exception nor a bare except. Catch only the concrete OSError, YAML, JSON, and jsonschema errors each operation can raise. Import through the normal bin package boundary or harness_boundary; do not add a second importlib.util.spec_from_file_location loader anywhere under bin.
-
-      The live-schema unit test must enumerate all 16 personas, prove representative valid objects pass, and prove missing, extra, wrong-type, and near-miss enum objects fail. The durable-reader unit test owns historical selection and byte preservation separately. Update canonical-reader-classification.json with canonical rows for every detected read in digest_schema.py and digest_record.py, set every new row's execution_route to main-session-direct, add both module paths to scanned_files, and run the canonical-reader self-test.
+    - .claude/skills/harness/bin/check-plan-routes.py
+    - tests/integration/test-check-plan-routes.py
+    - .claude/skills/harness/bin/prune-run-evidence.py
+    - tests/unit/test-prune-run-evidence.py
+    - .claude/skills/harness/bin/check_state/board.py
+    - .claude/skills/harness/bin/handoff_policy.py
+    - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .claude/skills/harness/bin/check_state/ctx.py
+    - .claude/skills/harness/bin/validate-digest.py
+    verify: python3 tests/unit/test-digest-schemas.py && python3 tests/unit/test-digest-record.py
+      && python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test
+      && python3 tests/integration/test-check-plan-routes.py && python3 tests/unit/test-prune-run-evidence.py
+    intent: "Work test-first under the DEC-174 direct route. Add common.json and exactly one closed JSON Schema for each of the 16 runtime harness personas, with external file references for shared VERDICT, artifact, and DIGEST structures. Encode every current required field, type, enum, nested object, list-entry shape, nullable n/a rule, and additionalProperties false boundary now declared by validate-digest.py, including persona-specific findings, amendments, sc_status, members, fail_first, code_grade, and task verification fields. Map the existing main-session and lead aliases to the appropriate canonical persona schemas without creating a seventeenth persona file. Do not add frontmatter output schemas, a schema generator, or a duplicated drift invariant.\n\nAdd digest_schema.py as the dependency-light canonical live-schema loader. It must cache strict schema loads, reject duplicate or malformed schema files, validate Python mappings with the installed jsonschema package, expose canonical persona resolution, and decode object-input JSON for the validator CLI so validate-digest.py does not introduce a second JSON reader. It must not parse durable Markdown or implement the provider projection.\n\nAdd digest_record.py as the narrow durable-record loader used only by historical artifact consumers and append comparison. It scans fenced YAML blocks from the end, selects the last block that safely loads to a mapping, and returns that mapping and structured keys without importing digest_schema.py or validating against any live persona schema. It must never accept historical text as a live return, search for a VERDICT token to choose a block, rewrite bytes, or grandfather by date. Its unit test must include historical mappings with extra durable keys, prove the final fenced mapping wins, prove malformed or absent mappings fail actionably, and hash the fixture before and after every read to prove byte identity.\n\nBoth new bin modules have a zero broad-catch ceiling: neither may contain except Exception nor a bare except. Catch only the concrete OSError, YAML, JSON, and jsonschema errors each operation can raise. Import through the normal bin package boundary or harness_boundary; do not add a second importlib.util.spec_from_file_location loader anywhere under bin.\n\nThe live-schema unit test must enumerate all 16 personas, prove representative valid objects pass, and prove missing, extra, wrong-type, and near-miss enum objects fail. The durable-reader unit test owns historical selection and byte preservation separately. Update canonical-reader-classification.json with canonical rows for every detected read in digest_schema.py and digest_record.py, set every new row's execution_route to main-session-direct, add both module paths to scanned_files, and run the canonical-reader self-test.\n Reconcile the inherited canonical-reader inventory with the actual source tree without editing the shipped BUG-285 plan or weakening its eleven historical T-07 identities. Generalize the existing exact implementation relocation tuples to file, symbol, category and callee; retain its four artifact-accessor resolutions and add domain_check to check-domain._manifest_domains_or_exit, process_plan_yaml to check-plan-routes._load_plan_once, and check-state module load_plan to check_state.ctx.Ctx._load_plan_docs. Every destination must still have explicit current source ownership. Add optional per-row plan ownership, defaulting to the inventory document plan; load each distinct referenced plan through the canonical reader, scope task lookup and historical migration selection by plan plus task, and refuse unreadable plans, missing declared source files, same-named tasks from another plan and wrong DEC-174 routes. Newly maintained source rows reference this feature plan and their actual owning task; keep historical rows bound to their original plan. Retarget or remove only genuinely extracted or deleted non-terminal reader sites, keep one actual state.yaml file reader, retain both check-domain view=true requirements, and account for every current scanned Python file and parser call without blanket exemptions. Replace prune-run-evidence._load_record direct feature.json decoding with artifact_accessors.load_feature_json; invalid records refuse before any deletion. Its UI results envelope remains a reasoned module-internal-format exemption. Preserve live zero-unresolved audit, all historical T-03 through T-07 postconditions and exact terminal-contract mutants. Add behavioral negative coverage for cross-plan task confusion, unreadable ownership, omitted destinations, exact relocation mismatches and invalid pruning records without losing run directories."
   - id: T-02
     title: Hard-cut runtime, readers, and returns to digest objects
-    status: done
+    status: building
     depends_on: [T-01]
     traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08]
     change_type: cross_module
@@ -235,7 +237,6 @@ tasks:
     files:
     - .omp/extensions/digest-schema.ts
     - .omp/extensions/harness-hooks.ts#taskModelOverride
-    - .claude/skills/harness/bin/dispatch-guard.py
     - .claude/skills/harness/bin/validate-digest.py#validate
     - .claude/skills/harness/bin/check_state/ctx.py#Ctx
     - .claude/skills/harness/bin/check_state/run_state.py#_inv15_digest_verdict
@@ -262,31 +263,17 @@ tasks:
     - tests/integration/test-dispatch-guard.py
     - tests/integration/test-check-state-feat59.py
     - tests/integration/test-check-state-records.py
-    - tests/integration/test-checker-structure-locks.py#_feat69_cross_module_checks
     - tests/integration/test-validate-digest.py
     - tests/integration/test-validate-digest-shadows.py
     - tests/manual/probe-inflight-claim-lifecycle.py
     - tests/manual/probe-digest-object-contract.py
     - .harness/harness/features/FEAT-1928-digest-object-contract/notes/validator-parity.md
     - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe.md
-    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.md
-    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.transcript.jsonl
-    verify: |
-      python3 -c 'import subprocess,sys; commands=[["bun","test","tests/unit/omp-hooks.test.ts"],["python3","tests/unit/test-digest-dev-skill.py"],["python3","tests/unit/test-feature-record.py"],["python3","tests/integration/test-check-domain-artifact.py"],["python3","tests/integration/test-dispatch-guard.py"],["python3","tests/integration/test-check-state-feat59.py"],["python3","tests/integration/test-check-state-records.py"],["python3","tests/integration/test-checker-structure-locks.py"],["python3","tests/integration/test-validate-digest.py"],["python3","tests/integration/test-validate-digest-shadows.py"]]; processes=[subprocess.Popen(c) for c in commands]; codes=[p.wait() for p in processes]; raise SystemExit(1 if any(codes) else 0)' && python3 tests/manual/probe-digest-object-contract.py --verify-receipt .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.md && bun test /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-normalization.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-compatibility.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/anthropic-tool-schema.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/coding-agent/test/tools/provider-schema-compatibility.test.ts
-    intent: |
-      Work test-first and keep every source and owning-test edit in the main session under DEC-174. This task is independent of FEAT-70 and must remain runnable while the separately gated plan digest-reader task waits. Before removing any text path, run the baseline validator at baseline SHA against all 135 named CLI cases and every current hook, shadow, claim-lifecycle, and non-plan reader case, then express the same cases as mappings and run the new object validator. Record each case name, old accept or reject result, new accept or reject result, immutable SHAs, commands, and zero mismatches in validator-parity.md. Parser-syntax-only cases must retain their rejection counterpart as a missing, extra, wrong-type, or enum-invalid object case. The permanent tests keep the object cases and consumer semantics, not a baseline checkout, text parser, or compatibility shim.
+    - .claude/skills/harness/bin/digest_destination.py
+    verify: 'python3 -c ''import subprocess,sys; commands=[["bun","test","tests/unit/omp-hooks.test.ts"],["python3","tests/unit/test-digest-dev-skill.py"],["python3","tests/unit/test-feature-record.py"],["python3","tests/integration/test-check-domain-artifact.py"],["python3","tests/integration/test-dispatch-guard.py"],["python3","tests/integration/test-check-state-feat59.py"],["python3","tests/integration/test-check-state-records.py"],["python3","tests/integration/test-checker-structure-locks.py"],["python3","tests/integration/test-validate-digest.py"],["python3","tests/integration/test-validate-digest-shadows.py"]]; processes=[subprocess.Popen(c) for c in commands]; codes=[p.wait() for p in processes]; raise SystemExit(1 if any(codes) else 0)''
 
-      Add .omp/extensions/digest-schema.ts as the one in-process provider adapter. Export loadDigestSchemaBundle(schemaDir, persona), backed by one module-lifetime Map keyed by canonical schema directory and canonical persona. The adapter must synchronously read the selected persona JSON file and relative shared JSON files from the canonical digest-schemas directory, resolve external file references plus JSON-pointer fragments with cycle, missing-target, and schema-directory-escape rejection, project the resolved tree to object, array, string, integer, number, boolean, null, properties, required, additionalProperties false, items, enum, and nested nullable anyOf, reject any unsupported surviving keyword or reference, and return the cached ref-free bundle. It derives every field and required set from the JSON files; it must not contain a second hand-authored contract or spawn Python. Tests import this real adapter, load all 16 canonical schemas, assert one recursive structural-keyword whitelist over the complete bundle set, assert cache identity for a repeat load, and exercise actionable malformed JSON, unresolved reference, and unsupported-keyword errors.
-
-      In the task hook, reject dispatcher-supplied outputSchema and schemaMode at both the top level and every tasks item before any claim side effect, naming the forbidden location. For every harness task item, including main, call loadDigestSchemaBundle with the canonical schema directory, inject the returned bundle and schemaMode strict via revisedInput, and preserve unrelated task fields, batching, model rules, and non-harness dispatches. Catch any persona, read, parse, reference-resolution, or projection error and refuse the dispatch before acquiring a claim; never inject a loose fallback. The hook is the sole in-process schema authority and must finish forbidden-control refusal and schema loading before it invokes dispatch-guard.py, so a schema-refused dispatch records no claim. Dispatch-guard.py remains the governed preflight and claim boundary for an otherwise accepted dispatch; preserve its existing policy and claim behavior through the hard cut and cover that boundary in tests/integration/test-dispatch-guard.py. Dispatch-guard.py must not load, resolve, project, cache, or inject a schema, and must not duplicate the hook's schema-control refusal. The terminal gate runs OMP's pinned canonical schema-normalization, schema-compatibility, anthropic-tool-schema, and provider-schema-compatibility suites once for the configured OpenAI and Anthropic families. Do not build a per-model-tier matrix or broaden AGENTS.md or provider-neutral capability claims.
-
-      On YieldTool calls, pass event.input.data as digest_object to validate-digest.py and validate the mapping directly through digest_schema.py. Preserve claim release, child-in-flight, identity, artifact, suite, review, and repository semantic checks and their actionable diagnostics. A string, null, absent data, wrapper, or malformed mapping must be blocked with an instruction to return the object. Explicitly delete the string-data branch added by issues 1960 and 1969 and delete its pinning tests in tests/unit/omp-hooks.test.ts, including passes string data through as multi-line digest text and uses the last assistant message for an omitted yield payload. Remove agent-end and last-assistant-message digest fallback validation while retaining unrelated claim and spend behavior. The direct CLI with no artifact argument accepts a JSON object from stdin through digest_schema.py. Historical check-state consumers use digest_record.py directly and never send the loaded mapping through live persona-schema validation.
-
-      After a lead mapping passes all live schema and semantic checks, resolve its registered digest.md as today, require the target to be a safe existing regular artifact, and compare with digest_record.py's final fenced mapping. If structurally identical, write nothing; if different, append a deterministic yaml.safe_dump fenced block after the human narrative so last mapping wins. Reject the yield if resolution or writing fails; non-lead validation never writes an artifact. The submitted live mapping is validated before every append, but a pre-existing historical mapping is comparison input only and is never retroactively schema-validated. Retarget _inv15_digest_verdict to check_state/run_state.py and update check_state/ctx.py, check_state/run_state.py, check_state/table.py, and check_state/feature_record.py so INV-15, INV-46, and INV-47 consume digest_record.py's structured keys. Keep exactly one checker file owning a callable named _inv15_digest_verdict so the FEAT-69 mutants remain anchored. Update the INV-15 and INV-46 declared read tuples to name every new input, including digest_record.py, and update tests/integration/test-checker-structure-locks.py for the cross-module mutant anchors and two-helper read walk. Delete the checker digest regex and bare-text fallback, and prove all 30 tracked historical digest.md files, including blocks with out-of-live-schema keys, remain byte-identical and readable.
-
-      Replace the fenced return templates in the eight named agent files and three named skills with a pointer to that persona's schema file and one complete object example using the exact YieldTool data shape; update team-run-state.md so durable fenced YAML is described only as validator-owned output. Add a census that fails if a live harness return contract still asks an agent to serialize a fenced digest. Preserve each role's current field semantics and the instruction that the object is returned through YieldTool.
-
-      Before deleting the host workaround, add and run probe-digest-object-contract.py in a fresh disposable OMP subprocess against the worktree hook with the configured real provider. The probe must dispatch a governed agent, observe the injected strict schema, force an explicit null yield that receives a retryable tool error, then observe a valid object complete that same job. Record sanitized command, installed OMP version, launcher path and sha256, release-tag source SHA explicitly labeled as metadata provenance for a bundled release rather than runtime binary identity (or checkout-runtime HEAD when the invoked runtime actually runs from that checkout), harness SHA, provider and model, task and job identifiers, transcript evidence, null rejection, retry continuity, valid object, exit status, and timestamp in live-digest-object-probe-current.md. For the installed bundled OMP 18.6.0 at /Users/molchairuangutai/.bun/bin/omp, record the launcher sha256 observed for that invocation and the operator-supplied v18.6.0 release-tag source SHA 89d2610993af69427574bde17791df63906ec4e5 as metadata provenance; never substitute an unrelated source checkout HEAD for runtime identity or require a checkout or npm gitHead for the bundled release. Record SC-03's canonical suite checkout path and its observed SHA at the time of the run, all four canonical suite commands, and their results in validator-parity.md; this source-identity evidence is separate from the live runtime receipt and does not impose a verify-time HEAD equality pin. The receipt verifier must reject dry-run or synthetic receipts. Add digest_object_contract_live to harness.json as locally_run with the probe detector and command. If the job settles on null, stop the task as blocked and amend the design; only after the credentialled live receipt passes may the same task remove yamlLines, yieldContractText, hollowYieldValue, normalizeYieldInput, parser helpers, template-echo shadow selection, and the issue 1676 empty-yield repair. Update complexity expectations and the existing inflight manual probe to use object yields, then run the targeted suites in verify with no compatibility alias or dead text path left.
+      '
+    intent: "Work test-first and keep every source and owning-test edit in the main session under DEC-174. This task is independent of FEAT-70 and must remain runnable while the separately gated plan digest-reader task waits. Before removing any text path, run the baseline validator at baseline SHA against all 135 named CLI cases and every current hook, shadow, claim-lifecycle, and non-plan reader case, then express the same cases as mappings and run the new object validator. Record each case name, old accept or reject result, new accept or reject result, immutable SHAs, commands, and zero mismatches in validator-parity.md. Parser-syntax-only cases must retain their rejection counterpart as a missing, extra, wrong-type, or enum-invalid object case. The permanent tests keep the object cases and consumer semantics, not a baseline checkout, text parser, or compatibility shim.\n\nAdd .omp/extensions/digest-schema.ts as the one in-process provider adapter. Export loadDigestSchemaBundle(schemaDir, persona), backed by one module-lifetime Map keyed by canonical schema directory and canonical persona. The adapter must synchronously read the selected persona JSON file and relative shared JSON files from the canonical digest-schemas directory, resolve external file references plus JSON-pointer fragments with cycle, missing-target, and schema-directory-escape rejection, project the resolved tree to object, array, string, integer, number, boolean, null, properties, required, additionalProperties false, items, enum, and nested nullable anyOf, reject any unsupported surviving keyword or reference, and return the cached ref-free bundle. It derives every field and required set from the JSON files; it must not contain a second hand-authored contract or spawn Python. Tests import this real adapter, load all 16 canonical schemas, assert one recursive structural-keyword whitelist over the complete bundle set, assert cache identity for a repeat load, and exercise actionable malformed JSON, unresolved reference, and unsupported-keyword errors.\n\nIn the task hook, reject dispatcher-supplied outputSchema and schemaMode at both the top level and every tasks item before any claim side effect, naming the forbidden location. For every harness task item, including main, call loadDigestSchemaBundle with the canonical schema directory, inject the returned bundle and schemaMode strict via revisedInput, and preserve unrelated task fields, batching, model rules, and non-harness dispatches. Catch any persona, read, parse, reference-resolution, or projection error and refuse the dispatch before acquiring a claim; never inject a loose fallback. The hook is the sole in-process schema authority and must finish forbidden-control refusal and schema loading before it invokes dispatch-guard.py, so a schema-refused dispatch records no claim. Dispatch-guard.py remains the governed preflight and claim boundary for an otherwise accepted dispatch; preserve its existing policy and claim behavior through the hard cut and cover that boundary in tests/integration/test-dispatch-guard.py. Dispatch-guard.py must not load, resolve, project, cache, or inject a schema, and must not duplicate the hook's schema-control refusal. The terminal gate runs OMP's pinned canonical schema-normalization, schema-compatibility, anthropic-tool-schema, and provider-schema-compatibility suites once for the configured OpenAI and Anthropic families. Do not build a per-model-tier matrix or broaden AGENTS.md or provider-neutral capability claims.\n\nOn YieldTool calls, pass event.input.data as digest_object to validate-digest.py and validate the mapping directly through digest_schema.py. Preserve claim release, child-in-flight, identity, artifact, suite, review, and repository semantic checks and their actionable diagnostics. A string, null, absent data, wrapper, or malformed mapping must be blocked with an instruction to return the object. Explicitly delete the string-data branch added by issues 1960 and 1969 and delete its pinning tests in tests/unit/omp-hooks.test.ts, including passes string data through as multi-line digest text and uses the last assistant message for an omitted yield payload. Remove agent-end and last-assistant-message digest fallback validation while retaining unrelated claim and spend behavior. The direct CLI with no artifact argument accepts a JSON object from stdin through digest_schema.py. Historical check-state consumers use digest_record.py directly and never send the loaded mapping through live persona-schema validation.\n\nAfter a lead mapping passes all live schema and semantic checks, resolve its registered digest.md as today, require the target to be a safe existing regular artifact, and compare with digest_record.py's final fenced mapping. If structurally identical, write nothing; if different, append a deterministic yaml.safe_dump fenced block after the human narrative so last mapping wins. Reject the yield if resolution or writing fails; non-lead validation never writes an artifact. The submitted live mapping is validated before every append, but a pre-existing historical mapping is comparison input only and is never retroactively schema-validated. Retarget _inv15_digest_verdict to check_state/run_state.py and update check_state/ctx.py, check_state/run_state.py, check_state/table.py, and check_state/feature_record.py so INV-15, INV-46, and INV-47 consume digest_record.py's structured keys. Keep exactly one checker file owning a callable named _inv15_digest_verdict so the FEAT-69 mutants remain anchored. Update the INV-15 and INV-46 declared read tuples to name every new input, including digest_record.py, and update tests/integration/test-checker-structure-locks.py for the cross-module mutant anchors and two-helper read walk. Delete the checker digest regex and bare-text fallback, and prove all 30 tracked historical digest.md files, including blocks with out-of-live-schema keys, remain byte-identical and readable.\n\nReplace the fenced return templates in the eight named agent files and three named skills with a pointer to that persona's schema file and one complete object example using the exact YieldTool data shape; update team-run-state.md so durable fenced YAML is described only as validator-owned output. Add a census that fails if a live harness return contract still asks an agent to serialize a fenced digest. Preserve each role's current field semantics and the instruction that the object is returned through YieldTool.\n\nKeep the implemented disposable probe and historical pre-cutover receipt. T-05 owns the current source-bound credentialled run, its fresh receipt and transcript, and the canonical provider terminal gate; none of those gates is removed or weakened.\n Bind each lead append destination at trusted hook runtime startup, independently of returned artifact: exact claim feature, persona, runtime id, parent id and checkout plus exactly one open registered feature.json run for that lead and squad, within its manifest writable grants. Cache that hook-owned binding for the ready runtime so refused returns can release their claim first and still retry or no-op; clear it when opening a new wake turn. Revalidate the bound registered run at append, and refuse other squads, other features, another same-role run, missing or mismatched binding, closed registrations and relative or absolute parent symlink escapes before reading for equality or writing. Open directories and the existing regular digest through no-follow directory descriptors, append through the same file descriptor, and preserve every prior byte, historical record comparison, correction and identical-object no-op. No caller-selected fallback and no post-release live-claim requirement. Delegate explicit null yield execution to the native OMP tool, not a hook-only refusal; typed terminal null under the injected strict schema must produce the native retryable declared-schema error, then the same job accepts the next full valid object. Retain non-object and malformed-object refusal and all claim settlement boundaries."
   - id: T-03
     title: Consolidate doctrine and operator documentation
     status: done
@@ -337,3 +324,124 @@ tasks:
       Remove or retarget the row for .claude/skills/harness/bin/plan_merge/panel.py::_digest_mapping::harness_yaml_string#1 in tests/integration/canonical-reader-classification.json and run the canonical-reader self-test. Keep case_feat70_record_amendments_after_a_block_scalar_splice green. Preserve the existing historical-reader boundaries: this task covers plan consumers only and must not duplicate digest_record.py coverage for final-block selection, historical extra-key acceptance, or byte-identity hashing.
 
       Preserve record-panel finding identity, exact severities, kinds, proportionality scopes, dispositions, resolved_by values, resolutions, and every ran or skipped reader status across cycles. Preserve record-amendments comparisons, judgements, parity, and refusal diagnostics. Preserve the validator-owned fenced YAML language in panel-recording.md, plan-merge-only writes, and actionable refusals when malformed or absent durable input reaches the plan-merge consumer boundary. Add or update plan-merge integration coverage only for these consumer behaviors and run the task verify with zero FAIL lines.
+  - id: T-05
+    title: Refresh installed-runtime proof and terminal provider compatibility
+    status: building
+    depends_on:
+    - T-02
+    - T-03
+    - T-04
+    traces:
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-07
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Credentialled proof exercises the enforcement contract under change; DEC-174 reserves execution to the main session.
+    files:
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.md
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.transcript.jsonl
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-native-red.md
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-native-red.json
+    - .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-omp-probe.md
+    verify: 'python3 tests/manual/probe-digest-object-contract.py --verify-receipt .harness/harness/features/FEAT-1928-digest-object-contract/notes/live-digest-object-probe-current.md && bun test /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-normalization.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/schema-compatibility.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/ai/test/anthropic-tool-schema.test.ts /Users/molchairuangutai/GitHub/oh-my-pi/packages/coding-agent/test/tools/provider-schema-compatibility.test.ts
+
+      '
+    intent: "Run the already-implemented disposable probe against a clean, committed feature tree after reconciliation and all source tasks. Use the configured real provider to prove strict persona-schema injection, explicit null-data rejection, the same child session and job retrying with a conforming object, valid completion, and zero exit status. Preserve the historical receipt unchanged. Record a fresh sanitized transcript and receipt naming the Harness commit, all seven under-test hashes, installed OMP version, invoked launcher and package paths, launcher SHA256, release-tag source SHA explicitly as metadata rather than binary identity, provider and both models, invocation, task/job/session identifiers, timestamps, refusal and completion evidence, transcript SHA256, and uncommitted count. Refuse missing credentials, dry-run/synthetic substitutes, failed evidence, unrelated installed-binary/source identities, or a mismatch with the final review pin. Verify the receipt against its transcript; independently compare all seven recorded source hashes to the final review pin. Only after the local suites and this real live run pass, run the four existing canonical OMP OpenAI/Anthropic normalization and compatibility suites once as the terminal gate from the recorded checkout, preserving checkout identity separately from installed-runtime identity. This is decomposition of existing approved work, not new scope, a source implementation task, or a fail-first waiver.\n Prove SC-04 with the actual installed OMP native YieldTool execution in a governed strict-schema job: first yield uses type=result with explicit data=null, native execution starts and returns the declared-schema retryable error, then the same child and job complete with the exact conforming object, caller strict valid output and exit zero. Run the enhanced automated RPC integration probe before the native-routing change to retain a genuine behavioral RED, and retain an isolated pre-cutover-hook RED with named failed schema-injection and native-execution predicates; neither preflight/import failure nor simulated events count. Preserve full launcher and source hash provenance and sanitized transcripts, distinguish constructed baseline support overlays from natural source snapshots, and do not use the GREEN-only receipt verifier to claim a failed RED passed. Run the actual credentialled claim-lifecycle probe from this feature worktree with the OpenAI overlay and a genuinely registered engineering probe run; retain all five scenario outcomes and the feature-local live-omp-probe receipt. Register and close only that probe-owned run through supported feature-record commands, retaining all existing run and judgement history. Keep the existing clean committed source GREEN receipt requirement and all canonical provider tests."
+replace_tasks:
+- id: T-01
+  files:
+  - .claude/skills/harness/bin/digest_schema.py
+  - .claude/skills/harness/bin/digest_record.py
+  - .claude/skills/harness/bin/digest-schemas/common.json
+  - .claude/skills/harness/bin/digest-schemas/harness-ai-dev.json
+  - .claude/skills/harness/bin/digest-schemas/harness-backend-dev.json
+  - .claude/skills/harness/bin/digest-schemas/harness-code-reviewer.json
+  - .claude/skills/harness/bin/digest-schemas/harness-data-engineer.json
+  - .claude/skills/harness/bin/digest-schemas/harness-dev-ops.json
+  - .claude/skills/harness/bin/digest-schemas/harness-documentor.json
+  - .claude/skills/harness/bin/digest-schemas/harness-eng-lead.json
+  - .claude/skills/harness/bin/digest-schemas/harness-frontend-dev.json
+  - .claude/skills/harness/bin/digest-schemas/harness-orchestrator.json
+  - .claude/skills/harness/bin/digest-schemas/harness-pm.json
+  - .claude/skills/harness/bin/digest-schemas/harness-product-lead.json
+  - .claude/skills/harness/bin/digest-schemas/harness-qa.json
+  - .claude/skills/harness/bin/digest-schemas/harness-security-reviewer.json
+  - .claude/skills/harness/bin/digest-schemas/harness-ui-reviewer.json
+  - .claude/skills/harness/bin/digest-schemas/harness-validator-lead.json
+  - .claude/skills/harness/bin/digest-schemas/harness-visual-designer.json
+  - tests/unit/test-digest-schemas.py
+  - tests/unit/test-digest-record.py
+  - tests/integration/canonical-reader-classification.json
+  - .claude/skills/harness/bin/check-plan-routes.py
+  - tests/integration/test-check-plan-routes.py
+  - .claude/skills/harness/bin/prune-run-evidence.py
+  - tests/unit/test-prune-run-evidence.py
+  - .claude/skills/harness/bin/check_state/board.py
+  - .claude/skills/harness/bin/handoff_policy.py
+  - .claude/skills/harness/bin/gh-sync.py
+  - .claude/skills/harness/bin/dispatch-guard.py
+  - .claude/skills/harness/bin/check_state/ctx.py
+  - .claude/skills/harness/bin/validate-digest.py
+  verify: python3 tests/unit/test-digest-schemas.py && python3 tests/unit/test-digest-record.py
+    && python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test
+    && python3 tests/integration/test-check-plan-routes.py && python3 tests/unit/test-prune-run-evidence.py
+  intent: "Work test-first under the DEC-174 direct route. Add common.json and exactly\
+    \ one closed JSON Schema for each of the 16 runtime harness personas, with external\
+    \ file references for shared VERDICT, artifact, and DIGEST structures. Encode\
+    \ every current required field, type, enum, nested object, list-entry shape, nullable\
+    \ n/a rule, and additionalProperties false boundary now declared by validate-digest.py,\
+    \ including persona-specific findings, amendments, sc_status, members, fail_first,\
+    \ code_grade, and task verification fields. Map the existing main-session and\
+    \ lead aliases to the appropriate canonical persona schemas without creating a\
+    \ seventeenth persona file. Do not add frontmatter output schemas, a schema generator,\
+    \ or a duplicated drift invariant.\n\nAdd digest_schema.py as the dependency-light\
+    \ canonical live-schema loader. It must cache strict schema loads, reject duplicate\
+    \ or malformed schema files, validate Python mappings with the installed jsonschema\
+    \ package, expose canonical persona resolution, and decode object-input JSON for\
+    \ the validator CLI so validate-digest.py does not introduce a second JSON reader.\
+    \ It must not parse durable Markdown or implement the provider projection.\n\n\
+    Add digest_record.py as the narrow durable-record loader used only by historical\
+    \ artifact consumers and append comparison. It scans fenced YAML blocks from the\
+    \ end, selects the last block that safely loads to a mapping, and returns that\
+    \ mapping and structured keys without importing digest_schema.py or validating\
+    \ against any live persona schema. It must never accept historical text as a live\
+    \ return, search for a VERDICT token to choose a block, rewrite bytes, or grandfather\
+    \ by date. Its unit test must include historical mappings with extra durable keys,\
+    \ prove the final fenced mapping wins, prove malformed or absent mappings fail\
+    \ actionably, and hash the fixture before and after every read to prove byte identity.\n\
+    \nBoth new bin modules have a zero broad-catch ceiling: neither may contain except\
+    \ Exception nor a bare except. Catch only the concrete OSError, YAML, JSON, and\
+    \ jsonschema errors each operation can raise. Import through the normal bin package\
+    \ boundary or harness_boundary; do not add a second importlib.util.spec_from_file_location\
+    \ loader anywhere under bin.\n\nThe live-schema unit test must enumerate all 16\
+    \ personas, prove representative valid objects pass, and prove missing, extra,\
+    \ wrong-type, and near-miss enum objects fail. The durable-reader unit test owns\
+    \ historical selection and byte preservation separately. Update canonical-reader-classification.json\
+    \ with canonical rows for every detected read in digest_schema.py and digest_record.py,\
+    \ set every new row's execution_route to main-session-direct, add both module\
+    \ paths to scanned_files, and run the canonical-reader self-test.\n Reconcile\
+    \ the inherited canonical-reader inventory with the actual source tree without\
+    \ editing the shipped BUG-285 plan or weakening its eleven historical T-07 identities.\
+    \ Generalize the existing exact implementation relocation tuples to file, symbol,\
+    \ category and callee; retain its four artifact-accessor resolutions and add domain_check\
+    \ to check-domain._manifest_domains_or_exit, process_plan_yaml to check-plan-routes._load_plan_once,\
+    \ and check-state module load_plan to check_state.ctx.Ctx._load_plan_docs. Every\
+    \ destination must still have explicit current source ownership. Add optional\
+    \ per-row plan ownership, defaulting to the inventory document plan; load each\
+    \ distinct referenced plan through the canonical reader, scope task lookup and\
+    \ historical migration selection by plan plus task, and refuse unreadable plans,\
+    \ missing declared source files, same-named tasks from another plan and wrong\
+    \ DEC-174 routes. Newly maintained source rows reference this feature plan and\
+    \ their actual owning task; keep historical rows bound to their original plan.\
+    \ Retarget or remove only genuinely extracted or deleted non-terminal reader sites,\
+    \ keep one actual state.yaml file reader, retain both check-domain view=true requirements,\
+    \ and account for every current scanned Python file and parser call without blanket\
+    \ exemptions. Replace prune-run-evidence._load_record direct feature.json decoding\
+    \ with artifact_accessors.load_feature_json; invalid records refuse before any\
+    \ deletion. Its UI results envelope remains a reasoned module-internal-format\
+    \ exemption. Preserve live zero-unresolved audit, all historical T-03 through\
+    \ T-07 postconditions and exact terminal-contract mutants. Add behavioral negative\
+    \ coverage for cross-plan task confusion, unreadable ownership, omitted destinations,\
+    \ exact relocation mismatches and invalid pruning records without losing run directories."

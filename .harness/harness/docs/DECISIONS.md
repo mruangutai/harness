@@ -7785,12 +7785,13 @@ shape or semantics refuses the tool call with the actionable violations; it does
 assistant text or synthesize a replacement result.
 
 **Only the validator renders a durable digest.** A lead first writes its human assessment to an
-existing regular `digest.md`. After its object passes live validation, `validate-digest.py` resolves
-that artifact inside the registered checkout family, rejects traversal, a missing target, a
-symlink, a non-regular file, an outside absolute path, or a read/write failure, and appends a
-deterministic fenced YAML rendering. It writes nothing when the file's final fenced mapping is
-structurally identical; a changed validated object extends the file. Agents never author that
-fence. DEC-208's five rules remain textually and semantically unchanged.
+existing regular `digest.md`. The hook binds its runtime child and parent ids to its exact feature,
+checkout and sole open registered squad run. After live validation, `validate-digest.py` accepts only
+that run's bound artifact under the lead's writable grants. It rejects another run, squad, feature
+or checkout, traversal, a missing target, symlinks in any path component, a non-regular file, or a
+read/write failure. The same opened file descriptor compares and appends deterministic fenced YAML.
+An identical final mapping writes nothing; a correction only extends bytes. Agents never author
+that fence. DEC-208's append-only ruling remains unchanged.
 
 **Historical reads are deliberately weaker and read-only.** `digest_record.py` scans a durable
 record from the end and returns the last YAML-labelled or unlabelled fenced block that safely loads
@@ -7802,7 +7803,9 @@ is never accepted as a live return.
 credentialled OMP job to receive an error for explicit null and then complete the same job with a
 valid object under the injected strict schema. Unit and integration tests cannot satisfy that host
 settlement gate. A failed live run blocks the cutover and requires a design amendment; it cannot be
-waived by a green local suite. The recorded OpenAI probe passed on 2026-09-30.
+waived by a green local suite. The 2026-10-04 live probe observed native OMP's retryable schema-bound
+terminal rejection after optional null was normalized to absence, then a conforming object completed
+the same child. The receipt and sanitized transcript identify the invoked runtime and exercised sources.
 
 **Host boundary and scope.** This digest path is OMP-native. Claude Code has no supported
 YieldTool-object digest path here; DEC-233 already removed its compatibility adapters, and this

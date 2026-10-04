@@ -249,11 +249,11 @@ def child_task(expected: dict) -> str:
         f"HARNESS-FEATURE-TREE-ROOT: {ROOT}",
         "This is a scripted Harness live probe (FEAT-1928 T-02), not documentation work. Read "
         "nothing, write nothing, run nothing and dispatch nothing. Exactly two tool calls:",
-        'Step 1. Call yield with the raw tool-call arguments {"data":null}. The value of data '
-        "is the bare JSON null token, unquoted. It is NOT the four-character string \"null\" and "
-        "it is not an object; it deliberately violates the yield schema. There is no other key. "
-        "It is refused with a tool error. That refusal is what this probe measures, so do not "
-        "avoid it or repair it.",
+        'Step 1. Call yield with the raw tool-call arguments {"type":"result","data":null}. '
+        "The value of data is the bare JSON null token, unquoted, not the string \"null\". "
+        "The explicit result type routes this call to native OMP schema validation. "
+        "It deliberately violates the required object schema and must return a tool error; "
+        "do not avoid it or repair it.",
         "Step 2. After that error, call yield again with exactly this object as data, "
         "yield({data: <object>}), and nothing else:",
         json.dumps(expected),
@@ -555,6 +555,13 @@ def derive(records: list[dict]) -> dict:
         "null_rejection": {
             "text": first.get("result_text"),
             "rejected_by": rejected_by(str(first.get("result_text") or "")),
+            "native_execution_started": any(
+                frame.get("type") == "subagent_event"
+                and (frame.get("payload") or {}).get("id") == job.get("id")
+                and ((frame.get("payload") or {}).get("event") or {}).get("type") == "tool_execution_start"
+                and ((frame.get("payload") or {}).get("event") or {}).get("toolName") == "yield"
+                and ((frame.get("payload") or {}).get("event") or {}).get("toolCallId") == first.get("tool_call_id")
+                for frame in frames),
         },
         "bus_yield_results": _bus_yield_results(frames, job.get("id")),
     }
@@ -599,11 +606,16 @@ def _dispatch_checks(ev, bundle_sha):
 def _null_yield_checks(ev):
     first = ev["yields"][0] if ev["yields"] else {}
     return [
-        ("the first yield carried data explicitly null",
-         bool(first) and first["data_key_present"] and first["arguments"].get("data") is None, first),
+        ("the first yield carried type result and data explicitly null",
+         bool(first) and first["data_key_present"] and first["arguments"].get("data") is None
+         and first["arguments"].get("type") == "result", first),
         ("the null yield came back as a tool error", bool(first) and first["is_error"], first),
-        ("a known component refused the null yield",
-         ev["null_rejection"]["rejected_by"] != "unknown", ev["null_rejection"]),
+        ("native OMP executed and rejected the null yield against its schema",
+         ev["null_rejection"]["rejected_by"] == "omp-yield-tool (YieldTool.execute)"
+         and ev["null_rejection"]["native_execution_started"]
+         and any(marker in str(first.get("result_text") or "") for marker in (
+             "does not match schema", "requires structured output matching the declared schema")),
+         ev["null_rejection"]),
     ]
 
 

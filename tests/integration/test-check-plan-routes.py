@@ -1806,7 +1806,7 @@ def case_canonical_reader_inventory_guards():
     duplicate = {"schema": "canonical-reader-classification/1",
                  "scanned_files": ["fixture.py"], "rows": [row, row]}
     findings = mod.reader_classification_findings(
-        [candidate], ["fixture.py"], duplicate, {"T-02": ["fixture.py"]})
+        [candidate], ["fixture.py"], duplicate, {"": {"T-02": ["fixture.py"]}})
     check("canonical_reader_rejects_duplicate_row",
           any("duplicate classification row" in line for line in findings), repr(findings))
 
@@ -1832,14 +1832,14 @@ def case_canonical_reader_route_guards():
               "rows": [_classification_row(
                   candidate, dec174_category="gate", execution_route="team")]}
     findings = mod.reader_classification_findings(
-        [candidate], ["fixture.py"], routed, {"T-02": ["fixture.py"]})
+        [candidate], ["fixture.py"], routed, {"": {"T-02": ["fixture.py"]}})
     check("canonical_reader_rejects_wrong_dec174_route",
           any("main-session-direct" in line for line in findings), repr(findings))
 
     omitted = {"schema": routed["schema"], "scanned_files": ["fixture.py"],
                "rows": [_classification_row(candidate)]}
     findings = mod.reader_classification_findings(
-        [candidate], ["fixture.py"], omitted, {"T-02": ["other.py"]})
+        [candidate], ["fixture.py"], omitted, {"": {"T-02": ["other.py"]}})
     check("canonical_reader_task_files_must_name_source",
           any("task files omit" in line for line in findings), repr(findings))
 
@@ -1853,7 +1853,7 @@ def case_canonical_reader_glob_route_guard():
     with tempfile.TemporaryDirectory() as td:
         open(os.path.join(td, "fixture.py"), "w").close()
         write_plan(td, (PLAN_YAML % "fixture*.py").replace("T-01", "T-02"), name="plan.yaml")
-        task_files = mod._task_files(td, "plan.yaml")
+        task_files = {"": mod._task_files(td, "plan.yaml")}
         findings = mod.reader_classification_findings(
             [candidate], ["fixture.py"], document, task_files)
         check("canonical_reader_task_file_glob_names_source",
@@ -2147,12 +2147,54 @@ def case_canonical_reader_discovery_cannot_narrow():
         )
 
 
+def _plan_ownership_findings(default_file, row_plan, owned_file, missing=False):
+    mod = cpr()
+    candidate = _reader_fixture_candidate()
+    row = _classification_row(candidate, plan=row_plan)
+    document = {"schema": "canonical-reader-classification/1", "plan": "legacy.yaml",
+                "scanned_files": ["fixture.py"], "rows": [row]}
+    with tempfile.TemporaryDirectory() as td:
+        write_plan(td, (PLAN_YAML % default_file).replace("T-01", "T-02"), name="legacy.yaml")
+        if not missing:
+            write_plan(td, (PLAN_YAML % owned_file).replace("T-01", "T-02"), name=row_plan)
+        task_files, errors = mod._classification_task_files(td, document)
+        findings = mod.reader_classification_findings(
+            [candidate], ["fixture.py"], document, task_files)
+        return errors + [finding for finding in findings if "task files omit" in finding]
+
+
+def case_canonical_reader_plan_scoped_ownership():
+    findings = _plan_ownership_findings("other.py", "current.yaml", "fixture.py")
+    check("canonical_reader_current_plan_owns_its_source", not findings, repr(findings))
+    for name, missing in (("omitted_source", False), ("unreadable_plan", True)):
+        findings = _plan_ownership_findings("fixture.py", "current.yaml", "other.py", missing)
+        check(f"canonical_reader_cross_plan_{name}_refuses", bool(findings), repr(findings))
+
+
+def case_canonical_reader_relocation_is_exact():
+    mod = cpr()
+    historical = ".claude/skills/harness/bin/check-state.py::<module>::load_plan#1"
+    row = {"id": historical, "file": ".claude/skills/harness/bin/check-state.py",
+           "symbol": "<module>", "remedy": "artifact_accessors.load_plan"}
+    candidate = {"file": ".claude/skills/harness/bin/check_state/ctx.py",
+                 "symbol": "Ctx._load_plan_docs", "category": "load_plan",
+                 "callee": "artifact_accessors.load_plan"}
+    check("canonical_reader_accepts_exact_extracted_reader", mod._row_is_canonical(row, [candidate]))
+    for name, change in (("wrong_file", {"file": "unrelated.py"}),
+                         ("raw_parser", {"callee": "harness_yaml.load_plan"})):
+        check(f"canonical_reader_relocation_{name}_refuses",
+              not mod._row_is_canonical(row, [dict(candidate, **change)]))
+    check("canonical_reader_missing_relocation_refuses", not mod._row_is_canonical(row, []))
+
+
 CANONICAL_READER_CASES = (
     case_canonical_reader_detector,
     case_canonical_reader_exemption_guards,
     case_canonical_reader_inventory_guards,
     case_canonical_reader_route_guards,
     case_canonical_reader_glob_route_guard,
+    case_canonical_reader_plan_scoped_ownership,
+    case_canonical_reader_relocation_is_exact,
     case_canonical_reader_second_state_reader,
     case_canonical_reader_live_baseline,
     case_canonical_reader_task_postconditions,

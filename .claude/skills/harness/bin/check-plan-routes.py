@@ -933,15 +933,19 @@ T07_TERMINAL_REMEDIES = {
 }
 T07_RELOCATED_IMPLEMENTATIONS = {
     ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
-        ("load_fleet", "harness_yaml_file", "harness_yaml.load_file"),
-    # FEAT-61 T-01: the one json.loads behind every strict reader now lives in
-    # artifact_accessors.strict_json_loads; feature.json's canonical read decodes through it.
+        (".claude/skills/harness/bin/artifact_accessors.py", "load_fleet", "harness_yaml_file", "harness_yaml.load_file"),
     ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
-        ("strict_json_loads", "json_string", "json.loads"),
+        (".claude/skills/harness/bin/artifact_accessors.py", "strict_json_loads", "json_string", "json.loads"),
     ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
-        ("load_plan", "harness_yaml_file", "harness_yaml.load_file"),
+        (".claude/skills/harness/bin/artifact_accessors.py", "load_plan", "harness_yaml_file", "harness_yaml.load_file"),
     ".claude/skills/harness/bin/harness_yaml.py::manifest_domains::harness_yaml_file#1":
-        ("manifest_domains", "harness_yaml_file", "harness_yaml.load_file"),
+        (".claude/skills/harness/bin/artifact_accessors.py", "manifest_domains", "harness_yaml_file", "harness_yaml.load_file"),
+    ".claude/skills/harness/bin/check-domain.py::domain_check::manifest_domains#1":
+        (".claude/skills/harness/bin/check-domain.py", "_manifest_domains_or_exit", "manifest_domains", "artifact_accessors.manifest_domains"),
+    ".claude/skills/harness/bin/check-plan-routes.py::process_plan_yaml::load_plan#1":
+        (".claude/skills/harness/bin/check-plan-routes.py", "_load_plan_once", "load_plan", "artifact_accessors.load_plan"),
+    ".claude/skills/harness/bin/check-state.py::<module>::load_plan#1":
+        (".claude/skills/harness/bin/check_state/ctx.py", "Ctx._load_plan_docs", "load_plan", "artifact_accessors.load_plan"),
 }
 
 
@@ -1113,7 +1117,7 @@ def _exemption_finding(row):
     return None
 
 
-def _route_finding(row, task_files):
+def _route_finding(row, task_files, default_plan):
     route = row.get("execution_route")
     category = row.get("dec174_category")
     if category != "none" and route != LEGAL_MAIN_SESSION_TOKEN:
@@ -1122,7 +1126,8 @@ def _route_finding(row, task_files):
             f"remedy={row.get('remedy')}: DEC-174 category {category!r} requires "
             "main-session-direct. PLAN AMENDMENT REQUIRED")
     task = row.get("task")
-    if task and task != "none" and row.get("file") not in task_files.get(task, ()):
+    owner_files = task_files.get(row.get("plan", default_plan), {})
+    if task and task != "none" and row.get("file") not in owner_files.get(task, ()):
         return (
             f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
             f"remedy={row.get('remedy')}: {task} task files omit this source. "
@@ -1173,7 +1178,8 @@ def reader_classification_findings(candidates, scanned_files, document, task_fil
     findings.extend(duplicate_findings)
     live = {candidate["id"]: candidate for candidate in candidates}
     findings.extend(_unaccounted_candidate_findings(candidates, rows))
-    findings.extend(_classified_rows_findings(rows, task_files, live, candidates))
+    findings.extend(_classified_rows_findings(
+        rows, task_files, live, candidates, document.get("plan", "")))
     findings.extend(_state_reader_findings(rows))
     return findings
 
@@ -1234,9 +1240,9 @@ def _candidate_matches_canonical_row(candidate, row, remedy):
 
 
 def _candidate_matches_relocated(candidate, relocated):
-    symbol, category, callee = relocated
+    file, symbol, category, callee = relocated
     return (
-        candidate.get("file") == ".claude/skills/harness/bin/artifact_accessors.py"
+        candidate.get("file") == file
         and candidate.get("symbol") == symbol
         and candidate.get("category") == category
         and candidate.get("callee") == callee
@@ -1365,10 +1371,10 @@ def _classified_disposition_findings(row, live, candidates):
     return _migration_row_findings(row, live, candidates)
 
 
-def _classified_row_finding(row, task_files, live, candidates):
+def _classified_row_finding(row, task_files, live, candidates, default_plan):
     if not isinstance(row, dict):
         return []
-    route = _route_finding(row, task_files)
+    route = _route_finding(row, task_files, default_plan)
     route_findings = [route] if route else []
     return route_findings + _classified_disposition_findings(
         row, live, candidates)
@@ -1444,16 +1450,17 @@ def _t07_terminal_findings(rows, candidates):
     )
 
 
-def _selected_migration_rows(rows, task_id):
+def _selected_migration_rows(rows, task_id, default_plan):
     return [
         row for row in rows
         if isinstance(row, dict) and row.get("task") == task_id
+        and row.get("plan", default_plan) == default_plan
         and row.get("disposition") in {"migrate", "canonical"}
     ]
 
 
-def _task_migration_findings(rows, task_id, live, candidates):
-    selected = _selected_migration_rows(rows, task_id)
+def _task_migration_findings(rows, task_id, live, candidates, default_plan):
+    selected = _selected_migration_rows(rows, task_id, default_plan)
     if not selected:
         return [f"{task_id}: classification has no assigned rows"]
     states = {
@@ -1470,11 +1477,11 @@ def _task_migration_findings(rows, task_id, live, candidates):
     ]
 
 
-def _classified_rows_findings(rows, task_files, live, candidates):
+def _classified_rows_findings(rows, task_files, live, candidates, default_plan):
     findings = []
     for row in rows:
         findings.extend(
-            _classified_row_finding(row, task_files, live, candidates))
+            _classified_row_finding(row, task_files, live, candidates, default_plan))
     return findings
 
 
@@ -1496,13 +1503,15 @@ def _valid_classification_findings(
     live = {candidate["id"]: candidate for candidate in candidates}
     findings.extend(_unaccounted_candidate_findings(candidates, rows))
     findings.extend(
-        _classified_rows_findings(rows, task_files, live, candidates))
+        _classified_rows_findings(rows, task_files, live, candidates, document.get("plan", "")))
     if task_id == "T-07":
-        findings.extend(_t07_terminal_findings(rows, candidates))
+        historical_rows = [row for row in rows
+                           if row.get("plan", document.get("plan", "")) == document.get("plan", "")]
+        findings.extend(_t07_terminal_findings(historical_rows, candidates))
     else:
         findings.extend(
             _task_migration_findings(
-                rows, task_id, live, candidates))
+                rows, task_id, live, candidates, document.get("plan", "")))
     return findings
 
 
@@ -1533,11 +1542,19 @@ def _audit_result(scanned, candidates, findings, violations):
 
 
 def _classification_task_files(root, document):
-    try:
-        return _task_files(root, document.get("plan", "")), []
-    except (OSError, ValueError, KeyError, TypeError) as error:
-        finding = f"{document.get('plan')}: plan cannot be read: {error}"
-        return {}, [finding]
+    import harness_yaml
+    plans = {document.get("plan", "")}
+    plans.update(row["plan"] for row in document.get("rows", [])
+                 if isinstance(row, dict) and "plan" in row)
+    task_files, findings = {}, []
+    for plan in plans:
+        try:
+            if not isinstance(plan, str) or not plan:
+                raise ValueError("ownership plan must be a nonempty path")
+            task_files[plan] = _task_files(root, plan)
+        except (harness_yaml.YamlParseError, OSError, ValueError, KeyError, TypeError) as error:
+            findings.append(f"{plan}: plan cannot be read: {error}")
+    return task_files, findings
 
 
 def _migration_violations(rows):

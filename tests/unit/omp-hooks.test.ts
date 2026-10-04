@@ -946,6 +946,172 @@ describe("OMP task lifecycle adapter", () => {
     expect((post[0].payload as any).tool_name).toBe("Edit");
   });
 
+  // -------------------------------------------------------------------------
+  // BUG-2003: an internal URI is not a checkout file. `agent://` and exactly
+  // `xd://report_issue` skip the file-domain gate; every other `scheme://` target is
+  // refused by name, never resolved and never shown to check-domain.py — on write and
+  // edit, pre and post. Real files keep today's gate, even beside an allowed URI.
+  // -------------------------------------------------------------------------
+  const FORBIDDEN = "/repo/forbidden.ts";
+  const ALLOWED_URIS = ["agent://LeadTwo", "xd://report_issue"];
+  const REFUSED_URIS = [
+    "xd://ast_edit", "xd://lsp", "xd://recall", "xd://reflect", "xd://report_issue/extra",
+    "conflict://1", "local://sample.md", "vault://_/sample.md", "ssh://host/sample.md",
+    "novel-scheme://x",
+  ];
+  const uriEdit = (...targets: string[]) =>
+    targets.map((target) => `[${target}#1A2B]\nPUT 1:\n+x`).join("\n");
+
+  async function governedUriHooks() {
+    const { calls, runner } = fixture();
+    const handlers = new Map<string, Function>();
+    registerHarnessHooks({
+      on(name: string, handler: Function) { handlers.set(name, handler); },
+      events: { on: () => () => {} },
+    }, (cwd, script, args, payload) => {
+      const result = runner(cwd, script, args, payload);
+      const target = (payload.tool_input as Record<string, unknown> | undefined)?.file_path;
+      return script === "check-domain.py" && target === FORBIDDEN
+        ? { blocked: true, reason: `${FORBIDDEN} is outside your domain`, stdout: "" }
+        : result;
+    });
+    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+    await start(handlers, ctx);
+    const domainTargets = (from: number) => calls.slice(from)
+      .filter((call) => call.script === "check-domain.py")
+      .map((call) => (call.payload.tool_input as Record<string, unknown>).file_path);
+    const pre = (toolName: string, input: Record<string, unknown>) =>
+      handlers.get("tool_call")?.({ toolName, toolCallId: "call-uri", input }, ctx);
+    const post = (toolName: string, input: Record<string, unknown>) =>
+      handlers.get("tool_result")?.({
+        toolName, toolCallId: "call-uri", input, content: [{ type: "text", text: "ok" }],
+      }, ctx);
+    return { calls, domainTargets, pre, post };
+  }
+
+  const routes = (target: string): Array<[string, Record<string, unknown>]> => [
+    ["write", { path: target, content: "x" }],
+    ["edit", { input: uriEdit(target) }],
+  ];
+
+  test("agent:// and xd://report_issue skip the domain gate on both routes and stages", async () => {
+    const hooks = await governedUriHooks();
+    for (const target of ALLOWED_URIS) {
+      for (const [toolName, input] of routes(target)) {
+        const from = hooks.calls.length;
+        expect(await hooks.pre(toolName, input)).toBeUndefined();
+        expect(await hooks.post(toolName, input)).toBeUndefined();
+        expect(hooks.domainTargets(from)).toEqual([]);
+      }
+    }
+  });
+
+  test("every other scheme is refused by name and never reaches check-domain.py", async () => {
+    const hooks = await governedUriHooks();
+    for (const target of REFUSED_URIS) {
+      for (const [toolName, input] of routes(target)) {
+        const from = hooks.calls.length;
+        const blocked = await hooks.pre(toolName, input) as { block: boolean; reason: string };
+        expect(blocked?.block).toBe(true);
+        expect(blocked.reason).toContain(target);
+        const result = await hooks.post(toolName, input) as
+          { isError: boolean; content: Array<{ text: string }> };
+        expect(result?.isError).toBe(true);
+        expect(result.content.some((part) => part.text.includes(target))).toBe(true);
+        expect(hooks.domainTargets(from)).toEqual([]);
+      }
+    }
+  });
+
+  test("an edit MV destination is judged by the same scheme rule", async () => {
+    const hooks = await governedUriHooks();
+    const from = hooks.calls.length;
+    const blocked = await hooks.pre("edit", { input: "[/repo/src/a.ts#1A2B]\nMV local://moved.md" }) as
+      { block: boolean; reason: string };
+    expect(blocked?.block).toBe(true);
+    expect(blocked.reason).toContain("local://moved.md");
+    expect(hooks.domainTargets(from)).not.toContain("local://moved.md");
+  });
+
+  test("an allowed URI never exempts a sibling file or a refused URI in the same edit", async () => {
+    const hooks = await governedUriHooks();
+    let from = hooks.calls.length;
+    const mixedFile = { input: uriEdit("agent://LeadTwo", FORBIDDEN) };
+    const blocked = await hooks.pre("edit", mixedFile) as { block: boolean; reason: string };
+    expect(blocked?.block).toBe(true);
+    expect(blocked.reason).toBe(`${FORBIDDEN} is outside your domain`);
+    const result = await hooks.post("edit", mixedFile) as
+      { isError: boolean; content: Array<{ text: string }> };
+    expect(result?.isError).toBe(true);
+    expect(result.content.map((part) => part.text)).toEqual([
+      "ok", `Harness post-write check: ${FORBIDDEN} is outside your domain`,
+    ]);
+    const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
+    expect(gate.map((call) => [call.args, call.payload.tool_name, call.payload.tool_input]))
+      .toEqual([
+        [[], "Edit", { file_path: FORBIDDEN }],
+        [["--post"], "Edit", { file_path: FORBIDDEN }],
+      ]);
+
+    from = hooks.calls.length;
+    const mixedUri = await hooks.pre("edit", { input: uriEdit("agent://LeadTwo", "conflict://1") }) as
+      { block: boolean; reason: string };
+    expect(mixedUri?.block).toBe(true);
+    expect(mixedUri.reason).toContain("conflict://1");
+    expect(hooks.domainTargets(from)).toEqual([]);
+  });
+
+  test("an ordinary file keeps its exact domain-gate payloads", async () => {
+    const hooks = await governedUriHooks();
+    const from = hooks.calls.length;
+    expect(await hooks.pre("write", { path: "/repo/src/a.ts", content: "x" })).toBeUndefined();
+    await hooks.post("write", { path: "/repo/src/a.ts", content: "x" });
+    const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
+    expect(gate.map((call) => call.args)).toEqual([[], ["--post"]]);
+    expect(gate.map((call) => call.payload.tool_input)).toEqual([
+      { file_path: "/repo/src/a.ts", content: "x" },
+      { file_path: "/repo/src/a.ts", content: "x" },
+    ]);
+  });
+
+  test("a governed out-of-domain file write keeps its exact gate payload and refusal", async () => {
+    const hooks = await governedUriHooks();
+    const from = hooks.calls.length;
+    const input = { path: FORBIDDEN, content: "x" };
+    expect(await hooks.pre("write", input))
+      .toEqual({ block: true, reason: `${FORBIDDEN} is outside your domain` });
+    const result = await hooks.post("write", input) as
+      { isError: boolean; content: Array<{ text: string }> };
+    expect(result?.isError).toBe(true);
+    expect(result.content.map((part) => part.text)).toEqual([
+      "ok", `Harness post-write check: ${FORBIDDEN} is outside your domain`,
+    ]);
+    const gate = hooks.calls.slice(from).filter((call) => call.script === "check-domain.py");
+    expect(gate.map((call) => [call.args, call.payload.tool_name, call.payload.tool_input]))
+      .toEqual([
+        [[], "Write", { file_path: FORBIDDEN, content: "x" }],
+        [["--post"], "Write", { file_path: FORBIDDEN, content: "x" }],
+      ]);
+    expect(gate[0].payload.harness_feature).toBe("FEAT-43-long-run");
+  });
+
+  test("the main session's writes and edits are untouched, URIs included", async () => {
+    const { handlers, calls } = fixture();
+    const mainCtx = ompContext("/repo", "Main", undefined, "main-session");
+    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx);
+    for (const target of ["conflict://1", "/repo/src/a.ts"]) {
+      for (const [toolName, input] of [
+        ["write", { path: target, content: "x" }],
+        ["edit", { input: `[${target}#1A2B]\nPUT 1:\n+x` }],
+      ] as Array<[string, Record<string, unknown>]>) {
+        const event = { toolName, toolCallId: "call-main", input, content: [{ type: "text", text: "ok" }] };
+        expect(await handlers.get("tool_call")?.(event, mainCtx)).toBeUndefined();
+        expect(await handlers.get("tool_result")?.(event, mainCtx)).toBeUndefined();
+      }
+    }
+    expect(calls.some((call) => call.script === "check-domain.py")).toBe(false);
+  });
+
   test("every file of a multi-section edit is gated, not just the first", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);

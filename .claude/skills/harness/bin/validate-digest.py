@@ -1805,36 +1805,6 @@ def _hook_feature_dir(artifact, feature):
         return None
 
 
-def _feature_artifact_root(owner_root, feature):
-    if not owner_root or not feature:
-        return None
-    try:
-        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        import inflight_registry
-        return inflight_registry.feature_root(owner_root, feature)
-    except (ImportError, OSError, ValueError):
-        return None
-
-
-def _script_checkout_root():
-    try:
-        return os.path.abspath(os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "../../../.."))
-    except (OSError, TypeError):
-        return None
-
-
-def _durable_artifact_candidates(path, payload):
-    if os.path.isabs(path):
-        return [path]
-    owner_root = _root_or_none()
-    roots = (
-        _feature_artifact_root(owner_root, payload.get("harness_feature")),
-        owner_root,
-        _script_checkout_root(),
-    )
-    unique_roots = dict.fromkeys(root for root in roots if root)
-    return [os.path.join(root, path) for root in unique_roots]
 
 
 # --- SC-07 (DEC-156, DEC-208): the lead's durable record. The lead writes only the human
@@ -1852,51 +1822,21 @@ def _durable_refusal(agent, why):
     return 2
 
 
-def _resolve_durable_digest(path, payload):
-    """`(existing regular file, None)` for the lead's digest.md, or `(None, why)`."""
-    if ".." in path.replace(os.sep, "/").split("/"):
-        return None, f"its artifact {path!r} traverses with a `..` segment."
-    candidates = _durable_artifact_candidates(path, payload)
-    found = next((candidate for candidate in candidates if os.path.lexists(candidate)), None)
-    if found is None:
-        return None, _missing_digest_reason(path, candidates)
-    return (found, None) if not _unsafe_digest_reason(path, found) \
-        else (None, _unsafe_digest_reason(path, found))
-
-
-def _missing_digest_reason(path, candidates):
-    in_run_dir = next((candidate for candidate in candidates
-                       if os.path.isdir(os.path.dirname(candidate))), None)
-    if in_run_dir:
-        return (f"its durable digest is missing from resolved run directory "
-                f"{os.path.dirname(in_run_dir)}. Write your human assessment at "
-                f"{in_run_dir}; the validated object is appended under it.")
-    return (f"its artifact {path} resolves to no run directory from the hook's "
-            f"vantage (tried {', '.join(candidates) or 'nothing'}).")
-
-
-def _unsafe_digest_reason(path, found):
-    """Why an existing candidate is not a safe append target, or None: a symlink, a
-    non-regular file, or an absolute path outside this checkout's worktree family."""
-    if os.path.islink(found) or not os.path.isfile(found):
-        return f"its durable digest {found} is not a regular file."
-    owner_root = _root_or_none() if os.path.isabs(path) else None
-    if owner_root and _worktree_holding(owner_root, found) is None:
-        return (f"its durable digest {found} lies outside this checkout and its "
-                f"linked worktrees.")
-    return None
 
 
 def check_artifact_file(agent, obj, payload):
     """Append the validated lead object to its durable digest.md (SC-07), or refuse."""
+    import digest_destination
     path = _artifact_text(obj.get("artifact"))
     if not path.endswith("digest.md"):
         return _durable_refusal(agent, f"a lead's artifact is its run's digest.md, and "
                                        f"{obj.get('artifact')!r} is not one.")
-    found, why = _resolve_durable_digest(path, payload)
-    if found is None:
-        return _durable_refusal(agent, why)
-    why = _append_record(found, obj)
+    try:
+        with digest_destination.authorized_digest(
+                _root_or_none(), agent, payload, path) as (found, target):
+            why = _append_record(found, obj, target)
+    except (digest_destination.AuthorizationError, OSError, ValueError, TypeError) as error:
+        return _durable_refusal(agent, str(error))
     return _durable_refusal(agent, why) if why else 0
 
 
@@ -1908,23 +1848,22 @@ def _last_record(text, where):
         return None
 
 
-def _append_record(found, obj):
+def _append_record(found, obj, target):
     """Append `obj` as one fenced block unless it equals the last one; the refusal reason,
     or None when the record now ends with `obj`. The dumper is harness_yaml's (D-12: one
     yaml import in the tree); without PyYAML the record cannot be written, so it refuses."""
     if harness_yaml.yaml is None:
         return f"its durable digest {found} cannot be written (PyYAML is not installed)."
     try:
-        with open(found, encoding="utf-8") as source:
-            last = _last_record(source.read(), found)
+        last = _last_record(target.read(), found)
     except (OSError, UnicodeDecodeError) as error:
         return f"its durable digest {found} cannot be read ({error})."
     if last == obj:
         return None
     try:
-        with open(found, "a", encoding="utf-8") as target:
-            target.write("\n```yaml\n" + harness_yaml.yaml.safe_dump(obj, sort_keys=False)
-                         + "```\n")
+        target.write("\n```yaml\n" + harness_yaml.yaml.safe_dump(obj, sort_keys=False)
+                     + "```\n")
+        target.flush()
     except OSError as error:
         return f"its durable digest {found} cannot be written ({error})."
     print(f"check-digest: appended the validated digest to {found}"

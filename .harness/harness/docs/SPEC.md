@@ -1248,10 +1248,12 @@ does not parse assistant prose, inspect a last message, select a template echo, 
 `BLOCKED` digest. A tool error is not permission for a host to record a substitute return.
 
 **Lead artifact:** before yielding, a lead writes its human report to the existing regular
-`<run_dir>/digest.md`. After the object validates, the validator alone appends its deterministic
-fenced YAML rendering (`.claude/skills/harness/bin/validate-digest.py:1859`).
-It refuses a missing target, traversal, a symlink or non-regular target, a
-path outside the registered checkout family, or any read/write failure. The operator fixes the
+`<run_dir>/digest.md`. The hook binds the lead's runtime child and parent ids to its exact feature,
+checkout and sole open registered squad run; only that run's artifact within the lead's write grants
+is authorized. After validation, the validator alone appends deterministic fenced YAML
+(`.claude/skills/harness/bin/validate-digest.py:1827`). It refuses another run, squad, feature or
+checkout, traversal, a missing target, a symlink in any path component, a non-regular file, or a
+read/write failure. Comparison and append use the same opened descriptor. The operator fixes the
 named path or filesystem problem and the same job retries; the validator never falls back to a
 different file. If the final fenced mapping is structurally identical, it writes nothing. If the
 validated object changed, it appends a new record rather than replacing history.

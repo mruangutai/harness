@@ -20,8 +20,8 @@ the session, result-row and agent ids it observes; it never predicts names.
   S5  Every governed child settled, and the feature registry is empty at the end.
 
 A skipped or unobserved scenario is a FAIL, never a pass. Cleanup releases only the sentinel
-claim this probe seeded and deletes only the wake marker and the nested lead's run digest it
-asked for. Every child yields its digest as an object (FEAT-1928).
+claim this invocation seeded and deletes only its wake marker. The registered nested lead run
+and digest remain durable evidence. Every child yields its digest as an object (FEAT-1928).
 
 `--dry-run` checks the prerequisites and prints the planned command, cwd and scenarios. It
 starts nothing and is never a receipt. Live mode appends its receipt to
@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as dt
+import hashlib
 import json
 import os
 import queue
@@ -52,13 +53,14 @@ FEATURE = os.environ.get("HARNESS_PROBE_FEATURE") or "BUG-1898-inflight-claim-li
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 NOTES = ROOT / ".harness" / "harness" / "features" / FEATURE / "notes"
 RECEIPT = NOTES / "live-omp-probe.md"
-WAKE_MARKER = NOTES / "probe-wake-marker.txt"
-# FEAT-1928 SC-07: a lead's artifact is its run digest.md, which the lead writes (the human
-# part) and the validator appends the yielded object to. The probe's nested lead writes this
-# one and cleanup deletes it, like the wake marker.
-LEAD_RUN_DIGEST = ROOT / ".harness" / "harness" / "features" / FEATURE / "runs" / "probe" / "digest.md"
+STAMP = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{os.getpid()}"
+RUN_ID = f"probe-inflight-claim-{STAMP}-eng"
+FEATURE_RECORD = NOTES.parent / "feature.json"
+WAKE_MARKER = NOTES / f"probe-wake-marker-{STAMP}.txt"
+LEAD_RUN_DIGEST = NOTES.parent / "runs" / RUN_ID / "digest.md"
 SUITE = ("python3", "tests/integration/test-validate-digest.py")
-DEFAULT_MODEL = "anthropic/claude-sonnet-5"
+DEFAULT_MODELS = {"openai": "openai-codex/gpt-5.6-terra", "anthropic": "anthropic/claude-sonnet-5"}
+PROVIDER_CONFIG: Path | None = None
 SENTINEL_FEATURE = "BUG-1898-probe-sentinel"
 SENTINEL_ID = "Probe.Sentinel"
 SETTLED = ("completed", "failed", "aborted")
@@ -90,13 +92,13 @@ LEAD_DIGEST = {
     "VERDICT": "PASS",
     "DIGEST": {
         "headline": "BUG-1898 live probe nested lead settled",
-        "team": "probe", "steps_run": 0, "cycles_used": 0, "members": [], "must_fix": [],
+        "team": "engineering", "steps_run": 0, "cycles_used": 0, "members": [], "must_fix": [],
         "branch": "none", "escalations": [], "adequacy_notes": [], "open_questions": [],
         "files_touched": [], "expertise_update": [], "sc_status": [], "needs_approval": "none",
         "severity_max": "none", "matrix_ok": "none", "coverage_gaps": [], "findings": [],
         "readers": [], "amendments": [],
     },
-    "artifact": f".harness/harness/features/{FEATURE}/runs/probe/digest.md",
+    "artifact": str(LEAD_RUN_DIGEST.relative_to(ROOT)),
 }
 CHILD_PREAMBLE = (
     "HARNESS-FEATURE: {feature}\nHARNESS-FEATURE-TREE-ROOT: {root}\n"
@@ -122,13 +124,22 @@ def check(name: str, ok: bool, detail: object = "") -> bool:
 # ---------------------------------------------------------------------------------------
 
 def omp_runtime(omp: str) -> tuple[Path | None, str]:
-    """The checkout the `omp` launcher runs from, and its HEAD commit."""
+    """Invoked checkout or installed package; release-tag SHA is metadata, not binary identity."""
     here = Path(omp).resolve().parent
     for candidate in (here, *here.parents):
         if (candidate / ".git").exists():
             head = subprocess.run(["git", "-C", str(candidate), "rev-parse", "HEAD"],
                                   capture_output=True, text=True)
             return candidate, head.stdout.strip()
+        manifest = candidate / "package.json"
+        if manifest.is_file():
+            package = json.loads(manifest.read_text(encoding="utf-8"))
+            if package.get("name") == "@oh-my-pi/pi-coding-agent":
+                release = subprocess.run(
+                    ["gh", "api", f"repos/can1357/oh-my-pi/git/ref/tags/v{package['version']}",
+                     "--jq", '.object | select(.type == "commit") | .sha'],
+                    capture_output=True, text=True)
+                return candidate, release.stdout.strip() if release.returncode == 0 else ""
     return None, ""
 
 
@@ -195,7 +206,8 @@ def preflight(model: str) -> bool:
 
 
 def live_command(model: str) -> list[str]:
-    return [shutil.which("omp") or "omp", "--mode", "rpc", "--model", model, "--cwd", str(ROOT)]
+    return [shutil.which("omp") or "omp", "--mode", "rpc", "--model", model,
+            "--config", str(PROVIDER_CONFIG), "--cwd", str(ROOT)]
 
 
 def dry_run(model: str) -> int:
@@ -322,6 +334,7 @@ class Session:
                 self.proc.wait(timeout=20)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+                self.proc.wait(timeout=20)
 
 
 # ---------------------------------------------------------------------------------------
@@ -347,7 +360,8 @@ def s1_background_orchestrator(s: Session, timeout: float) -> str | None:
     settled = s.settled(orch, timeout) if orch else None
     check("S1: a background orchestrator started under a real runtime id", orch is not None,
           s.lifecycle[mark:])
-    check("S1: its settlement arrived on the lifecycle bus", settled is not None, orch)
+    check("S1: its lifecycle settlement completed successfully",
+          settled is not None and settled.get("status") == "completed", settled)
     check("S1: its settled run leaves no row", not governed_rows([orch]), registry_rows())
     return orch
 
@@ -463,7 +477,7 @@ def check_batch_ids(s: Session, governed: list[str], plain_ids: list[str]) -> No
     every = observed_ids(s, governed, plain_ids)
     nested = nested_ids(s, governed)
     stray = crossed_rows(s, governed, plain_ids)
-    settled = [s._settlement(i) for i in governed]
+    settled = [s._settlement(i) for i in governed + nested]
     check("S3: two governed orchestrators started under real ids", len(governed) == 2, governed)
     check("S3: a repeated name produced a suffix id (Name-2)",
           any(i.rsplit("-", 1)[-1].isdigit() for i in every if "-" in i), every)
@@ -471,7 +485,8 @@ def check_batch_ids(s: Session, governed: list[str], plain_ids: list[str]) -> No
           len(nested) == 1, nested)
     check("S3: no row ever carried a non-governed id or crossed personas "
           "(the nested row is the dispatched lead, under its own parent)", not stray, stray[:3])
-    check("S3: every governed child settled", all(settled), settled)
+    check("S3: every governed child completed successfully",
+          bool(settled) and all(item and item.get("status") == "completed" for item in settled), settled)
     check("S3: and none leaves a row, nested included",
           not governed_rows(governed + nested), registry_rows())
 
@@ -504,8 +519,6 @@ def s5_settled_empty(orch: str | None, governed: list[str], sentinel: dict) -> N
                               claim_id=sentinel["claim_id"])
     if WAKE_MARKER.exists():
         WAKE_MARKER.unlink()
-    if LEAD_RUN_DIGEST.exists():
-        LEAD_RUN_DIGEST.unlink()
     check("S5: every governed child observed", orch is not None and len(governed) == 2,
           [orch, *governed])
     check("S5: the feature registry is empty at probe end", registry_rows() == [],
@@ -531,18 +544,45 @@ def run_scenarios(session: Session, evidence: dict, timeout: float) -> None:
                        "lifecycle": session.lifecycle}
 
 
+def record_run(command: str, *options: str) -> None:
+    subprocess.run([sys.executable, str(BIN / "feature-record.py"), command,
+                    "--file", str(FEATURE_RECORD), "--id", RUN_ID, *options],
+                   cwd=ROOT, check=True, capture_output=True, text=True)
+
+
 def run_live(args) -> tuple[dict, Session | None]:
-    evidence: dict = {"before": registry_rows()}
-    log = Path(os.environ.get("TMPDIR", "/tmp")) / f"bug1898-probe-{os.getpid()}.log"
-    session = Session(live_command(args.model), log)
-    evidence["stderr_log"] = str(log)
+    evidence: dict = {"before": registry_rows(), "registered_run": RUN_ID}
+    log = Path(os.environ.get("TMPDIR", "/tmp")) / f"inflight-probe-{STAMP}.log"
+    session = None
+    registered = False
     try:
+        judgement = (("--by", "main-session", "--reason", args.reason, "--regate", args.regate)
+                     if args.regate else ())
+        record_run("run-start", "--squad", "engineering", "--agent", "harness-eng-lead", *judgement)
+        registered = True
+        session = Session(live_command(args.model), log)
+        evidence["stderr_log"] = str(log)
         if check("the RPC session became ready",
                  session.pump(lambda f: f.get("type") == "ready", 60) is not None, str(log)):
             run_scenarios(session, evidence, args.timeout)
+    except (RuntimeError, TimeoutError, subprocess.SubprocessError, OSError) as error:
+        detail = error.stderr if isinstance(error, subprocess.CalledProcessError) else str(error)
+        evidence["failure"] = detail
+        check("all live scenarios completed without execution failure", False, detail)
     finally:
-        session.close()
+        if session is not None:
+            session.close()
+            evidence.setdefault("ids", {})["lifecycle"] = session.lifecycle
+        sentinel = evidence.get("sentinel")
+        if sentinel is not None:
+            inflight_registry.release(str(ROOT), feature=SENTINEL_FEATURE,
+                                      claim_id=sentinel["claim_id"])
+        WAKE_MARKER.unlink(missing_ok=True)
         evidence["after"] = registry_rows()
+        if registered:
+            passed = all(ok for _, ok, _ in RESULTS) and evidence.get("suite", {}).get("returncode") == 0
+            record_run("run-end", "--verdict", "PASS" if passed else "FAIL",
+                       "--cycles-used", "0" if passed else "1", "--code-grade", "n_a")
     return evidence, session
 
 
@@ -554,6 +594,15 @@ def check_lines() -> list[str]:
 def receipt_header(args, evidence: dict, failed: list[str]) -> list[str]:
     omp = shutil.which("omp")
     runtime, head = omp_runtime(omp) if omp else (None, "")
+    launcher = Path(omp).resolve() if omp else None
+    package_path = runtime / "package.json" if runtime else None
+    package = json.loads(package_path.read_text()) if package_path and package_path.is_file() else {}
+    source_paths = (".omp/extensions/harness-hooks.ts", ".agents/skills/harness/bin/digest_destination.py",
+                    ".agents/skills/harness/bin/validate-digest.py",
+                    "tests/manual/probe-inflight-claim-lifecycle.py")
+    sources = {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in source_paths}
+    harness_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                                 text=True, check=True).stdout.strip()
     return [
         f"\n## Live run {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')}",
         "",
@@ -562,6 +611,13 @@ def receipt_header(args, evidence: dict, failed: list[str]) -> list[str]:
         f"- Command: `{' '.join(live_command(args.model))}`",
         f"- cwd: `{ROOT}`",
         f"- OMP: `{omp}` → runtime `{runtime}` @ `{head}`",
+        f"- Installed version: `{package.get('version')}`; launcher sha256: "
+        f"`{hashlib.sha256(launcher.read_bytes()).hexdigest() if launcher else ''}`",
+        "- Release-tag source SHA above is metadata provenance only, not bundled runtime identity."
+        if runtime and not (runtime / ".git").exists() else "- Runtime is the checkout identified above.",
+        f"- Harness HEAD: `{harness_sha}`; registered engineering run: `{RUN_ID}`",
+        f"- Exercised source sha256: `{json.dumps(sources, sort_keys=True)}`",
+        f"- Execution failure: `{evidence.get('failure')}`",
         f"- Session: `{json.dumps(evidence.get('session'))}`",
         f"- Scenarios: {', '.join(s for s, _ in SCENARIOS)}",
         f"- Suite: `{' '.join(SUITE)}` → `{json.dumps(evidence.get('suite'))}`",
@@ -591,10 +647,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true",
                         help="check prerequisites and print the plan; start nothing")
-    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--provider", choices=tuple(DEFAULT_MODELS), default="openai")
+    parser.add_argument("--model")
+    parser.add_argument("--regate", help="explicit decision authorizing a run after recorded FAIL")
+    parser.add_argument("--reason", help="one-line main-session reason for that re-gate")
     parser.add_argument("--timeout", type=float, default=900,
                         help="seconds allowed per scenario step")
     args = parser.parse_args()
+    global PROVIDER_CONFIG
+    PROVIDER_CONFIG = ROOT / ".omp" / "providers" / f"{args.provider}.yml"
+    args.model = args.model or DEFAULT_MODELS[args.provider]
     if args.dry_run:
         return dry_run(args.model)
     if not preflight(args.model):

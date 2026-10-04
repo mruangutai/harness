@@ -92,6 +92,15 @@ def refusal_cases(root):
     check("refuses a --keep that names no run directory", typo.returncode == 2 and "validate-c2-validatr" in typo.stderr, typo.stderr)
     absent = tool(root, "--feature", "FEAT-404")
     check("refuses an unknown feature", absent.returncode == 2, absent.stderr)
+    invalid = root / "invalid"
+    checkout(invalid)
+    invalid_feat = feature(invalid, [("build-eng", "PASS", "b" * 40)])
+    (invalid_feat / "feature.json").write_text(
+        '{"review_sha":"none","review_sha":"' + PIN + '","runs":[]}')
+    refused_invalid = tool(invalid, "--feature", "FEAT-9-thing")
+    check("duplicate feature-record keys refuse deletion",
+          refused_invalid.returncode == 2 and (invalid_feat / "runs" / "build-eng").exists(),
+          refused_invalid.stdout + refused_invalid.stderr)
 
 
 def main():

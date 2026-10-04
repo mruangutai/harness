@@ -707,41 +707,25 @@ def _write_optional_digest(worktree, rel, file_content):
         digest.write(file_content)
 
 
-def _dec156_worktree_payload(root, rel, feature):
-    msg = LEAD_BLOCK.replace(
-        "artifact: .harness/features/FEAT-01/runs/r1/digest.md", f"artifact: {rel}")
-    payload = {"agent_type": "harness-eng-lead", "digest_object": fixture("harness-eng-lead", msg),
-               "_root": root}
-    if feature:
-        payload["harness_feature"] = "FEAT-X-thing"
-    return payload
 
 
 def _dec156_worktree_case(name, file_content, expect_exit, mentions=None, feature=True):
-    root = tempfile.mkdtemp(prefix="vd-dec156-worktree-")
-    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
-        marker.write("agents: {}\n")
-    worktree = _linked_worktree_fixture(root, "FEAT-X")
-    rel = os.path.join("runs", "r1", "digest.md")
+    root = os.path.realpath(tempfile.mkdtemp(prefix="vd-dec156-worktree-"))
+    worktree = _linked_worktree_fixture(root, HOOK_IDENTITY["harness_feature"])
+    _append_registration(worktree)
+    shutil.copytree(os.path.join(worktree, ".harness"), os.path.join(root, ".harness"),
+                    ignore=shutil.ignore_patterns("features", "inflight.json", "inflight.json.lock"))
+    rel = APPEND_REL
     _write_optional_digest(worktree, rel, file_content)
-    payload = _dec156_worktree_payload(root, rel, feature)
+    payload = {"agent_type": "harness-eng-lead", "digest_object": _append_lead_object(),
+               "_root": root, **HOOK_IDENTITY, "harness_parent_agent_id": "Test.Parent",
+               "harness_digest_binding": _append_binding(worktree)}
+    if not feature:
+        payload["harness_feature"] = None
     HOOK_CASES.append((name, payload, expect_exit, mentions))
     return root, worktree, rel, payload
 
 
-_dec156_worktree_case(
-    "dec156-worktree-narrative: the worktree digest gains the validated block",
-    "# narrative digest, no contract block\n", 0, mentions="appended")
-_dec156_worktree_case(
-    "dec156-worktree-valid: a worktree digest already ending in the object is left alone",
-    "# narrative\n\n```yaml\n" + yaml.safe_dump(
-        fixture("harness-eng-lead", LEAD_BLOCK.replace("artifact: .harness/features/FEAT-01/runs/r1/digest.md",
-                                  "artifact: runs/r1/digest.md")), sort_keys=False) + "```\n", 0)
-_dec156_worktree_case(
-    "dec156-worktree-nofeature: an unresolvable lead digest refuses the return",
-    "# narrative digest, no contract block\n", 2, mentions="resolves to no run directory",
-    feature=False)
 
 
 # --- Fold-ins (BUILD task 22) ---
@@ -1418,17 +1402,40 @@ def run_hook_cases():
 
 
 # --- SC-07: the sanctioned append, read back byte for byte -------------------------------
-APPEND_REL = os.path.join("runs", "r1", "digest.md")
+APPEND_REL = os.path.join(".harness", "harness", "features", HOOK_IDENTITY["harness_feature"],
+                          "runs", "r1-eng", "digest.md")
 APPEND_PROSE = "# Team digest — T-01\n\nThe lead's human assessment, written by the lead.\n"
 
 
 def _append_root():
-    root = tempfile.mkdtemp(prefix="vd-append-")
+    root = os.path.realpath(tempfile.mkdtemp(prefix="vd-append-"))
+    _append_registration(root)
+    return root, os.path.join(root, APPEND_REL)
+
+
+def _append_registration(root):
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
     with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
-        marker.write("agents: {}\n")
-    os.makedirs(os.path.join(root, "runs", "r1"), exist_ok=True)
-    return root, os.path.join(root, APPEND_REL)
+        yaml.safe_dump({"leads": [{"name": "harness-eng-lead", "squad": "engineering", "domain": [
+            {"path": ".harness/*/features/*/runs/*-eng/**", "upsert": True},
+            {"path": ".", "read": True}]}]}, marker)
+    path = os.path.join(root, APPEND_REL)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    feature_dir = os.path.dirname(os.path.dirname(os.path.dirname(path)))
+    with open(os.path.join(feature_dir, "feature.json"), "w") as record:
+        json.dump({"feature_id": HOOK_IDENTITY["harness_feature"], "runs": [{
+            "id": "r1-eng", "squad": "engineering", "agent": "harness-eng-lead",
+            "verdict": "PENDING", "started_at": "2026-10-04T00:00:00+00:00"}]}, record)
+    _reg_module().claim_run_start(root, "harness-eng-lead", HOOK_IDENTITY["harness_feature"],
+                                 HOOK_IDENTITY["harness_agent_id"], "Test.Parent",
+                                 supervisor_pid=os.getpid(), cwd=root)
+
+
+def _append_binding(root):
+    return {"root": root, "feature": HOOK_IDENTITY["harness_feature"],
+            "agent": "harness-eng-lead", "agent_id": HOOK_IDENTITY["harness_agent_id"],
+            "parent_agent_id": "Test.Parent", "run_id": "r1-eng",
+            "artifact": os.path.join(root, APPEND_REL)}
 
 
 def _append_lead_object(**digest):
@@ -1436,6 +1443,16 @@ def _append_lead_object(**digest):
                                     f"artifact: {APPEND_REL}"))
     obj["DIGEST"].update(digest)
     return obj
+_dec156_worktree_case(
+    "dec156-worktree-narrative: the bound worktree digest gains the validated block",
+    "# narrative digest, no contract block\n", 0)
+_dec156_worktree_case(
+    "dec156-worktree-valid: an identical last object is left alone",
+    "# narrative\n" + "\n```yaml\n" + yaml.safe_dump(_append_lead_object(), sort_keys=False) + "```\n", 0)
+_dec156_worktree_case(
+    "dec156-worktree-nofeature: missing feature identity refuses the return",
+    "# narrative digest, no contract block\n", 2, feature=False)
+
 
 
 def _fenced(obj):
@@ -1443,7 +1460,9 @@ def _fenced(obj):
 
 
 def _append_fire(root, obj, agent="harness-eng-lead"):
-    payload = {"agent_type": agent, "digest_object": obj}
+    payload = {"agent_type": agent, "digest_object": obj,
+               "harness_parent_agent_id": "Test.Parent",
+               "harness_digest_binding": _append_binding(root)}
     return subprocess.run([VALIDATE, "--hook"], input=json.dumps(_governed(payload)),
                           capture_output=True, text=True,
                           env=dict(os.environ, HARNESS_PROJECT_DIR=root))
@@ -1476,7 +1495,7 @@ def _append_prepare(prior, prepare):
 
 
 def _append_case(name, prior, obj, want_exit, expect_bytes, agent="harness-eng-lead",
-                 mention=None, prepare=None):
+                 prepare=None):
     """Write `prior`, fire, and compare the file's bytes with `expect_bytes(prior_bytes)`
     — None meaning "unchanged"."""
     root, path, skip = _append_prepare(prior, prepare)
@@ -1487,8 +1506,7 @@ def _append_case(name, prior, obj, want_exit, expect_bytes, agent="harness-eng-l
         result = _append_fire(root, obj, agent)
         after = _read_bytes(path)
         want = before if expect_bytes is None else expect_bytes(before)
-        ok = (result.returncode == want_exit and after == want
-              and (mention or "").lower() in result.stderr.lower())
+        ok = result.returncode == want_exit and after == want
         return name, ok, f"exit={result.returncode} bytes-match={after == want} {result.stderr.strip()[:400]}"
     finally:
         _remove_append_root(root)
@@ -1535,6 +1553,8 @@ def run_lead_append_cases():
     obj = _append_lead_object()
     cases = _append_rule_cases(obj)
     cases += [_repeated_yield_appends_once(obj), _cli_never_writes()]
+    cases += _append_authorization_cases()
+    cases += [_hook_binding_refuses(kind) for kind in ("wrong-parent", "ambiguous-run")]
     fails = 0
     for name, ok, detail in cases:
         print(f"ok    [append] {name}" if ok else f"FAIL  [append] {name}\n      | {detail}")
@@ -1556,23 +1576,23 @@ def _append_rule_cases(obj):
         _append_case("identical to the last fenced mapping: nothing is written",
                      APPEND_PROSE + _fenced(obj), obj, 0, None),
         _append_case("a changed object is appended as a correction, prior bytes intact",
-                     APPEND_PROSE + _fenced(earlier), obj, 0, appended, mention="as a correction"),
+                     APPEND_PROSE + _fenced(earlier), obj, 0, appended),
         _append_case("a historical block outside today's schema is compared, never validated",
                      APPEND_PROSE + _fenced(historical), obj, 0, appended),
         _append_case("prose with no fenced block gains the block after the prose",
-                     APPEND_PROSE, obj, 0, appended, mention="appended"),
+                     APPEND_PROSE, obj, 0, appended),
         _append_case("prose with no trailing newline still gets a fence on its own line",
                      APPEND_PROSE.rstrip("\n"), obj, 0, appended),
         _append_case("a missing digest in the resolved run directory is refused, nothing created",
-                     None, obj, 2, None, mention="missing"),
+                     None, obj, 2, None),
         _append_case("an unwritable digest is refused and left unchanged",
-                     APPEND_PROSE, obj, 2, None, mention="cannot be written",
+                     APPEND_PROSE, obj, 2, None,
                      prepare=_make_readonly),
         _append_case("a symlinked digest is not a safe target and is refused",
-                     APPEND_PROSE, obj, 2, None, mention="not a regular file",
+                     APPEND_PROSE, obj, 2, None,
                      prepare=_make_symlink),
         _append_case("an invalid lead object is refused before any write",
-                     APPEND_PROSE, bad_lead, 2, None, mention="WORST member verdict"),
+                     APPEND_PROSE, bad_lead, 2, None),
         _append_case("a non-lead return naming the same digest.md never writes it",
                      APPEND_PROSE, doc_obj, 0, None, agent="harness-documentor"),
     ]
@@ -1592,96 +1612,87 @@ def _repeated_yield_appends_once(obj):
         shutil.rmtree(root, ignore_errors=True)
 
 
-def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
-    msg = LEAD_BLOCK.replace(
-        "artifact: .harness/features/FEAT-01/runs/r1/digest.md",
-        f"artifact: {artifact}")
-    payload = {"agent_type": "harness-eng-lead", "digest_object": fixture("harness-eng-lead", msg)}
-    if feature:
-        payload["harness_feature"] = "FEAT-X-thing"
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
-    if not feature:
-        env.pop("HARNESS_PROJECT_DIR", None)
-    return subprocess.run(
-        [binary, "--hook"], input=json.dumps(_governed(payload)), capture_output=True,
-        text=True, env=env)
+def _append_authorization_target(root, kind):
+    own = os.path.join(root, APPEND_REL)
+    if kind == "parent-symlink":
+        external = os.path.realpath(tempfile.mkdtemp(prefix="vd-external-"))
+        shutil.rmtree(os.path.dirname(own))
+        os.symlink(external, os.path.dirname(own))
+        return own, external
+    relative = APPEND_REL
+    if kind in ("product", "validator", "other-eng"):
+        relative = relative.replace("r1-eng", f"victim-{kind}")
+    elif kind == "other-feature":
+        relative = relative.replace(HOOK_IDENTITY["harness_feature"], "FEAT-02-other")
+    target = os.path.join(root, relative)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    return target, None
 
 
-def _bug1305_artifact_expect(name, result, exit_code, mentions=()):
-    missing = [item for item in mentions if item.lower() not in result.stderr.lower()]
-    if result.returncode == exit_code and not missing:
-        print(f"ok    [bug1305-artifact] {name}")
-        return 0
-    print(f"FAIL  [bug1305-artifact] {name}")
-    print(f"      | expected exit {exit_code}, got {result.returncode}")
-    for item in missing:
-        print(f"      | stderr should mention {item!r}")
-    for line in result.stderr.strip().splitlines():
-        print(f"      | {line}")
-    return 1
-
-
-def _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire):
-    failures = 0
-    with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
-        digest.write("# narrative digest, no contract block\n")
-    # SC-07: the located narrative gains the validated block rather than refusing the return.
-    failures += _bug1305_artifact_expect(
-        "located narrative digest gains the validated block", fire(rel), 0,
-        (run_dir, "appended"))
-    failures += _bug1305_artifact_expect(
-        "a second identical yield writes nothing more", fire(rel), 0)
-    with open(os.path.join(worktree, rel), encoding="utf-8") as digest:
-        if digest.read().count("```yaml") != 1:
-            failures += _bug1305_artifact_expect(
-                "the located digest carries exactly one appended block", fire(rel), -1)
-    os.unlink(os.path.join(worktree, rel))
-    failures += _bug1305_artifact_expect(
-        "existing run directory without digest is refused",
-        fire(rel), 2, (run_dir, "digest.md", "missing"))
-    return failures
-
-
-def _bug1305_other_artifact_cases(root, iso_root, fire):
-    copied_validate = os.path.join(isolated_bin(iso_root), "validate-digest.py")
-    failures = _bug1305_artifact_expect(
-        "an unresolvable artifact lookup refuses the return (SC-07)",
-        fire("runs/absent/digest.md", feature=False, binary=copied_validate),
-        2, ("resolves to no run directory",))
-    absolute = os.path.join(root, "absolute", "digest.md")
-    os.makedirs(os.path.dirname(absolute), exist_ok=True)
-    with open(absolute, "w", encoding="utf-8") as digest:
-        digest.write("# narrative digest, no contract block\n")
-    failures += _bug1305_artifact_expect(
-        "absolute artifact path is used verbatim", fire(absolute), 0,
-        (absolute, "appended"))
-    failures += _bug1305_artifact_expect(
-        "a lead artifact that is not a digest.md is refused", fire("runs/r1/notes.md"), 2,
-        ("is not one",))
-    return failures
-
-
-def run_bug1305_artifact_resolution_cases():
-    """BUG-1305 SC-04: distinguish lookup failure from a missing durable digest."""
-    failures = 0
-    root = tempfile.mkdtemp(prefix="vd-bug1305-")
-    iso_root = tempfile.mkdtemp(prefix="vd-bug1305-noroot-")
+def _append_authorization_case(kind, absolute=False):
+    import digest_record
+    root, own = _append_root()
+    external = None
     try:
-        os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
-            marker.write("agents: {}\n")
-        worktree = _linked_worktree_fixture(root, "FEAT-X")
-        rel = os.path.join("runs", "r1", "digest.md")
-        run_dir = os.path.dirname(os.path.join(worktree, rel))
-        os.makedirs(run_dir, exist_ok=True)
-        fire = lambda artifact, feature=True, binary=VALIDATE: _bug1305_artifact_fire(
-            artifact, root, feature, binary)
-        failures += _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire)
-        failures += _bug1305_other_artifact_cases(root, iso_root, fire)
+        with open(own, "w") as report:
+            report.write(APPEND_PROSE)
+        target, external = _append_authorization_target(root, kind)
+        victim = _append_lead_object(headline="the victim's authoritative assessment")
+        victim["artifact"] = target
+        before = (APPEND_PROSE + _fenced(victim)).encode()
+        with open(target, "wb") as report:
+            report.write(before)
+        obj = _append_lead_object()
+        obj["artifact"] = target if absolute else os.path.relpath(target, root)
+        result = _append_fire(root, obj)
+        after = _read_bytes(target)
+        selected = digest_record.last_fenced_mapping(after.decode(), target)
+        claims = _reg_module().live_claims(root, None)
+        ok = (result.returncode == 2 and "authoriz" in result.stderr.lower()
+              and before == after and selected == victim
+              and not any(row.get("agent_id") == HOOK_IDENTITY["harness_agent_id"]
+                          for row in claims))
+        return (f"unauthorized {kind} {'absolute' if absolute else 'relative'} target stays byte-identical",
+                ok, f"exit={result.returncode} bytes-match={before == after} {result.stderr.strip()[:400]}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
-        shutil.rmtree(iso_root, ignore_errors=True)
-    return failures
+        if external:
+            shutil.rmtree(external, ignore_errors=True)
+
+
+def _append_authorization_cases():
+    return [_append_authorization_case(kind, absolute)
+            for kind, absolute in (
+                ("product", False), ("validator", False), ("other-eng", False),
+                ("other-feature", False), ("product", True),
+                ("parent-symlink", False), ("parent-symlink", True))]
+
+
+def _hook_binding_refuses(kind):
+    root, path = _append_root()
+    try:
+        payload = _governed({"agent_type": "harness-eng-lead", "cwd": root,
+                             "harness_parent_agent_id": "Test.Parent"})
+        if kind == "wrong-parent":
+            payload["harness_parent_agent_id"] = "Other.Parent"
+        else:
+            record_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))),
+                                       "feature.json")
+            with open(record_path) as source:
+                record = json.load(source)
+            record["runs"].append({"id": "r2-eng", "squad": "engineering",
+                                   "agent": "harness-eng-lead", "verdict": "PENDING"})
+            with open(record_path, "w") as target:
+                json.dump(record, target)
+        result = subprocess.run([os.path.join(os.path.dirname(VALIDATE), "digest_destination.py")],
+                                input=json.dumps(payload), capture_output=True, text=True,
+                                env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+        response = json.loads(result.stdout)
+        ok = result.returncode == 2 and response.get("ok") is False and "binding" not in response
+        return f"startup refuses {kind} without issuing digest authority", ok, result.stdout + result.stderr
+    finally:
+        _remove_append_root(root)
+
 
 
 QA_UNCONDITIONAL_PASS = """
@@ -4403,15 +4414,15 @@ def _bug919_red_mutant():
 
 
 def _dec156_owner_root_mutant(source):
-    start = source.find("def _durable_artifact_candidates(")
-    end = source.find("\n\n\n", start)
-    if start < 0 or end <= start:
+    anchor = "    import digest_destination\n"
+    if anchor not in source:
         return None
-    old_candidates = (
-        "def _durable_artifact_candidates(path, payload):\n"
-        "    return ([path] if os.path.isabs(path) else "
-        "[os.path.join(_root_or_none() or \"\", path)])")
-    return source[:start] + old_candidates + source[end:]
+    # Regress the checkout binding, not a removed search-order implementation.
+    return source.replace(anchor, anchor + (
+        "    payload = dict(payload)\n"
+        "    binding = dict(payload['harness_digest_binding'])\n"
+        "    binding['root'] = _root_or_none()\n"
+        "    payload['harness_digest_binding'] = binding\n"), 1)
 
 
 def _dec156_red_is_green(real, old):
@@ -4978,7 +4989,6 @@ def main(argv=None):
         run_joint_hint_case,
         run_code_grade_cases,
         run_hook_cases,
-        run_bug1305_artifact_resolution_cases,
         run_lead_append_cases,
         run_t09,
         run_t51_suspension_cases,

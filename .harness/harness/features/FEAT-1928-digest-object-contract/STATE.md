@@ -3,15 +3,20 @@
 ## Current
 
 - feature: FEAT-1928-digest-object-contract
-- run: .harness/harness/features/FEAT-1928-digest-object-contract/runs/simplify-eng/digest.md
-- squad: main-session-direct
-- status: in_progress
-- tasks: T-01 done, T-02 done, T-03 done, T-04 done
-- review_sha: 828b3605d6334b96a6d21bfc8f93140b6b26a9c2
-- cycles_used: 3 of 10 (simplify-eng closed BLOCKED; its one send-back is counted)
-- handoff: notes/handoff-build.md (seq-14)
-- next: successor runs independent validation from pre-cutover main over the recorded pin; all six cards are Review and all seven live under-test hashes match that pin
+- run: main-session-direct remediation
+- squad: main-session (DEC-174)
+- status: building
+- tasks: T-01 done, T-02 building, T-03 done, T-04 done, T-05 building
+- review_sha: none; the previous review is superseded and is not a ship claim
+- cycles_used: 5 of 10, including both observed live-probe send-backs
+- evidence: native null/retry 18/18; actual claim lifecycle 28/28; refactored authorization suite ALL PASSED; canonical-reader self-test ALL PASS
+- remaining: integrate origin/main af2a958a; finish signed verification and simplification; commit clean source; refresh pin-bound receipts; independent validation; ship
+- grade-2 reason, authorized_destination: keep identity, checkout, registered-run and exact-path checks in one complete authorization decision rather than scatter its coupled proof across single-use predicate wrappers.
+- grade-2 reason, run_live: the lifecycle operation and its mandatory session/claim/run-record cleanup belong to one try/finally; splitting that lifetime would obscure which resources are still live.
+- grade-2 reason, receipt_header: keep the small provenance envelope assembled in one place so the distinction between executed binary identity and release-source metadata remains visible.
+- briefing: notes/ship-review-validate-validator.md records the superseded panel, not current ship readiness
+- next: fresh pinned independent review after all source and live verification
 
 ## Open Questions
 
-- None. Reconciliation through ship is authorized and both approval gates are approved. Main verification is complete; independent validation remains required, not waived.
+- None. SC-06 preserves 291 cases and exactly 14 operator-approved intentional deltas; canonical-reader verification and native YieldTool-path evidence remain mandatory.
