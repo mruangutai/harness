@@ -82,7 +82,7 @@ c3 routes to the extend branch — the fixture had to say which fresh-board shap
 The single failing check is **not from this diff**: `test-no-distribution.py`'s
 `case3_presence_fleet_has_exactly_one_repo` asserts `len(repos) == 1` in
 `.harness/factory/fleet.yaml`, and the working tree's fleet.yaml carries two
-(`mruangutai/kaya-ai` and the `mruangutai/harness-factory-smoke` fixture added uncommitted). Both
+(`mruangutai/sample-product` and the `mruangutai/harness-factory-smoke` fixture added uncommitted). Both
 files are outside my diff and fleet.yaml is dispatch-forbidden to me. `test-board-lifecycle.py`
 alone: EXIT 0, 138 PASS, 0 FAIL. Counts reconcile: 822 (operator's baseline) + 18 new − 2 = 838.
 

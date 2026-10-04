@@ -10,8 +10,8 @@ anchors, measured at `eb9d044e`.
 `factory_claim.py` resolves every claimed issue's plan under one hardcoded root — `FEATURES_ROOT`
 at `factory_claim.py:48-50`, consumed once as `_BlockerCache(FEATURES_ROOT)` at `:341`. The factory
 can decompose a feature stored under another registered repository's segment, but claim then cannot
-read that plan and reports `no_plan`. The live Kaya proof stores FEAT-04 under
-`.harness/kaya-ai/features/FEAT-04-pdf-parser-evaluation`, so every claim on that repository is
+read that plan and reports `no_plan`. The live sample-product proof stores FEAT-04 under
+`.harness/sample-product/features/FEAT-04-pdf-parser-evaluation`, so every claim on that repository is
 blocked and the factory lane cannot run end to end for anything but this repository.
 
 ## Goal
@@ -51,8 +51,8 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
 
 ## Success Criteria
 
-- SC-01: With a fixture fleet declaring `mruangutai/kaya-ai` and a plan at
-  `<root>/.harness/kaya-ai/features/FEAT-.../plan.yaml`, a claim reads that plan and reaches the
+- SC-01: With a fixture fleet declaring `mruangutai/sample-product` and a plan at
+  `<root>/.harness/sample-product/features/FEAT-.../plan.yaml`, a claim reads that plan and reaches the
   blocker gate rather than `no_plan`.
   verify: test — `tests/unit/test-factory-claim.py`
 - SC-02: With the same feature id present under two served segments carrying different task DAGs,
@@ -122,7 +122,7 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
   already fail closed. BOUNDS the change.
 - Out of scope, per the grilling note: migrating `post-merge-sweep.py:163`, `quarantine.py:109`,
   `worktree_terminal.py:107-129`, `feature_schema.py:231` onto the new resolver; landing
-  `.harness/kaya-ai/features/FEAT-04-...` on `main`; populating FEAT-04's `feature.json`
+  `.harness/sample-product/features/FEAT-04-...` on `main`; populating FEAT-04's `feature.json`
   `factory.issues` map. The one adjacent surface this change FORCES is the layout detector's reader
   row for `factory_claim.py` (REQ-08).
 - Disclosure, not a scope choice: after this fix a live claim run from `main` still reports

@@ -25,7 +25,7 @@ dispatch says.
 | 3 | Interview — technical | 158-165 | **KEEP-AS-IS** | Main-session `AskUserQuestion` + `harness-grilling` (DEC-164). Nothing in it is position-dependent; only where its answers land moves (step 4). |
 | 4 | Delegate detection to `dev-ops` (`test_kinds`) | 166-193 | **RE-HOME** | Agrees with #206. Its write target is spelled as the control plane's own file in both agent copies (`.claude/agents/harness-dev-ops.md:53`, `.omp/agents/harness-dev-ops.md:54`); for a product it is that product's `.harness/harness.json` at its `default_branch`. Also DEC-187 closure is now ruled to happen at the first factory run, not at onboarding (#336, salvaged D-03). |
 | 5 | Seed the domain manifest (`# SEED` globs) | 194-214 | **NARROW** | #206 says Re-homes. **Disagree — it cannot re-home today.** `team-config.yaml` is ruled forced-global (#346, carried in #336), the live grants are repo-agnostic globs (`.harness/*/features/**`, team-config.yaml:45,108-122) and the source globs are harness's own (`web/src/**` :173, `tests/**` :187,229). `harness_boundary.glob_to_re` supports only `**`, `*`, `?` and literals, so `.harness/${repo}/**` is inexpressible; per-repo isolation is unit 7 / **#495, unbuilt**. Narrow to seeding the control plane's own globs. |
-| 6 | Interview — product, then the BRIEF | 215-224 | **RE-HOME** | Agrees. Destination is now `factory_config.features_root()` → `<cp>/.harness/<segment>/features` (`factory_config.py:402-408`), and `plan.yaml` not `PLAN.md` (DEC-182). Measured: `/Users/molchairuangutai/GitHub/harness/.harness/kaya-ai/` **does not exist** (`os.path.isdir` False), matching #498 DC-4 "layout exists, no kaya dir". |
+| 6 | Interview — product, then the BRIEF | 215-224 | **RE-HOME** | Agrees. Destination is now `factory_config.features_root()` → `<cp>/.harness/<segment>/features` (`factory_config.py:402-408`), and `plan.yaml` not `PLAN.md` (DEC-182). Measured: `/Users/molchairuangutai/GitHub/harness/.harness/sample-product/` **does not exist** (`os.path.isdir` False), matching #498 DC-4 "layout exists, no sample-product dir". |
 | 7 | Approval gate, + GitHub mirror (`:240`) + board provisioning (`:252`) | 225-295 | **RE-HOME** | The approval write is main-session-only and already repo-scoped (`team-config.yaml:19-34`). The mirror/board writes are now *product config*: `fleet.yaml` REJECTS a board at any level (`fleet.yaml:3-5`) and `board_for` reads it from the product's own `harness.json` (`factory_config.py:327-347`). #206 folds this into "6-7 Re-homes"; at HEAD it is two sub-sections of real size (56 lines) that #206 never saw. |
 | 8 | Design pass — UI projects only | 296-304 | **KEEP-AS-IS** | **#206's row 8 is void.** Its row 8 was "Map the codebase :179"; that step is gone — the map tier, both doors, INV-14, INV-20, the spawn injection and the renderer were all retired 2026-08-24 (`BUILD.md:208`; `check-state.py:1562` "the map precondition went with the map tier"). HEAD's step 8 is the design pass, whose grant is already repo-scoped (`team-config.yaml:131`). |
 | 9 | Verify (`check-state.py`, `merge-settings --check`), then the restart warning | 305-326 | **NARROW** | #206 says "Dead with 1 and 2". **Disagree.** `check-state.py` requires `.harness/` to exist (`:110-111`) and grades the clone it runs in; there is no product-side state to check. It survives as the control-plane verification, narrowed to that clone. The DEC-100a restart caveat is position-independent. |
@@ -48,13 +48,13 @@ Under the central model its subject is either this clone or a product repo; #206
 `factory_workspace.py` writes **no** `.harness/` artifact into a checkout — it only prepares the
 checkout and refuses on identity/dirty (`factory_workspace.py:1-38`).
 
-**What the central model makes stale in `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/`:**
+**What the central model makes stale in `/Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/`:**
 
 - `team-config.yaml` (16.4 KB) — **no reader**: policy resolution never opens a product's copy.
 - `expertise/*.md` (14 files) — **never injected**: the injector globs `<cp>/.harness/*/expertise/` only.
-- `features/FEAT-01…FEAT-03/` — pre-migration layout; the live path is `<cp>/.harness/kaya-ai/features/`, which does not exist, so these are unreachable by every feature reader.
+- `features/FEAT-01…FEAT-03/` — pre-migration layout; the live path is `<cp>/.harness/sample-product/features/`, which does not exist, so these are unreachable by every feature reader.
 - `codebase/` (11 files, incl. `map.html` 389.8 KB) — the tier is retired; no reader, no writer, no invariant.
-- `.claude/settings.json` — **not the harness eight**: it registers kaya's own hooks (`work-tracking-nudge.sh`, `pre-commit-tests.sh`, `branch-issue-gate.sh`), and `.claude/skills/` does not exist in that checkout at all.
+- `.claude/settings.json` — **not the harness eight**: it registers sample-product's own hooks (`work-tracking-nudge.sh`, `pre-commit-tests.sh`, `branch-issue-gate.sh`), and `.claude/skills/` does not exist in that checkout at all.
 - `harness.json` (13.1 KB) — the *location* is live (read from `master`), but the on-disk copy is never read, and #336 records its content as pre-FEAT-18 stale (flat `project_id`/`status_field`/`in_progress_option`).
 
 ## 3. Reachability — every referencing site, with INVALIDATES
@@ -125,15 +125,15 @@ Independently measured (run from `/Users/molchairuangutai/GitHub/harness`):
 
 ```
 $ .claude/skills/harness/bin/check-domain.py --resolve \
-    /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/src/foo.py
+    /Users/molchairuangutai/GitHub/harness-factories/sample-product/src/foo.py
 harness-backend-dev            exit=0
-$ ... --resolve .../kaya-ai/.harness/harness.json   -> NOBODY   exit=0
-$ ... --resolve .../kaya-ai/.harness/team-config.yaml -> NOBODY exit=0
+$ ... --resolve .../sample-product/.harness/harness.json   -> NOBODY   exit=0
+$ ... --resolve .../sample-product/.harness/team-config.yaml -> NOBODY exit=0
 ```
 
-And in the kaya checkout: `.claude/skills/` **absent**, `.claude/skills/harness/hooks` **absent**,
+And in the sample-product checkout: `.claude/skills/` **absent**, `.claude/skills/harness/hooks` **absent**,
 `git config --get core.hooksPath` → **exit 1, empty**, `.claude/settings.json` present but holding
-kaya's OWN hooks. So the served product is governed today **with none of the eight installed and no
+sample-product's OWN hooks. So the served product is governed today **with none of the eight installed and no
 hooks path set**, because the enforcing hooks are registered in the control plane's
 `.claude/settings.json` and resolve the control plane's manifest.
 
@@ -162,7 +162,7 @@ a new central config reader (or a `product_config` rewrite) replacing the remote
 `factory_config.py:279-324`; a decision to reverse DEC-174's no-disk-fallback rule; the `.harness/products/`
 level added to `is_control_plane_glob`'s reasoning and to the write grants (no agent holds that path
 today — `--resolve` on `templates/harness.json` and on `fleet.yaml` both return NOBODY, so a
-main-session lane); migration of kaya's `harness.json` off `master` into the control plane, with the
+main-session lane); migration of sample-product's `harness.json` off `master` into the control plane, with the
 old copy struck so two records cannot disagree; and a reversal record against the operator's
 2026-08-18 ruling on #493, which struck exactly this placement (#336 body). **It also reopens what
 #336 recorded as FORCED:** `repos[].name` and `workspace_root` cannot move, because
@@ -204,11 +204,11 @@ decision — and #206 has not been amended since 2026-08-10.
    (exit 0), as on `fleet.yaml` and `templates/harness.json`. Every one of those edits is a declared
    main-session step; a task routed to `dev-ops` will stall (the FEAT-05 routing wall, third
    recurrence, `FEAT-05/PLAN.md:1047-1062`).
-5. **Migration of the served checkout is unowned work.** `<cp>/.harness/kaya-ai/` does not exist;
-   kaya's four stale `.harness/` subtrees (item 2) sit in a repo no harness domain grants. Deleting
+5. **Migration of the served checkout is unowned work.** `<cp>/.harness/sample-product/` does not exist;
+   sample-product's four stale `.harness/` subtrees (item 2) sit in a repo no harness domain grants. Deleting
    them is a write into a product repo, which is the same missing route as branch B's commit step.
 6. **`harness_boundary.MARKER` is `.harness/team-config.yaml`** (`harness_boundary.py:54`), and
-   `root_above` uses it to decide "which checkout is this path in". Kaya's stale copy is therefore
+   `root_above` uses it to decide "which checkout is this path in". The product's stale copy is therefore
    not purely inert — removing it changes what `root_above` answers inside that checkout. Any task
    that deletes it must state which resolution paths depend on the marker.
 7. **Doc drift is already present and will be blamed on this feature.** DEC-190's `:61-65` anchor is
@@ -225,5 +225,5 @@ decision — and #206 has not been amended since 2026-08-10.
 - **Q2 (non-blocking):** does the "human clones a repo and runs `/harness` inside it" case survive at
   all, given `deploy.sh` is deleted and nothing distributes `bin/`? If not, `harness-init`'s
   `--upgrade` path and step 1 lose their last non-control-plane subject.
-- **Q3 (non-blocking):** who deletes kaya's four stale `.harness/` subtrees, and by what write route
+- **Q3 (non-blocking):** who deletes sample-product's four stale `.harness/` subtrees, and by what write route
   into a product repo? No agent domain covers it today.

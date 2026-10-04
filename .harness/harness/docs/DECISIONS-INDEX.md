@@ -67,7 +67,7 @@ Row: `- DEC-NN @<line> [tags] refs: <graph> :: <ruling>`.
 - DEC-54 @591 [] refs:  :: Crews are flat and standalone in v1 with no sub-crew composition, so the review panel is listed in both `ship-feature` and `review-team`.
 - DEC-55 @602 [gates,orchestrator] refs:  :: `review-team` is advisory: it returns `must_fix` and the calling context owns remediation and merging.
 - DEC-56 @609 [security] refs:  :: pm's goal-check is its own step after the panel and its assessment, so "did we deliver?" is never averaged with code nits.
-- DEC-57 @616 [qa,security] refs: DEC-08 :: The review panel has no CEO seat and no separate eng-reviewer, and its membership is crew config rather than auto-selected per diff.
+- DEC-57 @616 [qa,security,state] refs: DEC-08 :: The review panel has no CEO seat and no separate eng-reviewer, and its membership is crew config rather than auto-selected per diff.
 - DEC-58 @628 [domain,deploy,tdd] refs: DEC-85 :: Engineering has five peer domains with no catch-all, `dev-ops` owning infra, CI, config, tooling and deploy, and eng-lead routes each task to exactly one.
 - DEC-59 @641 [domain,skills,expertise,state] refs:  :: The declarative `## Skills`, `## Expertise` and `## Domain` body sections buy a uniform shape and greppable auditing, not enforcement — Claude Code does not parse them.
 - DEC-60 @653 [plan,approval,brief,org] refs:  :: `.harness/README.md` is owned by `documentor` and rewritten as a defect fix, because the on-disk version describes a pre-restructure org and omits the hardest-gated schema fields.

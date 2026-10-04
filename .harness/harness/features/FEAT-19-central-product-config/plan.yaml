@@ -1,3 +1,9 @@
+# Archival note - product retirement: this plan is a completed historical record. The product it
+# was executed against has been retired; sample-product names below are anonymized historical
+# references, and the evidence captures and product config cited by its tasks were removed from
+# this tree and preserved in the external archive held by the operator. Paths here resolve to
+# nothing locally and are not live instructions. Task ids, dependencies, recorded status and
+# stored signatures are unchanged.
 schema: plan/1
 feature: FEAT-19-central-product-config
 status: abandoned
@@ -42,8 +48,8 @@ decisions:
     because: the same map already decides which domain base a write resolves against, and a second key could disagree with the guard about which product a path belongs to
     dec: none
   - id: D-03
-    choice: Kaya's test kinds ship with status unresolved, and DEC-187 closure is enforced at the first factory run rather than signed at approval
-    because: nobody has run kaya's commands from here, so marking any kind active would be the unverified claim DEC-187 exists to stop
+    choice: The product's test kinds ship with status unresolved, and DEC-187 closure is enforced at the first factory run rather than signed at approval
+    because: nobody has run sample-product's commands from here, so marking any kind active would be the unverified claim DEC-187 exists to stop
     dec: DEC-187
   - id: D-04
     choice: >-
@@ -212,7 +218,7 @@ tasks:
              accepted divergence in T-05, and the test file below — not this module — imports
              select_base read-only to assert the two agree on the nested fixture. Stating it explicitly is what stops the guard and the
              config from disagreeing about a nested checkout, which is the merit D-02 was chosen
-             for. Segment containment also makes /ws/kaya-ai-old not match /ws/kaya-ai.
+             for. Segment containment also makes /ws/sample-product-old not match /ws/sample-product.
              5b-i. NO entry contains it: raise ProductConfigError. what is "checkout belongs to no
                    registered repository", value is the session root, next_step says to add a
                    repos entry to <fleet_path>. This is the state that already exits 2 today and
@@ -287,7 +293,7 @@ tasks:
         - a products directory present for a name that is NOT in fleet.yaml, session rooted in a
           sibling registered checkout -> the orphan is never returned
         - workspace_root sibling whose name shares a prefix with a registered repo
-          (kaya-ai-old beside kaya-ai) -> ProductConfigError, not a false match
+          (sample-product-old beside sample-product) -> ProductConfigError, not a false match
         - NESTED CHECKOUTS: two registered repos whose workspace paths nest, the session rooted in
           the inner one -> the INNER repo's config answers, not the outer's. This is the
           longest-match-wins rule and it is the one D-02's merit rests on
@@ -301,8 +307,8 @@ tasks:
           ProductConfigError naming the fleet path, never a fall-through to the harness config
         - resolve's own consistency: across the harness-source and product-source cases, assert
           product is None if and only if source == "harness"
-        - the LIVE kaya config in this repository, located as
-          os.path.join(factory_config.harness_root(), ".harness", "products", "kaya-ai",
+        - the LIVE sample-product config in this repository, located as
+          os.path.join(factory_config.harness_root(), ".harness", "products", "sample-product",
           "harness.json") — NOT a path relative to the process working directory, which is correct
           only under run-unit-tests.py and wrong under a direct invocation. Assert: every value in
           that file's test_kinds is a MAPPING (a string sibling would break every consumer that
@@ -348,7 +354,7 @@ tasks:
       registration belongs in this task and not a later one.
 
   - id: T-02
-    title: Write the central config for mruangutai/kaya-ai
+    title: Write the central config for mruangutai/sample-product
     traces: [REQ-01, REQ-05]
     change_type: config
     execution_mode: main-session-direct
@@ -356,11 +362,11 @@ tasks:
     depends_on: []
     status: abandoned
     files:
-      - .harness/products/kaya-ai/harness.json
+      - .harness/products/sample-product/harness.json
     verify: |
       python3 - <<'PY'
       import json, sys
-      d = json.load(open(".harness/products/kaya-ai/harness.json"))
+      d = json.load(open(".harness/products/sample-product/harness.json"))
       kinds = set(d["test_kinds"])
       bad = []
       for ct, spec in d["test_matrix"].items():
@@ -370,8 +376,8 @@ tasks:
           for w in spec.get("when", []):
               if w["kind"] not in kinds and not w["kind"].startswith("__"):
                   bad.append(ct + ".when names " + w["kind"])
-      if "github" not in d or d["github"].get("repo") != "mruangutai/kaya-ai":
-          bad.append("github.repo is not mruangutai/kaya-ai")
+      if "github" not in d or d["github"].get("repo") != "mruangutai/sample-product":
+          bad.append("github.repo is not mruangutai/sample-product")
       for name, spec in d["test_kinds"].items():
           if name.startswith("_"):
               bad.append("test_kinds carries a note key " + name + "; notes go at top level")
@@ -387,24 +393,24 @@ tasks:
       sys.exit(1 if bad else 0)
       PY
     intent: |
-      Create .harness/products/kaya-ai/harness.json — the central config for the repository
-      registered in .harness/factory/fleet.yaml as mruangutai/kaya-ai. The directory name kaya-ai
+      Create .harness/products/sample-product/harness.json — the central config for the repository
+      registered in .harness/factory/fleet.yaml as mruangutai/sample-product. The directory name sample-product
       is the segment after the slash, matching factory_config.workspace_path.
 
       This is a REAL config, not a fixture. Start from
-      .claude/skills/harness/templates/examples/harness.kaya-ai.json — copy its test_kinds and
+      the archived pilot config (removed from the tree) — copy its test_kinds and
       test_matrix — then make exactly the changes below. Do not copy its _comment key.
 
       CHANGE 1, mandatory under every option of D-03. The example's bugfix.always is
       ["__bug_class__"]. __bug_class__ is a predicate placeholder that exists in no test_kinds, so
-      kaya's bugfix change type can never resolve — DEC-187 names this file and this defect by
+      sample-product's bugfix change type can never resolve — DEC-187 names this file and this defect by
       name. Write bugfix as always ["unit"] with a when clause of kind __bug_class__ and if
       match_bug_class, which is the shape .harness/harness.json already uses for the same
       predicate.
 
       CHANGE 2, D-03 option A. Add a "status" key to every entry in test_kinds with the value
-      "unresolved". Nobody has run kaya's commands from this repository and this effort does not
-      clone kaya, so "active" would be a claim that a cmd was run and seen pass when it was not.
+      "unresolved". Nobody has run sample-product's commands from this repository and this effort does not
+      clone sample-product, so "active" would be a claim that a cmd was run and seen pass when it was not.
       Add a note key "_test_kinds_note" at the TOP LEVEL of the file, a sibling of test_kinds and
       NOT a key inside it — the same placement .harness/harness.json already uses for its own
       note. Every consumer that iterates test_kinds expects each value to be a mapping, and a
@@ -416,9 +422,9 @@ tasks:
       CHANGE 3. Add a "github" block with EXACTLY two keys, because project and repo data belongs
       with the product:
         sync: true
-        repo: "mruangutai/kaya-ai"
+        repo: "mruangutai/sample-product"
 
-      DO NOT add a board block here. Kaya's board is already declared in .harness/factory/fleet.yaml
+      DO NOT add a board block here. The product's board is already declared in .harness/factory/fleet.yaml
       under its repos entry, where FEAT-16 put it and where factory_config._validate_board already
       requires owner, number and station_field. Copying it into this file would put one board in two
       files with nothing checking that they agree — which is the precise defect this whole feature
@@ -430,7 +436,7 @@ tasks:
       DO NOT add budgets, gates, log_retention_days or team-config data. Those are harness runtime
       metadata and stay in .harness/harness.json (D-01). The example's "gates" key is NOT copied.
 
-      Do not modify .claude/skills/harness/templates/examples/harness.kaya-ai.json. It stays as the
+      Do not modify the archived pilot config (removed from the tree). It stays as the
       template example it is; this new file is the live config.
 
   - id: T-03
@@ -542,7 +548,7 @@ tasks:
     files:
       - .harness/README.md
     verify: |
-      grep -q 'products/' .harness/README.md && test -f .harness/products/kaya-ai/harness.json
+      grep -q 'products/' .harness/README.md && test -f .harness/products/sample-product/harness.json
     intent: |
       .harness/README.md is the layout record — what each thing under .harness/ holds and who
       writes it. It has a table whose harness.json row reads test_matrix, test_kinds, gates,
@@ -667,8 +673,8 @@ tasks:
           including the literal NOBODY, and a second --resolve answering which config file
           applies, in JSON, would be a homonym on an adjacent tool. Documentation naming the flag
           names the tool with it
-        - the accepted cost, stated plainly: kaya's test kinds ship with status unresolved, so
-          DEC-187 closure is not satisfied for kaya until someone runs its commands from a real
+        - the accepted cost, stated plainly: sample-product's test kinds ship with status unresolved, so
+          DEC-187 closure is not satisfied for sample-product until someone runs its commands from a real
           checkout. That is DEC-187 working as designed, and nothing active will prompt it
 
       Then add the matching row to docs/harness/DECISIONS-INDEX.md. Everything before the double

@@ -1,5 +1,10 @@
 # Ship goal-check — FEAT-56, cycle 2
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **The feature meets its goal pending only the UAT.** Eleven of the sixteen criteria BRIEF lists are
 `met` at `review_sha` 8ff5197f (`SC-01`–`SC-06`, `SC-08`, `SC-10`, `SC-13`, `SC-14`, `SC-16`); three
 (`SC-11`, `SC-12`, `SC-15`) are `pending_uat`; **SC-07 is `not_met` on its own words** — `--kind
@@ -60,7 +65,7 @@ grade stays red; the acceptance is why the red does not block ship.
 ### SC-16 — seven reads, one per file
 
 `cli_min_version` absent from the loaded mapping of all five configs at the pin:
-`.harness/harness.json` (19 keys), `templates/harness.json` (16), `templates/examples/harness.kaya-ai.json`
+`.harness/harness.json` (19 keys), `templates/harness.json` (16), `templates/examples/harness.<product>.json`
 (7), `.harness/team-config.yaml` (8), `templates/team-config.yaml` (8). Both YAML blobs also match
 neither `cli_min_version` nor `floor for the spawn env vars` (grep count 0 each). Docs:
 `BUILD.md` matches `cli_min_version` **0 times**; `DECISIONS.md` matches it at **:977** and the band

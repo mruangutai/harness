@@ -99,10 +99,10 @@ direct reproduction, not by re-reading the claim. Method validated.
    direct reproduction this round (§ above), not by re-reading the claim.
 
 **New-behaviour check on case13 itself (this round's own addition), per-assertion, not
-generalised:** of case13's four plan-level assertions (exit 0 · header+body present · kaya absent ·
+generalised:** of case13's four plan-level assertions (exit 0 · header+body present · sample-product absent ·
 stderr empty), **only the last two discriminate** the guard-removal mutant; the first two are inert
 under it (script has no `set -e`, so its trailing `exit 0` always fires; the harness-tier loop
-iteration is untouched by removing the guard on the *kaya* iteration). Inert is not the same claim as
+iteration is untouched by removing the guard on the *sample-product* iteration). Inert is not the same claim as
 vacuous-in-general — assertions 1 and 2 are legitimate regression pins for other mutants (e.g. a
 crash, or a mutant that broke the good entry's rendering); they are just not what reddens *this*
 mutant. Reported per-assertion, not carried over from case12's fully-vacuous shape.
@@ -119,24 +119,24 @@ more).
 
 - Unmutated, `INJECT_EXPERTISE_BIN=<scratchpad orig>`: **19/19**, all PASS.
 - Mutated, `INJECT_EXPERTISE_BIN=<scratchpad mutant>`: **18/19**, case13 the sole FAIL.
-  `checks=[True, True, True, False, False]` — the Python-level `checks[3]` (`"kaya" not in ctx`)
+  `checks=[True, True, True, False, False]` — the Python-level `checks[3]` (`"sample-product" not in ctx`)
   and `checks[4]` (`stderr == ""`) flip; `checks[0..2]` (exit 0, repo header present, repo body
   present) do not. Full `ctx` under the mutant literally contains a phantom
-  `## Your Expertise — kaya repository (repository tier)` header with an empty body, and `stderr`
+  `## Your Expertise — sample-product repository (repository tier)` header with an empty body, and `stderr`
   carries two `head: ... No such file or directory` lines plus one `[: : integer expected` bash
   arithmetic error — no "Traceback" substring anywhere.
 
-**Confirms the eng squad's claim exactly** (18/19, two assertions flip: the kaya header and
+**Confirms the eng squad's claim exactly** (18/19, two assertions flip: the sample-product header and
 stderr-empty) — I did not repeat it, I reproduced it.
 
 **Does case13 pin the guard's UNSPECIFIED duty (exists-and-unreadable) rather than the documented
-half (non-matching glob)?** Yes. The fixture's `.harness/kaya/expertise/harness-qa.md` is a real
+half (non-matching glob)?** Yes. The fixture's `.harness/sample-product/expertise/harness-qa.md` is a real
 dangling symlink — bash's glob **matches** it by name (it exists as a directory entry), so this is
 not the non-matching-glob case the segment filter at `inject-expertise.py:75-77` already covers
 independently. `[ -r ]` here is doing the only guarding: following the symlink to a target that does
 not exist, which `-r` correctly reports false for.
 
-**Which of case13's four assertions discriminate, which are inert:** only "kaya absent from ctx" and
+**Which of case13's four assertions discriminate, which are inert:** only "sample-product absent from ctx" and
 "stderr empty" discriminate this mutant. "exit 0" and "header+body present" are inert under it (see
 §4) — not useless in general, just not the reason this specific mutant reddens.
 
@@ -199,8 +199,8 @@ remedy is a new case writing under `home`, not a stronger existing check.
 
 `inject-expertise.py:82-92`'s explicit re-sort is provably redundant for case2's fixture: bash glob
 expansion already returns `.harness/*/expertise/harness-qa.md` matches in collation order — verified
-directly (not inferred) by globbing a scratch `kaya`+`harness` pair, independent of the hook: glob
-returned `harness` before `kaya` with no sort involved.
+directly (not inferred) by globbing a scratch `sample-product`+`harness` pair, independent of the hook: glob
+returned `harness` before `sample-product` with no sort involved.
 
 **Measured:** built a mutant with `:82-92` replaced by unsorted natural-insertion indices (diff
 confined to exactly that block, confirmed). Full suite: **19/19**, case2 included. Confirmed the
@@ -292,13 +292,13 @@ never reddens at all — it does, for Python).
 Cycle 1 wrote: `stderr == ""` "is load-bearing, not stylistic" and a weaker form "would have stayed
 green under exactly the mutant SC-11 requires case13 to catch." **That overstates what the
 measurement showed.** The measurement (§5, cycle 1) is `checks=[True, True, True, False, False]` —
-`checks[3]` (`"kaya" not in ctx`) *and* `checks[4]` (`stderr == ""`) both flip. Since `checks[3]`
+`checks[3]` (`"sample-product" not in ctx`) *and* `checks[4]` (`stderr == ""`) both flip. Since `checks[3]`
 alone flips `all(checks)` to `False`, **case13 fails this specific mutant with or without the stderr
 check** — `stderr == ""` is redundant *for this mutant*, not load-bearing for it.
 
 **Precise version:** `stderr == ""` is not required to catch the T-07 guard-removal mutant (`checks[3]`
 already does). It earns its place for a *different, real* class: any mutant that produces stderr noise
-(shell errors, warnings, non-fatal noise) **without** also leaking a phantom kaya header — e.g. a
+(shell errors, warnings, non-fatal noise) **without** also leaking a phantom sample-product header — e.g. a
 future change that adds a diagnostic `echo` to the guard path, or a partial fix that silences the leak
 but leaves noisy `[: integer expected`-style output behind. Against *that* class, `stderr == ""` is the
 only clause in case13 that would catch it, and `"Traceback" not in stderr` would not (same class of

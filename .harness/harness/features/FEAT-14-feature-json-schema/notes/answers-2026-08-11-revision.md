@@ -63,7 +63,7 @@ Measured 2026-08-11.
   | Board | Before | After |
   |---|---|---|
   | 3 Harness | Backlog 88, Ready 5, Done 111 — **204** | unchanged, plus `Plan` — **204** |
-  | 2 kaya-ai | Todo 82, In Progress 11, Done 118 — **211** | Backlog 82, Building 11, Done 118 — **211** |
+  | 2 sample-product | Todo 82, In Progress 11, Done 118 — **211** | Backlog 82, Building 11, Done 118 — **211** |
 
   Zero item writes: renaming a single-select option preserves assignment. Every pre-existing option
   id was re-sent unchanged, because `updateProjectV2Field` REPLACES the whole list and an omitted

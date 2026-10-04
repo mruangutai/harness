@@ -32,7 +32,7 @@ below rather than manufacturing a finding.
 - **Four conjuncts in `_5b_property_holds`'s return** (`issue==952`, `"951" in err`,
   `"unresolvable blocker" in err`, `"no plan could be read" not in err`): checked pairwise for
   logical implication. None is redundant — each guards a distinct mutant the file's own comments
-  name: `issue==952` guards wrong-issue resolution; `"951" in err` guards kaya's blocker going
+  name: `issue==952` guards wrong-issue resolution; `"951" in err` guards sample-product's blocker going
   unreported; `"unresolvable blocker" in err` guards the *reason* being right; `"no plan could be
   read" not in err` guards against cross-segment plan-cache bleed producing 5c's no-plan reason
   instead of 5b's. No assertion here is a candidate even for a backlog row.

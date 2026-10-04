@@ -58,7 +58,9 @@ HARNESS-FEATURE: <FEAT-NN-slug>
 with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
 without it at exit 2. It is the only signal that tells the guard which checkout you were
 assigned to: your process working directory does not follow your assignment, and a claim
-recorded in the wrong checkout is why the previous planning run could not spawn at all.
+recorded in the wrong checkout is why the previous planning run could not spawn at all. In a
+batched `task` call the line opens **each task's own `task` text**: the guard never sees the
+shared `context` block.
 
 ## What you are NOT
 
@@ -124,7 +126,7 @@ yield({data: {
 ```
 
 - `headline`: where the feature stands, not what you did.
-- `status`: `in_progress|in_review|shipped|blocked|awaiting_user`. `runs`: `{id, squad, verdict}`.
+- `status`: load the legal values from the canonical orchestrator schema, including `rejected` for a rejection. `runs`: `{id, squad, verdict}`.
 - `briefing`: `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md`
   when written, else `none`.
 - `judgement`: always present; `none`, or `{kind: reject, superseded_by: <n>|none, reason: "<one

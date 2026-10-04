@@ -30,7 +30,7 @@ is the fleet declaration's only reader. It is not: `check-state.py` reads that f
 ## Open Questions
 
 - Q1 (BLOCKING, for the operator, before segment A is staged): the ship dispatch says to STOP if
-  any of kaya's uncommitted entries sit under `.claude/skills/harness*` or `.claude/commands/harness*`.
+  any of sample-product's uncommitted entries sit under `.claude/skills/harness*` or `.claude/commands/harness*`.
   BRIEF.md's settled rulings record that 34 tracked files under exactly those paths carry local
   modifications he signed off on discarding. Read literally the stop fires on the signed-for work
   and T-02 can never run; read as intended it means entries beyond those 34. The cost of guessing

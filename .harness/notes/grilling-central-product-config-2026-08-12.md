@@ -1,5 +1,10 @@
 # Grilling — #206, harness-init for the central model — 2026-08-12
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 Run in the main session. The output is decisions, not a plan.
 
 **READY FOR pm as of 2026-08-13.** The one condition this artifact set — FEAT-16 builds first — is
@@ -13,8 +18,8 @@ A repository can be **registered** with the factory and **configured centrally**
 reading that file instead of this repository's own. Nothing else about onboarding moves in this
 effort.
 
-Reaching the end looks like: point the factory at `mruangutai/kaya-ai`, and the test matrix that
-applies is kaya's, not harness's.
+Reaching the end looks like: point the factory at `mruangutai/sample-product`, and the test matrix that
+applies is that product's, not harness's.
 
 ## Settled
 
@@ -29,8 +34,8 @@ applies is kaya's, not harness's.
   steps still writing into the product — and half-migrated prose can read worse than plainly stale
   prose. Taken deliberately over leaving the page instructing a reader to do a thing the factory no
   longer does.
-- **`mruangutai/kaya-ai` gets a real product config in this effort.** → Not fixtures alone. A
-  mechanism with zero real consumers has never been run against anything, and kaya is the only
+- **`mruangutai/sample-product` gets a real product config in this effort.** → Not fixtures alone. A
+  mechanism with zero real consumers has never been run against anything, and it is the only
   product that can prove the resolution works against a repository that is not this one.
 - **FEAT-16 builds before #206 is planned.** → See `## Sequencing`.
 
@@ -153,7 +158,7 @@ Every anchor in issue #206's body was re-derived at `b6f2c80`. **Most had rotted
 
 **Facts about the tree that the issue does not mention:**
 
-- **`mruangutai/kaya-ai` is ALREADY registered in `fleet.yaml`** with `default_branch: master`. The
+- **`mruangutai/sample-product` is ALREADY registered in `fleet.yaml`** with `default_branch: master`. The
   new model's step 1 already exists for the one product that has it. What is missing is its config
   and the resolution that reads it.
 - `mruangutai/harness` is **deliberately absent** from `repos:`, and the file says why — the absence
@@ -161,9 +166,10 @@ Every anchor in issue #206's body was re-derived at `b6f2c80`. **Most had rotted
   decision, not a convenience.
 - `.harness/products/` **does not exist**. `.harness/` holds `expertise`, `factory`, `features`,
   `harness.json`, `logs`, `members`, `notes`, `README.md`, `team-config.yaml`.
-- `templates/examples/harness.kaya-ai.json` exists and is the only onboarded reference. It carries a
-  known defect: its `bugfix.always` is `["__bug_class__"]`, a predicate placeholder in no
-  `test_kinds`, so kaya's bugfix type can never resolve, and `unit` was dropped from it.
+- The archived pilot config was, at the time of this grilling, the only onboarded reference; it has
+  since been removed from the tree with the pilot's retirement. It carried a known defect: its
+  `bugfix.always` was `["__bug_class__"]`, a predicate placeholder in no `test_kinds`, so that
+  product's bugfix type could never resolve, and `unit` had been dropped from it.
 - `.harness/harness.json` has 15 top-level keys, including `github`, `budgets` and `gates` — so
   "product config" is not only the test matrix, and which keys are per-product is part of the fog
   above.
@@ -176,13 +182,13 @@ moved**, and the pattern is the point: this issue's anchors rot about once a wee
 | The table above says | At `862d270` |
 |---|---|
 | four anchored regexes at `check-domain.py:650-653` | **gone entirely.** FEAT-17 moved the boundary rule out of the embedded Python into `harness_boundary.py`; workspace resolution is now `resolve_fleet` (`:125`) and `select_base` (`:169`), and no `[^/]` anchor survives in either file |
-| `templates/examples/harness.kaya-ai.json` | the path is **`.claude/skills/harness/templates/examples/`** — `templates/` at the repo root does not exist |
+| the archived pilot config (since removed from the tree) | the path was **`.claude/skills/harness/templates/examples/`** — `templates/` at the repo root does not exist |
 | `.harness/harness.json` has 15 top-level keys | **16** |
 | a `repos:` entry carries `name` and `default_branch` | **`name`, `default_branch`, `board`** — FEAT-16 gave each repository its own board, and a leftover top-level `board:` is now rejected |
 
 **Unchanged and re-measured:** `harness-init/SKILL.md` is 286 lines; `.harness/products/` still does
-not exist; `mruangutai/kaya-ai` is still the only `repos:` entry and `mruangutai/harness` is still
-deliberately absent; kaya's `bugfix.always` is still `["__bug_class__"]`.
+not exist; `mruangutai/sample-product` is still the only `repos:` entry and `mruangutai/harness` is still
+deliberately absent; that product's `bugfix.always` was still `["__bug_class__"]`.
 
 **What FEAT-16 changed for this effort:** the fleet schema is now settled and per-repository, so the
 moving target the sequencing section names is stationary. A per-product config file is the second

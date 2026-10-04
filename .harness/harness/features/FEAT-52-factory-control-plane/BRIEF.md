@@ -12,7 +12,7 @@ and dangerous — the qa gate applies the wrong matrix), and a **missing read wi
 a doer told to read the debugging protocol from a product clone finds nothing, because FEAT-12 ended
 skill distribution, and debugs without the discipline it was told to use. The obvious anchor is
 foreclosed: `CLAUDE_PROJECT_DIR` is session-scoped and measured **unset** in an agent's own tool shell
-(#356 comment 4), so an agent cannot anchor its own paths with it. #496's first real kaya-ai factory
+(#356 comment 4), so an agent cannot anchor its own paths with it. #496's first real sample-product factory
 proof is blocked on this, and four #498 destination criteria depend on that run.
 
 ## Goal
@@ -73,7 +73,7 @@ Named by number; each says whether it BLOCKS or SUPPLIES.
   path-resolution defect is out of scope here for the same reason D-05 refuses widening a domain
   to fix one.
 - FEAT-12 SUPPLIES the fact that makes family five silent: products carry no Harness skills.
-- Out of scope, and untouched: running or testing kaya-ai product code; widening product-checkout
+- Out of scope, and untouched: running or testing sample-product product code; widening product-checkout
   write permissions for control-plane records; the `bin/` -> `src/` source-location question (#357,
   which is neither upstream nor downstream of this).
 

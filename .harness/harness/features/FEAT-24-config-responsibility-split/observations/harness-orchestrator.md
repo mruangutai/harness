@@ -46,7 +46,7 @@
   session — I die at the return — so the only lever on wall-clock is which one starts first, and
   the human one has unbounded latency while mine does not.
 
-- 2026-08-18: Composing a main-session segment note is worth a probe pass first. Fetching kaya's
+- 2026-08-18: Composing a main-session segment note is worth a probe pass first. Fetching sample-product's
   live `github` block (`gh api .../contents/...?ref=master`) and re-probing board 2's Status
   options turned a prose instruction into a literal before/after diff, and confirmed all five
   station names exist before the operator spends a cross-repository pull request on them.
@@ -112,7 +112,7 @@
   living in a file another task owns. A count alone would have routed both to the same place.
 
 - 2026-08-19: RUN THE FEATURE'S CENTRAL PATH LIVE BEFORE ACCEPTING A GREEN SUITE. Four member PASSes,
-  a 13-mutation proof table and 78/78 all held while `board_for(kaya)` — the one call the whole
+  a 13-mutation proof table and 78/78 all held while `board_for(sample-product)` — the one call the whole
   feature exists to make — raised against a file that was demonstrably readable. Cause:
   `factory_gh.file_at_ref` built `gh api <url> -f ref=<branch>`, and `-f` adds a BODY parameter, which
   makes gh switch the method to POST; the contents endpoint then 404s. Every test drove a fake gh

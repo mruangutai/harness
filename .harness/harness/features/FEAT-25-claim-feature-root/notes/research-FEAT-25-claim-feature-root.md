@@ -7,8 +7,8 @@
 **The correct root today is `<harness_root()>/.harness/harness/features` — a FIXED `harness`
 segment.** Not because `harness` is the general answer, but because three separate facts each
 independently forbid a derived one at module scope, and because every plan the gate can reach
-today lives under that path. The residual — a kaya-lane feature would live at
-`.harness/kaya-ai/features/` and a fixed root cannot reach it — is real, named below, and belongs
+today lives under that path. The residual — a sample-product-lane feature would live at
+`.harness/sample-product/features/` and a fixed root cannot reach it — is real, named below, and belongs
 to unit 7, not here.
 
 **The conditional stop does NOT fire.** The answer does not depend on unit 5's config split. See
@@ -51,7 +51,7 @@ unreadable plan as `plan = None`, `:108-109` returns `None`, `_blocker_gate:140-
 **Whose DAG at unit 8:** `factory_decompose.py:278` attaches `feature:<feat_id>` to every issue it
 creates and `:360` to the parent, and issue titles carry `T-NN` (`_TASK_ID_RE`,
 `factory_claim.py:45`). So there is no decomposed issue on any repository that bypasses the gate
-through D-09's tolerant read. A kaya issue created by `decompose` WILL be gated, and its feature
+through D-09's tolerant read. A sample-product issue created by `decompose` WILL be gated, and its feature
 directory is whatever directory the operator handed `decompose`.
 
 ## Q2 — does `factory_config` already expose a per-repository segment derivation?
@@ -59,8 +59,8 @@ directory is whatever directory the operator handed `decompose`.
 **Yes, exactly one — and it cannot serve a module-level constant.**
 
 `factory_config.workspace_path(fleet, repo_name)` at `:222-227` is "the one place that derivation
-exists": `repo_name.split("/", 1)[-1]` gives the post-owner name (`mruangutai/kaya-ai` ->
-`kaya-ai`), joined onto `fleet["workspace_root"]`.
+exists": `repo_name.split("/", 1)[-1]` gives the post-owner name (`mruangutai/sample-product` ->
+`sample-product`), joined onto `fleet["workspace_root"]`.
 
 What it does NOT give a module global:
 
@@ -103,16 +103,16 @@ uses (`layout_migration.py:88-89` states the migrated form as
 
 ### The residual, stated (not deferred silently)
 
-Under DC-4/DC-7 of #498, a kaya feature's directory is `.harness/kaya-ai/features/<FEAT>`. A fixed
-`harness` root cannot read it, so `_blocker_gate` would return the no-plan reason and **kaya's
+Under DC-4/DC-7 of #498, a sample-product feature's directory is `.harness/sample-product/features/<FEAT>`. A fixed
+`harness` root cannot read it, so `_blocker_gate` would return the no-plan reason and **sample-product's
 decomposed, `feature:`-labelled issues would still not be claimable**. Since `decompose` labels
 every issue it creates, D-09's tolerant read does not rescue this.
 
 Consequence for the operator: #498's table has unit 8 depending on units 5 and **9a**, but not on
-unit 7. If unit 8's proof runs against a kaya feature that was decomposed from a plan directory,
+unit 7. If unit 8's proof runs against a sample-product feature that was decomposed from a plan directory,
 9a alone is not sufficient. Two escapes exist and both are the operator's to pick, not the
 planner's: run unit 8's first proof against an issue with no `feature:` label (ungated), or place
-kaya's first feature directory under `.harness/harness/features/` for the proof and let unit 7
+sample-product's first feature directory under `.harness/harness/features/` for the proof and let unit 7
 move it. **Non-blocking for this plan** — it changes nothing about what the correct root is today.
 
 ## Stop condition, disposed — it does not fire

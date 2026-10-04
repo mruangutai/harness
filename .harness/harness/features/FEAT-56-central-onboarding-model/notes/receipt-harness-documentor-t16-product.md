@@ -1,5 +1,10 @@
 # Receipt — harness-documentor — FEAT-56 · T-16 (run t16-product)
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **PASS.** DEC-221 records the two-artifact onboarding split, the index carries its hand-written
 ruling, and SPEC / BUILD / org.html / both READMEs now name `harness-init` and `harness-add-repo` as
 the two skills that own the two jobs. T-16's `verify:` ran verbatim from the worktree root and exits 0.
@@ -135,7 +140,7 @@ so the green run is this task's work and not a pre-landed change.
 ```
  M .claude/agents/harness-dev-ops.md              <- SIBLING T-15
  M .claude/agents/harness-visual-designer.md      <- SIBLING T-15
- M .claude/skills/harness/templates/examples/harness.kaya-ai.json   <- SIBLING T-19
+ M .claude/skills/harness/templates/examples/harness.<product>.json   <- SIBLING T-19
  M .claude/skills/harness/templates/harness.json  <- SIBLING T-19
  M .claude/skills/harness/templates/team-config.yaml                <- SIBLING T-19
  M .harness/README.md                             <- mine

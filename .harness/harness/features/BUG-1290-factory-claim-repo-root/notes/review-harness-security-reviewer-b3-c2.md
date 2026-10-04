@@ -8,7 +8,7 @@ is byte-identical over the full range — reverified myself: `git diff 76e26386 
 ## The panel's question, answered
 
 Yes — the changed fixture now actually binds REQ-02's issue-map clause. Before this diff,
-`kaya_seg`/`harness_seg` both carried an EMPTY `factory.issues` map, so a mutant that re-keys
+`sample_seg`/`harness_seg` both carried an EMPTY `factory.issues` map, so a mutant that re-keys
 `_BlockerCache.issue_number`'s cache on `feature` alone had nothing to alias between segments
 (empty vs empty is indistinguishable) — the boundary was asserted but unguarded. I independently
 reproduced this myself, not by trusting the orchestrator's measurement: monkeypatched

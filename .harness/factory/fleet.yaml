@@ -18,10 +18,6 @@ schema: factory-fleet/1
 # to no repository declared in fleet.yaml". Louder, not quieter. Re-adding the entry is a
 # decision, not a convenience.
 repos:
-  - name: mruangutai/kaya-ai
-    default_branch: master
-    # kaya-ai's board and the rationale for its station choices live in kaya-ai's own
-    # `.harness/harness.json` on `master`. Not restated here — one statement, one home.
   - name: mruangutai/harness-factory-smoke
     default_branch: main
     # A KEPT FIXTURE, not a served product. It exists so the board-lifecycle tooling can be

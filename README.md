@@ -154,6 +154,13 @@ OMP project configuration disables Claude-format discovery. Skills remain availa
 `.agents/skills`, so OMP discovery does not depend on enabling the Claude provider even though
 the shared files are authored under `.claude/skills`.
 
+Design records live in `.harness/harness/docs/` (`SPEC.md`, `BUILD.md`, `DECISIONS.md` and its
+generated index). Where those records cite field evidence from the external product Harness was
+first piloted against, that product is named only as "the pilot host" or "the archived pilot": the
+measurements, dates and issue numbers are unchanged, the product identity is not reproduced here,
+and the unanonymized originals live in the operator's external archive rather than in this
+repository.
+
 ## Guardrails
 
 The native OMP extension preserves the Harness enforcement contracts:

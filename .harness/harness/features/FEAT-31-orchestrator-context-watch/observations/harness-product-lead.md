@@ -2,7 +2,7 @@
 
 - 2026-08-22 (fix2-product): the fix-cycle dispatch cited **DEC-141** as "generated files follow
   their source". That citation is wrong. `DECISIONS-INDEX.md:160` shows DEC-141 @3309, tags
-  `[map,brief]`, and I opened `DECISIONS.md:3309-3330`: it is the kaya map audit — `render-map.py`
+  `[map,brief]`, and I opened `DECISIONS.md:3309-3330`: it is the sample-product map audit — `render-map.py`
   renderer fixes, map authoring rules, ui-reviewer calibration. Nothing about index generation.
   The real authority for the index is the file's own contract header, `DECISIONS-INDEX.md:1-3`.
 - 2026-08-22 (fix2-product): the same dispatch said regenerate the index "if and only if the row

@@ -14,10 +14,8 @@ exactly one file in a product repository — that repository's own harness.json,
 | `STATE.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
 | `DESIGN.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | `/harness-plan` for UI projects only |
 
-**Everything directly in this directory is a template.** Anything that is not one lives in
-`examples/` — currently `harness.kaya-ai.json`, the filled pilot config for `kaya-ai`, kept as a worked
-example of what detection output looks like. Everything at this level is read as a template by
-`harness-init` or `harness-add-repo` as applicable.
+**Everything directly in this directory is a template**, read as such by `harness-init` or
+`harness-add-repo` as applicable.
 
 ## Two conventions that carry the weight
 

@@ -42,11 +42,11 @@ invited cross-repo-sequence soundness check passes.
 - **Cross-repo sequence soundness (D-06, T-01 before T-02)** — explicitly invited by the dispatch.
   Assessed and it is sound: `validate_board` is exact-set-equality in both directions
   (`factory_config.py:134` per the research note), so no ordering is atomic and every ordering
-  leaves a window. The chosen order (kaya-ai's six-key declaration merges first) means the *only*
-  live failure mode in the window is `factory_config.board_for('mruangutai/kaya-ai')` raising
-  `FleetError` naming `github.board.stations` if a factory command runs against kaya-ai before
+  leaves a window. The chosen order (sample-product's six-key declaration merges first) means the *only*
+  live failure mode in the window is `factory_config.board_for('mruangutai/sample-product')` raising
+  `FleetError` naming `github.board.stations` if a factory command runs against sample-product before
   T-02 — a loud, named, latent-not-live failure, not a silent one. T-01's intent states this
-  exactly and instructs "do not run a factory command against kaya-ai between this task and T-02"
+  exactly and instructs "do not run a factory command against sample-product between this task and T-02"
   (`plan.yaml:119-123`). The reverse order would have produced the identical class of failure in
   the opposite direction with no better outcome, so the choice does not trade a real safety
   margin for a cosmetic one. No finding.

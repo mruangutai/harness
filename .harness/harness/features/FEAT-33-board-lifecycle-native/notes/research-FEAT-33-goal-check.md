@@ -1,5 +1,10 @@
 # Goal-check — FEAT-33 — 18 MET, 2 NOT MET, 0 UNVERIFIABLE
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 > **THIS HEADER WAS REWRITTEN 2026-08-23, and it is the tenth instance of the defect this file
 > spent the day cataloguing — in this file, mine.** It read **"17 MET, 3 NOT MET, 0 UNVERIFIABLE"**
 > through SIX appended corrections that changed three of those verdicts. Appending a correction does
@@ -267,7 +272,7 @@ Appended, not rewritten (PRINCIPLES rule 15).
 - **Board 3 finished at 2 findings, not 0.** `notes/migration-harness-audit-after-2-accepted.txt`'s last
   line reads `2 finding(s)` — the two `STATUS` findings for FEAT-06 `#25` and FEAT-07 `#47`, both
   operator-accepted. Board 2 finished at `0 finding(s)`
-  (`notes/migration-kaya-ai-audit-after.txt`). This note's SC-04 verdict of NOT MET is unchanged and
+  (`notes/migration-sample-product-audit-after.txt`). This note's SC-04 verdict of NOT MET is unchanged and
   correct; scope-call item 3's "zero findings and exit 0 is the definition of finished" is a standing
   definition board 3 fell short of, which is recorded rather than falsified.
 
@@ -317,7 +322,7 @@ two false ones.** Both are retracted here and both are fixed in `BRIEF.md`.
   board. `_ALWAYS_FIXABLE_KINDS` in `board_lifecycle.py` is `{"STATION", "REASON", "LABEL"}` and the
   module docstring's RECONCILE section states that `STATION` is fixed by `gh_board.set_station`,
   which moves the card. Reconcile moved **six** cards on board 2 —
-  `notes/migration-kaya-ai-reconcile-dry.txt` previews six `STATION` fixes (`#297`, `#296`, `#152`,
+  `notes/migration-sample-product-reconcile-dry.txt` previews six `STATION` fixes (`#297`, `#296`, `#152`,
   `#83`, `#49`, `#31`) and the after capture reads `0 finding(s)`. Board 3 simply had NO `STATION`
   findings (`grep -c STATION` on its before capture returns 0), so nothing of that class existed to
   move there. The four "cannot fix, needs a human" lines I cited are the `Done`-status `STATUS`
@@ -401,7 +406,7 @@ output is really captured, so the two `test -z` clauses are not passing vacuousl
 
 ### Q9 — the claim-making notes are read in full. TWO findings, both left standing.
 
-Read end to end: `STATE.md`, `migration-harness.md`, `migration-kaya-ai.md`, `retitle-harness.md`,
+Read end to end: `STATE.md`, `migration-harness.md`, `migration-sample-product.md`, `retitle-harness.md`,
 `live-provision-sc01.md`, `handoff-build.md`, `handoff-plan.md`, `rulings-2026-08-23.md`, and the six
 `research-*.md`. Skipped per the ruling: 20 receipts, 10 raw `.txt` captures, 7 `review-*.md` and
 `qa-gate-c0.md` — a receipt, a capture and a review are dated records of one act, and a record of the
@@ -417,7 +422,7 @@ cards"*, records the reversal and ends `0 finding(s)`, exit 0. **A reader reads 
 stops** — which is exactly what happened to me, one file over. This is the highest-value correction
 left on the feature and it is outside every authorisation given.
 
-**NINTH, minor: `notes/migration-kaya-ai.md`.** "Unlike board 3, this board genuinely reaches zero"
+**NINTH, minor: `notes/migration-sample-product.md`.** "Unlike board 3, this board genuinely reaches zero"
 is no longer a distinction, and its "discriminating pair" table cell for board 3 after the fix reads
 `2`, now `0`. The table's POINT survives untouched — that STATUS still runs on the own-repo board and
 a blanket silencing would look identical on board 2 — so only the number and the contrast are stale.
@@ -493,7 +498,7 @@ corrected verify now reads both captures through `git show HEAD:` and names whic
   STILL TRUE separated from the part that was false: `reconcile` really will not write a `Done` column
   (`_fixable`, D-22) — what was wrong was concluding that a HUMAN could not. **A tool's limit was
   mistaken for the board's limit.** A which-capture-is-which table is now in the summary.
-- **`notes/migration-kaya-ai.md`** — the "unlike board 3, this board genuinely reaches zero" contrast
+- **`notes/migration-sample-product.md`** — the "unlike board 3, this board genuinely reaches zero" contrast
   is gone (board 3 also reads zero; the difference was route, not outcome), and the discriminating-pair
   table's board-3 cell now says when it was read. The table's point is untouched.
 
@@ -503,7 +508,7 @@ The pattern is **a summary section written before a reversal, with the reversal 
 Found in three files and all three are fixed: `migration-harness.md` (`## Outcome`), this file (the
 header line), and — the same shape one level down — `T-11`'s `verify:`, whose comment described the
 first ruling while the second had already landed. Checked and CLEAN of this shape:
-`migration-kaya-ai.md` (its Outcome was always `0 findings`), `retitle-harness.md` (no ruling
+`migration-sample-product.md` (its Outcome was always `0 findings`), `retitle-harness.md` (no ruling
 reversed mid-run), `live-provision-sc01.md` (its BLUF matches its body — though it separately quoted BRIEF.md's
 NOT-proven sentence by a line anchor that has since moved, now labelled as the text AS SIGNED; that is
 a stale quotation, not this shape), both handoffs,

@@ -50,8 +50,8 @@ gap: mode stays 0700, content is synthetic fixture data.
 (`test-factory-claim.py:398-400`) does `segment = repo_name.split("/", 1)[-1]` then
 `os.path.join(FIXTURE_HARNESS_ROOT, ".harness", segment, "features")` — this is the exact join
 shape a traversal would target. But every `repo_name` reaching it is a hardcoded module constant
-(`REPO`, `REPO_B`, `REPO_KAYA`, `REPO_HARNESS_SEG`, `"acme/other"`, `"acme/zzz-missing-segment"`) or
-a literal passed inline at a call site (`repo_dict(REPO_KAYA)`, `repo_dict(repo_missing)`) — never
+(`REPO`, `REPO_B`, `REPO_SAMPLE`, `REPO_HARNESS_SEG`, `"acme/other"`, `"acme/zzz-missing-segment"`) or
+a literal passed inline at a call site (`repo_dict(REPO_SAMPLE)`, `repo_dict(repo_missing)`) — never
 CLI argv, env, or any value read from outside the test file itself. There is no untrusted-input path
 into this join; traversal is not reachable from this diff.
 

@@ -1,5 +1,5 @@
 # FEAT-33 build seam — 22 tasks, five live board runs, and what the tests could not see
-
+> **Archival note:** The retired pilot’s product-specific evidence and config are preserved outside Harness. Anonymized references below are historical, not local files or live instructions.
 ## Next
 The validation panel is run and its must-fixes are in fix cycle c1. What remains after that:
 pm's goal-check against SC-01..SC-20, then the PR carrying `Closes #675`, `Closes #673`,
@@ -57,4 +57,4 @@ Three things this build leaves open, all filed:
 - `factory_config.py` `_STATION_KEYS` at six; `SKILL.md`, `commands/harness-plan.md`,
   `harness-init/SKILL.md`, `templates/harness.json`.
 - `DECISIONS.md` — DEC-196 am.3 and am.4.
-- `notes/migration-harness.md`, `retitle-harness.md`, `migration-kaya-ai.md` — live captures.
+- `notes/migration-harness.md`, `retitle-harness.md`, `migration-sample-product.md` — live captures.

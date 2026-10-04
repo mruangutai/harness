@@ -23,7 +23,7 @@ is struck: there is no later effort, and nothing tracked one.
 ## A-02 — Take advantage of the board that `fleet.yaml` already holds.
 
 Do not invent a second source for a product's board. `fleet.yaml` has carried the board
-per-repository since FEAT-16, and kaya's entry already holds `owner: mruangutai`, `number: 2`,
+per-repository since FEAT-16, and sample-product's entry already holds `owner: mruangutai`, `number: 2`,
 `station_field: Status` and its three station names. `factory_config` already exposes
 `board_for(fleet, repo_name)` and `board_station(fleet, repo_name, key)`.
 
@@ -41,7 +41,7 @@ file. This agrees with D-01 and does not reopen it.
 
 ## A-04 — Proving it end to end stays OUT of this feature.
 
-The BRIEF's exclusion of cloning, running or testing kaya's code stands. A first real factory run
+The BRIEF's exclusion of cloning, running or testing sample-product's code stands. A first real factory run
 is its own effort; folding it in would hide config defects behind checkout defects.
 
 ## Facts the main session verified at `63b83c7`, so pm does not re-derive them
@@ -78,12 +78,12 @@ own checkout.
 copied into a product; the 2026-08-09 ruling makes harness the control plane; and a workspace
 checkout is disposable — `factory_workspace.py` clones fresh, so anything written there dies with
 the clone, while `.harness/` is committed. `features/<FEAT>/notes/` and `.../observations/` already
-carry the feature id in the path (DEC-130), so a kaya feature and a harness feature never share a
+carry the feature id in the path (DEC-130), so a sample-product feature and a harness feature never share a
 directory. **That structure needs no change and no task.**
 
 **But the question exposed a third instance of this feature's own defect class, and it is now IN
 SCOPE.** `expertise/<agent>.md` is per **agent**, never per product. Once `harness-backend-dev`
-works on kaya, kaya-specific knowledge lands in the same file the `SubagentStart` hook injects when
+works on sample-product, sample-product-specific knowledge lands in the same file the `SubagentStart` hook injects when
 that role next works on harness. It is the same silent wrong answer as the test matrix and the
 board, reached through the third door. **Nothing in the BRIEF, the plan or the grilling artifact
 addresses it — the main session checked.**
@@ -201,9 +201,9 @@ codebase map and a third for whatever comes next.
 
 - **Craft layer** — how the role works, true wherever it works: re-derive an anchor at HEAD before
   citing it; never quote a figure with no artifact behind it; prove a new check can redden. A role
-  arriving on kaya keeps all of it.
+  arriving on sample-product keeps all of it.
 - **Repository layer** — what is true of one repository: which test runner exists, which board
-  number, which paths are granted. A role arriving on kaya must NOT carry harness's answers, which
+  number, which paths are granted. A role arriving on sample-product must NOT carry harness's answers, which
   is the same silent-wrong-answer defect as the test matrix and the board.
 
 pm owns the mechanism and must state the rule that decides which layer an observation belongs to —

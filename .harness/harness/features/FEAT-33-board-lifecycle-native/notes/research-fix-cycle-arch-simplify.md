@@ -59,7 +59,7 @@ five enforcement paths, plus `check-state.py`) · S5 (T-02 runs `check-state.py`
 after and asserts the finding **set** identical, not both exit 0 — DEC-174 am.4's own idiom; also
 discharges SC-10's orphaned half) · S6 (`--kind all` on T-07/T-08 with the reason stated) ·
 S7/L5 (`.harness/harness.json` dropped from T-04's `files:`) · S8 (T-01's abandon path = a revert PR
-on kaya-ai's `master`, new **D-13**) · S9 (T-02 case (c) explicitly labelled *not* SC-08's
+on sample-product's `master`, new **D-13**) · S9 (T-02 case (c) explicitly labelled *not* SC-08's
 discriminating assertion) · L6 (T-10 anchors on the "GitHub Issues mirror" section by name;
 `SKILL.md:200` sits after both `### 7` at `:174` and the unnumbered map-the-codebase section at
 `:189`) · B3 (T-10 states org-owned boards cannot be provisioned) · B6 (T-11 says the `0 findings`

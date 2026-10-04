@@ -202,7 +202,7 @@ if the key has left the fleet entry**". That is literally true, but the instrume
 `load_fleet`'s schema rejection (`factory_config.py:183`) — which is **shared with every other
 consumer**, the one thing SC-07's "no two consumers sharing one" forbids.
 
-`case3_presence_kaya_default_branch_is_master`: **PASS** (my run).
+`case3_presence_sample_default_branch_is_master`: **PASS** (my run).
 
 ## SC-10 — partial, 11 of 12 items
 
@@ -252,7 +252,7 @@ which cannot pass if the raise is removed (unlike an absence-grep).
 exact string in T-07's verify at `plan.yaml:1128`.
 
 **SC-09 — met, my own live read today.** `gh api
-repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master` returns `github.board =
+repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master` returns `github.board =
 {owner: mruangutai, number: 2, station_field: Status, stations: {backlog, ready, building, review,
 done}}` — five stations — and none of `project_number`, `project_id`, `status_field`,
 `in_progress_option` at top level or inside `github`. Independently confirms the code-reviewer's
@@ -271,7 +271,7 @@ never that it is *true*.
 - **Clause 1 (met):** registered script count = **28** at HEAD — `UNIT_SCRIPTS` 16 +
   `INTEGRATION_SCRIPTS` 12, `run-unit-tests.py:17-18`, my own count, matching the panel's 28/28
   before. No test file removed. **The instrument's blindness, confirmed:** this very diff deleted two
-  named cases (`every_repo_declares_its_own_board`, `kaya_ai_is_paired_with_board_2`,
+  named cases (`every_repo_declares_its_own_board`, `sample_is_paired_with_board_2`,
   `test-no-distribution.py:293-298`) and the count stayed 28, because counting FILES cannot see a
   deleted CASE. The criterion's own chosen instrument provably could not see the deletion that
   happened inside its own feature. Worse, nothing in the tree *implements* the before/after

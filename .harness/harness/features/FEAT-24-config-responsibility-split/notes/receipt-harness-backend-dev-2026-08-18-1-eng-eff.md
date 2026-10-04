@@ -13,7 +13,7 @@ one network call").
 twice per process — once directly at :329, once indirectly at :399 through `board_station`, which
 T-02 item 8 routes through `board_for`. `factory_claim.py:226` and `factory_land.py:85` each call it
 once, so they're unaffected either way. I measured one `gh api` contents read at 0.577s wall
-(`time gh api "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master" --jq .content`).
+(`time gh api "repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master" --jq .content`).
 If the memo is missing or broken, every `factory_decompose.py` invocation pays that cost twice
 (~0.58s extra) — and nothing catches the regression, because T-02's enumerated test list (17 cases,
 `plan.yaml:433-450`) and the current `test-factory-config.py` (grepped, no `memo|cache|call_count`

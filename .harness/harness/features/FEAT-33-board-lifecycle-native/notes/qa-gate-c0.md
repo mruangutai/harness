@@ -1,5 +1,10 @@
 # QA gate — FEAT-33 board-lifecycle-native — c0
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **VERDICT: PASS**, with two findings that do not gate (a stale dispatch task-count matrix, and one
 SC-19 number drift) and one live-board observation that is expected transient state, not a defect.
 
@@ -53,7 +58,7 @@ Against `harness.json`'s `test_matrix` on the corrected counts:
 - SC-07: `test-board-lifecycle.py:362-363` ("nothing to do")
 - SC-09: `test-board-lifecycle.py:556-568`
 - SC-10: suite green (above) + `check-state.py` exit 0 + four-file untouched list confirmed via `git diff --stat` against `gh_board.py`/`board-station.py` (both absent from diff, as required)
-- SC-11: **deliberately `not_met`** — `notes/migration-kaya-ai.md` is explicit that this is uat, operator-run
+- SC-11: **deliberately `not_met`** — `notes/migration-sample-product.md` is explicit that this is uat, operator-run
 - SC-12: `DECISIONS.md` DEC-196 am.3 declares `plan`; `DECISIONS-INDEX.md:214` reads `am.1-am.4`; `gen-decisions-index.py --stdout` diffed clean against the committed index (live-verified)
 - SC-13/14: `gh-sync.py:878-961` matches spec exactly (Ready→sub-issues only, never parent; Review→parent+sub-issues; Done/Abandoned/Plan write nothing); tests at `test-gh-sync.py:1596-1697` assert exact sets, not counts
 - SC-15: `DECISIONS.md:6500-6506` six-row map, one writer each; `SKILL.md:191,197,199` — `main-session-direct` appears twice (T-14's own verify requirement), `gh-sync.py status` named for both actors
@@ -81,10 +86,10 @@ something the report tried to hide. This is a finding for the record, not a gate
    This is the expected transient shape of an in-flight feature going through its own gate, not a
    regression — it will resolve when this feature's status is next recorded. Flagging it so pm
    does not mistake a stale "2 findings" snapshot for the current live count.
-2. **`notes/migration-kaya-ai.md`** — supports its claim, and is the strongest of the three: it
+2. **`notes/migration-sample-product.md`** — supports its claim, and is the strongest of the three: it
    documents finding and fixing #783 (the STATUS class walking this checkout's own features
    against a foreign board, 18/29 false findings) live, mid-task, rather than after the fact. Final
-   captured audit (`migration-kaya-ai-audit-after.txt` not separately re-verified live to avoid
+   captured audit (`migration-sample-product-audit-after.txt` not separately re-verified live to avoid
    touching a real board twice, but the committed report's own "Final audit" block matches its
    before/after table) shows `0 findings`, contradiction-free with the discriminating pair table
    (board 2 foreign vs board 3 own).
@@ -125,7 +130,7 @@ violation found in the sampled tasks.
 | SC-08 | `.claude/skills/harness/bin/test-board-lifecycle.py:390-401` |
 | SC-09 | `.claude/skills/harness/bin/test-board-lifecycle.py:556-568` |
 | SC-10 | suite run above + `check-state.py` live exit 0 |
-| SC-11 | not_met (uat, operator-run) — `notes/migration-kaya-ai.md` |
+| SC-11 | not_met (uat, operator-run) — `notes/migration-sample-product.md` |
 | SC-12 | `.harness/harness/docs/DECISIONS.md` DEC-196 am.3 + `DECISIONS-INDEX.md:214` (inspection) |
 | SC-13 | `.claude/skills/harness/bin/test-gh-sync.py:1596-1697` |
 | SC-14 | `.claude/skills/harness/bin/test-gh-sync.py` (SC-14 fixture, zero-sub-issue case) |

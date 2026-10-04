@@ -1,3 +1,8 @@
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 Removed 22 key(s) from FEAT-12-end-copy-distribution's feature.yaml because each had no reader; FEAT-14 closed the key set to eleven. This receipt is the only durable record of their values.
 
 ## status collapse (the pre-collapse pair survives only here)
@@ -57,13 +62,13 @@ gate_status:
   suite: PASS at d543809 - full run exit 0, 23 test scripts PASS, 0 FAIL. Re-run BY
     ME after the commit, so allow-list entry 1 is load-bearing rather than inert
   uat: BLOCKING and OUTSTANDING - SC-06 is the operator's own run against a factory
-    checkout of kaya
+    checkout of sample-product
 grilling: .harness/notes/grilling-end-distribution-2026-08-10.md
-kaya_push: '7d2f946 on mruangutai/kaya-ai master. VERIFIED BY ME at f3452bf, not relayed:
+product_push: '7d2f946 on mruangutai/sample-product master. VERIFIED BY ME at f3452bf, not relayed:
   T-05''s verify string run verbatim returns REMOTE_CLEAN, and settings.json.harness-bak
   is absent from origin/master, so the D-06 reversal landed. The STOP condition was
   disambiguated as reading B by the operator after all 57 entries were identified
-  as deploy.sh artifacts - notes/answers-2026-08-10-04-kaya-stop.md.'
+  as deploy.sh artifacts - notes/answers-2026-08-10-04-sample-product-stop.md.'
 mission: ship
 plan_defects: TWO, recorded against the plan and NOT fixed by me - the plan is approval-gated.
   T-06's verify calls factory_config.repo_entry with ONE argument where the signature
@@ -76,8 +81,8 @@ playbook_defect: MEASURED. The playbook says write-less reviewers return ops and
   each reviewer its own at exit 0 because all three hold Write. The documented path
   is impossible; the working one is forbidden by that document.
 sc05_probe: 'MEASURED BY ME after the panel raised it, because a probe closes it and
-  an inference does not. kaya .harness/ IS tracked - 117 files. The deletion commit
-  7d2f946 touched NOTHING under it, so the pathspec held. Kaya''s working tree carries
+  an inference does not. sample-product .harness/ IS tracked - 117 files. The deletion commit
+  7d2f946 touched NOTHING under it, so the pathspec held. The product''s working tree carries
   exactly ONE modification there, features/FEAT-03-live-review-loop/feature.yaml,
   whose mtime is 2026-08-07 19:57:04 - THREE DAYS BEFORE this feature ran, so it is
   not attributable to FEAT-12. Manifests are 377 identical paths with ZERO sha256
@@ -89,7 +94,7 @@ sc05_ruling: 'OPERATOR RULING, 2026-08-11. SC-05 is MET on path-set equality, WI
   THE WEAKENING RECORDED HERE rather than left implicit. What the criterion claimed:
   same file count AND same per-file sha256. What exists: 377 identical PATHS and zero
   sha256 fields, plus git evidence that the deletion commit touched nothing under
-  kaya''s .harness/. So content integrity is strongly evidenced for the 117 TRACKED
+  sample-product''s .harness/. So content integrity is strongly evidenced for the 117 TRACKED
   paths and UNEVIDENCED for the 260 untracked ones. The before-state no longer exists,
   so no re-run can close the gap - a second capture would be two after-states. The
   operator accepted this rather than restate the criterion or fail it. Anyone citing

@@ -726,7 +726,7 @@ with tempfile.TemporaryDirectory() as td:
         "schema": "factory-fleet/1",
         "repos": [
             {"name": "mruangutai/harness", "default_branch": "main"},
-            {"name": "mruangutai/kaya-ai", "default_branch": "master"},
+            {"name": "mruangutai/sample-product", "default_branch": "master"},
         ],
         "workspace_root": "/tmp/does-not-need-to-exist/factories",
     }
@@ -736,7 +736,7 @@ with tempfile.TemporaryDirectory() as td:
     # board_for resolves — is the board NUMBER and the owner.
     _boards_by_repo = {
         "mruangutai/harness": board_dict(3),
-        "mruangutai/kaya-ai": board_dict(2),
+        "mruangutai/sample-product": board_dict(2),
     }
 
     def _stub(repo, path, ref, _boards=_boards_by_repo):
@@ -744,7 +744,7 @@ with tempfile.TemporaryDirectory() as td:
 
     with patched_file_at_ref(_stub):
         _b1 = fc.board_for(fleet, "mruangutai/harness")
-        _b2 = fc.board_for(fleet, "mruangutai/kaya-ai")
+        _b2 = fc.board_for(fleet, "mruangutai/sample-product")
         _ok = (_b1["number"] == 3 and _b1["owner"] == "mruangutai"
                and _b2["number"] == 2
                and tuple(_b2["stations"]) == fc.MANDATED_STATIONS)
@@ -973,17 +973,17 @@ with tempfile.TemporaryDirectory() as td:
         "schema": "factory-fleet/1",
         "repos": [
             {"name": "mruangutai/harness", "default_branch": "main"},
-            {"name": "mruangutai/kaya-ai", "default_branch": "master"},
+            {"name": "mruangutai/sample-product", "default_branch": "master"},
         ],
         "workspace_root": "/tmp/does-not-need-to-exist/factories",
     }))
     _boards_by_repo = {
         "mruangutai/harness": board_dict(3),
-        "mruangutai/kaya-ai": board_dict(2),
+        "mruangutai/sample-product": board_dict(2),
     }
     with patched_file_at_ref(
             lambda repo, path, ref, _boards=_boards_by_repo: json.dumps(config_doc(_boards[repo]))):
-        _val = fc.board_station(fleet, "mruangutai/kaya-ai", "ready")
+        _val = fc.board_station(fleet, "mruangutai/sample-product", "ready")
     # (29) NO LONGER "the per-repo ready OPTION": under FEAT-41 T-01 a repo cannot name its own
     # column, so what board_station returns is the DERIVED column for a station it has verified
     # the repo declares. The assertion is therefore station_column's output, not a fixture value —

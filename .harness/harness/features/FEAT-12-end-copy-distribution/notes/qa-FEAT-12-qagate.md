@@ -1,5 +1,10 @@
 # QA Gate — FEAT-12 End copy-based distribution — d543809
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 ## Verdict: PASS
 
 Matrix satisfied. Both blocking judgment questions resolved in the implementation's favor,
@@ -145,8 +150,8 @@ tradeoff is documented and deliberate in plan.yaml, and the file's *behavioural*
 | SC-01 | `run-unit-tests.py` full run, ALL PASS after deploy.sh/harness-deploy.md deletion | satisfied |
 | SC-02 | `test-check-plan-routes.py` under `--kind integration`, all cases incl. case_21 (registry-independent) | satisfied |
 | SC-02b | inspection only (per BRIEF) — not a test-runner claim; T-09's verify output is the cited evidence, not re-derived here | n/a to qa |
-| SC-03 | `test-no-distribution.py` case 3 (`case3_presence_fleet_yaml_safe_loads`, `case3_presence_fleet_has_exactly_two_repos`, `case3_presence_kaya_default_branch_is_master`) | satisfied |
-| SC-04 | inspection (BRIEF: no test kind reaches `kaya-ai`) | n/a to qa |
+| SC-03 | `test-no-distribution.py` case 3 (`case3_presence_fleet_yaml_safe_loads`, `case3_presence_fleet_has_exactly_two_repos`, `case3_presence_sample_default_branch_is_master`) | satisfied |
+| SC-04 | inspection (BRIEF: no test kind reaches `sample-product`) | n/a to qa |
 | SC-05 | inspection — sha256 manifest diff (T-04's verify) | n/a to qa |
 | SC-06 | uat — operator's own blocking check | n/a to qa |
 | SC-07 | `test-no-distribution.py` case 2 (`case2_absence_no_unswept_distribution_tokens`, `case2_presence_scan_reached_the_tree`), mutation-proven above | satisfied |
@@ -195,8 +200,8 @@ Every one maps to exactly one of three buckets:
    `wayfind.py` (T-10); `deploy.sh` (T-07); `run-unit-tests.py`, `test-no-distribution.py` (T-13);
    `fleet.yaml` (T-06); `.harness/README.md`, `README.md`, `docs/harness/SPEC.md` (T-12);
    `docs/harness/BUILD.md` (T-12 and T-14 both); `docs/harness/DECISIONS.md`,
-   `docs/harness/DECISIONS-INDEX.md` (T-14); `notes/kaya-agents-count-before.txt` (T-02);
-   `notes/kaya-harness-manifest-before.txt` (T-01); `notes/kaya-harness-manifest-after.txt` (T-04).
+   `docs/harness/DECISIONS-INDEX.md` (T-14); `notes/sample-product-agents-count-before.txt` (T-02);
+   `notes/sample-product-harness-manifest-before.txt` (T-01); `notes/sample-product-harness-manifest-after.txt` (T-04).
 2. **Bookkeeping, non-source** — 18 paths: `.harness/features/FEAT-12-end-copy-distribution/`
    `BRIEF.md`, `STATE.md`, `feature.yaml`, `plan.yaml`, every other `notes/*` (receipts, research,
    answers, handoff, measurements), both `observations/*.md`, and `.harness/logs/2026-08-10.md`.
@@ -213,7 +218,7 @@ already correctly derived and gated in the original run above.
 **Inverse check — any task whose declared in-repo `files:` did not change: none.** T-01, T-02,
 T-04, T-06, T-07, T-08, T-10, T-11, T-12, T-13, T-14 all have every in-repo declared path present
 in the 45-path diff. T-03, T-05, T-09 declare only paths outside `CLAUDE_PROJECT_DIR`
-(kaya-ai, `$HOME`) and correctly contribute nothing to this repo's diff, per the dispatch's own
+(sample-product, `$HOME`) and correctly contribute nothing to this repo's diff, per the dispatch's own
 note.
 
 **Total changed-file count for the FEAT-12-restricted diff: 45** (27 task-declared, 18

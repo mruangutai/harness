@@ -1,5 +1,10 @@
 # Receipt — harness-pm — FEAT-12 send-back cycle 2 — 2026-08-10-03-product
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **Both F-1 and F-2 landed. One cycle-1 edit had to move: F-2's defect also lived in `plan.yaml`
 T-02's intent, so `plan.yaml` was touched and the A-2 check was re-run.** Nothing else changed.
 
@@ -9,9 +14,9 @@ Approval blocks untouched — `plan.yaml` `approval: {status: pending, approved_
 
 ## The worktree measurement (F-2) — enumerated, not sampled
 
-Observed 2026-08-10 in `/Users/molchairuangutai/GitHub/kaya-ai`, reads only. Anchor: kaya `master`
+Observed 2026-08-10 in `/Users/molchairuangutai/GitHub/sample-product`, reads only. Anchor: sample-product `master`
 at `b6aaab9`; branch tips as named. (This repo's HEAD is `8dedeae`, one commit past cycle-1's
-`687fd3e` — `8dedeae FEAT-11 signed`; `687fd3e` confirmed an ancestor. Kaya facts carry kaya shas.)
+`687fd3e` — `8dedeae FEAT-11 signed`; `687fd3e` confirmed an ancestor. Product facts carry that product's shas.)
 
 | worktree | branch | tip | `ls-files '.claude/skills/harness*'` |
 |---|---|---|---|
@@ -28,7 +33,7 @@ at `b6aaab9`; branch tips as named. (This repo's HEAD is `8dedeae`, one commit p
   *directory* count and wrong in attributing it to six worktrees and in calling it untracked.
 - What is ignored is only the container, in the **main** tree: `git check-ignore -v
   .claude/worktrees` → `.gitignore:23:.claude/worktrees/`. That is why the copies never surface in
-  kaya's root `git status`. Inside each worktree they are clean tracked content of that branch.
+  sample-product's root `git status`. Inside each worktree they are clean tracked content of that branch.
 - `git ls-files '.claude/worktrees*'` on `master` → **0**. A factory clone of `master` carries no
   worktrees at all, so the deferral cannot reach SC-06.
 - **The factory can never execute against the residue.** After T-05 the two diverged branches hold
@@ -48,8 +53,8 @@ Three carrying zero is a different population, not disagreement.
 
 ## What changed
 
-**F-1 — `## Goal` (BRIEF:28-40).** Rewritten so it and REQ-03 say the same thing. "kaya-ai's copy of
-the tooling is removed" → the copy in kaya-ai's own three tooling directories, committed to
+**F-1 — `## Goal` (BRIEF:28-40).** Rewritten so it and REQ-03 say the same thing. "sample-product's copy of
+the tooling is removed" → the copy in sample-product's own three tooling directories, committed to
 `master`; "never by holding a copy of it" kept as ambition ("not by holding a copy of it") with the
 branch-local residue named in one closing clause and pointed at `## Constraints`. Still a goal
 paragraph, not a second constraints list.
@@ -63,9 +68,9 @@ Swept the rest of the BRIEF for the same unqualified claim rather than stopping 
 - `REQ-03` (BRIEF:46-53) — "six git worktrees" corrected to three, deferral labelled transient with
   its mechanism.
 - `## Verification gaps` — **checked, not edited.** It already says no test kind can observe another
-  repository and that every kaya claim rests on inspection or the operator. Still true; the
+  repository and that every sample-product claim rests on inspection or the operator. Still true; the
   worktree finding adds nothing it does not already cover.
-- No other unqualified "kaya-ai holds no copy" claim survives (grep of `worktree|untracked|
+- No other unqualified "sample-product holds no copy" claim survives (grep of `worktree|untracked|
   gitignor|six|56|copy of` over the whole file).
 
 **F-2 — `## Constraints` (BRIEF:181-203, the bullet opening "Out of scope and DEFERRED").** Bullet rewritten to state the **measured** reason, with
@@ -89,8 +94,8 @@ deferral is stated.
 
 - `check-plan-routes.py`: **exit 0**, `0 violation(s) across 7 plan(s)`. FEAT-12 lines are the same
   two predicted advisories as cycle 1 and nothing was restructured to chase them:
-  - `DEVIATION T-01 .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt granted to harness-orchestrator but declared main-session-direct`
-  - `DEVIATION T-04 .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt granted to harness-orchestrator but declared main-session-direct`
+  - `DEVIATION T-01 .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt granted to harness-orchestrator but declared main-session-direct`
+  - `DEVIATION T-04 .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-after.txt granted to harness-orchestrator but declared main-session-direct`
   - all other FEAT-12 lines `OK`.
 - **A-2 re-run** (required — `plan.yaml` was touched). `safe_load` succeeds. Both `#<digits>` tokens
   survive with no reduction in count: raw `['#206','#202','#202','#202']`, loaded identical. All 49

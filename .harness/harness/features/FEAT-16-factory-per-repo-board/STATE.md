@@ -6,7 +6,7 @@
 - run: .harness/features/FEAT-16-factory-per-repo-board/runs/2026-08-12-4-product/state.yaml
 - squad: product
 - status: awaiting_user — 12 of 13 SCs met; SC-06 needs the operator's live run
-- next: the operator's UAT (SC-06) — a live factory claim against a throwaway kaya-ai issue on board
+- next: the operator's UAT (SC-06) — a live factory claim against a throwaway sample-product issue on board
   2, per `BRIEF.md ## Constraints`. Then the ship decision. No agent work is outstanding.
 
 **All eleven tasks are done and every gate has run.** qa gate `matrix_ok: true` (unit exit 0,
@@ -55,7 +55,7 @@ only inside a gitignored run digest, which is why they are restated here.
 
 ## Open Questions
 
-- Q1 (BLOCKING, operator only): SC-06's live factory claim run against a throwaway kaya-ai issue on
+- Q1 (BLOCKING, operator only): SC-06's live factory claim run against a throwaway sample-product issue on
   board 2. It mutates a live board, so no agent may perform it and no gate can close it.
 - Q2 (non-blocking): amend SC-10's base to `a7c429c`, or record the discrepancy as known?
 - Q3 (non-blocking): amend SC-13's rationale, or record it as a known inaccuracy?

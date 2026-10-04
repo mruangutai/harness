@@ -155,6 +155,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Final validation passed; continue across the recorded validate seam to the requested documentation audit and CEO briefing."
+    },
+    {
+      "at": "2026-10-04T16:13:57.632739+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-04.intent",
+      "reason": "Operator-approved product retirement (#2019): anonymize historical pilot identity, preserve completed task semantics and original signature; originals retained in the external archive."
+    },
+    {
+      "at": "2026-10-04T16:13:57.632955+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-04.files",
+      "reason": "Operator-approved product retirement (#2019): remove the deleted pilot-specific template from current anchors. Historical original and completed evidence remain in the external archive."
     }
   ],
   "mission": "plan",

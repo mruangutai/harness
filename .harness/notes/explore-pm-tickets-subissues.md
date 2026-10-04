@@ -7,7 +7,7 @@ the work actually has.
 
 ## The evidence — the specified model has a 0-for-3 record
 
-`feature.yaml` `github.issues` across every kaya feature:
+`feature.yaml` `github.issues` across every archived-pilot feature:
 
 | Feature | Milestone | T-NN → issue mapping | Reality |
 |---|---|---|---|

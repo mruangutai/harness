@@ -29,7 +29,7 @@ panel:
     severity: med
     reader: scope
     kind: substance
-    summary: SC-06 lacks explicit end-to-end verification for two independent Kaya worktrees and two same-role children on one product feature.
+    summary: SC-06 lacks explicit end-to-end verification for two independent sample-product worktrees and two same-role children on one product feature.
     disposition: resolved
     resolved_by: T-02, T-03, T-04
     resolution: The amended task intents now explicitly verify both retained-behavior scenarios, and the scope recheck returned PASS.
@@ -171,7 +171,7 @@ tasks:
     - tests/unit/omp-hooks.test.ts
     verify: python3 tests/unit/test-harness-boundary.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py
     intent: >-
-      Write failing tests first. Reject caller-authored runtime-lineage fields. Validate HARNESS-REPOSITORY and HARNESS-FEATURE against the factory claim, fleet, and repository-tier feature artifact; atomically create the repository-bound claim before spawn. In the trusted OMP task hook, bind that claim to the host-provided parent id and, when available, the named child id; otherwise let the child's first authorized callback attach only to the unique parent-bound claim. Pass repository identity in the claim receipt, fail closed with a distinct collision category when a child or parent identity is already bound to another active dispatch, release the exact claim on completion, and preserve non-Harness pass-through behavior. Prove two same-role children on one product feature remain independently authorized and two independent Kaya feature worktrees retain their existing authorization. Rerun the shared boundary suite after the final registry mutation. Extend the live runtime-lineage probe to launch two concurrent same-role children and require distinct child ids under the correct immediate parent.
+      Write failing tests first. Reject caller-authored runtime-lineage fields. Validate HARNESS-REPOSITORY and HARNESS-FEATURE against the factory claim, fleet, and repository-tier feature artifact; atomically create the repository-bound claim before spawn. In the trusted OMP task hook, bind that claim to the host-provided parent id and, when available, the named child id; otherwise let the child's first authorized callback attach only to the unique parent-bound claim. Pass repository identity in the claim receipt, fail closed with a distinct collision category when a child or parent identity is already bound to another active dispatch, release the exact claim on completion, and preserve non-Harness pass-through behavior. Prove two same-role children on one product feature remain independently authorized and two independent sample-product feature worktrees retain their existing authorization. Rerun the shared boundary suite after the final registry mutation. Extend the live runtime-lineage probe to launch two concurrent same-role children and require distinct child ids under the correct immediate parent.
 
   - id: T-03
     title: Enforce exact repository binding on Write and Edit
@@ -187,7 +187,7 @@ tasks:
       - tests/integration/test-check-domain-grant.py
     verify: python3 tests/integration/test-check-domain-claims.py && python3 tests/integration/test-check-domain-grant.py
     intent: >-
-      Write failing tests first. For governed Write and Edit payloads, combine the host-provided child and immediate-parent ids with the target's classified repository and require one exact active claim before any wildcard grant can allow the write. Render each missing, reused-by-another-active-dispatch, mismatched, stale, released, unreadable, or ambiguous state as actionable exit 2 without exposing registry details. Preserve `--resolve`, the main-session exemption, Harness self-development, two-base routing, worktree and wrong-checkout protections, repeated valid writes in one active claim, two independent Kaya feature worktrees, and two same-role children on one product feature. Prove concurrent same-role agents can write only their own products.
+      Write failing tests first. For governed Write and Edit payloads, combine the host-provided child and immediate-parent ids with the target's classified repository and require one exact active claim before any wildcard grant can allow the write. Render each missing, reused-by-another-active-dispatch, mismatched, stale, released, unreadable, or ambiguous state as actionable exit 2 without exposing registry details. Preserve `--resolve`, the main-session exemption, Harness self-development, two-base routing, worktree and wrong-checkout protections, repeated valid writes in one active claim, two independent sample-product feature worktrees, and two same-role children on one product feature. Prove concurrent same-role agents can write only their own products.
 
   - id: T-04
     title: Enforce the same repository binding on detectable Bash writes
@@ -202,7 +202,7 @@ tasks:
       - tests/integration/test-bash-write-guard.py
     verify: python3 tests/integration/test-bash-write-guard.py
     intent: >-
-      Write failing tests first. Apply the same shared exact child, parent, repository, feature, and role claim decision to every detectable Bash target after classification and before existing product or outside-root continuation. Preserve command extraction, location and worktree refusals, main-session behavior, Harness self-development, repeated valid writes, two independent Kaya feature worktrees, and two same-role children on one product feature. Prove the concurrent two-product matrix plus missing, reused-by-another-active-dispatch, mismatched, stale, released, unreadable, ambiguous, and cross-product refusals.
+      Write failing tests first. Apply the same shared exact child, parent, repository, feature, and role claim decision to every detectable Bash target after classification and before existing product or outside-root continuation. Preserve command extraction, location and worktree refusals, main-session behavior, Harness self-development, repeated valid writes, two independent sample-product feature worktrees, and two same-role children on one product feature. Prove the concurrent two-product matrix plus missing, reused-by-another-active-dispatch, mismatched, stale, released, unreadable, ambiguous, and cross-product refusals.
 
   - id: T-05
     title: Record lineage-bound repository authority

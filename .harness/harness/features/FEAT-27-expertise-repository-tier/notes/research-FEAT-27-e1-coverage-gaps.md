@@ -94,7 +94,7 @@ declining is cheap and *not* revisited — backlog items under a shipped feature
   header for that segment, and writes nothing to stderr.
   **Mechanism, and it is the load-bearing part:** *not* `chmod 000` — a no-op as root, and git does
   not preserve mode. Use a **dangling symlink** created at test time by `os.symlink` inside the
-  per-case tempdir: `.harness/kaya/expertise/harness-qa.md` → a nonexistent target. The glob matches
+  per-case tempdir: `.harness/sample-product/expertise/harness-qa.md` → a nonexistent target. The glob matches
   it, `test -r` follows the link and fails for every uid including root, and nothing is checked in,
   so mode preservation is irrelevant. Keep a `chmod 000` variant only as a second sub-case guarded
   by `os.geteuid() != 0`. The task must *prove* the mutant reddens, not assume it.

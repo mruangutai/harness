@@ -7,10 +7,10 @@
 ## Problem
 
 GitHub Issues as DEC-138 specified them — one issue per `T-NN` — have never once been used as designed,
-and the workaround every feature reached for disabled task closure for a whole build. In **kaya**,
+and the workaround every feature reached for disabled task closure for a whole build. In **sample-product**,
 `feature.yaml github.issues` shows FEAT-01 collapsing T-03 and T-04 onto #31, FEAT-02 mapping every
-task to #120, and **kaya's FEAT-03** mapping all eleven tasks to #48 with milestone #10 empty
-(open=0/closed=0). Kaya's FEAT-03 documents the consequence in its own `feature.yaml`, in caps — a
+task to #120, and **sample-product's FEAT-03** mapping all eleven tasks to #48 with milestone #10 empty
+(open=0/closed=0). The product's FEAT-03 documents the consequence in its own `feature.yaml`, in caps — a
 **"CLOSE-TASK HAZARD, ELEVENFOLD"**: because all eleven tasks point at #48, `gh-sync.py close-task`
 on *any* task closes #48, so the note instructs that `close-task` must not be run at all during the
 build. The closure half of GitHub Issues is switched off by hand, with a comment as the only guard. This is
@@ -127,7 +127,7 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   test invokes a real `gh` binary.
   verify: inspection
 - SC-10: The migration is new-features-only: no task adds a backfill or retrofit code path, and no
-  task edits the `github:` block of any existing `feature.yaml`. **kaya's** FEAT-01, FEAT-02 and
+  task edits the `github:` block of any existing `feature.yaml`. **sample-product's** FEAT-01, FEAT-02 and
   FEAT-03 — the three features with live `github.issues` maps — are not retrofitted, and nothing
   here could reach them (they live in another repo).
   verify: inspection
@@ -191,8 +191,8 @@ unconditionally does not satisfy this criterion. This is a
 - **Extract, never re-implement.** The internal-id attach, the parent read and the `blocked_by`
   write come out of `wayfind.py` into one shared module; two copies of the id-not-number trap is the
   duplication class DEC-158 keeps finding.
-- **Migration scope is new features only.** No retrofit of FEAT-01, FEAT-02 or kaya's FEAT-03:
-  the first two are shipped (retrofitting risks closing settled work) and kaya's FEAT-03 is
+- **Migration scope is new features only.** No retrofit of FEAT-01, FEAT-02 or sample-product's FEAT-03:
+  the first two are shipped (retrofitting risks closing settled work) and sample-product's FEAT-03 is
   mid-build with its hazard documented and worked around.
 - **No task and no test may require a live `gh` call**, since `github.sync: false` here.
 - Closure semantics are settled and measured (DEC-168) — nothing re-probes them, and nothing asserts
@@ -217,7 +217,7 @@ unconditionally does not satisfy this criterion. This is a
   `.claude/skills/harness/SKILL.md` edit, which **no agent domain covers** (`team-config.yaml` grants
   only `.claude/skills/harness/bin/**`), and the grilling lists the section's machine-readable form
   under `## Not yet specified`. See open question Q1.
-- **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03.**
+- **Retrofitting FEAT-01/FEAT-02/sample-product's FEAT-03.**
 - **Freezing an adopted wayfinding map issue's body** at hand-off (pruning `## Not yet specified` /
   `## Out of scope`, adding `Superseded by BRIEF.md at <sha>`). Wayfinding issues are main-session
   authored (DEC-166/167); the GitHub Issues sync only *adopts a parent number*. See Q2.
@@ -226,7 +226,7 @@ unconditionally does not satisfy this criterion. This is a
   The place that would make it a standing convention is `.claude/skills/harness-brief/SKILL.md`,
   which no agent domain covers — without that edit, a future BRIEF omits the phrase and its parent
   silently titles itself the bare feature id, which DEC-133 says tells the user nothing. Q2.
-- **Inducting kaya's pre-harness decisions** — its own wayfinding effort.
+- **Inducting sample-product's pre-harness decisions** — its own wayfinding effort.
 
 ## Approval
 

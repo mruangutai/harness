@@ -55,7 +55,7 @@ unrestricted by case or character class — so the repository grant
 **Concrete failure scenario.** A future distillation (this feature's own D-01/D-02 name unit 7,
 multi-repo, as the point at which more segments appear) writes a repository-tier file under a
 segment whose name mirrors a real directory with a case or punctuation the hook's filter excludes —
-`My_Repo`, `Kaya-Frontend.git`, anything with an uppercase letter, underscore or dot. The write
+`My_Repo`, `Acme-Frontend.git`, anything with an uppercase letter, underscore or dot. The write
 guard allows it. `check-expertise.py` (the only authoring-time gate, and the one `harness-curate`'s
 T-06-updated audit loop now calls per-segment) reports `OK`, applies the 40-line budget correctly,
 and gives **no advisory, no warning, nothing** to indicate the file is dead on arrival. Every

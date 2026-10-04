@@ -8,7 +8,7 @@ until a human edits `.harness/factory/fleet.yaml`. The build would stop with a h
 an uncommitted tree. Nothing has been damaged: the eng lead measured the trap and refused to enter
 it rather than discovering it halfway through.
 
-**T-01 and T-08 are done, verified and committed.** T-09 is still open — kaya's `master` still
+**T-01 and T-08 are done, verified and committed.** T-09 is still open — sample-product's `master` still
 carries all four pre-FEAT-18 pinned ids, so its pull request has not merged.
 
 ## Why — the chain, each link read at `ada8e99`
@@ -53,7 +53,7 @@ Merge T-09 first. Then, in order:
    **final** write is `factory_config.py`, then it runs the verify (read-only, still permitted) and
    returns.
 3. On its return I commit (commits survive) and return to you immediately, recording nothing else.
-4. You delete the `board:` block from `fleet.yaml`'s kaya entry — **T-07 Part A item 1 only**, the
+4. You delete the `board:` block from `fleet.yaml`'s sample-product entry — **T-07 Part A item 1 only**, the
    EIGHT lines, 26-33 inclusive, from `board:` down to `review: Review` — I said seven earlier and
    the eng lead caught it; deleting seven leaves `review: Review` orphaned and the file still will
    not load. Line 34 is `workspace_root` and stays. Items 4 and 5 of Part A rewrite the header
@@ -87,7 +87,7 @@ feature ships.
 
 ## The window D-10 describes, and how to make it zero
 
-Once `fleet.yaml` loses the board and the new loader is live, `board_for(kaya)` reads kaya's own
+Once `fleet.yaml` loses the board and the new loader is live, `board_for(sample-product)` reads sample-product's own
 config from `master`. Today that config has no board, so it would raise until T-09 merges — the
 window D-10 accepts. **Merge T-09 before the cutover and that window is zero.** T-09 is already out
 to you as segment 01 and depends on nothing; it is now on the critical path for a second reason.

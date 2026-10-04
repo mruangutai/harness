@@ -1,5 +1,10 @@
 # opamend-c2 — the operator's two signature conditions, applied
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **Both conditions are in the artifacts and the plan is route-clean; approval stays `pending`.**
 Two files changed: `plan.yaml` (five `plan-merge.py amend` calls + one `apply`) and `BRIEF.md`.
 Nothing else. One cascade is recorded as OPEN (D-13) and deliberately not resolved.
@@ -78,7 +83,7 @@ covering SC-11, SC-12 and now SC-15 — is written fresh at ship time against th
 
 `cli_min_version: "2.1.217"` survives at `.harness/harness.json:3`, `.harness/team-config.yaml:11`,
 `.agents/skills/harness/templates/harness.json:4`, `templates/team-config.yaml:21`,
-`templates/examples/harness.kaya-ai.json:4`, and as reasoning in `BUILD.md` and in **DEC-83, a signed
+the archived pilot config, line 4 (removed from the tree), and as reasoning in `BUILD.md` and in **DEC-83, a signed
 decision**. D-13 records the open question — with no onboarding step reading it, is the key still
 meaningful for Claude Code runs or is it dead config — points at DEC-83, and marks it explicitly as
 the operator's to decide. **pm's recommendation, one sentence:** keep the key and amend DEC-83 to say

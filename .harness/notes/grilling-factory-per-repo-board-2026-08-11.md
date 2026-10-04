@@ -10,21 +10,21 @@ member, so adding a third repo needs no rework.
 
 - **The board becomes per-repository in the fleet schema.** Each entry under `repos:` carries its
   own board — number and stations — rather than inheriting one `board:` block. The one-board
-  assumption is the actual defect: retargeting `board.number` to 2 would fix kaya and re-open the
+  assumption is the actual defect: retargeting `board.number` to 2 would fix that one board and re-open the
   same hole the moment a second product repo joins. The operator chose the schema change over the
   one-line retarget deliberately, knowing it costs more now.
 
-- **Kaya's board keeps its meaning; the factory's vocabulary is added to it, not imposed on it.**
+- **The product's board keeps its meaning; the factory's vocabulary is added to it, not imposed on it.**
   Rename `Todo → Ready` and `In Progress → Building`. **Leave `Done` alone and ADD `Review` as a
   fourth option.** The board ends with four.
 
   This reverses the operator's first answer, which was to rename all three, and the reversal was
-  driven by a measurement rather than an opinion: **118 of kaya's 211 issues are `Done`.** Renaming
+  driven by a measurement rather than an opinion: **118 of the product's 211 issues are `Done`.** Renaming
   that option would relabel 118 finished issues as "Review" — false about every one of them — and
-  leave kaya with no Done column at all. Renaming in Projects v2 does not move items: they keep
+  leave the product with no Done column at all. Renaming in Projects v2 does not move items: they keep
   their option id and the label changes, so the 118 would have silently acquired a wrong status.
 
-- **The end state for those 118 is ASSERTED, not left implicit** (operator, 2026-08-11): kaya's
+- **The end state for those 118 is ASSERTED, not left implicit** (operator, 2026-08-11): the product's
   board ends with a `Done` column, and **all 118 finished issues sit in it, none in `Review`**.
 
   Keeping the `Done` option rather than renaming it delivers this at **zero item writes** — the 118
@@ -39,11 +39,11 @@ member, so adding a third repo needs no rework.
   inferred from the absence of a migration step. It is also the assertion that catches the wrong
   implementation: if someone does rename all three, this criterion fails and says so.
 
-- **Done means a LIVE factory run against a real kaya-ai issue**, reaching the board and moving its
+- **Done means a LIVE factory run against a real product issue**, reaching the board and moving its
   station, with the move **read back off the board** rather than inferred from exit 0. A config
   assertion alone was offered and declined: it proves the config is self-consistent, which is not
   the thing that is broken. The smoke fixture (board 6, `factory-smoke-a1`) was also offered and
-  declined — it proves the machinery, not kaya's specific board.
+  declined — it proves the machinery, not the product's specific board.
 
 - **`harness.json`'s `github.repo` is NOT in scope.** It still names `mruangutai/harness` for the
   issue mirror. That is a different mechanism from the factory station board. Changing one does not
@@ -53,9 +53,9 @@ member, so adding a third repo needs no rework.
 
 - Whether the per-repo board block is required on every entry or falls back to a fleet-level default
   when absent. A default is friendlier and is also how the current bug got in.
-- Whether `stations:` moves per-repo alongside the board number, or stays fleet-level. Kaya needs
+- Whether `stations:` moves per-repo alongside the board number, or stays fleet-level. The product needs
   its own mapping, so probably per-repo — but that is pm's call against the readers.
-- Which kaya issue the live run uses, and whether it is a throwaway created for the purpose or a
+- Which product issue the live run uses, and whether it is a throwaway created for the purpose or a
   real one with the station restored afterwards. Note it must NOT be one of the 118 — the live run
   moves a station, and moving a finished issue would break the criterion above.
 - How the board/repo pairing is asserted so the two cannot drift apart silently again. The ticket
@@ -63,7 +63,7 @@ member, so adding a third repo needs no rework.
 
 ## Out of scope
 
-- Moving kaya's issues onto board 3, and moving harness's onto board 2. Both were offered and
+- Moving the product's issues onto board 3, and moving harness's onto board 2. Both were offered and
   declined: one board for two products mixes the work and collides the priority schemes (board 3 is
   P0/P1/P2, board 2 is Urgent/High/Medium/Low).
 - Board 6 and `mruangutai/harness-factory-smoke-a1`. They are retained fixtures, not cleanup owed.
@@ -75,12 +75,12 @@ member, so adding a third repo needs no rework.
 Measured 2026-08-11 at `e057525`.
 
 - **The ticket's headline number is wrong; its direction is right.** Board 3 holds **204 items, all
-  `mruangutai/harness`, zero kaya-ai** — not the 30 the ticket states. The claim that a factory run
-  against kaya finds nothing on board 3 stands.
-- Board 2 is `kaya-ai` and holds **211 items, all `mruangutai/kaya-ai`**.
-- Three boards exist: `3 Harness`, `2 kaya-ai`, `6 factory-smoke-a1`.
+  `mruangutai/harness`, zero sample-product** — not the 30 the ticket states. The claim that a factory run
+  against the product finds nothing on board 3 stands.
+- Board 2 is `sample-product` and holds **211 items, all `mruangutai/sample-product`**.
+- Three boards exist: `3 Harness`, `2 sample-product`, `6 factory-smoke-a1`.
 - `.harness/factory/fleet.yaml` declares `board.number: 3` with `stations: ready→Ready,
-  building→Building, review→Review`, and `repos:` holds `mruangutai/kaya-ai` alone.
+  building→Building, review→Review`, and `repos:` holds `mruangutai/sample-product` alone.
 - **Board 2's `Status` field offers `Todo`, `In Progress`, `Done` — none of the three stations.**
   This is the fact the ticket omits, and it is why "retarget to board 2" was never a one-line
   change.

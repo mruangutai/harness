@@ -7,7 +7,7 @@ phase at **T-01**. Two operator calls ride the signature and change task text if
 D-10's `because` still says the merge-before-T-07 ordering is unenforceable, which T-07's own
 verify at `plan.yaml:1117-1121` now refutes; and D-06 carries no reversibility cost line (a sixth
 station key later is N cross-repository pull requests). Both are decision edits, forbidden to the
-squad. **T-09 opens a `mruangutai/kaya-ai` issue and needs an operator merge — start it early;
+squad. **T-09 opens a `mruangutai/sample-product` issue and needs an operator merge — start it early;
 it is the only human-latency task and it is now `depends_on: []`.**
 
 ## Trust
@@ -25,7 +25,7 @@ it is the only human-latency task and it is now `depends_on: []`.**
 - **T-04 and T-05 must land in ONE commit.** `check-state.py` is a single python heredoc from
   `:24` to `:1343`, so T-04's `derive_station` arity change makes it exit 1 with every invariant
   unreported until T-05 lands — `plan.yaml:733-751`, `check-state.py:24,1180,1343,636` — verified-at ada8e99
-- kaya's config is readable with no clone: `gh api repos/mruangutai/kaya-ai/contents/.harness/harness.json`
+- sample-product's config is readable with no clone: `gh api repos/mruangutai/sample-product/contents/.harness/harness.json`
   returns it; its stale keys nest under `github.*` and include `project_number`, which #493 never
   names — verified-at ada8e99
 - The record correction owed by run 2 is settled here because it turns on mtimes: the

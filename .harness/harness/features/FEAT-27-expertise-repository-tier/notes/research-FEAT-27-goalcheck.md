@@ -52,7 +52,7 @@ and is worth a follow-up, but its absence takes nothing off SC-08.
 can now write their repository file (sixteen resolves), and a real spawn against the real tree
 receives a labelled repository block — I watched it happen, not a fixture. **DC-3 now stands on
 something**: eleven repository-specific entries live in the tier and are injected, so "agents carry
-kaya's expertise" has a working mechanism rather than a documented one.
+sample-product's expertise" has a working mechanism rather than a documented one.
 
 **Two things the criteria do not cover, and neither is a delivery gap.** E1 gap (b), the suffix
 rule's traversal case, still has zero discriminating coverage — no SC reaches it. And qa's six-item

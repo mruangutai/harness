@@ -16,7 +16,7 @@
   at once). This is not undiscovered — `plan.yaml` D-01 names it explicitly, including the
   unbounded-aggregate-size cost, and defers a fix to "unit 7" as a signed, approved decision. Rated
   `med` not `high` on precondition-absent grounds: only one real segment ("harness", self-
-  referential) exists in the shipped tree today; "kaya" is fixture-only. Worth a future reviewer
+  referential) exists in the shipped tree today; "sample-product" is fixture-only. Worth a future reviewer
   re-checking severity once a second, genuinely distinct repository segment goes live — that is the
   trigger that would make this exploitable rather than theoretical.
 - 2026-08-19: `check-expertise.py`'s repository-token advisory scan (issue 340) is structurally

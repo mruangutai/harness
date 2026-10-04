@@ -27,7 +27,7 @@ three of the issue's premises had been overtaken since it was filed on 2026-08-1
   (#336 on #493). Building it would have made a file nothing reads.
 - **Its row 8, "map the codebase", is void.** That tier was retired on 2026-08-24.
 - **Its stated conflict — DEC-187's per-project test matrix being "aspirational" — was already
-  closed** by FEAT-24. kaya-ai carries its own 13 KB `harness.json` on `master` today.
+  closed** by FEAT-24. sample-product carries its own 13 KB `harness.json` on `master` today.
 
 What survived is the address change, and that is what shipped: onboarding is now **land the
 repository's own `harness.json` on its default branch, register it in `fleet.yaml`, create its
@@ -99,8 +99,8 @@ Unstruck rows become issues on your acceptance. **Anything not listed here dies 
 | ID | Nature | What |
 |---|---|---|
 | B-1 | chore | `tests/unit/test-fleet-product-config.py`: the `len(report) != len(fleet["repos"])` half of the exit guard is untested. The panel ranked it last — the branch is unreachable through the public surface today, so a test demonstrates rather than protects. |
-| B-2 | chore | The pilot product's four committed `.harness/` subtrees in kaya-ai — `team-config.yaml`, `expertise/`, `features/`, `codebase/` — are read by nothing. Out of scope here by your ruling: removing them is a write into a product repo no domain grants, and `team-config.yaml` is `harness_boundary.MARKER`, so deleting it from a default branch is not reversible by a later cycle. |
-| B-3 | chore | `<control-plane>/.harness/kaya-ai/` does not exist, so `features_root('mruangutai/kaya-ai')` points at nothing and kaya's FEAT-01..03 sit orphaned in the product repo. |
+| B-2 | chore | The pilot product's four committed `.harness/` subtrees in sample-product — `team-config.yaml`, `expertise/`, `features/`, `codebase/` — are read by nothing. Out of scope here by your ruling: removing them is a write into a product repo no domain grants, and `team-config.yaml` is `harness_boundary.MARKER`, so deleting it from a default branch is not reversible by a later cycle. |
+| B-3 | chore | `<control-plane>/.harness/sample-product/` does not exist, so `features_root('mruangutai/sample-product')` points at nothing and sample-product's FEAT-01..03 sit orphaned in the product repo. |
 | B-4 | enhancement | Nothing gates a rotted `file:line` citation in docs. The documentor found `harness_boundary.py:158` wrong inside DEC-220's own paragraph while `check-instruction-paths.py` passed, and the review panel itself made two anchor-drift errors it had to self-correct. |
 | B-5 | enhancement | The trust delegation is now disclosed but has no decision of its own: landing `harness.json` on a product's default branch gives whoever can push that branch control of what the factory reads for that member. pm flagged it as emergent and stopped rather than adopting it. |
 | B-6 | bug | Subagent returns intermittently arrive as `failed (exit 1)` with "called yield with null data" while a well-formed VERDICT/DIGEST block is present in the final turn. Hit at least three times this feature; routing on the exit code alone would have re-spent each spawn. |

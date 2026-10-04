@@ -58,7 +58,7 @@ security-reviewer 1 — sums to 11. Well under the 40-line repository budget per
 - `.claude/skills/harness/bin/test-inject-expertise.py` does not exist. The hook that fires on every
   spawn has no test at all.
 - `harness_boundary.matches`: a single `*` does **not** cross `/`. Verified —
-  `.harness/*/expertise/harness-pm.md` matches `.harness/harness/...` and `.harness/kaya/...`, not
+  `.harness/*/expertise/harness-pm.md` matches `.harness/harness/...` and `.harness/sample-product/...`, not
   `.harness/a/b/...` and not another agent's file.
 - `team-config.yaml` `paths.expertise: .harness/expertise/` has **no code reader** (grep over
   `bin/**` finds none); it is documentation-in-data.

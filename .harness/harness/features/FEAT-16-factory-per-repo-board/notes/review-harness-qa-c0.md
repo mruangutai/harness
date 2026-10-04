@@ -89,7 +89,7 @@ feature's diff, not a finding.
 | SC-01 | `test-factory-config.py` cases (3), (27), (28a-d) |
 | SC-02 | `test-factory-config.py` case (8b) |
 | SC-04 | `test-factory-claim.py` P1-P4, `test-factory-decompose.py` T-03, `test-factory-land.py` T-04, `test-factory-integration.py` case (H) |
-| SC-05 | `test-no-distribution.py` `kaya_ai_is_paired_with_board_2` + siblings |
+| SC-05 | `test-no-distribution.py` `sample_is_paired_with_board_2` + siblings |
 | SC-08 | `run-unit-tests.py --kind unit` exit 0 (this run) |
 | SC-09 | `run-unit-tests.py --kind integration` exit 0 (this run) |
 | SC-13 | `test-factory-claim.py` P6 — mutation-killed for the general defect, open question on the narrower BRIEF wording (parked, not re-run) |

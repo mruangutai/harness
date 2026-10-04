@@ -11,11 +11,11 @@ files + 18 bookkeeping); my 22-file code/prose subset is consistent with that.
 
 ## Q1 — the guard removal, residual posture
 
-**Answer: none.** A workspace built from `mruangutai/kaya-ai`'s current state — whether the
+**Answer: none.** A workspace built from `mruangutai/sample-product`'s current state — whether the
 operator's existing local clone or a future factory `workspace_root` clone — runs with zero
 harness guard hooks. Established three independent ways:
 
-1. `cd /Users/molchairuangutai/GitHub/kaya-ai && python3 -c "import json; d=json.load(open('.claude/settings.json')); ..."` —
+1. `cd /Users/molchairuangutai/GitHub/sample-product && python3 -c "import json; d=json.load(open('.claude/settings.json')); ..."` —
    printed the 4 surviving hooks (`work-tracking-nudge.sh`, `pre-commit-tests.sh`,
    `pr-issue-gate.sh`, `branch-issue-gate.sh`), all non-harness; `[c for c in cmds if 'harness' in c]`
    → `[]`. `git log --oneline -3 HEAD` and `git log --oneline -3 origin/master` both show
@@ -31,8 +31,8 @@ harness guard hooks. Established three independent ways:
    re-wires guards after a clone.
 
 **Whether a future factory dispatch would even be *rooted* at that guard-less checkout — the thing
-that would turn "no guards in kaya's settings.json" into "no guards for the session touching
-kaya" — is not established in code.** `grep -rln "factory_workspace" .claude/skills/harness/bin`
+that would turn "no guards in sample-product's settings.json" into "no guards for the session touching
+sample-product" — is not established in code.** `grep -rln "factory_workspace" .claude/skills/harness/bin`
 shows only `factory_land.py`, `factory_config.py` and test files consume the module; no agent
 `.md` or skill `.md` references it (`grep -rn "factory_workspace" .claude/skills/harness/*.md
 .claude/agents/*.md` → no hits), and `grep -rn '"claude"\|subprocess.*claude'
@@ -44,8 +44,8 @@ today, and I am not rating this as if it were.
 Separately, `check-domain.py` — read via `plan.yaml`'s own lanes table, not edited (DEC-174) —
 explicitly passes paths **outside `CLAUDE_PROJECT_DIR` through ungoverned**
 (`.harness/features/FEAT-12-end-copy-distribution/plan.yaml`, lanes row for
-`/Users/molchairuangutai/GitHub/kaya-ai/**`: *"outside CLAUDE_PROJECT_DIR, so check-domain.py
-passes it through ungoverned"*). So even a harness-rooted session touching kaya-ai by absolute
+`/Users/molchairuangutai/GitHub/sample-product/**`: *"outside CLAUDE_PROJECT_DIR, so check-domain.py
+passes it through ungoverned"*). So even a harness-rooted session touching sample-product by absolute
 path was never governed by harness's own domain check, before or after this feature — that half
 of the guard question is a FEAT-10 factory-model boundary, not something FEAT-12 changed.
 
@@ -54,15 +54,15 @@ gap it creates.** `SPEC.md` §3.3 (rewritten in this diff) states the design int
 first factory run against it clones it under `workspace_root`; nothing is installed into it"* —
 so the guard-less clone is asserted as intended baseline, not an oversight. The BRIEF frames
 stripping the stale copy as correct (a stale gate is worse than none). I agree with both. What is
-not addressed anywhere in the BRIEF, plan or SC list: **T-06 (this same feature) makes kaya
+not addressed anywhere in the BRIEF, plan or SC list: **T-06 (this same feature) makes sample-product
 fleet-reachable in the same commit range that T-03/T-05 strip its only guards**, and nothing — no
 task, no SC, no gate — requires `/harness-init` (the documented re-wiring mechanism,
 `.claude/skills/harness-init/SKILL.md`, still calling `merge-settings.py` unchanged by this diff)
-to run again before a team or factory dispatch first touches kaya. Today, right now, a session
-rooted at `/Users/molchairuangutai/GitHub/kaya-ai` runs with none of bash-write-guard,
+to run again before a team or factory dispatch first touches sample-product. Today, right now, a session
+rooted at `/Users/molchairuangutai/GitHub/sample-product` runs with none of bash-write-guard,
 check-domain, dispatch-guard or digest validation. `merge-settings.py`'s own "all 8 prerequisites
 present" contract (`.claude/skills/harness/bin/merge-settings.py:315`) is now false for that repo
-and nothing in the tree records that as a known, accepted precondition next to kaya's `fleet.yaml`
+and nothing in the tree records that as a known, accepted precondition next to sample-product's `fleet.yaml`
 entry.
 
 **Not a `must_fix`**: the remedy (schedule an init/re-wire step) is a step the signed plan and its
@@ -70,9 +70,9 @@ approved `SPEC.md` rewrite deliberately did not include — adding it unilateral
 scope the operator's approval didn't grant, not fixing a defect in what was built. Raised as an
 open question instead.
 
-## Q2 — `.claude/settings.json.harness-bak` on kaya's `origin/master`
+## Q2 — `.claude/settings.json.harness-bak` on sample-product's `origin/master`
 
-**Confirmed gone**, reached over the network. `cd /Users/molchairuangutai/GitHub/kaya-ai && git
+**Confirmed gone**, reached over the network. `cd /Users/molchairuangutai/GitHub/sample-product && git
 fetch origin master --quiet && git ls-tree -r --name-only origin/master | grep -i
 "harness-bak\|settings.json"` → returns only `.claude/settings.json`, no `.harness-bak` entry.
 Local working tree matches: `ls -la .claude/settings.json.harness-bak` → "No such file or
@@ -123,7 +123,7 @@ Items 1 and 2 (settled by qa with mutants): agree with disposition, not relitiga
 
 | # | Severity | Item |
 |---|---|---|
-| 1 | med | kaya-ai's guard posture is genuinely zero right now (verified), and this feature makes it fleet-reachable (T-06) in the same range that strips its only guards (T-03/T-05), with no task/SC/gate requiring `/harness-init` re-wiring before first dispatch. Intended per `SPEC.md` §3.3's own rewrite; the gap is that the precondition is unrecorded. |
+| 1 | med | sample-product's guard posture is genuinely zero right now (verified), and this feature makes it fleet-reachable (T-06) in the same range that strips its only guards (T-03/T-05), with no task/SC/gate requiring `/harness-init` re-wiring before first dispatch. Intended per `SPEC.md` §3.3's own rewrite; the gap is that the precondition is unrecorded. |
 | — | info | `check-domain.py` cannot govern any path outside `CLAUDE_PROJECT_DIR` by design (confirmed via `plan.yaml`'s lanes table) — a FEAT-10 factory-model boundary fact, not FEAT-12's to fix. Worth an Expertise entry under a future distillation dispatch; not written now (`expertise_update: []`). |
 
 No `must_fix`. `severity_max: med`.

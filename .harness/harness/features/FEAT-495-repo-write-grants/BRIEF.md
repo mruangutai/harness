@@ -29,7 +29,7 @@ Factory agents receive role-wide wildcard grants, while the OMP pre-write adapte
 - SC-05 (code maintainer): `check-domain.py --resolve --feature FEAT-495-repo-write-grants` preserves its current plan-time ownership result without runtime-lineage or repository-binding lookup.
   verify: automated
   evidence: integration
-- SC-06 (operator): The main session, Harness self-development, two independent Kaya feature worktrees, and two same-role children on one product feature retain their current permitted behavior.
+- SC-06 (operator): The main session, Harness self-development, two independent sample-product feature worktrees, and two same-role children on one product feature retain their current permitted behavior.
   verify: automated
   evidence: integration
 - SC-07 (code maintainer): Both guard routes delegate repository and exact runtime-lineage matching to one shared `harness_boundary.py` decision while retaining two-base classification and worktree protections.
@@ -55,7 +55,7 @@ Factory agents receive role-wide wildcard grants, while the OMP pre-write adapte
 ## Out of scope
 
 - Changing Harness self-development into factory-dispatched work.
-- Delaying or folding #496's first Kaya proof into this feature.
+- Delaying or folding #496's first sample-product proof into this feature.
 - Replacing role domains beyond the repository-binding enforcement necessary for factory work.
 
 ## Approval

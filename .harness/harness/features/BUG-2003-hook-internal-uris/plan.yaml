@@ -4,7 +4,7 @@ approval:
   date: '2026-10-03'
   approved_by: molchairuangutai
   status: approved
-status: review
+status: done
 source_issues: [2003]
 lanes:
   resolved_at: e0bb9814ab8e0f3f87a908bec2fc997a4b040f52

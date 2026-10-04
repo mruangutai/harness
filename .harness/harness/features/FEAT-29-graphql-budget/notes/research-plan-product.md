@@ -48,7 +48,7 @@ flight, or it reads another agent's traffic as its own.
 ## Measurements — every number is a difference I took
 
 Repo `mruangutai/harness` unless stated. Boards: 3 = "Harness", **473 items**, 18 fields;
-2 = "kaya-ai", 212 items; 6 = "factory-smoke-a1", **4 items**. Board 3's count read 473 then 474
+2 = "sample-product", 212 items; 6 = "factory-smoke-a1", **4 items**. Board 3's count read 473 then 474
 within the session; it is live.
 
 | Call | Delta |

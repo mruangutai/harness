@@ -65,7 +65,7 @@ yield({data: {
 }})
 ```
 
-- `VERDICT`: `PASS` or `FAIL` only.
+- `VERDICT`: load the legal values from the canonical reviewer schema; report `BLOCKED` when review prerequisites are unavailable and `ESCALATE` when a user decision is required.
 - `severity_max`: `none|low|med|high|critical|n/a`. `n/a` = scoped OUT; nothing in this diff for
   this role to judge. PASS with `n/a` is legitimate (DEC-173).
 - `findings`: `[]` if none; every entry carries all of `{kind, scope, severity, reader, summary,

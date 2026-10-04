@@ -21,7 +21,7 @@ engaged **reachability**, which is what does the work. Re-verified by me at sour
   `case3_absence_harness_is_not_a_fleet_member`.
 
 So the split expression never receives `mruangutai/harness`. Fed a reachable input it yields
-`kaya-ai`, and `.harness/kaya-ai/features` does not exist. A derived rule reaching today's plans
+`sample-product`, and `.harness/sample-product/features` does not exist. A derived rule reaching today's plans
 must map every reachable input to `harness` — hard-coding the literal. The sentence is **true with a
 compressed warrant**; the warrant is reachability, not fleet-absence standing alone.
 

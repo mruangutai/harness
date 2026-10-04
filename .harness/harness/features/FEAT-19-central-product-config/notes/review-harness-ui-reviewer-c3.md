@@ -56,7 +56,7 @@ c2 except the one closing-sentence edit at line 104 already covered above.
 
 ## 5. `plan.yaml`'s T-02 changes — confirmed out of the refusal-message contract's path
 
-T-02 (`plan.yaml:349-434`) writes `.harness/products/kaya-ai/harness.json`, a product's runtime
+T-02 (`plan.yaml:349-434`) writes `.harness/products/sample-product/harness.json`, a product's runtime
 config — unrelated to T-01's `factory_product_config.py` resolver that Contract 2/3 govern. The four
 `main()` CLI test cases and the `select_base` agreement case live in T-01's test-case list
 (`plan.yaml:316-334`), not T-02; none of the four assert on `what`-slot text — they check the success

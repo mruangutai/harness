@@ -36,7 +36,7 @@ identical to the input order. It is not wrong, but it is a second place the orde
 — if a future edit changes the glob to something that isn't naturally sorted (e.g. `find` with
 `-print0` piped through something order-unstable) without also revisiting this block, the two could
 silently drift, and nobody would notice because the block would still "work," just redundantly.
-`test-inject-expertise.py` case2 (`harness`, `kaya` segments) does not discriminate this — the test
+`test-inject-expertise.py` case2 (`harness`, `sample-product` segments) does not discriminate this — the test
 fixture happens to create files in already-alphabetical order, so it passes whether or not the sort
 runs at all.
 

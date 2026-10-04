@@ -4,15 +4,15 @@
 evidence gap that can never now be closed. Everything else is done, committed and gated.
 
 The harness no longer distributes itself by copying. `deploy.sh`, `/harness-deploy` and the
-machine-wide registry are gone. `kaya-ai` has been stripped of its copy and that deletion is pushed
+machine-wide registry are gone. `sample-product` has been stripped of its copy and that deletion is pushed
 to its `master`. A product repository now reaches harness tooling by being checked out by the
-factory, declared in `.harness/factory/fleet.yaml`, which kaya is now in.
+factory, declared in `.harness/factory/fleet.yaml`, which sample-product is now in.
 
 **Branch `chore/203-end-copy-distribution`. I pushed nothing and opened no PR — the merge is yours.**
 Stated precisely, because "not pushed" would be false about the branch: it already has an origin
 counterpart at `275de45`, pushed by the main session, and that remote copy carries four of this
 feature's commits. I am 6 ahead of it and ran no `git push` at any point.
-One commit went to another repository: `7d2f946` on `mruangutai/kaya-ai` `master`, which you
+One commit went to another repository: `7d2f946` on `mruangutai/sample-product` `master`, which you
 authorized.
 
 ---
@@ -20,13 +20,13 @@ authorized.
 ## The two things that need you
 
 **1. Run the UAT — SC-06, and it is a blocking gate.** Script at
-`notes/uat-FEAT-12-sc06.md`. A fresh factory checkout of `kaya-ai` at `master` must execute a Bash
+`notes/uat-FEAT-12-sc06.md`. A fresh factory checkout of `sample-product` at `master` must execute a Bash
 call, a Write and **a Task spawn** with no missing-hook error. The Task spawn is the one that
-matters: kaya's `settings.json` wired eight harness registrations across four hook events, and four
+matters: sample-product's `settings.json` wired eight harness registrations across four hook events, and four
 of them are the ones a Task spawn fires. No runner in this repository can observe another
 repository, so this was never automatable.
 
-**2. Rule on SC-05.** The criterion says kaya's `.harness/` is byte-identical across the removal —
+**2. Rule on SC-05.** The criterion says sample-product's `.harness/` is byte-identical across the removal —
 same file count, same per-file sha256. **The manifests that were meant to prove it contain no
 hashes.** They are 377 identical paths and zero sha256 fields. The plan asked for
 `xargs -0 shasum -a 256`; what ran produced a path list. The before-state no longer exists, so
@@ -37,9 +37,9 @@ it. I ran it rather than passing it up:
 
 | Question | Answer, measured at `fb80543` |
 |---|---|
-| Is kaya's `.harness/` tracked in git? | **Yes — 117 files** |
+| Is sample-product's `.harness/` tracked in git? | **Yes — 117 files** |
 | Did the deletion commit touch anything under it? | **No. The pathspec held** |
-| Is kaya's `.harness/` clean now? | One modified file, `features/FEAT-03-live-review-loop/feature.yaml` |
+| Is sample-product's `.harness/` clean now? | One modified file, `features/FEAT-03-live-review-loop/feature.yaml` |
 | When was that file modified? | **2026-08-07 19:57** — three days before this feature ran |
 
 So content integrity is **strongly evidenced by git for the 117 tracked paths** and **not evidenced
@@ -131,7 +131,7 @@ Strike any row by name. Anything not listed here dies silently.
 | B-15 | bug | `check-expertise.py` does not bind an entry's ID letter to its section, nor detect duplicate or skipped IDs |
 | B-16 | bug | The instruction-shaped-pattern guard mangles any return that merely names `.claude/settings.json`, twice this feature |
 | B-17 | bug | A `plan.yaml` plain scalar carrying a space-then-`#NN` truncates silently under `safe_load` while the route check exits 0 |
-| B-18 | enhancement | kaya became fleet-reachable in the same range that stripped its guards. No task, criterion or gate records re-wiring as a precondition |
+| B-18 | enhancement | sample-product became fleet-reachable in the same range that stripped its guards. No task, criterion or gate records re-wiring as a precondition |
 | B-19 | chore | SC-03's two clauses and SC-08's "retains only" clause have no standing assertion — both held at this sha by inspection alone |
 | B-20 | chore | T-10's comment edits in `test-check-plan-routes.py` have no standing test; that file is `ALLOW_LIST`-exempt |
 | B-21 | bug | `upgrade-config.py`'s no-templates message gives no remedy and is false for the repos the tool targets. Candidate to fold into #206 |

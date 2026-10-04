@@ -6,7 +6,7 @@ Read-only pass over `plan.yaml` (10 tasks, 10 decisions) and `BRIEF.md` (13 SCs)
 
 **File · line:**
 - `plan.yaml:772-798` (T-06 verify, `.harness/harness.json`)
-- `plan.yaml:980-1011` (T-09 verify, kaya-ai's `.harness/harness.json`)
+- `plan.yaml:980-1011` (T-09 verify, sample-product's `.harness/harness.json`)
 
 **What exists already:** T-02 (`plan.yaml:336-459`) adds `factory_config.validate_board(board,
 where, path)` in `.claude/skills/harness/bin/factory_config.py`, and T-02's own intent item 2

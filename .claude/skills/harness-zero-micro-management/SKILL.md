@@ -41,7 +41,8 @@ HARNESS-FEATURE: <FEAT-NN-slug>
 
 with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
 without it at exit 2: your process working directory does not follow your assignment, and this
-line is what tells the guard which checkout you were assigned to.
+line is what tells the guard which checkout you were assigned to. In a batched `task` call it
+opens **each task's own `task` text**; the guard never sees the shared `context` block.
 
 3. **Assess what comes back** — not "did they return?" but did the work meet the goal. Read their
    artifact and DIGEST and check it against what you asked for. A member's `PASS` is their

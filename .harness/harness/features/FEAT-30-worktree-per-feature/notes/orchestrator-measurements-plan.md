@@ -25,7 +25,7 @@ rooted in the main checkout IS the failing shape, and it is the shape this featu
 **M-2. A DIRECT `git worktree add` into a served repository's own checkout is refused.**
 On stdin to `bash-write-guard.py`:
 
-    git worktree add <workspace_root>/kaya-ai/.claude/worktrees/kaya-ai/FEAT-30 <branch>
+    git worktree add <workspace_root>/sample-product/.claude/worktrees/sample-product/FEAT-30 <branch>
       harness-backend-dev   exit 2
       harness-orchestrator  exit 2
     git worktree add <harness_root>/.claude/worktrees/harness/FEAT-30 <branch>

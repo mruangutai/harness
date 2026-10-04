@@ -2389,8 +2389,8 @@ Two developers is out of scope for v1. If it is ever needed, the minimum is an a
 
 ### 15.2 One feature per worktree
 
-An earlier draft said "one feature at a time." **That is wrong, and the pilot host already disproves
-it** — `kaya-ai` runs three concurrent `git worktree`s on three feature branches, which is how its
+An earlier draft said "one feature at a time." **That is wrong, and the archived pilot host already
+disproves it** — it ran three concurrent `git worktree`s on three feature branches, which is how its
 operator actually works.
 
 The resolution is that **a git worktree is the unit of concurrency**, because each worktree has its own

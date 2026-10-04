@@ -9,7 +9,7 @@
 - 2026-08-18: applying the reuse finding (call `factory_config.validate_board` from T-06's and
   T-09's verify heredocs instead of a hand-rolled dict) forced a scheduling change nobody flagged —
   the function is `_validate_board` at HEAD, made public by T-02, so both tasks needed
-  `depends_on: [T-02]`. T-09 is the cross-repository kaya route, the plan's longest pole. A "reuse"
+  `depends_on: [T-02]`. T-09 is the cross-repository sample-product route, the plan's longest pole. A "reuse"
   finding on a *verify* can move the critical path; check what makes the reused symbol exist before
   accepting one.
 - 2026-08-18: `check-plan-routes.py` rejected T-04 at 52 of 50 machine-field lines after the new

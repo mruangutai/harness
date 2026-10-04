@@ -39,7 +39,7 @@ proof) and no criterion was weakened. `check-plan-routes.py` exits 0, 0 violatio
   `MUTATION PROOF: 3/3 cases reddened` rather than trusting a status (a missing file mimics
   discrimination). The mutation MECHANISM was measured directly instead: with a proxy installed on
   `factory_claim.factory_config` that discards `features_root`'s argument, and the suite's own
-  monkeypatch applied **afterwards**, a `mruangutai/kaya-ai` candidate resolves to
+  monkeypatch applied **afterwards**, a `mruangutai/sample-product` candidate resolves to
   `…/.harness/harness/features` and `MUTANT ACTIVE` prints. Attribute delegation is at call time,
   so the mutant survives the suite's patch — that is what makes `SC-08` reachable.
 

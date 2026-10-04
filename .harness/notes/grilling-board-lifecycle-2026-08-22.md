@@ -5,7 +5,7 @@
 A repository joins the harness fleet and its GitHub board is correct from that moment: the project
 exists, the Status field carries every station the harness uses, cards move to the right station
 without a human, and a shipped ticket closes with the right reason. Existing projects — harness
-first, then kaya-ai — are brought to that same shape. Wherever GitHub already does the job natively,
+first, then the archived pilot — are brought to that same shape. Wherever GitHub already does the job natively,
 the harness uses it rather than reimplementing it.
 
 ## Settled
@@ -15,7 +15,7 @@ the harness uses it rather than reimplementing it.
   Done, and close the ticket."
 - **Four things this effort owns.** Creating the board and its Status field when a repo joins the
   fleet; repairing the station map and adding an `Abandoned` station; native closing end to end; and
-  migrating the two existing projects, **harness first as the proving ground, then kaya-ai**.
+  migrating the two existing projects, **harness first as the proving ground, then the archived pilot**.
 - **Board workflow detection belongs at `/harness-init`, once — NOT in `check-state.py`.** Operator's
   ruling, with the reason: `check-state.py` runs at every `/harness*` door and before every commit, so
   a network call there fires dozens of times per build, which is the waste FEAT-29 exists to remove. A
@@ -37,7 +37,7 @@ the harness uses it rather than reimplementing it.
   declares five — so "correct" needs defining before it can be asserted.
 - How a migration proves it finished. Reconciling cards already sitting on the wrong station needs a
   definition of the right station for a card whose feature is long done.
-- Whether kaya-ai's board should match harness's station set exactly, or only satisfy the same
+- Whether the archived pilot's board should match harness's station set exactly, or only satisfy the same
   contract. Its board and station rationale live in its own `.harness/harness.json` on `master`,
   deliberately not restated in `fleet.yaml`.
 - Whether the `abandoned` label is created by the harness or expected to exist. `ensure_labels` has
@@ -48,7 +48,7 @@ the harness uses it rather than reimplementing it.
 - **FEAT-26's subject.** The `pr` field, recording source tickets, and rendering `Closes #N` lines.
   Already planned there, one round from signable.
 - **Enabling the three Projects v2 workflows.** Not a scope decision — see Facts. It is impossible.
-- **Any repository other than harness and kaya-ai.** `fleet.yaml` declares only kaya-ai, and harness
+- **Any repository other than harness and the archived pilot.** `fleet.yaml` declares only that repo, and harness
   is deliberately absent from it (DEC-174 am.1) because it develops itself in its own checkout.
 
 ## Facts I verified (so pm does not re-derive them)
@@ -135,7 +135,7 @@ a station write must be CAUSED, never remembered.
 ### The conflict ruling 3 creates, stated rather than discovered later
 
 `Ready` currently carries a DIFFERENT documented meaning on board 2 — `Backlog` = filed-and-untriaged,
-`Ready` = promoted for the factory — and that rationale lives in kaya-ai's own `.harness/harness.json`
+`Ready` = promoted for the factory — and that rationale lives in the archived pilot's own `.harness/harness.json`
 on `master`, deliberately not restated in `fleet.yaml`. Making `Ready` mean "plan signed" on board 3
 either diverges the two boards or re-defines board 2's column under it. **Which of those is intended
 is not settled here.** It is the first question of the migration half.
@@ -158,7 +158,7 @@ The reason is the one FEAT-33 exists for: two boards using the same column name 
 is how a migration silently corrupts a card, and REQ-02's subject is the harness asserting ONE
 correct station map. A per-repo meaning makes that assertion impossible by construction.
 
-**The cost, stated: kaya-ai loses a signal it currently has.** Its own `.harness/harness.json` on
+**The cost, stated: the archived pilot loses a signal it currently has.** Its own `.harness/harness.json` on
 `master` documents `Ready` as the human pick-up point. After this, nothing on board 2 records that a
 human promoted a ticket. The migration half has to say so out loud rather than let the column change
 meaning under whoever reads it next. If that signal turns out to be needed, a visible label is the

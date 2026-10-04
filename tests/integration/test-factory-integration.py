@@ -1333,7 +1333,7 @@ def run_factory_gh_call(td, script, gh_state=None):
 with tempfile.TemporaryDirectory() as td:
     r, calls = run_factory_gh_call(td, (
         "import json, factory_gh as fgh\n"
-        "print(json.dumps(fgh.project_create('acmeowner', 'kaya-ai board')))\n"
+        "print(json.dumps(fgh.project_create('acmeowner', 'sample-product board')))\n"
     ))
     check("(I) project_create: forked process exits 0",
           r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
@@ -1343,7 +1343,7 @@ with tempfile.TemporaryDirectory() as td:
               for c in calls for a in c),
           calls)
     check("(I) project_create: the title is sent verbatim as a GraphQL variable",
-          any("title=kaya-ai board" in a for c in calls for a in c), calls)
+          any("title=sample-product board" in a for c in calls for a in c), calls)
 
 with tempfile.TemporaryDirectory() as td:
     r, calls = run_factory_gh_call(td, (

@@ -221,6 +221,10 @@ if not declared or not FEATURE_RE.fullmatch(declared):
     print("    HARNESS-FEATURE: FEAT-42-one-root-resolver", file=sys.stderr)
     print("  BUG-NN-slug is also valid. A later line or another id form is refused.",
           file=sys.stderr)
+    # #2010: OMP's task tool hands this gate each task's own `task` text; a batch's shared
+    # `context` block never reaches it, so a marker placed only there reads as absent.
+    print("  On OMP it goes in EACH task's own `task` text; a shared `context` block is not "
+          "read.", file=sys.stderr)
     sys.exit(2)
 
 repository_lines = [

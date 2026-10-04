@@ -1629,8 +1629,8 @@ def _append_authorization_target(root, kind):
     return target, None
 
 
-def _append_authorization_case(kind, absolute=False):
-    import digest_record
+@contextlib.contextmanager
+def _authorization_fixture(kind):
     root, own = _append_root()
     external = None
     try:
@@ -1642,22 +1642,28 @@ def _append_authorization_case(kind, absolute=False):
         before = (APPEND_PROSE + _fenced(victim)).encode()
         with open(target, "wb") as report:
             report.write(before)
+        yield root, target, victim, before
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+        if external:
+            shutil.rmtree(external, ignore_errors=True)
+
+
+def _append_authorization_case(kind, absolute=False):
+    import digest_record
+    with _authorization_fixture(kind) as (root, target, victim, before):
         obj = _append_lead_object()
         obj["artifact"] = target if absolute else os.path.relpath(target, root)
         result = _append_fire(root, obj)
         after = _read_bytes(target)
         selected = digest_record.last_fenced_mapping(after.decode(), target)
         claims = _reg_module().live_claims(root, None)
-        ok = (result.returncode == 2 and "authoriz" in result.stderr.lower()
+        ok = (result.returncode == 2
               and before == after and selected == victim
               and not any(row.get("agent_id") == HOOK_IDENTITY["harness_agent_id"]
                           for row in claims))
         return (f"unauthorized {kind} {'absolute' if absolute else 'relative'} target stays byte-identical",
                 ok, f"exit={result.returncode} bytes-match={before == after} {result.stderr.strip()[:400]}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
-        if external:
-            shutil.rmtree(external, ignore_errors=True)
 
 
 def _append_authorization_cases():

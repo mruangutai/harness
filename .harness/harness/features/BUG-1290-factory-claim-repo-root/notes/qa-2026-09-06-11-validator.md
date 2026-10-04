@@ -1,7 +1,7 @@
 # QA measurement note — B-16 panel, pin c488218e
 
 **BLUF: `must_fix: []`.** Pin fidelity holds, all three contract arms reproduce exactly as
-specified, 5g reddens for the right reason (an UNRESOLVABLE BLOCKER read off kaya's map, not an
+specified, 5g reddens for the right reason (an UNRESOLVABLE BLOCKER read off sample-product's map, not an
 exception/no_plan/JSON-decode artifact), and order dependence on fixture list order is a
 non-issue — the candidate sort is by issue number, not board_item insertion order. One genuine
 co-vacuity hole exists but requires editing the shared assertion helper itself, which the dispatch
@@ -30,12 +30,12 @@ Harness's #952 is refused as an **unresolvable-blocker skip**, same message shap
 T-99 — not an exception (`5g`'s own `except` branch never fires), not `no_plan` (message absent),
 not a JSON-decode short-circuit (stdout is legitimately empty because nothing claimed, not malformed).
 Root cause confirmed by code reading `_BlockerCache.issue_number`: the mutant canonicalizes on the
-*first* `(feature)` seen; that lookup resolves against kaya's map, which has no `T-99` entry, so
+*first* `(feature)` seen; that lookup resolves against sample-product's map, which has no `T-99` entry, so
 harness's own valid dependency is reported unresolvable — precisely the cache-bleed 5b/5g exist to
 catch.
 
 ## 4. Order dependence (CONFIRMED — not an issue)
-Swapped `board_item` list order (harness first, kaya second) in `_run_5b_scenario`: **identical**
+Swapped `board_item` list order (harness first, sample-product second) in `_run_5b_scenario`: **identical**
 `(code, out, err)` triple, 5b/5g outcomes unchanged. Reason (read from
 `factory_claim.py:314-327`): candidates are sorted by `(issue_number, repo_index)` before
 processing, not by board-item/fleet insertion order — 951 always precedes 952 regardless of the
@@ -44,13 +44,13 @@ on the issue-number values themselves (951 < 952), which are declared adjacent t
 encode and are not "incidental."
 
 ## 5. Co-vacuity hunt
-- **(a) Add `T-99: 954` to kaya's own issue map** — CONFIRMED as predicted: 5g goes **RED**
-  (`124/125`, only 5g fails; 5b stays ok). The mutant then resolves harness's T-99 via kaya's map
+- **(a) Add `T-99: 954` to sample-product's own issue map** — CONFIRMED as predicted: 5g goes **RED**
+  (`124/125`, only 5g fails; 5b stays ok). The mutant then resolves harness's T-99 via sample-product's map
   too (now present), reproducing the real per-repo outcome — mutant genuinely changes nothing
   observable. **Detected, not a hole.**
 - **(b) Weaken `_5b_property_holds` to `payload.get("issue") == 952` only** (drop both `err`
   conjuncts) — CONFIRMED as predicted: **both 5b and 5g stay green**, `125/125`. This is a real
-  co-vacuity hole: the predicate is shared, so one edit to it silently defeats kaya's half of the
+  co-vacuity hole: the predicate is shared, so one edit to it silently defeats sample-product's half of the
   proof (that #951 is refused for the *unresolvable-T-88* reason, not something else) in both
   cases at once.
   - **Classification: requires an edit to the ASSERTION ITSELF** (the shared predicate function),

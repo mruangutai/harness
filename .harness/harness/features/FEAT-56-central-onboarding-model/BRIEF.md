@@ -1,5 +1,10 @@
 # BRIEF — FEAT-56 Central onboarding model
 
+> **Retirement note.** The product this feature ran against has been retired. Paths and artifact
+> names below naming sample-product are anonymized historical references; the evidence captures and
+> the product config they cite were removed from this tree and preserved in the external archive
+> held by the operator. Requirements, criteria and recorded outcomes are unchanged.
+
 ## Problem
 
 `harness-init` still tells its reader that onboarding runs *inside a product repository* and copies
@@ -13,7 +18,7 @@ product's configuration is read from the REMOTE at its `default_branch` with no 
 (`factory_config.product_config`). The cost is measurable rather than theoretical: the pilot product
 carries four `.harness/` subtrees no reader ever opens — a 16.4 KB `team-config.yaml`, 14 expertise
 files, three pre-migration feature dirs and an 11-file retired `codebase/` — while
-`<control-plane>/.harness/kaya-ai/` does not exist at all, so its features are unreachable by every
+`<control-plane>/.harness/sample-product/` does not exist at all, so its features are unreachable by every
 feature reader. Fourteen executable sites and some twenty documents still assert the old model, so
 an operator onboarding the next repository is instructed to produce artifacts that govern nothing,
 and the first thing the factory does with a newly registered member is raise `FleetError`.
@@ -275,7 +280,7 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 - SC-16: No configuration file declares `cli_min_version`, checked ONE FILE AT A TIME and never by
   one file-global search — four conforming sites satisfy a global grep and are blind to the fifth.
   For each of `.harness/harness.json`, `.claude/skills/harness/templates/harness.json` and
-  `.claude/skills/harness/templates/examples/harness.kaya-ai.json`, `git show
+  `.claude/skills/harness/templates/examples/harness.<product>.json`, `git show
   <review_sha>:<path>` parses with `json.load` and the loaded mapping lacks the key; for each of
   `.harness/team-config.yaml` and `.claude/skills/harness/templates/team-config.yaml` it parses
   with `yaml.safe_load`, the loaded mapping lacks the key, and the blob matches neither
@@ -287,7 +292,7 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   (`.harness/harness.json:3`, `.harness/team-config.yaml:11`,
   `.claude/skills/harness/templates/harness.json:4`,
   `.claude/skills/harness/templates/team-config.yaml:22`,
-  `.claude/skills/harness/templates/examples/harness.kaya-ai.json:4`), `BUILD.md:426` carries it
+  `.claude/skills/harness/templates/examples/harness.<product>.json:4`), `BUILD.md:426` carries it
   in its key enumeration, and `DECISIONS.md` matches it nowhere.
   verify: automated        evidence: integration
 
