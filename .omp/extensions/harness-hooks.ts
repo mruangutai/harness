@@ -1111,13 +1111,41 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
   });
 
+  // #1908: a parked agent is revived COLD — OMP rebuilds its session from the session file, so
+  // this extension is a fresh instance that never saw before_agent_start, and the hub's message
+  // arrives through agent.prompt(), which emits agent_start only. Without this, the revived run
+  // had no runtime lineage (every `task` refused) and no persona (every write ungoverned). Its
+  // identity is read back from the one record OMP persisted at spawn: the session_init entry's
+  // system prompt and assignment (DEC-204: identity comes from the assignment, nothing later).
+  const adoptPersistedRun = (ctx: any): string | undefined => {
+    ({ agentId: runtimeAgentId, parentAgentId: runtimeParentAgentId } = runtimeLineage(ctx));
+    sessionCwd = text(ctx?.cwd) || sessionCwd;
+    const entries = typeof ctx?.sessionManager?.getEntries === "function"
+      ? ctx.sessionManager.getEntries() as unknown[]
+      : [];
+    const init = entries.find((entry) =>
+      entry && typeof entry === "object" && (entry as Dict).type === "session_init") as Dict | undefined;
+    if (!init) return undefined;
+    const systemPrompt = [text(init.systemPrompt)];
+    const detected = detectHarnessAgent(systemPrompt);
+    if (detected) currentAgent = detected;
+    const pin = detectMarker(systemPrompt, REVIEW_PIN_MARKER, "review pin");
+    if (pin) currentReviewPin = pin;
+    const mission = detectMarker(systemPrompt, MISSION_MARKER, "mission");
+    if (mission) currentMission = mission;
+    setFeature(detectMarker(systemPrompt, FEATURE_MARKER, "feature"));
+    captureDispatchFromMessage({ role: "user", content: text(init.task) });
+    return text(init.task);
+  };
+
   // BUG-1898 (live probe S2): a hub-woken agent runs a new turn through agent.prompt(),
   // which emits agent_start but never before_agent_start. Its claim was released when it
   // settled, so the wake re-opens the gate here — the same exact-id claim step, with the
   // feature this session already runs. A first run arrives already ready and is untouched.
   pi.on("agent_start", async (_event: Dict, ctx: any) => {
+    const assignment = runtimeAgentId ? "" : adoptPersistedRun(ctx);
     if (!currentAgent || runGate.state === "ready") return;
-    openRun({ cwd: text(ctx?.cwd) || sessionCwd }, "");
+    openRun({ cwd: text(ctx?.cwd) || sessionCwd }, assignment ?? "");
   });
 
   pi.on("message_update", async (event: Dict) => {
