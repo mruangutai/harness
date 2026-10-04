@@ -8012,8 +8012,8 @@ Lineage: DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, DEC-218, and DEC-233.
 
 ## DEC-251 — Governed OMP file-tool inputs are relative to the assigned feature worktree
 
-**Chose:** a governed OMP agent's `read` of `docs/example.md:20-40` executes against
-`<feature-worktree>/docs/example.md:20-40`, not the parent's checkout. The adapter silently
+**Chose:** a governed OMP agent's `read` of a relative path (for example docs/example.md, lines
+20 to 40) executes against that path under its feature worktree, not the parent's checkout. The adapter silently
 roots relative file-tool inputs through the existing `tool_call` revised-input channel before
 file-domain policy. Origins: #1016 and #1570. This is an adapter change, not a change to OMP.
 
