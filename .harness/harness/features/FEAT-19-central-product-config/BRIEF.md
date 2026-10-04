@@ -1,4 +1,9 @@
 > **RETIRED, NEVER SIGNED — 2026-08-14. Read this for its RESEARCH, never for its scope.**
+
+> **Retirement note.** The product this feature ran against has been retired. Paths and artifact
+> names below naming sample-product are anonymized historical references; the evidence captures and
+> the product config they cite were removed from this tree and preserved in the external archive
+> held by the operator. Requirements, criteria and recorded outcomes are unchanged.
 >
 > This brief was planned, reviewed through three engineering passes, and never approved. Its scope
 > was superseded before signature by wayfinding map **#336**, which took the same effort from "one
@@ -11,7 +16,7 @@
 > D-04 (**reversed** by #350 — a product's board moves into `harness.json`), D-06 (flipped to
 > option B).
 >
-> **Two survive and were carried onto map #336:** D-03 (kaya's test kinds ship `unresolved` and
+> **Two survive and were carried onto map #336:** D-03 (sample-product's test kinds ship `unresolved` and
 > DEC-187 closure is enforced at the first factory run) and D-07 (the resolver's flag is
 > `--which-config`, because a second `--resolve` answering a different question in a different shape
 > is a homonym).
@@ -41,15 +46,15 @@ Implements issue #206 and the grilling decision record
 ## Problem
 
 The factory can be pointed at another repository but cannot be told anything about it. A worker
-session standing in `harness-factories/kaya-ai` has no `.harness/` beneath it, so every config
+session standing in `harness-factories/sample-product` has no `.harness/` beneath it, so every config
 question — which tests this change owes, which repo to sync issues to, which board to move cards
 on — resolves against the harness repository's own `harness.json`. The answers it gets are
-harness's answers. `mruangutai/kaya-ai` has been registered in `fleet.yaml` since FEAT-16 and is
+harness's answers. `mruangutai/sample-product` has been registered in `fleet.yaml` since FEAT-16 and is
 still, at `63b83c7`, a repository the factory can check out and cannot describe.
 
 The cost is not an error message. It is a **silent wrong answer**: harness's `test_matrix`
-applied to kaya's code would demand `unit` and `integration` from runners that do not exist in
-kaya's tree, and harness's `github.repo` would send kaya's issue mirror to `mruangutai/harness`.
+applied to sample-product's code would demand `unit` and `integration` from runners that do not exist in
+sample-product's tree, and harness's `github.repo` would send sample-product's issue mirror to `mruangutai/harness`.
 Nothing today makes either loud.
 
 The operator's rule, ruled 2026-08-13 during FEAT-18's signature and recorded in the grilling
@@ -61,7 +66,7 @@ with the product, and the redundancy between `harness.json` and `fleet.yaml` tod
 A repository registered in `.harness/factory/fleet.yaml` can also be **configured** centrally, by
 a file in the harness repository, and a session working on that repository resolves its config
 from there rather than from harness's own. Reaching the end looks like: point the factory at
-`mruangutai/kaya-ai`, and **the test matrix the qa gate applies is kaya's, not harness's**.
+`mruangutai/sample-product`, and **the test matrix the qa gate applies is sample-product's, not harness's**.
 
 **The Goal is scoped to one consumer on purpose, and this is D-06's ruling.** Two things in the
 tree read config by joining `.harness/harness.json` by hand at `63b83c7`: the qa gate
@@ -85,7 +90,7 @@ sent the first draft back. Nothing else about onboarding moves in this effort.
   config, exactly as it does today.
 - REQ-04: A resolution that cannot be completed refuses loudly and never falls back to another
   repository's config.
-- REQ-05: `mruangutai/kaya-ai` has a real central config in this repository — not a fixture, not a
+- REQ-05: `mruangutai/sample-product` has a real central config in this repository — not a fixture, not a
   template example.
 - REQ-06: The onboarding skill describes what the factory actually does: registration is its first
   step, and it no longer instructs a reader to install prerequisites into a product, scaffold a
@@ -177,16 +182,16 @@ DEC-187 sets a closure invariant: every kind the matrix names must be `active` �
 has **run and seen pass** — or `excluded` with a `signed` value naming a decision that resolves in
 **the project's decisions file**. `unresolved` blocks.
 
-Neither is available for kaya. Nobody has run kaya's commands from here and this effort does not
-clone kaya, so `active` would be an unverified claim of exactly the shape DEC-187 exists to stop;
-and kaya has no decisions file, so `excluded` has nowhere to sign. The existing reference
-`.claude/skills/harness/templates/examples/harness.kaya-ai.json` carries the defect DEC-187 names
+Neither is available for sample-product. Nobody has run sample-product's commands from here and this effort does not
+clone sample-product, so `active` would be an unverified claim of exactly the shape DEC-187 exists to stop;
+and sample-product has no decisions file, so `excluded` has nowhere to sign. The existing reference —
+the archived pilot config (removed from the tree) — carries the defect DEC-187 names
 by name — `bugfix.always` is `["__bug_class__"]`, a predicate placeholder in no `test_kinds`, so
-kaya's bugfix type can never resolve — so it cannot be copied forward unchanged.
+sample-product's bugfix type can never resolve — so it cannot be copied forward unchanged.
 
 | Option | Cost |
 |---|---|
-| **A — kaya's kinds ship `unresolved`, and closure is enforced at first factory run** (DEFAULT, planned) | honest, and REQ-05 is still met — a real config exists and resolves. A qa gate on kaya blocks until someone runs the commands, which is DEC-187 working as designed rather than a defect |
+| **A — sample-product's kinds ship `unresolved`, and closure is enforced at first factory run** (DEFAULT, planned) | honest, and REQ-05 is still met — a real config exists and resolves. A qa gate on sample-product blocks until someone runs the commands, which is DEC-187 working as designed rather than a defect |
 | B — the operator signs statuses at approval | a config that claims verified runners nobody ran; the exact claim DEC-187 forbids |
 | C — coin a per-product decisions location so `excluded` can sign | closes the invariant properly, and is a second feature: a decisions file, an index, and a resolver for `signed` |
 
@@ -202,8 +207,8 @@ one. Each carries its own recommendation.
 | Key | Recommendation | Why |
 |---|---|---|
 | `number` | **KEEP, and it is required.** | Nothing else in the tree identifies a board. Not derivable from anything |
-| `owner` | **KEEP, and this reverses the artifact's lean.** | The artifact calls it redundant because `github.repo`'s first segment gives it. That derivation is true of harness today and **false in general** — `fleet.yaml`'s kaya entry already carries `board.owner` explicitly, and a config that derives owner for one repo and reads it for another has two rules for one field. Deriving it also means a board owned by a different account than its repo fails by silently querying the wrong owner, rather than by being unstated. The cost of keeping it — one line restating data two lines above — is smaller than the cost of two rules |
-| `station_field` | **KEEP and REQUIRED — but the ruling CONFIRMS the code rather than changing it.** | The first draft said this made something required that was optional. That was **false at `63b83c7`**, and it is corrected here rather than left standing. `factory_config._validate_board` **already** raises `FleetError` on a missing or empty `station_field`, and kaya's `fleet.yaml` entry already carries `station_field: Status`. So for a **product** board, nothing is added — the ruling records why the existing enforcement is right, so a future reader does not relax it: DEC-192 prescribes the six station *values* byte for byte and nothing prescribes the *field name* holding them, `Status` is GitHub's renameable default, and a pinned field name is a string that goes stale silently. **The silence the first draft described is real but lives elsewhere:** on *harness's own* board, `gh_board.load_board` returns `None` when `station_field` is missing or empty — not configured, not an error — so station writes are silently skipped. **No task in this plan changes that**, and that is a named residual of this feature, not a claim it fixes. |
+| `owner` | **KEEP, and this reverses the artifact's lean.** | The artifact calls it redundant because `github.repo`'s first segment gives it. That derivation is true of harness today and **false in general** — `fleet.yaml`'s sample-product entry already carries `board.owner` explicitly, and a config that derives owner for one repo and reads it for another has two rules for one field. Deriving it also means a board owned by a different account than its repo fails by silently querying the wrong owner, rather than by being unstated. The cost of keeping it — one line restating data two lines above — is smaller than the cost of two rules |
+| `station_field` | **KEEP and REQUIRED — but the ruling CONFIRMS the code rather than changing it.** | The first draft said this made something required that was optional. That was **false at `63b83c7`**, and it is corrected here rather than left standing. `factory_config._validate_board` **already** raises `FleetError` on a missing or empty `station_field`, and sample-product's `fleet.yaml` entry already carries `station_field: Status`. So for a **product** board, nothing is added — the ruling records why the existing enforcement is right, so a future reader does not relax it: DEC-192 prescribes the six station *values* byte for byte and nothing prescribes the *field name* holding them, `Status` is GitHub's renameable default, and a pinned field name is a string that goes stale silently. **The silence the first draft described is real but lives elsewhere:** on *harness's own* board, `gh_board.load_board` returns `None` when `station_field` is missing or empty — not configured, not an error — so station writes are silently skipped. **No task in this plan changes that**, and that is a named residual of this feature, not a claim it fixes. |
 
 **Where each board block lives, so these rulings do not create the redundancy they are meant to
 end.** A **product's** board stays in its `fleet.yaml` entry, where FEAT-16 put it and where
@@ -229,7 +234,7 @@ the resolver could be deleted at ship with only its own tests noticing.
 | C — rewire nothing; narrow the Goal and REQ-02 to "the mechanism exists and is observable" | 0 tasks. The feature ships a resolver nobody calls, and the next effort inherits both the wiring and the argument about whether it was in scope | **No.** The Goal is narrowed to match |
 
 **Why A is the default:** the qa gate is the consumer the Goal actually names — "the test matrix
-that applies is kaya's" is a sentence about the qa gate and nothing else — and it is prose, so the
+that applies is sample-product's" is a sentence about the qa gate and nothing else — and it is prose, so the
 change costs one task and carries no code-review surface. B is right eventually and is priced
 above so you can take it now; C is honest but ships a mechanism with no caller, which is the state
 the review flagged.
@@ -259,7 +264,7 @@ cheap moment. Every place that names it also names the tool with it: never a bar
 - **Whether a product's domain globs are part of "configured".** `team-config.yaml` lives solely
   in harness (operator ruling, 2026-08-09) and this effort does not describe a product's paths.
 - Deleting `templates/`. #203 closed without removing it and nothing here depends on its fate.
-- Cloning, running or testing kaya's own code.
+- Cloning, running or testing sample-product's own code.
 
 ## Success Criteria
 
@@ -279,7 +284,7 @@ cheap moment. Every place that names it also names the tool with it: never a bar
 - SC-05: A checkout under `workspace_root` belonging to no registered repository still exits 2,
   unchanged by this feature.
   verify: automated      evidence: unit
-- SC-06: `mruangutai/kaya-ai` has a config at the derived path that loads, and every change type
+- SC-06: `mruangutai/sample-product` has a config at the derived path that loads, and every change type
   in its `test_matrix` names only kinds that exist in its own `test_kinds` — in particular
   `bugfix` no longer names `__bug_class__` in `always`.
   verify: automated      evidence: unit
@@ -307,7 +312,7 @@ cheap moment. Every place that names it also names the tool with it: never a bar
 - SC-11: The new resolver is registered in `run-unit-tests.py`'s script arrays, so its tests
   actually run rather than existing unread.
   verify: automated      evidence: unit
-- SC-12: The operator can point the factory at kaya and see, in one command's output, which
+- SC-12: The operator can point the factory at sample-product and see, in one command's output, which
   config file answered — the resolution is observable, not inferred from behaviour. **On both
   branches**: on success the config path is a key of the one JSON line, and on a refusal — where
   stdout is empty by `factory_cli.run`'s contract — the config path or repository name the
@@ -355,7 +360,7 @@ surface this feature could plausibly want.
   statement about this feature, not a general one.
 - **The gap that does cost something:** no runner anywhere executes against a real checkout under
   `workspace_root`. Every criterion above is proven on fixture directories. **What is therefore
-  NOT proven: that resolution works on the actual `harness-factories/kaya-ai` checkout** — which
+  NOT proven: that resolution works on the actual `harness-factories/sample-product` checkout** — which
   does not exist at `63b83c7`; `ls /Users/molchairuangutai/GitHub/harness-factories` fails. SC-12
   carries that, as UAT, by the operator's own hand. It stays `not_met` until the operator runs it.
 
@@ -366,12 +371,12 @@ surface this feature could plausibly want.
   `main-session-direct`.
 - **DEC-179** — routing is resolved at plan time by `check-domain.py --resolve`. **Three** of this
   feature's surfaces resolve to NOBODY and are declared main-session steps for that reason, which
-  is distinct from the DEC-174 reason: `.harness/products/kaya-ai/harness.json` (T-02),
+  is distinct from the DEC-174 reason: `.harness/products/sample-product/harness.json` (T-02),
   `.claude/skills/harness-init/SKILL.md` (T-03) and `.claude/skills/harness-qa-gate/SKILL.md`
   (T-07). Each was re-resolved by running the guard at `63b83c7`.
   **Correcting the first draft**, which named four surfaces including `.harness/factory/fleet.yaml`
   and `.claude/skills/harness/templates/harness.json`: those two do resolve to NOBODY, but neither
-  is a surface of this feature. Kaya is already registered in `fleet.yaml`, so no task edits it,
+  is a surface of this feature. The product is already registered in `fleet.yaml`, so no task edits it,
   and `templates/harness.json` is harness's own template, untouched under D-01 option A. The false
   half was "of this feature's surfaces", not the NOBODY verdict. **No task was added to make the
   sentence true; the sentence was wrong.**

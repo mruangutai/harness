@@ -82,7 +82,7 @@ restore was byte-identical, then moved to the next mutant.
    `("backlog", "ready", "building", "review", "done")`. Measured result:
    `FAIL  (X) validate_board accepts a six-key map with all six non-empty values, and returns it`.
    Case reddens because `board_dict(3)` now derives from `SIX_STATIONS` and the five-key
-   comparison rejects it — this is exactly the window T-01 left open on kaya-ai's board.
+   comparison rejects it — this is exactly the window T-01 left open on sample-product's board.
 2. **(b) the five-key map `.harness/harness.json` carried before this change is REJECTED
    with a FleetError whose key is `github.board.stations`.** Same five-key mutant as (a).
    Measured result:

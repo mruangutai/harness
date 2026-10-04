@@ -15,15 +15,15 @@ outside `tests/` and `.harness/<feature>/` changed. `factory_claim.py:161-213`
 (`_blocker_gate`/`_blocker_reason_text`, the code that produces the `no_plan` / `unresolvable` /
 `open` reason strings `factory_cli.refuse` prints) is untouched since `76e26386`.
 
-Case 5b's fixture changed (`tests/unit/test-factory-claim.py:373-386`): kaya-ai's issue map went
+Case 5b's fixture changed (`tests/unit/test-factory-claim.py:373-386`): sample-product's issue map went
 from `{}` to `{"T-77": 850}` (T-88 still absent → still `unresolvable`); harness's `T-77` gained
 `depends_on: ["T-99"]` (was clear with zero deps) and harness's own map now resolves `T-99 → 954`,
-issue 954 seeded `CLOSED`. This does **not** change which reason-kind either segment hits: kaya
-still lands `"unresolvable"` (T-88 has no entry in kaya's own map, same as before), harness still
+issue 954 seeded `CLOSED`. This does **not** change which reason-kind either segment hits: sample-product
+still lands `"unresolvable"` (T-88 has no entry in sample-product's own map, same as before), harness still
 lands clear (`None`) — but now via a real dependency lookup instead of trivially (no deps at all).
 That is exactly the strengthening the commit message claims, and it is why the issue-map-keyed
 mutant now reddens 5b (harness's own map must supply `T-99`; a feature-only key would instead find
-kaya's map, which lacks `T-99`, and misroute the verdict) where before it had nothing to trip over.
+sample-product's map, which lacks `T-99`, and misroute the verdict) where before it had nothing to trip over.
 
 ## 2. Do the touched cases still pin meaningful operator-visible text?
 
@@ -31,7 +31,7 @@ kaya's map, which lacks `T-99`, and misroute the verdict) where before it had no
 `code == 0`, `issue == 952`, `"951" in err`, `"unresolvable blocker" in err`,
 `"no plan could be read" not in err`. `"unresolvable blocker"` is the literal substring
 `_blocker_reason_text` emits for the `"unresolvable"` kind (`factory_claim.py:~199`) — confirmed
-the fixture change doesn't cause that reason-kind to flip to `"open"` or `"no_plan"` for kaya, which
+the fixture change doesn't cause that reason-kind to flip to `"open"` or `"no_plan"` for sample-product, which
 would have silently satisfied the same substring check for the wrong reason (it doesn't: `"open"`'s
 text has no `"unresolvable"` substring, `"no_plan"`'s is explicitly excluded). No pinned string
 weakened. 5a/5c (the other `no_plan`/`unresolvable` cases) are byte-unchanged in this diff.

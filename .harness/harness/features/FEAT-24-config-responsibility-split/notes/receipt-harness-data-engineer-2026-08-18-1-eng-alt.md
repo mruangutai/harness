@@ -22,7 +22,7 @@ remote primitive, station resolution lives in the module, not bolted onto caller
 
 ## ALTITUDE findings
 
-1. **file** `.harness/harness/features/FEAT-24-config-responsibility-split/BRIEF.md` · **line** 105-113 · **summary**: the `## Verification gaps` section names two accepted residuals (null test kinds, kaya inspection) but not the SC-10 gap found above — SC-10 claims `evidence: integration` with no implementing step. **cost**: a residual is accepted silently rather than named, so a later reader trusts SC-10 is covered by the integration suite when it is not. **fix**: either implement the SC-10 check (see J2 table) or, if descoped, add a third `## Verification gaps` row stating explicitly that file-migration completeness rests on the planning-time grep in `lanes.resolved_but_not_written`, not on a repeatable test. **fold-in** (would-cost-a-build-cycle).
+1. **file** `.harness/harness/features/FEAT-24-config-responsibility-split/BRIEF.md` · **line** 105-113 · **summary**: the `## Verification gaps` section names two accepted residuals (null test kinds, sample-product inspection) but not the SC-10 gap found above — SC-10 claims `evidence: integration` with no implementing step. **cost**: a residual is accepted silently rather than named, so a later reader trusts SC-10 is covered by the integration suite when it is not. **fix**: either implement the SC-10 check (see J2 table) or, if descoped, add a third `## Verification gaps` row stating explicitly that file-migration completeness rests on the planning-time grep in `lanes.resolved_but_not_written`, not on a repeatable test. **fold-in** (would-cost-a-build-cycle).
 
 2. **file** `plan.yaml` · **line** 393, 879, 1053, 1122, 161-168 (D-02) · **summary**: the clause "`default_branch` cannot move into the checkout because `factory_workspace.py:115` reads it to create the checkout" is restated near-verbatim in D-02's `because`, and again in T-02, T-07, T-09 and T-10's task intents. **cost**: none currently — each task is dispatched to an isolated agent with no shared context, so the repetition is required reading for that agent, not a second authority that can silently drift; D-02 remains the one *decision* record, the task intents are explanatory prose for isolated executors. **fix**: none needed. **leave** (cosmetic).
 
@@ -37,4 +37,4 @@ throughout, not bolted onto callers (`check-state.py`, `gh-sync.py`, `board-stat
 check-plan-routes.py 0 violations; T-05/07/08/09 correctly main-session-direct; test-no-distribution.py
 case3 fixtures; templates/harness.json `board: null` nesting; gen-decisions-index.py `--check` absence
 at plan.yaml:1148 (already a logged must_fix, not repeated here); default_branch pre-clone reads;
-kaya's live config stale-key nesting.
+sample-product's live config stale-key nesting.

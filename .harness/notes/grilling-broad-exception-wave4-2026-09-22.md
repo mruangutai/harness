@@ -92,14 +92,14 @@ confirmed-by: operator
   input, gated by the existing pre-image drop rule; a `# broad-catch: <reason>` marker as the
   boundary hatch). Then ruled **premature**: harness is already locked by the census (bin/ at
   zero, `harness_boundary.py` at its two designed boundaries); the only ungated surface is
-  kaya-ai, which shows no measured regrowth. The two todos (`Extend code-grade/review rubric to
+  the archived pilot, which shows no measured regrowth. The two todos (`Extend code-grade/review rubric to
   grade new broad catches`, `Reduce BROAD_CATCH_CEILINGS to pure zero-list`) are DROPPED, not
-  blocked. Revisit only on evidence: a rising kaya-ai count. This section is that feature's
+  blocked. Revisit only on evidence: a rising count there. This section is that feature's
   grilling if the evidence arrives.
-- Monitor, not gate: kaya-ai baseline at `7d2f946` (master), main tree excluding
+- Monitor, not gate: archived-pilot baseline at `7d2f946` (master), main tree excluding
   `.claude/worktrees` — **35 broad catches in 7 of 127 .py files**: jobs_supabase.py 10,
   worker.py 7, extraction/citation.py 6, review/audit.py 5, api/review_supabase.py 4,
   cli/review.py 2, api/jwt_verify.py 1. Same AST rule as the census (bare, `Exception`, or a
-  tuple naming `Exception`). Re-measure at the next kaya-ai review or sweep.
+  tuple naming `Exception`). Re-measure at the next review or sweep of that repo.
 - The `BROAD_CATCH_CEILINGS` table stays as its two-entry self; replacing it with an in-source
   marker was judged a convention swap with no behaviour gain.

@@ -71,7 +71,7 @@ mutated its attribute *between* two `runpy.run_path` calls of a script that does
 `import`) — the mutation **survived** into the second run, confirming CPython's import cache means
 `import factory_claim` inside the re-executed script does not reset or reload an
 already-imported module. This matches this plan's own recorded measurement in
-`notes/research-BUG-1290-factory-claim-repo-root-fix-c2.md` ("a `mruangutai/kaya-ai` candidate
+`notes/research-BUG-1290-factory-claim-repo-root-fix-c2.md` ("a `mruangutai/sample-product` candidate
 resolves to `…/.harness/harness/features` … Attribute delegation is at call time, so the mutant
 survives the suite's patch"). Baseline-then-mutant ordering is safe: the proxy is installed only
 *after* baseline evidence is captured, and the single restore-at-exit is adequate because

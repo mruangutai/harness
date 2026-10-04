@@ -1,5 +1,10 @@
 # BRIEF — FEAT-12 End copy-based distribution
 
+> **Retirement note.** The product this feature ran against has been retired. Paths and artifact
+> names below naming sample-product are anonymized historical references; the evidence captures and
+> the product config they cite were removed from this tree and preserved in the external archive
+> held by the operator. Requirements, criteria and recorded outcomes are unchanged.
+
 Issue: mruangutai/harness#203. Grilling: `.harness/notes/grilling-end-distribution-2026-08-10.md`.
 
 ## Problem
@@ -9,31 +14,31 @@ skill directories and 8 slash commands out of this repo into a global install *a
 enrolled project, plus 16 agent files into the global install **only** — `deploy.sh:18` states
 "AGENTS GO GLOBAL ONLY (DEC-113)" and the copy loop at `deploy.sh:232` writes them to
 `~/.claude/agents/` and nowhere else. That asymmetry is load-bearing for what follows: the 16 agent
-files sitting in `kaya-ai` were never put there by a project copy and were never committed.
+files sitting in `sample-product` were never put there by a project copy and were never committed.
 On 2026-08-10 the global copy was found to be **stale, not merely
 redundant**: `harness-wayfinding` and `harness-grilling` were last written on Jul 31 while this repo
 rewrote them on 2026-08-09 in `c5597be`. The global text lacked the one-door-per-job framing for ten
-days and nobody noticed until someone diffed it. `kaya-ai` still carries the same frozen fork —
+days and nobody noticed until someone diffed it. `sample-product` still carries the same frozen fork —
 55 skill files and 8 command files tracked on `master`, 16 untracked agent files, and a further
 153 skill files tracked on three of its feature branches — and `check-state.py`,
-`validate-digest.py` and every other gate run in kaya run **from that copy, not from here**. A gate
+`validate-digest.py` and every other gate run in sample-product run **from that copy, not from here**. A gate
 that is a stale fork of the real gate is worse than no gate: it reports green about rules that no
 longer exist.
 
 The global install was already deleted by hand on 2026-08-10 ahead of this work (backups at
 `~/.harness/global-harness-*-backup-2026-08-10.tgz`). What is left is the machinery that would
-recreate it, the copy still sitting in kaya, and roughly forty live references telling humans and
+recreate it, the copy still sitting in sample-product, and roughly forty live references telling humans and
 agents to use a distribution step.
 
 ## Goal
 
 End copy-based distribution. `deploy.sh`, its slash command and its registry are deleted; the copy
-of the tooling in kaya-ai's own three tooling directories — the ones a session opened at that
-repo's root reads from — is removed, and the removal is committed to `master`; kaya-ai is onboarded
+of the tooling in sample-product's own three tooling directories — the ones a session opened at that
+repo's root reads from — is removed, and the removal is committed to `master`; sample-product is onboarded
 to `fleet.yaml` so the factory can still reach it by name; and no live instruction, docstring or
 user-facing message in this repo points at a distribution step any more. After this, a product repo
 reaches harness tooling by being checked out by the factory, not by holding a copy of it. The only
-copy this feature leaves behind is branch-local rather than repo-level: three of kaya-ai's six git
+copy this feature leaves behind is branch-local rather than repo-level: three of sample-product's six git
 worktrees still carry the tooling on their own feature branches, and each of the three loses it the
 next time that branch takes `master` (see `## Constraints`). No copy survives on `master`, which is
 what the factory clones.
@@ -43,18 +48,18 @@ what the factory clones.
 - REQ-01: This repository contains no mechanism that copies harness tooling anywhere else.
 - REQ-02: `~/.harness/registry.json` and its writer are both gone, and nothing that reads project
   roots regresses as a result.
-- REQ-03: `kaya-ai`'s three top-level tooling directories hold no harness tooling — no `harness*`
+- REQ-03: `sample-product`'s three top-level tooling directories hold no harness tooling — no `harness*`
   entries under `.claude/skills/`, no `harness*.md` under `.claude/commands/`, no `harness-*.md`
-  under `.claude/agents/` — so a session opened at `kaya-ai`'s root has no harness capability,
+  under `.claude/agents/` — so a session opened at `sample-product`'s root has no harness capability,
   which is the intended end state. **The three directories are the scope, deliberately.** Copies
-  inside three of `kaya-ai`'s six git worktrees under `.claude/worktrees/` are a declared deferral
+  inside three of `sample-product`'s six git worktrees under `.claude/worktrees/` are a declared deferral
   (see `## Constraints`) — a **transient** one, because those copies are tracked on their own
   feature branches and each branch drops them the next time it takes `master`. This requirement is
   worded to match what the work delivers rather than to promise past it.
-- REQ-04: `kaya-ai`'s own accumulated state under its `.harness/` is untouched by this work, in
+- REQ-04: `sample-product`'s own accumulated state under its `.harness/` is untouched by this work, in
   full, including the entries the operator ruling did not name.
-- REQ-05: `kaya-ai` is reachable to the factory by name once the registry is gone.
-- REQ-06: A factory checkout of `kaya-ai` runs without a dangling-hook error caused by this removal.
+- REQ-05: `sample-product` is reachable to the factory by name once the registry is gone.
+- REQ-06: A factory checkout of `sample-product` runs without a dangling-hook error caused by this removal.
 - REQ-07: No live instruction, docstring, comment or user-facing string in this repo directs anyone
   to a distribution step that no longer exists.
 - REQ-08: The decision record states that copy-based distribution is retired, and the strike leaves
@@ -84,29 +89,29 @@ what the factory clones.
   cited evidence.
   verify: inspection
 - SC-03: `.harness/factory/fleet.yaml` loads with `safe_load` and its `repos:` list contains
-  `mruangutai/kaya-ai` with `default_branch: master` alongside `mruangutai/harness`, and
+  `mruangutai/sample-product` with `default_branch: master` alongside `mruangutai/harness`, and
   `factory_config.py` accepts the file without raising.
   verify: automated      evidence: unit
-- SC-04: `kaya-ai` at the state this feature leaves it in contains zero `harness*` entries under
+- SC-04: `sample-product` at the state this feature leaves it in contains zero `harness*` entries under
   `.claude/skills/`, zero `harness*.md` under `.claude/commands/`, and zero `harness-*.md` under
   `.claude/agents/` — and still contains `.claude/commands/review-team.md`, which is not harness
   tooling and must survive. The presence half is not optional: an all-absent result would also be
   produced by deleting the wrong directory outright, so all three parent directories must still
   exist. **The three clauses are graded against two different things, and this is deliberate.** The
   skills and commands clauses are graded against `origin/master`, because those files are tracked
-  and their removal is a commit (T-05's verify). **The agents clause is graded against kaya's
+  and their removal is a commit (T-05's verify). **The agents clause is graded against sample-product's
   working tree only** — zero `harness-*.md` are tracked on `master`, so their deletion produces no
   commit content and the remote never carried them; grading it against the remote would pass
   vacuously on a target that never existed. Its evidence is the pair T-02 produces: the recorded
-  pre-deletion count in `notes/kaya-agents-count-before.txt`, which must be greater than zero, and
+  pre-deletion count in `notes/sample-product-agents-count-before.txt`, which must be greater than zero, and
   the post-deletion count of zero.
   verify: inspection
-- SC-05: `kaya-ai/.harness/` is byte-identical across the removal. The same seven top-level entries
+- SC-05: `sample-product/.harness/` is byte-identical across the removal. The same seven top-level entries
   (`artifacts`, `codebase`, `expertise`, `features`, `harness.json`, `notes`, `team-config.yaml`),
   the same total file count, and the same per-file sha256, captured before the first deletion and
   re-captured after the last one, differ in nothing.
   verify: inspection
-- SC-06: A fresh factory checkout of `kaya-ai` at `master` executes a Bash call, a Write and a Task
+- SC-06: A fresh factory checkout of `sample-product` at `master` executes a Bash call, a Write and a Task
   spawn with no missing-hook error. This is the criterion that proves the fleet entry ships live
   rather than inert.
   verify: uat
@@ -138,7 +143,7 @@ what the factory clones.
 
 - No test kind in this repo can observe another repository. `component`, `ui`, `eval` and
   `typecheck` all have `cmd: null`, and none of the four would help here anyway: nothing in
-  `test_kinds` reaches outside `CLAUDE_PROJECT_DIR`. Every claim about `kaya-ai` — SC-04, SC-05,
+  `test_kinds` reaches outside `CLAUDE_PROJECT_DIR`. Every claim about `sample-product` — SC-04, SC-05,
   SC-06 — therefore rests on inspection of a captured manifest or on the operator running it,
   never on a runner. What carries SC-05 is the before/after sha256 manifest, which is a real
   artifact a reviewer can re-diff; what carries SC-06 is the operator.
@@ -156,7 +161,7 @@ what the factory clones.
   both survive). Nothing else in `templates/` is touched.
 - Out of scope: anything `harness-init` does beyond neutralising its distribution references. The
   rewrite of that skill is #206, which lands after this.
-- Out of scope: moving `kaya-ai`'s `expertise/`, `codebase/`, `features/`, `artifacts/` or `notes/`
+- Out of scope: moving `sample-product`'s `expertise/`, `codebase/`, `features/`, `artifacts/` or `notes/`
   anywhere. Deferred by operator ruling; the central-store migration is separate work.
 - Out of scope: `factory_gh.py` and `.harness/features/FEAT-11-graphql-field-resolve/`, which are
   being planned concurrently against issue #211.
@@ -166,8 +171,8 @@ what the factory clones.
   It is not recreated by this feature. All four survivors were grepped for `deploy` and `registry`
   at `c1d1617` and every hit is incidental prose, so no enforcement-file edit is implied by this
   work. That is what keeps this feature inside a team run.
-- `.claude/commands/review-team.md` in `kaya-ai` is not harness tooling and is not deleted.
-- **Out of scope, and declared rather than omitted: `kaya-ai`'s `.claude/settings.json.harness-bak`
+- `.claude/commands/review-team.md` in `sample-product` is not harness tooling and is not deleted.
+- **Out of scope, and declared rather than omitted: `sample-product`'s `.claude/settings.json.harness-bak`
   stays.** It is tracked on `origin/master`, it is `merge-settings.py`'s backup of the settings
   file, and it registers six harness scripts — so after this feature `master` still ships one
   tracked file naming scripts that no longer exist. It is left because it is inert and because it
@@ -178,8 +183,8 @@ what the factory clones.
   owns and harness does not*. Bringing it in would need a requirement this brief does not have.
   Recorded as `D-06` in `plan.yaml`, with the reversal cost: one path on T-03, one entry on T-05's
   pathspec.
-- **Out of scope and DEFERRED — but transient, not permanent: the harness copies inside `kaya-ai`'s
-  git worktrees.** Measured on 2026-08-10 against kaya `master` at `b6aaab9`, all six worktrees
+- **Out of scope and DEFERRED — but transient, not permanent: the harness copies inside `sample-product`'s
+  git worktrees.** Measured on 2026-08-10 against sample-product `master` at `b6aaab9`, all six worktrees
   enumerated rather than sampled. **Three of the six carry a copy** — `333-env-test`
   (`feat/333-env-test`, tip `ab92578`, 55 files), `feat02-statements` (`feat/120-statements-page`,
   tip `d09289c`, 48 files) and `feat03-live-review-loop` (`feat/48-live-review-loop`, tip `c7b2208`,
@@ -188,7 +193,7 @@ what the factory clones.
   "untracked and gitignored". That was wrong and was never measured.** Every one of the 153 is
   **tracked content of its own branch** (`git -C <worktree> ls-files '.claude/skills/harness*'`).
   What is gitignored is only the container, in the *main* tree: `.gitignore:23` lists
-  `.claude/worktrees/`, which is why the copies never appear in kaya's root `git status` and why
+  `.claude/worktrees/`, which is why the copies never appear in sample-product's root `git status` and why
   `git ls-files '.claude/worktrees*'` on `master` returns zero — **a factory clone of `master`
   carries no worktrees at all**, so this deferral cannot reach SC-06.
   **The factory cannot reach the residue either, and that is measured rather than assumed.** After
@@ -203,7 +208,7 @@ what the factory clones.
   files for all three), so T-05's deletion commit merges cleanly. The next time each of the three
   branches merges or rebases `master`, the deletion applies and its copy goes — no conflict, no
   further work. Until then a session opened *inside* one of those three worktrees still finds
-  harness tooling, which is narrower than REQ-03's "a session opened directly in `kaya-ai` has no
+  harness tooling, which is narrower than REQ-03's "a session opened directly in `sample-product` has no
   harness capability". That is the intended end state arriving late per branch, not a regression,
   and it is why REQ-03 is scoped to the three top-level directories. Nothing in this feature reaches
   the worktrees: they are outside all three of T-02's globs and SC-04 is worded against
@@ -265,24 +270,24 @@ what the factory clones.
 ## Settled rulings
 
 - **Q1 — SETTLED by the operator on 2026-08-10: commit and push, path-scoped.** The question was
-  whether removing `kaya-ai`'s copy becomes a commit pushed to `kaya-ai`'s `master` or stops at that
+  whether removing `sample-product`'s copy becomes a commit pushed to `sample-product`'s `master` or stops at that
   machine's working tree. 55 skill files and all 8 command files are tracked on `master`, and
   `factory_workspace.py:125` materialises a workspace by `git clone https://github.com/<repo>.git` —
   from the **remote**, not from the local checkout — so a working-tree-only deletion is undone by
   the very next factory checkout and the goal is never reached. **The ruling authorizes a push to
-  `mruangutai/kaya-ai` `master` for the deletion commit only.** It authorizes nothing in this
+  `mruangutai/sample-product` `master` for the deletion commit only.** It authorizes nothing in this
   repository: "do not push, do not open a PR" was ruled for **this** repo, still binds here in full,
-  and was silent on kaya. Path-scoping is part of the ruling, not a style note — kaya's working tree
+  and was silent on sample-product. Path-scoping is part of the ruling, not a style note — sample-product's working tree
   carries 63 uncommitted entries that are not this feature's, so staging is by explicit pathspec and
   never `-a`, `-A` or `git add .`. `T-05` is unconditional as a result.
 - **The agent files and the local skill modifications, measured rather than assumed.** An earlier
   draft of Q1 claimed "the 16 agent files and the 21 uncommitted skill modifications are untracked
-  and are unaffected either way." **The second half was false.** Measured in `kaya-ai` on
+  and are unaffected either way." **The second half was false.** Measured in `sample-product` on
   2026-08-10: 34 of the modified files under `.claude/skills/harness*` and `.claude/commands/harness*`
   are **tracked**, and committing their deletion discards those local modifications permanently.
   The conclusion is unchanged but the reason is different: **nothing unique is lost because all 34
   are reproducible from this repository** — 28 are byte-identical to this repo's copy at `365a8a9`,
-  and the remaining 6 are present in this repo's object database, confirmed by hashing kaya's copy
+  and the remaining 6 are present in this repo's object database, confirmed by hashing sample-product's copy
   and running `git cat-file -e` on the hash here. That is also the authorization for `git rm -f`,
   which `T-02` needs because `git rm` refuses a locally-modified tracked file without it. The agent
   files genuinely are untracked — zero of them are on `master` — so their deletion produces no
@@ -290,7 +295,7 @@ what the factory clones.
 
 ## Open questions
 
-- None blocking. The two declared deferrals — `.claude/settings.json.harness-bak` and `kaya-ai`'s
+- None blocking. The two declared deferrals — `.claude/settings.json.harness-bak` and `sample-product`'s
   worktree copies — are recorded in `## Constraints` above, where they are out-of-scope rulings the
   operator signs rather than questions awaiting an answer. Both are measured: the first is inert
   (written, never read back), the second is transient (tracked per branch, cleared when that branch
@@ -304,12 +309,12 @@ date: 2026-08-10
 
 **Ruling that rides with this signature — D-06 is REVERSED.** The plan deferred
 `.claude/settings.json.harness-bak` because it is inert: `merge-settings.py` writes it and never
-reads it back. Remove it anyway. It is TRACKED on kaya's `origin/master` and names six harness
-scripts this feature deletes, so leaving it means kaya's master permanently carries a tracked file
+reads it back. Remove it anyway. It is TRACKED on sample-product's `origin/master` and names six harness
+scripts this feature deletes, so leaving it means sample-product's master permanently carries a tracked file
 pointing at paths that do not exist. The plan states the cost itself: one path on T-03, one entry on
 T-05's pathspec. Fold it into those tasks — it is not a new task.
 
-**Ratified by this signature, not re-asked:** REQ-03's narrowing to kaya's three top-level tooling
+**Ratified by this signature, not re-asked:** REQ-03's narrowing to sample-product's three top-level tooling
 directories (the worktree copies are gitignored, untracked on master, and `git log master..<branch>`
 returns 0 commits on those paths for all three, so they clear on the next merge rather than
 conflicting); and the corrected cost of the push — 34 TRACKED files have their local modifications

@@ -88,7 +88,7 @@ creation. It is gated on four config keys, and four of six are missing from `har
 
 The lookup handles an issue on several boards correctly — it asks the ISSUE for its project items and
 picks the configured one. The config pins exactly one board. Measured: three projects exist
-(`#3 Harness` 233 items, `#2 kaya-ai` 211, `#6 factory-smoke-a1` 4) and #277 sits on one. **The
+(`#3 Harness` 233 items, `#2 sample-product` 211, `#6 factory-smoke-a1` 4) and #277 sits on one. **The
 single-board assumption is true today and is the same shape FEAT-16 is currently removing from
 `fleet.yaml`.** The whole flip is also silent on failure — output discarded, and `[ -n "$item" ] &&`
 means a wrong id does nothing at all.

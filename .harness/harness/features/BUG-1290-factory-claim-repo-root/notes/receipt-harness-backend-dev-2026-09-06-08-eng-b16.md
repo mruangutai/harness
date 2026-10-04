@@ -5,7 +5,7 @@
 One file modified: `tests/unit/test-factory-claim.py`. No production file touched.
 
 Extracted case `5b`'s scenario into two shared helpers, immediately above it:
-- `_run_5b_scenario()` — builds and runs the two-repository (`REPO_KAYA`, `REPO_HARNESS_SEG`)
+- `_run_5b_scenario()` — builds and runs the two-repository (`REPO_SAMPLE`, `REPO_HARNESS_SEG`)
   fleet, the `Recorder`, its two board items (951, 952) and its three `issue_data` entries
   (951, 952, 954 CLOSED); returns `(code, out, err)`.
 - `_5b_property_holds(code, out, err)` — the existing conjunction from `5b`, made total: returns
@@ -62,7 +62,7 @@ FAIL  BUG-1290 5g: collapsing the issue-map cache key to feature-only breaks 5b'
 1 of 125 FAILING.
 ```
 
-Note the copy's `5g` actually passes exactly zero blockers on the mutant this time (kaya's
+Note the copy's `5g` actually passes exactly zero blockers on the mutant this time (sample-product's
 issue-map still resolves T-77 fine on its own; without harness's own `depends_on` T-99 declared,
 harness's task carries no dependency at all, so 952 is unconditionally clear regardless of which
 repo's map is consulted) — the mutant's cache-collapse becomes unobservable, `_5b_property_holds`

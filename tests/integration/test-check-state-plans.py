@@ -167,7 +167,7 @@ def case_l():
     # four assertions, exit 0 (PR #142 review, HIGH 2). Reproduced before fixing.
     # (l5) uses a DIFFERENT budget so a hardcoded 20 gives the wrong number in the
     # message; (l6)-(l8) cover the shapes that used to disable the check in silence,
-    # including the one shipped in templates/examples/harness.kaya-ai.json.
+    # including a shipped template example that omitted the budgets block entirely.
     with tempfile.TemporaryDirectory() as tmp:
         _c, out_b5 = build(tmp, 7, budget='"budgets": {"max_total_runs": 5}')
     with tempfile.TemporaryDirectory() as tmp:
@@ -190,7 +190,7 @@ def case_l():
          "7 runs recorded against a 5-run budget" in out_b5, out_b5),
         ("(l6) budgets present but key missing is REPORTED INACTIVE, never silent",
          "run counting is INACTIVE" in out_nokey, out_nokey),
-        ("(l7) no budgets block at all (the shipped kaya example) is REPORTED INACTIVE",
+        ("(l7) no budgets block at all (the shape an under-specified template example shipped) is REPORTED INACTIVE",
          "run counting is INACTIVE" in out_noblock, out_noblock),
         ("(l8) a boolean budget is REJECTED, not treated as an int (bool subclasses int)",
          "run counting is INACTIVE" in out_bool, out_bool),

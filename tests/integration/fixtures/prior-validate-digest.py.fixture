@@ -804,7 +804,7 @@ def _root_or_none():
 def check_artifact_file(agent, text, payload):
     """DEC-156: a lead's WRITTEN digest.md must carry the same §10.4 block.
 
-    The FEAT-02 (kaya-ai) audit found all 14 run digest.md files were narrative
+    The archived pilot's FEAT-02 audit found all 14 run digest.md files were narrative
     markdown with no contract block — every in-message return had passed this
     hook, so nothing ever looked at the durable copy, which is the one a
     successor context actually reads. Validate the file at the return's

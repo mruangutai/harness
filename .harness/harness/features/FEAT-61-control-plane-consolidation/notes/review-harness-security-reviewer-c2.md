@@ -1,5 +1,10 @@
 # Security review — FEAT-61 control-plane consolidation — c2
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **PASS.** The immutable range `066638e8acf68b47e74637006a01c8823cff939c..f3825ca1dcb1d5bb6ff6e62b876988ebd46ebb08` is security-scoped **in** because it changes untrusted JSON parsing, authorization-adjacent checkout binding, dynamic repo-local module execution, lifecycle validation, and gate configuration. OWASP injection, auth, secrets, exposure, validation, dependency, SSRF/redirect and STRIDE were assessed. No exploitable security regression was found; `severity_max: none` records no finding on an assessed security surface, not a scoped-out review.
 
 ## Measured threat review
@@ -14,7 +19,7 @@
 ## Per-file census
 
 - **Runtime/security-relevant (20), inspected:** `.claude/skills/harness/bin/{artifact_accessors.py,bash-write-guard.py,board_lifecycle.py,branch-create-gate.py,check-domain.py,check-plan-routes.py,check-state.py,factory_config.py,feature_json_write.py,gate_policy.py,gh-close-gate.py,gh-sync.py,gh_board.py,handoff_done_when.py,harness_boundary.py,merge-gate.py,plan-merge.py,plan-sign-gate.py,run-unit-tests.py,worktree_terminal.py}`.
-- **Configuration/templates (3), inspected for policy and secrets:** `.harness/harness.json`, `.claude/skills/harness/templates/{harness.json,examples/harness.kaya-ai.json}`.
+- **Configuration/templates (3), inspected for policy and secrets:** `.harness/harness.json`, `.claude/skills/harness/templates/{harness.json,examples/harness.<product>.json}`.
 - **Doctrine/feature records (28), non-executable; inspected for trust claims and exposure:** `.harness/glossary.md`, `.harness/harness/docs/{DECISIONS.md,DECISIONS-INDEX.md}`, and all 25 changed files under `.harness/harness/features/FEAT-61-control-plane-consolidation/` (BRIEF, STATE, feature JSON, plan, and notes). No secret or executable boundary was added there.
 - **Verification-only (18), inspected for sensitive fixtures and claimed boundary cases:** `tests/integration/canonical-reader-classification.json`, `tests/integration/fixtures/feat61-check-plan-routes-lifecycle.receipt.json`, the 10 changed `tests/integration/test-*.py` files, and the 6 changed `tests/unit/test-*.py` files in the pinned census. No production authority or committed secret was introduced.
 

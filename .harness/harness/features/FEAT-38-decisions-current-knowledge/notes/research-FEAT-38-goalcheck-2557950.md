@@ -1,5 +1,10 @@
 # Goal-check — FEAT-38 at `review_sha` 2557950
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **11 of 13 criteria met. SC-04 is `not_met` (carved out, main-session T-14). SC-13 is `unrun` (operator).**
 No criterion is `cannot_be_met_as_written`. Every content grade is a `git show 2557950:` read.
 
@@ -103,7 +108,7 @@ The five remaining, each `git show 7ebfc9e:` beside `git show 2557950:`. All **m
   the prior belief that counting rework alone sufficed is stated and falsified in the same clause —
   *"with first-pass runs contributing zero, FEAT-03 ran 19 times against a 6-cycle count and tripped
   nothing."* Both load-bearing properties (FLOOR; unresolvable budget REPORTED) survive with their
-  FEAT-07 and `harness.kaya-ai.json` evidence.
+  FEAT-07 and archived-pilot-config evidence.
 - **DEC-183** (base:5548 → pin:4907). am.1's two reasons are folded into the body as current truth, with
   reason 2 still marked load-bearing. Crucially for REQ-02, the refused alternative survives —
   *"A LIGHTER guard is not the answer either… a pure predicate over `yaml.safe_load` … was worked up in

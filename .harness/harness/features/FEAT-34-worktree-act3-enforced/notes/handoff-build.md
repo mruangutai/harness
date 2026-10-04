@@ -25,7 +25,7 @@ commits, pin `review_sha`, `gh-sync.py status <dir> Review`, panel, goal-check, 
 - REQ-07's repository scope was left OPEN BY THE BRIEF: BRIEF.md:237-239 — "REQ-07 through REQ-09
   are written to be satisfied by either." REQ-07 (:73-74) has no repo quantifier — verified-at 4c7b650
 - `classify`->`classify_all` at post-merge-sweep.py:234 is a NO-OP THAT LOOKS GREEN: no served
-  checkout carries `.claude/skills/harness/hooks` (kaya-ai lacks it, smoke absent), and :163-167
+  checkout carries `.claude/skills/harness/hooks` (sample-product lacks it, smoke absent), and :163-167
   builds feat_dir under `main_checkout_root` so served records SKIP — measured — verified-at 4c7b650
 - D-01's `because` (plan.yaml:88) is FALSE as written on the repository dimension. pm judges it a
   CORRECTION not a DEC-188 strike: the choice stands, the reason overreaches — verified-at 4c7b650

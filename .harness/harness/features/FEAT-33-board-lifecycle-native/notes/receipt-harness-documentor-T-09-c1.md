@@ -18,12 +18,12 @@ deletions in `DECISIONS.md` (`git diff --numstat`).**
 | Claim | Evidence |
 |---|---|
 | six keys on board 3 | `.harness/harness.json` `github.board.stations` — backlog, plan, ready, building, review, done |
-| kaya-ai declares the same six on `master` | `gh api repos/mruangutai/kaya-ai/contents/.harness/harness.json`; default branch `master` per `gh repo view` |
+| sample-product declares the same six on `master` | `gh api repos/mruangutai/sample-product/contents/.harness/harness.json`; default branch `master` per `gh repo view` |
 | station is a plain unvalidated string | `board-station.py:18,153`; `/harness-plan` passes the literal `Plan` (`.claude/commands/harness-plan.md:11`) |
 | option resolved BY NAME at runtime | `factory_gh.project_field_set` matches `o["name"] == option`, else raises `project field option not found` (`factory_gh.py:947-959`) |
 | exactly six required, error names the key | `factory_config.py:41` `_STATION_KEYS`; set-equality at `:134`; `FleetError` key `f"{key_base}.stations"` at `:138` with `where="github.board"` from `gh_board.py:85` |
 | no `Plan` derivation | `gh_board.derive_station` returns building / review / None only (`gh_board.py:115-119`) |
-| `Ready` means promoted for the factory | kaya-ai `harness.json` `_board_ready_note` |
+| `Ready` means promoted for the factory | sample-product `harness.json` `_board_ready_note` |
 | backwards-move class | issue 674, OPEN |
 | six status values are the column names | DEC-192's ruling clause |
 | warrant | ruling 3, `notes/rulings-2026-08-23.md:55` |

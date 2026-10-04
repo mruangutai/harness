@@ -1,5 +1,10 @@
 # Security review — FEAT-61 control-plane consolidation — c1
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **PASS.** Reviewed immutable range `066638e8acf68b47e74637006a01c8823cff939c..57ef1c5739f55dd67d9daffd5da69d7d7b980ea7`, targeting `57ef1c5739f55dd67d9daffd5da69d7d7b980ea7`. The diff is security-scoped **in**: it changes untrusted JSON decoding, authorization-adjacent checkout binding, repo-local dynamic execution, and gate policy. OWASP injection/auth-secrets/exposure/input-validation/dependency/SSRF classes and STRIDE were assessed. No exploitable regression was found; maximum severity is `info` because this was an in-scope audit, not a scoped-out review.
 
 ## Findings
@@ -20,7 +25,7 @@ None. `must_fix: []`.
 Every path in the pinned `git diff --name-status` was classified:
 
 - **Runtime/security-relevant, inspected:** `.claude/skills/harness/bin/artifact_accessors.py`, `bash-write-guard.py`, `board_lifecycle.py`, `branch-create-gate.py`, `check-domain.py`, `check-plan-routes.py`, `check-state.py`, `factory_config.py`, `feature_json_write.py`, `gate_policy.py`, `gh-close-gate.py`, `gh-sync.py`, `gh_board.py`, `handoff_done_when.py`, `harness_boundary.py`, `merge-gate.py`, `plan-merge.py`, `plan-sign-gate.py`, `run-unit-tests.py`, `worktree_terminal.py`.
-- **Configuration/templates, inspected for policy and secrets:** `.harness/harness.json`, `.claude/skills/harness/templates/harness.json`, `.claude/skills/harness/templates/examples/harness.kaya-ai.json`.
+- **Configuration/templates, inspected for policy and secrets:** `.harness/harness.json`, `.claude/skills/harness/templates/harness.json`, `.claude/skills/harness/templates/examples/harness.<product>.json`.
 - **Doctrine/feature records, inspected for exposure and trust claims:** `.harness/glossary.md`, `.harness/harness/docs/DECISIONS.md`, `.harness/harness/docs/DECISIONS-INDEX.md`, and the 15 added FEAT-61 files: `BRIEF.md`, `STATE.md`, `feature.json`, `plan.yaml`, `notes/answers-2026-09-20-simplify.md`, `notes/build-divergences.md`, `notes/handoff-plan.md`, four `notes/receipt-harness-{backend-dev,dev-ops}-simplify-eng-*.md`, `notes/research-FEAT-61-control-plane-consolidation.md`, `notes/research-FEAT-61-control-plane-consolidation-goalcheck-plan.md`, `notes/review-harness-code-reviewer-plan-c1.md`, `notes/review-harness-code-reviewer-plan-c2.md`, `notes/review-harness-ui-reviewer-plan-c1.md`. These add no executable boundary or secret.
 - **Verification-only, inspected as evidence and for committed sensitive fixture data:** `tests/integration/canonical-reader-classification.json`, `tests/integration/fixtures/feat61-check-plan-routes-lifecycle.receipt.json`, 11 changed integration tests (`test-bash-write-guard.py`, `test-board-lifecycle.py`, `test-check-domain-worktree.py`, `test-check-domain.py`, `test-check-plan-routes.py`, `test-check-state-feat59.py`, `test-gh-sync-record.py`, `test-gh-sync-start-task.py`, `test-plan-merge.py`, `test-validate-digest.py`, `test-worktree-terminal.py`) and 7 changed unit tests (`test-artifact-accessors.py`, `test-factory-config.py`, `test-feature-json-reader.py`, `test-gate-policy.py`, `test-gh-board.py`, `test-handoff-done-when.py`, `test-harness-boundary.py`). No live credential or novel production sink is present.
 

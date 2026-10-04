@@ -189,7 +189,7 @@ def inv_7(ctx, feat):
 # A BUDGET THIS INVARIANT CANNOT RESOLVE IS REPORTED, NEVER SILENTLY DROPPED.
 # First cut read the key and fell through on anything unexpected, so a harness.json
 # that PARSES FINE but has no `budgets.max_total_runs` disabled INV-22 with no
-# diagnostic — and the shipped templates/examples/harness.kaya-ai.json is exactly
+# diagnostic — and a shipped template example once omitted the budgets block in exactly
 # that shape, so a project onboarded from it got a check that never ran. DEC-160
 # records the identical config lag for max_total_cycles. Worse, `true` satisfied
 # isinstance(x, int) — bool subclasses int in Python — so it "worked" while "20"

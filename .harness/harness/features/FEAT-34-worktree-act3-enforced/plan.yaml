@@ -174,8 +174,8 @@ decisions:
       nothing goes unreported. This is one rule applied identically to every declared repo,
       not the per-repository exception REQ-04 forbids: there is nothing to remember and
       nothing to remove later. It is load-bearing rather than convenient, measured at
-      9165162 - fleet.yaml declares mruangutai/kaya-ai and mruangutai/harness-factory-smoke,
-      the kaya-ai checkout exists with zero linked worktrees, and no
+      9165162 - fleet.yaml declares mruangutai/sample-product and mruangutai/harness-factory-smoke,
+      the sample-product checkout exists with zero linked worktrees, and no
       harness-factory-smoke checkout exists at all, so treating an absent checkout as a
       violation would make check-state.py red on this machine today for a kept fixture
       repository nobody provisioned.

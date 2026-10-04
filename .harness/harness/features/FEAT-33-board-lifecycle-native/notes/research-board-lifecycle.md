@@ -14,7 +14,7 @@ write `state_reason: null`, no `abandoned` label, and no closed-card guard in `s
 
 ## Live reads (2026-08-22)
 
-- Board 3 (Harness) and board 2 (kaya-ai) `Status` options are identical and complete:
+- Board 3 (Harness) and board 2 (sample-product) `Status` options are identical and complete:
   `Backlog | Plan | Ready | Building | Review | Done`. Neither board needs an option added.
 - `ProjectV2.workflows(first:30){ nodes { name enabled number } }` **works** — one query, per board.
   This overturns the assumption that workflow state is unreadable: `enabled` and `name` are readable;
@@ -42,7 +42,7 @@ resolves the option by name at the board (`board-station.py:18`, `:153`).
 statuses — it is the state *before* tasks have issues, written once at kickoff by `board-station.py`
 per DEC-196. An all-pending → `Plan` branch would fire on every `gh-sync` call while all tasks are
 pending and would therefore **overwrite a card the operator promoted to `Ready`** — and `Ready` carries
-a documented, load-bearing meaning on board 2 (`_board_ready_note` in kaya-ai's own `harness.json`:
+a documented, load-bearing meaning on board 2 (`_board_ready_note` in sample-product's own `harness.json`:
 `Backlog` = filed-and-untriaged, `Ready` = promoted for the factory). That is a new backwards-move bug
 of exactly the #674 class this feature exists to close.
 
@@ -61,12 +61,12 @@ Consequences, both measured:
   correct. Not silent. So the two edits must land in ONE task.
 - `factory_config.product_config` reads a served repo's `.harness/harness.json` **from the REMOTE at
   `default_branch`, never from a checkout** (`factory_config.py:253-278`). Verified: `board_for(fleet,
-  'mruangutai/kaya-ai')` returns board 2 with the five-key map, while the local clone at
-  `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai` sits on branch `factory/issue-334` with a
-  stale `origin/master`. **So the harness sees kaya-ai's config only after a merge to `master`.**
-- Therefore widening `_STATION_KEYS` to six and updating kaya-ai's `master` cannot be atomic. Either
-  order leaves a window where `board_for('mruangutai/kaya-ai')` raises. The window is **latent**, not
-  broken: nothing calls it unless the operator runs a `factory_*` command against kaya-ai, and the
+  'mruangutai/sample-product')` returns board 2 with the five-key map, while the local clone at
+  `/Users/molchairuangutai/GitHub/harness-factories/sample-product` sits on branch `factory/issue-334` with a
+  stale `origin/master`. **So the harness sees sample-product's config only after a merge to `master`.**
+- Therefore widening `_STATION_KEYS` to six and updating sample-product's `master` cannot be atomic. Either
+  order leaves a window where `board_for('mruangutai/sample-product')` raises. The window is **latent**, not
+  broken: nothing calls it unless the operator runs a `factory_*` command against sample-product, and the
   failure names `github.board.stations` and the next step.
 
 `check-state.py` itself needs **no** edit: its `_EXPECT` indexes only `stations["building"]`,
@@ -96,7 +96,7 @@ Consequences, both measured:
 | `.harness/harness.json` | `harness-dev-ops` |
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md` | `harness-documentor` |
 | `.claude/skills/harness-init/SKILL.md` | **NOBODY** |
-| `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json` | **NOBODY** |
+| `/Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json` | **NOBODY** |
 | `.harness/harness/features/FEAT-33-*/notes/<name>.md` | `harness-orchestrator` (not a task executor) |
 
 Note the disagreement worth knowing: `--resolve` grants `check-state.py` to `harness-dev-ops`, while

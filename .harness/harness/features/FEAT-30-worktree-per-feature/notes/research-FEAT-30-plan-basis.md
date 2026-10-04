@@ -80,7 +80,7 @@ verify that runs a suite twice stays well inside 60 s.
 
 ## Fixtures, not fleet.yaml
 
-`fleet.yaml` declares one repo (`mruangutai/kaya-ai`, `default_branch: master`) and
+`fleet.yaml` declares one repo (`mruangutai/sample-product`, `default_branch: master`) and
 `workspace_root: /Users/molchairuangutai/GitHub/harness-factories`; `mruangutai/harness` is absent by
 DEC-174 am.1 and `test-no-distribution.py` fails if it returns. SC-01's four worktrees across two
 repositories are therefore built on throwaway git repositories in `tempfile.mkdtemp()` with their own

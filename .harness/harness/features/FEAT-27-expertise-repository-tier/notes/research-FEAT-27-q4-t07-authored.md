@@ -9,12 +9,12 @@ committed.
 
 ## The mechanism was run before it was written down
 
-Scratch tree, `os.symlink` to a nonexistent target at `.harness/kaya/expertise/harness-qa.md`:
+Scratch tree, `os.symlink` to a nonexistent target at `.harness/sample-product/expertise/harness-qa.md`:
 
 - the bash glob `./.harness/*/expertise/harness-qa.md` **matches** the dangling link;
 - `[ -r "$f" ]` is **false** (link is followed; true for every uid, root included);
 - with the guard gone, `head -n 40` prints `No such file or directory` and `wc -l <` fails, so the
-  hook writes to **stderr** and emits a `kaya` header with an empty body.
+  hook writes to **stderr** and emits a `sample-product` header with an empty body.
 
 That last observation is why SC-11 asserts **stderr is empty**, not the weaker "contains no
 traceback". Empty stderr is clean today and dirty under the mutant — it is the discriminator.

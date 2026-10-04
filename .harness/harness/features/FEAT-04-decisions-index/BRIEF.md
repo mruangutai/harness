@@ -187,7 +187,7 @@ could never be met. Every `automated` SC above therefore pins to `unit`.
 
 - The archive split (moving superseded text to `DECISIONS-ARCHIVE.md`). The index delivers its whole
   value without moving a line.
-- Per-project decision records via `harness-init`, including anything about kaya's backfill.
+- Per-project decision records via `harness-init`, including anything about sample-product's backfill.
 - `docs/harness/SPEC.md` and `docs/harness/BUILD.md`. The destination is scoped to one file.
 - Lowering `per_feature_usd`; it needs the post-ship measure first.
 

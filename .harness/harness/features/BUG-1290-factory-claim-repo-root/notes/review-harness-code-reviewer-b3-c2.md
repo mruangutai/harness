@@ -34,7 +34,7 @@ at `7104aa43`, confirmed by direct execution above (`_plan` keyed on `feature` �
 depends_on T-99`), untouched by this diff.
 
 **Q3 (does anything else now assert less): enumerated, answer is no, with one caveat.**
-Grepped the full 1278-line file for `REPO_KAYA`, `REPO_HARNESS_SEG`, `SEG_FEATURE` — every hit is
+Grepped the full 1278-line file for `REPO_SAMPLE`, `REPO_HARNESS_SEG`, `SEG_FEATURE` — every hit is
 inside the constant declarations (lines 69-71), `build_features_root()` itself (349-386), or cases
 5a/5b (1160-1210). Zero hits in 5c-5f, M/C/R/B/X/P. Those series use `FEAT-01-demo`/`FEAT-02-block`
 under the untouched `widget` segment (`build_features_root` lines ~349-373, not touched by this
@@ -42,14 +42,14 @@ diff) or fixtures unrelated to `build_features_root` entirely (5c uses a synthet
 No case outside 5a/5b depends on the two changed segment roots or their issue maps.
 
 **Caveat — one piece of the new fixture data is inert.** The docstring (lines 335-340) and the
-kaya `feature.json` edit (`{"T-77": 850}`, line 378) present kaya's map as deliberately
-"non-empty, differing" to strengthen the proof. I tested this directly: reverting kaya's map back
+sample-product `feature.json` edit (`{"T-77": 850}`, line 378) present sample-product's map as deliberately
+"non-empty, differing" to strengthen the proof. I tested this directly: reverting sample-product's map back
 to `{}` while keeping harness's `T-99` dependency intact still yields 124/124 unmutated **and**
 still catches the `issue_number` mutant identically (5b FAILs the same way). The `"T-77": 850` entry
 is never read by any code path 5a/5b exercise — `_blocker_gate` only calls `issue_number` for a
-task's `depends_on` entries, and kaya's `T-77` depends on `T-88`, never on itself. The actual
+task's `depends_on` entries, and sample-product's `T-77` depends on `T-88`, never on itself. The actual
 discriminating change is entirely on the harness side (`depends_on=["T-99"]` + `"T-99": 954`); the
-kaya-side "non-empty map" detail is decorative, not a second point of proof, despite the docstring's
+sample-product-side "non-empty map" detail is decorative, not a second point of proof, despite the docstring's
 phrasing implying it carries weight. Not a defect — nothing is weakened — but the docstring
 overstates what this specific literal buys. Reported as a low finding (F-1) below.
 
@@ -61,8 +61,8 @@ scope leakage.
 ### Stage 2 — code quality
 
 - **F-1** (low): `test-factory-claim.py:335-340,378` — the `build_features_root` docstring frames
-  kaya's `"T-77": 850` issue-map entry as part of the cache-separation proof ("DIFFERENT
-  non-empty issue maps ... kaya-ai's ... own map holds only T-77, never T-88"); verified by mutation
+  sample-product's `"T-77": 850` issue-map entry as part of the cache-separation proof ("DIFFERENT
+  non-empty issue maps ... sample-product's ... own map holds only T-77, never T-88"); verified by mutation
   (see Q3 caveat) that this entry is never consumed by any exercised code path and contributes zero
   discriminating power. Advisory only — the claim is literally true, just not load-bearing.
 - No correctness bugs, silent-failure paths, or copy-paste divergence introduced by the diff itself.
@@ -91,7 +91,7 @@ worsened by this test-only fix.
 
 | id | severity | one-line |
 |---|---|---|
-| F-1 | low | kaya's `"T-77": 850` issue-map fixture entry is inert (verified by mutation); docstring overstates its role |
+| F-1 | low | sample-product's `"T-77": 850` issue-map fixture entry is inert (verified by mutation); docstring overstates its role |
 | CG-1 | med | `build_features_root` grade 2 (ABC 33.5), pre-existing, reasoned above |
 | CG-2 | med | `run_main` grade 2 (ABC 26.7), pre-existing, reasoned above |
 

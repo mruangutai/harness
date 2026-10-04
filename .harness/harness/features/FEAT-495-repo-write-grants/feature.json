@@ -37,6 +37,27 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "OMP runtime-lineage v2 satisfies the blocked host-seam prerequisite; the approved amendment removes bearer transport and resumes at T-02 on current main."
+    },
+    {
+      "at": "2026-10-04T16:13:56.154445+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-02.intent",
+      "reason": "Operator-approved product retirement (#2019): anonymize historical pilot identity, preserve completed task semantics and original signature; originals retained in the external archive."
+    },
+    {
+      "at": "2026-10-04T16:13:56.154598+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-03.intent",
+      "reason": "Operator-approved product retirement (#2019): anonymize historical pilot identity, preserve completed task semantics and original signature; originals retained in the external archive."
+    },
+    {
+      "at": "2026-10-04T16:13:56.154601+00:00",
+      "by": "harness-orchestrator",
+      "kind": "amendment",
+      "decision": "T-04.intent",
+      "reason": "Operator-approved product retirement (#2019): anonymize historical pilot identity, preserve completed task semantics and original signature; originals retained in the external archive."
     }
   ],
   "rework": {

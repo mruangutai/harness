@@ -12,7 +12,7 @@ every agent that repository-specific knowledge lives at `.harness/<repo>/experti
 `check-domain.py --resolve` answers **NOBODY** for every agent's repository-tier path, so no agent can
 write the file the skill tells it to write (#372). During FEAT-21 one distillation entry was returned
 unwritten for exactly this reason. The result is a rule that sixteen agents are taught, obey, and
-cannot execute — and the effort's destination criterion **DC-3**, "agents carry kaya's expertise", has
+cannot execute — and the effort's destination criterion **DC-3**, "agents carry sample-product's expertise", has
 nothing to stand on.
 
 ## Goal
@@ -156,7 +156,7 @@ merged with another, and no atomic landing is required.
   headers label scope only. Asserted on the hook's real output, not on the script's source.
   verify: automated      evidence: unit
 - SC-11: With a repository-tier file present but unreadable — a dangling symlink at
-  `.harness/kaya/expertise/harness-qa.md`, created at test time — the hook exits 0, emits no header
+  `.harness/sample-product/expertise/harness-qa.md`, created at test time — the hook exits 0, emits no header
   and no path fragment for that segment, writes nothing to stderr, and still emits the readable
   `harness` tier in full. The case is proven able to fail: run against a copy of
   `inject-expertise.py` with its `[ -r "$f" ] || continue` guard deleted, it must report FAIL.

@@ -44,7 +44,7 @@ tied. That is what makes all three routes possible.
 - Measured what survives the lockout instead of assuming: `git add`/`git commit` do, `Write`/`Edit`
   do not (`bash-write-guard.py:375`, `:475`, `:551`). That correction changed my recommendation's
   procedure — the first draft would have stranded the run with no state file.
-- Confirmed T-09 had **not** merged when this was written; it has since merged as `692672d` and I re-ran its verify myself against kaya master: GREEN.
+- Confirmed T-09 had **not** merged when this was written; it has since merged as `692672d` and I re-ran its verify myself against sample-product master: GREEN.
 - Re-probed board 2's Status options before you spend a cross-repository pull request on them —
   all five names T-09 writes exist.
 
@@ -93,4 +93,4 @@ of them. Two of them look like a split-brain awaiting your reconciliation.
   the feature's largest single change.
 - **C** — pm amends T-02, you re-sign, and nothing ever needs hand-editing inside a window.
 
-Under all three, **merge T-09 first**: it makes the kaya outage window zero rather than merely short.
+Under all three, **merge T-09 first**: it makes the sample-product outage window zero rather than merely short.

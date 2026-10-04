@@ -28,7 +28,7 @@ looks like an approved `BRIEF.md` with `REQ-NN`/`SC-NN` for this feature, ready 
   2. **Rework/stability** — `cycles_used / max_total_cycles` ratio per feature, aggregated across
      features.
   3. **Escaped defects** — post-ship bugs/reverts/hotfixes the four gate artifacts should have
-     caught, as an ongoing measurement (generalizing SC-4's one-time kaya-ai method).
+     caught, as an ongoing measurement (generalizing SC-4's one-time archived-pilot method).
   4. **Autonomy** — blocking human touchpoints per feature (SC-2's never-instrumented target).
   5. **Code-grading average** — reported as a **distribution** (% of graded functions at/above bar,
      plus a named list of grade-1/grade-2 outliers), never a bare mean. Computed via
@@ -93,7 +93,7 @@ looks like an approved `BRIEF.md` with `REQ-NN`/`SC-NN` for this feature, ready 
   background-job mechanism, per `AGENTS.md`) vs. auto-started at a lifecycle point; whether KPIs
   recompute per page load or need a background refresh job.
 - Where the escaped-defect signal is sourced per project — this repo's own git history, or does it
-  need a per-project mining convention like DEC-96's kaya-ai analysis (reverts, hotfix commits,
+  need a per-project mining convention like DEC-96's archived-pilot analysis (reverts, hotfix commits,
   `fix:` following a feature)? Needs research, not assumed.
 - Exact commit-prefix → step-id → `execution_agent` → model join mechanics for KPI 6.
 - Where the dashboard's entry point lives in the distributed skill/bin tree, and whether it needs a
@@ -127,7 +127,7 @@ looks like an approved `BRIEF.md` with `REQ-NN`/`SC-NN` for this feature, ready 
   human commits `[harness:human]` — step-id, not agent name or model.
 - DEC-178: cost tracking (meter, budgets, invariant, reporting) removed entirely because "the meter
   never saw main-session work"; historical `cost_usd` values are the only surviving record.
-- DEC-96/97: base escaped-defect rate measured once from kaya-ai history — 0.44 defects/feature (19
+- DEC-96/97: base escaped-defect rate measured once from the archived pilot's history — 0.44 defects/feature (19
   escaped-defect PRs / 43 feature units / 470 commits), ~79% catchable by the four gate artifacts —
   a one-time historical study, not a live metric.
 - `BUILD.md` item 11, "batch human touchpoints to two," is recorded `pending` — never shipped as an

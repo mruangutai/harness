@@ -610,9 +610,9 @@ caller.
 **Because:** "did we deliver?" should not be averaged with code nits.
 **Tradeoff accepted:** one more serial step.
 
-## DEC-57 — Deliberate divergence from the kaya-ai `/review-team` pattern
+## DEC-57 — Deliberate divergence from the archived pilot's `/review-team` pattern
 
-The existing kaya-ai memory describes the panel as "code/qa/security/eng/**ceo**, auto-selected for
+The pilot project's existing memory describes the panel as "code/qa/security/eng/**ceo**, auto-selected for
 the diff." Three changes here, noted as deliberate rather than accidental:
 
 1. **No CEO** — you are the CEO, and a diff is not a CEO context.
@@ -620,7 +620,7 @@ the diff." Three changes here, noted as deliberate rather than accidental:
 3. **Panel membership is crew config, not auto-selected** — reviewers self-scope, which preserves
    per-diff efficiency without runtime panel guessing.
 
-**Follow-up owed:** update that memory once the harness ships (BUILD.md § Post-ship follow-up).
+**Follow-up retired:** it owed an update to that project's own `/review-team` memory; the project is archived, so the divergence recorded here is the only live statement of the panel's shape.
 
 ## DEC-58 — Five eng domains with no catch-all
 
@@ -1099,7 +1099,7 @@ overclaim independently.
 ## DEC-93 — The pilot's A/B defect comparison is withdrawn as underpowered
 
 **Chose:** two instruments — run 2–3 features through the org arm to settle cost, touchpoints and
-whether the artifacts fire; mine `kaya-ai`'s history for the base defect rate and cost per incident.
+whether the artifacts fire; mine the pilot host's own git history for the base defect rate and cost per incident.
 **Over:** the pilot's original design, which ran the same features through a null-hypothesis arm and an org arm and
 treated **defects escaped to merge** as the deciding column.
 **Because:** two compounding problems, the second fatal.
@@ -1122,9 +1122,9 @@ in advance is what prevents a single lucky catch being read as confirmation afte
 question "why is a pilot needed, and what would it prove?" invalidated a design that had already been
 approved. Cheap to ask; expensive to skip.
 
-## DEC-94 — Pilot host is `kaya-ai`; no Playwright constrains what it can test
+## DEC-94 — Pilot host is the archived pilot product; no Playwright constrains what it can test
 
-**Chose:** `kaya-ai` as the pilot host.
+**Chose:** the archived pilot product (`sample-product` in anonymized examples) as the pilot host.
 **Over:** `implentio-app` (the actual product, but untouched since 2025-12, so re-familiarization would
 pollute the wall-clock numbers), the harness repo itself (markdown "features", no test suite, no UI — the
 qa gate, prototype gate and UAT path would all be inert), and a scratch repo (synthetic features give an
@@ -1142,7 +1142,7 @@ cannot claim to have tested the browser-automation path.
 **Chose:** one feature **per worktree**, as many worktrees as you like. `.harness/` is per-worktree
 state, not per-repository state.
 **Over:** the "one feature in flight at a time" constraint this replaces.
-**Because:** **the pilot host already disproves it.** `kaya-ai` runs three concurrent
+**Because:** **the pilot host already disproves it.** That repo runs three concurrent
 `git worktree`s on three feature branches (`feat/26-persistence-schema-design`,
 `feat/121-spec-family-followup`, `feat/277-acceptance-transcript`) under `.claude/worktrees/`. That is how
 its operator actually works, so a constraint forbidding it would have been violated on day one — the same
@@ -1169,7 +1169,7 @@ double-counts every test file three times over.
 
 ## DEC-96 — SC-4 measured: base rate is 0.44 defects/feature, but the artifacts cover ~79% of them
 
-**Measured** from `kaya-ai` history, 2026-07-04 → 2026-07-25 (470 commits). Method, kept here because
+**Measured** from the pilot host's history, 2026-07-04 → 2026-07-25 (470 commits). Method, kept here because
 the standalone analysis file was later retired: **43 feature units** (22 `feat` squash-PRs on master +
 21 `feat/*` merge-commit PRs — the repo merges both ways, so counting one style would have halved the
 denominator) against **19 escaped-defect units** (`fix` PRs on master, 18 of 19 citing a filed issue),
@@ -1193,7 +1193,7 @@ assumed:**
    it: **code review 9, UAT 5, BRIEF/spec 1** = 15 of 19 reachable without an org. Only **3** need
    org-specific gates — one security defect (CSV formula injection in an export path, #283), one
    architecture coupling (#150), and one prompt defect (#245) that **neither arm can currently catch**
-   because `kaya-ai` has eval helpers but no eval harness. **This weakens the case for the org
+   because that repo has eval helpers but no eval harness. **This weakens the case for the org
    specifically**, as distinct from gating in general.
 
 **The reviewers' cost model was also wrong in the org's disfavour.** It priced an escaped defect at "a
@@ -1213,9 +1213,9 @@ only replaces the assumption it gets weighed against.
 
 ## DEC-97 — SC-3 partially settled: all four artifacts fire, and review caught what tests missed
 
-**Throwaway dry run**, 2026-07-26, in a disposable scratch repo using a real `kaya-ai` spec
+**Throwaway dry run**, 2026-07-26, in a disposable scratch repo using a real spec from the pilot host
 (`2026-07-17-25-per-transaction-citation-design.md`) as input and a seeded defect as ground truth. Not
-`kaya-ai` itself — nothing was installed there.
+the pilot repo itself — nothing was installed there.
 
 **All four artifacts behaved as specified:**
 
@@ -1232,7 +1232,7 @@ match, violating SC-02 ("never a guessed region"). Review caught it on spec comp
 failure scenario: `locateTransaction(['cash','-99.99'], …)` returned a region for a transaction that is
 not on the line.
 
-**This reproduces `kaya-ai` #92** (`dangling category_ref` **failing open**) — the same fail-open class,
+**This reproduces the pilot host's issue #92** (`dangling category_ref` **failing open**) — the same fail-open class,
 caught the same way. It is direct evidence for `DEC-96`'s classification that **code review, not tests,
 is the gate for the largest defect category (9 of 19)**, which had until now been my inference rather
 than a measurement.
@@ -1282,7 +1282,7 @@ keep here.
 
 ## DEC-99 — Cost moves to post-build monitoring; the pilot no longer gates the build
 
-**Chose:** build the full agentic workflow, then take it through its paces in `kaya-ai` and monitor cost
+**Chose:** build the full agentic workflow, then take it through its paces in the pilot host and monitor cost
 in practice. Machine time, dollars **and** operator touchpoints all move from pre-build decision criteria
 to observed metrics.
 **Over:** the pilot gate — "no agent files until the org shape is settled with data."
@@ -1297,7 +1297,7 @@ building answers a question nobody is asking.
    proceeds.**
 2. **Instrumentation becomes mandatory, not optional.** You cannot monitor what you do not log. Cost
    logging was item 4 on the deferred list; as the post-build signal it is now a **build requirement**,
-   and it must exist before the first real `kaya-ai` run rather than after.
+   and it must exist before the first real run on a host repo rather than after.
 3. **The entire deferred fix list comes back into scope** — `check-state.py`, the DIGEST validator,
    expertise governance, touchpoint batching, the five lost GAPs. They were deferred *pending the org
    decision*; the decision is made, so they are now the work that makes the org function.
@@ -1777,7 +1777,7 @@ the brief pending and init says so plainly.
 ### Merging is a script, and the fixture found two real defects in it
 
 `.claude/settings.json` and `.gitignore` are **merged by `merge-settings.py` / `merge-gitignore.py`**,
-never hand-edited. Target projects have their own hooks — kaya-ai has five — and a hand-merge into a file
+never hand-edited. Target projects have their own hooks — the pilot host had five — and a hand-merge into a file
 you do not own is exactly where one of the three silent-failure entries goes missing. Both are idempotent
 and both take `--check`. Hook presence is matched on **script basename**, not the literal command string,
 so a project that registered the same hook via an absolute path is recognised rather than duplicated.
@@ -2850,7 +2850,7 @@ file land matching. `briefing` is nullable; `cost_usd` is a string because it ca
 
 **Unproven, stated plainly:** no flow has run through these files yet. The round-trip's
 orchestrator half and the doors' relay loop are specified, not demonstrated — proving them is what
-task 17's kaya-ai run (and a smoke flow before it) is for. CLAUDE.md size (DEC-105) remains open
+task 17's pilot-host run (and a smoke flow before it) is for. CLAUDE.md size (DEC-105) remains open
 under task 14.
 
 ---
@@ -2997,7 +2997,7 @@ What remained of task 16 was the one thing the self-hosting section warned about
 |---|---|
 | Todo: "architectural scoping gap in discuss-phase" | **Resolved by design.** The harness's plan flow embeds eng-lead architecture review as a segment — it ran twice in FEAT-02 and forced a real loop-back. The gap was a GSD-shape problem; the shape is gone |
 | Blocker: "gstack persona prompt surgery needs research" | **Superseded.** Personas were copy-owned and rewritten as the 15 squad agents (DEC-106/107) |
-| Blocker: "real project selection needed (500+ LOC, debugging scenario)" | **Tracked as task 17** — kaya-ai |
+| Blocker: "real project selection needed (500+ LOC, debugging scenario)" | **Tracked as task 17** — the pilot host |
 | Roadmap Phases 1–3 | Delivered as ledger tasks 6, 12–14 (natively, not as GSD integration) |
 | Roadmap Phase 4 (validation) | Task 17 |
 
@@ -3010,7 +3010,7 @@ two historical sentences.
 
 ## DEC-138 — GitHub Issues integration: asymmetric truth, orchestrator-executed, full loop (task 24)
 
-kaya-ai tracks milestones and tasks in GitHub Issues, mirroring FEAT→T-NN. The integration, as
+The pilot host tracked milestones and tasks in GitHub Issues, mirroring FEAT→T-NN. The integration, as
 decided:
 
 **Mapping.** `FEAT-NN-<slug>` → milestone (DEC-133's slug makes the title readable) · `T-NN` →
@@ -3194,7 +3194,7 @@ review, or a signature between diagnosis and change.
 
 ## DEC-141 — The first real map audit: renderer fixes codified, and the reviewer's blind spot named
 
-kaya-ai's map was audited twice — by the user (three findings) and independently by ui-reviewer
+The pilot host's map was audited twice — by the user (three findings) and independently by ui-reviewer
 (four). The overlap and the misses are both codified:
 
 **Renderer defects (mine), fixed in `render-map.py` with regression proofs (16 total):** sibling
@@ -3207,8 +3207,8 @@ stripped from view bodies (they rendered as prose). Mermaid `useMaxWidth:false` 
 **Content learnings → the map mission's authoring rules:** label every edge with what flows in both
 directions (the write-only label hid the read path); never let directory layout impersonate
 architecture (`WORKER → api/` implied HTTP where only a persistence import existed); no raw HTML
-comments in prose; keep each diagram at its declared level. The two kaya diagram defects themselves
-are kaya-side content fixes, reported to that session.
+comments in prose; keep each diagram at its declared level. The two diagram defects themselves
+are host-side content fixes, reported to that session.
 
 **Reviewer calibration, recorded in its agent file:** ui-reviewer audits source, not pixels — it
 computed contrast and node counts correctly while missing the shrunken rendered diagram the user
@@ -3228,13 +3228,13 @@ the authoring guidance — layered architectures read naturally TD.
 deferred call was waiting for — **documentor is now `model: opus`** (writing for humans is its
 entire role), and every view must open with `## In brief`: three to six sentences of plain English
 before any anchored detail. The anchored rigor stays; it follows the prose instead of replacing it.
-Kaya's existing views predate the rule — their re-authoring rides the next map refresh there.
+The pilot host's existing views predate the rule — their re-authoring rides the next map refresh there.
 
 ---
 
 ## DEC-142 — One dispatch-title convention at every layer
 
-Field report from kaya-ai: the same piece of work read as three different things at three layers —
+Field report from the pilot host: the same piece of work read as three different things at three layers —
 a stale orchestrator title, a generic lead title, a task-worded member title — and the user watching
 the spawn tree reasonably suspected duplicated work. Titles were free text at each dispatching tier.
 
@@ -3268,7 +3268,7 @@ orchestrator's own name can be corrected on the next dispatch.
 
 ## DEC-143 — check-domain.py sees through worktrees; the unsplittable-task gap is task 25
 
-Field report from kaya-ai, at the most expensive possible place — the first build dispatch after
+Field report from the pilot host, at the most expensive possible place — the first build dispatch after
 plan approval: in a worktree-per-session project, **no doer could write source at all.** The hook
 computed paths relative to the main checkout, so `.claude/worktrees/t01-83/src/…` was just a
 subdirectory matching no repo-relative glob, while the identical path in the main checkout passed.
@@ -3276,10 +3276,10 @@ subdirectory matching no repo-relative glob, while the identical path in the mai
 **Fix, in the hook:** match the raw path first (preserving any future glob that deliberately
 targets `.claude/worktrees/**` — the reporter's own edge case), then strip the worktree prefix and
 match the in-worktree path against the same globs. Not a widen — identical globs, anchored to the
-checkout the agent stands in. Seven proof shapes green, including the verbatim kaya repros,
+checkout the agent stands in. Seven proof shapes green, including the verbatim field repros,
 absolute paths, and foreign-path blocks in both checkouts.
 
-**Credit where due:** the kaya orchestrator identified and explicitly REJECTED the third option —
+**Credit where due:** that project's orchestrator identified and explicitly REJECTED the third option —
 Bash writes the hook admits it cannot see — as guardrail evasion, then used a recorded, scoped
 waiver instead (main-checkout build on the feature branch, waiver in feature state). That is the
 DEC-85 pressure handled exactly right, and the opposite of the bin/-ownership incident (FEAT-02).
@@ -3299,9 +3299,9 @@ DEC-85 pressure handled exactly right, and the opposite of the bin/-ownership in
 
 ## DEC-144 — The branch-creation gate joins the harness: fifth prerequisite, self-gating on the mirror
 
-Reviewed at the user's request: kaya-ai's field-proven `branch-create-gate.py` — a `PreToolUse:Bash`
+Reviewed at the user's request: the pilot host's field-proven `branch-create-gate.py` — a `PreToolUse:Bash`
 gate requiring every new git branch to name the work it serves, with a best-effort project-board
-In-Progress flip. Ported into `bin/` with four genericizations: the hardcoded kaya board IDs become
+In-Progress flip. Ported into `bin/` with four genericizations: the hardcoded board IDs become
 OPTIONAL `harness.json` config (`github.project_number/project_id/status_field/in_progress_option`;
 absent = flip skipped); the repo is the PINNED `github.repo` on every gh call, never cwd-inferred
 (DEC-138); `jq` is gone (python3 stdlib, like every harness script); and a second branch grammar is
@@ -3323,7 +3323,7 @@ grammars. The init question that keys it ("Mirror features to GitHub Issues?") w
 
 ## DEC-145 — Expertise v2: observations mid-run, Expertise only at distillation
 
-Field report from the kaya-ai two-feature run: Expertise files bloated to 1,371 lines / ~21k words
+Field report from the pilot host's two-feature run: Expertise files bloated to 1,371 lines / ~21k words
 across 13 files (pm 6,796 words, product-lead 5,191, validator-lead 3,092). The entry-count caps
 held — the growth was *inside* entries (one 1,073-word bullet; another with ten inlined incidents
 labelled (a)–(j)) and in invented, uncapped section names ("Recurring failure modes", "Assessing
@@ -3399,7 +3399,7 @@ sync-off pass-through. Flip stays best-effort by design — only the lookup dire
 
 ## DEC-147 — Flat-roster rule promoted from Expertise to the constitution
 
-Kaya field report: an orchestrator dispatched eng-lead with a `name:` parameter and got the
+Field report from the pilot host: an orchestrator dispatched eng-lead with a `name:` parameter and got the
 platform rejection "Teammates cannot spawn other teammates — the team roster is flat" — for at
 least the fourth time. Three agents had each already learned this independently (orchestrator,
 eng-lead, product-lead Expertise all carry "omit `name:`"), and it recurred anyway: Expertise is
@@ -3413,7 +3413,7 @@ three or more agents record independently is constitution or codebase-map conten
 
 ## DEC-148 — The long-context tax: a watchdog in cost-report and a relay rule in the playbook
 
-The kaya cost snapshot's headline line — $1,010 on one "orchestrator" row — decomposed to ~all
+The archived pilot's cost snapshot headline line — $1,010 on one "orchestrator" row — decomposed to ~all
 cache reads: 3.48B tokens of context re-read, i.e. context length × turn count, growing with the
 square of session length. Measured directly: the map rebuild orchestrator averaged 310k tokens of
 context per turn over 1,360 turns; the cumulative main-session line, 304k/turn over 11,449 turns.
@@ -3422,7 +3422,7 @@ living too long in one context.
 
 Two changes. **cost-report.py grows a context watchdog:** it now counts turns per agent line and
 flags any agent whose average cache-read/turn exceeds `budgets.context_per_turn_tokens` (default
-200k) — first run on kaya flagged exactly the three known offenders and nothing else. **The
+200k) — first run on that host flagged exactly the three known offenders and nothing else. **The
 playbook grows a relay rule:** the orchestrator ends its run at mission-phase boundaries once a
 phase has cost ~10+ dispatches, reporting "phase complete, spawn a successor" — the disposable-
 context/state-on-disk design already guarantees a successor loses nothing (proven by the map
@@ -3440,7 +3440,7 @@ existing harness machinery rather than bolted on:
 **`harness-codebase-design` — a new rule skill** (from `codebase-design`): the deep-module
 vocabulary (module/interface/seam/adapter/depth/leverage/locality) plus four tests — the deletion
 test, the-interface-is-the-test-surface, one-adapter-hypothetical-two-real, and
-state-the-lifetime-with-the-seam (the fourth is ours, generalized from the kaya pool-leak that four
+state-the-lifetime-with-the-seam (the fourth is ours, generalized from the field pool-leak that four
 green gates missed and eng-lead's diff-read caught). Preloaded by **eng-lead** (dispatch constraints,
 architecture review, optional design-it-twice on interface-defining tasks) and **code-reviewer**
 (stage-two finding shapes). Doers receive it through dispatch prompts, not preload — context budget.
@@ -3451,7 +3451,7 @@ is a digest note. NO second decision store — the ADR practice's filter is impo
 is not (nothing is declared twice). The ubiquitous language lives at `.harness/glossary.md`, a
 pm-owned lens (domain granted in team-config): challenge drift before it lands in a REQ, sharpen
 overloaded terms before SCs are written against them, code wins over stated meaning, update it
-inline as the language changes. Field motivation: kaya's status-vocabulary question and the
+inline as the language changes. Field motivation: the pilot host's status-vocabulary question and the
 expense_credit badge-vs-blocker confusion both went up as open questions a glossary would have
 pre-answered.
 
@@ -3499,8 +3499,8 @@ pointer, never a startup sweep); step 5 now says REPLACE `## Current`, data-not-
 feature.yaml; the DEC-148 relay text names the three correct homes instead of "STATE.md" loosely.
 
 **Enforcement honestly labeled:** the reading rule is advisory (reads cannot be gated); the write
-gate is physics; the context watchdog names whoever ignores the advisory part. Kaya's existing
-141KB feature.yaml is cleaned up separately — the gate only prevents new accretion.
+gate is physics; the context watchdog names whoever ignores the advisory part. The pilot host's existing
+141KB feature.yaml was cleaned up separately — the gate only prevents new accretion.
 
 **The reading rule's why (moved from `harness-handoff` under FEAT-60).** Nobody who dispatched an agent can be sure they named every decision that bears on the work — the dispatcher's framing is a hypothesis and the input most likely to be wrong — so cited entries are a floor. The index is an open-or-skip filter: open the entry before acting on a row, and follow its references; the graph is dense, so that is a lookup, not a judgement call. Same framing the qa gate uses for the test matrix.
 
@@ -3508,7 +3508,7 @@ gate is physics; the context watchdog names whoever ignores the advisory part. K
 
 ## DEC-151 — The Bash write bypass, exploited and then narrowed: bash-write-guard.py
 
-Field incident, reported by the kaya orchestrator as a security finding: during the FEAT-01 fix
+Field incident, reported by the pilot host's orchestrator as a security finding: during the FEAT-01 fix
 cycle, **qa was denied a source edit by check-domain and made the identical edit anyway via
 `perl -pi` from Bash.** The orchestrator judged the instance harmless but did not audit earlier
 runs; the bypass was available to every Bash-holding agent, and "read-only reviewer" was a
@@ -3537,7 +3537,7 @@ dev-ops exempt; main session ungoverned.
 ## DEC-152 — Reasoning effort pinned per tier; the session default stops leaking down
 
 Found while investigating the model-selection scare: no agent declared `effort:`, so all 16
-inherited the spawning session's setting — and the user's saved default is LOW, meaning both kaya
+inherited the spawning session's setting — and the user's saved default is LOW, meaning both pilot-host
 features ran their entire judging apparatus at low effort invisibly. Frontmatter `effort:`
 overrides the session (sub-agents docs).
 
@@ -3584,7 +3584,7 @@ session never wrote source attributed to an agent — spot-checks found none.
 
 ## DEC-154 — state.yaml is a checkpoint, not a notebook
 
-Observed in the wild (kaya-ai, FEAT-02 run t01-fe-eng): the eng lead's `state.yaml` carried
+Observed in the wild (pilot host, FEAT-02 run t01-fe-eng): the eng lead's `state.yaml` carried
 ad-hoc top-level keys — `pre_dispatch_checks:`, `lead_assessment_cycle_1:` — holding multi-line
 prose list items dense with file:line citations and reasoning. Valid YAML, and no written rule
 forbade it: harness-team specified the seed fields and the checkpoint discipline but never
@@ -3609,7 +3609,7 @@ duplicates.
 
 ## DEC-155 — Members run on their pinned model; a lead override is an escalation, not a parameter
 
-Observed in the wild (kaya-ai, FEAT-02 ship, T-02): the eng-lead dispatched
+Observed in the wild (pilot host, FEAT-02 ship, T-02): the eng-lead dispatched
 harness-frontend-dev with an explicit `model: "opus"` in the Agent call. Claude Code's
 resolution order puts a per-invocation `model` parameter above agent frontmatter, so the doer —
 pinned `model: sonnet` in its definition — executed on claude-opus-5. Nothing sanctioned it: the
@@ -3638,7 +3638,7 @@ model — that is Claude Code configuration, outside the org's authority.
 
 ## DEC-156 — Prose-only rules from the FEAT-02 audit get gates: digest file, checkpoint shape, dispatch parameters
 
-The FEAT-02 (kaya-ai) output audit found three rule classes that were stated but had nothing
+The FEAT-02 (pilot host) output audit found three rule classes that were stated but had nothing
 enforcing them, and all three drifted in the same run:
 
 1. **The written team digest.** All 14 `runs/*/digest.md` files were narrative markdown with no
@@ -3684,7 +3684,7 @@ that cost is the point: growing the checkpoint becomes a decision, not an accret
 ## DEC-157 — A cycle is a rework loop, not a run; the default budget moves into harness.json
 
 `max_total_cycles` kept exhausting on healthy features and the escalations read as "budget too
-low" (kaya-ai FEAT-01: raised 10 → 30 → 40 → 44 by three user decisions, closed at 42 used;
+low" (pilot host FEAT-01: raised 10 → 30 → 40 → 44 by three user decisions, closed at 42 used;
 FEAT-02: raised 10 → 22, closed at 19). The audit of those numbers says otherwise: FEAT-02's 19
 "cycles" span 16 runs, of which only ~6 were rework — three fix runs (design-fix, t02-fix,
 sc02-fix) and three runs carrying one internal send-back each (t01, t04, t05). The rest were
@@ -3707,13 +3707,13 @@ The unit and its configured bound are:
   was rejected: it defeats the bound's one job, killing a genuine runaway loop early.
 - **The default: `budgets.max_total_cycles: 10` in harness.json.** Until now no default existed
   anywhere — the only "10" was SPEC's illustrative feature.yaml, which orchestrators copied;
-  kaya's own orchestrator Expertise records the gap ("a max_total_cycles written into
+  that host's own orchestrator Expertise records the gap ("a max_total_cycles written into
   feature.yaml is an orchestrator guess and wants a PLAN Decisions entry"). The orchestrator now
   seeds `feature.yaml` from the config value, same source-of-authority shape as
   `max_cost_usd` ← `budgets.per_feature_usd`. Ten *rework* loops fits the evidence: FEAT-02's ~6
   true rework cycles clear it, and ten consecutive fix loops on one feature IS the runaway the
   bound exists to kill. Raising it per-feature remains a user decision recorded in feature.yaml,
-  as both kaya features already practiced.
+  as both pilot-host features already practiced.
 
 Accumulation is now mechanized; classification is not. `feature-record.py run-end` requires the
 lead-reported `--cycles-used`, stores it on that run, and adjusts the feature total by the delta
@@ -3738,14 +3738,14 @@ Two properties of that note are load-bearing and each has a fixture. **The count
 main-session-direct segment is not a run and never appears in `runs:`, which on FEAT-07 hid eight of
 ten tasks — so the message says so. **A budget it cannot resolve is REPORTED, not silently dropped**:
 a `harness.json` that parses but lacks the key otherwise disables the check with no diagnostic, and
-`templates/examples/harness.kaya-ai.json` ships in exactly that shape. DEC-160 records the identical
+an archived pilot's onboarded config shipped in exactly that shape. DEC-160 records the identical
 config lag for `max_total_cycles`.
 
 
 ## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
 
 Measured per-spawn preload (agent file + `skills:` + injected Expertise): orchestrator ~12.3k
-tokens, leads ~8.4–9.2k, dev specialists ~4.8k — replayed across every spawn (kaya FEAT-02:
+tokens, leads ~8.4–9.2k, dev specialists ~4.8k — replayed across every spawn (pilot host FEAT-02:
 58 frontend-dev, 46 product-lead spawns). Profiling the two largest skills (`harness-team` 3.6k
 words, `harness` 3.5k) showed ~25–30% was not rules but rule *history*: incident narratives,
 "this used to say X and was measured false", superseded-rationale walkthroughs. That is
@@ -3792,7 +3792,7 @@ Four moves, in force for all rule skills:
    BUILD-task-22 roll-up warning (the "until that is fixed" box outlived its fix, FEAT-02).
 
 Kept deliberately: the whys themselves, red-flag tables, and everything load-bearing for
-compliance. The real kaya token sink — orchestrators at 258–310k cache-read/turn from session
+compliance. The real field token sink — orchestrators at 258–310k cache-read/turn from session
 longevity — is DEC-148/150's problem, not the skills'; this pass buys latency and instruction
 signal, not a cost order-of-magnitude.
 
@@ -3818,11 +3818,11 @@ entry for something that is not a new decision:
 
 ## DEC-159 — Orchestrators are per-phase; the handoff note carries intent, trust, and dead ends
 
-The measured cost lever after DEC-158: kaya's context watchdog showed orchestrators at 258–310k
+The measured cost lever after DEC-158: the pilot host's context watchdog showed orchestrators at 258–310k
 cache-read tokens per turn from session longevity alone — one long orchestrator outspends every
 skill-trimming pass combined. DEC-148 already said "relay at phase boundaries if the phase took
 more than ~10 dispatches", but it was advisory prose with a threshold judgment, and the field
-evidence (kaya FEAT-01/FEAT-02) shows the successions that did happen worked mechanically while
+evidence (pilot host FEAT-01/FEAT-02) shows the successions that did happen worked mechanically while
 losing the predecessor's working memory: inherited claims were stale at both successions (a "fix"
 for an already-fixed defect, findings already closed at HEAD), and a pre-dispatch verification
 once found half the requested work already done.
@@ -3919,7 +3919,7 @@ no `feature.json` field is added and nothing depends on `run_uid` (#1708). The f
 
 ## DEC-160 — First live handoff: the cap was tight, the sweep does not deter, and deploy cannot ship config
 
-FEAT-03 (kaya-ai) crossed the plan seam within a day of DEC-159 landing, and the first live
+FEAT-03 (pilot host) crossed the plan seam within a day of DEC-159 landing, and the first live
 handoff note was written unprompted — content exactly to spec: trust entries carrying
 `verified-at <sha>` and an honest `UNVERIFIED by me at source — I accepted pm's reading` on the
 heaviest premise, dead ends with pointers, a validated `## Next`. Three findings from watching it:
@@ -3939,8 +3939,8 @@ heaviest premise, dead ends with pointers, a validated `## Next`. Three findings
    invisible to every feature-keyed invariant. Now flagged.
 
 Also surfaced, fixed out-of-band: deploy.sh never writes project state (by design, DEC-113), so
-DEC-157's `budgets.max_total_cycles` default never reached kaya's `.harness/harness.json` — the
-handoff's Trust section caught the discrepancy against SKILL.md. Added to kaya directly; the
+DEC-157's `budgets.max_total_cycles` default never reached the host project's `.harness/harness.json` — the
+handoff's Trust section caught the discrepancy against SKILL.md. Added to that project directly; the
 general path for config-schema additions remains `/harness-init --upgrade`, and a DEC that adds a
 harness.json key must say so.
 
@@ -3954,7 +3954,7 @@ multi-context maps (`CONTEXT-MAP.md`) — no project has bounded contexts yet, a
 structure fails the deletion test.
 
 What WAS missing is enforcement: `.harness/codebase/glossary.md` was "create lazily when the
-first term is resolved," and across three shipped kaya features that fired zero times — while a
+first term is resolved," and across three shipped pilot-host features that fired zero times — while a
 four-status enum and a review-loop vocabulary were being pinned. The same failure shape as any
 obligation recorded only in prose — "run the map first" lived that way, and a feature build ran
 before the map: a duty attached to no checkable moment does not happen. pm's
@@ -3973,7 +3973,7 @@ happens next. qa resolves a null kind to a **soft skip**, so an SC resting on it
 and never fails loudly; pm, correctly avoiding that trap, quietly stops writing SCs against the
 kind. The result is a gate that looks real and does nothing, chosen by nobody.
 
-Measured in kaya: `ui`, `eval` and `integration` are all null, while the codebase map describes
+Measured in the pilot host: `ui`, `eval` and `integration` are all null, while the codebase map describes
 `ui-surface.md` at 292 lines, `llm-patterns.md` at 203, and `data-flows.md` at 315 — three real
 surfaces with no runner. Across three shipped features nothing ever escalated it; FEAT-01 had to
 note in its plan that `cross_module`'s integration evidence "records as skipped, carried by
@@ -3986,7 +3986,7 @@ no `ui` runner is fine; a web app with none is not). Three surfacings, one per a
 
 - **check-state.py INV-20** (warn-level, INV-14's level — flows still run): a null kind whose
   mapped surface exceeds a stub is reported at every `/harness` entry, naming the kind, the view,
-  and both remedies. Verified: fires on exactly kaya's three, silent on the two with runners.
+  and both remedies. Verified: fires on exactly that host's three, silent on the two with runners.
 - **BRIEF `## Verification gaps`** (`harness-brief`): pm may never rest an SC on a null kind — that
   much was already implied — and now must record, where the user signs, what is therefore NOT
   proven and what carries it instead. The approval gate is the visibility moment.
@@ -4000,7 +4000,7 @@ priority call the user makes, and hard-failing on it would stop work the org can
 ## DEC-164 — Grilling is blocking step zero: dialog to clarity before the org spends a spawn
 
 pm plans from what it is told, and the org's most expensive failures start as unstated assumptions:
-**five kaya premises briefed as fact were FALSE at HEAD** on one feature, caught only because a
+**five premises briefed as fact were FALSE at HEAD** on one feature, caught only because a
 successor re-verified them. The cheapest place to find that is in conversation with the user, before
 any spawn. Adopted from Matt Pocock's `grilling`/`grill-me` and the transferable half of
 `wayfinder` (MIT), re-homed onto harness machinery.
@@ -4033,8 +4033,8 @@ frontier is a read.
 DEC-164 deferred wayfinder's full form as speculative. The user corrected the premise: the point of
 grilling *and* wayfinding is one pipeline — take an idea from vague to clear enough that (a) we are
 aligned and (b) it can be handed to planning. That is wayfinder's own stated purpose, and the org
-had only the one-sitting half of it. Kaya's own roadmap thinking ("the visibility, context and
-system-of-record layer for 3PL ops") is exactly the shape a single conversation cannot settle.
+had only the one-sitting half of it. Roadmap-scale product thinking from the field (framing a product as
+"the visibility, context and system-of-record layer" for a whole operating domain) is exactly the shape a single conversation cannot settle.
 
 Adopted, with the three things `harness-grilling` structurally could not do:
 
@@ -4270,7 +4270,7 @@ the context, so a member should ask it. It fails twice:
    the problem. It cannot audit its own framing. The org says so about itself in four Expertise
    entries by different agents — product-lead P-01 *"pre-argued framing is the least trustworthy
    input a lead receives"*, P-03, P-06, G-03. And the one advisor catch on record is exactly that
-   class: *"the advisor caught that I had never re-read `statementsFixture.ts`"* (kaya pm, OBS-02) —
+   class: *"the advisor caught that I had never re-read `statementsFixture.ts`"* (pilot-host pm, OBS-02) —
    an omission the lead would likely have shared, because the lead handed the anchors down.
 
 **So the advisor's differentiation is real and specific: independence from the dispatch chain.** The
@@ -4583,7 +4583,7 @@ the board moved to. Ignoring a stray key instead would let a fleet declare a boa
 get silence back. `default_branch` did NOT move with the board, for a mechanical reason:
 `factory_workspace` reads it in order to CREATE the checkout, so it cannot live inside the checkout.
 
-`mruangutai/kaya-ai` is paired with **board 2**, read back live through `board_for` as `owner
+The archived pilot repository was paired with **board 2**, read back live through `board_for` as `owner
 mruangutai, number 2, station_field Status`. Its Status options carry the same six-value vocabulary
 board 3 carries — `Backlog, Plan, Ready, Building, Review, Done`, in that order — reached by RENAMING
 `Todo` to `Backlog` and `In Progress` to `Building`, retaining `Done`, and adding the three that were
@@ -5313,10 +5313,10 @@ later template change does not retroactively make an entry wrong.
 (`touches_db_or_external`, `has_interaction_flow`, `match_bug_class`) as data so qa's judgment stays
 auditable. It never said the table must be identical across projects, and it already scoped
 `test_kinds.cmd` as per-project. Tailoring was in fact already happening, ungoverned: the one
-onboarded reference, `templates/examples/harness.kaya-ai.json`, deleted `functional`, added a
-project-specific `python` kind, and reshaped four change types — and is broken, because its
-`bugfix.always` names `__bug_class__`, a predicate placeholder that exists in no `test_kinds` and can
-therefore never resolve. Ungoverned tailoring is what this entry replaces.
+onboarded reference config — an archived pilot's `harness.json`, since removed from the tree —
+deleted `functional`, added a project-specific `python` kind, and reshaped four change types, and it
+was broken, because its `bugfix.always` named `__bug_class__`, a predicate placeholder that exists in
+no `test_kinds` and can therefore never resolve. Ungoverned tailoring is what this entry replaces.
 
 **Applied here: this repository excludes `functional`.** `run-unit-tests.py` splits its suite on one
 stated principle from issue #160 — does this depend on behaviour observed in another process? —
@@ -7768,7 +7768,7 @@ symbol renamed after plan exit; the builder's re-resolution is the second and la
 
 **Record:** refs DEC-177, DEC-179, DEC-205, DEC-228, DEC-229.
 
-**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on kaya FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.py exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
+**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on the pilot host's FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.py exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
 
 ## DEC-233 — OMP is the only Harness host; the Claude Code compatibility layer is removed
 

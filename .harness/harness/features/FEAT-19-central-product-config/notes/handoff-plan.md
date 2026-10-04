@@ -5,7 +5,7 @@
 Do not dispatch anything. The phase exit is the operator's signature on `BRIEF.md` and
 `plan.yaml` (both `approval: pending`), and Q2/Q3/Q4 ride that signature. On approval: create
 `feat/FEAT-19-central-product-config`, run `gh-sync.py open`, then start with **T-02**
-(`main-session-direct`, kaya's product config) because T-01 `depends_on: [T-02]` — every other
+(`main-session-direct`, sample-product's product config) because T-01 `depends_on: [T-02]` — every other
 task's ordering follows `depends_on` in `plan.yaml`.
 
 ## Trust

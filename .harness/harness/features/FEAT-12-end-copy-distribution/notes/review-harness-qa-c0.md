@@ -68,7 +68,7 @@ The other 17 checked by reasoning (no mutation performed — AUDIT mode, author 
 - **case2 (2):** already mutation-proven by qa (`ALLOW_LIST` removal → red; case2's own
   `reached_fleet_yaml` guard). Not redone.
 - **case3 (3 of 4, excl. the one above):** `fleet_yaml_safe_loads`, `exactly_two_repos`,
-  `kaya_default_branch_is_master` all assert real, previously-false-or-absent content
+  `sample_default_branch_is_master` all assert real, previously-false-or-absent content
   (`fleet.yaml`'s repo list) that this feature's T-06 actually wrote. Not vacuous.
 - **case4 (6 of 7, excl. the mutation-proven precedence check):** `no_dec12_heading`,
   `exactly_one_dec113_heading`, `no_dec12_references_under_docs`, `exactly_one_dec113_index_row`,

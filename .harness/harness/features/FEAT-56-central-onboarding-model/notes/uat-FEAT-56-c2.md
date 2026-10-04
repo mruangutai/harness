@@ -76,7 +76,7 @@ git show 8ff5197f:.claude/skills/harness-add-repo/SKILL.md
 
 Hold one concrete candidate in mind — again, **create nothing**:
 
-> `mruangutai/kaya-web`, default branch `main`. Not in `.harness/factory/fleet.yaml` yet.
+> `mruangutai/sample-product-web`, default branch `main`. Not in `.harness/factory/fleet.yaml` yet.
 
 - **B-1 · Preflight, on the two cases that bite — 2 min.** Read the preflight at **:26-42**. Two
   scenarios: (i) the harness folder itself was never set up; (ii) `gh` is not installed on this
@@ -88,8 +88,8 @@ Hold one concrete candidate in mind — again, **create nothing**:
 - **B-2 · The order of the three steps — 2 min.** Read the three step headings and the first lines
   under each: **:43** (land `harness.json`, then register the repository), **:81** (interview —
   technical), **:96** (GitHub Issues mirror and project board).
-  **Answer yes/no: does it have you land `kaya-web`'s own `harness.json` on `main` BEFORE adding
-  `kaya-web` to `fleet.yaml`, and is the reason for that order stated where you would see it?**
+  **Answer yes/no: does it have you land `sample-product-web`'s own `harness.json` on `main` BEFORE adding
+  `sample-product-web` to `fleet.yaml`, and is the reason for that order stated where you would see it?**
   result:
 
 - **B-3 · The shape question, and where it ends — 1 min.** Read the closing section at **:152-158**.

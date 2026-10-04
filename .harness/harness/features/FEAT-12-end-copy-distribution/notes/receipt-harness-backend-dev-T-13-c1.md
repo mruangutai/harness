@@ -56,7 +56,7 @@ PASS case2_absence_no_unswept_distribution_tokens
 PASS case2_presence_scan_reached_the_tree
 PASS case3_presence_fleet_yaml_safe_loads
 PASS case3_presence_fleet_has_exactly_two_repos
-PASS case3_presence_kaya_default_branch_is_master
+PASS case3_presence_sample_default_branch_is_master
 PASS case3_absence_no_registry_json_under_harness
 PASS case4_absence_no_dec12_heading
 PASS case4_absence_no_stale_marker_reintroduced
@@ -141,9 +141,9 @@ were copied into the worktree by hand, since a fresh checkout does not carry the
    may be empty, which would make the absence half pass vacuously` — proving the presence half is
    what catches the vacuous-pass case, not the absence half. No files touched; nothing to restore.
 
-4. **Case 3** — rewrote `.harness/factory/fleet.yaml`'s `mruangutai/kaya-ai` entry's
+4. **Case 3** — rewrote `.harness/factory/fleet.yaml`'s `mruangutai/sample-product` entry's
    `default_branch` from `master` to `main`. Observed: `FAIL
-   case3_presence_kaya_default_branch_is_master kaya-ai entry: {'name': 'mruangutai/kaya-ai',
+   case3_presence_sample_default_branch_is_master sample-product entry: {'name': 'mruangutai/sample-product',
    'default_branch': 'main'}`. Restored the exact original file content; `git diff` on the file in
    the worktree was empty; suite re-ran green.
 

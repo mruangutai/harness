@@ -176,7 +176,7 @@ is carried forward verbatim; anything not listed here dies silently.
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You declined to rule on it twice; queued here so it survives. |
 | B-17 | chore | **`build_features_root()`'s docstring overstates the fixture.** It presents both segments' issue maps as load-bearing; measured, only the harness side discriminates. Unchanged by this cycle — the B-16 diff did not touch it. |
 | **B-27** | **bug** | **`5g`'s negation is fail-open in one direction.** A mutant that merely *raises* satisfies `not _5b_property_holds(...)` via the `code != 0` branch, leaving `5b` and `5g` green at 125/125 while nothing is proven (arm 4 above; orchestrator-measured, panel-ranked first, pm-raised independently). **Not live today.** Remedy: assert the mutant's specific observable — exit 1 with the harness candidate blocked on `T-99` — rather than the bare negation. |
-| B-28 | enhancement | **`_5b_property_holds` is a single point of failure for both cases.** Weakening it to `payload.get("issue") == 952` alone leaves BOTH `5b` and `5g` green at 125/125 with kaya-ai's half of the proof gone (qa-measured). Requires editing the assertion itself — the validation lead declined to gate on it and I agree. |
+| B-28 | enhancement | **`_5b_property_holds` is a single point of failure for both cases.** Weakening it to `payload.get("issue") == 952` alone leaves BOTH `5b` and `5g` green at 125/125 with sample-product's half of the proof gone (qa-measured). Requires editing the assertion itself — the validation lead declined to gate on it and I agree. |
 | B-29 | enhancement | **A failing `5g` renders a detail tuple shaped exactly like a passing `5b`'s**, because `5g` fails when the mutant did *not* break the property. Every other case in the file trains the reader the opposite way. Legibility only. |
 | B-30 | chore | **`_5b_property_holds`'s "never raises" docstring is imprecise** — non-dict JSON reaches `.get()` past the `(JSONDecodeError, TypeError)` guard. Unreachable in practice: the only success-path stdout write is a dict literal (`factory_claim.py:217-221`). |
 
@@ -219,7 +219,7 @@ Unchanged, and worth repeating because it is easy to misread as a failure:
 
 - **After this fix, a live claim run from `main` still reports `no_plan` for FEAT-04.** That feature
   tree exists only in the FEAT-04 worktree. The brief disclosed this before you signed. This change
-  fixes the resolver; it does not by itself light up the Kaya lane.
+  fixes the resolver; it does not by itself light up the sample-product lane.
 - **The panel verifies the resolver and its tests, not the multi-repository lane end to end.**
   `mruangutai/harness` is deliberately out of the live fleet, so no reviewer could exercise the real
   thing.

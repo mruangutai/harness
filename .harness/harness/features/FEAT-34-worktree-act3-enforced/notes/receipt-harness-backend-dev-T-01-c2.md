@@ -52,7 +52,7 @@ D-10's own research note). `classify`'s behaviour is provably unaffected.
 Additional smoke, not in the task's `verify:` but run to confirm the three-way posture holds
 on this actual machine (the case D-10 calls load-bearing): `w.classify_all('.')` against the
 real `.harness/factory/fleet.yaml` on this worktree produced records for the harness checkout
-only — no record for `mruangutai/kaya-ai` (checkout exists, zero worktrees) or
+only — no record for `mruangutai/sample-product` (checkout exists, zero worktrees) or
 `mruangutai/harness-factory-smoke` (no checkout at all), confirming the absent/empty-checkout
 branch stays silent rather than turning red, as D-10 requires.
 

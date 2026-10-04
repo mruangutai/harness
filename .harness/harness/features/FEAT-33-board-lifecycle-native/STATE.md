@@ -21,7 +21,7 @@ native-correct. cycles_used 1 of 10. Terminus: signature, then a build phase.
   by an explicit operator ruling recorded as a widening by one item, so re-categorising is not
   precedent. Amend DEC-186 to four purposes bounded to /harness-init, or drop REQ-02. Both
   branches are stated at BRIEF.md:228-238; neither is pre-applied.
-- Q1 (BLOCKING, operator): confirm the harness-first departure. T-01 lands kaya-ai's master
+- Q1 (BLOCKING, operator): confirm the harness-first departure. T-01 lands sample-product's master
   config before the harness validator widens. Both reviewers independently verified no ordering
   is atomic, so the window is unavoidable, latent and loud; the rollback gap is now fixed.
 - Q2 (operator/main session): T-04 registers the new test file in run-unit-tests.py UNIT_SCRIPTS,

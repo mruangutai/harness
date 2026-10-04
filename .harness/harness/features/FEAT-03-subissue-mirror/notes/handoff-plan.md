@@ -50,7 +50,7 @@ ship row must not assert an unconditional parent close either.
   identical endpoint string; payload/lookup only (MF-1). **Feature B** — extracting the `blocked_by`
   write and parent read is IN, `gh-sync.py` *calling* either is OUT (grilling, pinned by SC-06).
   **Re-probing closure semantics** / **asserting on `sub_issues_summary` post-write** — DEC-168.
-  **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03** — new features only. **visual-designer / ui-reviewer**
+  **Retrofitting FEAT-01/FEAT-02/sample-product's FEAT-03** — new features only. **visual-designer / ui-reviewer**
   — no visual surface, no DESIGN.md — `skipped_segments`, Q4
 
 ## Working set

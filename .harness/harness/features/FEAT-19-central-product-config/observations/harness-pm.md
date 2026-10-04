@@ -16,7 +16,7 @@
 - 2026-08-13: two contradictions survived YAML load, route check and a discriminating-verify
   sweep, because all three test form rather than agreement between artifacts. The BRIEF said a
   session outside both roots refuses loudly while T-01's dispatch prompt said it returns the
-  harness config; and T-02 copied kaya's board into the product config, re-creating in this
+  harness config; and T-02 copied sample-product's board into the product config, re-creating in this
   feature's own output the two-files-one-value redundancy the feature exists to remove. Neither is
   detectable by any gate. The check that would have caught both is reading the plan's intent prose
   against the BRIEF's requirement text, clause by clause.

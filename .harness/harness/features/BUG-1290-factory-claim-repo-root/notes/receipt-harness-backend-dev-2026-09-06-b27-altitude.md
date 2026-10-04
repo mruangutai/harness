@@ -20,7 +20,7 @@ and reuses `_run_suite`/`_case_line` (same out-of-process shape). Structural pla
 Sub-finding — **file** `tests/unit/test-factory-claim-mutation.py:21-25` (module docstring),
 `:159-162` (`_KeyCollapsingBlockerCache` docstring), and `tests/unit/test-factory-claim.py:1307-1318`
 (5g's header comment). **Summary:** the same mechanism narrative ("collapsing (repo, feature) to
-feature-alone routes harness's 952 through kaya's map, refusing it as an unresolvable blocker")
+feature-alone routes harness's 952 through sample-product's map, refusing it as an unresolvable blocker")
 is restated in prose three times across two files. **Cost:** each is free-text, none enforced by
 a check; if the specific observable ever changes (e.g. the refusal message), an editor must find
 and update all three by hand, and the class-level one — closest to the code — is the one most

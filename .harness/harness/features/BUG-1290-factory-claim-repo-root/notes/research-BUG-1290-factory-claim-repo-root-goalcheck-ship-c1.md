@@ -28,7 +28,7 @@ no mismatch. All runs prefixed `env -u HARNESS_AGENT_TYPE`.
   verdict, not no_plan`. Case asserts `"unresolvable blocker" in err` AND `"no plan could be read" not
   in err` (pinned test `:1170-1173`).
 - **SC-02 MET, both clauses.** (a) per-plan verdicts: `ok BUG-1290 5b`, asserting claimed issue 952
-  (harness segment, T-77 clear) while 951 (kaya-ai, T-77 → unresolvable T-88) is refused. (b) no cache
+  (harness segment, T-77 clear) while 951 (sample-product, T-77 → unresolvable T-88) is refused. (b) no cache
   bleed: I did not take the case name on trust — I ran an in-process mutant probe
   (`/tmp/bug1290_cacheprobe.py`) re-keying `_BlockerCache._plan` on feature alone: `M1
   plan-cache-bleed: {5a: ok, 5b: FAIL, 5c: ok}`. 5b genuinely discriminates the cached-task clause.
@@ -37,7 +37,7 @@ no mismatch. All runs prefixed `env -u HARNESS_AGENT_TYPE`.
   the repository's own segment `zzz-missing-segment` (pinned test `:1219-1225`).
 - **SC-04 MET** — `ok BUG-1290 5d`; the case calls the *production* `fc.features_root("owner/harness")`
   unpatched and compares to `<root>/.harness/harness/features`. Fixture-only by DEC-174: the live
-  `.harness/factory/fleet.yaml` at the pin names only `mruangutai/kaya-ai` and
+  `.harness/factory/fleet.yaml` at the pin names only `mruangutai/sample-product` and
   `mruangutai/harness-factory-smoke`, and no task touched it (fleet.yaml is absent from the diff stat).
 - **SC-05 MET, both clauses** — `ok BUG-1290 5e` (hasattr assertion, pinned `:1245`). The two
   module-scope cases present at `eb9d044e:tests/unit/test-factory-claim.py:58-68` ("the unpatched

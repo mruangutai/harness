@@ -3,7 +3,7 @@
 ## Precondition check (verified myself before starting)
 
 Read `.harness/factory/fleet.yaml` at this HEAD: **no top-level `board:` key** present, and the
-`mruangutai/kaya-ai` repos entry carries its own `board:` block with `number: 2`. Matches the
+`mruangutai/sample-product` repos entry carries its own `board:` block with `number: 2`. Matches the
 lead's stated precondition exactly. Proceeded. `fleet.yaml` was never written by me — confirmed
 below (git status, git diff --stat) it carries zero diff throughout this task.
 
@@ -103,7 +103,7 @@ $ grep -n "station(" .claude/skills/harness/bin/*.py
 .claude/skills/harness/bin/factory_config.py:212:def board_station(fleet, repo_name, key):
 .claude/skills/harness/bin/factory_decompose.py:399:    ready_option = factory_config.board_station(fleet, args.repo, "ready")
 .claude/skills/harness/bin/test-factory-config.py:246:# NOTE: the two-argument station(fleet, key) was deleted in FEAT-16 T-08 — board_station is now
-.claude/skills/harness/bin/test-factory-config.py:362:          "board", fc.board_station(fleet, "mruangutai/kaya-ai", "ready") == "Todo")
+.claude/skills/harness/bin/test-factory-config.py:362:          "board", fc.board_station(fleet, "mruangutai/sample-product", "ready") == "Todo")
 .claude/skills/harness/bin/test-factory-config.py:367:        fc.board_station(fleet, "mruangutai/harness", "nonexistent")
 ```
 All five remaining hits are `board_station(` — the different, three-argument function (T-03's,
@@ -839,7 +839,7 @@ PASS case2_presence_scan_reached_the_tree
 PASS case3_presence_fleet_yaml_safe_loads
 PASS case3_presence_fleet_has_exactly_one_repo
 PASS case3_absence_harness_is_not_a_fleet_member
-PASS case3_presence_kaya_default_branch_is_master
+PASS case3_presence_sample_default_branch_is_master
 PASS case3_absence_no_registry_json_under_harness
 PASS case4_absence_no_dec12_heading
 PASS case4_absence_no_stale_marker_reintroduced
@@ -850,7 +850,7 @@ PASS case4_presence_exactly_one_dec113_index_row
 PASS case4_absence_no_dec12_index_row
 PASS board_lives_per_repo_not_fleet_level
 PASS every_repo_declares_its_own_board
-PASS kaya_ai_is_paired_with_board_2
+PASS sample_is_paired_with_board_2
 
 ALL PASS
 PASS test-no-distribution.py
@@ -1100,7 +1100,7 @@ ok - case (l3) a per-feature max_total_runs: 30 silences it
 ok - case (l4) INV-22 NEVER gates — exit code identical over and under budget
 ok - case (l5) the CONFIGURED value is read — budget 5 with 7 runs names 5, not 20
 ok - case (l6) budgets present but key missing is REPORTED INACTIVE, never silent
-ok - case (l7) no budgets block at all (the shipped kaya example) is REPORTED INACTIVE
+ok - case (l7) no budgets block at all (the shipped sample-product example) is REPORTED INACTIVE
 ok - case (l8) a boolean budget is REJECTED, not treated as an int (bool subclasses int)
 ok - case (m): INV-9 catches a MISSING PostToolUse check-domain while the PreToolUse one is present
 ok - case (m2): INV-9 rejects a NARROWED PostToolUse matcher, naming the missing tools

@@ -1,5 +1,10 @@
 # Research — FEAT-19 — anchors re-derived, and the resolution mechanism
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **All measurements below were taken at `63b83c7` on branch `main`, working tree clean except
 `.harness/logs/2026-08-13.md`.** The dispatch warned that the session snapshot showed
 `89ecc11` on `feat/FEAT-18-board-truth`; `git rev-parse HEAD` returned `63b83c7` and
@@ -53,7 +58,7 @@ so the row above is the new baseline with its command, not an attempt to reprodu
 
 | Path | `--resolve` | rc |
 |---|---|---|
-| `.harness/products/kaya-ai/harness.json` | NOBODY | 0 |
+| `.harness/products/sample-product/harness.json` | NOBODY | 0 |
 | `.harness/factory/fleet.yaml` | NOBODY | 0 |
 | `.claude/skills/harness-init/SKILL.md` | NOBODY | 0 |
 | `.claude/skills/harness/templates/harness.json` | NOBODY | 0 |
@@ -73,7 +78,7 @@ main-session-direct for a different reason. The two reasons are kept distinct in
 ## The per-product path — settled by evidence, not preference
 
 `workspace_path` is explicit that it is the one place the derivation exists: `name.split("/",
-1)[-1]`, so `mruangutai/kaya-ai` → `<workspace_root>/kaya-ai`. Using the same segment for
+1)[-1]`, so `mruangutai/sample-product` → `<workspace_root>/sample-product`. Using the same segment for
 `.harness/products/<segment>/` gives one derivation in one place.
 
 The alternative — `.harness/products/<owner>/<repo>/` — is refused on measured grounds:
@@ -83,22 +88,22 @@ glob over a two-segment product path would need `**` and would be a wider grant 
 **Named, not fixed:** `a/x` and `b/x` collide under a single segment. That collision already
 exists in `workspace_root` itself, so this feature inherits it rather than introducing it.
 
-## The DEC-187 trap on kaya's config — the thing nobody named
+## The DEC-187 trap on sample-product's config — the thing nobody named
 
 DEC-187 (uncited in the dispatch, reached via the index) sets a **closure invariant**: every kind
 the matrix names must exist in `test_kinds` and be `active` — a `cmd` someone has run and seen
 pass — or `excluded` with `excluded_because` and a `signed` value naming a decision that resolves
 **in the project's decisions file**. `unresolved` blocks.
 
-Two facts collide with authoring kaya's config centrally:
+Two facts collide with authoring sample-product's config centrally:
 
-1. **Nobody has run kaya's commands from here**, and this effort does not clone kaya. Marking any
+1. **Nobody has run sample-product's commands from here**, and this effort does not clone sample-product. Marking any
    kind `active` would be an unverified claim of the exact shape DEC-187 exists to stop.
-2. **Kaya has no decisions file**, so an `excluded` kind's `signed` value has nowhere to resolve.
+2. **The product has no decisions file**, so an `excluded` kind's `signed` value has nowhere to resolve.
 
-The existing reference `.claude/skills/harness/templates/examples/harness.kaya-ai.json` also
+The existing reference — the archived pilot config (removed from the tree) — also
 carries the defect DEC-187 names by name: `bugfix.always` is `["__bug_class__"]`, a predicate
-placeholder present in no `test_kinds`, so kaya's bugfix type can never resolve, and `unit` was
+placeholder present in no `test_kinds`, so sample-product's bugfix type can never resolve, and `unit` was
 dropped from it. Copying that file forward unchanged ships a matrix that cannot resolve.
 
 This is a decision, not a task detail, and it is in the BRIEF as D-03.
@@ -117,7 +122,7 @@ Each gets its own success criterion.
 ## Facts confirmed unchanged at `63b83c7`
 
 - `.harness/products/` does not exist.
-- `mruangutai/kaya-ai` is the only `repos:` entry; `mruangutai/harness` is deliberately absent.
+- `mruangutai/sample-product` is the only `repos:` entry; `mruangutai/harness` is deliberately absent.
 - `.harness/harness.json` has 16 top-level keys; `github` is `{sync, repo, board{owner, number,
   station_field}}` and its own `_note` already says the placement is temporary and that #206 moves it.
 - `harness-init/SKILL.md` is 286 lines with nine numbered steps.

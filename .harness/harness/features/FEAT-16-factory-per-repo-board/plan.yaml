@@ -45,7 +45,7 @@ decisions:
     choice: The board block moves inside each repos entry, number and station_field and stations
       together, and is REQUIRED on every entry. There is no fleet-level default, and after T-08 a
       leftover top-level board key is REJECTED by load_fleet rather than ignored.
-    because: a default is exactly how this defect got in - kaya-ai inherited a board nobody chose for
+    because: a default is exactly how this defect got in - sample-product inherited a board nobody chose for
       it and nothing failed. load_fleet accepts unknown top-level keys silently today, so leaving the
       old key merely unused would recreate the same silence one level up.
     dec: none
@@ -127,8 +127,8 @@ decisions:
   - id: D-08
     choice: The factory's ready station stays pointed at the Ready option on board 2, and an EMPTY
       Ready is CORRECT rather than a defect. Backlog means filed-and-untriaged; Ready means the
-      operator has decided the factory may take it. Kaya's 82 unstarted issues are correctly in
-      Backlog, so a claim run against kaya finds nothing to claim, and that is the truth.
+      operator has decided the factory may take it. The product's 82 unstarted issues are correctly in
+      Backlog, so a claim run against sample-product finds nothing to claim, and that is the truth.
     because: the earlier Todo-becomes-Ready mapping was decided when the target vocabulary was three
       stations and Ready was the only not-started-yet value available. With six values the two
       separate, and 82 unplanned issues sitting in Ready would make Ready meaningless. Board 3's own
@@ -142,7 +142,7 @@ decisions:
   - id: D-09
     choice: T-10 appends a second amendment to DEC-174 rather than opening a new DEC number.
     because: the loose end being closed - fleet.yaml board.number 3 described as the Harness board
-      while the fleet holds only kaya-ai - was opened by DEC-174 am.1, and a closure belongs in the
+      while the fleet holds only sample-product - was opened by DEC-174 am.1, and a closure belongs in the
       entry that opened it. A separate entry would split one story across two places a reader would
       have to find both of, and the per-repository board is a consequence of DEC-174's own carve-out
       reasoning rather than a new ruling.
@@ -534,7 +534,7 @@ tasks:
       fixtures and not its source.
 
   - id: T-07
-    title: Confirm both boards carry the six factory stations, then give kaya-ai its own board in
+    title: Confirm both boards carry the six factory stations, then give sample-product its own board in
       fleet.yaml
     traces: [REQ-01, REQ-04]
     change_type: config
@@ -618,9 +618,9 @@ tasks:
          and do not adjust the plan - SC-03 and SC-07 rest on these figures and need re-signing.
 
       2. THE FLEET DECLARATION. In .harness/factory/fleet.yaml, delete the top-level board block
-         entirely and give the mruangutai/kaya-ai entry its own board block:
+         entirely and give the mruangutai/sample-product entry its own board block:
            repos:
-             - name: mruangutai/kaya-ai
+             - name: mruangutai/sample-product
                default_branch: master
                board:
                  owner: mruangutai
@@ -667,7 +667,7 @@ tasks:
       This task closes the migration T-01 opened, and it is safe to run only after T-07 has rewritten
       .harness/factory/fleet.yaml, because check-domain.py calls load_fleet on every governed write
       and fails CLOSED on any exception. Confirm before you start that .harness/factory/fleet.yaml
-      has no top-level board key and that its kaya-ai entry carries its own board. If it still has
+      has no top-level board key and that its sample-product entry carries its own board. If it still has
       one, STOP - tightening now blocks every agent write in the repository, including the write that
       would undo it.
 
@@ -729,9 +729,9 @@ tasks:
       2. EVERY repos entry carries a board mapping with an integer number, a non-empty station_field
          and a stations mapping whose keys are exactly ready, building and review. Name it
          every_repo_declares_its_own_board.
-      3. The pairing itself is pinned: the entry named mruangutai/kaya-ai declares board number 2.
-         Name it kaya_ai_is_paired_with_board_2. The failure detail must say that board 2 is the
-         kaya-ai board - the live Projects v2 board number 2 on the mruangutai account, whose Status
+      3. The pairing itself is pinned: the entry named mruangutai/sample-product declares board number 2.
+         Name it sample_is_paired_with_board_2. The failure detail must say that board 2 is the
+         sample-product board - the live Projects v2 board number 2 on the mruangutai account, whose Status
          options were renamed to the factory stations on 2026-08-11 - and that changing one side of
          the pairing without the other is what this assertion exists to catch. Name the date and the
          board, not a sha: this string ships in test output that a future reader must be able to
@@ -766,7 +766,7 @@ tasks:
       ! grep -q "the .board:. the factory reads work from" docs/harness/SPEC.md
     intent: |
       DEC-174 am.1 ends with a section headed as a loose end this amendment does NOT close, stating
-      that fleet.yaml board.number 3 is the Harness board while the fleet holds only kaya-ai. That
+      that fleet.yaml board.number 3 is the Harness board while the fleet holds only sample-product. That
       statement is now false of the tree, and a falsified claim left standing is what DEC-188 exists
       to prevent - the record is what every loop in the factory reads as ground truth.
 
@@ -778,7 +778,7 @@ tasks:
       entries and DEC-174 does not use it. Record four things and nothing
       more: that the station board is now declared PER REPOSITORY inside each repos entry with its
       number, station_field and stations together; that there is no fleet-level board and a leftover
-      top-level board key is rejected by load_fleet; that mruangutai/kaya-ai is paired with board 2,
+      top-level board key is rejected by load_fleet; that mruangutai/sample-product is paired with board 2,
       whose Status options were brought to the same six-value vocabulary board 3 carries - Backlog,
       Plan, Ready, Building, Review, Done in that order - by RENAMING Todo to Backlog and In Progress
       to Building, retaining Done and adding the rest, at zero item writes against the 118 finished

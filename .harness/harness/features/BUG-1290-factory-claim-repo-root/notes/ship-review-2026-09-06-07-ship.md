@@ -18,7 +18,7 @@ below.
 ## What actually changed
 
 `tests/unit/test-factory-claim.py` builds two fixture feature trees that carry the **same feature
-id** under two different repository segments — `kaya-ai` and `harness`. Case `5b` polls both and
+id** under two different repository segments — `sample-product` and `harness`. Case `5b` polls both and
 proves neither repository is served the other's data.
 
 Before: both trees carried an **empty** issue map, so the harness candidate's issue map was never
@@ -199,7 +199,7 @@ had it fixed.** Rows B-16 onward are new since yesterday.
 | B-9 | chore | `features_root(repo)` is resolved at three call sites in `_BlockerCache`. Measured inert (13.32 µs per call, at most twice per unique pair per poll). Shape note only. |
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You declined to rule on it; queued here so it survives. |
 | B-16 | chore | **SC-02's new proof is not defended by anything committed.** Deleting the harness fixture's `depends_on` fragment at `tests/unit/test-factory-claim.py:382` returns case `5b` to the pre-B-3 blind state with 124/124 still green. Remedy: a committed mutant discarding the repository at the issue-map seam. **Natural companion to B-1 and B-2 — one piece of work, not three.** |
-| B-17 | chore | **`build_features_root()`'s docstring overstates the fixture.** It presents both segments' issue maps as load-bearing; measured, only the harness side discriminates — the kaya side's entry is inert. The same docstring now also restates case `5b`'s comment nearly verbatim. Reword, or make the kaya side load-bearing (which also discharges B-16). |
+| B-17 | chore | **`build_features_root()`'s docstring overstates the fixture.** It presents both segments' issue maps as load-bearing; measured, only the harness side discriminates — the sample-product side's entry is inert. The same docstring now also restates case `5b`'s comment nearly verbatim. Reword, or make the sample-product side load-bearing (which also discharges B-16). |
 
 ### The feature's record — pre-existing, not caused by this cycle
 
@@ -235,7 +235,7 @@ Unchanged from yesterday, and worth repeating because it is easy to misread as a
 
 - **After this fix, a live claim run from `main` still reports `no_plan` for FEAT-04.** That feature
   tree exists only in the FEAT-04 worktree. The brief disclosed this before you signed. This change
-  fixes the resolver; it does not by itself light up the Kaya lane. That proof belongs to FEAT-04.
+  fixes the resolver; it does not by itself light up the sample-product lane. That proof belongs to FEAT-04.
 - **The panel verifies the resolver and its tests, not the multi-repository lane end to end.**
   `mruangutai/harness` is deliberately out of the live fleet, so no reviewer could exercise the real
   thing.

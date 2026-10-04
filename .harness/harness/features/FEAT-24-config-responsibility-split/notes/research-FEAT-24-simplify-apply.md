@@ -82,7 +82,7 @@ pointers rather than claiming a uniform granularity it does not have.
   from both; the live-option **value** assertions stay as a separate block, as instructed.
   **Collateral, and it is a real cost:** `_validate_board` is private at HEAD, so both tasks gained
   `depends_on: [T-02]`. T-06's "this task can run first" sentence was rewritten. T-09's intent now
-  states the cost out loud — the plan's longest pole, the cross-repository kaya route, starts after
+  states the cost out loud — the plan's longest pole, the cross-repository sample-product route, starts after
   one harness-side task, accepted because a verify that certifies a shape the real loader would
   reject is worse than a later start. No cycle: T-01 → T-02 → {T-06, T-09} → {T-04, T-07} → …
 - **F-7** — T-10 `depends_on: [T-05, T-06, T-07]`.
@@ -137,7 +137,7 @@ DEVIATION T-05 .claude/skills/harness/bin/check-state.py, .claude/skills/harness
 OK T-06 granted to harness-dev-ops
 OK T-07: declared main-session-direct (.harness/factory/fleet.yaml ungranted)
 OK T-08: declared main-session-direct (.claude/skills/harness/templates/harness.json ungranted)
-OK T-09: declared main-session-direct (/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json ungranted)
+OK T-09: declared main-session-direct (/Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json ungranted)
 OK T-10 granted to harness-documentor
 0 violation(s) across 1 plan(s)
 examined 24 feature dir(s); 23 skipped as shipped

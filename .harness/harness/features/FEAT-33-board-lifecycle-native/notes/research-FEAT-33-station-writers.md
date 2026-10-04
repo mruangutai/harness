@@ -5,7 +5,7 @@ signed" everywhere collides with live code, not with documentation.** `factory_c
 `Status:"Ready" is:open` as the factory's **claim queue**, and `factory_decompose.py:399,411` is what
 puts every served-repo TASK card there. Repurposing `Ready` makes a signed-plan PARENT card a claim
 candidate on board 2. The brief's current text (`BRIEF.md:171`) says board 2's `Ready` meaning is
-documented in kaya-ai's `harness.json`; that is true and incomplete. **This needs the operator.**
+documented in sample-product's `harness.json`; that is true and incomplete. **This needs the operator.**
 
 ## Measured, all at worktree HEAD `f5f5185`, board 3, 539 items
 

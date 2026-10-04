@@ -161,7 +161,7 @@ Facts for this round: across `.harness/*/features/*/feature.json` at f5ffdcf4 â€
 - 46 `grilling-*.md` notes exist in `.harness/notes/`; none has front-matter or a status field.
 - `board_lifecycle.py audit` prints findings and writes nothing; `wayfind.py` refuses in
   markdown mode and persists nothing locally in tracker mode (`wayfind.py:58-59`).
-- Fleet: `.harness/factory/fleet.yaml` lists `mruangutai/kaya-ai` and
+- Fleet: `.harness/factory/fleet.yaml` lists `mruangutai/sample-product` and
   `mruangutai/harness-factory-smoke`; `mruangutai/harness` deliberately absent (DEC-174). 11
   worktrees registered on this control plane (`git worktree list`).
 - Repo is Python 3 stdlib-first: only PyYAML (DEC-171) and jsonschema (DEC-190) are required; no

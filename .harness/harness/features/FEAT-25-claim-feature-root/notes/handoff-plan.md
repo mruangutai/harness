@@ -24,7 +24,7 @@ T-03 both `depends_on: [T-01]`, so there is no parallel opening move.
   `.harness/expertise/*.md` writes are outside the graded set — playbook close-out ordering plus
   `git show --pretty=format: --name-only d1ffd7f` — verified-at d1ffd7f
 - #500 alone may not unblock unit 8: `factory_decompose.py:276-283`/`:360` always label
-  `feature:<id>`, so a kaya feature dir outside the harness segment stays unreadable — verified-at d1ffd7f
+  `feature:<id>`, so a sample-product feature dir outside the harness segment stays unreadable — verified-at d1ffd7f
 
 ## Dead ends
 

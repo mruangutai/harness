@@ -10,31 +10,31 @@ to `Building` and already `status: building` in `plan.yaml`.
 
 ---
 
-## T-09 — kaya-ai's config moves onto the by-name board shape (issue #510)
+## T-09 — sample-product's config moves onto the by-name board shape (issue #510)
 
-Target file: `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json`
+Target file: `/Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json`
 (materialised by step 2 — it does not exist until then).
 
 ### Commands, in order
 
 ```
-gh issue create --repo mruangutai/kaya-ai \
+gh issue create --repo mruangutai/sample-product \
   --title "Move .harness/harness.json onto the by-name board shape" \
   --body-file <path to a body file you write>
 # note the issue number it prints; call it <n>
 
 python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/factory_workspace.py \
-  --repo mruangutai/kaya-ai --issue <n>
-# materialises /Users/molchairuangutai/GitHub/harness-factories/kaya-ai and cuts factory/issue-<n>
+  --repo mruangutai/sample-product --issue <n>
+# materialises /Users/molchairuangutai/GitHub/harness-factories/sample-product and cuts factory/issue-<n>
 
 # ---- hand-edit the file (diff below) ----
 
 # CORRECTION, recorded 2026-08-19 after the operator ran this: factory_land.py does NOT commit.
 # It failed with `No commits between master and factory/issue-334` until the operator committed
-# by hand in the checkout. Add `git -C <workspace>/kaya-ai commit` before factory_land. Backlog B-12.
+# by hand in the checkout. Add `git -C <workspace>/sample-product commit` before factory_land. Backlog B-12.
 
 python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/factory_land.py \
-  --repo mruangutai/kaya-ai --issue <n>
+  --repo mruangutai/sample-product --issue <n>
 # pushes and opens the pull request
 
 # ---- merge the pull request ----
@@ -44,7 +44,7 @@ python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/factor
 
 Verified against `master` today: `github` is the last key of the file and occupies lines 245–253.
 Nothing else in the file changes (`test_matrix`, `test_kinds`, `gates`, `budgets`, `cost_model`,
-`dirty_tree_whitelist` are kaya's own — D-02/#336 D-03).
+`dirty_tree_whitelist` are sample-product's own — D-02/#336 D-03).
 
 Current (lines 245–253):
 
@@ -52,7 +52,7 @@ Current (lines 245–253):
   "github": {
     "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE at /harness-init; ...",
     "sync": true,
-    "repo": "mruangutai/kaya-ai",
+    "repo": "mruangutai/sample-product",
     "project_number": 2,
     "project_id": "PVT_kwHOAAases4Bc7h3",
     "status_field": "PVTSSF_lAHOAAases4Bc7h3zhXgwuA",
@@ -67,7 +67,7 @@ the two rationale notes and the board:
   "github": {
     "_note": "<< the existing _note line, unchanged >>",
     "sync": true,
-    "repo": "mruangutai/kaya-ai",
+    "repo": "mruangutai/sample-product",
     "_board_done_note": "Board 2's `Done` option is RETAINED on purpose — 118 items sit there and the enabled `Item closed` workflow keeps landing cards in it.",
     "_board_ready_note": "`ready: Ready` is deliberate even though Ready is EMPTY. On this board `Backlog` means filed-and-untriaged and `Ready` means promoted for the factory, so a claim run that finds nothing has found the truth rather than hit a misconfiguration. Pointing intake at `Backlog` instead would hand the factory 82 untriaged items.",
     "board": {

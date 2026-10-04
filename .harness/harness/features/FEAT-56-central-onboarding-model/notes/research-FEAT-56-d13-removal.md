@@ -1,5 +1,10 @@
 # D-13 closed by the operator's ruling — three tasks, one new criterion
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **BLUF.** The removal is planned as **three tasks split by lane, not by file count**: T-18 (`team`,
 `harness-dev-ops`) for the live config, T-19 (`main-session-direct`) for the four NOBODY sites,
 T-20 (`team`, `harness-documentor`) for the DEC-83/BUILD.md amendment. D-13 is amended from an open
@@ -14,7 +19,7 @@ run verbatim out of `plan.yaml` and observed **RED** at `97fe447f`.
 | `.harness/team-config.yaml` | `NOBODY` | T-19 | `main-session-direct` |
 | `.claude/skills/harness/templates/harness.json` | `NOBODY` | T-19 | `main-session-direct` |
 | `.claude/skills/harness/templates/team-config.yaml` | `NOBODY` | T-19 | `main-session-direct` |
-| `.claude/skills/harness/templates/examples/harness.kaya-ai.json` | `NOBODY` | T-19 | `main-session-direct` |
+| `.claude/skills/harness/templates/examples/harness.<product>.json` | `NOBODY` | T-19 | `main-session-direct` |
 | `.harness/harness/docs/DECISIONS.md` | `harness-documentor` | T-20 | `team` |
 | `.harness/harness/docs/DECISIONS-INDEX.md` | `harness-documentor` | T-20 | `team` |
 | `.harness/harness/docs/BUILD.md` | `harness-documentor` | T-20 | `team` |
@@ -28,7 +33,7 @@ symlink; `git show` of an `.agents` path prints nothing).
 
 The operator ruled on 2026-09-09 that `cli_min_version` is removed from all five config sites
 (`.harness/harness.json:3`, `.harness/team-config.yaml:11`, `templates/harness.json:4`,
-`templates/team-config.yaml:22`, `templates/examples/harness.kaya-ai.json:4`) and DEC-83 amended to
+`templates/team-config.yaml:22`, `templates/examples/harness.<product>.json:4`) and DEC-83 amended to
 match, because D-12 severed the key from its only enforcement point and nothing reads it — no
 reader, no schema entry, no reference under `.claude/skills/harness/bin/`; pm's contrary
 recommendation to keep the key is recorded as **overridden**, not as the entry's conclusion.

@@ -8,14 +8,14 @@ the intent's cited line 68 has drifted by one) with a new `case13` in
 ## What case13 asserts
 Fixture: `.harness/expertise/harness-qa.md` (craft), `.harness/harness/expertise/harness-qa.md`
 (readable repository file, distinguishable body "REPO BODY THIRTEEN"), and a **dangling
-symlink** at `.harness/kaya/expertise/harness-qa.md` created via `os.symlink` pointing at a
+symlink** at `.harness/sample-product/expertise/harness-qa.md` created via `os.symlink` pointing at a
 target that does not exist. `HOME` is a fresh temp dir via `fresh_home()`.
 
 Four assertions, all required:
 1. `r.returncode == 0`
 2. injected context contains `"## Your Expertise — harness repository (repository tier)"` and
    `"REPO BODY THIRTEEN"`
-3. `"kaya"` does not appear anywhere in the injected context
+3. `"sample-product"` does not appear anywhere in the injected context
 4. `r.stderr` decodes to the empty string
 
 ## Observation A — case13 against the shipped hook (unmutated)
@@ -50,13 +50,13 @@ INJECT_EXPERTISE_BIN=<scratch>/inject-expertise-mutant.sh python3 .claude/skills
 Result:
 ```
 FAIL case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr
-        checks=[True, True, True, False, False] stderr='head: <tmp>/.harness/kaya/expertise/harness-qa.md: No such file or directory\n<scratch>/inject-expertise-mutant.sh: line 58: <tmp>/.harness/kaya/expertise/harness-qa.md: No such file or directory\n<scratch>/inject-expertise-mutant.sh: line 58: [: : integer expected\n'
+        checks=[True, True, True, False, False] stderr='head: <tmp>/.harness/sample-product/expertise/harness-qa.md: No such file or directory\n<scratch>/inject-expertise-mutant.sh: line 58: <tmp>/.harness/sample-product/expertise/harness-qa.md: No such file or directory\n<scratch>/inject-expertise-mutant.sh: line 58: [: : integer expected\n'
 18/19 cases passed.
 ```
 Process exit status: **1** (non-zero — `main()` returns `fails`, `sys.exit(1 if main() else 0)`).
 
-case13 **FAILS** under mutation, exactly as required. The failing checks are index 3 (`"kaya"
-not in ctx` — false, "kaya" leaked into the injected context because the dangling symlink was
+case13 **FAILS** under mutation, exactly as required. The failing checks are index 3 (`"sample-product"
+not in ctx` — false, "sample-product" leaked into the injected context because the dangling symlink was
 read as if valid) and index 4 (`stderr == ""` — false, `head` and the `wc -l`/`[` integer
 comparison in `cap_body` both error on the dangling link).
 

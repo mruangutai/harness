@@ -133,22 +133,22 @@ def case1():
            f"checks={checks} precedence_idx={precedence_idx} repo_header_idx={repo_header_idx}")
 
 
-# --- Case 2: two repository segments (harness, kaya) ------------------------
+# --- Case 2: two repository segments (harness, sample-product) --------------
 def case2():
     root = tempfile.mkdtemp()
     home = fresh_home()
     write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "HARNESS SEGMENT BODY\n")
-    write(os.path.join(root, ".harness/kaya/expertise/harness-qa.md"), "KAYA SEGMENT BODY\n")
+    write(os.path.join(root, ".harness/sample-product/expertise/harness-qa.md"), "SAMPLE SEGMENT BODY\n")
     r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
     ctx = get_context(r) or ""
     harness_hdr = "## Your Expertise — harness repository (repository tier)"
-    kaya_hdr = "## Your Expertise — kaya repository (repository tier)"
+    sample_hdr = "## Your Expertise — sample-product repository (repository tier)"
     checks = [
         harness_hdr in ctx,
-        kaya_hdr in ctx,
+        sample_hdr in ctx,
         "HARNESS SEGMENT BODY" in ctx,
-        "KAYA SEGMENT BODY" in ctx,
-        ctx.find(harness_hdr) < ctx.find(kaya_hdr),
+        "SAMPLE SEGMENT BODY" in ctx,
+        ctx.find(harness_hdr) < ctx.find(sample_hdr),
         ctx.count("repository over project over global") == 1,
     ]
     report("case2: two repository segments sorted, precedence line exactly once", all(checks), str(checks))
@@ -392,9 +392,9 @@ def case13():
     home = fresh_home()
     write(os.path.join(root, ".harness/expertise/harness-qa.md"), "CRAFT BODY THIRTEEN\n")
     write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO BODY THIRTEEN\n")
-    kaya_path = os.path.join(root, ".harness/kaya/expertise/harness-qa.md")
-    os.makedirs(os.path.dirname(kaya_path), exist_ok=True)
-    os.symlink(os.path.join(root, ".harness/kaya/expertise/does-not-exist.md"), kaya_path)
+    sample_path = os.path.join(root, ".harness/sample-product/expertise/harness-qa.md")
+    os.makedirs(os.path.dirname(sample_path), exist_ok=True)
+    os.symlink(os.path.join(root, ".harness/sample-product/expertise/does-not-exist.md"), sample_path)
 
     r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
     ctx = get_context(r) or ""
@@ -403,7 +403,7 @@ def case13():
         r.returncode == 0,
         "## Your Expertise — harness repository (repository tier)" in ctx,
         "REPO BODY THIRTEEN" in ctx,
-        "kaya" not in ctx,
+        "sample-product" not in ctx,
 
         stderr == "",
     ]

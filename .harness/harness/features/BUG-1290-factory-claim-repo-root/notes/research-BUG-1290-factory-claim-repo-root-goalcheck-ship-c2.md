@@ -79,12 +79,12 @@ goes back as backlog row **R-1 (chore)**, below, not as UNMET.
 **No SC weakened. One got stronger; the rest are unchanged.**
 
 `build_features_root()`'s two edited segment roots are consumed by exactly two cases —
-`SEG_FEATURE`/`REPO_KAYA`/`REPO_HARNESS_SEG` appear only at `:65-71`, `:336-383` (the builder) and
+`SEG_FEATURE`/`REPO_SAMPLE`/`REPO_HARNESS_SEG` appear only at `:65-71`, `:336-383` (the builder) and
 `:1162-1200` (5a, 5b). 5c uses a deliberately absent segment; 5d/5e/5f touch no fixture.
 
-- **SC-01 (5a): unchanged.** kaya-ai's DAG is untouched (`T-77` depends on `T-88`); the added map entry
+- **SC-01 (5a): unchanged.** sample-product's DAG is untouched (`T-77` depends on `T-88`); the added map entry
   `{"T-77": 850}` is not the blocker key looked up, so `unresolvable blocker` still comes from `T-88`
-  being absent from kaya's own map.
+  being absent from sample-product's own map.
 - **SC-02 (5b): stronger.** The harness candidate's "clear" verdict was previously vacuous (`T-77`, no
   deps); it now requires resolving `T-99` through the harness segment's OWN map to closed issue 954.
   The clear verdict now exercises the issue-map path instead of skipping it.

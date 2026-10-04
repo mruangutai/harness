@@ -13,7 +13,7 @@ and `wayfinder` (MIT), re-homed onto harness machinery (DEC-164/167).
 
 Why it is blocking: pm plans from what it is told. Every unstated assumption at this moment
 becomes a perspective nobody meant, an SC that cannot be verified, or a build cycle spent
-discovering the question. **Five kaya premises briefed as fact were FALSE at HEAD** on one
+discovering the question. **Five premises briefed as fact were FALSE at HEAD** on one
 feature — the cheapest possible moment to find that is here, in conversation, before a spawn.
 
 Three ways in, and they differ only in what follows:

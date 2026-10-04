@@ -18,7 +18,7 @@ defect that must not wait behind a pm-format change's review surface.
 - **Parent origin, first match wins** → (1) the effort's wayfinding map issue, when that effort
   produced exactly this feature — **frozen at hand-off**: prune `## Not yet specified` and
   `## Out of scope`, add `Superseded by BRIEF.md at <sha>`, keep Destination + Decisions as the
-  rationale above the tree; (2) the backlog issue pm absorbed (kaya's #48 pattern); (3) a fresh
+  rationale above the tree; (2) the backlog issue pm absorbed (the product's #48 pattern); (3) a fresh
   parent when there is nothing to absorb.
 - **Parent title** → `FEAT-NN-<slug> — <human phrase>`, pm authoring the phrase from BRIEF's Goal.
   Same em-dash convention `T-NN` issues already use. Id stays the leading machine-matchable token.
@@ -54,9 +54,9 @@ defect that must not wait behind a pm-format change's review surface.
 - **Feature B's contents** (PLAN `depends_on:`, `blocked_by` edges, ordering validation) — sequenced,
   not abandoned.
 - **Retrofitting FEAT-01/02/03.**
-- **Inducting kaya's pre-harness decisions** — a genuinely different destination the user raised: the
+- **Inducting the archived pilot's pre-harness decisions** — a genuinely different destination the user raised: the
   decisions already made in code and PR threads have no home in harness today (`PLAN ## Decisions`
-  is per-feature and forward-looking; the codebase map records what IS, never why; kaya has no
+  is per-feature and forward-looking; the codebase map records what IS, never why; that product has no
   project-level decision record like harness's own DECISIONS.md). That is its own **wayfinding
   effort** — tickets of the form "does decision X still hold?", survivors recorded with rationale,
   killed ones in `## Out of scope` so a future scan does not resurrect them. Not part of this

@@ -11,7 +11,7 @@ targets.
 - Read (absolute worktree path, per G-18 — a bare relative path resolved against the wrong
   checkout on my first attempt and had to be redone):
   - `tests/unit/test-factory-claim.py:1-72` (SEG_FEATURE const), `:324-389` (`build_features_root`,
-    full docstring + kaya_seg/harness_seg block), `:1139-1233` (cases 5a/5b/5c bodies + comments).
+    full docstring + sample_seg/harness_seg block), `:1139-1233` (cases 5a/5b/5c bodies + comments).
   - `.claude/skills/harness/bin/factory_claim.py:18-209` (`issue_number`, `_blocker_gate`,
     `_blocker_reason_text`) — to ground where `rec.issue_data[954]` is actually consumed
     (`factory_gh.issue_view(repo, blocker_num, ["state"])` inside `_blocker_gate`), not to review
@@ -55,6 +55,6 @@ production `factory_claim.py`). Declining to find here: examined the same two fi
 narrower home exists to propose. **leave**
 
 ## Trap check
-No restructuring of the two segment blocks (kaya_seg/harness_seg) is proposed. F1/F2/F3 leave that
+No restructuring of the two segment blocks (sample_seg/harness_seg) is proposed. F1/F2/F3 leave that
 block untouched; F2's docstring line is outside the segment-block pair itself (it's the function's
 top-level docstring, not the per-segment `write_json`/`write_yaml` calls the trap warns about).

@@ -21,12 +21,12 @@ T-13 (eng), then the qa gate.
   verified-at ff75afb, and I re-probed the domain hook on T-06/T-08/T-11's paths (exit 2)
 - No task in this feature reaches a DEC-174 carve-out file; DEC-12 has exactly 3 inbound references
   and all 3 are under `docs/` — `git grep -nE 'DEC-12([^0-9]|$)'` — verified-at ff75afb
-- kaya's `settings.json` wires EIGHT harness registrations across four hook events, not three —
+- sample-product's `settings.json` wires EIGHT harness registrations across four hook events, not three —
   `notes/measurements-2026-08-10-orchestrator.md` M-1..M-6 — UNVERIFIED by me, taken by the
-  plan-phase orchestrator in kaya on 2026-08-10
-- 34 tracked kaya files lose local modifications in T-05's commit, all reproducible from this repo —
+  plan-phase orchestrator in sample-product on 2026-08-10
+- 34 tracked sample-product files lose local modifications in T-05's commit, all reproducible from this repo —
   `BRIEF.md ## Settled rulings` — UNVERIFIED by me
-- SC-06 is a blocking UAT the operator runs himself against a factory checkout of kaya; no runner in
+- SC-06 is a blocking UAT the operator runs himself against a factory checkout of sample-product; no runner in
   this repository can observe another repository — `feature.yaml counts_note` — verified-at ff75afb
 
 ## Dead ends
@@ -36,7 +36,7 @@ T-13 (eng), then the qa gate.
 - Do not touch issue #206 — it is open and conflicts, and #203 lands first — operator's ruling in
   the ship dispatch
 - Do not push anything in this repository and do not open a PR here — `BRIEF.md ## Settled rulings`
-  Q1, which authorized a push to kaya and nothing else — verified-at ff75afb
+  Q1, which authorized a push to sample-product and nothing else — verified-at ff75afb
 - Do not edit `.harness/team-config.yaml` to grant `harness-documentor` a receipt path — the grant
   rides on open PR #222; route around it — operator's ruling in the ship dispatch
 - Do not sweep `.harness/logs/**`, `.harness/notes/**` or `.harness/features/**` — records that were

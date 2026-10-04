@@ -38,7 +38,7 @@ dependency. Every fact INV-29 needs is local and decidable, so that trade does n
 | declared repo, checkout **present but unenumerable** | **blocking violation**, one repository-level `unresolved` record | REQ-06's own signed rule one level up: absence exempts, lookup failure does not |
 
 The absent-checkout row is load-bearing, not convenient. Measured: `fleet.yaml` declares
-`mruangutai/kaya-ai` (checkout present, zero linked worktrees) and
+`mruangutai/sample-product` (checkout present, zero linked worktrees) and
 `mruangutai/harness-factory-smoke` (**no checkout at all**). Any other posture makes
 `check-state.py` red on this machine today for a kept fixture nobody provisioned.
 

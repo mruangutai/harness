@@ -28,7 +28,7 @@ blob's line numbers.
 
 **Read it as if you are onboarding one concrete repository right now:**
 
-> `mruangutai/kaya-web`, default branch `main`, a React front end for kaya-ai. Not in
+> `mruangutai/sample-product-web`, default branch `main`, a React front end for sample-product. Not in
 > `.harness/factory/fleet.yaml` yet. You have push access to it, and later in the script you will
 > be asked to imagine that you do not.
 
@@ -37,7 +37,7 @@ blob's line numbers.
 - **U-01 (SC-09) · the ORDER — 2 min.** Read **lines 8–17** (the opening three-things paragraph and
   the one-file rule) and then **lines 153–186** (`### 2. Land harness.json, then register the
   repository`, all five numbered items).
-  expect: the document tells you to land `kaya-web`'s `harness.json` on `main` **before** adding it
+  expect: the document tells you to land `sample-product-web`'s `harness.json` on `main` **before** adding it
           to `fleet.yaml`, and line 155 gives you the reason reversing it fails **silently** — no
           symptom except an unattributed `FleetError` mid-build.
   answer yes/no: **would you have got the order right, and do you know why reversing it is
@@ -45,16 +45,16 @@ blob's line numbers.
   result: yes, i would get the order right. no, it is not clear why reversing it is dangerous and wrong.
 
 - **U-02 (SC-09) · the ONE-FILE RULE — 2 min.** Skim the whole blob for anything it tells you to
-  write **into `kaya-web`**. Anchors that answer it directly: **lines 14–17** and **lines 187–190**.
-  expect: exactly one file — `kaya-web`'s own `.harness/harness.json` — and an explicit list of what
+  write **into `sample-product-web`**. Anchors that answer it directly: **lines 14–17** and **lines 187–190**.
+  expect: exactly one file — `sample-product-web`'s own `.harness/harness.json` — and an explicit list of what
           is NOT written there (`team-config.yaml`, expertise, `.harness/products/`, `bin/`, hooks,
           settings).
-  answer yes/no: **does any step in the document ask you to write a file into `kaya-web` that the
+  answer yes/no: **does any step in the document ask you to write a file into `sample-product-web` that the
   factory will not read?** (a "no" here is the PASS answer)
   result: yes, it states one file and no other file. instead lists what IS NOT installed.
 
 - **U-03 (SC-09) · the GAP, including no push access — 2 min.** Re-read **lines 160–168** (item 2)
-  with this twist: `kaya-web`'s `main` is branch-protected and you **cannot** push to it.
+  with this twist: `sample-product-web`'s `main` is branch-protected and you **cannot** push to it.
   expect: the document tells you to open a PR against the default branch instead, states that
           onboarding stays **incomplete until that PR merges**, and warns that landing the file
           delegates control of what the factory reads to whoever can push `main`.
@@ -64,18 +64,18 @@ blob's line numbers.
 
 - **U-04 (SC-09) · `--check-product-configs` — 2 min.** Read **lines 172–180** (item 4).
   expect: you would run
-          `python3 .claude/skills/harness/bin/factory_config.py --check-product-configs --repo mruangutai/kaya-web`
+          `python3 .claude/skills/harness/bin/factory_config.py --check-product-configs --repo mruangutai/sample-product-web`
           at that exact point — after the config lands and the fleet entry exists, **before** you
           create the central tree — and on exit 2 you would read the named
-          `kaya-web@main:.harness/harness.json` and stop rather than proceed.
+          `sample-product-web@main:.harness/harness.json` and stop rather than proceed.
   answer yes/no: **would you have run it, at that moment, and known that exit 2 means stop?**
   result: yes.
 
 - **U-05 (SC-09) · the NARROWED STEP 1 — 1 min.** Read **lines 47–52** (`### 1. Install the eight
   prerequisites in this control-plane clone — HARD GATE`).
   expect: unmistakable that the eight prerequisites and the `core.hooksPath` step apply to **this
-          control-plane clone**, never to `kaya-web`.
-  answer yes/no: **would you ever have run step 1 inside `kaya-web`?** (a "no" here is the PASS
+          control-plane clone**, never to `sample-product-web`.
+  answer yes/no: **would you ever have run step 1 inside `sample-product-web`?** (a "no" here is the PASS
   answer)
   result: yes. "control-plane clone" isn't clear. the control-plane is harness so "clone" means what exactly? we are not cloning or installing harness but it mentions eight prerequisites. 
 

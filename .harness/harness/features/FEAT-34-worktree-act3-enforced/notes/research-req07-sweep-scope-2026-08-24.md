@@ -42,13 +42,13 @@ Three measured obstacles, all beyond the one-word swap:
    location (`.claude/skills/harness/hooks/post-merge:20-21`), and harness-init states the harness
    is not copied into a product repository (`harness-init/SKILL.md:8`). Measured: no
    `.claude/skills/harness/hooks` directory exists under any checkout in
-   `/Users/molchairuangutai/GitHub/harness-factories/`. A merge landing in kaya-ai fires no harness
+   `/Users/molchairuangutai/GitHub/harness-factories/`. A merge landing in sample-product fires no harness
    hook at all. Cross-repo removal would only ever happen opportunistically, on the next *harness*
    merge.
 2. **The landed feature directory would not resolve.** `post-merge-sweep.py:163` builds
    `main_checkout_root/.harness/<repo_segment>/features/<id>`. Measured: the harness checkout's
-   `.harness/` holds `harness/` and `factory/` only — no `kaya-ai/`; kaya-ai's features live in
-   kaya-ai's own checkout. Every served-repo record would hit the `:164` SKIP path.
+   `.harness/` holds `harness/` and `factory/` only — no `sample-product/`; sample-product's features live in
+   sample-product's own checkout. Every served-repo record would hit the `:164` SKIP path.
 3. **`gh-sync.py ship` (D-03) would need pointing at the other repository's state store**, which
    `_handle_record` has no parameter for.
 

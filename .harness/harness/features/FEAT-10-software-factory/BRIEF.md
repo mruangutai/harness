@@ -55,9 +55,9 @@ bootstrap, unattended loops — waits for a later increment.
 - `mruangutai/pilot-implentio-app` is personally owned but is Implentio product work, and is
   excluded on that basis rather than left ambiguous.
 - Candidate targets confirmed to exist with `gh repo view` (exit 0 each): `mruangutai/harness`
-  (public), `mruangutai/kaya-ai` (private, default branch `master`, two Actions workflows),
+  (public), `mruangutai/sample-product` (private, default branch `master`, two Actions workflows),
   `mruangutai/rental-property-automation` (private, default branch `main`).
-- Two user-owned Projects v2 boards already exist: number 3 "Harness" and number 2 "kaya-ai"
+- Two user-owned Projects v2 boards already exist: number 3 "Harness" and number 2 "sample-product"
   (`gh project list --owner mruangutai`, exit 0).
 - The active `gh` token carries the `project` scope (`gh auth status`).
 

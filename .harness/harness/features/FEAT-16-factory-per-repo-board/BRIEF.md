@@ -2,15 +2,15 @@
 
 ## Problem
 
-A factory run against `mruangutai/kaya-ai` reads the wrong board and finds nothing. The fleet
+A factory run against `mruangutai/sample-product` reads the wrong board and finds nothing. The fleet
 declares one board for the whole fleet (`.harness/factory/fleet.yaml` `board.number: 3`), board 3
-is *Harness*, and the fleet's only repository is kaya-ai, whose 211 issues live on board 2. DEC-174
+is *Harness*, and the fleet's only repository is sample-product, whose 211 issues live on board 2. DEC-174
 am.1 removed `mruangutai/harness` from `repos:` and left the station board pointing at a repository
 the fleet no longer contains; that amendment records the gap as owed and not deferrable. Factory
-runs against kaya-ai are the stated primary use case, and that is the run that fails today.
+runs against sample-product are the stated primary use case, and that is the run that fails today.
 
 The defect is not the number 3. It is the assumption that one board serves every member: retargeting
-`board.number` to 2 fixes kaya and re-opens the same hole the moment a second product repository
+`board.number` to 2 fixes sample-product and re-opens the same hole the moment a second product repository
 joins.
 
 ## Goal
@@ -18,7 +18,7 @@ joins.
 The fleet stops assuming one board. Each repository the fleet declares carries its own board —
 number, station field and station names together — so a factory run against any declared repository
 reads that repository's own board, moves its station there, and the move is verified on that board.
-Kaya's board already carries the factory's vocabulary — the six station names, applied by the
+The product's board already carries the factory's vocabulary — the six station names, applied by the
 operator on 2026-08-11 without relabelling a single finished issue — and this feature confirms that
 state rather than creating it, then teaches the fleet and every reader to address it per repository.
 
@@ -30,14 +30,14 @@ state rather than creating it, then teaches the fleet and every reader to addres
   inherits a board from the fleet or from another repository.
 - REQ-03: A fleet declaration in which a repository carries no board is rejected when the fleet is
   loaded, naming the repository, rather than falling back to a shared board.
-- REQ-04: Kaya's board offers the three factory stations, and every issue already finished on it
+- REQ-04: The product's board offers the three factory stations, and every issue already finished on it
   keeps its finished status.
 - REQ-05: The test suite asserts which board each declared repository is paired with, so the two
   cannot drift apart without a test failing.
 - REQ-06: The decision record no longer describes the fleet's board as a single shared block or the
   DEC-174 am.1 board loose end as open.
 
-There is deliberately no requirement of the form "a live run moves a station on kaya's board". That
+There is deliberately no requirement of the form "a live run moves a station on sample-product's board". That
 is REQ-01 observed on the live system, and it is carried by SC-06 (`verify: uat`) rather than by a
 second requirement no task can serve.
 
@@ -70,10 +70,10 @@ second requirement no task can serve.
   no gh call names the other repository's board.
   verify: automated      evidence: unit
 - SC-05: The suite asserts the declared pairing between each fleet repository and its board number,
-  including that `mruangutai/kaya-ai` is paired with board 2, and fails if either side is changed
+  including that `mruangutai/sample-product` is paired with board 2, and fails if either side is changed
   alone.
   verify: automated      evidence: unit
-- SC-06: A live factory claim run against a kaya-ai issue that is **not one of the 118 items sitting
+- SC-06: A live factory claim run against a sample-product issue that is **not one of the 118 items sitting
   in `Done`** — the run moves a station, so it must not touch a finished issue — moves that issue's
   `Status` on project 2 from `Ready` to `Building`, and the new value is read back with a board query
   rather than inferred from the tool's exit code. The run's issue may finish at any station, `Review`
@@ -205,7 +205,7 @@ resolved differently:
   vocabulary it does not match. (`factory_claim` does refuse on a station mismatch — true at source —
   but no factory run is a task in this plan, so that window is one nothing enters.)
 - **The live factory run: no task at all — SC-06 only.** It writes nothing in this repository, it
-  mutates a product repository (a git ref in `mruangutai/kaya-ai`) and a live board, and only the
+  mutates a product repository (a git ref in `mruangutai/sample-product`) and a live board, and only the
   operator can consent to that. `verify: uat` is the honest method; it stays `not_met` until the user
   runs it.
 
@@ -265,7 +265,7 @@ does not.
 ### (e) The four items the grilling left open
 
 - **Per-repo board is REQUIRED on every entry; there is no fleet-level default.** A default is
-  friendlier and is exactly how this bug got in: kaya-ai inherited a board nobody chose for it, and
+  friendlier and is exactly how this bug got in: sample-product inherited a board nobody chose for it, and
   nothing failed. REQ-03 makes the absence loud. Stronger than that, SC-02 makes a *leftover*
   fleet-level `board:` an error rather than an ignored key — an unknown top-level key is accepted
   silently by `load_fleet` today, which would recreate the same silence one level up.
@@ -278,11 +278,11 @@ does not.
   precisely the pair that can drift, and `factory_claim`'s pre-flight validation compares the two
   against each other. That the two boards agree on names today makes the pairing *easier to get
   wrong silently*, not safer: a station name that resolves on the wrong board no longer fails loudly.
-- **The live run uses a purpose-created throwaway issue in `mruangutai/kaya-ai`**, not a real one.
+- **The live run uses a purpose-created throwaway issue in `mruangutai/sample-product`**, not a real one.
   It cannot be one of the 118 by construction, it needs no station restored afterwards, and it
   carries no feature label so the blocker gate stays out of the measurement. The run stops after
   `factory_claim` (station `Building`) rather than continuing to `factory_land`, so no pull request
-  is opened against kaya's `master`. See Constraints for the full protocol.
+  is opened against sample-product's `master`. See Constraints for the full protocol.
 - **The pairing assertion lives in `test-no-distribution.py`.** See (c).
 
 ### (f) The migration is three-phase, and the ordering is not tidiness
@@ -315,13 +315,13 @@ one-session bootstrap escape here would be the exact circularity smell DEC-174 n
   assignment. This feature therefore **confirms** that state; it does not create it. Done means a
   live run with the station move read off the board, never inferred from exit 0.
 - **`Ready` is the factory's intake station, and an empty `Ready` is CORRECT.** `Backlog` means
-  filed-and-untriaged; `Ready` means the operator has decided the factory may take it. Kaya's 82
-  unstarted issues are correctly in `Backlog`, so a claim run against kaya finds nothing — and that
+  filed-and-untriaged; `Ready` means the operator has decided the factory may take it. The product's 82
+  unstarted issues are correctly in `Backlog`, so a claim run against sample-product finds nothing — and that
   is the truth, not a defect. **The gap this exposes is recorded and explicitly out of scope:**
   promotion from `Backlog` to `Ready` is a human decision with no recorded step anywhere in the
   harness. This feature does not close it and must not silently absorb it. The only thing it owes
   the gap is SC-13 — a claim run that finds nothing must say so rather than exiting 0 in silence.
-- **The live-run protocol.** Create a throwaway issue in `mruangutai/kaya-ai` titled so it is
+- **The live-run protocol.** Create a throwaway issue in `mruangutai/sample-product` titled so it is
   identifiable as factory verification — it must not be one of the 118 items in `Done`, since the run
   moves a station; leave it unlabelled, open and unassigned; add it to board 2 at `Ready`; run
   `factory_claim` against it; read `Status` back off board 2 and confirm `Building`.
@@ -331,7 +331,7 @@ one-session bootstrap escape here would be the exact circularity smell DEC-174 n
   `validate-digest.py` or `check-state.py`. Measured: none needs to.
 - **`harness.json`'s `github.repo` is out of scope.** It still names `mruangutai/harness` for the
   issue mirror; that is a different mechanism from the station board.
-- **Out of scope, from the grilling.** Moving kaya's issues to board 3 or harness's to board 2; board
+- **Out of scope, from the grilling.** Moving sample-product's issues to board 3 or harness's to board 2; board
   6 and `harness-factory-smoke-a1` (retained fixtures); re-adding `mruangutai/harness` to `repos:`
   (its absence is DEC-174 am.1 and is asserted).
 - **Poll-mode board scanning stays as it is** apart from becoming per-repository. Its

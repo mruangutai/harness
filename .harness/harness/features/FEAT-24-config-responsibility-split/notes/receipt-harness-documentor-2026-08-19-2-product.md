@@ -45,8 +45,8 @@ rows were shortened until it passed — that cap is asserted only in the test, n
   `factory_config.py:264,300`.
 - `default_branch` stays in `fleet.yaml` because the checkout does not exist yet:
   `factory_workspace.py:115`.
-- kaya-ai still on **board 2** — not transcribed from the plan, read live:
-  `factory_config.board_for(fleet, "mruangutai/kaya-ai")` returned
+- sample-product still on **board 2** — not transcribed from the plan, read live:
+  `factory_config.board_for(fleet, "mruangutai/sample-product")` returned
   `{owner: mruangutai, number: 2, station_field: Status, stations: {...5 keys}}`.
 - The stations map is new in this feature: at `ada8e99`, `.harness/harness.json` `github.board` had
   three keys and no `stations`; it now has five station keys and no `plan`.

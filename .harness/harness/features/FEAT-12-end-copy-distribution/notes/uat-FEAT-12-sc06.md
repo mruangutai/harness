@@ -1,15 +1,15 @@
-# UAT — FEAT-12 SC-06 — a factory checkout of kaya-ai runs with no dangling hook
+# UAT — FEAT-12 SC-06 — a factory checkout of sample-product runs with no dangling hook
 
 status: **ready** — for the operator to run. Nobody but the operator marks it passed.
 
-**SC-06:** *A fresh factory checkout of `kaya-ai` at `master` executes a Bash call, a Write and a Task
+**SC-06:** *A fresh factory checkout of `sample-product` at `master` executes a Bash call, a Write and a Task
 spawn with no missing-hook error.* This is the criterion that proves the fleet entry ships **live**
 rather than inert. It is blocking (`gates.uat: blocking_when_uat_criteria_exist`) and no runner in the
 harness repository can observe another repository — that is why it is yours.
 
-**What you are actually testing.** kaya's `.claude/settings.json` used to register **eight** harness
+**What you are actually testing.** sample-product's `.claude/settings.json` used to register **eight** harness
 hooks across **four** events, every one of them pointing at a script inside
-`.claude/skills/harness/bin/` — a tree that no longer exists on kaya's `master`. T-03 unwired all
+`.claude/skills/harness/bin/` — a tree that no longer exists on sample-product's `master`. T-03 unwired all
 eight. If any registration survived, Claude Code will try to run a script that is not there, and the
 session surfaces **an error naming the missing script path**. So the failure signature per step is a
 specific path appearing in an error; the pass signature is the tool call completing with no hook
@@ -31,7 +31,7 @@ The eight, from `plan.yaml` T-03 (line 311, `intent:` enumeration at 344-352):
 **Four of those are what a Task spawn fires** — the PreToolUse `Task|Agent` entry, `SubagentStart`,
 `SubagentStop`, and `PostToolUse` on the tools the subagent itself uses. Which is why step 4 exists,
 and why **step 5 is not optional**: `SubagentStart`/`SubagentStop` are matched on `harness-.*`, and a
-fresh checkout of kaya's `master` contains **no `harness-*.md` agents** (T-02 deleted the 16 untracked
+fresh checkout of sample-product's `master` contains **no `harness-*.md` agents** (T-02 deleted the 16 untracked
 ones; none were ever tracked). No Task spawn you can perform there will fire those two matchers. Skip
 step 5 and two of the four Task-related registrations pass **vacuously**.
 
@@ -40,17 +40,17 @@ step 5 and two of the four Task-related registrations pass **vacuously**.
 ## Step 0 — get a fresh factory checkout
 
 ```
-python3 .claude/skills/harness/bin/factory_workspace.py --repo mruangutai/kaya-ai --issue <N>
+python3 .claude/skills/harness/bin/factory_workspace.py --repo mruangutai/sample-product --issue <N>
 ```
 Run from `/Users/molchairuangutai/GitHub/harness`. Signature confirmed at `d543809`:
 `--repo owner/name --issue ISSUE [--fleet FLEET]`. It clones
-`https://github.com/mruangutai/kaya-ai.git` into `workspace_root`
+`https://github.com/mruangutai/sample-product.git` into `workspace_root`
 (`/Users/molchairuangutai/GitHub/harness-factories`) and cuts `factory/issue-<N>` from
 `origin/master`. Any issue number will do — the branch is scaffolding for this test, not work.
 
-**Fresh matters.** Your existing `/Users/molchairuangutai/GitHub/kaya-ai` working tree is not the
+**Fresh matters.** Your existing `/Users/molchairuangutai/GitHub/sample-product` working tree is not the
 subject: SC-06 is about what a *clone of the remote* carries. If you would rather not run the
-factory tool, `git clone https://github.com/mruangutai/kaya-ai.git` into a scratch directory is an
+factory tool, `git clone https://github.com/mruangutai/sample-product.git` into a scratch directory is an
 equivalent subject.
 
 - **Expected:** a checkout exists, on `master` or a `factory/issue-*` branch cut from it.
@@ -131,12 +131,12 @@ reinvented, so a pass here means the same thing the build claimed.
   surviving `inject-expertise.py` or `validate-digest.py --hook` (or any of the other six), and it is
   the *only* way you will see those two. Or
   `AssertionError: a non-harness hook was lost: <name>` — the unwiring over-reached and took one of
-  kaya's own four hooks with it, which is a different failure and equally a not-met.
+  sample-product's own four hooks with it, which is a different failure and equally a not-met.
 
 ## Step 6 — clean up
 
 Delete `scratch-uat.txt`, revert the step-3 edit, and remove the scratch checkout if you made one
-outside `workspace_root`. Nothing in this script is meant to be committed to kaya.
+outside `workspace_root`. Nothing in this script is meant to be committed to sample-product.
 
 ---
 

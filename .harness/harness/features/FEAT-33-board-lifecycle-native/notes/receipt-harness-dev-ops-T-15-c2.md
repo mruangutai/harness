@@ -5,7 +5,7 @@
 `board_lifecycle.py audit`'s STATUS class ignored `--repo`: `_status_findings` always walked
 THIS checkout's own on-disk `.harness/*/features/*`, then compared each feature's recorded
 parent against whatever repo `--repo` selected — producing 18 false findings out of 29 on
-board 2 against `mruangutai/kaya-ai`. **Fixed by self-skip**, not scoping: STATUS now runs
+board 2 against `mruangutai/sample-product`. **Fixed by self-skip**, not scoping: STATUS now runs
 ONLY when the audited repo is this checkout's own declared repo, and prints one line saying so
 otherwise. `reconcile` shared the exact same leak (same `_audit_findings` call) and is fixed by
 the identical change, with no second check needed. Both directions RED-proved by reverting
@@ -49,8 +49,8 @@ this checkout, and no feature.json anywhere records a `github.repo` field to fil
 does not exist on disk. Self-skip is the honest alternative, and it is what `_audit_findings`
 does: this class runs ONLY for this checkout's own repo, and prints one line saying so for
 any other `--repo`, rather than silently comparing this checkout's features against a
-foreign board (the live defect measured on board 2 with `--repo mruangutai/kaya-ai`: 18 of
-29 findings were this checkout's own harness issues compared against kaya-ai's board).
+foreign board (the live defect measured on board 2 with `--repo mruangutai/sample-product`: 18 of
+29 findings were this checkout's own harness issues compared against sample-product's board).
 ```
 
 ## Where the fix lives

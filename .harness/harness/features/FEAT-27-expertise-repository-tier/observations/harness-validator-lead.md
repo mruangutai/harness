@@ -102,7 +102,7 @@
   measurement. qa's own observations log recorded `checks=[True,True,True,False,False]` (indices 3
   AND 4 flip) in one bullet and, six lines later, that `stderr == ""` "is load-bearing" and a weaker
   form "would have stayed green under the exact mutant it exists to catch". The second is false:
-  `"kaya" not in ctx` reddens case13 on its own. The same overstatement had already propagated into
+  `"sample-product" not in ctx` reddens case13 on its own. The same overstatement had already propagated into
   a research note and pm's log — three artifacts, all tracing to one un-split per-assertion record.
   Check a discriminator claim against the per-assertion flip record, which is usually right there.
 

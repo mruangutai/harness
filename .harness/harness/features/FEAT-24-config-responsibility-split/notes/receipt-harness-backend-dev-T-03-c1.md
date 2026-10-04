@@ -219,14 +219,14 @@ registered suite (`bin/run-unit-tests.py`) to check that guarantee, not just the
 suites.
 
 **Result: `test-no-distribution.py` FAILS**, with two cases —
-`every_repo_declares_its_own_board` and `kaya_ai_is_paired_with_board_2` — both asserting that
-the LIVE `.harness/factory/fleet.yaml`'s `mruangutai/kaya-ai` entry carries a `board:` block. It
+`every_repo_declares_its_own_board` and `sample_is_paired_with_board_2` — both asserting that
+the LIVE `.harness/factory/fleet.yaml`'s `mruangutai/sample-product` entry carries a `board:` block. It
 does not: the on-disk `fleet.yaml` was already migrated to the boardless shape by `d177bab`
 ("[harness:t-07 part A item 1] The board leaves fleet.yaml") before my dispatch started, and
 `test-no-distribution.py`'s own fixture, per `plan.yaml:57-62`, is carried in **T-07**
 (`main-session-direct` lane, `DO NOT TOUCH` for me) specifically because it "asserts the shape
 of the same fleet.yaml edit and splitting them would leave a red assertion between two tasks."
-D-10 requires kaya's own PR (T-09) to merge before T-07 removes the board from `fleet.yaml`, and
+D-10 requires sample-product's own PR (T-09) to merge before T-07 removes the board from `fleet.yaml`, and
 per that same note the fleet.yaml edit landed ahead of `test-no-distribution.py`'s own fixture
 update — the two are out of the order D-10 states.
 

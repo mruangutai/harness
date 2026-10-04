@@ -18,7 +18,7 @@ the review panel, then pm's goal-check on all 13 SCs through `harness-product-le
 - Full suite: zero `FAIL` lines — `run-unit-tests.py --kind all` — verified-at 2e60cc2
 - I re-ran T-01, T-02, T-08, T-09, T-10's `verify:` myself; all GREEN. **T-05's FAILS** at its first
   assertion — verified-at 2e60cc2
-- **SC-06 met and checked LIVE:** `board_for` returns kaya's board from `master` with a checkout
+- **SC-06 met and checked LIVE:** `board_for` returns sample-product's board from `master` with a checkout
   present on disk, which also proves the no-fallback rule — verified-at 2e60cc2
 - `INV-26 BEGINS` and `INV-26 ENDS` each occur **0 times** in `check-state.py`; the five ok-lines
   T-05's verify greps occur **0 times** in `test-check-state.py` — verified-at 2e60cc2

@@ -1,5 +1,10 @@
 # BRIEF — FEAT-33 The board's whole lifecycle, native-first
 
+> **Retirement note.** The product this feature ran against has been retired. Paths and artifact
+> names below naming sample-product are anonymized historical references; the evidence captures and
+> the product config they cite were removed from this tree and preserved in the external archive
+> held by the operator. Requirements, criteria and recorded outcomes are unchanged.
+
 Source ticket: #675. Sub-issues #673 and #674 are absorbed here (see *Scope calls*); #453 is closed
 carrying a defect its own title names, and this feature closes that defect.
 
@@ -24,7 +29,7 @@ every station the harness uses, the repository is linked, and the operator is to
 workflows they must switch on by hand because no API can. Cards then move without a human, a shipped
 ticket closes `completed` and an abandoned one closes `not_planned` and wears a visible `abandoned`
 label. The two existing projects are brought to that same shape — harness board 3 first as the proving
-ground, then kaya-ai board 2.
+ground, then sample-product board 2.
 
 ## Requirements
 
@@ -133,7 +138,7 @@ ground, then kaya-ai board 2.
   ruled it** — ruling 4, 2026-08-23, `notes/rulings-2026-08-23.md` — **and accepted this cost by
   name when they ruled to fix the gate rather than reopen ruling 1.**
   verify: automated      evidence: integration
-- SC-11: The kaya-ai project (board 2) reports zero findings from the audit run against remote `master`,
+- SC-11: The sample-product project (board 2) reports zero findings from the audit run against remote `master`,
   executed by the operator, and the operator confirms board 2 reads correctly to their own eye.
   verify: uat
 - SC-12: The record does not contradict itself: at `review_sha`, `git show <review_sha>:.harness/harness/docs/DECISIONS.md`
@@ -239,9 +244,9 @@ ground, then kaya-ai board 2.
   option set replaced with exactly the six declared stations in ONE run, removing `Todo` and
   `In Progress`; a re-run reported "nothing to do"; and a union re-run added exactly one option (`Done`)
   while the operator's undeclared `Icebox` column survived untouched.
-  *Reconciliation* — it moved six cards, on board 2. `notes/migration-kaya-ai-reconcile-dry.txt`
+  *Reconciliation* — it moved six cards, on board 2. `notes/migration-sample-product-reconcile-dry.txt`
   previews six `STATION` fixes (`#297`, `#296`, `#152`, `#83`, `#49`, `#31`, each reading `Building`
-  where `Done` was expected), and `notes/migration-kaya-ai-audit-after.txt` reads `0 finding(s)`.
+  where `Done` was expected), and `notes/migration-sample-product-audit-after.txt` reads `0 finding(s)`.
   Moving a card IS a thing `reconcile` does: `STATION` is in `_ALWAYS_FIXABLE_KINDS` in
   `board_lifecycle.py` and is fixed by `gh_board.set_station`.
   *Board 3 is the special case, and it is where a stale capture misled a reader.* Board 3 carried NO
@@ -264,7 +269,7 @@ ground, then kaya-ai board 2.
   rather than overstating it — the inverse of the usual failure, and the reason no reviewer flagged it.
 - **Cross-repo verification is asymmetric on purpose.** `factory_config.product_config` reads a served
   repo's `.harness/harness.json` from the REMOTE at `default_branch` and never from a checkout, so no
-  harness-side test can see kaya-ai's configuration until it is merged to `master`. SC-11 is `uat` for
+  harness-side test can see sample-product's configuration until it is merged to `master`. SC-11 is `uat` for
   that reason, not for want of trying.
 
 ## Scope calls, argued rather than assumed
@@ -290,7 +295,7 @@ feature does not touch the `pr` field or the `Closes` renderer, even though the 
 `Closes` **is** the automation, not a convenience over it — is the reason the native chain works.
 
 **Also out of scope:** enabling the three workflows (impossible, not a scope call — there is no
-`ProjectV2` mutation that creates or enables one), any repository other than harness and kaya-ai, and
+`ProjectV2` mutation that creates or enables one), any repository other than harness and sample-product, and
 unifying the three `ensure_labels` implementations.
 
 ## The two contradictions, resolved
@@ -307,7 +312,7 @@ statuses; it is the state before tasks have issues, written once at kickoff by `
 DEC-196. An all-pending → `Plan` branch would fire on every mirror call while tasks are pending and
 would overwrite a card the operator promoted to `Ready` — and `Ready` carries a documented, load-bearing
 meaning on board 2 (`Backlog` = filed-and-untriaged, `Ready` = promoted for the factory, stated in
-kaya-ai's own `harness.json`). That would be a new backwards-move bug of exactly the #674 class this
+sample-product's own `harness.json`). That would be a new backwards-move bug of exactly the #674 class this
 feature exists to close. So: `plan` is declared for **parity** — DEC-192's six values — and **no
 derivation is added for it**. The operator ruled on 2026-08-23 that the sixth station key belongs
 (ruling 3, `notes/rulings-2026-08-23.md`), so the declaration is confirmed rather than inferred here,
@@ -366,10 +371,10 @@ uses `--force` and would overwrite the colour, and that collision is recorded he
    option; a closed issue not at the `done` station; a closed issue with `state_reason: null`; an issue
    with `state_reason: not_planned` and no `abandoned` label; or one of the three required workflows not
    enabled. Zero findings and exit 0 is the definition of finished (SC-04, SC-11).
-4. **Must kaya-ai match harness exactly?** **It must satisfy the same contract, not copy the set.** The
+4. **Must sample-product match harness exactly?** **It must satisfy the same contract, not copy the set.** The
    contract: the declaration names exactly the six keys, and each value is an option that board actually
    carries. Their sets coincide today because both boards carry the same six English names — that is a
-   measurement, not the requirement. kaya-ai's board and station rationale stay in its own
+   measurement, not the requirement. sample-product's board and station rationale stay in its own
    `.harness/harness.json` on `master`; nothing is restated in `fleet.yaml`.
 5. **Who creates the `abandoned` label?** The harness, via `gh-sync.py`'s `ensure_labels` — see
    Contradiction 2 above.
@@ -553,7 +558,7 @@ only ever contained tasks. Both re-derived at `46ee87c`; `factory_decompose.py:3
 `factory_claim.py:302` still resolve exactly as cited.
 
 **The stated cost, narrowed to what is actually lost: board 2 loses the HUMAN promotion signal, not
-the column.** kaya-ai's own `.harness/harness.json` on `master` documents `Ready` as the human
+the column.** sample-product's own `.harness/harness.json` on `master` documents `Ready` as the human
 pick-up point; after this, a card arrives there because a plan was signed, and nothing on board 2
 records that a human chose to promote a ticket. A visible label is the route if that signal turns out
 to be needed — the same shape as the `abandoned` label already chosen — and it is **NOT** built here.
@@ -613,7 +618,7 @@ board. That is the one thing it copies from the factory lane.
 - **Six paths in this feature have no dispatchable owner** and are declared
   `main-session-direct` in the plan: `.claude/skills/harness-init/SKILL.md`,
   `.claude/skills/harness/SKILL.md`, `.claude/commands/harness-plan.md`,
-  `.claude/skills/harness/templates/harness.json` and kaya-ai's own `.harness/harness.json` all
+  `.claude/skills/harness/templates/harness.json` and sample-product's own `.harness/harness.json` all
   resolve to NOBODY — every one re-derived with `check-domain.py --resolve` at `46ee87c` — and a
   generic file under this feature's `notes/` resolves to `harness-orchestrator`, which is not a task
   executor. `check-state.py` is the seventh main-session path and the only one that resolves to a
@@ -627,10 +632,10 @@ board. That is the one thing it copies from the factory lane.
   widening ruling 1 forces (SC-20), performed by the operator and by nobody else.
 - **A cross-repo ordering cost, stated rather than discovered.** The one board validator in the tree
   tests the declared station keys for **exact set equality** (`factory_config.py:134`). So widening the
-  required set to six and updating kaya-ai's `master` cannot be atomic, and between the two merges
-  `board_for('mruangutai/kaya-ai')` raises `FleetError` naming `github.board.stations`. The breakage is
-  **latent, not live** — nothing calls it unless a `factory_*` command is run against kaya-ai — and the
-  failure is loud and names its own fix. Accepted, and the plan orders the kaya-ai config change first
+  required set to six and updating sample-product's `master` cannot be atomic, and between the two merges
+  `board_for('mruangutai/sample-product')` raises `FleetError` naming `github.board.stations`. The breakage is
+  **latent, not live** — nothing calls it unless a `factory_*` command is run against sample-product — and the
+  failure is loud and names its own fix. Accepted, and the plan orders the sample-product config change first
   so the window closes in the direction of correctness. This is the one place the plan departs from
   "harness first"; the harness-first ordering the operator set governs the **migration**, which is
   unchanged.

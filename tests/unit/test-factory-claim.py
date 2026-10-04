@@ -63,11 +63,12 @@ REPO_B = "acme/gadget"
 BOARD_B = 5
 STATION_FIELD_B = "StatusB"
 
-# BUG-1290: fixture repositories/segment for the shared resolver seam (T-01 step 5). REPO_KAYA
-# is a served non-harness repository; REPO_HARNESS_SEG is D-04's own worked example, an
-# owner-qualified name ending in the literal "harness". Both carry the SAME feature id under
-# build_features_root()'s two extra segment roots, with different task DAGs.
-REPO_KAYA = "acme/kaya-ai"
+# BUG-1290: fixture repositories/segment for the shared resolver seam (T-01 step 5).
+# REPO_SAMPLE is a served non-harness repository (a neutral stand-in for the archived pilot
+# product); REPO_HARNESS_SEG is D-04's own worked example, an owner-qualified name ending in
+# the literal "harness". Both carry the SAME feature id under build_features_root()'s two
+# extra segment roots, with different task DAGs.
+REPO_SAMPLE = "acme/sample-product"
 REPO_HARNESS_SEG = "acme/harness"
 SEG_FEATURE = "FEAT-99-seg"
 
@@ -333,12 +334,12 @@ def build_features_root():
     (three blockers, MIXED), T-09 (clear), T-10 (unresolvable blocker naming T-99, which
     feature.json never maps).
 
-    `.harness/kaya-ai/features` and `.harness/harness/features` each carry the SAME feature id,
-    SEG_FEATURE, with DIFFERENT task DAGs and DIFFERENT non-empty issue maps — kaya-ai's T-77
-    depends on an unresolvable T-88 (its own map holds only T-77, never T-88), harness's T-77
-    depends on T-99 which its OWN map resolves to a closed issue — so a case can prove a
-    per-repository resolver reaches each segment's own plan AND ITS OWN ISSUE MAP, neither
-    cache served across repositories (BUG-1290 5a/5b, SC-01/SC-02)."""
+    `.harness/sample-product/features` and `.harness/harness/features` each carry the SAME
+    feature id, SEG_FEATURE, with DIFFERENT task DAGs and DIFFERENT non-empty issue maps —
+    sample-product's T-77 depends on an unresolvable T-88 (its own map holds only T-77, never
+    T-88), harness's T-77 depends on T-99 which its OWN map resolves to a closed issue — so a
+    case can prove a per-repository resolver reaches each segment's own plan AND ITS OWN
+    ISSUE MAP, neither cache served across repositories (BUG-1290 5a/5b, SC-01/SC-02)."""
     harness_root = tempfile.mkdtemp(prefix="claim-harness-")
     widget_features = os.path.join(harness_root, ".harness", "widget", "features")
 
@@ -377,10 +378,10 @@ def build_features_root():
         "factory": {"issues": {"T-02": 601, "T-03": 602, "T-04": 603}},
     })
 
-    kaya_seg = os.path.join(harness_root, ".harness", "kaya-ai", "features", SEG_FEATURE)
-    write_yaml(os.path.join(kaya_seg, "plan.yaml"),
+    sample_seg = os.path.join(harness_root, ".harness", "sample-product", "features", SEG_FEATURE)
+    write_yaml(os.path.join(sample_seg, "plan.yaml"),
                plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"]), task_dict("T-88")]))
-    write_json(os.path.join(kaya_seg, "feature.json"), {"factory": {"issues": {"T-77": 850}}})
+    write_json(os.path.join(sample_seg, "feature.json"), {"factory": {"issues": {"T-77": 850}}})
 
     harness_seg = os.path.join(harness_root, ".harness", "harness", "features", SEG_FEATURE)
     write_yaml(os.path.join(harness_seg, "plan.yaml"),
@@ -1272,9 +1273,9 @@ check("(P6) SC-13: exit code is EXIT_NOTHING (1), not a silent 0",
 name_5a = "BUG-1290 5a: served non-harness repository reaches its own segment's blocker verdict, not no_plan"
 try:
     ws_5a = tempfile.mkdtemp(prefix="claim-ws-5a-")
-    fleet_5a = good_fleet_dict(ws_5a, repos=[repo_dict(REPO_KAYA)])
+    fleet_5a = good_fleet_dict(ws_5a, repos=[repo_dict(REPO_SAMPLE)])
     rec = Recorder()
-    rec.items = [board_item("i1", 950, REPO_KAYA)]
+    rec.items = [board_item("i1", 950, REPO_SAMPLE)]
     rec.issue_data[950] = issue_data(
         950, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
     )
@@ -1288,7 +1289,7 @@ except Exception as exc:
 
 # 5b. two candidates, same feature id, on two different repositories, each with its OWN
 # non-empty issue map: each verdict matches its own segment's plan AND its own issue map
-# (kaya-ai blocked via its dep T-88, unresolvable in kaya's map; harness clear via its dep
+# (sample-product blocked via its dep T-88, unresolvable in sample-product's map; harness clear via its dep
 # T-99, which harness's own map resolves to a closed issue) — proving neither the plan cache
 # nor the issue-map cache is served across repositories.
 #
@@ -1299,11 +1300,11 @@ def _run_5b_scenario():
     """Builds and runs 5b's two-repository, one-feature-id fleet. Returns (code, out, err)."""
     ws_5b = tempfile.mkdtemp(prefix="claim-ws-5b-")
     fleet_5b = good_fleet_dict(
-        ws_5b, repos=[repo_dict(REPO_KAYA), repo_dict(REPO_HARNESS_SEG)],
+        ws_5b, repos=[repo_dict(REPO_SAMPLE), repo_dict(REPO_HARNESS_SEG)],
     )
     rec = Recorder()
     rec.items = [
-        board_item("i1", 951, REPO_KAYA), board_item("i2", 952, REPO_HARNESS_SEG),
+        board_item("i1", 951, REPO_SAMPLE), board_item("i2", 952, REPO_HARNESS_SEG),
     ]
     rec.issue_data[951] = issue_data(
         951, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
@@ -1316,8 +1317,8 @@ def _run_5b_scenario():
 
 
 def _5b_property_holds(code, out, err):
-    """True iff 5b's per-segment-resolution property holds: kaya-ai's 951 is refused
-    (unresolvable dep T-88, absent from kaya's own map) and harness's 952 is claimed (its own
+    """True iff 5b's per-segment-resolution property holds: sample-product's 951 is refused
+    (unresolvable dep T-88, absent from sample-product's own map) and harness's 952 is claimed (its own
     map resolves dep T-99 to a closed issue). Total over any (code, out, err) — including a
     mutant's exit-1/empty-stdout path — so it never raises."""
     if code != 0:
@@ -1422,8 +1423,8 @@ except Exception as exc:
 # run afterward against the real, restored cache). The captured 5b verdict must be False AND
 # must carry the SPECIFIC observable the mutation is expected to produce, not merely any
 # falsy shape a differently-broken mutant (e.g. one that raises instead of delegating) could
-# also produce: under the mutant, the harness segment's dep T-99 is looked up in kaya-ai's map
-# (kaya being the first repository seen for SEG_FEATURE), where it is absent, so issue 952 is
+# also produce: under the mutant, the harness segment's dep T-99 is looked up in sample-product's map
+# (sample-product being the first repository seen for SEG_FEATURE), where it is absent, so issue 952 is
 # refused as an unresolvable blocker — exit 1, empty stdout, stderr naming 952 and
 # "unresolvable blocker", and NOT "no plan could be read".
 name_5g = "BUG-1290 5g: issue-map-cache mutation fails case 5b itself on its own specific observable"

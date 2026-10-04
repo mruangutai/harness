@@ -84,9 +84,9 @@ piped, so the runner's own exit status survives.
 $ gh repo view mruangutai/harness --json name,visibility,owner
 {"name":"harness","owner":{"login":"mruangutai"},"visibility":"PUBLIC"}          EXIT:0
 
-$ gh repo view mruangutai/kaya-ai --json name,visibility,defaultBranchRef
-{"defaultBranchRef":{"name":"master"},"isPrivate":true,"name":"kaya-ai","visibility":"PRIVATE"}   EXIT:0
-$ gh api repos/mruangutai/kaya-ai/actions/workflows --jq '.total_count,(.workflows[]?|.name)'
+$ gh repo view mruangutai/sample-product --json name,visibility,defaultBranchRef
+{"defaultBranchRef":{"name":"master"},"isPrivate":true,"name":"sample-product","visibility":"PRIVATE"}   EXIT:0
+$ gh api repos/mruangutai/sample-product/actions/workflows --jq '.total_count,(.workflows[]?|.name)'
 2 / CI / web CI
 
 $ gh repo view mruangutai/rental-property-automation --json name,visibility,defaultBranchRef
@@ -101,7 +101,7 @@ Board and token facts:
 ```
 $ gh project list --owner mruangutai
 3  Harness   open  PVT_kwHOAAases4BfZ9Z
-2  kaya-ai   open  PVT_kwHOAAases4Bc7h3          EXIT:0
+2  sample-product   open  PVT_kwHOAAases4Bc7h3          EXIT:0
 
 $ gh auth status
 Token scopes: 'gist', 'project', 'read:org', 'repo', 'workflow'

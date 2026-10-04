@@ -214,7 +214,7 @@ next reader to the wrong answer, so the ids below are the answers file's.
 
 - **Q2 — closed by the operator** (`answers-2026-08-11-01.md`, "Q2 — the live run stays the
   operator's"). SC-06's live run creates a throwaway issue and `refs/heads/factory/issue-N` in
-  `mruangutai/kaya-ai` and moves a station on live board 2. Only the operator consents; SC-06 stays
+  `mruangutai/sample-product` and moves a station on live board 2. Only the operator consents; SC-06 stays
   `not_met` until they run it, and the issue used must not be one of the 118 in `Done`.
 - **Q4 — closed as plan decision `D-09`.** T-10 appends a second amendment to DEC-174 rather than
   opening a new DEC number: the loose end being closed was opened by DEC-174 am.1, and a closure

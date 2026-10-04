@@ -97,8 +97,8 @@ identified by the header that follows it — confirmed against `run-unit-tests.p
 prints the header once per script after running it):
 
 **test-no-distribution.py** (pre-cleared, operator's):
-- `FAIL every_repo_declares_its_own_board repos entries with an invalid or missing board: ['mruangutai/kaya-ai']`
-- `FAIL kaya_ai_is_paired_with_board_2 board 2 is the kaya-ai board — ...`
+- `FAIL every_repo_declares_its_own_board repos entries with an invalid or missing board: ['mruangutai/sample-product']`
+- `FAIL sample_is_paired_with_board_2 board 2 is the sample-product board — ...`
 
 **test-check-state.py** — 7 case failures:
 - `FAIL - case (a): INV-21 note appears when parent is unrecorded`

@@ -1,5 +1,10 @@
 # Receipt — harness-pm — FEAT-12 revision pass — 2026-08-10-03-product
 
+> **Archival note - product retirement.** This is a dated historical record. The pilot product it
+> was written against has been retired: the evidence captures and product config cited below were
+> removed from this tree and preserved in the external archive held by the operator. Anonymized
+> names such as sample-product are historical references, not local files or live instructions.
+
 **Path note:** the dispatch named
 `notes/receipt-harness-pm-2026-08-10-03-product.md`. `check-domain.py` BLOCKED that path for
 `harness-pm` (permitted list is `notes/research-*.md`, `notes/uat-*.md`, BRIEF, PLAN, plan.yaml).
@@ -33,14 +38,14 @@ identical text in both.
   `SC-04` rewritten.
 - **R-1, the honest part** — no post-hoc command can witness 16→0, because all 16 files match
   `harness-*.md` and the directory ends up empty. So `T-02` now *records* the pre-count to
-  `notes/kaya-agents-count-before.txt` before deleting, and the verify asserts that file is non-empty
+  `notes/sample-product-agents-count-before.txt` before deleting, and the verify asserts that file is non-empty
   and `> 0`. A verify claiming to observe the transition would have been the same vacuity inverted.
 - **R-2** — `T-11` intent gained enumerated item 5 (the DEC-85 SHARP EDGE block, both files); the
   DEC-85 rationale sentence is kept and only `it owns deploy` and the `and deploy` in
   `merge and deploy stay user-gated` are cut. `T-11` verify gained two absence clauses and three
   presence clauses (`SHARP EDGE (DEC-85)`, `bypasses path checks`, `user-gated`, each = 2 files).
 - **R-3** — `T-05`'s Q1 preamble and working-tree branch deleted; the authorization scope
-  (`mruangutai/kaya-ai` `master`, deletion commit only, nothing in this repo) is stated first. Q1
+  (`mruangutai/sample-product` `master`, deletion commit only, nothing in this repo) is stated first. Q1
   retired into a new `## Settled rulings` section in BRIEF, not deleted.
 - **R-4 / A-1 / A-5** — `T-02` encodes the split as an execution-time rule: `git ls-files` decides
   the `git rm -f -r --` set, `rm -rf` takes the remainder. No new count written into the plan.
@@ -78,33 +83,33 @@ identical text in both.
 
 - `check-plan-routes.py`: **exit 0**, `0 violation(s) across 7 plan(s)`. FEAT-12's two advisory lines
   are the predicted ones and nothing was restructured to chase them:
-  - `DEVIATION T-01 .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt granted to harness-orchestrator but declared main-session-direct`
-  - `DEVIATION T-04 .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt granted to harness-orchestrator but declared main-session-direct`
+  - `DEVIATION T-01 .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-before.txt granted to harness-orchestrator but declared main-session-direct`
+  - `DEVIATION T-04 .harness/features/FEAT-12-end-copy-distribution/notes/sample-product-harness-manifest-after.txt granted to harness-orchestrator but declared main-session-direct`
 
   T-02's new note file produced no third deviation.
-- `git rm` behaviour, reproduced in a scratch repo (never in kaya): mixed tracked+untracked pathspec
+- `git rm` behaviour, reproduced in a scratch repo (never in sample-product): mixed tracked+untracked pathspec
   → exit 128 `fatal: pathspec ... did not match any files`, nothing removed; modified tracked path →
   exit 1 `error: the following file has local modifications`; with `-f` → exit 0; tracked path already
   deleted from disk → `-f -r` exits 0 and stages it.
-- kaya `settings.json` re-measured today: 12 registrations, 8 harness, 4 non-harness, all four under
+- sample-product `settings.json` re-measured today: 12 registrations, 8 harness, 4 non-harness, all four under
   `.claude/hooks/`; top-level keys exactly `hooks` and `env`. M-6 confirmed.
 
 ## New findings routed, not absorbed
 
-1. **kaya's six git worktrees.** `.claude/worktrees/*/` each carry their own
+1. **sample-product's six git worktrees.** `.claude/worktrees/*/` each carry their own
    `.claude/skills/harness*` tree — 56 such directories, untracked and gitignored (which is why they
    are absent from M-3's 63). Outside all three of T-02's globs, so nothing here reaches them, and
-   `SC-04` is worded against `.claude/skills/`. But REQ-03's "a session opened directly in `kaya-ai`
+   `SC-04` is worded against `.claude/skills/`. But REQ-03's "a session opened directly in `sample-product`
    has no harness capability" is broader than what this feature delivers. Declared out of scope in
    BRIEF `## Constraints`; not silently absorbed into T-02.
-2. **`deploy.sh:18` — agents go global only (DEC-113).** So kaya's 16 on-disk agent files were never
+2. **`deploy.sh:18` — agents go global only (DEC-113).** So sample-product's 16 on-disk agent files were never
    put there by a project copy. BRIEF's Problem paragraph now says this; it is the reason the triple
    cannot be treated as one distributed set.
 3. **Removing the `ok-stale` escapes is safe.** Checked rather than assumed: BRIEF sits under
    `.harness/features/`, which is on T-13 case 2's exclusion list and outside T-14's verify
    pathspec, so the five verbatim quoted strings cannot redden either sweep.
 4. **`git rm` takes `.claude/skills/` with it, and that would have aborted T-05.** Measured:
-   `ls -1 kaya/.claude/skills` returns 21 entries, all `harness*`, nothing else. Reproduced in the
+   `ls -1 sample-product/.claude/skills` returns 21 entries, all `harness*`, nothing else. Reproduced in the
    scratch repo: `git rm -f -r` on the last tracked child removes the parent directory from disk,
    and a following `git add -- <that dir>` exits 128 `fatal: pathspec ... did not match any files`.
    Three fixes landed: T-02's verify no longer asserts `test -d .claude/skills` (it would have

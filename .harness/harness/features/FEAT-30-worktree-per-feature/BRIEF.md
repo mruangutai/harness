@@ -47,10 +47,10 @@ where it is defined and what it holds. Values measured 2026-08-20.
 | Term | What it is | Defined at | Value here |
 |---|---|---|---|
 | `workspace_root` | The CONTAINER directory holding every served repository's checkout. One directory, many repositories. | `.harness/factory/fleet.yaml:25`, read by `factory_config.py:197` | `/Users/molchairuangutai/GitHub/harness-factories` |
-| `owner_root` | ONE repository's checkout. `worktree_owner()` returns it, read from the worktree's own `.git` pointer file. | `harness_boundary.py` — `worktree_owner()` returns `(checkout_dir, owner_root, legitimate)` | `…/harness-factories/kaya-ai` for kaya-ai |
+| `owner_root` | ONE repository's checkout. `worktree_owner()` returns it, read from the worktree's own `.git` pointer file. | `harness_boundary.py` — `worktree_owner()` returns `(checkout_dir, owner_root, legitimate)` | `…/harness-factories/sample-product` for sample-product |
 | `harness_root` | The harness checkout's own root. It IS the `owner_root` when the repository is harness — one directory, two names, because two modules reach it two ways. | `factory_config.py:44` — `harness_root()` | `/Users/molchairuangutai/GitHub/harness` |
 | `WORKTREES_SEGMENT` | The path segment under an `owner_root` where linked worktrees are legal. A constant, cited by name so the value is never spelled twice. | `harness_boundary.py:33` — `WORKTREES_SEGMENT = ".claude/worktrees"` | `.claude/worktrees` |
-| `<repo>` | The repository name AFTER the owner. `mruangutai/kaya-ai` gives `kaya-ai`. | `factory_config.py:334` — `workspace_path()` | `harness`, `kaya-ai` |
+| `<repo>` | The repository name AFTER the owner. `mruangutai/sample-product` gives `sample-product`. | `factory_config.py:334` — `workspace_path()` | `harness`, `sample-product` |
 
 `<id>` is the feature id — `FEAT-30`.
 
@@ -61,7 +61,7 @@ checkout, so it has an `owner_root` and no `workspace_root` entry.
 So a worktree path is `owner_root`/`WORKTREES_SEGMENT`/`<repo>`/`<id>`/, which expands to:
 
     harness         /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-30/
-    kaya-ai         /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.claude/worktrees/kaya-ai/FEAT-30/
+    sample-product         /Users/molchairuangutai/GitHub/harness-factories/sample-product/.claude/worktrees/sample-product/FEAT-30/
 
 **`workspace_root` and `owner_root` are NOT the same thing, and conflating them loses the
 isolation this feature exists to build.** Every path in this brief is relative to an `owner_root`,

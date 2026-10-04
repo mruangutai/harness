@@ -37,8 +37,8 @@ named in the dispatch, classified:
 - `wayfind.py` — **no match** for any moved key. Not a reader.
 - `layout_migration.py` — **no match**. Not a reader.
 - `branch-create-gate.py` — **no match**. `test-branch-create-gate.py:55` asserts the ABSENCE of
-  `project_number`, `project_id`, `status_field`, `in_progress_option` from that script; kaya's
-  migration removes the same four keys from kaya's config and does not touch this test.
+  `project_number`, `project_id`, `status_field`, `in_progress_option` from that script; sample-product's
+  migration removes the same four keys from sample-product's config and does not touch this test.
 - `factory_decompose.py` — **board reader** (`board_for`, `board_station`), pre-clone. Above.
 - `check-plan-routes.py:336` — the string `"Building"` appears in a **comment** about plan `status:`
   values, not a board read. Not a reader.
@@ -64,9 +64,9 @@ the station as a plain CLI string resolved by name at the board (DEC-196), so `/
 becomes a lookup.** That is the rule, and it is what keeps the map from being a declaration nobody
 reads — DEC-196's own objection.
 
-## Kaya's config today, fetched from the remote
+## The product's config today, fetched from the remote
 
-`gh api repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master` returns a config whose
+`gh api repos/mruangutai/sample-product/contents/.harness/harness.json?ref=master` returns a config whose
 `github` block is `{sync, repo, project_number: 2, project_id: PVT_..., status_field: PVTSSF_...,
 in_progress_option: 47fc9ee4}` — **no `board` key at all**, and the four pre-FEAT-18 pinned ids D-05
 killed. Top-level keys present: `schema_version, cli_min_version, test_matrix, test_kinds,
@@ -75,18 +75,18 @@ No `default_branch`, consistent with it staying in `fleet.yaml`.
 
 The remote read works today with no clone and no new dependency — one `gh api contents` call.
 
-## The pen for kaya's file — measured, not argued
+## The pen for sample-product's file — measured, not argued
 
 `check-domain.py --resolve` at `ada8e99`:
 
-- `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json` → **NOBODY**
+- `/Users/molchairuangutai/GitHub/harness-factories/sample-product/.harness/harness.json` → **NOBODY**
 - `.harness/factory/fleet.yaml` → **NOBODY**
 - `.claude/skills/harness/templates/harness.json` → **NOBODY**
 - `.harness/harness.json` → `harness-dev-ops`
 - everything under `.claude/skills/harness/bin/` → `harness-backend-dev` (and `harness-dev-ops`)
 - `.harness/harness/docs/DECISIONS*.md` → `harness-documentor`
 
-The NOBODY on kaya's path is forced by DEC-189: in a product checkout, manifest entries whose first
+The NOBODY on sample-product's path is forced by DEC-189: in a product checkout, manifest entries whose first
 segment is `.harness` or `.claude` are **excluded**, so no seat can ever hold that path. The
 checkout location itself is legitimate — DEC-193 names `workspace_root/<product>` as one of the two
 places code is written under harness authority. So the route exists; only the pen is missing, and
@@ -152,6 +152,6 @@ line start across all twelve scripts, so the failure grep needs no normalisation
 
 ## Open items handed to the operator
 
-None blocking. The one sequencing constraint is stated in the plan: kaya's PR (T-09) must be merged
+None blocking. The one sequencing constraint is stated in the plan: sample-product's PR (T-09) must be merged
 before T-07 removes the board from `fleet.yaml`, or every `factory_decompose`/`factory_claim` run
-against kaya fails loudly until it is. That window is designed, not discovered.
+against sample-product fails loudly until it is. That window is designed, not discovered.

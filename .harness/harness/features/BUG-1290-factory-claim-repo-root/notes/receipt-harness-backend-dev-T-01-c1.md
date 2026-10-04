@@ -10,11 +10,11 @@ Only `tests/unit/test-factory-claim.py` was touched; no production file was edit
    two module-scope pinned-default cases.
 2. Deleted the two module-scope cases (old `:58-68`) plus their introducing comment (old
    `:54-57`) that pinned the unpatched `FEATURES_ROOT` default. Not weakened — removed outright.
-3. Added `REPO_KAYA = "acme/kaya-ai"`, `REPO_HARNESS_SEG = "acme/harness"`,
+3. Added `REPO_SAMPLE = "acme/sample-product"`, `REPO_HARNESS_SEG = "acme/harness"`,
    `SEG_FEATURE = "FEAT-99-seg"` fixture constants.
 4. `build_features_root()` now lays out a harness root: `.harness/widget/features/{FEAT-01-demo,
    FEAT-02-block}` (REPO's own segment, carrying the pre-existing fixtures unchanged in content)
-   plus two new segment roots, `.harness/kaya-ai/features/FEAT-99-seg` (task T-77 depends_on
+   plus two new segment roots, `.harness/sample-product/features/FEAT-99-seg` (task T-77 depends_on
    unresolvable T-88) and `.harness/harness/features/FEAT-99-seg` (task T-77, clear) — same
    feature id, different DAG, per step 4.
 5. Added `fixture_features_root(repo_name)`, a FUNCTION of `repo_name`

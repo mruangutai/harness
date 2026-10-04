@@ -46,7 +46,7 @@ grepped the feature dir for `notes/research-` — **no citation to it anywhere**
   directions. 07 falsifiable (base-sha vs review-sha diff of write patterns). 08 shape (ii) failure: it
   asserts the step's TEXT is present in the `integration:` block; nothing establishes the JOB can report
   red (M3). 09 falsifiable via the DEC entry plus index row.
-- **Scope.** Out-of-scope respected: no kaya-ai code, no write widening (D-05, T-05 step 2), #357 named
+- **Scope.** Out-of-scope respected: no sample-product code, no write widening (D-05, T-05 step 2), #357 named
   as neither upstream nor downstream (BRIEF.md:58, T-08). Nothing the grilling settled is dropped —
   including the fifth family and the read-policy ruling it left open (D-05). T-06's 12-skill sweep is
   wider than the grilling's four families; it follows from REQ-02 and from #356's "found by looking, not

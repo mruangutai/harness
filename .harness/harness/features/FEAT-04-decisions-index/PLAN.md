@@ -484,7 +484,7 @@ change_type: docs · traces: REQ-07
 Add a short section to `.claude/skills/harness-handoff/SKILL.md` (73 lines today; keep the addition
 under ~15). It carries the **universal** discipline only, no repo-specific path — verified in the
 grilling that `deploy.sh` ships skills, agents, commands and templates and never `CLAUDE.md`, that
-`harness-init` writes no `CLAUDE.md` either, and that kaya's copy of this skill is byte-identical, so
+`harness-init` writes no `CLAUDE.md` either, and that sample-product's copy of this skill is byte-identical, so
 this is the surface that reaches every deployed project on the next `deploy.sh --apply`. Content:
 
 - Decisions cited in a dispatch are a **floor, never a ceiling** — the same framing the qa gate uses

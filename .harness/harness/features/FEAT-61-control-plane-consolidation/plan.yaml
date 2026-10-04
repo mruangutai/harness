@@ -1,3 +1,9 @@
+# Archival note - product retirement: this plan is a completed historical record. The product it
+# was executed against has been retired; sample-product names below are anonymized historical
+# references, and the evidence captures and product config cited by its tasks were removed from
+# this tree and preserved in the external archive held by the operator. Paths here resolve to
+# nothing locally and are not live instructions. Task ids, dependencies, recorded status and
+# stored signatures are unchanged.
 schema: plan/1
 feature: FEAT-61-control-plane-consolidation
 status: done
@@ -241,17 +247,16 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/gate_policy.py#load_policy
-      - .harness/harness.json
-      - .claude/skills/harness/templates/harness.json
-      - .claude/skills/harness/templates/examples/harness.kaya-ai.json
-      - tests/unit/test-gate-policy.py#check_policy_loading
-      - tests/integration/test-validate-digest.py#check_review_policy
+    - .claude/skills/harness/bin/gate_policy.py#load_policy
+    - .harness/harness.json
+    - .claude/skills/harness/templates/harness.json
+    - tests/unit/test-gate-policy.py#check_policy_loading
+    - tests/integration/test-validate-digest.py#check_review_policy
     verify: python3 tests/unit/test-gate-policy.py && python3 tests/integration/test-validate-digest.py
     intent: |
       Write failing policy tests first. Reduce GatePolicy and load_policy to the review setting only, using the shared strict harness JSON reader. Delete SUITE_OUTCOMES, QaResult, evaluate_qa, and every test that exists only for them. Keep evaluate_review and its consumer contract unchanged. Missing gates.review, a non-string value, or a value outside the existing review vocabulary must continue to raise GatePolicyError with the current actionable wording; extra removed keys must have no policy effect.
 
-      In the same cutover delete gates.qa_gate, gates.uat, and gates.merge from the live harness.json, the install template, and the kaya example. Update validate-digest's hermetic harness JSON fixtures to the review-only shape and prove review enforcement still works through the public validator. Cover the removal behavior through review-only policy loading, ignored extra removed keys, and the existing public review-policy path; do not add permanent source-text or configuration-absence assertions for the six removed names and keys, and do not add a bin-wide dead-symbol scan.
+      In the same cutover delete gates.qa_gate, gates.uat, and gates.merge from the live harness.json, the install template, and the archived pilot config (removed from the current tree). Update validate-digest's hermetic harness JSON fixtures to the review-only shape and prove review enforcement still works through the public validator. Cover the removal behavior through review-only policy loading, ignored extra removed keys, and the existing public review-policy path; do not add permanent source-text or configuration-absence assertions for the six removed names and keys, and do not add a bin-wide dead-symbol scan.
   - id: T-05
     title: Lock the consolidation and document the accepted bootstrap
     traces: [SC-01, SC-07, SC-08]

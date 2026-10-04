@@ -63,8 +63,8 @@ worktree was touched; `git status --porcelain` below confirms.
   branch (`if code != 0: return False`) is what returns `False`, never the `json.loads` branch, so
   there is no `JSONDecodeError` or exception in play. The mechanism is exactly what the comment
   claims: `issue_number()`'s redirect makes harness's #952 (task `T-99`, normally resolved via
-  harness's own `feature.json`) instead consult **kaya-ai's** issue map (canonical = first-seen repo,
-  `REPO_KAYA`, since #951 is first in `rec.items`), which has no `T-99` entry, so #952 flips from
+  harness's own `feature.json`) instead consult **sample-product's** issue map (canonical = first-seen repo,
+  `REPO_SAMPLE`, since #951 is first in `rec.items`), which has no `T-99` entry, so #952 flips from
   claimable to `unresolvable blocker`. This is `_blocker_gate`'s real `issue_number()` call
   (`factory_claim.py:132-149`), not an incidental exception path.
 
@@ -122,7 +122,7 @@ Edit (in the Arm A copy only): `build_features_root()`'s harness-segment plan wr
 from `plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"])]))` to
 `plan_dict(SEG_FEATURE, [task_dict("T-77")]))`.
 
-Sibling-untouched grep, before and after, both copies inspected: kaya segment's line 377
+Sibling-untouched grep, before and after, both copies inspected: sample-product segment's line 377
 (`task_dict("T-77", depends_on=["T-88"])`) is byte-identical pre- and post-edit; only line 382 changed.
 An edit that hit both lines would prove nothing — it did not.
 
@@ -141,7 +141,7 @@ summary `1 of 125 FAILING`.
 Fresh copy. Edit: `build_features_root()`'s harness-segment `feature.json` write, line 383, changed from
 `write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {"T-99": 954}}})` to
 `write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {}}})`. Line 382's
-`depends_on=["T-99"]` fragment left intact — grepped before/after, byte-identical — and the kaya
+`depends_on=["T-99"]` fragment left intact — grepped before/after, byte-identical — and the sample-product
 sibling line 377 also confirmed untouched.
 
 - `5g` marker: `ok    BUG-1290 5g: collapsing the issue-map cache key to feature-only breaks 5b's property`

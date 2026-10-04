@@ -9,8 +9,8 @@ Grilling artifact for the plan flow (DEC-164/165). Source of truth: issues #336,
 **One repository is fully operable from harness, and the layout supports N of them.** Both, not one
 then the other — the operator ruled that explicitly after being offered the split.
 
-Concretely: point the factory at `mruangutai/kaya-ai` and it works end to end — kaya's cards move on
-board 2, qa applies kaya's test matrix, agents carry kaya's expertise, and kaya's features live under
+Concretely: point the factory at `mruangutai/sample-product` and it works end to end — that product's cards move on
+board 2, qa applies its test matrix, agents carry its expertise, and its features live under
 its own path — while every control-plane file stays in harness. **A criterion proves it against the
 real repository, not a fake `gh`.** And `.harness/<repo>/` scopes features, expertise, codebase,
 notes and docs, with harness itself one repository among them.
@@ -52,7 +52,7 @@ Carried in from the two stores above. Each is settled; none is a ticket.
   takes option B. `gh-sync.py` resolves repo and board through `factory_config`, which already
   exposes `board_for` and `board_station` and is already used by three factory tools.
 - **A-03** — harness keeps reading its own `harness.json`. That is D-01, not an inconsistency.
-- **A-04 FLIPPED** — a live kaya run is now IN scope, as the only thing that can prove the
+- **A-04 FLIPPED** — a live product run is now IN scope, as the only thing that can prove the
   destination.
 - **A-05/A-10** — expertise moves to `.harness/<repo>/expertise/<agent>.md` in **two layers**: craft
   carries across repositories, repository facts do not.
@@ -67,7 +67,7 @@ Carried in from the two stores above. Each is settled; none is a ticket.
   DEC-174 am.1 is amended, not struck.
 - **A-09** — budget raised to fit the re-scoped work; the five spent cycles are NOT reset.
 - **Segment rule** — reuse `factory_config.workspace_path`'s rule: the name after the owner, so
-  `mruangutai/kaya-ai` → `kaya-ai`. It is the one place that derivation lives and the checkout
+  `mruangutai/sample-product` → `sample-product`. It is the one place that derivation lives and the checkout
   already uses it.
 - **The 18 existing features all move.** One shape, no exception.
 - **`codebase/` and `notes/` go per repository. `logs/` stays global.** `members/` is deleted —
@@ -153,8 +153,8 @@ Carried in from the two stores above. Each is settled; none is a ticket.
 
 - **SALVAGED FROM FEAT-19, which is retired unbuilt** (#338). Four of its six decisions are dead;
   these two survive on their own evidence and are carried here so no planner reopens them:
-  - **D-03 — kaya's test kinds ship `unresolved`, and DEC-187 closure is enforced at the first
-    factory run, not signed at approval.** Nobody has run kaya's commands from here, so marking any
+  - **D-03 — the product's test kinds ship `unresolved`, and DEC-187 closure is enforced at the first
+    factory run, not signed at approval.** Nobody has run that product's commands from here, so marking any
     kind `active` would be the unverified claim DEC-187 exists to stop.
   - **D-07 — the config resolver's flag is `--which-config`, never `--resolve`.**
     `check-domain.py --resolve` already answers a DIFFERENT question in a DIFFERENT shape — which
@@ -222,12 +222,12 @@ Carried in from the two stores above. Each is settled; none is a ticket.
 
 **Two corrections the main session made while recording these, both verified:**
 
-- **`.harness/harness.json` is per repository, and each lives IN ITS OWN REPO** — kaya's is on kaya's
+- **`.harness/harness.json` is per repository, and each lives IN ITS OWN REPO** — the product's is on its own
   `master`, not inside harness. That is a DIFFERENT design from FEAT-19's central
   `.harness/products/<name>/`. The tree already has the first.
-- **Kaya's own `harness.json` is PRE-FEAT-18 and stale.** It pins `project_id`, `status_field` and
+- **The product's own `harness.json` is PRE-FEAT-18 and stale.** It pins `project_id`, `status_field` and
   `in_progress_option` — the exact flat keys D-05 killed, because a wrong pinned id does nothing at
-  all, silently. `fleet.yaml`'s kaya entry is the modern by-name shape. **The two records are not
+  all, silently. `fleet.yaml`'s entry for it is the modern by-name shape. **The two records are not
   near-identical; one is current and one is stale.** Any consolidation lands on the by-name shape.
 
 ## Not yet specified
@@ -243,8 +243,8 @@ Carried in from the two stores above. Each is settled; none is a ticket.
 - Re-homing the onboarding interview, `dev-ops` detection, domain seeding and the BRIEF. In scope
   for the central model as a whole; past this destination.
 - Deleting `templates/`.
-- Cloning, running or testing kaya's own **code**. The live proof exercises the factory against kaya,
-  not kaya's test suite.
+- Cloning, running or testing the product's own **code**. The live proof exercises the factory against that
+  product, not its test suite.
 
 
 
@@ -278,7 +278,7 @@ and shipping one here would be the same defect inside the fix for it.
 | 5 | Config split: board and `default_branch` into `harness.json` (#350) | **3** |
 | 6 | Expertise re-home + craft/repo split (#340) | **3** |
 | 7 | Repo-aware write grants via `agent_id` (#351) | **3, 5** |
-| 8 | Live kaya proof | **5**, ideally **2** |
+| 8 | Live product proof | **5**, ideally **2** |
 | 9 | Small independents — `gh-sync.py:729`, `branch-create-gate.py:77`, `validate-feature-json.py`, `factory_claim.py:43`, gitignore, prose | anytime |
 
 ### Two constraints that hold whatever order is chosen
@@ -318,6 +318,6 @@ Sequence amended by the fleet ruling (#355 final) and #349's no-merge resolution
 
 - **Unit 1 is DEAD** — harness gets no `fleet.yaml` entry; the stale-checkout diagnostic stays as is.
 - **Unit 2 is DEAD** — the writers stay separate (#349). Its INV-26 survivor landed independently as PR #359.
-- **Unit 8's 'ideally 2' clause is void** with it; the kaya proof depends on 5 alone.
+- **Unit 8's 'ideally 2' clause is void** with it; the product proof depends on 5 alone.
 - Units 0, 3, 4, 5, 6, 7, 9 stand unchanged, same dependency order. **Unit 0 — the migration detector — is first**, and is the next feature to plan.
 - The #356 path convention (anchor five relative-path families + a check) rides with unit 3, whose surface it shares.

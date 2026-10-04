@@ -22,7 +22,7 @@ None. Reasoning against the three prompts in the dispatch:
    flag.
 
 2. **Repeated I/O in `build_features_root()`** — the two new `write_json` calls the diff adds
-   (`kaya_seg/feature.json` line 378, `harness_seg/feature.json` line 383) execute exactly once,
+   (`sample_seg/feature.json` line 378, `harness_seg/feature.json` line 383) execute exactly once,
    at module import, alongside the four `write_yaml`/`write_json` pairs already there before this
    diff. Two extra one-shot file writes at suite load, not a per-case cost — not worth flagging
    even before timing it, and the 0.131s total confirms it.
