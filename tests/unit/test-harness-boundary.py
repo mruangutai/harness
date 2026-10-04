@@ -1178,6 +1178,43 @@ def case_run_dir_forms():
 
 
 
+# ============================= classifier repository ==========================
+
+
+def case_classifier_repository_metadata():
+    """The shared classifier reports the selected base's repository identity."""
+    mod = hb()
+    root = tempfile.mkdtemp()
+    workspace = tempfile.mkdtemp()
+    product = os.path.join(workspace, "product-a")
+    os.makedirs(os.path.join(product, "src"))
+    original = mod.resolve_fleet
+    try:
+        product_root = mod.real(product)
+        bases = mod.RepositoryBases([product_root], {product_root: "product-a"})
+        mod.resolve_fleet = lambda _root, _label: (workspace, bases, "/fleet.yaml")
+        harness = mod.classify(
+            os.path.join(root, ".harness", "team-config.yaml"),
+            root, [".harness/**"], [], "test")
+        target = mod.classify(
+            os.path.join(product, "src", "main.py"),
+            root, ["src/**"], [], "test")
+        check("classifier_repository: harness target keeps harness identity",
+              harness["outcome"] == "allow"
+              and harness["base"] == mod.real(root)
+              and harness["repository"] == "harness",
+              harness)
+        check("classifier_repository: product target keeps declared identity",
+              target["outcome"] == "allow"
+              and target["base"] == mod.real(product)
+              and target["repository"] == "product-a",
+              target)
+    finally:
+        mod.resolve_fleet = original
+        shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(workspace, ignore_errors=True)
+
+
 # THE REGISTRATION IS DATA, NOT CONTROL FLOW (FEAT-64): a flat list of calls cost main a grade
 # point per case; iterating a tuple costs one however long it grows.
 CASES = (
@@ -1203,6 +1240,7 @@ CASES = (
     case_run_dir_refs,
     case_run_dir_slug_ok,
     case_run_dir_forms,
+    case_classifier_repository_metadata,
     case_hook_guard_contract,
     case_run_hook_body_contract,
     case_feat64_lib_boundaries_are_typed,

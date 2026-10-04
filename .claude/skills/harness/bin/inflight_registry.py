@@ -211,10 +211,15 @@ def _is_number(value):
 def _expire(claims, now):
     """A claim is live only while its OMP supervisor is (DEC-204). Any claim that carries
     another runtime, or none, is expired: there is no other host (DEC-233)."""
+    # GRADE-2 REASON: one lifetime predicate; malformed, released and supervisor-owned rows
+    # are the cases of a single question, and splitting them would only scatter it.
     live = []
     expired = 0
     for claim in claims:
         if not isinstance(claim, dict):
+            expired += 1
+            continue
+        if claim.get("released_at") is not None:
             expired += 1
             continue
         started = claim.get("started_at")
@@ -568,6 +573,7 @@ def claim_with_receipt(
     now=None,
     feature=LEGACY_FEATURE,
     supervisor_pid=None,
+    repository=None,
 ):
     """Record a claim owned by `supervisor_pid` — the OMP process that holds the dispatching
     `task` call (DEC-204). Absent, the claiming process is the supervisor: that is what a
@@ -586,7 +592,8 @@ def claim_with_receipt(
         ):
             data["claims"] = retained
             return data, None
-        entry = _claim_entry(agent, feature, dispatcher, cwd, supervisor_pid, now)
+        identity = {"repository": repository} if repository is not None else {}
+        entry = _claim_entry(agent, feature, dispatcher, cwd, supervisor_pid, now, **identity)
         live.append(entry)
         retained.append(entry)
         data["claims"] = retained
@@ -595,7 +602,8 @@ def claim_with_receipt(
     return _update_registry(root, mutator)
 
 
-def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE, supervisor_pid=None):
+def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE,
+          supervisor_pid=None, repository=None):
     return claim_with_receipt(
         root,
         agent,
@@ -604,6 +612,7 @@ def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE, superv
         now=now,
         feature=feature,
         supervisor_pid=supervisor_pid,
+        repository=repository,
     ) is not None
 
 
@@ -680,7 +689,10 @@ def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
         if len(exact) == 1:
             selected = exact[0]
         elif not exact:
-            unbound = [claim for claim in candidates if not claim.get("agent_id")]
+            # A repository receipt binds only at run start (FEAT-495): here a released child
+            # could otherwise take a sibling's pending receipt and regain product authority.
+            unbound = [claim for claim in candidates
+                       if not claim.get("agent_id") and claim.get("repository") is None]
             if len(unbound) != 1:
                 data["claims"] = retained
                 return data, False
@@ -693,6 +705,104 @@ def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
         return data, True
 
     return _update_registry(root, mutator)
+
+
+def _repository_claim_groups(
+    claims, agent, feature, repository, agent_id, parent_agent_id,
+):
+    identity_claims = [
+        claim for claim in claims
+        if isinstance(claim, dict) and claim.get("agent_id") == agent_id
+    ]
+    exact = [
+        claim for claim in identity_claims
+        if _matches(
+            claim,
+            agent=agent,
+            feature=feature,
+            agent_id=agent_id,
+            parent_agent_id=parent_agent_id,
+        )
+        and claim.get("repository") == repository
+    ]
+    return identity_claims, exact
+
+
+def _live_repository_binding_state(identity_claims, exact, agent, feature, current):
+    live_exact, _expired = _expire(exact, current)
+    live_identity, _identity_expired = _expire(identity_claims, current)
+    foreign_dispatch = any(
+        claim not in live_exact
+        and (
+            claim.get("agent") != agent
+            or claim.get("feature", LEGACY_FEATURE) != feature
+        )
+        for claim in live_identity
+    )
+    if len(live_exact) > 1:
+        return "ambiguous"
+    if foreign_dispatch or len(live_identity) > 1:
+        return "collision"
+    return "allow" if live_exact else None
+
+
+def _inactive_repository_binding_state(identity_claims, exact, agent, feature, agent_id):
+    if any(claim.get("released_at") is not None for claim in exact):
+        return "released"
+    if exact:
+        return "stale"
+    same_dispatch = any(
+        _matches(claim, agent=agent, feature=feature, agent_id=agent_id)
+        for claim in identity_claims
+    )
+    return "mismatched" if same_dispatch else "missing"
+
+
+def repository_binding(
+    root,
+    agent,
+    feature,
+    repository,
+    agent_id,
+    parent_agent_id,
+    now=None,
+):
+    """Return the fail-closed state of one exact factory repository binding (FEAT-495).
+
+    The run-start claim (BUG-1898) carries the runtime lineage; the dispatch receipt it
+    bound carries the repository. A product write is allowed only when exactly one live
+    claim matches the child, its immediate parent, feature, role, and repository."""
+    if not all((agent, feature, repository, agent_id, parent_agent_id)):
+        return "missing"
+    try:
+        claims = _read_strict(root)
+    except UnreadableRegistry:
+        return "unreadable"
+    identity_claims, exact = _repository_claim_groups(
+        claims, agent, feature, repository, agent_id, parent_agent_id)
+    current = time.time() if now is None else now
+    live_state = _live_repository_binding_state(
+        identity_claims, exact, agent, feature, current)
+    return live_state or _inactive_repository_binding_state(
+        identity_claims, exact, agent, feature, agent_id)
+
+
+REPOSITORY_BINDING_STATES = frozenset({
+    "missing", "collision", "mismatched", "stale",
+    "released", "unreadable", "ambiguous",
+})
+
+
+def repository_binding_refusal(agent, repository, state):
+    """Return the shared, non-sensitive refusal text for a binding state."""
+    rendered = state if state in REPOSITORY_BINDING_STATES else "unreadable"
+    return (
+        f"{agent} has a {rendered} runtime repository binding for {repository}.",
+        "Product writes require one active claim matching the authenticated child, "
+        "its immediate parent, feature, role, and repository. Retry from the dispatch "
+        "that owns this product.",
+    )
+
 
 
 def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
@@ -725,7 +835,14 @@ def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id
             )
             data["claims"] = retained
             return data, 0
-        target_id = matches[0].get("claim_id")
+        target = matches[0]
+        if target.get("repository") is not None:
+            # A repository-bound claim is tombstoned rather than dropped, so a write that
+            # races its release is refused as "released", not as "missing".
+            target["released_at"] = time.time()
+            data["claims"] = retained
+            return data, True
+        target_id = target.get("claim_id")
         data["claims"] = [
             claim for claim in retained if claim.get("claim_id") != target_id
         ]

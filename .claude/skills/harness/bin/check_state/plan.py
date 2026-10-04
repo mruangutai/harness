@@ -732,3 +732,21 @@ def inv_44(ctx, feat):
     _pdoc44 = plan_docs.get(_feat44) or {}
     bad.extend(_inv44_dimensions(_feat44, _doc44, _pdoc44, briefs))
     return bad, warn
+
+
+# --- INV-51 (#1996): an abandoned feature carries no runs/ evidence. `gh-sync.py abandon --yes`
+# removes runs/ as it records the station; this is the backstop for an abandonment recorded any
+# other way. FEAT-53's 380 WebPs rode on its successor's branch for a week with nothing to say so.
+def inv_51(ctx, feat):
+    bad, warn = [], []
+    if ctx.station(feat) != 'abandoned':
+        return bad, warn
+    runs_dir = os.path.join(ctx.feature_dir(feat), 'runs')
+    if not os.path.isdir(runs_dir):
+        return bad, warn
+    run_ids = sorted(name for name in os.listdir(runs_dir) if os.path.isdir(os.path.join(runs_dir, name)))
+    if run_ids:
+        bad.append(f"INV-51 {feat}: abandoned but runs/ still holds {len(run_ids)} run(s) "
+                   f"({', '.join(run_ids)}) — no reader is left for that evidence; "
+                   f"remove runs/ in the abandon commit (gh-sync.py abandon does).")
+    return bad, warn

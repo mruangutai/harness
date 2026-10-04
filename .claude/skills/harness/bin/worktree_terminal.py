@@ -438,6 +438,11 @@ def _landed_station_record(path, dirty, resolved):
             "reason": reason, "repo": resolved[1]}
 
 
+def _is_pin(path, hb):
+    split = _split_owner_segment_id(path, hb.WORKTREES_SEGMENT)
+    return split is not None and split[1] == hb.PINS_SEGMENT
+
+
 def classify(root):
     """Classify every standing worktree of the repository at `root`. See the module docstring
     and FEAT-34 T-01's intent for the full contract."""
@@ -459,6 +464,8 @@ def classify(root):
     for i, path in enumerate(_worktree_paths(root)):
         if i == 0:
             continue  # the main checkout, never a linked worktree
+        if _is_pin(path, hb):
+            continue  # a validator's disposable checkout at a pin (#1994): not feature work
 
         dirty = _is_dirty(path)
         resolved, record = _resolve_landed(path, dirty, hb, factory_config,

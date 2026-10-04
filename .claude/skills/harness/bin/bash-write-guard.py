@@ -153,6 +153,7 @@ def segments(text):
 agent = d.get("agent_type") or ""
 runtime_agent_id = d.get("harness_agent_id") or None
 runtime_parent_agent_id = d.get("harness_parent_agent_id") or None
+runtime_feature = d.get("harness_feature") or None
 if not agent:
     sys.exit(0)
 
@@ -878,6 +879,35 @@ def claim_checkout_guard(destination):
         agent, claim_set, destination, identity=(runtime_agent_id, runtime_parent_agent_id)))
 
 
+def repository_claim_guard(verdict):
+    """Require exact runtime lineage before a product Bash write may continue."""
+    repository = verdict.get("repository")
+    if not repository or repository == "harness":
+        return
+    try:
+        import inflight_registry
+    except (ImportError, SyntaxError):
+        print("bash-write-guard: BLOCKED — runtime repository binding could not be "
+              "evaluated.", file=sys.stderr)
+        sys.exit(2)
+    # repository_binding never raises for registry state: an unreadable registry is a state.
+    state = inflight_registry.repository_binding(
+        root,
+        agent,
+        runtime_feature,
+        repository,
+        runtime_agent_id,
+        runtime_parent_agent_id,
+    )
+    if state == "allow":
+        return
+    headline, guidance = inflight_registry.repository_binding_refusal(
+        agent, repository, state)
+    print(f"bash-write-guard: BLOCKED — {headline}", file=sys.stderr)
+    print(f"  {guidance}", file=sys.stderr)
+    sys.exit(2)
+
+
 def _worktree_stripped(rel):
     """`rel` with a leading `.claude/worktrees/<name>/` segment removed, so a
     checkout-agnostic rule can match a path regardless of which worktree it lives in.
@@ -937,10 +967,17 @@ for name, paths in findings:
         # DEC-95) is covered exactly like one in the main checkout.
         _run_artifact_guard(_worktree_stripped(rel), ap)
 
-        # BOTH CONTINUES BELOW RUN AHEAD OF classify, AND THAT ORDERING IS BEHAVIOUR.
-        # Worktree carve-out (DEC-153): disposable checkouts are where sanctioned
+        # The repository decision (FEAT-495, DEC-250) runs FIRST: a worktree- or
+        # cache-shaped path can resolve (a symlink) into a product checkout, and a product
+        # write needs its binding whatever its spelling. Only the binding is decided here;
+        # the domain verdict below still waits for both carve-outs.
+        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
+        repository_claim_guard(verdict)
+
+        # BOTH CONTINUES BELOW RUN AHEAD OF the domain verdict, AND THAT ORDERING IS
+        # BEHAVIOUR. Worktree carve-out (DEC-153): disposable checkouts are where sanctioned
         # perturbation proofs live — qa mutates source there to prove a test
-        # discriminates. Moving it after classify would change what qa may do in a
+        # discriminates. Moving it after the verdict would change what qa may do in a
         # worktree. The MAIN checkout stays hard-protected. Reviewers never reach this
         # branch (denied on any write pattern above).
         if re.match(r"^\.claude/worktrees/", rel):
@@ -949,7 +986,6 @@ for name, paths in findings:
         # tmp/cache noise is not a domain question.
         if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
             continue
-        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
 
         if verdict["outcome"] == "out_of_place_worktree" and verdict.get("unparsed"):
             deny(f"{verdict['checkout']} holds a .git pointer file that does not parse, "

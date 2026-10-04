@@ -1182,6 +1182,92 @@ def case_37_live_claims_refuses_unreadable_registry():
           inflight_registry.live_claims(missing, agent) == [])
 
 
+REPO_AGENT, REPO_FEATURE = "harness-backend-dev", "FEAT-495"
+
+
+def _repo_dispatch(root, repository, parent):
+    """A dispatch receipt for `repository`, attached to its parent as the task hook does."""
+    receipt = inflight_registry.claim_with_receipt(
+        root, REPO_AGENT, "harness-eng-lead", root, feature=REPO_FEATURE,
+        supervisor_pid=os.getpid(), repository=repository)
+    inflight_registry.attach_runtime_identity(
+        root, REPO_AGENT, REPO_FEATURE, claim_id=receipt["claim_id"], parent_agent_id=parent)
+    return receipt
+
+
+def _repo_start(root, agent_id, parent, feature=REPO_FEATURE):
+    return inflight_registry.claim_run_start(
+        root, REPO_AGENT, feature, agent_id, parent, supervisor_pid=os.getpid())
+
+
+def _repo_binding(root, repository, agent_id, parent="lead-1"):
+    return inflight_registry.repository_binding(
+        root, REPO_AGENT, REPO_FEATURE, repository, agent_id, parent)
+
+
+def case_38_run_start_binds_repository_receipt():
+    """FEAT-495: run start binds the child's runtime id to its parent's repository receipt;
+    same-persona siblings under one parent each hold their own binding."""
+    root = tempfile.mkdtemp()
+    first = _repo_dispatch(root, "product-a", "lead-1")
+    started = _repo_start(root, "child-1", "lead-1")
+    _repo_dispatch(root, "product-a", "lead-1")
+    sibling = _repo_start(root, "child-2", "lead-1")
+    check("case38: run-start binds the unique repository receipt",
+          started["outcome"] == "bound" and started["claim"]["claim_id"] == first["claim_id"]
+          and started["claim"]["repository"] == "product-a", started)
+    states = [_repo_binding(root, "product-a", child) for child in ("child-1", "child-2")]
+    check("case38: same-persona siblings under one parent bind independently",
+          sibling["outcome"] == "bound" and states == ["allow", "allow"], (sibling, states))
+    shutil.rmtree(root, ignore_errors=True)
+
+
+def case_38b_repository_binding_refusals():
+    """Every mismatch is a named refusal, never an allow."""
+    root = tempfile.mkdtemp()
+    _repo_dispatch(root, "product-a", "lead-1")
+    _repo_start(root, "child-1", "lead-1")
+    created = _repo_start(root, "child-3", "lead-2")
+    observed = {
+        "other repository": _repo_binding(root, "product-b", "child-1"),
+        "other parent": _repo_binding(root, "product-a", "child-1", parent="other-lead"),
+        "no lineage": _repo_binding(root, "product-a", None),
+        "no repository receipt": _repo_binding(root, "product-a", "child-3", parent="lead-2"),
+    }
+    check("case38b: mismatches refuse with their named state",
+          created["outcome"] == "created" and observed == {
+              "other repository": "mismatched", "other parent": "mismatched",
+              "no lineage": "missing", "no repository receipt": "mismatched"}, observed)
+    _repo_start(root, "child-1", "lead-1", feature="FEAT-496")
+    check("case38b: a runtime id held by another active dispatch is a collision",
+          _repo_binding(root, "product-a", "child-1") == "collision",
+          _repo_binding(root, "product-a", "child-1"))
+    with open(os.path.join(root, inflight_registry.REGISTRY_REL), "w",
+              encoding="utf-8") as handle:
+        handle.write("{not json")
+    check("case38b: an unreadable registry is refused as unreadable",
+          _repo_binding(root, "product-a", "child-1") == "unreadable")
+    shutil.rmtree(root, ignore_errors=True)
+
+
+def case_38c_released_child_cannot_take_a_sibling_receipt():
+    """A released child stays refused, and its next callback cannot authorize itself onto
+    the repository receipt its parent left for a sibling (review R3)."""
+    root = tempfile.mkdtemp()
+    _repo_dispatch(root, "product-a", "lead-1")
+    _repo_start(root, "child-1", "lead-1")
+    released = inflight_registry.release(root, feature=REPO_FEATURE, agent_id="child-1")
+    check("case38c: a released repository claim is refused as released",
+          released is True and _repo_binding(root, "product-a", "child-1") == "released",
+          _repo_binding(root, "product-a", "child-1"))
+    pending = _repo_dispatch(root, "product-a", "lead-1")
+    stolen = inflight_registry.authorize_runtime_identity(
+        root, REPO_AGENT, REPO_FEATURE, "child-1", "lead-1")
+    rows = [c for c in _read_raw(root)["claims"] if c.get("claim_id") == pending["claim_id"]]
+    check("case38c: authorize never binds a pending repository receipt",
+          stolen is False and rows and not rows[0].get("agent_id"), (stolen, rows))
+    shutil.rmtree(root, ignore_errors=True)
+
 
 CASES = (
     case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
@@ -1205,6 +1291,8 @@ CASES = (
     case_34_children_refusal_names_suspension, case_35_feature_root_cli,
     case_36_live_claims_read_only_and_binding_horizon,
     case_37_live_claims_refuses_unreadable_registry,
+    case_38_run_start_binds_repository_receipt, case_38b_repository_binding_refusals,
+    case_38c_released_child_cannot_take_a_sibling_receipt,
 )
 
 

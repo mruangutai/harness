@@ -6,6 +6,7 @@ import concurrent.futures
 import os
 import subprocess
 import sys
+import tempfile
 import time
 
 
@@ -57,9 +58,16 @@ def snapshot(root):
 
 
 def run_one(path):
+    # EACH SCRIPT GETS A PRIVATE TMPDIR, REMOVED WHEN IT EXITS. Many suites call
+    # tempfile.mkdtemp() without cleanup; on a developer machine those leaked ~200 GB into the
+    # user temp root within five days. tempfile, git and most tools honour TMPDIR, so this
+    # reclaims every leak — including grandchildren's — in one place. Short prefix: macOS caps
+    # AF_UNIX socket paths at 104 bytes, and some fixtures bind sockets under the temp root.
     started = time.monotonic()
-    proc = subprocess.run([sys.executable, path], stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT, text=True)
+    with tempfile.TemporaryDirectory(prefix="ht-", ignore_cleanup_errors=True) as tmp:
+        env = dict(os.environ, TMPDIR=tmp, TMP=tmp, TEMP=tmp)
+        proc = subprocess.run([sys.executable, path], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True, env=env)
     return path, proc.returncode, proc.stdout, time.monotonic() - started
 
 

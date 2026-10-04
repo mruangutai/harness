@@ -172,6 +172,27 @@ def _checkout():
         )
     return tmp
 
+
+def _factory_checkout(repo_name="acme/product-a", feature="FEAT-495-product-write"):
+    """A control-plane fixture with one exact fleet member and repository feature."""
+    root = _checkout()
+    segment = repo_name.split("/", 1)[-1]
+    fleet_dir = os.path.join(root, ".harness", "factory")
+    os.makedirs(fleet_dir, exist_ok=True)
+    with open(os.path.join(fleet_dir, "fleet.yaml"), "w", encoding="utf-8") as fh:
+        json.dump({
+            "schema": "factory-fleet/1",
+            "repos": [{"name": repo_name, "default_branch": "main"}],
+            "workspace_root": os.path.join(root, "products"),
+        }, fh)
+    feature_dir = os.path.join(root, ".harness", segment, "features", feature)
+    os.makedirs(feature_dir, exist_ok=True)
+    with open(os.path.join(feature_dir, "feature.json"), "w", encoding="utf-8") as fh:
+        json.dump({"feature_id": feature, "factory": {"repo": repo_name}}, fh)
+    return root, segment
+
+
+
 def _checkout_with_run_dir_grants(suffixes):
     """A throwaway checkout whose `leads:` carry a run-dir write grant for each of
     `suffixes` (BUG-124 T-02) -- copies the same personas `_checkout` copies, and does
@@ -933,6 +954,43 @@ def case_29_name_parameter_refused():
     check("case 29: name: is refused", r.returncode == 2, r.stderr)
     check("case 29: the refusal names the value", "'Builder'" in r.stderr, r.stderr)
 
+def case_30_repository_header_binds_exact_factory_claim():
+    """FEAT-495: a repository-tier dispatch carries exactly one HARNESS-REPOSITORY line that
+    agrees with the feature artifact and the fleet; its claim records the fleet segment."""
+    feature = "FEAT-495-product-write"
+    root, segment = _factory_checkout(feature=feature)
+    env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+
+    def dispatch(task):
+        return fire({
+            "agent_type": "harness-eng-lead",
+            "harness_agent_id": "LeadOne",
+            "harness_parent_agent_id": "OrchestratorOne",
+            "tool_input": {"agent": "harness-backend-dev", "task": task},
+        }, env=env)
+
+    try:
+        result = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                          "HARNESS-REPOSITORY: acme/product-a\nchange the product")
+        claims = _claims_for(_read_registry(root, _load_registry_module()),
+                             "harness-backend-dev", feature)
+        check("case 30: exact factory repository dispatch is allowed",
+              result.returncode == 0, result.stderr)
+        check("case 30: the claim carries the fleet segment as its repository",
+              len(claims) == 1 and claims[0].get("repository") == segment, claims)
+
+        missing = dispatch(f"HARNESS-FEATURE: {feature}\nchange the product")
+        mismatch = dispatch(f"HARNESS-FEATURE: {feature}\n"
+                            "HARNESS-REPOSITORY: acme/product-b\nchange the product")
+        check("case 30: repository feature without its locator is refused",
+              missing.returncode == 2 and "HARNESS-REPOSITORY" in missing.stderr,
+              missing.stderr)
+        check("case 30: repository locator disagreeing with the artifact is refused",
+              mismatch.returncode == 2 and "repository" in mismatch.stderr.lower(),
+              mismatch.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 
 def case_30_schema_controls_are_not_the_guards():
     """FEAT-1928: harness-hooks.ts is the one schema authority — it refuses a dispatcher's
@@ -1026,6 +1084,7 @@ def main():
     case_28_missing_dispatcher_file_passes_through_loudly()
     case_29_name_parameter_refused()
     case_30_schema_controls_are_not_the_guards()
+    case_30_repository_header_binds_exact_factory_claim()
 
     failed = 0
     for name, ok, detail in RESULTS:

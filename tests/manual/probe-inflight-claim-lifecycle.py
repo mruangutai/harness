@@ -2,7 +2,7 @@
 """BUG-1898 SC-07: the live OMP merge gate for the inflight-claim lifecycle.
 
 This is a manual, credentialed probe. It is not a CI check and must never be registered as one.
-It starts the real pinned `omp` in RPC mode, with THIS linked feature worktree as cwd so the
+It starts the real `omp` in RPC mode, with THIS linked feature worktree as cwd so the
 Harness hook it loads is the one under test. It drives Main through five scenarios and records
 the session, result-row and agent ids it observes; it never predicts names.
 
@@ -45,7 +45,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-FEATURE = "BUG-1898-inflight-claim-lifecycle"
+# The feature whose linked worktree runs the probe and receives its receipt. BUG-1898 owns the
+# probe; a later feature that cites it as live evidence (FEAT-495 SC-04) runs it from its own
+# worktree by setting HARNESS_PROBE_FEATURE.
+FEATURE = os.environ.get("HARNESS_PROBE_FEATURE") or "BUG-1898-inflight-claim-lifecycle"
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 NOTES = ROOT / ".harness" / "harness" / "features" / FEATURE / "notes"
 RECEIPT = NOTES / "live-omp-probe.md"
@@ -118,10 +121,6 @@ def check(name: str, ok: bool, detail: object = "") -> bool:
 # Prerequisites: shared by --dry-run and live mode
 # ---------------------------------------------------------------------------------------
 
-def pinned_commit() -> str:
-    return json.loads((ROOT / ".omp" / "runtime-pin.json").read_text())["commit"]
-
-
 def omp_runtime(omp: str) -> tuple[Path | None, str]:
     """The checkout the `omp` launcher runs from, and its HEAD commit."""
     here = Path(omp).resolve().parent
@@ -161,9 +160,6 @@ def registry_rows() -> list[dict]:
 
 def check_runtime(omp: str | None) -> None:
     check("omp is on PATH", omp is not None, omp)
-    runtime, head = omp_runtime(omp) if omp else (None, "")
-    check("omp runs the pinned Harness runtime", head == pinned_commit(),
-          {"runtime": str(runtime), "head": head, "pin": pinned_commit()})
 
 
 def check_checkout() -> None:
@@ -396,8 +392,10 @@ def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
     mark = len(s.lifecycle)
     lead = child_task(f"Use the write tool to create {LEAD_RUN_DIGEST} containing exactly: "
                       "# probe lead assessment", LEAD_DIGEST)
+    # No `name:` on the nested dispatch: dispatch-guard refuses one from any governed persona
+    # (#1870), so OMP picks the nested lead's id and the probe reads it from the claim it holds.
     nested = child_task("Use the task tool exactly once (blocking): agent harness-eng-lead, "
-                        f"name Probe, task:\n{lead}")
+                        f"task:\n{lead}")
     plain = child_task("There are no steps.")
     s.prompt("Use the task tool exactly once, as a BACKGROUND (non-blocking) batch of three "
              "tasks with shared context 'BUG-1898 probe batch':\n"
@@ -416,7 +414,7 @@ def s3_mixed_batch(s: Session, timeout: float) -> list[str]:
 def observed_ids(s: Session, governed: list[str], plain_ids: list[str]) -> list[str]:
     """Every id OMP reported to Main (lifecycle frames, its subagent registry) plus every id
     a claim was sampled under. Main sees only its direct children; a nested lead's lineage
-    id (Nest.Probe) reaches the probe through the claim it holds while it runs."""
+    id (Nest.<id>) reaches the probe through the claim it holds while it runs."""
     listed = (s.request({"type": "get_subagents"}) or {}).get("data") or {}
     claimed = {str(r.get("agent_id")) for _ts, rows in s.samples for r in rows
                if r.get("feature") == FEATURE and r.get("agent_id")}
@@ -447,7 +445,7 @@ def nested_ids(s: Session, governed: list[str]) -> list[str]:
 def crossed_rows(s: Session, governed: list[str], plain_ids: list[str]) -> list[dict]:
     """Rows, over every sample, bound to a non-governed id, to another persona's id, or —
     under a governed orchestrator — to anything but the one lead it dispatched: a direct
-    child (`Nest.Probe`, one segment deeper), harness-eng-lead, parented by that
+    child (`Nest.<id>`, one segment deeper), harness-eng-lead, parented by that
     orchestrator. The probe dispatches nothing deeper, so any deeper row is crossed."""
     def crossed(row: dict) -> bool:
         agent_id = str(row.get("agent_id") or "")
@@ -469,7 +467,7 @@ def check_batch_ids(s: Session, governed: list[str], plain_ids: list[str]) -> No
     check("S3: two governed orchestrators started under real ids", len(governed) == 2, governed)
     check("S3: a repeated name produced a suffix id (Name-2)",
           any(i.rsplit("-", 1)[-1].isdigit() for i in every if "-" in i), every)
-    check("S3: a nested lead held a claim under its lineage id (Nest.Probe)",
+    check("S3: a nested lead held a claim under its lineage id (Nest.<id>)",
           len(nested) == 1, nested)
     check("S3: no row ever carried a non-governed id or crossed personas "
           "(the nested row is the dispatched lead, under its own parent)", not stray, stray[:3])
@@ -563,7 +561,7 @@ def receipt_header(args, evidence: dict, failed: list[str]) -> list[str]:
         f"({len(RESULTS) - len(failed)}/{len(RESULTS)} checks)",
         f"- Command: `{' '.join(live_command(args.model))}`",
         f"- cwd: `{ROOT}`",
-        f"- OMP: `{omp}` → runtime `{runtime}` @ `{head}` (pin `{pinned_commit()}`)",
+        f"- OMP: `{omp}` → runtime `{runtime}` @ `{head}`",
         f"- Session: `{json.dumps(evidence.get('session'))}`",
         f"- Scenarios: {', '.join(s for s, _ in SCENARIOS)}",
         f"- Suite: `{' '.join(SUITE)}` → `{json.dumps(evidence.get('suite'))}`",

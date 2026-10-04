@@ -55,6 +55,19 @@ A genuine `FAIL` looks like a **named** test with an assertion diff. Misconfigur
 `MODULE_NOT_FOUND`, `ImportError`, `No test files found`, a collection `ERROR`, or a "test" whose name is
 a file path.
 
+**Need the tree at the pin, not the attached worktree? Use the disposable pin checkout (#1994).**
+Never a bare `git worktree add --detach` into a path nobody sweeps — sixteen of those, at ~800 MB
+each with `node_modules`, leaked from one feature. From the feature worktree:
+
+```sh
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py add --feature <FEAT> --run-id <run-id> --persona <persona> --sha "$review_sha"   # prints the path
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/pinned-checkout.py remove --feature <FEAT> --run-id <run-id> --persona <persona>                    # on return, always
+```
+
+It lives under `<HARNESS_CONTROL_PLANE_ROOT>/.claude/worktrees/.pins/<FEAT>--<run-id>--<persona>/` — yours alone, so returning never deletes a sibling reader's tree — refuses an abbreviated or unknown sha, and the
+control-plane post-merge sweep removes anything a dead run leaves behind after a day (a fleet repository has no hook: `remove` on return is the only cleanup there). Install and build inside it;
+copy evidence out to the feature's `runs/<run-id>/` before removing.
+
 ## Audit test-first compliance
 
 Beyond presence: for each behavioural change in the diff, confirm a test covers it, and where git history
@@ -71,8 +84,8 @@ never failed constrains nothing.
 
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
 discriminates (mutate, watch it fail, restore) is sanctioned — but the bash-write-guard denies your
-in-place source edits in the main checkout by design. Run the proof in a disposable worktree
-(`isolation: worktree`, or `git worktree add`); verify the restore with
+in-place source edits in the main checkout by design. Run the proof in the same pinned
+checkout as the lane (`pinned-checkout.py add`, above — never a bare `git worktree add`); verify the restore with
 `git status --porcelain <path>`, never a read-back.
 
 ## Absence, subject and mutant (DEC-169, issue #979)

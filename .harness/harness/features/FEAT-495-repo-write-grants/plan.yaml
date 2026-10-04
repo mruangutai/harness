@@ -1,0 +1,252 @@
+schema: plan/1
+feature: FEAT-495-repo-write-grants
+status: done
+source_issues: [495]
+
+approval:
+  status: approved
+  approved_by: molchairuangutai
+  date: '2026-10-03'
+
+panel:
+  last_run: plan-panel-lineage-2026-09-24
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-ecfabd21954279cbc07abeb52207c9dd
+    severity: med
+    reader: scope
+    kind: substance
+    summary: SC-06 lacks explicit end-to-end verification for two independent Kaya worktrees and two same-role children on one product feature.
+    disposition: resolved
+    resolved_by: T-02, T-03, T-04
+    resolution: The amended task intents now explicitly verify both retained-behavior scenarios, and the scope recheck returned PASS.
+  - id: PF-19d55b2d4877004a6afd61823a83422c
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-02 can invalidate T-01 boundary verification without rerunning the affected boundary suite.
+    disposition: resolved
+    resolved_by: T-02
+    resolution: T-02 now owns and reruns tests/unit/test-harness-boundary.py after the registry mutation; the scope recheck returned PASS.
+  - id: PF-411dca89b8882c963052e95f4b9dbb55
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: OMP runtime identity reuse by another active dispatch was an unstated load-bearing assumption.
+    disposition: resolved
+    resolved_by: T-02, SC-02, SC-04
+    resolution: The amended contract requires a named collision refusal and a concurrent live probe proving distinct child identities under the correct immediate parent.
+  - id: PF-ca5ee02f1ea10f3c46dd50f310a7a252
+    severity: info
+    reader: should-not-exist
+    kind: form
+    summary: The approval date appeared future-dated and disagreed with the stale BRIEF approval date.
+    disposition: dismissed
+    resolution: The host clock was directly verified as 2026-09-24 UTC; the stale BRIEF approval was reset pending and will be reapproved with the verified date.
+lanes:
+  resolved_at: 4e8c73c0
+  rows:
+  - surface: .claude/skills/harness/bin/inflight_registry.py
+    lane: main-session-direct
+    reason: DEC-174; runtime claim storage and authorization participate in the active enforcement boundary.
+  - surface: .claude/skills/harness/bin/harness_boundary.py
+    lane: main-session-direct
+    reason: DEC-174; the shared repository authorization decision participates in the active enforcement boundary.
+  - surface: tests/unit/test-harness-boundary.py
+    lane: main-session-direct
+    reason: DEC-174; direct test of the shared authorization boundary.
+  - surface: tests/integration/test-inflight-registry.py
+    lane: main-session-direct
+    reason: DEC-174; direct integration test of runtime claim authorization.
+  - surface: .claude/skills/harness/bin/dispatch-guard.py
+    lane: main-session-direct
+    reason: DEC-174; dispatch enforcement cannot be changed through the enforcement path.
+  - surface: .omp/extensions/harness-hooks.ts
+    lane: main-session-direct
+    reason: DEC-174; active OMP pre-write adapter.
+  - surface: .claude/skills/harness/bin/check-domain.py
+    lane: main-session-direct
+    reason: DEC-174; Write/Edit enforcement gate.
+  - surface: .claude/skills/harness/bin/bash-write-guard.py
+    lane: main-session-direct
+    reason: DEC-174; Bash enforcement gate.
+  - surface: tests/integration/test-dispatch-guard.py
+    lane: main-session-direct
+    reason: DEC-174; direct test of dispatch enforcement.
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: DEC-174; direct test of the active pre-write adapter.
+  - surface: tests/integration/test-check-domain-claims.py
+    lane: main-session-direct
+    reason: DEC-174; direct test of Write/Edit authorization.
+  - surface: tests/integration/test-check-domain-grant.py
+    lane: main-session-direct
+    reason: DEC-174; direct test of Write/Edit authorization.
+  - surface: tests/integration/test-bash-write-guard.py
+    lane: main-session-direct
+    reason: DEC-174; direct test of Bash authorization.
+  - surface: tests/manual/probe-inflight-claim-lifecycle.py
+    lane: main-session-direct
+    reason: locally-run OMP evidence for SC-04 (BUG-1898's live merge-gate probe); run, not changed.
+  - surface: .harness/harness/docs/DECISIONS.md
+    lane: main-session-direct
+    reason: the main session owns the resumed feature decision record.
+  - surface: .harness/harness/docs/DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: generated index for the resumed feature decision record.
+
+decisions:
+  - id: D-01
+    choice: The factory dispatcher writes a `HARNESS-REPOSITORY` locator beside `HARNESS-FEATURE`, carrying the owner-qualified repository from its factory claim; dispatch-guard validates both locators against that claim, the fleet, and the repository-tier feature artifact before recording a claim.
+    because: A feature id can exist under multiple product segments, while cwd and ordinary prompt prose are not authority. The repository header is only a locator into independently validated factory state.
+    dec: none
+  - id: D-02
+    choice: A governed factory-product dispatch creates a repository-bound claim before spawn, binds the dispatch to the host-provided parent runtime id in the trusted task hook, and authorizes the child only when OMP supplies a matching child id and immediate-parent id. No bearer token, prompt secret, caller-authored runtime id, or post-completion task result participates in write authority.
+    because: The pinned OMP runtime now propagates project extensions to children and supplies immutable child and immediate-parent lineage at every child callback, so authority can remain host-derived from the first governed mutation.
+    dec: DEC-204
+  - id: D-03
+    choice: Both guard routes call one shared repository-and-runtime-lineage decision after target classification. Repository metadata and target classification remain in completed T-01; dispatch claim creation, trusted lineage binding, guard wiring, and enforcement tests are main-session-direct under DEC-174.
+    because: Duplicate lineage or repository comparators would drift, while DEC-189 requires one target-side two-base classification and DEC-174 keeps the active enforcement path outside the mechanism it enforces.
+    dec: DEC-189
+  - id: D-04
+    choice: A factory-product target requires the host-provided child and immediate-parent ids to resolve exactly one active claim with the same repository, feature, role, expiry, and release state. Missing lineage, unknown or mismatched identity, stale or released claim, cross-repository/feature/role state, unreadable registry, and ambiguity refuse with exit 2 and no wildcard fallback.
+    because: Exact host-derived lineage preserves concurrent same-role and nested work without transporting a reusable credential or trusting prompt content.
+    dec: DEC-218
+  - id: D-05
+    choice: Keep `check-domain.py --resolve` ahead of runtime-lineage payload processing and repository-binding lookup.
+    because: DEC-179 makes it a plan-time ownership resolver, not a dispatch authorization check.
+    dec: DEC-179
+  - id: D-06
+    choice: Keep DEC-218 claim-set worktree membership for self-development and checkout liveness separate from factory repository authority.
+    because: Agents may work independently in separate worktrees within one declared product without crossing repository boundaries.
+    dec: DEC-218
+
+tasks:
+  - id: T-01
+    title: Model repository-bound claim metadata and dispatch correlation
+    traces: [SC-01, SC-02, SC-07, SC-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: null
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py
+      - .claude/skills/harness/bin/harness_boundary.py
+      - tests/unit/test-harness-boundary.py
+      - tests/integration/test-inflight-registry.py
+    verify: python3 tests/unit/test-harness-boundary.py && python3 tests/integration/test-inflight-registry.py
+    intent: >-
+      Write failing tests first. Add optional repository identity and dispatch-correlation metadata to factory claims without changing repository-less records. Bind exact child and immediate-parent runtime lineage to one active repository claim, keep same-repository concurrent claims independently attachable, and expose repository-binding states for allowed, missing, mismatched, stale, released, and unreadable claims. Preserve two-base classification, worktree protections, and repository-less behavior.
+    execution_reason: DEC-174; the registry and shared boundary participate in the active enforcement boundary.
+
+  - id: T-02
+    title: Bind governed dispatches to OMP runtime lineage
+    traces: [SC-03, SC-04, SC-06, SC-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174; this changes dispatch enforcement, the active OMP pre-write adapter, the registry authorization path, and their tests.
+    depends_on: [T-01]
+    status: done
+    files:
+    - .claude/skills/harness/bin/inflight_registry.py
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .omp/extensions/harness-hooks.ts
+    - tests/unit/test-harness-boundary.py
+    - tests/integration/test-inflight-registry.py
+    - tests/integration/test-dispatch-guard.py
+    - tests/unit/omp-hooks.test.ts
+    verify: python3 tests/unit/test-harness-boundary.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py
+    intent: >-
+      Write failing tests first. Reject caller-authored runtime-lineage fields. Validate HARNESS-REPOSITORY and HARNESS-FEATURE against the factory claim, fleet, and repository-tier feature artifact; atomically create the repository-bound claim before spawn. In the trusted OMP task hook, bind that claim to the host-provided parent id and, when available, the named child id; otherwise let the child's first authorized callback attach only to the unique parent-bound claim. Pass repository identity in the claim receipt, fail closed with a distinct collision category when a child or parent identity is already bound to another active dispatch, release the exact claim on completion, and preserve non-Harness pass-through behavior. Prove two same-role children on one product feature remain independently authorized and two independent Kaya feature worktrees retain their existing authorization. Rerun the shared boundary suite after the final registry mutation. Extend the live runtime-lineage probe to launch two concurrent same-role children and require distinct child ids under the correct immediate parent.
+
+  - id: T-03
+    title: Enforce exact repository binding on Write and Edit
+    traces: [SC-01, SC-02, SC-05, SC-06, SC-07, SC-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174; this changes the Write/Edit enforcement gate and its tests.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-domain.py
+      - tests/integration/test-check-domain-claims.py
+      - tests/integration/test-check-domain-grant.py
+    verify: python3 tests/integration/test-check-domain-claims.py && python3 tests/integration/test-check-domain-grant.py
+    intent: >-
+      Write failing tests first. For governed Write and Edit payloads, combine the host-provided child and immediate-parent ids with the target's classified repository and require one exact active claim before any wildcard grant can allow the write. Render each missing, reused-by-another-active-dispatch, mismatched, stale, released, unreadable, or ambiguous state as actionable exit 2 without exposing registry details. Preserve `--resolve`, the main-session exemption, Harness self-development, two-base routing, worktree and wrong-checkout protections, repeated valid writes in one active claim, two independent Kaya feature worktrees, and two same-role children on one product feature. Prove concurrent same-role agents can write only their own products.
+
+  - id: T-04
+    title: Enforce the same repository binding on detectable Bash writes
+    traces: [SC-01, SC-02, SC-06, SC-07, SC-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174; this changes the Bash enforcement gate and its tests.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.py
+      - tests/integration/test-bash-write-guard.py
+    verify: python3 tests/integration/test-bash-write-guard.py
+    intent: >-
+      Write failing tests first. Apply the same shared exact child, parent, repository, feature, and role claim decision to every detectable Bash target after classification and before existing product or outside-root continuation. Preserve command extraction, location and worktree refusals, main-session behavior, Harness self-development, repeated valid writes, two independent Kaya feature worktrees, and two same-role children on one product feature. Prove the concurrent two-product matrix plus missing, reused-by-another-active-dispatch, mismatched, stale, released, unreadable, ambiguous, and cross-product refusals.
+
+  - id: T-05
+    title: Record lineage-bound repository authority
+    traces: [SC-03, SC-07, SC-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_agent: null
+    depends_on: [T-03, T-04]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: >-
+      Append the next decision recording the validated repository locator, pre-spawn repository-bound claim, host-provided child and immediate-parent OMP lineage, unique first-write attachment, shared fail-closed guard validation, nested-dispatch isolation, and immediate release revocation. Record that prompt text, payload fields, environment variables, task names, and task results are not authority. Preserve factory-only scope, zero-target Edit refusal, and unchanged resolver, main-session, and self-development behavior; cite DEC-174, DEC-179, DEC-189, DEC-193, DEC-204, and DEC-218, then regenerate the index.
+    execution_reason: The main session owns the resumed feature's governing decision record.
+  - id: T-06
+    title: Port repository binding onto BUG-1898 run-start lineage
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-06
+    - SC-07
+    - SC-08
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_agent: null
+    execution_reason: DEC-174; this changes the registry, dispatch guard, both write guards, the OMP adapter, and their tests.
+    depends_on:
+    - T-05
+    status: done
+    files:
+    - .claude/skills/harness/bin/inflight_registry.py
+    - .claude/skills/harness/bin/harness_boundary.py
+    - .claude/skills/harness/bin/check-domain.py
+    - .claude/skills/harness/bin/dispatch-guard.py
+    - .omp/extensions/harness-hooks.ts
+    - tests/integration/test-inflight-registry.py
+    - tests/integration/test-dispatch-guard.py
+    - tests/integration/test-check-domain-claims.py
+    - tests/integration/test-check-domain-grant.py
+    - tests/integration/test-bash-write-guard.py
+    - tests/unit/omp-hooks.test.ts
+    verify: python3 tests/unit/test-harness-boundary.py && bun test tests/unit/omp-hooks.test.ts && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-dispatch-guard.py && python3 tests/integration/test-check-domain-claims.py && python3 tests/integration/test-check-domain-grant.py && python3 tests/integration/test-bash-write-guard.py
+    intent: 'Merge current main and keep only the repository layer on top of BUG-1898''s run-start claim. The dispatch receipt records the validated repository segment; the run-start claim binds the child''s host runtime id to that receipt; authorize and attach stay main''s. Drop this branch''s parallel attach/authorize state machine, the HARNESS-REPOSITORY adapter marker, the unconsumed dispatch-correlation record and receipt field, and the deleted runtime-lineage probe. classify() attaches the selected base''s repository identity to every allow, shared, and deny verdict; both guards keep calling repository_binding. Prove through run-start: unique receipt binding, same-persona siblings, mismatched repository and parent, missing lineage, a created claim with no repository, runtime-id collision, release, and an unreadable registry.'
