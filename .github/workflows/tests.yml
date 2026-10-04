@@ -197,6 +197,34 @@ jobs:
           echo "route gate entered ${examined} feature dir(s), checked ${plans} live plan(s); checker exit ${rc}"
           exit "$rc"
 
+      # THE CANONICAL-READER AUDIT (#1993). BUG-285's inventory of every parse call under bin/
+      # was checked only by `test-check-plan-routes.py --canonical-reader-self-test`, which no
+      # runner invokes, so the FEAT-62/69/70 package splits left it 72 findings stale and nothing
+      # turned red. This step runs the permanent audit on every PR: a parse call added, moved or
+      # removed under bin/ without its row in tests/integration/canonical-reader-classification.json
+      # fails here. Same job as the route gate, for the branch-protection reason recorded above.
+      #
+      # THE REGEX IS COUPLED to `_run_canonical_reader_audit`'s summary `print()` in
+      # check-plan-routes.py, which carries a comment pointing back here. No summary means the
+      # audit could not run; 0 Python files means discovery found nothing, never a clean tree.
+      - name: Canonical-reader audit
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: |
+          rc=0
+          out=$(python3 .agents/skills/harness/bin/check-plan-routes.py --canonical-reader-audit 2>&1) || rc=$?
+          printf '%s\n' "$out"
+          scanned=$(printf '%s\n' "$out" | sed -nE 's/^[0-9]+ unresolved reader site\(s\) across ([0-9]+) Python file\(s\)$/\1/p' | tail -1)
+          if [ -z "$scanned" ]; then
+            echo "::error::check-plan-routes.py --canonical-reader-audit printed no summary line and exited ${rc} — the AUDIT COULD NOT RUN. Nothing was checked." >&2
+            exit 1
+          fi
+          if [ "$scanned" -eq 0 ]; then
+            echo "::error::the canonical-reader audit scanned 0 Python files under .claude/skills/harness/bin/ — discovery did not run, which is not a clean tree." >&2
+            exit 1
+          fi
+          exit "$rc"
+
       - name: Instruction-path gate
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}

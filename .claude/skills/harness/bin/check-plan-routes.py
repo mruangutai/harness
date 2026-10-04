@@ -1573,6 +1573,8 @@ def _run_canonical_reader_audit(root):
         print(f"CLASSIFICATION {finding}")
     for violation in result["violations"]:
         print(f"VIOLATION {violation}")
+    # COUPLED: the `Canonical-reader audit` step in .github/workflows/tests.yml parses this
+    # summary line for its scanned-file count. Change both together.
     print(
         f"{result['unresolved']} unresolved reader site(s) across "
         f"{len(result['scanned_files'])} Python file(s)")
